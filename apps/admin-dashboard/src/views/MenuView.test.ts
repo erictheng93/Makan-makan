@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { mount } from "@vue/test-utils";
 import { computed, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -5,6 +7,7 @@ import MenuView from "./MenuView.vue";
 
 const importMenuItems = vi.fn();
 const fetchMenu = vi.fn();
+const routeQuery = {} as Record<string, unknown>;
 const categories = ref([
   { id: 1, name: "主食", sortOrder: 0 },
   { id: 2, name: "飲料", sortOrder: 1 },
@@ -20,7 +23,7 @@ vi.mock("@/i18n", () => ({
 }));
 
 vi.mock("vue-router", () => ({
-  useRoute: () => ({ query: {} }),
+  useRoute: () => ({ query: routeQuery }),
 }));
 
 vi.mock("@/composables/useCurrency", () => ({
@@ -52,8 +55,29 @@ vi.mock("@/composables/useMenuManagement", () => ({
 describe("MenuView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.keys(routeQuery).forEach((key) => delete routeQuery[key]);
     selectedCategoryId.value = null;
     menuItems.value = [];
+  });
+
+  it("shows market search context when opened from a product gap", () => {
+    routeQuery.source = "market-gap";
+    routeQuery.gap = "products";
+
+    const wrapper = mount(MenuView, {
+      global: {
+        stubs: {
+          CategoryPanel: true,
+          CategoryEditForm: true,
+          MenuItemCard: true,
+          VirtualMenuGrid: true,
+        },
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="market-product-gap-context"]').text(),
+    ).toContain("市場搜尋缺商品");
   });
 
   it("imports menu items from CSV with a preview", async () => {

@@ -1900,7 +1900,10 @@ function manageVendorGap(
 ) {
   authStore.selectRestaurant(vendor.restaurantId, vendor.name);
   if (target === "products") {
-    router.push({ name: "Menu" });
+    router.push({
+      name: "Menu",
+      query: { source: "market-gap", gap: "products" },
+    });
     return;
   }
 

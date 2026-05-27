@@ -124,6 +124,16 @@
         <section
           class="mb-4 rounded-2xl bg-white px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
         >
+          <div
+            v-if="isMarketProductGapContext"
+            data-testid="market-product-gap-context"
+            class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+          >
+            <h3 class="text-[15px] font-bold text-amber-900">市場搜尋缺商品</h3>
+            <p class="mt-1 text-[13px] leading-5 text-amber-800">
+              新增可販售餐點或商品並保持上架後，這間店鋪會更容易出現在夜市/商圈搜尋結果。
+            </p>
+          </div>
           <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
             <div>
               <h3 class="text-[15px] font-bold text-[#1C1C1E]">批次匯入商品</h3>
@@ -615,6 +625,9 @@ const filteredItems = computed(() => {
 
 const availableCount = computed(
   () => menuItems.value.filter((i) => i.isAvailable).length,
+);
+const isMarketProductGapContext = computed(
+  () => route.query.source === "market-gap" && route.query.gap === "products",
 );
 const menuItemImportPreview = computed(() => {
   if (!menuItemImportText.value.trim()) {

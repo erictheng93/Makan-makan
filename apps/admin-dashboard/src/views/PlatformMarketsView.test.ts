@@ -209,7 +209,10 @@ describe("PlatformMarketsView", () => {
       .trigger("click");
 
     expect(selectRestaurant).toHaveBeenCalledWith("restaurant-1", "缺商品攤");
-    expect(push).toHaveBeenCalledWith({ name: "Menu" });
+    expect(push).toHaveBeenCalledWith({
+      name: "Menu",
+      query: { source: "market-gap", gap: "products" },
+    });
 
     await wrapper
       .get('[data-testid="manage-services-restaurant-1"]')
