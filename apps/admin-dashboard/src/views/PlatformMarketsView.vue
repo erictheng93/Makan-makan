@@ -1123,6 +1123,81 @@
               {{ issue.message }}
             </li>
           </ul>
+          <div
+            v-if="
+              hasCatalogCoverageGapVendors(vendorImportResult.catalogReadiness)
+            "
+            data-testid="vendor-import-catalog-gaps"
+            class="mt-3 space-y-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-gray-700 ring-1 ring-green-200"
+          >
+            <p class="font-medium text-gray-900">匯入後補齊</p>
+            <div
+              v-if="
+                vendorImportResult.catalogReadiness?.missingProductVendors
+                  ?.length
+              "
+            >
+              <span class="font-medium">缺商品：</span>
+              {{
+                vendorGapNames(
+                  vendorImportResult.catalogReadiness.missingProductVendors,
+                )
+              }}
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <button
+                  v-for="vendor in vendorImportResult.catalogReadiness
+                    .missingProductVendors"
+                  :key="`import-product-${vendor.restaurantId}`"
+                  type="button"
+                  :data-testid="`vendor-import-manage-products-${vendor.restaurantId}`"
+                  class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                  @click="manageImportedVendorGap(vendor, 'products')"
+                >
+                  補商品
+                </button>
+              </div>
+            </div>
+            <div
+              v-if="
+                vendorImportResult.catalogReadiness?.missingServiceVendors
+                  ?.length
+              "
+            >
+              <span class="font-medium">缺服務：</span>
+              {{
+                vendorGapNames(
+                  vendorImportResult.catalogReadiness.missingServiceVendors,
+                )
+              }}
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <button
+                  v-for="vendor in vendorImportResult.catalogReadiness
+                    .missingServiceVendors"
+                  :key="`import-service-${vendor.restaurantId}`"
+                  type="button"
+                  :data-testid="`vendor-import-manage-services-${vendor.restaurantId}`"
+                  class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-200"
+                  @click="manageImportedVendorGap(vendor, 'services')"
+                >
+                  補服務
+                </button>
+              </div>
+            </div>
+            <div
+              v-if="
+                vendorImportResult.catalogReadiness
+                  ?.missingSearchEntrypointVendors?.length
+              "
+            >
+              <span class="font-medium">缺搜尋入口：</span>
+              {{
+                vendorGapNames(
+                  vendorImportResult.catalogReadiness
+                    .missingSearchEntrypointVendors,
+                )
+              }}
+            </div>
+          </div>
         </div>
         <div
           v-if="vendorImportDryRunResult"
@@ -1458,6 +1533,7 @@ import {
   type ImportMarketVendorInput,
   type ImportMarketVendorsResult,
   type MarketCatalogGapVendor,
+  type MarketCatalogCoverage,
   type MarketAreaReadinessSummary,
   type MarketListItem,
   type MarketVendor,
@@ -2054,6 +2130,16 @@ function hasCatalogGapVendors(market: MarketListItem) {
   );
 }
 
+function hasCatalogCoverageGapVendors(
+  coverage: MarketCatalogCoverage | undefined,
+) {
+  return (
+    Boolean(coverage?.missingProductVendors?.length) ||
+    Boolean(coverage?.missingServiceVendors?.length) ||
+    Boolean(coverage?.missingSearchEntrypointVendors?.length)
+  );
+}
+
 function hasCustomerEmptyStateGap(market: MarketListItem) {
   return marketHasNoVendors(market) || marketHasNoSearchableCatalog(market);
 }
@@ -2088,6 +2174,14 @@ function manageVendorGap(
       marketSlug: market.slug,
     },
   });
+}
+
+function manageImportedVendorGap(
+  vendor: MarketCatalogGapVendor,
+  target: "products" | "services",
+) {
+  if (!editingMarket.value) return;
+  manageVendorGap(vendor, target, editingMarket.value);
 }
 
 function startEditing(market: MarketListItem) {

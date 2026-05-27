@@ -971,6 +971,36 @@ describe("PlatformMarketsView", () => {
         totalCount: 7,
         issues: [{ key: "products", severity: "required" }],
       },
+      catalogReadiness: {
+        searchableProductCount: 0,
+        publicServiceCount: 0,
+        vendorsWithSearchableProducts: 0,
+        vendorsMissingSearchableProducts: 1,
+        vendorsWithPublicServices: 0,
+        vendorsMissingPublicServices: 1,
+        vendorsMissingSearchEntrypoints: 1,
+        missingProductVendors: [
+          {
+            restaurantId: "imported-vendor-1",
+            name: "匯入缺商品攤",
+            stallNumber: "B-01",
+          },
+        ],
+        missingServiceVendors: [
+          {
+            restaurantId: "imported-vendor-1",
+            name: "匯入缺商品攤",
+            stallNumber: "B-01",
+          },
+        ],
+        missingSearchEntrypointVendors: [
+          {
+            restaurantId: "imported-vendor-1",
+            name: "匯入缺商品攤",
+            stallNumber: "B-01",
+          },
+        ],
+      },
       issues: [
         {
           index: 1,
@@ -1027,6 +1057,31 @@ describe("PlatformMarketsView", () => {
     expect(
       wrapper.get('[data-testid="vendor-import-result-issues"]').text(),
     ).toContain("新匯入店鋪");
+    const catalogGaps = wrapper.get(
+      '[data-testid="vendor-import-catalog-gaps"]',
+    );
+    expect(catalogGaps.text()).toContain("缺商品");
+    expect(catalogGaps.text()).toContain("缺服務");
+    expect(catalogGaps.text()).toContain("缺搜尋入口");
+    expect(catalogGaps.text()).toContain("匯入缺商品攤 (B-01)");
+
+    await wrapper
+      .get('[data-testid="vendor-import-manage-products-imported-vendor-1"]')
+      .trigger("click");
+
+    expect(selectRestaurant).toHaveBeenCalledWith(
+      "imported-vendor-1",
+      "匯入缺商品攤",
+    );
+    expect(push).toHaveBeenCalledWith({
+      name: "Menu",
+      query: {
+        source: "market-gap",
+        gap: "products",
+        marketName: "逢甲夜市",
+        marketSlug: "fengjia",
+      },
+    });
     expect(wrapper.text()).toContain("公開頁狀態： 公開頁完整度 71%");
   });
 
