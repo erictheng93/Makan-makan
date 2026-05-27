@@ -586,6 +586,102 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("一中商圈");
   });
 
+  it("drills from an area catalog gap into the matching market worklist", async () => {
+    vi.mocked(marketsService.listPlatformReadiness).mockResolvedValue([
+      {
+        id: "market-products",
+        slug: "products-gap",
+        name: "西屯缺商品市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 2,
+        catalogCoverage: {
+          searchableProductCount: 1,
+          publicServiceCount: 2,
+          vendorsWithSearchableProducts: 1,
+          vendorsMissingSearchableProducts: 1,
+          vendorsWithPublicServices: 2,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 86,
+          completedCount: 6,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
+      },
+      {
+        id: "market-services",
+        slug: "services-gap",
+        name: "西屯缺服務市場",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 2,
+        catalogCoverage: {
+          searchableProductCount: 2,
+          publicServiceCount: 0,
+          vendorsWithSearchableProducts: 2,
+          vendorsMissingSearchableProducts: 0,
+          vendorsWithPublicServices: 1,
+          vendorsMissingPublicServices: 1,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 86,
+          completedCount: 6,
+          totalCount: 7,
+          issues: [{ key: "services", severity: "recommended" }],
+        },
+      },
+      {
+        id: "market-north-products",
+        slug: "north-products-gap",
+        name: "北區缺商品市場",
+        type: "commercial_district",
+        city: "台中市",
+        district: "北區",
+        vendorCount: 1,
+        catalogCoverage: {
+          searchableProductCount: 0,
+          publicServiceCount: 1,
+          vendorsWithSearchableProducts: 0,
+          vendorsMissingSearchableProducts: 1,
+          vendorsWithPublicServices: 1,
+          vendorsMissingPublicServices: 0,
+          missingProductVendors: [],
+          missingServiceVendors: [],
+        },
+        publicReadiness: {
+          ready: false,
+          score: 71,
+          completedCount: 5,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
+      },
+    ]);
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper
+      .findAll('[data-testid="area-gap-missing-products"]')[0]
+      .trigger("click");
+
+    expect(
+      wrapper.get('[data-testid="selected-area-filter"]').text(),
+    ).toContain("台中市 · 西屯區");
+    expect(wrapper.text()).toContain("西屯缺商品市場");
+    expect(wrapper.text()).not.toContain("西屯缺服務市場");
+    expect(wrapper.text()).not.toContain("北區缺商品市場");
+  });
+
   it("initializes and syncs the selected area through the URL query", async () => {
     routeQuery.areaCity = "台中市";
     routeQuery.areaDistrict = "北區";

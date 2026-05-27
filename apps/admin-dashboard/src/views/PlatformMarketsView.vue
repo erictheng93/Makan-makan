@@ -341,10 +341,11 @@
         <span class="text-xs text-gray-400">依總缺口排序</span>
       </div>
       <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <button
+        <div
           v-for="area in areaReadiness.slice(0, 6)"
           :key="`${area.city}-${area.district}`"
-          type="button"
+          role="button"
+          tabindex="0"
           data-testid="area-readiness-row"
           class="rounded-lg border p-3 text-left transition-colors"
           :class="
@@ -353,6 +354,8 @@
               : 'border-gray-200 hover:border-primary-200 hover:bg-gray-50'
           "
           @click="selectArea(area)"
+          @keydown.enter.prevent="selectArea(area)"
+          @keydown.space.prevent="selectArea(area)"
         >
           <div class="flex items-start justify-between gap-3">
             <div>
@@ -390,8 +393,22 @@
             </div>
           </div>
           <div class="mt-3 flex flex-wrap gap-2 text-xs text-amber-700">
-            <span>缺商品 {{ area.vendorsMissingSearchableProducts }}</span>
-            <span>缺服務 {{ area.vendorsMissingPublicServices }}</span>
+            <button
+              type="button"
+              data-testid="area-gap-missing-products"
+              class="rounded bg-amber-50 px-2 py-1 font-medium text-amber-800 hover:bg-amber-100"
+              @click.stop="selectAreaGap(area, 'missingProducts')"
+            >
+              缺商品 {{ area.vendorsMissingSearchableProducts }}
+            </button>
+            <button
+              type="button"
+              data-testid="area-gap-missing-services"
+              class="rounded bg-amber-50 px-2 py-1 font-medium text-amber-800 hover:bg-amber-100"
+              @click.stop="selectAreaGap(area, 'missingServices')"
+            >
+              缺服務 {{ area.vendorsMissingPublicServices }}
+            </button>
           </div>
           <div
             v-if="
@@ -399,14 +416,26 @@
             "
             class="mt-2 flex flex-wrap gap-2 text-xs text-red-700"
           >
-            <span v-if="area.marketsWithoutVendors">
+            <button
+              v-if="area.marketsWithoutVendors"
+              type="button"
+              data-testid="area-gap-empty-vendors"
+              class="rounded bg-red-50 px-2 py-1 font-medium text-red-800 hover:bg-red-100"
+              @click.stop="selectAreaGap(area, 'emptyVendors')"
+            >
               無店鋪 {{ area.marketsWithoutVendors }}
-            </span>
-            <span v-if="area.marketsWithoutSearchableCatalog">
+            </button>
+            <button
+              v-if="area.marketsWithoutSearchableCatalog"
+              type="button"
+              data-testid="area-gap-empty-catalog"
+              class="rounded bg-red-50 px-2 py-1 font-medium text-red-800 hover:bg-red-100"
+              @click.stop="selectAreaGap(area, 'emptyCatalog')"
+            >
               無搜尋內容 {{ area.marketsWithoutSearchableCatalog }}
-            </span>
+            </button>
           </div>
-        </button>
+        </div>
       </div>
     </section>
 
@@ -1567,6 +1596,11 @@ function isSelectedArea(area: MarketAreaKey) {
 function selectArea(area: MarketAreaKey) {
   selectedArea.value = { city: area.city, district: area.district };
   syncAreaQuery();
+}
+
+function selectAreaGap(area: MarketAreaKey, filter: MarketReadinessFilter) {
+  readinessFilter.value = filter;
+  selectArea(area);
 }
 
 function clearArea() {
