@@ -29,6 +29,9 @@
             <span v-if="dish.marketVendor?.stallNumber" class="text-gray-400">
               · 攤位 {{ dish.marketVendor.stallNumber }}
             </span>
+            <span v-if="distanceLabel" class="text-gray-400">
+              · {{ distanceLabel }}
+            </span>
           </p>
           <div class="mt-2 flex items-center gap-2">
             <span
@@ -140,4 +143,10 @@ const productPriceLabel = computed(() => {
   if (props.dish.priceLabel) return props.dish.priceLabel;
   return formatPrice(props.dish.price);
 });
+
+const distanceLabel = computed(() =>
+  typeof props.dish.distanceKm === "number"
+    ? `${props.dish.distanceKm.toFixed(1)} km`
+    : "",
+);
 </script>

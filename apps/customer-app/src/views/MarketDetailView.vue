@@ -305,7 +305,7 @@ type MarketSearchState = {
   resultKind: MarketSearchResultKind;
   takeaway: boolean;
   delivery: boolean;
-  sortBy: "price_asc" | "price_desc" | "popular" | "open_now";
+  sortBy: MarketSearchSort;
 };
 type MarketSearchResultKind =
   | "all"
@@ -313,6 +313,12 @@ type MarketSearchResultKind =
   | "product"
   | "service"
   | "vendor";
+type MarketSearchSort =
+  | "price_asc"
+  | "price_desc"
+  | "popular"
+  | "open_now"
+  | "distance";
 
 function firstQueryString(value: unknown) {
   if (Array.isArray(value)) {
@@ -326,7 +332,13 @@ function queryBoolean(value: unknown) {
 }
 
 function isSortBy(value: string): value is MarketSearchState["sortBy"] {
-  return ["price_asc", "price_desc", "popular", "open_now"].includes(value);
+  return [
+    "price_asc",
+    "price_desc",
+    "popular",
+    "open_now",
+    "distance",
+  ].includes(value);
 }
 
 function isServiceType(

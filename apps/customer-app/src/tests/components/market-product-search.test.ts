@@ -36,6 +36,11 @@ vi.mock("@/services/discoveryApi", () => ({
 
 describe("MarketProductSearch", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: undefined,
+    });
     vi.mocked(discoveryApi.searchDishes).mockResolvedValue({
       results: [],
       total: 0,
@@ -526,6 +531,88 @@ describe("MarketProductSearch", () => {
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toMatchObject({
       sortBy: "open_now",
     });
+  });
+
+  it("sorts market catalog service and vendor results by current distance", async () => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((success) =>
+          success({
+            coords: {
+              latitude: 24.1764,
+              longitude: 120.6466,
+            },
+          }),
+        ),
+      },
+    });
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [dish({ dishName: "最近雞排", distanceKm: 0.12 })],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [service({ name: "最近代切", distanceKm: 0.2 })],
+      total: 1,
+    } as never);
+    vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
+      results: [restaurant({ name: "最近店鋪", distanceKm: 0.3 })],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-use-location"]')
+      .trigger("click");
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+        q: undefined,
+        marketId: "market-1",
+        categoryName: undefined,
+        sortBy: "distance",
+        lat: 24.1764,
+        lng: 120.6466,
+        radiusKm: 2,
+        takeaway: undefined,
+        delivery: undefined,
+        page: 1,
+        limit: 20,
+      });
+      expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+        q: undefined,
+        marketId: "market-1",
+        serviceType: undefined,
+        sortBy: "distance",
+        lat: 24.1764,
+        lng: 120.6466,
+        radiusKm: 2,
+        page: 1,
+        limit: 20,
+      });
+      expect(discoveryApi.browseRestaurants).toHaveBeenCalledWith({
+        q: undefined,
+        marketId: "market-1",
+        sortBy: "distance",
+        lat: 24.1764,
+        lng: 120.6466,
+        radiusKm: 2,
+        page: 1,
+        limit: 20,
+      });
+    });
+    expect(
+      wrapper.get('[data-testid="market-product-search-summary"]').text(),
+    ).toContain("排序：離我最近");
+    expect(wrapper.text()).toContain("0.1 km");
+    expect(wrapper.text()).toContain("0.2 km");
+    expect(wrapper.text()).toContain("0.3 km");
   });
 
   it("filters market catalog results to products", async () => {

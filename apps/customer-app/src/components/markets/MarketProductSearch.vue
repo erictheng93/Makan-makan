@@ -75,6 +75,15 @@
         />
         只看可外送
       </label>
+      <button
+        type="button"
+        data-testid="market-product-use-location"
+        class="inline-flex h-9 items-center gap-2 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue disabled:border-gray-300 disabled:text-gray-400"
+        :disabled="locating"
+        @click="useCurrentLocation"
+      >
+        {{ locating ? "定位中..." : "離我最近" }}
+      </button>
       <select
         v-if="
           resultKind !== 'service' &&
@@ -125,6 +134,7 @@
         <option value="price_desc">價格高到低</option>
         <option value="popular">熱門優先</option>
         <option value="open_now">營業中優先</option>
+        <option v-if="userLocation" value="distance">離我最近</option>
       </select>
     </form>
 
@@ -233,6 +243,9 @@
               >
                 · 攤位 {{ vendor.marketVendor.stallNumber }}
               </span>
+              <span v-if="distanceLabel(vendor)" class="text-gray-400">
+                · {{ distanceLabel(vendor) }}
+              </span>
             </p>
           </div>
           <span
@@ -313,6 +326,9 @@
                 class="text-gray-400"
               >
                 · 攤位 {{ service.marketVendor.stallNumber }}
+              </span>
+              <span v-if="distanceLabel(service)" class="text-gray-400">
+                · {{ distanceLabel(service) }}
               </span>
             </p>
           </div>
@@ -408,7 +424,7 @@ const props = withDefaults(
     initialResultKind?: ResultKind;
     initialTakeaway?: boolean;
     initialDelivery?: boolean;
-    initialSortBy?: "price_asc" | "price_desc" | "popular" | "open_now";
+    initialSortBy?: MarketProductSort;
   }>(),
   {
     categories: () => [],
@@ -437,7 +453,7 @@ const emit = defineEmits<{
       resultKind: ResultKind;
       takeaway: boolean;
       delivery: boolean;
-      sortBy: "price_asc" | "price_desc" | "popular" | "open_now";
+      sortBy: MarketProductSort;
     },
   ];
 }>();
@@ -451,9 +467,13 @@ const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
 );
 const resultKind = ref<ResultKind>(props.initialResultKind);
-const sortBy = ref<"price_asc" | "price_desc" | "popular" | "open_now">(
-  props.initialResultKind === "vendor" ? "price_asc" : props.initialSortBy,
+const sortBy = ref<MarketProductSort>(
+  props.initialResultKind === "vendor" || props.initialSortBy === "distance"
+    ? "price_asc"
+    : props.initialSortBy,
 );
+const userLocation = ref<{ lat: number; lng: number } | null>(null);
+const locating = ref(false);
 const loadedCategories = ref<string[]>([]);
 const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
 const results = ref<DishSearchResult[]>([]);
@@ -477,6 +497,12 @@ type ServiceTypeFilter =
   | "rental"
   | "activity";
 type ResultKind = "all" | "menu_item" | "product" | "service" | "vendor";
+type MarketProductSort =
+  | "price_asc"
+  | "price_desc"
+  | "popular"
+  | "open_now"
+  | "distance";
 const resultKindOptions: Array<{ value: ResultKind; label: string }> = [
   { value: "all", label: "全部" },
   { value: "menu_item", label: "餐點" },
@@ -506,14 +532,12 @@ const serviceTypeDefinitions: Array<{
 const serviceTypeLabels = new Map(
   serviceTypeDefinitions.map((option) => [option.value, option.label]),
 );
-const sortLabels: Record<
-  "price_asc" | "price_desc" | "popular" | "open_now",
-  string
-> = {
+const sortLabels: Record<MarketProductSort, string> = {
   price_asc: "價格低到高",
   price_desc: "價格高到低",
   popular: "熱門優先",
   open_now: "營業中優先",
+  distance: "離我最近",
 };
 
 const combinedResultCount = computed(
@@ -638,6 +662,14 @@ async function fetchResults({ append }: { append: boolean }) {
   hasSearched.value = true;
 
   try {
+    const locationFilters =
+      sortBy.value === "distance" && userLocation.value
+        ? {
+            lat: userLocation.value.lat,
+            lng: userLocation.value.lng,
+            radiusKm: 2,
+          }
+        : {};
     const [response, serviceResponse, vendorResponse] = await Promise.all([
       shouldSearchCatalog.value
         ? discoveryApi.searchDishes({
@@ -648,6 +680,7 @@ async function fetchResults({ append }: { append: boolean }) {
               : {}),
             categoryName: selectedCategory.value || undefined,
             sortBy: sortBy.value,
+            ...locationFilters,
             takeaway: takeawayOnly.value ? true : undefined,
             delivery: deliveryOnly.value ? true : undefined,
             page: page.value,
@@ -660,6 +693,7 @@ async function fetchResults({ append }: { append: boolean }) {
             marketId: props.marketId,
             serviceType: selectedServiceType.value || undefined,
             sortBy: sortBy.value,
+            ...locationFilters,
             ...(takeawayOnly.value ? { takeaway: true } : {}),
             ...(deliveryOnly.value ? { delivery: true } : {}),
             page: page.value,
@@ -670,7 +704,8 @@ async function fetchResults({ append }: { append: boolean }) {
         ? discoveryApi.browseRestaurants({
             q: trimmed || undefined,
             marketId: props.marketId,
-            sortBy: "popular",
+            sortBy: sortBy.value === "distance" ? "distance" : "popular",
+            ...locationFilters,
             ...(takeawayOnly.value ? { takeaway: true } : {}),
             ...(deliveryOnly.value ? { delivery: true } : {}),
             page: page.value,
@@ -769,6 +804,30 @@ function browseFallback(kind: "service" | "vendor") {
   submitSearch();
 }
 
+function useCurrentLocation() {
+  if (!navigator.geolocation || locating.value) return;
+
+  locating.value = true;
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      locating.value = false;
+      userLocation.value = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      sortBy.value = "distance";
+      submitSearch();
+    },
+    () => {
+      locating.value = false;
+      if (sortBy.value === "distance") {
+        sortBy.value = "price_asc";
+      }
+    },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
+  );
+}
+
 function emitSearchState() {
   emit("searchStateChange", {
     q: query.value.trim(),
@@ -819,6 +878,11 @@ function servicePriceLabel(service: ServiceSearchResult) {
     return formatPrice(service.priceCents / 100);
   }
   return "";
+}
+
+function distanceLabel(result: { distanceKm?: number }) {
+  if (typeof result.distanceKm !== "number") return "";
+  return `${result.distanceKm.toFixed(1)} km`;
 }
 
 onMounted(loadCategories);
