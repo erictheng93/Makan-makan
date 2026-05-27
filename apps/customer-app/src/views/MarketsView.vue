@@ -263,13 +263,26 @@ function marketTypeFromQuery(value: unknown) {
 
 function syncDirectoryQuery() {
   router.replace({
-    query: {
-      ...(query.value.trim() ? { q: query.value.trim() } : {}),
-      ...(city.value ? { city: city.value } : {}),
-      ...(district.value ? { district: district.value } : {}),
-      ...(marketType.value ? { type: marketType.value } : {}),
-    },
+    query: currentDirectoryQuery(),
   });
+}
+
+function currentDirectoryQuery() {
+  return {
+    ...(query.value.trim() ? { q: query.value.trim() } : {}),
+    ...(city.value ? { city: city.value } : {}),
+    ...(district.value ? { district: district.value } : {}),
+    ...(marketType.value ? { type: marketType.value } : {}),
+  };
+}
+
+function currentDirectoryPath() {
+  const searchParams = new URLSearchParams();
+  Object.entries(currentDirectoryQuery()).forEach(([key, value]) => {
+    searchParams.set(key, value);
+  });
+  const queryString = searchParams.toString();
+  return `/markets${queryString ? `?${queryString}` : ""}`;
 }
 
 async function loadAreas() {
@@ -306,7 +319,7 @@ function openMarket(market: MarketListItem) {
     name: "MarketDetail",
     params: { slug: market.slug },
     query: {
-      returnPath: route.fullPath,
+      returnPath: currentDirectoryPath(),
       returnLabel: "夜市與商圈",
     },
   });

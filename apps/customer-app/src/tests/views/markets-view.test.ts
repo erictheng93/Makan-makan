@@ -236,7 +236,33 @@ describe("MarketsView", () => {
       name: "MarketDetail",
       params: { slug: "fengjia" },
       query: {
-        returnPath: "/markets?q=夜市&city=台中市&district=西屯區",
+        returnPath: "/markets",
+        returnLabel: "夜市與商圈",
+      },
+    });
+  });
+
+  it("keeps active directory filters in the market detail return path", async () => {
+    routeQuery.q = "餐車";
+    routeQuery.city = "台中市";
+    routeQuery.district = "西屯區";
+    routeQuery.type = "commercial_district";
+    const store = marketsStore({
+      hasMarkets: true,
+      markets: [{ id: "m1", slug: "jingming", name: "精明商圈" }],
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="market-card"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "MarketDetail",
+      params: { slug: "jingming" },
+      query: {
+        returnPath:
+          "/markets?q=%E9%A4%90%E8%BB%8A&city=%E5%8F%B0%E4%B8%AD%E5%B8%82&district=%E8%A5%BF%E5%B1%AF%E5%8D%80&type=commercial_district",
         returnLabel: "夜市與商圈",
       },
     });
