@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dishCategoryQuerySchema,
   dishSearchQuerySchema,
+  restaurantBrowseQuerySchema,
   serviceSearchQuerySchema,
 } from "./validation";
 
@@ -57,5 +58,47 @@ describe("discovery query validation", () => {
       marketId: "market-1",
       sortBy: "open_now",
     });
+  });
+
+  it("accepts distance sorting when GPS coordinates are provided", () => {
+    expect(
+      dishSearchQuerySchema.parse({
+        marketId: "market-1",
+        lat: 24.1764,
+        lng: 120.6466,
+        sortBy: "distance",
+      }),
+    ).toMatchObject({
+      marketId: "market-1",
+      sortBy: "distance",
+    });
+
+    expect(
+      restaurantBrowseQuerySchema.parse({
+        marketId: "market-1",
+        lat: 24.1764,
+        lng: 120.6466,
+        sortBy: "distance",
+      }),
+    ).toMatchObject({
+      marketId: "market-1",
+      sortBy: "distance",
+    });
+  });
+
+  it("rejects distance sorting without GPS coordinates", () => {
+    expect(() =>
+      dishSearchQuerySchema.parse({
+        marketId: "market-1",
+        sortBy: "distance",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      restaurantBrowseQuerySchema.parse({
+        marketId: "market-1",
+        sortBy: "distance",
+      }),
+    ).toThrow();
   });
 });

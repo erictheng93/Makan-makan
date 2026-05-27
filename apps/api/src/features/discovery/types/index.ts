@@ -17,6 +17,7 @@ export interface DishSearchResult {
   menuUrl: string;
   menuItemUrl: string;
   serviceItemsUrl: string;
+  distanceKm?: number;
   marketVendor?: MarketVendorContext;
 }
 
@@ -36,6 +37,7 @@ export interface RestaurantListItem {
   detailUrl: string;
   menuUrl: string;
   serviceItemsUrl: string;
+  distanceKm?: number;
   marketVendor?: MarketVendorContext;
 }
 
@@ -94,7 +96,13 @@ export interface SearchFilters {
     | "activity";
   cuisineType?: string;
   priceRange?: number;
-  sortBy?: "rating" | "popular" | "price_asc" | "price_desc" | "open_now";
+  sortBy?:
+    | "rating"
+    | "popular"
+    | "price_asc"
+    | "price_desc"
+    | "open_now"
+    | "distance";
   page?: number;
   limit?: number;
 }

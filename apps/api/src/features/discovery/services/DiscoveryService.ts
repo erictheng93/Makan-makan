@@ -85,8 +85,12 @@ export class DiscoveryService {
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
+    const geoFilter = this.getGeoFilter(filters);
     const requiresPostFilterPagination = Boolean(
-      filters.openNow || filters.sortBy === "open_now",
+      filters.openNow ||
+      geoFilter ||
+      filters.sortBy === "open_now" ||
+      filters.sortBy === "distance",
     );
     const queryLimit = requiresPostFilterPagination
       ? POST_FILTER_SCAN_LIMIT
@@ -138,7 +142,6 @@ export class DiscoveryService {
         )!,
       );
     }
-    const geoFilter = this.getGeoFilter(filters);
     if (geoFilter) {
       baseConditions.push(
         gte(dishSearchIndex.latitude, geoFilter.box.southLat),
@@ -317,6 +320,14 @@ export class DiscoveryService {
       menuUrl: this.restaurantMenuUrl(row.restaurantId),
       menuItemUrl: this.menuItemUrl(row.menuItemId),
       serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
+      ...(geoFilter && row.latitude != null && row.longitude != null
+        ? {
+            distanceKm: this.resultDistanceKm(geoFilter, {
+              latitude: row.latitude,
+              longitude: row.longitude,
+            }),
+          }
+        : {}),
       marketVendor: this.marketVendorContext(row),
     }));
 
@@ -336,6 +347,9 @@ export class DiscoveryService {
     if (filters.openNow) {
       results = results.filter((r) => r.isOpen);
     }
+    if (filters.sortBy === "distance") {
+      results = this.sortDistanceResultsFirst(results);
+    }
     if (filters.sortBy === "open_now") {
       results = this.sortOpenResultsFirst(results);
     }
@@ -346,6 +360,9 @@ export class DiscoveryService {
     }
     if (requiresPostFilterPagination) {
       if (filters.openNow) {
+        total = results.length;
+      }
+      if (geoFilter) {
         total = results.length;
       }
       results = results.slice(offset, offset + limit);
@@ -457,7 +474,10 @@ export class DiscoveryService {
 
     const offset = (page - 1) * limit;
     const requiresPostFilterPagination = Boolean(
-      filters.openNow || geoFilter || filters.sortBy === "open_now",
+      filters.openNow ||
+      geoFilter ||
+      filters.sortBy === "open_now" ||
+      filters.sortBy === "distance",
     );
     const queryLimit = requiresPostFilterPagination
       ? POST_FILTER_SCAN_LIMIT
@@ -575,6 +595,14 @@ export class DiscoveryService {
         detailUrl: this.restaurantDetailUrl(row.id),
         menuUrl: this.restaurantMenuUrl(row.id),
         serviceItemsUrl: this.restaurantServiceItemsUrl(row.id),
+        ...(geoFilter && row.latitude != null && row.longitude != null
+          ? {
+              distanceKm: this.resultDistanceKm(geoFilter, {
+                latitude: row.latitude,
+                longitude: row.longitude,
+              }),
+            }
+          : {}),
         ...(marketVendor ? { marketVendor } : {}),
       };
     });
@@ -613,6 +641,9 @@ export class DiscoveryService {
     }
     if (filters.openNow) {
       filtered = filtered.filter((r) => r.isOpen);
+    }
+    if (filters.sortBy === "distance") {
+      filtered = this.sortDistanceResultsFirst(filtered);
     }
     if (filters.sortBy === "open_now") {
       filtered = this.sortOpenResultsFirst(filtered);
@@ -1809,6 +1840,26 @@ export class DiscoveryService {
       asc(restaurantServiceItems.sortOrder),
       asc(restaurantServiceItems.id),
     ];
+  }
+
+  private resultDistanceKm(
+    geoFilter: NonNullable<ReturnType<DiscoveryService["getGeoFilter"]>>,
+    row: { latitude: number; longitude: number },
+  ) {
+    return Number(
+      distanceKm(
+        { lat: geoFilter.lat, lng: geoFilter.lng },
+        { lat: row.latitude, lng: row.longitude },
+      ).toFixed(3),
+    );
+  }
+
+  private sortDistanceResultsFirst<T extends { distanceKm?: number }>(
+    results: T[],
+  ) {
+    return [...results].sort(
+      (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+    );
   }
 
   private sortOpenResultsFirst<T extends { isOpen: boolean }>(results: T[]) {

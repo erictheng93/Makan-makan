@@ -15,6 +15,7 @@ export interface DishSearchResult {
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   tags: string[];
+  distanceKm?: number;
   marketVendor?: {
     marketId: string;
     stallNumber: string | null;
@@ -38,6 +39,7 @@ export interface RestaurantListItem {
   detailUrl?: string;
   menuUrl?: string;
   serviceItemsUrl?: string;
+  distanceKm?: number;
   marketVendor?: {
     marketId: string;
     stallNumber: string | null;
@@ -128,7 +130,7 @@ export interface SearchFilters {
   openNow?: boolean;
   takeaway?: boolean;
   delivery?: boolean;
-  sortBy?: "price_asc" | "price_desc" | "popular" | "open_now";
+  sortBy?: "price_asc" | "price_desc" | "popular" | "open_now" | "distance";
   page?: number;
   limit?: number;
 }

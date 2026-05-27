@@ -108,6 +108,8 @@ async function seedSearchIndex(
     categoryName?: string | null;
     marketIds?: string[];
     primaryMarketId?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   }[],
 ): Promise<void> {
   // D1/miniflare can reject large multi-row inserts if the combined SQL variable
@@ -130,6 +132,8 @@ async function seedSearchIndex(
       tags: item.tags ?? [],
       marketIds: item.marketIds ?? [],
       primaryMarketId: item.primaryMarketId ?? null,
+      latitude: item.latitude ?? null,
+      longitude: item.longitude ?? null,
       updatedAt: new Date(),
     });
   }
@@ -2360,6 +2364,86 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("sorts market dish results by distance and returns distance metadata", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "distance-dish-market",
+    });
+    const nearRestaurant = await seed.restaurant({
+      name: "Near Distance Dish Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1765,
+      longitude: 120.6467,
+    });
+    const farRestaurant = await seed.restaurant({
+      name: "Far Distance Dish Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.19,
+      longitude: 120.66,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(nearRestaurant.id),
+        marketId: market.id,
+        stallNumber: "N-01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(farRestaurant.id),
+        marketId: market.id,
+        stallNumber: "F-01",
+        joinedAt: new Date(),
+      },
+    ]);
+    const nearDish = await seed.menuItem(String(nearRestaurant.id), {
+      name: "Distance Sort Near Bao",
+      price: 100,
+    });
+    const farDish = await seed.menuItem(String(farRestaurant.id), {
+      name: "Distance Sort Far Bao",
+      price: 80,
+    });
+
+    await seedSearchIndex(testApp, String(nearRestaurant.id), [
+      {
+        menuItemId: nearDish.id,
+        name: "Distance Sort Near Bao",
+        price: 100,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+        latitude: 24.1765,
+        longitude: 120.6467,
+      },
+    ]);
+    await seedSearchIndex(testApp, String(farRestaurant.id), [
+      {
+        menuItemId: farDish.id,
+        name: "Distance Sort Far Bao",
+        price: 80,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+        latitude: 24.19,
+        longitude: 120.66,
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=Distance+Sort&marketId=${market.id}&lat=24.1764&lng=120.6466&radiusKm=5&sortBy=distance`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(2);
+    expect(data.results.map((result: any) => result.dishName)).toEqual([
+      "Distance Sort Near Bao",
+      "Distance Sort Far Bao",
+    ]);
+    expect(data.results[0].distanceKm).toBeLessThan(data.results[1].distanceKm);
+  });
+
   it("filters open restaurant results before pagination", async () => {
     const closedRestaurant = await seed.restaurant({
       name: "Restaurant Open Scope Closed Vendor",
@@ -2388,6 +2472,57 @@ describe("Discovery API — real integration", () => {
       isOpen: true,
     });
     expect(data.results[0].restaurantId).not.toBe(String(closedRestaurant.id));
+  });
+
+  it("sorts market restaurant browse results by distance", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "distance-restaurant-market",
+    });
+    const nearRestaurant = await seed.restaurant({
+      name: "Restaurant Distance Near Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.1765,
+      longitude: 120.6467,
+      totalOrders: 1,
+    });
+    const farRestaurant = await seed.restaurant({
+      name: "Restaurant Distance Far Vendor",
+      city: "台中市",
+      district: "西屯區",
+      latitude: 24.19,
+      longitude: 120.66,
+      totalOrders: 100,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(nearRestaurant.id),
+        marketId: market.id,
+        stallNumber: "N-02",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(farRestaurant.id),
+        marketId: market.id,
+        stallNumber: "F-02",
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants?q=Restaurant+Distance&marketId=${market.id}&lat=24.1764&lng=120.6466&radiusKm=5&sortBy=distance`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(2);
+    expect(data.results.map((result: any) => result.name)).toEqual([
+      "Restaurant Distance Near Vendor",
+      "Restaurant Distance Far Vendor",
+    ]);
+    expect(data.results[0].distanceKm).toBeLessThan(data.results[1].distanceKm);
   });
 
   it("returns openable store entrypoints from restaurant browse results and cache", async () => {
