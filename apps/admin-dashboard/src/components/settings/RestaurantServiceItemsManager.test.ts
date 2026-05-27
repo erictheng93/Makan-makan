@@ -303,6 +303,8 @@ describe("RestaurantServiceItemsManager", () => {
         isMarketServiceGapContext: true,
         marketGapName: "逢甲夜市",
         marketGapSlug: "fengjia",
+        marketGapAreaCity: "台中市",
+        marketGapAreaDistrict: "西屯區",
       },
     });
 
@@ -323,7 +325,11 @@ describe("RestaurantServiceItemsManager", () => {
 
     expect(push).toHaveBeenCalledWith({
       name: "PlatformMarkets",
-      query: { marketSlug: "fengjia" },
+      query: {
+        marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
+      },
     });
   });
 });

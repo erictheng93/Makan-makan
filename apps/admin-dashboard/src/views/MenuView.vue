@@ -654,6 +654,12 @@ const isMarketProductGapContext = computed(
 );
 const marketGapName = computed(() => firstQueryString(route.query.marketName));
 const marketGapSlug = computed(() => firstQueryString(route.query.marketSlug));
+const marketGapAreaCity = computed(() =>
+  firstQueryString(route.query.areaCity),
+);
+const marketGapAreaDistrict = computed(() =>
+  firstQueryString(route.query.areaDistrict),
+);
 const showMarketProductGapNextStep = computed(
   () => isMarketProductGapContext.value && hasCompletedMarketProductGap.value,
 );
@@ -814,7 +820,13 @@ function firstQueryString(value: unknown) {
 function returnToMarketReadiness() {
   router.push({
     name: "PlatformMarkets",
-    query: marketGapSlug.value ? { marketSlug: marketGapSlug.value } : {},
+    query: {
+      ...(marketGapSlug.value ? { marketSlug: marketGapSlug.value } : {}),
+      ...(marketGapAreaCity.value ? { areaCity: marketGapAreaCity.value } : {}),
+      ...(marketGapAreaDistrict.value
+        ? { areaDistrict: marketGapAreaDistrict.value }
+        : {}),
+    },
   });
 }
 

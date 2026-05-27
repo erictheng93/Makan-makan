@@ -209,6 +209,8 @@ describe("PlatformMarketsView", () => {
   });
 
   it("switches restaurant context before opening menu or service settings", async () => {
+    routeQuery.areaCity = "台中市";
+    routeQuery.areaDistrict = "西屯區";
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();
 
@@ -224,6 +226,8 @@ describe("PlatformMarketsView", () => {
         gap: "products",
         marketName: "逢甲夜市",
         marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
       },
     });
 
@@ -244,6 +248,8 @@ describe("PlatformMarketsView", () => {
         section: "services",
         marketName: "逢甲夜市",
         marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
       },
     });
   });
@@ -285,6 +291,8 @@ describe("PlatformMarketsView", () => {
         gap: "products",
         marketName: "逢甲夜市",
         marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
       },
     });
 
@@ -305,6 +313,8 @@ describe("PlatformMarketsView", () => {
         section: "services",
         marketName: "逢甲夜市",
         marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
       },
     });
   });
@@ -1089,6 +1099,8 @@ describe("PlatformMarketsView", () => {
         gap: "products",
         marketName: "逢甲夜市",
         marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
       },
     });
     expect(wrapper.text()).toContain("公開頁狀態： 公開頁完整度 71%");

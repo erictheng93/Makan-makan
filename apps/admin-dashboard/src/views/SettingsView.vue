@@ -704,6 +704,8 @@
           :is-market-service-gap-context="isMarketServiceGapContext"
           :market-gap-name="marketServiceGapName"
           :market-gap-slug="marketServiceGapSlug"
+          :market-gap-area-city="marketServiceGapAreaCity"
+          :market-gap-area-district="marketServiceGapAreaDistrict"
         />
       </div>
     </div>
@@ -1817,6 +1819,12 @@ const marketServiceGapName = computed(() =>
 );
 const marketServiceGapSlug = computed(() =>
   firstQueryString(route.query.marketSlug),
+);
+const marketServiceGapAreaCity = computed(() =>
+  firstQueryString(route.query.areaCity),
+);
+const marketServiceGapAreaDistrict = computed(() =>
+  firstQueryString(route.query.areaDistrict),
 );
 
 // Shop QR 狀態

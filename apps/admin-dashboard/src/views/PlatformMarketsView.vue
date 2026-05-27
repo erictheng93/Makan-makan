@@ -2166,6 +2166,8 @@ function manageVendorGap(
         gap: "products",
         marketName: market.name,
         marketSlug: market.slug,
+        areaCity: market.city,
+        areaDistrict: market.district,
       },
     });
     return;
@@ -2180,6 +2182,8 @@ function manageVendorGap(
       section: "services",
       marketName: market.name,
       marketSlug: market.slug,
+      areaCity: market.city,
+      areaDistrict: market.district,
     },
   });
 }

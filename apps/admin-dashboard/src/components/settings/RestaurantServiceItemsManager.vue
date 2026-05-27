@@ -394,6 +394,8 @@ const props = defineProps<{
   isMarketServiceGapContext?: boolean;
   marketGapName?: string;
   marketGapSlug?: string;
+  marketGapAreaCity?: string;
+  marketGapAreaDistrict?: string;
 }>();
 
 const router = useRouter();
@@ -560,7 +562,13 @@ async function importServices() {
 function returnToMarketReadiness() {
   router.push({
     name: "PlatformMarkets",
-    query: props.marketGapSlug ? { marketSlug: props.marketGapSlug } : {},
+    query: {
+      ...(props.marketGapSlug ? { marketSlug: props.marketGapSlug } : {}),
+      ...(props.marketGapAreaCity ? { areaCity: props.marketGapAreaCity } : {}),
+      ...(props.marketGapAreaDistrict
+        ? { areaDistrict: props.marketGapAreaDistrict }
+        : {}),
+    },
   });
 }
 

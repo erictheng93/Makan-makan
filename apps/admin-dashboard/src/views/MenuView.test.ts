@@ -240,6 +240,8 @@ describe("MenuView", () => {
     routeQuery.gap = "products";
     routeQuery.marketName = "逢甲夜市";
     routeQuery.marketSlug = "fengjia";
+    routeQuery.areaCity = "台中市";
+    routeQuery.areaDistrict = "西屯區";
     const wrapper = mount(MenuView, {
       global: {
         stubs: {
@@ -269,7 +271,11 @@ describe("MenuView", () => {
 
     expect(push).toHaveBeenCalledWith({
       name: "PlatformMarkets",
-      query: { marketSlug: "fengjia" },
+      query: {
+        marketSlug: "fengjia",
+        areaCity: "台中市",
+        areaDistrict: "西屯區",
+      },
     });
   });
 });
