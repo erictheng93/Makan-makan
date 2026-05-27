@@ -59,6 +59,22 @@
           </section>
 
           <section
+            v-if="isCatalogSyncing"
+            data-testid="market-catalog-syncing-notice"
+            class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"
+          >
+            <h2 class="text-base font-semibold text-blue-900">
+              商品與服務同步中
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-blue-800">
+              已有
+              {{
+                catalogCoverageLabel
+              }}，探索捷徑正在更新。可先使用搜尋欄查找店鋪、商品或服務。
+            </p>
+          </section>
+
+          <section
             v-if="hasExplorationShortcuts"
             data-testid="market-exploration-shortcuts"
             class="space-y-3 rounded-xl border border-gray-200 bg-white p-4"
@@ -382,6 +398,29 @@ const hasExplorationShortcuts = computed(
     productCategoryFacets.value.length > 0 ||
     serviceTypeFacets.value.length > 0,
 );
+const catalogCoverage = computed(() => store.selectedMarket?.catalogCoverage);
+const searchableProductCount = computed(
+  () => catalogCoverage.value?.searchableProductCount ?? 0,
+);
+const publicServiceCount = computed(
+  () => catalogCoverage.value?.publicServiceCount ?? 0,
+);
+const hasSearchableCatalogCoverage = computed(
+  () => searchableProductCount.value > 0 || publicServiceCount.value > 0,
+);
+const isCatalogSyncing = computed(
+  () => hasSearchableCatalogCoverage.value && !hasExplorationShortcuts.value,
+);
+const catalogCoverageLabel = computed(() => {
+  const labels: string[] = [];
+  if (searchableProductCount.value > 0) {
+    labels.push(`${searchableProductCount.value} 項商品`);
+  }
+  if (publicServiceCount.value > 0) {
+    labels.push(`${publicServiceCount.value} 項服務`);
+  }
+  return labels.join("、");
+});
 const isPublicSetupIncomplete = computed(
   () => store.selectedMarket?.publicReadiness?.ready === false,
 );

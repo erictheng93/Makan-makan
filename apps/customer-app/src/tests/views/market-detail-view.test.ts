@@ -473,6 +473,37 @@ describe("MarketDetailView", () => {
     expect(notice.text()).not.toContain("products");
   });
 
+  it("shows a syncing notice when catalog coverage exists before shortcuts refresh", () => {
+    vi.mocked(useMarketsStore).mockReturnValue(
+      marketStore({
+        selectedMarket: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          catalogCoverage: {
+            searchableProductCount: 4,
+            publicServiceCount: 2,
+          },
+        },
+        explorationSummary: {
+          dishSearchUrl: "/api/v1/discovery/search?marketSlug=fengjia",
+          serviceSearchUrl: "/api/v1/discovery/services?marketSlug=fengjia",
+          dishCategories: [],
+          menuItemCategories: [],
+          productCategories: [],
+          serviceTypes: [],
+        },
+      }) as never,
+    );
+
+    const wrapper = mountView();
+
+    const notice = wrapper.get('[data-testid="market-catalog-syncing-notice"]');
+    expect(notice.text()).toContain("商品與服務同步中");
+    expect(notice.text()).toContain("4 項商品");
+    expect(notice.text()).toContain("2 項服務");
+  });
+
   it("preserves directory return context while syncing market search state", async () => {
     routeQuery.returnPath = "/markets?q=夜市&city=台中市";
     routeQuery.returnLabel = "夜市與商圈";
