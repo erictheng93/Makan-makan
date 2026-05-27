@@ -453,11 +453,14 @@ function openVendorServices(vendor: { restaurantId: string }) {
 }
 
 async function startTakeaway(vendor: MarketVendor) {
-  await startTakeawayForRestaurant(vendor.restaurantId);
+  await startTakeawayForRestaurant(vendor.restaurantId, marketReturnQuery());
 }
 
 async function startDishTakeaway(dish: DishSearchResult) {
-  await startTakeawayForRestaurant(dish.restaurantId, shopMenuItemQuery(dish));
+  await startTakeawayForRestaurant(dish.restaurantId, {
+    ...shopMenuItemQuery(dish),
+    ...marketReturnQuery(),
+  });
 }
 
 async function startTakeawayForRestaurant(

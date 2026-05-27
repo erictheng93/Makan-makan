@@ -560,7 +560,13 @@ describe("MarketDetailView", () => {
     expect(routerPush).toHaveBeenCalledWith({
       name: "OrderTypeLanding",
       params: { restaurantId: "restaurant-1" },
-      query: { qr: "SHOP-restaurant-1", itemId: "42", categoryName: "小吃" },
+      query: {
+        qr: "SHOP-restaurant-1",
+        itemId: "42",
+        categoryName: "小吃",
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
     });
   });
 
