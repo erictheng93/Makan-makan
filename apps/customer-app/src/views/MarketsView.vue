@@ -75,6 +75,18 @@
             </option>
           </select>
         </div>
+        <select
+          v-model="marketType"
+          data-testid="markets-type-select"
+          class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
+          @change="reloadList"
+        >
+          <option value="">全部類型</option>
+          <option value="night_market">夜市</option>
+          <option value="commercial_district">商圈</option>
+          <option value="food_court">美食街</option>
+          <option value="event_venue">活動場域</option>
+        </select>
         <button
           type="button"
           class="w-full rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue disabled:border-gray-300 disabled:text-gray-400"
@@ -175,13 +187,15 @@ const store = useMarketsStore();
 const query = ref(firstQueryString(route.query.q));
 const city = ref(firstQueryString(route.query.city));
 const district = ref(firstQueryString(route.query.district));
+const marketType = ref(marketTypeFromQuery(route.query.type));
 const locating = ref(false);
 const marketAreas = ref<MarketArea[]>([]);
 const hasDirectoryFilters = computed(
   () =>
     query.value.trim().length > 0 ||
     city.value.length > 0 ||
-    district.value.length > 0,
+    district.value.length > 0 ||
+    marketType.value.length > 0,
 );
 
 const districts = computed(() => {
@@ -201,6 +215,7 @@ function reloadList() {
     q: query.value.trim() || undefined,
     city: city.value || undefined,
     district: district.value || undefined,
+    type: marketType.value || undefined,
   });
 }
 
@@ -209,6 +224,7 @@ function loadMoreMarkets() {
     q: query.value.trim() || undefined,
     city: city.value || undefined,
     district: district.value || undefined,
+    type: marketType.value || undefined,
   });
 }
 
@@ -221,6 +237,7 @@ function clearFilters() {
   query.value = "";
   city.value = "";
   district.value = "";
+  marketType.value = "";
   reloadList();
 }
 
@@ -232,12 +249,25 @@ function firstQueryString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+function marketTypeFromQuery(value: unknown) {
+  const type = firstQueryString(value);
+  return [
+    "night_market",
+    "commercial_district",
+    "food_court",
+    "event_venue",
+  ].includes(type)
+    ? type
+    : "";
+}
+
 function syncDirectoryQuery() {
   router.replace({
     query: {
       ...(query.value.trim() ? { q: query.value.trim() } : {}),
       ...(city.value ? { city: city.value } : {}),
       ...(district.value ? { district: district.value } : {}),
+      ...(marketType.value ? { type: marketType.value } : {}),
     },
   });
 }

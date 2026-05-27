@@ -190,6 +190,38 @@ describe("MarketsView", () => {
     });
   });
 
+  it("filters market directories by venue type through the URL", async () => {
+    routeQuery.type = "commercial_district";
+    const store = marketsStore();
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    expect(store.loadMarkets).toHaveBeenCalledWith({
+      type: "commercial_district",
+    });
+    expect(
+      (
+        wrapper.get('[data-testid="markets-type-select"]')
+          .element as HTMLSelectElement
+      ).value,
+    ).toBe("commercial_district");
+
+    await wrapper
+      .get('[data-testid="markets-type-select"]')
+      .setValue("night_market");
+
+    expect(store.loadMarkets).toHaveBeenLastCalledWith({
+      q: undefined,
+      city: undefined,
+      district: undefined,
+      type: "night_market",
+    });
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: { type: "night_market" },
+    });
+  });
+
   it("opens a market detail with directory return context", async () => {
     const store = marketsStore({
       hasMarkets: true,
