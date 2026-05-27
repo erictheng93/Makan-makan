@@ -7,8 +7,11 @@ import type {
 export const SHOP_MENU_ITEM_QUERY_KEY = "itemId";
 export const SHOP_MENU_CATEGORY_QUERY_KEY = "categoryName";
 export const SHOP_MENU_SERVICE_QUERY_KEY = "serviceItemId";
+export const SHOP_MENU_SERVICES_QUERY_KEY = "services";
+export const SHOP_MENU_SERVICES_QUERY_VALUE = "true";
 export const SHOP_MENU_RETURN_PATH_QUERY_KEY = "returnPath";
 export const SHOP_MENU_RETURN_LABEL_QUERY_KEY = "returnLabel";
+export const SHOP_MENU_SERVICES_ELEMENT_ID = "shop-service-items";
 
 export function shopMenuItemQuery(dish: {
   menuItemId: number;
@@ -25,6 +28,12 @@ export function shopMenuItemQuery(dish: {
 export function shopMenuServiceQuery(service: { serviceItemId: number }) {
   return {
     [SHOP_MENU_SERVICE_QUERY_KEY]: String(service.serviceItemId),
+  };
+}
+
+export function shopMenuServicesQuery() {
+  return {
+    [SHOP_MENU_SERVICES_QUERY_KEY]: SHOP_MENU_SERVICES_QUERY_VALUE,
   };
 }
 
@@ -45,6 +54,10 @@ export function menuCategoryElementId(categoryId: number | string) {
 
 export function serviceItemElementId(serviceItemId: number | string) {
   return `service-item-${serviceItemId}`;
+}
+
+export function shouldOpenServicesSection(value: unknown) {
+  return queryString(value) === SHOP_MENU_SERVICES_QUERY_VALUE;
 }
 
 function queryValue(value: unknown) {

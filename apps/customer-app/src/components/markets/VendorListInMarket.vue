@@ -122,11 +122,20 @@
             :data-testid="`open-vendor-menu-${vendor.restaurantId}`"
             @click="$emit('selectVendor', vendor)"
           >
-            查看菜單與服務
+            查看菜單
           </button>
           <button
             type="button"
-            class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
+            class="rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700 disabled:border-gray-200 disabled:text-gray-400"
+            :data-testid="`open-vendor-services-${vendor.restaurantId}`"
+            :disabled="vendor.publicServiceItemCount <= 0"
+            @click="$emit('selectServices', vendor)"
+          >
+            查看服務
+          </button>
+          <button
+            type="button"
+            class="col-span-2 rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
             @click="$emit('contactVendor', vendor)"
           >
             聯絡店家
@@ -165,6 +174,7 @@ defineEmits<{
   "update:takeawayOnly": [value: boolean];
   "update:deliveryOnly": [value: boolean];
   selectVendor: [vendor: MarketVendor];
+  selectServices: [vendor: MarketVendor];
   takeaway: [vendor: MarketVendor];
   contactVendor: [vendor: MarketVendor];
   loadMore: [];

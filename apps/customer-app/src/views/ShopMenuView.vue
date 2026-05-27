@@ -232,8 +232,9 @@
           <!-- 店家服務 -->
           <section
             v-if="serviceItems.length > 0"
+            :id="SHOP_MENU_SERVICES_ELEMENT_ID"
             data-testid="shop-service-items"
-            class="space-y-3"
+            class="scroll-mt-32 space-y-3"
           >
             <div>
               <h2 class="text-xl font-semibold text-ios-text">店家服務</h2>
@@ -594,7 +595,9 @@ import {
   findServiceItemByQuery,
   menuCategoryElementId,
   menuItemElementId,
+  SHOP_MENU_SERVICES_ELEMENT_ID,
   serviceItemElementId,
+  shouldOpenServicesSection,
 } from "@/utils/shopMenuDeepLink";
 
 // Props
@@ -605,6 +608,7 @@ const props = defineProps<{
   linkedItemId?: string | string[] | null;
   linkedCategoryName?: string | string[] | null;
   linkedServiceItemId?: string | string[] | null;
+  linkedServices?: string | string[] | null;
   returnPath?: string | null;
   returnLabel?: string | null;
 }>();
@@ -630,6 +634,7 @@ const showCart = ref(false);
 const openedLinkedItemId = ref<number | null>(null);
 const openedLinkedCategoryId = ref<number | null>(null);
 const openedLinkedServiceItemId = ref<number | null>(null);
+const openedServicesSection = ref(false);
 
 // 初始化店家購物車
 onMounted(() => {
@@ -697,6 +702,9 @@ const linkedService = computed(() =>
   findServiceItemByQuery(serviceItems.value, props.linkedServiceItemId),
 );
 const linkedServiceId = computed(() => linkedService.value?.id ?? null);
+const linkedServicesSection = computed(() =>
+  shouldOpenServicesSection(props.linkedServices),
+);
 const returnContext = computed(() => {
   const path = props.returnPath?.trim();
   if (!path || !path.startsWith("/") || path.startsWith("//")) return null;
@@ -909,6 +917,28 @@ const scrollToLinkedServiceItem = async () => {
   });
 };
 
+const scrollToLinkedServicesSection = async () => {
+  if (
+    !linkedServicesSection.value ||
+    linkedService.value ||
+    openedServicesSection.value ||
+    serviceItems.value.length === 0
+  ) {
+    return;
+  }
+
+  await nextTick();
+
+  const element = document.getElementById(SHOP_MENU_SERVICES_ELEMENT_ID);
+  if (!element) return;
+
+  openedServicesSection.value = true;
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+};
+
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
   const sections = visibleCategories.value.map((category: any) => ({
@@ -934,6 +964,7 @@ const updateActiveCategoryOnScroll = () => {
 onMounted(() => {
   window.addEventListener("scroll", updateActiveCategoryOnScroll);
   scrollToLinkedServiceItem();
+  scrollToLinkedServicesSection();
 
   // 設定餐廳上下文（店家模式）
   if (restaurant.value) {
@@ -976,9 +1007,10 @@ watch(
 );
 
 watch(
-  [serviceItems, () => props.linkedServiceItemId],
+  [serviceItems, () => props.linkedServiceItemId, () => props.linkedServices],
   () => {
     scrollToLinkedServiceItem();
+    scrollToLinkedServicesSection();
   },
   { immediate: true },
 );

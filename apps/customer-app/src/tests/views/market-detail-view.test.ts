@@ -128,6 +128,7 @@ function mountView() {
             "update:takeawayOnly",
             "update:deliveryOnly",
             "selectVendor",
+            "selectServices",
             "takeaway",
             "contactVendor",
             "loadMore",
@@ -153,6 +154,27 @@ function mountView() {
                 })"
               >
                 open vendor
+              </button>
+              <button
+                data-testid="open-market-vendor-services"
+                @click="$emit('selectServices', {
+                  restaurantId: 'restaurant-1',
+                  name: '雞排攤',
+                  type: 'market_stall',
+                  district: '西屯區',
+                  priceRange: null,
+                  rating: null,
+                  isOpen: true,
+                  supportsTakeaway: true,
+                  supportsDelivery: false,
+                  imageUrl: null,
+                  stallNumber: 'A-01',
+                  isPrimary: true,
+                  availableMenuItemCount: 3,
+                  publicServiceItemCount: 2
+                })"
+              >
+                open vendor services
               </button>
               <button
                 data-testid="vendor-list-load-more"
@@ -415,6 +437,24 @@ describe("MarketDetailView", () => {
       name: "ShopMenu",
       params: { restaurantId: "restaurant-1" },
       query: {
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
+  it("opens a market vendor service section in the shop menu", async () => {
+    const wrapper = mountView();
+
+    await wrapper
+      .get('[data-testid="open-market-vendor-services"]')
+      .trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "restaurant-1" },
+      query: {
+        services: "true",
         returnPath: "/markets/fengjia",
         returnLabel: "逢甲夜市",
       },

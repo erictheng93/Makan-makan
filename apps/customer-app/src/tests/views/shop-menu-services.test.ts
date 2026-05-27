@@ -287,6 +287,31 @@ describe("ShopMenuView service items", () => {
     wrapper.unmount();
   });
 
+  it("scrolls to the public services section from a vendor service link", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1", linkedServices: "true" },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.get("#shop-service-items").exists()).toBe(true);
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+    wrapper.unmount();
+  });
+
   it("shows the linked service target and returns to the search context", async () => {
     const wrapper = mount(ShopMenuView, {
       props: {

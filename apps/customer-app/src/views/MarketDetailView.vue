@@ -125,6 +125,7 @@
             @update:takeaway-only="onTakeawayOnlyChange"
             @update:delivery-only="onDeliveryOnlyChange"
             @select-vendor="openVendor"
+            @select-services="openVendorServices"
             @takeaway="startTakeaway"
             @contact-vendor="openContactProfile"
             @load-more="loadMoreVendors"
@@ -252,6 +253,7 @@ import {
   shopMenuItemQuery,
   shopMenuReturnQuery,
   shopMenuServiceQuery,
+  shopMenuServicesQuery,
 } from "@/utils/shopMenuDeepLink";
 
 const route = useRoute();
@@ -413,6 +415,17 @@ function openVendor(vendor: MarketVendor) {
     name: "ShopMenu",
     params: { restaurantId: vendor.restaurantId },
     query: marketReturnQuery(),
+  });
+}
+
+function openVendorServices(vendor: MarketVendor) {
+  router.push({
+    name: "ShopMenu",
+    params: { restaurantId: vendor.restaurantId },
+    query: {
+      ...shopMenuServicesQuery(),
+      ...marketReturnQuery(),
+    },
   });
 }
 

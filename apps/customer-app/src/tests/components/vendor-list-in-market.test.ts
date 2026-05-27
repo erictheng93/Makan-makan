@@ -88,7 +88,7 @@ describe("VendorListInMarket", () => {
     expect(wrapper.emitted("update:deliveryOnly")).toEqual([[true]]);
   });
 
-  it("shows stall numbers and exposes a direct menu and service entry point", async () => {
+  it("shows stall numbers and exposes direct menu and service entry points", async () => {
     const wrapper = mount(VendorListInMarket, {
       props: {
         vendors: [vendor()],
@@ -100,12 +100,40 @@ describe("VendorListInMarket", () => {
     });
 
     expect(wrapper.text()).toContain("攤位 A-01");
+    expect(
+      wrapper.get('[data-testid="open-vendor-menu-restaurant-1"]').text(),
+    ).toBe("查看菜單");
+    expect(
+      wrapper.get('[data-testid="open-vendor-services-restaurant-1"]').text(),
+    ).toBe("查看服務");
 
     await wrapper
       .get('[data-testid="open-vendor-menu-restaurant-1"]')
       .trigger("click");
+    await wrapper
+      .get('[data-testid="open-vendor-services-restaurant-1"]')
+      .trigger("click");
 
     expect(wrapper.emitted("selectVendor")?.[0]).toEqual([vendor()]);
+    expect(wrapper.emitted("selectServices")?.[0]).toEqual([vendor()]);
+  });
+
+  it("keeps the service entry disabled when a vendor has no public services", () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [vendor({ publicServiceItemCount: 0 })],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    expect(
+      wrapper
+        .get('[data-testid="open-vendor-services-restaurant-1"]')
+        .attributes("disabled"),
+    ).toBeDefined();
   });
 
   it("shows menu and service availability before opening a vendor", () => {

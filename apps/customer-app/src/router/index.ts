@@ -151,6 +151,7 @@ const routes: RouteRecordRaw[] = [
       linkedItemId: route.query.itemId,
       linkedCategoryName: route.query.categoryName,
       linkedServiceItemId: route.query.serviceItemId,
+      linkedServices: route.query.services,
       returnPath: firstQueryString(route.query.returnPath),
       returnLabel: firstQueryString(route.query.returnLabel),
     }),
