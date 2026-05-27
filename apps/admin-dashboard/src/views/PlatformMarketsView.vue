@@ -173,6 +173,9 @@
           </span>
           。
         </p>
+        <p v-if="marketImportResult.created > 0" class="mt-1 text-xs">
+          下一步：編輯市場並批次匯入店鋪，才能讓使用者搜尋商品/服務並開啟菜單。
+        </p>
         <ul
           v-if="marketImportResult.items.length"
           class="mt-2 space-y-1"

@@ -727,6 +727,7 @@ describe("PlatformMarketsView", () => {
     });
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已建立 1 個市場");
+    expect(wrapper.text()).toContain("下一步：編輯市場並批次匯入店鋪");
   });
 
   it("reports per-market import failures without hiding created markets", async () => {
