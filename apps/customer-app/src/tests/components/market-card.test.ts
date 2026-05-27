@@ -78,6 +78,9 @@ describe("MarketCard", () => {
     const coverage = wrapper.get('[data-testid="market-card-catalog"]');
     expect(coverage.text()).toContain("商品 36");
     expect(coverage.text()).toContain("服務 5");
+    expect(
+      wrapper.get('[data-testid="market-card-explore-status"]').text(),
+    ).toContain("進入市場搜尋");
   });
 
   it("explains markets that are listed before searchable catalogs are ready", () => {
@@ -95,5 +98,34 @@ describe("MarketCard", () => {
     expect(wrapper.get('[data-testid="market-card-catalog"]').text()).toContain(
       "店鋪補齊後可搜尋商品與服務",
     );
+    expect(
+      wrapper.get('[data-testid="market-card-explore-status"]').text(),
+    ).toContain("資料補齊中");
+  });
+
+  it("surfaces public readiness issues before users enter a market", () => {
+    const wrapper = mount(MarketCard, {
+      props: {
+        market: market({
+          publicReadiness: {
+            ready: false,
+            score: 71,
+            completedCount: 5,
+            totalCount: 7,
+            issues: [
+              { key: "products", severity: "required" },
+              { key: "services", severity: "recommended" },
+            ],
+          },
+        }),
+      },
+    });
+
+    expect(
+      wrapper.get('[data-testid="market-card-readiness"]').text(),
+    ).toContain("資料補齊中");
+    expect(
+      wrapper.get('[data-testid="market-card-readiness"]').text(),
+    ).toContain("5/7");
   });
 });

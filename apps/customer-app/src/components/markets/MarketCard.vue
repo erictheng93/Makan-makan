@@ -71,6 +71,13 @@
           </template>
           <span v-else class="text-gray-500"> 店鋪補齊後可搜尋商品與服務 </span>
         </div>
+        <div
+          v-if="publicReadinessLabel"
+          data-testid="market-card-readiness"
+          class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
+        >
+          {{ publicReadinessLabel }}
+        </div>
         <p
           v-if="market.description"
           class="line-clamp-2 text-sm leading-5 text-gray-600"
@@ -80,6 +87,18 @@
         <p v-if="distanceLabel" class="text-xs font-medium text-gray-500">
           {{ distanceLabel }}
         </p>
+        <div
+          data-testid="market-card-explore-status"
+          class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+        >
+          <span
+            class="font-medium"
+            :class="hasSearchableCatalog ? 'text-ios-blue' : 'text-gray-500'"
+          >
+            {{ exploreStatusLabel }}
+          </span>
+          <span class="text-xs text-gray-400">查看市場</span>
+        </div>
       </div>
     </button>
   </article>
@@ -115,6 +134,15 @@ const hasSearchableCatalog = computed(
   () =>
     (catalogCoverage.value?.searchableProductCount ?? 0) > 0 ||
     (catalogCoverage.value?.publicServiceCount ?? 0) > 0,
+);
+const publicReadinessLabel = computed(() => {
+  const readiness = props.market.publicReadiness;
+  if (!readiness || readiness.ready) return "";
+
+  return `資料補齊中 ${readiness.completedCount}/${readiness.totalCount}`;
+});
+const exploreStatusLabel = computed(() =>
+  hasSearchableCatalog.value ? "進入市場搜尋" : "資料補齊中",
 );
 
 const weekdayKeys = [
