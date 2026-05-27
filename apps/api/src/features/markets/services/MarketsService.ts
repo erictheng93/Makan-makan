@@ -978,6 +978,7 @@ export class MarketsService {
         slug: markets.slug,
         name: markets.name,
         type: markets.type,
+        description: markets.description,
         city: markets.city,
         district: markets.district,
         address: markets.address,
@@ -988,8 +989,24 @@ export class MarketsService {
         logoUrl: markets.logoUrl,
         imageUrls: markets.imageUrls,
         tags: markets.tags,
+        vendorCount: sql<number>`count(${restaurants.id})`,
       })
       .from(markets)
+      .leftJoin(
+        restaurantMarketMemberships,
+        and(
+          eq(restaurantMarketMemberships.marketId, markets.id),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .leftJoin(
+        restaurants,
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      )
       .where(
         and(
           eq(markets.isActive, true),
@@ -1001,11 +1018,13 @@ export class MarketsService {
           ...this.publicReadyConditions(),
         ),
       )
+      .groupBy(markets.id)
       .limit(100);
 
-    const withDistance = rows
+    const nearbyRows = rows
       .map((row) => ({
         ...row,
+        vendorCount: Number(row.vendorCount),
         distanceKm: distanceKm(
           { lat, lng },
           { lat: row.latitude, lng: row.longitude },
@@ -1014,6 +1033,20 @@ export class MarketsService {
       .filter((row) => row.distanceKm <= cappedRadius)
       .sort((a, b) => a.distanceKm - b.distanceKm)
       .slice(0, cappedLimit);
+    const withDistance = await Promise.all(
+      nearbyRows.map(async (row) => {
+        const catalogCoverage = await this.countCatalogCoverage(row.id);
+
+        return {
+          ...row,
+          catalogCoverage,
+          publicReadiness: evaluateMarketPublicReadiness({
+            ...row,
+            ...catalogCoverage,
+          }),
+        };
+      }),
+    );
 
     return { markets: withDistance };
   }

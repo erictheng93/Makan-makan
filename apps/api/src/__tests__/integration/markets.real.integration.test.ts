@@ -1171,6 +1171,14 @@ describe("Markets API — real integration", () => {
     expect(nearbyJson.data.markets).toHaveLength(1);
     expect(nearbyJson.data.markets[0]).toMatchObject({
       slug: "near-market",
+      vendorCount: 2,
+      catalogCoverage: {
+        searchableProductCount: 1,
+        publicServiceCount: 1,
+      },
+      publicReadiness: {
+        ready: true,
+      },
     });
     expect(nearbyJson.data.markets[0].distanceKm).toBeLessThan(0.1);
   });
