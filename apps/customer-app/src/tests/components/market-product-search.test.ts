@@ -390,6 +390,43 @@ describe("MarketProductSearch", () => {
     });
   });
 
+  it("shows direct booking links for market service results", async () => {
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          requiresBooking: true,
+          bookingUrl: "https://booking.example/service-10",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-result-kind-service"]')
+      .trigger("click");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    const bookingLink = wrapper.get<HTMLAnchorElement>(
+      '[data-testid="service-result-booking"]',
+    );
+    expect(bookingLink.text()).toContain("直接預約");
+    expect(bookingLink.attributes("href")).toBe(
+      "https://booking.example/service-10",
+    );
+    expect(bookingLink.attributes("target")).toBe("_blank");
+    expect(bookingLink.attributes("rel")).toContain("noopener");
+    expect(wrapper.get('[data-testid="service-result-open"]').text()).toContain(
+      "查看服務",
+    );
+  });
+
   it("filters market services by service type", async () => {
     vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
       serviceTypes: [{ serviceType: "delivery", count: 2 }],

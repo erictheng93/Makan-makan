@@ -325,18 +325,30 @@
             {{ tag }}
           </span>
         </div>
-        <div class="mt-3 flex items-center justify-between gap-2">
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p class="text-xs text-gray-500">
             {{ service.isOpen ? "目前營業中" : "目前未營業" }}
           </p>
-          <button
-            type="button"
-            data-testid="service-result-open"
-            class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
-            @click="$emit('selectService', service)"
-          >
-            查看服務
-          </button>
+          <div class="flex flex-wrap justify-end gap-2">
+            <a
+              v-if="service.bookingUrl"
+              :href="service.bookingUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="service-result-booking"
+              class="h-9 rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700"
+            >
+              直接預約
+            </a>
+            <button
+              type="button"
+              data-testid="service-result-open"
+              class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
+              @click="$emit('selectService', service)"
+            >
+              查看服務
+            </button>
+          </div>
         </div>
       </article>
       <p
