@@ -2707,6 +2707,97 @@ describe("Discovery API — real integration", () => {
     expect(data.total).toBe(1);
   });
 
+  it("syncs product catalog type after products are created through menu API", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "product-create-sync-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Product Create Sync Vendor",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+
+    const categoryRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/categories`, {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          name: "市場商品",
+        }),
+      }),
+    );
+    expect(categoryRes.status).toBe(201);
+    const categoryJson: any = await categoryRes.json();
+
+    const createRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          categoryId: categoryJson.data.id,
+          name: "API 建立市場伴手禮",
+          description: "商品建立後應該進入商品搜尋索引",
+          price: 180,
+          catalogType: "product",
+          tags: ["伴手禮", "商品"],
+          keywords: "伴手禮 商品",
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+
+    const [indexedProduct] = await testApp.testDb.drizzle
+      .select({ catalogType: dishSearchIndex.catalogType })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, createJson.data.id))
+      .limit(1);
+    expect(indexedProduct).toEqual({ catalogType: "product" });
+
+    const productSearchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "伴手禮",
+        )}&marketId=${market.id}&catalogType=product`,
+      ),
+    );
+    expect(productSearchRes.status).toBe(200);
+    const productData = ((await productSearchRes.json()) as ApiTestResponse)
+      .data;
+    expect(productData.results.map((r: any) => r.menuItemId)).toEqual([
+      createJson.data.id,
+    ]);
+    expect(productData.results[0]).toMatchObject({
+      resultType: "product",
+      dishName: "API 建立市場伴手禮",
+    });
+
+    const menuSearchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "伴手禮",
+        )}&marketId=${market.id}&catalogType=menu_item`,
+      ),
+    );
+    expect(menuSearchRes.status).toBe(200);
+    const menuData = ((await menuSearchRes.json()) as ApiTestResponse).data;
+    expect(menuData.results).toEqual([]);
+    expect(menuData.total).toBe(0);
+  });
+
   it("syncs discovery index after categories are hidden through menu API", async () => {
     const market = await seedMarket(testApp, {
       slug: "category-hide-sync-market",

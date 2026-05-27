@@ -1316,6 +1316,7 @@ export class DiscoveryService {
     if (filters.q) parts.push(this.normalizeQuery(filters.q));
     if (filters.city) parts.push(`c:${filters.city}`);
     if (filters.district) parts.push(`d:${filters.district}`);
+    if (filters.catalogType) parts.push(`ct:${filters.catalogType}`);
     if (filters.categoryName) parts.push(`cat:${filters.categoryName}`);
     if (filters.sortBy) parts.push(`s:${filters.sortBy}`);
     if (filters.priceMin) parts.push(`pmin:${filters.priceMin}`);
