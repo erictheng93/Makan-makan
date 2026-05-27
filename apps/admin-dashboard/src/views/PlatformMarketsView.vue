@@ -196,6 +196,15 @@
             >
               {{ item.status === "created" ? "已建立" : item.message }}
             </span>
+            <button
+              v-if="item.status === 'created' && item.createdMarket"
+              type="button"
+              :data-testid="`market-import-edit-${item.slug}`"
+              class="w-fit rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 hover:bg-green-200"
+              @click="startEditing(item.createdMarket)"
+            >
+              匯入店鋪
+            </button>
           </li>
         </ul>
       </div>
@@ -1211,6 +1220,7 @@ type MarketImportItemResult = {
   name: string;
   status: "created" | "failed";
   market: CreateMarketInput;
+  createdMarket?: MarketListItem;
   message?: string;
 };
 type MarketImportResult = {
@@ -1552,12 +1562,13 @@ async function importMarkets() {
     const items: MarketImportItemResult[] = [];
     for (const market of marketInputs) {
       try {
-        await marketsService.createMarket(market);
+        const createdMarket = await marketsService.createMarket(market);
         items.push({
           slug: market.slug,
           name: market.name,
           status: "created",
           market,
+          createdMarket,
         });
       } catch (error) {
         console.error("Failed to import market:", error);

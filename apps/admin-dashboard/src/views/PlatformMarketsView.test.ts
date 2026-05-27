@@ -728,6 +728,22 @@ describe("PlatformMarketsView", () => {
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已建立 1 個市場");
     expect(wrapper.text()).toContain("下一步：編輯市場並批次匯入店鋪");
+
+    await wrapper
+      .get('[data-testid="market-import-edit-miaokou"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("編輯公開資料：基隆廟口夜市");
+    expect(wrapper.text()).toContain("批次匯入店鋪");
+    expect(marketsService.listMarketVendors).toHaveBeenLastCalledWith(
+      "miaokou",
+      {
+        q: undefined,
+        page: 1,
+        limit: 10,
+      },
+    );
   });
 
   it("reports per-market import failures without hiding created markets", async () => {
