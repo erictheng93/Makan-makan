@@ -438,7 +438,17 @@ export class DiscoveryService {
     ];
 
     if (filters.q) {
-      conditions.push(like(restaurants.name, `%${filters.q}%`));
+      const pattern = `%${filters.q}%`;
+      conditions.push(
+        or(
+          like(restaurants.name, pattern),
+          like(restaurants.type, pattern),
+          like(restaurants.category, pattern),
+          like(restaurants.description, pattern),
+          like(restaurants.cuisineTags, pattern),
+          this.marketVendorKeywordCondition(pattern, filters.marketId),
+        )!,
+      );
     }
     if (filters.district) {
       conditions.push(eq(restaurants.district, filters.district));
@@ -512,27 +522,38 @@ export class DiscoveryService {
             .where(and(...conditions)),
     ]);
 
-    const restaurantList: RestaurantListItem[] = result.map((row) => ({
-      restaurantId: row.id,
-      name: row.name,
-      type: row.type,
-      category: row.category,
-      district: row.district,
-      city: row.city,
-      priceRange: row.priceRange,
-      rating: row.rating,
-      isOpen: isOpenNow(row.businessHours ?? null),
-      supportsTakeaway: row.supportsTakeaway,
-      supportsDelivery: row.supportsDelivery,
-      imageUrl: row.logoUrl,
-      detailUrl: this.restaurantDetailUrl(row.id),
-      menuUrl: this.restaurantMenuUrl(row.id),
-      serviceItemsUrl: this.restaurantServiceItemsUrl(row.id),
-    }));
+    const marketVendorByRestaurant = await this.restaurantBrowseMarketVendors(
+      result.map((row) => row.id),
+      filters.marketId,
+    );
+
+    const restaurantList: RestaurantListItem[] = result.map((row) => {
+      const marketVendor = marketVendorByRestaurant.get(row.id);
+      return {
+        restaurantId: row.id,
+        name: row.name,
+        type: row.type,
+        category: row.category,
+        district: row.district,
+        city: row.city,
+        priceRange: row.priceRange,
+        rating: row.rating,
+        isOpen: isOpenNow(row.businessHours ?? null),
+        supportsTakeaway: row.supportsTakeaway,
+        supportsDelivery: row.supportsDelivery,
+        imageUrl: row.logoUrl,
+        detailUrl: this.restaurantDetailUrl(row.id),
+        menuUrl: this.restaurantMenuUrl(row.id),
+        serviceItemsUrl: this.restaurantServiceItemsUrl(row.id),
+        ...(marketVendor ? { marketVendor } : {}),
+      };
+    });
 
     // Cache district results in KV (only when no secondary filters and page=1 to avoid partial cache)
     if (
       filters.district &&
+      !filters.q &&
+      !filters.marketId &&
       !filters.openNow &&
       !filters.takeaway &&
       !filters.delivery &&
@@ -1363,6 +1384,44 @@ export class DiscoveryService {
         AND ${restaurantMarketMemberships.leftAt} IS NULL
       LIMIT 1
     )`;
+  }
+
+  private async restaurantBrowseMarketVendors(
+    restaurantIds: string[],
+    marketId: string | undefined,
+  ) {
+    if (!marketId || restaurantIds.length === 0) {
+      return new Map<
+        string,
+        ReturnType<DiscoveryService["marketVendorContext"]>
+      >();
+    }
+
+    const rows = await this.db
+      .select({
+        restaurantId: restaurantMarketMemberships.restaurantId,
+        marketVendorMarketId: restaurantMarketMemberships.marketId,
+        marketVendorStallNumber: restaurantMarketMemberships.stallNumber,
+        marketVendorIsPrimary: restaurantMarketMemberships.isPrimary,
+      })
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.marketId, marketId),
+          inArray(restaurantMarketMemberships.restaurantId, restaurantIds),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      );
+
+    const entries: Array<
+      [string, NonNullable<ReturnType<DiscoveryService["marketVendorContext"]>>]
+    > = [];
+    for (const row of rows) {
+      const context = this.marketVendorContext(row);
+      if (context) entries.push([row.restaurantId, context]);
+    }
+
+    return new Map(entries);
   }
 
   private marketVendorStallNumber(marketId: string | undefined) {

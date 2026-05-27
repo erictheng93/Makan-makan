@@ -188,8 +188,82 @@
     </div>
     <div v-else-if="combinedResultCount > 0" class="space-y-2">
       <p class="text-sm text-gray-500">
-        顯示 {{ combinedResultCount }} / {{ combinedTotal }} 項商品或服務
+        顯示 {{ combinedResultCount }} / {{ combinedTotal }} 項店鋪、商品或服務
       </p>
+      <article
+        v-for="vendor in vendorResults"
+        :key="vendor.restaurantId"
+        class="rounded-lg border border-gray-200 bg-white p-3"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="truncate text-sm font-semibold text-gray-900">
+                {{ vendor.name }}
+              </h3>
+              <span
+                class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+              >
+                店鋪
+              </span>
+            </div>
+            <p class="mt-1 truncate text-sm text-gray-500">
+              {{ vendor.district || "未標示區域" }}
+              <span
+                v-if="vendor.marketVendor?.stallNumber"
+                class="text-gray-400"
+              >
+                · 攤位 {{ vendor.marketVendor.stallNumber }}
+              </span>
+            </p>
+          </div>
+          <span
+            class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
+            :class="
+              vendor.isOpen
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-500'
+            "
+          >
+            {{ vendor.isOpen ? "營業中" : "未營業" }}
+          </span>
+        </div>
+        <div
+          class="mt-2 flex flex-wrap gap-1"
+          :data-testid="`vendor-result-services-${vendor.restaurantId}`"
+        >
+          <span
+            v-if="vendor.supportsTakeaway"
+            class="rounded bg-ios-bg px-2 py-0.5 text-xs text-ios-secondary"
+          >
+            可外帶
+          </span>
+          <span
+            v-if="vendor.supportsDelivery"
+            class="rounded bg-ios-bg px-2 py-0.5 text-xs text-ios-secondary"
+          >
+            可外送
+          </span>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            data-testid="vendor-result-open-menu"
+            class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
+            @click="$emit('selectVendor', vendor)"
+          >
+            查看菜單
+          </button>
+          <button
+            type="button"
+            data-testid="vendor-result-open-services"
+            class="rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700"
+            @click="$emit('selectVendorServices', vendor)"
+          >
+            查看服務
+          </button>
+        </div>
+      </article>
       <DishResultCard
         v-for="dish in results"
         :key="dish.menuItemId"
@@ -287,6 +361,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import {
   discoveryApi,
   type DishSearchResult,
+  type RestaurantListItem,
   type ServiceTypeFacet,
   type ServiceSearchResult,
 } from "@/services/discoveryApi";
@@ -321,6 +396,8 @@ const emit = defineEmits<{
   select: [dish: DishSearchResult];
   takeaway: [dish: DishSearchResult];
   selectService: [service: ServiceSearchResult];
+  selectVendor: [vendor: RestaurantListItem];
+  selectVendorServices: [vendor: RestaurantListItem];
   searchStateChange: [
     state: {
       q: string;
@@ -348,8 +425,10 @@ const loadedCategories = ref<string[]>([]);
 const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
 const results = ref<DishSearchResult[]>([]);
 const serviceResults = ref<ServiceSearchResult[]>([]);
+const vendorResults = ref<RestaurantListItem[]>([]);
 const total = ref(0);
 const serviceTotal = ref(0);
+const vendorTotal = ref(0);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const hasSearched = ref(false);
@@ -398,11 +477,17 @@ const sortLabels: Record<"price_asc" | "price_desc" | "popular", string> = {
 };
 
 const combinedResultCount = computed(
-  () => results.value.length + serviceResults.value.length,
+  () =>
+    vendorResults.value.length +
+    results.value.length +
+    serviceResults.value.length,
 );
-const combinedTotal = computed(() => total.value + serviceTotal.value);
+const combinedTotal = computed(
+  () => vendorTotal.value + total.value + serviceTotal.value,
+);
 const hasMoreResults = computed(
   () =>
+    vendorResults.value.length < vendorTotal.value ||
     results.value.length < total.value ||
     serviceResults.value.length < serviceTotal.value,
 );
@@ -420,6 +505,7 @@ const shouldSearchCatalog = computed(() => resultKind.value !== "service");
 const shouldSearchServices = computed(
   () => resultKind.value === "all" || resultKind.value === "service",
 );
+const shouldSearchVendors = computed(() => resultKind.value === "all");
 const selectedCatalogType = computed<"menu_item" | "product" | undefined>(() =>
   resultKind.value === "menu_item" || resultKind.value === "product"
     ? resultKind.value
@@ -462,8 +548,10 @@ async function submitSearch() {
   page.value = 1;
   results.value = [];
   serviceResults.value = [];
+  vendorResults.value = [];
   total.value = 0;
   serviceTotal.value = 0;
+  vendorTotal.value = 0;
   emitSearchState();
   await fetchResults({ append: false });
 }
@@ -484,7 +572,7 @@ async function fetchResults({ append }: { append: boolean }) {
   hasSearched.value = true;
 
   try {
-    const [response, serviceResponse] = await Promise.all([
+    const [response, serviceResponse, vendorResponse] = await Promise.all([
       shouldSearchCatalog.value
         ? discoveryApi.searchDishes({
             q: trimmed || undefined,
@@ -512,6 +600,17 @@ async function fetchResults({ append }: { append: boolean }) {
             limit: pageSize,
           })
         : Promise.resolve({ results: [], total: 0 }),
+      shouldSearchVendors.value && (trimmed || props.marketId)
+        ? discoveryApi.browseRestaurants({
+            q: trimmed || undefined,
+            marketId: props.marketId,
+            sortBy: "popular",
+            ...(takeawayOnly.value ? { takeaway: true } : {}),
+            ...(deliveryOnly.value ? { delivery: true } : {}),
+            page: page.value,
+            limit: pageSize,
+          })
+        : Promise.resolve({ results: [], total: 0 }),
     ]);
     results.value = append
       ? [...results.value, ...response.results]
@@ -519,8 +618,12 @@ async function fetchResults({ append }: { append: boolean }) {
     serviceResults.value = append
       ? [...serviceResults.value, ...serviceResponse.results]
       : serviceResponse.results;
+    vendorResults.value = append
+      ? [...vendorResults.value, ...vendorResponse.results]
+      : vendorResponse.results;
     total.value = response.total;
     serviceTotal.value = serviceResponse.total;
+    vendorTotal.value = vendorResponse.total;
   } catch (searchError) {
     error.value =
       searchError instanceof Error ? searchError.message : "搜尋商品失敗";
@@ -529,8 +632,10 @@ async function fetchResults({ append }: { append: boolean }) {
     } else {
       results.value = [];
       serviceResults.value = [];
+      vendorResults.value = [];
       total.value = 0;
       serviceTotal.value = 0;
+      vendorTotal.value = 0;
     }
   } finally {
     loading.value = false;

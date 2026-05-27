@@ -36,6 +36,7 @@ export interface RestaurantListItem {
   detailUrl: string;
   menuUrl: string;
   serviceItemsUrl: string;
+  marketVendor?: MarketVendorContext;
 }
 
 export interface ServiceSearchResult {

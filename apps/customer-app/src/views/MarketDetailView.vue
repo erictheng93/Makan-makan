@@ -142,6 +142,8 @@
             :initial-delivery="marketSearchState.delivery"
             :initial-sort-by="marketSearchState.sortBy"
             @select="openDishVendor"
+            @select-vendor="openVendor"
+            @select-vendor-services="openVendorServices"
             @select-service="openServiceVendor"
             @search-state-change="syncMarketSearchState"
             @takeaway="startDishTakeaway"
@@ -410,7 +412,7 @@ function onDeliveryOnlyChange(value: boolean) {
   loadVendors();
 }
 
-function openVendor(vendor: MarketVendor) {
+function openVendor(vendor: { restaurantId: string }) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: vendor.restaurantId },
@@ -418,7 +420,7 @@ function openVendor(vendor: MarketVendor) {
   });
 }
 
-function openVendorServices(vendor: MarketVendor) {
+function openVendorServices(vendor: { restaurantId: string }) {
   router.push({
     name: "ShopMenu",
     params: { restaurantId: vendor.restaurantId },

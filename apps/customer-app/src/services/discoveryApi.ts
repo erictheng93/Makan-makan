@@ -26,13 +26,23 @@ export interface RestaurantListItem {
   restaurantId: string;
   name: string;
   type: string | null;
+  category?: string | null;
   district: string | null;
+  city?: string | null;
   priceRange: number | null;
   rating: number | null;
   isOpen: boolean;
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   imageUrl: string | null;
+  detailUrl?: string;
+  menuUrl?: string;
+  serviceItemsUrl?: string;
+  marketVendor?: {
+    marketId: string;
+    stallNumber: string | null;
+    isPrimary: boolean;
+  } | null;
 }
 
 export interface ServiceSearchResult {

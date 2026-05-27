@@ -2192,6 +2192,44 @@ describe("Discovery API — real integration", () => {
     expect(cachedData.results[0]).toMatchObject(expectedEntryPoints);
   });
 
+  it("browses market restaurants by vendor and stall context", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "restaurant-browse-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Restaurant Browse Market Vendor",
+      totalOrders: 10,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "B-12",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants?q=B-12&marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results[0]).toMatchObject({
+      restaurantId: String(restaurant.id),
+      name: "Restaurant Browse Market Vendor",
+      menuUrl: `/api/v1/menu/${restaurant.id}`,
+      serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
+      marketVendor: {
+        marketId: market.id,
+        stallNumber: "B-12",
+        isPrimary: true,
+      },
+    });
+  });
+
   it("returns restaurant browse totals independent of the current page slice", async () => {
     for (let i = 0; i < 12; i += 1) {
       await seed.restaurant({

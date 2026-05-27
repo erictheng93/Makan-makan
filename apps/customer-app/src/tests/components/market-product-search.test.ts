@@ -4,6 +4,7 @@ import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import {
   discoveryApi,
   type DishSearchResult,
+  type RestaurantListItem,
   type ServiceSearchResult,
 } from "@/services/discoveryApi";
 
@@ -27,6 +28,7 @@ vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     searchDishes: vi.fn(),
     searchServices: vi.fn(),
+    browseRestaurants: vi.fn(),
     listCategories: vi.fn(),
     listServiceTypes: vi.fn(),
   },
@@ -34,6 +36,10 @@ vi.mock("@/services/discoveryApi", () => ({
 
 describe("MarketProductSearch", () => {
   beforeEach(() => {
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValue({
+      results: [],
+      total: 0,
+    } as never);
     vi.mocked(discoveryApi.listCategories).mockResolvedValue({
       categories: [],
     } as never);
@@ -41,6 +47,10 @@ describe("MarketProductSearch", () => {
       serviceTypes: [],
     } as never);
     vi.mocked(discoveryApi.searchServices).mockResolvedValue({
+      results: [],
+      total: 0,
+    } as never);
+    vi.mocked(discoveryApi.browseRestaurants).mockResolvedValue({
       results: [],
       total: 0,
     } as never);
@@ -84,6 +94,29 @@ describe("MarketProductSearch", () => {
       city: "台中市",
       isOpen: true,
       marketVendor: null,
+      ...overrides,
+    };
+  }
+
+  function restaurant(
+    overrides: Partial<RestaurantListItem> = {},
+  ): RestaurantListItem {
+    return {
+      restaurantId: "vendor-r1",
+      name: "雞排攤",
+      type: "market_stall",
+      district: "西屯區",
+      priceRange: null,
+      rating: null,
+      isOpen: true,
+      supportsTakeaway: true,
+      supportsDelivery: false,
+      imageUrl: null,
+      marketVendor: {
+        marketId: "market-1",
+        stallNumber: "B-12",
+        isPrimary: true,
+      },
       ...overrides,
     };
   }
@@ -204,6 +237,58 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("攤位 D-22");
     expect(wrapper.text()).toContain("水果攤");
     expect(wrapper.text()).toContain("攤位 S-12");
+  });
+
+  it("renders direct vendor results in market search", async () => {
+    vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
+      results: [restaurant()],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("B-12");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.browseRestaurants).toHaveBeenCalledWith({
+      q: "B-12",
+      marketId: "market-1",
+      sortBy: "popular",
+      takeaway: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(wrapper.text()).toContain("雞排攤");
+    expect(wrapper.text()).toContain("攤位 B-12");
+    expect(wrapper.get('[data-testid="vendor-result-open-menu"]').text()).toBe(
+      "查看菜單",
+    );
+    expect(
+      wrapper.get('[data-testid="vendor-result-open-services"]').text(),
+    ).toBe("查看服務");
+
+    await wrapper
+      .get('[data-testid="vendor-result-open-menu"]')
+      .trigger("click");
+    await wrapper
+      .get('[data-testid="vendor-result-open-services"]')
+      .trigger("click");
+
+    expect(wrapper.emitted("selectVendor")?.[0][0]).toMatchObject({
+      restaurantId: "vendor-r1",
+      name: "雞排攤",
+    });
+    expect(wrapper.emitted("selectVendorServices")?.[0][0]).toMatchObject({
+      restaurantId: "vendor-r1",
+      name: "雞排攤",
+    });
   });
 
   it("uses initial filters for shareable market product searches", async () => {

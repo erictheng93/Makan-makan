@@ -202,7 +202,14 @@ function mountView() {
             "initialDelivery",
             "initialSortBy",
           ],
-          emits: ["select", "takeaway", "selectService", "searchStateChange"],
+          emits: [
+            "select",
+            "takeaway",
+            "selectService",
+            "selectVendor",
+            "selectVendorServices",
+            "searchStateChange",
+          ],
           template: `
             <section data-testid="market-product-search">
               <div data-testid="market-product-search-props">
@@ -265,6 +272,40 @@ function mountView() {
                 })"
               >
                 open service
+              </button>
+              <button
+                data-testid="select-vendor-result"
+                @click="$emit('selectVendor', {
+                  restaurantId: 'vendor-restaurant-1',
+                  name: '雞排攤',
+                  type: 'market_stall',
+                  district: '西屯區',
+                  priceRange: null,
+                  rating: null,
+                  isOpen: true,
+                  supportsTakeaway: true,
+                  supportsDelivery: false,
+                  imageUrl: null
+                })"
+              >
+                open vendor result
+              </button>
+              <button
+                data-testid="select-vendor-service-result"
+                @click="$emit('selectVendorServices', {
+                  restaurantId: 'vendor-restaurant-1',
+                  name: '雞排攤',
+                  type: 'market_stall',
+                  district: '西屯區',
+                  priceRange: null,
+                  rating: null,
+                  isOpen: true,
+                  supportsTakeaway: true,
+                  supportsDelivery: false,
+                  imageUrl: null
+                })"
+              >
+                open vendor service result
               </button>
               <button
                 data-testid="sync-market-search"
@@ -490,6 +531,39 @@ describe("MarketDetailView", () => {
       params: { restaurantId: "service-restaurant-1" },
       query: {
         serviceItemId: "7",
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
+  it("opens a direct market vendor result in the shop menu", async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="select-vendor-result"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "vendor-restaurant-1" },
+      query: {
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
+    });
+  });
+
+  it("opens a direct market vendor service result in the shop menu", async () => {
+    const wrapper = mountView();
+
+    await wrapper
+      .get('[data-testid="select-vendor-service-result"]')
+      .trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "vendor-restaurant-1" },
+      query: {
+        services: "true",
         returnPath: "/markets/fengjia",
         returnLabel: "逢甲夜市",
       },
