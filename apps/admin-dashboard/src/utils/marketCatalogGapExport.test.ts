@@ -59,12 +59,12 @@ describe("market catalog gap export", () => {
   it("exports product and service vendor gaps as spreadsheet CSV", () => {
     expect(buildMarketCatalogGapCsv([market()])).toBe(
       [
-        "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
-        "market-1,fengjia,逢甲夜市,台中市,西屯區,searchableCatalog,補菜單/商品/服務或重建索引,,,",
-        "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品或服務,restaurant-1,缺商品攤,A-01",
-        'market-1,fengjia,逢甲夜市,台中市,西屯區,services,補服務,restaurant-2,"缺服務,攤",',
-        'market-1,fengjia,逢甲夜市,台中市,西屯區,stallNumbers,補攤位號,restaurant-2,"缺服務,攤",',
-        "market-1,fengjia,逢甲夜市,台中市,西屯區,searchEntrypoints,補商品或服務,restaurant-1,缺商品攤,A-01",
+        "marketId,marketSlug,marketName,city,district,gapType,action,actionTarget,returnMarketSlug,restaurantId,vendorName,stallNumber",
+        "market-1,fengjia,逢甲夜市,台中市,西屯區,searchableCatalog,補菜單/商品/服務或重建索引,menu_or_services,fengjia,,,",
+        "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品,menu,fengjia,restaurant-1,缺商品攤,A-01",
+        'market-1,fengjia,逢甲夜市,台中市,西屯區,services,補服務,services,fengjia,restaurant-2,"缺服務,攤",',
+        'market-1,fengjia,逢甲夜市,台中市,西屯區,stallNumbers,補攤位號,market_vendor,fengjia,restaurant-2,"缺服務,攤",',
+        "market-1,fengjia,逢甲夜市,台中市,西屯區,searchEntrypoints,補商品或補服務,menu_or_services,fengjia,restaurant-1,缺商品攤,A-01",
       ].join("\r\n"),
     );
   });
@@ -93,9 +93,9 @@ describe("market catalog gap export", () => {
       ]),
     ).toBe(
       [
-        "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
-        "market-empty,empty-market,空白夜市,台中市,西屯區,marketVendors,匯入或加入店鋪,,,",
-        "market-empty,empty-market,空白夜市,台中市,西屯區,searchableCatalog,補菜單/商品/服務或重建索引,,,",
+        "marketId,marketSlug,marketName,city,district,gapType,action,actionTarget,returnMarketSlug,restaurantId,vendorName,stallNumber",
+        "market-empty,empty-market,空白夜市,台中市,西屯區,marketVendors,匯入或加入店鋪,market_vendors,empty-market,,,",
+        "market-empty,empty-market,空白夜市,台中市,西屯區,searchableCatalog,補菜單/商品/服務或重建索引,menu_or_services,empty-market,,,",
       ].join("\r\n"),
     );
   });
@@ -119,7 +119,7 @@ describe("market catalog gap export", () => {
         }),
       ]),
     ).toBe(
-      "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
+      "marketId,marketSlug,marketName,city,district,gapType,action,actionTarget,returnMarketSlug,restaurantId,vendorName,stallNumber",
     );
   });
 

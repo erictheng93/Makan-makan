@@ -12,6 +12,8 @@ const csvFields = [
   "district",
   "gapType",
   "action",
+  "actionTarget",
+  "returnMarketSlug",
   "restaurantId",
   "vendorName",
   "stallNumber",
@@ -144,6 +146,8 @@ function marketLevelGapRow(
     district: market.district,
     gapType,
     action: actionForGapType(gapType),
+    actionTarget: actionTargetForGapType(gapType),
+    returnMarketSlug: market.slug,
     restaurantId: "",
     vendorName: "",
     stallNumber: "",
@@ -163,6 +167,8 @@ function gapRowsForMarket(
     district: market.district,
     gapType,
     action: actionForGapType(gapType),
+    actionTarget: actionTargetForGapType(gapType),
+    returnMarketSlug: market.slug,
     restaurantId: vendor.restaurantId,
     vendorName: vendor.name,
     stallNumber: vendor.stallNumber ?? "",
@@ -225,10 +231,18 @@ function vendorImportWorklistRows(
 }
 
 function actionForGapType(gapType: MarketCatalogGapType) {
-  if (gapType === "products") return "補商品或服務";
+  if (gapType === "products") return "補商品";
   if (gapType === "services") return "補服務";
   if (gapType === "stallNumbers") return "補攤位號";
   if (gapType === "marketVendors") return "匯入或加入店鋪";
   if (gapType === "searchableCatalog") return "補菜單/商品/服務或重建索引";
-  return "補商品或服務";
+  return "補商品或補服務";
+}
+
+function actionTargetForGapType(gapType: MarketCatalogGapType) {
+  if (gapType === "products") return "menu";
+  if (gapType === "services") return "services";
+  if (gapType === "stallNumbers") return "market_vendor";
+  if (gapType === "marketVendors") return "market_vendors";
+  return "menu_or_services";
 }
