@@ -190,6 +190,17 @@
           >
             已成功匯入 {{ menuItemImportResult }} 筆商品。
           </div>
+          <div
+            v-if="showMarketProductGapNextStep"
+            data-testid="market-product-gap-next-step"
+            class="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[13px] leading-5 text-blue-800"
+          >
+            已補齊
+            {{
+              marketGapName || "夜市/商圈"
+            }}
+            的商品資料。請回到市場公開品質並重建搜尋索引，讓顧客搜尋立即包含這批商品。
+          </div>
 
           <div class="mt-4 flex justify-end">
             <button
@@ -631,6 +642,9 @@ const isMarketProductGapContext = computed(
   () => route.query.source === "market-gap" && route.query.gap === "products",
 );
 const marketGapName = computed(() => firstQueryString(route.query.marketName));
+const showMarketProductGapNextStep = computed(
+  () => isMarketProductGapContext.value && menuItemImportResult.value !== null,
+);
 const menuItemImportPreview = computed(() => {
   if (!menuItemImportText.value.trim()) {
     return { items: [], errors: [] };

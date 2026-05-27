@@ -154,6 +154,43 @@ describe("MenuView", () => {
     ]);
     expect(wrapper.text()).toContain("已成功匯入 1 筆商品");
   });
+
+  it("shows a market search reindex next step after importing product gap items", async () => {
+    routeQuery.source = "market-gap";
+    routeQuery.gap = "products";
+    routeQuery.marketName = "逢甲夜市";
+    const wrapper = mount(MenuView, {
+      global: {
+        stubs: {
+          CategoryPanel: true,
+          CategoryEditForm: true,
+          MenuItemCard: true,
+          VirtualMenuGrid: true,
+        },
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="menu-item-import-csv"]')
+      .setValue(
+        [
+          "name,category,price,description,isAvailable,keywords",
+          '"蚵仔煎","主食",7000,"招牌小吃",true,"蚵仔煎 夜市 逢甲夜市"',
+        ].join("\n"),
+      );
+
+    await wrapper
+      .get('[data-testid="menu-item-import-submit"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="market-product-gap-next-step"]').text(),
+    ).toContain("重建搜尋索引");
+    expect(
+      wrapper.get('[data-testid="market-product-gap-next-step"]').text(),
+    ).toContain("逢甲夜市");
+  });
 });
 
 async function flushPromises() {
