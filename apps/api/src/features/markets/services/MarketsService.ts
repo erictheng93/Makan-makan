@@ -363,15 +363,7 @@ export class MarketsService {
       conditions.push(eq(markets.district, filters.district));
     if (filters.type) conditions.push(eq(markets.type, filters.type));
     if (filters.q) {
-      const pattern = `%${filters.q.trim()}%`;
-      conditions.push(
-        or(
-          like(markets.name, pattern),
-          like(markets.slug, pattern),
-          like(markets.description, pattern),
-          like(markets.tags, pattern),
-        )!,
-      );
+      conditions.push(this.marketKeywordCondition(filters.q));
     }
     if (options.publicReadyOnly) {
       conditions.push(...this.publicReadyConditions());
@@ -1636,6 +1628,75 @@ export class MarketsService {
           )
       )`,
     ];
+  }
+
+  private marketKeywordCondition(keyword: string): SQL {
+    const trimmedKeyword = keyword.trim();
+    const pattern = `%${trimmedKeyword}%`;
+    const normalizedPattern = `%${trimmedKeyword
+      .toLocaleLowerCase()
+      .replace(/\s+/g, "")}%`;
+
+    return or(
+      like(markets.name, pattern),
+      like(markets.slug, pattern),
+      like(markets.description, pattern),
+      like(markets.tags, pattern),
+      sql`EXISTS (
+        SELECT 1
+        FROM restaurant_market_memberships rmm
+        INNER JOIN restaurants r ON r.id = rmm.restaurant_id
+        WHERE rmm.market_id = ${markets.id}
+          AND rmm.left_at_ms IS NULL
+          AND r.is_active = 1
+          AND r.deleted_at_ms IS NULL
+          AND (
+            r.name LIKE ${pattern}
+            OR r.type LIKE ${pattern}
+            OR r.category LIKE ${pattern}
+            OR r.description LIKE ${pattern}
+            OR r.cuisine_tags LIKE ${pattern}
+          )
+      )`,
+      sql`EXISTS (
+        SELECT 1
+        FROM dish_search_index dsi
+        INNER JOIN restaurants r ON r.id = dsi.restaurant_id
+        WHERE dsi.is_available = 1
+          AND r.is_active = 1
+          AND r.deleted_at_ms IS NULL
+          AND (
+            dsi.primary_market_id = ${markets.id}
+            OR dsi.market_ids LIKE '%' || '"' || ${markets.id} || '"' || '%'
+          )
+          AND (
+            dsi.dish_name LIKE ${pattern}
+            OR dsi.dish_name_normalized LIKE ${normalizedPattern}
+            OR dsi.category_name LIKE ${pattern}
+            OR dsi.tags LIKE ${pattern}
+          )
+      )`,
+      sql`EXISTS (
+        SELECT 1
+        FROM restaurant_market_memberships rmm
+        INNER JOIN restaurants r ON r.id = rmm.restaurant_id
+        INNER JOIN restaurant_service_items rsi ON rsi.restaurant_id = r.id
+        WHERE rmm.market_id = ${markets.id}
+          AND rmm.left_at_ms IS NULL
+          AND r.is_active = 1
+          AND r.deleted_at_ms IS NULL
+          AND rsi.is_active = 1
+          AND rsi.is_public = 1
+          AND rsi.deleted_at_ms IS NULL
+          AND (
+            rsi.name LIKE ${pattern}
+            OR rsi.description LIKE ${pattern}
+            OR rsi.service_type LIKE ${pattern}
+            OR rsi.tags LIKE ${pattern}
+            OR rsi.keywords LIKE ${pattern}
+          )
+      )`,
+    )!;
   }
 
   private async bumpPublicCacheVersion() {

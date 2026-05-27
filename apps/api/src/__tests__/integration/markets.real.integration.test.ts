@@ -358,6 +358,104 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("finds public markets by searchable catalog and service keywords", async () => {
+    const productMarket = await seedMarket(testApp, {
+      slug: "catalog-keyword-market",
+      name: "第一商圈",
+      description: "一般商圈介紹",
+      tags: ["商圈"],
+    });
+    const productVendor = await seed.restaurant({
+      name: "Catalog Keyword Vendor",
+      city: productMarket.city,
+      district: productMarket.district,
+      latitude: productMarket.latitude,
+      longitude: productMarket.longitude,
+      isActive: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(productVendor.id),
+      marketId: productMarket.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const productItem = await seed.menuItem(String(productVendor.id), {
+      name: "星光手機殼",
+      price: 180,
+      catalogType: "product",
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: productItem.id,
+      restaurantId: String(productVendor.id),
+      dishName: "星光手機殼",
+      dishNameNormalized: "starlightphonecase",
+      price: 180,
+      catalogType: "product",
+      categoryName: "配件",
+      isAvailable: true,
+      tags: ["手機殼"],
+      district: productMarket.district,
+      primaryMarketId: productMarket.id,
+      marketIds: [productMarket.id],
+      latitude: productMarket.latitude,
+      longitude: productMarket.longitude,
+      updatedAt: new Date(),
+    });
+
+    const serviceMarket = await seedMarket(testApp, {
+      slug: "service-keyword-market",
+      name: "第二商圈",
+      description: "一般服務聚落",
+      tags: ["商圈"],
+    });
+    const serviceVendor = await seed.restaurant({
+      name: "Service Keyword Vendor",
+      city: serviceMarket.city,
+      district: serviceMarket.district,
+      latitude: serviceMarket.latitude,
+      longitude: serviceMarket.longitude,
+      isActive: true,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(serviceVendor.id),
+      marketId: serviceMarket.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(serviceVendor.id),
+      name: "代客切水果",
+      description: "現場分切並分裝",
+      serviceType: "general",
+      keywords: "切水果 分裝",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+    });
+
+    const productRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/markets?q=${encodeURIComponent("手機殼")}`,
+      ),
+    );
+    expect(productRes.status).toBe(200);
+    const productJson: any = await productRes.json();
+    expect(productJson.data.markets.map((market: any) => market.slug)).toEqual([
+      "catalog-keyword-market",
+    ]);
+
+    const serviceRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/markets?q=${encodeURIComponent("切水果")}`,
+      ),
+    );
+    expect(serviceRes.status).toBe(200);
+    const serviceJson: any = await serviceRes.json();
+    expect(serviceJson.data.markets.map((market: any) => market.slug)).toEqual([
+      "service-keyword-market",
+    ]);
+  });
+
   it("hides empty or productless markets from public market listings", async () => {
     const readyMarket = await seedMarket(testApp, {
       slug: "ready-public-market",
