@@ -123,6 +123,40 @@ async function seedSearchableMarket(
   return { market, restaurant, menuItem };
 }
 
+async function seedServiceOnlyMarket(
+  testApp: RealIntegrationTestApp,
+  seed: ReturnType<typeof buildSeedHelpers>,
+  marketOverrides: Partial<typeof markets.$inferInsert> = {},
+  restaurantOverrides: Parameters<typeof seed.restaurant>[0] = {},
+) {
+  const market = await seedMarket(testApp, marketOverrides);
+  const restaurant = await seed.restaurant({
+    name: `${market.slug} Service Vendor`,
+    city: market.city,
+    district: market.district,
+    latitude: market.latitude,
+    longitude: market.longitude,
+    isActive: true,
+    ...restaurantOverrides,
+  });
+  await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+    restaurantId: String(restaurant.id),
+    marketId: market.id,
+    isPrimary: true,
+    joinedAt: new Date(),
+  });
+  await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+    restaurantId: String(restaurant.id),
+    name: `${market.name} Public Service`,
+    serviceType: "general",
+    isActive: true,
+    isPublic: true,
+    sortOrder: 1,
+  });
+
+  return { market, restaurant };
+}
+
 describe("Markets API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -1044,6 +1078,11 @@ describe("Markets API — real integration", () => {
       name: "SEO Night Market",
       updatedAt: new Date("2026-05-20T12:00:00.000Z"),
     });
+    await seedServiceOnlyMarket(testApp, seed, {
+      slug: "seo-service-market",
+      name: "SEO Service Market",
+      updatedAt: new Date("2026-05-19T12:00:00.000Z"),
+    });
     await seedMarket(testApp, {
       slug: "inactive-night-market",
       name: "Inactive Night Market",
@@ -1065,7 +1104,11 @@ describe("Markets API — real integration", () => {
     expect(sitemapXml).toContain(
       "<loc>https://makanmakan.app/markets/seo-night-market</loc>",
     );
+    expect(sitemapXml).toContain(
+      "<loc>https://makanmakan.app/markets/seo-service-market</loc>",
+    );
     expect(sitemapXml).toContain("<lastmod>2026-05-20</lastmod>");
+    expect(sitemapXml).toContain("<lastmod>2026-05-19</lastmod>");
     expect(sitemapXml).not.toContain("inactive-night-market");
     expect(sitemapXml).not.toContain("productless-night-market");
     expect(sitemapXml).not.toContain(activeMarket.id);
