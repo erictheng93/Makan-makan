@@ -25,6 +25,7 @@ export interface MarketListItem {
     searchableProductCount: number;
     publicServiceCount: number;
   };
+  publicReadiness?: MarketPublicReadiness;
 }
 
 export interface MarketDetail extends MarketListItem {
@@ -33,6 +34,24 @@ export interface MarketDetail extends MarketListItem {
     { open: string; close: string; closed?: boolean }
   > | null;
   imageUrls?: string[] | null;
+}
+
+export interface MarketPublicReadiness {
+  ready: boolean;
+  score: number;
+  completedCount: number;
+  totalCount: number;
+  issues: Array<{
+    key:
+      | "description"
+      | "location"
+      | "openingHours"
+      | "image"
+      | "vendors"
+      | "products"
+      | "services";
+    severity: "required" | "recommended";
+  }>;
 }
 
 export interface MarketExplorationSummary {

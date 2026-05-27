@@ -46,6 +46,19 @@
         />
         <section class="space-y-4 px-4 py-4">
           <section
+            v-if="isPublicSetupIncomplete"
+            data-testid="market-public-readiness-notice"
+            class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+          >
+            <h2 class="text-base font-semibold text-amber-900">
+              市場資料補齊中
+            </h2>
+            <p class="mt-1 text-sm leading-6 text-amber-800">
+              店鋪、商品或服務資料尚未完整公開，部分內容可能暫時無法搜尋或開啟。
+            </p>
+          </section>
+
+          <section
             v-if="hasExplorationShortcuts"
             data-testid="market-exploration-shortcuts"
             class="space-y-3 rounded-xl border border-gray-200 bg-white p-4"
@@ -368,6 +381,9 @@ const hasExplorationShortcuts = computed(
     menuItemCategoryFacets.value.length > 0 ||
     productCategoryFacets.value.length > 0 ||
     serviceTypeFacets.value.length > 0,
+);
+const isPublicSetupIncomplete = computed(
+  () => store.selectedMarket?.publicReadiness?.ready === false,
 );
 
 const serviceTypeLabels: Record<

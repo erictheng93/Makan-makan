@@ -441,6 +441,38 @@ describe("MarketDetailView", () => {
     });
   });
 
+  it("shows a public setup notice for incomplete market detail pages", () => {
+    vi.mocked(useMarketsStore).mockReturnValue(
+      marketStore({
+        selectedMarket: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          publicReadiness: {
+            ready: false,
+            score: 57,
+            completedCount: 4,
+            totalCount: 7,
+            issues: [
+              { key: "openingHours", severity: "required" },
+              { key: "products", severity: "required" },
+            ],
+          },
+        },
+      }) as never,
+    );
+
+    const wrapper = mountView();
+
+    const notice = wrapper.get(
+      '[data-testid="market-public-readiness-notice"]',
+    );
+    expect(notice.text()).toContain("市場資料補齊中");
+    expect(notice.text()).toContain("店鋪、商品或服務資料尚未完整公開");
+    expect(notice.text()).not.toContain("openingHours");
+    expect(notice.text()).not.toContain("products");
+  });
+
   it("preserves directory return context while syncing market search state", async () => {
     routeQuery.returnPath = "/markets?q=夜市&city=台中市";
     routeQuery.returnLabel = "夜市與商圈";
