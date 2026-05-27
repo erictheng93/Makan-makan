@@ -1302,18 +1302,57 @@ export class DiscoveryService {
     indexedDishCount: number;
     availableDishCount: number;
     indexedRestaurantCount: number;
+    sourceAvailableDishCount: number;
+    unindexedAvailableDishCount: number;
+    restaurantsWithUnindexedAvailableDishes: number;
   }> {
-    const [version, lastReindexedAt, countRows] = await Promise.all([
-      this.getSearchVersion(),
-      this.kv.get(KV_SEARCH_REINDEXED_AT_KEY, "text"),
-      this.db
-        .select({
-          indexedDishCount: sql<number>`count(*)`,
-          availableDishCount: sql<number>`sum(case when ${dishSearchIndex.isAvailable} = 1 then 1 else 0 end)`,
-          indexedRestaurantCount: sql<number>`count(distinct ${dishSearchIndex.restaurantId})`,
-        })
-        .from(dishSearchIndex),
-    ]);
+    const [version, lastReindexedAt, countRows, sourceRows] = await Promise.all(
+      [
+        this.getSearchVersion(),
+        this.kv.get(KV_SEARCH_REINDEXED_AT_KEY, "text"),
+        this.db
+          .select({
+            indexedDishCount: sql<number>`count(*)`,
+            availableDishCount: sql<number>`sum(case when ${dishSearchIndex.isAvailable} = 1 then 1 else 0 end)`,
+            indexedRestaurantCount: sql<number>`count(distinct ${dishSearchIndex.restaurantId})`,
+          })
+          .from(dishSearchIndex),
+        this.d1
+          .prepare(
+            `SELECT
+             count(mi.id) AS source_available_dish_count,
+             sum(
+               CASE
+                 WHEN dsi.menu_item_id IS NULL OR dsi.is_available != 1
+                 THEN 1
+                 ELSE 0
+               END
+             ) AS unindexed_available_dish_count,
+             count(
+               DISTINCT CASE
+                 WHEN dsi.menu_item_id IS NULL OR dsi.is_available != 1
+                 THEN mi.restaurant_id
+               END
+             ) AS restaurants_with_unindexed_available_dishes
+           FROM menu_items mi
+           INNER JOIN restaurants r ON r.id = mi.restaurant_id
+           INNER JOIN categories c ON c.id = mi.category_id
+           LEFT JOIN dish_search_index dsi ON dsi.menu_item_id = mi.id
+           WHERE mi.is_available = 1
+             AND mi.deleted_at_ms IS NULL
+             AND r.is_active = 1
+             AND r.deleted_at_ms IS NULL
+             AND c.is_active = 1
+             AND c.is_visible = 1
+             AND c.deleted_at_ms IS NULL`,
+          )
+          .first<{
+            source_available_dish_count: number | null;
+            unindexed_available_dish_count: number | null;
+            restaurants_with_unindexed_available_dishes: number | null;
+          }>(),
+      ],
+    );
     const row = countRows[0];
 
     return {
@@ -1323,6 +1362,15 @@ export class DiscoveryService {
       indexedDishCount: Number(row?.indexedDishCount ?? 0),
       availableDishCount: Number(row?.availableDishCount ?? 0),
       indexedRestaurantCount: Number(row?.indexedRestaurantCount ?? 0),
+      sourceAvailableDishCount: Number(
+        sourceRows?.source_available_dish_count ?? 0,
+      ),
+      unindexedAvailableDishCount: Number(
+        sourceRows?.unindexed_available_dish_count ?? 0,
+      ),
+      restaurantsWithUnindexedAvailableDishes: Number(
+        sourceRows?.restaurants_with_unindexed_available_dishes ?? 0,
+      ),
     };
   }
 

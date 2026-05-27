@@ -12,6 +12,9 @@ export interface DiscoveryIndexStatus {
   indexedDishCount: number;
   availableDishCount: number;
   indexedRestaurantCount: number;
+  sourceAvailableDishCount: number;
+  unindexedAvailableDishCount: number;
+  restaurantsWithUnindexedAvailableDishes: number;
 }
 
 export const discoveryService = {

@@ -205,6 +205,9 @@ describe("PlatformMarketsView", () => {
       indexedDishCount: 12,
       availableDishCount: 10,
       indexedRestaurantCount: 4,
+      sourceAvailableDishCount: 10,
+      unindexedAvailableDishCount: 0,
+      restaurantsWithUnindexedAvailableDishes: 0,
     });
   });
 
@@ -971,8 +974,33 @@ describe("PlatformMarketsView", () => {
     const status = wrapper.get('[data-testid="discovery-index-status"]');
     expect(discoveryService.getIndexStatus).toHaveBeenCalledOnce();
     expect(status.text()).toContain("1779870000000");
-    expect(status.text()).toContain("10 / 12");
+    expect(status.text()).toContain("10 / 10");
     expect(status.text()).toContain("4");
+  });
+
+  it("warns when source catalog items have not entered discovery index", async () => {
+    vi.mocked(discoveryService.getIndexStatus).mockResolvedValueOnce({
+      version: "1779870000000",
+      lastReindexedAt: "2026-05-27T08:00:00.000Z",
+      indexedDishCount: 12,
+      availableDishCount: 8,
+      indexedRestaurantCount: 4,
+      sourceAvailableDishCount: 10,
+      unindexedAvailableDishCount: 2,
+      restaurantsWithUnindexedAvailableDishes: 1,
+    });
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const status = wrapper.get('[data-testid="discovery-index-status"]');
+    expect(status.text()).toContain("8 / 10");
+    expect(
+      wrapper.get('[data-testid="discovery-index-gap-warning"]').text(),
+    ).toContain("2 項公開商品尚未進入搜尋索引");
+    expect(
+      wrapper.get('[data-testid="discovery-index-gap-warning"]').text(),
+    ).toContain("1 間店鋪");
   });
 
   it("imports vendors into the selected market from JSON", async () => {

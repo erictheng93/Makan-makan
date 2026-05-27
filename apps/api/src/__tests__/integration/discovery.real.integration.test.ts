@@ -3287,9 +3287,59 @@ describe("Discovery API — real integration", () => {
       indexedDishCount: 2,
       availableDishCount: 1,
       indexedRestaurantCount: 1,
+      sourceAvailableDishCount: 1,
+      unindexedAvailableDishCount: 0,
+      restaurantsWithUnindexedAvailableDishes: 0,
     });
     expect(Number(json.data.version)).toBeGreaterThan(0);
     expect(Date.parse(json.data.lastReindexedAt)).not.toBeNaN();
+  });
+
+  it("reports public menu items that have not entered the discovery index", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Index Gap Vendor",
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    await seed.menuItem(String(restaurant.id), {
+      name: "Indexed Gap Bao",
+      price: 60,
+    });
+
+    const reindexRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/reindex", {
+        method: "POST",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+        }),
+      }),
+    );
+    expect(reindexRes.status).toBe(200);
+
+    await seed.menuItem(String(restaurant.id), {
+      name: "Unindexed Gap Bao",
+      price: 70,
+    });
+
+    const statusRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/index-status", {
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+        },
+      }),
+    );
+
+    expect(statusRes.status).toBe(200);
+    const json: any = await statusRes.json();
+    expect(json.data).toMatchObject({
+      indexedDishCount: 1,
+      availableDishCount: 1,
+      indexedRestaurantCount: 1,
+      sourceAvailableDishCount: 2,
+      unindexedAvailableDishCount: 1,
+      restaurantsWithUnindexedAvailableDishes: 1,
+    });
   });
 
   it("removes inactive and deleted restaurant dishes during full reindex", async () => {

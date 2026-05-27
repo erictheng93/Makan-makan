@@ -128,7 +128,7 @@
           <div class="text-xs font-medium text-gray-500">可搜尋商品</div>
           <div class="mt-1 font-semibold text-gray-900">
             {{ discoveryIndexStatus.availableDishCount }} /
-            {{ discoveryIndexStatus.indexedDishCount }}
+            {{ discoveryIndexStatus.sourceAvailableDishCount }}
           </div>
         </div>
         <div>
@@ -138,6 +138,16 @@
           </div>
         </div>
       </div>
+      <p
+        v-if="discoveryIndexStatus?.unindexedAvailableDishCount"
+        data-testid="discovery-index-gap-warning"
+        class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800"
+      >
+        {{ discoveryIndexStatus.unindexedAvailableDishCount }}
+        項公開商品尚未進入搜尋索引，影響
+        {{ discoveryIndexStatus.restaurantsWithUnindexedAvailableDishes }}
+        間店鋪。請重建索引或檢查同步流程。
+      </p>
       <p
         v-else-if="discoveryIndexStatusError"
         data-testid="discovery-index-status-error"
