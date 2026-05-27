@@ -2166,6 +2166,16 @@ describe("Markets API — real integration", () => {
         vendorsMissingStallNumbers: 0,
         vendorsMissingSearchEntrypoints: 2,
       },
+      publicReadiness: {
+        ready: false,
+        score: 71,
+        completedCount: 5,
+        totalCount: 7,
+        issues: [
+          { key: "products", severity: "required" },
+          { key: "services", severity: "recommended" },
+        ],
+      },
     });
     expect(importJson.data.results).toEqual([
       expect.objectContaining({

@@ -182,6 +182,8 @@ export interface ImportMarketVendorsResult {
   blockingIssueCount?: number;
   warningIssueCount?: number;
   issues?: ImportMarketVendorIssue[];
+  publicReadiness?: MarketPublicReadiness | null;
+  catalogReadiness?: MarketCatalogCoverage;
   results: ImportMarketVendorResult[];
 }
 

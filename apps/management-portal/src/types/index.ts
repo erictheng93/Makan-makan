@@ -310,6 +310,16 @@ export interface MarketVendorImportResult {
   blockingIssueCount?: number;
   warningIssueCount?: number;
   issues?: MarketVendorImportIssue[];
+  publicReadiness?: {
+    ready: boolean;
+    score: number;
+    completedCount: number;
+    totalCount: number;
+    issues: Array<{
+      key: string;
+      severity: "required" | "recommended";
+    }>;
+  } | null;
   catalogReadiness?: MarketCatalogReadiness;
   results: Array<{
     status: string;

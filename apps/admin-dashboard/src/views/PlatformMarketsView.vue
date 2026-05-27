@@ -932,6 +932,13 @@
           已建立 {{ vendorImportResult.createdRestaurants ?? 0 }} 間店鋪，加入
           {{ vendorImportResult.attachedVendors ?? 0 }} 間，略過
           {{ vendorImportResult.skipped }} 筆。
+          <span v-if="vendorImportResult.publicReadiness" class="block">
+            公開頁狀態：
+            {{
+              marketPublicReadinessSummary(vendorImportResult.publicReadiness)
+                .text
+            }}
+          </span>
         </div>
         <div
           v-if="vendorImportDryRunResult"

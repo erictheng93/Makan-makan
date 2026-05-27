@@ -67,6 +67,13 @@ describe("MarketsView", () => {
         createdRestaurants: 1,
         attachedVendors: 2,
         skipped: 0,
+        publicReadiness: {
+          ready: false,
+          score: 71,
+          completedCount: 5,
+          totalCount: 7,
+          issues: [{ key: "products", severity: "required" }],
+        },
         catalogReadiness: {
           searchableProductCount: 4,
           publicServiceCount: 1,
@@ -162,6 +169,9 @@ describe("MarketsView", () => {
     expect(
       wrapper.get('[data-testid="market-vendor-import-result"]').text(),
     ).toContain("Created 1 restaurants and attached 2 vendors");
+    expect(
+      wrapper.get('[data-testid="market-vendor-import-result"]').text(),
+    ).toContain("Public page needs setup (71%).");
     const readiness = wrapper.get(
       '[data-testid="market-vendor-catalog-readiness"]',
     );

@@ -633,6 +633,13 @@ describe("PlatformMarketsView", () => {
       createdRestaurants: 1,
       attachedVendors: 2,
       skipped: 0,
+      publicReadiness: {
+        ready: false,
+        score: 71,
+        completedCount: 5,
+        totalCount: 7,
+        issues: [{ key: "products", severity: "required" }],
+      },
       results: [],
     });
     const wrapper = mount(PlatformMarketsView);
@@ -676,6 +683,7 @@ describe("PlatformMarketsView", () => {
     ]);
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已建立 1 間店鋪");
+    expect(wrapper.text()).toContain("公開頁狀態： 公開頁完整度 71%");
   });
 
   it("dry-runs vendor imports before committing them", async () => {

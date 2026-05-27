@@ -953,6 +953,14 @@ onMounted(loadDashboard);
                 {{ vendorImportResult.attachedVendors ?? 0 }} vendors.
               </p>
               <p>Skipped {{ vendorImportResult.skipped }} rows.</p>
+              <p v-if="vendorImportResult.publicReadiness">
+                Public page
+                {{
+                  vendorImportResult.publicReadiness.ready
+                    ? "ready after import"
+                    : `needs setup (${vendorImportResult.publicReadiness.score}%)`
+                }}.
+              </p>
               <p v-if="vendorImportResult.issueCount">
                 Issues: {{ vendorImportResult.issueCount }} ({{
                   vendorImportResult.blockingIssueCount ?? 0

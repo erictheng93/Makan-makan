@@ -169,6 +169,34 @@ export class MarketsService {
     return this.catalogCoverageWithVendorBreakdown(marketId);
   }
 
+  async getPublicReadiness(marketId: string) {
+    const market = await this.getMarketById(marketId);
+    if (!market) return null;
+
+    const [{ count = 0 } = { count: 0 }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(restaurantMarketMemberships)
+      .innerJoin(
+        restaurants,
+        eq(restaurantMarketMemberships.restaurantId, restaurants.id),
+      )
+      .where(
+        and(
+          eq(restaurantMarketMemberships.marketId, marketId),
+          isNull(restaurantMarketMemberships.leftAt),
+          eq(restaurants.isActive, true),
+          isNull(restaurants.deletedAt),
+        ),
+      );
+    const catalogCoverage = await this.countCatalogCoverage(marketId);
+
+    return evaluateMarketPublicReadiness({
+      ...market,
+      vendorCount: Number(count),
+      ...catalogCoverage,
+    });
+  }
+
   async listAreaReadiness(limit = 50000) {
     const data = await this.queryMarkets(
       { limit },

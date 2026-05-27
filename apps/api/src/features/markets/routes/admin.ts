@@ -602,7 +602,10 @@ routes.post(
       });
     }
 
-    const catalogReadiness = await marketsService.getCatalogReadiness(id);
+    const [catalogReadiness, publicReadiness] = await Promise.all([
+      marketsService.getCatalogReadiness(id),
+      marketsService.getPublicReadiness(id),
+    ]);
 
     return c.json({
       success: true,
@@ -611,6 +614,7 @@ routes.post(
         attachedVendors,
         skipped,
         catalogReadiness,
+        publicReadiness,
         results,
       },
     });
