@@ -59,10 +59,42 @@ describe("market catalog gap export", () => {
     expect(buildMarketCatalogGapCsv([market()])).toBe(
       [
         "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
+        "market-1,fengjia,逢甲夜市,台中市,西屯區,searchableCatalog,補菜單/商品/服務或重建索引,,,",
         "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品或服務,restaurant-1,缺商品攤,A-01",
         'market-1,fengjia,逢甲夜市,台中市,西屯區,services,補服務,restaurant-2,"缺服務,攤",',
         'market-1,fengjia,逢甲夜市,台中市,西屯區,stallNumbers,補攤位號,restaurant-2,"缺服務,攤",',
         "market-1,fengjia,逢甲夜市,台中市,西屯區,searchEntrypoints,補商品或服務,restaurant-1,缺商品攤,A-01",
+      ].join("\r\n"),
+    );
+  });
+
+  it("exports market-level gaps when a market has no vendors or searchable catalog", () => {
+    expect(
+      buildMarketCatalogGapCsv([
+        market({
+          id: "market-empty",
+          slug: "empty-market",
+          name: "空白夜市",
+          vendorCount: 0,
+          catalogCoverage: {
+            searchableProductCount: 0,
+            publicServiceCount: 0,
+            vendorsMissingSearchableProducts: 0,
+            vendorsMissingPublicServices: 0,
+            vendorsMissingStallNumbers: 0,
+            vendorsMissingSearchEntrypoints: 0,
+            missingProductVendors: [],
+            missingServiceVendors: [],
+            missingStallNumberVendors: [],
+            missingSearchEntrypointVendors: [],
+          },
+        }),
+      ]),
+    ).toBe(
+      [
+        "marketId,marketSlug,marketName,city,district,gapType,action,restaurantId,vendorName,stallNumber",
+        "market-empty,empty-market,空白夜市,台中市,西屯區,marketVendors,匯入或加入店鋪,,,",
+        "market-empty,empty-market,空白夜市,台中市,西屯區,searchableCatalog,補菜單/商品/服務或重建索引,,,",
       ].join("\r\n"),
     );
   });

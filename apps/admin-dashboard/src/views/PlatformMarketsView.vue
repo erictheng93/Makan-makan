@@ -1315,6 +1315,7 @@ import {
 } from "@/utils/marketImport";
 import {
   buildMarketCatalogGapCsv,
+  countMarketCatalogGapRows,
   marketCatalogGapCsvFilename,
 } from "@/utils/marketCatalogGapExport";
 import {
@@ -1495,15 +1496,7 @@ const metrics = computed(() => [
   },
 ]);
 const catalogGapRowCount = computed(() =>
-  filteredMarkets.value.reduce(
-    (total, market) =>
-      total +
-      (market.catalogCoverage?.missingProductVendors?.length ?? 0) +
-      (market.catalogCoverage?.missingServiceVendors?.length ?? 0) +
-      (market.catalogCoverage?.missingStallNumberVendors?.length ?? 0) +
-      (market.catalogCoverage?.missingSearchEntrypointVendors?.length ?? 0),
-    0,
-  ),
+  countMarketCatalogGapRows(filteredMarkets.value),
 );
 const marketImportPreview = computed(() => {
   if (!marketImportText.value.trim()) {
