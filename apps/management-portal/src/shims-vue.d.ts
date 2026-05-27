@@ -8,6 +8,7 @@ declare module "*.vue" {
 
 interface ImportMetaEnv {
   readonly VITE_MANAGEMENT_API_URL: string;
+  readonly VITE_ADMIN_DASHBOARD_URL?: string;
 }
 
 interface ImportMeta {

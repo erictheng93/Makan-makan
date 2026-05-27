@@ -12,6 +12,7 @@ import { marketsApi } from "@/services/api";
 import type {
   CreateMarketRequest,
   Market,
+  MarketCatalogGapVendor,
   MarketJoinRequest,
   MarketVendorCandidate,
   MarketVendorImportResult,
@@ -45,6 +46,9 @@ const vendorImportText = ref("");
 const importingVendors = ref(false);
 const vendorImportResult = ref<MarketVendorImportResult | null>(null);
 const vendorImportErrors = ref<string[]>([]);
+const adminDashboardBaseUrl = (
+  import.meta.env.VITE_ADMIN_DASHBOARD_URL || ""
+).replace(/\/$/, "");
 
 const weekdays = [
   { key: "monday", label: "Mon" },
@@ -361,6 +365,20 @@ async function searchVendorCandidates() {
 
 function selectVendorCandidate(candidate: MarketVendorCandidate) {
   selectedVendorCandidate.value = candidate;
+}
+
+function adminDashboardHref(
+  path: "/dashboard/menu" | "/dashboard/settings",
+  vendor: MarketCatalogGapVendor,
+  query: Record<string, string> = {},
+) {
+  const params = new URLSearchParams({
+    adminRestaurantId: vendor.restaurantId,
+    adminRestaurantName: vendor.name,
+    ...query,
+  });
+
+  return `${adminDashboardBaseUrl}${path}?${params.toString()}`;
 }
 
 async function approveJoinRequest(request: MarketJoinRequest) {
@@ -1033,26 +1051,50 @@ onMounted(loadDashboard);
                     vendorImportResult.catalogReadiness
                       .missingSearchEntrypointVendors.length > 0
                   "
-                  class="rounded-md bg-amber-50 p-2 text-xs text-amber-800"
+                  class="space-y-2 rounded-md bg-amber-50 p-2 text-xs text-amber-800"
                 >
                   <p class="font-medium">
                     Vendors without searchable products or services
                   </p>
-                  <p class="mt-1">
-                    {{
-                      vendorImportResult.catalogReadiness.missingSearchEntrypointVendors
-                        .slice(0, 5)
-                        .map(
-                          (vendor) =>
-                            `${vendor.name}${
-                              vendor.stallNumber
-                                ? ` (${vendor.stallNumber})`
-                                : ""
-                            }`,
-                        )
-                        .join(", ")
-                    }}
-                  </p>
+                  <div
+                    v-for="vendor in vendorImportResult.catalogReadiness.missingSearchEntrypointVendors.slice(
+                      0,
+                      5,
+                    )"
+                    :key="vendor.restaurantId"
+                    class="flex flex-wrap items-center justify-between gap-2 rounded bg-white/70 px-2 py-1"
+                  >
+                    <span>
+                      {{ vendor.name }}
+                      <span v-if="vendor.stallNumber">
+                        ({{ vendor.stallNumber }})
+                      </span>
+                    </span>
+                    <span class="flex flex-wrap gap-1">
+                      <a
+                        :href="adminDashboardHref('/dashboard/menu', vendor)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :data-testid="`manage-products-${vendor.restaurantId}`"
+                        class="rounded bg-amber-100 px-2 py-1 font-medium text-amber-900 hover:bg-amber-200"
+                      >
+                        Products
+                      </a>
+                      <a
+                        :href="
+                          adminDashboardHref('/dashboard/settings', vendor, {
+                            tab: 'contact',
+                          })
+                        "
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        :data-testid="`manage-services-${vendor.restaurantId}`"
+                        class="rounded bg-amber-100 px-2 py-1 font-medium text-amber-900 hover:bg-amber-200"
+                      >
+                        Services
+                      </a>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

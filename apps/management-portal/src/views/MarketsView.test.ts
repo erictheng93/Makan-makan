@@ -172,5 +172,19 @@ describe("MarketsView", () => {
     expect(readiness.text()).toContain("Missing stall numbers 1");
     expect(readiness.text()).toContain("No search entrypoint 1");
     expect(readiness.text()).toContain("缺商品攤");
+    expect(
+      wrapper
+        .get('[data-testid="manage-products-restaurant-456"]')
+        .attributes("href"),
+    ).toBe(
+      "/dashboard/menu?adminRestaurantId=restaurant-456&adminRestaurantName=%E7%BC%BA%E5%95%86%E5%93%81%E6%94%A4",
+    );
+    expect(
+      wrapper
+        .get('[data-testid="manage-services-restaurant-456"]')
+        .attributes("href"),
+    ).toBe(
+      "/dashboard/settings?adminRestaurantId=restaurant-456&adminRestaurantName=%E7%BC%BA%E5%95%86%E5%93%81%E6%94%A4&tab=contact",
+    );
   });
 });

@@ -467,6 +467,12 @@ router.beforeEach(async (to, _, next) => {
     return next("/unauthorized");
   }
 
+  const adminRestaurantId = firstQueryString(to.query.adminRestaurantId);
+  const adminRestaurantName = firstQueryString(to.query.adminRestaurantName);
+  if (authStore.isAdminRole && adminRestaurantId && adminRestaurantName) {
+    authStore.selectRestaurant(adminRestaurantId, adminRestaurantName);
+  }
+
   // Admin without restaurant context → redirect to platform overview
   const platformRoutes = [
     "PlatformOverview",
@@ -502,3 +508,11 @@ router.beforeEach(async (to, _, next) => {
 
   next();
 });
+
+function firstQueryString(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === "string");
+  }
+
+  return typeof value === "string" ? value : undefined;
+}
