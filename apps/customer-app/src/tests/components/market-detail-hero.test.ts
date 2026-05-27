@@ -26,6 +26,22 @@ function market(overrides: Partial<MarketDetail> = {}): MarketDetail {
 }
 
 describe("MarketDetailHero", () => {
+  it("shows the venue type on market detail pages", () => {
+    const wrapper = mount(MarketDetailHero, {
+      props: {
+        market: market({
+          name: "精明商圈",
+          type: "commercial_district",
+        }),
+        vendorCount: 8,
+      },
+    });
+
+    expect(wrapper.get('[data-testid="market-detail-type"]').text()).toBe(
+      "商圈",
+    );
+  });
+
   it("renders gallery images and weekly opening hours", () => {
     const wrapper = mount(MarketDetailHero, {
       props: {
