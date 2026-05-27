@@ -170,6 +170,9 @@
             :initial-takeaway="marketSearchState.takeaway"
             :initial-delivery="marketSearchState.delivery"
             :initial-sort-by="marketSearchState.sortBy"
+            :initial-lat="marketSearchState.lat"
+            :initial-lng="marketSearchState.lng"
+            :initial-radius-km="marketSearchState.radiusKm"
             @select="openDishVendor"
             @select-vendor="openVendor"
             @select-vendor-services="openVendorServices"
@@ -306,6 +309,9 @@ type MarketSearchState = {
   takeaway: boolean;
   delivery: boolean;
   sortBy: MarketSearchSort;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
 };
 type MarketSearchResultKind =
   | "all"
@@ -329,6 +335,14 @@ function firstQueryString(value: unknown) {
 
 function queryBoolean(value: unknown) {
   return firstQueryString(value) === "true";
+}
+
+function queryNumber(value: unknown) {
+  const rawValue = firstQueryString(value);
+  if (!rawValue) return undefined;
+
+  const numberValue = Number(rawValue);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
 }
 
 function isSortBy(value: string): value is MarketSearchState["sortBy"] {
@@ -365,6 +379,9 @@ function marketSearchStateFromQuery(): MarketSearchState {
   const sortBy = firstQueryString(route.query.sortBy);
   const serviceType = firstQueryString(route.query.serviceType);
   const resultKind = firstQueryString(route.query.resultKind);
+  const lat = queryNumber(route.query.lat);
+  const lng = queryNumber(route.query.lng);
+  const radiusKm = queryNumber(route.query.radiusKm);
   return {
     q: firstQueryString(route.query.q),
     categoryName: firstQueryString(route.query.categoryName),
@@ -373,6 +390,9 @@ function marketSearchStateFromQuery(): MarketSearchState {
     takeaway: queryBoolean(route.query.takeaway),
     delivery: queryBoolean(route.query.delivery),
     sortBy: isSortBy(sortBy) ? sortBy : "price_asc",
+    ...(lat != null ? { lat } : {}),
+    ...(lng != null ? { lng } : {}),
+    ...(radiusKm != null ? { radiusKm } : {}),
   };
 }
 
@@ -563,6 +583,15 @@ function syncMarketSearchState(state: MarketSearchState) {
       ...(state.takeaway ? { takeaway: "true" } : {}),
       ...(state.delivery ? { delivery: "true" } : {}),
       ...(state.sortBy !== "price_asc" ? { sortBy: state.sortBy } : {}),
+      ...(state.sortBy === "distance" && state.lat != null
+        ? { lat: String(state.lat) }
+        : {}),
+      ...(state.sortBy === "distance" && state.lng != null
+        ? { lng: String(state.lng) }
+        : {}),
+      ...(state.sortBy === "distance" && state.radiusKm != null
+        ? { radiusKm: String(state.radiusKm) }
+        : {}),
       ...marketDirectoryReturnQuery(),
     },
   });
@@ -577,6 +606,9 @@ function applyDishCategoryShortcut(categoryName: string) {
     takeaway: false,
     delivery: false,
     sortBy: "price_asc",
+    lat: undefined,
+    lng: undefined,
+    radiusKm: undefined,
   });
 }
 
@@ -589,6 +621,9 @@ function applyProductCategoryShortcut(categoryName: string) {
     takeaway: false,
     delivery: false,
     sortBy: "price_asc",
+    lat: undefined,
+    lng: undefined,
+    radiusKm: undefined,
   });
 }
 
@@ -603,6 +638,9 @@ function applyServiceTypeShortcut(
     takeaway: false,
     delivery: false,
     sortBy: "price_asc",
+    lat: undefined,
+    lng: undefined,
+    radiusKm: undefined,
   });
 }
 

@@ -201,6 +201,9 @@ function mountView() {
             "initialTakeaway",
             "initialDelivery",
             "initialSortBy",
+            "initialLat",
+            "initialLng",
+            "initialRadiusKm",
           ],
           emits: [
             "select",
@@ -213,7 +216,7 @@ function mountView() {
           template: `
             <section data-testid="market-product-search">
               <div data-testid="market-product-search-props">
-                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialResultKind }}|{{ initialTakeaway }}|{{ initialDelivery }}|{{ initialSortBy }}
+                {{ initialQuery }}|{{ initialCategory }}|{{ initialServiceType }}|{{ initialResultKind }}|{{ initialTakeaway }}|{{ initialDelivery }}|{{ initialSortBy }}|{{ initialLat }}|{{ initialLng }}|{{ initialRadiusKm }}
               </div>
               <button
                 data-testid="select-dish"
@@ -316,10 +319,30 @@ function mountView() {
                   resultKind: 'product',
                   takeaway: true,
                   delivery: true,
-                  sortBy: 'popular'
+                  sortBy: 'popular',
+                  lat: undefined,
+                  lng: undefined,
+                  radiusKm: undefined
                 })"
               >
                 sync search
+              </button>
+              <button
+                data-testid="sync-distance-search"
+                @click="$emit('searchStateChange', {
+                  q: '',
+                  categoryName: '',
+                  serviceType: '',
+                  resultKind: 'all',
+                  takeaway: false,
+                  delivery: false,
+                  sortBy: 'distance',
+                  lat: 24.1764,
+                  lng: 120.6466,
+                  radiusKm: 2
+                })"
+              >
+                sync distance search
               </button>
             </section>
           `,
@@ -353,7 +376,20 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("雞排|小吃|delivery|product|true|true|popular");
+    ).toContain("雞排|小吃|delivery|product|true|true|popular|||");
+  });
+
+  it("restores shareable distance search coordinates from the URL", () => {
+    routeQuery.sortBy = "distance";
+    routeQuery.lat = "24.1764";
+    routeQuery.lng = "120.6466";
+    routeQuery.radiusKm = "2";
+
+    const wrapper = mountView();
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-props"]').text(),
+    ).toContain("|||all|false|false|distance|24.1764|120.6466|2");
   });
 
   it("restores vendor-only market searches from the URL", () => {
@@ -381,6 +417,21 @@ describe("MarketDetailView", () => {
         takeaway: "true",
         delivery: "true",
         sortBy: "popular",
+      },
+    });
+  });
+
+  it("syncs distance search coordinates into the URL", async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="sync-distance-search"]').trigger("click");
+
+    expect(routerReplace).toHaveBeenCalledWith({
+      query: {
+        sortBy: "distance",
+        lat: "24.1764",
+        lng: "120.6466",
+        radiusKm: "2",
       },
     });
   });

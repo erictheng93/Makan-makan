@@ -425,6 +425,9 @@ const props = withDefaults(
     initialTakeaway?: boolean;
     initialDelivery?: boolean;
     initialSortBy?: MarketProductSort;
+    initialLat?: number;
+    initialLng?: number;
+    initialRadiusKm?: number;
   }>(),
   {
     categories: () => [],
@@ -436,6 +439,9 @@ const props = withDefaults(
     initialTakeaway: false,
     initialDelivery: false,
     initialSortBy: "price_asc",
+    initialLat: undefined,
+    initialLng: undefined,
+    initialRadiusKm: undefined,
   },
 );
 
@@ -454,6 +460,9 @@ const emit = defineEmits<{
       takeaway: boolean;
       delivery: boolean;
       sortBy: MarketProductSort;
+      lat?: number;
+      lng?: number;
+      radiusKm?: number;
     },
   ];
 }>();
@@ -467,12 +476,19 @@ const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
 );
 const resultKind = ref<ResultKind>(props.initialResultKind);
+const initialLocation =
+  props.initialLat != null && props.initialLng != null
+    ? { lat: props.initialLat, lng: props.initialLng }
+    : null;
 const sortBy = ref<MarketProductSort>(
-  props.initialResultKind === "vendor" || props.initialSortBy === "distance"
+  (props.initialResultKind === "vendor" &&
+    props.initialSortBy !== "distance") ||
+    (props.initialSortBy === "distance" && !initialLocation)
     ? "price_asc"
     : props.initialSortBy,
 );
-const userLocation = ref<{ lat: number; lng: number } | null>(null);
+const userLocation = ref<{ lat: number; lng: number } | null>(initialLocation);
+const radiusKm = ref(props.initialRadiusKm ?? 2);
 const locating = ref(false);
 const loadedCategories = ref<string[]>([]);
 const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
@@ -667,7 +683,7 @@ async function fetchResults({ append }: { append: boolean }) {
         ? {
             lat: userLocation.value.lat,
             lng: userLocation.value.lng,
-            radiusKm: 2,
+            radiusKm: radiusKm.value,
           }
         : {};
     const [response, serviceResponse, vendorResponse] = await Promise.all([
@@ -815,6 +831,7 @@ function useCurrentLocation() {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
+      radiusKm.value = 2;
       sortBy.value = "distance";
       submitSearch();
     },
@@ -837,6 +854,13 @@ function emitSearchState() {
     takeaway: takeawayOnly.value,
     delivery: deliveryOnly.value,
     sortBy: sortBy.value,
+    ...(sortBy.value === "distance" && userLocation.value
+      ? {
+          lat: userLocation.value.lat,
+          lng: userLocation.value.lng,
+          radiusKm: radiusKm.value,
+        }
+      : {}),
   });
 }
 
