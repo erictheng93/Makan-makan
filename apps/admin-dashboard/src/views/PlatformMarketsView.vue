@@ -626,7 +626,16 @@
                   v-if="marketHasNoSearchableCatalog(market)"
                   class="rounded bg-red-50 px-2 py-1"
                 >
-                  使用者會看到尚未上架商品/服務
+                  <div>使用者會看到尚未上架商品/服務</div>
+                  <button
+                    type="button"
+                    :data-testid="`reindex-${market.id}`"
+                    class="mt-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
+                    :disabled="isReindexingDiscovery"
+                    @click="reindexDiscovery"
+                  >
+                    重建索引
+                  </button>
                 </div>
               </div>
               <div

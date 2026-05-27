@@ -437,6 +437,16 @@ describe("PlatformMarketsView", () => {
     expect(wrapper.text()).toContain("補菜單/服務或重建索引");
 
     await wrapper
+      .get('[data-testid="reindex-market-empty-catalog"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(discoveryService.reindex).toHaveBeenCalledOnce();
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(marketsService.listAreaReadiness).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("已重建 12 筆商品索引");
+
+    await wrapper
       .get('[data-testid="import-vendors-market-empty-vendors"]')
       .trigger("click");
     await flushPromises();
