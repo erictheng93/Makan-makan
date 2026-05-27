@@ -355,33 +355,85 @@
             </div>
           </section>
 
-          <!-- 分類菜單 -->
+          <!-- 分類餐點 -->
           <section
-            v-for="category in filteredCategories"
-            :id="menuCategoryElementId(category.id)"
-            :key="category.id"
-            class="scroll-mt-32"
+            v-if="filteredCategories.length > 0"
+            data-testid="shop-dish-items"
+            class="space-y-6"
           >
-            <div
-              class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
-              :class="visibleCategories.length > 0 ? 'top-32' : 'top-16'"
-            >
-              <h2 class="text-xl font-semibold text-ios-text">
-                {{ category.name }}
-              </h2>
-              <p
-                v-if="category.description"
-                class="text-sm text-ios-secondary mt-0.5"
-              >
-                {{ category.description }}
+            <div>
+              <h2 class="text-xl font-semibold text-ios-text">餐點</h2>
+              <p class="mt-0.5 text-sm text-ios-secondary">
+                可直接加入購物車的現點餐點
               </p>
             </div>
 
+            <section
+              v-for="category in filteredCategories"
+              :id="menuCategoryElementId(category.id)"
+              :key="category.id"
+              class="scroll-mt-32"
+            >
+              <div
+                class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
+                :class="visibleCategories.length > 0 ? 'top-32' : 'top-16'"
+              >
+                <h3 class="text-lg font-semibold text-ios-text">
+                  {{ category.name }}
+                </h3>
+                <p
+                  v-if="category.description"
+                  class="text-sm text-ios-secondary mt-0.5"
+                >
+                  {{ category.description }}
+                </p>
+              </div>
+
+              <div
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4"
+              >
+                <MenuItemCard
+                  v-for="(item, index) in getItemsByCategory(category.id)"
+                  :key="item.id"
+                  :item="item"
+                  :anchor-id="menuItemElementId(item.id)"
+                  class="animate-slide-up"
+                  :style="{
+                    animationDelay: `${index * 50}ms`,
+                    animationFillMode: 'both',
+                  }"
+                  @add-to-cart="handleAddToCart"
+                  @view-details="handleViewDetails"
+                />
+              </div>
+
+              <!-- 分類內無菜品提示 -->
+              <div
+                v-if="getItemsByCategory(category.id).length === 0"
+                class="py-8 text-center text-gray-500"
+              >
+                <p>{{ t("shopMenu.noItemsInCategory") }}</p>
+              </div>
+            </section>
+          </section>
+
+          <!-- 商品型錄 -->
+          <section
+            v-if="filteredProductItems.length > 0"
+            data-testid="shop-product-items"
+            class="space-y-3"
+          >
+            <div>
+              <h2 class="text-xl font-semibold text-ios-text">商品</h2>
+              <p class="mt-0.5 text-sm text-ios-secondary">
+                店家販售的伴手禮、周邊或非現點商品
+              </p>
+            </div>
             <div
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4"
             >
               <MenuItemCard
-                v-for="(item, index) in getItemsByCategory(category.id)"
+                v-for="(item, index) in filteredProductItems"
                 :key="item.id"
                 :item="item"
                 :anchor-id="menuItemElementId(item.id)"
@@ -394,17 +446,9 @@
                 @view-details="handleViewDetails"
               />
             </div>
-
-            <!-- 分類內無菜品提示 -->
-            <div
-              v-if="getItemsByCategory(category.id).length === 0"
-              class="py-8 text-center text-gray-500"
-            >
-              <p>{{ t("shopMenu.noItemsInCategory") }}</p>
-            </div>
           </section>
           <section
-            v-if="!hasAvailableMenuItems && !searchQuery"
+            v-if="!hasAvailableCatalogItems && !searchQuery"
             data-testid="shop-empty-menu"
             class="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-5"
           >
@@ -418,7 +462,11 @@
 
           <!-- 搜尋無結果 -->
           <div
-            v-if="searchQuery && filteredCategories.length === 0"
+            v-if="
+              searchQuery &&
+              filteredCategories.length === 0 &&
+              filteredProductItems.length === 0
+            "
             class="py-12 text-center"
           >
             <div
@@ -628,7 +676,10 @@ const error = computed(() => menuError.value?.message || null);
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
 const serviceItems = computed(() => serviceItemsData.value || []);
-const hasAvailableMenuItems = computed(() =>
+const isProductCatalogItem = (item: MenuItem) => item.catalogType === "product";
+const isDishMenuItem = (item: MenuItem) =>
+  !item.catalogType || item.catalogType === "menu_item";
+const hasAvailableCatalogItems = computed(() =>
   menuItems.value.some((item: any) => item.isAvailable),
 );
 const visibleCategories = computed(() =>
@@ -655,13 +706,37 @@ const returnContext = computed(() => {
 });
 const linkedTargetLabel = computed(() => {
   if (linkedService.value) return `服務：${linkedService.value.name}`;
-  if (linkedMenuItem.value) return `商品：${linkedMenuItem.value.name}`;
+  if (linkedMenuItem.value) {
+    return `${isProductCatalogItem(linkedMenuItem.value) ? "商品" : "餐點"}：${
+      linkedMenuItem.value.name
+    }`;
+  }
   return "";
 });
 
 const featuredItems = computed(() =>
-  menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable),
+  menuItems.value.filter(
+    (item: MenuItem) =>
+      isDishMenuItem(item) && item.isFeatured && item.isAvailable,
+  ),
 );
+
+const productItems = computed(() =>
+  menuItems.value
+    .filter((item: MenuItem) => isProductCatalogItem(item) && item.isAvailable)
+    .sort((a: MenuItem, b: MenuItem) => a.sortOrder - b.sortOrder),
+);
+
+const filteredProductItems = computed(() => {
+  if (!searchQuery.value.trim()) return productItems.value;
+
+  const query = searchQuery.value.toLowerCase().trim();
+  return productItems.value.filter(
+    (item: MenuItem) =>
+      item.name.toLowerCase().includes(query) ||
+      item.description?.toLowerCase().includes(query),
+  );
+});
 
 const filteredCategories = computed(() => {
   if (!searchQuery.value.trim()) {
@@ -682,13 +757,16 @@ const filteredCategories = computed(() => {
 // Methods
 const getItemsByCategory = (categoryId: number) => {
   let items = menuItems.value.filter(
-    (item: any) => item.categoryId === categoryId && item.isAvailable,
+    (item: MenuItem) =>
+      isDishMenuItem(item) &&
+      item.categoryId === categoryId &&
+      item.isAvailable,
   );
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim();
     items = items.filter(
-      (item: any) =>
+      (item: MenuItem) =>
         item.name.toLowerCase().includes(query) ||
         item.description?.toLowerCase().includes(query),
     );
@@ -833,7 +911,7 @@ const scrollToLinkedServiceItem = async () => {
 
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
-  const sections = categories.value.map((category: any) => ({
+  const sections = visibleCategories.value.map((category: any) => ({
     id: category.id,
     element: document.getElementById(menuCategoryElementId(category.id)),
   }));

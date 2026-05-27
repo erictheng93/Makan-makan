@@ -142,7 +142,7 @@ describe("Discovery API — real integration", () => {
   beforeAll(async () => {
     testApp = await createRealIntegrationTestApp();
     seed = buildSeedHelpers(testApp.testDb);
-  }, 60000);
+  }, 180000);
 
   afterAll(async () => {
     await testApp?.dispose();
@@ -1672,6 +1672,42 @@ describe("Discovery API — real integration", () => {
     expect(data.items[0]).toMatchObject({
       category_name: "公開分類",
     });
+  });
+
+  it("returns discovery menu catalog types for dishes and products", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Catalog Typed Discovery Menu Vendor",
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "公開餐點",
+      catalogType: "menu_item",
+      isAvailable: true,
+      sortOrder: 1,
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "公開商品",
+      catalogType: "product",
+      isAvailable: true,
+      sortOrder: 2,
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants/${restaurant.id}/menu`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(
+      data.items.map((item: any) => ({
+        name: item.name,
+        catalogType: item.catalogType,
+      })),
+    ).toEqual([
+      { name: "公開餐點", catalogType: "menu_item" },
+      { name: "公開商品", catalogType: "product" },
+    ]);
   });
 
   it("scopes dish search by city when districts have the same name", async () => {

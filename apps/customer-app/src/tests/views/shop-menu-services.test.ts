@@ -450,6 +450,63 @@ describe("ShopMenuView service items", () => {
     );
   });
 
+  it("separates dish menu items from product catalog items", () => {
+    menuItemsFixture.items = [
+      {
+        id: 42,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        catalogType: "menu_item",
+        name: "章魚燒",
+        price: 8000,
+        spiceLevel: 0,
+        sortOrder: 1,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: 77,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        catalogType: "product",
+        name: "夜市限定杯套",
+        price: 12000,
+        spiceLevel: 0,
+        sortOrder: 2,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1" },
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    const dishSection = wrapper.get('[data-testid="shop-dish-items"]');
+    const productSection = wrapper.get('[data-testid="shop-product-items"]');
+
+    expect(dishSection.text()).toContain("章魚燒");
+    expect(dishSection.text()).not.toContain("夜市限定杯套");
+    expect(productSection.text()).toContain("夜市限定杯套");
+    expect(productSection.text()).not.toContain("章魚燒");
+  });
+
   it("ignores unsafe return paths", async () => {
     const wrapper = mount(ShopMenuView, {
       props: {

@@ -895,6 +895,7 @@ export class DiscoveryService {
         id: menuItems.id,
         name: menuItems.name,
         description: menuItems.description,
+        catalogType: menuItems.catalogType,
         price: sql<number>`COALESCE(${menuItems.priceCents}, CAST(round(${menuItems.price} * 100) AS integer)) / 100.0`,
         is_available: menuItems.isAvailable,
         image_url: menuItems.imageUrl,
