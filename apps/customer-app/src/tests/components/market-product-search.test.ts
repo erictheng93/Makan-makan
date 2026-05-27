@@ -203,6 +203,7 @@ describe("MarketProductSearch", () => {
     const wrapper = mount(MarketProductSearch, {
       props: {
         marketId: "market-1",
+        categories: ["小吃"],
         autoLoad: false,
       },
     });
@@ -525,6 +526,64 @@ describe("MarketProductSearch", () => {
     ).toContain("類型：服務");
   });
 
+  it("filters market results to vendors without querying catalog or services", async () => {
+    vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
+      results: [
+        restaurant({
+          name: "修鞋攤",
+          marketVendor: {
+            marketId: "market-1",
+            stallNumber: "R-03",
+            isPrimary: true,
+          },
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-result-kind-vendor"]')
+      .trigger("click");
+    expect(
+      wrapper.find('[data-testid="market-product-category-select"]').exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find('[data-testid="market-product-sort-select"]').exists(),
+    ).toBe(false);
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
+    expect(discoveryApi.searchServices).not.toHaveBeenCalled();
+    expect(discoveryApi.browseRestaurants).toHaveBeenCalledWith({
+      q: undefined,
+      marketId: "market-1",
+      sortBy: "popular",
+      page: 1,
+      limit: 20,
+    });
+    expect(wrapper.text()).toContain("修鞋攤");
+    expect(wrapper.text()).toContain("攤位 R-03");
+    expect(
+      wrapper.get('[data-testid="market-product-search-summary"]').text(),
+    ).toContain("類型：店鋪");
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
+      q: "",
+      categoryName: "",
+      serviceType: "",
+      resultKind: "vendor",
+      takeaway: false,
+      delivery: false,
+      sortBy: "price_asc",
+    });
+  });
+
   it("applies the takeaway filter to market services", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [],
@@ -693,7 +752,7 @@ describe("MarketProductSearch", () => {
     await wrapper.get('input[type="checkbox"]').setValue(true);
     await wrapper.get("form").trigger("submit.prevent");
 
-    expect(wrapper.text()).toContain("沒有符合目前條件的商品或服務");
+    expect(wrapper.text()).toContain("沒有符合目前條件的店鋪、商品或服務");
 
     await wrapper
       .get('[data-testid="market-product-clear-filters"]')
@@ -753,7 +812,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-empty-state"]').text(),
-    ).toContain("這個市場尚未上架可搜尋的商品或服務");
+    ).toContain("這個市場尚未上架可搜尋的店鋪、商品或服務");
     expect(
       wrapper.find('[data-testid="market-product-clear-filters"]').exists(),
     ).toBe(false);
@@ -783,7 +842,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-empty-state"]').text(),
-    ).toContain("沒有符合目前條件的商品或服務");
+    ).toContain("沒有符合目前條件的店鋪、商品或服務");
     expect(
       wrapper.find('[data-testid="market-product-clear-filters"]').exists(),
     ).toBe(true);

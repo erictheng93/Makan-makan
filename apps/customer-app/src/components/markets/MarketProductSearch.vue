@@ -32,14 +32,14 @@
 
       <div
         data-testid="market-result-kind-control"
-        class="grid grid-cols-4 gap-1 rounded-lg bg-gray-100 p-1"
+        class="grid grid-cols-5 gap-1 rounded-lg bg-gray-100 p-1"
       >
         <button
           v-for="option in resultKindOptions"
           :key="option.value"
           type="button"
           :data-testid="`market-result-kind-${option.value}`"
-          class="h-9 rounded-md px-2 text-sm font-medium transition-colors"
+          class="h-9 rounded-md px-1 text-sm font-medium transition-colors"
           :class="
             resultKind === option.value
               ? 'bg-white text-ios-blue shadow-sm'
@@ -76,7 +76,11 @@
         只看可外送
       </label>
       <select
-        v-if="resultKind !== 'service' && categoryOptions.length > 0"
+        v-if="
+          resultKind !== 'service' &&
+          resultKind !== 'vendor' &&
+          categoryOptions.length > 0
+        "
         v-model="selectedCategory"
         data-testid="market-product-category-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
@@ -111,6 +115,7 @@
         </option>
       </select>
       <select
+        v-if="resultKind !== 'vendor'"
         v-model="sortBy"
         data-testid="market-product-sort-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
@@ -174,8 +179,8 @@
       <p class="font-medium text-gray-700">
         {{
           hasActiveFilters
-            ? "沒有符合目前條件的商品或服務"
-            : "這個市場尚未上架可搜尋的商品或服務"
+            ? "沒有符合目前條件的店鋪、商品或服務"
+            : "這個市場尚未上架可搜尋的店鋪、商品或服務"
         }}
       </p>
       <p class="text-xs text-gray-400">
@@ -420,7 +425,9 @@ const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
 );
 const resultKind = ref<ResultKind>(props.initialResultKind);
-const sortBy = ref<"price_asc" | "price_desc" | "popular">(props.initialSortBy);
+const sortBy = ref<"price_asc" | "price_desc" | "popular">(
+  props.initialResultKind === "vendor" ? "price_asc" : props.initialSortBy,
+);
 const loadedCategories = ref<string[]>([]);
 const loadedServiceTypes = ref<ServiceTypeFacet[]>([]);
 const results = ref<DishSearchResult[]>([]);
@@ -442,18 +449,20 @@ type ServiceTypeFilter =
   | "consultation"
   | "rental"
   | "activity";
-type ResultKind = "all" | "menu_item" | "product" | "service";
+type ResultKind = "all" | "menu_item" | "product" | "service" | "vendor";
 const resultKindOptions: Array<{ value: ResultKind; label: string }> = [
   { value: "all", label: "全部" },
   { value: "menu_item", label: "餐點" },
   { value: "product", label: "商品" },
   { value: "service", label: "服務" },
+  { value: "vendor", label: "店鋪" },
 ];
 const resultKindLabels: Record<ResultKind, string> = {
   all: "全部",
   menu_item: "餐點",
   product: "商品",
   service: "服務",
+  vendor: "店鋪",
 };
 const serviceTypeDefinitions: Array<{
   value: ServiceTypeFilter;
@@ -501,11 +510,15 @@ const serviceTypeOptions = computed(() =>
     count: facet.count,
   })),
 );
-const shouldSearchCatalog = computed(() => resultKind.value !== "service");
+const shouldSearchCatalog = computed(
+  () => resultKind.value !== "service" && resultKind.value !== "vendor",
+);
 const shouldSearchServices = computed(
   () => resultKind.value === "all" || resultKind.value === "service",
 );
-const shouldSearchVendors = computed(() => resultKind.value === "all");
+const shouldSearchVendors = computed(
+  () => resultKind.value === "all" || resultKind.value === "vendor",
+);
 const selectedCatalogType = computed<"menu_item" | "product" | undefined>(() =>
   resultKind.value === "menu_item" || resultKind.value === "product"
     ? resultKind.value
@@ -534,7 +547,7 @@ const activeFilterLabels = computed(() => {
   }
   if (takeawayOnly.value) labels.push("只看可外帶");
   if (deliveryOnly.value) labels.push("只看可外送");
-  if (sortBy.value !== "price_asc") {
+  if (resultKind.value !== "vendor" && sortBy.value !== "price_asc") {
     labels.push(`排序：${sortLabels[sortBy.value]}`);
   }
 
@@ -656,11 +669,18 @@ function onFulfillmentFilterChange() {
 
 function selectResultKind(nextKind: ResultKind) {
   resultKind.value = nextKind;
-  if (nextKind === "service") {
+  if (nextKind === "service" || nextKind === "vendor") {
     selectedCategory.value = "";
   }
-  if (nextKind === "menu_item" || nextKind === "product") {
+  if (
+    nextKind === "menu_item" ||
+    nextKind === "product" ||
+    nextKind === "vendor"
+  ) {
     selectedServiceType.value = "";
+  }
+  if (nextKind === "vendor") {
+    sortBy.value = "price_asc";
   }
   loadCategories();
   loadServiceTypes();

@@ -356,6 +356,17 @@ describe("MarketDetailView", () => {
     ).toContain("雞排|小吃|delivery|product|true|true|popular");
   });
 
+  it("restores vendor-only market searches from the URL", () => {
+    routeQuery.q = "B-12";
+    routeQuery.resultKind = "vendor";
+
+    const wrapper = mountView();
+
+    expect(
+      wrapper.get('[data-testid="market-product-search-props"]').text(),
+    ).toContain("B-12|||vendor|false|false|price_asc");
+  });
+
   it("syncs market product search state into the URL", async () => {
     const wrapper = mountView();
 
