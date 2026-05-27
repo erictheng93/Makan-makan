@@ -2453,19 +2453,32 @@ describe("Markets API — real integration", () => {
       importJson.data.catalogReadiness.missingSearchEntrypointVendors,
     ).toHaveLength(2);
 
-    const vendorsRes = await testApp.app.fetch(
-      new Request("https://test/api/v1/markets/bulk-import-market/vendors"),
+    const memberships = await testApp.testDb.drizzle
+      .select({
+        restaurantId: restaurantMarketMemberships.restaurantId,
+        stallNumber: restaurantMarketMemberships.stallNumber,
+      })
+      .from(restaurantMarketMemberships)
+      .where(eq(restaurantMarketMemberships.marketId, market.id));
+    expect(memberships).toEqual(
+      expect.arrayContaining([
+        { restaurantId: String(existingRestaurant.id), stallNumber: "A-01" },
+        expect.objectContaining({ stallNumber: "B-02" }),
+      ]),
     );
-    expect(vendorsRes.status).toBe(200);
-    const vendorsJson: any = await vendorsRes.json();
-    expect(vendorsJson.data.total).toBe(2);
-    expect(vendorsJson.data.vendors.map((vendor: any) => vendor.name)).toEqual(
-      expect.arrayContaining(["Existing Import Vendor", "新匯入蚵仔煎"]),
-    );
-    const importedVendor = vendorsJson.data.vendors.find(
-      (vendor: any) => vendor.name === "新匯入蚵仔煎",
-    );
+    expect(memberships).toHaveLength(2);
+
+    const [importedVendor] = await testApp.testDb.drizzle
+      .select({
+        name: restaurants.name,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+      })
+      .from(restaurants)
+      .where(eq(restaurants.name, "新匯入蚵仔煎"))
+      .limit(1);
     expect(importedVendor).toMatchObject({
+      name: "新匯入蚵仔煎",
       latitude: 24.1791,
       longitude: 120.6479,
     });
@@ -2687,13 +2700,13 @@ describe("Markets API — real integration", () => {
       ]),
     );
 
-    const vendorsRes = await testApp.app.fetch(
-      new Request(
-        "https://test/api/v1/markets/bulk-import-dry-run-market/vendors",
-      ),
-    );
-    expect(vendorsRes.status).toBe(200);
-    expect(((await vendorsRes.json()) as any).data.total).toBe(1);
+    const memberships = await testApp.testDb.drizzle
+      .select({ restaurantId: restaurantMarketMemberships.restaurantId })
+      .from(restaurantMarketMemberships)
+      .where(eq(restaurantMarketMemberships.marketId, market.id));
+    expect(memberships).toEqual([
+      { restaurantId: String(existingRestaurant.id) },
+    ]);
 
     const [createdRestaurant] = await testApp.testDb.drizzle
       .select({ id: restaurants.id })
@@ -2701,6 +2714,140 @@ describe("Markets API — real integration", () => {
       .where(eq(restaurants.name, "預檢新攤商"))
       .limit(1);
     expect(createdRestaurant).toBeUndefined();
+  });
+
+  it("skips duplicate vendors in a live bulk import payload", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Vendor Duplicate Import Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const existingRestaurant = await seed.restaurant({
+      name: "Existing Duplicate Import Vendor",
+      city: "台中市",
+      district: "西屯區",
+      address: "台中市西屯區重複攤位",
+      phone: "0244444444",
+    });
+    await seed.user({
+      id: 46,
+      username: "vendor-import-duplicate-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+    );
+    const market = await seedMarket(testApp, {
+      slug: "bulk-import-duplicate-market",
+    });
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const importRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/admin/markets/${market.id}/vendor-imports`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vendors: [
+              {
+                restaurantId: String(existingRestaurant.id),
+                stallNumber: "A-01",
+              },
+              {
+                restaurantId: String(existingRestaurant.id),
+                stallNumber: "A-02",
+              },
+              {
+                name: "正式匯入重複新攤商",
+                type: "street_food",
+                category: "food",
+                address: "台中市西屯區文華路 300 號",
+                district: "西屯區",
+                city: "台中市",
+                phone: "0255555555",
+                stallNumber: "B-01",
+              },
+              {
+                name: "正式匯入重複新攤商",
+                type: "street_food",
+                category: "food",
+                address: "台中市西屯區文華路 300 號",
+                district: "西屯區",
+                city: "台中市",
+                phone: "0255555555",
+                stallNumber: "B-02",
+              },
+            ],
+          }),
+        },
+      ),
+    );
+
+    expect(importRes.status).toBe(200);
+    const importJson: any = await importRes.json();
+    expect(importJson.data).toMatchObject({
+      createdRestaurants: 1,
+      attachedVendors: 2,
+      skipped: 2,
+      issueCount: 2,
+      blockingIssueCount: 2,
+    });
+    expect(importJson.data.results).toEqual([
+      expect.objectContaining({
+        status: "attached",
+        restaurantId: String(existingRestaurant.id),
+        stallNumber: "A-01",
+      }),
+      expect.objectContaining({
+        status: "skipped",
+        reason: "duplicate_in_payload",
+        restaurantId: String(existingRestaurant.id),
+        stallNumber: "A-02",
+      }),
+      expect.objectContaining({
+        status: "created",
+        restaurantName: "正式匯入重複新攤商",
+        stallNumber: "B-01",
+      }),
+      expect.objectContaining({
+        status: "skipped",
+        reason: "duplicate_in_payload",
+        restaurantName: "正式匯入重複新攤商",
+        stallNumber: "B-02",
+      }),
+    ]);
+    expect(importJson.data.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          index: 1,
+          code: "duplicate_in_payload",
+          severity: "blocking",
+        }),
+        expect.objectContaining({
+          index: 3,
+          code: "duplicate_in_payload",
+          severity: "blocking",
+        }),
+      ]),
+    );
+
+    const memberships = await testApp.testDb.drizzle
+      .select({ restaurantId: restaurantMarketMemberships.restaurantId })
+      .from(restaurantMarketMemberships)
+      .where(eq(restaurantMarketMemberships.marketId, market.id));
+    expect(memberships).toHaveLength(2);
+
+    const createdRows = await testApp.testDb.drizzle
+      .select({ id: restaurants.id })
+      .from(restaurants)
+      .where(eq(restaurants.name, "正式匯入重複新攤商"));
+    expect(createdRows).toHaveLength(1);
   });
 
   it("lets platform admins search restaurant candidates before attaching vendors", async () => {

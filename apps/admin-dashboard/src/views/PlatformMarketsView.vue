@@ -1109,6 +1109,20 @@
                 .text
             }}
           </span>
+          <ul
+            v-if="vendorImportResult.issues?.length"
+            data-testid="vendor-import-result-issues"
+            class="mt-2 list-disc space-y-1 pl-5 text-xs"
+          >
+            <li
+              v-for="issue in vendorImportResult.issues"
+              :key="`${issue.index}-${issue.code}-${issue.restaurantId ?? issue.restaurantName ?? ''}`"
+            >
+              第 {{ issue.index + 1 }} 筆：
+              {{ issue.restaurantName || issue.restaurantId || "新店鋪" }} -
+              {{ issue.message }}
+            </li>
+          </ul>
         </div>
         <div
           v-if="vendorImportDryRunResult"

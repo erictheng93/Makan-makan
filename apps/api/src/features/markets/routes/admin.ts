@@ -524,8 +524,32 @@ routes.post(
     let createdRestaurants = 0;
     let attachedVendors = 0;
     let skipped = 0;
+    const issues: VendorImportIssue[] = [];
+    const seen = new Set<string>();
 
-    for (const vendor of vendors) {
+    for (const [index, vendor] of vendors.entries()) {
+      const duplicateKey = newVendorDuplicateKey(vendor);
+      if (seen.has(duplicateKey)) {
+        skipped += 1;
+        issues.push({
+          index,
+          code: "duplicate_in_payload",
+          severity: "blocking",
+          message: "Vendor appears more than once in this import payload",
+          restaurantId: vendor.restaurantId,
+          restaurantName: vendor.name,
+        });
+        results.push({
+          status: "skipped",
+          reason: "duplicate_in_payload",
+          restaurantId: vendor.restaurantId,
+          restaurantName: vendor.name,
+          stallNumber: vendor.stallNumber ?? null,
+        });
+        continue;
+      }
+      seen.add(duplicateKey);
+
       let restaurantId = vendor.restaurantId;
       let restaurantName = vendor.name;
       let status: "attached" | "created" = "attached";
@@ -622,6 +646,14 @@ routes.post(
         createdRestaurants,
         attachedVendors,
         skipped,
+        issueCount: issues.length,
+        blockingIssueCount: issues.filter(
+          (issue) => issue.severity === "blocking",
+        ).length,
+        warningIssueCount: issues.filter(
+          (issue) => issue.severity === "warning",
+        ).length,
+        issues,
         catalogReadiness,
         publicReadiness,
         results,

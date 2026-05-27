@@ -960,7 +960,10 @@ describe("PlatformMarketsView", () => {
     vi.mocked(marketsService.importVendors).mockResolvedValue({
       createdRestaurants: 1,
       attachedVendors: 2,
-      skipped: 0,
+      skipped: 1,
+      issueCount: 1,
+      blockingIssueCount: 1,
+      warningIssueCount: 0,
       publicReadiness: {
         ready: false,
         score: 71,
@@ -968,6 +971,15 @@ describe("PlatformMarketsView", () => {
         totalCount: 7,
         issues: [{ key: "products", severity: "required" }],
       },
+      issues: [
+        {
+          index: 1,
+          code: "duplicate_in_payload",
+          severity: "blocking",
+          message: "Vendor appears more than once in this import payload",
+          restaurantName: "新匯入店鋪",
+        },
+      ],
       results: [],
     });
     const wrapper = mount(PlatformMarketsView);
@@ -1011,6 +1023,10 @@ describe("PlatformMarketsView", () => {
     ]);
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已建立 1 間店鋪");
+    expect(wrapper.text()).toContain("略過 1 筆");
+    expect(
+      wrapper.get('[data-testid="vendor-import-result-issues"]').text(),
+    ).toContain("新匯入店鋪");
     expect(wrapper.text()).toContain("公開頁狀態： 公開頁完整度 71%");
   });
 
