@@ -63,6 +63,32 @@
 
     <section class="rounded-lg bg-white p-4 shadow-ios-card">
       <div
+        v-if="returnedMarket"
+        data-testid="returned-market-reindex-notice"
+        class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+      >
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="leading-5">
+            已回到
+            {{
+              returnedMarket.name
+            }}
+            的公開品質工作台。剛補完商品或服務後，請重建搜尋索引，讓顧客搜尋立即更新。
+          </p>
+          <button
+            type="button"
+            data-testid="returned-market-reindex"
+            class="w-fit rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            :disabled="isReindexingDiscovery"
+            @click="reindexDiscovery"
+          >
+            {{ isReindexingDiscovery ? "重建中..." : "重建搜尋索引" }}
+          </button>
+        </div>
+      </div>
+      <div
         class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
       >
         <div>
@@ -1500,6 +1526,16 @@ const marketImportFormatOptions: Array<{
 ];
 
 const stats = computed(() => marketReadinessStats(markets.value));
+const returnedMarketSlug = computed(() =>
+  firstQueryString(route.query.marketSlug),
+);
+const returnedMarket = computed(() => {
+  if (!returnedMarketSlug.value) return null;
+  return (
+    markets.value.find((market) => market.slug === returnedMarketSlug.value) ??
+    null
+  );
+});
 const areaFilteredMarkets = computed(() => {
   if (!selectedArea.value) return markets.value;
 

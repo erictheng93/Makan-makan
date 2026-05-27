@@ -738,6 +738,29 @@ describe("PlatformMarketsView", () => {
     ).toBe("fengjia");
   });
 
+  it("prompts operators to reindex after returning from a market gap fix", async () => {
+    routeQuery.marketSlug = "fengjia";
+
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="returned-market-reindex-notice"]').text(),
+    ).toContain("逢甲夜市");
+    expect(
+      wrapper.get('[data-testid="returned-market-reindex-notice"]').text(),
+    ).toContain("重建搜尋索引");
+
+    await wrapper
+      .get('[data-testid="returned-market-reindex"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(discoveryService.reindex).toHaveBeenCalledOnce();
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(marketsService.listAreaReadiness).toHaveBeenCalledTimes(2);
+  });
+
   it("downloads a CSV for currently visible catalog gaps", async () => {
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();
