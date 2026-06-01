@@ -3,7 +3,12 @@
  * 版本同步服務 - Phase 3 實施
  */
 
-import type { ManagementEnv, Tenant } from "../types";
+import type {
+  ManagementEnv,
+  Tenant,
+  LicenseTier,
+  TenantStatus,
+} from "../types";
 import { ProvisioningService } from "./ProvisioningService";
 
 export interface VersionRelease {
@@ -273,6 +278,36 @@ export class VersionSyncService {
   }
 
   /**
+   * 將 D1 tenants 資料列 (snake_case 欄位) 映射成 camelCase 的 Tenant。
+   *
+   * `SELECT *` 回傳的欄位是資料庫的 snake_case 名稱 (business_name 等)，
+   * 直接 `as Tenant[]` 會謊報型別 — 消費端讀 `.businessName` 會拿到 undefined。
+   * 這個 mapper 做明確的欄位對應，讓型別與 runtime 一致。
+   */
+  private mapTenantRow(row: Record<string, unknown>): Tenant {
+    return {
+      id: row.id as string,
+      businessName: row.business_name as string,
+      contactEmail: row.contact_email as string,
+      contactPhone: (row.contact_phone as string | null) ?? undefined,
+      latitude: (row.latitude as number | null) ?? undefined,
+      longitude: (row.longitude as number | null) ?? undefined,
+      cfAccountId: (row.cf_account_id as string | null) ?? undefined,
+      cfApiTokenEnc: (row.cf_api_token_enc as string | null) ?? undefined,
+      subdomain: row.subdomain as string,
+      customDomain: (row.custom_domain as string | null) ?? undefined,
+      deployedVersion: (row.deployed_version as string | null) ?? undefined,
+      licenseTier: row.license_tier as LicenseTier,
+      licenseKey: row.license_key as string,
+      licenseExpiresAt: (row.license_expires_at as string | null) ?? undefined,
+      status: row.status as TenantStatus,
+      createdAt: row.created_at as string,
+      activatedAt: (row.activated_at as string | null) ?? undefined,
+      updatedAt: row.updated_at as string,
+    };
+  }
+
+  /**
    * 獲取租戶列表
    */
   private async getTenantsByIds(ids: string[]): Promise<Tenant[]> {
@@ -283,7 +318,9 @@ export class VersionSyncService {
       .bind(...ids)
       .all();
 
-    return (results.results as unknown as Tenant[]) || [];
+    return (results.results ?? []).map((row) =>
+      this.mapTenantRow(row as Record<string, unknown>),
+    );
   }
 
   /**
@@ -303,7 +340,9 @@ export class VersionSyncService {
       .bind(targetVersion)
       .all();
 
-    return (results.results as unknown as Tenant[]) || [];
+    return (results.results ?? []).map((row) =>
+      this.mapTenantRow(row as Record<string, unknown>),
+    );
   }
 
   /**
