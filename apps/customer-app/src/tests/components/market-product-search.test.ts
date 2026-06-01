@@ -387,11 +387,7 @@ describe("MarketProductSearch", () => {
     });
   });
 
-  it("uses initial filters for shareable market product searches", async () => {
-    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
-      results: [dish({ dishName: "分享雞排" })],
-      total: 1,
-    } as never);
+  it("uses initial filters for shareable market service searches", async () => {
     vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
       results: [service({ name: "分享外送", serviceType: "delivery" })],
       total: 1,
@@ -418,15 +414,8 @@ describe("MarketProductSearch", () => {
     });
     await wrapper.get("form").trigger("submit.prevent");
 
-    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
-      q: "雞排",
-      marketId: "market-1",
-      categoryName: "小吃",
-      sortBy: "popular",
-      takeaway: true,
-      page: 1,
-      limit: 20,
-    });
+    expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
+    expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
     expect(discoveryApi.searchServices).toHaveBeenCalledWith({
       q: "雞排",
       marketId: "market-1",
@@ -435,6 +424,14 @@ describe("MarketProductSearch", () => {
       takeaway: true,
       page: 1,
       limit: 20,
+    });
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toMatchObject({
+      q: "雞排",
+      categoryName: "",
+      serviceType: "delivery",
+      resultKind: "service",
+      takeaway: true,
+      sortBy: "popular",
     });
   });
 
@@ -559,9 +556,57 @@ describe("MarketProductSearch", () => {
       page: 1,
       limit: 20,
     });
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("市場外送");
+    });
     expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
     expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain("市場外送");
+    expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
+      q: "",
+      categoryName: "",
+      serviceType: "delivery",
+      resultKind: "service",
+      takeaway: false,
+      delivery: false,
+      sortBy: "price_asc",
+    });
+  });
+
+  it("normalizes initial service type filters to service results", async () => {
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          name: "市場外送",
+          serviceType: "delivery",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        initialCategory: "小吃",
+        initialServiceType: "delivery",
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+        q: undefined,
+        marketId: "market-1",
+        serviceType: "delivery",
+        sortBy: "price_asc",
+        page: 1,
+        limit: 20,
+      });
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("市場外送");
+    });
+    expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
+    expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
       q: "",
       categoryName: "",

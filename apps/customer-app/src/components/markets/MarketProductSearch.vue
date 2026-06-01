@@ -506,17 +506,23 @@ const { formatPrice } = useCurrency();
 const query = ref(props.initialQuery);
 const takeawayOnly = ref(props.initialTakeaway);
 const deliveryOnly = ref(props.initialDelivery);
-const selectedCategory = ref(props.initialCategory);
+const normalizedInitialResultKind =
+  props.initialServiceType && props.initialResultKind === "all"
+    ? "service"
+    : props.initialResultKind;
+const selectedCategory = ref(
+  normalizedInitialResultKind === "service" ? "" : props.initialCategory,
+);
 const selectedServiceType = ref<ServiceTypeFilter | "">(
   props.initialServiceType,
 );
-const resultKind = ref<ResultKind>(props.initialResultKind);
+const resultKind = ref<ResultKind>(normalizedInitialResultKind);
 const initialLocation =
   props.initialLat != null && props.initialLng != null
     ? { lat: props.initialLat, lng: props.initialLng }
     : null;
 const sortBy = ref<MarketProductSort>(
-  (props.initialResultKind === "vendor" &&
+  (normalizedInitialResultKind === "vendor" &&
     props.initialSortBy !== "distance") ||
     (props.initialSortBy === "distance" && !initialLocation)
     ? "price_asc"
