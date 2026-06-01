@@ -238,7 +238,7 @@
         >
           <template #default="{ menuItem }">
             <MenuItemCard
-              :item="menuItem as MenuItemData"
+              :item="menuItem"
               :category-name="getCategoryName(menuItem.categoryId)"
               :highlighted="menuItem.id === highlightedItemId"
               @edit="editMenuItem"
@@ -548,6 +548,7 @@ import CategoryPanel from "@/components/menu/CategoryPanel.vue";
 import CategoryEditForm from "@/components/menu/CategoryEditForm.vue";
 import MenuItemCard from "@/components/menu/MenuItemCard.vue";
 import VirtualMenuGrid from "@/components/VirtualMenuGrid.vue";
+import type { VirtualMenuGridInstance } from "@/components/VirtualMenuGrid.vue";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -586,7 +587,7 @@ const showCategoryEditForm = ref(false);
 const editingCategory = ref<CategoryData | null>(null);
 const showMenuItemModal = ref(false);
 const editingMenuItem = ref<MenuItemData | null>(null);
-const menuGridRef = ref<InstanceType<typeof VirtualMenuGrid> | null>(null);
+const menuGridRef = ref<VirtualMenuGridInstance | null>(null);
 const highlightedItemId = ref<number | null>(null);
 const menuItemImportText = ref("");
 const menuItemImportError = ref("");

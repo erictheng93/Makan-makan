@@ -400,6 +400,7 @@ describe("PlatformMarketsView", () => {
 
     expect(marketsService.approveJoinRequest).toHaveBeenCalledWith(7, {
       stallNumber: "A-12",
+      locationLabel: null,
       isPrimary: true,
     });
     expect(marketsService.listAdminJoinRequests).toHaveBeenCalledTimes(2);
@@ -1535,6 +1536,7 @@ describe("PlatformMarketsView", () => {
     expect(marketsService.addVendor).toHaveBeenCalledWith("market-1", {
       restaurantId: "restaurant-candidate",
       stallNumber: "D-08",
+      locationLabel: null,
       isPrimary: true,
     });
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
@@ -1603,6 +1605,7 @@ describe("PlatformMarketsView", () => {
       "restaurant-1",
       {
         stallNumber: "A-02",
+        locationLabel: null,
         isPrimary: true,
       },
     );

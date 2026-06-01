@@ -52,31 +52,9 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from "vue";
-import { useI18n } from "@/i18n";
-
-const { t } = useI18n();
-
-interface MenuItem {
-  id: number;
-  categoryId: number;
-  name: string;
-  nameEn?: string;
-  description?: string;
-  price: number;
-  imageUrl?: string | null;
-  isFeatured?: boolean;
-  isAvailable: boolean;
-  sortOrder: number;
-}
-
-interface MenuItemWithIndex extends MenuItem {
-  _virtualIndex: number;
-}
-
-interface Props {
-  menuItems: MenuItem[];
+<script lang="ts">
+export interface VirtualMenuGridProps<T extends { id: number }> {
+  menuItems: T[];
   itemHeight: number;
   containerHeight?: number;
   columnsCount?: number;
@@ -84,7 +62,25 @@ interface Props {
   loading?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+export interface VirtualMenuGridInstance {
+  scrollToTop: (behavior?: "auto" | "smooth") => void;
+  scrollToBottom: (behavior?: "auto" | "smooth") => void;
+  scrollToMenuItem: (menuItemId: number, behavior?: "auto" | "smooth") => void;
+  container: HTMLElement | undefined;
+}
+</script>
+
+<script setup lang="ts" generic="T extends { id: number }">
+import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { useI18n } from "@/i18n";
+
+const { t } = useI18n();
+
+type MenuItemWithIndex = T & {
+  _virtualIndex: number;
+};
+
+const props = withDefaults(defineProps<VirtualMenuGridProps<T>>(), {
   containerHeight: 600,
   columnsCount: 4,
   bufferSize: 3,
@@ -221,6 +217,9 @@ onMounted(() => {
 });
 
 // Expose methods for parent components
+// NOTE: the public contract is VirtualMenuGridInstance (exported above).
+// defineExpose is left untyped because its generic form does not unwrap the
+// `container` ref, which would conflict with the unwrapped consumer-facing type.
 defineExpose({
   scrollToTop,
   scrollToBottom,
