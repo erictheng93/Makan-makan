@@ -4,7 +4,9 @@ export type MarketCheckoutPaymentStatus =
   | "pending"
   | "partial_paid"
   | "paid"
-  | "failed";
+  | "failed"
+  | "refunded"
+  | "partial_refunded";
 
 export interface MarketCheckoutListItem {
   id: string;
@@ -45,15 +47,19 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
     totalAmountCents: number;
     paidAmount: number;
     paidAmountCents: number;
+    refundedAmount?: number;
+    refundedAmountCents?: number;
     paidAt?: string;
     failedAt?: string;
+    refundedAt?: string;
     childPayments: Array<{
       restaurantId: string;
       restaurantName: string;
       orderId: number;
       orderNumber: string;
       paymentId?: string;
-      status: "paid" | "failed";
+      refundId?: string;
+      status: "paid" | "failed" | "refunded";
       amount: number;
       amountCents: number;
       errorMessage?: string;
@@ -92,6 +98,15 @@ export const marketCheckoutsService = {
   async get(id: string): Promise<MarketCheckoutDetail> {
     const response = await api.get<{ checkout: MarketCheckoutDetail }>(
       `/market-checkouts/admin/${id}`,
+    );
+    return unwrapApiPayload<{ checkout: MarketCheckoutDetail }>(response.data)
+      .checkout;
+  },
+
+  async refund(id: string, reason?: string): Promise<MarketCheckoutDetail> {
+    const response = await api.post<{ checkout: MarketCheckoutDetail }>(
+      `/market-checkouts/${id}/refund`,
+      { reason },
     );
     return unwrapApiPayload<{ checkout: MarketCheckoutDetail }>(response.data)
       .checkout;

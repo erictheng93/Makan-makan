@@ -437,6 +437,8 @@ function marketCheckoutPaymentLabel(
     partial_paid: "部分付款",
     paid: "已付款",
     failed: "付款失敗",
+    refunded: "已退款",
+    partial_refunded: "部分退款",
   };
   return labels[status];
 }

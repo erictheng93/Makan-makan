@@ -113,7 +113,13 @@ export interface MarketCheckoutResponse {
 export type MarketCheckoutSummary = MarketCheckoutResponse["checkout"];
 
 export interface MarketCheckoutPaymentSummary {
-  status: "pending" | "partial_paid" | "paid" | "failed";
+  status:
+    | "pending"
+    | "partial_paid"
+    | "paid"
+    | "failed"
+    | "refunded"
+    | "partial_refunded";
   method: string;
   currency: "TWD" | "MYR" | "VND";
   country: "TW" | "MY" | "VN";
@@ -121,15 +127,19 @@ export interface MarketCheckoutPaymentSummary {
   totalAmountCents: number;
   paidAmount: number;
   paidAmountCents: number;
+  refundedAmount?: number;
+  refundedAmountCents?: number;
   paidAt?: string;
   failedAt?: string;
+  refundedAt?: string;
   childPayments: Array<{
     restaurantId: string;
     restaurantName: string;
     orderId: number;
     orderNumber: string;
     paymentId?: string;
-    status: "paid" | "failed";
+    refundId?: string;
+    status: "paid" | "failed" | "refunded";
     amount: number;
     amountCents: number;
     errorMessage?: string;

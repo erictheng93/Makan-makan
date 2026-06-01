@@ -85,10 +85,17 @@ function createMockDb() {
   };
 }
 
-function createEnv() {
+function createEnv(dbFirstRows: unknown[] = []) {
   const kv = new Map<string, string>();
   return {
-    DB: {},
+    DB: {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => dbFirstRows.shift() ?? null),
+          run: vi.fn(async () => ({ meta: { changes: 1 } })),
+        })),
+      })),
+    },
     CACHE_KV: {
       get: vi.fn(async (key: string) => kv.get(key) ?? null),
       put: vi.fn(async (key: string, value: string) => {
@@ -667,6 +674,142 @@ describe("market checkout routes", () => {
     expect(json.data.payment).toMatchObject({
       status: "paid",
       method: "line_pay",
+    });
+  });
+
+  it("refunds paid child payments for a market checkout", async () => {
+    const env = createEnv([
+      {
+        id: 1001,
+        restaurant_id: "restaurant-1",
+        total_amount: 120,
+        total_amount_cents: 12000,
+        refund_amount: null,
+        refund_amount_cents: null,
+        payment_method: "line_pay",
+        payment_status: "paid",
+      },
+      {
+        id: 1002,
+        restaurant_id: "restaurant-2",
+        total_amount: 80,
+        total_amount_cents: 8000,
+        refund_amount: null,
+        refund_amount_cents: null,
+        payment_method: "line_pay",
+        payment_status: "paid",
+      },
+    ]);
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "paid",
+          method: "line_pay",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 200,
+          totalAmountCents: 20000,
+          paidAmount: 200,
+          paidAmountCents: 20000,
+          paidAt: "2026-06-01T10:10:00.000Z",
+          childPayments: [
+            {
+              restaurantId: "restaurant-1",
+              restaurantName: "雞排攤",
+              orderId: 1001,
+              orderNumber: "A001",
+              paymentId: "pay-1001",
+              status: "paid",
+              amount: 120,
+              amountCents: 12000,
+            },
+            {
+              restaurantId: "restaurant-2",
+              restaurantName: "甜點攤",
+              orderId: 1002,
+              orderNumber: "A002",
+              paymentId: "pay-1002",
+              status: "paid",
+              amount: 80,
+              amountCents: 8000,
+            },
+          ],
+        },
+        subtotal: 20000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/refund", {
+        method: "POST",
+        body: JSON.stringify({ reason: "customer_request" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          refundedAmount: number;
+          childPayments: Array<{ status: string; refundId?: string }>;
+        };
+        refunds: Array<{ transactionId: string; amount: number }>;
+      };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "refunded",
+      refundedAmount: 200,
+    });
+    expect(json.data.payment.childPayments).toEqual([
+      expect.objectContaining({
+        status: "refunded",
+        refundId: expect.any(String),
+      }),
+      expect.objectContaining({
+        status: "refunded",
+        refundId: expect.any(String),
+      }),
+    ]);
+    expect(json.data.refunds).toEqual([
+      expect.objectContaining({ transactionId: "pay-1001", amount: 120 }),
+      expect.objectContaining({ transactionId: "pay-1002", amount: 80 }),
+    ]);
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:index",
+      expect.stringContaining('"paymentStatus":"refunded"'),
+      { expirationTtl: 14400 },
+    );
+    expect(databaseMocks.updateValues[0]).toMatchObject({
+      paymentStatus: "refunded",
+      paymentSummary: expect.objectContaining({
+        status: "refunded",
+        refundedAmount: 200,
+      }),
     });
   });
 

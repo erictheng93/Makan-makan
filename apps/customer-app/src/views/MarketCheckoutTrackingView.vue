@@ -396,13 +396,21 @@ function paymentStatusLabel(status: OrderPaymentStatus) {
 }
 
 function marketPaymentStatusLabel(
-  status: "pending" | "partial_paid" | "paid" | "failed",
+  status:
+    | "pending"
+    | "partial_paid"
+    | "paid"
+    | "failed"
+    | "refunded"
+    | "partial_refunded",
 ) {
   const labels = {
     pending: "付款待處理",
     partial_paid: "部分付款完成",
     paid: "已完成聯合付款",
     failed: "付款失敗",
+    refunded: "已退款",
+    partial_refunded: "部分退款",
   };
   return labels[status];
 }

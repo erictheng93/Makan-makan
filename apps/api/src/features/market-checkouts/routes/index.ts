@@ -26,6 +26,7 @@ import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { OrdersService } from "../../orders/services/OrdersService";
 import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
 import { PaymentService } from "../../payments/services/PaymentService";
+import { refundPaymentTransaction } from "../../payments/services/refundPayment";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
@@ -49,6 +50,10 @@ const payMarketCheckoutSchema = z.object({
 const recoverMarketCheckoutGuestTokenSchema = z.object({
   orderId: z.number().int().positive(),
   phoneLastDigits: z.string().regex(/^\d{3}$/),
+});
+
+const refundMarketCheckoutSchema = z.object({
+  reason: z.string().max(500).optional(),
 });
 
 interface MarketCheckoutChildOrder {
@@ -91,7 +96,13 @@ interface MarketCheckoutIndexItem {
 }
 
 interface MarketCheckoutPaymentSummary {
-  status: "pending" | "partial_paid" | "paid" | "failed";
+  status:
+    | "pending"
+    | "partial_paid"
+    | "paid"
+    | "failed"
+    | "refunded"
+    | "partial_refunded";
   method: string;
   currency: "TWD" | "MYR" | "VND";
   country: "TW" | "MY" | "VN";
@@ -99,15 +110,19 @@ interface MarketCheckoutPaymentSummary {
   totalAmountCents: number;
   paidAmount: number;
   paidAmountCents: number;
+  refundedAmount?: number;
+  refundedAmountCents?: number;
   paidAt?: string;
   failedAt?: string;
+  refundedAt?: string;
   childPayments: Array<{
     restaurantId: string;
     restaurantName: string;
     orderId: number;
     orderNumber: string;
     paymentId?: string;
-    status: "paid" | "failed";
+    refundId?: string;
+    status: "paid" | "failed" | "refunded";
     amount: number;
     amountCents: number;
     errorMessage?: string;
@@ -602,6 +617,108 @@ app.post("/:id/guest-token", async (c) => {
       restaurantId: child.restaurantId,
       guestToken,
       tokenExpiresAt,
+    },
+  });
+});
+
+app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
+  const checkoutId = c.req.param("id") ?? "";
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = refundMarketCheckoutSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+  if (!session) {
+    throw notFound("Market checkout not found");
+  }
+
+  const refundablePayments =
+    session.payment?.childPayments.filter(
+      (payment) => payment.status === "paid" && payment.paymentId,
+    ) ?? [];
+  if (!session.payment || refundablePayments.length === 0) {
+    throw badRequest("Market checkout has no paid child payments to refund");
+  }
+
+  const refunds = [];
+  for (const payment of refundablePayments) {
+    const refund = await refundPaymentTransaction(c.env, {
+      transactionId: payment.paymentId!,
+      reason: parsed.data.reason,
+    });
+    refunds.push({
+      ...refund,
+      restaurantId: payment.restaurantId,
+      restaurantName: payment.restaurantName,
+      orderNumber: payment.orderNumber,
+    });
+  }
+
+  const refundedPaymentIds = new Set(
+    refunds.map((refund) => refund.transactionId),
+  );
+  const childPayments = session.payment.childPayments.map((payment) =>
+    payment.paymentId && refundedPaymentIds.has(payment.paymentId)
+      ? {
+          ...payment,
+          status: "refunded" as const,
+          refundId: refunds.find(
+            (refund) => refund.transactionId === payment.paymentId,
+          )?.refundId,
+        }
+      : payment,
+  );
+  const remainingPaidPayments = childPayments.filter(
+    (payment) => payment.status === "paid",
+  );
+  const refundedAmount = refunds.reduce(
+    (sum, refund) => sum + refund.amount,
+    0,
+  );
+  const now = new Date().toISOString();
+  const payment: MarketCheckoutPaymentSummary = {
+    ...session.payment,
+    status:
+      remainingPaidPayments.length === 0 ? "refunded" : "partial_refunded",
+    refundedAmount: (session.payment.refundedAmount ?? 0) + refundedAmount,
+    refundedAmountCents:
+      (session.payment.refundedAmountCents ?? 0) +
+      Math.round(refundedAmount * 100),
+    refundedAt: now,
+    childPayments,
+  };
+
+  const updatedSession: MarketCheckoutSession = {
+    ...session,
+    payment,
+  };
+
+  await c.env.CACHE_KV.put(
+    `market_checkout:${checkoutId}`,
+    JSON.stringify(updatedSession),
+    { expirationTtl: 4 * 60 * 60 },
+  );
+  await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
+  await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+
+  return c.json({
+    success: true,
+    data: {
+      checkout: updatedSession,
+      payment,
+      refunds,
     },
   });
 });

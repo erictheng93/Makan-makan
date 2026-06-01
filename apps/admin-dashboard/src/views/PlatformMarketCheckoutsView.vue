@@ -37,6 +37,8 @@
           <option value="partial_paid">部分付款</option>
           <option value="paid">已付款</option>
           <option value="failed">付款失敗</option>
+          <option value="refunded">已退款</option>
+          <option value="partial_refunded">部分退款</option>
         </select>
         <button
           type="button"
@@ -136,12 +138,27 @@
             {{ selectedCheckout.childOrders.length }} 筆子訂單
           </p>
         </div>
-        <div
-          v-if="selectedCheckout.payment"
-          class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700"
-        >
-          已付款 {{ selectedCheckout.payment.paidAmount }} /
-          {{ selectedCheckout.payment.totalAmount }}
+        <div class="flex flex-col items-start gap-2 sm:items-end">
+          <div
+            v-if="selectedCheckout.payment"
+            class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700"
+          >
+            已付款 {{ selectedCheckout.payment.paidAmount }} /
+            {{ selectedCheckout.payment.totalAmount }}
+            <span v-if="selectedCheckout.payment.refundedAmount">
+              · 已退 {{ selectedCheckout.payment.refundedAmount }}
+            </span>
+          </div>
+          <button
+            v-if="canRefundSelectedCheckout"
+            type="button"
+            data-testid="refund-checkout"
+            class="rounded-lg border border-red-600 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            :disabled="isRefunding"
+            @click="refundSelectedCheckout"
+          >
+            {{ isRefunding ? "退款中..." : "整筆退款" }}
+          </button>
         </div>
       </div>
 
@@ -185,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import {
   marketCheckoutsService,
   type MarketCheckoutDetail,
@@ -196,9 +213,15 @@ import {
 const checkouts = ref<MarketCheckoutListItem[]>([]);
 const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
 const isLoading = ref(false);
+const isRefunding = ref(false);
 const error = ref<string | null>(null);
 const marketSlug = ref("");
 const paymentStatus = ref<MarketCheckoutPaymentStatus | "">("");
+
+const canRefundSelectedCheckout = computed(() => {
+  const status = selectedCheckout.value?.payment?.status;
+  return status === "paid" || status === "partial_paid";
+});
 
 async function loadCheckouts() {
   isLoading.value = true;
@@ -223,12 +246,34 @@ async function openCheckout(id: string) {
   selectedCheckout.value = await marketCheckoutsService.get(id);
 }
 
+async function refundSelectedCheckout() {
+  if (!selectedCheckout.value || !canRefundSelectedCheckout.value) return;
+  if (!window.confirm("確定要退款這筆市場結帳嗎？")) return;
+
+  isRefunding.value = true;
+  error.value = null;
+  try {
+    selectedCheckout.value = await marketCheckoutsService.refund(
+      selectedCheckout.value.id,
+      "admin_market_checkout_refund",
+    );
+    await loadCheckouts();
+  } catch (refundError) {
+    error.value =
+      refundError instanceof Error ? refundError.message : "市場結帳退款失敗";
+  } finally {
+    isRefunding.value = false;
+  }
+}
+
 function paymentStatusLabel(status: MarketCheckoutPaymentStatus) {
   const labels: Record<MarketCheckoutPaymentStatus, string> = {
     pending: "待付款",
     partial_paid: "部分付款",
     paid: "已付款",
     failed: "付款失敗",
+    refunded: "已退款",
+    partial_refunded: "部分退款",
   };
   return labels[status];
 }
@@ -239,6 +284,8 @@ function paymentClass(status: MarketCheckoutPaymentStatus) {
     partial_paid: "bg-amber-50 text-amber-700",
     paid: "bg-emerald-50 text-emerald-700",
     failed: "bg-red-50 text-red-700",
+    refunded: "bg-slate-100 text-slate-700",
+    partial_refunded: "bg-orange-50 text-orange-700",
   }[status];
 }
 

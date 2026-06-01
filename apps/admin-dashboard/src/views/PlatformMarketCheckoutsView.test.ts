@@ -9,12 +9,14 @@ vi.mock("@/services/marketCheckoutsService", () => ({
   marketCheckoutsService: {
     list: vi.fn(),
     get: vi.fn(),
+    refund: vi.fn(),
   },
 }));
 
 describe("PlatformMarketCheckoutsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(marketCheckoutsService.list).mockResolvedValue({
       checkouts: [
         {
@@ -86,6 +88,30 @@ describe("PlatformMarketCheckoutsView", () => {
         ],
       },
     });
+    vi.mocked(marketCheckoutsService.refund).mockResolvedValue({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      paymentStatus: "refunded",
+      subtotal: 24000,
+      childOrderCount: 2,
+      createdAt: "2026-06-01T10:00:00.000Z",
+      updatedAt: "2026-06-01T10:05:00.000Z",
+      childOrders: [],
+      payment: {
+        status: "refunded",
+        method: "line_pay",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 240,
+        totalAmountCents: 24000,
+        paidAmount: 160,
+        paidAmountCents: 16000,
+        refundedAmount: 160,
+        refundedAmountCents: 16000,
+        childPayments: [],
+      },
+    });
   });
 
   it("lists market checkouts and opens child order details", async () => {
@@ -116,6 +142,14 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="checkout-detail"]').text()).toContain(
       "已付款 160 / 240",
+    );
+
+    await wrapper.get('[data-testid="refund-checkout"]').trigger("click");
+    await flushPromises();
+
+    expect(marketCheckoutsService.refund).toHaveBeenCalledWith(
+      "checkout-1",
+      "admin_market_checkout_refund",
     );
   });
 });

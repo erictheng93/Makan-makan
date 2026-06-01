@@ -12,7 +12,13 @@ export interface StoredMarketCheckout {
   marketName: string;
   childOrderCount: number;
   totalAmount: number;
-  paymentStatus: "pending" | "partial_paid" | "paid" | "failed";
+  paymentStatus:
+    | "pending"
+    | "partial_paid"
+    | "paid"
+    | "failed"
+    | "refunded"
+    | "partial_refunded";
   phoneLastDigits?: string;
   createdAt: string;
   updatedAt: number;
@@ -192,6 +198,8 @@ function isPaymentStatus(
     value === "pending" ||
     value === "partial_paid" ||
     value === "paid" ||
-    value === "failed"
+    value === "failed" ||
+    value === "refunded" ||
+    value === "partial_refunded"
   );
 }
