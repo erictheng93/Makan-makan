@@ -676,6 +676,8 @@ describe("i18n Integration Tests", () => {
       "navigation.orderTracking",
       "navigation.error",
       "navigation.pageNotFound",
+      "navigation.discover",
+      "navigation.markets",
     ];
 
     it("should have all navigation keys in all 6 locales", () => {

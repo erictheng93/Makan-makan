@@ -368,7 +368,12 @@
                     {{ membership.market.district }}
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-700">
-                    {{ membership.stallNumber || t("settings.markets.notSet") }}
+                    {{
+                      formatMarketMembershipLocation(
+                        membership,
+                        t("settings.markets.notSet"),
+                      )
+                    }}
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-700">
                     {{
@@ -1782,6 +1787,7 @@ import {
   publicReadinessIssueLabel,
 } from "@/utils/marketPublicReadiness";
 import { filterMarketJoinRequestOptions } from "@/utils/marketJoinRequestOptions";
+import { formatMarketMembershipLocation } from "@/utils/marketMembershipDisplay";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 

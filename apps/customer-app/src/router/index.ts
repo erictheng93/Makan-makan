@@ -261,7 +261,7 @@ const routes: RouteRecordRaw[] = [
     name: "Markets",
     component: () => import("@/views/MarketsView.vue"),
     meta: {
-      titleKey: "navigation.discover",
+      titleKey: "navigation.markets",
     },
   },
   {
@@ -270,7 +270,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/MarketDetailView.vue"),
     props: true,
     meta: {
-      titleKey: "navigation.discover",
+      titleKey: "navigation.markets",
     },
   },
   {

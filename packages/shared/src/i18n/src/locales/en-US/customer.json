@@ -28,7 +28,8 @@
     "orderTracking": "Order Tracking",
     "error": "An Error Occurred",
     "pageNotFound": "Page Not Found",
-    "discover": "Discover Food"
+    "discover": "Discover Food",
+    "markets": "Markets"
   },
   "home": {
     "title": "Welcome to MakanMakan",
