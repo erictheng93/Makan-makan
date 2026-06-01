@@ -5,6 +5,7 @@ import type {
   OrderItem,
   CreateOrderRequest,
   OrderStatus,
+  OrderPaymentStatus,
 } from "@makanmakan/shared-types";
 
 export interface OrderSummary {
@@ -87,6 +88,9 @@ export interface MarketCheckoutResponse {
       totalAmount: number;
       totalAmountCents?: number | null;
       tokenExpiresAt: string;
+      status?: OrderStatus;
+      paymentStatus?: OrderPaymentStatus;
+      updatedAt?: number;
     }>;
     subtotal: number;
     createdAt: string;

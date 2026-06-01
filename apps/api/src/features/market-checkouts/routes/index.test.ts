@@ -6,6 +6,7 @@ const databaseMocks = vi.hoisted(() => ({
   selectQueue: [] as Array<{ get?: unknown; all?: unknown[] }>,
 }));
 const createOrder = vi.hoisted(() => vi.fn());
+const getOrder = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
@@ -33,7 +34,7 @@ vi.mock("../../../middleware/guestAuth", async (importOriginal) => ({
 
 vi.mock("../../orders/services/OrdersService", () => ({
   OrdersService: function OrdersService() {
-    return { createOrder };
+    return { createOrder, getOrder };
   },
 }));
 
@@ -68,6 +69,7 @@ describe("market checkout routes", () => {
     databaseMocks.selectQueue.length = 0;
     databaseMocks.createDatabase.mockReturnValue(createMockDb());
     createOrder.mockReset();
+    getOrder.mockReset();
     enforceQuota.mockReset();
     meterEmit.mockReset();
     tokenCounter.value = 0;
@@ -181,5 +183,127 @@ describe("market checkout routes", () => {
     );
     expect(enforceQuota).toHaveBeenCalledTimes(2);
     expect(meterEmit).toHaveBeenCalledTimes(2);
+  });
+
+  it("hydrates child order status when reading a market checkout", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 20000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    getOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+        status: "preparing",
+        paymentStatus: "pending",
+        updatedAt: 1780308300000,
+      })
+      .mockResolvedValueOnce({
+        id: 1002,
+        orderNumber: "A002",
+        totalAmount: 80,
+        status: "ready",
+        paymentStatus: "completed",
+        updatedAt: 1780308400000,
+      });
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          childOrders: Array<{
+            status?: string;
+            paymentStatus?: string;
+            updatedAt?: number;
+          }>;
+        };
+      };
+    };
+    expect(getOrder).toHaveBeenNthCalledWith(1, 1001, false);
+    expect(getOrder).toHaveBeenNthCalledWith(2, 1002, false);
+    expect(json.data.checkout.childOrders[0]).toMatchObject({
+      status: "preparing",
+      paymentStatus: "pending",
+      updatedAt: 1780308300000,
+    });
+    expect(json.data.checkout.childOrders[1]).toMatchObject({
+      status: "ready",
+      paymentStatus: "completed",
+      updatedAt: 1780308400000,
+    });
+  });
+
+  it("keeps stored child order summaries when hydration misses", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    getOrder.mockResolvedValueOnce(null);
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          childOrders: Array<{ orderNumber: string; status?: string }>;
+        };
+      };
+    };
+    expect(json.data.checkout.childOrders[0]).toMatchObject({
+      orderNumber: "A001",
+    });
+    expect(json.data.checkout.childOrders[0].status).toBeUndefined();
   });
 });

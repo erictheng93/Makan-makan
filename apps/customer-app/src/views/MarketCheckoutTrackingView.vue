@@ -105,9 +105,25 @@
                 <h3 class="truncate text-base font-semibold text-gray-900">
                   {{ order.restaurantName }}
                 </h3>
-                <p class="mt-1 text-sm text-gray-500">
-                  訂單 {{ order.orderNumber }}
-                </p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span
+                    class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700"
+                  >
+                    訂單 {{ order.orderNumber }}
+                  </span>
+                  <span
+                    v-if="order.status"
+                    class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700"
+                  >
+                    {{ orderStatusLabel(order.status) }}
+                  </span>
+                  <span
+                    v-if="order.paymentStatus"
+                    class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"
+                  >
+                    {{ paymentStatusLabel(order.paymentStatus) }}
+                  </span>
+                </div>
               </div>
               <p class="shrink-0 text-sm font-semibold text-gray-900">
                 {{ formatPrice(order.totalAmount) }}
@@ -135,6 +151,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import type { OrderPaymentStatus, OrderStatus } from "@makanmakan/shared-types";
 import { orderApi, type MarketCheckoutSummary } from "@/services/orderApi";
 import { useCurrency } from "@/composables/useCurrency";
 
@@ -184,6 +201,36 @@ async function loadCheckout() {
 
 function goToMarket() {
   router.push(`/markets/${props.slug}`);
+}
+
+function orderStatusLabel(status: OrderStatus) {
+  const labels: Record<OrderStatus, string> = {
+    pending: "待確認",
+    confirmed: "已確認",
+    preparing: "製作中",
+    ready: "可取餐",
+    delivered: "已完成",
+    paid: "已付款",
+    cancelled: "已取消",
+    refunded: "已退款",
+  };
+  return labels[status] ?? status;
+}
+
+function paymentStatusLabel(status: OrderPaymentStatus) {
+  const labels: Record<string, string> = {
+    "0": "待付款",
+    "1": "已付款",
+    "2": "付款失敗",
+    pending: "待付款",
+    processing: "付款處理中",
+    completed: "已付款",
+    paid: "已付款",
+    failed: "付款失敗",
+    refunded: "已退款",
+    partial_refund: "部分退款",
+  };
+  return labels[String(status)] ?? String(status);
 }
 
 onMounted(loadCheckout);

@@ -21,9 +21,36 @@ import {
   type GuestTokenData,
 } from "../../../middleware/guestAuth";
 import { OrdersService } from "../../orders/services/OrdersService";
+import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 
 const app = new Hono<{ Bindings: Env }>();
+
+interface MarketCheckoutChildOrder {
+  restaurantId: string;
+  restaurantName: string;
+  orderId: number;
+  orderNumber: string;
+  totalAmount: number;
+  totalAmountCents?: number | null;
+  tokenExpiresAt: string;
+  status?: OrderStatus;
+  paymentStatus?: OrderPaymentStatus;
+  updatedAt?: number;
+}
+
+interface MarketCheckoutSession {
+  id: string;
+  market: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+  status: "submitted";
+  childOrders: MarketCheckoutChildOrder[];
+  subtotal: number;
+  createdAt: string;
+}
 
 app.post("/", async (c) => {
   const body = await c.req.json();
@@ -269,10 +296,36 @@ app.get("/:id", async (c) => {
     throw notFound("Market checkout not found");
   }
 
+  const session = JSON.parse(stored) as MarketCheckoutSession;
+  const ordersService = new OrdersService(c.env);
+  const childOrders = await Promise.all(
+    session.childOrders.map(async (child) => {
+      try {
+        const order = await ordersService.getOrder(child.orderId, false);
+        if (!order) return child;
+
+        return {
+          ...child,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          totalAmountCents: orderTotalCents(order),
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          updatedAt: order.updatedAt,
+        };
+      } catch {
+        return child;
+      }
+    }),
+  );
+
   return c.json({
     success: true,
     data: {
-      checkout: JSON.parse(stored),
+      checkout: {
+        ...session,
+        childOrders,
+      },
     },
   });
 });

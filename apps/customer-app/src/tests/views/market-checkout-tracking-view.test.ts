@@ -51,6 +51,9 @@ describe("MarketCheckoutTrackingView", () => {
           orderNumber: "A001",
           totalAmount: 160,
           tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          status: "preparing",
+          paymentStatus: "pending",
+          updatedAt: 1780308300000,
         },
         {
           restaurantId: "restaurant-2",
@@ -59,6 +62,9 @@ describe("MarketCheckoutTrackingView", () => {
           orderNumber: "A002",
           totalAmount: 80,
           tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          status: "ready",
+          paymentStatus: "completed",
+          updatedAt: 1780308400000,
         },
       ],
       subtotal: 240,
@@ -81,7 +87,11 @@ describe("MarketCheckoutTrackingView", () => {
     expect(childOrders).toHaveLength(2);
     expect(childOrders[0].text()).toContain("雞排攤");
     expect(childOrders[0].text()).toContain("A001");
+    expect(childOrders[0].text()).toContain("製作中");
+    expect(childOrders[0].text()).toContain("待付款");
     expect(childOrders[0].text()).toContain("NT$160");
+    expect(childOrders[1].text()).toContain("可取餐");
+    expect(childOrders[1].text()).toContain("已付款");
   });
 
   it("returns to the market page", async () => {
