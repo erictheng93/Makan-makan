@@ -30,7 +30,11 @@ import {
 } from "../../../core/cache";
 import { CACHE_TTL } from "../../../shared/constants";
 import { isOpenNow } from "../../discovery/utils/isOpenNow";
-import { boundingBoxFromCircle, distanceKm } from "./geo";
+import {
+  boundingBoxFromCircle,
+  distanceKm,
+  pointInGeoJsonBoundary,
+} from "./geo";
 import { evaluateMarketPublicReadiness } from "../utils/publicReadiness";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
@@ -389,6 +393,7 @@ export class MarketsService {
         address: markets.address,
         latitude: markets.latitude,
         longitude: markets.longitude,
+        boundaryGeojson: markets.boundaryGeojson,
         openingHours: markets.openingHours,
         bannerUrl: markets.bannerUrl,
         logoUrl: markets.logoUrl,
@@ -1190,6 +1195,7 @@ export class MarketsService {
         address: markets.address,
         latitude: markets.latitude,
         longitude: markets.longitude,
+        boundaryGeojson: markets.boundaryGeojson,
         openingHours: markets.openingHours,
         bannerUrl: markets.bannerUrl,
         logoUrl: markets.logoUrl,
@@ -1217,25 +1223,38 @@ export class MarketsService {
         and(
           eq(markets.isActive, true),
           isNull(markets.deletedAt),
-          gte(markets.latitude, box.southLat),
-          lte(markets.latitude, box.northLat),
-          gte(markets.longitude, box.westLng),
-          lte(markets.longitude, box.eastLng),
+          or(
+            and(
+              gte(markets.latitude, box.southLat),
+              lte(markets.latitude, box.northLat),
+              gte(markets.longitude, box.westLng),
+              lte(markets.longitude, box.eastLng),
+            ),
+            sql`${markets.boundaryGeojson} IS NOT NULL`,
+          ),
           ...this.publicReadyConditions(),
         ),
       )
       .groupBy(markets.id)
-      .limit(100);
+      .limit(500);
 
     const nearbyRows = rows
-      .map((row) => ({
-        ...row,
-        vendorCount: Number(row.vendorCount),
-        distanceKm: distanceKm(
+      .map((row) => {
+        const containsPoint = pointInGeoJsonBoundary(
           { lat, lng },
-          { lat: row.latitude, lng: row.longitude },
-        ),
-      }))
+          row.boundaryGeojson,
+        );
+        return {
+          ...row,
+          vendorCount: Number(row.vendorCount),
+          distanceKm: containsPoint
+            ? 0
+            : distanceKm(
+                { lat, lng },
+                { lat: row.latitude, lng: row.longitude },
+              ),
+        };
+      })
       .filter((row) => row.distanceKm <= cappedRadius)
       .sort((a, b) => a.distanceKm - b.distanceKm)
       .slice(0, cappedLimit);

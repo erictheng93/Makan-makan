@@ -1,6 +1,16 @@
 import { apiClient } from "./api";
 import type { RestaurantListItem } from "./discoveryApi";
 
+export type MarketGeoJsonBoundary =
+  | {
+      type: "Polygon";
+      coordinates: number[][][];
+    }
+  | {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+
 export interface MarketListItem {
   id: string;
   slug: string;
@@ -12,6 +22,7 @@ export interface MarketListItem {
   address: string;
   latitude: number;
   longitude: number;
+  boundaryGeojson?: MarketGeoJsonBoundary | null;
   openingHours?: Record<
     string,
     { open: string; close: string; closed?: boolean }

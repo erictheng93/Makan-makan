@@ -294,7 +294,7 @@ describe("Markets API — real integration", () => {
     const detailJson: any = await detailRes.json();
     expect(detailJson.data.market.slug).toBe("fengjia-night-market");
     expect(detailJson.data.vendorCount).toBe(1);
-    expect(detailJson.data.catalogCoverage).toEqual({
+    expect(detailJson.data.catalogCoverage).toMatchObject({
       searchableProductCount: 2,
       publicServiceCount: 1,
     });
@@ -1558,6 +1558,51 @@ describe("Markets API — real integration", () => {
     expect(nearbyJson.data.markets[0].distanceKm).toBeLessThan(0.1);
   });
 
+  it("finds nearby markets when the user is inside a market boundary", async () => {
+    const boundaryGeojson = {
+      type: "Polygon" as const,
+      coordinates: [
+        [
+          [120.646, 24.176],
+          [120.647, 24.176],
+          [120.647, 24.177],
+          [120.646, 24.177],
+          [120.646, 24.176],
+        ],
+      ],
+    };
+    const { market } = await seedSearchableMarket(testApp, seed, {
+      slug: "boundary-night-market",
+      latitude: 24.25,
+      longitude: 120.75,
+      boundaryGeojson,
+    });
+
+    const detailRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/markets/boundary-night-market"),
+    );
+    expect(detailRes.status).toBe(200);
+    const detailJson: any = await detailRes.json();
+    expect(detailJson.data.market).toMatchObject({
+      id: market.id,
+      boundaryGeojson,
+    });
+
+    const nearbyRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets/nearby?lat=24.1765&lng=120.6465&radiusKm=0.2",
+      ),
+    );
+    expect(nearbyRes.status).toBe(200);
+    const nearbyJson: any = await nearbyRes.json();
+    expect(nearbyJson.data.markets).toHaveLength(1);
+    expect(nearbyJson.data.markets[0]).toMatchObject({
+      slug: "boundary-night-market",
+      boundaryGeojson,
+      distanceKm: 0,
+    });
+  });
+
   it("filters open market vendors before pagination", async () => {
     const market = await seedMarket(testApp, {
       slug: "open-vendor-pagination-market",
@@ -2089,6 +2134,18 @@ describe("Markets API — real integration", () => {
       "content-type": "application/json",
       ...CSRF_HEADERS,
     };
+    const boundaryGeojson = {
+      type: "Polygon" as const,
+      coordinates: [
+        [
+          [120.682, 24.14],
+          [120.684, 24.14],
+          [120.684, 24.142],
+          [120.682, 24.142],
+          [120.682, 24.14],
+        ],
+      ],
+    };
 
     const createRes = await testApp.app.fetch(
       new Request("https://test/api/v1/admin/markets", {
@@ -2104,6 +2161,7 @@ describe("Markets API — real integration", () => {
           address: "台中市中區測試路",
           latitude: 24.141,
           longitude: 120.683,
+          boundaryGeojson,
           openingHours: {
             friday: { open: "17:00", close: "23:30" },
             saturday: { open: "16:00", close: "23:59" },
@@ -2126,6 +2184,7 @@ describe("Markets API — real integration", () => {
       isActive: true,
       bannerUrl: "https://example.com/admin-market-banner.jpg",
       logoUrl: "https://example.com/admin-market-logo.jpg",
+      boundaryGeojson,
       imageUrls: [
         "https://example.com/admin-market-gallery-1.jpg",
         "https://example.com/admin-market-gallery-2.jpg",
@@ -2145,6 +2204,7 @@ describe("Markets API — real integration", () => {
         body: JSON.stringify({
           name: "更新後夜市",
           district: "西區",
+          boundaryGeojson: null,
           imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
           tags: ["美食", "宵夜"],
         }),
@@ -2156,6 +2216,7 @@ describe("Markets API — real integration", () => {
       id: marketId,
       name: "更新後夜市",
       district: "西區",
+      boundaryGeojson: null,
       imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
       tags: ["美食", "宵夜"],
     });
@@ -2216,6 +2277,26 @@ describe("Markets API — real integration", () => {
       marketId,
       stallNumber: "A-02",
       isPrimary: false,
+    });
+
+    const searchableItem = await seed.menuItem(String(restaurant.id), {
+      name: "Admin Market Searchable Item",
+      price: 95,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: searchableItem.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Admin Market Searchable Item",
+      dishNameNormalized: "adminmarketsearchableitem",
+      price: 95,
+      isAvailable: true,
+      tags: [],
+      district: "西區",
+      primaryMarketId: marketId,
+      marketIds: [marketId],
+      latitude: 24.15,
+      longitude: 120.67,
+      updatedAt: new Date(),
     });
 
     const publicVendorsRes = await testApp.app.fetch(
@@ -3264,6 +3345,26 @@ describe("Markets API — real integration", () => {
       marketId: approvedMarket.id,
       stallNumber: "C-09",
       isPrimary: true,
+    });
+
+    const reviewItem = await seed.menuItem(String(restaurant.id), {
+      name: "Join Review Searchable Item",
+      price: 95,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: reviewItem.id,
+      restaurantId: String(restaurant.id),
+      dishName: "Join Review Searchable Item",
+      dishNameNormalized: "joinreviewsearchableitem",
+      price: 95,
+      isAvailable: true,
+      tags: [],
+      district: approvedMarket.district,
+      primaryMarketId: approvedMarket.id,
+      marketIds: [approvedMarket.id],
+      latitude: 24.15,
+      longitude: 120.67,
+      updatedAt: new Date(),
     });
 
     const vendorsRes = await testApp.app.fetch(

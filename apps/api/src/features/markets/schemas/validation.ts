@@ -16,6 +16,33 @@ const urlSchema = z
   .transform(decodeHtmlEntities)
   .pipe(z.string().url());
 
+const coordinateSchema = z.tuple([
+  z.number().min(-180).max(180),
+  z.number().min(-90).max(90),
+]);
+const linearRingSchema = z
+  .array(coordinateSchema)
+  .min(4)
+  .refine(
+    (ring) => {
+      const first = ring[0];
+      const last = ring[ring.length - 1];
+      return first[0] === last[0] && first[1] === last[1];
+    },
+    { message: "GeoJSON linear rings must be closed" },
+  );
+const polygonCoordinatesSchema = z.array(linearRingSchema).min(1);
+const boundaryGeojsonSchema = z.union([
+  z.object({
+    type: z.literal("Polygon"),
+    coordinates: polygonCoordinatesSchema,
+  }),
+  z.object({
+    type: z.literal("MultiPolygon"),
+    coordinates: z.array(polygonCoordinatesSchema).min(1),
+  }),
+]);
+
 export const marketListQuerySchema = z.object({
   q: z.string().trim().min(1).max(100).optional(),
   city: z.string().optional(),
@@ -92,6 +119,7 @@ export const createMarketSchema = z.object({
   address: z.string().min(1).max(255),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  boundaryGeojson: boundaryGeojsonSchema.nullable().optional(),
   openingHours: z.record(z.any()).nullable().optional(),
   bannerUrl: urlSchema.nullable().optional(),
   logoUrl: urlSchema.nullable().optional(),

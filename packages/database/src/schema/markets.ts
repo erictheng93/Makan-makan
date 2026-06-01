@@ -10,6 +10,16 @@ import { relations, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { restaurants } from "./restaurants";
 
+export type MarketGeoJsonBoundary =
+  | {
+      type: "Polygon";
+      coordinates: number[][][];
+    }
+  | {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+
 export const markets = sqliteTable(
   "markets",
   {
@@ -25,6 +35,9 @@ export const markets = sqliteTable(
     address: text("address").notNull(),
     latitude: real("latitude").notNull(),
     longitude: real("longitude").notNull(),
+    boundaryGeojson: text("boundary_geojson", {
+      mode: "json",
+    }).$type<MarketGeoJsonBoundary | null>(),
     openingHours: text("opening_hours", { mode: "json" }).$type<Record<
       string,
       { open: string; close: string; closed?: boolean }

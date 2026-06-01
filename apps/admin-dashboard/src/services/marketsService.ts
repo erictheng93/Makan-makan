@@ -1,6 +1,16 @@
 import { api, unwrapApiPayload } from "@/services/api";
 import type { MarketPublicReadiness } from "@/utils/marketPublicReadiness";
 
+export type MarketGeoJsonBoundary =
+  | {
+      type: "Polygon";
+      coordinates: number[][][];
+    }
+  | {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+
 export interface MarketCatalogGapVendor {
   restaurantId: string;
   name: string;
@@ -37,6 +47,7 @@ export interface MarketListItem {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  boundaryGeojson?: MarketGeoJsonBoundary | null;
   openingHours?: Record<string, unknown> | null;
   bannerUrl?: string | null;
   logoUrl?: string | null;
@@ -122,6 +133,7 @@ export interface CreateMarketInput {
   address: string;
   latitude: number;
   longitude: number;
+  boundaryGeojson?: MarketGeoJsonBoundary | null;
   openingHours?: Record<string, unknown> | null;
   bannerUrl?: string | null;
   logoUrl?: string | null;

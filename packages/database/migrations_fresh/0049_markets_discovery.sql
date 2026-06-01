@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS markets (
   address TEXT NOT NULL,
   latitude REAL NOT NULL,
   longitude REAL NOT NULL,
+  boundary_geojson TEXT,
   opening_hours TEXT,
   banner_url TEXT,
   logo_url TEXT,

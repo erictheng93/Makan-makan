@@ -34,6 +34,7 @@ describe("market discovery schema", () => {
         "address",
         "latitude",
         "longitude",
+        "boundary_geojson",
         "opening_hours",
         "banner_url",
         "logo_url",
@@ -48,6 +49,7 @@ describe("market discovery schema", () => {
     expect(columnSqlType(markets, "id")).toBe("text");
     expect(columnSqlType(markets, "latitude")).toBe("real");
     expect(columnSqlType(markets, "longitude")).toBe("real");
+    expect(columnSqlType(markets, "boundary_geojson")).toBe("text");
   });
 
   it("adds soft-leavable restaurant market memberships", () => {

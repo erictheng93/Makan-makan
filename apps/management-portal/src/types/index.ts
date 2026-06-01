@@ -219,6 +219,16 @@ export interface Market {
   address: string;
   latitude: number;
   longitude: number;
+  boundaryGeojson?:
+    | {
+        type: "Polygon";
+        coordinates: number[][][];
+      }
+    | {
+        type: "MultiPolygon";
+        coordinates: number[][][][];
+      }
+    | null;
   openingHours?: Record<string, unknown> | null;
   bannerUrl?: string | null;
   logoUrl?: string | null;
