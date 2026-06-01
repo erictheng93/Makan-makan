@@ -20,6 +20,7 @@ import {
   generateGuestToken,
   type GuestTokenData,
 } from "../../../middleware/guestAuth";
+import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { OrdersService } from "../../orders/services/OrdersService";
 import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
 import { PaymentService } from "../../payments/services/PaymentService";
@@ -27,6 +28,8 @@ import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
 const app = new Hono<{ Bindings: Env }>();
+const MARKET_CHECKOUT_INDEX_KEY = "market_checkout:index";
+const MARKET_CHECKOUT_INDEX_LIMIT = 200;
 
 const payMarketCheckoutSchema = z.object({
   method: z.string().min(1).max(50).default("market_online"),
@@ -66,6 +69,17 @@ interface MarketCheckoutSession {
   payment?: MarketCheckoutPaymentSummary;
   subtotal: number;
   createdAt: string;
+}
+
+interface MarketCheckoutIndexItem {
+  id: string;
+  market: MarketCheckoutSession["market"];
+  status: MarketCheckoutSession["status"];
+  paymentStatus: MarketCheckoutPaymentSummary["status"] | "pending";
+  subtotal: number;
+  childOrderCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface MarketCheckoutPaymentSummary {
@@ -288,7 +302,7 @@ app.post("/", async (c) => {
     (sum, child) => sum + orderTotalCents(child.order),
     0,
   );
-  const session = {
+  const session: MarketCheckoutSession = {
     id: checkoutId,
     market: {
       id: market.id,
@@ -316,6 +330,7 @@ app.post("/", async (c) => {
       expirationTtl: 4 * 60 * 60,
     },
   );
+  await upsertMarketCheckoutIndex(c.env.CACHE_KV, session);
 
   return c.json(
     {
@@ -483,6 +498,7 @@ app.post("/:id/pay", async (c) => {
       expirationTtl: 4 * 60 * 60,
     },
   );
+  await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
 
   return c.json(
     {
@@ -494,6 +510,48 @@ app.post("/:id/pay", async (c) => {
     },
     payment.status === "paid" ? 200 : 202,
   );
+});
+
+app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
+  const page = coercePositiveInt(c.req.query("page"), 1);
+  const limit = Math.min(coercePositiveInt(c.req.query("limit"), 20), 100);
+  const marketSlug = c.req.query("marketSlug");
+  const paymentStatus = c.req.query("paymentStatus");
+  const status = c.req.query("status");
+
+  const index = await readMarketCheckoutIndex(c.env.CACHE_KV);
+  const filtered = index.filter((checkout) => {
+    if (marketSlug && checkout.market.slug !== marketSlug) return false;
+    if (paymentStatus && checkout.paymentStatus !== paymentStatus) return false;
+    if (status && checkout.status !== status) return false;
+    return true;
+  });
+  const offset = (page - 1) * limit;
+
+  return c.json({
+    success: true,
+    data: {
+      checkouts: filtered.slice(offset, offset + limit),
+      total: filtered.length,
+      page,
+      limit,
+    },
+  });
+});
+
+app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
+  const checkoutId = c.req.param("id");
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  if (!stored) {
+    throw notFound("Market checkout not found");
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      checkout: JSON.parse(stored) as MarketCheckoutSession,
+    },
+  });
 });
 
 app.get("/:id", async (c) => {
@@ -546,4 +604,74 @@ function orderTotalCents(order: {
   return Number(
     order.totalAmountCents ?? Math.round(Number(order.totalAmount ?? 0) * 100),
   );
+}
+
+async function readMarketCheckoutIndex(
+  kv: KVNamespace,
+): Promise<MarketCheckoutIndexItem[]> {
+  const stored = await kv.get(MARKET_CHECKOUT_INDEX_KEY);
+  if (!stored) return [];
+
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(isMarketCheckoutIndexItem)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+  } catch {
+    return [];
+  }
+}
+
+async function upsertMarketCheckoutIndex(
+  kv: KVNamespace,
+  session: MarketCheckoutSession,
+) {
+  const summary: MarketCheckoutIndexItem = {
+    id: session.id,
+    market: session.market,
+    status: session.status,
+    paymentStatus: session.payment?.status ?? "pending",
+    subtotal: session.subtotal,
+    childOrderCount: session.childOrders.length,
+    createdAt: session.createdAt,
+    updatedAt: new Date().toISOString(),
+  };
+  const nextIndex = [
+    summary,
+    ...(await readMarketCheckoutIndex(kv)).filter(
+      (checkout) => checkout.id !== session.id,
+    ),
+  ].slice(0, MARKET_CHECKOUT_INDEX_LIMIT);
+
+  await kv.put(MARKET_CHECKOUT_INDEX_KEY, JSON.stringify(nextIndex), {
+    expirationTtl: 4 * 60 * 60,
+  });
+}
+
+function isMarketCheckoutIndexItem(
+  value: unknown,
+): value is MarketCheckoutIndexItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<MarketCheckoutIndexItem>;
+  return (
+    typeof item.id === "string" &&
+    item.market !== undefined &&
+    typeof item.market.id === "string" &&
+    typeof item.market.slug === "string" &&
+    typeof item.market.name === "string" &&
+    item.status === "submitted" &&
+    typeof item.subtotal === "number" &&
+    typeof item.childOrderCount === "number" &&
+    typeof item.createdAt === "string" &&
+    typeof item.updatedAt === "string"
+  );
+}
+
+function coercePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }

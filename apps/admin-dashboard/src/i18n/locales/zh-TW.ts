@@ -1570,6 +1570,7 @@ const zhTW = {
     unauthorized: "無權限",
     notFound: "頁面不存在",
     platformOverview: "平台總覽",
+    platformMarketCheckouts: "市場結帳紀錄",
     adminSuffix: "管理後台",
     forecast: "需求預測",
     ingredients: "食材管理",

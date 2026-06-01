@@ -81,6 +81,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "platform/market-checkouts",
+        name: "PlatformMarketCheckouts",
+        component: () => import("@/views/PlatformMarketCheckoutsView.vue"),
+        meta: {
+          titleKey: "pages.platformMarketCheckouts",
+          roles: [UserRole.ADMIN],
+        },
+      },
+      {
         path: "orders",
         name: "Orders",
         component: () => import("@/views/OrdersView.vue"),

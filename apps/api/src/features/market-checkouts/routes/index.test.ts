@@ -12,6 +12,13 @@ const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
 
+vi.mock("../../../middleware/auth", () => ({
+  authMiddleware: vi.fn(async (_c, next) => next()),
+  requireRole: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+}));
+
 vi.mock("@makanmakan/database", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@makanmakan/database")>()),
   createDatabase: databaseMocks.createDatabase,
@@ -434,9 +441,14 @@ describe("market checkout routes", () => {
       totalAmount: 200,
       childPayments: [{ paymentId: "pay-1001" }, { paymentId: "pay-1002" }],
     });
-    expect(env.CACHE_KV.put).toHaveBeenLastCalledWith(
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:checkout-1",
       expect.stringContaining('"payment"'),
+      { expirationTtl: 14400 },
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:index",
+      expect.stringContaining('"paymentStatus":"paid"'),
       { expirationTtl: 14400 },
     );
   });
@@ -594,6 +606,81 @@ describe("market checkout routes", () => {
     expect(retryJson.data.payment).toMatchObject({
       status: "paid",
       paidAmount: 200,
+    });
+  });
+
+  it("lists market checkout sessions for platform admins", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "partial_paid",
+          method: "line_pay",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 120,
+          totalAmountCents: 12000,
+          paidAmount: 80,
+          paidAmountCents: 8000,
+          childPayments: [],
+        },
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    await env.CACHE_KV.put(
+      "market_checkout:index",
+      JSON.stringify([
+        {
+          id: "checkout-1",
+          market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+          status: "submitted",
+          paymentStatus: "partial_paid",
+          subtotal: 12000,
+          childOrderCount: 1,
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:05:00.000Z",
+        },
+      ]),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/admin?paymentStatus=partial_paid"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkouts: Array<{
+          id: string;
+          market: { slug: string };
+          paymentStatus: string;
+          childOrderCount: number;
+        }>;
+        total: number;
+      };
+    };
+    expect(json.data.total).toBe(1);
+    expect(json.data.checkouts[0]).toMatchObject({
+      id: "checkout-1",
+      market: { slug: "fengjia" },
+      paymentStatus: "partial_paid",
+      childOrderCount: 1,
     });
   });
 });

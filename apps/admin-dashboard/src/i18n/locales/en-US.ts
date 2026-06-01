@@ -1530,6 +1530,7 @@ const enUS: Messages = {
     unauthorized: "Unauthorized",
     notFound: "Page Not Found",
     platformOverview: "Platform Overview",
+    platformMarketCheckouts: "Market Checkouts",
     adminSuffix: "Admin Dashboard",
     forecast: "Demand Forecast",
     ingredients: "Ingredients",

@@ -114,6 +114,7 @@ import {
   Activity,
   Globe,
   MapPinned,
+  ReceiptText,
   UserPlus,
   Crown,
   MessageSquare,
@@ -140,6 +141,7 @@ const user = computed(() => authStore.user);
 const platformItemNames = new Set([
   "platform",
   "platform-markets",
+  "platform-market-checkouts",
   "monitoring",
   "settings",
   "account-management",
@@ -172,6 +174,13 @@ const navigationItems = computed(() => {
       path: "/dashboard/platform/markets",
       label: "市場品質",
       icon: MapPinned,
+      visible: authStore.isAdminRole,
+    },
+    {
+      name: "platform-market-checkouts",
+      path: "/dashboard/platform/market-checkouts",
+      label: "市場結帳",
+      icon: ReceiptText,
       visible: authStore.isAdminRole,
     },
     {
