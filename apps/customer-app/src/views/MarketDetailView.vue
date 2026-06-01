@@ -973,6 +973,13 @@ async function submitMarketCheckout() {
 
     marketCheckoutResult.value = checkout;
     toast.success("市場訂單已送出");
+    router.push({
+      name: "MarketCheckoutTracking",
+      params: {
+        slug: marketCart.value.marketSlug,
+        checkoutId: checkout.checkout.id,
+      },
+    });
   } catch (error) {
     console.error("Market checkout failed:", error);
     toast.error(error instanceof Error ? error.message : "市場訂單送出失敗");

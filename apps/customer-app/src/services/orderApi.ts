@@ -100,6 +100,12 @@ export interface MarketCheckoutResponse {
   }>;
 }
 
+export type MarketCheckoutSummary = MarketCheckoutResponse["checkout"];
+
+interface MarketCheckoutEnvelope {
+  checkout: MarketCheckoutSummary;
+}
+
 interface GuestOrderEnvelope {
   order: Order;
 }
@@ -152,6 +158,13 @@ export const orderApi = {
       );
     }
     return response;
+  },
+
+  async getMarketCheckout(checkoutId: string): Promise<MarketCheckoutSummary> {
+    const response = await apiClient.get<MarketCheckoutEnvelope>(
+      `/market-checkouts/${checkoutId}`,
+    );
+    return response.checkout;
   },
 
   /**

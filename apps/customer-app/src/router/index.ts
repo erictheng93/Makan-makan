@@ -274,6 +274,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/markets/:slug/checkout/:checkoutId",
+    name: "MarketCheckoutTracking",
+    component: () => import("@/views/MarketCheckoutTrackingView.vue"),
+    props: true,
+    meta: {
+      titleKey: "navigation.markets",
+    },
+  },
+  {
     path: "/error",
     name: "Error",
     component: () => import("@/views/ErrorView.vue"),

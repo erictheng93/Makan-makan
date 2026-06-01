@@ -619,9 +619,13 @@ describe("MarketDetailView", () => {
       ],
     });
     await vi.waitFor(() => {
-      expect(
-        wrapper.get('[data-testid="market-checkout-result"]').text(),
-      ).toContain("已送出 2");
+      expect(routerPush).toHaveBeenCalledWith({
+        name: "MarketCheckoutTracking",
+        params: {
+          slug: "fengjia",
+          checkoutId: "checkout-1",
+        },
+      });
     });
     expect(toastSuccess).toHaveBeenCalledWith("市場訂單已送出");
   });
