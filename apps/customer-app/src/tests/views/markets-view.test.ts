@@ -68,6 +68,7 @@ function mountView() {
 
 describe("MarketsView", () => {
   beforeEach(() => {
+    localStorage.clear();
     routerPush.mockReset();
     routerReplace.mockReset();
     for (const key of Object.keys(routeQuery)) {
@@ -240,6 +241,50 @@ describe("MarketsView", () => {
         returnLabel: "夜市與商圈",
       },
     });
+  });
+
+  it("shows favorite and recent markets before the full directory", async () => {
+    localStorage.setItem(
+      "makanmakan_favorite_markets",
+      JSON.stringify([
+        {
+          id: "favorite-market",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          city: "台中市",
+          district: "西屯區",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    localStorage.setItem(
+      "makanmakan_recent_markets",
+      JSON.stringify([
+        {
+          id: "recent-market",
+          slug: "ximen",
+          name: "西門町商圈",
+          city: "台北市",
+          district: "萬華區",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    const store = marketsStore({
+      hasMarkets: true,
+      markets: [{ id: "m1", slug: "jingming", name: "精明商圈" }],
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("追蹤的市場");
+    });
+    expect(wrapper.text()).toContain("追蹤的市場");
+    expect(wrapper.text()).toContain("逢甲夜市");
+    expect(wrapper.text()).toContain("最近訪問");
+    expect(wrapper.text()).toContain("西門町商圈");
   });
 
   it("keeps active directory filters in the market detail return path", async () => {

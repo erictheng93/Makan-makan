@@ -361,6 +361,7 @@ function mountView() {
 
 describe("MarketDetailView", () => {
   beforeEach(() => {
+    localStorage.clear();
     routerPush.mockReset();
     routerReplace.mockReset();
     routerBack.mockReset();
@@ -368,6 +369,35 @@ describe("MarketDetailView", () => {
       delete routeQuery[key];
     }
     vi.mocked(useMarketsStore).mockReturnValue(marketStore() as never);
+  });
+
+  it("records recent market visits and toggles favorite markets", async () => {
+    const wrapper = mountView();
+    await vi.waitFor(() => {
+      expect(localStorage.getItem("makanmakan_recent_markets")).toContain(
+        "fengjia",
+      );
+    });
+
+    await wrapper
+      .get('[data-testid="market-favorite-toggle"]')
+      .trigger("click");
+
+    expect(localStorage.getItem("makanmakan_favorite_markets")).toContain(
+      "fengjia",
+    );
+    expect(wrapper.get('[data-testid="market-favorite-toggle"]').text()).toBe(
+      "已追蹤",
+    );
+
+    await wrapper
+      .get('[data-testid="market-favorite-toggle"]')
+      .trigger("click");
+
+    expect(localStorage.getItem("makanmakan_favorite_markets")).toBe("[]");
+    expect(wrapper.get('[data-testid="market-favorite-toggle"]').text()).toBe(
+      "追蹤",
+    );
   });
 
   it("passes shareable query state into market product search", () => {

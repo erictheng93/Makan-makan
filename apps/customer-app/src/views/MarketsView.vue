@@ -110,6 +110,26 @@
         {{ store.error }}
       </div>
       <template v-else>
+        <section v-if="favoriteMarkets.length > 0" class="space-y-3">
+          <h2 class="text-sm font-medium text-gray-700">追蹤的市場</h2>
+          <MarketCard
+            v-for="market in favoriteMarkets"
+            :key="`favorite-${market.id}`"
+            :market="market"
+            @select="openMarket"
+          />
+        </section>
+
+        <section v-if="recentMarkets.length > 0" class="space-y-3">
+          <h2 class="text-sm font-medium text-gray-700">最近訪問</h2>
+          <MarketCard
+            v-for="market in recentMarkets"
+            :key="`recent-${market.id}`"
+            :market="market"
+            @select="openMarket"
+          />
+        </section>
+
         <section v-if="store.nearbyMarkets.length > 0" class="space-y-3">
           <h2 class="text-sm font-medium text-gray-700">附近</h2>
           <MarketCard
@@ -183,6 +203,10 @@ import {
   type MarketArea,
   type MarketListItem,
 } from "@/services/marketsApi";
+import {
+  listFavoriteMarkets,
+  listRecentMarkets,
+} from "@/utils/marketEngagement";
 import { isMarketType, MARKET_TYPE_OPTIONS } from "@/utils/marketTypes";
 
 const router = useRouter();
@@ -195,6 +219,8 @@ const marketType = ref(marketTypeFromQuery(route.query.type));
 const nearbyLocation = ref(nearbyLocationFromQuery());
 const locating = ref(false);
 const marketAreas = ref<MarketArea[]>([]);
+const favoriteMarkets = ref<MarketListItem[]>([]);
+const recentMarkets = ref<MarketListItem[]>([]);
 const hasDirectoryFilters = computed(
   () =>
     query.value.trim().length > 0 ||
@@ -360,8 +386,31 @@ function openMarket(market: MarketListItem) {
 }
 
 onMounted(() => {
+  favoriteMarkets.value = listFavoriteMarkets().map(storedMarketToListItem);
+  recentMarkets.value = listRecentMarkets().map(storedMarketToListItem);
   loadAreas();
   loadNearbyFromQuery();
   reloadList();
 });
+
+function storedMarketToListItem(
+  market: ReturnType<typeof listFavoriteMarkets>[number],
+) {
+  return {
+    id: market.id,
+    slug: market.slug,
+    name: market.name,
+    type: market.type ?? "night_market",
+    description: null,
+    city: market.city ?? "",
+    district: market.district ?? "",
+    address: market.address ?? "",
+    latitude: 0,
+    longitude: 0,
+    bannerUrl: market.bannerUrl ?? null,
+    logoUrl: market.logoUrl ?? null,
+    tags: null,
+    vendorCount: 0,
+  } satisfies MarketListItem;
+}
 </script>

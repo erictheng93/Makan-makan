@@ -26,6 +26,15 @@
         <h1 class="truncate text-lg font-semibold text-gray-900">
           {{ store.selectedMarket?.name || "市場" }}
         </h1>
+        <button
+          v-if="store.selectedMarket"
+          type="button"
+          data-testid="market-favorite-toggle"
+          class="ml-auto rounded-lg border border-ios-blue px-3 py-1.5 text-sm font-medium text-ios-blue"
+          @click="toggleFavorite"
+        >
+          {{ isFavorite ? "已追蹤" : "追蹤" }}
+        </button>
       </div>
     </nav>
 
@@ -285,6 +294,11 @@ import {
 } from "@/services/restaurantContactApi";
 import { applyMarketSeoMeta } from "@/utils/seoMeta";
 import {
+  isFavoriteMarket,
+  recordRecentMarket,
+  toggleFavoriteMarket,
+} from "@/utils/marketEngagement";
+import {
   shopMenuItemQuery,
   shopMenuReturnQuery,
   shopMenuServiceQuery,
@@ -316,6 +330,7 @@ const selectedContactVendor = ref<MarketVendor | null>(null);
 const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
 const faqQuery = ref("");
+const isFavorite = ref(false);
 let queryTimer: ReturnType<typeof setTimeout> | undefined;
 type MarketSearchState = {
   q: string;
@@ -794,6 +809,19 @@ function goBack() {
   router.back();
 }
 
+function refreshFavoriteState() {
+  if (!store.selectedMarket) {
+    isFavorite.value = false;
+    return;
+  }
+  isFavorite.value = isFavoriteMarket(store.selectedMarket.id);
+}
+
+function toggleFavorite() {
+  if (!store.selectedMarket) return;
+  isFavorite.value = toggleFavoriteMarket(store.selectedMarket);
+}
+
 async function openContactProfile(vendor: MarketVendor) {
   selectedContactVendor.value = vendor;
   contactProfile.value = null;
@@ -851,6 +879,8 @@ const filteredFaqs = computed(() => {
 onMounted(async () => {
   await store.loadMarketDetail(slug());
   if (store.selectedMarket) {
+    recordRecentMarket(store.selectedMarket);
+    refreshFavoriteState();
     applyMarketSeoMeta({
       market: store.selectedMarket,
       vendorCount: store.vendorCount,
