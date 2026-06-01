@@ -321,7 +321,8 @@
           <button
             type="button"
             data-testid="vendor-result-open-services"
-            class="rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700"
+            class="rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700 disabled:border-gray-200 disabled:text-gray-400"
+            :disabled="(vendor.publicServiceItemCount ?? 0) <= 0"
             @click="$emit('selectVendorServices', vendor)"
           >
             查看服務

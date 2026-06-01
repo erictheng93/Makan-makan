@@ -308,6 +308,43 @@ describe("MarketProductSearch", () => {
     });
   });
 
+  it("disables direct vendor service links when no public services are available", async () => {
+    vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
+      results: [
+        restaurant({
+          availableMenuItemCount: 1,
+          publicServiceItemCount: 0,
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("B-12");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(
+      wrapper.get('[data-testid="vendor-result-access"]').text(),
+    ).toContain("尚無服務");
+
+    const servicesButton = wrapper.get(
+      '[data-testid="vendor-result-open-services"]',
+    );
+    expect(servicesButton.attributes("disabled")).toBeDefined();
+
+    await servicesButton.trigger("click");
+
+    expect(wrapper.emitted("selectVendorServices")).toBeUndefined();
+  });
+
   it("uses initial filters for shareable market product searches", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [dish({ dishName: "分享雞排" })],
