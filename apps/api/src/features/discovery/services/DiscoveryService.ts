@@ -738,6 +738,7 @@ export class DiscoveryService {
     if (q) {
       const pattern = `%${q.trim()}%`;
       const serviceTypeIntent = this.getServiceTypeIntent(q);
+      const serviceAliases = this.getServiceQueryAliases(q);
       const searchConditions: SQL[] = [
         like(restaurantServiceItems.name, pattern),
         like(restaurantServiceItems.description, pattern),
@@ -748,6 +749,17 @@ export class DiscoveryService {
         like(restaurants.city, pattern),
         like(restaurants.district, pattern),
         this.marketVendorKeywordCondition(pattern, filters.marketId),
+        ...serviceAliases
+          .filter((alias) => alias !== q.trim())
+          .flatMap((alias) => {
+            const aliasPattern = `%${alias}%`;
+            return [
+              like(restaurantServiceItems.name, aliasPattern),
+              like(restaurantServiceItems.description, aliasPattern),
+              like(restaurantServiceItems.keywords, aliasPattern),
+              like(restaurantServiceItems.tags, aliasPattern),
+            ];
+          }),
       ];
       if (serviceTypeIntent) {
         searchConditions.push(
@@ -1631,6 +1643,22 @@ export class DiscoveryService {
     };
 
     return aliases[normalized] ?? null;
+  }
+
+  private getServiceQueryAliases(query: string): string[] {
+    const normalized = this.normalizeQuery(query);
+    const aliases: Record<string, string[]> = {
+      寄物: ["寄物", "寄放", "行李寄放", "置物", "暫放", "包包寄放"],
+      寄放: ["寄物", "寄放", "行李寄放", "置物", "暫放", "包包寄放"],
+      置物: ["寄物", "寄放", "行李寄放", "置物", "暫放", "包包寄放"],
+      行李寄放: ["寄物", "寄放", "行李寄放", "置物", "暫放"],
+      代切: ["代切", "切水果", "水果切盤", "分裝"],
+      切水果: ["代切", "切水果", "水果切盤", "分裝"],
+      導覽: ["導覽", "導游", "帶逛", "解說", "tour"],
+      帶逛: ["導覽", "導游", "帶逛", "解說", "tour"],
+    };
+
+    return aliases[normalized] ?? [query.trim()];
   }
 
   private getCatalogQueryAliases(query: string): string[] {

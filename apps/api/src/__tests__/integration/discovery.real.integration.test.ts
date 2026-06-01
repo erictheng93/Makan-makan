@@ -736,6 +736,55 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("matches zh-TW service content aliases in market service search", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "service-content-alias-market",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Service Content Alias Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "L-01",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(restaurant.id),
+      name: "行李寄放",
+      description: "可在逛街時暫放包包",
+      serviceType: "general",
+      tags: ["寄放"],
+      keywords: "置物 包包",
+      sortOrder: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/services?q=${encodeURIComponent(
+          "寄物",
+        )}&marketId=${market.id}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const data = ((await res.json()) as ApiTestResponse).data;
+    expect(data.total).toBe(1);
+    expect(data.results[0]).toMatchObject({
+      name: "行李寄放",
+      restaurantId: restaurant.id,
+      marketVendor: {
+        marketId: market.id,
+        stallNumber: "L-01",
+      },
+    });
+  });
+
   it("searches market dishes by vendor and category context", async () => {
     const market = await seedMarket(testApp, {
       slug: "dish-context-market",
