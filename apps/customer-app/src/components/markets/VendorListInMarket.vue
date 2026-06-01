@@ -71,7 +71,7 @@
         <RestaurantCard
           :restaurant="vendor"
           class="border-0"
-          @select="$emit('selectVendor', vendor)"
+          @select="selectPrimaryVendorEntry(vendor)"
           @takeaway="$emit('takeaway', vendor)"
         />
         <div
@@ -178,7 +178,7 @@ defineProps<{
   hasMore?: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   "update:query": [query: string];
   "update:takeawayOnly": [value: boolean];
   "update:deliveryOnly": [value: boolean];
@@ -189,4 +189,15 @@ defineEmits<{
   useLocation: [];
   loadMore: [];
 }>();
+
+function selectPrimaryVendorEntry(vendor: MarketVendor) {
+  if (vendor.availableMenuItemCount > 0) {
+    emit("selectVendor", vendor);
+    return;
+  }
+
+  if (vendor.publicServiceItemCount > 0) {
+    emit("selectServices", vendor);
+  }
+}
 </script>

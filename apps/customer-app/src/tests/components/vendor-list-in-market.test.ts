@@ -187,6 +187,55 @@ describe("VendorListInMarket", () => {
     ]);
   });
 
+  it("opens service-only vendors from the main card entry point", async () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [
+          vendor({
+            availableMenuItemCount: 0,
+            publicServiceItemCount: 2,
+          }),
+        ],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    await wrapper.get("article button").trigger("click");
+
+    expect(wrapper.emitted("selectVendor")).toBeUndefined();
+    expect(wrapper.emitted("selectServices")?.[0]).toEqual([
+      vendor({
+        availableMenuItemCount: 0,
+        publicServiceItemCount: 2,
+      }),
+    ]);
+  });
+
+  it("does not open vendors that have no menu or services from the main card", async () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [
+          vendor({
+            availableMenuItemCount: 0,
+            publicServiceItemCount: 0,
+          }),
+        ],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    await wrapper.get("article button").trigger("click");
+
+    expect(wrapper.emitted("selectVendor")).toBeUndefined();
+    expect(wrapper.emitted("selectServices")).toBeUndefined();
+  });
+
   it("shows menu and service availability before opening a vendor", () => {
     const wrapper = mount(VendorListInMarket, {
       props: {
