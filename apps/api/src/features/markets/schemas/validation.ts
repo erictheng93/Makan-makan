@@ -186,10 +186,16 @@ export const importMarketVendorsSchema = z.object({
   vendors: z.array(importMarketVendorSchema).min(1).max(50),
 });
 
-export const createMarketJoinRequestSchema = z.object({
-  marketId: z.string().min(1).max(120),
-  message: z.string().trim().max(500).nullable().optional(),
-});
+export const createMarketJoinRequestSchema = z
+  .object({
+    marketId: z.string().min(1).max(120).optional(),
+    marketSlug: z.string().min(1).max(120).optional(),
+    message: z.string().trim().max(500).nullable().optional(),
+  })
+  .refine((input) => Boolean(input.marketId || input.marketSlug), {
+    path: ["marketId"],
+    message: "marketId or marketSlug is required",
+  });
 
 export const adminMarketJoinRequestsQuerySchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]).optional(),

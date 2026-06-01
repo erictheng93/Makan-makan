@@ -327,7 +327,7 @@ export const marketsService = {
 
   async requestJoin(
     restaurantId: string,
-    input: { marketId: string; message?: string | null },
+    input: { marketId?: string; marketSlug?: string; message?: string | null },
   ): Promise<MarketJoinRequest> {
     const response = await api.post<{ request: MarketJoinRequest }>(
       `/restaurants/${restaurantId}/market-join-requests`,

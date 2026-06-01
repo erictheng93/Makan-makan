@@ -1700,9 +1700,15 @@ export class MarketsService {
 
   async createJoinRequest(
     restaurantId: string,
-    input: { marketId: string; message?: string | null },
+    input: {
+      marketId?: string;
+      marketSlug?: string;
+      message?: string | null;
+    },
   ) {
-    const market = await this.getMarketById(input.marketId);
+    const market = input.marketId
+      ? await this.getMarketById(input.marketId)
+      : await this.getMarketRecordBySlug(input.marketSlug ?? "");
     if (!market || market.deletedAt || !market.isActive) {
       return { status: "not_found" as const };
     }
@@ -1713,7 +1719,7 @@ export class MarketsService {
       .where(
         and(
           eq(restaurantMarketMemberships.restaurantId, restaurantId),
-          eq(restaurantMarketMemberships.marketId, input.marketId),
+          eq(restaurantMarketMemberships.marketId, market.id),
           isNull(restaurantMarketMemberships.leftAt),
         ),
       )
@@ -1729,7 +1735,7 @@ export class MarketsService {
       .where(
         and(
           eq(marketJoinRequests.restaurantId, restaurantId),
-          eq(marketJoinRequests.marketId, input.marketId),
+          eq(marketJoinRequests.marketId, market.id),
           eq(marketJoinRequests.status, "pending"),
         ),
       )
@@ -1743,7 +1749,7 @@ export class MarketsService {
       .insert(marketJoinRequests)
       .values({
         restaurantId,
-        marketId: input.marketId,
+        marketId: market.id,
         status: "pending",
         message: input.message || null,
         requestedAt: new Date(),
@@ -1751,6 +1757,15 @@ export class MarketsService {
       .returning();
 
     return { status: "created" as const, request };
+  }
+
+  private async getMarketRecordBySlug(slug: string) {
+    const [market] = await this.db
+      .select()
+      .from(markets)
+      .where(eq(markets.slug, slug))
+      .limit(1);
+    return market ?? null;
   }
 
   private async getJoinRequestById(requestId: number) {

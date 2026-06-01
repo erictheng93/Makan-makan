@@ -3606,7 +3606,7 @@ describe("Markets API — real integration", () => {
         {
           method: "POST",
           headers,
-          body: JSON.stringify({ marketId: requestedMarket.id }),
+          body: JSON.stringify({ marketSlug: "owner-requested-market" }),
         },
       ),
     );
@@ -3623,6 +3623,54 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(activeMembershipRequestRes.status).toBe(409);
+  });
+
+  it("lets restaurant owners request market membership by public slug", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Owner Slug Market Vendor",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const requestedMarket = await seedMarket(testApp, {
+      slug: "owner-slug-request-market",
+      name: "Owner Slug Request Market",
+    });
+    await seed.user({
+      id: 22,
+      username: "market-slug-owner",
+      role: 1,
+      restaurantId: String(restaurant.id),
+    });
+    const ownerToken = await testApp.authHelper.ownerToken(
+      22,
+      String(restaurant.id),
+    );
+
+    const requestRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/restaurants/${restaurant.id}/market-join-requests`,
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${ownerToken}`,
+            "content-type": "application/json",
+            ...CSRF_HEADERS,
+          },
+          body: JSON.stringify({
+            marketSlug: "owner-slug-request-market",
+            message: "We can support the weekend market.",
+          }),
+        },
+      ),
+    );
+    expect(requestRes.status).toBe(201);
+    const requestJson: any = await requestRes.json();
+    expect(requestJson.data.request).toMatchObject({
+      restaurantId: String(restaurant.id),
+      marketId: requestedMarket.id,
+      status: "pending",
+      message: "We can support the weekend market.",
+    });
   });
 
   it("lets restaurant owners manage public contact channels and FAQs", async () => {
