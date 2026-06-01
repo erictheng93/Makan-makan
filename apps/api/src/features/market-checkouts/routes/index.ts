@@ -26,7 +26,10 @@ import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { OrdersService } from "../../orders/services/OrdersService";
 import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
 import { PaymentService } from "../../payments/services/PaymentService";
-import { refundPaymentTransaction } from "../../payments/services/refundPayment";
+import {
+  refundPaymentTransaction,
+  type RefundPaymentResult,
+} from "../../payments/services/refundPayment";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
@@ -652,7 +655,13 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     throw badRequest("Market checkout has no paid child payments to refund");
   }
 
-  const refunds = [];
+  const refunds: Array<
+    RefundPaymentResult &
+      Pick<
+        (typeof refundablePayments)[number],
+        "restaurantId" | "restaurantName" | "orderNumber"
+      >
+  > = [];
   for (const payment of refundablePayments) {
     const refund = await refundPaymentTransaction(c.env, {
       transactionId: payment.paymentId!,
