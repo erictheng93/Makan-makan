@@ -30,6 +30,7 @@ function vendor(overrides: Partial<MarketVendor> = {}): MarketVendor {
     supportsDelivery: false,
     imageUrl: null,
     stallNumber: "A-01",
+    locationLabel: null,
     isPrimary: true,
     availableMenuItemCount: 3,
     publicServiceItemCount: 2,
@@ -104,10 +105,10 @@ describe("VendorListInMarket", () => {
     expect(wrapper.emitted("useLocation")).toHaveLength(1);
   });
 
-  it("shows stall numbers and exposes direct menu and service entry points", async () => {
+  it("shows stall numbers, location labels, and direct entry points", async () => {
     const wrapper = mount(VendorListInMarket, {
       props: {
-        vendors: [vendor()],
+        vendors: [vendor({ locationLabel: "文華路入口第一排" })],
         loading: false,
         query: "",
         takeawayOnly: false,
@@ -116,6 +117,7 @@ describe("VendorListInMarket", () => {
     });
 
     expect(wrapper.text()).toContain("攤位 A-01");
+    expect(wrapper.text()).toContain("文華路入口第一排");
     expect(
       wrapper.get('[data-testid="open-vendor-menu-restaurant-1"]').text(),
     ).toBe("查看菜單/商品");
@@ -130,8 +132,12 @@ describe("VendorListInMarket", () => {
       .get('[data-testid="open-vendor-services-restaurant-1"]')
       .trigger("click");
 
-    expect(wrapper.emitted("selectVendor")?.[0]).toEqual([vendor()]);
-    expect(wrapper.emitted("selectServices")?.[0]).toEqual([vendor()]);
+    expect(wrapper.emitted("selectVendor")?.[0]).toEqual([
+      vendor({ locationLabel: "文華路入口第一排" }),
+    ]);
+    expect(wrapper.emitted("selectServices")?.[0]).toEqual([
+      vendor({ locationLabel: "文華路入口第一排" }),
+    ]);
   });
 
   it("keeps the service entry disabled when a vendor has no public services", () => {

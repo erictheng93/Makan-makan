@@ -82,6 +82,9 @@
               攤位 {{ vendor.stallNumber }}
             </span>
             <span v-else>未標示攤位</span>
+            <span v-if="vendor.locationLabel">
+              · {{ vendor.locationLabel }}
+            </span>
           </div>
           <span
             v-if="vendor.isPrimary"

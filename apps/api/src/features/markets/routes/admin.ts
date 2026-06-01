@@ -128,6 +128,7 @@ async function dryRunVendorImport(input: {
         restaurantId: vendor.restaurantId,
         restaurantName: vendor.name,
         stallNumber: vendor.stallNumber ?? null,
+        locationLabel: vendor.locationLabel ?? null,
       });
       continue;
     }
@@ -145,6 +146,7 @@ async function dryRunVendorImport(input: {
         status: "would_create",
         restaurantName: vendor.name,
         stallNumber: vendor.stallNumber ?? null,
+        locationLabel: vendor.locationLabel ?? null,
       });
       continue;
     }
@@ -168,6 +170,7 @@ async function dryRunVendorImport(input: {
         restaurantId: vendor.restaurantId,
         restaurantName: vendor.name,
         stallNumber: vendor.stallNumber ?? null,
+        locationLabel: vendor.locationLabel ?? null,
       });
       continue;
     }
@@ -195,6 +198,7 @@ async function dryRunVendorImport(input: {
         restaurantId: vendor.restaurantId,
         restaurantName: restaurant.name,
         stallNumber: vendor.stallNumber ?? null,
+        locationLabel: vendor.locationLabel ?? null,
       });
       continue;
     }
@@ -205,6 +209,7 @@ async function dryRunVendorImport(input: {
       restaurantId: vendor.restaurantId,
       restaurantName: restaurant.name,
       stallNumber: vendor.stallNumber ?? null,
+      locationLabel: vendor.locationLabel ?? null,
     });
   }
 
@@ -479,6 +484,7 @@ routes.put(
     const membership = await service.addVendor(id, {
       restaurantId,
       stallNumber: body.stallNumber,
+      locationLabel: body.locationLabel,
       isPrimary: body.isPrimary,
     });
 
@@ -560,6 +566,7 @@ routes.post(
           restaurantId: vendor.restaurantId,
           restaurantName: vendor.name,
           stallNumber: vendor.stallNumber ?? null,
+          locationLabel: vendor.locationLabel ?? null,
         });
         continue;
       }
@@ -612,6 +619,7 @@ routes.post(
             restaurantId,
             restaurantName,
             stallNumber: vendor.stallNumber ?? null,
+            locationLabel: vendor.locationLabel ?? null,
           });
           continue;
         }
@@ -638,6 +646,7 @@ routes.post(
           restaurantId,
           restaurantName,
           stallNumber: vendor.stallNumber ?? null,
+          locationLabel: vendor.locationLabel ?? null,
         });
         continue;
       }
@@ -645,6 +654,7 @@ routes.post(
       const membership = await marketsService.addVendor(id, {
         restaurantId,
         stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
         isPrimary: vendor.isPrimary,
       });
 
@@ -656,6 +666,7 @@ routes.post(
           restaurantId,
           restaurantName,
           stallNumber: vendor.stallNumber ?? null,
+          locationLabel: vendor.locationLabel ?? null,
         });
         continue;
       }
@@ -668,6 +679,7 @@ routes.post(
         restaurantName,
         membershipId: membership.id,
         stallNumber: membership.stallNumber,
+        locationLabel: membership.locationLabel,
       });
     }
 

@@ -75,6 +75,7 @@ export const restaurantMarketMemberships = sqliteTable(
       .notNull()
       .references(() => markets.id, { onDelete: "cascade" }),
     stallNumber: text("stall_number"),
+    locationLabel: text("location_label"),
     isPrimary: integer("is_primary", { mode: "boolean" })
       .notNull()
       .default(false),

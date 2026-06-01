@@ -332,6 +332,7 @@ export const marketsApi = {
     request: {
       restaurantId: string;
       stallNumber?: string | null;
+      locationLabel?: string | null;
       isPrimary?: boolean;
     },
   ): Promise<MarketVendorMembership> {
@@ -384,6 +385,7 @@ export const marketsApi = {
     requestId: number,
     request: {
       stallNumber?: string | null;
+      locationLabel?: string | null;
       isPrimary?: boolean;
     } = {},
   ): Promise<{

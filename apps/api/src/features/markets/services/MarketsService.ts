@@ -95,6 +95,7 @@ export interface MarketCatalogGapVendor {
   restaurantId: string;
   name: string;
   stallNumber: string | null;
+  locationLabel: string | null;
 }
 
 export interface MarketAreaReadinessSummary {
@@ -758,6 +759,7 @@ export class MarketsService {
           restaurantId: restaurants.id,
           name: restaurants.name,
           stallNumber: restaurantMarketMemberships.stallNumber,
+          locationLabel: restaurantMarketMemberships.locationLabel,
         })
         .from(restaurantMarketMemberships)
         .innerJoin(
@@ -838,6 +840,7 @@ export class MarketsService {
         restaurantId: vendor.restaurantId,
         name: vendor.name,
         stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
       }));
     const missingServiceVendors = vendorRows
       .filter((vendor) => !vendorsWithServices.has(vendor.restaurantId))
@@ -845,6 +848,7 @@ export class MarketsService {
         restaurantId: vendor.restaurantId,
         name: vendor.name,
         stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
       }));
     const missingBookingUrlVendors = vendorRows
       .filter((vendor) => vendorsWithBookingUrlGaps.has(vendor.restaurantId))
@@ -852,6 +856,7 @@ export class MarketsService {
         restaurantId: vendor.restaurantId,
         name: vendor.name,
         stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
       }));
     const missingStallNumberVendors = vendorRows
       .filter((vendor) => !vendor.stallNumber?.trim())
@@ -859,6 +864,7 @@ export class MarketsService {
         restaurantId: vendor.restaurantId,
         name: vendor.name,
         stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
       }));
     const missingSearchEntrypointVendors = vendorRows
       .filter(
@@ -870,6 +876,7 @@ export class MarketsService {
         restaurantId: vendor.restaurantId,
         name: vendor.name,
         stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
       }));
 
     return {
@@ -990,6 +997,7 @@ export class MarketsService {
         like(restaurants.city, keyword),
         like(restaurants.district, keyword),
         like(restaurantMarketMemberships.stallNumber, keyword),
+        like(restaurantMarketMemberships.locationLabel, keyword),
       );
       if (searchCondition) conditions.push(searchCondition);
     }
@@ -1031,6 +1039,7 @@ export class MarketsService {
         supportsDelivery: restaurants.supportsDelivery,
         imageUrl: restaurants.logoUrl,
         stallNumber: restaurantMarketMemberships.stallNumber,
+        locationLabel: restaurantMarketMemberships.locationLabel,
         isPrimary: restaurantMarketMemberships.isPrimary,
       })
       .from(restaurantMarketMemberships)
@@ -1337,6 +1346,7 @@ export class MarketsService {
     input: {
       restaurantId: string;
       stallNumber?: string | null;
+      locationLabel?: string | null;
       isPrimary?: boolean;
     },
   ) {
@@ -1359,6 +1369,10 @@ export class MarketsService {
             input.stallNumber !== undefined
               ? input.stallNumber
               : existing.stallNumber,
+          locationLabel:
+            input.locationLabel !== undefined
+              ? input.locationLabel
+              : existing.locationLabel,
           isPrimary:
             input.isPrimary !== undefined
               ? input.isPrimary
@@ -1380,6 +1394,7 @@ export class MarketsService {
         marketId,
         restaurantId: input.restaurantId,
         stallNumber: input.stallNumber ?? null,
+        locationLabel: input.locationLabel ?? null,
         isPrimary: input.isPrimary ?? false,
         joinedAt: new Date(),
       })
@@ -1440,6 +1455,7 @@ export class MarketsService {
         restaurantId: restaurantMarketMemberships.restaurantId,
         marketId: restaurantMarketMemberships.marketId,
         stallNumber: restaurantMarketMemberships.stallNumber,
+        locationLabel: restaurantMarketMemberships.locationLabel,
         isPrimary: restaurantMarketMemberships.isPrimary,
         joinedAt: restaurantMarketMemberships.joinedAt,
         marketSlug: markets.slug,
@@ -1466,6 +1482,7 @@ export class MarketsService {
         restaurantId: row.restaurantId,
         marketId: row.marketId,
         stallNumber: row.stallNumber,
+        locationLabel: row.locationLabel,
         isPrimary: row.isPrimary,
         joinedAt: row.joinedAt,
         market: {
@@ -1634,7 +1651,11 @@ export class MarketsService {
 
   async approveJoinRequest(
     requestId: number,
-    input: { stallNumber?: string | null; isPrimary?: boolean } = {},
+    input: {
+      stallNumber?: string | null;
+      locationLabel?: string | null;
+      isPrimary?: boolean;
+    } = {},
   ) {
     const request = await this.getJoinRequestById(requestId);
     if (!request) return { status: "not_found" as const };
@@ -1643,6 +1664,7 @@ export class MarketsService {
     const membership = await this.addVendor(request.marketId, {
       restaurantId: request.restaurantId,
       stallNumber: input.stallNumber ?? null,
+      locationLabel: input.locationLabel ?? null,
       isPrimary: input.isPrimary ?? false,
     });
     if (!membership) return { status: "market_not_found" as const };

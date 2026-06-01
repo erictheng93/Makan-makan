@@ -204,6 +204,9 @@ export class DiscoveryService {
           marketVendorStallNumber: this.marketVendorStallNumber(
             filters.marketId,
           ),
+          marketVendorLocationLabel: this.marketVendorLocationLabel(
+            filters.marketId,
+          ),
           marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
         })
         .from(dishSearchIndex)
@@ -275,6 +278,9 @@ export class DiscoveryService {
             longitude: dishSearchIndex.longitude,
             marketVendorMarketId: this.marketVendorMarketId(filters.marketId),
             marketVendorStallNumber: this.marketVendorStallNumber(
+              filters.marketId,
+            ),
+            marketVendorLocationLabel: this.marketVendorLocationLabel(
               filters.marketId,
             ),
             marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
@@ -795,6 +801,9 @@ export class DiscoveryService {
           marketVendorStallNumber: this.marketVendorStallNumber(
             filters.marketId,
           ),
+          marketVendorLocationLabel: this.marketVendorLocationLabel(
+            filters.marketId,
+          ),
           marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
         })
         .from(restaurantServiceItems)
@@ -1166,6 +1175,7 @@ export class DiscoveryService {
     memberships: Array<{
       marketId: string;
       stallNumber: string | null;
+      locationLabel: string | null;
       isPrimary: boolean;
       market: {
         id: string;
@@ -1182,6 +1192,7 @@ export class DiscoveryService {
       .select({
         marketId: restaurantMarketMemberships.marketId,
         stallNumber: restaurantMarketMemberships.stallNumber,
+        locationLabel: restaurantMarketMemberships.locationLabel,
         isPrimary: restaurantMarketMemberships.isPrimary,
         marketSlug: markets.slug,
         marketName: markets.name,
@@ -1211,6 +1222,7 @@ export class DiscoveryService {
       memberships: rows.map((row) => ({
         marketId: row.marketId,
         stallNumber: row.stallNumber,
+        locationLabel: row.locationLabel,
         isPrimary: row.isPrimary,
         market: {
           id: row.marketId,
@@ -1761,6 +1773,7 @@ export class DiscoveryService {
         restaurantId: restaurantMarketMemberships.restaurantId,
         marketVendorMarketId: restaurantMarketMemberships.marketId,
         marketVendorStallNumber: restaurantMarketMemberships.stallNumber,
+        marketVendorLocationLabel: restaurantMarketMemberships.locationLabel,
         marketVendorIsPrimary: restaurantMarketMemberships.isPrimary,
       })
       .from(restaurantMarketMemberships)
@@ -1871,15 +1884,34 @@ export class DiscoveryService {
           WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
             AND ${restaurantMarketMemberships.marketId} = ${marketId}
             AND ${restaurantMarketMemberships.leftAt} IS NULL
-            AND ${restaurantMarketMemberships.stallNumber} LIKE ${pattern}
+            AND (
+              ${restaurantMarketMemberships.stallNumber} LIKE ${pattern}
+              OR ${restaurantMarketMemberships.locationLabel} LIKE ${pattern}
+            )
         )`
       : sql`EXISTS (
           SELECT 1
           FROM ${restaurantMarketMemberships}
           WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
             AND ${restaurantMarketMemberships.leftAt} IS NULL
-            AND ${restaurantMarketMemberships.stallNumber} LIKE ${pattern}
+            AND (
+              ${restaurantMarketMemberships.stallNumber} LIKE ${pattern}
+              OR ${restaurantMarketMemberships.locationLabel} LIKE ${pattern}
+            )
         )`;
+  }
+
+  private marketVendorLocationLabel(marketId: string | undefined) {
+    if (!marketId) return sql<null>`NULL`;
+
+    return sql<string | null>`(
+      SELECT ${restaurantMarketMemberships.locationLabel}
+      FROM ${restaurantMarketMemberships}
+      WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        AND ${restaurantMarketMemberships.leftAt} IS NULL
+      LIMIT 1
+    )`;
   }
 
   private marketVendorIsPrimary(marketId: string | undefined) {
@@ -1898,6 +1930,7 @@ export class DiscoveryService {
   private marketVendorContext(row: {
     marketVendorMarketId: string | null;
     marketVendorStallNumber: string | null;
+    marketVendorLocationLabel: string | null;
     marketVendorIsPrimary: boolean | number | null;
   }) {
     if (!row.marketVendorMarketId) return undefined;
@@ -1905,6 +1938,7 @@ export class DiscoveryService {
     return {
       marketId: row.marketVendorMarketId,
       stallNumber: row.marketVendorStallNumber,
+      locationLabel: row.marketVendorLocationLabel,
       isPrimary: Boolean(row.marketVendorIsPrimary),
     };
   }

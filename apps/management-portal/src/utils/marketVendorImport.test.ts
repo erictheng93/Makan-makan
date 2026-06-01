@@ -8,9 +8,9 @@ describe("marketVendorImport", () => {
   it("parses new vendors and existing restaurant attachments from CSV", () => {
     const result = parseMarketVendorImport(
       [
-        "restaurantId,name,address,district,city,stallNumber,isPrimary,phone,email,latitude,longitude",
-        ",逢甲雞排攤,台中市西屯區文華路100號,西屯區,台中市,A-18,true,0423456789,stall@example.com,24.179001,120.646001",
-        "restaurant-123,,,,,B-02,false,,,,",
+        "restaurantId,name,address,district,city,stallNumber,locationLabel,isPrimary,phone,email,latitude,longitude",
+        ",逢甲雞排攤,台中市西屯區文華路100號,西屯區,台中市,A-18,文華路入口,true,0423456789,stall@example.com,24.179001,120.646001",
+        "restaurant-123,,,,,B-02,福星路轉角,false,,,,",
       ].join("\n"),
     );
 
@@ -22,6 +22,7 @@ describe("marketVendorImport", () => {
         district: "西屯區",
         city: "台中市",
         stallNumber: "A-18",
+        locationLabel: "文華路入口",
         isPrimary: true,
         phone: "0423456789",
         email: "stall@example.com",
@@ -31,6 +32,7 @@ describe("marketVendorImport", () => {
       {
         restaurantId: "restaurant-123",
         stallNumber: "B-02",
+        locationLabel: "福星路轉角",
         isPrimary: false,
       },
     ]);

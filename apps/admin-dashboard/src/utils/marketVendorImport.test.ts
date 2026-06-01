@@ -9,9 +9,9 @@ describe("market vendor import parsing", () => {
     const result = parseMarketVendorImport(
       "csv",
       [
-        "restaurantId,name,address,district,city,latitude,longitude,stallNumber,isPrimary",
-        "restaurant-1,,,,,,,A-01,true",
-        ',"新匯入店鋪","台中市西屯區文華路 100 號","西屯區","台中市",24.176,120.646,"B-02",false',
+        "restaurantId,name,address,district,city,latitude,longitude,stallNumber,locationLabel,isPrimary",
+        "restaurant-1,,,,,,,A-01,文華路入口,true",
+        ',"新匯入店鋪","台中市西屯區文華路 100 號","西屯區","台中市",24.176,120.646,"B-02","福星路轉角",false',
       ].join("\n"),
     );
 
@@ -20,6 +20,7 @@ describe("market vendor import parsing", () => {
       {
         restaurantId: "restaurant-1",
         stallNumber: "A-01",
+        locationLabel: "文華路入口",
         isPrimary: true,
       },
       {
@@ -30,6 +31,7 @@ describe("market vendor import parsing", () => {
         latitude: 24.176,
         longitude: 120.646,
         stallNumber: "B-02",
+        locationLabel: "福星路轉角",
         isPrimary: false,
       },
     ]);
@@ -39,9 +41,9 @@ describe("market vendor import parsing", () => {
     const result = parseMarketVendorImport(
       "csv",
       [
-        "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,isPrimary",
-        "market-1,fengjia,逢甲夜市,restaurant-1,,,,A-01,true",
-        "market-2,yizhong,一中商圈,,請忽略店鋪,請忽略地址,北區,B-01,false",
+        "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,locationLabel,isPrimary",
+        "market-1,fengjia,逢甲夜市,restaurant-1,,,,A-01,文華路入口,true",
+        "market-2,yizhong,一中商圈,,請忽略店鋪,請忽略地址,北區,B-01,一中街,false",
       ].join("\n"),
       { marketId: "market-1", marketSlug: "fengjia" },
     );
@@ -51,6 +53,7 @@ describe("market vendor import parsing", () => {
       {
         restaurantId: "restaurant-1",
         stallNumber: "A-01",
+        locationLabel: "文華路入口",
         isPrimary: true,
       },
     ]);
@@ -61,8 +64,8 @@ describe("market vendor import parsing", () => {
       parseMarketVendorImport(
         "csv",
         [
-          "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,isPrimary",
-          "market-2,yizhong,一中商圈,restaurant-2,,,,B-01,true",
+          "marketId,marketSlug,marketName,restaurantId,name,address,district,stallNumber,locationLabel,isPrimary",
+          "market-2,yizhong,一中商圈,restaurant-2,,,,B-01,一中街,true",
         ].join("\n"),
         { marketId: "market-1", marketSlug: "fengjia" },
       ),
@@ -187,7 +190,7 @@ describe("market vendor import parsing", () => {
 
   it("builds a spreadsheet-friendly CSV template", () => {
     expect(buildMarketVendorImportTemplate()).toContain(
-      "restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,isPrimary",
+      "restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,locationLabel,isPrimary",
     );
     expect(buildMarketVendorImportTemplate()).toContain("新店鋪");
   });

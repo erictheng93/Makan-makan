@@ -28,6 +28,7 @@ const csvFields = [
   "email",
   "website",
   "stallNumber",
+  "locationLabel",
   "isPrimary",
 ] as const;
 const worklistContextFields = ["marketId", "marketSlug"] as const;
@@ -54,6 +55,7 @@ export function buildMarketVendorImportTemplate() {
       "",
       "",
       "A-01",
+      "文華路入口",
       "true",
     ].join(","),
     [
@@ -71,6 +73,7 @@ export function buildMarketVendorImportTemplate() {
       "",
       "",
       "B-02",
+      "福星路轉角",
       "false",
     ].join(","),
   ].join("\n");

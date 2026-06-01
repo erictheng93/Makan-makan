@@ -200,7 +200,7 @@
         <div
           v-for="request in pendingJoinRequests"
           :key="request.id"
-          class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_8rem_auto_auto]"
+          class="grid gap-3 p-3 lg:grid-cols-[1fr_9rem_12rem_8rem_auto_auto]"
         >
           <div>
             <div class="font-medium text-gray-900">
@@ -226,6 +226,13 @@
             :data-testid="`join-request-stall-${request.id}`"
             class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
             placeholder="攤位號"
+          />
+          <input
+            v-model="joinRequestDrafts[request.id].locationLabel"
+            type="text"
+            :data-testid="`join-request-location-${request.id}`"
+            class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+            placeholder="位置描述"
           />
           <label
             class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
@@ -1388,7 +1395,7 @@
             v-for="vendor in attachedVendors"
             :key="vendor.restaurantId"
             :data-testid="`attached-vendor-row-${vendor.restaurantId}`"
-            class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_8rem_auto_auto]"
+            class="grid gap-3 p-3 lg:grid-cols-[1fr_9rem_12rem_8rem_auto_auto]"
           >
             <div>
               <div class="font-medium text-gray-900">
@@ -1411,6 +1418,13 @@
               :data-testid="`attached-vendor-stall-${vendor.restaurantId}`"
               class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
               placeholder="攤位號"
+            />
+            <input
+              v-model="vendor.draftLocationLabel"
+              type="text"
+              :data-testid="`attached-vendor-location-${vendor.restaurantId}`"
+              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              placeholder="位置描述"
             />
             <label
               class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
@@ -1531,7 +1545,7 @@
           <div
             v-for="candidate in vendorCandidates"
             :key="candidate.id"
-            class="grid gap-3 p-3 lg:grid-cols-[1fr_10rem_8rem_auto]"
+            class="grid gap-3 p-3 lg:grid-cols-[1fr_9rem_12rem_8rem_auto]"
           >
             <div>
               <div class="font-medium text-gray-900">
@@ -1554,6 +1568,13 @@
               :data-testid="`vendor-candidate-stall-${candidate.id}`"
               class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
               placeholder="攤位號"
+            />
+            <input
+              v-model="vendorCandidateLocationLabels[candidate.id]"
+              type="text"
+              :data-testid="`vendor-candidate-location-${candidate.id}`"
+              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              placeholder="位置描述"
             />
             <label
               class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
@@ -1656,6 +1677,7 @@ import {
 type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
 type EditableMarketVendor = MarketVendor & {
   draftStallNumber: string;
+  draftLocationLabel: string;
   draftIsPrimary: boolean;
   isSaving?: boolean;
   isRemoving?: boolean;
@@ -1675,6 +1697,7 @@ type MarketImportResult = {
 };
 type JoinRequestDraft = {
   stallNumber: string;
+  locationLabel: string;
   isPrimary: boolean;
 };
 
@@ -1711,6 +1734,7 @@ const marketVendorReindexNotice = ref("");
 const vendorCandidateQuery = ref("");
 const vendorCandidates = ref<MarketVendorCandidate[]>([]);
 const vendorCandidateStalls = reactive<Record<string, string>>({});
+const vendorCandidateLocationLabels = reactive<Record<string, string>>({});
 const vendorCandidatePrimary = reactive<Record<string, boolean>>({});
 const vendorCandidateError = ref("");
 const vendorAttachMessage = ref("");
@@ -1873,8 +1897,8 @@ const vendorImportPreview = computed(() => {
 });
 const vendorImportPlaceholder = computed(() =>
   vendorImportFormat.value === "csv"
-    ? "restaurantId,name,type,category,description,address,district,city,phone,email,website,stallNumber,isPrimary"
-    : '[{"restaurantId":"restaurant-1","stallNumber":"A-01"},{"name":"新店鋪","address":"台中市西屯區文華路","district":"西屯區","stallNumber":"B-02"}]',
+    ? "restaurantId,name,type,category,description,address,district,city,phone,email,website,stallNumber,locationLabel,isPrimary"
+    : '[{"restaurantId":"restaurant-1","stallNumber":"A-01","locationLabel":"文華路入口"},{"name":"新店鋪","address":"台中市西屯區文華路","district":"西屯區","stallNumber":"B-02","locationLabel":"福星路轉角"}]',
 );
 const attachedVendorPageCount = computed(() =>
   Math.max(1, Math.ceil(attachedVendorTotal.value / attachedVendorLimit)),
@@ -1998,6 +2022,7 @@ function syncJoinRequestDrafts() {
   pendingJoinRequests.value.forEach((request) => {
     joinRequestDrafts[request.id] ??= {
       stallNumber: "",
+      locationLabel: "",
       isPrimary: false,
     };
   });
@@ -2006,6 +2031,7 @@ function syncJoinRequestDrafts() {
 async function approveJoinRequest(request: AdminMarketJoinRequest) {
   const draft = joinRequestDrafts[request.id] ?? {
     stallNumber: "",
+    locationLabel: "",
     isPrimary: false,
   };
   resolvingJoinRequestId.value = request.id;
@@ -2013,6 +2039,7 @@ async function approveJoinRequest(request: AdminMarketJoinRequest) {
   try {
     await marketsService.approveJoinRequest(request.id, {
       stallNumber: draft.stallNumber.trim() || null,
+      locationLabel: draft.locationLabel.trim() || null,
       isPrimary: draft.isPrimary,
     });
     await Promise.all([loadJoinRequests(), loadMarkets()]);
@@ -2451,6 +2478,7 @@ function editableMarketVendor(vendor: MarketVendor): EditableMarketVendor {
   return {
     ...vendor,
     draftStallNumber: vendor.stallNumber ?? "",
+    draftLocationLabel: vendor.locationLabel ?? "",
     draftIsPrimary: vendor.isPrimary,
   };
 }
@@ -2509,6 +2537,7 @@ async function saveAttachedVendor(vendor: EditableMarketVendor) {
       vendor.restaurantId,
       {
         stallNumber: vendor.draftStallNumber.trim() || null,
+        locationLabel: vendor.draftLocationLabel.trim() || null,
         isPrimary: vendor.draftIsPrimary,
       },
     );
@@ -2557,6 +2586,9 @@ function resetVendorCandidateState() {
   Object.keys(vendorCandidateStalls).forEach((key) => {
     delete vendorCandidateStalls[key];
   });
+  Object.keys(vendorCandidateLocationLabels).forEach((key) => {
+    delete vendorCandidateLocationLabels[key];
+  });
   Object.keys(vendorCandidatePrimary).forEach((key) => {
     delete vendorCandidatePrimary[key];
   });
@@ -2580,6 +2612,7 @@ async function loadVendorCandidates() {
     Object.keys(vendorCandidateStalls).forEach((key) => {
       if (!result.restaurants.some((candidate) => candidate.id === key)) {
         delete vendorCandidateStalls[key];
+        delete vendorCandidateLocationLabels[key];
         delete vendorCandidatePrimary[key];
       }
     });
@@ -2601,9 +2634,11 @@ async function attachVendorCandidate(candidate: MarketVendorCandidate) {
 
   try {
     const stallNumber = vendorCandidateStalls[candidate.id]?.trim();
+    const locationLabel = vendorCandidateLocationLabels[candidate.id]?.trim();
     await marketsService.addVendor(editingMarket.value.id, {
       restaurantId: candidate.id,
       stallNumber: stallNumber || null,
+      locationLabel: locationLabel || null,
       isPrimary: Boolean(vendorCandidatePrimary[candidate.id]),
     });
     vendorAttachMessage.value = `已加入${candidate.name}`;
@@ -2611,6 +2646,7 @@ async function attachVendorCandidate(candidate: MarketVendorCandidate) {
       (item) => item.id !== candidate.id,
     );
     delete vendorCandidateStalls[candidate.id];
+    delete vendorCandidateLocationLabels[candidate.id];
     delete vendorCandidatePrimary[candidate.id];
     markMarketVendorSearchIndexStale("店鋪已加入市場。");
     await loadMarkets();

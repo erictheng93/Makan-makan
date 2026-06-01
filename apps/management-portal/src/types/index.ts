@@ -242,6 +242,7 @@ export interface MarketVendorMembership {
   restaurantId: string;
   marketId: string;
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary: boolean;
   joinedAt: string | number;
   leftAt?: string | number | null;
@@ -275,6 +276,7 @@ export interface MarketVendorImportInput {
   email?: string;
   website?: string;
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary?: boolean;
 }
 
@@ -292,6 +294,7 @@ export interface MarketCatalogGapVendor {
   restaurantId: string;
   name: string;
   stallNumber: string | null;
+  locationLabel: string | null;
 }
 
 export interface MarketCatalogReadiness {
@@ -338,6 +341,7 @@ export interface MarketVendorImportResult {
     restaurantName?: string;
     membershipId?: number;
     stallNumber?: string | null;
+    locationLabel?: string | null;
   }>;
 }
 

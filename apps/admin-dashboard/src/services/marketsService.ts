@@ -15,6 +15,7 @@ export interface MarketCatalogGapVendor {
   restaurantId: string;
   name: string;
   stallNumber?: string | null;
+  locationLabel?: string | null;
 }
 
 export interface MarketCatalogCoverage {
@@ -96,6 +97,7 @@ export interface MarketVendor {
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary: boolean;
 }
 
@@ -157,6 +159,7 @@ export interface ImportMarketVendorInput {
   email?: string;
   website?: string;
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary?: boolean;
 }
 
@@ -171,6 +174,7 @@ export interface ImportMarketVendorResult {
   restaurantName?: string | null;
   membershipId?: number;
   stallNumber?: string | null;
+  locationLabel?: string | null;
 }
 
 export interface ImportMarketVendorIssue {
@@ -210,6 +214,7 @@ export interface RestaurantMarketMembership {
   restaurantId: string;
   marketId: string;
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary: boolean;
   joinedAt: string | number | Date;
   market: {
@@ -225,11 +230,13 @@ export interface RestaurantMarketMembership {
 export interface AddMarketVendorInput {
   restaurantId: string;
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary?: boolean;
 }
 
 export interface UpdateMarketVendorInput {
   stallNumber?: string | null;
+  locationLabel?: string | null;
   isPrimary?: boolean;
 }
 
@@ -353,7 +360,11 @@ export const marketsService = {
 
   async approveJoinRequest(
     requestId: number,
-    input: { stallNumber?: string | null; isPrimary?: boolean } = {},
+    input: {
+      stallNumber?: string | null;
+      locationLabel?: string | null;
+      isPrimary?: boolean;
+    } = {},
   ): Promise<void> {
     await api.post(`/admin/markets/join-requests/${requestId}/approve`, input);
   },

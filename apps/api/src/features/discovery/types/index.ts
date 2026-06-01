@@ -70,6 +70,7 @@ export interface ServiceSearchResult {
 export interface MarketVendorContext {
   marketId: string;
   stallNumber: string | null;
+  locationLabel: string | null;
   isPrimary: boolean;
 }
 

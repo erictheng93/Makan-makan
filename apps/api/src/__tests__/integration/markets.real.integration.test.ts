@@ -1068,54 +1068,54 @@ describe("Markets API — real integration", () => {
     });
     expect(readinessMarket.catalogCoverage.missingProductVendors).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           restaurantId: String(missingVendor.id),
           name: "Missing Catalog Vendor",
           stallNumber: "B-02",
-        },
-        {
+        }),
+        expect.objectContaining({
           restaurantId: String(serviceOnlyVendor.id),
           name: "Service Only Vendor",
           stallNumber: "D-04",
-        },
+        }),
       ]),
     );
     expect(readinessMarket.catalogCoverage.missingServiceVendors).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           restaurantId: String(missingVendor.id),
           name: "Missing Catalog Vendor",
           stallNumber: "B-02",
-        },
-        {
+        }),
+        expect.objectContaining({
           restaurantId: String(productOnlyVendor.id),
           name: "Product Only Vendor",
           stallNumber: "C-03",
-        },
+        }),
       ]),
     );
     expect(readinessMarket.catalogCoverage.missingStallNumberVendors).toEqual([
-      {
+      expect.objectContaining({
         restaurantId: String(missingStallVendor.id),
         name: "Missing Stall Vendor",
         stallNumber: null,
-      },
+      }),
     ]);
     expect(
       readinessMarket.catalogCoverage.missingSearchEntrypointVendors,
     ).toEqual([
-      {
+      expect.objectContaining({
         restaurantId: String(missingVendor.id),
         name: "Missing Catalog Vendor",
         stallNumber: "B-02",
-      },
+      }),
     ]);
     expect(readinessMarket.catalogCoverage.missingBookingUrlVendors).toEqual([
-      {
+      expect.objectContaining({
         restaurantId: String(serviceOnlyVendor.id),
         name: "Service Only Vendor",
         stallNumber: "D-04",
-      },
+      }),
     ]);
   });
 
@@ -1431,6 +1431,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(vendor.id),
       marketId: nearMarket.id,
       stallNumber: "A-12",
+      locationLabel: "逢甲路入口第一排",
       isPrimary: true,
       joinedAt: new Date(),
     });
@@ -1510,6 +1511,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(vendor.id),
       name: "Bubble Tea Stand",
       stallNumber: "A-12",
+      locationLabel: "逢甲路入口第一排",
       supportsTakeaway: true,
       detailUrl: `/api/v1/restaurants/${vendor.id}`,
       menuUrl: `/api/v1/menu/${vendor.id}`,
@@ -1889,6 +1891,7 @@ describe("Markets API — real integration", () => {
         restaurantId: String(restaurant.id),
         marketId: activeMarket.id,
         stallNumber: "A-18",
+        locationLabel: null,
         isPrimary: true,
         joinedAt: new Date(),
       },
@@ -1913,6 +1916,7 @@ describe("Markets API — real integration", () => {
       {
         marketId: activeMarket.id,
         stallNumber: "A-18",
+        locationLabel: null,
         isPrimary: true,
         market: {
           id: activeMarket.id,
@@ -2228,6 +2232,7 @@ describe("Markets API — real integration", () => {
         body: JSON.stringify({
           restaurantId: String(restaurant.id),
           stallNumber: "A-01",
+          locationLabel: "文華路入口旁",
           isPrimary: true,
         }),
       }),
@@ -2238,6 +2243,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(restaurant.id),
       marketId,
       stallNumber: "A-01",
+      locationLabel: "文華路入口旁",
       isPrimary: true,
     });
 
@@ -2264,6 +2270,7 @@ describe("Markets API — real integration", () => {
           headers,
           body: JSON.stringify({
             stallNumber: "A-02",
+            locationLabel: "美食區第二排",
             isPrimary: false,
           }),
         },
@@ -2276,6 +2283,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(restaurant.id),
       marketId,
       stallNumber: "A-02",
+      locationLabel: "美食區第二排",
       isPrimary: false,
     });
 
@@ -2528,6 +2536,7 @@ describe("Markets API — real integration", () => {
               {
                 restaurantId: String(existingRestaurant.id),
                 stallNumber: "A-01",
+                locationLabel: "文華路入口",
                 isPrimary: true,
               },
               {
@@ -2541,6 +2550,7 @@ describe("Markets API — real integration", () => {
                 latitude: 24.1791,
                 longitude: 120.6479,
                 stallNumber: "B-02",
+                locationLabel: "福星路轉角",
               },
             ],
           }),
@@ -2580,20 +2590,23 @@ describe("Markets API — real integration", () => {
         status: "attached",
         restaurantId: String(existingRestaurant.id),
         stallNumber: "A-01",
+        locationLabel: "文華路入口",
       }),
       expect.objectContaining({
         status: "created",
         restaurantName: "新匯入蚵仔煎",
         stallNumber: "B-02",
+        locationLabel: "福星路轉角",
       }),
     ]);
     expect(importJson.data.catalogReadiness.missingProductVendors).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           restaurantId: String(existingRestaurant.id),
           name: "Existing Import Vendor",
           stallNumber: "A-01",
-        },
+          locationLabel: "文華路入口",
+        }),
         expect.objectContaining({
           name: "新匯入蚵仔煎",
           stallNumber: "B-02",
@@ -2602,11 +2615,12 @@ describe("Markets API — real integration", () => {
     );
     expect(importJson.data.catalogReadiness.missingServiceVendors).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           restaurantId: String(existingRestaurant.id),
           name: "Existing Import Vendor",
           stallNumber: "A-01",
-        },
+          locationLabel: "文華路入口",
+        }),
         expect.objectContaining({
           name: "新匯入蚵仔煎",
           stallNumber: "B-02",
@@ -2621,13 +2635,21 @@ describe("Markets API — real integration", () => {
       .select({
         restaurantId: restaurantMarketMemberships.restaurantId,
         stallNumber: restaurantMarketMemberships.stallNumber,
+        locationLabel: restaurantMarketMemberships.locationLabel,
       })
       .from(restaurantMarketMemberships)
       .where(eq(restaurantMarketMemberships.marketId, market.id));
     expect(memberships).toEqual(
       expect.arrayContaining([
-        { restaurantId: String(existingRestaurant.id), stallNumber: "A-01" },
-        expect.objectContaining({ stallNumber: "B-02" }),
+        {
+          restaurantId: String(existingRestaurant.id),
+          stallNumber: "A-01",
+          locationLabel: "文華路入口",
+        },
+        expect.objectContaining({
+          stallNumber: "B-02",
+          locationLabel: "福星路轉角",
+        }),
       ]),
     );
     expect(memberships).toHaveLength(2);

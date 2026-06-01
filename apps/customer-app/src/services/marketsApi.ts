@@ -95,6 +95,7 @@ export interface MarketExplorationSummary {
 
 export interface MarketVendor extends RestaurantListItem {
   stallNumber: string | null;
+  locationLabel?: string | null;
   isPrimary: boolean;
   detailUrl?: string;
   menuUrl?: string;
