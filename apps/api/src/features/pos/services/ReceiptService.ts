@@ -25,6 +25,32 @@ export class ReceiptService {
   }
 
   /**
+   * Map a receipts row to the Receipt domain type: parse the JSON content
+   * column and normalise nullable columns to optional (null -> undefined).
+   */
+  private mapReceipt(receipt: ReceiptRow): Receipt {
+    return {
+      id: receipt.id,
+      orderId: receipt.orderId,
+      registerId: receipt.registerId,
+      shiftId: receipt.shiftId ?? undefined,
+      receiptNumber: receipt.receiptNumber,
+      receiptType: receipt.receiptType as Receipt["receiptType"],
+      templateName: receipt.templateName,
+      content: JSON.parse(receipt.content || "{}"),
+      rawContent: receipt.rawContent ?? undefined,
+      printStatus: receipt.printStatus as Receipt["printStatus"],
+      printAttempts: receipt.printAttempts,
+      printerName: receipt.printerName ?? undefined,
+      printerResponse: receipt.printerResponse ?? undefined,
+      printedAt: receipt.printedAt ?? undefined,
+      reprintedCount: receipt.reprintedCount,
+      lastReprintAt: receipt.lastReprintAt ?? undefined,
+      createdAt: receipt.createdAt,
+    };
+  }
+
+  /**
    * 打印收據
    */
   async printReceipt(
@@ -85,10 +111,7 @@ export class ReceiptService {
 
       return {
         success: true,
-        data: {
-          ...receipt,
-          content: JSON.parse((receipt.content as string) || "{}"),
-        } as unknown as Receipt,
+        data: this.mapReceipt(receipt),
       };
     } catch (error) {
       console.error("打印收據失敗:", error);
@@ -201,13 +224,7 @@ export class ReceiptService {
       return {
         success: true,
         data: {
-          receipts: receiptList.map(
-            (receipt: ReceiptRow) =>
-              ({
-                ...receipt,
-                content: JSON.parse((receipt.content as string) || "{}"),
-              }) as unknown as Receipt,
-          ),
+          receipts: receiptList.map((receipt) => this.mapReceipt(receipt)),
           pagination: {
             page,
             limit,
@@ -246,10 +263,7 @@ export class ReceiptService {
 
       return {
         success: true,
-        data: {
-          ...receipt,
-          content: JSON.parse((receipt.content as string) || "{}"),
-        } as unknown as Receipt,
+        data: this.mapReceipt(receipt),
       };
     } catch (error) {
       console.error("獲取收據詳情失敗:", error);

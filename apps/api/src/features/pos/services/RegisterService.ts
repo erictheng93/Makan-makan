@@ -16,6 +16,29 @@ export class RegisterService {
   }
 
   /**
+   * Map a cash_registers row to the CashRegister domain type: parse the JSON
+   * text columns and normalise nullable columns to optional (null -> undefined).
+   */
+  private mapRegister(
+    register: typeof cashRegisters.$inferSelect,
+  ): CashRegister {
+    return {
+      id: register.id,
+      name: register.name,
+      location: register.location ?? undefined,
+      restaurantId: register.restaurantId,
+      isActive: register.isActive,
+      currentShiftId: register.currentShiftId ?? undefined,
+      hardwareConfig: JSON.parse(register.hardwareConfig || "{}"),
+      peripherals: JSON.parse(register.peripherals || "{}"),
+      settings: JSON.parse(register.settings || "{}"),
+      lastMaintenanceAt: register.lastMaintenanceAt ?? undefined,
+      createdAt: register.createdAt,
+      updatedAt: register.updatedAt,
+    };
+  }
+
+  /**
    * 創建收銀機
    */
   async createRegister(
@@ -48,14 +71,7 @@ export class RegisterService {
 
       return {
         success: true,
-        data: {
-          ...register,
-          hardwareConfig: JSON.parse(
-            (register.hardwareConfig as string) || "{}",
-          ),
-          peripherals: JSON.parse((register.peripherals as string) || "{}"),
-          settings: JSON.parse((register.settings as string) || "{}"),
-        } as unknown as CashRegister,
+        data: this.mapRegister(register),
       };
     } catch (error) {
       console.error("創建收銀機失敗:", error);
@@ -79,16 +95,7 @@ export class RegisterService {
         .where(eq(cashRegisters.restaurantId, restaurantId))
         .orderBy(cashRegisters.name);
 
-      const registers = results.map(
-        (register: typeof cashRegisters.$inferSelect) => ({
-          ...register,
-          hardwareConfig: JSON.parse(
-            (register.hardwareConfig as string) || "{}",
-          ),
-          peripherals: JSON.parse((register.peripherals as string) || "{}"),
-          settings: JSON.parse((register.settings as string) || "{}"),
-        }),
-      ) as CashRegister[];
+      const registers = results.map((register) => this.mapRegister(register));
 
       return {
         success: true,
@@ -128,12 +135,9 @@ export class RegisterService {
       return {
         success: true,
         data: {
-          ...status,
-          hardwareConfig: JSON.parse((status.hardwareConfig as string) || "{}"),
-          peripherals: JSON.parse((status.peripherals as string) || "{}"),
-          settings: JSON.parse((status.settings as string) || "{}"),
+          ...this.mapRegister(status),
           isShiftActive: !!status.currentShiftId,
-        } as unknown as CashRegister & { isShiftActive: boolean },
+        },
       };
     } catch (error) {
       console.error("獲取收銀機狀態失敗:", error);
@@ -196,16 +200,7 @@ export class RegisterService {
 
       return {
         success: true,
-        data: {
-          ...updatedRegister,
-          hardwareConfig: JSON.parse(
-            (updatedRegister.hardwareConfig as string) || "{}",
-          ),
-          peripherals: JSON.parse(
-            (updatedRegister.peripherals as string) || "{}",
-          ),
-          settings: JSON.parse((updatedRegister.settings as string) || "{}"),
-        } as unknown as CashRegister,
+        data: this.mapRegister(updatedRegister),
       };
     } catch (error) {
       console.error("更新收銀機失敗:", error);

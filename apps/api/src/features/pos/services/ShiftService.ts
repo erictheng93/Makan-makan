@@ -17,6 +17,36 @@ export class ShiftService {
   }
 
   /**
+   * Map a cash_shifts row to the CashShift domain type: normalise nullable
+   * columns to optional (null -> undefined) and narrow the status string to
+   * the domain union. The *_cents bookkeeping columns are intentionally
+   * dropped (the domain type exposes the decimal amounts).
+   */
+  private mapShift(shift: typeof cashShifts.$inferSelect): CashShift {
+    return {
+      id: shift.id,
+      registerId: shift.registerId,
+      operatorId: shift.operatorId,
+      startAmount: shift.startAmount,
+      endAmount: shift.endAmount ?? undefined,
+      expectedAmount: shift.expectedAmount,
+      actualAmount: shift.actualAmount ?? undefined,
+      differenceAmount: shift.differenceAmount,
+      totalSales: shift.totalSales,
+      totalRefunds: shift.totalRefunds,
+      cashSales: shift.cashSales,
+      cardSales: shift.cardSales,
+      digitalSales: shift.digitalSales,
+      totalTransactions: shift.totalTransactions,
+      startedAt: shift.startedAt,
+      endedAt: shift.endedAt ?? undefined,
+      status: shift.status as CashShift["status"],
+      notes: shift.notes ?? undefined,
+      closingNotes: shift.closingNotes ?? undefined,
+    };
+  }
+
+  /**
    * 開始班次
    */
   async startShift(
@@ -94,7 +124,7 @@ export class ShiftService {
 
       return {
         success: true,
-        data: shift as unknown as CashShift,
+        data: this.mapShift(shift),
       };
     } catch (error) {
       console.error("開班失敗:", error);
@@ -178,13 +208,13 @@ export class ShiftService {
         success: true,
         data: {
           shift: {
-            ...shift,
+            ...this.mapShift(shift),
             endAmount: validatedData.actualAmount,
             actualAmount: validatedData.actualAmount,
             expectedAmount,
             differenceAmount,
-            status: "closed",
-          } as unknown as CashShift,
+            status: "closed" as const,
+          },
         },
       };
     } catch (error) {
@@ -216,7 +246,7 @@ export class ShiftService {
 
       return {
         success: true,
-        data: shift ? (shift as unknown as CashShift) : null,
+        data: shift ? this.mapShift(shift) : null,
       };
     } catch (error) {
       console.error("獲取當前班次失敗:", error);
