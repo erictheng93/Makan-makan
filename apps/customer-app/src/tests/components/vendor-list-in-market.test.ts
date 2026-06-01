@@ -152,6 +152,41 @@ describe("VendorListInMarket", () => {
     ).toBeDefined();
   });
 
+  it("keeps the menu entry disabled when a vendor has no available menu items", async () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [
+          vendor({
+            availableMenuItemCount: 0,
+            publicServiceItemCount: 2,
+          }),
+        ],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    const menuButton = wrapper.get(
+      '[data-testid="open-vendor-menu-restaurant-1"]',
+    );
+    expect(menuButton.attributes("disabled")).toBeDefined();
+
+    await menuButton.trigger("click");
+    await wrapper
+      .get('[data-testid="open-vendor-services-restaurant-1"]')
+      .trigger("click");
+
+    expect(wrapper.emitted("selectVendor")).toBeUndefined();
+    expect(wrapper.emitted("selectServices")?.[0]).toEqual([
+      vendor({
+        availableMenuItemCount: 0,
+        publicServiceItemCount: 2,
+      }),
+    ]);
+  });
+
   it("shows menu and service availability before opening a vendor", () => {
     const wrapper = mount(VendorListInMarket, {
       props: {

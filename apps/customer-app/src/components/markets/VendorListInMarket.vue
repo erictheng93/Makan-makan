@@ -126,8 +126,9 @@
         <div class="grid grid-cols-2 gap-2 border-t border-gray-100 px-4 py-3">
           <button
             type="button"
-            class="rounded-lg bg-ios-blue px-3 py-2 text-sm font-medium text-white"
+            class="rounded-lg bg-ios-blue px-3 py-2 text-sm font-medium text-white disabled:bg-gray-200 disabled:text-gray-400"
             :data-testid="`open-vendor-menu-${vendor.restaurantId}`"
+            :disabled="vendor.availableMenuItemCount <= 0"
             @click="$emit('selectVendor', vendor)"
           >
             查看菜單
