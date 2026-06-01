@@ -228,6 +228,7 @@ app.post("/", async (c) => {
   }
 
   const ordersService = new OrdersService(c.env);
+  const checkoutId = crypto.randomUUID();
   const children = [];
 
   for (const { vendor, restaurant } of vendors) {
@@ -242,7 +243,13 @@ app.post("/", async (c) => {
         customizations: item.customizations,
         notes: item.notes,
       })),
-      notes: [data.notes, vendor.notes].filter(Boolean).join("\n") || undefined,
+      notes: buildMarketCheckoutOrderNotes({
+        marketName: market.name,
+        marketSlug: market.slug,
+        checkoutId,
+        checkoutNotes: data.notes,
+        vendorNotes: vendor.notes,
+      }),
       clientMutationId: vendor.clientMutationId,
       orderType: "shop",
       deliveryInfo: {
@@ -297,7 +304,6 @@ app.post("/", async (c) => {
     });
   }
 
-  const checkoutId = crypto.randomUUID();
   const subtotal = children.reduce(
     (sum, child) => sum + orderTotalCents(child.order),
     0,
@@ -616,6 +622,22 @@ function orderTotalCents(order: {
   return Number(
     order.totalAmountCents ?? Math.round(Number(order.totalAmount ?? 0) * 100),
   );
+}
+
+function buildMarketCheckoutOrderNotes(input: {
+  marketName: string;
+  marketSlug: string;
+  checkoutId: string;
+  checkoutNotes?: string;
+  vendorNotes?: string;
+}) {
+  return [
+    `市場結帳：${input.marketName} / ${input.marketSlug} / ${input.checkoutId}`,
+    input.checkoutNotes,
+    input.vendorNotes,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function readMarketCheckoutIndex(

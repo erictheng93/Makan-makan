@@ -143,10 +143,12 @@ describe("market checkout routes", () => {
           marketSlug: "fengjia",
           guestName: "Guest",
           phoneLastDigits: "789",
+          notes: "全單備註",
           vendors: [
             {
               restaurantId: "restaurant-1",
               items: [{ menuItemId: 101, quantity: 2 }],
+              notes: "雞排攤備註",
             },
             {
               restaurantId: "restaurant-2",
@@ -162,6 +164,7 @@ describe("market checkout routes", () => {
     const json = (await response.json()) as {
       data: {
         checkout: {
+          id: string;
           market: { slug: string; name: string };
           status: string;
           subtotal: number;
@@ -191,6 +194,14 @@ describe("market checkout routes", () => {
         deliveryInfo: { type: "takeaway" },
       }),
     );
+    const firstOrderInput = createOrder.mock.calls[0]?.[0] as
+      | { notes?: string }
+      | undefined;
+    expect(firstOrderInput?.notes).toContain("市場結帳");
+    expect(firstOrderInput?.notes).toContain("逢甲夜市");
+    expect(firstOrderInput?.notes).toContain(json.data.checkout.id);
+    expect(firstOrderInput?.notes).toContain("全單備註");
+    expect(firstOrderInput?.notes).toContain("雞排攤備註");
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       expect.stringMatching(/^market_checkout:/),
       expect.stringContaining('"restaurantId":"restaurant-1"'),
