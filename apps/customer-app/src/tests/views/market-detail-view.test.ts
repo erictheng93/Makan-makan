@@ -114,6 +114,33 @@ function mountView() {
     global: {
       stubs: {
         MarketDetailHero: true,
+        StallMapInMarket: {
+          props: ["vendors"],
+          emits: ["selectVendor"],
+          template: `
+            <section data-testid="stall-map">
+              <button
+                data-testid="stall-map-open-vendor"
+                @click="$emit('selectVendor', {
+                  restaurantId: 'stall-map-restaurant',
+                  name: '地圖雞排攤',
+                  type: 'market_stall',
+                  district: '西屯區',
+                  priceRange: null,
+                  rating: null,
+                  isOpen: true,
+                  supportsTakeaway: true,
+                  supportsDelivery: false,
+                  imageUrl: null,
+                  stallNumber: 'C-01',
+                  isPrimary: true
+                })"
+              >
+                stall map
+              </button>
+            </section>
+          `,
+        },
         VendorListInMarket: {
           props: [
             "vendors",
@@ -398,6 +425,21 @@ describe("MarketDetailView", () => {
     expect(wrapper.get('[data-testid="market-favorite-toggle"]').text()).toBe(
       "追蹤",
     );
+  });
+
+  it("opens vendors from the stall map", async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="stall-map-open-vendor"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopMenu",
+      params: { restaurantId: "stall-map-restaurant" },
+      query: {
+        returnPath: "/markets/fengjia",
+        returnLabel: "逢甲夜市",
+      },
+    });
   });
 
   it("passes shareable query state into market product search", () => {
