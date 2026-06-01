@@ -9,9 +9,16 @@ import { notFound, forbidden, conflict } from "../../../shared/utils/api-error";
 import {
   MenuService as DatabaseMenuService,
   restaurants,
+  categories as categoriesTable,
 } from "@makanmakan/database";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { Status } from "@makanmakan/shared-types";
+import type {
+  MenuItem as SharedMenuItem,
+  Category as SharedCategory,
+  MenuStructure as SharedMenuStructure,
+} from "@makanmakan/shared-types";
 import type {
   MenuItem,
   Category,
@@ -657,65 +664,70 @@ export class MenuService implements IMenuService {
       );
   }
 
-  private transformMenuItem(raw: object): MenuItem {
-    const item = raw as Record<string, unknown>;
+  /**
+   * Promote a shared MenuItem (as returned by DatabaseMenuService) to the
+   * feature MenuItem shape. The DB mapper (mapToMenuItem) does not populate
+   * the feature-only fields (reviewCount/viewCount/rating/tags/keywords/
+   * availableHours), so reviewCount/viewCount default here and the optional
+   * extras are simply absent — matching the previous runtime behaviour, but
+   * now type-checked instead of cast through `unknown`.
+   */
+  private transformMenuItem(item: SharedMenuItem): MenuItem {
     return {
-      id: item.id,
-      name: item.name,
+      ...item,
       catalogType: item.catalogType ?? "menu_item",
-      description: item.description,
-      ingredients: item.ingredients,
-      price: item.price,
-      originalPrice: item.originalPrice,
       categoryId: Number(item.categoryId),
       restaurantId: String(item.restaurantId),
       isAvailable: item.isAvailable || false,
       isFeatured: item.isFeatured || false,
       isPopular: item.isPopular || false,
       sortOrder: item.sortOrder || 0,
-      spiceLevel: item.spiceLevel || 0,
-      preparationTime: item.preparationTime,
-      calories: item.calories,
       inventoryCount: item.inventoryCount || 0,
       orderCount: item.orderCount || 0,
-      imageUrl: item.imageUrl,
-      imageVariants: item.imageVariants,
       allergens: item.allergens || [],
-      dietaryInfo: item.dietaryInfo,
-      options: item.options,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      reviewCount: item.reviewCount || 0,
-      viewCount: item.viewCount || 0,
-      rating: item.rating,
-      availableHours: item.availableHours,
-      tags: item.tags,
-      keywords: item.keywords,
-    } as unknown as MenuItem;
+      reviewCount: 0,
+      viewCount: 0,
+    };
   }
 
-  private transformCategory(raw: object): Category {
-    const category = raw as Record<string, unknown>;
+  /**
+   * Normalise a category into the feature Category shape. This receives two
+   * different runtime shapes: a shared Category (from getMenu, already carrying
+   * `status` + string timestamps) and a raw Drizzle row (from create/update,
+   * carrying `isActive` + Date timestamps and no `status`). We discriminate at
+   * runtime via `in` checks. Deriving status from `isActive` also fixes a
+   * latent bug: the previous `status || 1` cast made the create/update path
+   * always report ACTIVE regardless of isActive.
+   */
+  private transformCategory(
+    category: SharedCategory | typeof categoriesTable.$inferSelect,
+  ): Category {
+    const isActive = "isActive" in category ? category.isActive : undefined;
+    const status: Status =
+      "status" in category
+        ? category.status
+        : isActive === false
+          ? Status.INACTIVE
+          : Status.ACTIVE;
+    const toIso = (value: string | Date): string =>
+      value instanceof Date ? value.toISOString() : value;
     return {
       id: category.id,
-      name: category.name,
-      description: category.description,
-      parentId: category.parentId,
-      sortOrder: category.sortOrder,
-      status: category.status || 1,
-      createdAt: category.createdAt,
-      updatedAt: category.updatedAt,
       restaurantId: String(category.restaurantId),
-      isActive: category.isActive,
-      isVisible: category.isVisible,
-      itemCount: category.itemCount,
-    } as unknown as Category;
+      name: category.name,
+      description: category.description ?? undefined,
+      parentId: "parentId" in category ? category.parentId : undefined,
+      sortOrder: category.sortOrder,
+      status,
+      createdAt: toIso(category.createdAt),
+      updatedAt: toIso(category.updatedAt),
+      isActive,
+      isVisible: "isVisible" in category ? category.isVisible : undefined,
+      itemCount: "itemCount" in category ? category.itemCount : undefined,
+    };
   }
 
-  private transformMenuStructure(menu: {
-    categories?: object[];
-    menuItems?: object[];
-  }): MenuStructure {
+  private transformMenuStructure(menu: SharedMenuStructure): MenuStructure {
     return {
       categories:
         menu.categories?.map((cat) => this.transformCategory(cat)) || [],
