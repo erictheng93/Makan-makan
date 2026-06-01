@@ -428,14 +428,17 @@ const passwordStrengthTextColor = computed(() => {
 
 const verifyToken = async () => {
   try {
-    const response = await api.get<ResetTokenVerificationResponse>(
+    // These auth endpoints return a bare object (not the { success, data }
+    // envelope), so use the raw axios instance whose response.data is the
+    // payload type directly.
+    const response = await api.instance.get<ResetTokenVerificationResponse>(
       "/auth/reset-password/verify",
       {
         params: { token: token.value },
         validateStatus: () => true,
       },
     );
-    const data = response.data as unknown as ResetTokenVerificationResponse;
+    const data = response.data;
 
     if (data.valid) {
       maskedEmail.value = data.email || "";
@@ -487,7 +490,7 @@ const handleSubmit = async () => {
   isLoading.value = true;
 
   try {
-    const response = await api.post<ResetPasswordResponse>(
+    const response = await api.instance.post<ResetPasswordResponse>(
       "/auth/reset-password",
       {
         token: token.value,
@@ -498,7 +501,7 @@ const handleSubmit = async () => {
         validateStatus: () => true,
       },
     );
-    const data = response.data as unknown as ResetPasswordResponse;
+    const data = response.data;
 
     if (data.success) {
       success.value = true;

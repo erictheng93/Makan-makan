@@ -188,7 +188,10 @@ const handleSubmit = async () => {
   isLoading.value = true;
 
   try {
-    const response = await api.post<ForgotPasswordResponse>(
+    // This auth endpoint returns a bare object (not the { success, data }
+    // envelope), so use the raw axios instance whose response.data is the
+    // payload type directly.
+    const response = await api.instance.post<ForgotPasswordResponse>(
       "/auth/forgot-password",
       {
         identifier: form.email,
@@ -198,7 +201,7 @@ const handleSubmit = async () => {
         validateStatus: () => true,
       },
     );
-    const data = response.data as unknown as ForgotPasswordResponse;
+    const data = response.data;
 
     if (data.success) {
       success.value = true;
