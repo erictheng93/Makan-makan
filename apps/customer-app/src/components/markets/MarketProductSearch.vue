@@ -130,6 +130,7 @@
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
         @change="searchIfReady"
       >
+        <option value="relevance">相關性</option>
         <option value="price_asc">價格低到高</option>
         <option value="price_desc">價格高到低</option>
         <option value="popular">熱門優先</option>
@@ -473,7 +474,7 @@ const props = withDefaults(
     initialResultKind: "all",
     initialTakeaway: false,
     initialDelivery: false,
-    initialSortBy: "price_asc",
+    initialSortBy: "relevance",
     initialLat: undefined,
     initialLng: undefined,
     initialRadiusKm: undefined,
@@ -525,7 +526,7 @@ const sortBy = ref<MarketProductSort>(
   (normalizedInitialResultKind === "vendor" &&
     props.initialSortBy !== "distance") ||
     (props.initialSortBy === "distance" && !initialLocation)
-    ? "price_asc"
+    ? "relevance"
     : props.initialSortBy,
 );
 const userLocation = ref<{ lat: number; lng: number } | null>(initialLocation);
@@ -555,6 +556,7 @@ type ServiceTypeFilter =
   | "activity";
 type ResultKind = "all" | "menu_item" | "product" | "service" | "vendor";
 type MarketProductSort =
+  | "relevance"
   | "price_asc"
   | "price_desc"
   | "popular"
@@ -590,6 +592,7 @@ const serviceTypeLabels = new Map(
   serviceTypeDefinitions.map((option) => [option.value, option.label]),
 );
 const sortLabels: Record<MarketProductSort, string> = {
+  relevance: "相關性",
   price_asc: "價格低到高",
   price_desc: "價格高到低",
   popular: "熱門優先",
@@ -659,7 +662,7 @@ const activeFilterLabels = computed(() => {
   }
   if (takeawayOnly.value) labels.push("只看可外帶");
   if (deliveryOnly.value) labels.push("只看可外送");
-  if (resultKind.value !== "vendor" && sortBy.value !== "price_asc") {
+  if (resultKind.value !== "vendor" && sortBy.value !== "relevance") {
     labels.push(`排序：${sortLabels[sortBy.value]}`);
   }
 
@@ -736,10 +739,10 @@ async function fetchResults({ append }: { append: boolean }) {
               ? { catalogType: selectedCatalogType.value }
               : {}),
             categoryName: selectedCategory.value || undefined,
-            sortBy: sortBy.value,
+            ...(apiSortBy() ? { sortBy: apiSortBy() } : {}),
             ...locationFilters,
             takeaway: takeawayOnly.value ? true : undefined,
-            delivery: deliveryOnly.value ? true : undefined,
+            ...(deliveryOnly.value ? { delivery: true } : {}),
             page: page.value,
             limit: pageSize,
           })
@@ -749,7 +752,7 @@ async function fetchResults({ append }: { append: boolean }) {
             q: trimmed || undefined,
             marketId: props.marketId,
             serviceType: selectedServiceType.value || undefined,
-            sortBy: sortBy.value,
+            ...(apiSortBy() ? { sortBy: apiSortBy() } : {}),
             ...locationFilters,
             ...(takeawayOnly.value ? { takeaway: true } : {}),
             ...(deliveryOnly.value ? { delivery: true } : {}),
@@ -836,7 +839,7 @@ function selectResultKind(nextKind: ResultKind) {
     selectedServiceType.value = "";
   }
   if (nextKind === "vendor") {
-    sortBy.value = "price_asc";
+    sortBy.value = "relevance";
   }
   loadCategories();
   loadServiceTypes();
@@ -850,7 +853,7 @@ function clearFilters() {
   selectedCategory.value = "";
   selectedServiceType.value = "";
   resultKind.value = "all";
-  sortBy.value = "price_asc";
+  sortBy.value = "relevance";
   loadCategories();
   loadServiceTypes();
   submitSearch();
@@ -863,7 +866,7 @@ function browseFallback(kind: "service" | "vendor") {
   selectedCategory.value = "";
   selectedServiceType.value = "";
   resultKind.value = kind;
-  sortBy.value = "price_asc";
+  sortBy.value = "relevance";
   loadCategories();
   loadServiceTypes();
   submitSearch();
@@ -887,7 +890,7 @@ function useCurrentLocation() {
     () => {
       locating.value = false;
       if (sortBy.value === "distance") {
-        sortBy.value = "price_asc";
+        sortBy.value = "relevance";
       }
     },
     { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
@@ -956,6 +959,10 @@ function servicePriceLabel(service: ServiceSearchResult) {
 function distanceLabel(result: { distanceKm?: number }) {
   if (typeof result.distanceKm !== "number") return "";
   return `${result.distanceKm.toFixed(1)} km`;
+}
+
+function apiSortBy() {
+  return sortBy.value === "relevance" ? undefined : sortBy.value;
 }
 
 onMounted(loadCategories);

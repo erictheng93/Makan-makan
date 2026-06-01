@@ -407,7 +407,7 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("B-12|||vendor|false|false|price_asc");
+    ).toContain("B-12|||vendor|false|false|relevance");
   });
 
   it("syncs market product search state into the URL", async () => {
@@ -462,7 +462,7 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("|炸物||menu_item|false|false|price_asc");
+    ).toContain("|炸物||menu_item|false|false|relevance");
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: {
         categoryName: "炸物",
@@ -476,7 +476,7 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("||pickup|service|false|false|price_asc");
+    ).toContain("||pickup|service|false|false|relevance");
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: {
         serviceType: "pickup",
@@ -490,7 +490,7 @@ describe("MarketDetailView", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-props"]').text(),
-    ).toContain("|配件||product|false|false|price_asc");
+    ).toContain("|配件||product|false|false|relevance");
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: {
         categoryName: "配件",

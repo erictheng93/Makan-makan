@@ -245,6 +245,36 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("攤位 S-12");
   });
 
+  it("keeps keyword searches on relevance ordering by default", async () => {
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("雞排");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+      q: "雞排",
+      marketId: "market-1",
+      categoryName: undefined,
+      takeaway: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(discoveryApi.searchServices).toHaveBeenCalledWith({
+      q: "雞排",
+      marketId: "market-1",
+      serviceType: undefined,
+      page: 1,
+      limit: 20,
+    });
+  });
+
   it("renders direct vendor results in market search", async () => {
     vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
       results: [
@@ -461,7 +491,6 @@ describe("MarketProductSearch", () => {
       q: "切水果",
       marketId: "market-1",
       serviceType: undefined,
-      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -552,7 +581,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: "delivery",
-      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -568,7 +596,7 @@ describe("MarketProductSearch", () => {
       resultKind: "service",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
   });
 
@@ -596,7 +624,6 @@ describe("MarketProductSearch", () => {
         q: undefined,
         marketId: "market-1",
         serviceType: "delivery",
-        sortBy: "price_asc",
         page: 1,
         limit: 20,
       });
@@ -614,7 +641,7 @@ describe("MarketProductSearch", () => {
       resultKind: "service",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
   });
 
@@ -646,7 +673,6 @@ describe("MarketProductSearch", () => {
       categoryName: undefined,
       sortBy: "open_now",
       takeaway: undefined,
-      delivery: undefined,
       page: 1,
       limit: 20,
     });
@@ -714,7 +740,6 @@ describe("MarketProductSearch", () => {
         lng: 120.6466,
         radiusKm: 2,
         takeaway: undefined,
-        delivery: undefined,
         page: 1,
         limit: 20,
       });
@@ -777,7 +802,6 @@ describe("MarketProductSearch", () => {
       marketId: "market-1",
       catalogType: "product",
       categoryName: undefined,
-      sortBy: "price_asc",
       takeaway: undefined,
       page: 1,
       limit: 20,
@@ -794,7 +818,7 @@ describe("MarketProductSearch", () => {
       resultKind: "product",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
   });
 
@@ -821,7 +845,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
-      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -885,7 +908,7 @@ describe("MarketProductSearch", () => {
       resultKind: "vendor",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
   });
 
@@ -913,7 +936,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
-      sortBy: "price_asc",
       takeaway: true,
       page: 1,
       limit: 20,
@@ -959,7 +981,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
-      sortBy: "price_asc",
       delivery: true,
       page: 1,
       limit: 20,
@@ -1061,7 +1082,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       categoryName: undefined,
-      sortBy: "price_asc",
       takeaway: undefined,
       page: 1,
       limit: 20,
@@ -1070,7 +1090,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
-      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -1085,7 +1104,7 @@ describe("MarketProductSearch", () => {
       resultKind: "all",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
     expect(wrapper.text()).toContain("市場雞排");
   });
@@ -1235,7 +1254,7 @@ describe("MarketProductSearch", () => {
       resultKind: "vendor",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
   });
 
@@ -1278,7 +1297,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       serviceType: undefined,
-      sortBy: "price_asc",
       page: 1,
       limit: 20,
     });
@@ -1290,7 +1308,7 @@ describe("MarketProductSearch", () => {
       resultKind: "service",
       takeaway: false,
       delivery: false,
-      sortBy: "price_asc",
+      sortBy: "relevance",
     });
   });
 
@@ -1393,7 +1411,6 @@ describe("MarketProductSearch", () => {
         q: undefined,
         marketId: "market-1",
         categoryName: undefined,
-        sortBy: "price_asc",
         takeaway: undefined,
         page: 1,
         limit: 20,
@@ -1402,7 +1419,6 @@ describe("MarketProductSearch", () => {
         q: undefined,
         marketId: "market-1",
         serviceType: undefined,
-        sortBy: "price_asc",
         page: 1,
         limit: 20,
       });
@@ -1452,7 +1468,6 @@ describe("MarketProductSearch", () => {
       q: "章魚燒",
       marketId: "market-1",
       categoryName: undefined,
-      sortBy: "price_asc",
       takeaway: undefined,
       page: 2,
       limit: 20,
@@ -1489,7 +1504,6 @@ describe("MarketProductSearch", () => {
       q: undefined,
       marketId: "market-1",
       categoryName: "飲品",
-      sortBy: "price_asc",
       takeaway: undefined,
       page: 1,
       limit: 20,

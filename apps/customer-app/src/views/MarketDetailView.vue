@@ -336,6 +336,7 @@ type MarketSearchResultKind =
   | "service"
   | "vendor";
 type MarketSearchSort =
+  | "relevance"
   | "price_asc"
   | "price_desc"
   | "popular"
@@ -363,6 +364,7 @@ function queryNumber(value: unknown) {
 
 function isSortBy(value: string): value is MarketSearchState["sortBy"] {
   return [
+    "relevance",
     "price_asc",
     "price_desc",
     "popular",
@@ -405,7 +407,7 @@ function marketSearchStateFromQuery(): MarketSearchState {
     resultKind: isMarketSearchResultKind(resultKind) ? resultKind : "all",
     takeaway: queryBoolean(route.query.takeaway),
     delivery: queryBoolean(route.query.delivery),
-    sortBy: isSortBy(sortBy) ? sortBy : "price_asc",
+    sortBy: isSortBy(sortBy) ? sortBy : "relevance",
     ...(lat != null ? { lat } : {}),
     ...(lng != null ? { lng } : {}),
     ...(radiusKm != null ? { radiusKm } : {}),
@@ -593,7 +595,7 @@ function currentMarketQuery() {
   if (state.resultKind !== "all") query.resultKind = state.resultKind;
   if (state.takeaway) query.takeaway = "true";
   if (state.delivery) query.delivery = "true";
-  if (state.sortBy !== "price_asc") query.sortBy = state.sortBy;
+  if (state.sortBy !== "relevance") query.sortBy = state.sortBy;
   if (state.sortBy === "distance" && state.lat != null) {
     query.lat = String(state.lat);
   }
@@ -704,7 +706,7 @@ function applyDishCategoryShortcut(categoryName: string) {
     resultKind: "menu_item",
     takeaway: false,
     delivery: false,
-    sortBy: "price_asc",
+    sortBy: "relevance",
     lat: undefined,
     lng: undefined,
     radiusKm: undefined,
@@ -719,7 +721,7 @@ function applyProductCategoryShortcut(categoryName: string) {
     resultKind: "product",
     takeaway: false,
     delivery: false,
-    sortBy: "price_asc",
+    sortBy: "relevance",
     lat: undefined,
     lng: undefined,
     radiusKm: undefined,
@@ -736,7 +738,7 @@ function applyServiceTypeShortcut(
     resultKind: "service",
     takeaway: false,
     delivery: false,
-    sortBy: "price_asc",
+    sortBy: "relevance",
     lat: undefined,
     lng: undefined,
     radiusKm: undefined,
