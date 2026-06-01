@@ -90,6 +90,41 @@
               </dd>
             </div>
           </dl>
+
+          <div
+            v-if="checkout.payment"
+            data-testid="market-checkout-payment-summary"
+            class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-semibold">
+                {{ marketPaymentStatusLabel(checkout.payment.status) }}
+              </span>
+              <span>{{ formatPrice(checkout.payment.totalAmount) }}</span>
+            </div>
+            <p class="mt-1 text-xs text-emerald-700">
+              已拆分為 {{ checkout.payment.childPayments.length }} 筆攤位付款
+            </p>
+          </div>
+
+          <button
+            v-else
+            type="button"
+            data-testid="market-checkout-pay"
+            class="mt-4 w-full rounded-lg bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300"
+            :disabled="isPaying"
+            @click="payCheckout"
+          >
+            {{ isPaying ? "付款處理中" : "聯合付款" }}
+          </button>
+
+          <p
+            v-if="paymentError"
+            data-testid="market-checkout-payment-error"
+            class="mt-2 text-sm text-red-600"
+          >
+            {{ paymentError }}
+          </p>
         </section>
 
         <section class="mt-4 space-y-3">
@@ -164,7 +199,9 @@ const router = useRouter();
 const { formatPrice } = useCurrency();
 const checkout = ref<MarketCheckoutSummary | null>(null);
 const isLoading = ref(true);
+const isPaying = ref(false);
 const error = ref<string | null>(null);
+const paymentError = ref<string | null>(null);
 
 const statusLabel = computed(() => {
   if (checkout.value?.status === "submitted") {
@@ -196,6 +233,25 @@ async function loadCheckout() {
       loadError instanceof Error ? loadError.message : "市場訂單載入失敗";
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function payCheckout() {
+  paymentError.value = null;
+  isPaying.value = true;
+  try {
+    const result = await orderApi.payMarketCheckout(props.checkoutId, {
+      method: "market_online",
+      country: "TW",
+      currency: "TWD",
+    });
+    checkout.value = result.checkout;
+  } catch (payError) {
+    console.error("Failed to pay market checkout:", payError);
+    paymentError.value =
+      payError instanceof Error ? payError.message : "市場聯合付款失敗";
+  } finally {
+    isPaying.value = false;
   }
 }
 
@@ -231,6 +287,15 @@ function paymentStatusLabel(status: OrderPaymentStatus) {
     partial_refund: "部分退款",
   };
   return labels[String(status)] ?? String(status);
+}
+
+function marketPaymentStatusLabel(status: "pending" | "paid" | "failed") {
+  const labels = {
+    pending: "付款待處理",
+    paid: "已完成聯合付款",
+    failed: "付款失敗",
+  };
+  return labels[status];
 }
 
 onMounted(loadCheckout);

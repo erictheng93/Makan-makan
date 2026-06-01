@@ -7,6 +7,7 @@ const databaseMocks = vi.hoisted(() => ({
 }));
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
+const processPayment = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
@@ -35,6 +36,12 @@ vi.mock("../../../middleware/guestAuth", async (importOriginal) => ({
 vi.mock("../../orders/services/OrdersService", () => ({
   OrdersService: function OrdersService() {
     return { createOrder, getOrder };
+  },
+}));
+
+vi.mock("../../payments/services/PaymentService", () => ({
+  PaymentService: function PaymentService() {
+    return { processPayment };
   },
 }));
 
@@ -70,6 +77,7 @@ describe("market checkout routes", () => {
     databaseMocks.createDatabase.mockReturnValue(createMockDb());
     createOrder.mockReset();
     getOrder.mockReset();
+    processPayment.mockReset();
     enforceQuota.mockReset();
     meterEmit.mockReset();
     tokenCounter.value = 0;
@@ -305,5 +313,174 @@ describe("market checkout routes", () => {
       orderNumber: "A001",
     });
     expect(json.data.checkout.childOrders[0].status).toBeUndefined();
+  });
+
+  it("processes one aggregate market checkout payment across child orders", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 20000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    processPayment
+      .mockResolvedValueOnce({
+        data: {
+          paymentId: "pay-1001",
+          orderId: 1001,
+          orderStatus: "preparing",
+          paymentStatus: "paid",
+          authorizedTotal: 120,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          paymentId: "pay-1002",
+          orderId: 1002,
+          orderStatus: "ready",
+          paymentStatus: "paid",
+          authorizedTotal: 80,
+        },
+      });
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        headers: {
+          "Idempotency-Key": "market-pay-1",
+        },
+        body: JSON.stringify({
+          method: "line_pay",
+          country: "TW",
+          currency: "TWD",
+          customerInfo: { name: "Guest" },
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(processPayment).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 1001,
+        amount: 120,
+        expectedTotal: 120,
+        closeOrder: false,
+        method: "line_pay",
+      }),
+      expect.objectContaining({
+        country: "TW",
+        currency: "TWD",
+        idempotencyKey: "market-pay-1:1001",
+        metadata: expect.objectContaining({
+          source: "market-checkouts",
+          marketCheckoutId: "checkout-1",
+          restaurantId: "restaurant-1",
+        }),
+      }),
+    );
+    expect(processPayment).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 1002,
+        amount: 80,
+        expectedTotal: 80,
+        closeOrder: false,
+        method: "line_pay",
+      }),
+      expect.objectContaining({
+        idempotencyKey: "market-pay-1:1002",
+        metadata: expect.objectContaining({
+          restaurantId: "restaurant-2",
+        }),
+      }),
+    );
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          method: string;
+          totalAmount: number;
+          childPayments: Array<{ paymentId: string }>;
+        };
+      };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "paid",
+      method: "line_pay",
+      totalAmount: 200,
+      childPayments: [{ paymentId: "pay-1001" }, { paymentId: "pay-1002" }],
+    });
+    expect(env.CACHE_KV.put).toHaveBeenLastCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"payment"'),
+      { expirationTtl: 14400 },
+    );
+  });
+
+  it("replays an already paid market checkout without charging twice", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [],
+        payment: {
+          status: "paid",
+          method: "line_pay",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 200,
+          totalAmountCents: 20000,
+          paidAt: "2026-06-01T10:10:00.000Z",
+          childPayments: [],
+        },
+        subtotal: 20000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "line_pay" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(processPayment).not.toHaveBeenCalled();
+    const json = (await response.json()) as {
+      data: { payment: { status: string; method: string } };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "paid",
+      method: "line_pay",
+    });
   });
 });

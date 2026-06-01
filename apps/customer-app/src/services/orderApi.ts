@@ -92,6 +92,7 @@ export interface MarketCheckoutResponse {
       paymentStatus?: OrderPaymentStatus;
       updatedAt?: number;
     }>;
+    payment?: MarketCheckoutPaymentSummary;
     subtotal: number;
     createdAt: string;
   };
@@ -106,8 +107,33 @@ export interface MarketCheckoutResponse {
 
 export type MarketCheckoutSummary = MarketCheckoutResponse["checkout"];
 
+export interface MarketCheckoutPaymentSummary {
+  status: "pending" | "paid" | "failed";
+  method: string;
+  currency: "TWD" | "MYR" | "VND";
+  country: "TW" | "MY" | "VN";
+  totalAmount: number;
+  totalAmountCents: number;
+  paidAt?: string;
+  childPayments: Array<{
+    restaurantId: string;
+    restaurantName: string;
+    orderId: number;
+    orderNumber: string;
+    paymentId: string;
+    status: string;
+    amount: number;
+    amountCents: number;
+  }>;
+}
+
 interface MarketCheckoutEnvelope {
   checkout: MarketCheckoutSummary;
+}
+
+interface MarketCheckoutPaymentEnvelope {
+  checkout: MarketCheckoutSummary;
+  payment: MarketCheckoutPaymentSummary;
 }
 
 interface GuestOrderEnvelope {
@@ -169,6 +195,25 @@ export const orderApi = {
       `/market-checkouts/${checkoutId}`,
     );
     return response.checkout;
+  },
+
+  async payMarketCheckout(
+    checkoutId: string,
+    paymentData: {
+      method: string;
+      country?: "TW" | "MY" | "VN";
+      currency?: "TWD" | "MYR" | "VND";
+      customerInfo?: {
+        name?: string;
+        email?: string;
+        phone?: string;
+      };
+    },
+  ): Promise<MarketCheckoutPaymentEnvelope> {
+    return apiClient.post<MarketCheckoutPaymentEnvelope>(
+      `/market-checkouts/${checkoutId}/pay`,
+      paymentData,
+    );
   },
 
   /**

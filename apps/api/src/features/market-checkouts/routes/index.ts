@@ -22,9 +22,24 @@ import {
 } from "../../../middleware/guestAuth";
 import { OrdersService } from "../../orders/services/OrdersService";
 import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
+import { PaymentService } from "../../payments/services/PaymentService";
 import { createMarketCheckoutSchema } from "../schemas/validation";
+import { z } from "zod";
 
 const app = new Hono<{ Bindings: Env }>();
+
+const payMarketCheckoutSchema = z.object({
+  method: z.string().min(1).max(50).default("market_online"),
+  country: z.enum(["TW", "MY", "VN"]).optional().default("TW"),
+  currency: z.enum(["TWD", "MYR", "VND"]).optional().default("TWD"),
+  customerInfo: z
+    .object({
+      name: z.string().optional(),
+      email: z.string().email().optional(),
+      phone: z.string().optional(),
+    })
+    .optional(),
+});
 
 interface MarketCheckoutChildOrder {
   restaurantId: string;
@@ -48,8 +63,29 @@ interface MarketCheckoutSession {
   };
   status: "submitted";
   childOrders: MarketCheckoutChildOrder[];
+  payment?: MarketCheckoutPaymentSummary;
   subtotal: number;
   createdAt: string;
+}
+
+interface MarketCheckoutPaymentSummary {
+  status: "pending" | "paid" | "failed";
+  method: string;
+  currency: "TWD" | "MYR" | "VND";
+  country: "TW" | "MY" | "VN";
+  totalAmount: number;
+  totalAmountCents: number;
+  paidAt?: string;
+  childPayments: Array<{
+    restaurantId: string;
+    restaurantName: string;
+    orderId: number;
+    orderNumber: string;
+    paymentId: string;
+    status: string;
+    amount: number;
+    amountCents: number;
+  }>;
 }
 
 app.post("/", async (c) => {
@@ -287,6 +323,121 @@ app.post("/", async (c) => {
     },
     201,
   );
+});
+
+app.post("/:id/pay", async (c) => {
+  const checkoutId = c.req.param("id");
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  if (!stored) {
+    throw notFound("Market checkout not found");
+  }
+
+  const body = await c.req.json();
+  const parsed = payMarketCheckoutSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  const session = JSON.parse(stored) as MarketCheckoutSession;
+  if (session.payment?.status === "paid") {
+    return c.json({
+      success: true,
+      data: {
+        checkout: session,
+        payment: session.payment,
+      },
+    });
+  }
+
+  if (session.childOrders.length === 0) {
+    throw badRequest("Market checkout has no child orders to pay");
+  }
+
+  const paymentService = new PaymentService(c.env);
+  const childPayments = [];
+  const requestIdempotencyKey = c.req.header("Idempotency-Key");
+
+  for (const child of session.childOrders) {
+    const amount = Number(child.totalAmount ?? 0);
+    const result = await paymentService.processPayment(
+      {
+        orderId: child.orderId,
+        paymentMode: "full",
+        amount,
+        expectedTotal: amount,
+        closeOrder: false,
+        method: parsed.data.method,
+        gateway: parsed.data.method,
+      },
+      {
+        country: parsed.data.country,
+        currency: parsed.data.currency,
+        idempotencyKey: requestIdempotencyKey
+          ? `${requestIdempotencyKey}:${child.orderId}`
+          : `market-checkout:${checkoutId}:${child.orderId}`,
+        customerInfo: parsed.data.customerInfo,
+        metadata: {
+          source: "market-checkouts",
+          marketCheckoutId: checkoutId,
+          marketSlug: session.market.slug,
+          restaurantId: child.restaurantId,
+        },
+      },
+    );
+
+    childPayments.push({
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      paymentId: result.data.paymentId,
+      status: result.data.paymentStatus,
+      amount: result.data.authorizedTotal,
+      amountCents: Math.round(result.data.authorizedTotal * 100),
+    });
+  }
+
+  const payment: MarketCheckoutPaymentSummary = {
+    status: "paid",
+    method: parsed.data.method,
+    currency: parsed.data.currency,
+    country: parsed.data.country,
+    totalAmount: childPayments.reduce((sum, child) => sum + child.amount, 0),
+    totalAmountCents: childPayments.reduce(
+      (sum, child) => sum + child.amountCents,
+      0,
+    ),
+    paidAt: new Date().toISOString(),
+    childPayments,
+  };
+
+  const updatedSession: MarketCheckoutSession = {
+    ...session,
+    payment,
+  };
+
+  await c.env.CACHE_KV.put(
+    `market_checkout:${checkoutId}`,
+    JSON.stringify(updatedSession),
+    {
+      expirationTtl: 4 * 60 * 60,
+    },
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      checkout: updatedSession,
+      payment,
+    },
+  });
 });
 
 app.get("/:id", async (c) => {
