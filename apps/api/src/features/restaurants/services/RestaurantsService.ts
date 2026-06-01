@@ -740,7 +740,7 @@ export class RestaurantsService {
         count: restaurants.length,
       });
 
-      return restaurants as unknown as Restaurant[];
+      return restaurants;
     } catch (error) {
       this.logger.error("Failed to search nearby restaurants", error as Error, {
         district,
@@ -773,7 +773,7 @@ export class RestaurantsService {
         count: restaurants.length,
       });
 
-      return restaurants as unknown as Restaurant[];
+      return restaurants;
     } catch (error) {
       this.logger.error("Failed to get popular restaurants", error as Error, {
         limit,

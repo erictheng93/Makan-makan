@@ -272,9 +272,12 @@ export class RestaurantService extends BaseService {
   }
 
   // 搜尋附近餐廳（基於地區）
-  async searchNearbyRestaurants(district: string, limit: number = 10) {
+  async searchNearbyRestaurants(
+    district: string,
+    limit: number = 10,
+  ): Promise<Restaurant[]> {
     try {
-      return await this.db
+      const rows = await this.db
         .select()
         .from(restaurants)
         .where(
@@ -286,15 +289,16 @@ export class RestaurantService extends BaseService {
         )
         .orderBy(desc(restaurants.rating))
         .limit(limit);
+      return rows.map((row) => this.mapToRestaurant(row));
     } catch (error) {
       this.handleError(error, "searchNearbyRestaurants");
     }
   }
 
   // 獲取熱門餐廳
-  async getPopularRestaurants(limit: number = 10) {
+  async getPopularRestaurants(limit: number = 10): Promise<Restaurant[]> {
     try {
-      return await this.db
+      const rows = await this.db
         .select()
         .from(restaurants)
         .where(
@@ -305,6 +309,7 @@ export class RestaurantService extends BaseService {
         )
         .orderBy(desc(restaurants.totalOrders), desc(restaurants.rating))
         .limit(limit);
+      return rows.map((row) => this.mapToRestaurant(row));
     } catch (error) {
       this.handleError(error, "getPopularRestaurants");
     }
