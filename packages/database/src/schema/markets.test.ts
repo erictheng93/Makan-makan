@@ -2,6 +2,8 @@ import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { describe, expect, it } from "vitest";
 import {
   dishSearchIndex,
+  marketCheckoutChildOrders,
+  marketCheckoutSessions,
   markets,
   menuItems,
   restaurantMarketMemberships,
@@ -96,5 +98,51 @@ describe("market discovery schema", () => {
     expect(columnNames(dishSearchIndex)).toContain("catalog_type");
     expect(columnSqlType(menuItems, "catalog_type")).toBe("text");
     expect(columnSqlType(dishSearchIndex, "catalog_type")).toBe("text");
+  });
+
+  it("persists market checkout sessions and child orders", () => {
+    expect(columnNames(marketCheckoutSessions)).toEqual(
+      expect.arrayContaining([
+        "id",
+        "market_id",
+        "market_slug",
+        "market_name",
+        "status",
+        "payment_status",
+        "subtotal_cents",
+        "child_order_count",
+        "payment_summary",
+        "created_at_ms",
+        "updated_at_ms",
+      ]),
+    );
+    expect(columnSqlType(marketCheckoutSessions, "id")).toBe("text");
+    expect(columnSqlType(marketCheckoutSessions, "subtotal_cents")).toBe(
+      "integer",
+    );
+    expect(columnSqlType(marketCheckoutSessions, "payment_summary")).toBe(
+      "text",
+    );
+
+    expect(columnNames(marketCheckoutChildOrders)).toEqual(
+      expect.arrayContaining([
+        "id",
+        "checkout_id",
+        "restaurant_id",
+        "restaurant_name",
+        "order_id",
+        "order_number",
+        "total_amount",
+        "total_amount_cents",
+        "token_expires_at_ms",
+        "created_at_ms",
+      ]),
+    );
+    expect(columnSqlType(marketCheckoutChildOrders, "checkout_id")).toBe(
+      "text",
+    );
+    expect(columnSqlType(marketCheckoutChildOrders, "order_id")).toBe(
+      "integer",
+    );
   });
 });

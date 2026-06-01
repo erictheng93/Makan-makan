@@ -73,6 +73,8 @@ export {
 } from "./leaves";
 export {
   marketsRelations,
+  marketCheckoutChildOrdersRelations,
+  marketCheckoutSessionsRelations,
   restaurantMarketMembershipsRelations,
   marketJoinRequestsRelations,
 } from "./markets";

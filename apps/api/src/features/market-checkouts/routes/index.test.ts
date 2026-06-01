@@ -4,6 +4,8 @@ import routes from "./index";
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
   selectQueue: [] as Array<{ get?: unknown; all?: unknown[] }>,
+  insertValues: [] as unknown[],
+  updateValues: [] as unknown[],
 }));
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
@@ -53,13 +55,31 @@ vi.mock("../../payments/services/PaymentService", () => ({
 }));
 
 function createMockDb() {
+  const createSelectChain = () => {
+    const chain = {
+      from: vi.fn(() => chain),
+      where: vi.fn(() => chain),
+      orderBy: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
+      offset: vi.fn(() => chain),
+      get: vi.fn(async () => databaseMocks.selectQueue.shift()?.get),
+      all: vi.fn(async () => databaseMocks.selectQueue.shift()?.all ?? []),
+    };
+    return chain;
+  };
+
   return {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          get: vi.fn(async () => databaseMocks.selectQueue.shift()?.get),
-          all: vi.fn(async () => databaseMocks.selectQueue.shift()?.all ?? []),
-        })),
+    select: vi.fn(() => createSelectChain()),
+    insert: vi.fn(() => ({
+      values: vi.fn(async (values: unknown) => {
+        databaseMocks.insertValues.push(values);
+      }),
+    })),
+    update: vi.fn(() => ({
+      set: vi.fn((values: unknown) => ({
+        where: vi.fn(async () => {
+          databaseMocks.updateValues.push(values);
+        }),
       })),
     })),
   };
@@ -81,6 +101,8 @@ function createEnv() {
 describe("market checkout routes", () => {
   beforeEach(() => {
     databaseMocks.selectQueue.length = 0;
+    databaseMocks.insertValues.length = 0;
+    databaseMocks.updateValues.length = 0;
     databaseMocks.createDatabase.mockReturnValue(createMockDb());
     createOrder.mockReset();
     getOrder.mockReset();
@@ -208,6 +230,34 @@ describe("market checkout routes", () => {
       expect.stringContaining('"restaurantId":"restaurant-1"'),
       { expirationTtl: 14400 },
     );
+    expect(databaseMocks.insertValues[0]).toMatchObject({
+      id: json.data.checkout.id,
+      marketId: "market-1",
+      marketSlug: "fengjia",
+      marketName: "逢甲夜市",
+      status: "submitted",
+      paymentStatus: "pending",
+      subtotalCents: 20000,
+      childOrderCount: 2,
+    });
+    expect(databaseMocks.insertValues[1]).toEqual([
+      expect.objectContaining({
+        checkoutId: json.data.checkout.id,
+        restaurantId: "restaurant-1",
+        restaurantName: "雞排攤",
+        orderId: 1001,
+        orderNumber: "A001",
+        totalAmountCents: 12000,
+      }),
+      expect.objectContaining({
+        checkoutId: json.data.checkout.id,
+        restaurantId: "restaurant-2",
+        restaurantName: "甜點攤",
+        orderId: 1002,
+        orderNumber: "A002",
+        totalAmountCents: 8000,
+      }),
+    ]);
     expect(enforceQuota).toHaveBeenCalledTimes(2);
     expect(meterEmit).toHaveBeenCalledTimes(2);
   });
@@ -463,6 +513,13 @@ describe("market checkout routes", () => {
       expect.stringContaining('"paymentStatus":"paid"'),
       { expirationTtl: 14400 },
     );
+    expect(databaseMocks.updateValues[0]).toMatchObject({
+      paymentStatus: "paid",
+      paymentSummary: expect.objectContaining({
+        status: "paid",
+        totalAmount: 200,
+      }),
+    });
   });
 
   it("replays an already paid market checkout without charging twice", async () => {
@@ -622,6 +679,51 @@ describe("market checkout routes", () => {
   });
 
   it("lists market checkout sessions for platform admins", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push({
+      all: [
+        {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "partial_paid",
+          subtotalCents: 12000,
+          childOrderCount: 1,
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+        },
+      ],
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/admin?paymentStatus=partial_paid"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkouts: Array<{
+          id: string;
+          market: { slug: string };
+          paymentStatus: string;
+          childOrderCount: number;
+        }>;
+        total: number;
+      };
+    };
+    expect(json.data.total).toBe(1);
+    expect(json.data.checkouts[0]).toMatchObject({
+      id: "checkout-1",
+      market: { slug: "fengjia" },
+      paymentStatus: "partial_paid",
+      childOrderCount: 1,
+    });
+  });
+
+  it("falls back to the KV index when no persisted checkout sessions exist", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:checkout-1",

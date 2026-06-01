@@ -1,7 +1,9 @@
 import { Hono } from "hono";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   createDatabase,
+  marketCheckoutChildOrders,
+  marketCheckoutSessions,
   menuItems,
   markets,
   restaurantMarketMemberships,
@@ -337,6 +339,7 @@ app.post("/", async (c) => {
       expirationTtl: 4 * 60 * 60,
     },
   );
+  await persistMarketCheckoutSession(c.env, session);
   await upsertMarketCheckoutIndex(c.env.CACHE_KV, session);
 
   return c.json(
@@ -505,6 +508,7 @@ app.post("/:id/pay", async (c) => {
       expirationTtl: 4 * 60 * 60,
     },
   );
+  await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
   await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
 
   return c.json(
@@ -526,7 +530,11 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
   const paymentStatus = c.req.query("paymentStatus");
   const status = c.req.query("status");
 
-  const index = await readMarketCheckoutIndex(c.env.CACHE_KV);
+  const persistedIndex = await readPersistedMarketCheckoutIndex(c.env);
+  const index =
+    persistedIndex.length > 0
+      ? persistedIndex
+      : await readMarketCheckoutIndex(c.env.CACHE_KV);
   const filtered = index.filter((checkout) => {
     if (marketSlug && checkout.market.slug !== marketSlug) return false;
     if (paymentStatus && checkout.paymentStatus !== paymentStatus) return false;
@@ -547,7 +555,19 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
 });
 
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
-  const checkoutId = c.req.param("id");
+  const checkoutId = c.req.param("id") ?? "";
+  const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
+  if (persisted) {
+    const checkout = await hydrateMarketCheckoutSession(persisted, c.env);
+
+    return c.json({
+      success: true,
+      data: {
+        checkout,
+      },
+    });
+  }
+
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
   if (!stored) {
     throw notFound("Market checkout not found");
@@ -565,7 +585,19 @@ app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
 });
 
 app.get("/:id", async (c) => {
-  const checkoutId = c.req.param("id");
+  const checkoutId = c.req.param("id") ?? "";
+  const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
+  if (persisted) {
+    const checkout = await hydrateMarketCheckoutSession(persisted, c.env);
+
+    return c.json({
+      success: true,
+      data: {
+        checkout,
+      },
+    });
+  }
+
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
   if (!stored) {
     throw notFound("Market checkout not found");
@@ -639,6 +671,152 @@ function buildMarketCheckoutOrderNotes(input: {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+async function persistMarketCheckoutSession(
+  env: Env,
+  session: MarketCheckoutSession,
+) {
+  const db = createDatabase(env.DB);
+  const createdAt = new Date(session.createdAt);
+
+  await db.insert(marketCheckoutSessions).values({
+    id: session.id,
+    marketId: session.market.id,
+    marketSlug: session.market.slug,
+    marketName: session.market.name,
+    status: session.status,
+    paymentStatus: session.payment?.status ?? "pending",
+    subtotalCents: session.subtotal,
+    childOrderCount: session.childOrders.length,
+    paymentSummary: serializePaymentSummary(session.payment),
+    createdAt,
+    updatedAt: createdAt,
+  });
+
+  if (session.childOrders.length === 0) return;
+
+  await db.insert(marketCheckoutChildOrders).values(
+    session.childOrders.map((child) => ({
+      checkoutId: session.id,
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      totalAmount: child.totalAmount,
+      totalAmountCents: orderChildTotalCents(child),
+      tokenExpiresAt: new Date(child.tokenExpiresAt),
+      createdAt,
+    })),
+  );
+}
+
+async function updatePersistedMarketCheckoutPayment(
+  env: Env,
+  session: MarketCheckoutSession,
+) {
+  if (!session.payment) return;
+
+  const db = createDatabase(env.DB);
+  await db
+    .update(marketCheckoutSessions)
+    .set({
+      paymentStatus: session.payment.status,
+      paymentSummary: serializePaymentSummary(session.payment),
+      updatedAt: new Date(),
+    })
+    .where(eq(marketCheckoutSessions.id, session.id));
+}
+
+async function readPersistedMarketCheckoutIndex(
+  env: Env,
+): Promise<MarketCheckoutIndexItem[]> {
+  const db = createDatabase(env.DB);
+  const rows = await db
+    .select()
+    .from(marketCheckoutSessions)
+    .orderBy(desc(marketCheckoutSessions.createdAt))
+    .limit(MARKET_CHECKOUT_INDEX_LIMIT)
+    .all();
+
+  return rows.map((row) => ({
+    id: row.id,
+    market: {
+      id: row.marketId,
+      slug: row.marketSlug,
+      name: row.marketName,
+    },
+    status: row.status as MarketCheckoutSession["status"],
+    paymentStatus:
+      row.paymentStatus as MarketCheckoutIndexItem["paymentStatus"],
+    subtotal: row.subtotalCents,
+    childOrderCount: row.childOrderCount,
+    createdAt: toIsoString(row.createdAt),
+    updatedAt: toIsoString(row.updatedAt),
+  }));
+}
+
+async function readPersistedMarketCheckoutSession(
+  env: Env,
+  checkoutId: string,
+): Promise<MarketCheckoutSession | null> {
+  const db = createDatabase(env.DB);
+  const row = await db
+    .select()
+    .from(marketCheckoutSessions)
+    .where(eq(marketCheckoutSessions.id, checkoutId))
+    .get();
+  if (!row) return null;
+
+  const children = await db
+    .select()
+    .from(marketCheckoutChildOrders)
+    .where(eq(marketCheckoutChildOrders.checkoutId, checkoutId))
+    .all();
+
+  return {
+    id: row.id,
+    market: {
+      id: row.marketId,
+      slug: row.marketSlug,
+      name: row.marketName,
+    },
+    status: row.status as MarketCheckoutSession["status"],
+    childOrders: children.map((child) => ({
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      totalAmount: child.totalAmount,
+      totalAmountCents: child.totalAmountCents,
+      tokenExpiresAt: toIsoString(child.tokenExpiresAt),
+    })),
+    payment: (row.paymentSummary ?? undefined) as
+      | MarketCheckoutPaymentSummary
+      | undefined,
+    subtotal: row.subtotalCents,
+    createdAt: toIsoString(row.createdAt),
+  };
+}
+
+function orderChildTotalCents(child: MarketCheckoutChildOrder) {
+  return Number(
+    child.totalAmountCents ?? Math.round(Number(child.totalAmount ?? 0) * 100),
+  );
+}
+
+function toIsoString(value: Date | number | string) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime())
+    ? new Date().toISOString()
+    : date.toISOString();
+}
+
+function serializePaymentSummary(
+  payment: MarketCheckoutPaymentSummary | undefined,
+): Record<string, unknown> | null {
+  if (!payment) return null;
+  return JSON.parse(JSON.stringify(payment)) as Record<string, unknown>;
 }
 
 async function readMarketCheckoutIndex(
