@@ -247,7 +247,12 @@ describe("MarketProductSearch", () => {
 
   it("renders direct vendor results in market search", async () => {
     vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
-      results: [restaurant()],
+      results: [
+        restaurant({
+          availableMenuItemCount: 3,
+          publicServiceItemCount: 2,
+        }),
+      ],
       total: 1,
     } as never);
 
@@ -273,6 +278,12 @@ describe("MarketProductSearch", () => {
     });
     expect(wrapper.text()).toContain("雞排攤");
     expect(wrapper.text()).toContain("攤位 B-12");
+    expect(
+      wrapper.get('[data-testid="vendor-result-access"]').text(),
+    ).toContain("菜單 3 項");
+    expect(
+      wrapper.get('[data-testid="vendor-result-access"]').text(),
+    ).toContain("服務 2 項");
     expect(wrapper.get('[data-testid="vendor-result-open-menu"]').text()).toBe(
       "查看菜單",
     );

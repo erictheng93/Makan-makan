@@ -39,6 +39,8 @@ export interface RestaurantListItem {
   detailUrl?: string;
   menuUrl?: string;
   serviceItemsUrl?: string;
+  availableMenuItemCount?: number;
+  publicServiceItemCount?: number;
   distanceKm?: number;
   marketVendor?: {
     marketId: string;

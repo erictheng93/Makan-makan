@@ -2598,6 +2598,20 @@ describe("Discovery API — real integration", () => {
       district: "Entry District",
       totalOrders: 10,
     });
+    await seed.menuItem(String(restaurant.id), {
+      name: "Entrypoint Menu Item",
+      isAvailable: true,
+      price: 100,
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(restaurant.id),
+      name: "Entrypoint Public Service",
+      serviceType: "general",
+      isActive: true,
+      isPublic: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     const firstRes = await testApp.app.fetch(
       new Request(
@@ -2619,6 +2633,8 @@ describe("Discovery API — real integration", () => {
       detailUrl: `/api/v1/restaurants/${restaurant.id}`,
       menuUrl: `/api/v1/menu/${restaurant.id}`,
       serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
+      availableMenuItemCount: 1,
+      publicServiceItemCount: 1,
     };
 
     expect(firstData.results[0]).toMatchObject(expectedEntryPoints);

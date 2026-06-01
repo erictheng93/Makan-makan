@@ -572,13 +572,19 @@ export class DiscoveryService {
         .where(and(...conditions)),
     ]);
 
-    const marketVendorByRestaurant = await this.restaurantBrowseMarketVendors(
-      result.map((row) => row.id),
-      filters.marketId,
-    );
+    const restaurantIds = result.map((row) => row.id);
+    const [marketVendorByRestaurant, accessCountsByRestaurant] =
+      await Promise.all([
+        this.restaurantBrowseMarketVendors(restaurantIds, filters.marketId),
+        this.restaurantAccessCounts(restaurantIds),
+      ]);
 
     const restaurantList: RestaurantListItem[] = result.map((row) => {
       const marketVendor = marketVendorByRestaurant.get(row.id);
+      const accessCounts = accessCountsByRestaurant.get(row.id) ?? {
+        availableMenuItemCount: 0,
+        publicServiceItemCount: 0,
+      };
       return {
         restaurantId: row.id,
         name: row.name,
@@ -595,6 +601,7 @@ export class DiscoveryService {
         detailUrl: this.restaurantDetailUrl(row.id),
         menuUrl: this.restaurantMenuUrl(row.id),
         serviceItemsUrl: this.restaurantServiceItemsUrl(row.id),
+        ...accessCounts,
         ...(geoFilter && row.latitude != null && row.longitude != null
           ? {
               distanceKm: this.resultDistanceKm(geoFilter, {
@@ -1740,6 +1747,73 @@ export class DiscoveryService {
     }
 
     return new Map(entries);
+  }
+
+  private async restaurantAccessCounts(restaurantIds: string[]) {
+    const counts = new Map<
+      string,
+      { availableMenuItemCount: number; publicServiceItemCount: number }
+    >();
+    if (restaurantIds.length === 0) return counts;
+
+    const [menuCounts, serviceCounts] = await Promise.all([
+      this.db
+        .select({
+          restaurantId: menuItems.restaurantId,
+          count: sql<number>`count(*)`,
+        })
+        .from(menuItems)
+        .where(
+          and(
+            inArray(menuItems.restaurantId, restaurantIds),
+            eq(menuItems.isAvailable, true),
+            isNull(menuItems.deletedAt),
+          ),
+        )
+        .groupBy(menuItems.restaurantId),
+      this.db
+        .select({
+          restaurantId: restaurantServiceItems.restaurantId,
+          count: sql<number>`count(*)`,
+        })
+        .from(restaurantServiceItems)
+        .where(
+          and(
+            inArray(restaurantServiceItems.restaurantId, restaurantIds),
+            eq(restaurantServiceItems.isActive, true),
+            eq(restaurantServiceItems.isPublic, true),
+            isNull(restaurantServiceItems.deletedAt),
+          ),
+        )
+        .groupBy(restaurantServiceItems.restaurantId),
+    ]);
+
+    for (const restaurantId of restaurantIds) {
+      counts.set(restaurantId, {
+        availableMenuItemCount: 0,
+        publicServiceItemCount: 0,
+      });
+    }
+    for (const row of menuCounts) {
+      counts.set(row.restaurantId, {
+        ...(counts.get(row.restaurantId) ?? {
+          availableMenuItemCount: 0,
+          publicServiceItemCount: 0,
+        }),
+        availableMenuItemCount: Number(row.count),
+      });
+    }
+    for (const row of serviceCounts) {
+      counts.set(row.restaurantId, {
+        ...(counts.get(row.restaurantId) ?? {
+          availableMenuItemCount: 0,
+          publicServiceItemCount: 0,
+        }),
+        publicServiceItemCount: Number(row.count),
+      });
+    }
+
+    return counts;
   }
 
   private marketVendorStallNumber(marketId: string | undefined) {
