@@ -1,4 +1,5 @@
 import { apiClient } from "./api";
+import { recordRecentMarketCheckout } from "@/utils/marketCheckouts";
 import type {
   GuestRealtimeTokenResponse,
   Order,
@@ -185,6 +186,7 @@ export const orderApi = {
       checkoutData,
     );
     localStorage.setItem("market_guest_checkout", JSON.stringify(response));
+    recordRecentMarketCheckout(response.checkout);
     if (response.childOrders[0]?.guestToken) {
       localStorage.setItem(
         "guest_auth_token",

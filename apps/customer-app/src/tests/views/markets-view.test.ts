@@ -287,6 +287,50 @@ describe("MarketsView", () => {
     expect(wrapper.text()).toContain("西門町商圈");
   });
 
+  it("opens recently submitted market checkouts", async () => {
+    localStorage.setItem(
+      "makanmakan_recent_market_checkouts",
+      JSON.stringify([
+        {
+          id: "checkout-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          childOrderCount: 2,
+          totalAmount: 240,
+          paymentStatus: "partial_paid",
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    const store = marketsStore({
+      hasMarkets: true,
+      markets: [{ id: "m1", slug: "jingming", name: "精明商圈" }],
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("最近市場訂單");
+    });
+    expect(
+      wrapper.get('[data-testid="recent-market-checkout"]').text(),
+    ).toContain("部分付款");
+
+    await wrapper
+      .get('[data-testid="recent-market-checkout"]')
+      .trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "MarketCheckoutTracking",
+      params: {
+        slug: "fengjia",
+        checkoutId: "checkout-1",
+      },
+    });
+  });
+
   it("keeps active directory filters in the market detail return path", async () => {
     routeQuery.q = "餐車";
     routeQuery.city = "台中市";

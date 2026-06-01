@@ -130,6 +130,26 @@
           />
         </section>
 
+        <section v-if="recentCheckouts.length > 0" class="space-y-3">
+          <h2 class="text-sm font-medium text-gray-700">最近市場訂單</h2>
+          <button
+            v-for="checkout in recentCheckouts"
+            :key="checkout.id"
+            type="button"
+            data-testid="recent-market-checkout"
+            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-left"
+            @click="openCheckout(checkout)"
+          >
+            <span class="block text-sm font-semibold text-gray-900">
+              {{ checkout.marketName }}
+            </span>
+            <span class="mt-1 block text-xs text-gray-500">
+              {{ checkout.childOrderCount }} 攤 ·
+              {{ marketCheckoutPaymentLabel(checkout.paymentStatus) }}
+            </span>
+          </button>
+        </section>
+
         <section v-if="store.nearbyMarkets.length > 0" class="space-y-3">
           <h2 class="text-sm font-medium text-gray-700">附近</h2>
           <MarketCard
@@ -207,6 +227,10 @@ import {
   listFavoriteMarkets,
   listRecentMarkets,
 } from "@/utils/marketEngagement";
+import {
+  listRecentMarketCheckouts,
+  type StoredMarketCheckout,
+} from "@/utils/marketCheckouts";
 import { isMarketType, MARKET_TYPE_OPTIONS } from "@/utils/marketTypes";
 
 const router = useRouter();
@@ -221,6 +245,7 @@ const locating = ref(false);
 const marketAreas = ref<MarketArea[]>([]);
 const favoriteMarkets = ref<MarketListItem[]>([]);
 const recentMarkets = ref<MarketListItem[]>([]);
+const recentCheckouts = ref<StoredMarketCheckout[]>([]);
 const hasDirectoryFilters = computed(
   () =>
     query.value.trim().length > 0 ||
@@ -385,13 +410,36 @@ function openMarket(market: MarketListItem) {
   });
 }
 
+function openCheckout(checkout: StoredMarketCheckout) {
+  router.push({
+    name: "MarketCheckoutTracking",
+    params: {
+      slug: checkout.marketSlug,
+      checkoutId: checkout.id,
+    },
+  });
+}
+
 onMounted(() => {
   favoriteMarkets.value = listFavoriteMarkets().map(storedMarketToListItem);
   recentMarkets.value = listRecentMarkets().map(storedMarketToListItem);
+  recentCheckouts.value = listRecentMarketCheckouts();
   loadAreas();
   loadNearbyFromQuery();
   reloadList();
 });
+
+function marketCheckoutPaymentLabel(
+  status: StoredMarketCheckout["paymentStatus"],
+) {
+  const labels = {
+    pending: "待付款",
+    partial_paid: "部分付款",
+    paid: "已付款",
+    failed: "付款失敗",
+  };
+  return labels[status];
+}
 
 function storedMarketToListItem(
   market: ReturnType<typeof listFavoriteMarkets>[number],

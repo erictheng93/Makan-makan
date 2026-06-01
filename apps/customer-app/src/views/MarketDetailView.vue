@@ -956,8 +956,9 @@ async function submitMarketCheckout() {
 
   isSubmittingMarketCheckout.value = true;
   try {
+    const checkoutMarketSlug = marketCart.value.marketSlug;
     const checkout = await orderApi.createMarketCheckout({
-      marketSlug: marketCart.value.marketSlug,
+      marketSlug: checkoutMarketSlug,
       guestName: "Guest",
       phoneLastDigits: marketCheckoutPhoneLastDigits.value,
       vendors: marketCart.value.vendors.map((vendor) => ({
@@ -972,11 +973,12 @@ async function submitMarketCheckout() {
     });
 
     marketCheckoutResult.value = checkout;
+    marketCartStore.clearMarket(checkoutMarketSlug);
     toast.success("市場訂單已送出");
     router.push({
       name: "MarketCheckoutTracking",
       params: {
-        slug: marketCart.value.marketSlug,
+        slug: checkoutMarketSlug,
         checkoutId: checkout.checkout.id,
       },
     });

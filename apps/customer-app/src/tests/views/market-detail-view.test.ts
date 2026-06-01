@@ -628,6 +628,7 @@ describe("MarketDetailView", () => {
       });
     });
     expect(toastSuccess).toHaveBeenCalledWith("市場訂單已送出");
+    expect(cartStore.cartForMarket("fengjia")).toBeNull();
   });
 
   it("passes shareable query state into market product search", () => {
