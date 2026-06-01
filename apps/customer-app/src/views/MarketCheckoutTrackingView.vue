@@ -94,28 +94,47 @@
           <div
             v-if="checkout.payment"
             data-testid="market-checkout-payment-summary"
-            class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+            :class="[
+              'mt-4 rounded-lg px-3 py-2 text-sm',
+              checkout.payment.status === 'paid'
+                ? 'bg-emerald-50 text-emerald-800'
+                : 'bg-amber-50 text-amber-800',
+            ]"
           >
             <div class="flex items-center justify-between gap-3">
               <span class="font-semibold">
                 {{ marketPaymentStatusLabel(checkout.payment.status) }}
               </span>
-              <span>{{ formatPrice(checkout.payment.totalAmount) }}</span>
+              <span>
+                {{ formatPrice(checkout.payment.paidAmount) }} /
+                {{ formatPrice(checkout.payment.totalAmount) }}
+              </span>
             </div>
-            <p class="mt-1 text-xs text-emerald-700">
-              已拆分為 {{ checkout.payment.childPayments.length }} 筆攤位付款
+            <p class="mt-1 text-xs">
+              {{ paymentProgressLabel }}
             </p>
+            <ul
+              v-if="failedChildPayments.length > 0"
+              data-testid="market-checkout-payment-failures"
+              class="mt-2 space-y-1 text-xs"
+            >
+              <li v-for="payment in failedChildPayments" :key="payment.orderId">
+                {{ payment.restaurantName }}：{{
+                  payment.errorMessage || "付款失敗"
+                }}
+              </li>
+            </ul>
           </div>
 
           <button
-            v-else
+            v-if="canPayCheckout"
             type="button"
             data-testid="market-checkout-pay"
             class="mt-4 w-full rounded-lg bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300"
             :disabled="isPaying"
             @click="payCheckout"
           >
-            {{ isPaying ? "付款處理中" : "聯合付款" }}
+            {{ payButtonLabel }}
           </button>
 
           <p
@@ -222,6 +241,36 @@ const formattedCreatedAt = computed(() => {
   }).format(date);
 });
 
+const failedChildPayments = computed(() => {
+  return (
+    checkout.value?.payment?.childPayments.filter(
+      (payment) => payment.status === "failed",
+    ) ?? []
+  );
+});
+
+const paymentProgressLabel = computed(() => {
+  const payment = checkout.value?.payment;
+  if (!payment) return "";
+  const paidCount = payment.childPayments.filter(
+    (child) => child.status === "paid",
+  ).length;
+  const totalCount = checkout.value?.childOrders.length ?? 0;
+  return `已完成 ${paidCount} / ${totalCount} 筆攤位付款`;
+});
+
+const canPayCheckout = computed(() => {
+  return !checkout.value?.payment || checkout.value.payment.status !== "paid";
+});
+
+const payButtonLabel = computed(() => {
+  if (isPaying.value) return "付款處理中";
+  if (checkout.value?.payment?.status === "partial_paid")
+    return "重試未完成付款";
+  if (checkout.value?.payment?.status === "failed") return "重新付款";
+  return "聯合付款";
+});
+
 async function loadCheckout() {
   isLoading.value = true;
   error.value = null;
@@ -289,9 +338,12 @@ function paymentStatusLabel(status: OrderPaymentStatus) {
   return labels[String(status)] ?? String(status);
 }
 
-function marketPaymentStatusLabel(status: "pending" | "paid" | "failed") {
+function marketPaymentStatusLabel(
+  status: "pending" | "partial_paid" | "paid" | "failed",
+) {
   const labels = {
     pending: "付款待處理",
+    partial_paid: "部分付款完成",
     paid: "已完成聯合付款",
     failed: "付款失敗",
   };

@@ -148,7 +148,24 @@ describe("MarketCheckoutTrackingView", () => {
         id: "checkout-1",
         market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
         status: "submitted",
-        childOrders: [],
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
         payment: {
           status: "paid",
           method: "market_online",
@@ -156,6 +173,8 @@ describe("MarketCheckoutTrackingView", () => {
           country: "TW",
           totalAmount: 240,
           totalAmountCents: 24000,
+          paidAmount: 240,
+          paidAmountCents: 24000,
           paidAt: "2026-06-01T10:10:00.000Z",
           childPayments: [
             {
@@ -190,6 +209,8 @@ describe("MarketCheckoutTrackingView", () => {
         country: "TW",
         totalAmount: 240,
         totalAmountCents: 24000,
+        paidAmount: 240,
+        paidAmountCents: 24000,
         paidAt: "2026-06-01T10:10:00.000Z",
         childPayments: [],
       },
@@ -211,7 +232,142 @@ describe("MarketCheckoutTrackingView", () => {
     );
     expect(paymentSummary.text()).toContain("已完成聯合付款");
     expect(paymentSummary.text()).toContain("NT$240");
-    expect(paymentSummary.text()).toContain("2 筆攤位付款");
+    expect(paymentSummary.text()).toContain("已完成 2 / 2 筆攤位付款");
+  });
+
+  it("shows partial payment failures and lets users retry unpaid vendors", async () => {
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+        {
+          restaurantId: "restaurant-2",
+          restaurantName: "甜點攤",
+          orderId: 102,
+          orderNumber: "A002",
+          totalAmount: 80,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      payment: {
+        status: "partial_paid",
+        method: "market_online",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 240,
+        totalAmountCents: 24000,
+        paidAmount: 160,
+        paidAmountCents: 16000,
+        failedAt: "2026-06-01T10:10:00.000Z",
+        childPayments: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            paymentId: "pay-101",
+            status: "paid",
+            amount: 160,
+            amountCents: 16000,
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            status: "failed",
+            amount: 80,
+            amountCents: 8000,
+            errorMessage: "Gateway declined",
+          },
+        ],
+      },
+      subtotal: 240,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+    payMarketCheckout.mockResolvedValueOnce({
+      checkout: {
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "paid",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 240,
+          paidAmountCents: 24000,
+          paidAt: "2026-06-01T10:12:00.000Z",
+          childPayments: [],
+        },
+        subtotal: 240,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+      payment: {
+        status: "paid",
+        method: "market_online",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 240,
+        totalAmountCents: 24000,
+        paidAmount: 240,
+        paidAmountCents: 24000,
+        childPayments: [],
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const paymentSummary = wrapper.get(
+      '[data-testid="market-checkout-payment-summary"]',
+    );
+    expect(paymentSummary.text()).toContain("部分付款完成");
+    expect(paymentSummary.text()).toContain("NT$160 / NT$240");
+    expect(
+      wrapper.get('[data-testid="market-checkout-payment-failures"]').text(),
+    ).toContain("甜點攤：Gateway declined");
+    expect(wrapper.get('[data-testid="market-checkout-pay"]').text()).toContain(
+      "重試未完成付款",
+    );
+
+    await wrapper.get('[data-testid="market-checkout-pay"]').trigger("click");
+    await flushPromises();
+
+    expect(payMarketCheckout).toHaveBeenCalledWith("checkout-1", {
+      method: "market_online",
+      country: "TW",
+      currency: "TWD",
+    });
   });
 
   it("shows a retry state when checkout loading fails", async () => {

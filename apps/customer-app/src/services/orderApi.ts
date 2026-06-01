@@ -108,22 +108,26 @@ export interface MarketCheckoutResponse {
 export type MarketCheckoutSummary = MarketCheckoutResponse["checkout"];
 
 export interface MarketCheckoutPaymentSummary {
-  status: "pending" | "paid" | "failed";
+  status: "pending" | "partial_paid" | "paid" | "failed";
   method: string;
   currency: "TWD" | "MYR" | "VND";
   country: "TW" | "MY" | "VN";
   totalAmount: number;
   totalAmountCents: number;
+  paidAmount: number;
+  paidAmountCents: number;
   paidAt?: string;
+  failedAt?: string;
   childPayments: Array<{
     restaurantId: string;
     restaurantName: string;
     orderId: number;
     orderNumber: string;
-    paymentId: string;
-    status: string;
+    paymentId?: string;
+    status: "paid" | "failed";
     amount: number;
     amountCents: number;
+    errorMessage?: string;
   }>;
 }
 

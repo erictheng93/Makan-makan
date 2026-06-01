@@ -69,22 +69,26 @@ interface MarketCheckoutSession {
 }
 
 interface MarketCheckoutPaymentSummary {
-  status: "pending" | "paid" | "failed";
+  status: "pending" | "partial_paid" | "paid" | "failed";
   method: string;
   currency: "TWD" | "MYR" | "VND";
   country: "TW" | "MY" | "VN";
   totalAmount: number;
   totalAmountCents: number;
+  paidAmount: number;
+  paidAmountCents: number;
   paidAt?: string;
+  failedAt?: string;
   childPayments: Array<{
     restaurantId: string;
     restaurantName: string;
     orderId: number;
     orderNumber: string;
-    paymentId: string;
-    status: string;
+    paymentId?: string;
+    status: "paid" | "failed";
     amount: number;
     amountCents: number;
+    errorMessage?: string;
   }>;
 }
 
@@ -361,61 +365,110 @@ app.post("/:id/pay", async (c) => {
   }
 
   const paymentService = new PaymentService(c.env);
-  const childPayments = [];
+  const childPaymentsByOrderId = new Map(
+    session.payment?.childPayments.map((payment) => [
+      payment.orderId,
+      payment,
+    ]) ?? [],
+  );
   const requestIdempotencyKey = c.req.header("Idempotency-Key");
 
   for (const child of session.childOrders) {
-    const amount = Number(child.totalAmount ?? 0);
-    const result = await paymentService.processPayment(
-      {
-        orderId: child.orderId,
-        paymentMode: "full",
-        amount,
-        expectedTotal: amount,
-        closeOrder: false,
-        method: parsed.data.method,
-        gateway: parsed.data.method,
-      },
-      {
-        country: parsed.data.country,
-        currency: parsed.data.currency,
-        idempotencyKey: requestIdempotencyKey
-          ? `${requestIdempotencyKey}:${child.orderId}`
-          : `market-checkout:${checkoutId}:${child.orderId}`,
-        customerInfo: parsed.data.customerInfo,
-        metadata: {
-          source: "market-checkouts",
-          marketCheckoutId: checkoutId,
-          marketSlug: session.market.slug,
-          restaurantId: child.restaurantId,
-        },
-      },
-    );
+    if (childPaymentsByOrderId.get(child.orderId)?.status === "paid") {
+      continue;
+    }
 
-    childPayments.push({
-      restaurantId: child.restaurantId,
-      restaurantName: child.restaurantName,
-      orderId: child.orderId,
-      orderNumber: child.orderNumber,
-      paymentId: result.data.paymentId,
-      status: result.data.paymentStatus,
-      amount: result.data.authorizedTotal,
-      amountCents: Math.round(result.data.authorizedTotal * 100),
-    });
+    const amount = Number(child.totalAmount ?? 0);
+    try {
+      const result = await paymentService.processPayment(
+        {
+          orderId: child.orderId,
+          paymentMode: "full",
+          amount,
+          expectedTotal: amount,
+          closeOrder: false,
+          method: parsed.data.method,
+          gateway: parsed.data.method,
+        },
+        {
+          country: parsed.data.country,
+          currency: parsed.data.currency,
+          idempotencyKey: requestIdempotencyKey
+            ? `${requestIdempotencyKey}:${child.orderId}`
+            : `market-checkout:${checkoutId}:${child.orderId}`,
+          customerInfo: parsed.data.customerInfo,
+          metadata: {
+            source: "market-checkouts",
+            marketCheckoutId: checkoutId,
+            marketSlug: session.market.slug,
+            restaurantId: child.restaurantId,
+          },
+        },
+      );
+
+      childPaymentsByOrderId.set(child.orderId, {
+        restaurantId: child.restaurantId,
+        restaurantName: child.restaurantName,
+        orderId: child.orderId,
+        orderNumber: child.orderNumber,
+        paymentId: result.data.paymentId,
+        status: "paid",
+        amount: result.data.authorizedTotal,
+        amountCents: Math.round(result.data.authorizedTotal * 100),
+      });
+    } catch (error) {
+      childPaymentsByOrderId.set(child.orderId, {
+        restaurantId: child.restaurantId,
+        restaurantName: child.restaurantName,
+        orderId: child.orderId,
+        orderNumber: child.orderNumber,
+        status: "failed",
+        amount,
+        amountCents: Math.round(amount * 100),
+        errorMessage:
+          error instanceof Error ? error.message : "Payment processing failed",
+      });
+    }
   }
 
+  const childPayments = session.childOrders.map((child) =>
+    childPaymentsByOrderId.get(child.orderId),
+  );
+  const paidPayments = childPayments.filter(
+    (payment) => payment?.status === "paid",
+  );
+  const totalAmount = session.childOrders.reduce(
+    (sum, child) => sum + Number(child.totalAmount ?? 0),
+    0,
+  );
+  const paidAmount = paidPayments.reduce(
+    (sum, child) => sum + Number(child?.amount ?? 0),
+    0,
+  );
+  const paymentStatus =
+    paidPayments.length === session.childOrders.length
+      ? "paid"
+      : paidPayments.length > 0
+        ? "partial_paid"
+        : "failed";
+  const now = new Date().toISOString();
   const payment: MarketCheckoutPaymentSummary = {
-    status: "paid",
+    status: paymentStatus,
     method: parsed.data.method,
     currency: parsed.data.currency,
     country: parsed.data.country,
-    totalAmount: childPayments.reduce((sum, child) => sum + child.amount, 0),
-    totalAmountCents: childPayments.reduce(
-      (sum, child) => sum + child.amountCents,
-      0,
+    totalAmount,
+    totalAmountCents: Math.round(totalAmount * 100),
+    paidAmount,
+    paidAmountCents: Math.round(paidAmount * 100),
+    paidAt: paymentStatus === "paid" ? now : session.payment?.paidAt,
+    failedAt: paymentStatus !== "paid" ? now : session.payment?.failedAt,
+    childPayments: childPayments.filter(
+      (
+        payment,
+      ): payment is MarketCheckoutPaymentSummary["childPayments"][number] =>
+        payment !== undefined,
     ),
-    paidAt: new Date().toISOString(),
-    childPayments,
   };
 
   const updatedSession: MarketCheckoutSession = {
@@ -431,13 +484,16 @@ app.post("/:id/pay", async (c) => {
     },
   );
 
-  return c.json({
-    success: true,
-    data: {
-      checkout: updatedSession,
-      payment,
+  return c.json(
+    {
+      success: true,
+      data: {
+        checkout: updatedSession,
+        payment,
+      },
     },
-  });
+    payment.status === "paid" ? 200 : 202,
+  );
 });
 
 app.get("/:id", async (c) => {

@@ -457,6 +457,8 @@ describe("market checkout routes", () => {
           country: "TW",
           totalAmount: 200,
           totalAmountCents: 20000,
+          paidAmount: 200,
+          paidAmountCents: 20000,
           paidAt: "2026-06-01T10:10:00.000Z",
           childPayments: [],
         },
@@ -481,6 +483,117 @@ describe("market checkout routes", () => {
     expect(json.data.payment).toMatchObject({
       status: "paid",
       method: "line_pay",
+    });
+  });
+
+  it("records partial payment failures and retries only unpaid vendors", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 20000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    processPayment
+      .mockResolvedValueOnce({
+        data: {
+          paymentId: "pay-1001",
+          orderId: 1001,
+          orderStatus: "preparing",
+          paymentStatus: "paid",
+          authorizedTotal: 120,
+        },
+      })
+      .mockRejectedValueOnce(new Error("Gateway declined"));
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "line_pay" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(202);
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          paidAmount: number;
+          childPayments: Array<{
+            orderId: number;
+            status: string;
+            errorMessage?: string;
+          }>;
+        };
+      };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "partial_paid",
+      paidAmount: 120,
+    });
+    expect(json.data.payment.childPayments).toEqual([
+      expect.objectContaining({ orderId: 1001, status: "paid" }),
+      expect.objectContaining({
+        orderId: 1002,
+        status: "failed",
+        errorMessage: "Gateway declined",
+      }),
+    ]);
+
+    processPayment.mockClear();
+    processPayment.mockResolvedValueOnce({
+      data: {
+        paymentId: "pay-1002",
+        orderId: 1002,
+        orderStatus: "ready",
+        paymentStatus: "paid",
+        authorizedTotal: 80,
+      },
+    });
+
+    const retryResponse = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "line_pay" }),
+      }),
+      env as never,
+    );
+
+    expect(retryResponse.status).toBe(200);
+    expect(processPayment).toHaveBeenCalledTimes(1);
+    expect(processPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: 1002 }),
+      expect.any(Object),
+    );
+    const retryJson = (await retryResponse.json()) as {
+      data: { payment: { status: string; paidAmount: number } };
+    };
+    expect(retryJson.data.payment).toMatchObject({
+      status: "paid",
+      paidAmount: 200,
     });
   });
 });
