@@ -345,6 +345,48 @@ describe("MarketProductSearch", () => {
     expect(wrapper.emitted("selectVendorServices")).toBeUndefined();
   });
 
+  it("disables direct vendor menu links when no menu items are available", async () => {
+    vi.mocked(discoveryApi.browseRestaurants).mockResolvedValueOnce({
+      results: [
+        restaurant({
+          availableMenuItemCount: 0,
+          publicServiceItemCount: 2,
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-product-search-input"]')
+      .setValue("B-12");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    expect(
+      wrapper.get('[data-testid="vendor-result-access"]').text(),
+    ).toContain("尚無菜單");
+
+    const menuButton = wrapper.get('[data-testid="vendor-result-open-menu"]');
+    expect(menuButton.attributes("disabled")).toBeDefined();
+
+    await menuButton.trigger("click");
+    await wrapper
+      .get('[data-testid="vendor-result-open-services"]')
+      .trigger("click");
+
+    expect(wrapper.emitted("selectVendor")).toBeUndefined();
+    expect(wrapper.emitted("selectVendorServices")?.[0][0]).toMatchObject({
+      restaurantId: "vendor-r1",
+      name: "雞排攤",
+    });
+  });
+
   it("uses initial filters for shareable market product searches", async () => {
     vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
       results: [dish({ dishName: "分享雞排" })],

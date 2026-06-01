@@ -313,7 +313,8 @@
           <button
             type="button"
             data-testid="vendor-result-open-menu"
-            class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
+            class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue disabled:border-gray-200 disabled:text-gray-400"
+            :disabled="(vendor.availableMenuItemCount ?? 0) <= 0"
             @click="$emit('selectVendor', vendor)"
           >
             查看菜單
