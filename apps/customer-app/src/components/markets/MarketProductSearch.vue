@@ -785,8 +785,11 @@ async function fetchResults({ append }: { append: boolean }) {
     total.value = response.total;
     serviceTotal.value = serviceResponse.total;
     vendorTotal.value = vendorResponse.total;
-    marketSearchScope.value =
-      response.scope?.market ?? serviceResponse.scope?.market ?? null;
+    const responseMarketScope =
+      "scope" in response ? response.scope?.market : null;
+    const serviceMarketScope =
+      "scope" in serviceResponse ? serviceResponse.scope?.market : null;
+    marketSearchScope.value = responseMarketScope ?? serviceMarketScope ?? null;
   } catch (searchError) {
     error.value =
       searchError instanceof Error ? searchError.message : "搜尋商品失敗";

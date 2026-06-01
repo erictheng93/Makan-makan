@@ -1,7 +1,9 @@
 import { mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketDetailView from "@/views/MarketDetailView.vue";
 import { discoveryApi } from "@/services/discoveryApi";
+import { useMarketCartStore } from "@/stores/marketCart";
 import { useMarketsStore } from "@/stores/markets";
 
 const routerPush = vi.hoisted(() => vi.fn());
@@ -40,6 +42,12 @@ vi.mock("@/services/restaurantContactApi", () => ({
 
 vi.mock("@/utils/seoMeta", () => ({
   applyMarketSeoMeta: vi.fn(),
+}));
+
+vi.mock("@/composables/useCurrency", () => ({
+  useCurrency: () => ({
+    formatPrice: (amount: number) => `NT$${amount}`,
+  }),
 }));
 
 function marketStore(overrides: Record<string, unknown> = {}) {
@@ -389,6 +397,7 @@ function mountView() {
 describe("MarketDetailView", () => {
   beforeEach(() => {
     localStorage.clear();
+    setActivePinia(createPinia());
     routerPush.mockReset();
     routerReplace.mockReset();
     routerBack.mockReset();
@@ -440,6 +449,42 @@ describe("MarketDetailView", () => {
         returnLabel: "逢甲夜市",
       },
     });
+  });
+
+  it("shows a grouped market basket summary", () => {
+    const cartStore = useMarketCartStore();
+    cartStore.addItem({
+      marketSlug: "fengjia",
+      marketName: "逢甲夜市",
+      restaurantId: "restaurant-1",
+      restaurantName: "雞排攤",
+      item: {
+        id: 42,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        catalogType: "menu_item",
+        name: "章魚燒",
+        price: 80,
+        spiceLevel: 0,
+        sortOrder: 1,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+      quantity: 2,
+    });
+
+    const wrapper = mountView();
+
+    const summary = wrapper.get('[data-testid="market-cart-summary"]');
+    expect(summary.text()).toContain("市場購物籃");
+    expect(summary.text()).toContain("1 個攤位");
+    expect(summary.text()).toContain("2 項");
+    expect(summary.text()).toContain("章魚燒");
+    expect(summary.text()).toContain("NT$160");
   });
 
   it("passes shareable query state into market product search", () => {

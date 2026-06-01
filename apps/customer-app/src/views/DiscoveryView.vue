@@ -158,6 +158,20 @@
               </span>
             </RouterLink>
             <div
+              v-else-if="
+                service.marketVendor?.stallNumber ||
+                service.marketVendor?.locationLabel
+              "
+              class="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 rounded-md bg-ios-bg px-2.5 py-1.5 text-xs font-medium text-ios-secondary"
+            >
+              <span v-if="service.marketVendor?.stallNumber">
+                攤位 {{ service.marketVendor.stallNumber }}
+              </span>
+              <span v-if="service.marketVendor?.locationLabel">
+                {{ service.marketVendor.locationLabel }}
+              </span>
+            </div>
+            <div
               v-if="service.tags.length > 0"
               class="mt-2 flex flex-wrap gap-1"
             >

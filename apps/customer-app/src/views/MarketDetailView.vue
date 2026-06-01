@@ -152,6 +152,51 @@
             </div>
           </section>
 
+          <section
+            v-if="marketCart && marketCartItemCount > 0"
+            data-testid="market-cart-summary"
+            class="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-base font-semibold text-emerald-950">
+                  市場購物籃
+                </h2>
+                <p class="mt-1 text-sm text-emerald-800">
+                  {{ marketCart.vendors.length }} 個攤位，{{
+                    marketCartItemCount
+                  }}
+                  項
+                </p>
+              </div>
+              <div class="text-right text-base font-semibold text-emerald-950">
+                {{ formatPrice(marketCartSubtotal) }}
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <article
+                v-for="vendor in marketCart.vendors"
+                :key="vendor.restaurantId"
+                class="rounded-lg bg-white px-3 py-2"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="truncate text-sm font-semibold text-gray-900">
+                    {{ vendor.name }}
+                  </h3>
+                  <span class="text-xs font-medium text-gray-500">
+                    {{ vendorItemCount(vendor) }} 項
+                  </span>
+                </div>
+                <p class="mt-1 truncate text-sm text-gray-600">
+                  {{
+                    vendor.items.map((item) => item.menuItem.name).join("、")
+                  }}
+                </p>
+              </article>
+            </div>
+          </section>
+
           <StallMapInMarket
             :vendors="store.vendors"
             @select-vendor="openVendor"
@@ -286,6 +331,7 @@ import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import StallMapInMarket from "@/components/markets/StallMapInMarket.vue";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";
+import { useMarketCartStore, type MarketCartVendor } from "@/stores/marketCart";
 import { useMarketsStore } from "@/stores/markets";
 import { discoveryApi } from "@/services/discoveryApi";
 import type {
@@ -310,10 +356,13 @@ import {
   shopMenuServiceQuery,
   shopMenuServicesQuery,
 } from "@/utils/shopMenuDeepLink";
+import { useCurrency } from "@/composables/useCurrency";
 
 const route = useRoute();
 const router = useRouter();
 const store = useMarketsStore();
+const marketCartStore = useMarketCartStore();
+const { formatPrice } = useCurrency();
 const vendorQuery = ref(firstQueryString(route.query.vendorQ));
 const takeawayOnly = ref(queryBoolean(route.query.vendorTakeaway));
 const deliveryOnly = ref(queryBoolean(route.query.vendorDelivery));
@@ -459,8 +508,12 @@ const productCategoryFacets = computed(
     ),
 );
 const serviceTypeFacets = computed(() =>
-  (store.explorationSummary?.serviceTypes ?? []).filter((facet) =>
-    isServiceType(facet.serviceType),
+  (store.explorationSummary?.serviceTypes ?? []).filter(
+    (
+      facet,
+    ): facet is typeof facet & {
+      serviceType: NonNullable<SearchFilters["serviceType"]>;
+    } => isServiceType(facet.serviceType),
   ),
 );
 const hasExplorationShortcuts = computed(
@@ -494,6 +547,13 @@ const catalogCoverageLabel = computed(() => {
 });
 const isPublicSetupIncomplete = computed(
   () => store.selectedMarket?.publicReadiness?.ready === false,
+);
+const marketCart = computed(() => marketCartStore.cartForMarket(slug()));
+const marketCartItemCount = computed(() =>
+  marketCart.value ? marketCartStore.itemCountForCart(marketCart.value) : 0,
+);
+const marketCartSubtotal = computed(() =>
+  marketCart.value ? marketCartStore.subtotalForCart(marketCart.value) : 0,
 );
 
 const serviceTypeLabels: Record<
@@ -828,6 +888,10 @@ function toggleFavorite() {
   isFavorite.value = toggleFavoriteMarket(store.selectedMarket);
 }
 
+function vendorItemCount(vendor: MarketCartVendor) {
+  return vendor.items.reduce((total, item) => total + item.quantity, 0);
+}
+
 async function openContactProfile(vendor: MarketVendor) {
   selectedContactVendor.value = vendor;
   contactProfile.value = null;
@@ -885,6 +949,10 @@ const filteredFaqs = computed(() => {
 onMounted(async () => {
   await store.loadMarketDetail(slug());
   if (store.selectedMarket) {
+    marketCartStore.initializeMarket(
+      store.selectedMarket.slug,
+      store.selectedMarket.name,
+    );
     recordRecentMarket(store.selectedMarket);
     refreshFavoriteState();
     applyMarketSeoMeta({

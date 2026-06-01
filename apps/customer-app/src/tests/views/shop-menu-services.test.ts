@@ -7,6 +7,7 @@ import { discoveryApi } from "@/services/discoveryApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const marketCartAddItem = vi.hoisted(() => vi.fn());
 const menuItemsFixture = vi.hoisted(() => ({
   items: null as Array<Record<string, unknown>> | null,
 }));
@@ -62,6 +63,15 @@ vi.mock("@/stores/shopCart", () => ({
   }),
 }));
 
+vi.mock("@/stores/marketCart", () => ({
+  useMarketCartStore: () => ({
+    addItem: marketCartAddItem,
+    cartForMarket: vi.fn(() => null),
+    itemCountForCart: vi.fn(() => 0),
+    subtotalForCart: vi.fn(() => 0),
+  }),
+}));
+
 vi.mock("@/utils/seoMeta", () => ({
   applyShopMenuSeoMeta: vi.fn(),
 }));
@@ -69,12 +79,20 @@ vi.mock("@/utils/seoMeta", () => ({
 vi.mock("@/components/MenuItemCard.vue", () => ({
   default: {
     props: ["item", "isFeatured", "anchorId"],
+    emits: ["addToCart", "viewDetails"],
     template: `
       <article
         :id="anchorId === null ? undefined : anchorId"
         :data-testid="isFeatured ? 'featured-menu-card' : 'menu-card'"
       >
         {{ item.name }}
+        <button
+          type="button"
+          data-testid="menu-card-add"
+          @click="$emit('addToCart', { item, quantity: 1 })"
+        >
+          add
+        </button>
       </article>
     `,
   },
@@ -238,6 +256,7 @@ describe("ShopMenuView service items", () => {
 
   beforeEach(() => {
     routerPush.mockReset();
+    marketCartAddItem.mockReset();
     menuItemsFixture.items = null;
     serviceItemsFixture.items = null;
     marketMembershipsFixture.memberships = null;
@@ -315,7 +334,7 @@ describe("ShopMenuView service items", () => {
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.get("#shop-service-items").exists()).toBe(true);
+    expect(wrapper.find("#shop-service-items").exists()).toBe(true);
     expect(scrollIntoView).toHaveBeenCalledWith({
       behavior: "smooth",
       block: "start",
@@ -417,6 +436,36 @@ describe("ShopMenuView service items", () => {
       wrapper.get('[data-testid="shop-market-type-jingming"]').text(),
     ).toBe("商圈");
     expect(marketContext.text()).toContain("B-02");
+  });
+
+  it("mirrors market-origin menu additions into the market basket", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        returnPath: "/markets/fengjia?q=%E9%9B%9E%E6%8E%92",
+        returnLabel: "逢甲夜市",
+      },
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    await wrapper.get('[data-testid="menu-card-add"]').trigger("click");
+
+    expect(marketCartAddItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marketSlug: "fengjia",
+        marketName: "逢甲夜市",
+        restaurantId: "restaurant-1",
+        restaurantName: "服務測試店",
+        quantity: 1,
+      }),
+    );
   });
 
   it("shows the linked menu item target when opening from a dish result", () => {

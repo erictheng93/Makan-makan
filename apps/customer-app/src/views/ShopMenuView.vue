@@ -104,6 +104,29 @@
             </button>
           </div>
         </div>
+
+        <div
+          v-if="marketEntryContext && currentMarketCartItemCount > 0"
+          data-testid="shop-market-cart-summary"
+          class="px-5 pb-3"
+        >
+          <button
+            type="button"
+            class="flex w-full items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm text-emerald-900"
+            @click="goToReturnContext"
+          >
+            <span>
+              市場購物籃
+              <span class="font-semibold">
+                {{ currentMarketCartItemCount }}
+              </span>
+              項
+            </span>
+            <span class="font-semibold">
+              {{ formatPrice(currentMarketCartSubtotal) }}
+            </span>
+          </button>
+        </div>
       </div>
     </nav>
 
@@ -578,6 +601,7 @@ import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
 import { useAppStore } from "@/stores/app";
+import { useMarketCartStore } from "@/stores/marketCart";
 import { useShopCartStore } from "@/stores/shopCart";
 import MenuItemCard from "@/components/MenuItemCard.vue";
 import MenuItemModal from "@/components/MenuItemModal.vue";
@@ -626,6 +650,7 @@ const route = useRoute();
 const toast = useToast();
 const { t, tWithParams } = useI18n();
 const appStore = useAppStore();
+const marketCartStore = useMarketCartStore();
 const shopCartStore = useShopCartStore();
 const isDesktop = useIsDesktop();
 const { formatPrice } = useCurrency();
@@ -719,6 +744,38 @@ const returnContext = computed(() => {
   const label = props.returnLabel?.trim() || "上一頁";
   return { path, label };
 });
+const marketEntryContext = computed(() => {
+  const context = returnContext.value;
+  if (!context) return null;
+
+  const match = context.path.match(/^\/markets\/([^/?#]+)/);
+  if (!match) return null;
+
+  const marketSlug = decodeURIComponent(match[1]);
+  const membership = marketMemberships.value.find(
+    (entry) => entry.market.slug === marketSlug,
+  );
+
+  return {
+    slug: marketSlug,
+    name: membership?.market.name ?? context.label ?? marketSlug,
+  };
+});
+const currentMarketCart = computed(() =>
+  marketEntryContext.value
+    ? marketCartStore.cartForMarket(marketEntryContext.value.slug)
+    : null,
+);
+const currentMarketCartItemCount = computed(() =>
+  currentMarketCart.value
+    ? marketCartStore.itemCountForCart(currentMarketCart.value)
+    : 0,
+);
+const currentMarketCartSubtotal = computed(() =>
+  currentMarketCart.value
+    ? marketCartStore.subtotalForCart(currentMarketCart.value)
+    : 0,
+);
 const linkedTargetLabel = computed(() => {
   if (linkedService.value) return `服務：${linkedService.value.name}`;
   if (linkedMenuItem.value) {
@@ -863,6 +920,19 @@ const handleAddToCart = (data: {
     data.customizations,
     data.notes,
   );
+
+  if (marketEntryContext.value) {
+    marketCartStore.addItem({
+      marketSlug: marketEntryContext.value.slug,
+      marketName: marketEntryContext.value.name,
+      restaurantId: props.restaurantId,
+      restaurantName: restaurant.value?.name ?? "店鋪",
+      item: data.item,
+      quantity: data.quantity,
+      customizations: data.customizations,
+      notes: data.notes,
+    });
+  }
 
   toast.success(
     tWithParams("toast.itemAdded", {

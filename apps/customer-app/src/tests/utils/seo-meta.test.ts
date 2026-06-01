@@ -96,6 +96,7 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     id: 101,
     restaurantId: "restaurant-1",
     categoryId: 10,
+    catalogType: "menu_item",
     name: "鹽酥雞",
     description: "現炸招牌鹽酥雞",
     price: 7500,

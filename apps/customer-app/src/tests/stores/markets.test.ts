@@ -139,7 +139,7 @@ describe("useMarketsStore", () => {
       catalogType: "menu_item",
       count: 3,
     });
-    expect(store.explorationSummary?.productCategories[0]).toMatchObject({
+    expect(store.explorationSummary?.productCategories?.[0]).toMatchObject({
       categoryName: "配件",
       catalogType: "product",
       count: 2,

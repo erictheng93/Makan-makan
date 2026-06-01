@@ -68,7 +68,7 @@ describe("OrderTypeLandingView", () => {
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.get('[data-testid="continue-btn"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(true);
     });
     await wrapper.get('[data-testid="continue-btn"]').trigger("click");
 
@@ -98,7 +98,7 @@ describe("OrderTypeLandingView", () => {
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.get('[data-testid="continue-btn"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(true);
     });
     await wrapper.get('[data-testid="continue-btn"]').trigger("click");
 
