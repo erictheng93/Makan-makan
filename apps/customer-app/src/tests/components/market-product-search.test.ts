@@ -36,7 +36,7 @@ vi.mock("@/services/discoveryApi", () => ({
 
 describe("MarketProductSearch", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
       value: undefined,
@@ -522,13 +522,9 @@ describe("MarketProductSearch", () => {
     );
   });
 
-  it("filters market services by service type", async () => {
+  it("switches to service results when filtering by service type", async () => {
     vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
       serviceTypes: [{ serviceType: "delivery", count: 2 }],
-    } as never);
-    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
-      results: [],
-      total: 0,
     } as never);
     vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
       results: [
@@ -563,12 +559,14 @@ describe("MarketProductSearch", () => {
       page: 1,
       limit: 20,
     });
+    expect(discoveryApi.searchDishes).not.toHaveBeenCalled();
+    expect(discoveryApi.browseRestaurants).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("市場外送");
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
       q: "",
       categoryName: "",
       serviceType: "delivery",
-      resultKind: "all",
+      resultKind: "service",
       takeaway: false,
       delivery: false,
       sortBy: "price_asc",
@@ -966,7 +964,6 @@ describe("MarketProductSearch", () => {
     );
 
     expect(summary.text()).toContain("關鍵字：雞排");
-    expect(summary.text()).toContain("分類：小吃");
     expect(summary.text()).toContain("服務：外送");
     expect(summary.text()).toContain("只看可外帶");
     expect(summary.text()).toContain("只看可外送");
@@ -977,15 +974,10 @@ describe("MarketProductSearch", () => {
     vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
       serviceTypes: [{ serviceType: "delivery", count: 1 }],
     } as never);
-    vi.mocked(discoveryApi.searchDishes)
-      .mockResolvedValueOnce({
-        results: [],
-        total: 0,
-      } as never)
-      .mockResolvedValueOnce({
-        results: [dish({ dishName: "市場雞排" })],
-        total: 1,
-      } as never);
+    vi.mocked(discoveryApi.searchDishes).mockResolvedValueOnce({
+      results: [dish({ dishName: "市場雞排" })],
+      total: 1,
+    } as never);
     vi.mocked(discoveryApi.searchServices).mockResolvedValue({
       results: [],
       total: 0,

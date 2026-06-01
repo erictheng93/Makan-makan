@@ -112,7 +112,7 @@
         v-model="selectedServiceType"
         data-testid="market-service-type-select"
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-        @change="searchIfReady"
+        @change="onServiceTypeChange"
       >
         <option value="">全部服務</option>
         <option
@@ -806,6 +806,14 @@ function searchIfReady() {
 function onFulfillmentFilterChange() {
   loadCategories();
   loadServiceTypes();
+  searchIfReady();
+}
+
+function onServiceTypeChange() {
+  if (selectedServiceType.value) {
+    resultKind.value = "service";
+    selectedCategory.value = "";
+  }
   searchIfReady();
 }
 
