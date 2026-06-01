@@ -66,7 +66,12 @@ export interface CreateOrderData {
   items: OrderItemData[];
   notes?: string;
   orderType?: "shop" | "table" | "seat";
-  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
+  orderSource?:
+    | "direct"
+    | "market_checkout"
+    | "uber_eats"
+    | "foodpanda"
+    | "grabfood";
   scheduledTime?: Date;
   couponCode?: string;
   clientMutationId?: string;

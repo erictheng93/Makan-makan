@@ -162,6 +162,7 @@ const zhTW = {
     },
     source: {
       direct: "現場",
+      marketCheckout: "市場結帳",
     },
     refresh: "重新整理",
     orderList: "訂單列表",

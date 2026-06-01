@@ -627,6 +627,7 @@ const idID: Messages = {
     direct: "Langsung",
     foodpanda: "panda makanan",
     grabFood: "Ambil Makanan",
+    marketCheckout: "Checkout pasar",
     uberEats: "Uber Makan",
   },
   priorityTiming: {

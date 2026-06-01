@@ -49,7 +49,12 @@ export interface CreateOrderData {
   notes?: string;
   couponCode?: string;
   clientMutationId?: string;
-  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
+  orderSource?:
+    | "direct"
+    | "market_checkout"
+    | "uber_eats"
+    | "foodpanda"
+    | "grabfood";
   deliveryInfo?: {
     type: "dine_in" | "takeaway" | "delivery";
     address?: string;

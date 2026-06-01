@@ -164,6 +164,7 @@ const idID: Messages = {
     },
     source: {
       direct: "Langsung",
+      marketCheckout: "Checkout pasar",
     },
     refresh: "Segarkan",
     orderList: "Daftar Pesanan",

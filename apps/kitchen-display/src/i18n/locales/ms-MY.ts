@@ -627,6 +627,7 @@ const msMY: Messages = {
     direct: "Langsung",
     foodpanda: "Foodpanda",
     grabFood: "GrabFood",
+    marketCheckout: "Bayaran pasar",
     uberEats: "Uber Eats",
   },
   priorityTiming: {

@@ -109,7 +109,12 @@ export interface Order {
   restaurantId: string;
   tableId?: number;
   status: OrderStatus;
-  orderSource?: "direct" | "uber_eats" | "foodpanda" | "grabfood";
+  orderSource?:
+    | "direct"
+    | "market_checkout"
+    | "uber_eats"
+    | "foodpanda"
+    | "grabfood";
   totalAmount: number;
   items: OrderItem[];
   notes?: string;

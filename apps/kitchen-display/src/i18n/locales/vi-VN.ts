@@ -629,6 +629,7 @@ const viVN: Messages = {
     direct: "trực tiếp",
     foodpanda: "Foodpanda",
     grabFood: "GrabFood",
+    marketCheckout: "Thanh toán chợ",
     uberEats: "Đồ ăn Uber",
   },
   priorityTiming: {

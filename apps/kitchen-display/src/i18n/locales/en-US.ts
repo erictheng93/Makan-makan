@@ -164,6 +164,7 @@ const enUS: Messages = {
     uberEats: "Uber Eats",
     foodpanda: "Foodpanda",
     grabFood: "GrabFood",
+    marketCheckout: "Market checkout",
     direct: "Direct",
   },
 

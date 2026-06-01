@@ -83,6 +83,10 @@ const buildKitchenOrderFromRealtimeData = (
     deliveryInfo: {
       type: Number.isFinite(tableId) ? "dine_in" : "takeaway",
     },
+    orderSource:
+      typeof data.orderSource === "string"
+        ? (data.orderSource as KitchenOrder["orderSource"])
+        : undefined,
     items,
     customerName:
       typeof customer?.name === "string" ? customer.name : undefined,

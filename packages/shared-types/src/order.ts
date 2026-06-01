@@ -2,7 +2,12 @@ import { BaseEntity } from "./common";
 import { MenuItem } from "./menu";
 
 // Platform source for orders
-export type PlatformSource = "direct" | "uber_eats" | "foodpanda" | "grabfood";
+export type PlatformSource =
+  | "direct"
+  | "market_checkout"
+  | "uber_eats"
+  | "foodpanda"
+  | "grabfood";
 
 // Delivery/fulfillment information interface
 export interface DeliveryInfo {

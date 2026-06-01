@@ -164,6 +164,7 @@ const zhCN: Messages = {
     },
     source: {
       direct: "现场",
+      marketCheckout: "市场结账",
     },
     refresh: "刷新",
     orderList: "订单列表",

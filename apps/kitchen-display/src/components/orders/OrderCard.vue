@@ -373,6 +373,12 @@ const platformBadge = computed(() => {
       bg: "#E8F5E9",
       text: "#1B5E20",
     },
+    market_checkout: {
+      label: t("platform.marketCheckout"),
+      emoji: "🏮",
+      bg: "#FFF3E0",
+      text: "#E65100",
+    },
     direct: {
       label: t("platform.direct"),
       emoji: "📦",

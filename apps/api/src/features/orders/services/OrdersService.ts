@@ -1039,6 +1039,7 @@ export class OrdersService implements IOrdersService {
             notes: item.notes,
           })),
           totalAmount: order.totalAmount,
+          orderSource: order.orderSource,
           notes: order.notes,
           customer: order.customerInfo
             ? {

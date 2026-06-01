@@ -9,8 +9,12 @@ import type { PlatformSource } from "./order";
 // Re-export for convenience
 export type { PlatformSource };
 
-// Platform type (without "direct")
-export type PlatformType = Exclude<PlatformSource, "direct">;
+// Third-party platform integration types. Internal sources such as direct
+// orders and market checkouts are not external integration platforms.
+export type PlatformType = Exclude<
+  PlatformSource,
+  "direct" | "market_checkout"
+>;
 
 // ================================================
 // Platform Integration

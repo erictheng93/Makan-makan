@@ -164,6 +164,7 @@ const jaJP: Messages = {
     },
     source: {
       direct: "店頭",
+      marketCheckout: "市場会計",
     },
     refresh: "更新",
     orderList: "注文一覧",

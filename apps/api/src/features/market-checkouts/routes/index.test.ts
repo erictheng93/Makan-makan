@@ -182,6 +182,7 @@ describe("market checkout routes", () => {
       1,
       expect.objectContaining({
         restaurantId: "restaurant-1",
+        orderSource: "market_checkout",
         orderType: "shop",
         deliveryInfo: { type: "takeaway" },
       }),

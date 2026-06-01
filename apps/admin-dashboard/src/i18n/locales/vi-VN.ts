@@ -164,6 +164,7 @@ const viVN: Messages = {
     },
     source: {
       direct: "Trực tiếp",
+      marketCheckout: "Thanh toán chợ",
     },
     refresh: "Làm mới",
     orderList: "Danh sách đơn hàng",

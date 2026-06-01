@@ -164,6 +164,7 @@ const enUS: Messages = {
     },
     source: {
       direct: "Direct",
+      marketCheckout: "Market checkout",
     },
     refresh: "Refresh",
     orderList: "Order List",

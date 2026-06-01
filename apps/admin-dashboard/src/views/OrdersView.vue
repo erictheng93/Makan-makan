@@ -127,6 +127,9 @@
             >
               <option value="">{{ t("orders.filter.allSources") }}</option>
               <option value="direct">{{ t("orders.source.direct") }}</option>
+              <option value="market_checkout">
+                {{ t("orders.source.marketCheckout") }}
+              </option>
               <option value="uber_eats">Uber Eats</option>
               <option value="foodpanda">Foodpanda</option>
             </select>
@@ -626,6 +629,7 @@ const getSourceClass = (source: string) => {
     uber_eats: "bg-green-100 text-green-800",
     foodpanda: "bg-pink-100 text-pink-800",
     grabfood: "bg-orange-100 text-orange-800",
+    market_checkout: "bg-amber-100 text-amber-800",
   };
   return classes[source] || "bg-gray-100 text-gray-800";
 };
@@ -635,6 +639,7 @@ const getSourceText = (source: string) => {
     uber_eats: "Uber Eats",
     foodpanda: "Foodpanda",
     grabfood: "GrabFood",
+    market_checkout: t("orders.source.marketCheckout"),
     direct: t("orders.source.direct"),
   };
   return texts[source] || source;

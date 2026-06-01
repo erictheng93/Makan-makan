@@ -250,6 +250,7 @@ app.post("/", async (c) => {
         checkoutNotes: data.notes,
         vendorNotes: vendor.notes,
       }),
+      orderSource: "market_checkout",
       clientMutationId: vendor.clientMutationId,
       orderType: "shop",
       deliveryInfo: {

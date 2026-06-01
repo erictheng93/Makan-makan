@@ -620,6 +620,7 @@ const zhCN: Messages = {
     direct: "直接",
     foodpanda: "Foodpanda",
     grabFood: "GrabFood",
+    marketCheckout: "市场结账",
     uberEats: "Uber Eats",
   },
   priorityTiming: {

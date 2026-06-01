@@ -67,7 +67,9 @@ export const orders = sqliteTable(
 
     // 外送平台來源
     orderSource: text("order_source")
-      .$type<"direct" | "uber_eats" | "foodpanda" | "grabfood">()
+      .$type<
+        "direct" | "market_checkout" | "uber_eats" | "foodpanda" | "grabfood"
+      >()
       .default("direct"),
 
     // 金額資訊

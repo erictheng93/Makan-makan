@@ -5,7 +5,7 @@
  * 確保前端、後端和即時服務之間的型別安全。
  */
 
-import type { OrderStatus, OrderItemStatus } from "./order";
+import type { OrderStatus, OrderItemStatus, PlatformSource } from "./order";
 import type { MenuItem } from "./menu";
 
 // ============================================================================
@@ -196,6 +196,8 @@ export interface NewOrderEvent extends BaseRealtimeEvent {
     }>;
     /** 訂單總金額 */
     totalAmount: number;
+    /** 訂單來源 */
+    orderSource?: PlatformSource;
     /** 訂單備註 */
     notes?: string;
     /** 顧客資訊 */

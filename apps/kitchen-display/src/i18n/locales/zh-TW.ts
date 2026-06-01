@@ -161,6 +161,7 @@ const zhTW = {
     uberEats: "Uber Eats",
     foodpanda: "Foodpanda",
     grabFood: "GrabFood",
+    marketCheckout: "市場結帳",
     direct: "直接",
   },
 

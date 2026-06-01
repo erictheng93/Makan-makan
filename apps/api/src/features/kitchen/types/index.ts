@@ -8,6 +8,12 @@ export interface KitchenOrder {
   tableId: number;
   tableName: string;
   status: string; // OrderStatus (canonical string union)
+  orderSource?:
+    | "direct"
+    | "market_checkout"
+    | "uber_eats"
+    | "foodpanda"
+    | "grabfood";
   items: KitchenOrderItem[];
   customerName?: string;
   notes?: string;

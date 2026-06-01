@@ -450,6 +450,12 @@ const orderSourceOptions = computed(() => [
     activeClass: "bg-[#E3F2FD] text-ios-blue",
   },
   {
+    value: "market_checkout",
+    label: t("platform.marketCheckout"),
+    emoji: "\uD83C\uDFEE",
+    activeClass: "bg-[#FFF3E0] text-ios-orange",
+  },
+  {
     value: "uber_eats",
     label: t("platform.uberEats"),
     emoji: "\uD83D\uDFE2",

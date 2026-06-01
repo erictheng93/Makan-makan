@@ -66,6 +66,7 @@ export class KitchenService implements IKitchenService {
           tableId: order.tableId || 0, // Default to 0 if no table
           tableName: order.tableId ? `Table ${order.tableId}` : "No Table",
           status: order.status,
+          orderSource: order.orderSource,
           items: (order.items || []).map((item) => {
             // item.status is already a string — pass through directly.
             const itemStatus =
