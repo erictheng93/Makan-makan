@@ -95,6 +95,7 @@ describe("MarketsView", () => {
               restaurantId: "restaurant-456",
               name: "缺商品攤",
               stallNumber: "C-01",
+              locationLabel: null,
             },
           ],
           missingServiceVendors: [],
@@ -103,6 +104,7 @@ describe("MarketsView", () => {
               restaurantId: "restaurant-789",
               name: "缺攤號攤",
               stallNumber: null,
+              locationLabel: null,
             },
           ],
           missingSearchEntrypointVendors: [
@@ -110,6 +112,7 @@ describe("MarketsView", () => {
               restaurantId: "restaurant-456",
               name: "缺商品攤",
               stallNumber: "C-01",
+              locationLabel: null,
             },
           ],
         },
