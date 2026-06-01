@@ -1963,14 +1963,42 @@ export class DiscoveryService {
     }
 
     const pattern = `%${trimmedQuery}%`;
+    const aliasQueries = this.getServiceQueryAliases(trimmedQuery).filter(
+      (alias) => alias !== trimmedQuery,
+    );
+    const aliasNameCondition = aliasQueries.length
+      ? or(
+          ...aliasQueries.map((alias) =>
+            like(restaurantServiceItems.name, `%${alias}%`),
+          ),
+        )
+      : undefined;
+    const aliasMetadataCondition = aliasQueries.length
+      ? or(
+          ...aliasQueries.flatMap((alias) => [
+            like(restaurantServiceItems.keywords, `%${alias}%`),
+            like(restaurantServiceItems.tags, `%${alias}%`),
+          ]),
+        )
+      : undefined;
+    const aliasDescriptionCondition = aliasQueries.length
+      ? or(
+          ...aliasQueries.map((alias) =>
+            like(restaurantServiceItems.description, `%${alias}%`),
+          ),
+        )
+      : undefined;
     const relevance = sql<number>`CASE
       WHEN lower(${restaurantServiceItems.name}) = lower(${trimmedQuery}) THEN 0
       WHEN lower(${restaurantServiceItems.name}) LIKE lower(${`${trimmedQuery}%`}) THEN 1
       WHEN ${restaurantServiceItems.name} LIKE ${pattern} THEN 2
+      ${aliasNameCondition ? sql`WHEN ${aliasNameCondition} THEN 3` : sql``}
       WHEN ${restaurantServiceItems.keywords} LIKE ${pattern}
-        OR ${restaurantServiceItems.tags} LIKE ${pattern} THEN 3
-      WHEN ${restaurantServiceItems.description} LIKE ${pattern} THEN 4
-      ELSE 5
+        OR ${restaurantServiceItems.tags} LIKE ${pattern} THEN 4
+      ${aliasMetadataCondition ? sql`WHEN ${aliasMetadataCondition} THEN 5` : sql``}
+      WHEN ${restaurantServiceItems.description} LIKE ${pattern} THEN 6
+      ${aliasDescriptionCondition ? sql`WHEN ${aliasDescriptionCondition} THEN 7` : sql``}
+      ELSE 8
     END`;
 
     return [
