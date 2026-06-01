@@ -2649,6 +2649,36 @@ describe("Discovery API — real integration", () => {
       name: "Restaurant Browse Market Vendor",
       totalOrders: 10,
     });
+    await seed.menuItem(String(restaurant.id), {
+      name: "Market Browse Menu Item",
+      isAvailable: true,
+      price: 100,
+    });
+    await seed.menuItem(String(restaurant.id), {
+      name: "Market Browse Hidden Menu Item",
+      isAvailable: false,
+      price: 100,
+    });
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        name: "Market Browse Public Service",
+        serviceType: "general",
+        isActive: true,
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        restaurantId: String(restaurant.id),
+        name: "Market Browse Hidden Service",
+        serviceType: "general",
+        isActive: true,
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
       marketId: market.id,
@@ -2671,6 +2701,8 @@ describe("Discovery API — real integration", () => {
       name: "Restaurant Browse Market Vendor",
       menuUrl: `/api/v1/menu/${restaurant.id}`,
       serviceItemsUrl: `/api/v1/restaurants/${restaurant.id}/service-items`,
+      availableMenuItemCount: 1,
+      publicServiceItemCount: 1,
       marketVendor: {
         marketId: market.id,
         stallNumber: "B-12",
