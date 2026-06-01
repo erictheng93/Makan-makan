@@ -4,9 +4,15 @@
  */
 
 import type { BaseEntity } from "../../../shared/types";
+import type {
+  CartItemCustomizations,
+  GroupActivityMetadata,
+} from "@makanmakan/shared-types";
 
 // Core Group Order Types
-export interface GroupOrder extends BaseEntity {
+export interface GroupOrder extends Omit<BaseEntity, "id"> {
+  // Group order tables use TEXT UUID primary keys, not numeric ids.
+  id: string;
   groupOrderId: string;
   restaurantId: string;
   tableId?: number;
@@ -21,7 +27,9 @@ export interface GroupOrder extends BaseEntity {
   paidAt?: Date;
 }
 
-export interface GroupOrderMember extends BaseEntity {
+export interface GroupOrderMember extends Omit<BaseEntity, "id"> {
+  // UUID primary key (see GroupOrder.id).
+  id: string;
   memberId: string;
   groupOrderId: string;
   memberName: string;
@@ -35,7 +43,9 @@ export interface GroupOrderMember extends BaseEntity {
   paymentStatus: PaymentStatus;
 }
 
-export interface GroupOrderCartItem extends BaseEntity {
+export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {
+  // UUID primary key (see GroupOrder.id).
+  id: string;
   itemId: string;
   groupOrderId: string;
   memberId: string;
@@ -45,7 +55,7 @@ export interface GroupOrderCartItem extends BaseEntity {
   totalPrice: number;
   unitPriceCents?: number | null;
   totalPriceCents?: number | null;
-  customizations: Record<string, unknown>;
+  customizations: CartItemCustomizations;
   specialInstructions?: string;
 }
 
@@ -155,14 +165,16 @@ export interface GroupOrderSummary {
   activities: GroupOrderActivity[];
 }
 
-export interface GroupOrderActivity extends BaseEntity {
+export interface GroupOrderActivity extends Omit<BaseEntity, "id"> {
+  // UUID primary key (see GroupOrder.id).
+  id: string;
   activityId: string;
   groupOrderId: string;
   memberId?: string;
   memberName?: string;
   type: ActivityType;
   description: string;
-  metadata?: Record<string, unknown>;
+  metadata?: GroupActivityMetadata;
   timestamp: Date;
 }
 

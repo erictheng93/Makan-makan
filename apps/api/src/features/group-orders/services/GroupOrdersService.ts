@@ -122,7 +122,21 @@ import type {
   GroupOrderStatus,
   PaymentStatus,
   ActivityType,
+  GroupOrderPermissions,
 } from "../types";
+
+/**
+ * Default member permissions applied to a new group order and used as the
+ * baseline when formatting a stored group order whose settings only carry a
+ * partial permissions object.
+ */
+const DEFAULT_GROUP_ORDER_PERMISSIONS: GroupOrderPermissions = {
+  canInviteMembers: true,
+  canModifyOthersCart: false,
+  canFinalizeOrder: true,
+  canSplitBill: true,
+  canProcessPayment: true,
+};
 
 interface SplitBillData {
   memberId: string;
@@ -281,11 +295,7 @@ export class GroupOrdersService implements IGroupOrderService {
 
       // Default permissions
       const defaultPermissions = {
-        canInviteMembers: true,
-        canModifyOthersCart: false,
-        canFinalizeOrder: true,
-        canSplitBill: true,
-        canProcessPayment: true,
+        ...DEFAULT_GROUP_ORDER_PERMISSIONS,
         ...data.permissions,
       };
 
@@ -708,7 +718,7 @@ export class GroupOrdersService implements IGroupOrderService {
           { itemId },
         );
         const fallbackItem: GroupOrderCartItem = {
-          id: 0, // Fallback ID when not available
+          id: itemId,
           itemId: itemId,
           groupOrderId,
           memberId: itemData.memberId,
@@ -1930,19 +1940,22 @@ export class GroupOrdersService implements IGroupOrderService {
       id: data.id,
       groupOrderId: data.id, // Keep for backward compatibility
       restaurantId: data.restaurantId,
-      tableId: data.tableId,
+      tableId: data.tableId ?? undefined,
       shareCode: data.shareCode,
       createdBy: data.createdBy,
       status: data.status as GroupOrderStatus,
       expiresAt,
       maxMembers: settings.maxMembers || 8,
-      permissions: settings.permissions || {},
+      permissions: {
+        ...DEFAULT_GROUP_ORDER_PERMISSIONS,
+        ...settings.permissions,
+      },
       totalAmount: moneyAmount(data.totalAmountCents, data.totalAmount),
       finalizedAt: lockedAt,
       paidAt: completedAt,
       createdAt,
       updatedAt,
-    } as unknown as GroupOrder;
+    };
   }
 
   private formatMember(
@@ -1968,8 +1981,8 @@ export class GroupOrdersService implements IGroupOrderService {
       memberId: data.id, // Keep for backward compatibility
       groupOrderId: data.groupOrderId,
       memberName: data.name,
-      phone: data.phone,
-      email: data.email,
+      phone: data.phone ?? undefined,
+      email: data.email ?? undefined,
       isHost: data.role === "creator", // Convert role to isHost
       joinedAt,
       leftAt,
@@ -1978,7 +1991,7 @@ export class GroupOrdersService implements IGroupOrderService {
       paymentStatus: "pending" as PaymentStatus,
       createdAt: joinedAt,
       updatedAt: lastActiveAt,
-    } as unknown as GroupOrderMember;
+    };
   }
 
   private formatCartItem(
@@ -2005,10 +2018,10 @@ export class GroupOrdersService implements IGroupOrderService {
       unitPrice: cartItemUnitAmount(data),
       totalPrice: cartItemTotalAmount(data),
       customizations,
-      specialInstructions: data.specialInstructions,
+      specialInstructions: data.specialInstructions ?? undefined,
       createdAt: addedAt,
       updatedAt,
-    } as unknown as GroupOrderCartItem;
+    };
   }
 
   private formatActivity(
@@ -2025,7 +2038,7 @@ export class GroupOrdersService implements IGroupOrderService {
       id: data.id,
       activityId: data.id, // Keep for backward compatibility
       groupOrderId: data.groupOrderId,
-      memberId: data.memberId,
+      memberId: data.memberId ?? undefined,
       memberName: "", // Not stored in activity logs
       type: data.action as ActivityType,
       description: data.description,
@@ -2033,6 +2046,6 @@ export class GroupOrdersService implements IGroupOrderService {
       timestamp: createdAt,
       createdAt,
       updatedAt: createdAt,
-    } as unknown as GroupOrderActivity;
+    };
   }
 }
