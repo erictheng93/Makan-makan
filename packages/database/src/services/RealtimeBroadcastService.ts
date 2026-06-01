@@ -115,31 +115,31 @@ export class RealtimeBroadcastService {
   }
 
   async broadcastNewOrder(event: NewOrderEvent): Promise<BroadcastResult> {
-    return this.broadcastEvent("restaurant", event.restaurantId, event);
+    return this.broadcastRestaurantAndKitchen(event);
   }
 
   async broadcastOrderStatusUpdate(
     event: OrderStatusUpdateEvent,
   ): Promise<BroadcastResult> {
-    return this.broadcastEvent("restaurant", event.restaurantId, event);
+    return this.broadcastRestaurantAndKitchen(event);
   }
 
   async broadcastOrderItemStatusUpdate(
     event: OrderItemStatusUpdateEvent,
   ): Promise<BroadcastResult> {
-    return this.broadcastEvent("restaurant", event.restaurantId, event);
+    return this.broadcastRestaurantAndKitchen(event);
   }
 
   async broadcastOrderCancelled(
     event: OrderCancelledEvent,
   ): Promise<BroadcastResult> {
-    return this.broadcastEvent("restaurant", event.restaurantId, event);
+    return this.broadcastRestaurantAndKitchen(event);
   }
 
   async broadcastKitchenItemStatus(
     event: KitchenItemStatusEvent,
   ): Promise<BroadcastResult> {
-    return this.broadcastEvent("restaurant", event.restaurantId, event);
+    return this.broadcastRestaurantAndKitchen(event);
   }
 
   async broadcastMenuAvailabilityUpdate(
@@ -150,5 +150,33 @@ export class RealtimeBroadcastService {
 
   generateEventId(): string {
     return `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private async broadcastRestaurantAndKitchen(
+    event:
+      | NewOrderEvent
+      | OrderStatusUpdateEvent
+      | OrderItemStatusUpdateEvent
+      | OrderCancelledEvent
+      | KitchenItemStatusEvent,
+  ): Promise<BroadcastResult> {
+    const results = await Promise.all([
+      this.broadcastEvent("restaurant", event.restaurantId, event),
+      this.broadcastEvent("kitchen", event.restaurantId, event),
+    ]);
+
+    const failed = results.find((result) => !result.success);
+    if (failed) {
+      return failed;
+    }
+
+    return {
+      success: true,
+      eventId: results[0]?.eventId ?? event.eventId,
+      recipientCount: results.reduce(
+        (sum, result) => sum + (result.recipientCount ?? 0),
+        0,
+      ),
+    };
   }
 }
