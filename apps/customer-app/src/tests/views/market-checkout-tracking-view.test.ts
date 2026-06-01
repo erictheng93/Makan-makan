@@ -36,6 +36,7 @@ function mountView() {
 
 describe("MarketCheckoutTrackingView", () => {
   beforeEach(() => {
+    localStorage.clear();
     routerPush.mockReset();
     getMarketCheckout.mockReset();
     payMarketCheckout.mockReset();
@@ -115,6 +116,86 @@ describe("MarketCheckoutTrackingView", () => {
       .trigger("click");
 
     expect(routerPush).toHaveBeenCalledWith("/markets/fengjia");
+  });
+
+  it("opens a child vendor order with the matching guest token", async () => {
+    localStorage.setItem(
+      "makanmakan_market_checkout_guest_tokens",
+      JSON.stringify({
+        "checkout-1": {
+          "101": {
+            restaurantId: "restaurant-1",
+            guestToken: "guest-token-101",
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        },
+      }),
+    );
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      subtotal: 160,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-checkout-child-track"]')
+      .trigger("click");
+
+    expect(localStorage.getItem("guest_auth_token")).toBe("guest-token-101");
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopOrderTracking",
+      params: {
+        restaurantId: "restaurant-1",
+        orderId: "101",
+      },
+    });
+  });
+
+  it("shows an access error when a child order guest token is missing", async () => {
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      subtotal: 160,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-checkout-child-track"]')
+      .trigger("click");
+
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(
+      wrapper.get('[data-testid="market-checkout-child-access-error"]').text(),
+    ).toContain("無法開啟攤位訂單");
   });
 
   it("starts an aggregate market payment and renders the payment summary", async () => {

@@ -148,6 +148,13 @@
 
         <section class="mt-4 space-y-3">
           <h2 class="text-sm font-semibold text-gray-900">攤位訂單</h2>
+          <p
+            v-if="orderAccessError"
+            data-testid="market-checkout-child-access-error"
+            class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {{ orderAccessError }}
+          </p>
           <article
             v-for="order in checkout.childOrders"
             :key="`${order.restaurantId}-${order.orderId}`"
@@ -186,6 +193,14 @@
             <p class="mt-3 text-xs leading-5 text-gray-500">
               請以店家現場叫號或通知為準。此頁會保留市場層級的送單摘要。
             </p>
+            <button
+              type="button"
+              data-testid="market-checkout-child-track"
+              class="mt-3 rounded-lg border border-ios-blue px-3 py-2 text-sm font-semibold text-ios-blue"
+              @click="openChildOrder(order)"
+            >
+              查看攤位訂單
+            </button>
           </article>
         </section>
 
@@ -208,6 +223,7 @@ import { useRouter } from "vue-router";
 import type { OrderPaymentStatus, OrderStatus } from "@makanmakan/shared-types";
 import { orderApi, type MarketCheckoutSummary } from "@/services/orderApi";
 import { useCurrency } from "@/composables/useCurrency";
+import { activateMarketCheckoutGuestToken } from "@/utils/marketCheckouts";
 
 const props = defineProps<{
   slug: string;
@@ -221,6 +237,7 @@ const isLoading = ref(true);
 const isPaying = ref(false);
 const error = ref<string | null>(null);
 const paymentError = ref<string | null>(null);
+const orderAccessError = ref<string | null>(null);
 
 const statusLabel = computed(() => {
   if (checkout.value?.status === "submitted") {
@@ -302,6 +319,22 @@ async function payCheckout() {
   } finally {
     isPaying.value = false;
   }
+}
+
+function openChildOrder(order: MarketCheckoutSummary["childOrders"][number]) {
+  orderAccessError.value = null;
+  if (!activateMarketCheckoutGuestToken(props.checkoutId, order.orderId)) {
+    orderAccessError.value = "無法開啟攤位訂單，請從最近市場訂單重新進入。";
+    return;
+  }
+
+  router.push({
+    name: "ShopOrderTracking",
+    params: {
+      restaurantId: order.restaurantId,
+      orderId: String(order.orderId),
+    },
+  });
 }
 
 function goToMarket() {

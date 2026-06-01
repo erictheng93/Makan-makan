@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  activateMarketCheckoutGuestToken,
   listRecentMarketCheckouts,
+  recordMarketCheckoutGuestTokens,
   recordRecentMarketCheckout,
 } from "@/utils/marketCheckouts";
 import type { MarketCheckoutSummary } from "@/services/orderApi";
@@ -87,5 +89,28 @@ describe("marketCheckouts", () => {
     );
 
     expect(listRecentMarketCheckouts()[0].paymentStatus).toBe("partial_paid");
+  });
+
+  it("records and activates child order guest tokens by checkout id", () => {
+    recordMarketCheckoutGuestTokens({
+      checkout: checkout(),
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          order: {
+            id: 101,
+            restaurantId: "restaurant-1",
+            orderNumber: "A001",
+          } as never,
+          guestToken: "guest-token-101",
+          tokenExpiresAt: "2026-06-01T14:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(activateMarketCheckoutGuestToken("checkout-1", 101)).toBe(true);
+    expect(localStorage.getItem("guest_auth_token")).toBe("guest-token-101");
+    expect(activateMarketCheckoutGuestToken("checkout-1", 999)).toBe(false);
   });
 });

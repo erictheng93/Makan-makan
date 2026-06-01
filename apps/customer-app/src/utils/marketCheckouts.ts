@@ -1,6 +1,8 @@
 import type { MarketCheckoutSummary } from "@/services/orderApi";
+import type { MarketCheckoutResponse } from "@/services/orderApi";
 
 const STORAGE_KEY = "makanmakan_recent_market_checkouts";
+const TOKEN_STORAGE_KEY = "makanmakan_market_checkout_guest_tokens";
 const MAX_RECENT_CHECKOUTS = 10;
 const CHECKOUT_TTL_MS = 4 * 60 * 60 * 1000;
 
@@ -41,6 +43,39 @@ export function recordRecentMarketCheckout(checkout: MarketCheckoutSummary) {
   }
 }
 
+export function recordMarketCheckoutGuestTokens(
+  response: MarketCheckoutResponse,
+) {
+  const tokenRecords = readGuestTokenRecords();
+  tokenRecords[response.checkout.id] = Object.fromEntries(
+    response.childOrders.map((child) => [
+      String(child.order.id),
+      {
+        restaurantId: child.restaurantId,
+        guestToken: child.guestToken,
+        tokenExpiresAt: child.tokenExpiresAt,
+      },
+    ]),
+  );
+
+  try {
+    localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokenRecords));
+  } catch (error) {
+    console.warn("保存市場訂單訪客 token 失敗:", error);
+  }
+}
+
+export function activateMarketCheckoutGuestToken(
+  checkoutId: string,
+  orderId: number,
+) {
+  const tokenRecord = readGuestTokenRecords()[checkoutId]?.[String(orderId)];
+  if (!tokenRecord) return false;
+
+  localStorage.setItem("guest_auth_token", tokenRecord.guestToken);
+  return true;
+}
+
 export function listRecentMarketCheckouts(): StoredMarketCheckout[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -66,6 +101,35 @@ export function listRecentMarketCheckouts(): StoredMarketCheckout[] {
     console.warn("讀取最近市場訂單失敗:", error);
     localStorage.removeItem(STORAGE_KEY);
     return [];
+  }
+}
+
+type GuestTokenRecords = Record<
+  string,
+  Record<
+    string,
+    {
+      restaurantId: string;
+      guestToken: string;
+      tokenExpiresAt: string;
+    }
+  >
+>;
+
+function readGuestTokenRecords(): GuestTokenRecords {
+  try {
+    const saved = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!saved) return {};
+    const parsed = JSON.parse(saved);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      return {};
+    }
+    return parsed as GuestTokenRecords;
+  } catch (error) {
+    console.warn("讀取市場訂單訪客 token 失敗:", error);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    return {};
   }
 }
 
