@@ -2711,6 +2711,65 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("does not reuse district restaurant cache for market-scoped browse", async () => {
+    const district = `Cache Scope District ${crypto.randomUUID()}`;
+    const market = await seedMarket(testApp, {
+      slug: "restaurant-cache-scope-market",
+      district,
+    });
+    const marketRestaurant = await seed.restaurant({
+      name: "Restaurant Cache Scope Market Vendor",
+      district,
+      totalOrders: 20,
+    });
+    const outsideRestaurant = await seed.restaurant({
+      name: "Restaurant Cache Scope Outside Vendor",
+      district,
+      totalOrders: 10,
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(marketRestaurant.id),
+      marketId: market.id,
+      stallNumber: "C-08",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+
+    const encodedDistrict = encodeURIComponent(district);
+    const districtRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants?district=${encodedDistrict}&page=1&limit=10`,
+      ),
+    );
+    expect(districtRes.status).toBe(200);
+    const districtData = ((await districtRes.json()) as ApiTestResponse).data;
+    expect(
+      districtData.results.map((result: any) => result.restaurantId),
+    ).toEqual([String(marketRestaurant.id), String(outsideRestaurant.id)]);
+
+    const marketRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants?district=${encodedDistrict}&marketSlug=restaurant-cache-scope-market&page=1&limit=10`,
+      ),
+    );
+
+    expect(marketRes.status).toBe(200);
+    const marketData = ((await marketRes.json()) as ApiTestResponse).data;
+    expect(marketData.total).toBe(1);
+    expect(
+      marketData.results.map((result: any) => result.restaurantId),
+    ).toEqual([String(marketRestaurant.id)]);
+    expect(marketData.results[0]).toMatchObject({
+      restaurantId: String(marketRestaurant.id),
+      name: "Restaurant Cache Scope Market Vendor",
+      marketVendor: {
+        marketId: market.id,
+        stallNumber: "C-08",
+        isPrimary: true,
+      },
+    });
+  });
+
   it("returns restaurant browse totals independent of the current page slice", async () => {
     for (let i = 0; i < 12; i += 1) {
       await seed.restaurant({

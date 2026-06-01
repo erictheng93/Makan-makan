@@ -447,9 +447,18 @@ export class DiscoveryService {
     filters = await this.resolveMarketSlug(filters);
     const { page = 1, limit = 20 } = filters;
     const geoFilter = this.getGeoFilter(filters);
+    const canUseDistrictCache =
+      filters.district &&
+      !filters.q &&
+      !filters.city &&
+      !filters.marketId &&
+      !filters.cuisineType &&
+      !filters.openNow &&
+      !geoFilter &&
+      (!filters.sortBy || filters.sortBy === "popular");
 
     // Check KV cache for district-based browse
-    if (filters.district && !filters.city && !filters.openNow && !geoFilter) {
+    if (canUseDistrictCache) {
       const kvKey = `search:restaurants:district:${filters.district}`;
       const cached = await this.kv.get(kvKey);
       if (cached) {
@@ -616,10 +625,7 @@ export class DiscoveryService {
 
     // Cache district results in KV (only when no secondary filters and page=1 to avoid partial cache)
     if (
-      filters.district &&
-      !filters.q &&
-      !filters.marketId &&
-      !filters.openNow &&
+      canUseDistrictCache &&
       !filters.takeaway &&
       !filters.delivery &&
       !filters.priceRange &&
