@@ -546,10 +546,13 @@ app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
     throw notFound("Market checkout not found");
   }
 
+  const session = JSON.parse(stored) as MarketCheckoutSession;
+  const checkout = await hydrateMarketCheckoutSession(session, c.env);
+
   return c.json({
     success: true,
     data: {
-      checkout: JSON.parse(stored) as MarketCheckoutSession,
+      checkout,
     },
   });
 });
@@ -562,7 +565,23 @@ app.get("/:id", async (c) => {
   }
 
   const session = JSON.parse(stored) as MarketCheckoutSession;
-  const ordersService = new OrdersService(c.env);
+  const checkout = await hydrateMarketCheckoutSession(session, c.env);
+
+  return c.json({
+    success: true,
+    data: {
+      checkout,
+    },
+  });
+});
+
+export default app;
+
+async function hydrateMarketCheckoutSession(
+  session: MarketCheckoutSession,
+  env: Env,
+): Promise<MarketCheckoutSession> {
+  const ordersService = new OrdersService(env);
   const childOrders = await Promise.all(
     session.childOrders.map(async (child) => {
       try {
@@ -584,18 +603,11 @@ app.get("/:id", async (c) => {
     }),
   );
 
-  return c.json({
-    success: true,
-    data: {
-      checkout: {
-        ...session,
-        childOrders,
-      },
-    },
-  });
-});
-
-export default app;
+  return {
+    ...session,
+    childOrders,
+  };
+}
 
 function orderTotalCents(order: {
   totalAmount: number;

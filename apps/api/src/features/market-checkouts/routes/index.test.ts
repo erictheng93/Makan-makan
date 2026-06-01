@@ -683,4 +683,61 @@ describe("market checkout routes", () => {
       childOrderCount: 1,
     });
   });
+
+  it("hydrates child order status when platform admins read checkout details", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    getOrder.mockResolvedValueOnce({
+      id: 1001,
+      orderNumber: "A001",
+      totalAmount: 120,
+      totalAmountCents: 12000,
+      status: "ready",
+      paymentStatus: "completed",
+      updatedAt: 1780308400000,
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(getOrder).toHaveBeenCalledWith(1001, false);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          childOrders: Array<{
+            status?: string;
+            paymentStatus?: string;
+            totalAmountCents?: number;
+          }>;
+        };
+      };
+    };
+    expect(json.data.checkout.childOrders[0]).toMatchObject({
+      status: "ready",
+      paymentStatus: "completed",
+      totalAmountCents: 12000,
+    });
+  });
 });
