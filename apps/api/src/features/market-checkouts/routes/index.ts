@@ -357,7 +357,11 @@ app.post("/", async (c) => {
 app.post("/:id/pay", async (c) => {
   const checkoutId = c.req.param("id");
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
-  if (!stored) {
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+
+  if (!session) {
     throw notFound("Market checkout not found");
   }
 
@@ -374,7 +378,6 @@ app.post("/:id/pay", async (c) => {
     );
   }
 
-  const session = JSON.parse(stored) as MarketCheckoutSession;
   if (session.payment?.status === "paid") {
     return c.json({
       success: true,
