@@ -96,8 +96,10 @@ export function useFeedback() {
   async function fetchFeedback(filters: FeedbackFilters = {}) {
     isLoading.value = true;
     try {
-      const res = await api.get("/feedback", { params: filters });
-      return res.data as unknown as {
+      // The list endpoint flattens its payload onto the envelope
+      // ({ success, feedback, pagination }) rather than nesting under `data`,
+      // so use the raw axios instance and type response.data to match.
+      const res = await api.instance.get<{
         feedback: FeedbackItem[];
         pagination: {
           page: number;
@@ -105,7 +107,8 @@ export function useFeedback() {
           total: number;
           totalPages: number;
         };
-      };
+      }>("/feedback", { params: filters });
+      return res.data;
     } catch (err: any) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.loadError"),
