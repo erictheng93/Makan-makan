@@ -14,6 +14,7 @@ import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
 import { createSuccessResponse } from "../../../shared/utils";
 import { notFound } from "../../../shared/utils/api-error";
+import { marketSlugParamSchema } from "../../markets/schemas/validation";
 
 // Import schemas
 import { qrCodeSchemas } from "../schemas/validation";
@@ -270,6 +271,43 @@ app.delete(
 );
 
 // ==================== Shop QR Code Verification ====================
+
+/**
+ * GET /verify/market/:slug - Verify market-level QR code (PUBLIC)
+ * This endpoint is public and does not require authentication.
+ * Used by customers scanning market entrance QR codes.
+ */
+app.get(
+  "/verify/market/:slug",
+  validateParams(marketSlugParamSchema),
+  async (c) => {
+    const { slug } = c.get("validatedParams") as { slug: string };
+
+    const { MarketsService } =
+      await import("../../markets/services/MarketsService");
+    const marketsService = new MarketsService(c.env.DB, c.env.CACHE_KV);
+    const result = await marketsService.getMarketBySlug(slug);
+
+    if (!result) {
+      throw notFound("Invalid market QR code", "MARKET_QR_INVALID");
+    }
+
+    return c.json(
+      createSuccessResponse(
+        {
+          valid: true,
+          marketId: result.market.id,
+          marketSlug: result.market.slug,
+          marketName: result.market.name,
+          marketUrl: `/markets/${result.market.slug}`,
+          market: result.market,
+        },
+        "Market QR code verified successfully",
+      ),
+      HTTP_STATUS.OK,
+    );
+  },
+);
 
 /**
  * GET /verify/shop/:qrCode - Verify shop-level QR code (PUBLIC)

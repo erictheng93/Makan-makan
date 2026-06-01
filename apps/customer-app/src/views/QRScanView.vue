@@ -323,6 +323,24 @@ const handleQRCodeDetected = async (qrContent: string) => {
 
     // 根據 QR 類型進行不同的處理
     switch (qrData.type) {
+      case "market":
+        // 市場 QR - 直接導向夜市／商圈頁面
+        toast.success(
+          tWithParams("toast.scanTypeDetected", {
+            type: getQRTypeDescription(qrData.type),
+          }),
+        );
+        router.push({
+          name: "MarketDetail",
+          params: {
+            slug: qrData.marketSlug,
+          },
+          query: {
+            qr: qrContent,
+          },
+        });
+        break;
+
       case "shop":
         // 店家 QR - 導航到取餐方式選擇頁面
         toast.success(

@@ -1,19 +1,41 @@
 /**
  * QR Code 解析工具
- * 支援多種 QR Code 格式：shop, table, seat
+ * 支援多種 QR Code 格式：market, shop, table, seat
  */
 
-export type QRType = "shop" | "table" | "seat";
+export type QRType = "market" | "shop" | "table" | "seat";
 
-export interface QRData {
-  type: QRType;
+interface BaseQRData {
   restaurantId: string;
-  tableId?: number;
-  seatId?: number;
-  shopQrCode?: string; // 店家 QR Code (格式: SHOP-{id}-{timestamp})
-  source: "json" | "url" | "simple" | "shop";
+  source: "json" | "url" | "simple" | "shop" | "market";
   raw?: string;
 }
+
+export interface MarketQRData {
+  type: "market";
+  marketSlug: string;
+  marketUrl?: string;
+  source: "json" | "url" | "market";
+  raw?: string;
+}
+
+export interface ShopQRData extends BaseQRData {
+  type: "shop";
+  shopQrCode?: string; // 店家 QR Code (格式: SHOP-{id}-{timestamp})
+}
+
+export interface TableQRData extends BaseQRData {
+  type: "table";
+  tableId?: number;
+}
+
+export interface SeatQRData extends BaseQRData {
+  type: "seat";
+  tableId?: number;
+  seatId?: number;
+}
+
+export type QRData = MarketQRData | ShopQRData | TableQRData | SeatQRData;
 
 /**
  * 解析 QR Code 內容
@@ -22,6 +44,12 @@ export interface QRData {
  */
 export function parseQRContent(content: string): QRData | null {
   try {
+    // 優先檢查市場 QR Code (格式: MARKET-{slug})
+    const marketResult = parseMarketQRFormat(content);
+    if (marketResult) {
+      return marketResult;
+    }
+
     // 優先檢查店家 QR Code (格式: SHOP-{id}-{timestamp})
     const shopResult = parseShopQRFormat(content);
     if (shopResult) {
@@ -54,6 +82,27 @@ export function parseQRContent(content: string): QRData | null {
 }
 
 /**
+ * 解析市場級別 QR Code
+ * 格式: MARKET-{marketSlug}
+ * 例如: MARKET-fengjia-night-market
+ */
+function parseMarketQRFormat(content: string): QRData | null {
+  const marketQrMatch = content.match(/^MARKET-([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+
+  if (marketQrMatch) {
+    return {
+      type: "market",
+      marketSlug: marketQrMatch[1],
+      marketUrl: `/markets/${marketQrMatch[1]}`,
+      source: "market",
+      raw: content,
+    };
+  }
+
+  return null;
+}
+
+/**
  * 解析店家級別 QR Code
  * 格式: SHOP-{restaurantId}-{timestamp}
  * 例如: SHOP-1-1760068334
@@ -82,6 +131,25 @@ function parseShopQRFormat(content: string): QRData | null {
 function parseJSONFormat(content: string): QRData | null {
   try {
     const data = JSON.parse(content);
+
+    if (data?.type === "market") {
+      const marketSlug =
+        typeof data.marketSlug === "string"
+          ? data.marketSlug
+          : typeof data.slug === "string"
+            ? data.slug
+            : undefined;
+
+      if (marketSlug) {
+        return {
+          type: "market",
+          marketSlug,
+          marketUrl: `/markets/${marketSlug}`,
+          source: "json",
+          raw: content,
+        };
+      }
+    }
 
     if (
       data &&
@@ -145,6 +213,20 @@ function parseURLFormat(content: string): QRData | null {
     const restaurantId = url.searchParams.get("r");
     const identifier = url.searchParams.get("n");
 
+    if (sig && qrType === "market") {
+      const signedMarketSlug =
+        url.searchParams.get("m") || url.searchParams.get("slug");
+      if (signedMarketSlug) {
+        return {
+          type: "market",
+          marketSlug: signedMarketSlug,
+          marketUrl: `/markets/${signedMarketSlug}`,
+          source: "url",
+          raw: content,
+        };
+      }
+    }
+
     if (sig && qrType && restaurantId && identifier) {
       if (qrType === "shop") {
         return {
@@ -194,6 +276,20 @@ function parseURLFormat(content: string): QRData | null {
         type: "table",
         restaurantId: pathMatch2[1],
         tableId: parseInt(pathMatch2[2]),
+        source: "url",
+        raw: content,
+      };
+    }
+
+    // 市場模式路徑: /markets/fengjia-night-market
+    const marketPathMatch = url.pathname.match(
+      /^\/markets\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/,
+    );
+    if (marketPathMatch) {
+      return {
+        type: "market",
+        marketSlug: marketPathMatch[1],
+        marketUrl: `/markets/${marketPathMatch[1]}`,
         source: "url",
         raw: content,
       };
@@ -286,6 +382,10 @@ function parseSimpleFormat(content: string): QRData | null {
  * 驗證 QR 資料的有效性
  */
 export function validateQRData(data: QRData): boolean {
+  if (data.type === "market") {
+    return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.marketSlug);
+  }
+
   // 檢查餐廳 ID
   if (
     !data.restaurantId ||
@@ -341,6 +441,18 @@ export function generateQRContent(
   const format = options?.format || "json";
 
   switch (type) {
+    case "market":
+      if (format === "url") {
+        return `https://makanmakan.app/markets/${restaurantId}`;
+      }
+      if (format === "simple" || format === "shop") {
+        return `MARKET-${restaurantId}`;
+      }
+      return JSON.stringify({
+        type: "market",
+        marketSlug: restaurantId,
+      });
+
     case "shop":
       if (format === "shop" || format === "simple") {
         return (
@@ -391,6 +503,8 @@ export function generateQRContent(
  */
 export function getQRTypeDescription(type: QRType): string {
   switch (type) {
+    case "market":
+      return "夜市／商圈 QR Code";
     case "shop":
       return "店家級別 QR Code（無桌號點餐）";
     case "table":
@@ -407,6 +521,8 @@ export function getQRTypeDescription(type: QRType): string {
  */
 export function getQRFormatDescription(source: QRData["source"]): string {
   switch (source) {
+    case "market":
+      return "市場 QR 格式 (MARKET-SLUG)";
     case "shop":
       return "店家 QR 格式 (SHOP-ID-TIMESTAMP)";
     case "json":
