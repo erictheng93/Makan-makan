@@ -106,6 +106,8 @@ async function seedSearchIndex(
     supportsDelivery?: boolean;
     tags?: string[];
     categoryName?: string | null;
+    catalogType?: "menu_item" | "product";
+    restaurantId?: string;
     marketIds?: string[];
     primaryMarketId?: string | null;
     latitude?: number | null;
@@ -117,7 +119,7 @@ async function seedSearchIndex(
   for (const item of items) {
     await testApp.testDb.drizzle.insert(dishSearchIndex).values({
       menuItemId: item.menuItemId,
-      restaurantId,
+      restaurantId: item.restaurantId ?? restaurantId,
       dishName: item.name,
       // Normalization mirrors DiscoveryService.normalizeQuery():
       // trim + lowercase + collapse whitespace
@@ -126,6 +128,7 @@ async function seedSearchIndex(
       isAvailable: (item.isAvailable ?? true) as unknown as boolean,
       price: item.price,
       priceCents: item.priceCents ?? null,
+      catalogType: item.catalogType ?? "menu_item",
       district: item.district,
       supportsTakeaway: (item.supportsTakeaway ?? false) as unknown as boolean,
       supportsDelivery: (item.supportsDelivery ?? false) as unknown as boolean,
@@ -137,6 +140,186 @@ async function seedSearchIndex(
       updatedAt: new Date(),
     });
   }
+}
+
+function chunkRows<T>(rows: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < rows.length; index += size) {
+    chunks.push(rows.slice(index, index + size));
+  }
+  return chunks;
+}
+
+async function seedRealisticMarketSearchFixture(
+  testApp: RealIntegrationTestApp,
+  marketId: string,
+  options: { vendorCount: number; itemsPerVendor: number },
+): Promise<{ expectedChickenItems: number; totalItems: number }> {
+  const now = new Date();
+  const restaurantValues = Array.from(
+    { length: options.vendorCount },
+    (_, vendorIndex) => ({
+      id: `load-vendor-${crypto.randomUUID()}`,
+      name: `效能市場攤位 ${vendorIndex + 1}`,
+      type: "street_food",
+      category: "food",
+      description: "Realistic market search fixture vendor",
+      address: `台中市西屯區文華路 ${vendorIndex + 1} 號`,
+      district: "西屯區",
+      city: "台中市",
+      phone: `020000${String(vendorIndex).padStart(4, "0")}`,
+      businessHours: openAllWeek(),
+      settings: {
+        allowOnlineOrdering: true,
+        allowGuestOrders: true,
+        currency: "TWD",
+      },
+      isAvailable: true,
+      isActive: true,
+      supportsTakeaway: true,
+      supportsDelivery: vendorIndex % 3 === 0,
+      latitude: 24.1764 + vendorIndex * 0.0001,
+      longitude: 120.6466 + vendorIndex * 0.0001,
+      createdAt: now,
+      updatedAt: now,
+    }),
+  );
+
+  const insertedRestaurants: { id: string }[] = [];
+  for (const chunk of chunkRows(restaurantValues, 4)) {
+    const rows = await testApp.testDb.drizzle
+      .insert(restaurants)
+      .values(chunk)
+      .returning({ id: restaurants.id });
+    insertedRestaurants.push(...rows);
+  }
+
+  const membershipValues = insertedRestaurants.map(
+    (restaurant, vendorIndex) => ({
+      restaurantId: restaurant.id,
+      marketId,
+      stallNumber: `L-${String(vendorIndex + 1).padStart(3, "0")}`,
+      isPrimary: vendorIndex === 0,
+      joinedAt: now,
+    }),
+  );
+  for (const chunk of chunkRows(membershipValues, 12)) {
+    await testApp.testDb.drizzle
+      .insert(restaurantMarketMemberships)
+      .values(chunk);
+  }
+
+  const categoryValues = insertedRestaurants.map((restaurant, vendorIndex) => ({
+    restaurantId: restaurant.id,
+    name: `市場分類 ${vendorIndex + 1}`,
+    description: "Realistic market search fixture category",
+    sortOrder: 0,
+    isActive: true,
+    isVisible: true,
+    itemCount: options.itemsPerVendor,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  const insertedCategories: { id: number; restaurantId: string }[] = [];
+  for (const chunk of chunkRows(categoryValues, 8)) {
+    const rows = await testApp.testDb.drizzle
+      .insert(categories)
+      .values(chunk)
+      .returning({ id: categories.id, restaurantId: categories.restaurantId });
+    insertedCategories.push(...rows);
+  }
+
+  const categoryIdByRestaurant = new Map(
+    insertedCategories.map((category) => [category.restaurantId, category.id]),
+  );
+  const menuValues = insertedRestaurants.flatMap((restaurant, vendorIndex) =>
+    Array.from({ length: options.itemsPerVendor }, (_, itemIndex) => {
+      const sequence = vendorIndex * options.itemsPerVendor + itemIndex;
+      const isChickenItem = itemIndex % 4 === 0;
+      return {
+        restaurantId: restaurant.id,
+        categoryId: categoryIdByRestaurant.get(restaurant.id) ?? 0,
+        name: isChickenItem
+          ? `夜市雞排 ${vendorIndex + 1}-${itemIndex + 1}`
+          : `市場商品 ${vendorIndex + 1}-${itemIndex + 1}`,
+        description: "Realistic market search fixture item",
+        ingredients: "salt",
+        price: 80 + (sequence % 12) * 5,
+        priceCents: (80 + (sequence % 12) * 5) * 100,
+        catalogType:
+          itemIndex % 5 === 0 ? ("product" as const) : ("menu_item" as const),
+        isAvailable: true,
+        isFeatured: false,
+        isPopular: sequence % 7 === 0,
+        sortOrder: itemIndex,
+        spiceLevel: 0,
+        preparationTime: 12,
+        dietaryInfo: {},
+        allergens: [],
+        tags: isChickenItem ? ["雞排", "小吃"] : ["夜市", "商品"],
+        keywords: isChickenItem ? "雞排 小吃" : "夜市 商品",
+        createdAt: now,
+        updatedAt: now,
+      };
+    }),
+  );
+
+  const insertedItems: {
+    id: number;
+    restaurantId: string;
+    name: string;
+    price: number;
+    priceCents: number | null;
+    catalogType: "menu_item" | "product";
+    tags: string[] | null;
+  }[] = [];
+  for (const chunk of chunkRows(menuValues, 3)) {
+    const rows = await testApp.testDb.drizzle
+      .insert(menuItems)
+      .values(chunk)
+      .returning({
+        id: menuItems.id,
+        restaurantId: menuItems.restaurantId,
+        name: menuItems.name,
+        price: menuItems.price,
+        priceCents: menuItems.priceCents,
+        catalogType: menuItems.catalogType,
+        tags: menuItems.tags,
+      });
+    insertedItems.push(...rows);
+  }
+
+  await seedSearchIndex(
+    testApp,
+    insertedRestaurants[0]?.id ?? "",
+    insertedItems.map((item) => ({
+      menuItemId: item.id,
+      name: item.name,
+      price: item.price,
+      priceCents: item.priceCents,
+      tags: item.tags ?? [],
+      catalogType: item.catalogType,
+      restaurantId: item.restaurantId,
+      district: "西屯區",
+      supportsTakeaway: true,
+      supportsDelivery:
+        insertedRestaurants.findIndex(
+          (restaurant) => restaurant.id === item.restaurantId,
+        ) %
+          3 ===
+        0,
+      marketIds: [marketId],
+      primaryMarketId: marketId,
+      latitude: 24.1764,
+      longitude: 120.6466,
+    })),
+  );
+
+  return {
+    expectedChickenItems:
+      options.vendorCount * Math.ceil(options.itemsPerVendor / 4),
+    totalItems: options.vendorCount * options.itemsPerVendor,
+  };
 }
 
 describe("Discovery API — real integration", () => {
@@ -386,6 +569,37 @@ describe("Discovery API — real integration", () => {
       "Curry Puff 23",
       "Curry Puff 24",
     ]);
+  });
+
+  it("measures market-scoped search against a realistic market-size fixture", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "realistic-search-performance-market",
+    });
+    const fixture = await seedRealisticMarketSearchFixture(testApp, market.id, {
+      vendorCount: 36,
+      itemsPerVendor: 8,
+    });
+
+    const startedAt = performance.now();
+    const res = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/search?q=${encodeURIComponent(
+          "雞排",
+        )}&marketId=${market.id}&page=1&limit=20`,
+      ),
+    );
+    const durationMs = performance.now() - startedAt;
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.data.total).toBe(fixture.expectedChickenItems);
+    expect(json.data.results).toHaveLength(20);
+    expect(json.data.results[0].marketVendor).toMatchObject({
+      marketId: market.id,
+    });
+    expect(fixture.totalItems).toBe(288);
+    expect(durationMs).toBeLessThan(1500);
   });
 
   it("returns filtered totals independent of the current page slice", async () => {
