@@ -13,6 +13,9 @@ const menuItemsFixture = vi.hoisted(() => ({
 const serviceItemsFixture = vi.hoisted(() => ({
   items: null as Array<Record<string, unknown>> | null,
 }));
+const marketMembershipsFixture = vi.hoisted(() => ({
+  memberships: null as Array<Record<string, unknown>> | null,
+}));
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({ path: "/restaurant/restaurant-1/shop/menu" }),
@@ -146,22 +149,25 @@ vi.mock("@tanstack/vue-query", () => ({
     if (options.queryKey[0] === "restaurant-markets") {
       return {
         data: ref({
-          memberships: [
-            {
-              marketId: "market-1",
-              stallNumber: "A-18",
-              isPrimary: true,
-              market: {
-                id: "market-1",
-                slug: "fengjia",
-                name: "逢甲夜市",
-                type: "night_market",
-                city: "台中市",
-                district: "西屯區",
-              },
-              marketUrl: "/markets/fengjia",
-            },
-          ],
+          memberships:
+            marketMembershipsFixture.memberships !== null
+              ? marketMembershipsFixture.memberships
+              : [
+                  {
+                    marketId: "market-1",
+                    stallNumber: "A-18",
+                    isPrimary: true,
+                    market: {
+                      id: "market-1",
+                      slug: "fengjia",
+                      name: "逢甲夜市",
+                      type: "night_market",
+                      city: "台中市",
+                      district: "西屯區",
+                    },
+                    marketUrl: "/markets/fengjia",
+                  },
+                ],
         }),
         isLoading: ref(false),
         error: ref(null),
@@ -230,6 +236,7 @@ describe("ShopMenuView service items", () => {
     routerPush.mockReset();
     menuItemsFixture.items = null;
     serviceItemsFixture.items = null;
+    marketMembershipsFixture.memberships = null;
     scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -358,6 +365,7 @@ describe("ShopMenuView service items", () => {
     expect(discoveryApi.getRestaurantMarkets).toBeDefined();
     const marketContext = wrapper.get('[data-testid="shop-market-context"]');
     expect(marketContext.text()).toContain("逢甲夜市");
+    expect(marketContext.text()).toContain("夜市");
     expect(marketContext.text()).toContain("A-18");
 
     await wrapper
@@ -365,6 +373,44 @@ describe("ShopMenuView service items", () => {
       .trigger("click");
 
     expect(routerPush).toHaveBeenCalledWith("/markets/fengjia");
+  });
+
+  it("shows market membership venue types on shop menus", () => {
+    marketMembershipsFixture.memberships = [
+      {
+        marketId: "market-2",
+        stallNumber: "B-02",
+        isPrimary: true,
+        market: {
+          id: "market-2",
+          slug: "jingming",
+          name: "精明街區",
+          type: "commercial_district",
+          city: "台中市",
+          district: "西區",
+        },
+        marketUrl: "/markets/jingming",
+      },
+    ];
+
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1" },
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    const marketContext = wrapper.get('[data-testid="shop-market-context"]');
+    expect(marketContext.text()).toContain("精明街區");
+    expect(
+      wrapper.get('[data-testid="shop-market-type-jingming"]').text(),
+    ).toBe("商圈");
+    expect(marketContext.text()).toContain("B-02");
   });
 
   it("shows the linked menu item target when opening from a dish result", () => {

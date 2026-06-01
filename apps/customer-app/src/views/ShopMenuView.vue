@@ -220,6 +220,12 @@
               >
                 {{ membership.market.name }}
                 <span
+                  :data-testid="`shop-market-type-${membership.market.slug}`"
+                  class="ml-1 text-xs text-ios-blue/70"
+                >
+                  {{ marketTypeLabel(membership.market.type) }}
+                </span>
+                <span
                   v-if="membership.stallNumber"
                   class="ml-1 text-xs text-ios-blue/70"
                 >
@@ -802,6 +808,16 @@ const servicePriceLabel = (service: RestaurantServiceItem) => {
     return formatPrice(service.priceCents / 100);
   }
   return "";
+};
+
+const marketTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    night_market: "夜市",
+    commercial_district: "商圈",
+    food_court: "美食街",
+    event_venue: "活動場域",
+  };
+  return labels[type] ?? "場域";
 };
 
 const scrollToCategory = (categoryId: number) => {
