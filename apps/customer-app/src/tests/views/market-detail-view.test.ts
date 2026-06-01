@@ -713,6 +713,7 @@ describe("MarketDetailView", () => {
       params: { restaurantId: "service-restaurant-1" },
       query: {
         serviceItemId: "7",
+        services: "true",
         returnPath: "/markets/fengjia",
         returnLabel: "逢甲夜市",
       },
@@ -732,6 +733,7 @@ describe("MarketDetailView", () => {
       params: { restaurantId: "service-restaurant-1" },
       query: {
         serviceItemId: "7",
+        services: "true",
         returnPath:
           "/markets/fengjia?serviceType=pickup&resultKind=service&sortBy=open_now",
         returnLabel: "逢甲夜市",

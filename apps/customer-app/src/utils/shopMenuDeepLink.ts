@@ -28,6 +28,7 @@ export function shopMenuItemQuery(dish: {
 export function shopMenuServiceQuery(service: { serviceItemId: number }) {
   return {
     [SHOP_MENU_SERVICE_QUERY_KEY]: String(service.serviceItemId),
+    [SHOP_MENU_SERVICES_QUERY_KEY]: SHOP_MENU_SERVICES_QUERY_VALUE,
   };
 }
 

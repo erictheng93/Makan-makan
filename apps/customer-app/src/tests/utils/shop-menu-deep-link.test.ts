@@ -93,6 +93,7 @@ describe("shop menu deep links", () => {
   it("builds a stable serviceItemId query for service results", () => {
     expect(shopMenuServiceQuery({ serviceItemId: 7 })).toEqual({
       serviceItemId: "7",
+      services: "true",
     });
   });
 

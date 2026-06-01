@@ -363,6 +363,7 @@ describe("DiscoveryView", () => {
       params: { restaurantId: "service-restaurant-1" },
       query: {
         serviceItemId: "7",
+        services: "true",
         returnPath: "/discover?q=%E5%A4%96%E9%80%81",
         returnLabel: "搜尋結果",
       },
@@ -461,6 +462,7 @@ describe("DiscoveryView", () => {
       params: { restaurantId: "service-restaurant-1" },
       query: {
         serviceItemId: "7",
+        services: "true",
         returnPath: "/discover?q=%E5%A4%96%E9%80%81",
         returnLabel: "逢甲夜市",
       },
