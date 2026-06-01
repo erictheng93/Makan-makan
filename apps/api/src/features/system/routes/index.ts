@@ -4,6 +4,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import { validateBody, validateQuery } from "../../../middleware/validation";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
@@ -311,31 +312,28 @@ function getSystemMetrics(): SystemMetrics {
   };
 }
 
-/**
- * 基本健康檢查 (公開端點)
- * GET /api/v1/system/health
- */
-routes.get("/health", async (c) => {
+async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
+  overallStatus: HealthStatus["status"];
+  dbStatus: ServiceCheck;
+  kvStatus: ServiceCheck;
+  responseTimeMs: number;
+}> {
   const startTime = Date.now();
 
-  // 檢查資料庫連接
   let dbStatus: ServiceCheck;
   try {
-    // Use Drizzle ORM for health check
-    const { createDatabase, sql, users } = await import("@makanmakan/database");
+    const { createDatabase, sql } = await import("@makanmakan/database");
     const db = createDatabase(c.env.DB);
-    const result = await db
+    const [result] = await db
       .select({ test: sql<number>`1` })
-      .from(users)
-      .limit(1);
-    const testResult = result[0];
-    const responseTime = Date.now() - startTime;
-    dbStatus = {
+      .from(sql`(SELECT 1)`);
+    const healthResult: ServiceCheck = {
       name: "database",
-      status: testResult?.test === 1 ? "healthy" : "unhealthy",
-      responseTime,
+      status: result?.test === 1 ? "healthy" : "degraded",
+      responseTime: Date.now() - startTime,
       lastCheck: new Date().toISOString(),
     };
+    dbStatus = healthResult;
   } catch (error) {
     dbStatus = {
       name: "database",
@@ -345,7 +343,6 @@ routes.get("/health", async (c) => {
     };
   }
 
-  // 檢查KV存儲
   let kvStatus: ServiceCheck;
   try {
     const testKey = `health-check-${Date.now()}`;
@@ -360,7 +357,6 @@ routes.get("/health", async (c) => {
       lastCheck: new Date().toISOString(),
     };
 
-    // 清理測試數據
     await c.env.CACHE_KV.delete(testKey);
   } catch (error) {
     kvStatus = {
@@ -371,7 +367,6 @@ routes.get("/health", async (c) => {
     };
   }
 
-  // 確定整體狀態
   const services = [dbStatus, kvStatus];
   const unhealthyServices = services.filter((s) => s.status === "unhealthy");
   const degradedServices = services.filter((s) => s.status === "degraded");
@@ -383,24 +378,45 @@ routes.get("/health", async (c) => {
     overallStatus = "degraded";
   }
 
+  return {
+    overallStatus,
+    dbStatus,
+    kvStatus,
+    responseTimeMs: Date.now() - startTime,
+  };
+}
+
+/**
+ * 基本健康檢查 (公開端點)
+ * GET /api/v1/system/health
+ */
+routes.get("/health", async (c) => {
+  const {
+    overallStatus: baseHealthStatus,
+    dbStatus,
+    kvStatus,
+    responseTimeMs,
+  } = await runBasicHealthCheck(c);
+
+  const services = [dbStatus, kvStatus];
   const health: HealthStatus = {
-    status: overallStatus,
+    status: baseHealthStatus,
     timestamp: new Date().toISOString(),
-    uptime: Date.now() - startTime, // 簡化的uptime計算
+    uptime: responseTimeMs,
     version: c.env.API_VERSION || "v1",
     environment: c.env.NODE_ENV || "development",
   };
 
   const statusCode =
-    overallStatus === "healthy"
+    baseHealthStatus === "healthy"
       ? 200
-      : overallStatus === "degraded"
+      : baseHealthStatus === "degraded"
         ? 200
         : 503;
 
   return c.json(
     {
-      success: overallStatus !== "unhealthy",
+      success: baseHealthStatus !== "unhealthy",
       ...health,
       services,
       checks: {
@@ -484,18 +500,8 @@ routes.get(
     const startTime = Date.now();
 
     // 執行基本健康檢查
-    const basicHealthResponse = await fetch(
-      `${c.req.url.split("/health/detailed")[0]}/health`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    const basicData = (await basicHealthResponse.json()) as {
-      status: string;
-    };
+    const basicHealth = await runBasicHealthCheck(c);
+    const basicData = { status: basicHealth.overallStatus };
 
     // 獲取系統指標
     const metrics = getSystemMetrics();

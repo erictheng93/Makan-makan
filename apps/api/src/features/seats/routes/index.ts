@@ -3,9 +3,13 @@
  * API endpoints for seat management
  */
 
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { SeatService, USER_ROLES } from "@makanmakan/database";
-import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  authMiddleware,
+  requireRole,
+  type AuthUser,
+} from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
@@ -14,7 +18,11 @@ import {
   commonSchemas,
 } from "../../../middleware/validation";
 import type { Env } from "../../../types/env";
-import { notFound, badRequest } from "../../../shared/utils/api-error";
+import {
+  notFound,
+  badRequest,
+  forbidden,
+} from "../../../shared/utils/api-error";
 import {
   batchCreateSeatsSchema,
   updateSeatSchema,
@@ -33,12 +41,81 @@ import {
   type TableIdQueryInput,
   type UpdateSeatInput,
 } from "../schemas/validation";
+import { TablesService } from "../../tables/services/TablesService";
 
 const routes = new Hono<{ Bindings: Env }>();
+
+type SeatsContext = Context<{
+  Bindings: Env;
+  Variables: {
+    validatedBody?: unknown;
+    validatedQuery?: unknown;
+    validatedParams?: unknown;
+    user: AuthUser;
+  };
+}>;
 
 /** Create SeatService from Hono context */
 function createSeatService(env: Env): SeatService {
   return new SeatService(env.DB, env);
+}
+
+function createTablesService(env: Env): TablesService {
+  return new TablesService(env);
+}
+
+function seatsContext(c: Context): SeatsContext {
+  return c as unknown as SeatsContext;
+}
+
+async function ensureTableAccess(
+  c: SeatsContext,
+  tableId: number,
+): Promise<void> {
+  const currentUser = c.get("user");
+
+  if (currentUser.role === USER_ROLES.ADMIN) {
+    return;
+  }
+
+  const tablesService = createTablesService(c.env);
+  const table = await tablesService.getTableById(tableId);
+
+  if (!table) {
+    throw notFound("Table not found");
+  }
+
+  const ownsRestaurant = tablesService.validateRestaurantAccess(
+    table.restaurantId,
+    String(currentUser.restaurantId ?? ""),
+    false,
+  );
+
+  if (!ownsRestaurant) {
+    throw forbidden("Access denied");
+  }
+}
+
+async function getSeatWithAccessCheck(
+  c: SeatsContext,
+  seatId: number,
+): Promise<Record<string, unknown>> {
+  const currentUser = c.get("user");
+  const seatService = createSeatService(c.env);
+  const seat = await seatService.getSeatById(seatId);
+
+  if (!seat) {
+    throw notFound("Seat not found");
+  }
+
+  if (currentUser.role !== USER_ROLES.ADMIN) {
+    const userRestaurantId = String(currentUser.restaurantId ?? "");
+    if (String(seat.restaurantId) !== userRestaurantId) {
+      throw forbidden("Access denied");
+    }
+  }
+
+  return seat;
 }
 
 /**
@@ -59,9 +136,12 @@ routes.get(
   validateQuery(seatFilterSchema),
   async (c) => {
     const filters = c.get("validatedQuery") as SeatFilterInput;
+    const { tableId } = filters;
+    await ensureTableAccess(seatsContext(c), tableId);
+
     const seatService = createSeatService(c.env);
 
-    const { tableId, ...otherFilters } = filters;
+    const { ...otherFilters } = filters;
     const result = await seatService.getSeatsByTableId(tableId, otherFilters);
 
     return c.json({
@@ -85,6 +165,8 @@ routes.get(
   validateQuery(tableIdQuerySchema),
   async (c) => {
     const { tableId } = c.get("validatedQuery") as TableIdQueryInput;
+    await ensureTableAccess(seatsContext(c), tableId);
+
     const seatService = createSeatService(c.env);
 
     const stats = await seatService.getSeatStats(tableId);
@@ -148,13 +230,7 @@ routes.get(
   validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
-    const seatService = createSeatService(c.env);
-
-    const seat = await seatService.getSeatById(id);
-
-    if (!seat) {
-      throw notFound("Seat not found");
-    }
+    const seat = await getSeatWithAccessCheck(seatsContext(c), id);
 
     return c.json({
       success: true,
@@ -175,9 +251,12 @@ routes.post(
   validateBody(batchCreateSeatsSchema),
   async (c) => {
     const data = c.get("validatedBody") as BatchCreateSeatsInput;
+    const { tableId } = data;
+    await ensureTableAccess(seatsContext(c), tableId);
+
     const seatService = createSeatService(c.env);
 
-    const { tableId, seatCount, numberingStyle, customNumbers, prefix } = data;
+    const { seatCount, numberingStyle, customNumbers, prefix } = data;
 
     const seats = await seatService.createSeatsForTable(tableId, seatCount, {
       numberingStyle,
@@ -208,6 +287,8 @@ routes.post(
   validateBody(batchRegenerateQRSchema),
   async (c) => {
     const { tableId } = c.get("validatedBody") as BatchRegenerateQRInput;
+    await ensureTableAccess(seatsContext(c), tableId);
+
     const seatService = createSeatService(c.env);
 
     const result = await seatService.batchGenerateSeatQRCodes(tableId);
@@ -237,15 +318,10 @@ routes.put(
   validateBody(updateSeatSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
+    await getSeatWithAccessCheck(seatsContext(c), id);
+
     const data = c.get("validatedBody") as UpdateSeatInput;
     const seatService = createSeatService(c.env);
-
-    const existingSeat = await seatService.getSeatById(id);
-
-    if (!existingSeat) {
-      throw notFound("Seat not found");
-    }
-
     const updatedSeat = await seatService.updateSeat(id, data);
 
     return c.json({
@@ -268,13 +344,9 @@ routes.delete(
   validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
+    await getSeatWithAccessCheck(seatsContext(c), id);
+
     const seatService = createSeatService(c.env);
-
-    const existingSeat = await seatService.getSeatById(id);
-
-    if (!existingSeat) {
-      throw notFound("Seat not found");
-    }
 
     const success = await seatService.deleteSeat(id);
 
@@ -301,6 +373,8 @@ routes.delete(
   validateParams(tableIdParamSchema),
   async (c) => {
     const { tableId } = c.get("validatedParams") as TableIdParamInput;
+    await ensureTableAccess(seatsContext(c), tableId);
+
     const seatService = createSeatService(c.env);
 
     const success = await seatService.deleteSeatsForTable(tableId);
@@ -335,13 +409,8 @@ routes.post(
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const { orderId, occupiedBy } = c.get("validatedBody") as OccupySeatInput;
+    const seat = await getSeatWithAccessCheck(seatsContext(c), id);
     const seatService = createSeatService(c.env);
-
-    const seat = await seatService.getSeatById(id);
-
-    if (!seat) {
-      throw notFound("Seat not found");
-    }
 
     if (seat.isOccupied) {
       throw badRequest("Seat is already occupied");
@@ -377,13 +446,9 @@ routes.post(
   validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
+    await getSeatWithAccessCheck(seatsContext(c), id);
+
     const seatService = createSeatService(c.env);
-
-    const seat = await seatService.getSeatById(id);
-
-    if (!seat) {
-      throw notFound("Seat not found");
-    }
 
     const success = await seatService.releaseSeat(id);
 
@@ -410,13 +475,9 @@ routes.post(
   validateParams(commonSchemas.idParam),
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
+    await getSeatWithAccessCheck(seatsContext(c), id);
+
     const seatService = createSeatService(c.env);
-
-    const seat = await seatService.getSeatById(id);
-
-    if (!seat) {
-      throw notFound("Seat not found");
-    }
 
     const result = await seatService.regenerateSeatQRCode(id);
 
