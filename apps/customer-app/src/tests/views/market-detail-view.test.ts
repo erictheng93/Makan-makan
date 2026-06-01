@@ -9,6 +9,9 @@ import { useMarketsStore } from "@/stores/markets";
 const routerPush = vi.hoisted(() => vi.fn());
 const routerReplace = vi.hoisted(() => vi.fn());
 const routerBack = vi.hoisted(() => vi.fn());
+const createMarketCheckout = vi.hoisted(() => vi.fn());
+const toastSuccess = vi.hoisted(() => vi.fn());
+const toastError = vi.hoisted(() => vi.fn());
 const routeQuery = vi.hoisted(() => ({}) as Record<string, unknown>);
 
 vi.mock("vue-router", () => ({
@@ -26,6 +29,19 @@ vi.mock("vue-router", () => ({
 
 vi.mock("@/stores/markets", () => ({
   useMarketsStore: vi.fn(),
+}));
+
+vi.mock("vue-toastification", () => ({
+  useToast: () => ({
+    success: toastSuccess,
+    error: toastError,
+  }),
+}));
+
+vi.mock("@/services/orderApi", () => ({
+  orderApi: {
+    createMarketCheckout,
+  },
 }));
 
 vi.mock("@/services/discoveryApi", () => ({
@@ -401,6 +417,9 @@ describe("MarketDetailView", () => {
     routerPush.mockReset();
     routerReplace.mockReset();
     routerBack.mockReset();
+    createMarketCheckout.mockReset();
+    toastSuccess.mockReset();
+    toastError.mockReset();
     for (const key of Object.keys(routeQuery)) {
       delete routeQuery[key];
     }
@@ -485,6 +504,126 @@ describe("MarketDetailView", () => {
     expect(summary.text()).toContain("2 項");
     expect(summary.text()).toContain("章魚燒");
     expect(summary.text()).toContain("NT$160");
+  });
+
+  it("submits a multi-vendor market checkout from the basket", async () => {
+    createMarketCheckout.mockResolvedValueOnce({
+      checkout: {
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "",
+          },
+        ],
+        subtotal: 240,
+        createdAt: "",
+      },
+      childOrders: [],
+    });
+    const cartStore = useMarketCartStore();
+    cartStore.addItem({
+      marketSlug: "fengjia",
+      marketName: "逢甲夜市",
+      restaurantId: "restaurant-1",
+      restaurantName: "雞排攤",
+      item: {
+        id: 42,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        catalogType: "menu_item",
+        name: "章魚燒",
+        price: 80,
+        spiceLevel: 0,
+        sortOrder: 1,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+      quantity: 2,
+    });
+    cartStore.addItem({
+      marketSlug: "fengjia",
+      marketName: "逢甲夜市",
+      restaurantId: "restaurant-2",
+      restaurantName: "甜點攤",
+      item: {
+        id: 43,
+        restaurantId: "restaurant-2",
+        categoryId: 11,
+        catalogType: "menu_item",
+        name: "豆花",
+        price: 80,
+        spiceLevel: 0,
+        sortOrder: 1,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+      quantity: 1,
+    });
+
+    const wrapper = mountView();
+    await wrapper.get('[data-testid="market-checkout-phone"]').setValue("789");
+    await wrapper
+      .get('[data-testid="market-checkout-submit"]')
+      .trigger("click");
+
+    expect(createMarketCheckout).toHaveBeenCalledWith({
+      marketSlug: "fengjia",
+      guestName: "Guest",
+      phoneLastDigits: "789",
+      vendors: [
+        {
+          restaurantId: "restaurant-1",
+          items: [
+            {
+              menuItemId: 42,
+              quantity: 2,
+              customizations: undefined,
+              notes: undefined,
+            },
+          ],
+        },
+        {
+          restaurantId: "restaurant-2",
+          items: [
+            {
+              menuItemId: 43,
+              quantity: 1,
+              customizations: undefined,
+              notes: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="market-checkout-result"]').text(),
+      ).toContain("已送出 2");
+    });
+    expect(toastSuccess).toHaveBeenCalledWith("市場訂單已送出");
   });
 
   it("passes shareable query state into market product search", () => {

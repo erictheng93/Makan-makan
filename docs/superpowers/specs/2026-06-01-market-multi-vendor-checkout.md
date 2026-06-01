@@ -18,6 +18,19 @@ Phase 1 builds a market basket in the customer app:
 True one-click joint checkout is not part of Phase 1 because the current order
 API and database order model are restaurant-scoped.
 
+Phase 2 adds a market checkout session without changing the `orders` table:
+
+- `POST /api/v1/market-checkouts` accepts a market slug and at least two vendor
+  item groups.
+- The API validates that every vendor is an active member of the market and
+  that each requested item is currently available for that vendor.
+- The API creates one existing guest order per vendor and stores a parent
+  checkout session in KV for aggregate lookup.
+- The customer market basket can submit all vendor groups in one action.
+
+Joint payment remains out of scope. The session now coordinates child orders;
+payment orchestration can attach to the same parent session later.
+
 ## Tech Stack
 
 - Vue 3 customer app with Pinia stores.
@@ -25,6 +38,7 @@ API and database order model are restaurant-scoped.
 - Vitest for store and view tests.
 - Existing single-restaurant `shopCart` remains the source for current vendor
   checkout.
+- Market checkout uses the existing guest order creation path for child orders.
 
 ## Commands
 
@@ -32,6 +46,8 @@ API and database order model are restaurant-scoped.
 - Lint: `rtk pnpm lint`
 - Targeted tests:
   `rtk pnpm --filter customer-app test -- src/tests/stores/market-cart.test.ts src/tests/views/shop-menu-services.test.ts src/tests/views/market-detail-view.test.ts`
+- API validation tests:
+  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/schemas/validation.test.ts`
 
 ## Project Structure
 
@@ -39,9 +55,11 @@ API and database order model are restaurant-scoped.
 - `apps/customer-app/src/views/ShopMenuView.vue` mirrors market-context adds
   into the market basket.
 - `apps/customer-app/src/views/MarketDetailView.vue` displays the basket
-  summary.
+  summary and submits the market checkout.
 - `apps/customer-app/src/tests/stores/market-cart.test.ts` covers persistence
   and vendor grouping.
+- `apps/api/src/features/market-checkouts/` owns the public market checkout
+  endpoint and request validation.
 
 ## Code Style
 
@@ -69,6 +87,9 @@ payloads, localStorage validation with Zod, and no new dependencies.
   without brittle DOM behavior.
 - Phase 1 does not add backend API tests because it does not change order
   submission contracts.
+- Phase 2 adds API schema tests and customer view tests for multi-vendor
+  submission. Route integration should be broadened when payment/session
+  tracking becomes persistent beyond KV.
 
 ## Boundaries
 
@@ -80,6 +101,8 @@ payloads, localStorage validation with Zod, and no new dependencies.
 - Ask first: changing `/guest-orders` or `orders.restaurant_id` semantics.
 - Never: silently submit one combined order to a single vendor when items came
   from multiple vendors.
+- Never: create child orders for restaurants that are not active members of the
+  requested market.
 
 ## Success Criteria
 
@@ -88,13 +111,13 @@ payloads, localStorage validation with Zod, and no new dependencies.
 - Adding the same item/options/notes again merges quantity.
 - Navigating back to the market detail shows a grouped basket summary.
 - Basket data survives reload and invalid or expired storage is discarded.
+- Submitting a market basket with at least two vendors creates one child order
+  per vendor through `/api/v1/market-checkouts`.
+- A parent checkout session records market identity and child order summaries.
 - Existing shop cart tests and market detail tests still pass.
 
 ## Open Questions
 
-- Phase 2 backend model: should market checkout create a parent market checkout
-  session with multiple child orders, or extend group orders to support multiple
-  restaurants?
 - Payment model: should users pay once at market level, pay each vendor
   separately, or support both?
 - Fulfillment model: should pickup status be tracked per vendor, per market

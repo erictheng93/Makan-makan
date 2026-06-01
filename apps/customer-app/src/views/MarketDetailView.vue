@@ -195,6 +195,51 @@
                 </p>
               </article>
             </div>
+
+            <div class="space-y-2 border-t border-emerald-200 pt-3">
+              <label
+                class="block text-xs font-medium uppercase tracking-wide text-emerald-800"
+                for="market-checkout-phone"
+              >
+                手機末三碼
+              </label>
+              <div class="flex gap-2">
+                <input
+                  id="market-checkout-phone"
+                  v-model="marketCheckoutPhoneLastDigits"
+                  type="tel"
+                  inputmode="numeric"
+                  maxlength="3"
+                  pattern="[0-9]{3}"
+                  data-testid="market-checkout-phone"
+                  class="min-w-0 flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                />
+                <button
+                  type="button"
+                  data-testid="market-checkout-submit"
+                  class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  :disabled="!canSubmitMarketCheckout"
+                  @click="submitMarketCheckout"
+                >
+                  {{ isSubmittingMarketCheckout ? "送出中" : "送出" }}
+                </button>
+              </div>
+              <p
+                v-if="marketCart.vendors.length < 2"
+                class="text-xs text-emerald-800"
+              >
+                多攤位結帳需至少選擇 2 個攤位。
+              </p>
+            </div>
+
+            <div
+              v-if="marketCheckoutResult"
+              data-testid="market-checkout-result"
+              class="rounded-lg bg-white px-3 py-2 text-sm text-emerald-900"
+            >
+              已送出 {{ marketCheckoutResult.checkout.childOrders.length }}
+              筆攤位訂單。
+            </div>
           </section>
 
           <StallMapInMarket
@@ -327,6 +372,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
 import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import StallMapInMarket from "@/components/markets/StallMapInMarket.vue";
@@ -357,9 +403,11 @@ import {
   shopMenuServicesQuery,
 } from "@/utils/shopMenuDeepLink";
 import { useCurrency } from "@/composables/useCurrency";
+import { orderApi, type MarketCheckoutResponse } from "@/services/orderApi";
 
 const route = useRoute();
 const router = useRouter();
+const toast = useToast();
 const store = useMarketsStore();
 const marketCartStore = useMarketCartStore();
 const { formatPrice } = useCurrency();
@@ -386,6 +434,9 @@ const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
 const faqQuery = ref("");
 const isFavorite = ref(false);
+const marketCheckoutPhoneLastDigits = ref("000");
+const isSubmittingMarketCheckout = ref(false);
+const marketCheckoutResult = ref<MarketCheckoutResponse | null>(null);
 let queryTimer: ReturnType<typeof setTimeout> | undefined;
 type MarketSearchState = {
   q: string;
@@ -554,6 +605,14 @@ const marketCartItemCount = computed(() =>
 );
 const marketCartSubtotal = computed(() =>
   marketCart.value ? marketCartStore.subtotalForCart(marketCart.value) : 0,
+);
+const canSubmitMarketCheckout = computed(
+  () =>
+    !!marketCart.value &&
+    marketCart.value.vendors.length >= 2 &&
+    /^\d{3}$/.test(marketCheckoutPhoneLastDigits.value) &&
+    !isSubmittingMarketCheckout.value &&
+    !marketCheckoutResult.value,
 );
 
 const serviceTypeLabels: Record<
@@ -890,6 +949,36 @@ function toggleFavorite() {
 
 function vendorItemCount(vendor: MarketCartVendor) {
   return vendor.items.reduce((total, item) => total + item.quantity, 0);
+}
+
+async function submitMarketCheckout() {
+  if (!marketCart.value || !canSubmitMarketCheckout.value) return;
+
+  isSubmittingMarketCheckout.value = true;
+  try {
+    const checkout = await orderApi.createMarketCheckout({
+      marketSlug: marketCart.value.marketSlug,
+      guestName: "Guest",
+      phoneLastDigits: marketCheckoutPhoneLastDigits.value,
+      vendors: marketCart.value.vendors.map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        items: vendor.items.map((item) => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+      })),
+    });
+
+    marketCheckoutResult.value = checkout;
+    toast.success("市場訂單已送出");
+  } catch (error) {
+    console.error("Market checkout failed:", error);
+    toast.error(error instanceof Error ? error.message : "市場訂單送出失敗");
+  } finally {
+    isSubmittingMarketCheckout.value = false;
+  }
 }
 
 async function openContactProfile(vendor: MarketVendor) {

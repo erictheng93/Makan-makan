@@ -52,6 +52,54 @@ export interface GuestOrderResponse {
   tokenExpiresAt: string;
 }
 
+export interface CreateMarketCheckoutRequest {
+  marketSlug: string;
+  guestName: string;
+  phoneLastDigits: string;
+  notes?: string;
+  vendors: Array<{
+    restaurantId: string;
+    items: Array<{
+      menuItemId: number;
+      quantity: number;
+      customizations?: any;
+      notes?: string;
+    }>;
+    notes?: string;
+    clientMutationId?: string;
+  }>;
+}
+
+export interface MarketCheckoutResponse {
+  checkout: {
+    id: string;
+    market: {
+      id: string;
+      slug: string;
+      name: string;
+    };
+    status: "submitted";
+    childOrders: Array<{
+      restaurantId: string;
+      restaurantName: string;
+      orderId: number;
+      orderNumber: string;
+      totalAmount: number;
+      totalAmountCents?: number | null;
+      tokenExpiresAt: string;
+    }>;
+    subtotal: number;
+    createdAt: string;
+  };
+  childOrders: Array<{
+    restaurantId: string;
+    restaurantName: string;
+    order: Order;
+    guestToken: string;
+    tokenExpiresAt: string;
+  }>;
+}
+
 interface GuestOrderEnvelope {
   order: Order;
 }
@@ -85,6 +133,23 @@ export const orderApi = {
     // Store guest token for subsequent requests (order tracking, etc.)
     if (response.guestToken) {
       localStorage.setItem("guest_auth_token", response.guestToken);
+    }
+    return response;
+  },
+
+  async createMarketCheckout(
+    checkoutData: CreateMarketCheckoutRequest,
+  ): Promise<MarketCheckoutResponse> {
+    const response = await apiClient.post<MarketCheckoutResponse>(
+      "/market-checkouts",
+      checkoutData,
+    );
+    localStorage.setItem("market_guest_checkout", JSON.stringify(response));
+    if (response.childOrders[0]?.guestToken) {
+      localStorage.setItem(
+        "guest_auth_token",
+        response.childOrders[0].guestToken,
+      );
     }
     return response;
   },
