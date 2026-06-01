@@ -149,6 +149,13 @@ export enum RealtimeEventType {
   WAITING_LIST_SEATED = "waiting_list_seated",
   WAITING_LIST_CANCELLED = "waiting_list_cancelled",
   WAITING_LIST_EXPIRED = "waiting_list_expired",
+
+  // 群組訂單事件 (G2)
+  GROUP_ORDER_CREATED = "group_order_created",
+  GROUP_MEMBER_JOINED = "group_member_joined",
+  GROUP_CART_ITEM_ADDED = "group_cart_item_added",
+  GROUP_CART_ITEM_UPDATED = "group_cart_item_updated",
+  GROUP_CART_ITEM_REMOVED = "group_cart_item_removed",
 }
 
 /**
@@ -521,7 +528,9 @@ export type RealtimeEvent =
   | ErrorEvent
   | RestaurantStatusUpdateEvent
   // 候位事件 (G1)
-  | WaitingListEvent;
+  | WaitingListEvent
+  // 群組訂單事件 (G2)
+  | GroupOrderEvent;
 
 /**
  * 候位生命週期事件 (G1)
@@ -554,6 +563,31 @@ export interface WaitingListEvent extends BaseRealtimeEvent {
     tableId?: number | null;
     /** 顧客姓名 */
     customerName?: string;
+  };
+}
+
+/**
+ * 群組訂單事件 (G2)
+ *
+ * 同一介面涵蓋 5 個群組訂單事件，由 type 欄位區分：
+ *   group_order_created / group_member_joined / group_cart_item_added /
+ *   group_cart_item_updated / group_cart_item_removed
+ *
+ * 廣播 room 為 `group_order:${groupOrderId}`。data 的額外欄位依事件類型而異，
+ * 因此除必備的 groupOrderId 外以索引簽章保留彈性。
+ */
+export interface GroupOrderEvent extends BaseRealtimeEvent {
+  type:
+    | RealtimeEventType.GROUP_ORDER_CREATED
+    | RealtimeEventType.GROUP_MEMBER_JOINED
+    | RealtimeEventType.GROUP_CART_ITEM_ADDED
+    | RealtimeEventType.GROUP_CART_ITEM_UPDATED
+    | RealtimeEventType.GROUP_CART_ITEM_REMOVED;
+  data: {
+    /** 群組訂單 ID */
+    groupOrderId: string;
+    /** 其餘事件相關欄位（依事件類型而異） */
+    [key: string]: unknown;
   };
 }
 

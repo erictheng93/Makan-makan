@@ -17,7 +17,8 @@ import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import { RealtimeBroadcastService } from "@makanmakan/database";
-import type { RealtimeEvent } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmakan/shared-types";
+import type { GroupOrderEvent } from "@makanmakan/shared-types";
 import {
   notFound,
   forbidden,
@@ -33,7 +34,7 @@ type GroupOrderRealtimePayload = Record<string, unknown> & {
 
 async function broadcastGroupOrderEvent(
   env: Env,
-  eventType: string,
+  eventType: GroupOrderEvent["type"],
   payload: GroupOrderRealtimePayload,
 ): Promise<void> {
   const groupOrderId = payload.groupOrderId;
@@ -41,13 +42,13 @@ async function broadcastGroupOrderEvent(
 
   try {
     const broadcaster = new RealtimeBroadcastService(env);
-    const event = {
+    const event: GroupOrderEvent = {
       type: eventType,
       eventId: broadcaster.generateEventId(),
       timestamp: Date.now(),
       restaurantId: String(payload.restaurantId ?? ""),
-      data: payload,
-    } as unknown as RealtimeEvent;
+      data: { ...payload, groupOrderId },
+    };
 
     await broadcaster.broadcastEvent("group_order", groupOrderId, event);
   } catch (broadcastError) {
@@ -220,12 +221,16 @@ app.post(
       metadata: { groupOrderId: result.data?.groupOrderId, source: "group" },
     });
 
-    await broadcastGroupOrderEvent(c.env, "group_order_created", {
-      groupOrderId: result.data?.groupOrderId,
-      restaurantId: data.restaurantId,
-      tableId: data.tableId,
-      shareCode: result.data?.shareCode,
-    });
+    await broadcastGroupOrderEvent(
+      c.env,
+      RealtimeEventType.GROUP_ORDER_CREATED,
+      {
+        groupOrderId: result.data?.groupOrderId,
+        restaurantId: data.restaurantId,
+        tableId: data.tableId,
+        shareCode: result.data?.shareCode,
+      },
+    );
 
     return c.json({
       success: true,
@@ -253,11 +258,15 @@ app.post(
       throw badRequest(result.error ?? "Failed to join group");
     }
 
-    await broadcastGroupOrderEvent(c.env, "group_member_joined", {
-      groupOrderId: result.data?.groupOrder.groupOrderId,
-      restaurantId: result.data?.groupOrder.restaurantId,
-      member: result.data?.member,
-    });
+    await broadcastGroupOrderEvent(
+      c.env,
+      RealtimeEventType.GROUP_MEMBER_JOINED,
+      {
+        groupOrderId: result.data?.groupOrder.groupOrderId,
+        restaurantId: result.data?.groupOrder.restaurantId,
+        member: result.data?.member,
+      },
+    );
 
     return c.json({
       success: true,
@@ -346,11 +355,15 @@ app.post(
       throw badRequest(result.error ?? "Failed to add cart item");
     }
 
-    await broadcastGroupOrderEvent(c.env, "group_cart_item_added", {
-      groupOrderId,
-      action: "added",
-      item: result.data,
-    });
+    await broadcastGroupOrderEvent(
+      c.env,
+      RealtimeEventType.GROUP_CART_ITEM_ADDED,
+      {
+        groupOrderId,
+        action: "added",
+        item: result.data,
+      },
+    );
 
     return c.json({
       success: true,
@@ -384,11 +397,15 @@ app.put(
       throw badRequest(result.error ?? "Failed to update cart item");
     }
 
-    await broadcastGroupOrderEvent(c.env, "group_cart_item_updated", {
-      groupOrderId,
-      action: "updated",
-      item: result.data,
-    });
+    await broadcastGroupOrderEvent(
+      c.env,
+      RealtimeEventType.GROUP_CART_ITEM_UPDATED,
+      {
+        groupOrderId,
+        action: "updated",
+        item: result.data,
+      },
+    );
 
     return c.json({
       success: true,
@@ -422,11 +439,15 @@ app.delete(
       throw badRequest(result.error ?? "Failed to remove cart item");
     }
 
-    await broadcastGroupOrderEvent(c.env, "group_cart_item_removed", {
-      groupOrderId,
-      action: "removed",
-      itemId,
-    });
+    await broadcastGroupOrderEvent(
+      c.env,
+      RealtimeEventType.GROUP_CART_ITEM_REMOVED,
+      {
+        groupOrderId,
+        action: "removed",
+        itemId,
+      },
+    );
 
     return c.json({
       success: true,
