@@ -98,6 +98,8 @@ export interface MarketVendor {
   supportsDelivery: boolean;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  marketHours?: Record<string, unknown> | null;
+  effectiveBusinessHours?: Record<string, unknown> | null;
   isPrimary: boolean;
 }
 
@@ -160,6 +162,7 @@ export interface ImportMarketVendorInput {
   website?: string;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  marketHours?: Record<string, unknown> | null;
   isPrimary?: boolean;
 }
 
@@ -175,6 +178,7 @@ export interface ImportMarketVendorResult {
   membershipId?: number;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  marketHours?: Record<string, unknown> | null;
 }
 
 export interface ImportMarketVendorIssue {
@@ -215,6 +219,7 @@ export interface RestaurantMarketMembership {
   marketId: string;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  marketHours?: Record<string, unknown> | null;
   isPrimary: boolean;
   joinedAt: string | number | Date;
   market: {
@@ -231,12 +236,14 @@ export interface AddMarketVendorInput {
   restaurantId: string;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  marketHours?: Record<string, unknown> | null;
   isPrimary?: boolean;
 }
 
 export interface UpdateMarketVendorInput {
   stallNumber?: string | null;
   locationLabel?: string | null;
+  marketHours?: Record<string, unknown> | null;
   isPrimary?: boolean;
 }
 
@@ -363,6 +370,7 @@ export const marketsService = {
     input: {
       stallNumber?: string | null;
       locationLabel?: string | null;
+      marketHours?: Record<string, unknown> | null;
       isPrimary?: boolean;
     } = {},
   ): Promise<void> {

@@ -536,6 +536,7 @@
             </label>
             <textarea
               v-model="marketJoinForm.message"
+              data-testid="market-join-message"
               rows="3"
               maxlength="500"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -545,6 +546,7 @@
           <div class="flex justify-end">
             <button
               type="button"
+              data-testid="market-join-submit"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="isSubmittingMarketRequest || !marketJoinForm.marketId"
               @click="submitMarketJoinRequest"

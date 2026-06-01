@@ -1,0 +1,176 @@
+// @vitest-environment jsdom
+
+import { mount, flushPromises } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import SettingsView from "./SettingsView.vue";
+import { api } from "@/services/api";
+import { marketsService } from "@/services/marketsService";
+import { useAuthStore } from "@/stores/auth";
+import { useRoute } from "vue-router";
+
+vi.mock("@/i18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+
+vi.mock("vue-toastification", () => ({
+  useToast: () => ({
+    success: toastSuccess,
+    error: toastError,
+  }),
+}));
+
+vi.mock("@/composables/useConfirmModal", () => ({
+  useConfirmModal: () => ({
+    confirm: vi.fn().mockResolvedValue(true),
+  }),
+}));
+
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: vi.fn(),
+}));
+
+vi.mock("vue-router", () => ({
+  useRoute: vi.fn(),
+}));
+
+vi.mock("@/services/api", () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+  },
+}));
+
+vi.mock("@/services/marketsService", () => ({
+  marketsService: {
+    listMarkets: vi.fn(),
+    listRestaurantMemberships: vi.fn(),
+    listJoinRequests: vi.fn(),
+    requestJoin: vi.fn(),
+  },
+}));
+
+vi.mock("@/composables/useCurrency", () => ({
+  setRestaurantCurrency: vi.fn(),
+}));
+
+describe("SettingsView market join requests", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useAuthStore).mockReturnValue({
+      restaurantId: "restaurant-1",
+    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useRoute).mockReturnValue({
+      query: { tab: "markets" },
+    } as unknown as ReturnType<typeof useRoute>);
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/restaurants/restaurant-1") {
+        return { data: { data: { name: "雞排攤" } } };
+      }
+      if (url === "/restaurants/restaurant-1/contact-profile") {
+        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+      }
+      if (url === "/restaurants/restaurant-1/qr/shop") {
+        return { data: { data: { enabled: false } } };
+      }
+      return { data: { data: {} } };
+    });
+    vi.mocked(marketsService.listMarkets).mockResolvedValue([
+      {
+        id: "market-1",
+        slug: "fengjia",
+        name: "逢甲夜市",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        vendorCount: 3,
+        catalogCoverage: {
+          searchableProductCount: 12,
+          publicServiceCount: 4,
+        },
+        publicReadiness: {
+          ready: true,
+          score: 100,
+          completedCount: 7,
+          totalCount: 7,
+          issues: [],
+        },
+      },
+    ]);
+    vi.mocked(marketsService.listRestaurantMemberships).mockResolvedValue([]);
+    vi.mocked(marketsService.listJoinRequests)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 9,
+          restaurantId: "restaurant-1",
+          marketId: "market-1",
+          status: "pending",
+          message: "我們想加入夜市。",
+          requestedAt: Date.now(),
+          market: {
+            id: "market-1",
+            slug: "fengjia",
+            name: "逢甲夜市",
+            type: "night_market",
+            city: "台中市",
+            district: "西屯區",
+          },
+        },
+      ]);
+    vi.mocked(marketsService.requestJoin).mockResolvedValue({
+      id: 9,
+      restaurantId: "restaurant-1",
+      marketId: "market-1",
+      status: "pending",
+      message: "我們想加入夜市。",
+      requestedAt: Date.now(),
+      market: {
+        id: "market-1",
+        slug: "fengjia",
+        name: "逢甲夜市",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+      },
+    });
+  });
+
+  it("lets a restaurant owner submit a market join request from settings", async () => {
+    const wrapper = mount(SettingsView, {
+      global: {
+        stubs: {
+          IntegrationsSettings: true,
+          RestaurantServiceItemsManager: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    await wrapper.get('[data-testid="market-join-search"]').setValue("逢甲");
+    await wrapper
+      .get('[data-testid="market-join-select"]')
+      .setValue("market-1");
+    await wrapper
+      .get('[data-testid="market-join-message"]')
+      .setValue("我們想加入夜市。");
+    await wrapper.get('[data-testid="market-join-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(marketsService.requestJoin).toHaveBeenCalledWith("restaurant-1", {
+      marketId: "market-1",
+      message: "我們想加入夜市。",
+    });
+    expect(toastSuccess).toHaveBeenCalledWith(
+      "settings.markets.requestSuccess",
+    );
+    expect(marketsService.listJoinRequests).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("逢甲夜市");
+    expect(wrapper.text()).toContain("settings.markets.requestStatus.pending");
+  });
+});

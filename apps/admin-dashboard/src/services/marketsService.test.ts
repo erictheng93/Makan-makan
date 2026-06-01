@@ -111,12 +111,18 @@ describe("marketsService", () => {
     const result = await marketsService.addVendor("market-1", {
       restaurantId: "restaurant-1",
       stallNumber: "A-01",
+      marketHours: {
+        friday: { open: "17:00", close: "23:00" },
+      },
       isPrimary: true,
     });
 
     expect(api.post).toHaveBeenCalledWith("/admin/markets/market-1/vendors", {
       restaurantId: "restaurant-1",
       stallNumber: "A-01",
+      marketHours: {
+        friday: { open: "17:00", close: "23:00" },
+      },
       isPrimary: true,
     });
     expect(result).toMatchObject({
@@ -184,6 +190,9 @@ describe("marketsService", () => {
       "restaurant-1",
       {
         stallNumber: "A-02",
+        marketHours: {
+          saturday: { open: "16:00", close: "23:30" },
+        },
         isPrimary: true,
       },
     );
@@ -192,6 +201,9 @@ describe("marketsService", () => {
       "/admin/markets/market-1/vendors/restaurant-1",
       {
         stallNumber: "A-02",
+        marketHours: {
+          saturday: { open: "16:00", close: "23:30" },
+        },
         isPrimary: true,
       },
     );
@@ -255,6 +267,9 @@ describe("marketsService", () => {
 
     await marketsService.approveJoinRequest(7, {
       stallNumber: "A-12",
+      marketHours: {
+        sunday: { open: "15:00", close: "22:00" },
+      },
       isPrimary: true,
     });
     await marketsService.rejectJoinRequest(8);
@@ -264,6 +279,9 @@ describe("marketsService", () => {
       "/admin/markets/join-requests/7/approve",
       {
         stallNumber: "A-12",
+        marketHours: {
+          sunday: { open: "15:00", close: "22:00" },
+        },
         isPrimary: true,
       },
     );
