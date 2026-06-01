@@ -1035,6 +1035,7 @@ export class MarketsService {
         priceRange: restaurants.priceRange,
         rating: restaurants.rating,
         businessHours: restaurants.businessHours,
+        marketHours: restaurantMarketMemberships.marketHours,
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
         imageUrl: restaurants.logoUrl,
@@ -1054,7 +1055,8 @@ export class MarketsService {
 
     let vendors = rows.map((row) => ({
       ...row,
-      isOpen: isOpenNow(row.businessHours ?? null),
+      effectiveBusinessHours: row.marketHours ?? row.businessHours ?? null,
+      isOpen: isOpenNow(row.marketHours ?? row.businessHours ?? null),
       ...(geoFilter
         ? {
             distanceKm: Number(
@@ -1347,6 +1349,10 @@ export class MarketsService {
       restaurantId: string;
       stallNumber?: string | null;
       locationLabel?: string | null;
+      marketHours?: Record<
+        string,
+        { open: string; close: string; closed?: boolean }
+      > | null;
       isPrimary?: boolean;
     },
   ) {
@@ -1373,6 +1379,10 @@ export class MarketsService {
             input.locationLabel !== undefined
               ? input.locationLabel
               : existing.locationLabel,
+          marketHours:
+            input.marketHours !== undefined
+              ? input.marketHours
+              : existing.marketHours,
           isPrimary:
             input.isPrimary !== undefined
               ? input.isPrimary
@@ -1395,6 +1405,7 @@ export class MarketsService {
         restaurantId: input.restaurantId,
         stallNumber: input.stallNumber ?? null,
         locationLabel: input.locationLabel ?? null,
+        marketHours: input.marketHours ?? null,
         isPrimary: input.isPrimary ?? false,
         joinedAt: new Date(),
       })
@@ -1456,6 +1467,7 @@ export class MarketsService {
         marketId: restaurantMarketMemberships.marketId,
         stallNumber: restaurantMarketMemberships.stallNumber,
         locationLabel: restaurantMarketMemberships.locationLabel,
+        marketHours: restaurantMarketMemberships.marketHours,
         isPrimary: restaurantMarketMemberships.isPrimary,
         joinedAt: restaurantMarketMemberships.joinedAt,
         marketSlug: markets.slug,
@@ -1483,6 +1495,7 @@ export class MarketsService {
         marketId: row.marketId,
         stallNumber: row.stallNumber,
         locationLabel: row.locationLabel,
+        marketHours: row.marketHours,
         isPrimary: row.isPrimary,
         joinedAt: row.joinedAt,
         market: {
@@ -1654,6 +1667,10 @@ export class MarketsService {
     input: {
       stallNumber?: string | null;
       locationLabel?: string | null;
+      marketHours?: Record<
+        string,
+        { open: string; close: string; closed?: boolean }
+      > | null;
       isPrimary?: boolean;
     } = {},
   ) {
@@ -1665,6 +1682,7 @@ export class MarketsService {
       restaurantId: request.restaurantId,
       stallNumber: input.stallNumber ?? null,
       locationLabel: input.locationLabel ?? null,
+      marketHours: input.marketHours ?? null,
       isPrimary: input.isPrimary ?? false,
     });
     if (!membership) return { status: "market_not_found" as const };

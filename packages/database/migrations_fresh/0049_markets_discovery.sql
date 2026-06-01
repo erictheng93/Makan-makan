@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS restaurant_market_memberships (
   market_id TEXT NOT NULL,
   stall_number TEXT,
   location_label TEXT,
+  market_hours TEXT,
   is_primary INTEGER NOT NULL DEFAULT 0,
   joined_at_ms INTEGER NOT NULL,
   left_at_ms INTEGER,

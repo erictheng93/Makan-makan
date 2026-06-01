@@ -1671,6 +1671,62 @@ describe("Markets API — real integration", () => {
     });
   });
 
+  it("uses market-specific vendor hours before restaurant business hours", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "market-hours-override-market",
+    });
+    const vendor = await seed.restaurant({
+      name: "Market Hours Override Stand",
+      businessHours: closedAllWeek(),
+      supportsTakeaway: true,
+    });
+    const marketHours = openAllWeek();
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(vendor.id),
+      marketId: market.id,
+      stallNumber: "H-01",
+      marketHours,
+      joinedAt: new Date(),
+    });
+    const item = await seed.menuItem(String(vendor.id), {
+      name: "Override Hours Searchable Item",
+      price: 80,
+    });
+    await testApp.testDb.drizzle.insert(dishSearchIndex).values({
+      menuItemId: item.id,
+      restaurantId: String(vendor.id),
+      dishName: "Override Hours Searchable Item",
+      dishNameNormalized: "overridehourssearchableitem",
+      price: 80,
+      isAvailable: true,
+      tags: [],
+      district: market.district,
+      primaryMarketId: market.id,
+      marketIds: [market.id],
+      latitude: market.latitude,
+      longitude: market.longitude,
+      updatedAt: new Date(),
+    });
+
+    const vendorsRes = await testApp.app.fetch(
+      new Request(
+        "https://test/api/v1/markets/market-hours-override-market/vendors?openNow=true",
+      ),
+    );
+
+    expect(vendorsRes.status).toBe(200);
+    const vendorsJson: any = await vendorsRes.json();
+    expect(vendorsJson.data.total).toBe(1);
+    expect(vendorsJson.data.vendors[0]).toMatchObject({
+      restaurantId: String(vendor.id),
+      name: "Market Hours Override Stand",
+      stallNumber: "H-01",
+      marketHours,
+      effectiveBusinessHours: marketHours,
+      isOpen: true,
+    });
+  });
+
   it("sorts market vendors by distance and returns distance metadata", async () => {
     const market = await seedMarket(testApp, {
       slug: "distance-vendor-market",

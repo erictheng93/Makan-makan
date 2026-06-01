@@ -485,6 +485,7 @@ routes.put(
       restaurantId,
       stallNumber: body.stallNumber,
       locationLabel: body.locationLabel,
+      marketHours: body.marketHours,
       isPrimary: body.isPrimary,
     });
 
@@ -655,6 +656,7 @@ routes.post(
         restaurantId,
         stallNumber: vendor.stallNumber,
         locationLabel: vendor.locationLabel,
+        marketHours: vendor.marketHours,
         isPrimary: vendor.isPrimary,
       });
 

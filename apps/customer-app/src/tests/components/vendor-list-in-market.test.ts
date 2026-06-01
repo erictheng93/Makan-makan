@@ -31,6 +31,8 @@ function vendor(overrides: Partial<MarketVendor> = {}): MarketVendor {
     imageUrl: null,
     stallNumber: "A-01",
     locationLabel: null,
+    marketHours: null,
+    effectiveBusinessHours: null,
     isPrimary: true,
     availableMenuItemCount: 3,
     publicServiceItemCount: 2,
@@ -138,6 +140,32 @@ describe("VendorListInMarket", () => {
     expect(wrapper.emitted("selectServices")?.[0]).toEqual([
       vendor({ locationLabel: "文華路入口第一排" }),
     ]);
+  });
+
+  it("shows market-specific hours when a stall overrides restaurant hours", () => {
+    const wrapper = mount(VendorListInMarket, {
+      props: {
+        vendors: [
+          vendor({
+            marketHours: {
+              monday: { open: "17:00", close: "23:00" },
+            },
+            effectiveBusinessHours: {
+              monday: { open: "17:00", close: "23:00" },
+            },
+          }),
+        ],
+        loading: false,
+        query: "",
+        takeawayOnly: false,
+        deliveryOnly: false,
+      },
+    });
+
+    expect(wrapper.get('[data-testid="vendor-market-hours"]').text()).toContain(
+      "夜市時段",
+    );
+    expect(wrapper.text()).toContain("一 17:00-23:00");
   });
 
   it("keeps the service entry disabled when a vendor has no public services", () => {

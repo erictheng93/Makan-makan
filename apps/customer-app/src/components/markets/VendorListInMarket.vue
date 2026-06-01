@@ -85,6 +85,13 @@
             <span v-if="vendor.locationLabel">
               · {{ vendor.locationLabel }}
             </span>
+            <span
+              v-if="vendorMarketHoursLabel(vendor)"
+              data-testid="vendor-market-hours"
+              class="block text-xs text-gray-400"
+            >
+              夜市時段 · {{ vendorMarketHoursLabel(vendor) }}
+            </span>
           </div>
           <span
             v-if="vendor.isPrimary"
@@ -172,6 +179,16 @@
 import RestaurantCard from "@/components/discovery/RestaurantCard.vue";
 import type { MarketVendor } from "@/services/marketsApi";
 
+const dayLabels: Record<string, string> = {
+  monday: "一",
+  tuesday: "二",
+  wednesday: "三",
+  thursday: "四",
+  friday: "五",
+  saturday: "六",
+  sunday: "日",
+};
+
 defineProps<{
   vendors: MarketVendor[];
   loading: boolean;
@@ -192,6 +209,18 @@ const emit = defineEmits<{
   useLocation: [];
   loadMore: [];
 }>();
+
+function vendorMarketHoursLabel(vendor: MarketVendor) {
+  if (!vendor.marketHours) return "";
+
+  const rows = Object.entries(vendor.marketHours)
+    .filter(([, hours]) => hours && !hours.closed && hours.open && hours.close)
+    .map(
+      ([day, hours]) => `${dayLabels[day] ?? day} ${hours.open}-${hours.close}`,
+    );
+
+  return rows.slice(0, 2).join("、");
+}
 
 function selectPrimaryVendorEntry(vendor: MarketVendor) {
   if (vendor.availableMenuItemCount > 0) {

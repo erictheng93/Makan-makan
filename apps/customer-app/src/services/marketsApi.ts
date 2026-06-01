@@ -65,6 +65,11 @@ export interface MarketPublicReadiness {
   }>;
 }
 
+export type BusinessHours = Record<
+  string,
+  { open: string; close: string; closed?: boolean }
+>;
+
 export interface MarketExplorationSummary {
   dishSearchUrl: string;
   serviceSearchUrl: string;
@@ -96,6 +101,8 @@ export interface MarketExplorationSummary {
 export interface MarketVendor extends RestaurantListItem {
   stallNumber: string | null;
   locationLabel?: string | null;
+  marketHours?: BusinessHours | null;
+  effectiveBusinessHours?: BusinessHours | null;
   isPrimary: boolean;
   detailUrl?: string;
   menuUrl?: string;
