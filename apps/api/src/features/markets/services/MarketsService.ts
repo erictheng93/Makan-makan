@@ -573,10 +573,18 @@ export class MarketsService {
     };
   }
 
-  private async listDishCategoryFacets(
+  private async listDishCategoryFacets<
+    TCatalogType extends "menu_item" | "product",
+  >(
     marketId: string,
-    catalogType: "menu_item" | "product",
-  ) {
+    catalogType: TCatalogType,
+  ): Promise<
+    Array<{
+      categoryName: string;
+      catalogType: TCatalogType;
+      count: number;
+    }>
+  > {
     const itemCount = sql<number>`count(*)`;
     const rows = await this.db
       .select({
@@ -779,7 +787,11 @@ export class MarketsService {
 
     if (vendorRows.length === 0) {
       return {
-        ...coverage,
+        searchableProductCount: coverage.searchableProductCount,
+        publicServiceCount: coverage.publicServiceCount,
+        bookingRequiredServiceCount: coverage.bookingRequiredServiceCount ?? 0,
+        bookingUrlMissingServiceCount:
+          coverage.bookingUrlMissingServiceCount ?? 0,
         vendorsWithSearchableProducts: 0,
         vendorsMissingSearchableProducts: 0,
         vendorsWithPublicServices: 0,
@@ -880,7 +892,11 @@ export class MarketsService {
       }));
 
     return {
-      ...coverage,
+      searchableProductCount: coverage.searchableProductCount,
+      publicServiceCount: coverage.publicServiceCount,
+      bookingRequiredServiceCount: coverage.bookingRequiredServiceCount ?? 0,
+      bookingUrlMissingServiceCount:
+        coverage.bookingUrlMissingServiceCount ?? 0,
       vendorsWithSearchableProducts: vendorsWithSearchableProductsCount,
       vendorsMissingSearchableProducts: missingProductVendors.length,
       vendorsWithPublicServices: vendorsWithPublicServicesCount,
@@ -1062,7 +1078,10 @@ export class MarketsService {
             distanceKm: Number(
               distanceKm(
                 { lat: geoFilter.lat, lng: geoFilter.lng },
-                { lat: row.latitude, lng: row.longitude },
+                {
+                  lat: row.latitude ?? 0,
+                  lng: row.longitude ?? 0,
+                },
               ).toFixed(3),
             ),
           }

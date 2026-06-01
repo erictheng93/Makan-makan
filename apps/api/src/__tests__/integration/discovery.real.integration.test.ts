@@ -1651,7 +1651,9 @@ describe("Discovery API — real integration", () => {
       "Distance Service Near Pickup",
       "Distance Service Far Pickup",
     ]);
-    expect(data.results[0].distanceKm).toBeLessThan(data.results[1].distanceKm);
+    expect(Number(data.results[0].distanceKm)).toBeLessThan(
+      Number(data.results[1].distanceKm),
+    );
   });
 
   it("browses public service items by service type without a location scope", async () => {
@@ -2899,7 +2901,9 @@ describe("Discovery API — real integration", () => {
       "Distance Sort Near Bao",
       "Distance Sort Far Bao",
     ]);
-    expect(data.results[0].distanceKm).toBeLessThan(data.results[1].distanceKm);
+    expect(Number(data.results[0].distanceKm)).toBeLessThan(
+      Number(data.results[1].distanceKm),
+    );
   });
 
   it("filters open restaurant results before pagination", async () => {
@@ -2980,7 +2984,9 @@ describe("Discovery API — real integration", () => {
       "Restaurant Distance Near Vendor",
       "Restaurant Distance Far Vendor",
     ]);
-    expect(data.results[0].distanceKm).toBeLessThan(data.results[1].distanceKm);
+    expect(Number(data.results[0].distanceKm)).toBeLessThan(
+      Number(data.results[1].distanceKm),
+    );
   });
 
   it("returns openable store entrypoints from restaurant browse results and cache", async () => {
