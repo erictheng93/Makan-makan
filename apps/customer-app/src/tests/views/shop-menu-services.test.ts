@@ -18,7 +18,11 @@ const marketMembershipsFixture = vi.hoisted(() => ({
 }));
 
 vi.mock("vue-router", () => ({
-  useRoute: () => ({ path: "/restaurant/restaurant-1/shop/menu" }),
+  useRoute: () => ({
+    path: "/restaurant/restaurant-1/shop/menu",
+    fullPath:
+      "/restaurant/restaurant-1/shop/menu?services=true&returnPath=/markets/fengjia",
+  }),
   useRouter: () => ({ back: vi.fn(), push: routerPush }),
 }));
 
@@ -349,7 +353,7 @@ describe("ShopMenuView service items", () => {
     expect(routerPush).toHaveBeenCalledWith("/discover?q=%E5%A4%96%E9%80%81");
   });
 
-  it("shows public market membership and opens the market page", async () => {
+  it("shows public market membership and opens the market page with shop return context", async () => {
     const wrapper = mount(ShopMenuView, {
       props: { restaurantId: "restaurant-1" },
       global: {
@@ -372,7 +376,9 @@ describe("ShopMenuView service items", () => {
       .get('[data-testid="shop-market-link-fengjia"]')
       .trigger("click");
 
-    expect(routerPush).toHaveBeenCalledWith("/markets/fengjia");
+    expect(routerPush).toHaveBeenCalledWith(
+      "/markets/fengjia?returnPath=%2Frestaurant%2Frestaurant-1%2Fshop%2Fmenu%3Fservices%3Dtrue%26returnPath%3D%2Fmarkets%2Ffengjia&returnLabel=%E6%9C%8D%E5%8B%99%E6%B8%AC%E8%A9%A6%E5%BA%97",
+    );
   });
 
   it("shows market membership venue types on shop menus", () => {

@@ -836,8 +836,20 @@ const goToReturnContext = () => {
   router.push(returnContext.value.path);
 };
 
+const currentShopPath = () => {
+  const path = route.fullPath || route.path;
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return `/restaurant/${props.restaurantId}/shop/menu`;
+  }
+  return path;
+};
+
 const openMarketPage = (marketUrl: string) => {
-  router.push(marketUrl);
+  const url = new URL(marketUrl, "https://makan.local");
+  url.searchParams.set("returnPath", currentShopPath());
+  url.searchParams.set("returnLabel", restaurant.value?.name ?? "店鋪");
+
+  router.push(`${url.pathname}${url.search}${url.hash}`);
 };
 
 const goBack = () => {
