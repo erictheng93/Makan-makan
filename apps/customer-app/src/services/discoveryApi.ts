@@ -18,6 +18,9 @@ export interface DishSearchResult {
   distanceKm?: number;
   marketVendor?: {
     marketId: string;
+    marketSlug?: string | null;
+    marketName?: string | null;
+    marketUrl?: string | null;
     stallNumber: string | null;
     locationLabel?: string | null;
     isPrimary: boolean;
@@ -45,6 +48,9 @@ export interface RestaurantListItem {
   distanceKm?: number;
   marketVendor?: {
     marketId: string;
+    marketSlug?: string | null;
+    marketName?: string | null;
+    marketUrl?: string | null;
     stallNumber: string | null;
     locationLabel?: string | null;
     isPrimary: boolean;
@@ -71,6 +77,9 @@ export interface ServiceSearchResult {
   distanceKm?: number;
   marketVendor?: {
     marketId: string;
+    marketSlug?: string | null;
+    marketName?: string | null;
+    marketUrl?: string | null;
     stallNumber: string | null;
     locationLabel?: string | null;
     isPrimary: boolean;

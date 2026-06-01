@@ -208,6 +208,8 @@ export class DiscoveryService {
             filters.marketId,
           ),
           marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
+          marketVendorMarketSlug: this.marketVendorMarketSlug(filters.marketId),
+          marketVendorMarketName: this.marketVendorMarketName(filters.marketId),
         })
         .from(dishSearchIndex)
         .innerJoin(
@@ -284,6 +286,12 @@ export class DiscoveryService {
               filters.marketId,
             ),
             marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
+            marketVendorMarketSlug: this.marketVendorMarketSlug(
+              filters.marketId,
+            ),
+            marketVendorMarketName: this.marketVendorMarketName(
+              filters.marketId,
+            ),
           })
           .from(dishSearchIndex)
           .innerJoin(
@@ -805,6 +813,8 @@ export class DiscoveryService {
             filters.marketId,
           ),
           marketVendorIsPrimary: this.marketVendorIsPrimary(filters.marketId),
+          marketVendorMarketSlug: this.marketVendorMarketSlug(filters.marketId),
+          marketVendorMarketName: this.marketVendorMarketName(filters.marketId),
         })
         .from(restaurantServiceItems)
         .innerJoin(
@@ -1745,14 +1755,22 @@ export class DiscoveryService {
   }
 
   private marketVendorMarketId(marketId: string | undefined) {
-    if (!marketId) return sql<null>`NULL`;
-
     return sql<string | null>`(
       SELECT ${restaurantMarketMemberships.marketId}
       FROM ${restaurantMarketMemberships}
+      INNER JOIN ${markets}
+        ON ${restaurantMarketMemberships.marketId} = ${markets.id}
       WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
-        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        ${
+          marketId
+            ? sql`AND ${restaurantMarketMemberships.marketId} = ${marketId}`
+            : sql``
+        }
         AND ${restaurantMarketMemberships.leftAt} IS NULL
+        AND ${markets.isActive} = TRUE
+        AND ${markets.deletedAt} IS NULL
+      ORDER BY ${restaurantMarketMemberships.isPrimary} DESC,
+        ${restaurantMarketMemberships.joinedAt} ASC
       LIMIT 1
     )`;
   }
@@ -1761,7 +1779,7 @@ export class DiscoveryService {
     restaurantIds: string[],
     marketId: string | undefined,
   ) {
-    if (!marketId || restaurantIds.length === 0) {
+    if (restaurantIds.length === 0) {
       return new Map<
         string,
         ReturnType<DiscoveryService["marketVendorContext"]>
@@ -1775,20 +1793,35 @@ export class DiscoveryService {
         marketVendorStallNumber: restaurantMarketMemberships.stallNumber,
         marketVendorLocationLabel: restaurantMarketMemberships.locationLabel,
         marketVendorIsPrimary: restaurantMarketMemberships.isPrimary,
+        marketVendorMarketSlug: markets.slug,
+        marketVendorMarketName: markets.name,
       })
       .from(restaurantMarketMemberships)
+      .innerJoin(markets, eq(restaurantMarketMemberships.marketId, markets.id))
       .where(
         and(
-          eq(restaurantMarketMemberships.marketId, marketId),
+          ...(marketId
+            ? [eq(restaurantMarketMemberships.marketId, marketId)]
+            : []),
           inArray(restaurantMarketMemberships.restaurantId, restaurantIds),
           isNull(restaurantMarketMemberships.leftAt),
+          eq(markets.isActive, true),
+          isNull(markets.deletedAt),
         ),
+      )
+      .orderBy(
+        asc(restaurantMarketMemberships.restaurantId),
+        desc(restaurantMarketMemberships.isPrimary),
+        asc(restaurantMarketMemberships.joinedAt),
       );
 
     const entries: Array<
       [string, NonNullable<ReturnType<DiscoveryService["marketVendorContext"]>>]
     > = [];
     for (const row of rows) {
+      if (entries.some(([restaurantId]) => restaurantId === row.restaurantId)) {
+        continue;
+      }
       const context = this.marketVendorContext(row);
       if (context) entries.push([row.restaurantId, context]);
     }
@@ -1864,14 +1897,22 @@ export class DiscoveryService {
   }
 
   private marketVendorStallNumber(marketId: string | undefined) {
-    if (!marketId) return sql<null>`NULL`;
-
     return sql<string | null>`(
       SELECT ${restaurantMarketMemberships.stallNumber}
       FROM ${restaurantMarketMemberships}
+      INNER JOIN ${markets}
+        ON ${restaurantMarketMemberships.marketId} = ${markets.id}
       WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
-        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        ${
+          marketId
+            ? sql`AND ${restaurantMarketMemberships.marketId} = ${marketId}`
+            : sql``
+        }
         AND ${restaurantMarketMemberships.leftAt} IS NULL
+        AND ${markets.isActive} = TRUE
+        AND ${markets.deletedAt} IS NULL
+      ORDER BY ${restaurantMarketMemberships.isPrimary} DESC,
+        ${restaurantMarketMemberships.joinedAt} ASC
       LIMIT 1
     )`;
   }
@@ -1902,27 +1943,85 @@ export class DiscoveryService {
   }
 
   private marketVendorLocationLabel(marketId: string | undefined) {
-    if (!marketId) return sql<null>`NULL`;
-
     return sql<string | null>`(
       SELECT ${restaurantMarketMemberships.locationLabel}
       FROM ${restaurantMarketMemberships}
+      INNER JOIN ${markets}
+        ON ${restaurantMarketMemberships.marketId} = ${markets.id}
       WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
-        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        ${
+          marketId
+            ? sql`AND ${restaurantMarketMemberships.marketId} = ${marketId}`
+            : sql``
+        }
         AND ${restaurantMarketMemberships.leftAt} IS NULL
+        AND ${markets.isActive} = TRUE
+        AND ${markets.deletedAt} IS NULL
+      ORDER BY ${restaurantMarketMemberships.isPrimary} DESC,
+        ${restaurantMarketMemberships.joinedAt} ASC
       LIMIT 1
     )`;
   }
 
   private marketVendorIsPrimary(marketId: string | undefined) {
-    if (!marketId) return sql<null>`NULL`;
-
     return sql<boolean | null>`(
       SELECT ${restaurantMarketMemberships.isPrimary}
       FROM ${restaurantMarketMemberships}
+      INNER JOIN ${markets}
+        ON ${restaurantMarketMemberships.marketId} = ${markets.id}
       WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
-        AND ${restaurantMarketMemberships.marketId} = ${marketId}
+        ${
+          marketId
+            ? sql`AND ${restaurantMarketMemberships.marketId} = ${marketId}`
+            : sql``
+        }
         AND ${restaurantMarketMemberships.leftAt} IS NULL
+        AND ${markets.isActive} = TRUE
+        AND ${markets.deletedAt} IS NULL
+      ORDER BY ${restaurantMarketMemberships.isPrimary} DESC,
+        ${restaurantMarketMemberships.joinedAt} ASC
+      LIMIT 1
+    )`;
+  }
+
+  private marketVendorMarketSlug(marketId: string | undefined) {
+    return sql<string | null>`(
+      SELECT ${markets.slug}
+      FROM ${restaurantMarketMemberships}
+      INNER JOIN ${markets}
+        ON ${restaurantMarketMemberships.marketId} = ${markets.id}
+      WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+        ${
+          marketId
+            ? sql`AND ${restaurantMarketMemberships.marketId} = ${marketId}`
+            : sql``
+        }
+        AND ${restaurantMarketMemberships.leftAt} IS NULL
+        AND ${markets.isActive} = TRUE
+        AND ${markets.deletedAt} IS NULL
+      ORDER BY ${restaurantMarketMemberships.isPrimary} DESC,
+        ${restaurantMarketMemberships.joinedAt} ASC
+      LIMIT 1
+    )`;
+  }
+
+  private marketVendorMarketName(marketId: string | undefined) {
+    return sql<string | null>`(
+      SELECT ${markets.name}
+      FROM ${restaurantMarketMemberships}
+      INNER JOIN ${markets}
+        ON ${restaurantMarketMemberships.marketId} = ${markets.id}
+      WHERE ${restaurantMarketMemberships.restaurantId} = ${restaurants.id}
+        ${
+          marketId
+            ? sql`AND ${restaurantMarketMemberships.marketId} = ${marketId}`
+            : sql``
+        }
+        AND ${restaurantMarketMemberships.leftAt} IS NULL
+        AND ${markets.isActive} = TRUE
+        AND ${markets.deletedAt} IS NULL
+      ORDER BY ${restaurantMarketMemberships.isPrimary} DESC,
+        ${restaurantMarketMemberships.joinedAt} ASC
       LIMIT 1
     )`;
   }
@@ -1932,11 +2031,18 @@ export class DiscoveryService {
     marketVendorStallNumber: string | null;
     marketVendorLocationLabel: string | null;
     marketVendorIsPrimary: boolean | number | null;
+    marketVendorMarketSlug: string | null;
+    marketVendorMarketName: string | null;
   }) {
     if (!row.marketVendorMarketId) return undefined;
 
     return {
       marketId: row.marketVendorMarketId,
+      marketSlug: row.marketVendorMarketSlug,
+      marketName: row.marketVendorMarketName,
+      marketUrl: row.marketVendorMarketSlug
+        ? this.marketDetailUrl(row.marketVendorMarketSlug)
+        : null,
       stallNumber: row.marketVendorStallNumber,
       locationLabel: row.marketVendorLocationLabel,
       isPrimary: Boolean(row.marketVendorIsPrimary),

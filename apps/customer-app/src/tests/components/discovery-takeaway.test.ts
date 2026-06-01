@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, RouterLinkStub } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import DishResultCard from "@/components/discovery/DishResultCard.vue";
 import RestaurantCard from "@/components/discovery/RestaurantCard.vue";
@@ -185,6 +185,47 @@ describe("discovery takeaway buttons", () => {
     );
   });
 
+  it("links dish results back to their market context", () => {
+    const wrapper = mount(DishResultCard, {
+      props: {
+        dish: {
+          menuItemId: 1,
+          dishName: "Market Bao",
+          price: 60,
+          categoryName: null,
+          restaurantId: "r1",
+          restaurantName: "包子攤",
+          district: "西屯區",
+          isOpen: true,
+          supportsTakeaway: false,
+          supportsDelivery: false,
+          tags: [],
+          marketVendor: {
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            marketUrl: "/markets/fengjia",
+            stallNumber: "G-12",
+            locationLabel: "入口第一排",
+            isPrimary: true,
+          },
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: { RouterLink: RouterLinkStub },
+      },
+    });
+
+    const link = wrapper.get('[data-testid="dish-market-link"]');
+    expect(link.text()).toContain("逢甲夜市");
+    expect(link.text()).toContain("G-12");
+    expect(link.text()).toContain("入口第一排");
+    expect(wrapper.getComponent(RouterLinkStub).props("to")).toBe(
+      "/markets/fengjia",
+    );
+  });
+
   it("hides immediate takeaway when restaurant is closed", () => {
     const wrapper = mount(RestaurantCard, {
       props: {
@@ -263,5 +304,45 @@ describe("discovery takeaway buttons", () => {
     });
 
     expect(wrapper.text()).toContain("0.3 km");
+  });
+
+  it("links restaurant results back to their market context", () => {
+    const wrapper = mount(RestaurantCard, {
+      props: {
+        restaurant: {
+          restaurantId: "r1",
+          name: "包子攤",
+          type: "street_food",
+          district: "西屯區",
+          priceRange: null,
+          rating: null,
+          isOpen: true,
+          supportsTakeaway: false,
+          supportsDelivery: false,
+          imageUrl: null,
+          marketVendor: {
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            marketUrl: "/markets/fengjia",
+            stallNumber: "G-12",
+            locationLabel: "入口第一排",
+            isPrimary: true,
+          },
+        },
+      },
+      global: {
+        plugins: [createPinia()],
+        stubs: { RouterLink: RouterLinkStub },
+      },
+    });
+
+    const link = wrapper.get('[data-testid="restaurant-market-link"]');
+    expect(link.text()).toContain("逢甲夜市");
+    expect(link.text()).toContain("G-12");
+    expect(link.text()).toContain("入口第一排");
+    expect(wrapper.getComponent(RouterLinkStub).props("to")).toBe(
+      "/markets/fengjia",
+    );
   });
 });

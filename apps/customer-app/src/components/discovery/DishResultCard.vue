@@ -78,6 +78,20 @@
         </span>
       </div>
     </button>
+    <RouterLink
+      v-if="marketContextUrl"
+      :to="marketContextUrl"
+      data-testid="dish-market-link"
+      class="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 rounded-md bg-ios-bg px-2.5 py-1.5 text-xs font-medium text-ios-blue"
+    >
+      <span>在 {{ dish.marketVendor?.marketName }}</span>
+      <span v-if="dish.marketVendor?.stallNumber" class="text-ios-secondary">
+        · 攤位 {{ dish.marketVendor.stallNumber }}
+      </span>
+      <span v-if="dish.marketVendor?.locationLabel" class="text-ios-secondary">
+        · {{ dish.marketVendor.locationLabel }}
+      </span>
+    </RouterLink>
     <div class="mt-3 grid gap-2" :class="canTakeaway ? 'grid-cols-2' : ''">
       <button
         type="button"
@@ -102,6 +116,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import type { DishSearchResult } from "@/services/discoveryApi";
@@ -149,4 +164,13 @@ const distanceLabel = computed(() =>
     ? `${props.dish.distanceKm.toFixed(1)} km`
     : "",
 );
+
+const marketContextUrl = computed(() => {
+  const marketVendor = props.dish.marketVendor;
+  if (!marketVendor?.marketName) return "";
+  return (
+    marketVendor.marketUrl ||
+    (marketVendor.marketSlug ? `/markets/${marketVendor.marketSlug}` : "")
+  );
+});
 </script>

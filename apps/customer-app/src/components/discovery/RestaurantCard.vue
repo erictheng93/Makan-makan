@@ -78,6 +78,26 @@
         </div>
       </div>
     </button>
+    <RouterLink
+      v-if="marketContextUrl"
+      :to="marketContextUrl"
+      data-testid="restaurant-market-link"
+      class="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 rounded-md bg-ios-bg px-2.5 py-1.5 text-xs font-medium text-ios-blue"
+    >
+      <span>在 {{ restaurant.marketVendor?.marketName }}</span>
+      <span
+        v-if="restaurant.marketVendor?.stallNumber"
+        class="text-ios-secondary"
+      >
+        · 攤位 {{ restaurant.marketVendor.stallNumber }}
+      </span>
+      <span
+        v-if="restaurant.marketVendor?.locationLabel"
+        class="text-ios-secondary"
+      >
+        · {{ restaurant.marketVendor.locationLabel }}
+      </span>
+    </RouterLink>
     <button
       v-if="canTakeaway"
       type="button"
@@ -92,6 +112,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { RestaurantListItem } from "@/services/discoveryApi";
 
@@ -122,4 +143,13 @@ const distanceLabel = computed(() =>
     ? `${props.restaurant.distanceKm.toFixed(1)} km`
     : "",
 );
+
+const marketContextUrl = computed(() => {
+  const marketVendor = props.restaurant.marketVendor;
+  if (!marketVendor?.marketName) return "";
+  return (
+    marketVendor.marketUrl ||
+    (marketVendor.marketSlug ? `/markets/${marketVendor.marketSlug}` : "")
+  );
+});
 </script>

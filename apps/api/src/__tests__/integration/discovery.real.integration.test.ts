@@ -455,6 +455,78 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("returns market context from global dish and service searches", async () => {
+    const market = await seedMarket(testApp, {
+      slug: "global-context-market",
+      name: "全局搜尋夜市",
+    });
+    const restaurant = await seed.restaurant({
+      name: "Global Market Context Vendor",
+      city: "台中市",
+      district: "西屯區",
+    });
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
+      restaurantId: String(restaurant.id),
+      marketId: market.id,
+      stallNumber: "G-12",
+      locationLabel: "入口第一排",
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    const menuItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Global Context Bao",
+      price: 95,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: menuItem.id,
+        name: "Global Context Bao",
+        price: 95,
+        marketIds: [market.id],
+        primaryMarketId: market.id,
+      },
+    ]);
+    await testApp.testDb.drizzle.insert(restaurantServiceItems).values({
+      restaurantId: String(restaurant.id),
+      name: "Global Context Service",
+      serviceType: "pickup",
+      isActive: true,
+      isPublic: true,
+      sortOrder: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const dishRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/search?q=Global+Context"),
+    );
+    const serviceRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/discovery/services?q=Global+Context"),
+    );
+
+    expect(dishRes.status).toBe(200);
+    expect(serviceRes.status).toBe(200);
+    const dishData = ((await dishRes.json()) as any).data;
+    const serviceData = ((await serviceRes.json()) as any).data;
+    const expectedMarketContext = {
+      marketId: market.id,
+      marketSlug: "global-context-market",
+      marketName: "全局搜尋夜市",
+      marketUrl: "/markets/global-context-market",
+      stallNumber: "G-12",
+      locationLabel: "入口第一排",
+      isPrimary: true,
+    };
+
+    expect(dishData.results[0].marketVendor).toMatchObject(
+      expectedMarketContext,
+    );
+    expect(serviceData.results[0].marketVendor).toMatchObject(
+      expectedMarketContext,
+    );
+  });
+
   // -------------------------------------------------------------------------
   // Pagination offset: page 2 should return the remaining items
   // -------------------------------------------------------------------------

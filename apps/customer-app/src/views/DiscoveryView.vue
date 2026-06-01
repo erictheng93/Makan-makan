@@ -122,12 +122,6 @@
                 </div>
                 <p class="mt-1 truncate text-sm text-gray-500">
                   {{ service.restaurantName }}
-                  <span
-                    v-if="service.marketVendor?.stallNumber"
-                    class="text-gray-400"
-                  >
-                    · 攤位 {{ service.marketVendor.stallNumber }}
-                  </span>
                 </p>
               </div>
               <span
@@ -143,6 +137,26 @@
             >
               {{ service.description }}
             </p>
+            <RouterLink
+              v-if="serviceMarketContextUrl(service)"
+              :to="serviceMarketContextUrl(service)"
+              data-testid="service-market-link"
+              class="mt-3 inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 rounded-md bg-ios-bg px-2.5 py-1.5 text-xs font-medium text-ios-blue"
+            >
+              <span>在 {{ service.marketVendor?.marketName }}</span>
+              <span
+                v-if="service.marketVendor?.stallNumber"
+                class="text-ios-secondary"
+              >
+                · 攤位 {{ service.marketVendor.stallNumber }}
+              </span>
+              <span
+                v-if="service.marketVendor?.locationLabel"
+                class="text-ios-secondary"
+              >
+                · {{ service.marketVendor.locationLabel }}
+              </span>
+            </RouterLink>
             <div
               v-if="service.tags.length > 0"
               class="mt-2 flex flex-wrap gap-1"
@@ -360,6 +374,15 @@ function servicePriceLabel(service: ServiceSearchResult) {
     return formatPrice(service.priceCents / 100);
   }
   return "";
+}
+
+function serviceMarketContextUrl(service: ServiceSearchResult) {
+  const marketVendor = service.marketVendor;
+  if (!marketVendor?.marketName) return "";
+  return (
+    marketVendor.marketUrl ||
+    (marketVendor.marketSlug ? `/markets/${marketVendor.marketSlug}` : "")
+  );
 }
 
 function firstQueryString(value: unknown) {

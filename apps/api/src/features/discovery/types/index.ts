@@ -69,6 +69,9 @@ export interface ServiceSearchResult {
 
 export interface MarketVendorContext {
   marketId: string;
+  marketSlug: string | null;
+  marketName: string | null;
+  marketUrl: string | null;
   stallNumber: string | null;
   locationLabel: string | null;
   isPrimary: boolean;
