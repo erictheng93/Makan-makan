@@ -67,14 +67,19 @@ export interface SSEMessage {
 export interface KitchenSSEEvent {
   type:
     | "NEW_ORDER"
+    | "new_order"
     | "ORDER_STATUS_UPDATE"
+    | "order_status_update"
     | "ORDER_CANCELLED"
+    | "order_cancelled"
     | "PRIORITY_UPDATE"
     | "HEARTBEAT";
+  eventId?: string;
   orderId?: number;
   payload?: any;
-  timestamp: string;
-  restaurantId: number;
+  data?: any;
+  timestamp: string | number;
+  restaurantId: number | string;
   connectionId?: string;
   message?: string;
 }

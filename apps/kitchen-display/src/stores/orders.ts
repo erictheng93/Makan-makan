@@ -20,6 +20,81 @@ const isKitchenOrder = (value: unknown): value is KitchenOrder =>
   typeof value.orderNumber === "string" &&
   Array.isArray(value.items);
 
+const normalizeEventType = (type: KitchenSSEEvent["type"]) => {
+  switch (type) {
+    case "new_order":
+      return "NEW_ORDER";
+    case "order_status_update":
+      return "ORDER_STATUS_UPDATE";
+    case "order_cancelled":
+      return "ORDER_CANCELLED";
+    default:
+      return type;
+  }
+};
+
+const timestampToIso = (timestamp: KitchenSSEEvent["timestamp"]) => {
+  const date =
+    typeof timestamp === "number" ? new Date(timestamp) : new Date(timestamp);
+  return Number.isNaN(date.getTime())
+    ? new Date().toISOString()
+    : date.toISOString();
+};
+
+const buildKitchenOrderFromRealtimeData = (
+  data: Record<string, unknown>,
+  timestamp: KitchenSSEEvent["timestamp"],
+): KitchenOrder | null => {
+  const orderId = Number(data.orderId);
+  if (!Number.isFinite(orderId) || orderId <= 0) return null;
+
+  const items = Array.isArray(data.items)
+    ? data.items.map((item) => {
+        const row = isRecord(item) ? item : {};
+        return {
+          id: Number(row.orderItemId ?? row.id ?? row.menuItemId ?? 0),
+          name: String(row.menuItemName ?? row.name ?? ""),
+          quantity: Number(row.quantity ?? 0),
+          status: "pending" as const,
+          notes: typeof row.notes === "string" ? row.notes : undefined,
+          priority: "normal" as const,
+          price: Number(row.price ?? 0),
+        };
+      })
+    : [];
+
+  const customer = isRecord(data.customer) ? data.customer : null;
+  const tableId =
+    data.tableId === undefined || data.tableId === null
+      ? undefined
+      : Number(data.tableId);
+
+  return {
+    id: orderId,
+    orderNumber: String(data.orderNumber ?? `#${orderId}`),
+    tableId: Number.isFinite(tableId) ? tableId : undefined,
+    tableName:
+      typeof data.tableName === "string"
+        ? data.tableName
+        : Number.isFinite(tableId)
+          ? `Table ${tableId}`
+          : undefined,
+    status: "confirmed",
+    deliveryInfo: {
+      type: Number.isFinite(tableId) ? "dine_in" : "takeaway",
+    },
+    items,
+    customerName:
+      typeof customer?.name === "string" ? customer.name : undefined,
+    notes: typeof data.notes === "string" ? data.notes : undefined,
+    createdAt: timestampToIso(timestamp),
+    totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+    priority: "normal",
+    elapsedTime: 0,
+    totalAmount: Number(data.totalAmount ?? 0),
+  };
+};
+
 const extractKitchenOrderPayload = (payload: unknown): KitchenOrder | null => {
   if (isRecord(payload) && isKitchenOrder(payload.order)) {
     return payload.order;
@@ -31,6 +106,26 @@ const extractKitchenOrderPayload = (payload: unknown): KitchenOrder | null => {
 
   return null;
 };
+
+const extractNewOrder = (event: KitchenSSEEvent): KitchenOrder | null => {
+  const payloadOrder = extractKitchenOrderPayload(event.payload);
+  if (payloadOrder) return payloadOrder;
+
+  if (isRecord(event.data)) {
+    const dataOrder = extractKitchenOrderPayload(event.data);
+    if (dataOrder) return dataOrder;
+    return buildKitchenOrderFromRealtimeData(event.data, event.timestamp);
+  }
+
+  return null;
+};
+
+const eventData = (event: KitchenSSEEvent) =>
+  isRecord(event.payload)
+    ? event.payload
+    : isRecord(event.data)
+      ? event.data
+      : null;
 
 export const useOrdersStore = defineStore("orders", () => {
   // State
@@ -108,7 +203,7 @@ export const useOrdersStore = defineStore("orders", () => {
    * 處理 SSE 事件
    */
   const handleSSEEvent = (event: KitchenSSEEvent) => {
-    switch (event.type) {
+    switch (normalizeEventType(event.type)) {
       case "NEW_ORDER":
         handleNewOrder(event);
         break;
@@ -134,9 +229,7 @@ export const useOrdersStore = defineStore("orders", () => {
    * 2. { type: 'NEW_ORDER', payload: {...} } (直接是訂單物件)
    */
   const handleNewOrder = (event: KitchenSSEEvent) => {
-    if (!event.payload) return;
-
-    const newOrder = extractKitchenOrderPayload(event.payload);
+    const newOrder = extractNewOrder(event);
 
     // 驗證是否為有效訂單物件
     if (!newOrder) {
@@ -163,9 +256,10 @@ export const useOrdersStore = defineStore("orders", () => {
    * 處理訂單狀態更新事件
    */
   const handleOrderStatusUpdate = (event: KitchenSSEEvent) => {
-    if (event.orderId && event.payload) {
-      const orderId = event.orderId;
-      const { itemId, status, updatedAt, notes } = event.payload;
+    const payload = eventData(event);
+    const orderId = event.orderId ?? Number(payload?.orderId);
+    if (Number.isFinite(orderId) && payload) {
+      const { itemId, status, updatedAt, notes } = payload;
 
       const orderIndex = orders.value.findIndex((o) => o.id === orderId);
       if (orderIndex !== -1) {
@@ -173,20 +267,22 @@ export const useOrdersStore = defineStore("orders", () => {
 
         if (itemId) {
           // 更新特定項目狀態
-          const itemIndex = order.items.findIndex((i) => i.id === itemId);
+          const itemIndex = order.items.findIndex(
+            (i) => i.id === Number(itemId),
+          );
           if (itemIndex !== -1) {
-            order.items[itemIndex].status = status;
+            order.items[itemIndex].status = status as ItemStatus;
 
             if (status === "preparing" && !order.items[itemIndex].startedAt) {
-              order.items[itemIndex].startedAt = updatedAt;
+              order.items[itemIndex].startedAt = String(updatedAt);
             } else if (
               status === "ready" &&
               !order.items[itemIndex].completedAt
             ) {
-              order.items[itemIndex].completedAt = updatedAt;
+              order.items[itemIndex].completedAt = String(updatedAt);
             }
 
-            if (notes) {
+            if (typeof notes === "string") {
               order.items[itemIndex].notes = notes;
             }
 
@@ -209,12 +305,14 @@ export const useOrdersStore = defineStore("orders", () => {
    * 處理訂單取消事件
    */
   const handleOrderCancelled = (event: KitchenSSEEvent) => {
-    if (event.orderId) {
-      const orderIndex = orders.value.findIndex((o) => o.id === event.orderId);
+    const payload = eventData(event);
+    const orderId = event.orderId ?? Number(payload?.orderId);
+    if (Number.isFinite(orderId)) {
+      const orderIndex = orders.value.findIndex((o) => o.id === orderId);
       if (orderIndex !== -1) {
         // 移除已取消的訂單
         orders.value.splice(orderIndex, 1);
-        console.log(`Order ${event.orderId} cancelled and removed`);
+        console.log(`Order ${orderId} cancelled and removed`);
       }
     }
   };

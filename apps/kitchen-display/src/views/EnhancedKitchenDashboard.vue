@@ -126,13 +126,15 @@ import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { ClipboardList } from "lucide-vue-next";
+import { RealtimeEventType } from "@makanmakan/shared-types";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useI18n } from "@/i18n";
 import { useOrdersStore } from "@/stores/orders";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useKitchenSSE } from "@/composables/useKitchenSSE";
-import type { KitchenOrder, OrderStatus } from "@/types";
+import { useKitchenRealtimeService } from "@/services/realtimeService";
+import type { KitchenOrder, KitchenSSEEvent, OrderStatus } from "@/types";
 
 // Components
 import KitchenHeader from "@/components/layout/KitchenHeader.vue";
@@ -160,6 +162,7 @@ const settingsStore = useSettingsStore();
 const { t } = useI18n();
 const ordersStore = useOrdersStore();
 const orderManagementStore = useOrderManagementStore();
+const kitchenRealtime = useKitchenRealtimeService();
 
 // SSE connection
 const {
@@ -359,6 +362,7 @@ const updateCurrentTime = () => {
 // Auto-refresh logic
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 let timeInterval: ReturnType<typeof setInterval> | null = null;
+let realtimeSubscriptionId: string | null = null;
 
 const startAutoRefresh = () => {
   if (settingsStore.autoRefresh && refreshInterval === null) {
@@ -398,6 +402,18 @@ onMounted(async () => {
   // Initial load
   await fetchOrders();
 
+  realtimeSubscriptionId = kitchenRealtime.subscribe(
+    [
+      RealtimeEventType.NEW_ORDER,
+      RealtimeEventType.ORDER_STATUS_UPDATE,
+      RealtimeEventType.ORDER_CANCELLED,
+    ],
+    (event) => {
+      ordersStore.handleSSEEvent(event as unknown as KitchenSSEEvent);
+    },
+  );
+  await kitchenRealtime.connect(restaurantIdNum.value);
+
   // Start auto-refresh
   startAutoRefresh();
 
@@ -413,6 +429,11 @@ onUnmounted(() => {
     clearInterval(timeInterval);
     timeInterval = null;
   }
+  if (realtimeSubscriptionId) {
+    kitchenRealtime.unsubscribe(realtimeSubscriptionId);
+    realtimeSubscriptionId = null;
+  }
+  kitchenRealtime.disconnect();
 });
 </script>
 
