@@ -13,11 +13,18 @@ export interface StoredMarketCheckout {
   childOrderCount: number;
   totalAmount: number;
   paymentStatus: "pending" | "partial_paid" | "paid" | "failed";
+  phoneLastDigits?: string;
   createdAt: string;
   updatedAt: number;
 }
 
-export function recordRecentMarketCheckout(checkout: MarketCheckoutSummary) {
+export function recordRecentMarketCheckout(
+  checkout: MarketCheckoutSummary,
+  phoneLastDigits?: string,
+) {
+  const existingCheckout = listRecentMarketCheckouts().find(
+    (item) => item.id === checkout.id,
+  );
   const storedCheckout: StoredMarketCheckout = {
     id: checkout.id,
     marketSlug: checkout.market.slug,
@@ -25,6 +32,7 @@ export function recordRecentMarketCheckout(checkout: MarketCheckoutSummary) {
     childOrderCount: checkout.childOrders.length,
     totalAmount: checkout.subtotal,
     paymentStatus: checkout.payment?.status ?? "pending",
+    phoneLastDigits: phoneLastDigits ?? existingCheckout?.phoneLastDigits,
     createdAt: checkout.createdAt,
     updatedAt: Date.now(),
   };
@@ -74,6 +82,33 @@ export function activateMarketCheckoutGuestToken(
 
   localStorage.setItem("guest_auth_token", tokenRecord.guestToken);
   return true;
+}
+
+export function getRecentMarketCheckoutPhoneLastDigits(checkoutId: string) {
+  return listRecentMarketCheckouts().find(
+    (checkout) => checkout.id === checkoutId,
+  )?.phoneLastDigits;
+}
+
+export function recordRecoveredMarketCheckoutGuestToken(input: {
+  checkoutId: string;
+  orderId: number;
+  restaurantId: string;
+  guestToken: string;
+  tokenExpiresAt: string;
+}) {
+  const tokenRecords = readGuestTokenRecords();
+  tokenRecords[input.checkoutId] = {
+    ...(tokenRecords[input.checkoutId] ?? {}),
+    [String(input.orderId)]: {
+      restaurantId: input.restaurantId,
+      guestToken: input.guestToken,
+      tokenExpiresAt: input.tokenExpiresAt,
+    },
+  };
+
+  localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokenRecords));
+  localStorage.setItem("guest_auth_token", input.guestToken);
 }
 
 export function listRecentMarketCheckouts(): StoredMarketCheckout[] {
@@ -143,6 +178,8 @@ function isStoredMarketCheckout(value: unknown): value is StoredMarketCheckout {
     typeof checkout.childOrderCount === "number" &&
     typeof checkout.totalAmount === "number" &&
     isPaymentStatus(checkout.paymentStatus) &&
+    (checkout.phoneLastDigits === undefined ||
+      typeof checkout.phoneLastDigits === "string") &&
     typeof checkout.createdAt === "string" &&
     typeof checkout.updatedAt === "number"
   );

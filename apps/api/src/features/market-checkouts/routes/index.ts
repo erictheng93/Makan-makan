@@ -46,6 +46,11 @@ const payMarketCheckoutSchema = z.object({
     .optional(),
 });
 
+const recoverMarketCheckoutGuestTokenSchema = z.object({
+  orderId: z.number().int().positive(),
+  phoneLastDigits: z.string().regex(/^\d{3}$/),
+});
+
 interface MarketCheckoutChildOrder {
   restaurantId: string;
   restaurantName: string;
@@ -67,6 +72,7 @@ interface MarketCheckoutSession {
     name: string;
   };
   status: "submitted";
+  phoneLastDigits?: string;
   childOrders: MarketCheckoutChildOrder[];
   payment?: MarketCheckoutPaymentSummary;
   subtotal: number;
@@ -319,6 +325,7 @@ app.post("/", async (c) => {
       name: market.name,
     },
     status: "submitted",
+    phoneLastDigits: data.phoneLastDigits,
     childOrders: children.map((child) => ({
       restaurantId: child.restaurantId,
       restaurantName: child.restaurantName,
@@ -526,6 +533,79 @@ app.post("/:id/pay", async (c) => {
   );
 });
 
+app.post("/:id/guest-token", async (c) => {
+  const checkoutId = c.req.param("id") ?? "";
+  const body = await c.req.json();
+  const parsed = recoverMarketCheckoutGuestTokenSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+  if (!session) {
+    throw notFound("Market checkout not found");
+  }
+
+  if (
+    session.phoneLastDigits &&
+    session.phoneLastDigits !== parsed.data.phoneLastDigits
+  ) {
+    return c.json(
+      {
+        success: false,
+        error: "Phone verification failed for this market checkout",
+      },
+      403,
+    );
+  }
+
+  const child = session.childOrders.find(
+    (order) => order.orderId === parsed.data.orderId,
+  );
+  if (!child) {
+    throw notFound("Child order not found for this market checkout");
+  }
+
+  const guestToken = generateGuestToken();
+  const tokenData: GuestTokenData = {
+    orderId: String(child.orderId),
+    restaurantId: child.restaurantId,
+    guestName: "Guest",
+    phoneLastDigits: parsed.data.phoneLastDigits,
+    createdAt: Date.now(),
+  };
+  const fourHoursInSeconds = 4 * 60 * 60;
+  const tokenExpiresAt = new Date(
+    Date.now() + fourHoursInSeconds * 1000,
+  ).toISOString();
+
+  await c.env.CACHE_KV.put(
+    `guest_token:${guestToken}`,
+    JSON.stringify(tokenData),
+    { expirationTtl: fourHoursInSeconds },
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      orderId: child.orderId,
+      restaurantId: child.restaurantId,
+      guestToken,
+      tokenExpiresAt,
+    },
+  });
+});
+
 app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
   const page = coercePositiveInt(c.req.query("page"), 1);
   const limit = Math.min(coercePositiveInt(c.req.query("limit"), 20), 100);
@@ -690,6 +770,7 @@ async function persistMarketCheckoutSession(
     marketName: session.market.name,
     status: session.status,
     paymentStatus: session.payment?.status ?? "pending",
+    phoneLastDigits: session.phoneLastDigits ?? null,
     subtotalCents: session.subtotal,
     childOrderCount: session.childOrders.length,
     paymentSummary: serializePaymentSummary(session.payment),
@@ -785,6 +866,7 @@ async function readPersistedMarketCheckoutSession(
       name: row.marketName,
     },
     status: row.status as MarketCheckoutSession["status"],
+    phoneLastDigits: row.phoneLastDigits ?? undefined,
     childOrders: children.map((child) => ({
       restaurantId: child.restaurantId,
       restaurantName: child.restaurantName,

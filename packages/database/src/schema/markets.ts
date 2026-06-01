@@ -146,6 +146,7 @@ export const marketCheckoutSessions = sqliteTable(
     marketName: text("market_name").notNull(),
     status: text("status").notNull().default("submitted"),
     paymentStatus: text("payment_status").notNull().default("pending"),
+    phoneLastDigits: text("phone_last_digits"),
     subtotalCents: integer("subtotal_cents").notNull(),
     childOrderCount: integer("child_order_count").notNull().default(0),
     paymentSummary: text("payment_summary", { mode: "json" }).$type<Record<

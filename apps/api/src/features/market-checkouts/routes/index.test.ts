@@ -237,6 +237,7 @@ describe("market checkout routes", () => {
       marketName: "逢甲夜市",
       status: "submitted",
       paymentStatus: "pending",
+      phoneLastDigits: "789",
       subtotalCents: 20000,
       childOrderCount: 2,
     });
@@ -339,6 +340,108 @@ describe("market checkout routes", () => {
       paymentStatus: "completed",
       updatedAt: 1780308400000,
     });
+  });
+
+  it("reissues a child guest token for a persisted market checkout", async () => {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "pending",
+          phoneLastDigits: "789",
+          subtotalCents: 12000,
+          childOrderCount: 1,
+          paymentSummary: null,
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:00:00.000Z"),
+        },
+      },
+      {
+        all: [
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T12:00:00.000Z"),
+          },
+        ],
+      },
+    );
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: 1001,
+          phoneLastDigits: "789",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: { orderId: number; guestToken: string; tokenExpiresAt: string };
+    };
+    expect(json.data).toMatchObject({
+      orderId: 1001,
+      guestToken: "guest-token-1",
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "guest_token:guest-token-1",
+      expect.stringContaining('"orderId":"1001"'),
+      { expirationTtl: 14400 },
+    );
+  });
+
+  it("rejects guest token recovery when phone digits do not match", async () => {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "pending",
+          phoneLastDigits: "789",
+          subtotalCents: 12000,
+          childOrderCount: 1,
+          paymentSummary: null,
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:00:00.000Z"),
+        },
+      },
+      { all: [] },
+    );
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: 1001,
+          phoneLastDigits: "123",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(403);
+    expect(env.CACHE_KV.put).not.toHaveBeenCalledWith(
+      "guest_token:guest-token-1",
+      expect.any(String),
+      expect.any(Object),
+    );
   });
 
   it("keeps stored child order summaries when hydration misses", async () => {

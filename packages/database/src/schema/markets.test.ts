@@ -109,6 +109,7 @@ describe("market discovery schema", () => {
         "market_name",
         "status",
         "payment_status",
+        "phone_last_digits",
         "subtotal_cents",
         "child_order_count",
         "payment_summary",

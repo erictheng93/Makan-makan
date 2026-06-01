@@ -223,7 +223,10 @@ import { useRouter } from "vue-router";
 import type { OrderPaymentStatus, OrderStatus } from "@makanmakan/shared-types";
 import { orderApi, type MarketCheckoutSummary } from "@/services/orderApi";
 import { useCurrency } from "@/composables/useCurrency";
-import { activateMarketCheckoutGuestToken } from "@/utils/marketCheckouts";
+import {
+  activateMarketCheckoutGuestToken,
+  getRecentMarketCheckoutPhoneLastDigits,
+} from "@/utils/marketCheckouts";
 
 const props = defineProps<{
   slug: string;
@@ -321,11 +324,32 @@ async function payCheckout() {
   }
 }
 
-function openChildOrder(order: MarketCheckoutSummary["childOrders"][number]) {
+async function openChildOrder(
+  order: MarketCheckoutSummary["childOrders"][number],
+) {
   orderAccessError.value = null;
   if (!activateMarketCheckoutGuestToken(props.checkoutId, order.orderId)) {
-    orderAccessError.value = "無法開啟攤位訂單，請從最近市場訂單重新進入。";
-    return;
+    const phoneLastDigits = getRecentMarketCheckoutPhoneLastDigits(
+      props.checkoutId,
+    );
+    if (!phoneLastDigits) {
+      orderAccessError.value = "無法開啟攤位訂單，請從最近市場訂單重新進入。";
+      return;
+    }
+
+    try {
+      await orderApi.recoverMarketCheckoutGuestToken(props.checkoutId, {
+        orderId: order.orderId,
+        phoneLastDigits,
+      });
+    } catch (recoverError) {
+      console.error(
+        "Failed to recover market checkout guest token:",
+        recoverError,
+      );
+      orderAccessError.value = "無法開啟攤位訂單，請從最近市場訂單重新進入。";
+      return;
+    }
   }
 
   router.push({

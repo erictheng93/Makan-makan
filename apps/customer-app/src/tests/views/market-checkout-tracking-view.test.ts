@@ -5,6 +5,7 @@ import MarketCheckoutTrackingView from "@/views/MarketCheckoutTrackingView.vue";
 const routerPush = vi.hoisted(() => vi.fn());
 const getMarketCheckout = vi.hoisted(() => vi.fn());
 const payMarketCheckout = vi.hoisted(() => vi.fn());
+const recoverMarketCheckoutGuestToken = vi.hoisted(() => vi.fn());
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
@@ -16,6 +17,7 @@ vi.mock("@/services/orderApi", () => ({
   orderApi: {
     getMarketCheckout,
     payMarketCheckout,
+    recoverMarketCheckoutGuestToken,
   },
 }));
 
@@ -40,6 +42,7 @@ describe("MarketCheckoutTrackingView", () => {
     routerPush.mockReset();
     getMarketCheckout.mockReset();
     payMarketCheckout.mockReset();
+    recoverMarketCheckoutGuestToken.mockReset();
   });
 
   it("loads and renders a market checkout summary", async () => {
@@ -196,6 +199,68 @@ describe("MarketCheckoutTrackingView", () => {
     expect(
       wrapper.get('[data-testid="market-checkout-child-access-error"]').text(),
     ).toContain("無法開啟攤位訂單");
+  });
+
+  it("recovers a missing child order guest token before opening the order", async () => {
+    localStorage.setItem(
+      "makanmakan_recent_market_checkouts",
+      JSON.stringify([
+        {
+          id: "checkout-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          childOrderCount: 1,
+          totalAmount: 160,
+          paymentStatus: "pending",
+          phoneLastDigits: "789",
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      subtotal: 160,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+    recoverMarketCheckoutGuestToken.mockResolvedValueOnce({
+      orderId: 101,
+      restaurantId: "restaurant-1",
+      guestToken: "recovered-token-101",
+      tokenExpiresAt: "2026-06-01T14:00:00.000Z",
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-checkout-child-track"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(recoverMarketCheckoutGuestToken).toHaveBeenCalledWith("checkout-1", {
+      orderId: 101,
+      phoneLastDigits: "789",
+    });
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ShopOrderTracking",
+      params: {
+        restaurantId: "restaurant-1",
+        orderId: "101",
+      },
+    });
   });
 
   it("starts an aggregate market payment and renders the payment summary", async () => {

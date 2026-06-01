@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS market_checkout_sessions (
   market_name TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'submitted',
   payment_status TEXT NOT NULL DEFAULT 'pending',
+  phone_last_digits TEXT,
   subtotal_cents INTEGER NOT NULL,
   child_order_count INTEGER NOT NULL DEFAULT 0,
   payment_summary TEXT,

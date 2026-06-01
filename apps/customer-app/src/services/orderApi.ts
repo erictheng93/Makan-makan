@@ -2,6 +2,7 @@ import { apiClient } from "./api";
 import {
   recordMarketCheckoutGuestTokens,
   recordRecentMarketCheckout,
+  recordRecoveredMarketCheckoutGuestToken,
 } from "@/utils/marketCheckouts";
 import type {
   GuestRealtimeTokenResponse,
@@ -144,6 +145,13 @@ interface MarketCheckoutPaymentEnvelope {
   payment: MarketCheckoutPaymentSummary;
 }
 
+interface RecoverMarketCheckoutGuestTokenEnvelope {
+  orderId: number;
+  restaurantId: string;
+  guestToken: string;
+  tokenExpiresAt: string;
+}
+
 interface GuestOrderEnvelope {
   order: Order;
 }
@@ -189,7 +197,7 @@ export const orderApi = {
       checkoutData,
     );
     localStorage.setItem("market_guest_checkout", JSON.stringify(response));
-    recordRecentMarketCheckout(response.checkout);
+    recordRecentMarketCheckout(response.checkout, checkoutData.phoneLastDigits);
     recordMarketCheckoutGuestTokens(response);
     if (response.childOrders[0]?.guestToken) {
       localStorage.setItem(
@@ -205,6 +213,28 @@ export const orderApi = {
       `/market-checkouts/${checkoutId}`,
     );
     return response.checkout;
+  },
+
+  async recoverMarketCheckoutGuestToken(
+    checkoutId: string,
+    payload: {
+      orderId: number;
+      phoneLastDigits: string;
+    },
+  ): Promise<RecoverMarketCheckoutGuestTokenEnvelope> {
+    const response =
+      await apiClient.post<RecoverMarketCheckoutGuestTokenEnvelope>(
+        `/market-checkouts/${checkoutId}/guest-token`,
+        payload,
+      );
+    recordRecoveredMarketCheckoutGuestToken({
+      checkoutId,
+      orderId: response.orderId,
+      restaurantId: response.restaurantId,
+      guestToken: response.guestToken,
+      tokenExpiresAt: response.tokenExpiresAt,
+    });
+    return response;
   },
 
   async payMarketCheckout(

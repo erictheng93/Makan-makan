@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   activateMarketCheckoutGuestToken,
+  getRecentMarketCheckoutPhoneLastDigits,
   listRecentMarketCheckouts,
   recordMarketCheckoutGuestTokens,
   recordRecentMarketCheckout,
+  recordRecoveredMarketCheckoutGuestToken,
 } from "@/utils/marketCheckouts";
 import type { MarketCheckoutSummary } from "@/services/orderApi";
 
@@ -49,7 +51,7 @@ describe("marketCheckouts", () => {
   });
 
   it("records recent market checkouts newest first", () => {
-    recordRecentMarketCheckout(checkout({ id: "checkout-1" }));
+    recordRecentMarketCheckout(checkout({ id: "checkout-1" }), "789");
     recordRecentMarketCheckout(
       checkout({
         id: "checkout-2",
@@ -68,7 +70,9 @@ describe("marketCheckouts", () => {
       childOrderCount: 2,
       totalAmount: 240,
       paymentStatus: "pending",
+      phoneLastDigits: "789",
     });
+    expect(getRecentMarketCheckoutPhoneLastDigits("checkout-1")).toBe("789");
   });
 
   it("keeps payment status in recent market checkout records", () => {
@@ -112,5 +116,20 @@ describe("marketCheckouts", () => {
     expect(activateMarketCheckoutGuestToken("checkout-1", 101)).toBe(true);
     expect(localStorage.getItem("guest_auth_token")).toBe("guest-token-101");
     expect(activateMarketCheckoutGuestToken("checkout-1", 999)).toBe(false);
+  });
+
+  it("records recovered child order guest tokens", () => {
+    recordRecoveredMarketCheckoutGuestToken({
+      checkoutId: "checkout-1",
+      orderId: 101,
+      restaurantId: "restaurant-1",
+      guestToken: "recovered-token-101",
+      tokenExpiresAt: "2026-06-01T14:00:00.000Z",
+    });
+
+    expect(activateMarketCheckoutGuestToken("checkout-1", 101)).toBe(true);
+    expect(localStorage.getItem("guest_auth_token")).toBe(
+      "recovered-token-101",
+    );
   });
 });
