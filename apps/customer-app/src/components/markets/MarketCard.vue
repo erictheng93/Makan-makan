@@ -115,6 +115,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MarketListItem } from "@/services/marketsApi";
+import { marketTypeLabel } from "@/utils/marketTypes";
 
 const props = defineProps<{
   market: MarketListItem & { distanceKm?: number };
@@ -125,13 +126,7 @@ defineEmits<{
 }>();
 
 const vendorLabel = computed(() => `${props.market.vendorCount ?? 0} 攤`);
-const typeLabels: Record<string, string> = {
-  night_market: "夜市",
-  commercial_district: "商圈",
-  food_court: "美食街",
-  event_venue: "活動場域",
-};
-const typeLabel = computed(() => typeLabels[props.market.type] ?? "場域");
+const typeLabel = computed(() => marketTypeLabel(props.market.type));
 const distanceLabel = computed(() =>
   props.market.distanceKm == null
     ? ""

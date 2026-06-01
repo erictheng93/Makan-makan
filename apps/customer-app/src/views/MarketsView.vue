@@ -82,10 +82,13 @@
           @change="reloadList"
         >
           <option value="">全部類型</option>
-          <option value="night_market">夜市</option>
-          <option value="commercial_district">商圈</option>
-          <option value="food_court">美食街</option>
-          <option value="event_venue">活動場域</option>
+          <option
+            v-for="option in MARKET_TYPE_OPTIONS"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
         </select>
         <button
           type="button"
@@ -180,6 +183,7 @@ import {
   type MarketArea,
   type MarketListItem,
 } from "@/services/marketsApi";
+import { isMarketType, MARKET_TYPE_OPTIONS } from "@/utils/marketTypes";
 
 const router = useRouter();
 const route = useRoute();
@@ -262,14 +266,7 @@ function queryNumber(value: unknown) {
 
 function marketTypeFromQuery(value: unknown) {
   const type = firstQueryString(value);
-  return [
-    "night_market",
-    "commercial_district",
-    "food_court",
-    "event_venue",
-  ].includes(type)
-    ? type
-    : "";
+  return isMarketType(type) ? type : "";
 }
 
 function nearbyLocationFromQuery() {
