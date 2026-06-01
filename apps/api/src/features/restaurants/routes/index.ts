@@ -570,6 +570,7 @@ app.put(
       throw forbidden("Access denied");
     }
 
+    const previousRestaurant = await restaurantsService.getRestaurant(id);
     const restaurant = await restaurantsService.updateRestaurant(id, data);
 
     if (!restaurant) {
@@ -577,7 +578,9 @@ app.put(
     }
 
     const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
-    await sync.onRestaurantChanged(id);
+    await sync.onRestaurantChanged(id, {
+      previousDistrict: previousRestaurant?.district,
+    });
 
     return c.json(
       {

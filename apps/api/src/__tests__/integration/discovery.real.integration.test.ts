@@ -2770,6 +2770,64 @@ describe("Discovery API — real integration", () => {
     });
   });
 
+  it("invalidates old district restaurant cache after restaurant district changes", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const oldDistrict = `Old District ${suffix}`;
+    const newDistrict = `New District ${suffix}`;
+    const restaurant = await seed.restaurant({
+      name: "Restaurant District Move Vendor",
+      district: oldDistrict,
+      totalOrders: 10,
+    });
+    await seed.user({
+      id: 81,
+      username: "district-move-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const encodedOldDistrict = encodeURIComponent(oldDistrict);
+
+    const cachedOldDistrictRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants?district=${encodedOldDistrict}&page=1&limit=10`,
+      ),
+    );
+    expect(cachedOldDistrictRes.status).toBe(200);
+    const cachedOldDistrictData = (
+      (await cachedOldDistrictRes.json()) as ApiTestResponse
+    ).data;
+    expect(
+      cachedOldDistrictData.results.map((result: any) => result.restaurantId),
+    ).toEqual([String(restaurant.id)]);
+
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/restaurants/${restaurant.id}`, {
+        method: "PUT",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({ district: newDistrict }),
+      }),
+    );
+    expect(updateRes.status).toBe(200);
+
+    const oldDistrictRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/discovery/restaurants?district=${encodedOldDistrict}&page=1&limit=10`,
+      ),
+    );
+
+    expect(oldDistrictRes.status).toBe(200);
+    const oldDistrictData = ((await oldDistrictRes.json()) as ApiTestResponse)
+      .data;
+    expect(oldDistrictData.total).toBe(0);
+    expect(oldDistrictData.results).toEqual([]);
+  });
+
   it("returns restaurant browse totals independent of the current page slice", async () => {
     for (let i = 0; i < 12; i += 1) {
       await seed.restaurant({

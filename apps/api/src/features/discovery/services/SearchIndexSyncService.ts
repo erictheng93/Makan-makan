@@ -123,7 +123,14 @@ export class SearchIndexSyncService {
     await this.bumpSearchVersion();
   }
 
-  async onRestaurantChanged(restaurantId: string): Promise<void> {
+  async onRestaurantChanged(
+    restaurantId: string,
+    options: { previousDistrict?: string | null } = {},
+  ): Promise<void> {
+    const previousDistrictRows = await this.db
+      .selectDistinct({ district: dishSearchIndex.district })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.restaurantId, restaurantId));
     const [restaurant] = await this.db
       .select({
         district: restaurants.district,
@@ -196,7 +203,20 @@ export class SearchIndexSyncService {
         .where(eq(dishSearchIndex.restaurantId, restaurantId));
     }
 
-    await this.kv.delete(`search:restaurants:district:${restaurant.district}`);
+    const affectedDistricts = new Set(
+      previousDistrictRows
+        .map((row) => row.district)
+        .filter((district): district is string => Boolean(district)),
+    );
+    if (options.previousDistrict)
+      affectedDistricts.add(options.previousDistrict);
+    if (restaurant.district) affectedDistricts.add(restaurant.district);
+
+    await Promise.all(
+      Array.from(affectedDistricts).map((district) =>
+        this.kv.delete(`search:restaurants:district:${district}`),
+      ),
+    );
     await this.bumpSearchVersion();
   }
 
