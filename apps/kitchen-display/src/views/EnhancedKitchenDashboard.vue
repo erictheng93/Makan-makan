@@ -127,6 +127,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { ClipboardList } from "lucide-vue-next";
 import { RealtimeEventType } from "@makanmakan/shared-types";
+import type { RealtimeEvent } from "@makanmakan/shared-types";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useI18n } from "@/i18n";
@@ -379,6 +380,20 @@ const stopAutoRefresh = () => {
   }
 };
 
+// Adapter: the WebSocket realtimeService delivers the shared RealtimeEvent,
+// while the orders store consumes the kitchen's legacy KitchenSSEEvent shape.
+// Map explicitly (data/timestamp/type are what the store reads) instead of
+// casting the whole object through `unknown`. The type field is narrowed to
+// the KitchenSSEEvent union — safe because we only subscribe to the matching
+// order event types below.
+const toKitchenSSEEvent = (event: RealtimeEvent): KitchenSSEEvent => ({
+  type: event.type as KitchenSSEEvent["type"],
+  eventId: event.eventId,
+  timestamp: event.timestamp,
+  restaurantId: event.restaurantId,
+  data: event.data,
+});
+
 // Lifecycle
 onMounted(async () => {
   // Check authentication
@@ -409,7 +424,7 @@ onMounted(async () => {
       RealtimeEventType.ORDER_CANCELLED,
     ],
     (event) => {
-      ordersStore.handleSSEEvent(event as unknown as KitchenSSEEvent);
+      ordersStore.handleSSEEvent(toKitchenSSEEvent(event));
     },
   );
   await kitchenRealtime.connect(restaurantIdNum.value);
