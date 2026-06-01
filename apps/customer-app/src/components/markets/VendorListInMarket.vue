@@ -104,8 +104,8 @@
           >
             {{
               vendor.availableMenuItemCount > 0
-                ? `菜單 ${vendor.availableMenuItemCount} 項`
-                : "尚無菜單"
+                ? `菜單/商品 ${vendor.availableMenuItemCount} 項`
+                : "尚無菜單/商品"
             }}
           </span>
           <span
@@ -131,7 +131,7 @@
             :disabled="vendor.availableMenuItemCount <= 0"
             @click="$emit('selectVendor', vendor)"
           >
-            查看菜單
+            查看菜單/商品
           </button>
           <button
             type="button"

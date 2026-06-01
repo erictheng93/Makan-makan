@@ -118,7 +118,7 @@ describe("VendorListInMarket", () => {
     expect(wrapper.text()).toContain("攤位 A-01");
     expect(
       wrapper.get('[data-testid="open-vendor-menu-restaurant-1"]').text(),
-    ).toBe("查看菜單");
+    ).toBe("查看菜單/商品");
     expect(
       wrapper.get('[data-testid="open-vendor-services-restaurant-1"]').text(),
     ).toBe("查看服務");
@@ -266,9 +266,9 @@ describe("VendorListInMarket", () => {
       '[data-testid="vendor-availability-restaurant-2"]',
     );
 
-    expect(readyVendor.text()).toContain("菜單 3 項");
+    expect(readyVendor.text()).toContain("菜單/商品 3 項");
     expect(readyVendor.text()).toContain("服務 2 項");
-    expect(emptyVendor.text()).toContain("尚無菜單");
+    expect(emptyVendor.text()).toContain("尚無菜單/商品");
     expect(emptyVendor.text()).toContain("尚無服務");
   });
 });

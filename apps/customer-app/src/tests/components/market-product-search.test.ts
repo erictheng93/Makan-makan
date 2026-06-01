@@ -280,12 +280,12 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("攤位 B-12");
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
-    ).toContain("菜單 3 項");
+    ).toContain("菜單/商品 3 項");
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
     ).toContain("服務 2 項");
     expect(wrapper.get('[data-testid="vendor-result-open-menu"]').text()).toBe(
-      "查看菜單",
+      "查看菜單/商品",
     );
     expect(
       wrapper.get('[data-testid="vendor-result-open-services"]').text(),
@@ -370,7 +370,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
-    ).toContain("尚無菜單");
+    ).toContain("尚無菜單/商品");
 
     const menuButton = wrapper.get('[data-testid="vendor-result-open-menu"]');
     expect(menuButton.attributes("disabled")).toBeDefined();
