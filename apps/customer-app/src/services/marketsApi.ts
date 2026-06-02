@@ -70,6 +70,11 @@ export type BusinessHours = Record<
   { open: string; close: string; closed?: boolean }
 >;
 
+export interface MarketVendorMapPosition {
+  x: number;
+  y: number;
+}
+
 export interface MarketExplorationSummary {
   dishSearchUrl: string;
   serviceSearchUrl: string;
@@ -101,6 +106,7 @@ export interface MarketExplorationSummary {
 export interface MarketVendor extends RestaurantListItem {
   stallNumber: string | null;
   locationLabel?: string | null;
+  mapPosition?: MarketVendorMapPosition | null;
   marketHours?: BusinessHours | null;
   effectiveBusinessHours?: BusinessHours | null;
   isPrimary: boolean;

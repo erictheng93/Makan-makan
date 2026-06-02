@@ -1614,6 +1614,7 @@ describe("PlatformMarketsView", () => {
           supportsTakeaway: true,
           supportsDelivery: false,
           stallNumber: "A-01",
+          mapPosition: { x: 20, y: 30 },
           isPrimary: false,
         },
       ],
@@ -1626,6 +1627,7 @@ describe("PlatformMarketsView", () => {
       restaurantId: "restaurant-1",
       marketId: "market-1",
       stallNumber: "A-02",
+      mapPosition: { x: 40, y: 55 },
       isPrimary: true,
       joinedAt: new Date(),
     });
@@ -1651,6 +1653,12 @@ describe("PlatformMarketsView", () => {
       .get('[data-testid="attached-vendor-stall-restaurant-1"]')
       .setValue("A-02");
     await wrapper
+      .get('[data-testid="attached-vendor-map-x-restaurant-1"]')
+      .setValue("40");
+    await wrapper
+      .get('[data-testid="attached-vendor-map-y-restaurant-1"]')
+      .setValue("55");
+    await wrapper
       .get('[data-testid="attached-vendor-primary-restaurant-1"]')
       .setValue(true);
     await wrapper
@@ -1664,6 +1672,7 @@ describe("PlatformMarketsView", () => {
       {
         stallNumber: "A-02",
         locationLabel: null,
+        mapPosition: { x: 40, y: 55 },
         isPrimary: true,
       },
     );

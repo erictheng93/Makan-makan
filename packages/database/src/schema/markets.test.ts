@@ -65,6 +65,7 @@ describe("market discovery schema", () => {
         "market_id",
         "stall_number",
         "location_label",
+        "map_position",
         "market_hours",
         "is_primary",
         "joined_at_ms",
@@ -78,6 +79,9 @@ describe("market discovery schema", () => {
       "text",
     );
     expect(columnSqlType(restaurantMarketMemberships, "location_label")).toBe(
+      "text",
+    );
+    expect(columnSqlType(restaurantMarketMemberships, "map_position")).toBe(
       "text",
     );
     expect(columnSqlType(restaurantMarketMemberships, "market_hours")).toBe(

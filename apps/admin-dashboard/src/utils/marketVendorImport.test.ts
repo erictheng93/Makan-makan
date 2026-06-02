@@ -37,6 +37,27 @@ describe("market vendor import parsing", () => {
     ]);
   });
 
+  it("parses map position columns into vendor import inputs", () => {
+    const result = parseMarketVendorImport(
+      "csv",
+      [
+        "restaurantId,stallNumber,locationLabel,mapX,mapY,isPrimary",
+        "restaurant-1,A-01,文華路入口,20,35,true",
+      ].join("\n"),
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.vendors).toEqual([
+      {
+        restaurantId: "restaurant-1",
+        stallNumber: "A-01",
+        locationLabel: "文華路入口",
+        mapPosition: { x: 20, y: 35 },
+        isPrimary: true,
+      },
+    ]);
+  });
+
   it("filters exported worklist CSV rows to the target market", () => {
     const result = parseMarketVendorImport(
       "csv",
@@ -88,6 +109,18 @@ describe("market vendor import parsing", () => {
     expect(result.errors).toEqual([
       "第 2 列：latitude 必須是 -90 到 90 之間的數字。",
       "第 2 列：longitude 必須是 -180 到 180 之間的數字。",
+    ]);
+  });
+
+  it("rejects invalid map position before import", () => {
+    const result = parseMarketVendorImport(
+      "csv",
+      ["restaurantId,mapX,mapY", "restaurant-1,101,-1"].join("\n"),
+    );
+
+    expect(result.vendors).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 2 列：mapX/mapY 必須是 0 到 100 之間的數字。",
     ]);
   });
 
@@ -190,7 +223,7 @@ describe("market vendor import parsing", () => {
 
   it("builds a spreadsheet-friendly CSV template", () => {
     expect(buildMarketVendorImportTemplate()).toContain(
-      "restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,locationLabel,isPrimary",
+      "restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,locationLabel,mapX,mapY,isPrimary",
     );
     expect(buildMarketVendorImportTemplate()).toContain("新店鋪");
   });

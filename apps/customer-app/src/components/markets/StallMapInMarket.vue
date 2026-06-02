@@ -32,7 +32,48 @@
       </div>
     </div>
 
-    <div class="space-y-4">
+    <div
+      v-if="positionedVendors.length > 0"
+      data-testid="stall-position-map"
+      class="relative min-h-[18rem] overflow-hidden rounded-lg border border-gray-200 bg-white"
+      aria-label="攤位位置圖"
+    >
+      <div
+        class="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-gray-200"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 bg-gray-200"
+        aria-hidden="true"
+      ></div>
+      <button
+        v-for="vendor in positionedVendors"
+        :key="vendor.restaurantId"
+        type="button"
+        class="absolute min-h-[4.5rem] w-32 max-w-[42%] -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white px-2 py-2 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-ios-blue focus:ring-offset-2"
+        :class="
+          vendor.isOpen ? 'border-ios-blue/40' : 'border-gray-200 opacity-80'
+        "
+        :style="{
+          left: `${mapAxis(vendor, 'x')}%`,
+          top: `${mapAxis(vendor, 'y')}%`,
+        }"
+        :data-testid="`stall-position-vendor-${vendor.restaurantId}`"
+        @click="$emit('selectVendor', vendor)"
+      >
+        <span class="block text-[11px] font-semibold text-ios-blue">
+          攤位 {{ vendor.stallNumber }}
+        </span>
+        <span class="mt-1 block truncate text-xs font-semibold text-gray-900">
+          {{ vendor.name }}
+        </span>
+        <span class="mt-1 block text-[11px] text-gray-500">
+          {{ vendor.locationLabel || "未標示區域" }}
+        </span>
+      </button>
+    </div>
+
+    <div v-if="groupedVendors.length > 0" class="space-y-4">
       <div
         v-for="group in groupedVendors"
         :key="group.locationLabel"
@@ -148,6 +189,15 @@ const mappedVendors = computed(() =>
     ),
 );
 
+const positionedVendors = computed(() =>
+  mappedVendors.value.filter(
+    (vendor) =>
+      vendor.mapPosition &&
+      Number.isFinite(vendor.mapPosition.x) &&
+      Number.isFinite(vendor.mapPosition.y),
+  ),
+);
+
 const openVendorCount = computed(
   () => mappedVendors.value.filter((vendor) => vendor.isOpen).length,
 );
@@ -155,7 +205,9 @@ const openVendorCount = computed(
 const groupedVendors = computed(() => {
   const groups = new Map<string, MarketVendor[]>();
 
-  for (const vendor of mappedVendors.value) {
+  for (const vendor of mappedVendors.value.filter(
+    (vendor) => !positionedVendors.value.includes(vendor),
+  )) {
     const label = vendor.locationLabel?.trim() || "未標示區域";
     groups.set(label, [...(groups.get(label) ?? []), vendor]);
   }
@@ -165,4 +217,8 @@ const groupedVendors = computed(() => {
     vendors,
   }));
 });
+
+function mapAxis(vendor: MarketVendor, axis: "x" | "y") {
+  return vendor.mapPosition?.[axis] ?? 50;
+}
 </script>

@@ -60,6 +60,30 @@ describe("StallMapInMarket", () => {
     expect(wrapper.text()).toContain("服務 1");
   });
 
+  it("renders positioned vendors on the stall map when map coordinates exist", async () => {
+    const selectedVendor = vendor({
+      restaurantId: "r1",
+      mapPosition: { x: 25, y: 40 },
+    });
+    const wrapper = mount(StallMapInMarket, {
+      props: {
+        vendors: [selectedVendor],
+      },
+    });
+
+    const mapVendor = wrapper.get('[data-testid="stall-position-vendor-r1"]');
+
+    expect(wrapper.find('[data-testid="stall-position-map"]').exists()).toBe(
+      true,
+    );
+    expect(mapVendor.attributes("style")).toContain("left: 25%");
+    expect(mapVendor.attributes("style")).toContain("top: 40%");
+
+    await mapVendor.trigger("click");
+
+    expect(wrapper.emitted("selectVendor")?.[0]).toEqual([selectedVendor]);
+  });
+
   it("sorts stall numbers naturally inside each lane", () => {
     const wrapper = mount(StallMapInMarket, {
       props: {

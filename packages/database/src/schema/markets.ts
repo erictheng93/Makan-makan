@@ -77,6 +77,10 @@ export const restaurantMarketMemberships = sqliteTable(
       .references(() => markets.id, { onDelete: "cascade" }),
     stallNumber: text("stall_number"),
     locationLabel: text("location_label"),
+    mapPosition: text("map_position", { mode: "json" }).$type<{
+      x: number;
+      y: number;
+    } | null>(),
     marketHours: text("market_hours", { mode: "json" }).$type<Record<
       string,
       { open: string; close: string; closed?: boolean }

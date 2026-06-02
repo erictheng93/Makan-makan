@@ -29,6 +29,8 @@ const csvFields = [
   "website",
   "stallNumber",
   "locationLabel",
+  "mapX",
+  "mapY",
   "isPrimary",
 ] as const;
 const worklistContextFields = ["marketId", "marketSlug"] as const;
@@ -56,6 +58,8 @@ export function buildMarketVendorImportTemplate() {
       "",
       "A-01",
       "文華路入口",
+      "20",
+      "35",
       "true",
     ].join(","),
     [
@@ -74,6 +78,8 @@ export function buildMarketVendorImportTemplate() {
       "",
       "B-02",
       "福星路轉角",
+      "62",
+      "58",
       "false",
     ].join(","),
   ].join("\n");
@@ -218,6 +224,12 @@ function csvRowToVendor(row: CsvRow): ImportMarketVendorInput {
       vendor.isPrimary = parseBoolean(value);
     } else if (field === "latitude" || field === "longitude") {
       vendor[field] = Number(value);
+    } else if (field === "mapX" || field === "mapY") {
+      const axis = field === "mapX" ? "x" : "y";
+      vendor.mapPosition = {
+        ...(vendor.mapPosition ?? { x: 0, y: 0 }),
+        [axis]: Number(value),
+      };
     } else {
       vendor[field] = value;
     }
@@ -280,6 +292,14 @@ function validateVendorImportRow(
     !isCoordinate(vendor.longitude, -180, 180)
   ) {
     errors.push(`${rowLabel}：longitude 必須是 -180 到 180 之間的數字。`);
+  }
+  if (vendor.mapPosition !== undefined) {
+    if (
+      !isCoordinate(vendor.mapPosition?.x, 0, 100) ||
+      !isCoordinate(vendor.mapPosition?.y, 0, 100)
+    ) {
+      errors.push(`${rowLabel}：mapX/mapY 必須是 0 到 100 之間的數字。`);
+    }
   }
 
   return errors;

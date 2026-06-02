@@ -1418,7 +1418,7 @@
             v-for="vendor in attachedVendors"
             :key="vendor.restaurantId"
             :data-testid="`attached-vendor-row-${vendor.restaurantId}`"
-            class="grid gap-3 p-3 lg:grid-cols-[1fr_9rem_12rem_8rem_auto_auto]"
+            class="grid gap-3 p-3 lg:grid-cols-[1fr_8rem_10rem_6rem_6rem_8rem_auto_auto]"
           >
             <div>
               <div class="font-medium text-gray-900">
@@ -1448,6 +1448,26 @@
               :data-testid="`attached-vendor-location-${vendor.restaurantId}`"
               class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
               placeholder="位置描述"
+            />
+            <input
+              v-model="vendor.draftMapX"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              :data-testid="`attached-vendor-map-x-${vendor.restaurantId}`"
+              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              placeholder="X%"
+            />
+            <input
+              v-model="vendor.draftMapY"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              :data-testid="`attached-vendor-map-y-${vendor.restaurantId}`"
+              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              placeholder="Y%"
             />
             <label
               class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
@@ -1701,6 +1721,8 @@ type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
 type EditableMarketVendor = MarketVendor & {
   draftStallNumber: string;
   draftLocationLabel: string;
+  draftMapX: string;
+  draftMapY: string;
   draftIsPrimary: boolean;
   isSaving?: boolean;
   isRemoving?: boolean;
@@ -2393,6 +2415,7 @@ function loadVendorImportExample() {
             {
               restaurantId: "restaurant-1",
               stallNumber: "A-01",
+              mapPosition: { x: 20, y: 35 },
               isPrimary: true,
             },
             {
@@ -2402,6 +2425,7 @@ function loadVendorImportExample() {
               address: "台中市西屯區文華路 100 號",
               district: "西屯區",
               stallNumber: "B-02",
+              mapPosition: { x: 62, y: 58 },
             },
           ],
           null,
@@ -2504,6 +2528,10 @@ function editableMarketVendor(vendor: MarketVendor): EditableMarketVendor {
     ...vendor,
     draftStallNumber: vendor.stallNumber ?? "",
     draftLocationLabel: vendor.locationLabel ?? "",
+    draftMapX:
+      vendor.mapPosition?.x != null ? String(vendor.mapPosition.x) : "",
+    draftMapY:
+      vendor.mapPosition?.y != null ? String(vendor.mapPosition.y) : "",
     draftIsPrimary: vendor.isPrimary,
   };
 }
@@ -2563,6 +2591,7 @@ async function saveAttachedVendor(vendor: EditableMarketVendor) {
       {
         stallNumber: vendor.draftStallNumber.trim() || null,
         locationLabel: vendor.draftLocationLabel.trim() || null,
+        mapPosition: parseMapPositionDraft(vendor),
         isPrimary: vendor.draftIsPrimary,
       },
     );
@@ -2575,6 +2604,27 @@ async function saveAttachedVendor(vendor: EditableMarketVendor) {
   } finally {
     vendor.isSaving = false;
   }
+}
+
+function parseMapPositionDraft(vendor: EditableMarketVendor) {
+  const rawX = String(vendor.draftMapX ?? "").trim();
+  const rawY = String(vendor.draftMapY ?? "").trim();
+  if (!rawX && !rawY) return null;
+
+  const x = Number(rawX);
+  const y = Number(rawY);
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    x < 0 ||
+    x > 100 ||
+    y < 0 ||
+    y > 100
+  ) {
+    throw new Error("Map position must be a percentage between 0 and 100");
+  }
+
+  return { x, y };
 }
 
 async function removeAttachedVendor(vendor: EditableMarketVendor) {

@@ -98,6 +98,11 @@ export interface MarketCatalogGapVendor {
   locationLabel: string | null;
 }
 
+export interface MarketVendorMapPosition {
+  x: number;
+  y: number;
+}
+
 export interface MarketAreaReadinessSummary {
   city: string;
   district: string;
@@ -768,6 +773,7 @@ export class MarketsService {
           name: restaurants.name,
           stallNumber: restaurantMarketMemberships.stallNumber,
           locationLabel: restaurantMarketMemberships.locationLabel,
+          mapPosition: restaurantMarketMemberships.mapPosition,
         })
         .from(restaurantMarketMemberships)
         .innerJoin(
@@ -1057,6 +1063,7 @@ export class MarketsService {
         imageUrl: restaurants.logoUrl,
         stallNumber: restaurantMarketMemberships.stallNumber,
         locationLabel: restaurantMarketMemberships.locationLabel,
+        mapPosition: restaurantMarketMemberships.mapPosition,
         isPrimary: restaurantMarketMemberships.isPrimary,
       })
       .from(restaurantMarketMemberships)
@@ -1368,6 +1375,7 @@ export class MarketsService {
       restaurantId: string;
       stallNumber?: string | null;
       locationLabel?: string | null;
+      mapPosition?: MarketVendorMapPosition | null;
       marketHours?: Record<
         string,
         { open: string; close: string; closed?: boolean }
@@ -1398,6 +1406,10 @@ export class MarketsService {
             input.locationLabel !== undefined
               ? input.locationLabel
               : existing.locationLabel,
+          mapPosition:
+            input.mapPosition !== undefined
+              ? input.mapPosition
+              : existing.mapPosition,
           marketHours:
             input.marketHours !== undefined
               ? input.marketHours
@@ -1424,6 +1436,7 @@ export class MarketsService {
         restaurantId: input.restaurantId,
         stallNumber: input.stallNumber ?? null,
         locationLabel: input.locationLabel ?? null,
+        mapPosition: input.mapPosition ?? null,
         marketHours: input.marketHours ?? null,
         isPrimary: input.isPrimary ?? false,
         joinedAt: new Date(),
@@ -1486,6 +1499,7 @@ export class MarketsService {
         marketId: restaurantMarketMemberships.marketId,
         stallNumber: restaurantMarketMemberships.stallNumber,
         locationLabel: restaurantMarketMemberships.locationLabel,
+        mapPosition: restaurantMarketMemberships.mapPosition,
         marketHours: restaurantMarketMemberships.marketHours,
         isPrimary: restaurantMarketMemberships.isPrimary,
         joinedAt: restaurantMarketMemberships.joinedAt,
@@ -1514,6 +1528,7 @@ export class MarketsService {
         marketId: row.marketId,
         stallNumber: row.stallNumber,
         locationLabel: row.locationLabel,
+        mapPosition: row.mapPosition,
         marketHours: row.marketHours,
         isPrimary: row.isPrimary,
         joinedAt: row.joinedAt,
@@ -1686,6 +1701,7 @@ export class MarketsService {
     input: {
       stallNumber?: string | null;
       locationLabel?: string | null;
+      mapPosition?: MarketVendorMapPosition | null;
       marketHours?: Record<
         string,
         { open: string; close: string; closed?: boolean }
@@ -1701,6 +1717,7 @@ export class MarketsService {
       restaurantId: request.restaurantId,
       stallNumber: input.stallNumber ?? null,
       locationLabel: input.locationLabel ?? null,
+      mapPosition: input.mapPosition ?? null,
       marketHours: input.marketHours ?? null,
       isPrimary: input.isPrimary ?? false,
     });

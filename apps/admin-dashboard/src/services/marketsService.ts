@@ -106,9 +106,15 @@ export interface MarketVendor {
   supportsDelivery: boolean;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  mapPosition?: MarketVendorMapPosition | null;
   marketHours?: Record<string, unknown> | null;
   effectiveBusinessHours?: Record<string, unknown> | null;
   isPrimary: boolean;
+}
+
+export interface MarketVendorMapPosition {
+  x: number;
+  y: number;
 }
 
 export interface MarketVendorsResult {
@@ -171,6 +177,7 @@ export interface ImportMarketVendorInput {
   website?: string;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  mapPosition?: MarketVendorMapPosition | null;
   marketHours?: Record<string, unknown> | null;
   isPrimary?: boolean;
 }
@@ -187,6 +194,7 @@ export interface ImportMarketVendorResult {
   membershipId?: number;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  mapPosition?: MarketVendorMapPosition | null;
   marketHours?: Record<string, unknown> | null;
 }
 
@@ -245,6 +253,7 @@ export interface AddMarketVendorInput {
   restaurantId: string;
   stallNumber?: string | null;
   locationLabel?: string | null;
+  mapPosition?: MarketVendorMapPosition | null;
   marketHours?: Record<string, unknown> | null;
   isPrimary?: boolean;
 }
@@ -252,6 +261,7 @@ export interface AddMarketVendorInput {
 export interface UpdateMarketVendorInput {
   stallNumber?: string | null;
   locationLabel?: string | null;
+  mapPosition?: MarketVendorMapPosition | null;
   marketHours?: Record<string, unknown> | null;
   isPrimary?: boolean;
 }

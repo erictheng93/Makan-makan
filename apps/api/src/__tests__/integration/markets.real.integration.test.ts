@@ -1685,6 +1685,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(vendor.id),
       marketId: market.id,
       stallNumber: "H-01",
+      mapPosition: { x: 33, y: 44 },
       marketHours,
       joinedAt: new Date(),
     });
@@ -1721,6 +1722,7 @@ describe("Markets API — real integration", () => {
       restaurantId: String(vendor.id),
       name: "Market Hours Override Stand",
       stallNumber: "H-01",
+      mapPosition: { x: 33, y: 44 },
       marketHours,
       effectiveBusinessHours: marketHours,
       isOpen: true,
@@ -2593,6 +2595,7 @@ describe("Markets API — real integration", () => {
                 restaurantId: String(existingRestaurant.id),
                 stallNumber: "A-01",
                 locationLabel: "文華路入口",
+                mapPosition: { x: 20, y: 35 },
                 isPrimary: true,
               },
               {
@@ -2607,6 +2610,7 @@ describe("Markets API — real integration", () => {
                 longitude: 120.6479,
                 stallNumber: "B-02",
                 locationLabel: "福星路轉角",
+                mapPosition: { x: 62, y: 58 },
               },
             ],
           }),
@@ -2647,12 +2651,14 @@ describe("Markets API — real integration", () => {
         restaurantId: String(existingRestaurant.id),
         stallNumber: "A-01",
         locationLabel: "文華路入口",
+        mapPosition: { x: 20, y: 35 },
       }),
       expect.objectContaining({
         status: "created",
         restaurantName: "新匯入蚵仔煎",
         stallNumber: "B-02",
         locationLabel: "福星路轉角",
+        mapPosition: { x: 62, y: 58 },
       }),
     ]);
     expect(importJson.data.catalogReadiness.missingProductVendors).toEqual(

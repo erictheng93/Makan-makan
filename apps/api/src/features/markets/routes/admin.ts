@@ -129,6 +129,7 @@ async function dryRunVendorImport(input: {
         restaurantName: vendor.name,
         stallNumber: vendor.stallNumber ?? null,
         locationLabel: vendor.locationLabel ?? null,
+        mapPosition: vendor.mapPosition ?? null,
       });
       continue;
     }
@@ -147,6 +148,7 @@ async function dryRunVendorImport(input: {
         restaurantName: vendor.name,
         stallNumber: vendor.stallNumber ?? null,
         locationLabel: vendor.locationLabel ?? null,
+        mapPosition: vendor.mapPosition ?? null,
       });
       continue;
     }
@@ -171,6 +173,7 @@ async function dryRunVendorImport(input: {
         restaurantName: vendor.name,
         stallNumber: vendor.stallNumber ?? null,
         locationLabel: vendor.locationLabel ?? null,
+        mapPosition: vendor.mapPosition ?? null,
       });
       continue;
     }
@@ -210,6 +213,7 @@ async function dryRunVendorImport(input: {
       restaurantName: restaurant.name,
       stallNumber: vendor.stallNumber ?? null,
       locationLabel: vendor.locationLabel ?? null,
+      mapPosition: vendor.mapPosition ?? null,
     });
   }
 
@@ -485,6 +489,7 @@ routes.put(
       restaurantId,
       stallNumber: body.stallNumber,
       locationLabel: body.locationLabel,
+      mapPosition: body.mapPosition,
       marketHours: body.marketHours,
       isPrimary: body.isPrimary,
     });
@@ -568,6 +573,7 @@ routes.post(
           restaurantName: vendor.name,
           stallNumber: vendor.stallNumber ?? null,
           locationLabel: vendor.locationLabel ?? null,
+          mapPosition: vendor.mapPosition ?? null,
         });
         continue;
       }
@@ -621,6 +627,7 @@ routes.post(
             restaurantName,
             stallNumber: vendor.stallNumber ?? null,
             locationLabel: vendor.locationLabel ?? null,
+            mapPosition: vendor.mapPosition ?? null,
           });
           continue;
         }
@@ -648,6 +655,7 @@ routes.post(
           restaurantName,
           stallNumber: vendor.stallNumber ?? null,
           locationLabel: vendor.locationLabel ?? null,
+          mapPosition: vendor.mapPosition ?? null,
         });
         continue;
       }
@@ -656,6 +664,7 @@ routes.post(
         restaurantId,
         stallNumber: vendor.stallNumber,
         locationLabel: vendor.locationLabel,
+        mapPosition: vendor.mapPosition,
         marketHours: vendor.marketHours,
         isPrimary: vendor.isPrimary,
       });
@@ -669,6 +678,7 @@ routes.post(
           restaurantName,
           stallNumber: vendor.stallNumber ?? null,
           locationLabel: vendor.locationLabel ?? null,
+          mapPosition: vendor.mapPosition ?? null,
         });
         continue;
       }
@@ -682,6 +692,7 @@ routes.post(
         membershipId: membership.id,
         stallNumber: membership.stallNumber,
         locationLabel: membership.locationLabel,
+        mapPosition: membership.mapPosition,
       });
     }
 

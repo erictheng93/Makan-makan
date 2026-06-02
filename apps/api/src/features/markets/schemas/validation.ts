@@ -135,6 +135,13 @@ export const addMarketVendorSchema = z.object({
   restaurantId: z.string().min(1).max(120),
   stallNumber: z.string().max(80).nullable().optional(),
   locationLabel: z.string().max(160).nullable().optional(),
+  mapPosition: z
+    .object({
+      x: z.number().min(0).max(100),
+      y: z.number().min(0).max(100),
+    })
+    .nullable()
+    .optional(),
   marketHours: z.record(z.any()).nullable().optional(),
   isPrimary: z.boolean().optional(),
 });
@@ -142,6 +149,13 @@ export const addMarketVendorSchema = z.object({
 export const updateMarketVendorSchema = z.object({
   stallNumber: z.string().max(80).nullable().optional(),
   locationLabel: z.string().max(160).nullable().optional(),
+  mapPosition: z
+    .object({
+      x: z.number().min(0).max(100),
+      y: z.number().min(0).max(100),
+    })
+    .nullable()
+    .optional(),
   marketHours: z.record(z.any()).nullable().optional(),
   isPrimary: z.boolean().optional(),
 });
@@ -168,6 +182,13 @@ const importMarketVendorSchema = z
     website: urlSchema.optional(),
     stallNumber: z.string().max(80).nullable().optional(),
     locationLabel: z.string().max(160).nullable().optional(),
+    mapPosition: z
+      .object({
+        x: z.number().min(0).max(100),
+        y: z.number().min(0).max(100),
+      })
+      .nullable()
+      .optional(),
     marketHours: z.record(z.any()).nullable().optional(),
     isPrimary: z.boolean().optional(),
   })
