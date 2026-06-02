@@ -334,11 +334,11 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       process: vi.fn(async () => ({
         provider: "future_provider",
         providerTransactionId: "intent-market-1",
-        status: "requires_action",
+        status: "requires_action" as const,
         authorizedAmountCents: 0,
         allocations: [],
         nextAction: {
-          type: "redirect",
+          type: "redirect" as const,
           redirectUrl: "https://payments.example.test/confirm/intent-market-1",
           expiresAt: "2026-06-01T12:00:00.000Z",
         },
@@ -567,7 +567,9 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       ],
     });
 
-    const [, requestInit] = fetcher.mock.calls[0];
+    const [, requestInit] = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0];
     const headers = requestInit?.headers as Record<string, string>;
     const body = requestInit?.body as string;
     const timestamp = headers["x-market-checkout-signature-timestamp"];
@@ -989,7 +991,9 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         }),
       }),
     );
-    const request = fetcher.mock.calls[0]?.[1] as { body?: string } | undefined;
+    const request = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0]?.[1] as { body?: string } | undefined;
     expect(JSON.parse(request?.body ?? "{}")).toMatchObject({
       checkoutId: "checkout-1",
       paymentId: "market_pay_checkout-1",
@@ -1036,7 +1040,9 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         }),
       }),
     );
-    const request = fetcher.mock.calls[0]?.[1] as { body?: string } | undefined;
+    const request = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0]?.[1] as { body?: string } | undefined;
     expect(JSON.parse(request?.body ?? "{}")).toMatchObject({
       checkoutId: "checkout-1",
       paymentId: "market_pay_checkout-1",

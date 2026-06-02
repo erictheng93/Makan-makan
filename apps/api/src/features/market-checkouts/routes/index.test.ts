@@ -1148,7 +1148,10 @@ describe("market checkout routes", () => {
         refundedAmount: 200,
       }),
     });
-    const ledgerPrepareCallIndex = env.DB.prepare.mock.calls.findIndex(
+    const prepareCalls = env.DB.prepare.mock.calls as unknown as Array<
+      [string]
+    >;
+    const ledgerPrepareCallIndex = prepareCalls.findIndex(
       ([sql]) =>
         typeof sql === "string" &&
         sql.includes("INSERT INTO market_checkout_payments"),
@@ -1296,9 +1299,9 @@ describe("market checkout routes", () => {
         }),
       }),
     );
-    const providerRequest = fetcher.mock.calls[0]?.[1] as
-      | { body?: string }
-      | undefined;
+    const providerRequest = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0]?.[1] as { body?: string } | undefined;
     expect(JSON.parse(providerRequest?.body ?? "{}")).toMatchObject({
       checkoutId: "checkout-1",
       paymentId: "market_pay_checkout-1",
@@ -2028,9 +2031,9 @@ describe("market checkout routes", () => {
         }),
       }),
     );
-    const statusRequest = fetcher.mock.calls[0]?.[1] as
-      | { body?: string }
-      | undefined;
+    const statusRequest = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0]?.[1] as { body?: string } | undefined;
     expect(JSON.parse(statusRequest?.body ?? "{}")).toMatchObject({
       checkoutId: "checkout-1",
       paymentId: "market_pay_checkout-1",

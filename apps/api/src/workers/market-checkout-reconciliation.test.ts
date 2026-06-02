@@ -101,7 +101,9 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
         }),
       }),
     );
-    const request = fetcher.mock.calls[0]?.[1] as { body?: string } | undefined;
+    const request = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0]?.[1] as { body?: string } | undefined;
     expect(JSON.parse(request?.body ?? "{}")).toMatchObject({
       checkoutId: "checkout-1",
       paymentId: "market_pay_checkout-1",
@@ -205,7 +207,9 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
       failed: 0,
       skipped: 0,
     });
-    const request = fetcher.mock.calls[0]?.[1] as { body?: string } | undefined;
+    const request = (
+      fetcher.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0]?.[1] as { body?: string } | undefined;
     expect(JSON.parse(request?.body ?? "{}")).toMatchObject({
       checkoutId: "checkout-1",
       paymentId: "market_pay_checkout-1",

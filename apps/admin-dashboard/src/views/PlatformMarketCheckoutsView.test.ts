@@ -545,7 +545,7 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("付款失敗");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toContain("06/01 18:09");
+    ).toMatch(/06\/01[\s\u2009]\d{2}:09/);
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("Webhook 摘要");

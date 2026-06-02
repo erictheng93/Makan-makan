@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import MarketCard from "@/components/markets/MarketCard.vue";
 import type { MarketListItem } from "@/services/marketsApi";
 
@@ -26,6 +26,10 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
 }
 
 describe("MarketCard", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("shows the venue type for mixed market directories", () => {
     const wrapper = mount(MarketCard, {
       props: {
@@ -40,6 +44,7 @@ describe("MarketCard", () => {
   });
 
   it("uses gallery image fallback and shows open status", () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-22T18:30:00+08:00"));
 
     const wrapper = mount(MarketCard, {
@@ -61,6 +66,7 @@ describe("MarketCard", () => {
   });
 
   it("shows closed status when today is marked closed", () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-24T18:30:00+08:00"));
 
     const wrapper = mount(MarketCard, {

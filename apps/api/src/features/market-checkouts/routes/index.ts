@@ -252,6 +252,7 @@ interface MarketCheckoutProviderLastWebhook {
   eventType: string;
   status: string;
   receivedAt: string;
+  payload?: unknown;
   payloadSummary?: MarketCheckoutProviderPayloadSummary;
 }
 
