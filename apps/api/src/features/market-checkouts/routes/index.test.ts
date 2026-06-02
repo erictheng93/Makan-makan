@@ -3177,6 +3177,13 @@ describe("market checkout routes", () => {
             status: "paid",
             receivedAt: "2026-06-01T10:09:00.000Z",
           },
+          lastReconciliation: {
+            provider: "mock_market_provider",
+            eventId: "reconcile-market-checkout-1",
+            eventType: "market_checkout.payment_paid",
+            status: "paid",
+            receivedAt: "2026-06-01T10:11:00.000Z",
+          },
         }),
         created_at_ms: 1780308000000,
         updated_at_ms: 1780308600000,
@@ -3263,6 +3270,13 @@ describe("market checkout routes", () => {
                 status: string;
                 receivedAt: string;
               };
+              lastReconciliation?: {
+                provider: string;
+                eventId: string;
+                eventType: string;
+                status: string;
+                receivedAt: string;
+              };
             };
           };
         };
@@ -3282,6 +3296,13 @@ describe("market checkout routes", () => {
           eventType: "market_checkout.payment_paid",
           status: "paid",
           receivedAt: "2026-06-01T10:09:00.000Z",
+        },
+        lastReconciliation: {
+          provider: "mock_market_provider",
+          eventId: "reconcile-market-checkout-1",
+          eventType: "market_checkout.payment_paid",
+          status: "paid",
+          receivedAt: "2026-06-01T10:11:00.000Z",
         },
       },
     });

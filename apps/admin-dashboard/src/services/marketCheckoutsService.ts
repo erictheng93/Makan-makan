@@ -109,6 +109,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       providerTransactionId?: string;
       nextAction?: MarketCheckoutProviderNextAction;
       lastWebhook?: MarketCheckoutProviderLastWebhook;
+      lastReconciliation?: MarketCheckoutProviderLastWebhook;
       amountCents: number;
       paidAmountCents: number;
       refundedAmountCents: number;

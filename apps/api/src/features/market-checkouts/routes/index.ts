@@ -233,6 +233,7 @@ interface MarketCheckoutParentPaymentSummary {
   providerTransactionId?: string;
   nextAction?: MarketCheckoutProviderNextAction;
   lastWebhook?: MarketCheckoutProviderLastWebhook;
+  lastReconciliation?: MarketCheckoutProviderLastWebhook;
   amountCents: number;
   paidAmountCents: number;
   refundedAmountCents: number;
@@ -1315,6 +1316,7 @@ async function hydrateMarketCheckoutParentPayment(
     providerTransactionId: row.provider_transaction_id ?? undefined,
     nextAction: providerPayload.nextAction,
     lastWebhook: providerPayload.lastWebhook,
+    lastReconciliation: providerPayload.lastReconciliation,
     amountCents: row.amount_cents,
     paidAmountCents: row.paid_amount_cents,
     refundedAmountCents: row.refunded_amount_cents,
@@ -1694,17 +1696,22 @@ function parseJsonStringArray(value: string | null | undefined): string[] {
 function parseProviderPayload(value: string | null | undefined): {
   nextAction?: MarketCheckoutProviderNextAction;
   lastWebhook?: MarketCheckoutProviderLastWebhook;
+  lastReconciliation?: MarketCheckoutProviderLastWebhook;
 } {
   if (!value) return {};
   try {
     const parsed = JSON.parse(value) as {
       nextAction?: unknown;
       lastWebhook?: unknown;
+      lastReconciliation?: unknown;
     };
 
     return {
       nextAction: parseProviderPayloadNextAction(parsed.nextAction),
       lastWebhook: parseProviderPayloadLastWebhook(parsed.lastWebhook),
+      lastReconciliation: parseProviderPayloadLastWebhook(
+        parsed.lastReconciliation,
+      ),
     };
   } catch {
     return {};

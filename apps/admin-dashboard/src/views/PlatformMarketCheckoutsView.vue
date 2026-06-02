@@ -553,6 +553,35 @@
               )
             }}
           </span>
+          <span
+            v-if="selectedCheckout.payment.parentPayment.lastReconciliation"
+            class="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700"
+          >
+            最後查單
+            {{
+              selectedCheckout.payment.parentPayment.lastReconciliation
+                .eventId || "-"
+            }}
+            ·
+            {{
+              selectedCheckout.payment.parentPayment.lastReconciliation
+                .eventType
+            }}
+            ·
+            {{
+              webhookStatusLabel(
+                selectedCheckout.payment.parentPayment.lastReconciliation
+                  .status,
+              )
+            }}
+            ·
+            {{
+              formatDate(
+                selectedCheckout.payment.parentPayment.lastReconciliation
+                  .receivedAt,
+              )
+            }}
+          </span>
           <span class="rounded-full bg-gray-100 px-2.5 py-1">
             冪等鍵
             {{ selectedCheckout.payment.parentPayment.idempotencyKey }}
