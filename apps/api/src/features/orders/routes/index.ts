@@ -355,6 +355,7 @@ app.post(
   async (c) => {
     const data: CreateOrderInput = c.get("validatedBody");
     const user: AuthUser = c.get("user");
+    const customer = c.get("customer") as { id: string } | undefined;
     const ordersService = new OrdersService(c.env);
 
     logger.info("Creating new order", {
@@ -374,7 +375,7 @@ app.post(
     const createOrderData = {
       restaurantId: data.restaurantId,
       tableId: data.tableId,
-      customerId: String(user.id),
+      customerId: customer?.id ?? String(user.id),
       waitingListId: data.waitingListId,
       waitingListCustomerPhone: data.customerPhone,
       customerName: data.customerName,
