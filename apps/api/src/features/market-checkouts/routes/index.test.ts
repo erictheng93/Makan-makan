@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
 import {
   mockMarketCheckoutProviderPaidWebhookPayload,
+  mockMarketCheckoutProviderPaidStatusResponse,
   mockMarketCheckoutProviderPendingResponse,
   signMockMarketCheckoutWebhook,
 } from "../testing/mockMarketCheckoutProviderContract";
@@ -1567,6 +1568,150 @@ describe("market checkout routes", () => {
     );
   });
 
+  it("reconciles a pending provider split checkout from the provider status endpoint", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify(mockMarketCheckoutProviderPaidStatusResponse),
+        ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const dbRows: unknown[] = [
+      {
+        payment_id: "market_pay_checkout-1",
+        checkout_id: "checkout-1",
+        market_id: "market-1",
+        provider: "mock_market_provider",
+        split_mode: "provider_split",
+        idempotency_key: "market-checkout:checkout-1",
+        status: "pending",
+        amount_cents: 24000,
+        paid_amount_cents: 0,
+        refunded_amount_cents: 0,
+        currency: "TWD",
+        country_code: "TW",
+        child_payment_ids: JSON.stringify([]),
+        provider_transaction_id: "intent-market-checkout-1",
+        provider_payload: JSON.stringify({
+          source: "market-checkouts",
+          nextAction: mockMarketCheckoutProviderPendingResponse.nextAction,
+        }),
+        created_at_ms: Date.parse("2026-06-01T10:00:00.000Z"),
+        updated_at_ms: Date.parse("2026-06-01T10:05:00.000Z"),
+        session_payment_summary: JSON.stringify({
+          status: "pending",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 0,
+          paidAmountCents: 0,
+          childPayments: [],
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "pending",
+            provider: "mock_market_provider",
+            splitMode: "provider_split",
+            idempotencyKey: "market-checkout:checkout-1",
+            providerTransactionId: "intent-market-checkout-1",
+            nextAction: mockMarketCheckoutProviderPendingResponse.nextAction,
+            amountCents: 24000,
+            paidAmountCents: 0,
+            refundedAmountCents: 0,
+            childPaymentIds: [],
+            createdAt: "2026-06-01T10:00:00.000Z",
+            updatedAt: "2026-06-01T10:05:00.000Z",
+          },
+        }),
+      },
+    ];
+    const env = {
+      ...createEnv(dbRows),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_STATUS_URL:
+        "https://payments.example.test/market-split/status",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "provider-token",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET: "provider-secret",
+    };
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
+        status: "submitted",
+        childOrders: [],
+        payment: {
+          status: "pending",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 0,
+          paidAmountCents: 0,
+          childPayments: [],
+        },
+        subtotal: 24000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/checkout-1/reconcile", {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://payments.example.test/market-split/status",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          authorization: "Bearer provider-token",
+          "x-market-checkout-signature-algorithm": "hmac-sha256",
+        }),
+      }),
+    );
+    const statusRequest = fetcher.mock.calls[0]?.[1] as
+      | { body?: string }
+      | undefined;
+    expect(JSON.parse(statusRequest?.body ?? "{}")).toMatchObject({
+      checkoutId: "checkout-1",
+      paymentId: "market_pay_checkout-1",
+      provider: "mock_market_provider",
+      providerTransactionId: "intent-market-checkout-1",
+    });
+    const json = (await response.json()) as {
+      data: {
+        reconciliation: {
+          status: string;
+          provider: string;
+          checkoutId: string;
+          paymentId: string;
+        };
+      };
+    };
+    expect(json.data.reconciliation).toMatchObject({
+      status: "paid",
+      provider: "mock_market_provider",
+      checkoutId: "checkout-1",
+      paymentId: "market_pay_checkout-1",
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"status":"paid"'),
+      { expirationTtl: 14400 },
+    );
+  });
+
   it("lists market checkout sessions for platform admins", async () => {
     const env = createEnv();
     databaseMocks.selectQueue.push({
@@ -1887,7 +2032,11 @@ describe("market checkout routes", () => {
         readiness: "warning",
         providerSplitUrlConfigured: true,
         providerWebhookSecretConfigured: false,
-        missingConfiguration: ["MARKET_CHECKOUT_WEBHOOK_SECRET"],
+        providerStatusUrlConfigured: false,
+        missingConfiguration: [
+          "MARKET_CHECKOUT_WEBHOOK_SECRET",
+          "MARKET_CHECKOUT_PROVIDER_STATUS_URL",
+        ],
       },
     });
 
@@ -1896,6 +2045,8 @@ describe("market checkout routes", () => {
       MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
       MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
         "https://payments.example.test/market-split",
+      MARKET_CHECKOUT_PROVIDER_STATUS_URL:
+        "https://payments.example.test/market-split/status",
       MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
       MARKET_CHECKOUT_WEBHOOK_SECRET: "webhook-secret",
     };
@@ -1909,6 +2060,7 @@ describe("market checkout routes", () => {
         readiness: "ready",
         providerSplitUrlConfigured: true,
         providerSplitHealthUrlConfigured: false,
+        providerStatusUrlConfigured: true,
         providerSplitTokenConfigured: true,
         providerSplitSigningConfigured: false,
         providerWebhookSecretConfigured: true,

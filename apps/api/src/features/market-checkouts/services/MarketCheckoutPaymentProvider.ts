@@ -64,6 +64,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerKind: "internal_child_transactions" | "http_provider_split";
   providerSplitUrlConfigured: boolean;
   providerSplitHealthUrlConfigured: boolean;
+  providerStatusUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   providerSplitSigningConfigured: boolean;
   providerWebhookSecretConfigured: boolean;
@@ -115,6 +116,29 @@ export interface MarketCheckoutProviderSplitGatewayResult {
     }
   >;
   nextAction?: MarketCheckoutProviderNextAction;
+}
+
+export interface MarketCheckoutProviderSplitStatusInput {
+  checkoutId: string;
+  paymentId: string;
+  provider: string;
+  providerTransactionId?: string;
+  idempotencyKey?: string;
+  amountCents: number;
+  currency?: string;
+  country?: string;
+}
+
+export interface MarketCheckoutProviderSplitStatusResult {
+  provider: string;
+  providerTransactionId?: string;
+  status: "paid" | "pending" | "failed" | "refunded" | "partial_refunded";
+  amountReceivedCents?: number;
+  amountRefundedCents?: number;
+  currency?: string;
+  eventId?: string;
+  eventType?: string;
+  providerPayload?: Record<string, unknown>;
 }
 
 export interface MarketCheckoutProviderNextAction {
@@ -392,6 +416,9 @@ export function getMarketCheckoutPaymentProviderStatus(
   const providerSplitHealthUrlConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL,
   );
+  const providerStatusUrlConfigured = Boolean(
+    env.MARKET_CHECKOUT_PROVIDER_STATUS_URL,
+  );
   const providerSplitTokenConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
   );
@@ -410,11 +437,15 @@ export function getMarketCheckoutPaymentProviderStatus(
     if (providerSplitUrlConfigured && !providerWebhookSecretConfigured) {
       missingConfiguration.push("MARKET_CHECKOUT_WEBHOOK_SECRET");
     }
+    if (providerSplitUrlConfigured && !providerStatusUrlConfigured) {
+      missingConfiguration.push("MARKET_CHECKOUT_PROVIDER_STATUS_URL");
+    }
     const providerCapabilities = [
       "aggregate_authorization",
       "provider_allocations",
       "health_check",
       "webhook_status_sync",
+      "provider_status_lookup",
       "refunds",
     ];
     if (providerSplitSigningConfigured) {
@@ -428,12 +459,13 @@ export function getMarketCheckoutPaymentProviderStatus(
       splitMode,
       readiness: !providerSplitUrlConfigured
         ? "not_configured"
-        : providerWebhookSecretConfigured
+        : providerWebhookSecretConfigured && providerStatusUrlConfigured
           ? "ready"
           : "warning",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured,
       providerSplitHealthUrlConfigured,
+      providerStatusUrlConfigured,
       providerSplitTokenConfigured,
       providerSplitSigningConfigured,
       providerWebhookSecretConfigured,
@@ -452,6 +484,9 @@ export function getMarketCheckoutPaymentProviderStatus(
             providerWebhookSecretConfigured
               ? "Market checkout webhooks are verified with MARKET_CHECKOUT_WEBHOOK_SECRET."
               : "Market checkout webhook verification secret is not configured; payment status callbacks will be rejected.",
+            providerStatusUrlConfigured
+              ? "Provider status lookup URL is configured for manual reconciliation."
+              : "Provider status lookup URL is not configured; manual reconciliation will be unavailable.",
             providerSplitHealthUrlConfigured
               ? "Provider split health check URL is configured."
               : "Provider split health check URL is not configured; connectivity is not verified.",
@@ -468,6 +503,7 @@ export function getMarketCheckoutPaymentProviderStatus(
     providerKind: "internal_child_transactions",
     providerSplitUrlConfigured,
     providerSplitHealthUrlConfigured,
+    providerStatusUrlConfigured,
     providerSplitTokenConfigured,
     providerSplitSigningConfigured,
     providerWebhookSecretConfigured,
@@ -590,6 +626,57 @@ export async function checkMarketCheckoutPaymentProviderConnectivity(
   }
 }
 
+export async function queryMarketCheckoutProviderSplitStatus(
+  env: Env,
+  input: MarketCheckoutProviderSplitStatusInput,
+  fetcher: typeof fetch = fetch,
+): Promise<MarketCheckoutProviderSplitStatusResult> {
+  if (env.MARKET_CHECKOUT_SPLIT_MODE !== "provider_split") {
+    throw new Error(
+      "Market checkout provider status reconciliation requires provider_split mode",
+    );
+  }
+  if (!env.MARKET_CHECKOUT_PROVIDER_STATUS_URL) {
+    throw new Error("Market checkout provider status URL is not configured");
+  }
+
+  const body = JSON.stringify(input);
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    ...(env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN
+      ? {
+          authorization: `Bearer ${env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN}`,
+        }
+      : {}),
+  };
+  if (env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET) {
+    const timestamp = new Date().toISOString();
+    headers["x-market-checkout-signature-algorithm"] = "hmac-sha256";
+    headers["x-market-checkout-signature-timestamp"] = timestamp;
+    headers["x-market-checkout-signature"] =
+      await signMarketCheckoutProviderSplitPayload(
+        env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET,
+        timestamp,
+        body,
+      );
+  }
+
+  const response = await fetcher(env.MARKET_CHECKOUT_PROVIDER_STATUS_URL, {
+    method: "POST",
+    headers,
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Market checkout provider status lookup failed: ${response.status}`,
+    );
+  }
+
+  return parseHttpStatusResult(
+    (await response.json()) as Partial<MarketCheckoutProviderSplitStatusResult>,
+  );
+}
+
 async function parseProviderHealthPayload(response: Response) {
   try {
     const payload = (await response.json()) as {
@@ -649,6 +736,47 @@ function parseHttpGatewayResult(
       };
     }),
     nextAction: parseProviderNextAction(payload.nextAction),
+  };
+}
+
+function parseHttpStatusResult(
+  payload: Partial<MarketCheckoutProviderSplitStatusResult>,
+): MarketCheckoutProviderSplitStatusResult {
+  if (!payload.provider || !payload.status) {
+    throw new Error("Invalid provider status lookup response");
+  }
+  if (
+    !["paid", "pending", "failed", "refunded", "partial_refunded"].includes(
+      payload.status,
+    )
+  ) {
+    throw new Error("Invalid provider status lookup payment status");
+  }
+
+  return {
+    provider: payload.provider,
+    providerTransactionId:
+      typeof payload.providerTransactionId === "string"
+        ? payload.providerTransactionId
+        : undefined,
+    status: payload.status,
+    amountReceivedCents:
+      typeof payload.amountReceivedCents === "number"
+        ? Math.round(payload.amountReceivedCents)
+        : undefined,
+    amountRefundedCents:
+      typeof payload.amountRefundedCents === "number"
+        ? Math.round(payload.amountRefundedCents)
+        : undefined,
+    currency:
+      typeof payload.currency === "string" ? payload.currency : undefined,
+    eventId: typeof payload.eventId === "string" ? payload.eventId : undefined,
+    eventType:
+      typeof payload.eventType === "string" ? payload.eventType : undefined,
+    providerPayload:
+      payload.providerPayload && typeof payload.providerPayload === "object"
+        ? payload.providerPayload
+        : undefined,
   };
 }
 

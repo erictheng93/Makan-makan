@@ -35,9 +35,11 @@ import {
   checkMarketCheckoutPaymentProviderConnectivity,
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
+  queryMarketCheckoutProviderSplitStatus,
   type MarketCheckoutProviderNextAction,
   type MarketCheckoutSplitMode,
 } from "../services/MarketCheckoutPaymentProvider";
+import { MarketCheckoutPaymentReconciliationService } from "../services/MarketCheckoutPaymentReconciliationService";
 import { MarketCheckoutPaymentWebhookService } from "../services/MarketCheckoutPaymentWebhookService";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
@@ -1105,6 +1107,45 @@ app.post(
       success: true,
       data: await checkMarketCheckoutPaymentProviderConnectivity(c.env),
     }),
+);
+
+app.post(
+  "/admin/:id/reconcile",
+  authMiddleware,
+  requireRole([0]),
+  async (c) => {
+    const checkoutId = c.req.param("id") ?? "";
+    const reconciliationService =
+      new MarketCheckoutPaymentReconciliationService(c.env);
+    const statusInput =
+      await reconciliationService.getStatusLookupInput(checkoutId);
+    let providerStatus;
+    try {
+      providerStatus = await queryMarketCheckoutProviderSplitStatus(
+        c.env,
+        statusInput,
+      );
+    } catch (error) {
+      throw new ApiError(
+        "MARKET_CHECKOUT_PROVIDER_STATUS_LOOKUP_FAILED",
+        error instanceof Error
+          ? error.message
+          : "Market checkout provider status lookup failed",
+        502,
+      );
+    }
+    const reconciliation = await reconciliationService.reconcile(
+      checkoutId,
+      providerStatus,
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        reconciliation,
+      },
+    });
+  },
 );
 
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {

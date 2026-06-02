@@ -808,6 +808,10 @@ const providerConfigurationChecks = computed(() => {
       configured: providerStatus.value.providerWebhookSecretConfigured,
     },
     {
+      label: "Provider status lookup URL",
+      configured: providerStatus.value.providerStatusUrlConfigured,
+    },
+    {
       label: "Request signing secret",
       configured: providerStatus.value.providerSplitSigningConfigured,
     },

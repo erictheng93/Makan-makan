@@ -101,6 +101,7 @@ describe("PlatformMarketCheckoutsView", () => {
       providerKind: "http_provider_split",
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
+      providerStatusUrlConfigured: false,
       providerSplitTokenConfigured: false,
       providerSplitSigningConfigured: false,
       providerWebhookSecretConfigured: false,
@@ -310,6 +311,9 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
       "Webhook 驗簽 secret",
+    );
+    expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
+      "Provider status lookup URL",
     );
 
     await wrapper

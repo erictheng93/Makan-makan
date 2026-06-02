@@ -172,6 +172,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerKind: "internal_child_transactions" | "http_provider_split";
   providerSplitUrlConfigured: boolean;
   providerSplitHealthUrlConfigured: boolean;
+  providerStatusUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   providerSplitSigningConfigured: boolean;
   providerWebhookSecretConfigured: boolean;

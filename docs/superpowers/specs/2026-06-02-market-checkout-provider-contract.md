@@ -72,6 +72,7 @@ Provider split mode is enabled with:
 MARKET_CHECKOUT_SPLIT_MODE=provider_split
 MARKET_CHECKOUT_PROVIDER_SPLIT_URL=https://provider.example.test/market-split
 MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL=https://provider.example.test/health
+MARKET_CHECKOUT_PROVIDER_STATUS_URL=https://provider.example.test/market-split/status
 MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN=optional-bearer-token
 MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET=optional-request-signing-secret
 MARKET_CHECKOUT_WEBHOOK_SECRET=webhook-verification-secret
@@ -82,7 +83,9 @@ Readiness rules:
 - Missing `MARKET_CHECKOUT_PROVIDER_SPLIT_URL` means `not_configured`.
 - Configured gateway URL without `MARKET_CHECKOUT_WEBHOOK_SECRET` means
   `warning`, because payment status callbacks will be rejected.
-- Configured gateway URL and webhook secret means `ready`.
+- Configured gateway URL without `MARKET_CHECKOUT_PROVIDER_STATUS_URL` means
+  `warning`, because manual reconciliation cannot query provider state.
+- Configured gateway URL, webhook secret, and provider status URL means `ready`.
 - `MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET` is optional for non-production
   experiments, but should be configured before production because provider split
   requests include payment allocation data.
@@ -310,6 +313,60 @@ Webhook processing rules:
 - Update `market_checkout_payments`, `market_checkout_sessions`, cached checkout
   session KV, and cached admin index KV.
 
+## Provider Status Lookup Contract
+
+Admin reconciliation calls send a JSON `POST` to
+`MARKET_CHECKOUT_PROVIDER_STATUS_URL`. This endpoint is provider-agnostic and is
+used when a webhook is delayed, missing, or suspected to have failed.
+
+Headers match the gateway request contract:
+
+- `content-type: application/json`
+- `authorization: Bearer <MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN>` when a token is
+  configured.
+- `x-market-checkout-signature-algorithm: hmac-sha256` when request signing is
+  configured.
+- `x-market-checkout-signature-timestamp: <ISO timestamp>` when request signing
+  is configured.
+- `x-market-checkout-signature: <hex hmac>` when request signing is configured.
+
+The request body is:
+
+```json
+{
+  "checkoutId": "checkout-1",
+  "paymentId": "market_pay_checkout-1",
+  "provider": "mock_market_provider",
+  "providerTransactionId": "intent-market-checkout-1",
+  "idempotencyKey": "market-checkout:checkout-1",
+  "amountCents": 24000,
+  "currency": "TWD",
+  "country": "TW"
+}
+```
+
+Expected response:
+
+```json
+{
+  "provider": "mock_market_provider",
+  "providerTransactionId": "intent-market-checkout-1",
+  "status": "paid",
+  "amountReceivedCents": 24000,
+  "amountRefundedCents": 0,
+  "currency": "TWD",
+  "eventId": "reconcile-market-checkout-1",
+  "eventType": "market_checkout.payment_paid",
+  "providerPayload": {}
+}
+```
+
+Allowed `status` values are `pending`, `paid`, `failed`, `refunded`, and
+`partial_refunded`. Reconciliation updates `market_checkout_payments`,
+`market_checkout_sessions`, cached checkout session KV, and cached admin index
+KV. The raw provider response is stored under
+`provider_payload.lastReconciliation`.
+
 ## Health Check Contract
 
 Admin connectivity checks call `MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL`.
@@ -368,6 +425,8 @@ The fixture includes:
 - Customer redirect `nextAction` behavior is documented and covered by tests.
 - Webhook signature verification and duplicate audit behavior are documented and
   covered by tests.
+- Provider status lookup reconciliation is documented and covered by route and
+  provider service tests.
 - Admin readiness clearly shows gateway URL, webhook secret, request signing,
   and health check state.
 - Future provider implementation work can be scoped to a connector adapter,

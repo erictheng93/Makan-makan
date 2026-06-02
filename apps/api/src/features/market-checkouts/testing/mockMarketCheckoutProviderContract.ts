@@ -1,6 +1,7 @@
 import type {
   MarketCheckoutProviderSplitGatewayInput,
   MarketCheckoutProviderSplitGatewayResult,
+  MarketCheckoutProviderSplitStatusResult,
 } from "../services/MarketCheckoutPaymentProvider";
 
 export const mockMarketCheckoutProviderGatewayInput: MarketCheckoutProviderSplitGatewayInput =
@@ -76,6 +77,17 @@ export const mockMarketCheckoutProviderPaidResponse: MarketCheckoutProviderSplit
         amountCents: 8000,
       },
     ],
+  };
+
+export const mockMarketCheckoutProviderPaidStatusResponse: MarketCheckoutProviderSplitStatusResult =
+  {
+    provider: "mock_market_provider",
+    providerTransactionId: "intent-market-checkout-1",
+    status: "paid",
+    amountReceivedCents: 24000,
+    currency: "TWD",
+    eventId: "reconcile-market-checkout-1",
+    eventType: "market_checkout.payment_paid",
   };
 
 export const mockMarketCheckoutProviderPaidWebhookPayload = {
