@@ -8,9 +8,10 @@ export default defineConfig({
     root: resolve(__dirname),
     include: ["src/__tests__/integration/**/*.real.integration.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
-    // Miniflare boot + migration takes 8-12s per attempt; allow retry budget.
-    testTimeout: 180000,
-    hookTimeout: 180000,
+    // Miniflare boot + migration can exceed default Vitest limits; use shared
+    // global 5-minute timeout budget for real-integration reliability.
+    testTimeout: 300000,
+    hookTimeout: 300000,
     teardownTimeout: 15000,
     reporters: ["verbose"],
     passWithNoTests: true,

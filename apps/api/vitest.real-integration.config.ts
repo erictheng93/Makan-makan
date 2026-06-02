@@ -8,21 +8,16 @@ export default defineConfig({
     root: resolve(__dirname),
     include: ["src/__tests__/integration/**/*.real.integration.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
-    // Per-attempt miniflare boot + full runMigrations is ~8-12s. When the
-    // workerd IPC hits the ~5% `fetch failed` path (handled by the retry
-    // loop in `packages/database/src/testing/create-test-database.ts`),
-    // wall time becomes 2-3× that: up to ~36s in the worst case.
+    // Per-attempt miniflare boot + full runMigrations is ~8-12s. When workerd
+    // IPC hits the ~5% retry path (`fetch failed`) in
+    // `packages/database/src/testing/create-test-database.ts`, first-run wall time
+    // can stretch to ~3× and occasionally exceed 2 minutes.
     //
-    // 30s used to straddle the 2-retry cliff — `discovery.real.integration.
-    // test.ts`'s `beforeAll` hit that exact edge and flaked.
-    //
-    // 60s absorbs the full retry budget with headroom. Both timeouts are
-    // bumped because this suite has two different ownership models:
-    //   - `discovery` / `seed-helper` use `beforeAll` (hookTimeout matters)
-    //   - `start-test-api-server` / `real-test-app` create a fresh
-    //     miniflare in each `it()` (testTimeout matters)
-    testTimeout: 180000,
-    hookTimeout: 180000,
+    // 5 minutes has been stabilized as a safe upper bound for hook + test wall
+    // time across real integration suites, so this is set globally instead of
+    // file-by-file overrides.
+    testTimeout: 300000,
+    hookTimeout: 300000,
     teardownTimeout: 15000,
     reporters: ["verbose"],
     passWithNoTests: true,
