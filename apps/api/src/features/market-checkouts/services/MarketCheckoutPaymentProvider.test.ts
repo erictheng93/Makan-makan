@@ -5,6 +5,7 @@ import {
   HttpProviderSplitGateway,
   ProviderSplitMarketCheckoutPaymentProvider,
   createMarketCheckoutPaymentProvider,
+  getMarketCheckoutPaymentProviderStatus,
 } from "./MarketCheckoutPaymentProvider";
 
 const processPayment = vi.hoisted(() => vi.fn());
@@ -579,5 +580,47 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     } as Env);
 
     expect(provider).toBeInstanceOf(ProviderSplitMarketCheckoutPaymentProvider);
+  });
+
+  it("reports provider readiness for child transaction mode", () => {
+    expect(getMarketCheckoutPaymentProviderStatus({} as Env)).toMatchObject({
+      splitMode: "child_transactions",
+      readiness: "warning",
+      providerKind: "internal_child_transactions",
+      providerSplitUrlConfigured: false,
+      missingConfiguration: [],
+    });
+  });
+
+  it("reports provider split as not configured when the gateway URL is missing", () => {
+    expect(
+      getMarketCheckoutPaymentProviderStatus({
+        MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      } as Env),
+    ).toMatchObject({
+      splitMode: "provider_split",
+      readiness: "not_configured",
+      providerKind: "http_provider_split",
+      providerSplitUrlConfigured: false,
+      missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
+    });
+  });
+
+  it("reports provider split as ready when the gateway URL is configured", () => {
+    expect(
+      getMarketCheckoutPaymentProviderStatus({
+        MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+        MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+          "https://payments.example.test/market-split",
+        MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+      } as Env),
+    ).toMatchObject({
+      splitMode: "provider_split",
+      readiness: "ready",
+      providerKind: "http_provider_split",
+      providerSplitUrlConfigured: true,
+      providerSplitTokenConfigured: true,
+      missingConfiguration: [],
+    });
   });
 });

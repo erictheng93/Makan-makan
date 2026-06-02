@@ -3,6 +3,10 @@ import { PaymentService } from "../../payments/services/PaymentService";
 
 export type MarketCheckoutChildPaymentStatus = "paid" | "failed" | "refunded";
 export type MarketCheckoutSplitMode = "child_transactions" | "provider_split";
+export type MarketCheckoutPaymentProviderReadiness =
+  | "ready"
+  | "warning"
+  | "not_configured";
 
 export interface MarketCheckoutPaymentChildOrder {
   restaurantId: string;
@@ -49,6 +53,17 @@ export interface MarketCheckoutPaymentProvider {
   process(
     input: MarketCheckoutPaymentProviderInput,
   ): Promise<MarketCheckoutPaymentProviderResult>;
+}
+
+export interface MarketCheckoutPaymentProviderStatus {
+  splitMode: MarketCheckoutSplitMode;
+  readiness: MarketCheckoutPaymentProviderReadiness;
+  providerKind: "internal_child_transactions" | "http_provider_split";
+  providerSplitUrlConfigured: boolean;
+  providerSplitTokenConfigured: boolean;
+  capabilities: string[];
+  missingConfiguration: string[];
+  notes: string[];
 }
 
 export interface MarketCheckoutProviderSplitAllocation {
@@ -302,6 +317,69 @@ export function createMarketCheckoutPaymentProvider(
   }
 
   return new ChildTransactionMarketCheckoutPaymentProvider(env);
+}
+
+export function getMarketCheckoutPaymentProviderStatus(
+  env: Env,
+): MarketCheckoutPaymentProviderStatus {
+  const splitMode =
+    env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
+      ? "provider_split"
+      : "child_transactions";
+  const providerSplitUrlConfigured = Boolean(
+    env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL,
+  );
+  const providerSplitTokenConfigured = Boolean(
+    env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
+  );
+
+  if (splitMode === "provider_split") {
+    return {
+      splitMode,
+      readiness: providerSplitUrlConfigured ? "ready" : "not_configured",
+      providerKind: "http_provider_split",
+      providerSplitUrlConfigured,
+      providerSplitTokenConfigured,
+      capabilities: providerSplitUrlConfigured
+        ? [
+            "aggregate_authorization",
+            "provider_allocations",
+            "webhook_status_sync",
+            "refunds",
+          ]
+        : ["webhook_status_sync", "refunds"],
+      missingConfiguration: providerSplitUrlConfigured
+        ? []
+        : ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
+      notes: providerSplitUrlConfigured
+        ? [
+            providerSplitTokenConfigured
+              ? "Provider split gateway is configured with bearer-token authentication."
+              : "Provider split gateway is configured without bearer-token authentication.",
+          ]
+        : [
+            "Provider split mode is enabled but no HTTP gateway URL is configured.",
+          ],
+    };
+  }
+
+  return {
+    splitMode,
+    readiness: "warning",
+    providerKind: "internal_child_transactions",
+    providerSplitUrlConfigured,
+    providerSplitTokenConfigured,
+    capabilities: [
+      "child_order_payments",
+      "idempotency",
+      "webhook_status_sync",
+      "refunds",
+    ],
+    missingConfiguration: [],
+    notes: [
+      "Market checkouts are charged as child order transactions; configure provider_split for one aggregate provider authorization.",
+    ],
+  };
 }
 
 function parseHttpGatewayResult(

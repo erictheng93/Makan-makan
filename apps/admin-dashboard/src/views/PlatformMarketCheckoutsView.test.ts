@@ -11,6 +11,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
     get: vi.fn(),
     summary: vi.fn(),
     vendors: vi.fn(),
+    providerStatus: vi.fn(),
     exportCsv: vi.fn(),
     exportVendorsCsv: vi.fn(),
     exportAccountingCsv: vi.fn(),
@@ -91,6 +92,18 @@ describe("PlatformMarketCheckoutsView", () => {
           refundedPaymentCount: 1,
           failedPaymentCount: 0,
         },
+      ],
+    });
+    vi.mocked(marketCheckoutsService.providerStatus).mockResolvedValue({
+      splitMode: "provider_split",
+      readiness: "not_configured",
+      providerKind: "http_provider_split",
+      providerSplitUrlConfigured: false,
+      providerSplitTokenConfigured: false,
+      capabilities: ["webhook_status_sync", "refunds"],
+      missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
+      notes: [
+        "Provider split mode is enabled but no HTTP gateway URL is configured.",
       ],
     });
     vi.mocked(marketCheckoutsService.get).mockResolvedValue({
@@ -256,9 +269,19 @@ describe("PlatformMarketCheckoutsView", () => {
       dateFrom: "",
       dateTo: "",
     });
+    expect(marketCheckoutsService.providerStatus).toHaveBeenCalled();
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("部分付款");
     expect(wrapper.text()).toContain("2 攤");
+    expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
+      "Provider 統一授權拆帳",
+    );
+    expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
+      "未設定",
+    );
+    expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
+      "MARKET_CHECKOUT_PROVIDER_SPLIT_URL",
+    );
     expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
       "GMV",
     );

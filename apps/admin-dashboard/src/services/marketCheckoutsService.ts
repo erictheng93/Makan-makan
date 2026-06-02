@@ -9,6 +9,10 @@ export type MarketCheckoutPaymentStatus =
   | "partial_refunded";
 
 export type MarketCheckoutSplitMode = "child_transactions" | "provider_split";
+export type MarketCheckoutPaymentProviderReadiness =
+  | "ready"
+  | "warning"
+  | "not_configured";
 
 export interface MarketCheckoutListItem {
   id: string;
@@ -144,6 +148,17 @@ export interface MarketCheckoutVendorSettlementResult {
   vendors: MarketCheckoutVendorSettlement[];
 }
 
+export interface MarketCheckoutPaymentProviderStatus {
+  splitMode: MarketCheckoutSplitMode;
+  readiness: MarketCheckoutPaymentProviderReadiness;
+  providerKind: "internal_child_transactions" | "http_provider_split";
+  providerSplitUrlConfigured: boolean;
+  providerSplitTokenConfigured: boolean;
+  capabilities: string[];
+  missingConfiguration: string[];
+  notes: string[];
+}
+
 export const marketCheckoutsService = {
   async list(
     input: {
@@ -217,6 +232,13 @@ export const marketCheckoutsService = {
     return unwrapApiPayload<MarketCheckoutVendorSettlementResult>(
       response.data,
     );
+  },
+
+  async providerStatus(): Promise<MarketCheckoutPaymentProviderStatus> {
+    const response = await api.get<MarketCheckoutPaymentProviderStatus>(
+      "/market-checkouts/admin/provider-status",
+    );
+    return unwrapApiPayload<MarketCheckoutPaymentProviderStatus>(response.data);
   },
 
   async exportCsv(

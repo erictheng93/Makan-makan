@@ -1566,6 +1566,57 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("reports market checkout provider configuration status for platform admins", async () => {
+    const childModeResponse = await routes.fetch(
+      new Request("https://test/admin/provider-status"),
+      createEnv() as never,
+    );
+    expect(childModeResponse.status).toBe(200);
+    await expect(childModeResponse.json()).resolves.toMatchObject({
+      data: {
+        splitMode: "child_transactions",
+        readiness: "warning",
+        providerKind: "internal_child_transactions",
+      },
+    });
+
+    const missingGatewayEnv = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+    };
+    const missingGatewayResponse = await routes.fetch(
+      new Request("https://test/admin/provider-status"),
+      missingGatewayEnv as never,
+    );
+    await expect(missingGatewayResponse.json()).resolves.toMatchObject({
+      data: {
+        splitMode: "provider_split",
+        readiness: "not_configured",
+        missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
+      },
+    });
+
+    const readyEnv = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+        "https://payments.example.test/market-split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+    };
+    const readyResponse = await routes.fetch(
+      new Request("https://test/admin/provider-status"),
+      readyEnv as never,
+    );
+    await expect(readyResponse.json()).resolves.toMatchObject({
+      data: {
+        splitMode: "provider_split",
+        readiness: "ready",
+        providerSplitUrlConfigured: true,
+        providerSplitTokenConfigured: true,
+      },
+    });
+  });
+
   it("exports filtered market checkout operations as CSV", async () => {
     const env = createEnv();
     databaseMocks.selectQueue.push({

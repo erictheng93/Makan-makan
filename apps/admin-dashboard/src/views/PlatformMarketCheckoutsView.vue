@@ -97,6 +97,52 @@
     </section>
 
     <section
+      v-if="providerStatus"
+      data-testid="provider-status"
+      class="rounded-lg border p-4"
+      :class="providerStatusClass"
+    >
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div>
+          <div class="text-sm font-semibold text-gray-900">金流 Provider</div>
+          <div class="mt-1 text-sm text-gray-700">
+            {{ providerModeLabel(providerStatus.splitMode) }} ·
+            {{ providerKindLabel(providerStatus.providerKind) }}
+          </div>
+        </div>
+        <span
+          class="w-fit rounded-full px-2.5 py-1 text-xs font-semibold"
+          :class="providerStatusPillClass"
+        >
+          {{ providerReadinessLabel(providerStatus.readiness) }}
+        </span>
+      </div>
+      <div
+        v-if="providerStatus.missingConfiguration.length"
+        class="mt-3 text-sm text-red-700"
+      >
+        缺少設定：{{ providerStatus.missingConfiguration.join(", ") }}
+      </div>
+      <div
+        v-if="providerStatus.notes.length"
+        class="mt-3 space-y-1 text-sm text-gray-600"
+      >
+        <p v-for="note in providerStatus.notes" :key="note">{{ note }}</p>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+        <span
+          v-for="capability in providerStatus.capabilities"
+          :key="capability"
+          class="rounded-full bg-white/70 px-2.5 py-1"
+        >
+          {{ capability }}
+        </span>
+      </div>
+    </section>
+
+    <section
       v-if="summary"
       data-testid="checkout-summary"
       class="grid gap-3 md:grid-cols-3 xl:grid-cols-6"
@@ -578,6 +624,7 @@ import {
   marketCheckoutsService,
   type MarketCheckoutDetail,
   type MarketCheckoutListItem,
+  type MarketCheckoutPaymentProviderStatus,
   type MarketCheckoutPaymentStatus,
   type MarketCheckoutSummary,
   type MarketCheckoutVendorSettlement,
@@ -587,6 +634,7 @@ const checkouts = ref<MarketCheckoutListItem[]>([]);
 const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
 const summary = ref<MarketCheckoutSummary | null>(null);
 const vendorSettlements = ref<MarketCheckoutVendorSettlement[]>([]);
+const providerStatus = ref<MarketCheckoutPaymentProviderStatus | null>(null);
 const isLoading = ref(false);
 const isRefunding = ref(false);
 const isExporting = ref(false);
@@ -627,23 +675,44 @@ const failedChildPaymentCount = computed(
     ).length ?? 0,
 );
 
+const providerStatusClass = computed(() => {
+  if (!providerStatus.value) return "border-gray-200 bg-white";
+  return {
+    ready: "border-emerald-200 bg-emerald-50",
+    warning: "border-amber-200 bg-amber-50",
+    not_configured: "border-red-200 bg-red-50",
+  }[providerStatus.value.readiness];
+});
+
+const providerStatusPillClass = computed(() => {
+  if (!providerStatus.value) return "bg-gray-100 text-gray-700";
+  return {
+    ready: "bg-emerald-100 text-emerald-800",
+    warning: "bg-amber-100 text-amber-800",
+    not_configured: "bg-red-100 text-red-800",
+  }[providerStatus.value.readiness];
+});
+
 async function loadCheckouts() {
   isLoading.value = true;
   error.value = null;
   try {
     const filters = currentFilters();
-    const [result, nextSummary, vendorSummary] = await Promise.all([
-      marketCheckoutsService.list({
-        page: 1,
-        limit: 20,
-        ...filters,
-      }),
-      marketCheckoutsService.summary(filters),
-      marketCheckoutsService.vendors(filters),
-    ]);
+    const [result, nextSummary, vendorSummary, nextProviderStatus] =
+      await Promise.all([
+        marketCheckoutsService.list({
+          page: 1,
+          limit: 20,
+          ...filters,
+        }),
+        marketCheckoutsService.summary(filters),
+        marketCheckoutsService.vendors(filters),
+        marketCheckoutsService.providerStatus(),
+      ]);
     checkouts.value = result.checkouts;
     summary.value = nextSummary;
     vendorSettlements.value = vendorSummary.vendors;
+    providerStatus.value = nextProviderStatus;
   } catch (loadError) {
     error.value =
       loadError instanceof Error ? loadError.message : "市場結帳讀取失敗";
@@ -778,6 +847,34 @@ function splitModeLabel(mode: "child_transactions" | "provider_split") {
     child_transactions: "子交易編排",
     provider_split: "付款商拆帳",
   }[mode];
+}
+
+function providerReadinessLabel(
+  readiness: MarketCheckoutPaymentProviderStatus["readiness"],
+) {
+  return {
+    ready: "可用",
+    warning: "需注意",
+    not_configured: "未設定",
+  }[readiness];
+}
+
+function providerModeLabel(
+  mode: MarketCheckoutPaymentProviderStatus["splitMode"],
+) {
+  return {
+    child_transactions: "子訂單逐筆付款",
+    provider_split: "Provider 統一授權拆帳",
+  }[mode];
+}
+
+function providerKindLabel(
+  providerKind: MarketCheckoutPaymentProviderStatus["providerKind"],
+) {
+  return {
+    internal_child_transactions: "內部付款服務",
+    http_provider_split: "HTTP Provider Gateway",
+  }[providerKind];
 }
 
 function childPaymentStatusLabel(status: "paid" | "failed" | "refunded") {

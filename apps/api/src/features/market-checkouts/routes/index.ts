@@ -33,6 +33,7 @@ import {
 } from "../../payments/services/refundPayment";
 import {
   createMarketCheckoutPaymentProvider,
+  getMarketCheckoutPaymentProviderStatus,
   type MarketCheckoutSplitMode,
 } from "../services/MarketCheckoutPaymentProvider";
 import { MarketCheckoutPaymentWebhookService } from "../services/MarketCheckoutPaymentWebhookService";
@@ -1069,6 +1070,13 @@ app.get(
       "Content-Disposition": `attachment; filename="market-checkout-accounting-${suffix}.csv"`,
     });
   },
+);
+
+app.get("/admin/provider-status", authMiddleware, requireRole([0]), async (c) =>
+  c.json({
+    success: true,
+    data: getMarketCheckoutPaymentProviderStatus(c.env),
+  }),
 );
 
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
