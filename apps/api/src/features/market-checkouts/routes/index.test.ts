@@ -2342,6 +2342,20 @@ describe("market checkout routes", () => {
               splitMode: "provider_split",
               idempotencyKey: "market-checkout:checkout-1",
               providerTransactionId: "txn-parent-1",
+              lastWebhook: {
+                provider: "line_pay",
+                eventId: "evt-checkout-1-paid",
+                eventType: "market_checkout.payment_paid",
+                status: "paid",
+                receivedAt: "2026-06-01T10:06:00.000Z",
+              },
+              lastReconciliation: {
+                provider: "line_pay",
+                eventId: "reconcile-checkout-1",
+                eventType: "market_checkout.payment_paid",
+                status: "paid",
+                receivedAt: "2026-06-01T10:07:00.000Z",
+              },
               amountCents: 20000,
               paidAmountCents: 20000,
               refundedAmountCents: 5000,
@@ -2407,6 +2421,12 @@ describe("market checkout routes", () => {
       "split_mode",
       "parent_payment_id",
       "provider_transaction_id",
+      "last_webhook_status",
+      "last_webhook_event_type",
+      "last_webhook_received_at",
+      "last_reconciliation_status",
+      "last_reconciliation_event_type",
+      "last_reconciliation_received_at",
       "child_order_count",
       "child_payment_count",
       "failed_child_payment_count",
@@ -2429,6 +2449,12 @@ describe("market checkout routes", () => {
       "provider_split",
       "market_pay_checkout-1",
       "txn-parent-1",
+      "paid",
+      "market_checkout.payment_paid",
+      "2026-06-01T10:06:00.000Z",
+      "paid",
+      "market_checkout.payment_paid",
+      "2026-06-01T10:07:00.000Z",
       "2",
       "2",
       "1",
@@ -2913,6 +2939,20 @@ describe("market checkout routes", () => {
                 splitMode: "provider_split",
                 idempotencyKey: "market-checkout:checkout-2",
                 providerTransactionId: "txn-parent-2",
+                lastWebhook: {
+                  provider: "line_pay",
+                  eventId: "evt-checkout-2-paid",
+                  eventType: "market_checkout.payment_paid",
+                  status: "paid",
+                  receivedAt: "2026-06-01T11:06:00.000Z",
+                },
+                lastReconciliation: {
+                  provider: "line_pay",
+                  eventId: "reconcile-checkout-2",
+                  eventType: "market_checkout.payment_paid",
+                  status: "paid",
+                  receivedAt: "2026-06-01T11:07:00.000Z",
+                },
                 amountCents: 20000,
                 paidAmountCents: 20000,
                 refundedAmountCents: 0,
@@ -3003,22 +3043,22 @@ describe("market checkout routes", () => {
     );
     const csv = await response.text();
     expect(csv).toContain(
-      "entry_date,checkout_id,market_slug,market_name,restaurant_id,restaurant_name,order_id,order_number,payment_provider,split_mode,provider_transaction_id,account_code,account_name,direction,amount_cents,currency,source_type,source_id,memo",
+      "entry_date,checkout_id,market_slug,market_name,restaurant_id,restaurant_name,order_id,order_number,payment_provider,split_mode,provider_transaction_id,last_webhook_status,last_webhook_received_at,last_reconciliation_status,last_reconciliation_received_at,account_code,account_name,direction,amount_cents,currency,source_type,source_id,memo",
     );
     expect(csv).toContain(
-      "2026-06-01T11:01:00.000Z,checkout-2,fengjia,逢甲夜市,restaurant-1,雞排攤,1002,A002,line_pay,provider_split,txn-parent-2,1100,payment_clearing,debit,12000,TWD,market_checkout_settlement,market_pay_checkout-2,net paid amount before platform fee",
+      "2026-06-01T11:01:00.000Z,checkout-2,fengjia,逢甲夜市,restaurant-1,雞排攤,1002,A002,line_pay,provider_split,txn-parent-2,paid,2026-06-01T11:06:00.000Z,paid,2026-06-01T11:07:00.000Z,1100,payment_clearing,debit,12000,TWD,market_checkout_settlement,market_pay_checkout-2,net paid amount before platform fee",
     );
     expect(csv).toContain(
-      "restaurant-1,雞排攤,1002,A002,line_pay,provider_split,txn-parent-2,2200,vendor_payable,credit,11580,TWD,market_checkout_settlement,market_pay_checkout-2,vendor net payable",
+      "restaurant-1,雞排攤,1002,A002,line_pay,provider_split,txn-parent-2,paid,2026-06-01T11:06:00.000Z,paid,2026-06-01T11:07:00.000Z,2200,vendor_payable,credit,11580,TWD,market_checkout_settlement,market_pay_checkout-2,vendor net payable",
     );
     expect(csv).toContain(
-      "restaurant-1,雞排攤,1002,A002,line_pay,provider_split,txn-parent-2,4100,platform_fee_revenue,credit,420,TWD,market_checkout_settlement,market_pay_checkout-2,platform fee revenue",
+      "restaurant-1,雞排攤,1002,A002,line_pay,provider_split,txn-parent-2,paid,2026-06-01T11:06:00.000Z,paid,2026-06-01T11:07:00.000Z,4100,platform_fee_revenue,credit,420,TWD,market_checkout_settlement,market_pay_checkout-2,platform fee revenue",
     );
     expect(csv).toContain(
-      "restaurant-1,雞排攤,1001,A001,line_pay,child_transactions,,1300,refund_clearing,debit,12000,TWD,market_checkout_refund,market_pay_checkout-1,refund issued to customer",
+      "restaurant-1,雞排攤,1001,A001,line_pay,child_transactions,,,,,,1300,refund_clearing,debit,12000,TWD,market_checkout_refund,market_pay_checkout-1,refund issued to customer",
     );
     expect(csv).toContain(
-      "restaurant-1,雞排攤,1001,A001,line_pay,child_transactions,,1100,payment_clearing,credit,12000,TWD,market_checkout_refund,market_pay_checkout-1,cash clearing reversal for refund",
+      "restaurant-1,雞排攤,1001,A001,line_pay,child_transactions,,,,,,1100,payment_clearing,credit,12000,TWD,market_checkout_refund,market_pay_checkout-1,cash clearing reversal for refund",
     );
   });
 
