@@ -105,6 +105,15 @@ async function stripeSignature(secret: string, rawBody: string) {
   return `t=${timestamp},v1=${signature}`;
 }
 
+async function linePaySignature(secret: string, rawBody: string) {
+  const nonce = "linepay-nonce-1";
+  const signature = await hmacSha256Base64(
+    secret,
+    `${secret}${rawBody}${nonce}`,
+  );
+  return { nonce, signature };
+}
+
 describe("MarketCheckoutPaymentWebhookService", () => {
   it("reconciles a signed provider payment event into parent ledger and session summary", async () => {
     const rawBody = JSON.stringify({
@@ -290,6 +299,59 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     });
   });
 
+  it("reconciles signed LINE Pay-compatible webhook events", async () => {
+    const rawBody = JSON.stringify({
+      id: "linepay-event-1",
+      type: "market_checkout.payment_paid",
+      status: "paid",
+      amount_received: 12500,
+      metadata: {
+        marketCheckoutId: "checkout-1",
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow({
+        provider: "linepay",
+        provider_transaction_id: "linepay-txn-1",
+      }),
+      cachedSession: {
+        id: "checkout-1",
+        payment: { status: "pending" },
+      },
+    });
+    const { nonce, signature } = await linePaySignature(
+      "market-secret",
+      rawBody,
+    );
+
+    const result = await new MarketCheckoutPaymentWebhookService(env).handle(
+      "linepay",
+      rawBody,
+      new Headers({
+        "x-linepay-nonce": nonce,
+        "x-linepay-signature": signature,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      provider: "linepay",
+      eventId: "linepay-event-1",
+      eventType: "market_checkout.payment_paid",
+      duplicate: false,
+      reconciled: true,
+      checkoutId: "checkout-1",
+      paymentId: "market_pay_checkout-1",
+      status: "paid",
+    });
+    expect(
+      vi
+        .mocked(env.DB.prepare)
+        .mock.calls.some(([sql]) =>
+          sql.includes("UPDATE market_checkout_payments"),
+        ),
+    ).toBe(true);
+  });
+
   it("rejects invalid provider signatures", async () => {
     const env = createEnv({
       paymentRow: paymentRow(),
@@ -302,6 +364,36 @@ describe("MarketCheckoutPaymentWebhookService", () => {
         new Headers({ "x-webhook-signature": "bad-signature" }),
       ),
     ).rejects.toThrow("Invalid webhook signature");
+  });
+
+  it("rejects unsigned provider events before mutating payment state", async () => {
+    const env = createEnv({
+      paymentRow: paymentRow(),
+      cachedSession: {
+        id: "checkout-1",
+        payment: { status: "pending" },
+      },
+      cachedIndex: [{ id: "checkout-1", paymentStatus: "pending" }],
+    });
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(env).handle(
+        "stripe",
+        JSON.stringify({ id: "evt_1", type: "payment_intent.succeeded" }),
+        new Headers(),
+      ),
+    ).rejects.toThrow("Missing webhook signature");
+
+    const prepareCalls = vi.mocked(env.DB.prepare).mock.calls;
+    expect(
+      prepareCalls.some(([sql]) => sql.includes("payment_audit_log")),
+    ).toBe(false);
+    expect(
+      prepareCalls.some(([sql]) =>
+        sql.includes("UPDATE market_checkout_payments"),
+      ),
+    ).toBe(false);
+    expect(env.CACHE_KV.put).not.toHaveBeenCalled();
   });
 });
 
@@ -322,4 +414,26 @@ async function hmacSha256Hex(secret: string, value: string) {
   return [...new Uint8Array(signature)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+}
+
+async function hmacSha256Base64(secret: string, value: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(value),
+  );
+  const bytes = new Uint8Array(signature);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
 }

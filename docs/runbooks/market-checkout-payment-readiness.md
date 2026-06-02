@@ -100,6 +100,17 @@ Deliverables:
 - Provider split refund results can remain pending without incorrectly marking
   the checkout refunded.
 
+Current coverage:
+
+- Webhook service tests cover Stripe-compatible signatures, generic HMAC
+  signatures, LINE Pay-compatible signatures, audit-log event deduplication, and
+  unsigned events failing before audit, ledger, session, or cache mutation.
+- Route tests cover manual reconciliation from the provider status endpoint and
+  pending provider split refunds remaining paid until the provider reports a
+  completed refund.
+- Worker tests cover stale pending payment lookup, stale pending refund lookup,
+  and skipped batches when provider status lookup is not configured.
+
 Verification:
 
 ```bash
