@@ -64,6 +64,15 @@ Deliverables:
   client-secret / SDK actions remain pending.
 - Guest-token recovery remains available after provider redirect return.
 
+Current coverage:
+
+- API route tests cover paid child transactions, provider split gateway
+  failures, provider split `requires_action` pending payments, partial failures,
+  and retrying unpaid vendors only.
+- Customer tracking tests cover provider redirect, return-after-webhook-paid,
+  client-secret pending, SDK-confirmation pending, and recovered child order
+  guest-token access.
+
 Verification:
 
 ```bash

@@ -504,6 +504,135 @@ describe("MarketCheckoutTrackingView", () => {
     ).toContain("正在前往付款頁");
   });
 
+  it.each([
+    {
+      nextAction: {
+        type: "client_secret",
+        clientSecret: "pi_secret_market_1",
+      },
+      expectedMessage: "付款已建立，等待金流元件完成確認。",
+    },
+    {
+      nextAction: {
+        type: "sdk_confirmation",
+        providerPayload: {
+          confirmationToken: "confirm-market-1",
+          publishableKey: "pk_test_market",
+        },
+      },
+      expectedMessage: "付款已建立，等待金流 SDK 完成確認。",
+    },
+  ])(
+    "keeps provider $nextAction.type payments pending without redirecting",
+    async ({ nextAction, expectedMessage }) => {
+      getMarketCheckout.mockResolvedValueOnce({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 160,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      });
+      payMarketCheckout.mockResolvedValueOnce({
+        checkout: {
+          id: "checkout-1",
+          market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+          status: "submitted",
+          childOrders: [
+            {
+              restaurantId: "restaurant-1",
+              restaurantName: "雞排攤",
+              orderId: 101,
+              orderNumber: "A001",
+              totalAmount: 160,
+              tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+            },
+          ],
+          payment: {
+            status: "pending",
+            method: "market_online",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 160,
+            totalAmountCents: 16000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+            parentPayment: {
+              paymentId: "market_pay_checkout-1",
+              status: "pending",
+              provider: "future_provider",
+              splitMode: "provider_split",
+              idempotencyKey: "market-checkout:checkout-1",
+              providerTransactionId: "intent-market-1",
+              nextAction,
+              amountCents: 16000,
+              paidAmountCents: 0,
+              refundedAmountCents: 0,
+              childPaymentIds: [],
+              createdAt: "2026-06-01T10:00:00.000Z",
+              updatedAt: "2026-06-01T10:10:00.000Z",
+            },
+          },
+          subtotal: 160,
+          createdAt: "2026-06-01T10:00:00.000Z",
+        },
+        payment: {
+          status: "pending",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 160,
+          totalAmountCents: 16000,
+          paidAmount: 0,
+          paidAmountCents: 0,
+          childPayments: [],
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "pending",
+            provider: "future_provider",
+            splitMode: "provider_split",
+            idempotencyKey: "market-checkout:checkout-1",
+            providerTransactionId: "intent-market-1",
+            nextAction,
+            amountCents: 16000,
+            paidAmountCents: 0,
+            refundedAmountCents: 0,
+            childPaymentIds: [],
+            createdAt: "2026-06-01T10:00:00.000Z",
+            updatedAt: "2026-06-01T10:10:00.000Z",
+          },
+        },
+      });
+
+      const wrapper = mountView();
+      await flushPromises();
+
+      await wrapper.get('[data-testid="market-checkout-pay"]').trigger("click");
+      await flushPromises();
+
+      expect(windowOpen).not.toHaveBeenCalled();
+      expect(
+        wrapper.get('[data-testid="market-checkout-payment-action"]').text(),
+      ).toContain(expectedMessage);
+      expect(
+        wrapper.get('[data-testid="market-checkout-payment-summary"]').text(),
+      ).toContain("付款待處理");
+      expect(
+        localStorage.getItem("makanmakan_recent_market_checkouts"),
+      ).toContain('"paymentStatus":"pending"');
+    },
+  );
+
   it("renders the webhook-paid checkout after returning from provider redirect", async () => {
     getMarketCheckout
       .mockResolvedValueOnce({
