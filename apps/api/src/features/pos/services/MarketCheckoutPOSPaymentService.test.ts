@@ -1,0 +1,152 @@
+import { describe, expect, it, vi } from "vitest";
+import type { Env } from "../../../types/env";
+import { MarketCheckoutPOSPaymentService } from "./MarketCheckoutPOSPaymentService";
+
+function createEnv() {
+  const kv = new Map<string, string>();
+  kv.set(
+    "market_checkout:checkout-1",
+    JSON.stringify({ id: "checkout-1", payment: { status: "pending" } }),
+  );
+  kv.set(
+    "market_checkout:index",
+    JSON.stringify([{ id: "checkout-1", paymentStatus: "pending" }]),
+  );
+
+  const preparedStatements: Array<{
+    sql: string;
+    bind: ReturnType<typeof vi.fn>;
+  }> = [];
+
+  const db = {
+    prepare: vi.fn((sql: string) => {
+      const statement = {
+        sql,
+        bind: vi.fn((...params: unknown[]) => ({
+          first: vi.fn(async () => firstRowFor(sql)),
+          all: vi.fn(async () => ({ results: allRowsFor(sql) })),
+          run: vi.fn(async () => ({ meta: { changes: 1 }, params })),
+        })),
+      };
+      preparedStatements.push(statement);
+      return statement;
+    }),
+    batch: vi.fn(async (statements: unknown[]) => statements),
+  };
+
+  return {
+    env: {
+      DB: db,
+      CACHE_KV: {
+        get: vi.fn(async (key: string) => kv.get(key) ?? null),
+        put: vi.fn(async (key: string, value: string) => {
+          kv.set(key, value);
+        }),
+        delete: vi.fn(),
+      },
+    } as unknown as Env,
+    preparedStatements,
+  };
+}
+
+function firstRowFor(sql: string) {
+  if (sql.includes("FROM market_checkout_sessions")) {
+    return {
+      id: "checkout-1",
+      market_id: "market-1",
+      market_slug: "fengjia",
+      market_name: "逢甲夜市",
+      platform_fee_rate_bps: 350,
+      payment_status: "pending",
+      payment_summary: null,
+      subtotal_cents: 20000,
+      child_order_count: 2,
+      created_at_ms: Date.parse("2026-06-01T10:00:00.000Z"),
+    };
+  }
+  if (sql.includes("FROM cash_shifts")) {
+    return {
+      shift_id: "11111111-1111-4111-8111-111111111111",
+      register_id: "22222222-2222-4222-8222-222222222222",
+      restaurant_id: "restaurant-1",
+    };
+  }
+  return null;
+}
+
+function allRowsFor(sql: string) {
+  if (sql.includes("FROM market_checkout_child_orders")) {
+    return [
+      {
+        restaurant_id: "restaurant-1",
+        restaurant_name: "雞排攤",
+        order_id: 1001,
+        order_number: "A001",
+        total_amount: 120,
+        total_amount_cents: 12000,
+      },
+      {
+        restaurant_id: "restaurant-2",
+        restaurant_name: "甜點攤",
+        order_id: 1002,
+        order_number: "A002",
+        total_amount: 80,
+        total_amount_cents: 8000,
+      },
+    ];
+  }
+  return [];
+}
+
+describe("MarketCheckoutPOSPaymentService", () => {
+  it("records a POS payment for the checkout, child orders, and active shift", async () => {
+    const { env } = createEnv();
+
+    const result = await new MarketCheckoutPOSPaymentService(env).process({
+      checkoutId: "checkout-1",
+      registerId: "22222222-2222-4222-8222-222222222222",
+      shiftId: "11111111-1111-4111-8111-111111111111",
+      paymentMethod: "cash",
+      country: "TW",
+      currency: "TWD",
+      operatorId: 7,
+      operatorRole: 4,
+      operatorRestaurantId: "restaurant-1",
+      idempotencyKey: "pos-checkout-1",
+    });
+
+    expect(result.payment).toMatchObject({
+      status: "paid",
+      method: "pos_cash",
+      totalAmountCents: 20000,
+      paidAmountCents: 20000,
+      parentPayment: {
+        paymentId: "market_pay_checkout-1",
+        provider: "pos_cash",
+        idempotencyKey: "pos-checkout-1",
+      },
+    });
+
+    const preparedSql = vi
+      .mocked(env.DB.prepare)
+      .mock.calls.map(([sql]) => sql);
+    expect(
+      preparedSql.some((sql) => sql.includes("payment_transactions")),
+    ).toBe(true);
+    expect(preparedSql.some((sql) => sql.includes("UPDATE orders"))).toBe(true);
+    expect(
+      preparedSql.some((sql) => sql.includes("market_checkout_payments")),
+    ).toBe(true);
+    expect(preparedSql.some((sql) => sql.includes("UPDATE cash_shifts"))).toBe(
+      true,
+    );
+    expect(preparedSql.some((sql) => sql.includes("cash_movements"))).toBe(
+      true,
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:index",
+      expect.stringContaining('"paymentStatus":"paid"'),
+      { expirationTtl: 14400 },
+    );
+  });
+});

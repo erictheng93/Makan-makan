@@ -62,6 +62,14 @@ export const processRefundSchema = z.object({
   customerSignature: z.string().optional(),
 });
 
+export const marketCheckoutPosPaymentSchema = z.object({
+  registerId: z.string().uuid(),
+  shiftId: z.string().uuid().optional(),
+  paymentMethod: z.enum(["cash", "card", "digital_wallet"]).default("cash"),
+  country: z.enum(["TW", "MY", "VN"]).optional().default("TW"),
+  currency: z.enum(["TWD", "MYR", "VND"]).optional().default("TWD"),
+});
+
 export const registerParamsSchema = z.object({
   registerId: z.string().uuid(),
 });

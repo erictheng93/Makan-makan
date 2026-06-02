@@ -9,6 +9,7 @@ import cashMovementsRouter from "./cash-movements";
 import receiptsRouter from "./receipts";
 import refundsRouter from "./refunds";
 import reportsRouter from "./reports";
+import marketCheckoutsRouter from "./market-checkouts";
 import type { Env } from "../../../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -20,5 +21,6 @@ app.route("/", cashMovementsRouter); // cash-movements 路由包含在根路徑�
 app.route("/receipts", receiptsRouter);
 app.route("/refunds", refundsRouter);
 app.route("/reports", reportsRouter);
+app.route("/", marketCheckoutsRouter);
 
 export default app;

@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
+  cashMovements,
+  cashShifts,
   marketCheckoutChildOrders,
   marketCheckoutPayments,
   marketCheckoutSessions,
   markets,
   orders,
+  paymentTransactions,
   restaurantMarketMemberships,
 } from "@makanmakan/database";
 import {
@@ -20,6 +23,7 @@ const CSRF_HEADERS = {
   cookie: `csrf_token=${"a".repeat(64)}`,
   "x-csrf-token": "a".repeat(64),
 };
+const POS_BASE = "https://test/api/v1/pos";
 
 async function seedMarket(testApp: RealIntegrationTestApp) {
   const now = new Date();
@@ -355,6 +359,243 @@ describe("Market checkouts API - real integration", () => {
     });
   });
 
+  it("records market checkout onsite payment through an active POS shift", async () => {
+    const market = await seedMarket(testApp);
+    const vendorA = await seed.restaurant({ name: "現場收款攤" });
+    const vendorB = await seed.restaurant({ name: "配合攤" });
+    const [itemA, itemB] = await Promise.all([
+      seed.menuItem(vendorA.id, {
+        name: "現場雞排",
+        price: 120,
+        priceCents: 12000,
+      }),
+      seed.menuItem(vendorB.id, {
+        name: "現場甜點",
+        price: 80,
+        priceCents: 8000,
+      }),
+    ]);
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(vendorA.id),
+        marketId: market.id,
+        stallNumber: "P01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(vendorB.id),
+        marketId: market.id,
+        stallNumber: "P02",
+        joinedAt: new Date(),
+      },
+    ]);
+    await insertSubscription(String(vendorA.id));
+
+    const owner = await seed.user({
+      role: 1,
+      restaurantId: String(vendorA.id),
+    });
+    const cashier = await seed.user({
+      role: 4,
+      restaurantId: String(vendorA.id),
+    });
+    const ownerToken = await testApp.authHelper.ownerToken(
+      owner.id,
+      String(vendorA.id),
+    );
+    const cashierToken = await testApp.authHelper.staffToken(
+      cashier.id,
+      4,
+      String(vendorA.id),
+    );
+    const registerRes = await testApp.app.fetch(
+      new Request(`${POS_BASE}/registers`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          authorization: `Bearer ${ownerToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Market POS Register",
+          restaurantId: String(vendorA.id),
+        }),
+      }),
+    );
+    expect(registerRes.status).toBe(200);
+    const registerJson: any = await registerRes.json();
+    const registerId = registerJson.data.id as string;
+
+    const shiftRes = await testApp.app.fetch(
+      new Request(`${POS_BASE}/shifts/start`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          authorization: `Bearer ${cashierToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          registerId,
+          operatorId: cashier.id,
+          startAmount: 500,
+        }),
+      }),
+    );
+    expect(shiftRes.status).toBe(200);
+    const shiftJson: any = await shiftRes.json();
+    const shiftId = shiftJson.data.id as string;
+
+    const createRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/market-checkouts", {
+        method: "POST",
+        headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+        body: JSON.stringify({
+          marketSlug: market.slug,
+          guestName: "Onsite Guest",
+          phoneLastDigits: "456",
+          vendors: [
+            {
+              restaurantId: String(vendorA.id),
+              items: [{ menuItemId: itemA.id, quantity: 1 }],
+            },
+            {
+              restaurantId: String(vendorB.id),
+              items: [{ menuItemId: itemB.id, quantity: 1 }],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    const checkoutId = createJson.data.checkout.id as string;
+
+    const posPayRes = await testApp.app.fetch(
+      new Request(`${POS_BASE}/market-checkouts/${checkoutId}/pay`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          authorization: `Bearer ${cashierToken}`,
+          "content-type": "application/json",
+          "idempotency-key": `pos-${checkoutId}`,
+        },
+        body: JSON.stringify({
+          registerId,
+          shiftId,
+          paymentMethod: "cash",
+        }),
+      }),
+    );
+
+    expect(posPayRes.status).toBe(200);
+    const posPayJson: any = await posPayRes.json();
+    expect(posPayJson.data.payment).toMatchObject({
+      status: "paid",
+      method: "pos_cash",
+      totalAmountCents: 20000,
+      paidAmountCents: 20000,
+      parentPayment: {
+        paymentId: `market_pay_${checkoutId}`,
+        provider: "pos_cash",
+        idempotencyKey: `pos-${checkoutId}`,
+      },
+    });
+
+    const paidSession = await testApp.testDb.drizzle
+      .select()
+      .from(marketCheckoutSessions)
+      .where(eq(marketCheckoutSessions.id, checkoutId))
+      .get();
+    expect(paidSession?.paymentStatus).toBe("paid");
+    expect(paidSession?.paymentSummary).toMatchObject({
+      status: "paid",
+      method: "pos_cash",
+      parentPayment: {
+        provider: "pos_cash",
+      },
+    });
+
+    const parentPayment = await testApp.testDb.drizzle
+      .select()
+      .from(marketCheckoutPayments)
+      .where(eq(marketCheckoutPayments.checkoutId, checkoutId))
+      .get();
+    expect(parentPayment).toMatchObject({
+      paymentId: `market_pay_${checkoutId}`,
+      provider: "pos_cash",
+      status: "paid",
+      amountCents: 20000,
+      paidAmountCents: 20000,
+    });
+    expect(parentPayment?.providerPayload).toMatchObject({
+      source: "pos_market_checkout",
+      registerId,
+      shiftId,
+      paymentMethod: "cash",
+    });
+
+    const childRows = await testApp.testDb.drizzle
+      .select()
+      .from(marketCheckoutChildOrders)
+      .where(eq(marketCheckoutChildOrders.checkoutId, checkoutId))
+      .all();
+    const childPaymentTransactions = await Promise.all(
+      childRows.map((child) =>
+        testApp.testDb.drizzle
+          .select()
+          .from(paymentTransactions)
+          .where(eq(paymentTransactions.orderId, child.orderId))
+          .get(),
+      ),
+    );
+    expect(childPaymentTransactions).toHaveLength(2);
+    expect(childPaymentTransactions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          paymentMethod: "cash",
+          gateway: "pos",
+          status: "paid",
+        }),
+      ]),
+    );
+
+    const paidChildOrder = await testApp.testDb.drizzle
+      .select()
+      .from(orders)
+      .where(eq(orders.id, childRows[0].orderId))
+      .get();
+    expect(paidChildOrder?.paymentStatus).toBe("paid");
+    expect(paidChildOrder?.paymentMethod).toBe("cash");
+
+    const updatedShift = await testApp.testDb.drizzle
+      .select()
+      .from(cashShifts)
+      .where(eq(cashShifts.id, shiftId))
+      .get();
+    expect(updatedShift).toMatchObject({
+      totalSalesCents: 20000,
+      cashSalesCents: 20000,
+      totalTransactions: 1,
+    });
+
+    const saleMovement = await testApp.testDb.drizzle
+      .select()
+      .from(cashMovements)
+      .where(eq(cashMovements.shiftId, shiftId))
+      .all();
+    expect(saleMovement).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "sale",
+          amountCents: 20000,
+          referenceType: "market_checkout",
+          paymentMethod: "cash",
+        }),
+      ]),
+    );
+  });
+
   async function putRestaurantPushSubscription(
     restaurantId: string,
     suffix: string,
@@ -380,5 +621,23 @@ describe("Market checkouts API - real integration", () => {
         updatedAt: new Date().toISOString(),
       }),
     );
+  }
+
+  function insertSubscription(restaurantId: string) {
+    return testApp.env.DB.prepare(
+      `INSERT INTO shop_subscriptions
+        (id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+         is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+       VALUES (?, ?, 'trial', ?, 'managed', 1, ?, ?, ?)`,
+    )
+      .bind(
+        `sub-${restaurantId}`,
+        restaurantId,
+        JSON.stringify({ pos: true }),
+        Date.now() + 24 * 60 * 60 * 1000,
+        Date.now(),
+        Date.now(),
+      )
+      .run();
   }
 });
