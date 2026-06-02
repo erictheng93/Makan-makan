@@ -1951,4 +1951,113 @@ describe("market checkout routes", () => {
       totalAmountCents: 12000,
     });
   });
+
+  it("hydrates parent payment from the persisted checkout payment ledger", async () => {
+    const env = createEnv([
+      {
+        payment_id: "market_pay_checkout-1",
+        provider: "line_pay",
+        split_mode: "child_transactions",
+        idempotency_key: "market-pay-checkout-1",
+        status: "partial_refunded",
+        amount_cents: 20000,
+        paid_amount_cents: 20000,
+        refunded_amount_cents: 8000,
+        currency: "TWD",
+        country_code: "TW",
+        child_payment_ids: JSON.stringify(["pay-1001", "pay-1002"]),
+        created_at_ms: 1780308000000,
+        updated_at_ms: 1780308600000,
+      },
+    ]);
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "paid",
+          method: "line_pay",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 200,
+          totalAmountCents: 20000,
+          paidAmount: 200,
+          paidAmountCents: 20000,
+          childPayments: [
+            {
+              restaurantId: "restaurant-1",
+              restaurantName: "雞排攤",
+              orderId: 1001,
+              orderNumber: "A001",
+              paymentId: "pay-1001",
+              status: "paid",
+              amount: 120,
+              amountCents: 12000,
+            },
+          ],
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "paid",
+            provider: "line_pay",
+            splitMode: "child_transactions",
+            idempotencyKey: "market-pay-checkout-1",
+            amountCents: 20000,
+            paidAmountCents: 20000,
+            refundedAmountCents: 0,
+            childPaymentIds: ["pay-1001"],
+            createdAt: "2026-06-01T10:00:00.000Z",
+            updatedAt: "2026-06-01T10:00:00.000Z",
+          },
+        },
+        subtotal: 20000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    getOrder.mockResolvedValueOnce(null);
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          payment: {
+            status: string;
+            refundedAmountCents?: number;
+            parentPayment: {
+              status: string;
+              refundedAmountCents: number;
+              childPaymentIds: string[];
+              updatedAt: string;
+            };
+          };
+        };
+      };
+    };
+    expect(json.data.checkout.payment).toMatchObject({
+      status: "partial_refunded",
+      refundedAmountCents: 8000,
+      parentPayment: {
+        status: "partial_refunded",
+        refundedAmountCents: 8000,
+        childPaymentIds: ["pay-1001", "pay-1002"],
+        updatedAt: "2026-06-01T10:10:00.000Z",
+      },
+    });
+  });
 });

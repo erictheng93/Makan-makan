@@ -1041,9 +1041,95 @@ async function hydrateMarketCheckoutSession(
     }),
   );
 
-  return {
+  const hydratedSession = {
     ...session,
     childOrders,
+  };
+
+  return hydrateMarketCheckoutParentPayment(hydratedSession, env);
+}
+
+async function hydrateMarketCheckoutParentPayment(
+  session: MarketCheckoutSession,
+  env: Env,
+): Promise<MarketCheckoutSession> {
+  const row = await env.DB.prepare(
+    `SELECT payment_id, provider, split_mode, idempotency_key, status,
+            amount_cents, paid_amount_cents, refunded_amount_cents,
+            currency, country_code, child_payment_ids, created_at_ms,
+            updated_at_ms
+       FROM market_checkout_payments
+      WHERE checkout_id = ?
+      ORDER BY updated_at_ms DESC
+      LIMIT 1`,
+  )
+    .bind(session.id)
+    .first<{
+      payment_id: string;
+      provider: string;
+      split_mode: MarketCheckoutSplitMode;
+      idempotency_key: string | null;
+      status: MarketCheckoutPaymentSummary["status"];
+      amount_cents: number;
+      paid_amount_cents: number;
+      refunded_amount_cents: number;
+      currency: MarketCheckoutPaymentSummary["currency"] | null;
+      country_code: MarketCheckoutPaymentSummary["country"] | null;
+      child_payment_ids: string | null;
+      created_at_ms: number;
+      updated_at_ms: number;
+    }>();
+
+  if (!row) return session;
+
+  const childPaymentIds = parseJsonStringArray(row.child_payment_ids);
+  const parentPayment: MarketCheckoutParentPaymentSummary = {
+    paymentId: row.payment_id,
+    status: row.status,
+    provider: row.provider,
+    splitMode: row.split_mode,
+    idempotencyKey: row.idempotency_key ?? `market-checkout:${session.id}`,
+    amountCents: row.amount_cents,
+    paidAmountCents: row.paid_amount_cents,
+    refundedAmountCents: row.refunded_amount_cents,
+    childPaymentIds,
+    createdAt: toIsoString(new Date(row.created_at_ms)),
+    updatedAt: toIsoString(new Date(row.updated_at_ms)),
+  };
+
+  const existingPayment = session.payment;
+  const payment: MarketCheckoutPaymentSummary = existingPayment
+    ? {
+        ...existingPayment,
+        status: row.status,
+        totalAmount: row.amount_cents / 100,
+        totalAmountCents: row.amount_cents,
+        paidAmount: row.paid_amount_cents / 100,
+        paidAmountCents: row.paid_amount_cents,
+        refundedAmount: row.refunded_amount_cents / 100,
+        refundedAmountCents: row.refunded_amount_cents,
+        currency: row.currency ?? existingPayment.currency,
+        country: row.country_code ?? existingPayment.country,
+        parentPayment,
+      }
+    : {
+        status: row.status,
+        method: row.provider,
+        currency: row.currency ?? "TWD",
+        country: row.country_code ?? "TW",
+        totalAmount: row.amount_cents / 100,
+        totalAmountCents: row.amount_cents,
+        paidAmount: row.paid_amount_cents / 100,
+        paidAmountCents: row.paid_amount_cents,
+        refundedAmount: row.refunded_amount_cents / 100,
+        refundedAmountCents: row.refunded_amount_cents,
+        childPayments: [],
+        parentPayment,
+      };
+
+  return {
+    ...session,
+    payment,
   };
 }
 
@@ -1305,6 +1391,17 @@ function parseTimestampMs(value: string | undefined): number | null {
   if (!value) return null;
   const timestamp = Date.parse(value);
   return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function parseJsonStringArray(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
 }
 
 async function readPersistedMarketCheckoutIndex(
