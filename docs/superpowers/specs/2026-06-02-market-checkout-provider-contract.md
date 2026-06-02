@@ -56,6 +56,9 @@ Success means the platform can:
 - `apps/api/src/features/market-checkouts/routes/index.ts` exposes
   `/market-checkouts/:id/pay`, `/market-checkouts/payment-webhooks/:provider`,
   and admin provider status endpoints.
+- `apps/api/src/features/market-checkouts/testing/mockMarketCheckoutProviderContract.ts`
+  provides reusable mock provider request, response, webhook, and signature
+  fixtures for contract tests.
 - `apps/customer-app/src/views/MarketCheckoutTrackingView.vue` handles provider
   `nextAction` responses after starting an aggregate market payment.
 - `apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.vue` displays
@@ -322,6 +325,24 @@ Expected response:
 
 Any 2xx response passes. Non-2xx responses fail. Missing health URL produces a
 skipped check.
+
+## Mock Provider Fixture
+
+Provider contract tests should use
+`apps/api/src/features/market-checkouts/testing/mockMarketCheckoutProviderContract.ts`
+before adding provider-specific adapters.
+
+The fixture includes:
+
+- `mockMarketCheckoutProviderGatewayInput` for a two-vendor checkout request.
+- `mockMarketCheckoutProviderPendingResponse` for a redirect-based
+  `requires_action` gateway response.
+- `mockMarketCheckoutProviderPaidResponse` for an immediate paid allocation
+  response.
+- `mockMarketCheckoutProviderPaidWebhookPayload` for a generic HMAC paid
+  callback.
+- `signMockMarketCheckoutWebhook(secret, rawBody)` for
+  `x-webhook-signature` tests.
 
 ## Boundaries
 

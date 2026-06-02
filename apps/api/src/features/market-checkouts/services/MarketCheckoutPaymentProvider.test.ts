@@ -9,6 +9,10 @@ import {
   getMarketCheckoutPaymentProviderStatus,
   signMarketCheckoutProviderSplitPayload,
 } from "./MarketCheckoutPaymentProvider";
+import {
+  mockMarketCheckoutProviderGatewayInput,
+  mockMarketCheckoutProviderPendingResponse,
+} from "../testing/mockMarketCheckoutProviderContract";
 
 const processPayment = vi.hoisted(() => vi.fn());
 
@@ -406,6 +410,34 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       nextAction: {
         type: "client_secret",
         clientSecret: "pi_secret_1",
+      },
+    });
+  });
+
+  it("accepts the mock provider pending fixture as the gateway contract", async () => {
+    const gateway = new HttpProviderSplitGateway(
+      "https://payments.example.test/market-split",
+      undefined,
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify(mockMarketCheckoutProviderPendingResponse),
+          ),
+      ) as never,
+    );
+
+    await expect(
+      gateway.process(mockMarketCheckoutProviderGatewayInput),
+    ).resolves.toMatchObject({
+      provider: "mock_market_provider",
+      providerTransactionId: "intent-market-checkout-1",
+      status: "requires_action",
+      authorizedAmountCents: 0,
+      allocations: [],
+      nextAction: {
+        type: "redirect",
+        redirectUrl:
+          "https://payments.example.test/confirm/intent-market-checkout-1",
       },
     });
   });

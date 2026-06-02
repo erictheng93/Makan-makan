@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Env } from "../../../types/env";
 import { MarketCheckoutPaymentWebhookService } from "./MarketCheckoutPaymentWebhookService";
+import {
+  mockMarketCheckoutProviderPaidWebhookPayload,
+  signMockMarketCheckoutWebhook,
+} from "../testing/mockMarketCheckoutProviderContract";
 
 function createEnv(options: {
   auditInserted?: boolean;
@@ -240,6 +244,50 @@ describe("MarketCheckoutPaymentWebhookService", () => {
           sql.includes("UPDATE market_checkout_payments"),
         ),
     ).toBe(false);
+  });
+
+  it("reconciles the mock provider paid webhook fixture", async () => {
+    const rawBody = JSON.stringify(
+      mockMarketCheckoutProviderPaidWebhookPayload,
+    );
+    const env = createEnv({
+      paymentRow: paymentRow({
+        provider: "mock_market_provider",
+        amount_cents: 24000,
+        provider_transaction_id: "intent-market-checkout-1",
+        session_payment_summary: JSON.stringify({
+          status: "pending",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 0,
+          paidAmountCents: 0,
+          childPayments: [],
+        }),
+      }),
+    });
+    const headers = new Headers({
+      "x-webhook-signature": await signMockMarketCheckoutWebhook(
+        "market-secret",
+        rawBody,
+      ),
+    });
+
+    const result = await new MarketCheckoutPaymentWebhookService(env).handle(
+      "mock_market_provider",
+      rawBody,
+      headers,
+    );
+
+    expect(result).toMatchObject({
+      provider: "mock_market_provider",
+      eventId: "evt-market-checkout-paid-1",
+      eventType: "market_checkout.payment_paid",
+      reconciled: true,
+      status: "paid",
+    });
   });
 
   it("rejects invalid provider signatures", async () => {
