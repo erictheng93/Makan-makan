@@ -33,7 +33,7 @@ export interface KitchenPushNotificationOptions {
   sound?: string;
 }
 
-class KitchenPushNotificationService {
+export class KitchenPushNotificationService {
   private vapidPublicKey =
     "BNxvNnqyJgFWG6z6Fh5c8hGv-Z8O7s2r9Lm5JnG3p8Z7fK9A2c6H8n1B5dE3gT7qR9mP4yX8nL1oD6vR3zJ2hS9a";
   private subscription: PushSubscription | null = null;
@@ -46,10 +46,16 @@ class KitchenPushNotificationService {
   }
 
   private checkSupport(): void {
+    if (typeof navigator === "undefined" || typeof window === "undefined") {
+      this.isSupported = false;
+      return;
+    }
     this.isSupported = "serviceWorker" in navigator && "PushManager" in window;
   }
 
   private initializeAudioContext(): void {
+    if (typeof window === "undefined") return;
+
     try {
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextCtor) return;
@@ -526,6 +532,7 @@ class KitchenPushNotificationService {
 
   // Permission and subscription status
   get permissionStatus(): NotificationPermission {
+    if (typeof Notification === "undefined") return "denied";
     return Notification.permission;
   }
 
