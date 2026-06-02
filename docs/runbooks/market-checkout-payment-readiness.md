@@ -184,6 +184,16 @@ Provider adapter must supply:
   bearer token if required, request signing secret, and optional health URL.
 - Test fixtures for paid, failed, pending, refunded, and partial-refund events.
 
+Current readiness:
+
+- The adapter handoff is documented in
+  `docs/runbooks/market-checkout-provider-adapter-handoff.md`.
+- Existing mock provider fixtures define the baseline request, paid response,
+  pending response, paid status lookup, refund request, refund response, paid
+  webhook payload, and generic HMAC signature helper.
+- Provider selection can now focus on adapter endpoint implementation,
+  provider-specific customer confirmation, and webhook payload translation.
+
 Verification after provider selection:
 
 ```bash
