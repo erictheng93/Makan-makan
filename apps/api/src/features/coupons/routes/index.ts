@@ -504,6 +504,14 @@ routes.get(
     const couponsService = createCouponsService(c.env);
 
     // 權限檢查：店主只能查看自己餐廳的數據
+    if (
+      user.role === 1 &&
+      restaurantId != null &&
+      restaurantId !== userRestaurantId(user)
+    ) {
+      throw forbidden("Access denied");
+    }
+
     const queryRestaurantId =
       user.role === 1 ? userRestaurantId(user) : restaurantId;
 

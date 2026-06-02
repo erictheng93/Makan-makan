@@ -326,4 +326,199 @@ describe("Coupons API — real integration", () => {
       }),
     ]);
   });
+
+  it("enforces coupons owner access and cross-restaurant scope on analytics trends", async () => {
+    const restaurantA = await seed.restaurant({ name: "Coupon Owner A" });
+    const restaurantB = await seed.restaurant({ name: "Coupon Owner B" });
+
+    const ownerA = await seed.user({
+      username: "coupon-owner-a",
+      role: 1,
+      restaurantId: String(restaurantA.id),
+    });
+    const ownerAToken = await testApp.authHelper.ownerToken(
+      ownerA.id,
+      String(restaurantA.id),
+    );
+    const ownerB = await seed.user({
+      username: "coupon-owner-b",
+      role: 1,
+      restaurantId: String(restaurantB.id),
+    });
+    const ownerBToken = await testApp.authHelper.ownerToken(
+      ownerB.id,
+      String(restaurantB.id),
+    );
+
+    const couponA = await seed.coupon(restaurantA.id, {
+      code: "TICKET01A",
+      discountValueCents: 1000,
+      isVisible: true,
+    });
+    const couponB = await seed.coupon(restaurantB.id, {
+      code: "TICKET01B",
+      discountValueCents: 2000,
+      isVisible: true,
+    });
+
+    const orderA = await seed.order(restaurantA.id, {
+      subtotal: 300,
+      subtotalCents: 30000,
+      totalAmount: 290,
+      totalAmountCents: 29000,
+      discountAmount: 10,
+      discountAmountCents: 1000,
+    });
+    const orderB = await seed.order(restaurantB.id, {
+      subtotal: 300,
+      subtotalCents: 30000,
+      totalAmount: 280,
+      totalAmountCents: 28000,
+      discountAmount: 20,
+      discountAmountCents: 2000,
+    });
+
+    const useARes = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons/use", {
+        method: "POST",
+        headers: { "content-type": "application/json", host: "test" },
+        body: JSON.stringify({
+          couponId: couponA.id,
+          orderId: orderA.id,
+          discountAmount: 10,
+          originalAmount: 300,
+          finalAmount: 290,
+        }),
+      }),
+    );
+    expect(useARes.status).toBe(200);
+
+    const useBRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons/use", {
+        method: "POST",
+        headers: { "content-type": "application/json", host: "test" },
+        body: JSON.stringify({
+          couponId: couponB.id,
+          orderId: orderB.id,
+          discountAmount: 20,
+          originalAmount: 300,
+          finalAmount: 280,
+        }),
+      }),
+    );
+    expect(useBRes.status).toBe(200);
+
+    const trendsOwnRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/coupons/analytics/trends?restaurantId=${restaurantA.id}`,
+        {
+          headers: { authorization: `Bearer ${ownerAToken}` },
+        },
+      ),
+    );
+    expect(trendsOwnRes.status).toBe(200);
+    const trendsOwn: any = await trendsOwnRes.json();
+    expect(trendsOwn.success).toBe(true);
+    expect(trendsOwn.data.totalCoupons).toBe(1);
+    expect(trendsOwn.data.totalUsage).toBe(1);
+
+    const trendsCrossRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/coupons/analytics/trends?restaurantId=${restaurantB.id}`,
+        {
+          headers: { authorization: `Bearer ${ownerAToken}` },
+        },
+      ),
+    );
+    expect(trendsCrossRes.status).toBe(403);
+
+    const trendsOwnerBRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/coupons/analytics/trends?restaurantId=${restaurantB.id}`,
+        {
+          headers: { authorization: `Bearer ${ownerBToken}` },
+        },
+      ),
+    );
+    expect(trendsOwnerBRes.status).toBe(200);
+    const trendsOwnerB: any = await trendsOwnerBRes.json();
+    expect(trendsOwnerB.success).toBe(true);
+    expect(trendsOwnerB.data.totalCoupons).toBe(1);
+    expect(trendsOwnerB.data.totalUsage).toBe(1);
+  });
+
+  it("enforces owner/cross-restaurant permission for coupon deactivation and admin full access", async () => {
+    const restaurantA = await seed.restaurant({ name: "Coupon Owner C" });
+    const restaurantB = await seed.restaurant({ name: "Coupon Owner D" });
+
+    const ownerA = await seed.user({
+      username: "coupon-owner-cross-a",
+      role: 1,
+      restaurantId: String(restaurantA.id),
+    });
+    const ownerAToken = await testApp.authHelper.ownerToken(
+      ownerA.id,
+      String(restaurantA.id),
+    );
+
+    const couponA = await seed.coupon(restaurantA.id, { code: "TICKET01C" });
+    const couponB = await seed.coupon(restaurantB.id, { code: "TICKET01D" });
+
+    const ownerOwnRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponA.id}/deactivate`, {
+        method: "POST",
+        headers: csrfHeaders(ownerAToken),
+      }),
+    );
+    expect(ownerOwnRes.status).toBe(200);
+
+    const ownerOtherRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponB.id}/deactivate`, {
+        method: "POST",
+        headers: csrfHeaders(ownerAToken),
+      }),
+    );
+    expect(ownerOtherRes.status).toBe(403);
+
+    const adminResOwn = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponA.id}/deactivate`, {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+      }),
+    );
+    expect(adminResOwn.status).toBe(200);
+
+    const adminResOther = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponB.id}/deactivate`, {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+      }),
+    );
+    expect(adminResOther.status).toBe(200);
+
+    const owner = await seed.user({
+      username: "coupon-chef",
+      role: 2,
+      restaurantId: String(restaurantA.id),
+    });
+    const chefToken = await testApp.authHelper.staffToken(
+      owner.id,
+      2,
+      String(restaurantA.id),
+    );
+    const chefRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponA.id}/deactivate`, {
+        method: "POST",
+        headers: csrfHeaders(chefToken),
+      }),
+    );
+    expect(chefRes.status).toBe(403);
+
+    const unauthedRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponA.id}/deactivate`, {
+        method: "POST",
+      }),
+    );
+    expect(unauthedRes.status).toBe(401);
+  });
 });
