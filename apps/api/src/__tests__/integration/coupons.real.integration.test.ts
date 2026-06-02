@@ -92,6 +92,23 @@ describe("Coupons API — real integration", () => {
     adminToken = await testApp.authHelper.adminToken(restaurantId);
   });
 
+  async function insertActiveSubscription(targetRestaurantId: string) {
+    await testApp.env.DB.prepare(
+      `INSERT INTO shop_subscriptions
+        (id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+         is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+       VALUES (?, ?, 'trial', '{}', 'managed', 1, ?, ?, ?)`,
+    )
+      .bind(
+        `sub-${targetRestaurantId}`,
+        targetRestaurantId,
+        Date.now() + 24 * 60 * 60 * 1000,
+        Date.now(),
+        Date.now(),
+      )
+      .run();
+  }
+
   // ── POST /coupons (create) ────────────────────────────────────────────────
 
   it("POST /coupons creates a percentage coupon and returns 201", async () => {
@@ -330,6 +347,8 @@ describe("Coupons API — real integration", () => {
   it("enforces coupons owner access and cross-restaurant scope on analytics trends", async () => {
     const restaurantA = await seed.restaurant({ name: "Coupon Owner A" });
     const restaurantB = await seed.restaurant({ name: "Coupon Owner B" });
+    await insertActiveSubscription(String(restaurantA.id));
+    await insertActiveSubscription(String(restaurantB.id));
 
     const ownerA = await seed.user({
       username: "coupon-owner-a",
@@ -381,7 +400,7 @@ describe("Coupons API — real integration", () => {
     const useARes = await testApp.app.fetch(
       new Request("https://test/api/v1/coupons/use", {
         method: "POST",
-        headers: { "content-type": "application/json", host: "test" },
+        headers: csrfHeaders(adminToken),
         body: JSON.stringify({
           couponId: couponA.id,
           orderId: orderA.id,
@@ -396,7 +415,7 @@ describe("Coupons API — real integration", () => {
     const useBRes = await testApp.app.fetch(
       new Request("https://test/api/v1/coupons/use", {
         method: "POST",
-        headers: { "content-type": "application/json", host: "test" },
+        headers: csrfHeaders(adminToken),
         body: JSON.stringify({
           couponId: couponB.id,
           orderId: orderB.id,
@@ -450,6 +469,8 @@ describe("Coupons API — real integration", () => {
   it("enforces owner/cross-restaurant permission for coupon deactivation and admin full access", async () => {
     const restaurantA = await seed.restaurant({ name: "Coupon Owner C" });
     const restaurantB = await seed.restaurant({ name: "Coupon Owner D" });
+    await insertActiveSubscription(String(restaurantA.id));
+    await insertActiveSubscription(String(restaurantB.id));
 
     const ownerA = await seed.user({
       username: "coupon-owner-cross-a",
