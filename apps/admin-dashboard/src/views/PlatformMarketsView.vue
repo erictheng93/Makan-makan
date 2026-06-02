@@ -919,6 +919,15 @@
                 </button>
                 <button
                   type="button"
+                  :data-testid="`print-market-qr-poster-${market.id}`"
+                  class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                  :disabled="generatingMarketQrId === market.id"
+                  @click="printMarketQrPoster(market)"
+                >
+                  海報
+                </button>
+                <button
+                  type="button"
                   class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
                   @click="startEditing(market)"
                 >
@@ -2726,6 +2735,132 @@ async function downloadMarketQr(market: MarketListItem) {
   } finally {
     generatingMarketQrId.value = null;
   }
+}
+
+async function printMarketQrPoster(market: MarketListItem) {
+  generatingMarketQrId.value = market.id;
+  marketQrError.value = "";
+
+  try {
+    const qr = await marketsService.generateMarketQr({
+      slug: market.slug,
+      name: market.name,
+    });
+    if (!qr.downloadUrl) {
+      marketQrError.value = "市場 QR 已產生，但缺少海報圖片連結。";
+      return;
+    }
+
+    const posterWindow = window.open("", "_blank", "width=900,height=1200");
+    if (!posterWindow) {
+      marketQrError.value = "無法開啟列印視窗，請允許瀏覽器彈出視窗。";
+      return;
+    }
+
+    posterWindow.document.write(
+      buildMarketQrPosterHtml(market, qr.downloadUrl),
+    );
+    posterWindow.document.close();
+    posterWindow.focus();
+    posterWindow.print();
+  } catch (error) {
+    console.error("Failed to print market QR poster:", error);
+    marketQrError.value = "市場 QR 海報產生失敗，請稍後再試。";
+  } finally {
+    generatingMarketQrId.value = null;
+  }
+}
+
+function buildMarketQrPosterHtml(market: MarketListItem, qrUrl: string) {
+  const marketName = escapeHtml(market.name);
+  const marketSlug = escapeHtml(market.slug);
+  const city = escapeHtml(market.city);
+  const district = escapeHtml(market.district);
+  const safeQrUrl = escapeHtml(qrUrl);
+  const marketUrl = `/markets/${marketSlug}`;
+
+  return `<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <title>${marketName} 市場 QR 海報</title>
+    <style>
+      @page { size: A4 portrait; margin: 14mm; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #111827;
+        background: #f8fafc;
+      }
+      .poster {
+        min-height: 269mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        border: 3px solid #111827;
+        border-radius: 18px;
+        background: #ffffff;
+        padding: 34px;
+        text-align: center;
+      }
+      .eyebrow {
+        font-size: 18px;
+        font-weight: 700;
+        color: #b45309;
+      }
+      h1 {
+        margin: 0;
+        font-size: 54px;
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+      .area {
+        font-size: 22px;
+        color: #4b5563;
+      }
+      .qr {
+        width: 360px;
+        height: 360px;
+        border: 1px solid #e5e7eb;
+        padding: 14px;
+      }
+      .cta {
+        font-size: 30px;
+        font-weight: 800;
+      }
+      .url {
+        font-size: 18px;
+        color: #4b5563;
+        word-break: break-all;
+      }
+      @media print {
+        body { background: #ffffff; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="poster">
+      <div class="eyebrow">Makanmakan 市場入口</div>
+      <h1>${marketName}</h1>
+      <div class="area">${city} · ${district}</div>
+      <img class="qr" src="${safeQrUrl}" alt="${marketName} QR Code" />
+      <div class="cta">掃描查看全部攤位、商品與服務</div>
+      <div class="url">${marketUrl}</div>
+    </main>
+  </body>
+</html>`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function downloadCsv(csv: string, filename: string) {

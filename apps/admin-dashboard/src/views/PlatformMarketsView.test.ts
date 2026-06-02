@@ -50,6 +50,15 @@ describe("PlatformMarketsView", () => {
   const createObjectURL = vi.fn(() => "blob:market-catalog-gaps");
   const revokeObjectURL = vi.fn();
   const click = vi.fn();
+  const print = vi.fn();
+  const close = vi.fn();
+  const write = vi.fn();
+  const windowOpen = vi.fn(() => ({
+    document: { write, close },
+    focus: vi.fn(),
+    print,
+    close,
+  }));
   const routeQuery = {} as Record<string, unknown>;
 
   beforeEach(() => {
@@ -58,6 +67,7 @@ describe("PlatformMarketsView", () => {
       createObjectURL,
       revokeObjectURL,
     });
+    vi.stubGlobal("open", windowOpen);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(click);
     vi.mocked(useAuthStore).mockReturnValue({
       selectRestaurant,
@@ -288,6 +298,31 @@ describe("PlatformMarketsView", () => {
       name: "逢甲夜市",
     });
     expect(click).toHaveBeenCalled();
+  });
+
+  it("prints a market entrance QR poster from the market list", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="print-market-qr-poster-market-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.generateMarketQr).toHaveBeenCalledWith({
+      slug: "fengjia",
+      name: "逢甲夜市",
+    });
+    expect(windowOpen).toHaveBeenCalledWith(
+      "",
+      "_blank",
+      "width=900,height=1200",
+    );
+    expect(write).toHaveBeenCalledWith(expect.stringContaining("逢甲夜市"));
+    expect(write).toHaveBeenCalledWith(
+      expect.stringContaining("https://qr.example/market-fengjia.png"),
+    );
+    expect(print).toHaveBeenCalled();
   });
 
   it("shows stall number and search entrypoint gaps for operators", async () => {
