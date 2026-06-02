@@ -46,11 +46,59 @@ describe("StallMapInMarket", () => {
     });
 
     expect(wrapper.text()).toContain("攤位示意圖");
+    expect(wrapper.text()).toContain("入口");
+    expect(wrapper.text()).toContain("動線");
+    expect(wrapper.text()).toContain("出口");
+    expect(wrapper.text()).toContain("3 攤");
+    expect(wrapper.text()).toContain("3 營業中");
     expect(wrapper.text()).toContain("入口第一排");
     expect(wrapper.text()).toContain("文華路側");
     expect(wrapper.text()).toContain("攤位 A-02");
     expect(wrapper.text()).toContain("攤位 A-10");
     expect(wrapper.text()).toContain("攤位 B-01");
+    expect(wrapper.text()).toContain("菜單 3");
+    expect(wrapper.text()).toContain("服務 1");
+  });
+
+  it("sorts stall numbers naturally inside each lane", () => {
+    const wrapper = mount(StallMapInMarket, {
+      props: {
+        vendors: [
+          vendor({ restaurantId: "r10", name: "十號攤", stallNumber: "A-10" }),
+          vendor({ restaurantId: "r2", name: "二號攤", stallNumber: "A-02" }),
+          vendor({ restaurantId: "r1", name: "一號攤", stallNumber: "A-01" }),
+        ],
+      },
+    });
+
+    expect(
+      wrapper
+        .findAll('[data-testid^="stall-map-vendor-"]')
+        .map((node) => node.text()),
+    ).toEqual([
+      expect.stringContaining("攤位 A-01"),
+      expect.stringContaining("攤位 A-02"),
+      expect.stringContaining("攤位 A-10"),
+    ]);
+  });
+
+  it("shows unavailable vendors and data gaps without hiding them", () => {
+    const wrapper = mount(StallMapInMarket, {
+      props: {
+        vendors: [
+          vendor({
+            restaurantId: "r1",
+            isOpen: false,
+            availableMenuItemCount: 0,
+            publicServiceItemCount: 0,
+          }),
+        ],
+      },
+    });
+
+    expect(wrapper.text()).toContain("0 營業中");
+    expect(wrapper.text()).toContain("休息");
+    expect(wrapper.text()).toContain("資料補齊中");
   });
 
   it("opens a vendor from the stall map", async () => {
