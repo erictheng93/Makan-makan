@@ -495,6 +495,29 @@
               }}
             </template>
           </span>
+          <span
+            v-if="selectedCheckout.payment.parentPayment.lastWebhook"
+            class="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700"
+          >
+            最後 webhook
+            {{
+              selectedCheckout.payment.parentPayment.lastWebhook.eventId || "-"
+            }}
+            ·
+            {{ selectedCheckout.payment.parentPayment.lastWebhook.eventType }}
+            ·
+            {{
+              webhookStatusLabel(
+                selectedCheckout.payment.parentPayment.lastWebhook.status,
+              )
+            }}
+            ·
+            {{
+              formatDate(
+                selectedCheckout.payment.parentPayment.lastWebhook.receivedAt,
+              )
+            }}
+          </span>
           <span class="rounded-full bg-gray-100 px-2.5 py-1">
             冪等鍵
             {{ selectedCheckout.payment.parentPayment.idempotencyKey }}
@@ -952,6 +975,18 @@ function paymentStatusLabel(status: MarketCheckoutPaymentStatus) {
     partial_refunded: "部分退款",
   };
   return labels[status];
+}
+
+function webhookStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "待付款",
+    partial_paid: "部分付款",
+    paid: "已付款",
+    failed: "付款失敗",
+    refunded: "已退款",
+    partial_refunded: "部分退款",
+  };
+  return labels[status] ?? status;
 }
 
 function paymentClass(status: MarketCheckoutPaymentStatus) {

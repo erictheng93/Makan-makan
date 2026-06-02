@@ -193,6 +193,13 @@ describe("PlatformMarketCheckoutsView", () => {
             redirectUrl:
               "https://payments.example.test/confirm/intent-market-checkout-1",
           },
+          lastWebhook: {
+            provider: "mock_market_provider",
+            eventId: "evt-market-checkout-paid-1",
+            eventType: "market_checkout.payment_paid",
+            status: "paid",
+            receivedAt: "2026-06-01T10:09:00.000Z",
+          },
           amountCents: 24000,
           paidAmountCents: 16000,
           refundedAmountCents: 0,
@@ -444,6 +451,21 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("payments.example.test");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("最後 webhook");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("evt-market-checkout-paid-1");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("market_checkout.payment_paid");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("已付款");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("06/01 18:09");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("子交易 1");

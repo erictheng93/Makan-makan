@@ -219,12 +219,21 @@ interface MarketCheckoutParentPaymentSummary {
   idempotencyKey: string;
   providerTransactionId?: string;
   nextAction?: MarketCheckoutProviderNextAction;
+  lastWebhook?: MarketCheckoutProviderLastWebhook;
   amountCents: number;
   paidAmountCents: number;
   refundedAmountCents: number;
   childPaymentIds: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface MarketCheckoutProviderLastWebhook {
+  provider: string;
+  eventId?: string | null;
+  eventType: string;
+  status: string;
+  receivedAt: string;
 }
 
 app.post("/", async (c) => {
@@ -1239,6 +1248,7 @@ async function hydrateMarketCheckoutParentPayment(
     idempotencyKey: row.idempotency_key ?? `market-checkout:${session.id}`,
     providerTransactionId: row.provider_transaction_id ?? undefined,
     nextAction: providerPayload.nextAction,
+    lastWebhook: providerPayload.lastWebhook,
     amountCents: row.amount_cents,
     paidAmountCents: row.paid_amount_cents,
     refundedAmountCents: row.refunded_amount_cents,
@@ -1617,45 +1627,76 @@ function parseJsonStringArray(value: string | null | undefined): string[] {
 
 function parseProviderPayload(value: string | null | undefined): {
   nextAction?: MarketCheckoutProviderNextAction;
+  lastWebhook?: MarketCheckoutProviderLastWebhook;
 } {
   if (!value) return {};
   try {
-    const parsed = JSON.parse(value) as { nextAction?: unknown };
-    if (!parsed.nextAction || typeof parsed.nextAction !== "object") {
-      return {};
-    }
-    const action =
-      parsed.nextAction as Partial<MarketCheckoutProviderNextAction>;
-    if (
-      action.type !== "redirect" &&
-      action.type !== "client_secret" &&
-      action.type !== "sdk_confirmation"
-    ) {
-      return {};
-    }
+    const parsed = JSON.parse(value) as {
+      nextAction?: unknown;
+      lastWebhook?: unknown;
+    };
 
     return {
-      nextAction: {
-        type: action.type,
-        redirectUrl:
-          typeof action.redirectUrl === "string"
-            ? action.redirectUrl
-            : undefined,
-        clientSecret:
-          typeof action.clientSecret === "string"
-            ? action.clientSecret
-            : undefined,
-        expiresAt:
-          typeof action.expiresAt === "string" ? action.expiresAt : undefined,
-        providerPayload:
-          action.providerPayload && typeof action.providerPayload === "object"
-            ? (action.providerPayload as Record<string, unknown>)
-            : undefined,
-      },
+      nextAction: parseProviderPayloadNextAction(parsed.nextAction),
+      lastWebhook: parseProviderPayloadLastWebhook(parsed.lastWebhook),
     };
   } catch {
     return {};
   }
+}
+
+function parseProviderPayloadNextAction(
+  value: unknown,
+): MarketCheckoutProviderNextAction | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const action = value as Partial<MarketCheckoutProviderNextAction>;
+  if (
+    action.type !== "redirect" &&
+    action.type !== "client_secret" &&
+    action.type !== "sdk_confirmation"
+  ) {
+    return undefined;
+  }
+
+  return {
+    type: action.type,
+    redirectUrl:
+      typeof action.redirectUrl === "string" ? action.redirectUrl : undefined,
+    clientSecret:
+      typeof action.clientSecret === "string" ? action.clientSecret : undefined,
+    expiresAt:
+      typeof action.expiresAt === "string" ? action.expiresAt : undefined,
+    providerPayload:
+      action.providerPayload && typeof action.providerPayload === "object"
+        ? (action.providerPayload as Record<string, unknown>)
+        : undefined,
+  };
+}
+
+function parseProviderPayloadLastWebhook(
+  value: unknown,
+): MarketCheckoutProviderLastWebhook | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const webhook = value as Partial<MarketCheckoutProviderLastWebhook>;
+  if (
+    typeof webhook.provider !== "string" ||
+    typeof webhook.eventType !== "string" ||
+    typeof webhook.status !== "string" ||
+    typeof webhook.receivedAt !== "string"
+  ) {
+    return undefined;
+  }
+
+  return {
+    provider: webhook.provider,
+    eventId:
+      typeof webhook.eventId === "string" || webhook.eventId === null
+        ? webhook.eventId
+        : undefined,
+    eventType: webhook.eventType,
+    status: webhook.status,
+    receivedAt: webhook.receivedAt,
+  };
 }
 
 async function readPersistedMarketCheckoutIndex(

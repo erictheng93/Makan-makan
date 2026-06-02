@@ -2844,6 +2844,16 @@ describe("market checkout routes", () => {
         currency: "TWD",
         country_code: "TW",
         child_payment_ids: JSON.stringify(["pay-1001", "pay-1002"]),
+        provider_payload: JSON.stringify({
+          source: "market-checkouts",
+          lastWebhook: {
+            provider: "mock_market_provider",
+            eventId: "evt-market-checkout-paid-1",
+            eventType: "market_checkout.payment_paid",
+            status: "paid",
+            receivedAt: "2026-06-01T10:09:00.000Z",
+          },
+        }),
         created_at_ms: 1780308000000,
         updated_at_ms: 1780308600000,
       },
@@ -2922,6 +2932,13 @@ describe("market checkout routes", () => {
               refundedAmountCents: number;
               childPaymentIds: string[];
               updatedAt: string;
+              lastWebhook?: {
+                provider: string;
+                eventId: string;
+                eventType: string;
+                status: string;
+                receivedAt: string;
+              };
             };
           };
         };
@@ -2935,6 +2952,13 @@ describe("market checkout routes", () => {
         refundedAmountCents: 8000,
         childPaymentIds: ["pay-1001", "pay-1002"],
         updatedAt: "2026-06-01T10:10:00.000Z",
+        lastWebhook: {
+          provider: "mock_market_provider",
+          eventId: "evt-market-checkout-paid-1",
+          eventType: "market_checkout.payment_paid",
+          status: "paid",
+          receivedAt: "2026-06-01T10:09:00.000Z",
+        },
       },
     });
   });

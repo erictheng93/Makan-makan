@@ -22,6 +22,14 @@ export interface MarketCheckoutProviderNextAction {
   providerPayload?: Record<string, unknown>;
 }
 
+export interface MarketCheckoutProviderLastWebhook {
+  provider: string;
+  eventId?: string | null;
+  eventType: string;
+  status: string;
+  receivedAt: string;
+}
+
 export interface MarketCheckoutListItem {
   id: string;
   market: {
@@ -86,6 +94,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       idempotencyKey: string;
       providerTransactionId?: string;
       nextAction?: MarketCheckoutProviderNextAction;
+      lastWebhook?: MarketCheckoutProviderLastWebhook;
       amountCents: number;
       paidAmountCents: number;
       refundedAmountCents: number;
