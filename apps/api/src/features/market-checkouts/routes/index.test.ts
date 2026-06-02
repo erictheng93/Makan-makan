@@ -1612,9 +1612,59 @@ describe("market checkout routes", () => {
         splitMode: "provider_split",
         readiness: "ready",
         providerSplitUrlConfigured: true,
+        providerSplitHealthUrlConfigured: false,
         providerSplitTokenConfigured: true,
       },
     });
+  });
+
+  it("checks market checkout provider split connectivity through the health URL", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            message: "Provider gateway ready",
+            capabilities: ["aggregate_authorization"],
+          }),
+        ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const env = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+        "https://payments.example.test/market-split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL:
+        "https://payments.example.test/health",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+    };
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/provider-status/check", {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      data: {
+        status: "passed",
+        splitMode: "provider_split",
+        target: "https://payments.example.test/health",
+        responseStatus: 200,
+        message: "Provider gateway ready",
+        capabilities: ["aggregate_authorization"],
+      },
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://payments.example.test/health",
+      {
+        method: "GET",
+        headers: { authorization: "Bearer split-token" },
+      },
+    );
+    vi.unstubAllGlobals();
   });
 
   it("exports filtered market checkout operations as CSV", async () => {

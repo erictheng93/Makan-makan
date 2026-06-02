@@ -32,6 +32,7 @@ import {
   type RefundPaymentResult,
 } from "../../payments/services/refundPayment";
 import {
+  checkMarketCheckoutPaymentProviderConnectivity,
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
   type MarketCheckoutSplitMode,
@@ -1077,6 +1078,17 @@ app.get("/admin/provider-status", authMiddleware, requireRole([0]), async (c) =>
     success: true,
     data: getMarketCheckoutPaymentProviderStatus(c.env),
   }),
+);
+
+app.post(
+  "/admin/provider-status/check",
+  authMiddleware,
+  requireRole([0]),
+  async (c) =>
+    c.json({
+      success: true,
+      data: await checkMarketCheckoutPaymentProviderConnectivity(c.env),
+    }),
 );
 
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {

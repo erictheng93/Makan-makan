@@ -12,6 +12,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
     summary: vi.fn(),
     vendors: vi.fn(),
     providerStatus: vi.fn(),
+    checkProviderConnectivity: vi.fn(),
     exportCsv: vi.fn(),
     exportVendorsCsv: vi.fn(),
     exportAccountingCsv: vi.fn(),
@@ -99,12 +100,22 @@ describe("PlatformMarketCheckoutsView", () => {
       readiness: "not_configured",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured: false,
+      providerSplitHealthUrlConfigured: false,
       providerSplitTokenConfigured: false,
       capabilities: ["webhook_status_sync", "refunds"],
       missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
       notes: [
         "Provider split mode is enabled but no HTTP gateway URL is configured.",
       ],
+    });
+    vi.mocked(
+      marketCheckoutsService.checkProviderConnectivity,
+    ).mockResolvedValue({
+      status: "skipped",
+      checkedAt: "2026-06-01T10:10:00.000Z",
+      splitMode: "provider_split",
+      message:
+        "Provider split gateway URL is configured, but no health check URL is configured.",
     });
     vi.mocked(marketCheckoutsService.get).mockResolvedValue({
       id: "checkout-1",
@@ -282,6 +293,19 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
       "MARKET_CHECKOUT_PROVIDER_SPLIT_URL",
     );
+
+    await wrapper
+      .get('[data-testid="check-provider-connectivity"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketCheckoutsService.checkProviderConnectivity).toHaveBeenCalled();
+    expect(
+      wrapper.get('[data-testid="provider-connectivity-check"]').text(),
+    ).toContain("未檢查");
+    expect(
+      wrapper.get('[data-testid="provider-connectivity-check"]').text(),
+    ).toContain("Provider split gateway URL is configured");
     expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
       "GMV",
     );

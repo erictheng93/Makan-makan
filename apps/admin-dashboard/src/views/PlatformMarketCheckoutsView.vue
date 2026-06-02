@@ -119,6 +119,15 @@
           {{ providerReadinessLabel(providerStatus.readiness) }}
         </span>
       </div>
+      <button
+        type="button"
+        data-testid="check-provider-connectivity"
+        class="mt-3 rounded-lg border border-gray-300 bg-white/70 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white disabled:opacity-50"
+        :disabled="isCheckingProvider"
+        @click="checkProviderConnectivity"
+      >
+        {{ isCheckingProvider ? "檢查中..." : "檢查 Provider 連線" }}
+      </button>
       <div
         v-if="providerStatus.missingConfiguration.length"
         class="mt-3 text-sm text-red-700"
@@ -139,6 +148,24 @@
         >
           {{ capability }}
         </span>
+      </div>
+      <div
+        v-if="providerConnectivityCheck"
+        data-testid="provider-connectivity-check"
+        class="mt-3 rounded-lg bg-white/70 p-3 text-sm text-gray-700"
+      >
+        <div class="font-semibold" :class="providerConnectivityResultClass">
+          {{
+            providerConnectivityStatusLabel(providerConnectivityCheck.status)
+          }}
+        </div>
+        <div class="mt-1">{{ providerConnectivityCheck.message }}</div>
+        <div class="mt-1 text-xs text-gray-500">
+          {{ formatDate(providerConnectivityCheck.checkedAt) }}
+          <span v-if="providerConnectivityCheck.responseStatus">
+            · HTTP {{ providerConnectivityCheck.responseStatus }}
+          </span>
+        </div>
       </div>
     </section>
 
@@ -624,6 +651,7 @@ import {
   marketCheckoutsService,
   type MarketCheckoutDetail,
   type MarketCheckoutListItem,
+  type MarketCheckoutPaymentProviderConnectivityCheck,
   type MarketCheckoutPaymentProviderStatus,
   type MarketCheckoutPaymentStatus,
   type MarketCheckoutSummary,
@@ -635,8 +663,11 @@ const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
 const summary = ref<MarketCheckoutSummary | null>(null);
 const vendorSettlements = ref<MarketCheckoutVendorSettlement[]>([]);
 const providerStatus = ref<MarketCheckoutPaymentProviderStatus | null>(null);
+const providerConnectivityCheck =
+  ref<MarketCheckoutPaymentProviderConnectivityCheck | null>(null);
 const isLoading = ref(false);
 const isRefunding = ref(false);
+const isCheckingProvider = ref(false);
 const isExporting = ref(false);
 const isExportingVendors = ref(false);
 const isExportingAccounting = ref(false);
@@ -693,6 +724,15 @@ const providerStatusPillClass = computed(() => {
   }[providerStatus.value.readiness];
 });
 
+const providerConnectivityResultClass = computed(() => {
+  if (!providerConnectivityCheck.value) return "text-gray-700";
+  return {
+    passed: "text-emerald-700",
+    skipped: "text-amber-700",
+    failed: "text-red-700",
+  }[providerConnectivityCheck.value.status];
+});
+
 async function loadCheckouts() {
   isLoading.value = true;
   error.value = null;
@@ -742,6 +782,22 @@ async function refundSelectedCheckout() {
       refundError instanceof Error ? refundError.message : "市場結帳退款失敗";
   } finally {
     isRefunding.value = false;
+  }
+}
+
+async function checkProviderConnectivity() {
+  isCheckingProvider.value = true;
+  error.value = null;
+  try {
+    providerConnectivityCheck.value =
+      await marketCheckoutsService.checkProviderConnectivity();
+  } catch (checkError) {
+    error.value =
+      checkError instanceof Error
+        ? checkError.message
+        : "Provider 連線檢查失敗";
+  } finally {
+    isCheckingProvider.value = false;
   }
 }
 
@@ -875,6 +931,16 @@ function providerKindLabel(
     internal_child_transactions: "內部付款服務",
     http_provider_split: "HTTP Provider Gateway",
   }[providerKind];
+}
+
+function providerConnectivityStatusLabel(
+  status: MarketCheckoutPaymentProviderConnectivityCheck["status"],
+) {
+  return {
+    passed: "連線通過",
+    skipped: "未檢查",
+    failed: "連線失敗",
+  }[status];
 }
 
 function childPaymentStatusLabel(status: "paid" | "failed" | "refunded") {

@@ -4,6 +4,7 @@ import {
   ChildTransactionMarketCheckoutPaymentProvider,
   HttpProviderSplitGateway,
   ProviderSplitMarketCheckoutPaymentProvider,
+  checkMarketCheckoutPaymentProviderConnectivity,
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
 } from "./MarketCheckoutPaymentProvider";
@@ -588,6 +589,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       readiness: "warning",
       providerKind: "internal_child_transactions",
       providerSplitUrlConfigured: false,
+      providerSplitHealthUrlConfigured: false,
       missingConfiguration: [],
     });
   });
@@ -602,6 +604,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       readiness: "not_configured",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured: false,
+      providerSplitHealthUrlConfigured: false,
       missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
     });
   });
@@ -612,6 +615,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
         MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
           "https://payments.example.test/market-split",
+        MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL:
+          "https://payments.example.test/health",
         MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
       } as Env),
     ).toMatchObject({
@@ -619,8 +624,91 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       readiness: "ready",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured: true,
+      providerSplitHealthUrlConfigured: true,
       providerSplitTokenConfigured: true,
       missingConfiguration: [],
+    });
+  });
+
+  it("skips provider connectivity checks outside provider split mode", async () => {
+    await expect(
+      checkMarketCheckoutPaymentProviderConnectivity({} as Env),
+    ).resolves.toMatchObject({
+      status: "skipped",
+      splitMode: "child_transactions",
+    });
+  });
+
+  it("skips provider connectivity checks when no health URL is configured", async () => {
+    await expect(
+      checkMarketCheckoutPaymentProviderConnectivity({
+        MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+        MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+          "https://payments.example.test/market-split",
+      } as Env),
+    ).resolves.toMatchObject({
+      status: "skipped",
+      splitMode: "provider_split",
+      target: "https://payments.example.test/market-split",
+    });
+  });
+
+  it("passes provider connectivity checks against the health URL", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            message: "Gateway ready",
+            capabilities: ["aggregate_authorization"],
+          }),
+        ),
+    );
+
+    await expect(
+      checkMarketCheckoutPaymentProviderConnectivity(
+        {
+          MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+            "https://payments.example.test/market-split",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL:
+            "https://payments.example.test/health",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+        } as Env,
+        fetcher as never,
+      ),
+    ).resolves.toMatchObject({
+      status: "passed",
+      splitMode: "provider_split",
+      target: "https://payments.example.test/health",
+      responseStatus: 200,
+      message: "Gateway ready",
+      capabilities: ["aggregate_authorization"],
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://payments.example.test/health",
+      {
+        method: "GET",
+        headers: { authorization: "Bearer split-token" },
+      },
+    );
+  });
+
+  it("fails provider connectivity checks on non-2xx health responses", async () => {
+    await expect(
+      checkMarketCheckoutPaymentProviderConnectivity(
+        {
+          MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+            "https://payments.example.test/market-split",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL:
+            "https://payments.example.test/health",
+        } as Env,
+        vi.fn(async () => new Response("down", { status: 503 })) as never,
+      ),
+    ).resolves.toMatchObject({
+      status: "failed",
+      splitMode: "provider_split",
+      responseStatus: 503,
     });
   });
 });

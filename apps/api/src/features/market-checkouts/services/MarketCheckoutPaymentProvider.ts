@@ -60,10 +60,21 @@ export interface MarketCheckoutPaymentProviderStatus {
   readiness: MarketCheckoutPaymentProviderReadiness;
   providerKind: "internal_child_transactions" | "http_provider_split";
   providerSplitUrlConfigured: boolean;
+  providerSplitHealthUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   capabilities: string[];
   missingConfiguration: string[];
   notes: string[];
+}
+
+export interface MarketCheckoutPaymentProviderConnectivityCheck {
+  status: "passed" | "skipped" | "failed";
+  checkedAt: string;
+  splitMode: MarketCheckoutSplitMode;
+  target?: string;
+  message: string;
+  responseStatus?: number;
+  capabilities?: string[];
 }
 
 export interface MarketCheckoutProviderSplitAllocation {
@@ -329,6 +340,9 @@ export function getMarketCheckoutPaymentProviderStatus(
   const providerSplitUrlConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL,
   );
+  const providerSplitHealthUrlConfigured = Boolean(
+    env.MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL,
+  );
   const providerSplitTokenConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
   );
@@ -339,11 +353,13 @@ export function getMarketCheckoutPaymentProviderStatus(
       readiness: providerSplitUrlConfigured ? "ready" : "not_configured",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured,
+      providerSplitHealthUrlConfigured,
       providerSplitTokenConfigured,
       capabilities: providerSplitUrlConfigured
         ? [
             "aggregate_authorization",
             "provider_allocations",
+            "health_check",
             "webhook_status_sync",
             "refunds",
           ]
@@ -356,6 +372,9 @@ export function getMarketCheckoutPaymentProviderStatus(
             providerSplitTokenConfigured
               ? "Provider split gateway is configured with bearer-token authentication."
               : "Provider split gateway is configured without bearer-token authentication.",
+            providerSplitHealthUrlConfigured
+              ? "Provider split health check URL is configured."
+              : "Provider split health check URL is not configured; connectivity is not verified.",
           ]
         : [
             "Provider split mode is enabled but no HTTP gateway URL is configured.",
@@ -368,6 +387,7 @@ export function getMarketCheckoutPaymentProviderStatus(
     readiness: "warning",
     providerKind: "internal_child_transactions",
     providerSplitUrlConfigured,
+    providerSplitHealthUrlConfigured,
     providerSplitTokenConfigured,
     capabilities: [
       "child_order_payments",
@@ -380,6 +400,109 @@ export function getMarketCheckoutPaymentProviderStatus(
       "Market checkouts are charged as child order transactions; configure provider_split for one aggregate provider authorization.",
     ],
   };
+}
+
+export async function checkMarketCheckoutPaymentProviderConnectivity(
+  env: Env,
+  fetcher: typeof fetch = fetch,
+): Promise<MarketCheckoutPaymentProviderConnectivityCheck> {
+  const status = getMarketCheckoutPaymentProviderStatus(env);
+  const checkedAt = new Date().toISOString();
+
+  if (status.splitMode !== "provider_split") {
+    return {
+      status: "skipped",
+      checkedAt,
+      splitMode: status.splitMode,
+      message:
+        "Provider split connectivity check is skipped because child transaction mode is active.",
+    };
+  }
+  if (!env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL) {
+    return {
+      status: "failed",
+      checkedAt,
+      splitMode: status.splitMode,
+      message: "Provider split gateway URL is not configured.",
+    };
+  }
+  if (!env.MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL) {
+    return {
+      status: "skipped",
+      checkedAt,
+      splitMode: status.splitMode,
+      target: env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL,
+      message:
+        "Provider split gateway URL is configured, but no health check URL is configured.",
+    };
+  }
+
+  const target = env.MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL;
+  try {
+    const response = await fetcher(target, {
+      method: "GET",
+      headers: {
+        ...(env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN
+          ? {
+              authorization: `Bearer ${env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN}`,
+            }
+          : {}),
+      },
+    });
+    if (!response.ok) {
+      return {
+        status: "failed",
+        checkedAt,
+        splitMode: status.splitMode,
+        target,
+        responseStatus: response.status,
+        message: `Provider split health check failed: ${response.status}`,
+      };
+    }
+
+    const payload = await parseProviderHealthPayload(response);
+    return {
+      status: "passed",
+      checkedAt,
+      splitMode: status.splitMode,
+      target,
+      responseStatus: response.status,
+      capabilities: payload.capabilities,
+      message: payload.message ?? "Provider split health check passed.",
+    };
+  } catch (error) {
+    return {
+      status: "failed",
+      checkedAt,
+      splitMode: status.splitMode,
+      target,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Provider split health check failed.",
+    };
+  }
+}
+
+async function parseProviderHealthPayload(response: Response) {
+  try {
+    const payload = (await response.json()) as {
+      message?: unknown;
+      capabilities?: unknown;
+    };
+    return {
+      message:
+        typeof payload.message === "string" ? payload.message : undefined,
+      capabilities: Array.isArray(payload.capabilities)
+        ? payload.capabilities.filter(
+            (capability): capability is string =>
+              typeof capability === "string",
+          )
+        : undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 
 function parseHttpGatewayResult(

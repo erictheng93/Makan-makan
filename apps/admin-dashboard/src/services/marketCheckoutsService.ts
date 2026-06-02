@@ -153,10 +153,21 @@ export interface MarketCheckoutPaymentProviderStatus {
   readiness: MarketCheckoutPaymentProviderReadiness;
   providerKind: "internal_child_transactions" | "http_provider_split";
   providerSplitUrlConfigured: boolean;
+  providerSplitHealthUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   capabilities: string[];
   missingConfiguration: string[];
   notes: string[];
+}
+
+export interface MarketCheckoutPaymentProviderConnectivityCheck {
+  status: "passed" | "skipped" | "failed";
+  checkedAt: string;
+  splitMode: MarketCheckoutSplitMode;
+  target?: string;
+  message: string;
+  responseStatus?: number;
+  capabilities?: string[];
 }
 
 export const marketCheckoutsService = {
@@ -239,6 +250,17 @@ export const marketCheckoutsService = {
       "/market-checkouts/admin/provider-status",
     );
     return unwrapApiPayload<MarketCheckoutPaymentProviderStatus>(response.data);
+  },
+
+  async checkProviderConnectivity(): Promise<MarketCheckoutPaymentProviderConnectivityCheck> {
+    const response =
+      await api.post<MarketCheckoutPaymentProviderConnectivityCheck>(
+        "/market-checkouts/admin/provider-status/check",
+        {},
+      );
+    return unwrapApiPayload<MarketCheckoutPaymentProviderConnectivityCheck>(
+      response.data,
+    );
   },
 
   async exportCsv(
