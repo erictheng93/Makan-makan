@@ -26,11 +26,14 @@ import {
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { OrdersService } from "../../orders/services/OrdersService";
 import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
-import { PaymentService } from "../../payments/services/PaymentService";
 import {
   refundPaymentTransaction,
   type RefundPaymentResult,
 } from "../../payments/services/refundPayment";
+import {
+  createMarketCheckoutPaymentProvider,
+  type MarketCheckoutSplitMode,
+} from "../services/MarketCheckoutPaymentProvider";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
@@ -173,7 +176,7 @@ interface MarketCheckoutParentPaymentSummary {
   paymentId: string;
   status: MarketCheckoutPaymentSummary["status"];
   provider: string;
-  splitMode: "child_transactions";
+  splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
   amountCents: number;
   paidAmountCents: number;
@@ -469,76 +472,20 @@ app.post("/:id/pay", async (c) => {
     throw badRequest("Market checkout has no child orders to pay");
   }
 
-  const paymentService = new PaymentService(c.env);
-  const childPaymentsByOrderId = new Map(
-    session.payment?.childPayments.map((payment) => [
-      payment.orderId,
-      payment,
-    ]) ?? [],
-  );
   const requestIdempotencyKey = c.req.header("Idempotency-Key");
-
-  for (const child of session.childOrders) {
-    if (childPaymentsByOrderId.get(child.orderId)?.status === "paid") {
-      continue;
-    }
-
-    const amount = Number(child.totalAmount ?? 0);
-    try {
-      const result = await paymentService.processPayment(
-        {
-          orderId: child.orderId,
-          paymentMode: "full",
-          amount,
-          expectedTotal: amount,
-          closeOrder: false,
-          method: parsed.data.method,
-          gateway: parsed.data.method,
-        },
-        {
-          country: parsed.data.country,
-          currency: parsed.data.currency,
-          idempotencyKey: requestIdempotencyKey
-            ? `${requestIdempotencyKey}:${child.orderId}`
-            : `market-checkout:${checkoutId}:${child.orderId}`,
-          customerInfo: parsed.data.customerInfo,
-          metadata: {
-            source: "market-checkouts",
-            marketCheckoutId: checkoutId,
-            marketSlug: session.market.slug,
-            restaurantId: child.restaurantId,
-          },
-        },
-      );
-
-      childPaymentsByOrderId.set(child.orderId, {
-        restaurantId: child.restaurantId,
-        restaurantName: child.restaurantName,
-        orderId: child.orderId,
-        orderNumber: child.orderNumber,
-        paymentId: result.data.paymentId,
-        status: "paid",
-        amount: result.data.authorizedTotal,
-        amountCents: Math.round(result.data.authorizedTotal * 100),
-      });
-    } catch (error) {
-      childPaymentsByOrderId.set(child.orderId, {
-        restaurantId: child.restaurantId,
-        restaurantName: child.restaurantName,
-        orderId: child.orderId,
-        orderNumber: child.orderNumber,
-        status: "failed",
-        amount,
-        amountCents: Math.round(amount * 100),
-        errorMessage:
-          error instanceof Error ? error.message : "Payment processing failed",
-      });
-    }
-  }
-
-  const childPayments = session.childOrders.map((child) =>
-    childPaymentsByOrderId.get(child.orderId),
-  );
+  const paymentProvider = createMarketCheckoutPaymentProvider(c.env);
+  const providerResult = await paymentProvider.process({
+    checkoutId,
+    marketSlug: session.market.slug,
+    childOrders: session.childOrders,
+    existingChildPayments: session.payment?.childPayments,
+    method: parsed.data.method,
+    country: parsed.data.country,
+    currency: parsed.data.currency,
+    customerInfo: parsed.data.customerInfo,
+    requestIdempotencyKey: requestIdempotencyKey ?? undefined,
+  });
+  const childPayments = providerResult.childPayments;
   const paidPayments = childPayments.filter(
     (payment) => payment?.status === "paid",
   );
@@ -581,8 +528,9 @@ app.post("/:id/pay", async (c) => {
       checkoutId,
       existing: session.payment?.parentPayment,
       payment: paymentBase,
-      provider: parsed.data.method,
-      idempotencyKey: requestIdempotencyKey ?? `market-checkout:${checkoutId}`,
+      provider: providerResult.provider,
+      splitMode: providerResult.splitMode,
+      idempotencyKey: providerResult.idempotencyKey,
       now,
     }),
     settlement: buildMarketCheckoutSettlement(session, paymentBase),
@@ -819,6 +767,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
           existing: session.payment.parentPayment,
           payment: paymentBase,
           provider: session.payment.parentPayment.provider,
+          splitMode: session.payment.parentPayment.splitMode,
           idempotencyKey: session.payment.parentPayment.idempotencyKey,
           now,
         })
@@ -1182,6 +1131,7 @@ function buildMarketCheckoutParentPayment(input: {
   existing?: MarketCheckoutParentPaymentSummary;
   payment: MarketCheckoutPaymentSummary;
   provider: string;
+  splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
   now: string;
 }): MarketCheckoutParentPaymentSummary {
@@ -1193,7 +1143,7 @@ function buildMarketCheckoutParentPayment(input: {
     paymentId: input.existing?.paymentId ?? `market_pay_${input.checkoutId}`,
     status: input.payment.status,
     provider: input.existing?.provider ?? input.provider,
-    splitMode: "child_transactions",
+    splitMode: input.existing?.splitMode ?? input.splitMode,
     idempotencyKey: input.existing?.idempotencyKey ?? input.idempotencyKey,
     amountCents: input.payment.totalAmountCents,
     paidAmountCents: input.payment.paidAmountCents,
