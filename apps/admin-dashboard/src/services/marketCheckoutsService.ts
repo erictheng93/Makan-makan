@@ -8,6 +8,8 @@ export type MarketCheckoutPaymentStatus =
   | "refunded"
   | "partial_refunded";
 
+export type MarketCheckoutSplitMode = "child_transactions" | "provider_split";
+
 export interface MarketCheckoutListItem {
   id: string;
   market: {
@@ -68,7 +70,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       paymentId: string;
       status: MarketCheckoutPaymentStatus;
       provider: string;
-      splitMode: "child_transactions";
+      splitMode: MarketCheckoutSplitMode;
       idempotencyKey: string;
       amountCents: number;
       paidAmountCents: number;

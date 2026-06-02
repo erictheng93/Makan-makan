@@ -337,6 +337,12 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("子交易 1");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("冪等鍵 market-pay-1");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("更新 06/01 18:05");
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "對帳分配",
     );

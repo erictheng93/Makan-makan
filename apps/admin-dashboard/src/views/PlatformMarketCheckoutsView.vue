@@ -358,6 +358,14 @@
             子交易
             {{ selectedCheckout.payment.parentPayment.childPaymentIds.length }}
           </span>
+          <span class="rounded-full bg-gray-100 px-2.5 py-1">
+            冪等鍵
+            {{ selectedCheckout.payment.parentPayment.idempotencyKey }}
+          </span>
+          <span class="rounded-full bg-gray-100 px-2.5 py-1">
+            更新
+            {{ formatDate(selectedCheckout.payment.parentPayment.updatedAt) }}
+          </span>
         </div>
       </div>
 
@@ -650,9 +658,10 @@ function paymentClass(status: MarketCheckoutPaymentStatus) {
   }[status];
 }
 
-function splitModeLabel(mode: "child_transactions") {
+function splitModeLabel(mode: "child_transactions" | "provider_split") {
   return {
     child_transactions: "子交易編排",
+    provider_split: "付款商拆帳",
   }[mode];
 }
 
@@ -680,6 +689,7 @@ function formatDate(value: string) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   }).format(date);
 }
 
