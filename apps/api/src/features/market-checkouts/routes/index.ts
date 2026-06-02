@@ -2021,6 +2021,9 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
     "restaurant_name",
     "order_id",
     "order_number",
+    "payment_provider",
+    "split_mode",
+    "provider_transaction_id",
     "account_code",
     "account_name",
     "direction",
@@ -2048,6 +2051,9 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
         allocation.restaurantName,
         allocation.orderId,
         allocation.orderNumber,
+        payment.parentPayment?.provider ?? payment.method,
+        payment.parentPayment?.splitMode ?? "",
+        payment.parentPayment?.providerTransactionId ?? "",
       ] satisfies Array<string | number>;
       const sourceId =
         payment.parentPayment?.paymentId ??
