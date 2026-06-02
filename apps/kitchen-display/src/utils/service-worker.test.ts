@@ -12,33 +12,57 @@ type ServiceWorkerHandler = (event: {
   waitUntil: (promise: Promise<unknown>) => void;
 }) => void;
 
+type MockWindowClient = {
+  url: string;
+  focus: () => Promise<{
+    url: string;
+    navigate: (url: string) => Promise<undefined>;
+  }>;
+};
+
+type ServiceWorkerGlobalMock = {
+  location: { origin: string };
+  registration: {
+    showNotification: ReturnType<typeof vi.fn>;
+  };
+  clients: {
+    claim: ReturnType<typeof vi.fn>;
+    matchAll: ReturnType<typeof vi.fn<() => Promise<MockWindowClient[]>>>;
+    openWindow: ReturnType<typeof vi.fn>;
+  };
+  skipWaiting: ReturnType<typeof vi.fn>;
+  addEventListener: (eventName: string, handler: ServiceWorkerHandler) => void;
+  self?: ServiceWorkerGlobalMock;
+};
+
 function loadKitchenServiceWorker() {
   const listeners = new Map<string, ServiceWorkerHandler>();
   const showNotification = vi.fn(async () => undefined);
   const skipWaiting = vi.fn(async () => undefined);
   const claim = vi.fn(async () => undefined);
-  const matchAll = vi.fn(async () => []);
+  const matchAll = vi.fn<() => Promise<MockWindowClient[]>>(async () => []);
   const openWindow = vi.fn(async () => undefined);
+  const serviceWorkerGlobal: ServiceWorkerGlobalMock = {
+    location: { origin: "https://kitchen.example.test" },
+    registration: {
+      showNotification,
+    },
+    clients: {
+      claim,
+      matchAll,
+      openWindow,
+    },
+    skipWaiting,
+    addEventListener: (eventName: string, handler: ServiceWorkerHandler) => {
+      listeners.set(eventName, handler);
+    },
+  };
+  serviceWorkerGlobal.self = serviceWorkerGlobal;
   const context = {
     URL,
     URLSearchParams,
-    self: {
-      location: { origin: "https://kitchen.example.test" },
-      registration: {
-        showNotification,
-      },
-      clients: {
-        claim,
-        matchAll,
-        openWindow,
-      },
-      skipWaiting,
-      addEventListener: (eventName: string, handler: ServiceWorkerHandler) => {
-        listeners.set(eventName, handler);
-      },
-    },
+    self: serviceWorkerGlobal,
   };
-  context.self.self = context.self;
 
   const source = readFileSync(resolve(__dirname, "../../public/sw.js"), "utf8");
   vm.runInNewContext(source, context);

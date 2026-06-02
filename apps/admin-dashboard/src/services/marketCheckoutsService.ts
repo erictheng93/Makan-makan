@@ -345,6 +345,7 @@ export const marketCheckoutsService = {
     input: {
       marketSlug?: string;
       paymentStatus?: MarketCheckoutPaymentStatus | "";
+      operationAlert?: MarketCheckoutOperationAlertType | "";
       dateFrom?: string;
       dateTo?: string;
     } = {},
