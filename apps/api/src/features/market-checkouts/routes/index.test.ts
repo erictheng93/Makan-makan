@@ -1593,6 +1593,33 @@ describe("market checkout routes", () => {
                   amountCents: 8000,
                 },
               ],
+              settlement: {
+                platformFeeRateBps: 350,
+                platformFeeCents: 700,
+                vendorNetAmountCents: 19300,
+                vendorAllocations: [
+                  {
+                    restaurantId: "restaurant-1",
+                    restaurantName: "雞排攤",
+                    orderId: 1001,
+                    orderNumber: "A001",
+                    grossAmountCents: 12000,
+                    refundedAmountCents: 0,
+                    platformFeeCents: 420,
+                    netAmountCents: 11580,
+                  },
+                  {
+                    restaurantId: "restaurant-2",
+                    restaurantName: "甜點攤",
+                    orderId: 1002,
+                    orderNumber: "A002",
+                    grossAmountCents: 8000,
+                    refundedAmountCents: 0,
+                    platformFeeCents: 280,
+                    netAmountCents: 7720,
+                  },
+                ],
+              },
             },
             createdAt: new Date("2026-06-01T10:00:00.000Z"),
             updatedAt: new Date("2026-06-01T10:05:00.000Z"),
@@ -1630,6 +1657,23 @@ describe("market checkout routes", () => {
                   amountCents: 12000,
                 },
               ],
+              settlement: {
+                platformFeeRateBps: 350,
+                platformFeeCents: 0,
+                vendorNetAmountCents: 0,
+                vendorAllocations: [
+                  {
+                    restaurantId: "restaurant-1",
+                    restaurantName: "雞排攤",
+                    orderId: 1003,
+                    orderNumber: "A003",
+                    grossAmountCents: 12000,
+                    refundedAmountCents: 12000,
+                    platformFeeCents: 0,
+                    netAmountCents: 0,
+                  },
+                ],
+              },
             },
             createdAt: new Date("2026-06-01T11:00:00.000Z"),
             updatedAt: new Date("2026-06-01T11:05:00.000Z"),
@@ -1714,6 +1758,8 @@ describe("market checkout routes", () => {
           paidAmountCents: number;
           refundedAmountCents: number;
           netPaidAmountCents: number;
+          platformFeeCents: number;
+          vendorNetAmountCents: number;
           refundedPaymentCount: number;
           failedPaymentCount: number;
         }>;
@@ -1729,6 +1775,8 @@ describe("market checkout routes", () => {
         paidAmountCents: 24000,
         refundedAmountCents: 12000,
         netPaidAmountCents: 12000,
+        platformFeeCents: 420,
+        vendorNetAmountCents: 11580,
         refundedPaymentCount: 1,
         failedPaymentCount: 0,
       },
@@ -1741,6 +1789,8 @@ describe("market checkout routes", () => {
         paidAmountCents: 8000,
         refundedAmountCents: 0,
         netPaidAmountCents: 8000,
+        platformFeeCents: 280,
+        vendorNetAmountCents: 7720,
         refundedPaymentCount: 0,
         failedPaymentCount: 0,
       },
@@ -1785,6 +1835,23 @@ describe("market checkout routes", () => {
                   amountCents: 12000,
                 },
               ],
+              settlement: {
+                platformFeeRateBps: 350,
+                platformFeeCents: 0,
+                vendorNetAmountCents: 0,
+                vendorAllocations: [
+                  {
+                    restaurantId: "restaurant-1",
+                    restaurantName: "雞排攤",
+                    orderId: 1001,
+                    orderNumber: "A001",
+                    grossAmountCents: 12000,
+                    refundedAmountCents: 12000,
+                    platformFeeCents: 0,
+                    netAmountCents: 0,
+                  },
+                ],
+              },
             },
             createdAt: new Date("2026-06-01T10:00:00.000Z"),
             updatedAt: new Date("2026-06-01T10:05:00.000Z"),
@@ -1846,7 +1913,9 @@ describe("market checkout routes", () => {
     expect(csv).toContain(
       "restaurant_id,restaurant_name,checkout_count,child_order_count",
     );
-    expect(csv).toContain("restaurant-1,雞排攤,1,1,12000,12000,12000,0,1,0");
+    expect(csv).toContain(
+      "restaurant-1,雞排攤,1,1,12000,12000,12000,0,0,0,1,0",
+    );
     expect(csv).not.toContain("restaurant-9");
   });
 

@@ -157,6 +157,8 @@
               <th class="whitespace-nowrap px-4 py-2 font-medium">已收</th>
               <th class="whitespace-nowrap px-4 py-2 font-medium">已退</th>
               <th class="whitespace-nowrap px-4 py-2 font-medium">淨收</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">平台費</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">淨撥款</th>
               <th class="whitespace-nowrap pl-4 py-2 font-medium">異常</th>
             </tr>
           </thead>
@@ -190,6 +192,14 @@
                 class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900"
               >
                 {{ formatCents(vendor.netPaidAmountCents) }}
+              </td>
+              <td class="whitespace-nowrap px-4 py-3 text-gray-700">
+                {{ formatCents(vendor.platformFeeCents) }}
+              </td>
+              <td
+                class="whitespace-nowrap px-4 py-3 font-semibold text-primary-700"
+              >
+                {{ formatCents(vendor.vendorNetAmountCents) }}
               </td>
               <td class="whitespace-nowrap pl-4 py-3 text-gray-600">
                 {{ vendor.failedPaymentCount }} 失敗 /

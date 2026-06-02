@@ -85,6 +85,8 @@ describe("PlatformMarketCheckoutsView", () => {
           paidAmountCents: 24000,
           refundedAmountCents: 8000,
           netPaidAmountCents: 16000,
+          platformFeeCents: 840,
+          vendorNetAmountCents: 15160,
           refundedPaymentCount: 1,
           failedPaymentCount: 0,
         },
@@ -257,6 +259,18 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
       "$160",
+    );
+    expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
+      "平台費",
+    );
+    expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
+      "淨撥款",
+    );
+    expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
+      "$8",
+    );
+    expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
+      "$152",
     );
 
     await wrapper

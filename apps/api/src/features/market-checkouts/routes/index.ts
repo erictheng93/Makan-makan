@@ -149,6 +149,8 @@ interface MarketCheckoutVendorSettlement {
   paidAmountCents: number;
   refundedAmountCents: number;
   netPaidAmountCents: number;
+  platformFeeCents: number;
+  vendorNetAmountCents: number;
   refundedPaymentCount: number;
   failedPaymentCount: number;
 }
@@ -1638,10 +1640,18 @@ function buildMarketCheckoutVendorSettlements(
   >();
 
   for (const session of sessions) {
+    const allocationsByOrderId = new Map(
+      session.payment?.settlement?.vendorAllocations.map((allocation) => [
+        allocation.orderId,
+        allocation,
+      ]) ?? [],
+    );
+
     for (const child of session.childOrders) {
       const payment = session.payment?.childPayments.find(
         (childPayment) => childPayment.orderId === child.orderId,
       );
+      const allocation = allocationsByOrderId.get(child.orderId);
       const settlement = vendors.get(child.restaurantId) ?? {
         restaurantId: child.restaurantId,
         restaurantName: child.restaurantName,
@@ -1651,6 +1661,8 @@ function buildMarketCheckoutVendorSettlements(
         paidAmountCents: 0,
         refundedAmountCents: 0,
         netPaidAmountCents: 0,
+        platformFeeCents: 0,
+        vendorNetAmountCents: 0,
         refundedPaymentCount: 0,
         failedPaymentCount: 0,
         checkoutIds: new Set<string>(),
@@ -1659,11 +1671,20 @@ function buildMarketCheckoutVendorSettlements(
       settlement.checkoutIds.add(session.id);
       settlement.childOrderCount += 1;
       settlement.subtotalCents += orderChildTotalCents(child);
-      if (payment?.status === "paid" || payment?.status === "refunded") {
+
+      if (allocation) {
+        settlement.paidAmountCents += allocation.grossAmountCents;
+        settlement.refundedAmountCents += allocation.refundedAmountCents;
+        settlement.platformFeeCents += allocation.platformFeeCents;
+        settlement.vendorNetAmountCents += allocation.netAmountCents;
+      } else if (payment?.status === "paid" || payment?.status === "refunded") {
         settlement.paidAmountCents += payment.amountCents;
+        if (payment.status === "refunded") {
+          settlement.refundedAmountCents += payment.amountCents;
+        }
       }
+
       if (payment?.status === "refunded") {
-        settlement.refundedAmountCents += payment.amountCents;
         settlement.refundedPaymentCount += 1;
       }
       if (payment?.status === "failed") {
@@ -1678,6 +1699,10 @@ function buildMarketCheckoutVendorSettlements(
       ...vendor,
       checkoutCount: checkoutIds.size,
       netPaidAmountCents: vendor.paidAmountCents - vendor.refundedAmountCents,
+      vendorNetAmountCents:
+        vendor.platformFeeCents > 0 || vendor.vendorNetAmountCents > 0
+          ? vendor.vendorNetAmountCents
+          : vendor.paidAmountCents - vendor.refundedAmountCents,
     }))
     .sort((a, b) => b.subtotalCents - a.subtotalCents);
 }
@@ -1733,6 +1758,8 @@ function buildMarketCheckoutVendorSettlementCsv(
     "paid_amount_cents",
     "refunded_amount_cents",
     "net_paid_amount_cents",
+    "platform_fee_cents",
+    "vendor_net_amount_cents",
     "refunded_payment_count",
     "failed_payment_count",
   ];
@@ -1745,6 +1772,8 @@ function buildMarketCheckoutVendorSettlementCsv(
     vendor.paidAmountCents,
     vendor.refundedAmountCents,
     vendor.netPaidAmountCents,
+    vendor.platformFeeCents,
+    vendor.vendorNetAmountCents,
     vendor.refundedPaymentCount,
     vendor.failedPaymentCount,
   ]);

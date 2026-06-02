@@ -134,6 +134,8 @@ export interface MarketCheckoutVendorSettlement {
   paidAmountCents: number;
   refundedAmountCents: number;
   netPaidAmountCents: number;
+  platformFeeCents: number;
+  vendorNetAmountCents: number;
   refundedPaymentCount: number;
   failedPaymentCount: number;
 }
