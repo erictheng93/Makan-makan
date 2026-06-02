@@ -2,7 +2,7 @@ import type { Env } from "../../../types/env";
 import { PaymentService } from "../../payments/services/PaymentService";
 
 export type MarketCheckoutChildPaymentStatus = "paid" | "failed" | "refunded";
-export type MarketCheckoutSplitMode = "child_transactions";
+export type MarketCheckoutSplitMode = "child_transactions" | "provider_split";
 
 export interface MarketCheckoutPaymentChildOrder {
   restaurantId: string;
@@ -42,12 +42,51 @@ export interface MarketCheckoutPaymentProviderResult {
   splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
   childPayments: MarketCheckoutChildPayment[];
+  providerTransactionId?: string;
 }
 
 export interface MarketCheckoutPaymentProvider {
   process(
     input: MarketCheckoutPaymentProviderInput,
   ): Promise<MarketCheckoutPaymentProviderResult>;
+}
+
+export interface MarketCheckoutProviderSplitAllocation {
+  restaurantId: string;
+  restaurantName: string;
+  orderId: number;
+  orderNumber: string;
+  amountCents: number;
+}
+
+export interface MarketCheckoutProviderSplitGatewayInput {
+  checkoutId: string;
+  marketSlug: string;
+  method: string;
+  country: "TW" | "MY" | "VN";
+  currency: "TWD" | "MYR" | "VND";
+  idempotencyKey: string;
+  amountCents: number;
+  customerInfo?: unknown;
+  allocations: MarketCheckoutProviderSplitAllocation[];
+}
+
+export interface MarketCheckoutProviderSplitGatewayResult {
+  provider: string;
+  providerTransactionId: string;
+  authorizedAmountCents: number;
+  allocations: Array<
+    Pick<MarketCheckoutProviderSplitAllocation, "orderId"> & {
+      paymentId?: string;
+      amountCents: number;
+    }
+  >;
+}
+
+export interface MarketCheckoutProviderSplitGateway {
+  process(
+    input: MarketCheckoutProviderSplitGatewayInput,
+  ): Promise<MarketCheckoutProviderSplitGatewayResult>;
 }
 
 export class ChildTransactionMarketCheckoutPaymentProvider implements MarketCheckoutPaymentProvider {
@@ -140,8 +179,91 @@ export class ChildTransactionMarketCheckoutPaymentProvider implements MarketChec
   }
 }
 
+export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckoutPaymentProvider {
+  constructor(private readonly gateway: MarketCheckoutProviderSplitGateway) {}
+
+  async process(
+    input: MarketCheckoutPaymentProviderInput,
+  ): Promise<MarketCheckoutPaymentProviderResult> {
+    const parentIdempotencyKey =
+      input.requestIdempotencyKey ?? `market-checkout:${input.checkoutId}`;
+    const allocations = input.childOrders.map((child) => ({
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      amountCents: Math.round(Number(child.totalAmount ?? 0) * 100),
+    }));
+    const amountCents = allocations.reduce(
+      (sum, allocation) => sum + allocation.amountCents,
+      0,
+    );
+
+    const result = await this.gateway.process({
+      checkoutId: input.checkoutId,
+      marketSlug: input.marketSlug,
+      method: input.method,
+      country: input.country,
+      currency: input.currency,
+      idempotencyKey: parentIdempotencyKey,
+      amountCents,
+      customerInfo: input.customerInfo,
+      allocations,
+    });
+    if (result.authorizedAmountCents !== amountCents) {
+      throw new Error(
+        "Provider split authorized amount does not match checkout total",
+      );
+    }
+
+    const allocationByOrderId = new Map(
+      result.allocations.map((allocation) => [allocation.orderId, allocation]),
+    );
+
+    return {
+      provider: result.provider,
+      splitMode: "provider_split",
+      idempotencyKey: parentIdempotencyKey,
+      providerTransactionId: result.providerTransactionId,
+      childPayments: input.childOrders.map((child) => {
+        const allocation = allocationByOrderId.get(child.orderId);
+        const amountCents =
+          allocation?.amountCents ??
+          Math.round(Number(child.totalAmount ?? 0) * 100);
+
+        return {
+          restaurantId: child.restaurantId,
+          restaurantName: child.restaurantName,
+          orderId: child.orderId,
+          orderNumber: child.orderNumber,
+          paymentId:
+            allocation?.paymentId ??
+            `${result.providerTransactionId}:${child.orderId}`,
+          status: "paid" as const,
+          amount: amountCents / 100,
+          amountCents,
+        };
+      }),
+    };
+  }
+}
+
+class UnconfiguredProviderSplitGateway implements MarketCheckoutProviderSplitGateway {
+  async process(): Promise<MarketCheckoutProviderSplitGatewayResult> {
+    throw new Error("Market checkout provider split gateway is not configured");
+  }
+}
+
 export function createMarketCheckoutPaymentProvider(
   env: Env,
 ): MarketCheckoutPaymentProvider {
+  const splitMode = (env as { MARKET_CHECKOUT_SPLIT_MODE?: string })
+    .MARKET_CHECKOUT_SPLIT_MODE;
+  if (splitMode === "provider_split") {
+    return new ProviderSplitMarketCheckoutPaymentProvider(
+      new UnconfiguredProviderSplitGateway(),
+    );
+  }
+
   return new ChildTransactionMarketCheckoutPaymentProvider(env);
 }

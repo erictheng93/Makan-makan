@@ -1079,6 +1079,7 @@ describe("market checkout routes", () => {
       "TWD",
       "TW",
       JSON.stringify(["pay-1001", "pay-1002"]),
+      null,
       expect.stringContaining('"source":"market-checkouts"'),
       expect.any(Number),
       expect.any(Number),

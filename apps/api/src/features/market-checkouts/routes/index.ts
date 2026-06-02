@@ -178,6 +178,7 @@ interface MarketCheckoutParentPaymentSummary {
   provider: string;
   splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
+  providerTransactionId?: string;
   amountCents: number;
   paidAmountCents: number;
   refundedAmountCents: number;
@@ -531,6 +532,7 @@ app.post("/:id/pay", async (c) => {
       provider: providerResult.provider,
       splitMode: providerResult.splitMode,
       idempotencyKey: providerResult.idempotencyKey,
+      providerTransactionId: providerResult.providerTransactionId,
       now,
     }),
     settlement: buildMarketCheckoutSettlement(session, paymentBase),
@@ -769,6 +771,8 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
           provider: session.payment.parentPayment.provider,
           splitMode: session.payment.parentPayment.splitMode,
           idempotencyKey: session.payment.parentPayment.idempotencyKey,
+          providerTransactionId:
+            session.payment.parentPayment.providerTransactionId,
           now,
         })
       : undefined,
@@ -1056,8 +1060,8 @@ async function hydrateMarketCheckoutParentPayment(
   const row = await env.DB.prepare(
     `SELECT payment_id, provider, split_mode, idempotency_key, status,
             amount_cents, paid_amount_cents, refunded_amount_cents,
-            currency, country_code, child_payment_ids, created_at_ms,
-            updated_at_ms
+            currency, country_code, child_payment_ids,
+            provider_transaction_id, created_at_ms, updated_at_ms
        FROM market_checkout_payments
       WHERE checkout_id = ?
       ORDER BY updated_at_ms DESC
@@ -1076,6 +1080,7 @@ async function hydrateMarketCheckoutParentPayment(
       currency: MarketCheckoutPaymentSummary["currency"] | null;
       country_code: MarketCheckoutPaymentSummary["country"] | null;
       child_payment_ids: string | null;
+      provider_transaction_id: string | null;
       created_at_ms: number;
       updated_at_ms: number;
     }>();
@@ -1089,6 +1094,7 @@ async function hydrateMarketCheckoutParentPayment(
     provider: row.provider,
     splitMode: row.split_mode,
     idempotencyKey: row.idempotency_key ?? `market-checkout:${session.id}`,
+    providerTransactionId: row.provider_transaction_id ?? undefined,
     amountCents: row.amount_cents,
     paidAmountCents: row.paid_amount_cents,
     refundedAmountCents: row.refunded_amount_cents,
@@ -1219,6 +1225,7 @@ function buildMarketCheckoutParentPayment(input: {
   provider: string;
   splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
+  providerTransactionId?: string;
   now: string;
 }): MarketCheckoutParentPaymentSummary {
   const childPaymentIds = input.payment.childPayments
@@ -1231,6 +1238,8 @@ function buildMarketCheckoutParentPayment(input: {
     provider: input.existing?.provider ?? input.provider,
     splitMode: input.existing?.splitMode ?? input.splitMode,
     idempotencyKey: input.existing?.idempotencyKey ?? input.idempotencyKey,
+    providerTransactionId:
+      input.existing?.providerTransactionId ?? input.providerTransactionId,
     amountCents: input.payment.totalAmountCents,
     paidAmountCents: input.payment.paidAmountCents,
     refundedAmountCents: input.payment.refundedAmountCents ?? 0,
@@ -1337,9 +1346,9 @@ async function upsertMarketCheckoutParentPayment(
         payment_id, checkout_id, market_id, provider, split_mode,
         idempotency_key, status, amount_cents, paid_amount_cents,
         refunded_amount_cents, currency, country_code, child_payment_ids,
-        provider_payload, created_at_ms, updated_at_ms, completed_at_ms,
-        refunded_at_ms, failed_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        provider_transaction_id, provider_payload, created_at_ms,
+        updated_at_ms, completed_at_ms, refunded_at_ms, failed_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(payment_id) DO UPDATE SET
         checkout_id = excluded.checkout_id,
         market_id = excluded.market_id,
@@ -1353,6 +1362,7 @@ async function upsertMarketCheckoutParentPayment(
         currency = excluded.currency,
         country_code = excluded.country_code,
         child_payment_ids = excluded.child_payment_ids,
+        provider_transaction_id = excluded.provider_transaction_id,
         provider_payload = excluded.provider_payload,
         updated_at_ms = excluded.updated_at_ms,
         completed_at_ms = COALESCE(excluded.completed_at_ms, market_checkout_payments.completed_at_ms),
@@ -1373,6 +1383,7 @@ async function upsertMarketCheckoutParentPayment(
       session.payment.currency,
       session.payment.country,
       JSON.stringify(parentPayment.childPaymentIds),
+      parentPayment.providerTransactionId ?? null,
       JSON.stringify({
         source: "market-checkouts",
         splitMode: parentPayment.splitMode,

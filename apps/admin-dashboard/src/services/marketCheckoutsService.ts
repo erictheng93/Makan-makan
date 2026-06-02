@@ -72,6 +72,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       provider: string;
       splitMode: MarketCheckoutSplitMode;
       idempotencyKey: string;
+      providerTransactionId?: string;
       amountCents: number;
       paidAmountCents: number;
       refundedAmountCents: number;
