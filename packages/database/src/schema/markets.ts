@@ -46,6 +46,7 @@ export const markets = sqliteTable(
     logoUrl: text("logo_url"),
     imageUrls: text("image_urls", { mode: "json" }).$type<string[]>(),
     tags: text("tags", { mode: "json" }).$type<string[]>(),
+    platformFeeRateBps: integer("platform_fee_rate_bps").notNull().default(0),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
@@ -144,6 +145,7 @@ export const marketCheckoutSessions = sqliteTable(
       .references(() => markets.id, { onDelete: "restrict" }),
     marketSlug: text("market_slug").notNull(),
     marketName: text("market_name").notNull(),
+    platformFeeRateBps: integer("platform_fee_rate_bps").notNull().default(0),
     status: text("status").notNull().default("submitted"),
     paymentStatus: text("payment_status").notNull().default("pending"),
     phoneLastDigits: text("phone_last_digits"),

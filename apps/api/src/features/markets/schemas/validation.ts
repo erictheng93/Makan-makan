@@ -125,6 +125,7 @@ export const createMarketSchema = z.object({
   logoUrl: urlSchema.nullable().optional(),
   imageUrls: z.array(urlSchema).nullable().optional(),
   tags: z.array(z.string().min(1).max(40)).nullable().optional(),
+  platformFeeRateBps: z.number().int().min(0).max(10000).optional(),
   isActive: z.boolean().optional(),
 });
 

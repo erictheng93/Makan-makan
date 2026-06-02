@@ -10,8 +10,8 @@ describe("market import parsing", () => {
     const result = parseMarketImport(
       "csv",
       [
-        "slug,name,type,city,district,address,latitude,longitude,tags,isActive",
-        '"fengjia","逢甲夜市","night_market","台中市","西屯區","文華路",24.176,120.646,"夜市,小吃",true',
+        "slug,name,type,city,district,address,latitude,longitude,tags,platformFeeRateBps,isActive",
+        '"fengjia","逢甲夜市","night_market","台中市","西屯區","文華路",24.176,120.646,"夜市,小吃",350,true',
       ].join("\n"),
     );
 
@@ -27,6 +27,7 @@ describe("market import parsing", () => {
         latitude: 24.176,
         longitude: 120.646,
         tags: ["夜市", "小吃"],
+        platformFeeRateBps: 350,
         isActive: true,
       },
     ]);
@@ -62,6 +63,21 @@ describe("market import parsing", () => {
     expect(result.markets).toEqual([]);
     expect(result.errors).toEqual([
       "第 3 列：slug 與第 2 列重複，請確認每個市場 slug 唯一。",
+    ]);
+  });
+
+  it("rejects invalid market platform fee rates before import", () => {
+    const result = parseMarketImport(
+      "csv",
+      [
+        "slug,name,type,city,district,address,latitude,longitude,platformFeeRateBps",
+        '"fengjia","逢甲夜市","night_market","台中市","西屯區","文華路",24.176,120.646,10001',
+      ].join("\n"),
+    );
+
+    expect(result.markets).toEqual([]);
+    expect(result.errors).toEqual([
+      "第 2 列：platformFeeRateBps 必須是 0 到 10000 之間的整數。",
     ]);
   });
 

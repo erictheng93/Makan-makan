@@ -38,6 +38,7 @@ async function seedMarket(testApp: RealIntegrationTestApp) {
       openingHours: {
         friday: { open: "17:00", close: "23:30" },
       },
+      platformFeeRateBps: 350,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -65,6 +66,7 @@ describe("Market checkouts API - real integration", () => {
 
   it("persists checkout sessions, survives KV expiry, and updates payment status", async () => {
     const market = await seedMarket(testApp);
+    expect(market.platformFeeRateBps).toBe(350);
     const vendorA = await seed.restaurant({ name: "雞排攤" });
     const vendorB = await seed.restaurant({ name: "甜點攤" });
     const [itemA, itemB] = await Promise.all([
@@ -121,6 +123,7 @@ describe("Market checkouts API - real integration", () => {
     const createJson: any = await createRes.json();
     const checkoutId = createJson.data.checkout.id as string;
     expect(createJson.data.checkout.childOrders).toHaveLength(2);
+    expect(createJson.data.checkout.market.platformFeeRateBps).toBe(350);
 
     const persistedSession = await testApp.testDb.drizzle
       .select()
@@ -132,6 +135,7 @@ describe("Market checkouts API - real integration", () => {
       marketId: market.id,
       marketSlug: market.slug,
       marketName: "持久化測試夜市",
+      platformFeeRateBps: 350,
       paymentStatus: "pending",
       subtotalCents: 20000,
       childOrderCount: 2,
@@ -167,7 +171,7 @@ describe("Market checkouts API - real integration", () => {
     const publicJson: any = await publicRes.json();
     expect(publicJson.data.checkout).toMatchObject({
       id: checkoutId,
-      market: { slug: market.slug },
+      market: { slug: market.slug, platformFeeRateBps: 350 },
       subtotal: 20000,
     });
     expect(publicJson.data.checkout.childOrders).toHaveLength(2);
@@ -195,6 +199,11 @@ describe("Market checkouts API - real integration", () => {
       status: "paid",
       totalAmount: 200,
       paidAmount: 200,
+      settlement: {
+        platformFeeRateBps: 350,
+        platformFeeCents: 700,
+        vendorNetAmountCents: 19300,
+      },
     });
 
     const admin = await seed.user({ role: 0 });

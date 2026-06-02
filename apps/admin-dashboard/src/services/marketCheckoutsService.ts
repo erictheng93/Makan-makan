@@ -75,6 +75,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
         orderNumber: string;
         grossAmountCents: number;
         refundedAmountCents: number;
+        platformFeeCents: number;
         netAmountCents: number;
       }>;
     };

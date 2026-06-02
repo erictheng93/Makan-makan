@@ -22,6 +22,7 @@ const csvFields = [
   "logoUrl",
   "imageUrls",
   "tags",
+  "platformFeeRateBps",
   "isActive",
 ] as const;
 
@@ -54,6 +55,7 @@ export function buildMarketImportTemplate() {
       "",
       "",
       '"夜市,小吃"',
+      "300",
       "true",
     ].join(","),
   ].join("\n");
@@ -188,7 +190,11 @@ function csvRowToMarket(row: CsvRow): CreateMarketInput {
     const value = normalizeCell(row[field]);
     if (value === undefined) continue;
 
-    if (field === "latitude" || field === "longitude") {
+    if (
+      field === "latitude" ||
+      field === "longitude" ||
+      field === "platformFeeRateBps"
+    ) {
       market[field] = Number(value);
     } else if (field === "isActive") {
       market.isActive = parseBoolean(value);
@@ -263,6 +269,14 @@ function validateMarketImportRow(market: CreateMarketInput, line: number) {
   if (!isCoordinate(market.longitude, -180, 180)) {
     errors.push(`第 ${line} 列：longitude 必須是 -180 到 180 之間的數字。`);
   }
+  if (
+    market.platformFeeRateBps !== undefined &&
+    !isIntegerInRange(market.platformFeeRateBps, 0, 10000)
+  ) {
+    errors.push(
+      `第 ${line} 列：platformFeeRateBps 必須是 0 到 10000 之間的整數。`,
+    );
+  }
 
   return errors;
 }
@@ -291,6 +305,15 @@ function isCoordinate(value: unknown, min: number, max: number) {
   return (
     typeof value === "number" &&
     Number.isFinite(value) &&
+    value >= min &&
+    value <= max
+  );
+}
+
+function isIntegerInRange(value: unknown, min: number, max: number) {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
     value >= min &&
     value <= max
   );

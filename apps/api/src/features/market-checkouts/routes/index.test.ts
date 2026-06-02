@@ -129,6 +129,7 @@ describe("market checkout routes", () => {
           id: "market-1",
           slug: "fengjia",
           name: "逢甲夜市",
+          platformFeeRateBps: 350,
           isActive: true,
         },
       },
@@ -205,7 +206,11 @@ describe("market checkout routes", () => {
       };
     };
     expect(json.data.checkout).toMatchObject({
-      market: { slug: "fengjia", name: "逢甲夜市" },
+      market: {
+        slug: "fengjia",
+        name: "逢甲夜市",
+        platformFeeRateBps: 350,
+      },
       status: "submitted",
       subtotal: 20000,
     });
@@ -245,6 +250,7 @@ describe("market checkout routes", () => {
       marketId: "market-1",
       marketSlug: "fengjia",
       marketName: "逢甲夜市",
+      platformFeeRateBps: 350,
       status: "submitted",
       paymentStatus: "pending",
       phoneLastDigits: "789",
@@ -279,7 +285,12 @@ describe("market checkout routes", () => {
       "market_checkout:checkout-1",
       JSON.stringify({
         id: "checkout-1",
-        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
         status: "submitted",
         childOrders: [
           {
@@ -465,7 +476,12 @@ describe("market checkout routes", () => {
       "market_checkout:checkout-1",
       JSON.stringify({
         id: "checkout-1",
-        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
         status: "submitted",
         phoneLastDigits: "789",
         childOrders: [
@@ -509,7 +525,12 @@ describe("market checkout routes", () => {
       "market_checkout:checkout-1",
       JSON.stringify({
         id: "checkout-1",
-        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
         status: "submitted",
         phoneLastDigits: "789",
         childOrders: [
@@ -599,7 +620,12 @@ describe("market checkout routes", () => {
       "market_checkout:checkout-1",
       JSON.stringify({
         id: "checkout-1",
-        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
         status: "submitted",
         childOrders: [
           {
@@ -710,6 +736,7 @@ describe("market checkout routes", () => {
               restaurantId: string;
               grossAmountCents: number;
               refundedAmountCents: number;
+              platformFeeCents: number;
               netAmountCents: number;
             }>;
           };
@@ -723,21 +750,23 @@ describe("market checkout routes", () => {
       totalAmount: 200,
       childPayments: [{ paymentId: "pay-1001" }, { paymentId: "pay-1002" }],
       settlement: {
-        platformFeeRateBps: 0,
-        platformFeeCents: 0,
-        vendorNetAmountCents: 20000,
+        platformFeeRateBps: 350,
+        platformFeeCents: 700,
+        vendorNetAmountCents: 19300,
         vendorAllocations: [
           {
             restaurantId: "restaurant-1",
             grossAmountCents: 12000,
             refundedAmountCents: 0,
-            netAmountCents: 12000,
+            platformFeeCents: 420,
+            netAmountCents: 11580,
           },
           {
             restaurantId: "restaurant-2",
             grossAmountCents: 8000,
             refundedAmountCents: 0,
-            netAmountCents: 8000,
+            platformFeeCents: 280,
+            netAmountCents: 7720,
           },
         ],
       },
@@ -767,7 +796,12 @@ describe("market checkout routes", () => {
       "market_checkout:checkout-1",
       JSON.stringify({
         id: "checkout-1",
-        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
         status: "submitted",
         childOrders: [],
         payment: {
@@ -833,7 +867,12 @@ describe("market checkout routes", () => {
       "market_checkout:checkout-1",
       JSON.stringify({
         id: "checkout-1",
-        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
         status: "submitted",
         childOrders: [
           {
@@ -906,11 +945,13 @@ describe("market checkout routes", () => {
           status: string;
           refundedAmount: number;
           settlement: {
+            platformFeeRateBps: number;
             vendorNetAmountCents: number;
             vendorAllocations: Array<{
               restaurantId: string;
               grossAmountCents: number;
               refundedAmountCents: number;
+              platformFeeCents: number;
               netAmountCents: number;
             }>;
           };
@@ -923,18 +964,21 @@ describe("market checkout routes", () => {
       status: "refunded",
       refundedAmount: 200,
       settlement: {
+        platformFeeRateBps: 350,
         vendorNetAmountCents: 0,
         vendorAllocations: [
           {
             restaurantId: "restaurant-1",
             grossAmountCents: 12000,
             refundedAmountCents: 12000,
+            platformFeeCents: 0,
             netAmountCents: 0,
           },
           {
             restaurantId: "restaurant-2",
             grossAmountCents: 8000,
             refundedAmountCents: 8000,
+            platformFeeCents: 0,
             netAmountCents: 0,
           },
         ],

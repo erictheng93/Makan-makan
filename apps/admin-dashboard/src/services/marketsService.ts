@@ -54,6 +54,7 @@ export interface MarketListItem {
   logoUrl?: string | null;
   imageUrls?: string[] | null;
   tags?: string[] | null;
+  platformFeeRateBps?: number;
   vendorCount?: number;
   catalogCoverage?: MarketCatalogCoverage;
   publicReadiness?: MarketPublicReadiness;
@@ -150,6 +151,7 @@ export interface CreateMarketInput {
   logoUrl?: string | null;
   imageUrls?: string[] | null;
   tags?: string[] | null;
+  platformFeeRateBps?: number;
   isActive?: boolean;
 }
 

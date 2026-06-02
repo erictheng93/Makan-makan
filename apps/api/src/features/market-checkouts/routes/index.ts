@@ -79,6 +79,7 @@ interface MarketCheckoutSession {
     id: string;
     slug: string;
     name: string;
+    platformFeeRateBps?: number;
   };
   status: "submitted";
   phoneLastDigits?: string;
@@ -127,6 +128,7 @@ interface MarketCheckoutSettlementSummary {
     orderNumber: string;
     grossAmountCents: number;
     refundedAmountCents: number;
+    platformFeeCents: number;
     netAmountCents: number;
   }>;
 }
@@ -375,6 +377,7 @@ app.post("/", async (c) => {
       id: market.id,
       slug: market.slug,
       name: market.name,
+      platformFeeRateBps: market.platformFeeRateBps,
     },
     status: "submitted",
     phoneLastDigits: data.phoneLastDigits,
@@ -1097,6 +1100,9 @@ function buildMarketCheckoutSettlement(
       childPayment,
     ]),
   );
+  const platformFeeRateBps = clampPlatformFeeRateBps(
+    session.market.platformFeeRateBps,
+  );
   const vendorAllocations = session.childOrders.map((child) => {
     const childPayment = paymentByOrderId.get(child.orderId);
     const grossAmountCents =
@@ -1105,6 +1111,10 @@ function buildMarketCheckoutSettlement(
         : 0;
     const refundedAmountCents =
       childPayment?.status === "refunded" ? childPayment.amountCents : 0;
+    const netBeforeFeeCents = grossAmountCents - refundedAmountCents;
+    const platformFeeCents = Math.round(
+      (netBeforeFeeCents * platformFeeRateBps) / 10000,
+    );
 
     return {
       restaurantId: child.restaurantId,
@@ -1113,20 +1123,30 @@ function buildMarketCheckoutSettlement(
       orderNumber: child.orderNumber,
       grossAmountCents,
       refundedAmountCents,
-      netAmountCents: grossAmountCents - refundedAmountCents,
+      platformFeeCents,
+      netAmountCents: netBeforeFeeCents - platformFeeCents,
     };
   });
+  const platformFeeCents = vendorAllocations.reduce(
+    (sum, allocation) => sum + allocation.platformFeeCents,
+    0,
+  );
   const vendorNetAmountCents = vendorAllocations.reduce(
     (sum, allocation) => sum + allocation.netAmountCents,
     0,
   );
 
   return {
-    platformFeeRateBps: 0,
-    platformFeeCents: 0,
+    platformFeeRateBps,
+    platformFeeCents,
     vendorNetAmountCents,
     vendorAllocations,
   };
+}
+
+function clampPlatformFeeRateBps(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.min(10000, Math.max(0, Math.trunc(value)));
 }
 
 async function persistMarketCheckoutSession(
@@ -1141,6 +1161,9 @@ async function persistMarketCheckoutSession(
     marketId: session.market.id,
     marketSlug: session.market.slug,
     marketName: session.market.name,
+    platformFeeRateBps: clampPlatformFeeRateBps(
+      session.market.platformFeeRateBps,
+    ),
     status: session.status,
     paymentStatus: session.payment?.status ?? "pending",
     phoneLastDigits: session.phoneLastDigits ?? null,
@@ -1202,6 +1225,7 @@ async function readPersistedMarketCheckoutIndex(
       id: row.marketId,
       slug: row.marketSlug,
       name: row.marketName,
+      platformFeeRateBps: row.platformFeeRateBps,
     },
     status: row.status as MarketCheckoutSession["status"],
     paymentStatus:
@@ -1230,6 +1254,7 @@ async function readPersistedMarketCheckoutSummaryItems(
       id: row.marketId,
       slug: row.marketSlug,
       name: row.marketName,
+      platformFeeRateBps: row.platformFeeRateBps,
     },
     status: row.status as MarketCheckoutSession["status"],
     paymentStatus:
@@ -1276,6 +1301,7 @@ async function readPersistedMarketCheckoutOpsSessions(
       id: row.marketId,
       slug: row.marketSlug,
       name: row.marketName,
+      platformFeeRateBps: row.platformFeeRateBps,
     },
     status: row.status as MarketCheckoutSession["status"],
     phoneLastDigits: row.phoneLastDigits ?? undefined,
@@ -1516,6 +1542,7 @@ async function readPersistedMarketCheckoutSession(
       id: row.marketId,
       slug: row.marketSlug,
       name: row.marketName,
+      platformFeeRateBps: row.platformFeeRateBps,
     },
     status: row.status as MarketCheckoutSession["status"],
     phoneLastDigits: row.phoneLastDigits ?? undefined,

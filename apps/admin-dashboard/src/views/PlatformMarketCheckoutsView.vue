@@ -355,6 +355,7 @@
                 <th class="whitespace-nowrap px-4 py-2 font-medium">訂單</th>
                 <th class="whitespace-nowrap px-4 py-2 font-medium">已收</th>
                 <th class="whitespace-nowrap px-4 py-2 font-medium">已退</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">平台費</th>
                 <th class="whitespace-nowrap pl-4 py-2 font-medium">淨收</th>
               </tr>
             </thead>
@@ -376,6 +377,9 @@
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-slate-700">
                   {{ formatCents(allocation.refundedAmountCents) }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-gray-700">
+                  {{ formatCents(allocation.platformFeeCents) }}
                 </td>
                 <td
                   class="whitespace-nowrap pl-4 py-3 font-semibold text-gray-900"

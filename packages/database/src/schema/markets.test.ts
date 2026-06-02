@@ -42,6 +42,7 @@ describe("market discovery schema", () => {
         "logo_url",
         "image_urls",
         "tags",
+        "platform_fee_rate_bps",
         "is_active",
         "created_at_ms",
         "updated_at_ms",
@@ -52,6 +53,7 @@ describe("market discovery schema", () => {
     expect(columnSqlType(markets, "latitude")).toBe("real");
     expect(columnSqlType(markets, "longitude")).toBe("real");
     expect(columnSqlType(markets, "boundary_geojson")).toBe("text");
+    expect(columnSqlType(markets, "platform_fee_rate_bps")).toBe("integer");
   });
 
   it("adds soft-leavable restaurant market memberships", () => {
@@ -107,6 +109,7 @@ describe("market discovery schema", () => {
         "market_id",
         "market_slug",
         "market_name",
+        "platform_fee_rate_bps",
         "status",
         "payment_status",
         "phone_last_digits",
@@ -118,6 +121,9 @@ describe("market discovery schema", () => {
       ]),
     );
     expect(columnSqlType(marketCheckoutSessions, "id")).toBe("text");
+    expect(columnSqlType(marketCheckoutSessions, "platform_fee_rate_bps")).toBe(
+      "integer",
+    );
     expect(columnSqlType(marketCheckoutSessions, "subtotal_cents")).toBe(
       "integer",
     );

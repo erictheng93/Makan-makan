@@ -143,9 +143,9 @@ describe("PlatformMarketCheckoutsView", () => {
           },
         ],
         settlement: {
-          platformFeeRateBps: 0,
-          platformFeeCents: 0,
-          vendorNetAmountCents: 16000,
+          platformFeeRateBps: 350,
+          platformFeeCents: 560,
+          vendorNetAmountCents: 15440,
           vendorAllocations: [
             {
               restaurantId: "restaurant-1",
@@ -154,7 +154,8 @@ describe("PlatformMarketCheckoutsView", () => {
               orderNumber: "A001",
               grossAmountCents: 16000,
               refundedAmountCents: 0,
-              netAmountCents: 16000,
+              platformFeeCents: 560,
+              netAmountCents: 15440,
             },
             {
               restaurantId: "restaurant-2",
@@ -163,6 +164,7 @@ describe("PlatformMarketCheckoutsView", () => {
               orderNumber: "A002",
               grossAmountCents: 0,
               refundedAmountCents: 0,
+              platformFeeCents: 0,
               netAmountCents: 0,
             },
           ],
@@ -317,10 +319,13 @@ describe("PlatformMarketCheckoutsView", () => {
       "對帳分配",
     );
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
-      "平台費率 0.00%",
+      "平台費率 3.50%",
     );
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
-      "攤位淨收 $160",
+      "攤位淨收 $154",
+    );
+    expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
+      "平台費 $6",
     );
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "甜點攤",

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS markets (
   logo_url TEXT,
   image_urls TEXT,
   tags TEXT,
+  platform_fee_rate_bps INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at_ms INTEGER NOT NULL,
   updated_at_ms INTEGER NOT NULL,

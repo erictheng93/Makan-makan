@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS market_checkout_sessions (
   market_id TEXT NOT NULL,
   market_slug TEXT NOT NULL,
   market_name TEXT NOT NULL,
+  platform_fee_rate_bps INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'submitted',
   payment_status TEXT NOT NULL DEFAULT 'pending',
   phone_last_digits TEXT,
