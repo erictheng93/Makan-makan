@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import {
+  mockMarketCheckoutProviderPaidWebhookPayload,
+  mockMarketCheckoutProviderPendingResponse,
+  signMockMarketCheckoutWebhook,
+} from "../testing/mockMarketCheckoutProviderContract";
 
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
@@ -1398,6 +1403,168 @@ describe("market checkout routes", () => {
         paidAmountCents: 0,
       }),
     });
+  });
+
+  it("runs the mock provider pending redirect and paid webhook route flow", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(JSON.stringify(mockMarketCheckoutProviderPendingResponse)),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const dbRows: unknown[] = [];
+    const env = {
+      ...createEnv(dbRows),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+        "https://payments.example.test/market-split",
+      MARKET_CHECKOUT_WEBHOOK_SECRET: "market-secret",
+    };
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "Chicken Stall",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            totalAmountCents: 16000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "Dessert Stall",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 24000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const payResponse = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "market_online" }),
+      }),
+      env as never,
+    );
+
+    expect(payResponse.status).toBe(202);
+    await expect(payResponse.json()).resolves.toMatchObject({
+      data: {
+        payment: {
+          status: "pending",
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            provider: "mock_market_provider",
+            providerTransactionId: "intent-market-checkout-1",
+            nextAction: {
+              type: "redirect",
+              redirectUrl:
+                "https://payments.example.test/confirm/intent-market-checkout-1",
+            },
+          },
+        },
+      },
+    });
+
+    dbRows.push({
+      payment_id: "market_pay_checkout-1",
+      checkout_id: "checkout-1",
+      market_id: "market-1",
+      provider: "mock_market_provider",
+      split_mode: "provider_split",
+      idempotency_key: "market-checkout:checkout-1",
+      status: "pending",
+      amount_cents: 24000,
+      paid_amount_cents: 0,
+      refunded_amount_cents: 0,
+      currency: "TWD",
+      country_code: "TW",
+      child_payment_ids: JSON.stringify([]),
+      provider_transaction_id: "intent-market-checkout-1",
+      provider_payload: JSON.stringify({
+        source: "market-checkouts",
+        nextAction: mockMarketCheckoutProviderPendingResponse.nextAction,
+      }),
+      created_at_ms: Date.parse("2026-06-01T10:00:00.000Z"),
+      updated_at_ms: Date.parse("2026-06-01T10:05:00.000Z"),
+      session_payment_summary: JSON.stringify({
+        status: "pending",
+        method: "market_online",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 240,
+        totalAmountCents: 24000,
+        paidAmount: 0,
+        paidAmountCents: 0,
+        childPayments: [],
+        parentPayment: {
+          paymentId: "market_pay_checkout-1",
+          status: "pending",
+          provider: "mock_market_provider",
+          splitMode: "provider_split",
+          idempotencyKey: "market-checkout:checkout-1",
+          providerTransactionId: "intent-market-checkout-1",
+          nextAction: mockMarketCheckoutProviderPendingResponse.nextAction,
+          amountCents: 24000,
+          paidAmountCents: 0,
+          refundedAmountCents: 0,
+          childPaymentIds: [],
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:05:00.000Z",
+        },
+      }),
+    });
+    const rawWebhookBody = JSON.stringify(
+      mockMarketCheckoutProviderPaidWebhookPayload,
+    );
+
+    const webhookResponse = await routes.fetch(
+      new Request("https://test/payment-webhooks/mock_market_provider", {
+        method: "POST",
+        headers: {
+          "x-webhook-signature": await signMockMarketCheckoutWebhook(
+            "market-secret",
+            rawWebhookBody,
+          ),
+        },
+        body: rawWebhookBody,
+      }),
+      env as never,
+    );
+
+    expect(webhookResponse.status).toBe(200);
+    await expect(webhookResponse.json()).resolves.toMatchObject({
+      data: {
+        provider: "mock_market_provider",
+        eventId: "evt-market-checkout-paid-1",
+        eventType: "market_checkout.payment_paid",
+        reconciled: true,
+        checkoutId: "checkout-1",
+        paymentId: "market_pay_checkout-1",
+        status: "paid",
+      },
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"status":"paid"'),
+      { expirationTtl: 14400 },
+    );
   });
 
   it("lists market checkout sessions for platform admins", async () => {
