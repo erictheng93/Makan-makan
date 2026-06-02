@@ -64,6 +64,19 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       amountCents: number;
       errorMessage?: string;
     }>;
+    parentPayment?: {
+      paymentId: string;
+      status: MarketCheckoutPaymentStatus;
+      provider: string;
+      splitMode: "child_transactions";
+      idempotencyKey: string;
+      amountCents: number;
+      paidAmountCents: number;
+      refundedAmountCents: number;
+      childPaymentIds: string[];
+      createdAt: string;
+      updatedAt: string;
+    };
     settlement?: {
       platformFeeRateBps: number;
       platformFeeCents: number;

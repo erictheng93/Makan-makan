@@ -728,6 +728,17 @@ describe("market checkout routes", () => {
           status: string;
           method: string;
           totalAmount: number;
+          parentPayment: {
+            paymentId: string;
+            status: string;
+            provider: string;
+            splitMode: string;
+            idempotencyKey: string;
+            amountCents: number;
+            paidAmountCents: number;
+            refundedAmountCents: number;
+            childPaymentIds: string[];
+          };
           settlement: {
             platformFeeRateBps: number;
             platformFeeCents: number;
@@ -749,6 +760,17 @@ describe("market checkout routes", () => {
       method: "line_pay",
       totalAmount: 200,
       childPayments: [{ paymentId: "pay-1001" }, { paymentId: "pay-1002" }],
+      parentPayment: {
+        paymentId: "market_pay_checkout-1",
+        status: "paid",
+        provider: "line_pay",
+        splitMode: "child_transactions",
+        idempotencyKey: "market-pay-1",
+        amountCents: 20000,
+        paidAmountCents: 20000,
+        refundedAmountCents: 0,
+        childPaymentIds: ["pay-1001", "pay-1002"],
+      },
       settlement: {
         platformFeeRateBps: 350,
         platformFeeCents: 700,
@@ -902,6 +924,19 @@ describe("market checkout routes", () => {
           paidAmount: 200,
           paidAmountCents: 20000,
           paidAt: "2026-06-01T10:10:00.000Z",
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "paid",
+            provider: "line_pay",
+            splitMode: "child_transactions",
+            idempotencyKey: "market-pay-1",
+            amountCents: 20000,
+            paidAmountCents: 20000,
+            refundedAmountCents: 0,
+            childPaymentIds: ["pay-1001", "pay-1002"],
+            createdAt: "2026-06-01T10:10:00.000Z",
+            updatedAt: "2026-06-01T10:10:00.000Z",
+          },
           childPayments: [
             {
               restaurantId: "restaurant-1",
@@ -944,6 +979,12 @@ describe("market checkout routes", () => {
         payment: {
           status: string;
           refundedAmount: number;
+          parentPayment: {
+            paymentId: string;
+            status: string;
+            refundedAmountCents: number;
+            childPaymentIds: string[];
+          };
           settlement: {
             platformFeeRateBps: number;
             vendorNetAmountCents: number;
@@ -963,6 +1004,12 @@ describe("market checkout routes", () => {
     expect(json.data.payment).toMatchObject({
       status: "refunded",
       refundedAmount: 200,
+      parentPayment: {
+        paymentId: "market_pay_checkout-1",
+        status: "refunded",
+        refundedAmountCents: 20000,
+        childPaymentIds: ["pay-1001", "pay-1002"],
+      },
       settlement: {
         platformFeeRateBps: 350,
         vendorNetAmountCents: 0,

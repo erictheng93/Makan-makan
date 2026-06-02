@@ -314,6 +314,54 @@
       </div>
 
       <div
+        v-if="selectedCheckout.payment?.parentPayment"
+        data-testid="checkout-parent-payment"
+        class="mt-4 rounded-lg border border-gray-200 p-3"
+      >
+        <div
+          class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
+            <div class="text-sm font-semibold text-gray-900">父層付款</div>
+            <div class="mt-1 text-xs text-gray-500">
+              {{ selectedCheckout.payment.parentPayment.paymentId }} ·
+              {{ selectedCheckout.payment.parentPayment.provider }} ·
+              {{
+                splitModeLabel(selectedCheckout.payment.parentPayment.splitMode)
+              }}
+            </div>
+          </div>
+          <div class="text-sm font-semibold text-gray-900">
+            {{
+              paymentStatusLabel(selectedCheckout.payment.parentPayment.status)
+            }}
+          </div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+          <span class="rounded-full bg-gray-100 px-2.5 py-1">
+            已收
+            {{
+              formatCents(
+                selectedCheckout.payment.parentPayment.paidAmountCents,
+              )
+            }}
+          </span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-1">
+            已退
+            {{
+              formatCents(
+                selectedCheckout.payment.parentPayment.refundedAmountCents,
+              )
+            }}
+          </span>
+          <span class="rounded-full bg-gray-100 px-2.5 py-1">
+            子交易
+            {{ selectedCheckout.payment.parentPayment.childPaymentIds.length }}
+          </span>
+        </div>
+      </div>
+
+      <div
         v-if="selectedCheckout.payment?.settlement"
         data-testid="checkout-settlement"
         class="mt-4 rounded-lg border border-gray-200 p-3"
@@ -600,6 +648,12 @@ function paymentClass(status: MarketCheckoutPaymentStatus) {
     refunded: "bg-slate-100 text-slate-700",
     partial_refunded: "bg-orange-50 text-orange-700",
   }[status];
+}
+
+function splitModeLabel(mode: "child_transactions") {
+  return {
+    child_transactions: "子交易編排",
+  }[mode];
 }
 
 function formatCents(value: number) {

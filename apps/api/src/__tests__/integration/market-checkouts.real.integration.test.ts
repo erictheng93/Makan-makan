@@ -199,6 +199,14 @@ describe("Market checkouts API - real integration", () => {
       status: "paid",
       totalAmount: 200,
       paidAmount: 200,
+      parentPayment: {
+        status: "paid",
+        provider: "line_pay",
+        splitMode: "child_transactions",
+        amountCents: 20000,
+        paidAmountCents: 20000,
+        refundedAmountCents: 0,
+      },
       settlement: {
         platformFeeRateBps: 350,
         platformFeeCents: 700,

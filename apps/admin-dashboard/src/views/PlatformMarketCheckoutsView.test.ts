@@ -142,6 +142,19 @@ describe("PlatformMarketCheckoutsView", () => {
             amountCents: 16000,
           },
         ],
+        parentPayment: {
+          paymentId: "market_pay_checkout-1",
+          status: "partial_paid",
+          provider: "line_pay",
+          splitMode: "child_transactions",
+          idempotencyKey: "market-pay-1",
+          amountCents: 24000,
+          paidAmountCents: 16000,
+          refundedAmountCents: 0,
+          childPaymentIds: ["pay-1"],
+          createdAt: "2026-06-01T10:05:00.000Z",
+          updatedAt: "2026-06-01T10:05:00.000Z",
+        },
         settlement: {
           platformFeeRateBps: 350,
           platformFeeCents: 560,
@@ -315,6 +328,15 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(wrapper.get('[data-testid="checkout-detail"]').text()).toContain(
       "已付款 160 / 240",
     );
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("market_pay_checkout-1");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("子交易編排");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("子交易 1");
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "對帳分配",
     );

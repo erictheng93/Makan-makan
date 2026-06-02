@@ -165,7 +165,22 @@ interface MarketCheckoutPaymentSummary {
     amountCents: number;
     errorMessage?: string;
   }>;
+  parentPayment?: MarketCheckoutParentPaymentSummary;
   settlement?: MarketCheckoutSettlementSummary;
+}
+
+interface MarketCheckoutParentPaymentSummary {
+  paymentId: string;
+  status: MarketCheckoutPaymentSummary["status"];
+  provider: string;
+  splitMode: "child_transactions";
+  idempotencyKey: string;
+  amountCents: number;
+  paidAmountCents: number;
+  refundedAmountCents: number;
+  childPaymentIds: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 app.post("/", async (c) => {
@@ -562,6 +577,14 @@ app.post("/:id/pay", async (c) => {
   };
   const payment: MarketCheckoutPaymentSummary = {
     ...paymentBase,
+    parentPayment: buildMarketCheckoutParentPayment({
+      checkoutId,
+      existing: session.payment?.parentPayment,
+      payment: paymentBase,
+      provider: parsed.data.method,
+      idempotencyKey: requestIdempotencyKey ?? `market-checkout:${checkoutId}`,
+      now,
+    }),
     settlement: buildMarketCheckoutSettlement(session, paymentBase),
   };
 
@@ -790,6 +813,16 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   };
   const payment: MarketCheckoutPaymentSummary = {
     ...paymentBase,
+    parentPayment: session.payment.parentPayment
+      ? buildMarketCheckoutParentPayment({
+          checkoutId,
+          existing: session.payment.parentPayment,
+          payment: paymentBase,
+          provider: session.payment.parentPayment.provider,
+          idempotencyKey: session.payment.parentPayment.idempotencyKey,
+          now,
+        })
+      : undefined,
     settlement: buildMarketCheckoutSettlement(session, paymentBase),
   };
 
@@ -1141,6 +1174,33 @@ function buildMarketCheckoutSettlement(
     platformFeeCents,
     vendorNetAmountCents,
     vendorAllocations,
+  };
+}
+
+function buildMarketCheckoutParentPayment(input: {
+  checkoutId: string;
+  existing?: MarketCheckoutParentPaymentSummary;
+  payment: MarketCheckoutPaymentSummary;
+  provider: string;
+  idempotencyKey: string;
+  now: string;
+}): MarketCheckoutParentPaymentSummary {
+  const childPaymentIds = input.payment.childPayments
+    .map((childPayment) => childPayment.paymentId)
+    .filter((paymentId): paymentId is string => Boolean(paymentId));
+
+  return {
+    paymentId: input.existing?.paymentId ?? `market_pay_${input.checkoutId}`,
+    status: input.payment.status,
+    provider: input.existing?.provider ?? input.provider,
+    splitMode: "child_transactions",
+    idempotencyKey: input.existing?.idempotencyKey ?? input.idempotencyKey,
+    amountCents: input.payment.totalAmountCents,
+    paidAmountCents: input.payment.paidAmountCents,
+    refundedAmountCents: input.payment.refundedAmountCents ?? 0,
+    childPaymentIds,
+    createdAt: input.existing?.createdAt ?? input.now,
+    updatedAt: input.now,
   };
 }
 
