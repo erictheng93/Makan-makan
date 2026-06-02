@@ -778,6 +778,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
 
 app.get("/admin/summary", authMiddleware, requireRole([0]), async (c) => {
   const marketSlug = c.req.query("marketSlug");
+  const dateRange = parseMarketCheckoutDateRange(c);
   const persistedItems = await readPersistedMarketCheckoutSummaryItems(c.env);
   const items =
     persistedItems.length > 0
@@ -788,6 +789,9 @@ app.get("/admin/summary", authMiddleware, requireRole([0]), async (c) => {
         }));
   const filtered = items.filter((item) => {
     if (marketSlug && item.market.slug !== marketSlug) return false;
+    if (!isWithinMarketCheckoutDateRange(item.createdAt, dateRange)) {
+      return false;
+    }
     return true;
   });
 
@@ -803,6 +807,7 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
   const marketSlug = c.req.query("marketSlug");
   const paymentStatus = c.req.query("paymentStatus");
   const status = c.req.query("status");
+  const dateRange = parseMarketCheckoutDateRange(c);
 
   const persistedIndex = await readPersistedMarketCheckoutIndex(c.env);
   const index =
@@ -813,6 +818,9 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
     if (marketSlug && checkout.market.slug !== marketSlug) return false;
     if (paymentStatus && checkout.paymentStatus !== paymentStatus) return false;
     if (status && checkout.status !== status) return false;
+    if (!isWithinMarketCheckoutDateRange(checkout.createdAt, dateRange)) {
+      return false;
+    }
     return true;
   });
   const offset = (page - 1) * limit;
@@ -1261,4 +1269,39 @@ function isMarketCheckoutIndexItem(
 function coercePositiveInt(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseMarketCheckoutDateRange(c: {
+  req: { query: (key: string) => string | undefined };
+}) {
+  return {
+    from: parseDateBoundary(c.req.query("dateFrom"), "start"),
+    to: parseDateBoundary(c.req.query("dateTo"), "end"),
+  };
+}
+
+function parseDateBoundary(
+  value: string | undefined,
+  boundary: "start" | "end",
+) {
+  if (!value) return null;
+  const normalized =
+    /^\d{4}-\d{2}-\d{2}$/.test(value) && boundary === "start"
+      ? `${value}T00:00:00.000Z`
+      : /^\d{4}-\d{2}-\d{2}$/.test(value) && boundary === "end"
+        ? `${value}T23:59:59.999Z`
+        : value;
+  const time = new Date(normalized).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+function isWithinMarketCheckoutDateRange(
+  createdAt: string,
+  dateRange: { from: number | null; to: number | null },
+) {
+  const createdTime = new Date(createdAt).getTime();
+  if (Number.isNaN(createdTime)) return true;
+  if (dateRange.from !== null && createdTime < dateRange.from) return false;
+  if (dateRange.to !== null && createdTime > dateRange.to) return false;
+  return true;
 }

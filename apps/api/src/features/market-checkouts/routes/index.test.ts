@@ -1039,11 +1039,25 @@ describe("market checkout routes", () => {
           createdAt: new Date("2026-06-01T10:00:00.000Z"),
           updatedAt: new Date("2026-06-01T10:05:00.000Z"),
         },
+        {
+          id: "checkout-2",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "partial_paid",
+          subtotalCents: 8000,
+          childOrderCount: 1,
+          createdAt: new Date("2026-05-31T10:00:00.000Z"),
+          updatedAt: new Date("2026-05-31T10:05:00.000Z"),
+        },
       ],
     });
 
     const response = await routes.fetch(
-      new Request("https://test/admin?paymentStatus=partial_paid"),
+      new Request(
+        "https://test/admin?paymentStatus=partial_paid&dateFrom=2026-06-01&dateTo=2026-06-01",
+      ),
       env as never,
     );
 
@@ -1143,11 +1157,36 @@ describe("market checkout routes", () => {
           createdAt: new Date("2026-06-01T12:00:00.000Z"),
           updatedAt: new Date("2026-06-01T12:05:00.000Z"),
         },
+        {
+          id: "checkout-4",
+          marketId: "market-3",
+          marketSlug: "outside-range",
+          marketName: "區間外商圈",
+          status: "submitted",
+          paymentStatus: "paid",
+          subtotalCents: 50000,
+          childOrderCount: 5,
+          paymentSummary: {
+            status: "paid",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 500,
+            totalAmountCents: 50000,
+            paidAmount: 500,
+            paidAmountCents: 50000,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-05-31T12:00:00.000Z"),
+          updatedAt: new Date("2026-05-31T12:05:00.000Z"),
+        },
       ],
     });
 
     const response = await routes.fetch(
-      new Request("https://test/admin/summary"),
+      new Request(
+        "https://test/admin/summary?dateFrom=2026-06-01&dateTo=2026-06-01",
+      ),
       env as never,
     );
 

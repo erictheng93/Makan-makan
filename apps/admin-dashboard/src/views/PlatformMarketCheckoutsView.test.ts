@@ -152,9 +152,13 @@ describe("PlatformMarketCheckoutsView", () => {
       limit: 20,
       marketSlug: "",
       paymentStatus: "",
+      dateFrom: "",
+      dateTo: "",
     });
     expect(marketCheckoutsService.summary).toHaveBeenCalledWith({
       marketSlug: "",
+      dateFrom: "",
+      dateTo: "",
     });
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("部分付款");
@@ -168,6 +172,31 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
       "異常",
     );
+
+    await wrapper
+      .get('[data-testid="market-checkout-date-from"]')
+      .setValue("2026-06-01");
+    await wrapper
+      .get('[data-testid="market-checkout-date-to"]')
+      .setValue("2026-06-02");
+    await wrapper
+      .get('[data-testid="market-checkout-filter"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketCheckoutsService.list).toHaveBeenLastCalledWith({
+      page: 1,
+      limit: 20,
+      marketSlug: "",
+      paymentStatus: "",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-02",
+    });
+    expect(marketCheckoutsService.summary).toHaveBeenLastCalledWith({
+      marketSlug: "",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-02",
+    });
 
     await wrapper
       .get('[data-testid="open-checkout-checkout-1"]')

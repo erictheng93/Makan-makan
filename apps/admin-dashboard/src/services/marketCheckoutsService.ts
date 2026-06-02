@@ -101,6 +101,8 @@ export const marketCheckoutsService = {
       limit?: number;
       marketSlug?: string;
       paymentStatus?: MarketCheckoutPaymentStatus | "";
+      dateFrom?: string;
+      dateTo?: string;
     } = {},
   ): Promise<MarketCheckoutListResult> {
     const response = await api.get<MarketCheckoutListResult>(
@@ -110,6 +112,8 @@ export const marketCheckoutsService = {
         limit: input.limit ?? 20,
         marketSlug: input.marketSlug || undefined,
         paymentStatus: input.paymentStatus || undefined,
+        dateFrom: input.dateFrom || undefined,
+        dateTo: input.dateTo || undefined,
       },
     );
     return unwrapApiPayload<MarketCheckoutListResult>(response.data);
@@ -124,12 +128,14 @@ export const marketCheckoutsService = {
   },
 
   async summary(
-    input: { marketSlug?: string } = {},
+    input: { marketSlug?: string; dateFrom?: string; dateTo?: string } = {},
   ): Promise<MarketCheckoutSummary> {
     const response = await api.get<MarketCheckoutSummary>(
       "/market-checkouts/admin/summary",
       {
         marketSlug: input.marketSlug || undefined,
+        dateFrom: input.dateFrom || undefined,
+        dateTo: input.dateTo || undefined,
       },
     );
     return unwrapApiPayload<MarketCheckoutSummary>(response.data);

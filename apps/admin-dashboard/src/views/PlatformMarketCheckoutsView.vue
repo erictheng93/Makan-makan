@@ -20,7 +20,9 @@
     </div>
 
     <section class="rounded-lg bg-white p-4 shadow-ios-card">
-      <div class="grid gap-3 md:grid-cols-[1fr_14rem_auto]">
+      <div
+        class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_12rem_10rem_10rem_auto]"
+      >
         <input
           v-model="marketSlug"
           type="search"
@@ -40,8 +42,23 @@
           <option value="refunded">已退款</option>
           <option value="partial_refunded">部分退款</option>
         </select>
+        <input
+          v-model="dateFrom"
+          type="date"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          aria-label="起始日期"
+          data-testid="market-checkout-date-from"
+        />
+        <input
+          v-model="dateTo"
+          type="date"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          aria-label="結束日期"
+          data-testid="market-checkout-date-to"
+        />
         <button
           type="button"
+          data-testid="market-checkout-filter"
           class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
           @click="loadCheckouts"
         >
@@ -273,6 +290,8 @@ const isRefunding = ref(false);
 const error = ref<string | null>(null);
 const marketSlug = ref("");
 const paymentStatus = ref<MarketCheckoutPaymentStatus | "">("");
+const dateFrom = ref("");
+const dateTo = ref("");
 
 const canRefundSelectedCheckout = computed(() => {
   const status = selectedCheckout.value?.payment?.status;
@@ -301,15 +320,21 @@ async function loadCheckouts() {
   error.value = null;
   try {
     const trimmedMarketSlug = marketSlug.value.trim();
+    const trimmedDateFrom = dateFrom.value.trim();
+    const trimmedDateTo = dateTo.value.trim();
     const [result, nextSummary] = await Promise.all([
       marketCheckoutsService.list({
         page: 1,
         limit: 20,
         marketSlug: trimmedMarketSlug,
         paymentStatus: paymentStatus.value,
+        dateFrom: trimmedDateFrom,
+        dateTo: trimmedDateTo,
       }),
       marketCheckoutsService.summary({
         marketSlug: trimmedMarketSlug,
+        dateFrom: trimmedDateFrom,
+        dateTo: trimmedDateTo,
       }),
     ]);
     checkouts.value = result.checkouts;
