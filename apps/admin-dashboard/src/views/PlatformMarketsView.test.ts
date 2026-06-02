@@ -20,6 +20,7 @@ vi.mock("@/services/marketsService", () => ({
     listMarketVendors: vi.fn(),
     updateVendor: vi.fn(),
     removeVendor: vi.fn(),
+    generateMarketQr: vi.fn(),
     listAdminJoinRequests: vi.fn(),
     approveJoinRequest: vi.fn(),
     rejectJoinRequest: vi.fn(),
@@ -201,6 +202,12 @@ describe("PlatformMarketsView", () => {
       page: 1,
       limit: 10,
     });
+    vi.mocked(marketsService.generateMarketQr).mockResolvedValue({
+      id: 42,
+      content: "MARKET-fengjia",
+      format: "png",
+      downloadUrl: "https://qr.example/market-fengjia.png",
+    });
     vi.mocked(marketsService.listAdminJoinRequests).mockResolvedValue([]);
     vi.mocked(marketsService.approveJoinRequest).mockResolvedValue(undefined);
     vi.mocked(marketsService.rejectJoinRequest).mockResolvedValue(undefined);
@@ -265,6 +272,22 @@ describe("PlatformMarketsView", () => {
         areaDistrict: "西屯區",
       },
     });
+  });
+
+  it("generates and downloads a market QR code from the market list", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="download-market-qr-market-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.generateMarketQr).toHaveBeenCalledWith({
+      slug: "fengjia",
+      name: "逢甲夜市",
+    });
+    expect(click).toHaveBeenCalled();
   });
 
   it("shows stall number and search entrypoint gaps for operators", async () => {

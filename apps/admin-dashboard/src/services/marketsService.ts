@@ -59,6 +59,13 @@ export interface MarketListItem {
   publicReadiness?: MarketPublicReadiness;
 }
 
+export interface MarketQrCodeResult {
+  id: number;
+  content: string;
+  format: "png" | "svg" | "pdf" | "jpeg";
+  downloadUrl?: string;
+}
+
 export interface MarketAreaReadinessSummary {
   city: string;
   district: string;
@@ -304,6 +311,21 @@ export const marketsService = {
     return unwrapApiPayload<{ areas: MarketAreaReadinessSummary[] }>(
       response.data,
     ).areas;
+  },
+
+  async generateMarketQr(input: {
+    slug: string;
+    name: string;
+  }): Promise<MarketQrCodeResult> {
+    const response = await api.post<MarketQrCodeResult>("/qr/generate", {
+      content: `MARKET-${input.slug}`,
+      format: "png",
+      metadata: {
+        title: `${input.name} 市場 QR`,
+        description: `掃描後開啟${input.name}市場頁`,
+      },
+    });
+    return unwrapApiPayload<MarketQrCodeResult>(response.data);
   },
 
   async listRestaurantMemberships(

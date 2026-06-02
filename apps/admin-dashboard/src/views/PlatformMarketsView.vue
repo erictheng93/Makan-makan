@@ -907,18 +907,32 @@
               </span>
             </td>
             <td class="px-4 py-4 text-right">
-              <button
-                type="button"
-                class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
-                @click="startEditing(market)"
-              >
-                編輯
-              </button>
+              <div class="flex justify-end gap-2">
+                <button
+                  type="button"
+                  :data-testid="`download-market-qr-${market.id}`"
+                  class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                  :disabled="generatingMarketQrId === market.id"
+                  @click="downloadMarketQr(market)"
+                >
+                  {{ generatingMarketQrId === market.id ? "產生中" : "QR" }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                  @click="startEditing(market)"
+                >
+                  編輯
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <p v-if="marketQrError" class="text-sm text-red-600">
+      {{ marketQrError }}
+    </p>
 
     <div
       v-if="editingMarket"
@@ -1753,6 +1767,8 @@ const isLoadingJoinRequests = ref(false);
 const joinRequestError = ref("");
 const resolvingJoinRequestId = ref<number | null>(null);
 const joinRequestDrafts = reactive<Record<number, JoinRequestDraft>>({});
+const generatingMarketQrId = ref<string | null>(null);
+const marketQrError = ref("");
 const vendorImportSection = ref<HTMLElement | null>(null);
 const editForm = reactive<MarketPublicProfileForm>({
   description: "",
@@ -2684,6 +2700,32 @@ function downloadAreaReadinessCsv() {
     buildMarketAreaReadinessCsv(areaReadiness.value),
     marketAreaReadinessCsvFilename(),
   );
+}
+
+async function downloadMarketQr(market: MarketListItem) {
+  generatingMarketQrId.value = market.id;
+  marketQrError.value = "";
+
+  try {
+    const qr = await marketsService.generateMarketQr({
+      slug: market.slug,
+      name: market.name,
+    });
+    if (!qr.downloadUrl) {
+      marketQrError.value = "市場 QR 已產生，但缺少下載連結。";
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = qr.downloadUrl;
+    link.download = `market-qr-${market.slug}.png`;
+    link.click();
+  } catch (error) {
+    console.error("Failed to generate market QR:", error);
+    marketQrError.value = "市場 QR 產生失敗，請稍後再試。";
+  } finally {
+    generatingMarketQrId.value = null;
+  }
 }
 
 function downloadCsv(csv: string, filename: string) {

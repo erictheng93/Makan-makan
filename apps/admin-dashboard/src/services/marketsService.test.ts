@@ -53,6 +53,37 @@ describe("marketsService", () => {
     });
   });
 
+  it("generates a printable market QR code", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        data: {
+          id: 42,
+          content: "MARKET-fengjia",
+          format: "png",
+          downloadUrl: "https://qr.example/market-fengjia.png",
+        },
+      },
+    } as never);
+
+    const result = await marketsService.generateMarketQr({
+      slug: "fengjia",
+      name: "逢甲夜市",
+    });
+
+    expect(api.post).toHaveBeenCalledWith("/qr/generate", {
+      content: "MARKET-fengjia",
+      format: "png",
+      metadata: {
+        title: "逢甲夜市 市場 QR",
+        description: "掃描後開啟逢甲夜市市場頁",
+      },
+    });
+    expect(result).toMatchObject({
+      content: "MARKET-fengjia",
+      downloadUrl: "https://qr.example/market-fengjia.png",
+    });
+  });
+
   it("searches vendor candidates excluding the selected market", async () => {
     vi.mocked(api.get).mockResolvedValueOnce({
       data: {
