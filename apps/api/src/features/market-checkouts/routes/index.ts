@@ -36,6 +36,7 @@ import {
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
   queryMarketCheckoutProviderSplitStatus,
+  refundMarketCheckoutProviderSplitPayment,
   type MarketCheckoutProviderNextAction,
   type MarketCheckoutSplitMode,
 } from "../services/MarketCheckoutPaymentProvider";
@@ -828,11 +829,150 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     throw notFound("Market checkout not found");
   }
 
+  if (!session.payment) {
+    throw badRequest("Market checkout has no paid child payments to refund");
+  }
+
+  const parentPayment = session.payment.parentPayment;
+  if (parentPayment?.splitMode === "provider_split") {
+    if (!parentPayment.providerTransactionId) {
+      throw badRequest(
+        "Market checkout provider payment has no provider transaction to refund",
+      );
+    }
+    if (
+      session.payment.status !== "paid" &&
+      session.payment.status !== "partial_paid"
+    ) {
+      throw badRequest("Market checkout provider payment is not refundable");
+    }
+
+    const refundableChildPayments = session.payment.childPayments.filter(
+      (payment) => payment.status === "paid",
+    );
+    const allocations =
+      refundableChildPayments.length > 0
+        ? refundableChildPayments.map((payment) => ({
+            restaurantId: payment.restaurantId,
+            restaurantName: payment.restaurantName,
+            orderId: payment.orderId,
+            orderNumber: payment.orderNumber,
+            amountCents: payment.amountCents,
+          }))
+        : session.childOrders.map((child) => ({
+            restaurantId: child.restaurantId,
+            restaurantName: child.restaurantName,
+            orderId: child.orderId,
+            orderNumber: child.orderNumber,
+            amountCents: orderChildTotalCents(child),
+          }));
+    const amountCents = allocations.reduce(
+      (sum, allocation) => sum + allocation.amountCents,
+      0,
+    );
+    if (amountCents <= 0) {
+      throw badRequest("Market checkout provider payment is not refundable");
+    }
+
+    const providerRefund = await refundMarketCheckoutProviderSplitPayment(
+      c.env,
+      {
+        checkoutId,
+        paymentId: parentPayment.paymentId,
+        provider: parentPayment.provider,
+        providerTransactionId: parentPayment.providerTransactionId,
+        idempotencyKey: `${parentPayment.idempotencyKey}:refund`,
+        amountCents,
+        currency: session.payment.currency,
+        reason: parsed.data.reason,
+        allocations,
+      },
+    );
+    const now = new Date().toISOString();
+    const refundCompleted =
+      providerRefund.status === "refunded" ||
+      providerRefund.status === "partial_refunded";
+    const refundedAmountCents = refundCompleted
+      ? providerRefund.refundedAmountCents
+      : 0;
+    const refundedAmount = refundedAmountCents / 100;
+    const refundedOrderIds = new Set(allocations.map((item) => item.orderId));
+    const childPayments = session.payment.childPayments.map((payment) =>
+      refundCompleted && refundedOrderIds.has(payment.orderId)
+        ? {
+            ...payment,
+            status: "refunded" as const,
+            refundId: providerRefund.refundId,
+          }
+        : payment,
+    );
+    const paymentBase: MarketCheckoutPaymentSummary = {
+      ...session.payment,
+      status: refundCompleted ? providerRefund.status : session.payment.status,
+      refundedAmount: (session.payment.refundedAmount ?? 0) + refundedAmount,
+      refundedAmountCents:
+        (session.payment.refundedAmountCents ?? 0) + refundedAmountCents,
+      refundedAt: refundCompleted ? now : session.payment.refundedAt,
+      childPayments,
+    };
+    const payment: MarketCheckoutPaymentSummary = {
+      ...paymentBase,
+      parentPayment: buildMarketCheckoutParentPayment({
+        checkoutId,
+        existing: parentPayment,
+        payment: paymentBase,
+        provider: parentPayment.provider,
+        splitMode: parentPayment.splitMode,
+        idempotencyKey: parentPayment.idempotencyKey,
+        providerTransactionId:
+          providerRefund.providerTransactionId ??
+          parentPayment.providerTransactionId,
+        now,
+      }),
+      settlement: buildMarketCheckoutSettlement(session, paymentBase),
+    };
+    const updatedSession: MarketCheckoutSession = {
+      ...session,
+      payment,
+    };
+
+    await c.env.CACHE_KV.put(
+      `market_checkout:${checkoutId}`,
+      JSON.stringify(updatedSession),
+      { expirationTtl: 4 * 60 * 60 },
+    );
+    await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
+    await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+
+    return c.json({
+      success: true,
+      data: {
+        checkout: updatedSession,
+        payment,
+        refunds: [
+          {
+            refundId: providerRefund.refundId,
+            transactionId: parentPayment.paymentId,
+            orderId: 0,
+            amount: providerRefund.refundedAmountCents / 100,
+            status: providerRefund.status === "failed" ? "failed" : "completed",
+            paymentStatus: providerRefund.status,
+            provider: providerRefund.provider,
+            providerTransactionId: providerRefund.providerTransactionId,
+            restaurantId: session.market.id,
+            restaurantName: session.market.name,
+            orderNumber: checkoutId,
+          },
+        ],
+      },
+    });
+  }
+
   const refundablePayments =
     session.payment?.childPayments.filter(
       (payment) => payment.status === "paid" && payment.paymentId,
     ) ?? [];
-  if (!session.payment || refundablePayments.length === 0) {
+  if (refundablePayments.length === 0) {
     throw badRequest("Market checkout has no paid child payments to refund");
   }
 

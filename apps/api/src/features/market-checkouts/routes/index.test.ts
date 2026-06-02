@@ -4,6 +4,7 @@ import {
   mockMarketCheckoutProviderPaidWebhookPayload,
   mockMarketCheckoutProviderPaidStatusResponse,
   mockMarketCheckoutProviderPendingResponse,
+  mockMarketCheckoutProviderRefundResponse,
   signMockMarketCheckoutWebhook,
 } from "../testing/mockMarketCheckoutProviderContract";
 
@@ -19,6 +20,7 @@ const processPayment = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
+const originalFetch = globalThis.fetch;
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (_c, next) => next()),
@@ -126,6 +128,7 @@ describe("market checkout routes", () => {
     enforceQuota.mockReset();
     meterEmit.mockReset();
     tokenCounter.value = 0;
+    globalThis.fetch = originalFetch;
   });
 
   it("creates one child guest order per active market vendor", async () => {
@@ -1092,6 +1095,182 @@ describe("market checkout routes", () => {
       null,
       expect.any(Number),
       null,
+    );
+  });
+
+  it("refunds provider split parent payments through the configured provider", async () => {
+    const env = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_REFUND_URL:
+        "https://payments.example.test/market-split/refunds",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET: "split-signing-secret",
+    };
+    const fetcher = vi.fn(
+      async () =>
+        new Response(JSON.stringify(mockMarketCheckoutProviderRefundResponse)),
+    );
+    globalThis.fetch = fetcher as never;
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            totalAmountCents: 16000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "paid",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 240,
+          paidAmountCents: 24000,
+          paidAt: "2026-06-01T10:10:00.000Z",
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "paid",
+            provider: "mock_market_provider",
+            splitMode: "provider_split",
+            idempotencyKey: "market-checkout:checkout-1",
+            providerTransactionId: "intent-market-checkout-1",
+            amountCents: 24000,
+            paidAmountCents: 24000,
+            refundedAmountCents: 0,
+            childPaymentIds: ["mock-pay-101", "mock-pay-102"],
+            createdAt: "2026-06-01T10:10:00.000Z",
+            updatedAt: "2026-06-01T10:10:00.000Z",
+          },
+          childPayments: [
+            {
+              restaurantId: "restaurant-1",
+              restaurantName: "雞排攤",
+              orderId: 101,
+              orderNumber: "A001",
+              paymentId: "mock-pay-101",
+              status: "paid",
+              amount: 160,
+              amountCents: 16000,
+            },
+            {
+              restaurantId: "restaurant-2",
+              restaurantName: "甜點攤",
+              orderId: 102,
+              orderNumber: "A002",
+              paymentId: "mock-pay-102",
+              status: "paid",
+              amount: 80,
+              amountCents: 8000,
+            },
+          ],
+        },
+        subtotal: 24000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/refund", {
+        method: "POST",
+        body: JSON.stringify({ reason: "customer_request" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://payments.example.test/market-split/refunds",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          authorization: "Bearer split-token",
+          "x-market-checkout-signature": expect.any(String),
+        }),
+      }),
+    );
+    const providerRequest = fetcher.mock.calls[0]?.[1] as
+      | { body?: string }
+      | undefined;
+    expect(JSON.parse(providerRequest?.body ?? "{}")).toMatchObject({
+      checkoutId: "checkout-1",
+      paymentId: "market_pay_checkout-1",
+      provider: "mock_market_provider",
+      providerTransactionId: "intent-market-checkout-1",
+      idempotencyKey: "market-checkout:checkout-1:refund",
+      amountCents: 24000,
+      reason: "customer_request",
+      allocations: [
+        expect.objectContaining({ orderId: 101, amountCents: 16000 }),
+        expect.objectContaining({ orderId: 102, amountCents: 8000 }),
+      ],
+    });
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          refundedAmountCents: number;
+          parentPayment: {
+            status: string;
+            refundedAmountCents: number;
+          };
+          childPayments: Array<{ status: string; refundId?: string }>;
+        };
+        refunds: Array<{
+          refundId: string;
+          transactionId: string;
+          amount: number;
+        }>;
+      };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "refunded",
+      refundedAmountCents: 24000,
+      parentPayment: {
+        status: "refunded",
+        refundedAmountCents: 24000,
+      },
+      childPayments: [
+        { status: "refunded", refundId: "refund-market-checkout-1" },
+        { status: "refunded", refundId: "refund-market-checkout-1" },
+      ],
+    });
+    expect(json.data.refunds).toEqual([
+      expect.objectContaining({
+        refundId: "refund-market-checkout-1",
+        transactionId: "market_pay_checkout-1",
+        amount: 240,
+      }),
+    ]);
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:index",
+      expect.stringContaining('"paymentStatus":"refunded"'),
+      { expirationTtl: 14400 },
     );
   });
 
