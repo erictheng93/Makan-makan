@@ -88,6 +88,16 @@ describe("PlatformMarketsView", () => {
         type: "night_market",
         city: "台中市",
         district: "西屯區",
+        address: "台中市西屯區文華路",
+        latitude: 24.1764,
+        longitude: 120.6466,
+        description: "台中夜市",
+        openingHours: null,
+        bannerUrl: null,
+        logoUrl: null,
+        imageUrls: null,
+        tags: null,
+        mapLayout: null,
         vendorCount: 1,
         catalogCoverage: {
           searchableProductCount: 0,
@@ -323,6 +333,45 @@ describe("PlatformMarketsView", () => {
       expect.stringContaining("https://qr.example/market-fengjia.png"),
     );
     expect(print).toHaveBeenCalled();
+  });
+
+  it("saves market map layout metadata from the public profile form", async () => {
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    const editButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "編輯");
+    expect(editButton).toBeDefined();
+    await editButton!.trigger("click");
+
+    await wrapper.get('[data-testid="market-map-title"]').setValue("入口地圖");
+    await wrapper
+      .get('[data-testid="market-map-description"]')
+      .setValue("藍線為主要動線");
+    await wrapper
+      .get('[data-testid="market-map-image-url"]')
+      .setValue("https://example.com/fengjia-map.png");
+    await wrapper.get('[data-testid="market-map-width"]').setValue("1200");
+    await wrapper.get('[data-testid="market-map-height"]').setValue("800");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "儲存公開資料")!
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketsService.updateMarketPublicProfile).toHaveBeenCalledWith(
+      "market-1",
+      expect.objectContaining({
+        mapLayout: {
+          title: "入口地圖",
+          description: "藍線為主要動線",
+          imageUrl: "https://example.com/fengjia-map.png",
+          width: 1200,
+          height: 800,
+        },
+      }),
+    );
   });
 
   it("shows stall number and search entrypoint gaps for operators", async () => {

@@ -42,6 +42,13 @@ const boundaryGeojsonSchema = z.union([
     coordinates: z.array(polygonCoordinatesSchema).min(1),
   }),
 ]);
+const marketMapLayoutSchema = z.object({
+  title: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().max(500).nullable().optional(),
+  imageUrl: urlSchema.nullable().optional(),
+  width: z.number().int().min(1).max(10000).nullable().optional(),
+  height: z.number().int().min(1).max(10000).nullable().optional(),
+});
 
 export const marketListQuerySchema = z.object({
   q: z.string().trim().min(1).max(100).optional(),
@@ -121,6 +128,7 @@ export const createMarketSchema = z.object({
   longitude: z.number().min(-180).max(180),
   boundaryGeojson: boundaryGeojsonSchema.nullable().optional(),
   openingHours: z.record(z.any()).nullable().optional(),
+  mapLayout: marketMapLayoutSchema.nullable().optional(),
   bannerUrl: urlSchema.nullable().optional(),
   logoUrl: urlSchema.nullable().optional(),
   imageUrls: z.array(urlSchema).nullable().optional(),

@@ -244,6 +244,7 @@
 
           <StallMapInMarket
             :vendors="store.vendors"
+            :layout="store.selectedMarket.mapLayout"
             @select-vendor="openVendor"
           />
 

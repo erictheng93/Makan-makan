@@ -195,6 +195,13 @@ describe("Markets API — real integration", () => {
         friday: { open: "17:00", close: "23:30" },
         saturday: { open: "16:00", close: "23:59" },
       },
+      mapLayout: {
+        title: "逢甲入口地圖",
+        description: "主入口到出口的攤位配置",
+        imageUrl: "https://example.com/fengjia-map.png",
+        width: 1200,
+        height: 800,
+      },
     });
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
@@ -274,6 +281,13 @@ describe("Markets API — real integration", () => {
         "https://example.com/fengjia-gallery-1.jpg",
         "https://example.com/fengjia-gallery-2.jpg",
       ],
+      mapLayout: {
+        title: "逢甲入口地圖",
+        description: "主入口到出口的攤位配置",
+        imageUrl: "https://example.com/fengjia-map.png",
+        width: 1200,
+        height: 800,
+      },
     });
     expect(listJson.data.markets[0].openingHours).toMatchObject({
       friday: { open: "17:00", close: "23:30" },
@@ -293,6 +307,12 @@ describe("Markets API — real integration", () => {
     expect(detailRes.status).toBe(200);
     const detailJson: any = await detailRes.json();
     expect(detailJson.data.market.slug).toBe("fengjia-night-market");
+    expect(detailJson.data.market.mapLayout).toMatchObject({
+      title: "逢甲入口地圖",
+      imageUrl: "https://example.com/fengjia-map.png",
+      width: 1200,
+      height: 800,
+    });
     expect(detailJson.data.vendorCount).toBe(1);
     expect(detailJson.data.catalogCoverage).toMatchObject({
       searchableProductCount: 2,
@@ -2228,6 +2248,13 @@ describe("Markets API — real integration", () => {
             friday: { open: "17:00", close: "23:30" },
             saturday: { open: "16:00", close: "23:59" },
           },
+          mapLayout: {
+            title: "管理市場地圖",
+            description: "A 區到 B 區的攤位配置",
+            imageUrl: "https://example.com/admin-market-map.png",
+            width: 1600,
+            height: 900,
+          },
           bannerUrl: "https://example.com/admin-market-banner.jpg",
           logoUrl: "https://example.com/admin-market-logo.jpg",
           imageUrls: [
@@ -2247,6 +2274,13 @@ describe("Markets API — real integration", () => {
       bannerUrl: "https://example.com/admin-market-banner.jpg",
       logoUrl: "https://example.com/admin-market-logo.jpg",
       boundaryGeojson,
+      mapLayout: {
+        title: "管理市場地圖",
+        description: "A 區到 B 區的攤位配置",
+        imageUrl: "https://example.com/admin-market-map.png",
+        width: 1600,
+        height: 900,
+      },
       imageUrls: [
         "https://example.com/admin-market-gallery-1.jpg",
         "https://example.com/admin-market-gallery-2.jpg",
@@ -2267,6 +2301,12 @@ describe("Markets API — real integration", () => {
           name: "更新後夜市",
           district: "西區",
           boundaryGeojson: null,
+          mapLayout: {
+            title: "更新後市場地圖",
+            imageUrl: "https://example.com/admin-market-map-updated.png",
+            width: 1200,
+            height: 800,
+          },
           imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
           tags: ["美食", "宵夜"],
         }),
@@ -2279,6 +2319,12 @@ describe("Markets API — real integration", () => {
       name: "更新後夜市",
       district: "西區",
       boundaryGeojson: null,
+      mapLayout: {
+        title: "更新後市場地圖",
+        imageUrl: "https://example.com/admin-market-map-updated.png",
+        width: 1200,
+        height: 800,
+      },
       imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
       tags: ["美食", "宵夜"],
     });

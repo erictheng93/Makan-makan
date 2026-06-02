@@ -84,6 +84,35 @@ describe("StallMapInMarket", () => {
     expect(wrapper.emitted("selectVendor")?.[0]).toEqual([selectedVendor]);
   });
 
+  it("uses market map layout metadata when rendering a positioned map", () => {
+    const wrapper = mount(StallMapInMarket, {
+      props: {
+        layout: {
+          title: "逢甲入口地圖",
+          description: "藍線為主動線，攤位依現場編號定位。",
+          imageUrl: "https://example.com/fengjia-map.png",
+          width: 1200,
+          height: 800,
+        },
+        vendors: [
+          vendor({
+            restaurantId: "r1",
+            mapPosition: { x: 25, y: 40 },
+          }),
+        ],
+      },
+    });
+
+    const map = wrapper.get('[data-testid="stall-position-map"]');
+
+    expect(wrapper.text()).toContain("逢甲入口地圖");
+    expect(wrapper.text()).toContain("藍線為主動線");
+    expect(map.attributes("style")).toContain(
+      'background-image: url("https://example.com/fengjia-map.png")',
+    );
+    expect(map.attributes("style")).toContain("aspect-ratio: 1200 / 800");
+  });
+
   it("sorts stall numbers naturally inside each lane", () => {
     const wrapper = mount(StallMapInMarket, {
       props: {

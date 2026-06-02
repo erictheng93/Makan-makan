@@ -23,6 +23,7 @@ export interface MarketListItem {
   latitude: number;
   longitude: number;
   boundaryGeojson?: MarketGeoJsonBoundary | null;
+  mapLayout?: MarketMapLayout | null;
   openingHours?: Record<
     string,
     { open: string; close: string; closed?: boolean }
@@ -37,6 +38,14 @@ export interface MarketListItem {
     publicServiceCount: number;
   };
   publicReadiness?: MarketPublicReadiness;
+}
+
+export interface MarketMapLayout {
+  title?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface MarketDetail extends MarketListItem {

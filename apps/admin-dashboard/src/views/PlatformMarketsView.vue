@@ -1045,6 +1045,57 @@
             placeholder='{"friday":{"open":"17:00","close":"23:30"}}'
           />
         </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">地圖標題</span>
+          <input
+            v-model="editForm.mapTitle"
+            type="text"
+            data-testid="market-map-title"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">地圖底圖 URL</span>
+          <input
+            v-model="editForm.mapImageUrl"
+            type="url"
+            data-testid="market-map-image-url"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block lg:col-span-2">
+          <span class="text-sm font-medium text-gray-700">地圖說明</span>
+          <textarea
+            v-model="editForm.mapDescription"
+            rows="2"
+            data-testid="market-map-description"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">地圖寬度</span>
+          <input
+            v-model="editForm.mapWidth"
+            type="number"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            data-testid="market-map-width"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">地圖高度</span>
+          <input
+            v-model="editForm.mapHeight"
+            type="number"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            data-testid="market-map-height"
+            class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+          />
+        </label>
       </div>
 
       <p v-if="formError" class="mt-4 text-sm text-red-600">
@@ -1807,6 +1858,11 @@ const editForm = reactive<MarketPublicProfileForm>({
   latitude: "",
   longitude: "",
   openingHoursText: "",
+  mapTitle: "",
+  mapDescription: "",
+  mapImageUrl: "",
+  mapWidth: "",
+  mapHeight: "",
   bannerUrl: "",
   logoUrl: "",
   imageUrlsText: "",

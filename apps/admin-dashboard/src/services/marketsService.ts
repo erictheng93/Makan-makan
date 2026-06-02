@@ -11,6 +11,14 @@ export type MarketGeoJsonBoundary =
       coordinates: number[][][][];
     };
 
+export interface MarketMapLayout {
+  title?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
+}
+
 export interface MarketCatalogGapVendor {
   restaurantId: string;
   name: string;
@@ -49,6 +57,7 @@ export interface MarketListItem {
   latitude?: number | null;
   longitude?: number | null;
   boundaryGeojson?: MarketGeoJsonBoundary | null;
+  mapLayout?: MarketMapLayout | null;
   openingHours?: Record<string, unknown> | null;
   bannerUrl?: string | null;
   logoUrl?: string | null;
@@ -135,6 +144,7 @@ export interface UpdateMarketPublicProfileInput {
   latitude: number;
   longitude: number;
   openingHours: Record<string, unknown> | null;
+  mapLayout: MarketMapLayout | null;
   bannerUrl: string | null;
   logoUrl: string | null;
   imageUrls: string[] | null;
@@ -152,6 +162,7 @@ export interface CreateMarketInput {
   latitude: number;
   longitude: number;
   boundaryGeojson?: MarketGeoJsonBoundary | null;
+  mapLayout?: MarketMapLayout | null;
   openingHours?: Record<string, unknown> | null;
   bannerUrl?: string | null;
   logoUrl?: string | null;

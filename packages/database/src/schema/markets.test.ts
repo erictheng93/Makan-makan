@@ -39,6 +39,7 @@ describe("market discovery schema", () => {
         "longitude",
         "boundary_geojson",
         "opening_hours",
+        "map_layout",
         "banner_url",
         "logo_url",
         "image_urls",
@@ -54,6 +55,7 @@ describe("market discovery schema", () => {
     expect(columnSqlType(markets, "latitude")).toBe("real");
     expect(columnSqlType(markets, "longitude")).toBe("real");
     expect(columnSqlType(markets, "boundary_geojson")).toBe("text");
+    expect(columnSqlType(markets, "map_layout")).toBe("text");
     expect(columnSqlType(markets, "platform_fee_rate_bps")).toBe("integer");
   });
 

@@ -6,9 +6,11 @@
   >
     <div class="flex items-start justify-between gap-3">
       <div>
-        <h2 class="text-base font-semibold text-gray-900">攤位示意圖</h2>
+        <h2 class="text-base font-semibold text-gray-900">
+          {{ mapTitle }}
+        </h2>
         <p class="mt-1 text-sm leading-5 text-gray-500">
-          依市場區域與攤位號查看店家位置。
+          {{ mapDescription }}
         </p>
       </div>
       <div class="shrink-0 text-right">
@@ -35,17 +37,20 @@
     <div
       v-if="positionedVendors.length > 0"
       data-testid="stall-position-map"
-      class="relative min-h-[18rem] overflow-hidden rounded-lg border border-gray-200 bg-white"
+      class="relative min-h-[18rem] overflow-hidden rounded-lg border border-gray-200 bg-white bg-cover bg-center"
       aria-label="攤位位置圖"
+      :style="positionMapStyle"
     >
-      <div
-        class="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-gray-200"
-        aria-hidden="true"
-      ></div>
-      <div
-        class="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 bg-gray-200"
-        aria-hidden="true"
-      ></div>
+      <template v-if="!layout?.imageUrl">
+        <div
+          class="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-gray-200"
+          aria-hidden="true"
+        ></div>
+        <div
+          class="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 bg-gray-200"
+          aria-hidden="true"
+        ></div>
+      </template>
       <button
         v-for="vendor in positionedVendors"
         :key="vendor.restaurantId"
@@ -165,10 +170,11 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { MarketVendor } from "@/services/marketsApi";
+import type { MarketMapLayout, MarketVendor } from "@/services/marketsApi";
 
 const props = defineProps<{
   vendors: MarketVendor[];
+  layout?: MarketMapLayout | null;
 }>();
 
 defineEmits<{
@@ -201,6 +207,23 @@ const positionedVendors = computed(() =>
 const openVendorCount = computed(
   () => mappedVendors.value.filter((vendor) => vendor.isOpen).length,
 );
+
+const mapTitle = computed(() => props.layout?.title?.trim() || "攤位示意圖");
+
+const mapDescription = computed(
+  () => props.layout?.description?.trim() || "依市場區域與攤位號查看店家位置。",
+);
+
+const positionMapStyle = computed(() => {
+  const style: Record<string, string> = {};
+  if (props.layout?.imageUrl) {
+    style.backgroundImage = `url("${props.layout.imageUrl}")`;
+  }
+  if (props.layout?.width && props.layout?.height) {
+    style.aspectRatio = `${props.layout.width} / ${props.layout.height}`;
+  }
+  return style;
+});
 
 const groupedVendors = computed(() => {
   const groups = new Map<string, MarketVendor[]>();

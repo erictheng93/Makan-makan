@@ -20,6 +20,14 @@ export type MarketGeoJsonBoundary =
       coordinates: number[][][][];
     };
 
+export interface MarketMapLayout {
+  title?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
+}
+
 export const markets = sqliteTable(
   "markets",
   {
@@ -42,6 +50,9 @@ export const markets = sqliteTable(
       string,
       { open: string; close: string; closed?: boolean }
     > | null>(),
+    mapLayout: text("map_layout", {
+      mode: "json",
+    }).$type<MarketMapLayout | null>(),
     bannerUrl: text("banner_url"),
     logoUrl: text("logo_url"),
     imageUrls: text("image_urls", { mode: "json" }).$type<string[]>(),
