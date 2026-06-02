@@ -202,6 +202,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerSplitUrlConfigured: boolean;
   providerSplitHealthUrlConfigured: boolean;
   providerStatusUrlConfigured: boolean;
+  providerRefundUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   providerSplitSigningConfigured: boolean;
   providerWebhookSecretConfigured: boolean;

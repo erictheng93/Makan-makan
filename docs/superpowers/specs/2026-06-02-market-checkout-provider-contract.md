@@ -73,6 +73,7 @@ MARKET_CHECKOUT_SPLIT_MODE=provider_split
 MARKET_CHECKOUT_PROVIDER_SPLIT_URL=https://provider.example.test/market-split
 MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL=https://provider.example.test/health
 MARKET_CHECKOUT_PROVIDER_STATUS_URL=https://provider.example.test/market-split/status
+MARKET_CHECKOUT_PROVIDER_REFUND_URL=https://provider.example.test/market-split/refunds
 MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN=optional-bearer-token
 MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET=optional-request-signing-secret
 MARKET_CHECKOUT_WEBHOOK_SECRET=webhook-verification-secret
@@ -85,7 +86,10 @@ Readiness rules:
   `warning`, because payment status callbacks will be rejected.
 - Configured gateway URL without `MARKET_CHECKOUT_PROVIDER_STATUS_URL` means
   `warning`, because manual reconciliation cannot query provider state.
-- Configured gateway URL, webhook secret, and provider status URL means `ready`.
+- Configured gateway URL without `MARKET_CHECKOUT_PROVIDER_REFUND_URL` means
+  `warning`, because provider split refunds cannot be requested.
+- Configured gateway URL, webhook secret, provider status URL, and provider
+  refund URL means `ready`.
 - `MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET` is optional for non-production
   experiments, but should be configured before production because provider split
   requests include payment allocation data.
@@ -373,6 +377,57 @@ each batch to 25 payments, calls `MARKET_CHECKOUT_PROVIDER_STATUS_URL`, and
 applies the same ledger/session/KV update path as manual admin reconciliation.
 If provider split mode or the status lookup URL is not configured, the cron task
 skips without mutating payment state.
+
+## Provider Refund Contract
+
+Provider split refunds send a JSON `POST` to
+`MARKET_CHECKOUT_PROVIDER_REFUND_URL`. Headers match the gateway request
+contract, including optional bearer-token authentication and HMAC request
+signing.
+
+The request body is:
+
+```json
+{
+  "checkoutId": "checkout-1",
+  "paymentId": "market_pay_checkout-1",
+  "provider": "mock_market_provider",
+  "providerTransactionId": "intent-market-checkout-1",
+  "idempotencyKey": "market-checkout:checkout-1:refund",
+  "amountCents": 24000,
+  "currency": "TWD",
+  "reason": "customer_request",
+  "allocations": [
+    {
+      "restaurantId": "restaurant-1",
+      "restaurantName": "Chicken Stall",
+      "orderId": 101,
+      "orderNumber": "A001",
+      "amountCents": 16000
+    }
+  ]
+}
+```
+
+Expected response:
+
+```json
+{
+  "provider": "mock_market_provider",
+  "providerTransactionId": "intent-market-checkout-1",
+  "refundId": "refund-market-checkout-1",
+  "status": "refunded",
+  "refundedAmountCents": 24000,
+  "currency": "TWD",
+  "eventId": "refund-market-checkout-1",
+  "eventType": "market_checkout.payment_refunded",
+  "providerPayload": {}
+}
+```
+
+Allowed refund `status` values are `refunded`, `partial_refunded`, `pending`,
+and `failed`. Future route-level integration must fail closed when
+`MARKET_CHECKOUT_PROVIDER_REFUND_URL` is missing for provider split payments.
 
 ## Health Check Contract
 

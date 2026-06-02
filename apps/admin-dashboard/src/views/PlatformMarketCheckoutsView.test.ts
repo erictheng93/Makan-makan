@@ -115,6 +115,7 @@ describe("PlatformMarketCheckoutsView", () => {
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
       providerStatusUrlConfigured: false,
+      providerRefundUrlConfigured: false,
       providerSplitTokenConfigured: false,
       providerSplitSigningConfigured: false,
       providerWebhookSecretConfigured: false,
@@ -368,6 +369,9 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
       "Provider status lookup URL",
+    );
+    expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
+      "Provider refund URL",
     );
 
     await wrapper

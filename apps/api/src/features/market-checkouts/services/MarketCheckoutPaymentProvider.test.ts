@@ -9,10 +9,13 @@ import {
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
   queryMarketCheckoutProviderSplitStatus,
+  refundMarketCheckoutProviderSplitPayment,
   signMarketCheckoutProviderSplitPayload,
 } from "./MarketCheckoutPaymentProvider";
 import {
   mockMarketCheckoutProviderGatewayInput,
+  mockMarketCheckoutProviderRefundInput,
+  mockMarketCheckoutProviderRefundResponse,
   mockMarketCheckoutProviderRequiredOperations,
   mockMarketCheckoutProviderPaidStatusResponse,
   mockMarketCheckoutProviderPendingResponse,
@@ -824,6 +827,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           "https://payments.example.test/health",
         MARKET_CHECKOUT_PROVIDER_STATUS_URL:
           "https://payments.example.test/market-split/status",
+        MARKET_CHECKOUT_PROVIDER_REFUND_URL:
+          "https://payments.example.test/market-split/refunds",
         MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
         MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET: "split-signing-secret",
         MARKET_CHECKOUT_WEBHOOK_SECRET: "webhook-secret",
@@ -835,6 +840,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerSplitUrlConfigured: true,
       providerSplitHealthUrlConfigured: true,
       providerStatusUrlConfigured: true,
+      providerRefundUrlConfigured: true,
       providerSplitTokenConfigured: true,
       providerSplitSigningConfigured: true,
       providerWebhookSecretConfigured: true,
@@ -866,6 +872,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       missingConfiguration: [
         "MARKET_CHECKOUT_WEBHOOK_SECRET",
         "MARKET_CHECKOUT_PROVIDER_STATUS_URL",
+        "MARKET_CHECKOUT_PROVIDER_REFUND_URL",
       ],
     });
   });
@@ -989,6 +996,57 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       provider: "mock_market_provider",
       providerTransactionId: "intent-market-checkout-1",
       amountCents: 24000,
+    });
+  });
+
+  it("requests provider split refunds with auth and signed payload", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(JSON.stringify(mockMarketCheckoutProviderRefundResponse)),
+    );
+
+    await expect(
+      refundMarketCheckoutProviderSplitPayment(
+        {
+          MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+          MARKET_CHECKOUT_PROVIDER_REFUND_URL:
+            "https://payments.example.test/market-split/refunds",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+          MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET: "split-signing-secret",
+        } as Env,
+        mockMarketCheckoutProviderRefundInput,
+        fetcher as never,
+      ),
+    ).resolves.toMatchObject({
+      provider: "mock_market_provider",
+      providerTransactionId: "intent-market-checkout-1",
+      refundId: "refund-market-checkout-1",
+      status: "refunded",
+      refundedAmountCents: 24000,
+      currency: "TWD",
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://payments.example.test/market-split/refunds",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          authorization: "Bearer split-token",
+          "x-market-checkout-signature-algorithm": "hmac-sha256",
+          "x-market-checkout-signature": expect.any(String),
+        }),
+      }),
+    );
+    const request = fetcher.mock.calls[0]?.[1] as { body?: string } | undefined;
+    expect(JSON.parse(request?.body ?? "{}")).toMatchObject({
+      checkoutId: "checkout-1",
+      paymentId: "market_pay_checkout-1",
+      provider: "mock_market_provider",
+      providerTransactionId: "intent-market-checkout-1",
+      amountCents: 24000,
+      reason: "customer_request",
+      allocations: expect.arrayContaining([
+        expect.objectContaining({ orderId: 101, amountCents: 16000 }),
+      ]),
     });
   });
 

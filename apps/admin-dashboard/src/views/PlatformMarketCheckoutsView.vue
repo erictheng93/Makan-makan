@@ -917,6 +917,10 @@ const providerConfigurationChecks = computed(() => {
       configured: providerStatus.value.providerStatusUrlConfigured,
     },
     {
+      label: "Provider refund URL",
+      configured: providerStatus.value.providerRefundUrlConfigured,
+    },
+    {
       label: "Request signing secret",
       configured: providerStatus.value.providerSplitSigningConfigured,
     },

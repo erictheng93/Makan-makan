@@ -77,6 +77,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerSplitUrlConfigured: boolean;
   providerSplitHealthUrlConfigured: boolean;
   providerStatusUrlConfigured: boolean;
+  providerRefundUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   providerSplitSigningConfigured: boolean;
   providerWebhookSecretConfigured: boolean;
@@ -147,6 +148,30 @@ export interface MarketCheckoutProviderSplitStatusResult {
   status: "paid" | "pending" | "failed" | "refunded" | "partial_refunded";
   amountReceivedCents?: number;
   amountRefundedCents?: number;
+  currency?: string;
+  eventId?: string;
+  eventType?: string;
+  providerPayload?: Record<string, unknown>;
+}
+
+export interface MarketCheckoutProviderSplitRefundInput {
+  checkoutId: string;
+  paymentId: string;
+  provider: string;
+  providerTransactionId?: string;
+  idempotencyKey?: string;
+  amountCents: number;
+  currency?: string;
+  reason?: string;
+  allocations: MarketCheckoutProviderSplitAllocation[];
+}
+
+export interface MarketCheckoutProviderSplitRefundResult {
+  provider: string;
+  providerTransactionId?: string;
+  refundId: string;
+  status: "refunded" | "partial_refunded" | "pending" | "failed";
+  refundedAmountCents: number;
   currency?: string;
   eventId?: string;
   eventType?: string;
@@ -431,6 +456,9 @@ export function getMarketCheckoutPaymentProviderStatus(
   const providerStatusUrlConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_STATUS_URL,
   );
+  const providerRefundUrlConfigured = Boolean(
+    env.MARKET_CHECKOUT_PROVIDER_REFUND_URL,
+  );
   const providerSplitTokenConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
   );
@@ -452,6 +480,9 @@ export function getMarketCheckoutPaymentProviderStatus(
     if (providerSplitUrlConfigured && !providerStatusUrlConfigured) {
       missingConfiguration.push("MARKET_CHECKOUT_PROVIDER_STATUS_URL");
     }
+    if (providerSplitUrlConfigured && !providerRefundUrlConfigured) {
+      missingConfiguration.push("MARKET_CHECKOUT_PROVIDER_REFUND_URL");
+    }
     const providerCapabilities = [
       ...MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS,
       "aggregate_authorization",
@@ -472,13 +503,16 @@ export function getMarketCheckoutPaymentProviderStatus(
       splitMode,
       readiness: !providerSplitUrlConfigured
         ? "not_configured"
-        : providerWebhookSecretConfigured && providerStatusUrlConfigured
+        : providerWebhookSecretConfigured &&
+            providerStatusUrlConfigured &&
+            providerRefundUrlConfigured
           ? "ready"
           : "warning",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured,
       providerSplitHealthUrlConfigured,
       providerStatusUrlConfigured,
+      providerRefundUrlConfigured,
       providerSplitTokenConfigured,
       providerSplitSigningConfigured,
       providerWebhookSecretConfigured,
@@ -500,6 +534,9 @@ export function getMarketCheckoutPaymentProviderStatus(
             providerStatusUrlConfigured
               ? "Provider status lookup URL is configured for manual reconciliation."
               : "Provider status lookup URL is not configured; manual reconciliation will be unavailable.",
+            providerRefundUrlConfigured
+              ? "Provider refund URL is configured for provider split refunds."
+              : "Provider refund URL is not configured; provider split refunds will be unavailable.",
             providerSplitHealthUrlConfigured
               ? "Provider split health check URL is configured."
               : "Provider split health check URL is not configured; connectivity is not verified.",
@@ -517,6 +554,7 @@ export function getMarketCheckoutPaymentProviderStatus(
     providerSplitUrlConfigured,
     providerSplitHealthUrlConfigured,
     providerStatusUrlConfigured,
+    providerRefundUrlConfigured,
     providerSplitTokenConfigured,
     providerSplitSigningConfigured,
     providerWebhookSecretConfigured,
@@ -654,25 +692,7 @@ export async function queryMarketCheckoutProviderSplitStatus(
   }
 
   const body = JSON.stringify(input);
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    ...(env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN
-      ? {
-          authorization: `Bearer ${env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN}`,
-        }
-      : {}),
-  };
-  if (env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET) {
-    const timestamp = new Date().toISOString();
-    headers["x-market-checkout-signature-algorithm"] = "hmac-sha256";
-    headers["x-market-checkout-signature-timestamp"] = timestamp;
-    headers["x-market-checkout-signature"] =
-      await signMarketCheckoutProviderSplitPayload(
-        env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET,
-        timestamp,
-        body,
-      );
-  }
+  const headers = await buildProviderSplitHeaders(env, body);
 
   const response = await fetcher(env.MARKET_CHECKOUT_PROVIDER_STATUS_URL, {
     method: "POST",
@@ -687,6 +707,38 @@ export async function queryMarketCheckoutProviderSplitStatus(
 
   return parseHttpStatusResult(
     (await response.json()) as Partial<MarketCheckoutProviderSplitStatusResult>,
+  );
+}
+
+export async function refundMarketCheckoutProviderSplitPayment(
+  env: Env,
+  input: MarketCheckoutProviderSplitRefundInput,
+  fetcher: typeof fetch = fetch,
+): Promise<MarketCheckoutProviderSplitRefundResult> {
+  if (env.MARKET_CHECKOUT_SPLIT_MODE !== "provider_split") {
+    throw new Error(
+      "Market checkout provider refunds require provider_split mode",
+    );
+  }
+  if (!env.MARKET_CHECKOUT_PROVIDER_REFUND_URL) {
+    throw new Error("Market checkout provider refund URL is not configured");
+  }
+
+  const body = JSON.stringify(input);
+  const headers = await buildProviderSplitHeaders(env, body);
+  const response = await fetcher(env.MARKET_CHECKOUT_PROVIDER_REFUND_URL, {
+    method: "POST",
+    headers,
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Market checkout provider refund failed: ${response.status}`,
+    );
+  }
+
+  return parseHttpRefundResult(
+    (await response.json()) as Partial<MarketCheckoutProviderSplitRefundResult>,
   );
 }
 
@@ -791,6 +843,69 @@ function parseHttpStatusResult(
         ? payload.providerPayload
         : undefined,
   };
+}
+
+function parseHttpRefundResult(
+  payload: Partial<MarketCheckoutProviderSplitRefundResult>,
+): MarketCheckoutProviderSplitRefundResult {
+  if (
+    !payload.provider ||
+    !payload.refundId ||
+    !payload.status ||
+    typeof payload.refundedAmountCents !== "number"
+  ) {
+    throw new Error("Invalid provider refund response");
+  }
+  if (
+    !["refunded", "partial_refunded", "pending", "failed"].includes(
+      payload.status,
+    )
+  ) {
+    throw new Error("Invalid provider refund status");
+  }
+
+  return {
+    provider: payload.provider,
+    providerTransactionId:
+      typeof payload.providerTransactionId === "string"
+        ? payload.providerTransactionId
+        : undefined,
+    refundId: payload.refundId,
+    status: payload.status,
+    refundedAmountCents: Math.round(payload.refundedAmountCents),
+    currency:
+      typeof payload.currency === "string" ? payload.currency : undefined,
+    eventId: typeof payload.eventId === "string" ? payload.eventId : undefined,
+    eventType:
+      typeof payload.eventType === "string" ? payload.eventType : undefined,
+    providerPayload:
+      payload.providerPayload && typeof payload.providerPayload === "object"
+        ? payload.providerPayload
+        : undefined,
+  };
+}
+
+async function buildProviderSplitHeaders(env: Env, body: string) {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    ...(env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN
+      ? {
+          authorization: `Bearer ${env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN}`,
+        }
+      : {}),
+  };
+  if (env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET) {
+    const timestamp = new Date().toISOString();
+    headers["x-market-checkout-signature-algorithm"] = "hmac-sha256";
+    headers["x-market-checkout-signature-timestamp"] = timestamp;
+    headers["x-market-checkout-signature"] =
+      await signMarketCheckoutProviderSplitPayload(
+        env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET,
+        timestamp,
+        body,
+      );
+  }
+  return headers;
 }
 
 function isProviderSplitGatewayStatus(

@@ -1,4 +1,6 @@
 import type {
+  MarketCheckoutProviderSplitRefundInput,
+  MarketCheckoutProviderSplitRefundResult,
   MarketCheckoutProviderSplitGatewayInput,
   MarketCheckoutProviderSplitGatewayResult,
   MarketCheckoutProviderSplitStatusResult,
@@ -92,6 +94,47 @@ export const mockMarketCheckoutProviderPaidStatusResponse: MarketCheckoutProvide
     currency: "TWD",
     eventId: "reconcile-market-checkout-1",
     eventType: "market_checkout.payment_paid",
+  };
+
+export const mockMarketCheckoutProviderRefundInput: MarketCheckoutProviderSplitRefundInput =
+  {
+    checkoutId: "checkout-1",
+    paymentId: "market_pay_checkout-1",
+    provider: "mock_market_provider",
+    providerTransactionId: "intent-market-checkout-1",
+    idempotencyKey: "market-checkout:checkout-1:refund",
+    amountCents: 24000,
+    currency: "TWD",
+    reason: "customer_request",
+    allocations: [
+      {
+        restaurantId: "restaurant-1",
+        restaurantName: "Chicken Stall",
+        orderId: 101,
+        orderNumber: "A001",
+        amountCents: 16000,
+      },
+      {
+        restaurantId: "restaurant-2",
+        restaurantName: "Dessert Stall",
+        orderId: 102,
+        orderNumber: "A002",
+        amountCents: 8000,
+      },
+    ],
+  };
+
+export const mockMarketCheckoutProviderRefundResponse: MarketCheckoutProviderSplitRefundResult =
+  {
+    provider: "mock_market_provider",
+    providerTransactionId: "intent-market-checkout-1",
+    refundId: "refund-market-checkout-1",
+    status: "refunded",
+    refundedAmountCents: 24000,
+    currency: "TWD",
+    providerPayload: {
+      reason: "customer_request",
+    },
   };
 
 export const mockMarketCheckoutProviderPaidWebhookPayload = {

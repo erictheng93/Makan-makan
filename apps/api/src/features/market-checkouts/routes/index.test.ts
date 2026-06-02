@@ -2205,9 +2205,11 @@ describe("market checkout routes", () => {
         providerSplitUrlConfigured: true,
         providerWebhookSecretConfigured: false,
         providerStatusUrlConfigured: false,
+        providerRefundUrlConfigured: false,
         missingConfiguration: [
           "MARKET_CHECKOUT_WEBHOOK_SECRET",
           "MARKET_CHECKOUT_PROVIDER_STATUS_URL",
+          "MARKET_CHECKOUT_PROVIDER_REFUND_URL",
         ],
       },
     });
@@ -2219,6 +2221,8 @@ describe("market checkout routes", () => {
         "https://payments.example.test/market-split",
       MARKET_CHECKOUT_PROVIDER_STATUS_URL:
         "https://payments.example.test/market-split/status",
+      MARKET_CHECKOUT_PROVIDER_REFUND_URL:
+        "https://payments.example.test/market-split/refunds",
       MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
       MARKET_CHECKOUT_WEBHOOK_SECRET: "webhook-secret",
     };
@@ -2233,6 +2237,7 @@ describe("market checkout routes", () => {
         providerSplitUrlConfigured: true,
         providerSplitHealthUrlConfigured: false,
         providerStatusUrlConfigured: true,
+        providerRefundUrlConfigured: true,
         providerSplitTokenConfigured: true,
         providerSplitSigningConfigured: false,
         providerWebhookSecretConfigured: true,
