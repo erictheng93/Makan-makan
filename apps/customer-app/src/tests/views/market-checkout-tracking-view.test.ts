@@ -6,6 +6,9 @@ const routerPush = vi.hoisted(() => vi.fn());
 const getMarketCheckout = vi.hoisted(() => vi.fn());
 const payMarketCheckout = vi.hoisted(() => vi.fn());
 const recoverMarketCheckoutGuestToken = vi.hoisted(() => vi.fn());
+const windowOpen = vi.hoisted(() => vi.fn());
+
+vi.stubGlobal("open", windowOpen);
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
@@ -43,6 +46,7 @@ describe("MarketCheckoutTrackingView", () => {
     getMarketCheckout.mockReset();
     payMarketCheckout.mockReset();
     recoverMarketCheckoutGuestToken.mockReset();
+    windowOpen.mockReset();
   });
 
   it("loads and renders a market checkout summary", async () => {
@@ -385,6 +389,119 @@ describe("MarketCheckoutTrackingView", () => {
     expect(
       localStorage.getItem("makanmakan_recent_market_checkouts"),
     ).toContain('"paymentStatus":"paid"');
+  });
+
+  it("redirects users when a provider payment requires an external action", async () => {
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      subtotal: 160,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+    payMarketCheckout.mockResolvedValueOnce({
+      checkout: {
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "pending",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 160,
+          totalAmountCents: 16000,
+          paidAmount: 0,
+          paidAmountCents: 0,
+          childPayments: [],
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "pending",
+            provider: "future_provider",
+            splitMode: "provider_split",
+            idempotencyKey: "market-checkout:checkout-1",
+            providerTransactionId: "intent-market-1",
+            nextAction: {
+              type: "redirect",
+              redirectUrl:
+                "https://payments.example.test/confirm/intent-market-1",
+            },
+            amountCents: 16000,
+            paidAmountCents: 0,
+            refundedAmountCents: 0,
+            childPaymentIds: [],
+            createdAt: "2026-06-01T10:00:00.000Z",
+            updatedAt: "2026-06-01T10:10:00.000Z",
+          },
+        },
+        subtotal: 160,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+      payment: {
+        status: "pending",
+        method: "market_online",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 160,
+        totalAmountCents: 16000,
+        paidAmount: 0,
+        paidAmountCents: 0,
+        childPayments: [],
+        parentPayment: {
+          paymentId: "market_pay_checkout-1",
+          status: "pending",
+          provider: "future_provider",
+          splitMode: "provider_split",
+          idempotencyKey: "market-checkout:checkout-1",
+          providerTransactionId: "intent-market-1",
+          nextAction: {
+            type: "redirect",
+            redirectUrl:
+              "https://payments.example.test/confirm/intent-market-1",
+          },
+          amountCents: 16000,
+          paidAmountCents: 0,
+          refundedAmountCents: 0,
+          childPaymentIds: [],
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:10:00.000Z",
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="market-checkout-pay"]').trigger("click");
+    await flushPromises();
+
+    expect(windowOpen).toHaveBeenCalledWith(
+      "https://payments.example.test/confirm/intent-market-1",
+      "_self",
+    );
+    expect(
+      wrapper.get('[data-testid="market-checkout-payment-action"]').text(),
+    ).toContain("正在前往付款頁");
   });
 
   it("shows partial payment failures and lets users retry unpaid vendors", async () => {

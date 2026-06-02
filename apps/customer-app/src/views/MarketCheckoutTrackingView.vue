@@ -146,6 +146,13 @@
           >
             {{ paymentError }}
           </p>
+          <p
+            v-if="paymentActionMessage"
+            data-testid="market-checkout-payment-action"
+            class="mt-2 text-sm text-amber-700"
+          >
+            {{ paymentActionMessage }}
+          </p>
         </section>
 
         <section class="mt-4 space-y-3">
@@ -223,7 +230,11 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import type { OrderPaymentStatus, OrderStatus } from "@makanmakan/shared-types";
-import { orderApi, type MarketCheckoutSummary } from "@/services/orderApi";
+import {
+  orderApi,
+  type MarketCheckoutProviderNextAction,
+  type MarketCheckoutSummary,
+} from "@/services/orderApi";
 import { useCurrency } from "@/composables/useCurrency";
 import {
   activateMarketCheckoutGuestToken,
@@ -243,6 +254,7 @@ const isLoading = ref(true);
 const isPaying = ref(false);
 const error = ref<string | null>(null);
 const paymentError = ref<string | null>(null);
+const paymentActionMessage = ref<string | null>(null);
 const orderAccessError = ref<string | null>(null);
 
 const statusLabel = computed(() => {
@@ -318,6 +330,7 @@ async function loadCheckout() {
 
 async function payCheckout() {
   paymentError.value = null;
+  paymentActionMessage.value = null;
   isPaying.value = true;
   try {
     const result = await orderApi.payMarketCheckout(props.checkoutId, {
@@ -327,6 +340,10 @@ async function payCheckout() {
     });
     checkout.value = result.checkout;
     recordRecentMarketCheckout(result.checkout);
+    handleProviderNextAction(
+      result.payment.parentPayment?.nextAction ??
+        result.checkout.payment?.parentPayment?.nextAction,
+    );
   } catch (payError) {
     console.error("Failed to pay market checkout:", payError);
     paymentError.value =
@@ -334,6 +351,25 @@ async function payCheckout() {
   } finally {
     isPaying.value = false;
   }
+}
+
+function handleProviderNextAction(
+  nextAction: MarketCheckoutProviderNextAction | undefined,
+) {
+  if (!nextAction) return;
+
+  if (nextAction.type === "redirect" && nextAction.redirectUrl) {
+    paymentActionMessage.value = "正在前往付款頁，請完成付款後回到此頁追蹤。";
+    window.open(nextAction.redirectUrl, "_self");
+    return;
+  }
+
+  if (nextAction.type === "client_secret") {
+    paymentActionMessage.value = "付款已建立，等待金流元件完成確認。";
+    return;
+  }
+
+  paymentActionMessage.value = "付款已建立，等待金流 SDK 完成確認。";
 }
 
 async function openChildOrder(
