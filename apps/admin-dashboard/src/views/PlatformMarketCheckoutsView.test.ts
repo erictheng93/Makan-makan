@@ -9,6 +9,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
   marketCheckoutsService: {
     list: vi.fn(),
     get: vi.fn(),
+    summary: vi.fn(),
     refund: vi.fn(),
   },
 }));
@@ -33,6 +34,34 @@ describe("PlatformMarketCheckoutsView", () => {
       total: 1,
       page: 1,
       limit: 20,
+    });
+    vi.mocked(marketCheckoutsService.summary).mockResolvedValue({
+      totalCheckouts: 2,
+      totalSubtotalCents: 32000,
+      paidAmountCents: 16000,
+      refundedAmountCents: 8000,
+      netPaidAmountCents: 8000,
+      averageCheckoutCents: 16000,
+      childOrderCount: 3,
+      paymentStatusCounts: {
+        pending: 0,
+        partial_paid: 1,
+        paid: 0,
+        failed: 1,
+        refunded: 0,
+        partial_refunded: 0,
+      },
+      topMarkets: [
+        {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          checkoutCount: 2,
+          subtotalCents: 32000,
+          paidAmountCents: 16000,
+          refundedAmountCents: 8000,
+        },
+      ],
     });
     vi.mocked(marketCheckoutsService.get).mockResolvedValue({
       id: "checkout-1",
@@ -124,9 +153,21 @@ describe("PlatformMarketCheckoutsView", () => {
       marketSlug: "",
       paymentStatus: "",
     });
+    expect(marketCheckoutsService.summary).toHaveBeenCalledWith({
+      marketSlug: "",
+    });
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("部分付款");
     expect(wrapper.text()).toContain("2 攤");
+    expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
+      "GMV",
+    );
+    expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
+      "$320",
+    );
+    expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
+      "異常",
+    );
 
     await wrapper
       .get('[data-testid="open-checkout-checkout-1"]')

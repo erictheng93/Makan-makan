@@ -98,6 +98,10 @@ interface MarketCheckoutIndexItem {
   updatedAt: string;
 }
 
+interface MarketCheckoutSummaryItem extends MarketCheckoutIndexItem {
+  payment?: MarketCheckoutPaymentSummary;
+}
+
 interface MarketCheckoutPaymentSummary {
   status:
     | "pending"
@@ -732,6 +736,27 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
+app.get("/admin/summary", authMiddleware, requireRole([0]), async (c) => {
+  const marketSlug = c.req.query("marketSlug");
+  const persistedItems = await readPersistedMarketCheckoutSummaryItems(c.env);
+  const items =
+    persistedItems.length > 0
+      ? persistedItems
+      : (await readMarketCheckoutIndex(c.env.CACHE_KV)).map((item) => ({
+          ...item,
+          payment: undefined,
+        }));
+  const filtered = items.filter((item) => {
+    if (marketSlug && item.market.slug !== marketSlug) return false;
+    return true;
+  });
+
+  return c.json({
+    success: true,
+    data: buildMarketCheckoutAdminSummary(filtered),
+  });
+});
+
 app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
   const page = coercePositiveInt(c.req.query("page"), 1);
   const limit = Math.min(coercePositiveInt(c.req.query("limit"), 20), 100);
@@ -964,6 +989,104 @@ async function readPersistedMarketCheckoutIndex(
     createdAt: toIsoString(row.createdAt),
     updatedAt: toIsoString(row.updatedAt),
   }));
+}
+
+async function readPersistedMarketCheckoutSummaryItems(
+  env: Env,
+): Promise<MarketCheckoutSummaryItem[]> {
+  const db = createDatabase(env.DB);
+  const rows = await db
+    .select()
+    .from(marketCheckoutSessions)
+    .orderBy(desc(marketCheckoutSessions.createdAt))
+    .limit(MARKET_CHECKOUT_INDEX_LIMIT)
+    .all();
+
+  return rows.map((row) => ({
+    id: row.id,
+    market: {
+      id: row.marketId,
+      slug: row.marketSlug,
+      name: row.marketName,
+    },
+    status: row.status as MarketCheckoutSession["status"],
+    paymentStatus:
+      row.paymentStatus as MarketCheckoutIndexItem["paymentStatus"],
+    subtotal: row.subtotalCents,
+    childOrderCount: row.childOrderCount,
+    payment: (row.paymentSummary ?? undefined) as
+      | MarketCheckoutPaymentSummary
+      | undefined,
+    createdAt: toIsoString(row.createdAt),
+    updatedAt: toIsoString(row.updatedAt),
+  }));
+}
+
+function buildMarketCheckoutAdminSummary(items: MarketCheckoutSummaryItem[]) {
+  const paymentStatusCounts: Record<string, number> = {
+    pending: 0,
+    partial_paid: 0,
+    paid: 0,
+    failed: 0,
+    refunded: 0,
+    partial_refunded: 0,
+  };
+  const markets = new Map<
+    string,
+    {
+      id: string;
+      slug: string;
+      name: string;
+      checkoutCount: number;
+      subtotalCents: number;
+      paidAmountCents: number;
+      refundedAmountCents: number;
+    }
+  >();
+
+  let subtotalCents = 0;
+  let paidAmountCents = 0;
+  let refundedAmountCents = 0;
+  let childOrderCount = 0;
+
+  for (const item of items) {
+    const status = item.paymentStatus ?? "pending";
+    paymentStatusCounts[status] = (paymentStatusCounts[status] ?? 0) + 1;
+    subtotalCents += item.subtotal;
+    paidAmountCents += item.payment?.paidAmountCents ?? 0;
+    refundedAmountCents += item.payment?.refundedAmountCents ?? 0;
+    childOrderCount += item.childOrderCount;
+
+    const market = markets.get(item.market.slug) ?? {
+      id: item.market.id,
+      slug: item.market.slug,
+      name: item.market.name,
+      checkoutCount: 0,
+      subtotalCents: 0,
+      paidAmountCents: 0,
+      refundedAmountCents: 0,
+    };
+    market.checkoutCount += 1;
+    market.subtotalCents += item.subtotal;
+    market.paidAmountCents += item.payment?.paidAmountCents ?? 0;
+    market.refundedAmountCents += item.payment?.refundedAmountCents ?? 0;
+    markets.set(item.market.slug, market);
+  }
+
+  return {
+    totalCheckouts: items.length,
+    totalSubtotalCents: subtotalCents,
+    paidAmountCents,
+    refundedAmountCents,
+    netPaidAmountCents: paidAmountCents - refundedAmountCents,
+    averageCheckoutCents:
+      items.length > 0 ? Math.round(subtotalCents / items.length) : 0,
+    childOrderCount,
+    paymentStatusCounts,
+    topMarkets: Array.from(markets.values())
+      .sort((a, b) => b.subtotalCents - a.subtotalCents)
+      .slice(0, 5),
+  };
 }
 
 async function readPersistedMarketCheckoutSession(

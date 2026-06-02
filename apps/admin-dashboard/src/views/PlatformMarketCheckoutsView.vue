@@ -50,6 +50,60 @@
       </div>
     </section>
 
+    <section
+      v-if="summary"
+      data-testid="checkout-summary"
+      class="grid gap-3 md:grid-cols-3 xl:grid-cols-6"
+    >
+      <div
+        v-for="metric in summaryMetrics"
+        :key="metric.label"
+        class="rounded-lg bg-white p-4 shadow-ios-card"
+      >
+        <div class="text-xs font-medium text-gray-500">{{ metric.label }}</div>
+        <div class="mt-2 text-xl font-semibold text-gray-900">
+          {{ metric.value }}
+        </div>
+      </div>
+    </section>
+
+    <section
+      v-if="summary?.topMarkets.length"
+      class="rounded-lg bg-white p-4 shadow-ios-card"
+    >
+      <div class="mb-3 text-sm font-semibold text-gray-900">市場排行</div>
+      <div class="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <article
+          v-for="market in summary.topMarkets"
+          :key="market.slug"
+          class="rounded-lg border border-gray-200 p-3"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold text-gray-900">{{ market.name }}</div>
+              <div class="mt-1 text-xs text-gray-500">/{{ market.slug }}</div>
+            </div>
+            <div class="text-right text-sm font-semibold text-gray-900">
+              {{ formatCents(market.subtotalCents) }}
+            </div>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+            <span class="rounded-full bg-gray-100 px-2.5 py-1">
+              {{ market.checkoutCount }} 筆
+            </span>
+            <span
+              class="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700"
+            >
+              已收 {{ formatCents(market.paidAmountCents) }}
+            </span>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">
+              已退 {{ formatCents(market.refundedAmountCents) }}
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="rounded-lg bg-white shadow-ios-card">
       <div v-if="error" class="p-4 text-sm text-red-600">{{ error }}</div>
       <div v-else-if="isLoading" class="p-8 text-center text-sm text-gray-500">
@@ -208,10 +262,12 @@ import {
   type MarketCheckoutDetail,
   type MarketCheckoutListItem,
   type MarketCheckoutPaymentStatus,
+  type MarketCheckoutSummary,
 } from "@/services/marketCheckoutsService";
 
 const checkouts = ref<MarketCheckoutListItem[]>([]);
 const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
+const summary = ref<MarketCheckoutSummary | null>(null);
 const isLoading = ref(false);
 const isRefunding = ref(false);
 const error = ref<string | null>(null);
@@ -223,17 +279,41 @@ const canRefundSelectedCheckout = computed(() => {
   return status === "paid" || status === "partial_paid";
 });
 
+const summaryMetrics = computed(() => {
+  if (!summary.value) return [];
+  const failedCount = summary.value.paymentStatusCounts.failed ?? 0;
+  const partialCount = summary.value.paymentStatusCounts.partial_paid ?? 0;
+  return [
+    { label: "Checkout", value: String(summary.value.totalCheckouts) },
+    { label: "GMV", value: formatCents(summary.value.totalSubtotalCents) },
+    { label: "已收", value: formatCents(summary.value.paidAmountCents) },
+    { label: "已退", value: formatCents(summary.value.refundedAmountCents) },
+    { label: "淨收", value: formatCents(summary.value.netPaidAmountCents) },
+    {
+      label: "異常",
+      value: String(failedCount + partialCount),
+    },
+  ];
+});
+
 async function loadCheckouts() {
   isLoading.value = true;
   error.value = null;
   try {
-    const result = await marketCheckoutsService.list({
-      page: 1,
-      limit: 20,
-      marketSlug: marketSlug.value.trim(),
-      paymentStatus: paymentStatus.value,
-    });
+    const trimmedMarketSlug = marketSlug.value.trim();
+    const [result, nextSummary] = await Promise.all([
+      marketCheckoutsService.list({
+        page: 1,
+        limit: 20,
+        marketSlug: trimmedMarketSlug,
+        paymentStatus: paymentStatus.value,
+      }),
+      marketCheckoutsService.summary({
+        marketSlug: trimmedMarketSlug,
+      }),
+    ]);
     checkouts.value = result.checkouts;
+    summary.value = nextSummary;
   } catch (loadError) {
     error.value =
       loadError instanceof Error ? loadError.message : "市場結帳讀取失敗";

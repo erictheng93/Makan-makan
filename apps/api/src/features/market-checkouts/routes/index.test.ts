@@ -969,6 +969,130 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("summarizes market checkout operations for platform admins", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push({
+      all: [
+        {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "paid",
+          subtotalCents: 20000,
+          childOrderCount: 2,
+          paymentSummary: {
+            status: "paid",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 200,
+            totalAmountCents: 20000,
+            paidAmount: 200,
+            paidAmountCents: 20000,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+        },
+        {
+          id: "checkout-2",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "refunded",
+          subtotalCents: 12000,
+          childOrderCount: 1,
+          paymentSummary: {
+            status: "refunded",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            paidAmount: 120,
+            paidAmountCents: 12000,
+            refundedAmount: 120,
+            refundedAmountCents: 12000,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-06-01T11:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T11:05:00.000Z"),
+        },
+        {
+          id: "checkout-3",
+          marketId: "market-2",
+          marketSlug: "ximen",
+          marketName: "西門町商圈",
+          status: "submitted",
+          paymentStatus: "failed",
+          subtotalCents: 8000,
+          childOrderCount: 1,
+          paymentSummary: {
+            status: "failed",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-06-01T12:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T12:05:00.000Z"),
+        },
+      ],
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/summary"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        totalCheckouts: number;
+        totalSubtotalCents: number;
+        paidAmountCents: number;
+        refundedAmountCents: number;
+        netPaidAmountCents: number;
+        childOrderCount: number;
+        paymentStatusCounts: Record<string, number>;
+        topMarkets: Array<{
+          slug: string;
+          checkoutCount: number;
+          subtotalCents: number;
+          paidAmountCents: number;
+          refundedAmountCents: number;
+        }>;
+      };
+    };
+    expect(json.data).toMatchObject({
+      totalCheckouts: 3,
+      totalSubtotalCents: 40000,
+      paidAmountCents: 32000,
+      refundedAmountCents: 12000,
+      netPaidAmountCents: 20000,
+      childOrderCount: 4,
+      paymentStatusCounts: expect.objectContaining({
+        paid: 1,
+        refunded: 1,
+        failed: 1,
+      }),
+    });
+    expect(json.data.topMarkets[0]).toMatchObject({
+      slug: "fengjia",
+      checkoutCount: 2,
+      subtotalCents: 32000,
+      paidAmountCents: 32000,
+      refundedAmountCents: 12000,
+    });
+  });
+
   it("falls back to the KV index when no persisted checkout sessions exist", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(

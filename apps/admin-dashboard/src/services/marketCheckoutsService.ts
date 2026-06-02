@@ -74,6 +74,26 @@ export interface MarketCheckoutListResult {
   limit: number;
 }
 
+export interface MarketCheckoutSummary {
+  totalCheckouts: number;
+  totalSubtotalCents: number;
+  paidAmountCents: number;
+  refundedAmountCents: number;
+  netPaidAmountCents: number;
+  averageCheckoutCents: number;
+  childOrderCount: number;
+  paymentStatusCounts: Record<MarketCheckoutPaymentStatus | string, number>;
+  topMarkets: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    checkoutCount: number;
+    subtotalCents: number;
+    paidAmountCents: number;
+    refundedAmountCents: number;
+  }>;
+}
+
 export const marketCheckoutsService = {
   async list(
     input: {
@@ -101,6 +121,18 @@ export const marketCheckoutsService = {
     );
     return unwrapApiPayload<{ checkout: MarketCheckoutDetail }>(response.data)
       .checkout;
+  },
+
+  async summary(
+    input: { marketSlug?: string } = {},
+  ): Promise<MarketCheckoutSummary> {
+    const response = await api.get<MarketCheckoutSummary>(
+      "/market-checkouts/admin/summary",
+      {
+        marketSlug: input.marketSlug || undefined,
+      },
+    );
+    return unwrapApiPayload<MarketCheckoutSummary>(response.data);
   },
 
   async refund(id: string, reason?: string): Promise<MarketCheckoutDetail> {
