@@ -28,8 +28,9 @@ Phase 2 adds a market checkout session without changing the `orders` table:
   checkout session in KV for aggregate lookup.
 - The customer market basket can submit all vendor groups in one action.
 
-Joint payment remains out of scope. The session now coordinates child orders;
-payment orchestration can attach to the same parent session later.
+Joint payment remains out of scope for this base checkout session. Provider
+split payment orchestration is specified separately in
+`docs/superpowers/specs/2026-06-02-market-checkout-provider-contract.md`.
 
 ## Tech Stack
 

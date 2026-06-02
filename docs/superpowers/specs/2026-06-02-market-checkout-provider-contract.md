@@ -1,0 +1,365 @@
+# Spec: Market Checkout Provider Contract
+
+## Objective
+
+Market checkout payments should be ready for a future payment provider choice
+without coupling the platform to a specific gateway today.
+
+This contract defines the HTTP provider split gateway, payment `nextAction`
+model, webhook callback shape, signature rules, readiness checks, and
+verification commands. A future Stripe, TapPay, ECPay, NewebPay, LINE Pay, or
+custom acquirer adapter should be able to implement this contract and plug into
+the existing market checkout flow.
+
+Success means the platform can:
+
+- Create one aggregate market payment intent for a checkout.
+- Allocate the aggregate authorization across child vendor orders.
+- Return provider-agnostic payment actions to the customer app.
+- Reconcile asynchronous paid, failed, refunded, and partial refund callbacks.
+- Expose missing provider configuration in the platform admin dashboard.
+
+## Tech Stack
+
+- Cloudflare Workers API with TypeScript.
+- Vue 3 customer app and admin dashboard.
+- D1 stores parent market checkout payment ledger rows.
+- KV caches market checkout sessions and operation index entries.
+- Vitest covers provider gateway parsing, route behavior, webhook reconciliation,
+  customer tracking, and admin provider status.
+
+## Commands
+
+- Provider service tests:
+  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentProvider.test.ts`
+- Webhook service tests:
+  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentWebhookService.test.ts`
+- Market checkout route tests:
+  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/routes/index.test.ts`
+- Customer tracking tests:
+  `rtk pnpm exec vitest run apps/customer-app/src/tests/views/market-checkout-tracking-view.test.ts`
+- Admin provider status tests:
+  `rtk pnpm exec vitest run apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.test.ts`
+- Typecheck:
+  `rtk pnpm typecheck`
+- Lint:
+  `rtk pnpm lint`
+
+## Project Structure
+
+- `apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentProvider.ts`
+  owns provider split request/response parsing, HMAC request signing, readiness,
+  and health checks.
+- `apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentWebhookService.ts`
+  owns payment webhook signature verification, audit deduplication, ledger
+  updates, session summary updates, and KV cache reconciliation.
+- `apps/api/src/features/market-checkouts/routes/index.ts` exposes
+  `/market-checkouts/:id/pay`, `/market-checkouts/payment-webhooks/:provider`,
+  and admin provider status endpoints.
+- `apps/customer-app/src/views/MarketCheckoutTrackingView.vue` handles provider
+  `nextAction` responses after starting an aggregate market payment.
+- `apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.vue` displays
+  provider readiness and connectivity.
+
+## Environment Contract
+
+Provider split mode is enabled with:
+
+```env
+MARKET_CHECKOUT_SPLIT_MODE=provider_split
+MARKET_CHECKOUT_PROVIDER_SPLIT_URL=https://provider.example.test/market-split
+MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL=https://provider.example.test/health
+MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN=optional-bearer-token
+MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET=optional-request-signing-secret
+MARKET_CHECKOUT_WEBHOOK_SECRET=webhook-verification-secret
+```
+
+Readiness rules:
+
+- Missing `MARKET_CHECKOUT_PROVIDER_SPLIT_URL` means `not_configured`.
+- Configured gateway URL without `MARKET_CHECKOUT_WEBHOOK_SECRET` means
+  `warning`, because payment status callbacks will be rejected.
+- Configured gateway URL and webhook secret means `ready`.
+- `MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET` is optional for non-production
+  experiments, but should be configured before production because provider split
+  requests include payment allocation data.
+- `MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL` is optional, but without it admin
+  connectivity checks are skipped.
+
+## Provider Split Gateway Request
+
+The API sends a JSON `POST` to `MARKET_CHECKOUT_PROVIDER_SPLIT_URL`.
+
+Headers:
+
+- `content-type: application/json`
+- `authorization: Bearer <MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN>` when a token is
+  configured.
+- `x-market-checkout-signature-algorithm: hmac-sha256` when request signing is
+  configured.
+- `x-market-checkout-signature-timestamp: <ISO timestamp>` when request signing
+  is configured.
+- `x-market-checkout-signature: <hex hmac>` when request signing is configured.
+
+The signature payload is:
+
+```text
+<x-market-checkout-signature-timestamp>.<raw JSON request body>
+```
+
+The request body is:
+
+```json
+{
+  "checkoutId": "checkout-1",
+  "marketSlug": "fengjia",
+  "method": "market_online",
+  "country": "TW",
+  "currency": "TWD",
+  "idempotencyKey": "market-checkout:checkout-1",
+  "amountCents": 24000,
+  "customerInfo": {
+    "name": "Customer",
+    "email": "customer@example.test",
+    "phone": "0912345678"
+  },
+  "providerInput": {
+    "returnUrl": "https://app.example.test/markets/fengjia/checkouts/checkout-1",
+    "locale": "zh-TW"
+  },
+  "allocations": [
+    {
+      "restaurantId": "restaurant-1",
+      "restaurantName": "Chicken Stall",
+      "orderId": 101,
+      "orderNumber": "A001",
+      "amountCents": 16000
+    },
+    {
+      "restaurantId": "restaurant-2",
+      "restaurantName": "Dessert Stall",
+      "orderId": 102,
+      "orderNumber": "A002",
+      "amountCents": 8000
+    }
+  ]
+}
+```
+
+Provider requirements:
+
+- Treat `idempotencyKey` as stable for retries of the same market checkout
+  payment attempt.
+- Authorize exactly `amountCents`.
+- Preserve enough metadata to send a webhook with at least one of:
+  `marketCheckoutPaymentId`, `marketCheckoutId`, or provider transaction ID.
+- Return one allocation per child order when the payment is immediately paid.
+- Return no child allocations when status is pending or requires customer
+  action.
+
+## Provider Split Gateway Response
+
+Immediate paid response:
+
+```json
+{
+  "provider": "future_provider",
+  "providerTransactionId": "intent-market-1",
+  "status": "paid",
+  "authorizedAmountCents": 24000,
+  "allocations": [
+    {
+      "orderId": 101,
+      "paymentId": "pay-101",
+      "amountCents": 16000
+    },
+    {
+      "orderId": 102,
+      "paymentId": "pay-102",
+      "amountCents": 8000
+    }
+  ]
+}
+```
+
+Pending customer-action response:
+
+```json
+{
+  "provider": "future_provider",
+  "providerTransactionId": "intent-market-1",
+  "status": "requires_action",
+  "authorizedAmountCents": 0,
+  "allocations": [],
+  "nextAction": {
+    "type": "redirect",
+    "redirectUrl": "https://payments.example.test/confirm/intent-market-1",
+    "expiresAt": "2026-06-02T10:30:00.000Z",
+    "providerPayload": {
+      "intentId": "intent-market-1"
+    }
+  }
+}
+```
+
+Response validation:
+
+- `provider` must be a non-empty string.
+- `providerTransactionId` must be a non-empty string.
+- `authorizedAmountCents` must be a number.
+- `status` may be `paid`, `pending`, or `requires_action`.
+- For paid responses, allocation amounts must match child order totals and each
+  child order must appear once.
+- `nextAction.type` may be `redirect`, `client_secret`, or `sdk_confirmation`.
+
+## Next Action Contract
+
+`nextAction` is provider-agnostic and stored in parent payment provider payload.
+
+```ts
+type MarketCheckoutProviderNextAction = {
+  type: "redirect" | "client_secret" | "sdk_confirmation";
+  redirectUrl?: string;
+  clientSecret?: string;
+  expiresAt?: string;
+  providerPayload?: Record<string, unknown>;
+};
+```
+
+Customer behavior:
+
+- `redirect`: open `redirectUrl` in the current tab.
+- `client_secret`: keep the checkout in pending state and hand the client secret
+  to a provider-specific payment element once that provider is selected.
+- `sdk_confirmation`: keep the checkout in pending state and hand
+  `providerPayload` to a provider-specific SDK once that provider is selected.
+
+## Webhook Contract
+
+Provider callbacks are sent to:
+
+```text
+POST /api/v1/market-checkouts/payment-webhooks/:provider
+```
+
+Generic HMAC webhook headers:
+
+- `x-webhook-signature: <hex hmac>`
+- `x-provider-event-id: <provider event id>` optional but recommended.
+- `x-provider-event-type: <provider event type>` optional.
+- `x-market-payment-id: <market checkout parent payment id>` optional.
+- `x-market-checkout-id: <market checkout id>` optional.
+- `x-provider-transaction-id: <provider transaction id>` optional.
+
+The generic HMAC payload is the raw request body signed with
+`MARKET_CHECKOUT_WEBHOOK_SECRET`.
+
+Stripe-compatible callbacks may use `stripe-signature`; the signed payload is:
+
+```text
+<stripe timestamp>.<raw JSON body>
+```
+
+LINE Pay-compatible callbacks may use `x-linepay-nonce` and
+`x-linepay-signature`; the signed payload is:
+
+```text
+<secret><raw JSON body><nonce>
+```
+
+Generic paid callback:
+
+```json
+{
+  "id": "evt-market-paid-1",
+  "type": "market_checkout.payment_paid",
+  "status": "paid",
+  "amount_received": 24000,
+  "currency": "TWD",
+  "metadata": {
+    "marketCheckoutId": "checkout-1",
+    "marketCheckoutPaymentId": "market_pay_checkout-1",
+    "providerTransactionId": "intent-market-1"
+  }
+}
+```
+
+Supported event/status mapping:
+
+- `market_checkout.payment_paid`, `payment_intent.succeeded`,
+  `checkout.session.completed`, or status `succeeded`, `paid`, `completed`
+  becomes `paid`.
+- `market_checkout.payment_failed`, `payment_intent.payment_failed`,
+  `charge.failed`, or status `failed`, `payment_failed` becomes `failed`.
+- `market_checkout.payment_refunded`, `charge.refunded`, `refund.succeeded`, or
+  status `refunded` becomes `refunded`.
+- `market_checkout.payment_partial_refunded` or status `partial_refunded`,
+  `partially_refunded` becomes `partial_refunded`.
+
+Webhook processing rules:
+
+- Verify signature before parsing or mutating payment state.
+- Insert into payment audit log before reconciliation.
+- Treat duplicate provider event IDs as idempotent and do not update ledgers
+  twice.
+- Find the parent market checkout payment by payment ID, checkout ID, or
+  provider transaction ID.
+- Update `market_checkout_payments`, `market_checkout_sessions`, cached checkout
+  session KV, and cached admin index KV.
+
+## Health Check Contract
+
+Admin connectivity checks call `MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL`.
+
+Expected response:
+
+```json
+{
+  "message": "Provider gateway ready",
+  "capabilities": ["aggregate_authorization", "provider_allocations"]
+}
+```
+
+Any 2xx response passes. Non-2xx responses fail. Missing health URL produces a
+skipped check.
+
+## Boundaries
+
+- Always: keep this contract provider-agnostic until a payment provider is
+  selected.
+- Always: fail closed when signatures are missing or invalid.
+- Always: keep parent payment status pending for customer-action flows until a
+  verified webhook or provider reconciliation marks it paid or failed.
+- Always: preserve child order payment isolation; allocations must map to
+  existing child order IDs.
+- Ask first: adding provider SDK dependencies to the customer app.
+- Ask first: database schema changes beyond the current market checkout payment
+  ledger and provider payload fields.
+- Never: accept unsigned provider split requests or webhooks in production.
+- Never: mark a provider split payment paid unless the provider response or a
+  verified webhook proves the aggregate amount and allocations.
+
+## Success Criteria
+
+- Provider split gateway request signing is documented and covered by tests.
+- Provider split gateway paid and pending responses are documented and covered
+  by tests.
+- Customer redirect `nextAction` behavior is documented and covered by tests.
+- Webhook signature verification and duplicate audit behavior are documented and
+  covered by tests.
+- Admin readiness clearly shows gateway URL, webhook secret, request signing,
+  and health check state.
+- Future provider implementation work can be scoped to a connector adapter,
+  provider-specific customer SDK handling, and provider-specific webhook payload
+  translation.
+
+## Open Questions
+
+- Which provider-specific customer confirmation flow will be needed after the
+  provider is selected: hosted redirect, embedded payment element, SDK
+  confirmation, or multiple modes?
+- Should production require `MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET`, or
+  should readiness remain `warning` instead of `ready` when request signing is
+  missing?
+- Should provider reconciliation eventually support polling as a backup when
+  webhooks are delayed?
