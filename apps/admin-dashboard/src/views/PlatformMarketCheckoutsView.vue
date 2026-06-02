@@ -527,6 +527,19 @@
             {{ formatDate(selectedCheckout.payment.parentPayment.updatedAt) }}
           </span>
         </div>
+        <div
+          v-if="providerPaymentAlerts.length"
+          data-testid="checkout-provider-alerts"
+          class="mt-3 space-y-2"
+        >
+          <div
+            v-for="alert in providerPaymentAlerts"
+            :key="alert"
+            class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800"
+          >
+            {{ alert }}
+          </div>
+        </div>
       </div>
 
       <div
@@ -821,6 +834,40 @@ const providerConnectivityResultClass = computed(() => {
     skipped: "text-amber-700",
     failed: "text-red-700",
   }[providerConnectivityCheck.value.status];
+});
+
+const providerPaymentAlerts = computed(() => {
+  const parentPayment = selectedCheckout.value?.payment?.parentPayment;
+  if (!parentPayment) return [];
+
+  const alerts: string[] = [];
+  if (
+    parentPayment.splitMode === "provider_split" &&
+    parentPayment.status === "pending"
+  ) {
+    const updatedAtMs = Date.parse(parentPayment.updatedAt);
+    if (
+      Number.isFinite(updatedAtMs) &&
+      Date.now() - updatedAtMs > 30 * 60 * 1000
+    ) {
+      alerts.push("Provider 付款仍待處理超過 30 分鐘");
+    }
+    if (!parentPayment.lastWebhook) {
+      alerts.push("尚未收到 provider webhook");
+    }
+  }
+
+  if (parentPayment.lastWebhook?.status === "failed") {
+    alerts.push("最後 webhook 回報付款失敗");
+  }
+  if (
+    parentPayment.status === "pending" &&
+    parentPayment.lastWebhook?.status === "paid"
+  ) {
+    alerts.push("最後 webhook 已付款，但父層付款仍待處理");
+  }
+
+  return alerts;
 });
 
 async function loadCheckouts() {

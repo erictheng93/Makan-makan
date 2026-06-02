@@ -195,9 +195,9 @@ describe("PlatformMarketCheckoutsView", () => {
           },
           lastWebhook: {
             provider: "mock_market_provider",
-            eventId: "evt-market-checkout-paid-1",
-            eventType: "market_checkout.payment_paid",
-            status: "paid",
+            eventId: "evt-market-checkout-failed-1",
+            eventType: "market_checkout.payment_failed",
+            status: "failed",
             receivedAt: "2026-06-01T10:09:00.000Z",
           },
           amountCents: 24000,
@@ -456,16 +456,22 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("最後 webhook");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toContain("evt-market-checkout-paid-1");
+    ).toContain("evt-market-checkout-failed-1");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toContain("market_checkout.payment_paid");
+    ).toContain("market_checkout.payment_failed");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toContain("已付款");
+    ).toContain("付款失敗");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("06/01 18:09");
+    expect(
+      wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
+    ).toContain("Provider 付款仍待處理超過 30 分鐘");
+    expect(
+      wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
+    ).toContain("最後 webhook 回報付款失敗");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("子交易 1");
