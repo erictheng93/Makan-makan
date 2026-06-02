@@ -143,6 +143,16 @@ describe("PlatformMarketCheckoutsView", () => {
             amount: 160,
             amountCents: 16000,
           },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            status: "failed",
+            amount: 80,
+            amountCents: 8000,
+            errorMessage: "Gateway declined",
+          },
         ],
         parentPayment: {
           paymentId: "market_pay_checkout-1",
@@ -375,6 +385,24 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "$0",
     );
+    expect(
+      wrapper.get('[data-testid="checkout-child-payments"]').text(),
+    ).toContain("付款子交易");
+    expect(
+      wrapper.get('[data-testid="checkout-child-payments"]').text(),
+    ).toContain("1 筆失敗");
+    expect(
+      wrapper.get('[data-testid="checkout-child-payments"]').text(),
+    ).toContain("甜點攤");
+    expect(
+      wrapper.get('[data-testid="checkout-child-payments"]').text(),
+    ).toContain("付款失敗");
+    expect(
+      wrapper.get('[data-testid="checkout-child-payments"]').text(),
+    ).toContain("Gateway declined");
+    expect(
+      wrapper.get('[data-testid="checkout-child-payments"]').text(),
+    ).toContain("pay-1");
 
     await wrapper.get('[data-testid="refund-checkout"]').trigger("click");
     await flushPromises();

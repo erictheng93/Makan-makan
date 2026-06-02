@@ -458,6 +458,72 @@
         </div>
       </div>
 
+      <div
+        v-if="selectedCheckout.payment?.childPayments.length"
+        data-testid="checkout-child-payments"
+        class="mt-4 rounded-lg border border-gray-200 p-3"
+      >
+        <div
+          class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
+            <div class="text-sm font-semibold text-gray-900">付款子交易</div>
+            <div class="mt-1 text-xs text-gray-500">
+              逐攤位付款結果與錯誤訊息，用於重試與人工對帳。
+            </div>
+          </div>
+          <div class="text-sm font-semibold text-gray-900">
+            {{ failedChildPaymentCount }} 筆失敗
+          </div>
+        </div>
+
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="text-xs text-gray-500">
+              <tr>
+                <th class="whitespace-nowrap py-2 pr-4 font-medium">攤位</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">訂單</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">狀態</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">金額</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">付款 ID</th>
+                <th class="whitespace-nowrap pl-4 py-2 font-medium">錯誤</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr
+                v-for="payment in selectedCheckout.payment.childPayments"
+                :key="`${payment.restaurantId}-${payment.orderId}`"
+                class="text-gray-700"
+              >
+                <td class="min-w-44 py-3 pr-4 font-semibold text-gray-900">
+                  {{ payment.restaurantName }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                  {{ payment.orderNumber }} · #{{ payment.orderId }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                  <span
+                    class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                    :class="childPaymentClass(payment.status)"
+                  >
+                    {{ childPaymentStatusLabel(payment.status) }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                  {{ formatAmount(payment.amount) }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
+                  {{ payment.paymentId || payment.refundId || "-" }}
+                </td>
+                <td class="min-w-56 pl-4 py-3 text-sm text-red-700">
+                  {{ payment.errorMessage || "-" }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="mt-4 grid gap-3">
         <article
           v-for="order in selectedCheckout.childOrders"
@@ -543,6 +609,13 @@ const summaryMetrics = computed(() => {
     },
   ];
 });
+
+const failedChildPaymentCount = computed(
+  () =>
+    selectedCheckout.value?.payment?.childPayments.filter(
+      (payment) => payment.status === "failed",
+    ).length ?? 0,
+);
 
 async function loadCheckouts() {
   isLoading.value = true;
@@ -673,6 +746,22 @@ function splitModeLabel(mode: "child_transactions" | "provider_split") {
     child_transactions: "子交易編排",
     provider_split: "付款商拆帳",
   }[mode];
+}
+
+function childPaymentStatusLabel(status: "paid" | "failed" | "refunded") {
+  return {
+    paid: "已付款",
+    failed: "付款失敗",
+    refunded: "已退款",
+  }[status];
+}
+
+function childPaymentClass(status: "paid" | "failed" | "refunded") {
+  return {
+    paid: "bg-emerald-50 text-emerald-700",
+    failed: "bg-red-50 text-red-700",
+    refunded: "bg-slate-100 text-slate-700",
+  }[status];
 }
 
 function formatCents(value: number) {
