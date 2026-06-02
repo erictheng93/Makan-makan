@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketsView from "@/views/MarketsView.vue";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { marketsApi } from "@/services/marketsApi";
 import { useMarketsStore } from "@/stores/markets";
 
@@ -26,6 +27,12 @@ vi.mock("@/stores/markets", () => ({
 vi.mock("@/services/marketsApi", () => ({
   marketsApi: {
     listAreas: vi.fn(),
+  },
+}));
+
+vi.mock("@/services/customerIdentityApi", () => ({
+  customerIdentityApi: {
+    listFavorites: vi.fn(),
   },
 }));
 
@@ -77,6 +84,8 @@ describe("MarketsView", () => {
     vi.mocked(marketsApi.listAreas).mockResolvedValue({
       areas: [],
     } as never);
+    vi.mocked(customerIdentityApi.listFavorites).mockReset();
+    vi.mocked(customerIdentityApi.listFavorites).mockResolvedValue([]);
     vi.mocked(useMarketsStore).mockReturnValue(marketsStore() as never);
   });
 
@@ -285,6 +294,35 @@ describe("MarketsView", () => {
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("最近訪問");
     expect(wrapper.text()).toContain("西門町商圈");
+  });
+
+  it("hydrates authenticated market favorites from customer identity", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+    vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
+      {
+        id: 42,
+        targetType: "market",
+        targetId: "m1",
+        createdAtMs: Date.now(),
+      },
+    ]);
+    const store = marketsStore({
+      hasMarkets: true,
+      markets: [{ id: "m1", slug: "fengjia", name: "逢甲夜市" }],
+      loadMarkets: vi.fn(async () => undefined),
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(customerIdentityApi.listFavorites).toHaveBeenCalledWith("market");
+      expect(wrapper.text()).toContain("追蹤的市場");
+    });
+    expect(wrapper.text()).toContain("逢甲夜市");
+    expect(localStorage.getItem("makanmakan_favorite_markets")).toContain(
+      "fengjia",
+    );
   });
 
   it("opens recently submitted market checkouts", async () => {

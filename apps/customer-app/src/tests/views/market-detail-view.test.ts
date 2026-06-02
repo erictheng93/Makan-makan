@@ -44,6 +44,14 @@ vi.mock("@/services/orderApi", () => ({
   },
 }));
 
+vi.mock("@/services/customerIdentityApi", () => ({
+  customerIdentityApi: {
+    listFavorites: vi.fn(),
+    addFavorite: vi.fn(),
+    removeFavorite: vi.fn(),
+  },
+}));
+
 vi.mock("@/services/discoveryApi", () => ({
   discoveryApi: {
     getTakeawayEligibility: vi.fn(),

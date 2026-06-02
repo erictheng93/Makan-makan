@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { sign } from "hono/jwt";
+import { markets } from "@makanmakan/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -295,6 +296,43 @@ describe("Customer Identity API - real integration", () => {
     expect(deleteRes.status).toBe(200);
   });
 
+  it("creates idempotent market favorites for authenticated customers", async () => {
+    const accessToken = await loginCustomer("+886956789013");
+    const market = await seedMarketFavoriteTarget();
+
+    const createRes = await authedPost(accessToken, `${BASE}/favorites`, {
+      targetType: "market",
+      targetId: market.id,
+    });
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    expect(createJson.data.targetType).toBe("market");
+    expect(createJson.data.targetId).toBe(market.id);
+
+    const duplicateRes = await authedPost(accessToken, `${BASE}/favorites`, {
+      targetType: "market",
+      targetId: market.id,
+    });
+    expect(duplicateRes.status).toBe(200);
+    const duplicateJson: any = await duplicateRes.json();
+    expect(duplicateJson.data.id).toBe(createJson.data.id);
+
+    const listRes = await testApp.app.fetch(
+      new Request(`${BASE}/favorites?targetType=market`, {
+        headers: { authorization: `Bearer ${accessToken}` },
+      }),
+    );
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.data).toEqual([
+      expect.objectContaining({
+        id: createJson.data.id,
+        targetType: "market",
+        targetId: market.id,
+      }),
+    ]);
+  });
+
   it("records consent grants and revokes previous active grants", async () => {
     const accessToken = await loginCustomer("+886934567890");
 
@@ -424,5 +462,33 @@ describe("Customer Identity API - real integration", () => {
         lastUsedAtMs,
       )
       .run();
+  }
+
+  async function seedMarketFavoriteTarget() {
+    const now = new Date();
+    const id = `favorite-market-${crypto.randomUUID()}`;
+    await testApp.testDb.drizzle
+      .insert(markets)
+      .values({
+        id,
+        slug: id,
+        name: "收藏測試夜市",
+        type: "night_market",
+        description: "Customer favorite integration fixture",
+        city: "台中市",
+        district: "西屯區",
+        address: "台中市西屯區文華路",
+        latitude: 24.1764,
+        longitude: 120.6466,
+        openingHours: {
+          friday: { open: "17:00", close: "23:30" },
+        },
+        platformFeeRateBps: 350,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+    return { id };
   }
 });

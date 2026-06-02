@@ -1,4 +1,5 @@
 import type { MarketListItem } from "@/services/marketsApi";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 
 const FAVORITES_KEY = "makanmakan_favorite_markets";
 const RECENTS_KEY = "makanmakan_recent_markets";
@@ -79,6 +80,49 @@ export function toggleFavoriteMarket(market: MarketListItem) {
   return !exists;
 }
 
+export function isCustomerFavoriteSyncAvailable() {
+  return Boolean(storage()?.getItem("customer_auth_token"));
+}
+
+export async function syncFavoriteMarketPreference(
+  market: MarketListItem,
+  favorited: boolean,
+) {
+  if (!isCustomerFavoriteSyncAvailable()) return;
+
+  const favorites = await customerIdentityApi.listFavorites("market");
+  const existing = favorites.find(
+    (favorite) => favorite.targetId === market.id,
+  );
+
+  if (favorited && !existing) {
+    await customerIdentityApi.addFavorite({
+      targetType: "market",
+      targetId: market.id,
+    });
+    return;
+  }
+
+  if (!favorited && existing) {
+    await customerIdentityApi.removeFavorite(existing.id);
+  }
+}
+
+export async function hydrateFavoriteMarketsFromIdentity(
+  markets: MarketListItem[],
+) {
+  if (!isCustomerFavoriteSyncAvailable()) return listFavoriteMarkets();
+
+  const favorites = await customerIdentityApi.listFavorites("market");
+  const favoriteIds = new Set(favorites.map((favorite) => favorite.targetId));
+  const syncedMarkets = markets
+    .filter((market) => favoriteIds.has(market.id))
+    .map(marketSnapshot);
+
+  writeMarkets(FAVORITES_KEY, mergeFavoriteSnapshots(syncedMarkets));
+  return listFavoriteMarkets();
+}
+
 export function listRecentMarkets() {
   return readMarkets(RECENTS_KEY);
 }
@@ -92,4 +136,17 @@ export function recordRecentMarket(market: MarketListItem) {
 
   writeMarkets(RECENTS_KEY, nextRecents);
   return nextRecents;
+}
+
+function mergeFavoriteSnapshots(syncedMarkets: StoredMarket[]) {
+  const byId = new Map<string, StoredMarket>();
+  for (const market of syncedMarkets) {
+    byId.set(market.id, market);
+  }
+  for (const market of listFavoriteMarkets()) {
+    if (!byId.has(market.id)) {
+      byId.set(market.id, market);
+    }
+  }
+  return Array.from(byId.values());
 }

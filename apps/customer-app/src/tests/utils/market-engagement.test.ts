@@ -1,12 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  hydrateFavoriteMarketsFromIdentity,
   isFavoriteMarket,
   listFavoriteMarkets,
   listRecentMarkets,
   recordRecentMarket,
+  syncFavoriteMarketPreference,
   toggleFavoriteMarket,
 } from "@/utils/marketEngagement";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 import type { MarketListItem } from "@/services/marketsApi";
+
+vi.mock("@/services/customerIdentityApi", () => ({
+  customerIdentityApi: {
+    listFavorites: vi.fn(),
+    addFavorite: vi.fn(),
+    removeFavorite: vi.fn(),
+  },
+}));
 
 function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
   return {
@@ -31,6 +42,9 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
 describe("marketEngagement", () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.mocked(customerIdentityApi.listFavorites).mockReset();
+    vi.mocked(customerIdentityApi.addFavorite).mockReset();
+    vi.mocked(customerIdentityApi.removeFavorite).mockReset();
     vi.setSystemTime(new Date("2026-06-01T12:00:00Z"));
   });
 
@@ -60,5 +74,61 @@ describe("marketEngagement", () => {
       "fengjia",
       "ximen",
     ]);
+  });
+
+  it("syncs favorite market changes to customer identity when authenticated", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+    vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([]);
+
+    await syncFavoriteMarketPreference(market(), true);
+
+    expect(customerIdentityApi.listFavorites).toHaveBeenCalledWith("market");
+    expect(customerIdentityApi.addFavorite).toHaveBeenCalledWith({
+      targetType: "market",
+      targetId: "market-1",
+    });
+  });
+
+  it("removes synced favorite market records when unfavorited", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+    vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
+      {
+        id: 42,
+        targetType: "market",
+        targetId: "market-1",
+        createdAtMs: Date.now(),
+      },
+    ]);
+
+    await syncFavoriteMarketPreference(market(), false);
+
+    expect(customerIdentityApi.removeFavorite).toHaveBeenCalledWith(42);
+  });
+
+  it("hydrates server favorite ids into local market snapshots", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+    vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
+      {
+        id: 42,
+        targetType: "market",
+        targetId: "market-2",
+        createdAtMs: Date.now(),
+      },
+    ]);
+
+    const hydrated = await hydrateFavoriteMarketsFromIdentity([
+      market(),
+      market({ id: "market-2", slug: "ximen", name: "西門町商圈" }),
+    ]);
+
+    expect(hydrated).toHaveLength(1);
+    expect(hydrated[0]).toMatchObject({
+      id: "market-2",
+      slug: "ximen",
+      name: "西門町商圈",
+    });
+    expect(localStorage.getItem("makanmakan_favorite_markets")).toContain(
+      "ximen",
+    );
   });
 });

@@ -224,6 +224,7 @@ import {
   type MarketListItem,
 } from "@/services/marketsApi";
 import {
+  hydrateFavoriteMarketsFromIdentity,
   listFavoriteMarkets,
   listRecentMarkets,
 } from "@/utils/marketEngagement";
@@ -268,21 +269,35 @@ const districts = computed(() => {
 
 function reloadList() {
   syncDirectoryQuery();
-  store.loadMarkets({
+  Promise.resolve(store.loadMarkets(loadMarketsInput()))
+    .then(refreshFavoriteMarketsFromIdentity)
+    .catch((error) => {
+      console.error("Failed to load market directory:", error);
+    });
+}
+
+async function refreshFavoriteMarketsFromIdentity() {
+  try {
+    await hydrateFavoriteMarketsFromIdentity(store.markets);
+    favoriteMarkets.value = listFavoriteMarkets().map(storedMarketToListItem);
+  } catch (error) {
+    console.error("Failed to sync favorite markets:", error);
+  }
+}
+
+function loadMarketsInput() {
+  return {
     q: query.value.trim() || undefined,
     city: city.value || undefined,
     district: district.value || undefined,
     type: marketType.value || undefined,
-  });
+  };
 }
 
 function loadMoreMarkets() {
-  store.loadMoreMarkets({
-    q: query.value.trim() || undefined,
-    city: city.value || undefined,
-    district: district.value || undefined,
-    type: marketType.value || undefined,
-  });
+  Promise.resolve(store.loadMoreMarkets(loadMarketsInput())).then(
+    refreshFavoriteMarketsFromIdentity,
+  );
 }
 
 function onCityChange() {

@@ -394,6 +394,7 @@ import { applyMarketSeoMeta } from "@/utils/seoMeta";
 import {
   isFavoriteMarket,
   recordRecentMarket,
+  syncFavoriteMarketPreference,
   toggleFavoriteMarket,
 } from "@/utils/marketEngagement";
 import {
@@ -942,9 +943,19 @@ function refreshFavoriteState() {
   isFavorite.value = isFavoriteMarket(store.selectedMarket.id);
 }
 
-function toggleFavorite() {
+async function toggleFavorite() {
   if (!store.selectedMarket) return;
-  isFavorite.value = toggleFavoriteMarket(store.selectedMarket);
+  const nextFavorite = toggleFavoriteMarket(store.selectedMarket);
+  isFavorite.value = nextFavorite;
+
+  try {
+    await syncFavoriteMarketPreference(store.selectedMarket, nextFavorite);
+  } catch (error) {
+    toggleFavoriteMarket(store.selectedMarket);
+    isFavorite.value = !nextFavorite;
+    toast.error("無法同步市場追蹤狀態，請稍後再試。");
+    console.error("Failed to sync market favorite:", error);
+  }
 }
 
 function vendorItemCount(vendor: MarketCartVendor) {
