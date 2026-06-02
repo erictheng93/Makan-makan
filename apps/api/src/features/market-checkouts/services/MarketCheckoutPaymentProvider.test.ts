@@ -258,6 +258,10 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       country: "TW",
       currency: "TWD",
       requestIdempotencyKey: "market-pay-1",
+      providerInput: {
+        paymentMethodId: "pm_future_1",
+        returnUrl: "https://app.example.test/market-checkouts/checkout-1",
+      },
     });
 
     expect(gateway.process).toHaveBeenCalledWith({
@@ -269,6 +273,10 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       idempotencyKey: "market-pay-1",
       amountCents: 20000,
       customerInfo: undefined,
+      providerInput: {
+        paymentMethodId: "pm_future_1",
+        returnUrl: "https://app.example.test/market-checkouts/checkout-1",
+      },
       allocations: [
         {
           restaurantId: "restaurant-1",
@@ -290,7 +298,9 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       provider: "stripe_connect",
       splitMode: "provider_split",
       idempotencyKey: "market-pay-1",
+      paymentStatus: "paid",
       providerTransactionId: "pi_market_1",
+      nextAction: undefined,
       childPayments: [
         expect.objectContaining({
           orderId: 1001,
@@ -305,6 +315,98 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           amountCents: 8000,
         }),
       ],
+    });
+  });
+
+  it("returns pending provider split payments with a next action", async () => {
+    const provider = new ProviderSplitMarketCheckoutPaymentProvider({
+      process: vi.fn(async () => ({
+        provider: "future_provider",
+        providerTransactionId: "intent-market-1",
+        status: "requires_action",
+        authorizedAmountCents: 0,
+        allocations: [],
+        nextAction: {
+          type: "redirect",
+          redirectUrl: "https://payments.example.test/confirm/intent-market-1",
+          expiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      })),
+    });
+
+    const result = await provider.process({
+      checkoutId: "checkout-1",
+      marketSlug: "fengjia",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "Noodle Stall",
+          orderId: 1001,
+          orderNumber: "A001",
+          totalAmount: 120,
+        },
+      ],
+      method: "future_provider",
+      country: "TW",
+      currency: "TWD",
+    });
+
+    expect(result).toEqual({
+      provider: "future_provider",
+      splitMode: "provider_split",
+      idempotencyKey: "market-checkout:checkout-1",
+      providerTransactionId: "intent-market-1",
+      paymentStatus: "pending",
+      childPayments: [],
+      nextAction: {
+        type: "redirect",
+        redirectUrl: "https://payments.example.test/confirm/intent-market-1",
+        expiresAt: "2026-06-01T12:00:00.000Z",
+      },
+    });
+  });
+
+  it("parses HTTP provider split next actions", async () => {
+    const gateway = new HttpProviderSplitGateway(
+      "https://payments.example.test/market-split",
+      undefined,
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              provider: "future_provider",
+              providerTransactionId: "intent-market-1",
+              status: "requires_action",
+              authorizedAmountCents: 0,
+              allocations: [],
+              nextAction: {
+                type: "client_secret",
+                clientSecret: "pi_secret_1",
+              },
+            }),
+          ),
+      ) as never,
+    );
+
+    await expect(
+      gateway.process({
+        checkoutId: "checkout-1",
+        marketSlug: "fengjia",
+        method: "future_provider",
+        country: "TW",
+        currency: "TWD",
+        idempotencyKey: "market-pay-1",
+        amountCents: 12000,
+        allocations: [],
+      }),
+    ).resolves.toMatchObject({
+      provider: "future_provider",
+      providerTransactionId: "intent-market-1",
+      status: "requires_action",
+      nextAction: {
+        type: "client_secret",
+        clientSecret: "pi_secret_1",
+      },
     });
   });
 

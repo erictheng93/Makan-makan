@@ -144,6 +144,29 @@ export interface MarketCheckoutPaymentSummary {
     amountCents: number;
     errorMessage?: string;
   }>;
+  parentPayment?: {
+    paymentId: string;
+    status: MarketCheckoutPaymentSummary["status"];
+    provider: string;
+    splitMode: "child_transactions" | "provider_split";
+    idempotencyKey: string;
+    providerTransactionId?: string;
+    nextAction?: MarketCheckoutProviderNextAction;
+    amountCents: number;
+    paidAmountCents: number;
+    refundedAmountCents: number;
+    childPaymentIds: string[];
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export interface MarketCheckoutProviderNextAction {
+  type: "redirect" | "client_secret" | "sdk_confirmation";
+  redirectUrl?: string;
+  clientSecret?: string;
+  expiresAt?: string;
+  providerPayload?: Record<string, unknown>;
 }
 
 interface MarketCheckoutEnvelope {
@@ -258,6 +281,7 @@ export const orderApi = {
         email?: string;
         phone?: string;
       };
+      providerInput?: Record<string, unknown>;
     },
   ): Promise<MarketCheckoutPaymentEnvelope> {
     return apiClient.post<MarketCheckoutPaymentEnvelope>(

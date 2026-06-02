@@ -14,6 +14,14 @@ export type MarketCheckoutPaymentProviderReadiness =
   | "warning"
   | "not_configured";
 
+export interface MarketCheckoutProviderNextAction {
+  type: "redirect" | "client_secret" | "sdk_confirmation";
+  redirectUrl?: string;
+  clientSecret?: string;
+  expiresAt?: string;
+  providerPayload?: Record<string, unknown>;
+}
+
 export interface MarketCheckoutListItem {
   id: string;
   market: {
@@ -77,6 +85,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       splitMode: MarketCheckoutSplitMode;
       idempotencyKey: string;
       providerTransactionId?: string;
+      nextAction?: MarketCheckoutProviderNextAction;
       amountCents: number;
       paidAmountCents: number;
       refundedAmountCents: number;

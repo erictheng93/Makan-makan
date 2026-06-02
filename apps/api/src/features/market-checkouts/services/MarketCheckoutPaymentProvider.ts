@@ -38,6 +38,7 @@ export interface MarketCheckoutPaymentProviderInput {
   country: "TW" | "MY" | "VN";
   currency: "TWD" | "MYR" | "VND";
   customerInfo?: unknown;
+  providerInput?: Record<string, unknown>;
   requestIdempotencyKey?: string;
 }
 
@@ -45,8 +46,10 @@ export interface MarketCheckoutPaymentProviderResult {
   provider: string;
   splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
+  paymentStatus?: "paid" | "pending";
   childPayments: MarketCheckoutChildPayment[];
   providerTransactionId?: string;
+  nextAction?: MarketCheckoutProviderNextAction;
 }
 
 export interface MarketCheckoutPaymentProvider {
@@ -95,12 +98,14 @@ export interface MarketCheckoutProviderSplitGatewayInput {
   idempotencyKey: string;
   amountCents: number;
   customerInfo?: unknown;
+  providerInput?: Record<string, unknown>;
   allocations: MarketCheckoutProviderSplitAllocation[];
 }
 
 export interface MarketCheckoutProviderSplitGatewayResult {
   provider: string;
   providerTransactionId: string;
+  status?: "paid" | "pending" | "requires_action";
   authorizedAmountCents: number;
   allocations: Array<
     Pick<MarketCheckoutProviderSplitAllocation, "orderId"> & {
@@ -108,6 +113,15 @@ export interface MarketCheckoutProviderSplitGatewayResult {
       amountCents: number;
     }
   >;
+  nextAction?: MarketCheckoutProviderNextAction;
+}
+
+export interface MarketCheckoutProviderNextAction {
+  type: "redirect" | "client_secret" | "sdk_confirmation";
+  redirectUrl?: string;
+  clientSecret?: string;
+  expiresAt?: string;
+  providerPayload?: Record<string, unknown>;
 }
 
 export interface MarketCheckoutProviderSplitGateway {
@@ -235,8 +249,21 @@ export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckou
       idempotencyKey: parentIdempotencyKey,
       amountCents,
       customerInfo: input.customerInfo,
+      providerInput: input.providerInput,
       allocations,
     });
+    if (result.status === "pending" || result.status === "requires_action") {
+      return {
+        provider: result.provider,
+        splitMode: "provider_split",
+        idempotencyKey: parentIdempotencyKey,
+        paymentStatus: "pending",
+        providerTransactionId: result.providerTransactionId,
+        childPayments: [],
+        nextAction: result.nextAction,
+      };
+    }
+
     if (result.authorizedAmountCents !== amountCents) {
       throw new Error(
         "Provider split authorized amount does not match checkout total",
@@ -252,7 +279,9 @@ export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckou
       provider: result.provider,
       splitMode: "provider_split",
       idempotencyKey: parentIdempotencyKey,
+      paymentStatus: "paid",
       providerTransactionId: result.providerTransactionId,
+      nextAction: result.nextAction,
       childPayments: input.childOrders.map((child) => {
         const allocation = allocationByOrderId.get(child.orderId)!;
         const amountCents = allocation.amountCents;
@@ -578,6 +607,9 @@ function parseHttpGatewayResult(
   return {
     provider: payload.provider,
     providerTransactionId: payload.providerTransactionId,
+    status: isProviderSplitGatewayStatus(payload.status)
+      ? payload.status
+      : undefined,
     authorizedAmountCents: payload.authorizedAmountCents,
     allocations: payload.allocations.map((allocation) => {
       if (
@@ -595,6 +627,41 @@ function parseHttpGatewayResult(
         amountCents: allocation.amountCents,
       };
     }),
+    nextAction: parseProviderNextAction(payload.nextAction),
+  };
+}
+
+function isProviderSplitGatewayStatus(
+  value: unknown,
+): value is NonNullable<MarketCheckoutProviderSplitGatewayResult["status"]> {
+  return value === "paid" || value === "pending" || value === "requires_action";
+}
+
+function parseProviderNextAction(
+  value: unknown,
+): MarketCheckoutProviderNextAction | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const action = value as Partial<MarketCheckoutProviderNextAction>;
+  if (
+    action.type !== "redirect" &&
+    action.type !== "client_secret" &&
+    action.type !== "sdk_confirmation"
+  ) {
+    return undefined;
+  }
+
+  return {
+    type: action.type,
+    redirectUrl:
+      typeof action.redirectUrl === "string" ? action.redirectUrl : undefined,
+    clientSecret:
+      typeof action.clientSecret === "string" ? action.clientSecret : undefined,
+    expiresAt:
+      typeof action.expiresAt === "string" ? action.expiresAt : undefined,
+    providerPayload:
+      action.providerPayload && typeof action.providerPayload === "object"
+        ? (action.providerPayload as Record<string, unknown>)
+        : undefined,
   };
 }
 

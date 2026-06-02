@@ -1292,6 +1292,114 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("persists provider split next actions as pending payment attempts", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            provider: "future_provider",
+            providerTransactionId: "intent-market-1",
+            status: "requires_action",
+            authorizedAmountCents: 0,
+            allocations: [],
+            nextAction: {
+              type: "redirect",
+              redirectUrl:
+                "https://payments.example.test/confirm/intent-market-1",
+            },
+          }),
+        ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const env = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+        "https://payments.example.test/market-split",
+    };
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "future_provider" }),
+      }),
+      env as never,
+    );
+
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          paidAmountCents: number;
+          childPayments: unknown[];
+          parentPayment: {
+            status: string;
+            provider: string;
+            providerTransactionId?: string;
+            nextAction?: {
+              type: string;
+              redirectUrl?: string;
+            };
+          };
+        };
+      };
+    };
+    expect(fetcher).toHaveBeenCalled();
+    expect(json.data.payment).toMatchObject({
+      status: "pending",
+      paidAmountCents: 0,
+      childPayments: [],
+      parentPayment: {
+        status: "pending",
+        provider: "future_provider",
+        providerTransactionId: "intent-market-1",
+        nextAction: {
+          type: "redirect",
+          redirectUrl: "https://payments.example.test/confirm/intent-market-1",
+        },
+      },
+    });
+    expect(response.status).toBe(202);
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"status":"pending"'),
+      { expirationTtl: 14400 },
+    );
+    expect(databaseMocks.updateValues[0]).toMatchObject({
+      paymentStatus: "pending",
+      paymentSummary: expect.objectContaining({
+        status: "pending",
+        paidAmountCents: 0,
+      }),
+    });
+  });
+
   it("lists market checkout sessions for platform admins", async () => {
     const env = createEnv();
     databaseMocks.selectQueue.push({

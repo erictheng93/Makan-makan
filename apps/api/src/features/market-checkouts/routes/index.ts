@@ -35,6 +35,7 @@ import {
   checkMarketCheckoutPaymentProviderConnectivity,
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
+  type MarketCheckoutProviderNextAction,
   type MarketCheckoutSplitMode,
 } from "../services/MarketCheckoutPaymentProvider";
 import { MarketCheckoutPaymentWebhookService } from "../services/MarketCheckoutPaymentWebhookService";
@@ -56,6 +57,7 @@ const payMarketCheckoutSchema = z.object({
       phone: z.string().optional(),
     })
     .optional(),
+  providerInput: z.record(z.string(), z.unknown()).optional(),
 });
 
 const recoverMarketCheckoutGuestTokenSchema = z.object({
@@ -216,6 +218,7 @@ interface MarketCheckoutParentPaymentSummary {
   splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
   providerTransactionId?: string;
+  nextAction?: MarketCheckoutProviderNextAction;
   amountCents: number;
   paidAmountCents: number;
   refundedAmountCents: number;
@@ -527,6 +530,7 @@ app.post("/:id/pay", async (c) => {
       country: parsed.data.country,
       currency: parsed.data.currency,
       customerInfo: parsed.data.customerInfo,
+      providerInput: parsed.data.providerInput,
       requestIdempotencyKey: requestIdempotencyKey ?? undefined,
     });
   } catch (error) {
@@ -583,11 +587,13 @@ app.post("/:id/pay", async (c) => {
     0,
   );
   const paymentStatus =
-    paidPayments.length === session.childOrders.length
-      ? "paid"
-      : paidPayments.length > 0
-        ? "partial_paid"
-        : "failed";
+    providerResult.paymentStatus === "pending"
+      ? "pending"
+      : paidPayments.length === session.childOrders.length
+        ? "paid"
+        : paidPayments.length > 0
+          ? "partial_paid"
+          : "failed";
   const now = new Date().toISOString();
   const paymentBase: MarketCheckoutPaymentSummary = {
     status: paymentStatus,
@@ -599,7 +605,7 @@ app.post("/:id/pay", async (c) => {
     paidAmount,
     paidAmountCents: Math.round(paidAmount * 100),
     paidAt: paymentStatus === "paid" ? now : session.payment?.paidAt,
-    failedAt: paymentStatus !== "paid" ? now : session.payment?.failedAt,
+    failedAt: paymentStatus === "failed" ? now : session.payment?.failedAt,
     childPayments: childPayments.filter(
       (
         payment,
@@ -617,6 +623,7 @@ app.post("/:id/pay", async (c) => {
       splitMode: providerResult.splitMode,
       idempotencyKey: providerResult.idempotencyKey,
       providerTransactionId: providerResult.providerTransactionId,
+      nextAction: providerResult.nextAction,
       now,
     }),
     settlement: buildMarketCheckoutSettlement(session, paymentBase),
@@ -1195,7 +1202,7 @@ async function hydrateMarketCheckoutParentPayment(
     `SELECT payment_id, provider, split_mode, idempotency_key, status,
             amount_cents, paid_amount_cents, refunded_amount_cents,
             currency, country_code, child_payment_ids,
-            provider_transaction_id, created_at_ms, updated_at_ms
+            provider_transaction_id, provider_payload, created_at_ms, updated_at_ms
        FROM market_checkout_payments
       WHERE checkout_id = ?
       ORDER BY updated_at_ms DESC
@@ -1215,6 +1222,7 @@ async function hydrateMarketCheckoutParentPayment(
       country_code: MarketCheckoutPaymentSummary["country"] | null;
       child_payment_ids: string | null;
       provider_transaction_id: string | null;
+      provider_payload: string | null;
       created_at_ms: number;
       updated_at_ms: number;
     }>();
@@ -1222,6 +1230,7 @@ async function hydrateMarketCheckoutParentPayment(
   if (!row) return session;
 
   const childPaymentIds = parseJsonStringArray(row.child_payment_ids);
+  const providerPayload = parseProviderPayload(row.provider_payload);
   const parentPayment: MarketCheckoutParentPaymentSummary = {
     paymentId: row.payment_id,
     status: row.status,
@@ -1229,6 +1238,7 @@ async function hydrateMarketCheckoutParentPayment(
     splitMode: row.split_mode,
     idempotencyKey: row.idempotency_key ?? `market-checkout:${session.id}`,
     providerTransactionId: row.provider_transaction_id ?? undefined,
+    nextAction: providerPayload.nextAction,
     amountCents: row.amount_cents,
     paidAmountCents: row.paid_amount_cents,
     refundedAmountCents: row.refunded_amount_cents,
@@ -1413,6 +1423,7 @@ function buildMarketCheckoutParentPayment(input: {
   splitMode: MarketCheckoutSplitMode;
   idempotencyKey: string;
   providerTransactionId?: string;
+  nextAction?: MarketCheckoutProviderNextAction;
   now: string;
 }): MarketCheckoutParentPaymentSummary {
   const childPaymentIds = input.payment.childPayments
@@ -1427,6 +1438,7 @@ function buildMarketCheckoutParentPayment(input: {
     idempotencyKey: input.existing?.idempotencyKey ?? input.idempotencyKey,
     providerTransactionId:
       input.existing?.providerTransactionId ?? input.providerTransactionId,
+    nextAction: input.nextAction ?? input.existing?.nextAction,
     amountCents: input.payment.totalAmountCents,
     paidAmountCents: input.payment.paidAmountCents,
     refundedAmountCents: input.payment.refundedAmountCents ?? 0,
@@ -1574,6 +1586,7 @@ async function upsertMarketCheckoutParentPayment(
       JSON.stringify({
         source: "market-checkouts",
         splitMode: parentPayment.splitMode,
+        nextAction: parentPayment.nextAction ?? null,
         settlement: session.payment.settlement ?? null,
       }),
       createdAt,
@@ -1599,6 +1612,49 @@ function parseJsonStringArray(value: string | null | undefined): string[] {
     return parsed.filter((item): item is string => typeof item === "string");
   } catch {
     return [];
+  }
+}
+
+function parseProviderPayload(value: string | null | undefined): {
+  nextAction?: MarketCheckoutProviderNextAction;
+} {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as { nextAction?: unknown };
+    if (!parsed.nextAction || typeof parsed.nextAction !== "object") {
+      return {};
+    }
+    const action =
+      parsed.nextAction as Partial<MarketCheckoutProviderNextAction>;
+    if (
+      action.type !== "redirect" &&
+      action.type !== "client_secret" &&
+      action.type !== "sdk_confirmation"
+    ) {
+      return {};
+    }
+
+    return {
+      nextAction: {
+        type: action.type,
+        redirectUrl:
+          typeof action.redirectUrl === "string"
+            ? action.redirectUrl
+            : undefined,
+        clientSecret:
+          typeof action.clientSecret === "string"
+            ? action.clientSecret
+            : undefined,
+        expiresAt:
+          typeof action.expiresAt === "string" ? action.expiresAt : undefined,
+        providerPayload:
+          action.providerPayload && typeof action.providerPayload === "object"
+            ? (action.providerPayload as Record<string, unknown>)
+            : undefined,
+      },
+    };
+  } catch {
+    return {};
   }
 }
 
