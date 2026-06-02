@@ -35,7 +35,7 @@ export async function issueTestJwt(
 }
 
 export interface AuthHelper {
-  adminToken(restaurantId?: string): Promise<string>;
+  adminToken(restaurantId?: string, userId?: number): Promise<string>;
   ownerToken(userId: number, restaurantId: string): Promise<string>;
   staffToken(
     userId: number,
@@ -91,8 +91,8 @@ async function issueDbBackedJwt(
 
 export function buildAuthHelper(db?: D1Database): AuthHelper {
   return {
-    adminToken: (restaurantId = "1") =>
-      issueDbBackedJwt(db, 0, { restaurantId }),
+    adminToken: (restaurantId = "1", userId = 1) =>
+      issueDbBackedJwt(db, 0, { userId, restaurantId }),
     ownerToken: (userId, restaurantId) =>
       issueDbBackedJwt(db, 1, { userId, restaurantId }),
     staffToken: (userId, role, restaurantId) =>

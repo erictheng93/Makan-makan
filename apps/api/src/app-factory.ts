@@ -496,9 +496,21 @@ export function createApp(
   apiV1.use("/analytics/*", authMiddleware);
   apiV1.use("/ai-analytics/*", authMiddleware);
   // SSE auth is handled at route level (sseAuthMiddleware) to support token via query param
-  apiV1.use("/system/*", authMiddleware);
+  apiV1.use("/system/*", async (c, next) => {
+    if (c.req.path === "/api/v1/system/health") {
+      await next();
+      return;
+    }
+    await authMiddleware(c, next);
+  });
   apiV1.use("/cache/*", authMiddleware);
-  apiV1.use("/monitoring/*", authMiddleware);
+  apiV1.use("/monitoring/*", async (c, next) => {
+    if (c.req.path === "/api/v1/monitoring/health") {
+      await next();
+      return;
+    }
+    await authMiddleware(c, next);
+  });
   apiV1.use("/backup/*", authMiddleware);
   apiV1.use("/leaves/*", authMiddleware);
   apiV1.use("/leaves/*", moduleGate("staff_management"));
