@@ -97,7 +97,10 @@ export class MarketCheckoutPaymentReconciliationService {
          FROM market_checkout_payments p
          JOIN market_checkout_sessions s ON s.id = p.checkout_id
         WHERE p.split_mode = 'provider_split'
-          AND p.status = 'pending'
+          AND (
+            p.status = 'pending'
+            OR json_extract(p.provider_payload, '$.lastRefund.status') = 'pending'
+          )
           AND p.updated_at_ms <= ?
         ORDER BY p.updated_at_ms ASC
         LIMIT ?`,
