@@ -2630,6 +2630,12 @@ const zhTW = {
     noTransactions: "尚無交易記錄",
     noTransactionsHint: "開始使用 POS 系統後會顯示交易記錄",
     quickPayment: "快速收款",
+    marketCheckoutPayment: "市場結帳收款",
+    marketCheckoutId: "市場結帳 ID",
+    marketCheckoutIdPlaceholder: "輸入市場結帳 ID",
+    marketCheckoutPaymentHint:
+      "使用目前選取的收銀櫃與開啟中的班次完成現場市場結帳收款。",
+    confirmMarketCheckoutPayment: "確認市場結帳收款",
     orderNumber: "訂單編號",
     orderNumberPlaceholder: "輸入訂單編號",
     amount: "金額",

@@ -2318,6 +2318,12 @@ const jaJP: Messages = {
     noTransactions: "取引記録がありません",
     noTransactionsHint: "POSシステムを使用すると取引記録がここに表示されます",
     quickPayment: "クイック支払い",
+    marketCheckoutPayment: "市場会計支払い",
+    marketCheckoutId: "市場会計 ID",
+    marketCheckoutIdPlaceholder: "市場会計 ID を入力",
+    marketCheckoutPaymentHint:
+      "選択中のレジと有効なシフトを使用して、現地の市場会計支払いを処理します。",
+    confirmMarketCheckoutPayment: "市場会計支払いを確認",
     orderNumber: "注文番号",
     orderNumberPlaceholder: "注文番号を入力",
     amount: "金額",

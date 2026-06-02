@@ -387,6 +387,64 @@
           </div>
         </div>
 
+        <!-- 市場結帳收款 -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              {{ t("pos.marketCheckoutPayment") }}
+            </h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("pos.marketCheckoutId")
+                }}</label>
+                <input
+                  v-model="marketCheckoutPayment.checkoutId"
+                  data-testid="pos-market-checkout-id"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  :placeholder="t('pos.marketCheckoutIdPlaceholder')"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{
+                  t("pos.paymentMethod")
+                }}</label>
+                <select
+                  v-model="marketCheckoutPayment.paymentMethod"
+                  data-testid="pos-market-checkout-payment-method"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="cash">{{ t("pos.methods.cash") }}</option>
+                  <option value="card">{{ t("pos.methods.card") }}</option>
+                  <option value="digital_wallet">
+                    {{ t("pos.methods.digitalWallet") }}
+                  </option>
+                </select>
+              </div>
+
+              <p class="text-xs text-gray-500">
+                {{ t("pos.marketCheckoutPaymentHint") }}
+              </p>
+
+              <button
+                data-testid="pos-market-checkout-pay"
+                :disabled="!canProcessMarketCheckoutPayment || isProcessing"
+                class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                @click="processMarketCheckoutPayment"
+              >
+                {{
+                  isProcessing
+                    ? t("common.processing")
+                    : t("pos.confirmMarketCheckoutPayment")
+                }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 促銷活動 -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6">
@@ -912,6 +970,10 @@ import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizo
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
+import {
+  posService,
+  type MarketCheckoutPosPaymentMethod,
+} from "@/services/posService";
 import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
@@ -1018,6 +1080,14 @@ const quickPayment = ref({
   paymentMethod: "",
 });
 
+const marketCheckoutPayment = ref<{
+  checkoutId: string;
+  paymentMethod: MarketCheckoutPosPaymentMethod;
+}>({
+  checkoutId: "",
+  paymentMethod: "cash",
+});
+
 // 現金管理
 const cashMovement = ref({
   type: "",
@@ -1041,6 +1111,15 @@ const canProcessQuickPayment = computed(() => {
     quickPayment.value.amount > 0 &&
     quickPayment.value.paymentMethod &&
     currentRegister.value
+  );
+});
+
+const canProcessMarketCheckoutPayment = computed(() => {
+  return (
+    marketCheckoutPayment.value.checkoutId.trim().length > 0 &&
+    marketCheckoutPayment.value.paymentMethod &&
+    currentRegister.value &&
+    currentShift.value
   );
 });
 
@@ -1285,6 +1364,44 @@ const processQuickPayment = async () => {
     }
   } catch (error) {
     console.error("Quick payment failed:", error);
+  } finally {
+    isProcessing.value = false;
+  }
+};
+
+const processMarketCheckoutPayment = async () => {
+  if (!canProcessMarketCheckoutPayment.value) return;
+
+  isProcessing.value = true;
+  try {
+    const result = await posService.payMarketCheckout({
+      checkoutId: marketCheckoutPayment.value.checkoutId.trim(),
+      registerId: currentRegister.value!.id,
+      shiftId: currentShift.value!.id,
+      paymentMethod: marketCheckoutPayment.value.paymentMethod,
+    });
+    const paidAmount =
+      (result.payment.paidAmountCents ?? result.payment.totalAmountCents) / 100;
+
+    if (currentRegister.value) {
+      currentRegister.value.currentBalance += paidAmount;
+      currentRegister.value.todayTransactions++;
+      currentRegister.value.lastActivity = new Date().toISOString();
+    }
+
+    if (currentShift.value) {
+      currentShift.value.totalRevenue += paidAmount;
+      currentShift.value.processedOrders++;
+    }
+
+    await refreshTransactions();
+
+    marketCheckoutPayment.value = {
+      checkoutId: "",
+      paymentMethod: "cash",
+    };
+  } catch (error) {
+    console.error("Market checkout POS payment failed:", error);
   } finally {
     isProcessing.value = false;
   }

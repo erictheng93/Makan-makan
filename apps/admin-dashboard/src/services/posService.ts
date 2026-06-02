@@ -57,6 +57,21 @@ export interface Promotion {
   endDate: string;
 }
 
+export type MarketCheckoutPosPaymentMethod = "cash" | "card" | "digital_wallet";
+
+export interface MarketCheckoutPosPaymentResult {
+  checkout: {
+    id: string;
+    paymentStatus?: string;
+  };
+  payment: {
+    status: string;
+    method: string;
+    totalAmountCents: number;
+    paidAmountCents?: number;
+  };
+}
+
 // 現金櫃管理
 export const posService = {
   // 現金櫃
@@ -264,6 +279,20 @@ export const posService = {
   }): Promise<any> {
     const response = await apiClient.post("/pos/quick-payment", data);
     return unwrapApiData<any>(response);
+  },
+
+  async payMarketCheckout(data: {
+    checkoutId: string;
+    registerId: string;
+    shiftId?: string;
+    paymentMethod: MarketCheckoutPosPaymentMethod;
+  }): Promise<MarketCheckoutPosPaymentResult> {
+    const { checkoutId, ...body } = data;
+    const response = await apiClient.post(
+      `/pos/market-checkouts/${checkoutId}/pay`,
+      body,
+    );
+    return unwrapApiData<MarketCheckoutPosPaymentResult>(response);
   },
 };
 

@@ -2598,6 +2598,12 @@ const enUS: Messages = {
     noTransactionsHint:
       "Transaction records will appear after using the POS system",
     quickPayment: "Quick Payment",
+    marketCheckoutPayment: "Market Checkout Payment",
+    marketCheckoutId: "Market Checkout ID",
+    marketCheckoutIdPlaceholder: "Enter market checkout ID",
+    marketCheckoutPaymentHint:
+      "Uses the selected register and active shift for onsite market checkout payment.",
+    confirmMarketCheckoutPayment: "Confirm Market Checkout Payment",
     orderNumber: "Order Number",
     orderNumberPlaceholder: "Enter order number",
     amount: "Amount",

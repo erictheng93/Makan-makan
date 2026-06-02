@@ -2316,6 +2316,12 @@ const viVN: Messages = {
     noTransactionsHint:
       "Bản ghi giao dịch sẽ xuất hiện sau khi sử dụng hệ thống POS",
     quickPayment: "Thanh toán nhanh",
+    marketCheckoutPayment: "Thanh toán checkout chợ",
+    marketCheckoutId: "ID checkout chợ",
+    marketCheckoutIdPlaceholder: "Nhập ID checkout chợ",
+    marketCheckoutPaymentHint:
+      "Sử dụng quầy thu ngân đã chọn và ca đang hoạt động để thanh toán checkout chợ tại chỗ.",
+    confirmMarketCheckoutPayment: "Xác nhận thanh toán checkout chợ",
     orderNumber: "Số đơn hàng",
     orderNumberPlaceholder: "Nhập số đơn hàng",
     amount: "Số tiền",

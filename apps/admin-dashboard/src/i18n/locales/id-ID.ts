@@ -2324,6 +2324,12 @@ const idID: Messages = {
     noTransactionsHint:
       "Catatan transaksi akan muncul setelah menggunakan sistem POS",
     quickPayment: "Pembayaran Cepat",
+    marketCheckoutPayment: "Pembayaran Checkout Pasar",
+    marketCheckoutId: "ID Checkout Pasar",
+    marketCheckoutIdPlaceholder: "Masukkan ID checkout pasar",
+    marketCheckoutPaymentHint:
+      "Menggunakan kasir yang dipilih dan shift aktif untuk pembayaran checkout pasar di tempat.",
+    confirmMarketCheckoutPayment: "Konfirmasi Pembayaran Checkout Pasar",
     orderNumber: "Nomor Pesanan",
     orderNumberPlaceholder: "Masukkan nomor pesanan",
     amount: "Jumlah",

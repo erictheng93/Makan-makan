@@ -2390,6 +2390,12 @@ const zhCN: Messages = {
     noTransactions: "暂无交易记录",
     noTransactionsHint: "开始使用 POS 系统后会显示交易记录",
     quickPayment: "快速收款",
+    marketCheckoutPayment: "市场结账收款",
+    marketCheckoutId: "市场结账 ID",
+    marketCheckoutIdPlaceholder: "输入市场结账 ID",
+    marketCheckoutPaymentHint:
+      "使用当前选取的收银柜与开启中的班次完成现场市场结账收款。",
+    confirmMarketCheckoutPayment: "确认市场结账收款",
     orderNumber: "订单编号",
     orderNumberPlaceholder: "输入订单编号",
     amount: "金额",

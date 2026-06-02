@@ -1,0 +1,134 @@
+// @vitest-environment jsdom
+
+import { flushPromises, mount } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import POSManagementView from "./POSManagementView.vue";
+import { api } from "@/services/api";
+import { posService } from "@/services/posService";
+
+vi.mock("@/i18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock("@/composables/useCurrency", () => ({
+  useCurrency: () => ({
+    currencySymbol: "$",
+    formatPrice: (value: number) => `$${value.toFixed(2)}`,
+  }),
+}));
+
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => ({
+    restaurantId: "restaurant-1",
+    user: { id: 7 },
+  }),
+}));
+
+vi.mock("@/services/api", () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+  },
+  unwrapApiList: (payload: unknown) => payload,
+  unwrapApiPayload: (payload: unknown) => payload,
+}));
+
+vi.mock("@/services/posService", () => ({
+  posService: {
+    payMarketCheckout: vi.fn(),
+  },
+}));
+
+describe("POSManagementView", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/pos/registers") {
+        return {
+          data: {
+            success: true,
+            data: [
+              {
+                id: "register-1",
+                name: "Main Register",
+                status: "active",
+                currentBalance: 1000,
+                todayTransactions: 3,
+                lastActivity: "2026-06-01T10:00:00.000Z",
+                location: "Front",
+              },
+            ],
+          },
+        } as never;
+      }
+      if (url === "/pos/shifts/current/register-1") {
+        return {
+          data: {
+            success: true,
+            data: {
+              id: "shift-1",
+              name: "Morning",
+              startTime: "2026-06-01T08:00:00.000Z",
+              registerId: "register-1",
+              operatorId: 7,
+              startingCash: 500,
+              totalSales: 120,
+              processedOrders: 4,
+              status: "active",
+            },
+          },
+        } as never;
+      }
+      if (url === "/pos/registers/register-1/stats/daily") {
+        return {
+          data: {
+            success: true,
+            data: { totalSales: 120, totalOrders: 4, avgOrderValue: 30 },
+          },
+        } as never;
+      }
+      if (url === "/pos/registers/register-1/cash-movements") {
+        return { data: { success: true, data: [] } } as never;
+      }
+      if (url === "/pos/promotions") {
+        return { data: { success: true, data: [] } } as never;
+      }
+      return { data: { success: true, data: null } } as never;
+    });
+    vi.mocked(posService.payMarketCheckout).mockResolvedValue({
+      checkout: { id: "checkout-1", paymentStatus: "paid" },
+      payment: {
+        status: "paid",
+        method: "pos_card",
+        totalAmountCents: 20000,
+        paidAmountCents: 20000,
+      },
+    });
+  });
+
+  it("pays a market checkout through the selected register and active shift", async () => {
+    const wrapper = mount(POSManagementView);
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="pos-market-checkout-id"]')
+      .setValue("checkout-1");
+    await wrapper
+      .get('[data-testid="pos-market-checkout-payment-method"]')
+      .setValue("card");
+    await wrapper
+      .get('[data-testid="pos-market-checkout-pay"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(posService.payMarketCheckout).toHaveBeenCalledWith({
+      checkoutId: "checkout-1",
+      registerId: "register-1",
+      shiftId: "shift-1",
+      paymentMethod: "card",
+    });
+  });
+});
