@@ -99,6 +99,9 @@ describe("MarketCheckoutTrackingView", () => {
     expect(childOrders[0].text()).toContain("NT$160");
     expect(childOrders[1].text()).toContain("可取餐");
     expect(childOrders[1].text()).toContain("已付款");
+    expect(
+      localStorage.getItem("makanmakan_recent_market_checkouts"),
+    ).toContain('"paymentStatus":"pending"');
   });
 
   it("returns to the market page", async () => {
@@ -379,6 +382,9 @@ describe("MarketCheckoutTrackingView", () => {
     expect(paymentSummary.text()).toContain("已完成聯合付款");
     expect(paymentSummary.text()).toContain("NT$240");
     expect(paymentSummary.text()).toContain("已完成 2 / 2 筆攤位付款");
+    expect(
+      localStorage.getItem("makanmakan_recent_market_checkouts"),
+    ).toContain('"paymentStatus":"paid"');
   });
 
   it("shows partial payment failures and lets users retry unpaid vendors", async () => {
@@ -502,6 +508,9 @@ describe("MarketCheckoutTrackingView", () => {
     expect(
       wrapper.get('[data-testid="market-checkout-payment-failures"]').text(),
     ).toContain("甜點攤：Gateway declined");
+    expect(
+      wrapper.get('[data-testid="market-checkout-payment-summary"]').classes(),
+    ).toContain("bg-amber-50");
     expect(wrapper.get('[data-testid="market-checkout-pay"]').text()).toContain(
       "重試未完成付款",
     );
@@ -514,6 +523,70 @@ describe("MarketCheckoutTrackingView", () => {
       country: "TW",
       currency: "TWD",
     });
+    expect(
+      localStorage.getItem("makanmakan_recent_market_checkouts"),
+    ).toContain('"paymentStatus":"paid"');
+  });
+
+  it("shows a failed payment retry hint and records the failed recent status", async () => {
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      payment: {
+        status: "failed",
+        method: "market_online",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 160,
+        totalAmountCents: 16000,
+        paidAmount: 0,
+        paidAmountCents: 0,
+        failedAt: "2026-06-01T10:10:00.000Z",
+        childPayments: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            status: "failed",
+            amount: 160,
+            amountCents: 16000,
+            errorMessage: "Payment gateway failed",
+          },
+        ],
+      },
+      subtotal: 160,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    const paymentSummary = wrapper.get(
+      '[data-testid="market-checkout-payment-summary"]',
+    );
+    expect(paymentSummary.text()).toContain("付款失敗");
+    expect(paymentSummary.classes()).toContain("bg-red-50");
+    expect(
+      wrapper.get('[data-testid="market-checkout-payment-retry-hint"]').text(),
+    ).toContain("重新付款");
+    expect(wrapper.get('[data-testid="market-checkout-pay"]').text()).toContain(
+      "重新付款",
+    );
+    expect(
+      localStorage.getItem("makanmakan_recent_market_checkouts"),
+    ).toContain('"paymentStatus":"failed"');
   });
 
   it("shows a retry state when checkout loading fails", async () => {

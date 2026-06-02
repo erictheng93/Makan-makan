@@ -94,12 +94,7 @@
           <div
             v-if="checkout.payment"
             data-testid="market-checkout-payment-summary"
-            :class="[
-              'mt-4 rounded-lg px-3 py-2 text-sm',
-              checkout.payment.status === 'paid'
-                ? 'bg-emerald-50 text-emerald-800'
-                : 'bg-amber-50 text-amber-800',
-            ]"
+            :class="['mt-4 rounded-lg px-3 py-2 text-sm', paymentSummaryClass]"
           >
             <div class="flex items-center justify-between gap-3">
               <span class="font-semibold">
@@ -112,6 +107,13 @@
             </div>
             <p class="mt-1 text-xs">
               {{ paymentProgressLabel }}
+            </p>
+            <p
+              v-if="checkout.payment.status === 'failed'"
+              data-testid="market-checkout-payment-retry-hint"
+              class="mt-1 text-xs"
+            >
+              付款未完成，請確認付款方式後重新付款。
             </p>
             <ul
               v-if="failedChildPayments.length > 0"
@@ -226,6 +228,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import {
   activateMarketCheckoutGuestToken,
   getRecentMarketCheckoutPhoneLastDigits,
+  recordRecentMarketCheckout,
 } from "@/utils/marketCheckouts";
 
 const props = defineProps<{
@@ -279,6 +282,13 @@ const paymentProgressLabel = computed(() => {
   return `已完成 ${paidCount} / ${totalCount} 筆攤位付款`;
 });
 
+const paymentSummaryClass = computed(() => {
+  const status = checkout.value?.payment?.status;
+  if (status === "paid") return "bg-emerald-50 text-emerald-800";
+  if (status === "failed") return "bg-red-50 text-red-700";
+  return "bg-amber-50 text-amber-800";
+});
+
 const canPayCheckout = computed(() => {
   return !checkout.value?.payment || checkout.value.payment.status !== "paid";
 });
@@ -296,6 +306,7 @@ async function loadCheckout() {
   error.value = null;
   try {
     checkout.value = await orderApi.getMarketCheckout(props.checkoutId);
+    recordRecentMarketCheckout(checkout.value);
   } catch (loadError) {
     console.error("Failed to load market checkout:", loadError);
     error.value =
@@ -315,6 +326,7 @@ async function payCheckout() {
       currency: "TWD",
     });
     checkout.value = result.checkout;
+    recordRecentMarketCheckout(result.checkout);
   } catch (payError) {
     console.error("Failed to pay market checkout:", payError);
     paymentError.value =
