@@ -7,6 +7,7 @@ import {
   checkMarketCheckoutPaymentProviderConnectivity,
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
+  signMarketCheckoutProviderSplitPayload,
 } from "./MarketCheckoutPaymentProvider";
 
 const processPayment = vi.hoisted(() => vi.fn());
@@ -385,6 +386,66 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     });
   });
 
+  it("signs configured HTTP provider split requests with HMAC-SHA256", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            provider: "stripe_connect",
+            providerTransactionId: "pi_market_1",
+            authorizedAmountCents: 12000,
+            allocations: [
+              { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
+            ],
+          }),
+        ),
+    );
+    const gateway = new HttpProviderSplitGateway(
+      "https://payments.example.test/market-split",
+      "split-token",
+      fetcher as never,
+      "split-signing-secret",
+    );
+
+    await gateway.process({
+      checkoutId: "checkout-1",
+      marketSlug: "fengjia",
+      method: "stripe_connect",
+      country: "TW",
+      currency: "TWD",
+      idempotencyKey: "market-pay-1",
+      amountCents: 12000,
+      allocations: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "Noodle Stall",
+          orderId: 1001,
+          orderNumber: "A001",
+          amountCents: 12000,
+        },
+      ],
+    });
+
+    const [, requestInit] = fetcher.mock.calls[0];
+    const headers = requestInit?.headers as Record<string, string>;
+    const body = requestInit?.body as string;
+    const timestamp = headers["x-market-checkout-signature-timestamp"];
+
+    expect(headers).toMatchObject({
+      "content-type": "application/json",
+      authorization: "Bearer split-token",
+      "x-market-checkout-signature-algorithm": "hmac-sha256",
+    });
+    expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    await expect(
+      signMarketCheckoutProviderSplitPayload(
+        "split-signing-secret",
+        timestamp,
+        body,
+      ),
+    ).resolves.toBe(headers["x-market-checkout-signature"]);
+  });
+
   it("rejects invalid HTTP provider split gateway responses", async () => {
     const gateway = new HttpProviderSplitGateway(
       "https://payments.example.test/market-split",
@@ -590,6 +651,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerKind: "internal_child_transactions",
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
+      providerSplitSigningConfigured: false,
       missingConfiguration: [],
     });
   });
@@ -605,6 +667,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerKind: "http_provider_split",
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
+      providerSplitSigningConfigured: false,
       missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
     });
   });
@@ -618,6 +681,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL:
           "https://payments.example.test/health",
         MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+        MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET: "split-signing-secret",
       } as Env),
     ).toMatchObject({
       splitMode: "provider_split",
@@ -626,6 +690,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerSplitUrlConfigured: true,
       providerSplitHealthUrlConfigured: true,
       providerSplitTokenConfigured: true,
+      providerSplitSigningConfigured: true,
+      capabilities: expect.arrayContaining(["signed_requests"]),
       missingConfiguration: [],
     });
   });

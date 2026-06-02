@@ -155,6 +155,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerSplitUrlConfigured: boolean;
   providerSplitHealthUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
+  providerSplitSigningConfigured: boolean;
   capabilities: string[];
   missingConfiguration: string[];
   notes: string[];

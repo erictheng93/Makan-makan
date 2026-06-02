@@ -62,6 +62,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerSplitUrlConfigured: boolean;
   providerSplitHealthUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
+  providerSplitSigningConfigured: boolean;
   capabilities: string[];
   missingConfiguration: string[];
   notes: string[];
@@ -284,20 +285,36 @@ export class HttpProviderSplitGateway implements MarketCheckoutProviderSplitGate
     private readonly endpoint: string,
     private readonly bearerToken?: string,
     private readonly fetcher: typeof fetch = fetch,
+    private readonly signingSecret?: string,
   ) {}
 
   async process(
     input: MarketCheckoutProviderSplitGatewayInput,
   ): Promise<MarketCheckoutProviderSplitGatewayResult> {
+    const body = JSON.stringify(input);
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      ...(this.bearerToken
+        ? { authorization: `Bearer ${this.bearerToken}` }
+        : {}),
+    };
+
+    if (this.signingSecret) {
+      const timestamp = new Date().toISOString();
+      headers["x-market-checkout-signature-algorithm"] = "hmac-sha256";
+      headers["x-market-checkout-signature-timestamp"] = timestamp;
+      headers["x-market-checkout-signature"] =
+        await signMarketCheckoutProviderSplitPayload(
+          this.signingSecret,
+          timestamp,
+          body,
+        );
+    }
+
     const response = await this.fetcher(this.endpoint, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(this.bearerToken
-          ? { authorization: `Bearer ${this.bearerToken}` }
-          : {}),
-      },
-      body: JSON.stringify(input),
+      headers,
+      body,
     });
 
     if (!response.ok) {
@@ -322,6 +339,8 @@ export function createMarketCheckoutPaymentProvider(
         ? new HttpProviderSplitGateway(
             env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL,
             env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
+            fetch,
+            env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET,
           )
         : new UnconfiguredProviderSplitGateway(),
     );
@@ -346,8 +365,22 @@ export function getMarketCheckoutPaymentProviderStatus(
   const providerSplitTokenConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
   );
+  const providerSplitSigningConfigured = Boolean(
+    env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET,
+  );
 
   if (splitMode === "provider_split") {
+    const providerCapabilities = [
+      "aggregate_authorization",
+      "provider_allocations",
+      "health_check",
+      "webhook_status_sync",
+      "refunds",
+    ];
+    if (providerSplitSigningConfigured) {
+      providerCapabilities.push("signed_requests");
+    }
+
     return {
       splitMode,
       readiness: providerSplitUrlConfigured ? "ready" : "not_configured",
@@ -355,14 +388,9 @@ export function getMarketCheckoutPaymentProviderStatus(
       providerSplitUrlConfigured,
       providerSplitHealthUrlConfigured,
       providerSplitTokenConfigured,
+      providerSplitSigningConfigured,
       capabilities: providerSplitUrlConfigured
-        ? [
-            "aggregate_authorization",
-            "provider_allocations",
-            "health_check",
-            "webhook_status_sync",
-            "refunds",
-          ]
+        ? providerCapabilities
         : ["webhook_status_sync", "refunds"],
       missingConfiguration: providerSplitUrlConfigured
         ? []
@@ -372,6 +400,9 @@ export function getMarketCheckoutPaymentProviderStatus(
             providerSplitTokenConfigured
               ? "Provider split gateway is configured with bearer-token authentication."
               : "Provider split gateway is configured without bearer-token authentication.",
+            providerSplitSigningConfigured
+              ? "Provider split gateway requests are signed with HMAC-SHA256."
+              : "Provider split gateway requests are not signed; configure a signing secret before production use.",
             providerSplitHealthUrlConfigured
               ? "Provider split health check URL is configured."
               : "Provider split health check URL is not configured; connectivity is not verified.",
@@ -389,6 +420,7 @@ export function getMarketCheckoutPaymentProviderStatus(
     providerSplitUrlConfigured,
     providerSplitHealthUrlConfigured,
     providerSplitTokenConfigured,
+    providerSplitSigningConfigured,
     capabilities: [
       "child_order_payments",
       "idempotency",
@@ -400,6 +432,30 @@ export function getMarketCheckoutPaymentProviderStatus(
       "Market checkouts are charged as child order transactions; configure provider_split for one aggregate provider authorization.",
     ],
   };
+}
+
+export async function signMarketCheckoutProviderSplitPayload(
+  secret: string,
+  timestamp: string,
+  body: string,
+) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(`${timestamp}.${body}`),
+  );
+
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function checkMarketCheckoutPaymentProviderConnectivity(

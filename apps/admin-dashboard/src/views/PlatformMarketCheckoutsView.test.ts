@@ -102,6 +102,7 @@ describe("PlatformMarketCheckoutsView", () => {
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
       providerSplitTokenConfigured: false,
+      providerSplitSigningConfigured: false,
       capabilities: ["webhook_status_sync", "refunds"],
       missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
       notes: [

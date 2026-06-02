@@ -1614,6 +1614,7 @@ describe("market checkout routes", () => {
         providerSplitUrlConfigured: true,
         providerSplitHealthUrlConfigured: false,
         providerSplitTokenConfigured: true,
+        providerSplitSigningConfigured: false,
       },
     });
   });
