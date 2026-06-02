@@ -1200,6 +1200,98 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("persists provider split gateway failures as failed payment attempts", async () => {
+    const env = createEnv() as ReturnType<typeof createEnv> & {
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split";
+    };
+    env.MARKET_CHECKOUT_SPLIT_MODE = "provider_split";
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+        },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "stripe_connect" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(202);
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          paidAmountCents: number;
+          childPayments: Array<{
+            orderId: number;
+            status: string;
+            errorMessage?: string;
+          }>;
+          parentPayment: {
+            status: string;
+            splitMode: string;
+            provider: string;
+            paidAmountCents: number;
+          };
+        };
+      };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "failed",
+      paidAmountCents: 0,
+      childPayments: [
+        {
+          orderId: 1001,
+          status: "failed",
+          errorMessage:
+            "Market checkout provider split gateway is not configured",
+        },
+      ],
+      parentPayment: {
+        status: "failed",
+        provider: "stripe_connect",
+        splitMode: "provider_split",
+        paidAmountCents: 0,
+      },
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"status":"failed"'),
+      { expirationTtl: 14400 },
+    );
+    expect(databaseMocks.updateValues[0]).toMatchObject({
+      paymentStatus: "failed",
+      paymentSummary: expect.objectContaining({
+        status: "failed",
+        paidAmountCents: 0,
+      }),
+    });
+  });
+
   it("lists market checkout sessions for platform admins", async () => {
     const env = createEnv();
     databaseMocks.selectQueue.push({

@@ -510,17 +510,64 @@ app.post("/:id/pay", async (c) => {
 
   const requestIdempotencyKey = c.req.header("Idempotency-Key");
   const paymentProvider = createMarketCheckoutPaymentProvider(c.env);
-  const providerResult = await paymentProvider.process({
-    checkoutId,
-    marketSlug: session.market.slug,
-    childOrders: session.childOrders,
-    existingChildPayments: session.payment?.childPayments,
-    method: parsed.data.method,
-    country: parsed.data.country,
-    currency: parsed.data.currency,
-    customerInfo: parsed.data.customerInfo,
-    requestIdempotencyKey: requestIdempotencyKey ?? undefined,
-  });
+  const providerSplitMode =
+    c.env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
+      ? "provider_split"
+      : "child_transactions";
+  let providerResult;
+  try {
+    providerResult = await paymentProvider.process({
+      checkoutId,
+      marketSlug: session.market.slug,
+      childOrders: session.childOrders,
+      existingChildPayments: session.payment?.childPayments,
+      method: parsed.data.method,
+      country: parsed.data.country,
+      currency: parsed.data.currency,
+      customerInfo: parsed.data.customerInfo,
+      requestIdempotencyKey: requestIdempotencyKey ?? undefined,
+    });
+  } catch (error) {
+    const failedPayment = buildFailedMarketCheckoutPayment({
+      checkoutId,
+      session,
+      method: parsed.data.method,
+      country: parsed.data.country,
+      currency: parsed.data.currency,
+      provider: parsed.data.method,
+      splitMode: providerSplitMode,
+      idempotencyKey: requestIdempotencyKey ?? `market-checkout:${checkoutId}`,
+      errorMessage:
+        error instanceof Error
+          ? error.message
+          : "Market checkout payment failed",
+    });
+    const failedSession: MarketCheckoutSession = {
+      ...session,
+      payment: failedPayment,
+    };
+
+    await c.env.CACHE_KV.put(
+      `market_checkout:${checkoutId}`,
+      JSON.stringify(failedSession),
+      {
+        expirationTtl: 4 * 60 * 60,
+      },
+    );
+    await updatePersistedMarketCheckoutPayment(c.env, failedSession);
+    await upsertMarketCheckoutIndex(c.env.CACHE_KV, failedSession);
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          checkout: failedSession,
+          payment: failedPayment,
+        },
+      },
+      202,
+    );
+  }
   const childPayments = providerResult.childPayments;
   const paidPayments = childPayments.filter(
     (payment) => payment?.status === "paid",
@@ -1197,6 +1244,59 @@ function buildMarketCheckoutOrderNotes(input: {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function buildFailedMarketCheckoutPayment(input: {
+  checkoutId: string;
+  session: MarketCheckoutSession;
+  method: string;
+  country: "TW" | "MY" | "VN";
+  currency: "TWD" | "MYR" | "VND";
+  provider: string;
+  splitMode: MarketCheckoutSplitMode;
+  idempotencyKey: string;
+  errorMessage: string;
+}): MarketCheckoutPaymentSummary {
+  const now = new Date().toISOString();
+  const totalAmount = input.session.childOrders.reduce(
+    (sum, child) => sum + Number(child.totalAmount ?? 0),
+    0,
+  );
+  const paymentBase: MarketCheckoutPaymentSummary = {
+    status: "failed",
+    method: input.method,
+    currency: input.currency,
+    country: input.country,
+    totalAmount,
+    totalAmountCents: Math.round(totalAmount * 100),
+    paidAmount: 0,
+    paidAmountCents: 0,
+    failedAt: now,
+    childPayments: input.session.childOrders.map((child) => ({
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      status: "failed" as const,
+      amount: Number(child.totalAmount ?? 0),
+      amountCents: orderChildTotalCents(child),
+      errorMessage: input.errorMessage,
+    })),
+  };
+
+  return {
+    ...paymentBase,
+    parentPayment: buildMarketCheckoutParentPayment({
+      checkoutId: input.checkoutId,
+      existing: input.session.payment?.parentPayment,
+      payment: paymentBase,
+      provider: input.provider,
+      splitMode: input.splitMode,
+      idempotencyKey: input.idempotencyKey,
+      now,
+    }),
+    settlement: buildMarketCheckoutSettlement(input.session, paymentBase),
+  };
 }
 
 function buildMarketCheckoutSettlement(
