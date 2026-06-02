@@ -84,6 +84,14 @@ export default {
         await aggregateUsageMeters(env);
       }
 
+      if (event.cron === "*/5 * * * *") {
+        console.log("[Cron] Running market checkout payment reconciliation...");
+        const { reconcilePendingMarketCheckoutPayments } =
+          await import("./workers/market-checkout-reconciliation");
+        const result = await reconcilePendingMarketCheckoutPayments(env);
+        console.log("[Cron] Market checkout reconciliation result:", result);
+      }
+
       if (event.cron === "0 2 * * *") {
         console.log("[Cron] Running storage usage snapshot...");
         const { snapshotStorageUsage } =

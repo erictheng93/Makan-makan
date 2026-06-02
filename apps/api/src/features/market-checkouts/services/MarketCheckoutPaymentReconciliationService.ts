@@ -83,6 +83,44 @@ export class MarketCheckoutPaymentReconciliationService {
     };
   }
 
+  async listPendingStatusLookupInputs(input: {
+    updatedBeforeMs: number;
+    limit: number;
+  }): Promise<MarketCheckoutProviderSplitStatusInput[]> {
+    const result = await this.env.DB.prepare(
+      `SELECT p.payment_id, p.checkout_id, p.market_id, p.provider,
+              p.split_mode, p.idempotency_key, p.status, p.amount_cents,
+              p.paid_amount_cents, p.refunded_amount_cents, p.currency,
+              p.country_code, p.child_payment_ids, p.provider_transaction_id,
+              p.provider_payload, p.created_at_ms, p.updated_at_ms,
+              s.payment_summary AS session_payment_summary
+         FROM market_checkout_payments p
+         JOIN market_checkout_sessions s ON s.id = p.checkout_id
+        WHERE p.split_mode = 'provider_split'
+          AND p.status = 'pending'
+          AND p.updated_at_ms <= ?
+        ORDER BY p.updated_at_ms ASC
+        LIMIT ?`,
+    )
+      .bind(input.updatedBeforeMs, input.limit)
+      .all<MarketCheckoutPaymentRow>();
+    const rows = result.results ?? [];
+
+    return rows.map((row) => {
+      this.lookupRows.set(row.checkout_id, row);
+      return {
+        checkoutId: row.checkout_id,
+        paymentId: row.payment_id,
+        provider: row.provider,
+        providerTransactionId: row.provider_transaction_id ?? undefined,
+        idempotencyKey: row.idempotency_key ?? undefined,
+        amountCents: row.amount_cents,
+        currency: row.currency ?? undefined,
+        country: row.country_code ?? undefined,
+      };
+    });
+  }
+
   async reconcile(
     checkoutId: string,
     providerStatus: MarketCheckoutProviderSplitStatusResult,

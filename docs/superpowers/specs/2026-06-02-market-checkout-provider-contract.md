@@ -367,6 +367,13 @@ Allowed `status` values are `pending`, `paid`, `failed`, `refunded`, and
 KV. The raw provider response is stored under
 `provider_payload.lastReconciliation`.
 
+Automatic reconciliation runs from the API worker `*/5 * * * *` cron. It scans
+provider split parent payments that are still `pending` after 30 minutes, limits
+each batch to 25 payments, calls `MARKET_CHECKOUT_PROVIDER_STATUS_URL`, and
+applies the same ledger/session/KV update path as manual admin reconciliation.
+If provider split mode or the status lookup URL is not configured, the cron task
+skips without mutating payment state.
+
 ## Health Check Contract
 
 Admin connectivity checks call `MARKET_CHECKOUT_PROVIDER_SPLIT_HEALTH_URL`.
@@ -427,6 +434,8 @@ The fixture includes:
   covered by tests.
 - Provider status lookup reconciliation is documented and covered by route and
   provider service tests.
+- Stale pending provider payments are automatically reconciled by cron and
+  covered by worker tests.
 - Admin readiness clearly shows gateway URL, webhook secret, request signing,
   and health check state.
 - Future provider implementation work can be scoped to a connector adapter,
