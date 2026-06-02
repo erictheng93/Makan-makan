@@ -1,0 +1,7 @@
+{
+  "real_auto_allowed_pattern": "apps/*/src/__tests__/integration/*.real.integration.test.ts",
+  "legacy_mockdrizzle": [],
+  "component_flows": [],
+  "module_integration": [],
+  "inline_legacy_annotated": []
+}
