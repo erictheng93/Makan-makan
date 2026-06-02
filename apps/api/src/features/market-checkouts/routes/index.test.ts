@@ -1725,6 +1725,31 @@ describe("market checkout routes", () => {
           paymentStatus: "partial_paid",
           subtotalCents: 12000,
           childOrderCount: 1,
+          paymentSummary: {
+            status: "partial_paid",
+            method: "market_online",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+            parentPayment: {
+              paymentId: "market_pay_checkout-1",
+              status: "pending",
+              provider: "mock_market_provider",
+              splitMode: "provider_split",
+              idempotencyKey: "market-checkout:checkout-1",
+              providerTransactionId: "intent-market-checkout-1",
+              amountCents: 12000,
+              paidAmountCents: 0,
+              refundedAmountCents: 0,
+              childPaymentIds: [],
+              createdAt: "2026-06-01T09:00:00.000Z",
+              updatedAt: "2026-06-01T09:00:00.000Z",
+            },
+          },
           createdAt: new Date("2026-06-01T10:00:00.000Z"),
           updatedAt: new Date("2026-06-01T10:05:00.000Z"),
         },
@@ -1758,6 +1783,7 @@ describe("market checkout routes", () => {
           market: { slug: string };
           paymentStatus: string;
           childOrderCount: number;
+          operationAlerts: Array<{ type: string; label: string }>;
         }>;
         total: number;
       };
@@ -1768,6 +1794,10 @@ describe("market checkout routes", () => {
       market: { slug: "fengjia" },
       paymentStatus: "partial_paid",
       childOrderCount: 1,
+      operationAlerts: expect.arrayContaining([
+        expect.objectContaining({ type: "provider_pending_stale" }),
+        expect.objectContaining({ type: "provider_webhook_missing" }),
+      ]),
     });
   });
 

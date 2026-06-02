@@ -41,8 +41,19 @@ export interface MarketCheckoutListItem {
   paymentStatus: MarketCheckoutPaymentStatus;
   subtotal: number;
   childOrderCount: number;
+  operationAlerts?: MarketCheckoutOperationAlert[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MarketCheckoutOperationAlert {
+  type:
+    | "provider_pending_stale"
+    | "provider_webhook_missing"
+    | "provider_webhook_failed"
+    | "provider_status_mismatch";
+  label: string;
+  severity: "warning" | "critical";
 }
 
 export interface MarketCheckoutChildOrder {

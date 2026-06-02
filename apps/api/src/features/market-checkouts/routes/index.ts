@@ -138,8 +138,19 @@ interface MarketCheckoutIndexItem {
   paymentStatus: MarketCheckoutPaymentSummary["status"] | "pending";
   subtotal: number;
   childOrderCount: number;
+  operationAlerts?: MarketCheckoutOperationAlert[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface MarketCheckoutOperationAlert {
+  type:
+    | "provider_pending_stale"
+    | "provider_webhook_missing"
+    | "provider_webhook_failed"
+    | "provider_status_mismatch";
+  label: string;
+  severity: "warning" | "critical";
 }
 
 interface MarketCheckoutSummaryItem extends MarketCheckoutIndexItem {
@@ -1764,6 +1775,11 @@ async function readPersistedMarketCheckoutIndex(
       row.paymentStatus as MarketCheckoutIndexItem["paymentStatus"],
     subtotal: row.subtotalCents,
     childOrderCount: row.childOrderCount,
+    operationAlerts: buildMarketCheckoutOperationAlerts(
+      (row.paymentSummary ?? undefined) as
+        | MarketCheckoutPaymentSummary
+        | undefined,
+    ),
     createdAt: toIsoString(row.createdAt),
     updatedAt: toIsoString(row.updatedAt),
   }));
@@ -2315,6 +2331,7 @@ async function upsertMarketCheckoutIndex(
     paymentStatus: session.payment?.status ?? "pending",
     subtotal: session.subtotal,
     childOrderCount: session.childOrders.length,
+    operationAlerts: buildMarketCheckoutOperationAlerts(session.payment),
     createdAt: session.createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -2347,6 +2364,54 @@ function isMarketCheckoutIndexItem(
     typeof item.createdAt === "string" &&
     typeof item.updatedAt === "string"
   );
+}
+
+function buildMarketCheckoutOperationAlerts(
+  payment: MarketCheckoutPaymentSummary | undefined,
+  nowMs = Date.now(),
+): MarketCheckoutOperationAlert[] {
+  const parentPayment = payment?.parentPayment;
+  if (!parentPayment || parentPayment.splitMode !== "provider_split") {
+    return [];
+  }
+
+  const alerts: MarketCheckoutOperationAlert[] = [];
+  if (parentPayment.status === "pending") {
+    const updatedAtMs = Date.parse(parentPayment.updatedAt);
+    if (Number.isFinite(updatedAtMs) && nowMs - updatedAtMs > 30 * 60 * 1000) {
+      alerts.push({
+        type: "provider_pending_stale",
+        label: "待對帳",
+        severity: "warning",
+      });
+    }
+    if (!parentPayment.lastWebhook) {
+      alerts.push({
+        type: "provider_webhook_missing",
+        label: "未收到 webhook",
+        severity: "warning",
+      });
+    }
+  }
+  if (parentPayment.lastWebhook?.status === "failed") {
+    alerts.push({
+      type: "provider_webhook_failed",
+      label: "webhook 失敗",
+      severity: "critical",
+    });
+  }
+  if (
+    parentPayment.status === "pending" &&
+    parentPayment.lastWebhook?.status === "paid"
+  ) {
+    alerts.push({
+      type: "provider_status_mismatch",
+      label: "狀態不一致",
+      severity: "critical",
+    });
+  }
+
+  return alerts;
 }
 
 function coercePositiveInt(value: string | undefined, fallback: number) {

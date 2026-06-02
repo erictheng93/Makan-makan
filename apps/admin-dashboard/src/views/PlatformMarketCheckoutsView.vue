@@ -343,6 +343,20 @@
             <p class="mt-1 text-xs text-gray-500">
               {{ checkout.id }} · {{ formatDate(checkout.createdAt) }}
             </p>
+            <div
+              v-if="checkout.operationAlerts?.length"
+              data-testid="checkout-operation-alerts"
+              class="mt-2 flex flex-wrap gap-1.5"
+            >
+              <span
+                v-for="alert in checkout.operationAlerts"
+                :key="`${checkout.id}-${alert.type}`"
+                class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                :class="operationAlertClass(alert.severity)"
+              >
+                {{ alert.label }}
+              </span>
+            </div>
           </div>
           <div>
             <div class="text-xs text-gray-500">付款</div>
@@ -1049,6 +1063,13 @@ function paymentClass(status: MarketCheckoutPaymentStatus) {
     refunded: "bg-slate-100 text-slate-700",
     partial_refunded: "bg-orange-50 text-orange-700",
   }[status];
+}
+
+function operationAlertClass(severity: "warning" | "critical") {
+  return {
+    warning: "bg-amber-50 text-amber-700",
+    critical: "bg-red-50 text-red-700",
+  }[severity];
 }
 
 function splitModeLabel(mode: "child_transactions" | "provider_split") {

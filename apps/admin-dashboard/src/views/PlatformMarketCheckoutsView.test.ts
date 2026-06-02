@@ -43,6 +43,18 @@ describe("PlatformMarketCheckoutsView", () => {
           childOrderCount: 2,
           createdAt: "2026-06-01T10:00:00.000Z",
           updatedAt: "2026-06-01T10:05:00.000Z",
+          operationAlerts: [
+            {
+              type: "provider_pending_stale",
+              label: "待對帳",
+              severity: "warning",
+            },
+            {
+              type: "provider_webhook_missing",
+              label: "未收到 webhook",
+              severity: "warning",
+            },
+          ],
         },
       ],
       total: 1,
@@ -300,6 +312,12 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("部分付款");
     expect(wrapper.text()).toContain("2 攤");
+    expect(
+      wrapper.get('[data-testid="checkout-operation-alerts"]').text(),
+    ).toContain("待對帳");
+    expect(
+      wrapper.get('[data-testid="checkout-operation-alerts"]').text(),
+    ).toContain("未收到 webhook");
     expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
       "Provider 統一授權拆帳",
     );
