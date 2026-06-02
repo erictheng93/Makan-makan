@@ -254,16 +254,90 @@ class UnconfiguredProviderSplitGateway implements MarketCheckoutProviderSplitGat
   }
 }
 
+export class HttpProviderSplitGateway implements MarketCheckoutProviderSplitGateway {
+  constructor(
+    private readonly endpoint: string,
+    private readonly bearerToken?: string,
+    private readonly fetcher: typeof fetch = fetch,
+  ) {}
+
+  async process(
+    input: MarketCheckoutProviderSplitGatewayInput,
+  ): Promise<MarketCheckoutProviderSplitGatewayResult> {
+    const response = await this.fetcher(this.endpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(this.bearerToken
+          ? { authorization: `Bearer ${this.bearerToken}` }
+          : {}),
+      },
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Market checkout provider split gateway failed: ${response.status}`,
+      );
+    }
+
+    const payload =
+      (await response.json()) as Partial<MarketCheckoutProviderSplitGatewayResult>;
+    return parseHttpGatewayResult(payload);
+  }
+}
+
 export function createMarketCheckoutPaymentProvider(
   env: Env,
 ): MarketCheckoutPaymentProvider {
-  const splitMode = (env as { MARKET_CHECKOUT_SPLIT_MODE?: string })
-    .MARKET_CHECKOUT_SPLIT_MODE;
+  const splitMode = env.MARKET_CHECKOUT_SPLIT_MODE;
   if (splitMode === "provider_split") {
     return new ProviderSplitMarketCheckoutPaymentProvider(
-      new UnconfiguredProviderSplitGateway(),
+      env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL
+        ? new HttpProviderSplitGateway(
+            env.MARKET_CHECKOUT_PROVIDER_SPLIT_URL,
+            env.MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN,
+          )
+        : new UnconfiguredProviderSplitGateway(),
     );
   }
 
   return new ChildTransactionMarketCheckoutPaymentProvider(env);
+}
+
+function parseHttpGatewayResult(
+  payload: Partial<MarketCheckoutProviderSplitGatewayResult>,
+): MarketCheckoutProviderSplitGatewayResult {
+  if (
+    !payload.provider ||
+    !payload.providerTransactionId ||
+    typeof payload.authorizedAmountCents !== "number" ||
+    !Array.isArray(payload.allocations)
+  ) {
+    throw new Error(
+      "Market checkout provider split gateway response is invalid",
+    );
+  }
+
+  return {
+    provider: payload.provider,
+    providerTransactionId: payload.providerTransactionId,
+    authorizedAmountCents: payload.authorizedAmountCents,
+    allocations: payload.allocations.map((allocation) => {
+      if (
+        typeof allocation?.orderId !== "number" ||
+        typeof allocation.amountCents !== "number"
+      ) {
+        throw new Error(
+          "Market checkout provider split gateway allocation is invalid",
+        );
+      }
+
+      return {
+        orderId: allocation.orderId,
+        paymentId: allocation.paymentId,
+        amountCents: allocation.amountCents,
+      };
+    }),
+  };
 }

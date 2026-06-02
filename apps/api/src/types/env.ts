@@ -146,6 +146,9 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET?: string;
   LINEPAY_WEBHOOK_SECRET?: string;
   MARKET_CHECKOUT_WEBHOOK_SECRET?: string;
+  MARKET_CHECKOUT_SPLIT_MODE?: "child_transactions" | "provider_split";
+  MARKET_CHECKOUT_PROVIDER_SPLIT_URL?: string;
+  MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
   // AI and machine learning

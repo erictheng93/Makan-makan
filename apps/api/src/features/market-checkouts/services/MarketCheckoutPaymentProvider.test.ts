@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../../../types/env";
 import {
   ChildTransactionMarketCheckoutPaymentProvider,
+  HttpProviderSplitGateway,
   ProviderSplitMarketCheckoutPaymentProvider,
   createMarketCheckoutPaymentProvider,
 } from "./MarketCheckoutPaymentProvider";
@@ -312,6 +313,101 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     );
   });
 
+  it("posts provider split payments to a configured HTTP gateway", async () => {
+    const fetcher = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          provider: "stripe_connect",
+          providerTransactionId: "pi_market_1",
+          authorizedAmountCents: 20000,
+          allocations: [
+            { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
+            { orderId: 1002, paymentId: "alloc-1002", amountCents: 8000 },
+          ],
+        }),
+        { status: 200 },
+      );
+    });
+    const gateway = new HttpProviderSplitGateway(
+      "https://payments.example.test/market-split",
+      "split-token",
+      fetcher as never,
+    );
+
+    const result = await gateway.process({
+      checkoutId: "checkout-1",
+      marketSlug: "fengjia",
+      method: "stripe_connect",
+      country: "TW",
+      currency: "TWD",
+      idempotencyKey: "market-pay-1",
+      amountCents: 20000,
+      customerInfo: { name: "Guest" },
+      allocations: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "Noodle Stall",
+          orderId: 1001,
+          orderNumber: "A001",
+          amountCents: 12000,
+        },
+        {
+          restaurantId: "restaurant-2",
+          restaurantName: "Dessert Stall",
+          orderId: 1002,
+          orderNumber: "A002",
+          amountCents: 8000,
+        },
+      ],
+    });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://payments.example.test/market-split",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer split-token",
+        },
+        body: expect.stringContaining('"checkoutId":"checkout-1"'),
+      }),
+    );
+    expect(result).toEqual({
+      provider: "stripe_connect",
+      providerTransactionId: "pi_market_1",
+      authorizedAmountCents: 20000,
+      allocations: [
+        { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
+        { orderId: 1002, paymentId: "alloc-1002", amountCents: 8000 },
+      ],
+    });
+  });
+
+  it("rejects invalid HTTP provider split gateway responses", async () => {
+    const gateway = new HttpProviderSplitGateway(
+      "https://payments.example.test/market-split",
+      undefined,
+      vi.fn(
+        async () => new Response(JSON.stringify({ provider: "x" })),
+      ) as never,
+    );
+
+    await expect(
+      gateway.process({
+        checkoutId: "checkout-1",
+        marketSlug: "fengjia",
+        method: "stripe_connect",
+        country: "TW",
+        currency: "TWD",
+        idempotencyKey: "market-pay-1",
+        amountCents: 12000,
+        allocations: [],
+      }),
+    ).rejects.toThrow(
+      "Market checkout provider split gateway response is invalid",
+    );
+  });
+
   it("rejects provider split results with mismatched authorized amount", async () => {
     const provider = new ProviderSplitMarketCheckoutPaymentProvider({
       process: vi.fn(async () => ({
@@ -362,5 +458,16 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     ).rejects.toThrow(
       "Market checkout provider split gateway is not configured",
     );
+  });
+
+  it("creates an HTTP provider split provider when endpoint is configured", () => {
+    const provider = createMarketCheckoutPaymentProvider({
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+        "https://payments.example.test/market-split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+    } as Env);
+
+    expect(provider).toBeInstanceOf(ProviderSplitMarketCheckoutPaymentProvider);
   });
 });
