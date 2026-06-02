@@ -202,6 +202,16 @@ export interface MarketCheckoutPaymentProviderConnectivityCheck {
   capabilities?: string[];
 }
 
+export interface MarketCheckoutPaymentReconciliationResult {
+  provider: string;
+  checkoutId: string;
+  paymentId: string;
+  status: MarketCheckoutPaymentStatus;
+  providerTransactionId?: string;
+  eventId?: string;
+  eventType: string;
+}
+
 export const marketCheckoutsService = {
   async list(
     input: {
@@ -293,6 +303,17 @@ export const marketCheckoutsService = {
     return unwrapApiPayload<MarketCheckoutPaymentProviderConnectivityCheck>(
       response.data,
     );
+  },
+
+  async reconcile(
+    id: string,
+  ): Promise<MarketCheckoutPaymentReconciliationResult> {
+    const response = await api.post<{
+      reconciliation: MarketCheckoutPaymentReconciliationResult;
+    }>(`/market-checkouts/admin/${id}/reconcile`, {});
+    return unwrapApiPayload<{
+      reconciliation: MarketCheckoutPaymentReconciliationResult;
+    }>(response.data).reconciliation;
   },
 
   async exportCsv(

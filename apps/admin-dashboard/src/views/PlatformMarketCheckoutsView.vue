@@ -435,6 +435,16 @@
           >
             {{ isRefunding ? "退款中..." : "整筆退款" }}
           </button>
+          <button
+            v-if="canReconcileSelectedCheckout"
+            type="button"
+            data-testid="reconcile-checkout"
+            class="rounded-lg border border-amber-600 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+            :disabled="isReconciling"
+            @click="reconcileSelectedCheckout"
+          >
+            {{ isReconciling ? "查單中..." : "查詢 Provider 狀態" }}
+          </button>
         </div>
       </div>
 
@@ -762,6 +772,7 @@ const providerConnectivityCheck =
   ref<MarketCheckoutPaymentProviderConnectivityCheck | null>(null);
 const isLoading = ref(false);
 const isRefunding = ref(false);
+const isReconciling = ref(false);
 const isCheckingProvider = ref(false);
 const isExporting = ref(false);
 const isExportingVendors = ref(false);
@@ -775,6 +786,14 @@ const dateTo = ref("");
 const canRefundSelectedCheckout = computed(() => {
   const status = selectedCheckout.value?.payment?.status;
   return status === "paid" || status === "partial_paid";
+});
+
+const canReconcileSelectedCheckout = computed(() => {
+  const parentPayment = selectedCheckout.value?.payment?.parentPayment;
+  return (
+    parentPayment?.splitMode === "provider_split" &&
+    parentPayment.status === "pending"
+  );
 });
 
 const summaryMetrics = computed(() => {
@@ -937,6 +956,26 @@ async function refundSelectedCheckout() {
       refundError instanceof Error ? refundError.message : "市場結帳退款失敗";
   } finally {
     isRefunding.value = false;
+  }
+}
+
+async function reconcileSelectedCheckout() {
+  if (!selectedCheckout.value || !canReconcileSelectedCheckout.value) return;
+
+  isReconciling.value = true;
+  error.value = null;
+  try {
+    const checkoutId = selectedCheckout.value.id;
+    await marketCheckoutsService.reconcile(checkoutId);
+    selectedCheckout.value = await marketCheckoutsService.get(checkoutId);
+    await loadCheckouts();
+  } catch (reconcileError) {
+    error.value =
+      reconcileError instanceof Error
+        ? reconcileError.message
+        : "Provider 狀態查詢失敗";
+  } finally {
+    isReconciling.value = false;
   }
 }
 

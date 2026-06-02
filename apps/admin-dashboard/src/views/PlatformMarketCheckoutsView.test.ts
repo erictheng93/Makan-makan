@@ -13,6 +13,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
     vendors: vi.fn(),
     providerStatus: vi.fn(),
     checkProviderConnectivity: vi.fn(),
+    reconcile: vi.fn(),
     exportCsv: vi.fn(),
     exportVendorsCsv: vi.fn(),
     exportAccountingCsv: vi.fn(),
@@ -131,6 +132,15 @@ describe("PlatformMarketCheckoutsView", () => {
       splitMode: "provider_split",
       message:
         "Provider split gateway URL is configured, but no health check URL is configured.",
+    });
+    vi.mocked(marketCheckoutsService.reconcile).mockResolvedValue({
+      provider: "mock_market_provider",
+      checkoutId: "checkout-1",
+      paymentId: "market_pay_checkout-1",
+      status: "paid",
+      providerTransactionId: "intent-market-checkout-1",
+      eventId: "reconcile-market-checkout-1",
+      eventType: "market_checkout.payment_paid",
     });
     vi.mocked(marketCheckoutsService.get).mockResolvedValue({
       id: "checkout-1",
@@ -494,6 +504,12 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(
       wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
     ).toContain("最後 webhook 回報付款失敗");
+    await wrapper.get('[data-testid="reconcile-checkout"]').trigger("click");
+    await flushPromises();
+
+    expect(marketCheckoutsService.reconcile).toHaveBeenCalledWith("checkout-1");
+    expect(marketCheckoutsService.get).toHaveBeenCalledWith("checkout-1");
+    expect(marketCheckoutsService.list).toHaveBeenCalledTimes(3);
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("子交易 1");
