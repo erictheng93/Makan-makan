@@ -137,6 +137,20 @@ Deliverables:
 - Admin can filter by provider operation alerts.
 - Admin can export checkout, vendor settlement, and accounting ledger CSVs.
 
+Current coverage:
+
+- API route tests cover child-transaction mode, missing provider split gateway,
+  partially configured provider split mode, ready provider split mode, and
+  health URL connectivity checks.
+- API route tests cover operation-alert filtering, checkout CSV export, vendor
+  settlement summary/export, and accounting ledger export with payment clearing,
+  vendor payable, platform fee revenue, refund clearing, and payment reversal
+  journal lines.
+- Admin dashboard tests cover provider readiness display, missing configuration
+  labels, provider connectivity checks, operation-alert filters, vendor
+  settlement totals, checkout detail provider alerts, reconciliation action, and
+  all three export actions.
+
 Verification:
 
 ```bash

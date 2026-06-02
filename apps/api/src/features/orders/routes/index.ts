@@ -375,7 +375,7 @@ app.post(
     const createOrderData = {
       restaurantId: data.restaurantId,
       tableId: data.tableId,
-      customerId: customer?.id ?? String(user.id),
+      customerId: customer?.id,
       waitingListId: data.waitingListId,
       waitingListCustomerPhone: data.customerPhone,
       customerName: data.customerName,
