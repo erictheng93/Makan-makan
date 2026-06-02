@@ -109,6 +109,30 @@ export const customerFavorites = sqliteTable(
   }),
 );
 
+export const customerRecentMarkets = sqliteTable(
+  "customer_recent_markets",
+  {
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    marketId: text("market_id").notNull(),
+    visitedAt: integer("visited_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+  },
+  (table) => ({
+    uniqueMarketIdx: uniqueIndex("customer_recent_markets_customer_unique").on(
+      table.customerId,
+      table.marketId,
+    ),
+    listIdx: index("customer_recent_markets_customer_visited_idx").on(
+      table.customerId,
+      table.visitedAt,
+    ),
+    marketIdx: index("customer_recent_markets_market_idx").on(table.marketId),
+  }),
+);
+
 export const customerPushSubscriptions = sqliteTable(
   "customer_push_subscriptions",
   {
@@ -213,6 +237,7 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
     references: [customerPreferences.customerId],
   }),
   favorites: many(customerFavorites),
+  recentMarkets: many(customerRecentMarkets),
   pushSubscriptions: many(customerPushSubscriptions),
   consents: many(customerConsents),
   phoneVerificationTokens: many(customerPhoneVerificationTokens),

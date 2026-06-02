@@ -225,6 +225,7 @@ import {
 } from "@/services/marketsApi";
 import {
   hydrateFavoriteMarketsFromIdentity,
+  hydrateRecentMarketsFromIdentity,
   listFavoriteMarkets,
   listRecentMarkets,
 } from "@/utils/marketEngagement";
@@ -270,18 +271,22 @@ const districts = computed(() => {
 function reloadList() {
   syncDirectoryQuery();
   Promise.resolve(store.loadMarkets(loadMarketsInput()))
-    .then(refreshFavoriteMarketsFromIdentity)
+    .then(refreshMarketEngagementFromIdentity)
     .catch((error) => {
       console.error("Failed to load market directory:", error);
     });
 }
 
-async function refreshFavoriteMarketsFromIdentity() {
+async function refreshMarketEngagementFromIdentity() {
   try {
-    await hydrateFavoriteMarketsFromIdentity(store.markets);
+    await Promise.all([
+      hydrateFavoriteMarketsFromIdentity(store.markets),
+      hydrateRecentMarketsFromIdentity(store.markets),
+    ]);
     favoriteMarkets.value = listFavoriteMarkets().map(storedMarketToListItem);
+    recentMarkets.value = listRecentMarkets().map(storedMarketToListItem);
   } catch (error) {
-    console.error("Failed to sync favorite markets:", error);
+    console.error("Failed to sync market engagement:", error);
   }
 }
 
@@ -296,7 +301,7 @@ function loadMarketsInput() {
 
 function loadMoreMarkets() {
   Promise.resolve(store.loadMoreMarkets(loadMarketsInput())).then(
-    refreshFavoriteMarketsFromIdentity,
+    refreshMarketEngagementFromIdentity,
   );
 }
 

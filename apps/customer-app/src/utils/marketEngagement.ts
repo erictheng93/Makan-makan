@@ -138,12 +138,55 @@ export function recordRecentMarket(market: MarketListItem) {
   return nextRecents;
 }
 
+export async function syncRecentMarketVisit(market: MarketListItem) {
+  if (!isCustomerFavoriteSyncAvailable()) return;
+
+  await customerIdentityApi.recordRecentMarket({
+    marketId: market.id,
+    visitedAtMs: Date.now(),
+  });
+}
+
+export async function hydrateRecentMarketsFromIdentity(
+  markets: MarketListItem[],
+) {
+  if (!isCustomerFavoriteSyncAvailable()) return listRecentMarkets();
+
+  const recentVisits =
+    await customerIdentityApi.listRecentMarkets(MAX_RECENT_MARKETS);
+  const visitedByMarketId = new Map(
+    recentVisits.map((visit) => [visit.marketId, visit.visitedAtMs]),
+  );
+  const syncedMarkets = markets
+    .filter((market) => visitedByMarketId.has(market.id))
+    .map((market) => ({
+      ...marketSnapshot(market),
+      updatedAt: visitedByMarketId.get(market.id) ?? Date.now(),
+    }));
+
+  writeMarkets(
+    RECENTS_KEY,
+    mergeMarketSnapshots(syncedMarkets, listRecentMarkets()).slice(
+      0,
+      MAX_RECENT_MARKETS,
+    ),
+  );
+  return listRecentMarkets();
+}
+
 function mergeFavoriteSnapshots(syncedMarkets: StoredMarket[]) {
+  return mergeMarketSnapshots(syncedMarkets, listFavoriteMarkets());
+}
+
+function mergeMarketSnapshots(
+  syncedMarkets: StoredMarket[],
+  localMarkets: StoredMarket[],
+) {
   const byId = new Map<string, StoredMarket>();
   for (const market of syncedMarkets) {
     byId.set(market.id, market);
   }
-  for (const market of listFavoriteMarkets()) {
+  for (const market of localMarkets) {
     if (!byId.has(market.id)) {
       byId.set(market.id, market);
     }

@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   hydrateFavoriteMarketsFromIdentity,
+  hydrateRecentMarketsFromIdentity,
   isFavoriteMarket,
   listFavoriteMarkets,
   listRecentMarkets,
   recordRecentMarket,
   syncFavoriteMarketPreference,
+  syncRecentMarketVisit,
   toggleFavoriteMarket,
 } from "@/utils/marketEngagement";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
@@ -16,6 +18,8 @@ vi.mock("@/services/customerIdentityApi", () => ({
     listFavorites: vi.fn(),
     addFavorite: vi.fn(),
     removeFavorite: vi.fn(),
+    listRecentMarkets: vi.fn(),
+    recordRecentMarket: vi.fn(),
   },
 }));
 
@@ -45,6 +49,8 @@ describe("marketEngagement", () => {
     vi.mocked(customerIdentityApi.listFavorites).mockReset();
     vi.mocked(customerIdentityApi.addFavorite).mockReset();
     vi.mocked(customerIdentityApi.removeFavorite).mockReset();
+    vi.mocked(customerIdentityApi.listRecentMarkets).mockReset();
+    vi.mocked(customerIdentityApi.recordRecentMarket).mockReset();
     vi.setSystemTime(new Date("2026-06-01T12:00:00Z"));
   });
 
@@ -128,6 +134,44 @@ describe("marketEngagement", () => {
       name: "西門町商圈",
     });
     expect(localStorage.getItem("makanmakan_favorite_markets")).toContain(
+      "ximen",
+    );
+  });
+
+  it("syncs recent market visits to customer identity when authenticated", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+
+    await syncRecentMarketVisit(market());
+
+    expect(customerIdentityApi.recordRecentMarket).toHaveBeenCalledWith({
+      marketId: "market-1",
+      visitedAtMs: Date.now(),
+    });
+  });
+
+  it("hydrates server recent market ids into local market snapshots", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+    vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValueOnce([
+      {
+        marketId: "market-2",
+        visitedAtMs: 1_780_000_003_000,
+      },
+    ]);
+
+    const hydrated = await hydrateRecentMarketsFromIdentity([
+      market(),
+      market({ id: "market-2", slug: "ximen", name: "西門町商圈" }),
+    ]);
+
+    expect(customerIdentityApi.listRecentMarkets).toHaveBeenCalledWith(8);
+    expect(hydrated).toHaveLength(1);
+    expect(hydrated[0]).toMatchObject({
+      id: "market-2",
+      slug: "ximen",
+      name: "西門町商圈",
+      updatedAt: 1_780_000_003_000,
+    });
+    expect(localStorage.getItem("makanmakan_recent_markets")).toContain(
       "ximen",
     );
   });

@@ -333,6 +333,54 @@ describe("Customer Identity API - real integration", () => {
     ]);
   });
 
+  it("records recent market visits for authenticated customers", async () => {
+    const accessToken = await loginCustomer("+886956789014");
+    const firstMarket = await seedMarketFavoriteTarget("recent-market-a");
+    const secondMarket = await seedMarketFavoriteTarget("recent-market-b");
+
+    const firstVisitRes = await authedPost(
+      accessToken,
+      `${BASE}/recent-markets`,
+      {
+        marketId: firstMarket.id,
+        visitedAtMs: 1_780_000_001_000,
+      },
+    );
+    expect(firstVisitRes.status).toBe(201);
+
+    const secondVisitRes = await authedPost(
+      accessToken,
+      `${BASE}/recent-markets`,
+      {
+        marketId: secondMarket.id,
+        visitedAtMs: 1_780_000_002_000,
+      },
+    );
+    expect(secondVisitRes.status).toBe(201);
+
+    const updatedFirstVisitRes = await authedPost(
+      accessToken,
+      `${BASE}/recent-markets`,
+      {
+        marketId: firstMarket.id,
+        visitedAtMs: 1_780_000_003_000,
+      },
+    );
+    expect(updatedFirstVisitRes.status).toBe(201);
+
+    const listRes = await testApp.app.fetch(
+      new Request(`${BASE}/recent-markets`, {
+        headers: { authorization: `Bearer ${accessToken}` },
+      }),
+    );
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.data).toEqual([
+      { marketId: firstMarket.id, visitedAtMs: 1_780_000_003_000 },
+      { marketId: secondMarket.id, visitedAtMs: 1_780_000_002_000 },
+    ]);
+  });
+
   it("records consent grants and revokes previous active grants", async () => {
     const accessToken = await loginCustomer("+886934567890");
 
@@ -404,7 +452,10 @@ describe("Customer Identity API - real integration", () => {
     const otpRes = await testApp.app.fetch(
       new Request(`${BASE}/auth/request-otp`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "CF-Connecting-IP": testIpForPhone(phone),
+        },
         body: JSON.stringify({ phone }),
       }),
     );
@@ -464,9 +515,14 @@ describe("Customer Identity API - real integration", () => {
       .run();
   }
 
-  async function seedMarketFavoriteTarget() {
+  function testIpForPhone(phone: string) {
+    const digits = phone.replace(/\D/g, "").slice(-3);
+    return `203.0.113.${Number(digits) % 250}`;
+  }
+
+  async function seedMarketFavoriteTarget(idPrefix = "favorite-market") {
     const now = new Date();
-    const id = `favorite-market-${crypto.randomUUID()}`;
+    const id = `${idPrefix}-${crypto.randomUUID()}`;
     await testApp.testDb.drizzle
       .insert(markets)
       .values({

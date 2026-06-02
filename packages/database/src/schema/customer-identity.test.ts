@@ -6,6 +6,7 @@ import {
   customerPhoneVerificationTokens,
   customerPreferences,
   customerPushSubscriptions,
+  customerRecentMarkets,
   customers,
   orders,
   reservations,
@@ -68,6 +69,9 @@ describe("customer identity schema", () => {
         "target_id",
         "created_at_ms",
       ]),
+    );
+    expect(columnNames(customerRecentMarkets)).toEqual(
+      expect.arrayContaining(["customer_id", "market_id", "visited_at_ms"]),
     );
     expect(columnNames(customerPushSubscriptions)).toEqual(
       expect.arrayContaining([

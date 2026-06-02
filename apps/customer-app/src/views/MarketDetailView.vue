@@ -394,6 +394,7 @@ import { applyMarketSeoMeta } from "@/utils/seoMeta";
 import {
   isFavoriteMarket,
   recordRecentMarket,
+  syncRecentMarketVisit,
   syncFavoriteMarketPreference,
   toggleFavoriteMarket,
 } from "@/utils/marketEngagement";
@@ -1063,6 +1064,9 @@ onMounted(async () => {
       store.selectedMarket.name,
     );
     recordRecentMarket(store.selectedMarket);
+    void syncRecentMarketVisit(store.selectedMarket).catch((error) => {
+      console.error("Failed to sync recent market visit:", error);
+    });
     refreshFavoriteState();
     applyMarketSeoMeta({
       market: store.selectedMarket,

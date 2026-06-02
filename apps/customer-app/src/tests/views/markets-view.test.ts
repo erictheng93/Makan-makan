@@ -33,6 +33,7 @@ vi.mock("@/services/marketsApi", () => ({
 vi.mock("@/services/customerIdentityApi", () => ({
   customerIdentityApi: {
     listFavorites: vi.fn(),
+    listRecentMarkets: vi.fn(),
   },
 }));
 
@@ -86,6 +87,8 @@ describe("MarketsView", () => {
     } as never);
     vi.mocked(customerIdentityApi.listFavorites).mockReset();
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValue([]);
+    vi.mocked(customerIdentityApi.listRecentMarkets).mockReset();
+    vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValue([]);
     vi.mocked(useMarketsStore).mockReturnValue(marketsStore() as never);
   });
 
@@ -321,6 +324,33 @@ describe("MarketsView", () => {
     });
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(localStorage.getItem("makanmakan_favorite_markets")).toContain(
+      "fengjia",
+    );
+  });
+
+  it("hydrates authenticated recent markets from customer identity", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
+    vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValueOnce([
+      {
+        marketId: "m1",
+        visitedAtMs: Date.now(),
+      },
+    ]);
+    const store = marketsStore({
+      hasMarkets: true,
+      markets: [{ id: "m1", slug: "fengjia", name: "逢甲夜市" }],
+      loadMarkets: vi.fn(async () => undefined),
+    });
+    vi.mocked(useMarketsStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    await vi.waitFor(() => {
+      expect(customerIdentityApi.listRecentMarkets).toHaveBeenCalledWith(8);
+      expect(wrapper.text()).toContain("最近訪問");
+    });
+    expect(wrapper.text()).toContain("逢甲夜市");
+    expect(localStorage.getItem("makanmakan_recent_markets")).toContain(
       "fengjia",
     );
   });

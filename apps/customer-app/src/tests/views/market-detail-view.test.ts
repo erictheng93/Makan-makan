@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketDetailView from "@/views/MarketDetailView.vue";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { discoveryApi } from "@/services/discoveryApi";
 import { useMarketCartStore } from "@/stores/marketCart";
 import { useMarketsStore } from "@/stores/markets";
@@ -49,6 +50,8 @@ vi.mock("@/services/customerIdentityApi", () => ({
     listFavorites: vi.fn(),
     addFavorite: vi.fn(),
     removeFavorite: vi.fn(),
+    listRecentMarkets: vi.fn(),
+    recordRecentMarket: vi.fn(),
   },
 }));
 
@@ -428,6 +431,21 @@ describe("MarketDetailView", () => {
     createMarketCheckout.mockReset();
     toastSuccess.mockReset();
     toastError.mockReset();
+    vi.mocked(customerIdentityApi.listFavorites).mockReset();
+    vi.mocked(customerIdentityApi.listFavorites).mockResolvedValue([]);
+    vi.mocked(customerIdentityApi.addFavorite).mockReset();
+    vi.mocked(customerIdentityApi.addFavorite).mockResolvedValue({
+      id: 1,
+      targetType: "market",
+      targetId: "market-1",
+      createdAtMs: Date.now(),
+    });
+    vi.mocked(customerIdentityApi.removeFavorite).mockReset();
+    vi.mocked(customerIdentityApi.recordRecentMarket).mockReset();
+    vi.mocked(customerIdentityApi.recordRecentMarket).mockResolvedValue({
+      marketId: "market-1",
+      visitedAtMs: Date.now(),
+    });
     for (const key of Object.keys(routeQuery)) {
       delete routeQuery[key];
     }
@@ -435,10 +453,16 @@ describe("MarketDetailView", () => {
   });
 
   it("records recent market visits and toggles favorite markets", async () => {
+    localStorage.setItem("customer_auth_token", "customer-token");
     const wrapper = mountView();
     await vi.waitFor(() => {
       expect(localStorage.getItem("makanmakan_recent_markets")).toContain(
         "fengjia",
+      );
+      expect(customerIdentityApi.recordRecentMarket).toHaveBeenCalledWith(
+        expect.objectContaining({
+          marketId: "market-1",
+        }),
       );
     });
 

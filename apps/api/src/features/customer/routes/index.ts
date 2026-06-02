@@ -91,6 +91,15 @@ const favoriteSchema = z.object({
   targetId: z.string().trim().min(1).max(128),
 });
 
+const recentMarketsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(20).default(8),
+});
+
+const recentMarketSchema = z.object({
+  marketId: z.string().trim().min(1).max(128),
+  visitedAtMs: z.number().int().positive().optional(),
+});
+
 const consentSchema = z
   .object({
     consentType: z.enum(CUSTOMER_CONSENT_TYPES),
@@ -453,6 +462,64 @@ routes.delete("/favorites/:id", canonicalCustomerAuthMiddleware, async (c) => {
 });
 
 routes.get(
+  "/recent-markets",
+  canonicalCustomerAuthMiddleware,
+  validateQuery(recentMarketsQuerySchema),
+  async (c) => {
+    const customerId = c.get("customer").id;
+    const { limit } = c.get("validatedQuery");
+    const result = await c.env.DB.prepare(
+      `SELECT market_id, visited_at_ms
+         FROM customer_recent_markets
+        WHERE customer_id = ?
+        ORDER BY visited_at_ms DESC
+        LIMIT ?`,
+    )
+      .bind(customerId, limit)
+      .all();
+
+    return c.json({
+      success: true,
+      data: (result.results ?? []).map(toRecentMarketSummary),
+    });
+  },
+);
+
+routes.post(
+  "/recent-markets",
+  canonicalCustomerAuthMiddleware,
+  validateBody(recentMarketSchema),
+  async (c) => {
+    const customerId = c.get("customer").id;
+    const body = c.get("validatedBody");
+    const visitedAtMs = body.visitedAtMs ?? Date.now();
+
+    await validateMarketTarget(c.env, body.marketId);
+
+    await c.env.DB.prepare(
+      `INSERT INTO customer_recent_markets
+        (customer_id, market_id, visited_at_ms)
+       VALUES (?, ?, ?)
+       ON CONFLICT(customer_id, market_id) DO UPDATE SET
+         visited_at_ms = excluded.visited_at_ms`,
+    )
+      .bind(customerId, body.marketId, visitedAtMs)
+      .run();
+
+    const row = await c.env.DB.prepare(
+      `SELECT market_id, visited_at_ms
+         FROM customer_recent_markets
+        WHERE customer_id = ? AND market_id = ?
+        LIMIT 1`,
+    )
+      .bind(customerId, body.marketId)
+      .first();
+
+    return c.json({ success: true, data: toRecentMarketSummary(row) }, 201);
+  },
+);
+
+routes.get(
   "/push-subscriptions",
   canonicalCustomerAuthMiddleware,
   async (c) => {
@@ -697,6 +764,10 @@ async function validateFavoriteTarget(
     return;
   }
 
+  await validateMarketTarget(env, targetId);
+}
+
+async function validateMarketTarget(env: Env, marketId: string): Promise<void> {
   const marketsTable = await env.DB.prepare(
     `SELECT name
        FROM sqlite_master
@@ -716,9 +787,9 @@ async function validateFavoriteTarget(
       WHERE id = ? AND deleted_at_ms IS NULL
       LIMIT 1`,
   )
-    .bind(targetId)
+    .bind(marketId)
     .first();
-  if (!row) throw badRequest("Favorite target not found", "TARGET_NOT_FOUND");
+  if (!row) throw badRequest("Market not found", "TARGET_NOT_FOUND");
 }
 
 async function findOrCreateCustomerByPhone(
@@ -897,6 +968,20 @@ function toFavoriteSummary(row: unknown) {
     targetType: favorite.target_type,
     targetId: favorite.target_id,
     createdAtMs: favorite.created_at_ms,
+  };
+}
+
+function toRecentMarketSummary(row: unknown) {
+  const recentMarket = row as {
+    market_id: string;
+    visited_at_ms: number;
+  } | null;
+
+  if (!recentMarket) return null;
+
+  return {
+    marketId: recentMarket.market_id,
+    visitedAtMs: recentMarket.visited_at_ms,
   };
 }
 

@@ -39,6 +39,11 @@ export interface CustomerFavorite {
   createdAtMs: number;
 }
 
+export interface CustomerRecentMarket {
+  marketId: string;
+  visitedAtMs: number;
+}
+
 export interface CustomerPushSubscription {
   id: string;
   endpoint: string;
@@ -110,6 +115,19 @@ export const customerIdentityApi = {
 
   removeFavorite(id: number | string) {
     return apiClient.delete(`/customer/favorites/${id}`);
+  },
+
+  listRecentMarkets(limit = 8) {
+    return apiClient.get<CustomerRecentMarket[]>("/customer/recent-markets", {
+      limit,
+    });
+  },
+
+  recordRecentMarket(input: { marketId: string; visitedAtMs?: number }) {
+    return apiClient.post<CustomerRecentMarket>(
+      "/customer/recent-markets",
+      input,
+    );
   },
 
   addPushSubscription(input: {
