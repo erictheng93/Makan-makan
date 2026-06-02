@@ -270,5 +270,50 @@ describe("Market checkouts API - real integration", () => {
         }),
       ]),
     );
+
+    const refundRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}/refund`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ reason: "integration_refund" }),
+      }),
+    );
+    expect(refundRes.status).toBe(200);
+
+    const refundedParentPayment = await testApp.testDb.drizzle
+      .select()
+      .from(marketCheckoutPayments)
+      .where(eq(marketCheckoutPayments.checkoutId, checkoutId))
+      .get();
+    expect(refundedParentPayment).toMatchObject({
+      paymentId: `market_pay_${checkoutId}`,
+      status: "refunded",
+      amountCents: 20000,
+      paidAmountCents: 20000,
+      refundedAmountCents: 20000,
+      currency: "TWD",
+      countryCode: "TW",
+    });
+    expect(refundedParentPayment?.refundedAt).toBeInstanceOf(Date);
+
+    const adminDetailRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/admin/${checkoutId}`, {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    expect(adminDetailRes.status).toBe(200);
+    const adminDetailJson: any = await adminDetailRes.json();
+    expect(adminDetailJson.data.checkout.payment).toMatchObject({
+      status: "refunded",
+      refundedAmountCents: 20000,
+      parentPayment: {
+        status: "refunded",
+        refundedAmountCents: 20000,
+      },
+    });
   });
 });

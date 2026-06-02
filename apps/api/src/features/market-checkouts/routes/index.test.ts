@@ -1057,6 +1057,35 @@ describe("market checkout routes", () => {
         refundedAmount: 200,
       }),
     });
+    const ledgerPrepareCallIndex = env.DB.prepare.mock.calls.findIndex(
+      ([sql]) =>
+        typeof sql === "string" &&
+        sql.includes("INSERT INTO market_checkout_payments"),
+    );
+    expect(ledgerPrepareCallIndex).toBeGreaterThanOrEqual(0);
+    const ledgerBind = env.DB.prepare.mock.results[ledgerPrepareCallIndex]
+      ?.value.bind as ReturnType<typeof vi.fn>;
+    expect(ledgerBind).toHaveBeenCalledWith(
+      "market_pay_checkout-1",
+      "checkout-1",
+      "market-1",
+      "line_pay",
+      "child_transactions",
+      "market-pay-1",
+      "refunded",
+      20000,
+      20000,
+      20000,
+      "TWD",
+      "TW",
+      JSON.stringify(["pay-1001", "pay-1002"]),
+      expect.stringContaining('"source":"market-checkouts"'),
+      expect.any(Number),
+      expect.any(Number),
+      null,
+      expect.any(Number),
+      null,
+    );
   });
 
   it("records partial payment failures and retries only unpaid vendors", async () => {
