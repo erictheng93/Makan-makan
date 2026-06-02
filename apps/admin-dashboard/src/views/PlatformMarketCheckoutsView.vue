@@ -313,6 +313,81 @@
         </div>
       </div>
 
+      <div
+        v-if="selectedCheckout.payment?.settlement"
+        data-testid="checkout-settlement"
+        class="mt-4 rounded-lg border border-gray-200 p-3"
+      >
+        <div
+          class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div>
+            <div class="text-sm font-semibold text-gray-900">對帳分配</div>
+            <div class="mt-1 text-xs text-gray-500">
+              平台費率
+              {{
+                formatFeeRate(
+                  selectedCheckout.payment.settlement.platformFeeRateBps,
+                )
+              }}
+              · 平台費
+              {{
+                formatCents(
+                  selectedCheckout.payment.settlement.platformFeeCents,
+                )
+              }}
+            </div>
+          </div>
+          <div class="text-sm font-semibold text-gray-900">
+            攤位淨收
+            {{
+              formatCents(
+                selectedCheckout.payment.settlement.vendorNetAmountCents,
+              )
+            }}
+          </div>
+        </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="text-xs text-gray-500">
+              <tr>
+                <th class="whitespace-nowrap py-2 pr-4 font-medium">攤位</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">訂單</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">已收</th>
+                <th class="whitespace-nowrap px-4 py-2 font-medium">已退</th>
+                <th class="whitespace-nowrap pl-4 py-2 font-medium">淨收</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr
+                v-for="allocation in selectedCheckout.payment.settlement
+                  .vendorAllocations"
+                :key="`${allocation.restaurantId}-${allocation.orderId}`"
+                class="text-gray-700"
+              >
+                <td class="min-w-44 py-3 pr-4 font-semibold text-gray-900">
+                  {{ allocation.restaurantName }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3">
+                  {{ allocation.orderNumber }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-emerald-700">
+                  {{ formatCents(allocation.grossAmountCents) }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-slate-700">
+                  {{ formatCents(allocation.refundedAmountCents) }}
+                </td>
+                <td
+                  class="whitespace-nowrap pl-4 py-3 font-semibold text-gray-900"
+                >
+                  {{ formatCents(allocation.netAmountCents) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="mt-4 grid gap-3">
         <article
           v-for="order in selectedCheckout.childOrders"
@@ -525,6 +600,10 @@ function paymentClass(status: MarketCheckoutPaymentStatus) {
 
 function formatCents(value: number) {
   return formatAmount(value / 100);
+}
+
+function formatFeeRate(value: number) {
+  return `${(value / 100).toFixed(2)}%`;
 }
 
 function formatAmount(value: number) {

@@ -142,6 +142,31 @@ describe("PlatformMarketCheckoutsView", () => {
             amountCents: 16000,
           },
         ],
+        settlement: {
+          platformFeeRateBps: 0,
+          platformFeeCents: 0,
+          vendorNetAmountCents: 16000,
+          vendorAllocations: [
+            {
+              restaurantId: "restaurant-1",
+              restaurantName: "雞排攤",
+              orderId: 1001,
+              orderNumber: "A001",
+              grossAmountCents: 16000,
+              refundedAmountCents: 0,
+              netAmountCents: 16000,
+            },
+            {
+              restaurantId: "restaurant-2",
+              restaurantName: "甜點攤",
+              orderId: 1002,
+              orderNumber: "A002",
+              grossAmountCents: 0,
+              refundedAmountCents: 0,
+              netAmountCents: 0,
+            },
+          ],
+        },
       },
     });
     vi.mocked(marketCheckoutsService.exportCsv).mockResolvedValue(
@@ -287,6 +312,21 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="checkout-detail"]').text()).toContain(
       "已付款 160 / 240",
+    );
+    expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
+      "對帳分配",
+    );
+    expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
+      "平台費率 0.00%",
+    );
+    expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
+      "攤位淨收 $160",
+    );
+    expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
+      "甜點攤",
+    );
+    expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
+      "$0",
     );
 
     await wrapper.get('[data-testid="refund-checkout"]').trigger("click");

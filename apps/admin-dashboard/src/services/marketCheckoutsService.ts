@@ -64,6 +64,20 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       amountCents: number;
       errorMessage?: string;
     }>;
+    settlement?: {
+      platformFeeRateBps: number;
+      platformFeeCents: number;
+      vendorNetAmountCents: number;
+      vendorAllocations: Array<{
+        restaurantId: string;
+        restaurantName: string;
+        orderId: number;
+        orderNumber: string;
+        grossAmountCents: number;
+        refundedAmountCents: number;
+        netAmountCents: number;
+      }>;
+    };
   };
 }
 

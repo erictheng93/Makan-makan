@@ -116,6 +116,21 @@ interface MarketCheckoutVendorSettlement {
   failedPaymentCount: number;
 }
 
+interface MarketCheckoutSettlementSummary {
+  platformFeeRateBps: number;
+  platformFeeCents: number;
+  vendorNetAmountCents: number;
+  vendorAllocations: Array<{
+    restaurantId: string;
+    restaurantName: string;
+    orderId: number;
+    orderNumber: string;
+    grossAmountCents: number;
+    refundedAmountCents: number;
+    netAmountCents: number;
+  }>;
+}
+
 interface MarketCheckoutPaymentSummary {
   status:
     | "pending"
@@ -148,6 +163,7 @@ interface MarketCheckoutPaymentSummary {
     amountCents: number;
     errorMessage?: string;
   }>;
+  settlement?: MarketCheckoutSettlementSummary;
 }
 
 app.post("/", async (c) => {
@@ -523,7 +539,7 @@ app.post("/:id/pay", async (c) => {
         ? "partial_paid"
         : "failed";
   const now = new Date().toISOString();
-  const payment: MarketCheckoutPaymentSummary = {
+  const paymentBase: MarketCheckoutPaymentSummary = {
     status: paymentStatus,
     method: parsed.data.method,
     currency: parsed.data.currency,
@@ -540,6 +556,10 @@ app.post("/:id/pay", async (c) => {
       ): payment is MarketCheckoutPaymentSummary["childPayments"][number] =>
         payment !== undefined,
     ),
+  };
+  const payment: MarketCheckoutPaymentSummary = {
+    ...paymentBase,
+    settlement: buildMarketCheckoutSettlement(session, paymentBase),
   };
 
   const updatedSession: MarketCheckoutSession = {
@@ -754,7 +774,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     0,
   );
   const now = new Date().toISOString();
-  const payment: MarketCheckoutPaymentSummary = {
+  const paymentBase: MarketCheckoutPaymentSummary = {
     ...session.payment,
     status:
       remainingPaidPayments.length === 0 ? "refunded" : "partial_refunded",
@@ -764,6 +784,10 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
       Math.round(refundedAmount * 100),
     refundedAt: now,
     childPayments,
+  };
+  const payment: MarketCheckoutPaymentSummary = {
+    ...paymentBase,
+    settlement: buildMarketCheckoutSettlement(session, paymentBase),
   };
 
   const updatedSession: MarketCheckoutSession = {
@@ -1061,6 +1085,48 @@ function buildMarketCheckoutOrderNotes(input: {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function buildMarketCheckoutSettlement(
+  session: MarketCheckoutSession,
+  payment: MarketCheckoutPaymentSummary,
+): MarketCheckoutSettlementSummary {
+  const paymentByOrderId = new Map(
+    payment.childPayments.map((childPayment) => [
+      childPayment.orderId,
+      childPayment,
+    ]),
+  );
+  const vendorAllocations = session.childOrders.map((child) => {
+    const childPayment = paymentByOrderId.get(child.orderId);
+    const grossAmountCents =
+      childPayment?.status === "paid" || childPayment?.status === "refunded"
+        ? childPayment.amountCents
+        : 0;
+    const refundedAmountCents =
+      childPayment?.status === "refunded" ? childPayment.amountCents : 0;
+
+    return {
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      grossAmountCents,
+      refundedAmountCents,
+      netAmountCents: grossAmountCents - refundedAmountCents,
+    };
+  });
+  const vendorNetAmountCents = vendorAllocations.reduce(
+    (sum, allocation) => sum + allocation.netAmountCents,
+    0,
+  );
+
+  return {
+    platformFeeRateBps: 0,
+    platformFeeCents: 0,
+    vendorNetAmountCents,
+    vendorAllocations,
+  };
 }
 
 async function persistMarketCheckoutSession(

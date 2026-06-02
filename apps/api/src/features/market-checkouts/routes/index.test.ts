@@ -702,6 +702,17 @@ describe("market checkout routes", () => {
           status: string;
           method: string;
           totalAmount: number;
+          settlement: {
+            platformFeeRateBps: number;
+            platformFeeCents: number;
+            vendorNetAmountCents: number;
+            vendorAllocations: Array<{
+              restaurantId: string;
+              grossAmountCents: number;
+              refundedAmountCents: number;
+              netAmountCents: number;
+            }>;
+          };
           childPayments: Array<{ paymentId: string }>;
         };
       };
@@ -711,6 +722,25 @@ describe("market checkout routes", () => {
       method: "line_pay",
       totalAmount: 200,
       childPayments: [{ paymentId: "pay-1001" }, { paymentId: "pay-1002" }],
+      settlement: {
+        platformFeeRateBps: 0,
+        platformFeeCents: 0,
+        vendorNetAmountCents: 20000,
+        vendorAllocations: [
+          {
+            restaurantId: "restaurant-1",
+            grossAmountCents: 12000,
+            refundedAmountCents: 0,
+            netAmountCents: 12000,
+          },
+          {
+            restaurantId: "restaurant-2",
+            grossAmountCents: 8000,
+            refundedAmountCents: 0,
+            netAmountCents: 8000,
+          },
+        ],
+      },
     });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:checkout-1",
@@ -875,6 +905,15 @@ describe("market checkout routes", () => {
         payment: {
           status: string;
           refundedAmount: number;
+          settlement: {
+            vendorNetAmountCents: number;
+            vendorAllocations: Array<{
+              restaurantId: string;
+              grossAmountCents: number;
+              refundedAmountCents: number;
+              netAmountCents: number;
+            }>;
+          };
           childPayments: Array<{ status: string; refundId?: string }>;
         };
         refunds: Array<{ transactionId: string; amount: number }>;
@@ -883,6 +922,23 @@ describe("market checkout routes", () => {
     expect(json.data.payment).toMatchObject({
       status: "refunded",
       refundedAmount: 200,
+      settlement: {
+        vendorNetAmountCents: 0,
+        vendorAllocations: [
+          {
+            restaurantId: "restaurant-1",
+            grossAmountCents: 12000,
+            refundedAmountCents: 12000,
+            netAmountCents: 0,
+          },
+          {
+            restaurantId: "restaurant-2",
+            grossAmountCents: 8000,
+            refundedAmountCents: 8000,
+            netAmountCents: 0,
+          },
+        ],
+      },
     });
     expect(json.data.payment.childPayments).toEqual([
       expect.objectContaining({
