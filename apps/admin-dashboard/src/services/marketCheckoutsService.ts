@@ -28,6 +28,18 @@ export interface MarketCheckoutProviderLastWebhook {
   eventType: string;
   status: string;
   receivedAt: string;
+  payloadSummary?: MarketCheckoutProviderPayloadSummary;
+}
+
+export interface MarketCheckoutProviderPayloadSummary {
+  objectId?: string;
+  providerTransactionId?: string;
+  status?: string;
+  amountCents?: number;
+  amountReceivedCents?: number;
+  amountRefundedCents?: number;
+  currency?: string;
+  metadataKeys?: string[];
 }
 
 export interface MarketCheckoutListItem {

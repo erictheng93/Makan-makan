@@ -222,6 +222,13 @@ describe("PlatformMarketCheckoutsView", () => {
             eventType: "market_checkout.payment_failed",
             status: "failed",
             receivedAt: "2026-06-01T10:09:00.000Z",
+            payloadSummary: {
+              objectId: "intent-market-checkout-1",
+              status: "failed",
+              amountReceivedCents: 16000,
+              currency: "TWD",
+              metadataKeys: ["marketCheckoutId", "customerPhone"],
+            },
           },
           lastReconciliation: {
             provider: "mock_market_provider",
@@ -229,6 +236,13 @@ describe("PlatformMarketCheckoutsView", () => {
             eventType: "market_checkout.payment_pending",
             status: "pending",
             receivedAt: "2026-06-01T10:11:00.000Z",
+            payloadSummary: {
+              providerTransactionId: "intent-market-checkout-1",
+              status: "pending",
+              amountCents: 24000,
+              currency: "TWD",
+              metadataKeys: ["marketCheckoutId"],
+            },
           },
           amountCents: 24000,
           paidAmountCents: 16000,
@@ -513,6 +527,15 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("06/01 18:09");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("Webhook 摘要");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("intent-market-checkout-1 · failed · TWD 160");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("metadata: customerPhone, marketCheckoutId");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("最後查單");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
@@ -526,6 +549,12 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("06/01 18:11");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("查單摘要");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("intent-market-checkout-1 · pending · TWD 240");
     expect(
       wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
     ).toContain("Provider 付款仍待處理超過 30 分鐘");

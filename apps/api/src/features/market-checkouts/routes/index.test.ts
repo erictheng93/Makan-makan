@@ -3216,6 +3216,20 @@ describe("market checkout routes", () => {
             eventType: "market_checkout.payment_paid",
             status: "paid",
             receivedAt: "2026-06-01T10:09:00.000Z",
+            payload: {
+              data: {
+                object: {
+                  id: "intent-market-checkout-1",
+                  status: "succeeded",
+                  amount_received: 20000,
+                  currency: "TWD",
+                  metadata: {
+                    marketCheckoutId: "checkout-1",
+                    customerPhone: "+886912345678",
+                  },
+                },
+              },
+            },
           },
           lastReconciliation: {
             provider: "mock_market_provider",
@@ -3223,6 +3237,18 @@ describe("market checkout routes", () => {
             eventType: "market_checkout.payment_paid",
             status: "paid",
             receivedAt: "2026-06-01T10:11:00.000Z",
+            payload: {
+              providerTransactionId: "intent-market-checkout-1",
+              status: "paid",
+              amountReceivedCents: 20000,
+              currency: "TWD",
+              providerPayload: {
+                metadata: {
+                  marketCheckoutId: "checkout-1",
+                  internalTrace: "trace-secret",
+                },
+              },
+            },
           },
         }),
         created_at_ms: 1780308000000,
@@ -3309,6 +3335,13 @@ describe("market checkout routes", () => {
                 eventType: string;
                 status: string;
                 receivedAt: string;
+                payloadSummary?: {
+                  objectId?: string;
+                  status?: string;
+                  amountReceivedCents?: number;
+                  currency?: string;
+                  metadataKeys?: string[];
+                };
               };
               lastReconciliation?: {
                 provider: string;
@@ -3316,6 +3349,13 @@ describe("market checkout routes", () => {
                 eventType: string;
                 status: string;
                 receivedAt: string;
+                payloadSummary?: {
+                  providerTransactionId?: string;
+                  status?: string;
+                  amountReceivedCents?: number;
+                  currency?: string;
+                  metadataKeys?: string[];
+                };
               };
             };
           };
@@ -3336,6 +3376,13 @@ describe("market checkout routes", () => {
           eventType: "market_checkout.payment_paid",
           status: "paid",
           receivedAt: "2026-06-01T10:09:00.000Z",
+          payloadSummary: {
+            objectId: "intent-market-checkout-1",
+            status: "succeeded",
+            amountReceivedCents: 20000,
+            currency: "TWD",
+            metadataKeys: ["customerPhone", "marketCheckoutId"],
+          },
         },
         lastReconciliation: {
           provider: "mock_market_provider",
@@ -3343,8 +3390,17 @@ describe("market checkout routes", () => {
           eventType: "market_checkout.payment_paid",
           status: "paid",
           receivedAt: "2026-06-01T10:11:00.000Z",
+          payloadSummary: {
+            providerTransactionId: "intent-market-checkout-1",
+            status: "paid",
+            amountReceivedCents: 20000,
+            currency: "TWD",
+            metadataKeys: ["internalTrace", "marketCheckoutId"],
+          },
         },
       },
     });
+    expect(JSON.stringify(json)).not.toContain("+886912345678");
+    expect(JSON.stringify(json)).not.toContain("trace-secret");
   });
 });

@@ -554,6 +554,20 @@
             }}
           </span>
           <span
+            v-if="
+              selectedCheckout.payment.parentPayment.lastWebhook?.payloadSummary
+            "
+            class="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700"
+          >
+            Webhook 摘要
+            {{
+              providerPayloadSummaryLabel(
+                selectedCheckout.payment.parentPayment.lastWebhook
+                  .payloadSummary,
+              )
+            }}
+          </span>
+          <span
             v-if="selectedCheckout.payment.parentPayment.lastReconciliation"
             class="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700"
           >
@@ -579,6 +593,21 @@
               formatDate(
                 selectedCheckout.payment.parentPayment.lastReconciliation
                   .receivedAt,
+              )
+            }}
+          </span>
+          <span
+            v-if="
+              selectedCheckout.payment.parentPayment.lastReconciliation
+                ?.payloadSummary
+            "
+            class="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700"
+          >
+            查單摘要
+            {{
+              providerPayloadSummaryLabel(
+                selectedCheckout.payment.parentPayment.lastReconciliation
+                  .payloadSummary,
               )
             }}
           </span>
@@ -798,6 +827,7 @@ import {
   type MarketCheckoutListItem,
   type MarketCheckoutPaymentProviderConnectivityCheck,
   type MarketCheckoutPaymentProviderStatus,
+  type MarketCheckoutProviderPayloadSummary,
   type MarketCheckoutPaymentStatus,
   type MarketCheckoutOperationAlertType,
   type MarketCheckoutSummary,
@@ -1146,6 +1176,34 @@ function webhookStatusLabel(status: string) {
     partial_refunded: "部分退款",
   };
   return labels[status] ?? status;
+}
+
+function providerPayloadSummaryLabel(
+  summary: MarketCheckoutProviderPayloadSummary,
+) {
+  const identity = summary.objectId ?? summary.providerTransactionId;
+  const amountCents =
+    summary.amountReceivedCents ??
+    summary.amountCents ??
+    summary.amountRefundedCents;
+  const amount =
+    amountCents === undefined
+      ? undefined
+      : `${summary.currency ?? ""} ${formatProviderAmountCents(amountCents)}`.trim();
+  return [
+    [identity, summary.status, amount].filter(Boolean).join(" · "),
+    summary.metadataKeys?.length
+      ? `metadata: ${[...summary.metadataKeys].sort().join(", ")}`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function formatProviderAmountCents(value: number) {
+  return new Intl.NumberFormat("zh-TW", {
+    maximumFractionDigits: 0,
+  }).format(value / 100);
 }
 
 function paymentClass(status: MarketCheckoutPaymentStatus) {

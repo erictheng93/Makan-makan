@@ -248,6 +248,18 @@ interface MarketCheckoutProviderLastWebhook {
   eventType: string;
   status: string;
   receivedAt: string;
+  payloadSummary?: MarketCheckoutProviderPayloadSummary;
+}
+
+interface MarketCheckoutProviderPayloadSummary {
+  objectId?: string;
+  providerTransactionId?: string;
+  status?: string;
+  amountCents?: number;
+  amountReceivedCents?: number;
+  amountRefundedCents?: number;
+  currency?: string;
+  metadataKeys?: string[];
 }
 
 app.post("/", async (c) => {
@@ -1769,7 +1781,66 @@ function parseProviderPayloadLastWebhook(
     eventType: webhook.eventType,
     status: webhook.status,
     receivedAt: webhook.receivedAt,
+    payloadSummary: summarizeProviderPayload(webhook.payload),
   };
+}
+
+function summarizeProviderPayload(
+  value: unknown,
+): MarketCheckoutProviderPayloadSummary | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const payload = value as Record<string, unknown>;
+  const nestedObject = objectRecord(objectRecord(payload.data)?.object);
+  const providerPayload = objectRecord(payload.providerPayload);
+  const summary: MarketCheckoutProviderPayloadSummary = {
+    objectId: stringValue(nestedObject?.id ?? payload.id),
+    providerTransactionId: stringValue(payload.providerTransactionId),
+    status: stringValue(nestedObject?.status ?? payload.status),
+    amountCents: numberValue(nestedObject?.amount ?? payload.amountCents),
+    amountReceivedCents: numberValue(
+      nestedObject?.amount_received ?? payload.amountReceivedCents,
+    ),
+    amountRefundedCents: numberValue(
+      nestedObject?.amount_refunded ?? payload.amountRefundedCents,
+    ),
+    currency: stringValue(nestedObject?.currency ?? payload.currency),
+    metadataKeys: metadataKeysFrom(
+      nestedObject?.metadata ?? payload.metadata ?? providerPayload?.metadata,
+    ),
+  };
+
+  const compact = Object.fromEntries(
+    Object.entries(summary).filter(([, fieldValue]) =>
+      Array.isArray(fieldValue)
+        ? fieldValue.length > 0
+        : fieldValue !== undefined,
+    ),
+  ) as MarketCheckoutProviderPayloadSummary;
+
+  return Object.keys(compact).length > 0 ? compact : undefined;
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function metadataKeysFrom(value: unknown): string[] | undefined {
+  const metadata = objectRecord(value);
+  if (!metadata) return undefined;
+  const keys = Object.keys(metadata).sort();
+  return keys.length > 0 ? keys : undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.round(value)
+    : undefined;
 }
 
 async function readPersistedMarketCheckoutIndex(
