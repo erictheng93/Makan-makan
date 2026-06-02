@@ -18,6 +18,7 @@ import {
 } from "../../../shared/utils/api-error";
 import { enforceQuota } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
+import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import {
   generateGuestToken,
   type GuestTokenData,
@@ -555,78 +556,117 @@ app.post("/:id/pay", async (c) => {
   );
 });
 
-app.post("/:id/guest-token", async (c) => {
-  const checkoutId = c.req.param("id") ?? "";
-  const body = await c.req.json();
-  const parsed = recoverMarketCheckoutGuestTokenSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+app.post(
+  "/:id/guest-token",
+  // Per-IP throttle (defense-in-depth). The per-checkout failure counter below
+  // is the targeted brute-force defence; this guards against one IP probing
+  // many checkouts.
+  rateLimitMiddleware({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 10,
+    keyPrefix: "market_guest_token_recover",
+    message: "Too many guest token recovery attempts. Please try again later.",
+  }),
+  async (c) => {
+    const checkoutId = c.req.param("id") ?? "";
+    const body = await c.req.json();
+    const parsed = recoverMarketCheckoutGuestTokenSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        400,
+      );
+    }
+
+    const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+    const session = stored
+      ? (JSON.parse(stored) as MarketCheckoutSession)
+      : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+    if (!session) {
+      throw notFound("Market checkout not found");
+    }
+
+    // Per-checkout brute-force lockout: the phone code is only 3 digits, so
+    // lock the recovery flow for a checkout after a few failed attempts —
+    // regardless of source IP — so the 1000-value space cannot be enumerated.
+    const attemptsKey = `market_checkout_recover_attempts:${checkoutId}`;
+    const MAX_RECOVER_ATTEMPTS = 5;
+    const RECOVER_LOCK_TTL_SECONDS = 60 * 60; // 1 hour
+    const priorAttempts = Number((await c.env.CACHE_KV.get(attemptsKey)) ?? 0);
+    if (priorAttempts >= MAX_RECOVER_ATTEMPTS) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Too many failed verification attempts for this checkout. Please try again later.",
+        },
+        429,
+      );
+    }
+
+    // Fail closed: a session without a stored phone code cannot be recovered,
+    // and the supplied code must match unconditionally. A failed attempt
+    // increments the per-checkout counter.
+    if (
+      !session.phoneLastDigits ||
+      session.phoneLastDigits !== parsed.data.phoneLastDigits
+    ) {
+      await c.env.CACHE_KV.put(attemptsKey, String(priorAttempts + 1), {
+        expirationTtl: RECOVER_LOCK_TTL_SECONDS,
+      });
+      return c.json(
+        {
+          success: false,
+          error: "Phone verification failed for this market checkout",
+        },
+        403,
+      );
+    }
+
+    // Successful verification clears the failure counter.
+    await c.env.CACHE_KV.delete(attemptsKey);
+
+    const child = session.childOrders.find(
+      (order) => order.orderId === parsed.data.orderId,
     );
-  }
+    if (!child) {
+      throw notFound("Child order not found for this market checkout");
+    }
 
-  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
-  const session = stored
-    ? (JSON.parse(stored) as MarketCheckoutSession)
-    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
-  if (!session) {
-    throw notFound("Market checkout not found");
-  }
-
-  if (
-    session.phoneLastDigits &&
-    session.phoneLastDigits !== parsed.data.phoneLastDigits
-  ) {
-    return c.json(
-      {
-        success: false,
-        error: "Phone verification failed for this market checkout",
-      },
-      403,
-    );
-  }
-
-  const child = session.childOrders.find(
-    (order) => order.orderId === parsed.data.orderId,
-  );
-  if (!child) {
-    throw notFound("Child order not found for this market checkout");
-  }
-
-  const guestToken = generateGuestToken();
-  const tokenData: GuestTokenData = {
-    orderId: String(child.orderId),
-    restaurantId: child.restaurantId,
-    guestName: "Guest",
-    phoneLastDigits: parsed.data.phoneLastDigits,
-    createdAt: Date.now(),
-  };
-  const fourHoursInSeconds = 4 * 60 * 60;
-  const tokenExpiresAt = new Date(
-    Date.now() + fourHoursInSeconds * 1000,
-  ).toISOString();
-
-  await c.env.CACHE_KV.put(
-    `guest_token:${guestToken}`,
-    JSON.stringify(tokenData),
-    { expirationTtl: fourHoursInSeconds },
-  );
-
-  return c.json({
-    success: true,
-    data: {
-      orderId: child.orderId,
+    const guestToken = generateGuestToken();
+    const tokenData: GuestTokenData = {
+      orderId: String(child.orderId),
       restaurantId: child.restaurantId,
-      guestToken,
-      tokenExpiresAt,
-    },
-  });
-});
+      guestName: "Guest",
+      phoneLastDigits: parsed.data.phoneLastDigits,
+      createdAt: Date.now(),
+    };
+    const fourHoursInSeconds = 4 * 60 * 60;
+    const tokenExpiresAt = new Date(
+      Date.now() + fourHoursInSeconds * 1000,
+    ).toISOString();
+
+    await c.env.CACHE_KV.put(
+      `guest_token:${guestToken}`,
+      JSON.stringify(tokenData),
+      { expirationTtl: fourHoursInSeconds },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        orderId: child.orderId,
+        restaurantId: child.restaurantId,
+        guestToken,
+        tokenExpiresAt,
+      },
+    });
+  },
+);
 
 app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   const checkoutId = c.req.param("id") ?? "";

@@ -101,6 +101,9 @@ function createEnv(dbFirstRows: unknown[] = []) {
       put: vi.fn(async (key: string, value: string) => {
         kv.set(key, value);
       }),
+      delete: vi.fn(async (key: string) => {
+        kv.delete(key);
+      }),
     },
   };
 }
@@ -448,6 +451,102 @@ describe("market checkout routes", () => {
       "guest_token:guest-token-1",
       expect.any(String),
       expect.any(Object),
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout_recover_attempts:checkout-1",
+      "1",
+      { expirationTtl: 3600 },
+    );
+  });
+
+  it("locks guest token recovery after repeated phone verification failures", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        phoneLastDigits: "789",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    await env.CACHE_KV.put("market_checkout_recover_attempts:checkout-1", "5");
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: 1001,
+          phoneLastDigits: "789",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(429);
+    expect(env.CACHE_KV.put).not.toHaveBeenCalledWith(
+      "guest_token:guest-token-1",
+      expect.any(String),
+      expect.any(Object),
+    );
+  });
+
+  it("clears guest token recovery failures after successful verification", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        phoneLastDigits: "789",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 12000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      }),
+    );
+    await env.CACHE_KV.put("market_checkout_recover_attempts:checkout-1", "2");
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: 1001,
+          phoneLastDigits: "789",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
+      "market_checkout_recover_attempts:checkout-1",
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "guest_token:guest-token-1",
+      expect.stringContaining('"orderId":"1001"'),
+      { expirationTtl: 14400 },
     );
   });
 
