@@ -3,6 +3,10 @@ import type {
   MarketCheckoutProviderSplitGatewayResult,
   MarketCheckoutProviderSplitStatusResult,
 } from "../services/MarketCheckoutPaymentProvider";
+import { MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS } from "../services/MarketCheckoutPaymentProvider";
+
+export const mockMarketCheckoutProviderRequiredOperations =
+  MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS;
 
 export const mockMarketCheckoutProviderGatewayInput: MarketCheckoutProviderSplitGatewayInput =
   {

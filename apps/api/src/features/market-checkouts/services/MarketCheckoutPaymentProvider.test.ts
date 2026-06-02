@@ -3,6 +3,7 @@ import type { Env } from "../../../types/env";
 import {
   ChildTransactionMarketCheckoutPaymentProvider,
   HttpProviderSplitGateway,
+  MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS,
   ProviderSplitMarketCheckoutPaymentProvider,
   checkMarketCheckoutPaymentProviderConnectivity,
   createMarketCheckoutPaymentProvider,
@@ -12,6 +13,7 @@ import {
 } from "./MarketCheckoutPaymentProvider";
 import {
   mockMarketCheckoutProviderGatewayInput,
+  mockMarketCheckoutProviderRequiredOperations,
   mockMarketCheckoutProviderPaidStatusResponse,
   mockMarketCheckoutProviderPendingResponse,
 } from "../testing/mockMarketCheckoutProviderContract";
@@ -836,7 +838,13 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerSplitTokenConfigured: true,
       providerSplitSigningConfigured: true,
       providerWebhookSecretConfigured: true,
-      capabilities: expect.arrayContaining(["signed_requests"]),
+      capabilities: expect.arrayContaining([
+        "create_payment",
+        "status_lookup",
+        "webhook_verification",
+        "refund",
+        "signed_requests",
+      ]),
       missingConfiguration: [],
     });
   });
@@ -1001,5 +1009,19 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       splitMode: "provider_split",
       responseStatus: 503,
     });
+  });
+});
+
+describe("market checkout provider adapter contract", () => {
+  it("keeps mock provider fixtures aligned with required adapter operations", () => {
+    expect(mockMarketCheckoutProviderRequiredOperations).toEqual(
+      MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS,
+    );
+    expect(MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS).toEqual([
+      "create_payment",
+      "status_lookup",
+      "webhook_verification",
+      "refund",
+    ]);
   });
 });

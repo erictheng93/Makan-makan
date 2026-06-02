@@ -396,8 +396,20 @@ Provider contract tests should use
 `apps/api/src/features/market-checkouts/testing/mockMarketCheckoutProviderContract.ts`
 before adding provider-specific adapters.
 
+Provider-specific adapters must implement the operations exported by
+`MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS`:
+
+- `create_payment`: create one aggregate market checkout payment intent.
+- `status_lookup`: query provider state for manual and automatic
+  reconciliation.
+- `webhook_verification`: verify and translate asynchronous provider callbacks.
+- `refund`: execute or translate aggregate/allocated refunds for market
+  checkouts.
+
 The fixture includes:
 
+- `mockMarketCheckoutProviderRequiredOperations`, which must match
+  `MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS`.
 - `mockMarketCheckoutProviderGatewayInput` for a two-vendor checkout request.
 - `mockMarketCheckoutProviderPendingResponse` for a redirect-based
   `requires_action` gateway response.

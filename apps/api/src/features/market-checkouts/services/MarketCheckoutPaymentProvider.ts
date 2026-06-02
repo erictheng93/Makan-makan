@@ -7,6 +7,18 @@ export type MarketCheckoutPaymentProviderReadiness =
   | "ready"
   | "warning"
   | "not_configured";
+export type MarketCheckoutProviderAdapterOperation =
+  | "create_payment"
+  | "status_lookup"
+  | "webhook_verification"
+  | "refund";
+
+export const MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS = [
+  "create_payment",
+  "status_lookup",
+  "webhook_verification",
+  "refund",
+] as const satisfies readonly MarketCheckoutProviderAdapterOperation[];
 
 export interface MarketCheckoutPaymentChildOrder {
   restaurantId: string;
@@ -441,6 +453,7 @@ export function getMarketCheckoutPaymentProviderStatus(
       missingConfiguration.push("MARKET_CHECKOUT_PROVIDER_STATUS_URL");
     }
     const providerCapabilities = [
+      ...MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS,
       "aggregate_authorization",
       "provider_allocations",
       "health_check",
