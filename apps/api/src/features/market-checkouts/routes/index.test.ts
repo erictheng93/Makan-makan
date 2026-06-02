@@ -1371,6 +1371,205 @@ describe("market checkout routes", () => {
     expect(csv).not.toContain("checkout-2");
   });
 
+  it("summarizes market checkout settlement totals by vendor", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push(
+      {
+        all: [
+          {
+            id: "checkout-1",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "paid",
+            subtotalCents: 20000,
+            childOrderCount: 2,
+            paymentSummary: {
+              status: "paid",
+              method: "line_pay",
+              currency: "TWD",
+              country: "TW",
+              totalAmount: 200,
+              totalAmountCents: 20000,
+              paidAmount: 200,
+              paidAmountCents: 20000,
+              childPayments: [
+                {
+                  restaurantId: "restaurant-1",
+                  restaurantName: "雞排攤",
+                  orderId: 1001,
+                  orderNumber: "A001",
+                  paymentId: "pay-1001",
+                  status: "paid",
+                  amount: 120,
+                  amountCents: 12000,
+                },
+                {
+                  restaurantId: "restaurant-2",
+                  restaurantName: "甜點攤",
+                  orderId: 1002,
+                  orderNumber: "A002",
+                  paymentId: "pay-1002",
+                  status: "paid",
+                  amount: 80,
+                  amountCents: 8000,
+                },
+              ],
+            },
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+          },
+          {
+            id: "checkout-2",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "refunded",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: {
+              status: "refunded",
+              method: "line_pay",
+              currency: "TWD",
+              country: "TW",
+              totalAmount: 120,
+              totalAmountCents: 12000,
+              paidAmount: 120,
+              paidAmountCents: 12000,
+              refundedAmount: 120,
+              refundedAmountCents: 12000,
+              childPayments: [
+                {
+                  restaurantId: "restaurant-1",
+                  restaurantName: "雞排攤",
+                  orderId: 1003,
+                  orderNumber: "A003",
+                  paymentId: "pay-1003",
+                  refundId: "refund-1003",
+                  status: "refunded",
+                  amount: 120,
+                  amountCents: 12000,
+                },
+              ],
+            },
+            createdAt: new Date("2026-06-01T11:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T11:05:00.000Z"),
+          },
+          {
+            id: "checkout-3",
+            marketId: "market-2",
+            marketSlug: "outside",
+            marketName: "區間外商圈",
+            status: "submitted",
+            paymentStatus: "paid",
+            subtotalCents: 99900,
+            childOrderCount: 1,
+            paymentSummary: null,
+            createdAt: new Date("2026-05-31T11:00:00.000Z"),
+            updatedAt: new Date("2026-05-31T11:05:00.000Z"),
+          },
+        ],
+      },
+      {
+        all: [
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T14:00:00.000Z"),
+          },
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            tokenExpiresAt: new Date("2026-06-01T14:00:00.000Z"),
+          },
+          {
+            checkoutId: "checkout-2",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1003,
+            orderNumber: "A003",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T15:00:00.000Z"),
+          },
+          {
+            checkoutId: "checkout-3",
+            restaurantId: "restaurant-9",
+            restaurantName: "區間外攤位",
+            orderId: 1009,
+            orderNumber: "A009",
+            totalAmount: 999,
+            totalAmountCents: 99900,
+            tokenExpiresAt: new Date("2026-05-31T15:00:00.000Z"),
+          },
+        ],
+      },
+    );
+
+    const response = await routes.fetch(
+      new Request(
+        "https://test/admin/vendors?marketSlug=fengjia&dateFrom=2026-06-01&dateTo=2026-06-01",
+      ),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        vendors: Array<{
+          restaurantId: string;
+          restaurantName: string;
+          checkoutCount: number;
+          childOrderCount: number;
+          subtotalCents: number;
+          paidAmountCents: number;
+          refundedAmountCents: number;
+          netPaidAmountCents: number;
+          refundedPaymentCount: number;
+          failedPaymentCount: number;
+        }>;
+      };
+    };
+    expect(json.data.vendors).toEqual([
+      {
+        restaurantId: "restaurant-1",
+        restaurantName: "雞排攤",
+        checkoutCount: 2,
+        childOrderCount: 2,
+        subtotalCents: 24000,
+        paidAmountCents: 24000,
+        refundedAmountCents: 12000,
+        netPaidAmountCents: 12000,
+        refundedPaymentCount: 1,
+        failedPaymentCount: 0,
+      },
+      {
+        restaurantId: "restaurant-2",
+        restaurantName: "甜點攤",
+        checkoutCount: 1,
+        childOrderCount: 1,
+        subtotalCents: 8000,
+        paidAmountCents: 8000,
+        refundedAmountCents: 0,
+        netPaidAmountCents: 8000,
+        refundedPaymentCount: 0,
+        failedPaymentCount: 0,
+      },
+    ]);
+  });
+
   it("falls back to the KV index when no persisted checkout sessions exist", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(

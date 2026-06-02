@@ -103,6 +103,19 @@ interface MarketCheckoutSummaryItem extends MarketCheckoutIndexItem {
   payment?: MarketCheckoutPaymentSummary;
 }
 
+interface MarketCheckoutVendorSettlement {
+  restaurantId: string;
+  restaurantName: string;
+  checkoutCount: number;
+  childOrderCount: number;
+  subtotalCents: number;
+  paidAmountCents: number;
+  refundedAmountCents: number;
+  netPaidAmountCents: number;
+  refundedPaymentCount: number;
+  failedPaymentCount: number;
+}
+
 interface MarketCheckoutPaymentSummary {
   status:
     | "pending"
@@ -870,6 +883,33 @@ app.get("/admin/export", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
+app.get("/admin/vendors", authMiddleware, requireRole([0]), async (c) => {
+  const marketSlug = c.req.query("marketSlug");
+  const paymentStatus = c.req.query("paymentStatus");
+  const dateRange = parseMarketCheckoutDateRange(c);
+  const sessions = await readPersistedMarketCheckoutOpsSessions(c.env);
+  const filtered = sessions.filter((session) => {
+    if (marketSlug && session.market.slug !== marketSlug) return false;
+    if (
+      paymentStatus &&
+      (session.payment?.status ?? "pending") !== paymentStatus
+    ) {
+      return false;
+    }
+    if (!isWithinMarketCheckoutDateRange(session.createdAt, dateRange)) {
+      return false;
+    }
+    return true;
+  });
+
+  return c.json({
+    success: true,
+    data: {
+      vendors: buildMarketCheckoutVendorSettlements(filtered),
+    },
+  });
+});
+
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
   const checkoutId = c.req.param("id") ?? "";
   const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
@@ -1104,6 +1144,58 @@ async function readPersistedMarketCheckoutSummaryItems(
   }));
 }
 
+async function readPersistedMarketCheckoutOpsSessions(
+  env: Env,
+): Promise<MarketCheckoutSession[]> {
+  const db = createDatabase(env.DB);
+  const rows = await db
+    .select()
+    .from(marketCheckoutSessions)
+    .orderBy(desc(marketCheckoutSessions.createdAt))
+    .limit(MARKET_CHECKOUT_INDEX_LIMIT)
+    .all();
+
+  if (rows.length === 0) return [];
+
+  const checkoutIds = rows.map((row) => row.id);
+  const children = await db
+    .select()
+    .from(marketCheckoutChildOrders)
+    .where(inArray(marketCheckoutChildOrders.checkoutId, checkoutIds))
+    .all();
+  const childrenByCheckout = new Map<string, typeof children>();
+  for (const child of children) {
+    const existing = childrenByCheckout.get(child.checkoutId) ?? [];
+    existing.push(child);
+    childrenByCheckout.set(child.checkoutId, existing);
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    market: {
+      id: row.marketId,
+      slug: row.marketSlug,
+      name: row.marketName,
+    },
+    status: row.status as MarketCheckoutSession["status"],
+    phoneLastDigits: row.phoneLastDigits ?? undefined,
+    childOrders: (childrenByCheckout.get(row.id) ?? []).map((child) => ({
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: child.orderId,
+      orderNumber: child.orderNumber,
+      totalAmount: child.totalAmount,
+      totalAmountCents: child.totalAmountCents,
+      tokenExpiresAt: toIsoString(child.tokenExpiresAt),
+    })),
+    payment: (row.paymentSummary ?? undefined) as
+      | MarketCheckoutPaymentSummary
+      | undefined,
+    subtotal: row.subtotalCents,
+    createdAt: toIsoString(row.createdAt),
+  }));
+}
+
 function buildMarketCheckoutAdminSummary(items: MarketCheckoutSummaryItem[]) {
   const paymentStatusCounts: Record<string, number> = {
     pending: 0,
@@ -1169,6 +1261,59 @@ function buildMarketCheckoutAdminSummary(items: MarketCheckoutSummaryItem[]) {
       .sort((a, b) => b.subtotalCents - a.subtotalCents)
       .slice(0, 5),
   };
+}
+
+function buildMarketCheckoutVendorSettlements(
+  sessions: MarketCheckoutSession[],
+): MarketCheckoutVendorSettlement[] {
+  const vendors = new Map<
+    string,
+    MarketCheckoutVendorSettlement & { checkoutIds: Set<string> }
+  >();
+
+  for (const session of sessions) {
+    for (const child of session.childOrders) {
+      const payment = session.payment?.childPayments.find(
+        (childPayment) => childPayment.orderId === child.orderId,
+      );
+      const settlement = vendors.get(child.restaurantId) ?? {
+        restaurantId: child.restaurantId,
+        restaurantName: child.restaurantName,
+        checkoutCount: 0,
+        childOrderCount: 0,
+        subtotalCents: 0,
+        paidAmountCents: 0,
+        refundedAmountCents: 0,
+        netPaidAmountCents: 0,
+        refundedPaymentCount: 0,
+        failedPaymentCount: 0,
+        checkoutIds: new Set<string>(),
+      };
+
+      settlement.checkoutIds.add(session.id);
+      settlement.childOrderCount += 1;
+      settlement.subtotalCents += orderChildTotalCents(child);
+      if (payment?.status === "paid" || payment?.status === "refunded") {
+        settlement.paidAmountCents += payment.amountCents;
+      }
+      if (payment?.status === "refunded") {
+        settlement.refundedAmountCents += payment.amountCents;
+        settlement.refundedPaymentCount += 1;
+      }
+      if (payment?.status === "failed") {
+        settlement.failedPaymentCount += 1;
+      }
+      vendors.set(child.restaurantId, settlement);
+    }
+  }
+
+  return Array.from(vendors.values())
+    .map(({ checkoutIds, ...vendor }) => ({
+      ...vendor,
+      checkoutCount: checkoutIds.size,
+      netPaidAmountCents: vendor.paidAmountCents - vendor.refundedAmountCents,
+    }))
+    .sort((a, b) => b.subtotalCents - a.subtotalCents);
 }
 
 function buildMarketCheckoutCsv(items: MarketCheckoutSummaryItem[]) {

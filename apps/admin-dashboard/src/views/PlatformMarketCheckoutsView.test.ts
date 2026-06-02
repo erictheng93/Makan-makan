@@ -10,6 +10,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
     list: vi.fn(),
     get: vi.fn(),
     summary: vi.fn(),
+    vendors: vi.fn(),
     exportCsv: vi.fn(),
     refund: vi.fn(),
   },
@@ -69,6 +70,22 @@ describe("PlatformMarketCheckoutsView", () => {
           subtotalCents: 32000,
           paidAmountCents: 16000,
           refundedAmountCents: 8000,
+        },
+      ],
+    });
+    vi.mocked(marketCheckoutsService.vendors).mockResolvedValue({
+      vendors: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          checkoutCount: 2,
+          childOrderCount: 2,
+          subtotalCents: 24000,
+          paidAmountCents: 24000,
+          refundedAmountCents: 8000,
+          netPaidAmountCents: 16000,
+          refundedPaymentCount: 1,
+          failedPaymentCount: 0,
         },
       ],
     });
@@ -173,6 +190,12 @@ describe("PlatformMarketCheckoutsView", () => {
       dateFrom: "",
       dateTo: "",
     });
+    expect(marketCheckoutsService.vendors).toHaveBeenCalledWith({
+      marketSlug: "",
+      paymentStatus: "",
+      dateFrom: "",
+      dateTo: "",
+    });
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("部分付款");
     expect(wrapper.text()).toContain("2 攤");
@@ -184,6 +207,12 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="checkout-summary"]').text()).toContain(
       "異常",
+    );
+    expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
+      "雞排攤",
+    );
+    expect(wrapper.get('[data-testid="vendor-settlements"]').text()).toContain(
+      "$160",
     );
 
     await wrapper
@@ -206,6 +235,12 @@ describe("PlatformMarketCheckoutsView", () => {
       dateTo: "2026-06-02",
     });
     expect(marketCheckoutsService.summary).toHaveBeenLastCalledWith({
+      marketSlug: "",
+      paymentStatus: "",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-02",
+    });
+    expect(marketCheckoutsService.vendors).toHaveBeenLastCalledWith({
       marketSlug: "",
       paymentStatus: "",
       dateFrom: "2026-06-01",

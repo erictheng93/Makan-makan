@@ -94,6 +94,23 @@ export interface MarketCheckoutSummary {
   }>;
 }
 
+export interface MarketCheckoutVendorSettlement {
+  restaurantId: string;
+  restaurantName: string;
+  checkoutCount: number;
+  childOrderCount: number;
+  subtotalCents: number;
+  paidAmountCents: number;
+  refundedAmountCents: number;
+  netPaidAmountCents: number;
+  refundedPaymentCount: number;
+  failedPaymentCount: number;
+}
+
+export interface MarketCheckoutVendorSettlementResult {
+  vendors: MarketCheckoutVendorSettlement[];
+}
+
 export const marketCheckoutsService = {
   async list(
     input: {
@@ -145,6 +162,28 @@ export const marketCheckoutsService = {
       },
     );
     return unwrapApiPayload<MarketCheckoutSummary>(response.data);
+  },
+
+  async vendors(
+    input: {
+      marketSlug?: string;
+      paymentStatus?: MarketCheckoutPaymentStatus | "";
+      dateFrom?: string;
+      dateTo?: string;
+    } = {},
+  ): Promise<MarketCheckoutVendorSettlementResult> {
+    const response = await api.get<MarketCheckoutVendorSettlementResult>(
+      "/market-checkouts/admin/vendors",
+      {
+        marketSlug: input.marketSlug || undefined,
+        paymentStatus: input.paymentStatus || undefined,
+        dateFrom: input.dateFrom || undefined,
+        dateTo: input.dateTo || undefined,
+      },
+    );
+    return unwrapApiPayload<MarketCheckoutVendorSettlementResult>(
+      response.data,
+    );
   },
 
   async exportCsv(

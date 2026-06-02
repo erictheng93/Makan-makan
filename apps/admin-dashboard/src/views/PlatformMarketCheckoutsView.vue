@@ -132,6 +132,66 @@
       </div>
     </section>
 
+    <section
+      v-if="vendorSettlements.length"
+      data-testid="vendor-settlements"
+      class="rounded-lg bg-white p-4 shadow-ios-card"
+    >
+      <div class="mb-3 text-sm font-semibold text-gray-900">攤位對帳</div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="text-xs text-gray-500">
+            <tr>
+              <th class="whitespace-nowrap py-2 pr-4 font-medium">攤位</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">子訂單</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">GMV</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">已收</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">已退</th>
+              <th class="whitespace-nowrap px-4 py-2 font-medium">淨收</th>
+              <th class="whitespace-nowrap pl-4 py-2 font-medium">異常</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr
+              v-for="vendor in vendorSettlements"
+              :key="vendor.restaurantId"
+              class="text-gray-700"
+            >
+              <td class="min-w-44 py-3 pr-4">
+                <div class="font-semibold text-gray-900">
+                  {{ vendor.restaurantName }}
+                </div>
+                <div class="mt-1 text-xs text-gray-500">
+                  {{ vendor.checkoutCount }} 筆 checkout
+                </div>
+              </td>
+              <td class="whitespace-nowrap px-4 py-3">
+                {{ vendor.childOrderCount }}
+              </td>
+              <td class="whitespace-nowrap px-4 py-3">
+                {{ formatCents(vendor.subtotalCents) }}
+              </td>
+              <td class="whitespace-nowrap px-4 py-3 text-emerald-700">
+                {{ formatCents(vendor.paidAmountCents) }}
+              </td>
+              <td class="whitespace-nowrap px-4 py-3 text-slate-700">
+                {{ formatCents(vendor.refundedAmountCents) }}
+              </td>
+              <td
+                class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900"
+              >
+                {{ formatCents(vendor.netPaidAmountCents) }}
+              </td>
+              <td class="whitespace-nowrap pl-4 py-3 text-gray-600">
+                {{ vendor.failedPaymentCount }} 失敗 /
+                {{ vendor.refundedPaymentCount }} 退款
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="rounded-lg bg-white shadow-ios-card">
       <div v-if="error" class="p-4 text-sm text-red-600">{{ error }}</div>
       <div v-else-if="isLoading" class="p-8 text-center text-sm text-gray-500">
@@ -291,11 +351,13 @@ import {
   type MarketCheckoutListItem,
   type MarketCheckoutPaymentStatus,
   type MarketCheckoutSummary,
+  type MarketCheckoutVendorSettlement,
 } from "@/services/marketCheckoutsService";
 
 const checkouts = ref<MarketCheckoutListItem[]>([]);
 const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
 const summary = ref<MarketCheckoutSummary | null>(null);
+const vendorSettlements = ref<MarketCheckoutVendorSettlement[]>([]);
 const isLoading = ref(false);
 const isRefunding = ref(false);
 const isExporting = ref(false);
@@ -332,16 +394,18 @@ async function loadCheckouts() {
   error.value = null;
   try {
     const filters = currentFilters();
-    const [result, nextSummary] = await Promise.all([
+    const [result, nextSummary, vendorSummary] = await Promise.all([
       marketCheckoutsService.list({
         page: 1,
         limit: 20,
         ...filters,
       }),
       marketCheckoutsService.summary(filters),
+      marketCheckoutsService.vendors(filters),
     ]);
     checkouts.value = result.checkouts;
     summary.value = nextSummary;
+    vendorSettlements.value = vendorSummary.vendors;
   } catch (loadError) {
     error.value =
       loadError instanceof Error ? loadError.message : "市場結帳讀取失敗";
