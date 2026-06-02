@@ -48,6 +48,9 @@ importers:
       '@playwright/test':
         specifier: ^1.57.0
         version: 1.57.0
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
       '@types/node':
         specifier: ^25.0.5
         version: 25.0.7
@@ -340,7 +343,7 @@ importers:
         version: 3.2.4(vitest@3.2.4)
       drizzle-orm:
         specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0)
       sql.js:
         specifier: ^1.13.0
         version: 1.13.0
@@ -494,7 +497,7 @@ importers:
         version: link:../../packages/shared-types
       drizzle-orm:
         specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0)
       hono:
         specifier: ^4.12.15
         version: 4.12.15
@@ -965,7 +968,7 @@ importers:
         version: 2.4.3
       drizzle-orm:
         specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0)
+        version: 0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0)
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3
@@ -3545,6 +3548,9 @@ packages:
 
   '@types/bcryptjs@2.4.6':
     resolution: {integrity: sha512-9xlo6R2qDs5uixm0bcIqCeMCE6HiQsIyel9KQySStiyqNl2tnj2mP3DX1Nf56MD6KMenNNlBBsy3LJ7gUEQPXQ==}
+
+  '@types/better-sqlite3@7.6.13':
+    resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
 
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
@@ -11562,6 +11568,10 @@ snapshots:
 
   '@types/bcryptjs@2.4.6': {}
 
+  '@types/better-sqlite3@7.6.13':
+    dependencies:
+      '@types/node': 25.0.7
+
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
@@ -11933,7 +11943,7 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@25.0.7)(@vitest/ui@3.2.4)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 3.2.4(@types/node@20.19.28)(@vitest/ui@3.2.4)(jiti@1.21.7)(jsdom@23.2.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -11949,7 +11959,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.1.0
-      vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@20.19.28)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@23.2.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.7)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -12054,7 +12064,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@25.0.7)(@vitest/ui@3.2.4)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 3.2.4(@types/node@25.0.7)(@vitest/ui@3.2.4)(jiti@1.21.7)(jsdom@23.2.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/ui@4.0.17(vitest@4.0.17)':
     dependencies:
@@ -12065,7 +12075,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.1.0
-      vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@20.19.28)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@23.2.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
+      vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.0.7)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@27.4.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -13190,10 +13200,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0):
+  drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260113.0)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.1)(better-sqlite3@12.6.0)(sql.js@1.13.0):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20260113.0
       '@opentelemetry/api': 1.9.0
+      '@types/better-sqlite3': 7.6.13
       '@upstash/redis': 1.36.1
       better-sqlite3: 12.6.0
       sql.js: 1.13.0
