@@ -66,6 +66,7 @@ export interface MarketCheckoutPaymentProviderStatus {
   providerSplitHealthUrlConfigured: boolean;
   providerSplitTokenConfigured: boolean;
   providerSplitSigningConfigured: boolean;
+  providerWebhookSecretConfigured: boolean;
   capabilities: string[];
   missingConfiguration: string[];
   notes: string[];
@@ -397,8 +398,18 @@ export function getMarketCheckoutPaymentProviderStatus(
   const providerSplitSigningConfigured = Boolean(
     env.MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET,
   );
+  const providerWebhookSecretConfigured = Boolean(
+    env.MARKET_CHECKOUT_WEBHOOK_SECRET,
+  );
 
   if (splitMode === "provider_split") {
+    const missingConfiguration: string[] = [];
+    if (!providerSplitUrlConfigured) {
+      missingConfiguration.push("MARKET_CHECKOUT_PROVIDER_SPLIT_URL");
+    }
+    if (providerSplitUrlConfigured && !providerWebhookSecretConfigured) {
+      missingConfiguration.push("MARKET_CHECKOUT_WEBHOOK_SECRET");
+    }
     const providerCapabilities = [
       "aggregate_authorization",
       "provider_allocations",
@@ -409,21 +420,27 @@ export function getMarketCheckoutPaymentProviderStatus(
     if (providerSplitSigningConfigured) {
       providerCapabilities.push("signed_requests");
     }
+    if (providerWebhookSecretConfigured) {
+      providerCapabilities.push("signed_webhooks");
+    }
 
     return {
       splitMode,
-      readiness: providerSplitUrlConfigured ? "ready" : "not_configured",
+      readiness: !providerSplitUrlConfigured
+        ? "not_configured"
+        : providerWebhookSecretConfigured
+          ? "ready"
+          : "warning",
       providerKind: "http_provider_split",
       providerSplitUrlConfigured,
       providerSplitHealthUrlConfigured,
       providerSplitTokenConfigured,
       providerSplitSigningConfigured,
+      providerWebhookSecretConfigured,
       capabilities: providerSplitUrlConfigured
         ? providerCapabilities
         : ["webhook_status_sync", "refunds"],
-      missingConfiguration: providerSplitUrlConfigured
-        ? []
-        : ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
+      missingConfiguration,
       notes: providerSplitUrlConfigured
         ? [
             providerSplitTokenConfigured
@@ -432,6 +449,9 @@ export function getMarketCheckoutPaymentProviderStatus(
             providerSplitSigningConfigured
               ? "Provider split gateway requests are signed with HMAC-SHA256."
               : "Provider split gateway requests are not signed; configure a signing secret before production use.",
+            providerWebhookSecretConfigured
+              ? "Market checkout webhooks are verified with MARKET_CHECKOUT_WEBHOOK_SECRET."
+              : "Market checkout webhook verification secret is not configured; payment status callbacks will be rejected.",
             providerSplitHealthUrlConfigured
               ? "Provider split health check URL is configured."
               : "Provider split health check URL is not configured; connectivity is not verified.",
@@ -450,6 +470,7 @@ export function getMarketCheckoutPaymentProviderStatus(
     providerSplitHealthUrlConfigured,
     providerSplitTokenConfigured,
     providerSplitSigningConfigured,
+    providerWebhookSecretConfigured,
     capabilities: [
       "child_order_payments",
       "idempotency",

@@ -1704,12 +1704,33 @@ describe("market checkout routes", () => {
       },
     });
 
+    const missingWebhookEnv = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+        "https://payments.example.test/market-split",
+    };
+    const missingWebhookResponse = await routes.fetch(
+      new Request("https://test/admin/provider-status"),
+      missingWebhookEnv as never,
+    );
+    await expect(missingWebhookResponse.json()).resolves.toMatchObject({
+      data: {
+        splitMode: "provider_split",
+        readiness: "warning",
+        providerSplitUrlConfigured: true,
+        providerWebhookSecretConfigured: false,
+        missingConfiguration: ["MARKET_CHECKOUT_WEBHOOK_SECRET"],
+      },
+    });
+
     const readyEnv = {
       ...createEnv(),
       MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
       MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
         "https://payments.example.test/market-split",
       MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
+      MARKET_CHECKOUT_WEBHOOK_SECRET: "webhook-secret",
     };
     const readyResponse = await routes.fetch(
       new Request("https://test/admin/provider-status"),
@@ -1723,6 +1744,7 @@ describe("market checkout routes", () => {
         providerSplitHealthUrlConfigured: false,
         providerSplitTokenConfigured: true,
         providerSplitSigningConfigured: false,
+        providerWebhookSecretConfigured: true,
       },
     });
   });

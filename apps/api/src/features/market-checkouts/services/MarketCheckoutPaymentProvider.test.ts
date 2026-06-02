@@ -754,6 +754,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
       providerSplitSigningConfigured: false,
+      providerWebhookSecretConfigured: false,
       missingConfiguration: [],
     });
   });
@@ -770,6 +771,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerSplitUrlConfigured: false,
       providerSplitHealthUrlConfigured: false,
       providerSplitSigningConfigured: false,
+      providerWebhookSecretConfigured: false,
       missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
     });
   });
@@ -784,6 +786,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           "https://payments.example.test/health",
         MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "split-token",
         MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET: "split-signing-secret",
+        MARKET_CHECKOUT_WEBHOOK_SECRET: "webhook-secret",
       } as Env),
     ).toMatchObject({
       splitMode: "provider_split",
@@ -793,8 +796,26 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerSplitHealthUrlConfigured: true,
       providerSplitTokenConfigured: true,
       providerSplitSigningConfigured: true,
+      providerWebhookSecretConfigured: true,
       capabilities: expect.arrayContaining(["signed_requests"]),
       missingConfiguration: [],
+    });
+  });
+
+  it("reports provider split as warning when webhook verification is not configured", () => {
+    expect(
+      getMarketCheckoutPaymentProviderStatus({
+        MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+        MARKET_CHECKOUT_PROVIDER_SPLIT_URL:
+          "https://payments.example.test/market-split",
+      } as Env),
+    ).toMatchObject({
+      splitMode: "provider_split",
+      readiness: "warning",
+      providerKind: "http_provider_split",
+      providerSplitUrlConfigured: true,
+      providerWebhookSecretConfigured: false,
+      missingConfiguration: ["MARKET_CHECKOUT_WEBHOOK_SECRET"],
     });
   });
 

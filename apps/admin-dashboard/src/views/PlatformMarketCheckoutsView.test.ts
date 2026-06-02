@@ -103,6 +103,7 @@ describe("PlatformMarketCheckoutsView", () => {
       providerSplitHealthUrlConfigured: false,
       providerSplitTokenConfigured: false,
       providerSplitSigningConfigured: false,
+      providerWebhookSecretConfigured: false,
       capabilities: ["webhook_status_sync", "refunds"],
       missingConfiguration: ["MARKET_CHECKOUT_PROVIDER_SPLIT_URL"],
       notes: [
@@ -293,6 +294,9 @@ describe("PlatformMarketCheckoutsView", () => {
     );
     expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
       "MARKET_CHECKOUT_PROVIDER_SPLIT_URL",
+    );
+    expect(wrapper.get('[data-testid="provider-status"]').text()).toContain(
+      "Webhook 驗簽 secret",
     );
 
     await wrapper

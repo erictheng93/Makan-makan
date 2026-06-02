@@ -134,6 +134,25 @@
       >
         缺少設定：{{ providerStatus.missingConfiguration.join(", ") }}
       </div>
+      <dl class="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+        <div
+          v-for="item in providerConfigurationChecks"
+          :key="item.label"
+          class="flex items-center justify-between gap-3 rounded-lg bg-white/70 px-3 py-2"
+        >
+          <dt class="font-medium text-gray-600">{{ item.label }}</dt>
+          <dd
+            class="rounded-full px-2 py-0.5 font-semibold"
+            :class="
+              item.configured
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-amber-50 text-amber-700'
+            "
+          >
+            {{ item.configured ? "已設定" : "未設定" }}
+          </dd>
+        </div>
+      </dl>
       <div
         v-if="providerStatus.notes.length"
         class="mt-3 space-y-1 text-sm text-gray-600"
@@ -713,6 +732,28 @@ const providerStatusClass = computed(() => {
     warning: "border-amber-200 bg-amber-50",
     not_configured: "border-red-200 bg-red-50",
   }[providerStatus.value.readiness];
+});
+
+const providerConfigurationChecks = computed(() => {
+  if (!providerStatus.value) return [];
+  return [
+    {
+      label: "Provider gateway URL",
+      configured: providerStatus.value.providerSplitUrlConfigured,
+    },
+    {
+      label: "Webhook 驗簽 secret",
+      configured: providerStatus.value.providerWebhookSecretConfigured,
+    },
+    {
+      label: "Request signing secret",
+      configured: providerStatus.value.providerSplitSigningConfigured,
+    },
+    {
+      label: "Health check URL",
+      configured: providerStatus.value.providerSplitHealthUrlConfigured,
+    },
+  ];
 });
 
 const providerStatusPillClass = computed(() => {
