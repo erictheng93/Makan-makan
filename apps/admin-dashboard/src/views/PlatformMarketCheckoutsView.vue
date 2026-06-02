@@ -469,6 +469,32 @@
             子交易
             {{ selectedCheckout.payment.parentPayment.childPaymentIds.length }}
           </span>
+          <span
+            v-if="selectedCheckout.payment.parentPayment.providerTransactionId"
+            class="rounded-full bg-gray-100 px-2.5 py-1"
+          >
+            交易 ID
+            {{ selectedCheckout.payment.parentPayment.providerTransactionId }}
+          </span>
+          <span
+            v-if="selectedCheckout.payment.parentPayment.nextAction"
+            class="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700"
+          >
+            下一步
+            {{ selectedCheckout.payment.parentPayment.nextAction.type }}
+            <template
+              v-if="
+                selectedCheckout.payment.parentPayment.nextAction.redirectUrl
+              "
+            >
+              ·
+              {{
+                formatUrlHost(
+                  selectedCheckout.payment.parentPayment.nextAction.redirectUrl,
+                )
+              }}
+            </template>
+          </span>
           <span class="rounded-full bg-gray-100 px-2.5 py-1">
             冪等鍵
             {{ selectedCheckout.payment.parentPayment.idempotencyKey }}
@@ -944,6 +970,14 @@ function splitModeLabel(mode: "child_transactions" | "provider_split") {
     child_transactions: "子交易編排",
     provider_split: "付款商拆帳",
   }[mode];
+}
+
+function formatUrlHost(value: string) {
+  try {
+    return new URL(value).host;
+  } catch {
+    return value;
+  }
 }
 
 function providerReadinessLabel(

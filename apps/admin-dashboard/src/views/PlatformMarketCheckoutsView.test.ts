@@ -183,10 +183,16 @@ describe("PlatformMarketCheckoutsView", () => {
         ],
         parentPayment: {
           paymentId: "market_pay_checkout-1",
-          status: "partial_paid",
-          provider: "line_pay",
-          splitMode: "child_transactions",
-          idempotencyKey: "market-pay-1",
+          status: "pending",
+          provider: "mock_market_provider",
+          splitMode: "provider_split",
+          idempotencyKey: "market-checkout:checkout-1",
+          providerTransactionId: "intent-market-checkout-1",
+          nextAction: {
+            type: "redirect",
+            redirectUrl:
+              "https://payments.example.test/confirm/intent-market-checkout-1",
+          },
           amountCents: 24000,
           paidAmountCents: 16000,
           refundedAmountCents: 0,
@@ -425,13 +431,25 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("market_pay_checkout-1");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toContain("子交易編排");
+    ).toContain("付款商拆帳");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("mock_market_provider");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("intent-market-checkout-1");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("redirect");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("payments.example.test");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("子交易 1");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toContain("冪等鍵 market-pay-1");
+    ).toContain("冪等鍵 market-checkout:checkout-1");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("更新 06/01 18:05");
