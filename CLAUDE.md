@@ -112,7 +112,7 @@ To override for your personal setup (port collision, remote API, etc.), create `
 - **2: Chef (廚師)** - Kitchen display system
 - **3: Service Crew (送菜員)** - Order fulfillment
 - **4: Cashier (收銀)** - Payment processing
-- **Customer** - Customer registration and ordering (shop QR mode)
+- **5: Customer** - Customer registration and ordering (shop QR mode)
 
 ## Development Commands
 

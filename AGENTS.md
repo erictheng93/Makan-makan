@@ -44,3 +44,12 @@ Examples:
 - `rtk node scripts/check-production-config.cjs`
 
 PowerShell builtins and simple read-only inspection commands do not need the `rtk` prefix.
+
+## Multi-Role Access System
+
+- **0: Admin (平台管理員)** - 全域管理（監控、系統設定、跨店操作）
+- **1: Shop Owner / 店長** - 餐廳權限管理與營運操作（可作為單日 Manager 的授權載體）
+- **2: Chef (廚師)** - 廚房接單與出餐
+- **3: Service Crew (送菜員)** - 送餐與服務流程
+- **4: Cashier (收銀)** - 收銀機、班次與交易處理
+- **5: Customer (顧客)** - 客戶端點餐與客戶資源查詢（`/api/v1/customers/*`）
