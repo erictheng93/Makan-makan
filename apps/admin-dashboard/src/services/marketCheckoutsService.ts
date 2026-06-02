@@ -128,17 +128,46 @@ export const marketCheckoutsService = {
   },
 
   async summary(
-    input: { marketSlug?: string; dateFrom?: string; dateTo?: string } = {},
+    input: {
+      marketSlug?: string;
+      paymentStatus?: MarketCheckoutPaymentStatus | "";
+      dateFrom?: string;
+      dateTo?: string;
+    } = {},
   ): Promise<MarketCheckoutSummary> {
     const response = await api.get<MarketCheckoutSummary>(
       "/market-checkouts/admin/summary",
       {
         marketSlug: input.marketSlug || undefined,
+        paymentStatus: input.paymentStatus || undefined,
         dateFrom: input.dateFrom || undefined,
         dateTo: input.dateTo || undefined,
       },
     );
     return unwrapApiPayload<MarketCheckoutSummary>(response.data);
+  },
+
+  async exportCsv(
+    input: {
+      marketSlug?: string;
+      paymentStatus?: MarketCheckoutPaymentStatus | "";
+      dateFrom?: string;
+      dateTo?: string;
+    } = {},
+  ): Promise<Blob> {
+    const response = await api.instance.get<Blob>(
+      "/market-checkouts/admin/export",
+      {
+        params: {
+          marketSlug: input.marketSlug || undefined,
+          paymentStatus: input.paymentStatus || undefined,
+          dateFrom: input.dateFrom || undefined,
+          dateTo: input.dateTo || undefined,
+        },
+        responseType: "blob",
+      },
+    );
+    return response.data;
   },
 
   async refund(id: string, reason?: string): Promise<MarketCheckoutDetail> {

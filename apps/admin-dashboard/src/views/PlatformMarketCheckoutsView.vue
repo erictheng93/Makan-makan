@@ -9,14 +9,25 @@
           追蹤跨攤位 checkout、子訂單與聯合付款狀態。
         </p>
       </div>
-      <button
-        type="button"
-        class="w-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-        :disabled="isLoading"
-        @click="loadCheckouts"
-      >
-        {{ isLoading ? "讀取中..." : "重新整理" }}
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="w-fit rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          :disabled="isExporting"
+          data-testid="export-checkouts"
+          @click="exportCheckouts"
+        >
+          {{ isExporting ? "匯出中..." : "匯出 CSV" }}
+        </button>
+        <button
+          type="button"
+          class="w-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+          :disabled="isLoading"
+          @click="loadCheckouts"
+        >
+          {{ isLoading ? "讀取中..." : "重新整理" }}
+        </button>
+      </div>
     </div>
 
     <section class="rounded-lg bg-white p-4 shadow-ios-card">
@@ -287,6 +298,7 @@ const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
 const summary = ref<MarketCheckoutSummary | null>(null);
 const isLoading = ref(false);
 const isRefunding = ref(false);
+const isExporting = ref(false);
 const error = ref<string | null>(null);
 const marketSlug = ref("");
 const paymentStatus = ref<MarketCheckoutPaymentStatus | "">("");
@@ -319,23 +331,14 @@ async function loadCheckouts() {
   isLoading.value = true;
   error.value = null;
   try {
-    const trimmedMarketSlug = marketSlug.value.trim();
-    const trimmedDateFrom = dateFrom.value.trim();
-    const trimmedDateTo = dateTo.value.trim();
+    const filters = currentFilters();
     const [result, nextSummary] = await Promise.all([
       marketCheckoutsService.list({
         page: 1,
         limit: 20,
-        marketSlug: trimmedMarketSlug,
-        paymentStatus: paymentStatus.value,
-        dateFrom: trimmedDateFrom,
-        dateTo: trimmedDateTo,
+        ...filters,
       }),
-      marketCheckoutsService.summary({
-        marketSlug: trimmedMarketSlug,
-        dateFrom: trimmedDateFrom,
-        dateTo: trimmedDateTo,
-      }),
+      marketCheckoutsService.summary(filters),
     ]);
     checkouts.value = result.checkouts;
     summary.value = nextSummary;
@@ -369,6 +372,36 @@ async function refundSelectedCheckout() {
   } finally {
     isRefunding.value = false;
   }
+}
+
+async function exportCheckouts() {
+  isExporting.value = true;
+  error.value = null;
+  try {
+    const blob = await marketCheckoutsService.exportCsv(currentFilters());
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `market-checkouts-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (exportError) {
+    error.value =
+      exportError instanceof Error ? exportError.message : "市場結帳匯出失敗";
+  } finally {
+    isExporting.value = false;
+  }
+}
+
+function currentFilters() {
+  return {
+    marketSlug: marketSlug.value.trim(),
+    paymentStatus: paymentStatus.value,
+    dateFrom: dateFrom.value.trim(),
+    dateTo: dateTo.value.trim(),
+  };
 }
 
 function paymentStatusLabel(status: MarketCheckoutPaymentStatus) {

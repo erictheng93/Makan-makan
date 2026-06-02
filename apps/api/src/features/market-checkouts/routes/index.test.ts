@@ -1231,6 +1231,146 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("filters market checkout operation summaries by payment status", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push({
+      all: [
+        {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "paid",
+          subtotalCents: 20000,
+          childOrderCount: 2,
+          paymentSummary: {
+            status: "paid",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 200,
+            totalAmountCents: 20000,
+            paidAmount: 200,
+            paidAmountCents: 20000,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+        },
+        {
+          id: "checkout-2",
+          marketId: "market-2",
+          marketSlug: "ximen",
+          marketName: "西門町商圈",
+          status: "submitted",
+          paymentStatus: "failed",
+          subtotalCents: 8000,
+          childOrderCount: 1,
+          paymentSummary: null,
+          createdAt: new Date("2026-06-01T12:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T12:05:00.000Z"),
+        },
+      ],
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/summary?paymentStatus=paid"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        totalCheckouts: number;
+        totalSubtotalCents: number;
+        paymentStatusCounts: Record<string, number>;
+      };
+    };
+    expect(json.data).toMatchObject({
+      totalCheckouts: 1,
+      totalSubtotalCents: 20000,
+      paymentStatusCounts: expect.objectContaining({
+        paid: 1,
+        failed: 0,
+      }),
+    });
+  });
+
+  it("exports filtered market checkout operations as CSV", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push({
+      all: [
+        {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "paid",
+          subtotalCents: 20000,
+          childOrderCount: 2,
+          paymentSummary: {
+            status: "paid",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 200,
+            totalAmountCents: 20000,
+            paidAmount: 200,
+            paidAmountCents: 20000,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+        },
+        {
+          id: "checkout-2",
+          marketId: "market-2",
+          marketSlug: "ximen",
+          marketName: "西門町商圈",
+          status: "submitted",
+          paymentStatus: "failed",
+          subtotalCents: 8000,
+          childOrderCount: 1,
+          paymentSummary: {
+            status: "failed",
+            method: "line_pay",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+          },
+          createdAt: new Date("2026-06-01T12:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T12:05:00.000Z"),
+        },
+      ],
+    });
+
+    const response = await routes.fetch(
+      new Request(
+        "https://test/admin/export?paymentStatus=paid&dateFrom=2026-06-01&dateTo=2026-06-01",
+      ),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/csv");
+    expect(response.headers.get("content-disposition")).toContain(
+      "market-checkouts-",
+    );
+    const csv = await response.text();
+    expect(csv).toContain(
+      "checkout_id,market_slug,market_name,status,payment_status",
+    );
+    expect(csv).toContain("checkout-1,fengjia");
+    expect(csv).toContain(",20000,20000,0,20000,");
+    expect(csv).not.toContain("checkout-2");
+  });
+
   it("falls back to the KV index when no persisted checkout sessions exist", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(

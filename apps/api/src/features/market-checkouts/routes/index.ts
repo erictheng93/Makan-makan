@@ -778,6 +778,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
 
 app.get("/admin/summary", authMiddleware, requireRole([0]), async (c) => {
   const marketSlug = c.req.query("marketSlug");
+  const paymentStatus = c.req.query("paymentStatus");
   const dateRange = parseMarketCheckoutDateRange(c);
   const persistedItems = await readPersistedMarketCheckoutSummaryItems(c.env);
   const items =
@@ -789,6 +790,7 @@ app.get("/admin/summary", authMiddleware, requireRole([0]), async (c) => {
         }));
   const filtered = items.filter((item) => {
     if (marketSlug && item.market.slug !== marketSlug) return false;
+    if (paymentStatus && item.paymentStatus !== paymentStatus) return false;
     if (!isWithinMarketCheckoutDateRange(item.createdAt, dateRange)) {
       return false;
     }
@@ -833,6 +835,38 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
       page,
       limit,
     },
+  });
+});
+
+app.get("/admin/export", authMiddleware, requireRole([0]), async (c) => {
+  const marketSlug = c.req.query("marketSlug");
+  const paymentStatus = c.req.query("paymentStatus");
+  const status = c.req.query("status");
+  const dateRange = parseMarketCheckoutDateRange(c);
+  const persistedItems = await readPersistedMarketCheckoutSummaryItems(c.env);
+  const items =
+    persistedItems.length > 0
+      ? persistedItems
+      : (await readMarketCheckoutIndex(c.env.CACHE_KV)).map((item) => ({
+          ...item,
+          payment: undefined,
+        }));
+  const filtered = items.filter((item) => {
+    if (marketSlug && item.market.slug !== marketSlug) return false;
+    if (paymentStatus && item.paymentStatus !== paymentStatus) return false;
+    if (status && item.status !== status) return false;
+    if (!isWithinMarketCheckoutDateRange(item.createdAt, dateRange)) {
+      return false;
+    }
+    return true;
+  });
+
+  const csv = buildMarketCheckoutCsv(filtered);
+  const suffix = new Date().toISOString().slice(0, 10);
+
+  return c.body(csv, 200, {
+    "Content-Type": "text/csv; charset=utf-8",
+    "Content-Disposition": `attachment; filename="market-checkouts-${suffix}.csv"`,
   });
 });
 
@@ -1135,6 +1169,49 @@ function buildMarketCheckoutAdminSummary(items: MarketCheckoutSummaryItem[]) {
       .sort((a, b) => b.subtotalCents - a.subtotalCents)
       .slice(0, 5),
   };
+}
+
+function buildMarketCheckoutCsv(items: MarketCheckoutSummaryItem[]) {
+  const headers = [
+    "checkout_id",
+    "market_slug",
+    "market_name",
+    "status",
+    "payment_status",
+    "child_order_count",
+    "subtotal_cents",
+    "paid_amount_cents",
+    "refunded_amount_cents",
+    "net_paid_amount_cents",
+    "created_at",
+    "updated_at",
+  ];
+  const rows = items.map((item) => {
+    const paidAmountCents = item.payment?.paidAmountCents ?? 0;
+    const refundedAmountCents = item.payment?.refundedAmountCents ?? 0;
+    return [
+      item.id,
+      item.market.slug,
+      item.market.name,
+      item.status,
+      item.paymentStatus,
+      item.childOrderCount,
+      item.subtotal,
+      paidAmountCents,
+      refundedAmountCents,
+      paidAmountCents - refundedAmountCents,
+      item.createdAt,
+      item.updatedAt,
+    ];
+  });
+
+  return [headers, ...rows]
+    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
+    .join("\n");
+}
+
+function escapeCsvValue(value: string) {
+  return /[",\n\r]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 }
 
 async function readPersistedMarketCheckoutSession(

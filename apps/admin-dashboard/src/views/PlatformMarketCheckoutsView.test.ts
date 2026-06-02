@@ -10,6 +10,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
     list: vi.fn(),
     get: vi.fn(),
     summary: vi.fn(),
+    exportCsv: vi.fn(),
     refund: vi.fn(),
   },
 }));
@@ -18,6 +19,14 @@ describe("PlatformMarketCheckoutsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.stubGlobal(
+      "URL",
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => "blob:market-checkouts"),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(vi.fn());
     vi.mocked(marketCheckoutsService.list).mockResolvedValue({
       checkouts: [
         {
@@ -117,6 +126,9 @@ describe("PlatformMarketCheckoutsView", () => {
         ],
       },
     });
+    vi.mocked(marketCheckoutsService.exportCsv).mockResolvedValue(
+      new Blob(["checkout_id\ncheckout-1"], { type: "text/csv" }),
+    );
     vi.mocked(marketCheckoutsService.refund).mockResolvedValue({
       id: "checkout-1",
       market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
@@ -157,6 +169,7 @@ describe("PlatformMarketCheckoutsView", () => {
     });
     expect(marketCheckoutsService.summary).toHaveBeenCalledWith({
       marketSlug: "",
+      paymentStatus: "",
       dateFrom: "",
       dateTo: "",
     });
@@ -194,6 +207,17 @@ describe("PlatformMarketCheckoutsView", () => {
     });
     expect(marketCheckoutsService.summary).toHaveBeenLastCalledWith({
       marketSlug: "",
+      paymentStatus: "",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-02",
+    });
+
+    await wrapper.get('[data-testid="export-checkouts"]').trigger("click");
+    await flushPromises();
+
+    expect(marketCheckoutsService.exportCsv).toHaveBeenCalledWith({
+      marketSlug: "",
+      paymentStatus: "",
       dateFrom: "2026-06-01",
       dateTo: "2026-06-02",
     });
