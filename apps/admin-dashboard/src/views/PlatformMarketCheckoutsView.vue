@@ -50,7 +50,7 @@
 
     <section class="rounded-lg bg-white p-4 shadow-ios-card">
       <div
-        class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_12rem_10rem_10rem_auto]"
+        class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_12rem_13rem_10rem_10rem_auto]"
       >
         <input
           v-model="marketSlug"
@@ -70,6 +70,17 @@
           <option value="failed">付款失敗</option>
           <option value="refunded">已退款</option>
           <option value="partial_refunded">部分退款</option>
+        </select>
+        <select
+          v-model="operationAlert"
+          data-testid="market-checkout-operation-alert"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+        >
+          <option value="">全部營運狀態</option>
+          <option value="provider_pending_stale">待對帳</option>
+          <option value="provider_webhook_missing">未收到 webhook</option>
+          <option value="provider_webhook_failed">webhook 失敗</option>
+          <option value="provider_status_mismatch">狀態不一致</option>
         </select>
         <input
           v-model="dateFrom"
@@ -759,6 +770,7 @@ import {
   type MarketCheckoutPaymentProviderConnectivityCheck,
   type MarketCheckoutPaymentProviderStatus,
   type MarketCheckoutPaymentStatus,
+  type MarketCheckoutOperationAlertType,
   type MarketCheckoutSummary,
   type MarketCheckoutVendorSettlement,
 } from "@/services/marketCheckoutsService";
@@ -780,6 +792,7 @@ const isExportingAccounting = ref(false);
 const error = ref<string | null>(null);
 const marketSlug = ref("");
 const paymentStatus = ref<MarketCheckoutPaymentStatus | "">("");
+const operationAlert = ref<MarketCheckoutOperationAlertType | "">("");
 const dateFrom = ref("");
 const dateTo = ref("");
 
@@ -912,6 +925,7 @@ async function loadCheckouts() {
   error.value = null;
   try {
     const filters = currentFilters();
+    const aggregateFilters = currentAggregateFilters();
     const [result, nextSummary, vendorSummary, nextProviderStatus] =
       await Promise.all([
         marketCheckoutsService.list({
@@ -919,8 +933,8 @@ async function loadCheckouts() {
           limit: 20,
           ...filters,
         }),
-        marketCheckoutsService.summary(filters),
-        marketCheckoutsService.vendors(filters),
+        marketCheckoutsService.summary(aggregateFilters),
+        marketCheckoutsService.vendors(aggregateFilters),
         marketCheckoutsService.providerStatus(),
       ]);
     checkouts.value = result.checkouts;
@@ -1020,8 +1034,9 @@ async function exportVendorSettlements() {
   isExportingVendors.value = true;
   error.value = null;
   try {
-    const blob =
-      await marketCheckoutsService.exportVendorsCsv(currentFilters());
+    const blob = await marketCheckoutsService.exportVendorsCsv(
+      currentAggregateFilters(),
+    );
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1042,8 +1057,9 @@ async function exportAccountingLedger() {
   isExportingAccounting.value = true;
   error.value = null;
   try {
-    const blob =
-      await marketCheckoutsService.exportAccountingCsv(currentFilters());
+    const blob = await marketCheckoutsService.exportAccountingCsv(
+      currentAggregateFilters(),
+    );
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1061,6 +1077,16 @@ async function exportAccountingLedger() {
 }
 
 function currentFilters() {
+  return {
+    marketSlug: marketSlug.value.trim(),
+    paymentStatus: paymentStatus.value,
+    operationAlert: operationAlert.value,
+    dateFrom: dateFrom.value.trim(),
+    dateTo: dateTo.value.trim(),
+  };
+}
+
+function currentAggregateFilters() {
   return {
     marketSlug: marketSlug.value.trim(),
     paymentStatus: paymentStatus.value,

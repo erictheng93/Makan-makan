@@ -303,6 +303,7 @@ describe("PlatformMarketCheckoutsView", () => {
       limit: 20,
       marketSlug: "",
       paymentStatus: "",
+      operationAlert: "",
       dateFrom: "",
       dateTo: "",
     });
@@ -391,6 +392,9 @@ describe("PlatformMarketCheckoutsView", () => {
       .get('[data-testid="market-checkout-date-to"]')
       .setValue("2026-06-02");
     await wrapper
+      .get('[data-testid="market-checkout-operation-alert"]')
+      .setValue("provider_webhook_failed");
+    await wrapper
       .get('[data-testid="market-checkout-filter"]')
       .trigger("click");
     await flushPromises();
@@ -400,6 +404,7 @@ describe("PlatformMarketCheckoutsView", () => {
       limit: 20,
       marketSlug: "",
       paymentStatus: "",
+      operationAlert: "provider_webhook_failed",
       dateFrom: "2026-06-01",
       dateTo: "2026-06-02",
     });
@@ -422,6 +427,7 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(marketCheckoutsService.exportCsv).toHaveBeenCalledWith({
       marketSlug: "",
       paymentStatus: "",
+      operationAlert: "provider_webhook_failed",
       dateFrom: "2026-06-01",
       dateTo: "2026-06-02",
     });

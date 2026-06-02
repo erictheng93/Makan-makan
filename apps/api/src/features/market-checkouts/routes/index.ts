@@ -947,6 +947,7 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
   const limit = Math.min(coercePositiveInt(c.req.query("limit"), 20), 100);
   const marketSlug = c.req.query("marketSlug");
   const paymentStatus = c.req.query("paymentStatus");
+  const operationAlert = c.req.query("operationAlert");
   const status = c.req.query("status");
   const dateRange = parseMarketCheckoutDateRange(c);
 
@@ -958,6 +959,12 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
   const filtered = index.filter((checkout) => {
     if (marketSlug && checkout.market.slug !== marketSlug) return false;
     if (paymentStatus && checkout.paymentStatus !== paymentStatus) return false;
+    if (
+      operationAlert &&
+      !checkout.operationAlerts?.some((alert) => alert.type === operationAlert)
+    ) {
+      return false;
+    }
     if (status && checkout.status !== status) return false;
     if (!isWithinMarketCheckoutDateRange(checkout.createdAt, dateRange)) {
       return false;
@@ -980,6 +987,7 @@ app.get("/admin", authMiddleware, requireRole([0]), async (c) => {
 app.get("/admin/export", authMiddleware, requireRole([0]), async (c) => {
   const marketSlug = c.req.query("marketSlug");
   const paymentStatus = c.req.query("paymentStatus");
+  const operationAlert = c.req.query("operationAlert");
   const status = c.req.query("status");
   const dateRange = parseMarketCheckoutDateRange(c);
   const persistedItems = await readPersistedMarketCheckoutSummaryItems(c.env);
@@ -993,6 +1001,12 @@ app.get("/admin/export", authMiddleware, requireRole([0]), async (c) => {
   const filtered = items.filter((item) => {
     if (marketSlug && item.market.slug !== marketSlug) return false;
     if (paymentStatus && item.paymentStatus !== paymentStatus) return false;
+    if (
+      operationAlert &&
+      !item.operationAlerts?.some((alert) => alert.type === operationAlert)
+    ) {
+      return false;
+    }
     if (status && item.status !== status) return false;
     if (!isWithinMarketCheckoutDateRange(item.createdAt, dateRange)) {
       return false;
@@ -1812,6 +1826,11 @@ async function readPersistedMarketCheckoutSummaryItems(
     payment: (row.paymentSummary ?? undefined) as
       | MarketCheckoutPaymentSummary
       | undefined,
+    operationAlerts: buildMarketCheckoutOperationAlerts(
+      (row.paymentSummary ?? undefined) as
+        | MarketCheckoutPaymentSummary
+        | undefined,
+    ),
     createdAt: toIsoString(row.createdAt),
     updatedAt: toIsoString(row.updatedAt),
   }));

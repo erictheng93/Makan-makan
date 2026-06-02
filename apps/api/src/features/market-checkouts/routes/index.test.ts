@@ -1762,6 +1762,38 @@ describe("market checkout routes", () => {
           paymentStatus: "partial_paid",
           subtotalCents: 8000,
           childOrderCount: 1,
+          paymentSummary: {
+            status: "partial_paid",
+            method: "market_online",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+            parentPayment: {
+              paymentId: "market_pay_checkout-2",
+              status: "pending",
+              provider: "mock_market_provider",
+              splitMode: "provider_split",
+              idempotencyKey: "market-checkout:checkout-2",
+              providerTransactionId: "intent-market-checkout-2",
+              lastWebhook: {
+                provider: "mock_market_provider",
+                eventId: "evt-market-checkout-failed-2",
+                eventType: "market_checkout.payment_failed",
+                status: "failed",
+                receivedAt: "2026-05-31T10:04:00.000Z",
+              },
+              amountCents: 8000,
+              paidAmountCents: 0,
+              refundedAmountCents: 0,
+              childPaymentIds: [],
+              createdAt: "2026-05-31T10:00:00.000Z",
+              updatedAt: "2026-05-31T10:05:00.000Z",
+            },
+          },
           createdAt: new Date("2026-05-31T10:00:00.000Z"),
           updatedAt: new Date("2026-05-31T10:05:00.000Z"),
         },
@@ -1797,6 +1829,116 @@ describe("market checkout routes", () => {
       operationAlerts: expect.arrayContaining([
         expect.objectContaining({ type: "provider_pending_stale" }),
         expect.objectContaining({ type: "provider_webhook_missing" }),
+      ]),
+    });
+
+    databaseMocks.selectQueue.push({
+      all: [
+        {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "partial_paid",
+          subtotalCents: 12000,
+          childOrderCount: 1,
+          paymentSummary: {
+            status: "partial_paid",
+            method: "market_online",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+            parentPayment: {
+              paymentId: "market_pay_checkout-1",
+              status: "pending",
+              provider: "mock_market_provider",
+              splitMode: "provider_split",
+              idempotencyKey: "market-checkout:checkout-1",
+              providerTransactionId: "intent-market-checkout-1",
+              amountCents: 12000,
+              paidAmountCents: 0,
+              refundedAmountCents: 0,
+              childPaymentIds: [],
+              createdAt: "2026-06-01T09:00:00.000Z",
+              updatedAt: "2026-06-01T09:00:00.000Z",
+            },
+          },
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+        },
+        {
+          id: "checkout-2",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "逢甲夜市",
+          status: "submitted",
+          paymentStatus: "partial_paid",
+          subtotalCents: 8000,
+          childOrderCount: 1,
+          paymentSummary: {
+            status: "partial_paid",
+            method: "market_online",
+            currency: "TWD",
+            country: "TW",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            paidAmount: 0,
+            paidAmountCents: 0,
+            childPayments: [],
+            parentPayment: {
+              paymentId: "market_pay_checkout-2",
+              status: "pending",
+              provider: "mock_market_provider",
+              splitMode: "provider_split",
+              idempotencyKey: "market-checkout:checkout-2",
+              providerTransactionId: "intent-market-checkout-2",
+              lastWebhook: {
+                provider: "mock_market_provider",
+                eventId: "evt-market-checkout-failed-2",
+                eventType: "market_checkout.payment_failed",
+                status: "failed",
+                receivedAt: "2026-05-31T10:04:00.000Z",
+              },
+              amountCents: 8000,
+              paidAmountCents: 0,
+              refundedAmountCents: 0,
+              childPaymentIds: [],
+              createdAt: "2026-05-31T10:00:00.000Z",
+              updatedAt: "2026-05-31T10:05:00.000Z",
+            },
+          },
+          createdAt: new Date("2026-05-31T10:00:00.000Z"),
+          updatedAt: new Date("2026-05-31T10:05:00.000Z"),
+        },
+      ],
+    });
+
+    const alertResponse = await routes.fetch(
+      new Request(
+        "https://test/admin?paymentStatus=partial_paid&operationAlert=provider_webhook_failed",
+      ),
+      env as never,
+    );
+    expect(alertResponse.status).toBe(200);
+    const alertJson = (await alertResponse.json()) as {
+      data: {
+        checkouts: Array<{
+          id: string;
+          operationAlerts: Array<{ type: string }>;
+        }>;
+        total: number;
+      };
+    };
+    expect(alertJson.data.total).toBe(1);
+    expect(alertJson.data.checkouts[0]).toMatchObject({
+      id: "checkout-2",
+      operationAlerts: expect.arrayContaining([
+        expect.objectContaining({ type: "provider_webhook_failed" }),
       ]),
     });
   });

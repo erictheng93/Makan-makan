@@ -56,6 +56,9 @@ export interface MarketCheckoutOperationAlert {
   severity: "warning" | "critical";
 }
 
+export type MarketCheckoutOperationAlertType =
+  MarketCheckoutOperationAlert["type"];
+
 export interface MarketCheckoutChildOrder {
   restaurantId: string;
   restaurantName: string;
@@ -219,6 +222,7 @@ export const marketCheckoutsService = {
       limit?: number;
       marketSlug?: string;
       paymentStatus?: MarketCheckoutPaymentStatus | "";
+      operationAlert?: MarketCheckoutOperationAlertType | "";
       dateFrom?: string;
       dateTo?: string;
     } = {},
@@ -230,6 +234,7 @@ export const marketCheckoutsService = {
         limit: input.limit ?? 20,
         marketSlug: input.marketSlug || undefined,
         paymentStatus: input.paymentStatus || undefined,
+        operationAlert: input.operationAlert || undefined,
         dateFrom: input.dateFrom || undefined,
         dateTo: input.dateTo || undefined,
       },
@@ -249,6 +254,7 @@ export const marketCheckoutsService = {
     input: {
       marketSlug?: string;
       paymentStatus?: MarketCheckoutPaymentStatus | "";
+      operationAlert?: MarketCheckoutOperationAlertType | "";
       dateFrom?: string;
       dateTo?: string;
     } = {},
@@ -330,6 +336,7 @@ export const marketCheckoutsService = {
         params: {
           marketSlug: input.marketSlug || undefined,
           paymentStatus: input.paymentStatus || undefined,
+          operationAlert: input.operationAlert || undefined,
           dateFrom: input.dateFrom || undefined,
           dateTo: input.dateTo || undefined,
         },
