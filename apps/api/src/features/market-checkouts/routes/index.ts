@@ -11,6 +11,7 @@ import {
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import {
+  ApiError,
   badRequest,
   conflict,
   forbidden,
@@ -34,6 +35,7 @@ import {
   createMarketCheckoutPaymentProvider,
   type MarketCheckoutSplitMode,
 } from "../services/MarketCheckoutPaymentProvider";
+import { MarketCheckoutPaymentWebhookService } from "../services/MarketCheckoutPaymentWebhookService";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
@@ -61,6 +63,37 @@ const recoverMarketCheckoutGuestTokenSchema = z.object({
 
 const refundMarketCheckoutSchema = z.object({
   reason: z.string().max(500).optional(),
+});
+
+app.post("/payment-webhooks/:provider", async (c) => {
+  const provider = c.req.param("provider").toLowerCase();
+  const rawBody = await c.req.text();
+
+  let result;
+  try {
+    result = await new MarketCheckoutPaymentWebhookService(c.env).handle(
+      provider,
+      rawBody,
+      c.req.raw.headers,
+    );
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw badRequest("Invalid webhook JSON");
+    }
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      "MARKET_CHECKOUT_WEBHOOK_SIGNATURE_INVALID",
+      error instanceof Error ? error.message : "Invalid webhook signature",
+      401,
+    );
+  }
+
+  return c.json({
+    success: true,
+    data: result,
+  });
 });
 
 interface MarketCheckoutChildOrder {

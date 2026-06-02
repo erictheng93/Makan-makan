@@ -145,6 +145,7 @@ export interface Env {
   BILLING_EMAIL_FROM?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   LINEPAY_WEBHOOK_SECRET?: string;
+  MARKET_CHECKOUT_WEBHOOK_SECRET?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
   // AI and machine learning
