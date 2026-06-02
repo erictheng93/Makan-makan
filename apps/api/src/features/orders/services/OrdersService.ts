@@ -29,6 +29,7 @@ import type {
   OrderStatusUpdateEvent,
   NewOrderEvent,
 } from "@makanmakan/shared-types";
+import { RestaurantOrderPushService } from "../../push/services/RestaurantOrderPushService";
 import { ORDER_STATUS_TRANSITIONS, ROLE_STATUS_PERMISSIONS } from "../types";
 import type {
   CreateOrderData,
@@ -53,6 +54,9 @@ import type {
 // Minimal KV surface used by this service.
 interface KVLike {
   get(key: string, type?: "json"): Promise<unknown>;
+  list(options?: { prefix?: string; limit?: number }): Promise<{
+    keys: Array<{ name: string }>;
+  }>;
   put(
     key: string,
     value: string,
@@ -65,6 +69,7 @@ export class OrdersService implements IOrdersService {
   private baseOrderService: BaseOrderService;
   private couponService: CouponService;
   private realtimeBroadcastService: RealtimeBroadcastService;
+  private orderPushService: RestaurantOrderPushService;
   // Loose KV interface; only the methods we actually call are typed.
   private cacheKV: KVLike;
   private logger: ConsoleLogger;
@@ -75,6 +80,7 @@ export class OrdersService implements IOrdersService {
     this.baseOrderService = new BaseOrderService(env.DB, env);
     this.couponService = new CouponService(env.DB, env);
     this.realtimeBroadcastService = new RealtimeBroadcastService(env);
+    this.orderPushService = new RestaurantOrderPushService(env);
     this.cacheKV = env.CACHE_KV;
     this.logger = new ConsoleLogger("OrdersService");
   }
@@ -193,6 +199,7 @@ export class OrdersService implements IOrdersService {
           total: order.totalAmount,
         }),
         data.waitingListId ? Promise.resolve() : this.broadcastNewOrder(order),
+        data.waitingListId ? Promise.resolve() : this.notifyNewOrderPush(order),
       ]);
 
       this.logger.info("Order created successfully", {
@@ -1066,6 +1073,30 @@ export class OrdersService implements IOrdersService {
         error instanceof Error ? error : undefined,
         {
           orderId: order.id,
+        },
+      );
+    }
+  }
+
+  private async notifyNewOrderPush(order: Order): Promise<void> {
+    try {
+      await this.orderPushService.notifyNewOrder({
+        restaurantId: String(order.restaurantId),
+        orderId: order.id,
+        orderNumber: order.orderNumber || `#${order.id}`,
+        orderSource: order.orderSource,
+        totalAmount: order.totalAmount,
+        itemCount: order.items?.length ?? 0,
+        customerName: order.customerInfo?.name,
+        notes: order.notes,
+      });
+    } catch (error) {
+      this.logger.error(
+        "Failed to send new order push notification",
+        error instanceof Error ? error : undefined,
+        {
+          orderId: order.id,
+          restaurantId: order.restaurantId,
         },
       );
     }

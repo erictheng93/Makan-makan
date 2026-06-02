@@ -24,10 +24,41 @@ vi.mock("@makanmakan/database", () => ({
 }));
 
 function createEnv() {
+  const subscriptionKey =
+    "push:subscription:restaurant-1:user-1:subscription-1";
+  const pushDeliverer = vi.fn(async () => ({ ok: true, status: 201 }));
+
   return {
     DB: {},
+    WEB_PUSH_DELIVERER: pushDeliverer,
     CACHE_KV: {
-      get: vi.fn(),
+      get: vi.fn(async (key: string) => {
+        if (key !== subscriptionKey) return null;
+        return {
+          id: "subscription-1",
+          userId: 10,
+          username: "kitchen",
+          userRole: 2,
+          userType: "kitchen",
+          restaurantId: "restaurant-1",
+          subscription: {
+            endpoint: "https://push.example/subscription-1",
+            keys: {
+              p256dh: "p256dh-key",
+              auth: "auth-key",
+            },
+          },
+          deviceInfo: {},
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:00:00.000Z",
+        };
+      }),
+      list: vi.fn(async ({ prefix }: { prefix?: string } = {}) => ({
+        keys:
+          prefix === "push:subscription:restaurant-1:"
+            ? [{ name: subscriptionKey }]
+            : [],
+      })),
       put: vi.fn(),
       delete: vi.fn(),
     },
@@ -120,6 +151,23 @@ describe("OrdersService realtime broadcasts", () => {
           phone: undefined,
         },
       },
+    });
+    expect(env.WEB_PUSH_DELIVERER).toHaveBeenCalledWith({
+      subscription: {
+        id: "subscription-1",
+        endpoint: "https://push.example/subscription-1",
+        p256dhKey: "p256dh-key",
+        authKey: "auth-key",
+      },
+      payload: expect.objectContaining({
+        type: "new_order",
+        orderId: 1001,
+        orderNumber: "A001",
+        orderSource: "market_checkout",
+        title: "市場結帳新訂單",
+        priority: "high",
+        requireInteraction: true,
+      }),
     });
   });
 });

@@ -66,6 +66,15 @@ describe("Market checkouts API - real integration", () => {
   });
 
   it("persists checkout sessions, survives KV expiry, and updates payment status", async () => {
+    const pushDeliveries: Array<{ endpoint: string; payload: any }> = [];
+    testApp.env.WEB_PUSH_DELIVERER = async (delivery) => {
+      pushDeliveries.push({
+        endpoint: delivery.subscription.endpoint,
+        payload: delivery.payload,
+      });
+      return { ok: true, status: 201 };
+    };
+
     const market = await seedMarket(testApp);
     expect(market.platformFeeRateBps).toBe(350);
     const vendorA = await seed.restaurant({ name: "雞排攤" });
@@ -97,6 +106,10 @@ describe("Market checkouts API - real integration", () => {
         joinedAt: new Date(),
       },
     ]);
+    await Promise.all([
+      putRestaurantPushSubscription(String(vendorA.id), "vendor-a"),
+      putRestaurantPushSubscription(String(vendorB.id), "vendor-b"),
+    ]);
 
     const createRes = await testApp.app.fetch(
       new Request("https://test/api/v1/market-checkouts", {
@@ -125,6 +138,31 @@ describe("Market checkouts API - real integration", () => {
     const checkoutId = createJson.data.checkout.id as string;
     expect(createJson.data.checkout.childOrders).toHaveLength(2);
     expect(createJson.data.checkout.market.platformFeeRateBps).toBe(350);
+    expect(pushDeliveries).toHaveLength(2);
+    expect(pushDeliveries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          endpoint: "https://push.example.test/vendor-a",
+          payload: expect.objectContaining({
+            type: "new_order",
+            orderSource: "market_checkout",
+            title: "市場結帳新訂單",
+            priority: "high",
+            requireInteraction: true,
+          }),
+        }),
+        expect.objectContaining({
+          endpoint: "https://push.example.test/vendor-b",
+          payload: expect.objectContaining({
+            type: "new_order",
+            orderSource: "market_checkout",
+            title: "市場結帳新訂單",
+            priority: "high",
+            requireInteraction: true,
+          }),
+        }),
+      ]),
+    );
 
     const persistedSession = await testApp.testDb.drizzle
       .select()
@@ -316,4 +354,31 @@ describe("Market checkouts API - real integration", () => {
       },
     });
   });
+
+  async function putRestaurantPushSubscription(
+    restaurantId: string,
+    suffix: string,
+  ) {
+    await testApp.env.CACHE_KV.put(
+      `push:subscription:${encodeURIComponent(restaurantId)}:user-1:${suffix}`,
+      JSON.stringify({
+        id: suffix,
+        userId: 1,
+        username: "kitchen",
+        userRole: 2,
+        userType: "kitchen",
+        restaurantId,
+        subscription: {
+          endpoint: `https://push.example.test/${suffix}`,
+          keys: {
+            p256dh: `${suffix}-p256dh`,
+            auth: `${suffix}-auth`,
+          },
+        },
+        deviceInfo: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
 });
