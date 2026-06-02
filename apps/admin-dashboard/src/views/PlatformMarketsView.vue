@@ -1461,94 +1461,170 @@
           </button>
         </div>
 
-        <div
-          v-if="attachedVendors.length > 0"
-          class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200"
-        >
-          <div
-            v-for="vendor in attachedVendors"
-            :key="vendor.restaurantId"
-            :data-testid="`attached-vendor-row-${vendor.restaurantId}`"
-            class="grid gap-3 p-3 lg:grid-cols-[1fr_8rem_10rem_6rem_6rem_8rem_auto_auto]"
-          >
-            <div>
-              <div class="font-medium text-gray-900">
-                {{ vendor.name }}
+        <div v-if="attachedVendors.length > 0" class="mt-4 space-y-4">
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div
+              class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+            >
+              <div>
+                <h4 class="text-sm font-semibold text-gray-900">
+                  攤位地圖定位
+                </h4>
+                <p class="mt-1 text-sm text-gray-500">
+                  選擇店鋪後點選地圖位置，會自動填入 X/Y 座標。
+                </p>
               </div>
-              <div class="mt-0.5 text-xs text-gray-500">
-                {{ vendor.city || "未填城市" }} ·
-                {{ vendor.district || "未填區域" }}
-              </div>
-              <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
-                <span v-if="vendor.type">{{ vendor.type }}</span>
-                <span v-if="vendor.category">{{ vendor.category }}</span>
-                <span v-if="vendor.supportsTakeaway">可外帶</span>
-                <span v-if="vendor.supportsDelivery">可外送</span>
-              </div>
+              <select
+                v-model="selectedMapVendorId"
+                data-testid="attached-vendor-map-selector"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 sm:w-64"
+              >
+                <option value="">選擇要定位的店鋪</option>
+                <option
+                  v-for="vendor in attachedVendors"
+                  :key="vendor.restaurantId"
+                  :value="vendor.restaurantId"
+                >
+                  {{
+                    vendor.stallNumber || vendor.draftStallNumber || "未編號"
+                  }}
+                  · {{ vendor.name }}
+                </option>
+              </select>
             </div>
-            <input
-              v-model="vendor.draftStallNumber"
-              type="text"
-              :data-testid="`attached-vendor-stall-${vendor.restaurantId}`"
-              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-              placeholder="攤位號"
-            />
-            <input
-              v-model="vendor.draftLocationLabel"
-              type="text"
-              :data-testid="`attached-vendor-location-${vendor.restaurantId}`"
-              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-              placeholder="位置描述"
-            />
-            <input
-              v-model="vendor.draftMapX"
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              :data-testid="`attached-vendor-map-x-${vendor.restaurantId}`"
-              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-              placeholder="X%"
-            />
-            <input
-              v-model="vendor.draftMapY"
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              :data-testid="`attached-vendor-map-y-${vendor.restaurantId}`"
-              class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-              placeholder="Y%"
-            />
-            <label
-              class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+            <button
+              type="button"
+              data-testid="attached-vendor-position-map"
+              class="relative mt-3 min-h-[18rem] w-full overflow-hidden rounded-lg border border-dashed border-gray-300 bg-white bg-cover bg-center text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              :class="
+                selectedMapVendorId
+                  ? 'cursor-crosshair'
+                  : 'cursor-not-allowed opacity-80'
+              "
+              :style="attachedVendorMapStyle"
+              @click="placeSelectedVendorOnMap"
             >
+              <span
+                class="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-gray-200"
+                aria-hidden="true"
+              ></span>
+              <span
+                class="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 bg-gray-200"
+                aria-hidden="true"
+              ></span>
+              <span
+                v-for="vendor in attachedVendorsWithMapDrafts"
+                :key="vendor.restaurantId"
+                class="absolute min-w-24 -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white px-2 py-1 text-xs shadow-sm"
+                :class="
+                  vendor.restaurantId === selectedMapVendorId
+                    ? 'border-primary-500 text-primary-700'
+                    : 'border-gray-200 text-gray-700'
+                "
+                :style="{
+                  left: `${vendor.mapX}%`,
+                  top: `${vendor.mapY}%`,
+                }"
+                :data-testid="`attached-vendor-map-marker-${vendor.restaurantId}`"
+              >
+                <span class="block font-semibold">
+                  {{
+                    vendor.draftStallNumber || vendor.stallNumber || "未編號"
+                  }}
+                </span>
+                <span class="block truncate">{{ vendor.name }}</span>
+              </span>
+            </button>
+          </div>
+
+          <div
+            class="divide-y divide-gray-200 rounded-lg border border-gray-200"
+          >
+            <div
+              v-for="vendor in attachedVendors"
+              :key="vendor.restaurantId"
+              :data-testid="`attached-vendor-row-${vendor.restaurantId}`"
+              class="grid gap-3 p-3 lg:grid-cols-[1fr_8rem_10rem_6rem_6rem_8rem_auto_auto]"
+            >
+              <div>
+                <div class="font-medium text-gray-900">
+                  {{ vendor.name }}
+                </div>
+                <div class="mt-0.5 text-xs text-gray-500">
+                  {{ vendor.city || "未填城市" }} ·
+                  {{ vendor.district || "未填區域" }}
+                </div>
+                <div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                  <span v-if="vendor.type">{{ vendor.type }}</span>
+                  <span v-if="vendor.category">{{ vendor.category }}</span>
+                  <span v-if="vendor.supportsTakeaway">可外帶</span>
+                  <span v-if="vendor.supportsDelivery">可外送</span>
+                </div>
+              </div>
               <input
-                v-model="vendor.draftIsPrimary"
-                type="checkbox"
-                :data-testid="`attached-vendor-primary-${vendor.restaurantId}`"
-                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                v-model="vendor.draftStallNumber"
+                type="text"
+                :data-testid="`attached-vendor-stall-${vendor.restaurantId}`"
+                class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                placeholder="攤位號"
               />
-              主要市場
-            </label>
-            <button
-              type="button"
-              :data-testid="`attached-vendor-save-${vendor.restaurantId}`"
-              class="h-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-              :disabled="vendor.isSaving || vendor.isRemoving"
-              @click="saveAttachedVendor(vendor)"
-            >
-              {{ vendor.isSaving ? "儲存中..." : "儲存" }}
-            </button>
-            <button
-              type="button"
-              :data-testid="`attached-vendor-remove-${vendor.restaurantId}`"
-              class="h-fit rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-              :disabled="vendor.isSaving || vendor.isRemoving"
-              @click="removeAttachedVendor(vendor)"
-            >
-              {{ vendor.isRemoving ? "移除中..." : "移除" }}
-            </button>
+              <input
+                v-model="vendor.draftLocationLabel"
+                type="text"
+                :data-testid="`attached-vendor-location-${vendor.restaurantId}`"
+                class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                placeholder="位置描述"
+              />
+              <input
+                v-model="vendor.draftMapX"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                :data-testid="`attached-vendor-map-x-${vendor.restaurantId}`"
+                class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                placeholder="X%"
+              />
+              <input
+                v-model="vendor.draftMapY"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                :data-testid="`attached-vendor-map-y-${vendor.restaurantId}`"
+                class="h-fit rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                placeholder="Y%"
+              />
+              <label
+                class="inline-flex h-fit items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+              >
+                <input
+                  v-model="vendor.draftIsPrimary"
+                  type="checkbox"
+                  :data-testid="`attached-vendor-primary-${vendor.restaurantId}`"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                主要市場
+              </label>
+              <button
+                type="button"
+                :data-testid="`attached-vendor-save-${vendor.restaurantId}`"
+                class="h-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                :disabled="vendor.isSaving || vendor.isRemoving"
+                @click="saveAttachedVendor(vendor)"
+              >
+                {{ vendor.isSaving ? "儲存中..." : "儲存" }}
+              </button>
+              <button
+                type="button"
+                :data-testid="`attached-vendor-remove-${vendor.restaurantId}`"
+                class="h-fit rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                :disabled="vendor.isSaving || vendor.isRemoving"
+                @click="removeAttachedVendor(vendor)"
+              >
+                {{ vendor.isRemoving ? "移除中..." : "移除" }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1844,6 +1920,7 @@ const attachedVendorQuery = ref("");
 const attachedVendorPage = ref(1);
 const attachedVendorLimit = 10;
 const attachedVendorTotal = ref(0);
+const selectedMapVendorId = ref("");
 const pendingJoinRequests = ref<AdminMarketJoinRequest[]>([]);
 const isLoadingJoinRequests = ref(false);
 const joinRequestError = ref("");
@@ -2005,6 +2082,45 @@ const vendorImportPlaceholder = computed(() =>
 );
 const attachedVendorPageCount = computed(() =>
   Math.max(1, Math.ceil(attachedVendorTotal.value / attachedVendorLimit)),
+);
+const attachedVendorMapStyle = computed(() => {
+  const style: Record<string, string> = {};
+  const layout = editingMarket.value?.mapLayout;
+  if (layout?.imageUrl) {
+    style.backgroundImage = `url("${layout.imageUrl}")`;
+  }
+  if (layout?.width && layout?.height) {
+    style.aspectRatio = `${layout.width} / ${layout.height}`;
+  }
+  return style;
+});
+const attachedVendorsWithMapDrafts = computed(() =>
+  attachedVendors.value
+    .map((vendor) => {
+      const mapX = Number(vendor.draftMapX);
+      const mapY = Number(vendor.draftMapY);
+      if (
+        !Number.isFinite(mapX) ||
+        !Number.isFinite(mapY) ||
+        mapX < 0 ||
+        mapX > 100 ||
+        mapY < 0 ||
+        mapY > 100
+      ) {
+        return null;
+      }
+      return {
+        ...vendor,
+        mapX,
+        mapY,
+      };
+    })
+    .filter(
+      (
+        vendor,
+      ): vendor is EditableMarketVendor & { mapX: number; mapY: number } =>
+        vendor !== null,
+    ),
 );
 
 function readinessBadgeClass(market: MarketListItem) {
@@ -2577,6 +2693,7 @@ function resetAttachedVendorState() {
   attachedVendorQuery.value = "";
   attachedVendorPage.value = 1;
   attachedVendorTotal.value = 0;
+  selectedMapVendorId.value = "";
 }
 
 function editableMarketVendor(vendor: MarketVendor): EditableMarketVendor {
@@ -2606,6 +2723,14 @@ async function loadAttachedVendors(market = editingMarket.value) {
     });
     if (editingMarket.value?.id !== market.id) return;
     attachedVendors.value = result.vendors.map(editableMarketVendor);
+    if (
+      selectedMapVendorId.value &&
+      !attachedVendors.value.some(
+        (vendor) => vendor.restaurantId === selectedMapVendorId.value,
+      )
+    ) {
+      selectedMapVendorId.value = "";
+    }
     attachedVendorTotal.value = result.total;
     attachedVendorPage.value = result.page;
   } catch (error) {
@@ -2632,6 +2757,33 @@ function goToAttachedVendorPage(page: number) {
     attachedVendorPageCount.value,
   );
   void loadAttachedVendors();
+}
+
+function placeSelectedVendorOnMap(event: MouseEvent) {
+  if (!selectedMapVendorId.value) return;
+
+  const vendor = attachedVendors.value.find(
+    (item) => item.restaurantId === selectedMapVendorId.value,
+  );
+  if (!vendor) return;
+
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLElement)) return;
+
+  const rect = target.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const x = Math.min(
+    100,
+    Math.max(0, ((event.clientX - rect.left) / rect.width) * 100),
+  );
+  const y = Math.min(
+    100,
+    Math.max(0, ((event.clientY - rect.top) / rect.height) * 100),
+  );
+
+  vendor.draftMapX = String(Math.round(x));
+  vendor.draftMapY = String(Math.round(y));
 }
 
 async function saveAttachedVendor(vendor: EditableMarketVendor) {

@@ -1697,16 +1697,43 @@ describe("PlatformMarketsView", () => {
       limit: 10,
     });
     expect(wrapper.text()).toContain("已加入雞排");
+    expect(
+      wrapper
+        .get('[data-testid="attached-vendor-map-marker-restaurant-1"]')
+        .attributes("style"),
+    ).toContain("left: 20%");
 
     await wrapper
       .get('[data-testid="attached-vendor-stall-restaurant-1"]')
       .setValue("A-02");
     await wrapper
-      .get('[data-testid="attached-vendor-map-x-restaurant-1"]')
-      .setValue("40");
-    await wrapper
-      .get('[data-testid="attached-vendor-map-y-restaurant-1"]')
-      .setValue("55");
+      .get('[data-testid="attached-vendor-map-selector"]')
+      .setValue("restaurant-1");
+    const map = wrapper.get('[data-testid="attached-vendor-position-map"]');
+    vi.spyOn(map.element, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 200,
+      right: 200,
+      bottom: 200,
+      toJSON: () => ({}),
+    });
+    await map.trigger("click", { clientX: 80, clientY: 110 });
+    expect(
+      (
+        wrapper.get('[data-testid="attached-vendor-map-x-restaurant-1"]')
+          .element as HTMLInputElement
+      ).value,
+    ).toBe("40");
+    expect(
+      (
+        wrapper.get('[data-testid="attached-vendor-map-y-restaurant-1"]')
+          .element as HTMLInputElement
+      ).value,
+    ).toBe("55");
     await wrapper
       .get('[data-testid="attached-vendor-primary-restaurant-1"]')
       .setValue(true);
