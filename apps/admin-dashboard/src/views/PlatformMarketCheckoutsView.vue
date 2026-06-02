@@ -30,6 +30,15 @@
         </button>
         <button
           type="button"
+          class="w-fit rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          :disabled="isExportingAccounting"
+          data-testid="export-accounting-ledger"
+          @click="exportAccountingLedger"
+        >
+          {{ isExportingAccounting ? "匯出中..." : "匯出會計分錄" }}
+        </button>
+        <button
+          type="button"
           class="w-fit rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
           :disabled="isLoading"
           @click="loadCheckouts"
@@ -582,6 +591,7 @@ const isLoading = ref(false);
 const isRefunding = ref(false);
 const isExporting = ref(false);
 const isExportingVendors = ref(false);
+const isExportingAccounting = ref(false);
 const error = ref<string | null>(null);
 const marketSlug = ref("");
 const paymentStatus = ref<MarketCheckoutPaymentStatus | "">("");
@@ -706,6 +716,28 @@ async function exportVendorSettlements() {
       exportError instanceof Error ? exportError.message : "攤位對帳匯出失敗";
   } finally {
     isExportingVendors.value = false;
+  }
+}
+
+async function exportAccountingLedger() {
+  isExportingAccounting.value = true;
+  error.value = null;
+  try {
+    const blob =
+      await marketCheckoutsService.exportAccountingCsv(currentFilters());
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `market-checkout-accounting-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (exportError) {
+    error.value =
+      exportError instanceof Error ? exportError.message : "會計分錄匯出失敗";
+  } finally {
+    isExportingAccounting.value = false;
   }
 }
 

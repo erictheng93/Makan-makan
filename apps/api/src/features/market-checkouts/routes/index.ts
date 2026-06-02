@@ -1039,6 +1039,38 @@ app.get(
   },
 );
 
+app.get(
+  "/admin/accounting/export",
+  authMiddleware,
+  requireRole([0]),
+  async (c) => {
+    const marketSlug = c.req.query("marketSlug");
+    const paymentStatus = c.req.query("paymentStatus");
+    const dateRange = parseMarketCheckoutDateRange(c);
+    const sessions = await readPersistedMarketCheckoutOpsSessions(c.env);
+    const filtered = sessions.filter((session) => {
+      if (marketSlug && session.market.slug !== marketSlug) return false;
+      if (
+        paymentStatus &&
+        (session.payment?.status ?? "pending") !== paymentStatus
+      ) {
+        return false;
+      }
+      if (!isWithinMarketCheckoutDateRange(session.createdAt, dateRange)) {
+        return false;
+      }
+      return true;
+    });
+    const csv = buildMarketCheckoutAccountingCsv(filtered);
+    const suffix = new Date().toISOString().slice(0, 10);
+
+    return c.body(csv, 200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="market-checkout-accounting-${suffix}.csv"`,
+    });
+  },
+);
+
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
   const checkoutId = c.req.param("id") ?? "";
   const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
@@ -1897,6 +1929,122 @@ function buildMarketCheckoutVendorSettlementCsv(
     vendor.refundedPaymentCount,
     vendor.failedPaymentCount,
   ]);
+
+  return [headers, ...rows]
+    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
+    .join("\n");
+}
+
+function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
+  const headers = [
+    "entry_date",
+    "checkout_id",
+    "market_slug",
+    "market_name",
+    "restaurant_id",
+    "restaurant_name",
+    "order_id",
+    "order_number",
+    "account_code",
+    "account_name",
+    "direction",
+    "amount_cents",
+    "currency",
+    "source_type",
+    "source_id",
+    "memo",
+  ];
+  const rows: Array<Array<string | number>> = [];
+
+  for (const session of sessions) {
+    const payment = session.payment;
+    if (!payment?.settlement) continue;
+
+    for (const allocation of payment.settlement.vendorAllocations) {
+      const netBeforeFeeCents =
+        allocation.grossAmountCents - allocation.refundedAmountCents;
+      const base = [
+        payment.paidAt ?? session.createdAt,
+        session.id,
+        session.market.slug,
+        session.market.name,
+        allocation.restaurantId,
+        allocation.restaurantName,
+        allocation.orderId,
+        allocation.orderNumber,
+      ] satisfies Array<string | number>;
+      const sourceId =
+        payment.parentPayment?.paymentId ??
+        payment.childPayments.find(
+          (childPayment) => childPayment.orderId === allocation.orderId,
+        )?.paymentId ??
+        session.id;
+
+      if (netBeforeFeeCents > 0) {
+        rows.push([
+          ...base,
+          "1100",
+          "payment_clearing",
+          "debit",
+          netBeforeFeeCents,
+          payment.currency,
+          "market_checkout_settlement",
+          sourceId,
+          "net paid amount before platform fee",
+        ]);
+      }
+      if (allocation.netAmountCents > 0) {
+        rows.push([
+          ...base,
+          "2200",
+          "vendor_payable",
+          "credit",
+          allocation.netAmountCents,
+          payment.currency,
+          "market_checkout_settlement",
+          sourceId,
+          "vendor net payable",
+        ]);
+      }
+      if (allocation.platformFeeCents > 0) {
+        rows.push([
+          ...base,
+          "4100",
+          "platform_fee_revenue",
+          "credit",
+          allocation.platformFeeCents,
+          payment.currency,
+          "market_checkout_settlement",
+          sourceId,
+          "platform fee revenue",
+        ]);
+      }
+      if (allocation.refundedAmountCents > 0) {
+        rows.push([
+          ...base,
+          "1300",
+          "refund_clearing",
+          "debit",
+          allocation.refundedAmountCents,
+          payment.currency,
+          "market_checkout_refund",
+          sourceId,
+          "refund issued to customer",
+        ]);
+        rows.push([
+          ...base,
+          "1100",
+          "payment_clearing",
+          "credit",
+          allocation.refundedAmountCents,
+          payment.currency,
+          "market_checkout_refund",
+          sourceId,
+          "cash clearing reversal for refund",
+        ]);
+      }
+    }
+  }
 
   return [headers, ...rows]
     .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))

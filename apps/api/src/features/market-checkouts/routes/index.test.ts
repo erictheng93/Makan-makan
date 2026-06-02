@@ -2090,6 +2090,215 @@ describe("market checkout routes", () => {
     expect(csv).not.toContain("restaurant-9");
   });
 
+  it("exports settlement accounting journal entries as CSV", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push(
+      {
+        all: [
+          {
+            id: "checkout-1",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "refunded",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: {
+              status: "refunded",
+              method: "line_pay",
+              currency: "TWD",
+              country: "TW",
+              totalAmount: 120,
+              totalAmountCents: 12000,
+              paidAmount: 120,
+              paidAmountCents: 12000,
+              refundedAmount: 120,
+              refundedAmountCents: 12000,
+              paidAt: "2026-06-01T10:01:00.000Z",
+              childPayments: [
+                {
+                  restaurantId: "restaurant-1",
+                  restaurantName: "雞排攤",
+                  orderId: 1001,
+                  orderNumber: "A001",
+                  paymentId: "pay-1001",
+                  refundId: "refund-1001",
+                  status: "refunded",
+                  amount: 120,
+                  amountCents: 12000,
+                },
+              ],
+              parentPayment: {
+                paymentId: "market_pay_checkout-1",
+                status: "refunded",
+                provider: "line_pay",
+                splitMode: "child_transactions",
+                idempotencyKey: "market-checkout:checkout-1",
+                amountCents: 12000,
+                paidAmountCents: 12000,
+                refundedAmountCents: 12000,
+                childPaymentIds: ["pay-1001"],
+                createdAt: "2026-06-01T10:01:00.000Z",
+                updatedAt: "2026-06-01T10:05:00.000Z",
+              },
+              settlement: {
+                platformFeeRateBps: 350,
+                platformFeeCents: 0,
+                vendorNetAmountCents: 0,
+                vendorAllocations: [
+                  {
+                    restaurantId: "restaurant-1",
+                    restaurantName: "雞排攤",
+                    orderId: 1001,
+                    orderNumber: "A001",
+                    grossAmountCents: 12000,
+                    refundedAmountCents: 12000,
+                    platformFeeCents: 0,
+                    netAmountCents: 0,
+                  },
+                ],
+              },
+            },
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+          },
+          {
+            id: "checkout-2",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "paid",
+            subtotalCents: 20000,
+            childOrderCount: 2,
+            paymentSummary: {
+              status: "paid",
+              method: "line_pay",
+              currency: "TWD",
+              country: "TW",
+              totalAmount: 200,
+              totalAmountCents: 20000,
+              paidAmount: 200,
+              paidAmountCents: 20000,
+              paidAt: "2026-06-01T11:01:00.000Z",
+              childPayments: [],
+              parentPayment: {
+                paymentId: "market_pay_checkout-2",
+                status: "paid",
+                provider: "line_pay",
+                splitMode: "provider_split",
+                idempotencyKey: "market-checkout:checkout-2",
+                providerTransactionId: "txn-parent-2",
+                amountCents: 20000,
+                paidAmountCents: 20000,
+                refundedAmountCents: 0,
+                childPaymentIds: [],
+                createdAt: "2026-06-01T11:01:00.000Z",
+                updatedAt: "2026-06-01T11:05:00.000Z",
+              },
+              settlement: {
+                platformFeeRateBps: 350,
+                platformFeeCents: 700,
+                vendorNetAmountCents: 19300,
+                vendorAllocations: [
+                  {
+                    restaurantId: "restaurant-1",
+                    restaurantName: "雞排攤",
+                    orderId: 1002,
+                    orderNumber: "A002",
+                    grossAmountCents: 12000,
+                    refundedAmountCents: 0,
+                    platformFeeCents: 420,
+                    netAmountCents: 11580,
+                  },
+                  {
+                    restaurantId: "restaurant-2",
+                    restaurantName: "甜點攤",
+                    orderId: 1003,
+                    orderNumber: "A003",
+                    grossAmountCents: 8000,
+                    refundedAmountCents: 0,
+                    platformFeeCents: 280,
+                    netAmountCents: 7720,
+                  },
+                ],
+              },
+            },
+            createdAt: new Date("2026-06-01T11:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T11:05:00.000Z"),
+          },
+        ],
+      },
+      {
+        all: [
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T14:00:00.000Z"),
+          },
+          {
+            checkoutId: "checkout-2",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T15:00:00.000Z"),
+          },
+          {
+            checkoutId: "checkout-2",
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 1003,
+            orderNumber: "A003",
+            totalAmount: 80,
+            totalAmountCents: 8000,
+            tokenExpiresAt: new Date("2026-06-01T15:00:00.000Z"),
+          },
+        ],
+      },
+    );
+
+    const response = await routes.fetch(
+      new Request(
+        "https://test/admin/accounting/export?marketSlug=fengjia&dateFrom=2026-06-01&dateTo=2026-06-01",
+      ),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/csv");
+    expect(response.headers.get("content-disposition")).toContain(
+      "market-checkout-accounting-",
+    );
+    const csv = await response.text();
+    expect(csv).toContain(
+      "entry_date,checkout_id,market_slug,market_name,restaurant_id,restaurant_name,order_id,order_number,account_code,account_name,direction,amount_cents,currency,source_type,source_id,memo",
+    );
+    expect(csv).toContain(
+      "2026-06-01T11:01:00.000Z,checkout-2,fengjia,逢甲夜市,restaurant-1,雞排攤,1002,A002,1100,payment_clearing,debit,12000,TWD,market_checkout_settlement,market_pay_checkout-2,net paid amount before platform fee",
+    );
+    expect(csv).toContain(
+      "restaurant-1,雞排攤,1002,A002,2200,vendor_payable,credit,11580,TWD,market_checkout_settlement,market_pay_checkout-2,vendor net payable",
+    );
+    expect(csv).toContain(
+      "restaurant-1,雞排攤,1002,A002,4100,platform_fee_revenue,credit,420,TWD,market_checkout_settlement,market_pay_checkout-2,platform fee revenue",
+    );
+    expect(csv).toContain(
+      "restaurant-1,雞排攤,1001,A001,1300,refund_clearing,debit,12000,TWD,market_checkout_refund,market_pay_checkout-1,refund issued to customer",
+    );
+    expect(csv).toContain(
+      "restaurant-1,雞排攤,1001,A001,1100,payment_clearing,credit,12000,TWD,market_checkout_refund,market_pay_checkout-1,cash clearing reversal for refund",
+    );
+  });
+
   it("falls back to the KV index when no persisted checkout sessions exist", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
