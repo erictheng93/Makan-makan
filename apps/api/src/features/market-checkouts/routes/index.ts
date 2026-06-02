@@ -1814,7 +1814,14 @@ function buildMarketCheckoutCsv(items: MarketCheckoutSummaryItem[]) {
     "market_name",
     "status",
     "payment_status",
+    "payment_method",
+    "payment_provider",
+    "split_mode",
+    "parent_payment_id",
+    "provider_transaction_id",
     "child_order_count",
+    "child_payment_count",
+    "failed_child_payment_count",
     "subtotal_cents",
     "paid_amount_cents",
     "refunded_amount_cents",
@@ -1823,15 +1830,28 @@ function buildMarketCheckoutCsv(items: MarketCheckoutSummaryItem[]) {
     "updated_at",
   ];
   const rows = items.map((item) => {
+    const payment = item.payment;
+    const parentPayment = payment?.parentPayment;
     const paidAmountCents = item.payment?.paidAmountCents ?? 0;
     const refundedAmountCents = item.payment?.refundedAmountCents ?? 0;
+    const childPayments = payment?.childPayments ?? [];
+    const failedChildPaymentCount = childPayments.filter(
+      (childPayment) => childPayment.status === "failed",
+    ).length;
     return [
       item.id,
       item.market.slug,
       item.market.name,
       item.status,
       item.paymentStatus,
+      payment?.method ?? "",
+      parentPayment?.provider ?? payment?.method ?? "",
+      parentPayment?.splitMode ?? "",
+      parentPayment?.paymentId ?? "",
+      parentPayment?.providerTransactionId ?? "",
       item.childOrderCount,
+      childPayments.length,
+      failedChildPaymentCount,
       item.subtotal,
       paidAmountCents,
       refundedAmountCents,

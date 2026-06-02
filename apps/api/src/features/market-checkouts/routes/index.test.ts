@@ -1588,7 +1588,44 @@ describe("market checkout routes", () => {
             totalAmountCents: 20000,
             paidAmount: 200,
             paidAmountCents: 20000,
-            childPayments: [],
+            refundedAmount: 50,
+            refundedAmountCents: 5000,
+            childPayments: [
+              {
+                restaurantId: "restaurant-1",
+                restaurantName: "雞排攤",
+                orderId: 1001,
+                orderNumber: "A-001",
+                paymentId: "pay-child-1",
+                status: "paid",
+                amount: 120,
+                amountCents: 12000,
+              },
+              {
+                restaurantId: "restaurant-2",
+                restaurantName: "甜點攤",
+                orderId: 1002,
+                orderNumber: "A-002",
+                status: "failed",
+                amount: 80,
+                amountCents: 8000,
+                errorMessage: "Card declined",
+              },
+            ],
+            parentPayment: {
+              paymentId: "market_pay_checkout-1",
+              status: "paid",
+              provider: "line_pay",
+              splitMode: "provider_split",
+              idempotencyKey: "market-checkout:checkout-1",
+              providerTransactionId: "txn-parent-1",
+              amountCents: 20000,
+              paidAmountCents: 20000,
+              refundedAmountCents: 5000,
+              childPaymentIds: ["pay-child-1"],
+              createdAt: "2026-06-01T10:01:00.000Z",
+              updatedAt: "2026-06-01T10:05:00.000Z",
+            },
           },
           createdAt: new Date("2026-06-01T10:00:00.000Z"),
           updatedAt: new Date("2026-06-01T10:05:00.000Z"),
@@ -1632,11 +1669,53 @@ describe("market checkout routes", () => {
       "market-checkouts-",
     );
     const csv = await response.text();
-    expect(csv).toContain(
-      "checkout_id,market_slug,market_name,status,payment_status",
-    );
-    expect(csv).toContain("checkout-1,fengjia");
-    expect(csv).toContain(",20000,20000,0,20000,");
+    const [headers, paidRow] = csv
+      .trim()
+      .split("\n")
+      .map((line) => line.split(","));
+    expect(headers).toEqual([
+      "checkout_id",
+      "market_slug",
+      "market_name",
+      "status",
+      "payment_status",
+      "payment_method",
+      "payment_provider",
+      "split_mode",
+      "parent_payment_id",
+      "provider_transaction_id",
+      "child_order_count",
+      "child_payment_count",
+      "failed_child_payment_count",
+      "subtotal_cents",
+      "paid_amount_cents",
+      "refunded_amount_cents",
+      "net_paid_amount_cents",
+      "created_at",
+      "updated_at",
+    ]);
+    expect(paidRow).toHaveLength(headers.length);
+    expect(paidRow).toEqual([
+      "checkout-1",
+      "fengjia",
+      "逢甲夜市",
+      "submitted",
+      "paid",
+      "line_pay",
+      "line_pay",
+      "provider_split",
+      "market_pay_checkout-1",
+      "txn-parent-1",
+      "2",
+      "2",
+      "1",
+      "20000",
+      "20000",
+      "5000",
+      "15000",
+      "2026-06-01T10:00:00.000Z",
+      "2026-06-01T10:05:00.000Z",
+    ]);
     expect(csv).not.toContain("checkout-2");
   });
 
