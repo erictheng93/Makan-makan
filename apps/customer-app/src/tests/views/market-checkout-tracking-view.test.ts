@@ -504,6 +504,224 @@ describe("MarketCheckoutTrackingView", () => {
     ).toContain("正在前往付款頁");
   });
 
+  it("renders the webhook-paid checkout after returning from provider redirect", async () => {
+    getMarketCheckout
+      .mockResolvedValueOnce({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 240,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      })
+      .mockResolvedValueOnce({
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+            paymentStatus: "completed",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+            paymentStatus: "completed",
+          },
+        ],
+        payment: {
+          status: "paid",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 240,
+          paidAmountCents: 24000,
+          paidAt: "2026-06-01T10:15:00.000Z",
+          childPayments: [
+            {
+              restaurantId: "restaurant-1",
+              restaurantName: "雞排攤",
+              orderId: 101,
+              orderNumber: "A001",
+              paymentId: "mock-pay-101",
+              status: "paid",
+              amount: 160,
+              amountCents: 16000,
+            },
+            {
+              restaurantId: "restaurant-2",
+              restaurantName: "甜點攤",
+              orderId: 102,
+              orderNumber: "A002",
+              paymentId: "mock-pay-102",
+              status: "paid",
+              amount: 80,
+              amountCents: 8000,
+            },
+          ],
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "paid",
+            provider: "mock_market_provider",
+            splitMode: "provider_split",
+            idempotencyKey: "market-checkout:checkout-1",
+            providerTransactionId: "intent-market-checkout-1",
+            amountCents: 24000,
+            paidAmountCents: 24000,
+            refundedAmountCents: 0,
+            childPaymentIds: [],
+            createdAt: "2026-06-01T10:00:00.000Z",
+            updatedAt: "2026-06-01T10:15:00.000Z",
+          },
+        },
+        subtotal: 240,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      });
+    payMarketCheckout.mockResolvedValueOnce({
+      checkout: {
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        payment: {
+          status: "pending",
+          method: "market_online",
+          currency: "TWD",
+          country: "TW",
+          totalAmount: 240,
+          totalAmountCents: 24000,
+          paidAmount: 0,
+          paidAmountCents: 0,
+          childPayments: [],
+          parentPayment: {
+            paymentId: "market_pay_checkout-1",
+            status: "pending",
+            provider: "mock_market_provider",
+            splitMode: "provider_split",
+            idempotencyKey: "market-checkout:checkout-1",
+            providerTransactionId: "intent-market-checkout-1",
+            nextAction: {
+              type: "redirect",
+              redirectUrl:
+                "https://payments.example.test/confirm/intent-market-checkout-1",
+            },
+            amountCents: 24000,
+            paidAmountCents: 0,
+            refundedAmountCents: 0,
+            childPaymentIds: [],
+            createdAt: "2026-06-01T10:00:00.000Z",
+            updatedAt: "2026-06-01T10:10:00.000Z",
+          },
+        },
+        subtotal: 240,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+      payment: {
+        status: "pending",
+        method: "market_online",
+        currency: "TWD",
+        country: "TW",
+        totalAmount: 240,
+        totalAmountCents: 24000,
+        paidAmount: 0,
+        paidAmountCents: 0,
+        childPayments: [],
+        parentPayment: {
+          paymentId: "market_pay_checkout-1",
+          status: "pending",
+          provider: "mock_market_provider",
+          splitMode: "provider_split",
+          idempotencyKey: "market-checkout:checkout-1",
+          providerTransactionId: "intent-market-checkout-1",
+          nextAction: {
+            type: "redirect",
+            redirectUrl:
+              "https://payments.example.test/confirm/intent-market-checkout-1",
+          },
+          amountCents: 24000,
+          paidAmountCents: 0,
+          refundedAmountCents: 0,
+          childPaymentIds: [],
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:10:00.000Z",
+        },
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="market-checkout-pay"]').trigger("click");
+    await flushPromises();
+    expect(windowOpen).toHaveBeenCalledWith(
+      "https://payments.example.test/confirm/intent-market-checkout-1",
+      "_self",
+    );
+
+    wrapper.unmount();
+    const returnedWrapper = mountView();
+    await flushPromises();
+
+    expect(getMarketCheckout).toHaveBeenCalledTimes(2);
+    const paymentSummary = returnedWrapper.get(
+      '[data-testid="market-checkout-payment-summary"]',
+    );
+    expect(paymentSummary.text()).toContain("已完成聯合付款");
+    expect(paymentSummary.text()).toContain("NT$240 / NT$240");
+    expect(paymentSummary.text()).toContain("已完成 2 / 2 筆攤位付款");
+    expect(
+      returnedWrapper.find('[data-testid="market-checkout-pay"]').exists(),
+    ).toBe(false);
+    expect(
+      localStorage.getItem("makanmakan_recent_market_checkouts"),
+    ).toContain('"paymentStatus":"paid"');
+  });
+
   it("shows partial payment failures and lets users retry unpaid vendors", async () => {
     getMarketCheckout.mockResolvedValueOnce({
       id: "checkout-1",
