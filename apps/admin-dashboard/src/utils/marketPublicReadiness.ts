@@ -3,6 +3,7 @@ export type MarketPublicReadinessIssueKey =
   | "location"
   | "openingHours"
   | "image"
+  | "map"
   | "vendors"
   | "products"
   | "services";
@@ -49,6 +50,7 @@ export function publicReadinessIssueLabel(key: MarketPublicReadinessIssueKey) {
     location: "缺少地址或座標",
     openingHours: "缺少營業時間",
     image: "建議補上圖片",
+    map: "建議補上市場地圖",
     vendors: "尚未加入店鋪",
     products: "尚無可搜尋商品或服務",
     services: "建議補上公開服務",

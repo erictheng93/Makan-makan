@@ -665,6 +665,7 @@
                   market.catalogCoverage?.vendorsMissingPublicServices ||
                   market.catalogCoverage?.vendorsMissingBookingUrls ||
                   market.catalogCoverage?.vendorsMissingStallNumbers ||
+                  market.catalogCoverage?.vendorsMissingMapPositions ||
                   market.catalogCoverage?.vendorsMissingSearchEntrypoints
                 "
                 class="mt-2 space-y-1 text-xs text-amber-700"
@@ -689,6 +690,10 @@
                 <div>
                   缺攤位號
                   {{ market.catalogCoverage?.vendorsMissingStallNumbers ?? 0 }}
+                </div>
+                <div>
+                  缺攤位座標
+                  {{ market.catalogCoverage?.vendorsMissingMapPositions ?? 0 }}
                 </div>
                 <div>
                   缺搜尋入口
@@ -856,6 +861,45 @@
                       補攤位號
                     </button>
                   </div>
+                </div>
+                <div
+                  v-if="
+                    market.catalogCoverage?.missingMapPositionVendors?.length
+                  "
+                >
+                  <span class="font-medium text-gray-700">缺攤位座標：</span>
+                  {{
+                    vendorGapNames(
+                      market.catalogCoverage.missingMapPositionVendors,
+                    )
+                  }}
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <button
+                      v-for="vendor in market.catalogCoverage
+                        .missingMapPositionVendors"
+                      :key="`map-position-${vendor.restaurantId}`"
+                      type="button"
+                      class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 hover:bg-blue-200"
+                      :data-testid="`manage-map-position-${vendor.restaurantId}`"
+                      @click="startEditing(market)"
+                    >
+                      補座標
+                    </button>
+                  </div>
+                </div>
+                <div
+                  v-if="hasMapLayoutGap(market)"
+                  class="rounded bg-amber-50 px-2 py-1"
+                >
+                  缺市場地圖設定
+                  <button
+                    type="button"
+                    class="ml-2 rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                    :data-testid="`manage-map-layout-${market.id}`"
+                    @click="startEditing(market)"
+                  >
+                    補地圖
+                  </button>
                 </div>
                 <div
                   v-if="
@@ -1808,6 +1852,7 @@ import {
 } from "@/utils/marketPublicReadiness";
 import {
   filterMarketsByReadiness,
+  hasMapLayoutGap,
   marketCatalogGapPriority,
   marketHasNoSearchableCatalog,
   marketHasNoVendors,
@@ -1953,6 +1998,7 @@ const filterOptions: Array<{ value: MarketReadinessFilter; label: string }> = [
   { value: "missingProducts", label: "缺商品" },
   { value: "missingServices", label: "缺服務" },
   { value: "missingStalls", label: "缺攤位號" },
+  { value: "missingMaps", label: "缺地圖" },
   { value: "missingEntrypoints", label: "缺入口" },
   { value: "emptyVendors", label: "無店鋪" },
   { value: "emptyCatalog", label: "無搜尋內容" },
@@ -2025,6 +2071,16 @@ const metrics = computed(() => [
   {
     label: "缺攤位號",
     value: stats.value.vendorsMissingStallNumbers,
+    class: "text-amber-600",
+  },
+  {
+    label: "缺攤位座標",
+    value: stats.value.vendorsMissingMapPositions,
+    class: "text-amber-600",
+  },
+  {
+    label: "缺市場地圖",
+    value: stats.value.marketsMissingMapLayout,
     class: "text-amber-600",
   },
   {

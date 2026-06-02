@@ -83,11 +83,13 @@ export interface MarketCatalogCoverage {
   vendorsMissingPublicServices?: number;
   vendorsMissingBookingUrls?: number;
   vendorsMissingStallNumbers?: number;
+  vendorsMissingMapPositions?: number;
   vendorsMissingSearchEntrypoints?: number;
   missingProductVendors?: MarketCatalogGapVendor[];
   missingServiceVendors?: MarketCatalogGapVendor[];
   missingBookingUrlVendors?: MarketCatalogGapVendor[];
   missingStallNumberVendors?: MarketCatalogGapVendor[];
+  missingMapPositionVendors?: MarketCatalogGapVendor[];
   missingSearchEntrypointVendors?: MarketCatalogGapVendor[];
 }
 
@@ -805,11 +807,13 @@ export class MarketsService {
         vendorsMissingPublicServices: 0,
         vendorsMissingBookingUrls: 0,
         vendorsMissingStallNumbers: 0,
+        vendorsMissingMapPositions: 0,
         vendorsMissingSearchEntrypoints: 0,
         missingProductVendors: [],
         missingServiceVendors: [],
         missingBookingUrlVendors: [],
         missingStallNumberVendors: [],
+        missingMapPositionVendors: [],
         missingSearchEntrypointVendors: [],
       };
     }
@@ -885,6 +889,19 @@ export class MarketsService {
         stallNumber: vendor.stallNumber,
         locationLabel: vendor.locationLabel,
       }));
+    const missingMapPositionVendors = vendorRows
+      .filter(
+        (vendor) =>
+          !vendor.mapPosition ||
+          typeof vendor.mapPosition.x !== "number" ||
+          typeof vendor.mapPosition.y !== "number",
+      )
+      .map((vendor) => ({
+        restaurantId: vendor.restaurantId,
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+        locationLabel: vendor.locationLabel,
+      }));
     const missingSearchEntrypointVendors = vendorRows
       .filter(
         (vendor) =>
@@ -910,11 +927,13 @@ export class MarketsService {
       vendorsMissingPublicServices: missingServiceVendors.length,
       vendorsMissingBookingUrls: missingBookingUrlVendors.length,
       vendorsMissingStallNumbers: missingStallNumberVendors.length,
+      vendorsMissingMapPositions: missingMapPositionVendors.length,
       vendorsMissingSearchEntrypoints: missingSearchEntrypointVendors.length,
       missingProductVendors,
       missingServiceVendors,
       missingBookingUrlVendors,
       missingStallNumberVendors,
+      missingMapPositionVendors,
       missingSearchEntrypointVendors,
     };
   }

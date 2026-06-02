@@ -37,11 +37,13 @@ export interface MarketCatalogCoverage {
   vendorsMissingPublicServices?: number;
   vendorsMissingBookingUrls?: number;
   vendorsMissingStallNumbers?: number;
+  vendorsMissingMapPositions?: number;
   vendorsMissingSearchEntrypoints?: number;
   missingProductVendors?: MarketCatalogGapVendor[];
   missingServiceVendors?: MarketCatalogGapVendor[];
   missingBookingUrlVendors?: MarketCatalogGapVendor[];
   missingStallNumberVendors?: MarketCatalogGapVendor[];
+  missingMapPositionVendors?: MarketCatalogGapVendor[];
   missingSearchEntrypointVendors?: MarketCatalogGapVendor[];
 }
 

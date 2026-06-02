@@ -8,6 +8,7 @@ export type MarketReadinessFilter =
   | "missingProducts"
   | "missingServices"
   | "missingStalls"
+  | "missingMaps"
   | "missingEntrypoints"
   | "emptyVendors"
   | "emptyCatalog";
@@ -58,6 +59,12 @@ export function marketReadinessStats(markets: MarketListItem[]) {
       total + (market.catalogCoverage?.vendorsMissingStallNumbers ?? 0),
     0,
   );
+  const vendorsMissingMapPositions = markets.reduce(
+    (total, market) =>
+      total + (market.catalogCoverage?.vendorsMissingMapPositions ?? 0),
+    0,
+  );
+  const marketsMissingMapLayout = markets.filter(hasMapLayoutGap).length;
   const vendorsMissingSearchEntrypoints = markets.reduce(
     (total, market) =>
       total + (market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0),
@@ -77,6 +84,8 @@ export function marketReadinessStats(markets: MarketListItem[]) {
     vendorsMissingProducts,
     vendorsMissingServices,
     vendorsMissingStallNumbers,
+    vendorsMissingMapPositions,
+    marketsMissingMapLayout,
     vendorsMissingSearchEntrypoints,
     marketsWithoutVendors,
     marketsWithoutSearchableCatalog,
@@ -102,6 +111,7 @@ export function filterMarketsByReadiness(
         (market.catalogCoverage?.vendorsMissingPublicServices ?? 0) > 0) ||
       (filter === "missingStalls" &&
         (market.catalogCoverage?.vendorsMissingStallNumbers ?? 0) > 0) ||
+      (filter === "missingMaps" && hasMapOperationsGap(market)) ||
       (filter === "missingEntrypoints" &&
         (market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0) > 0) ||
       (filter === "emptyVendors" && marketHasNoVendors(market)) ||
@@ -123,6 +133,8 @@ export function marketCatalogGapPriority(market: MarketListItem) {
     market.catalogCoverage?.vendorsMissingPublicServices ?? 0;
   const missingStallNumbers =
     market.catalogCoverage?.vendorsMissingStallNumbers ?? 0;
+  const missingMapPositions =
+    market.catalogCoverage?.vendorsMissingMapPositions ?? 0;
   const missingSearchEntrypoints =
     market.catalogCoverage?.vendorsMissingSearchEntrypoints ?? 0;
   const emptyVendors = marketHasNoVendors(market) ? 8 : 0;
@@ -137,8 +149,25 @@ export function marketCatalogGapPriority(market: MarketListItem) {
     missingProducts * 3 +
     missingServices * 2 +
     missingStallNumbers +
+    missingMapPositions +
+    (hasMapLayoutGap(market) ? 2 : 0) +
     missingSearchEntrypoints * 4 +
     readinessGap
+  );
+}
+
+export function hasMapLayoutGap(market: MarketListItem) {
+  const layout = market.mapLayout;
+  if (!layout) return true;
+  return ![layout.title, layout.description, layout.imageUrl].some(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  );
+}
+
+export function hasMapOperationsGap(market: MarketListItem) {
+  return (
+    hasMapLayoutGap(market) ||
+    (market.catalogCoverage?.vendorsMissingMapPositions ?? 0) > 0
   );
 }
 

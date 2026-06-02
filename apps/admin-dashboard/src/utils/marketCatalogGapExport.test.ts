@@ -21,6 +21,7 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
       vendorsMissingSearchableProducts: 1,
       vendorsMissingPublicServices: 1,
       vendorsMissingStallNumbers: 1,
+      vendorsMissingMapPositions: 1,
       vendorsMissingSearchEntrypoints: 1,
       missingProductVendors: [
         {
@@ -41,6 +42,13 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
           restaurantId: "restaurant-2",
           name: "缺服務,攤",
           stallNumber: null,
+        },
+      ],
+      missingMapPositionVendors: [
+        {
+          restaurantId: "restaurant-2",
+          name: "缺服務,攤",
+          stallNumber: "A-02",
         },
       ],
       missingSearchEntrypointVendors: [
@@ -64,6 +72,7 @@ describe("market catalog gap export", () => {
         "market-1,fengjia,逢甲夜市,台中市,西屯區,products,補商品,menu,fengjia,restaurant-1,缺商品攤,A-01",
         'market-1,fengjia,逢甲夜市,台中市,西屯區,services,補服務,services,fengjia,restaurant-2,"缺服務,攤",',
         'market-1,fengjia,逢甲夜市,台中市,西屯區,stallNumbers,補攤位號,market_vendor,fengjia,restaurant-2,"缺服務,攤",',
+        'market-1,fengjia,逢甲夜市,台中市,西屯區,mapPositions,補攤位座標,market_vendor,fengjia,restaurant-2,"缺服務,攤",A-02',
         "market-1,fengjia,逢甲夜市,台中市,西屯區,searchEntrypoints,補商品或補服務,menu_or_services,fengjia,restaurant-1,缺商品攤,A-01",
       ].join("\r\n"),
     );
@@ -83,10 +92,12 @@ describe("market catalog gap export", () => {
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
             vendorsMissingStallNumbers: 0,
+            vendorsMissingMapPositions: 0,
             vendorsMissingSearchEntrypoints: 0,
             missingProductVendors: [],
             missingServiceVendors: [],
             missingStallNumberVendors: [],
+            missingMapPositionVendors: [],
             missingSearchEntrypointVendors: [],
           },
         }),
@@ -110,10 +121,12 @@ describe("market catalog gap export", () => {
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
             vendorsMissingStallNumbers: 0,
+            vendorsMissingMapPositions: 0,
             vendorsMissingSearchEntrypoints: 0,
             missingProductVendors: [],
             missingServiceVendors: [],
             missingStallNumberVendors: [],
+            missingMapPositionVendors: [],
             missingSearchEntrypointVendors: [],
           },
         }),
@@ -143,10 +156,12 @@ describe("market catalog gap export", () => {
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
             vendorsMissingStallNumbers: 0,
+            vendorsMissingMapPositions: 0,
             vendorsMissingSearchEntrypoints: 0,
             missingProductVendors: [],
             missingServiceVendors: [],
             missingStallNumberVendors: [],
+            missingMapPositionVendors: [],
             missingSearchEntrypointVendors: [],
           },
         }),
@@ -154,9 +169,10 @@ describe("market catalog gap export", () => {
       ]),
     ).toBe(
       [
-        "marketId,marketSlug,marketName,restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,isPrimary",
-        "market-empty,empty-market,空白夜市,,新店鋪,market_stall,,,請填入店鋪地址,西屯區,台中市,,,,,,,false",
-        'market-1,fengjia,逢甲夜市,restaurant-2,"缺服務,攤",,,,,西屯區,台中市,,,,,,,true',
+        "marketId,marketSlug,marketName,restaurantId,name,type,category,description,address,district,city,latitude,longitude,phone,email,website,stallNumber,mapX,mapY,isPrimary",
+        "market-empty,empty-market,空白夜市,,新店鋪,market_stall,,,請填入店鋪地址,西屯區,台中市,,,,,,,,,false",
+        'market-1,fengjia,逢甲夜市,restaurant-2,"缺服務,攤",,,,,西屯區,台中市,,,,,,,,,true',
+        'market-1,fengjia,逢甲夜市,restaurant-2,"缺服務,攤",,,,,西屯區,台中市,,,,,,A-02,,,true',
       ].join("\r\n"),
     );
   });

@@ -3,6 +3,7 @@ export type MarketPublicReadinessIssueKey =
   | "location"
   | "openingHours"
   | "image"
+  | "map"
   | "vendors"
   | "products"
   | "services";
@@ -23,6 +24,13 @@ export interface MarketPublicReadinessInput {
   bannerUrl?: string | null;
   logoUrl?: string | null;
   imageUrls?: string[] | null;
+  mapLayout?: {
+    title?: string | null;
+    description?: string | null;
+    imageUrl?: string | null;
+    width?: number | null;
+    height?: number | null;
+  } | null;
   vendorCount: number;
   searchableProductCount?: number;
   publicServiceCount?: number;
@@ -69,6 +77,11 @@ export function evaluateMarketPublicReadiness(
         (input.imageUrls ?? []).some(hasText),
     },
     {
+      key: "map" as const,
+      severity: "recommended" as const,
+      passed: hasMapLayout(input.mapLayout),
+    },
+    {
       key: "vendors" as const,
       severity: "required" as const,
       passed: input.vendorCount > 0,
@@ -99,6 +112,15 @@ export function evaluateMarketPublicReadiness(
     totalCount: checks.length,
     issues,
   };
+}
+
+function hasMapLayout(value: MarketPublicReadinessInput["mapLayout"]): boolean {
+  if (!value || typeof value !== "object") return false;
+  return (
+    hasText(value.title) ||
+    hasText(value.description) ||
+    hasText(value.imageUrl)
+  );
 }
 
 function hasText(value: string | null | undefined): boolean {

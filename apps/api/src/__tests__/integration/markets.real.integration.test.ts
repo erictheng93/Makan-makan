@@ -296,8 +296,8 @@ describe("Markets API — real integration", () => {
     expect(listJson.data.markets[0].publicReadiness).toMatchObject({
       ready: true,
       score: 100,
-      completedCount: 7,
-      totalCount: 7,
+      completedCount: 8,
+      totalCount: 8,
       issues: [],
     });
 
@@ -372,8 +372,8 @@ describe("Markets API — real integration", () => {
     expect(detailJson.data.publicReadiness).toMatchObject({
       ready: true,
       score: 100,
-      completedCount: 7,
-      totalCount: 7,
+      completedCount: 8,
+      totalCount: 8,
       issues: [],
     });
   });
@@ -839,12 +839,13 @@ describe("Markets API — real integration", () => {
       ready: false,
       score: 0,
       completedCount: 0,
-      totalCount: 7,
+      totalCount: 8,
       issues: [
         { key: "description", severity: "required" },
         { key: "location", severity: "required" },
         { key: "openingHours", severity: "required" },
         { key: "image", severity: "recommended" },
+        { key: "map", severity: "recommended" },
         { key: "vendors", severity: "required" },
         { key: "products", severity: "required" },
         { key: "services", severity: "recommended" },

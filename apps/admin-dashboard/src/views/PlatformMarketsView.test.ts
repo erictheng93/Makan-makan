@@ -110,6 +110,7 @@ describe("PlatformMarketsView", () => {
           bookingUrlMissingServiceCount: 1,
           vendorsMissingBookingUrls: 1,
           vendorsMissingStallNumbers: 1,
+          vendorsMissingMapPositions: 1,
           vendorsMissingSearchEntrypoints: 1,
           missingProductVendors: [
             {
@@ -137,6 +138,13 @@ describe("PlatformMarketsView", () => {
               restaurantId: "restaurant-2",
               name: "缺攤位號攤",
               stallNumber: null,
+            },
+          ],
+          missingMapPositionVendors: [
+            {
+              restaurantId: "restaurant-2",
+              name: "缺攤位座標攤",
+              stallNumber: "A-02",
             },
           ],
           missingSearchEntrypointVendors: [
@@ -379,9 +387,12 @@ describe("PlatformMarketsView", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("缺攤位號");
+    expect(wrapper.text()).toContain("缺攤位座標");
+    expect(wrapper.text()).toContain("缺市場地圖");
     expect(wrapper.text()).toContain("缺搜尋入口");
     expect(wrapper.text()).toContain("缺預約連結");
     expect(wrapper.text()).toContain("缺攤位號攤");
+    expect(wrapper.text()).toContain("缺攤位座標攤");
     expect(wrapper.text()).toContain("缺商品攤");
     expect(wrapper.text()).toContain("缺預約連結攤");
 
@@ -397,6 +408,23 @@ describe("PlatformMarketsView", () => {
         limit: 10,
       },
     );
+
+    await wrapper
+      .get('[data-testid="manage-map-position-restaurant-2"]')
+      .trigger("click");
+    expect(marketsService.listMarketVendors).toHaveBeenLastCalledWith(
+      "fengjia",
+      {
+        q: undefined,
+        page: 1,
+        limit: 10,
+      },
+    );
+
+    await wrapper
+      .get('[data-testid="manage-map-layout-market-1"]')
+      .trigger("click");
+    expect(wrapper.text()).toContain("編輯公開資料：逢甲夜市");
 
     await wrapper
       .get('[data-testid="manage-entrypoint-products-restaurant-1"]')
@@ -758,7 +786,7 @@ describe("PlatformMarketsView", () => {
     const rows = wrapper.findAll("tbody tr");
     expect(rows[0].text()).toContain("高缺口市場");
     expect(rows[0].get('[data-testid="catalog-priority"]').text()).toContain(
-      "24",
+      "26",
     );
     expect(rows[1].text()).toContain("低缺口市場");
   });

@@ -15,6 +15,12 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
     type: "night_market",
     city: "台中市",
     district: "西屯區",
+    mapLayout: {
+      title: "逢甲地圖",
+      imageUrl: "https://example.com/map.png",
+      width: 1200,
+      height: 800,
+    },
     vendorCount: 12,
     publicReadiness: {
       ready: true,
@@ -69,6 +75,8 @@ describe("market public readiness workbench", () => {
       vendorsMissingProducts: 6,
       vendorsMissingServices: 18,
       vendorsMissingStallNumbers: 0,
+      vendorsMissingMapPositions: 0,
+      marketsMissingMapLayout: 0,
       vendorsMissingSearchEntrypoints: 0,
       marketsWithoutVendors: 0,
       marketsWithoutSearchableCatalog: 0,
@@ -280,10 +288,58 @@ describe("market public readiness workbench", () => {
       vendorsMissingProducts: 3,
       vendorsMissingServices: 10,
       vendorsMissingStallNumbers: 0,
+      vendorsMissingMapPositions: 0,
+      marketsMissingMapLayout: 0,
       vendorsMissingSearchEntrypoints: 0,
       marketsWithoutVendors: 0,
       marketsWithoutSearchableCatalog: 0,
     });
+  });
+
+  it("tracks and filters markets missing map layout or vendor positions", () => {
+    const markets = [
+      market({
+        id: "missing-layout",
+        slug: "missing-layout",
+        mapLayout: null,
+        catalogCoverage: {
+          searchableProductCount: 8,
+          publicServiceCount: 2,
+          vendorsMissingMapPositions: 0,
+          missingMapPositionVendors: [],
+        },
+      }),
+      market({
+        id: "missing-positions",
+        slug: "missing-positions",
+        catalogCoverage: {
+          searchableProductCount: 8,
+          publicServiceCount: 2,
+          vendorsMissingMapPositions: 3,
+          missingMapPositionVendors: [],
+        },
+      }),
+      market({
+        id: "map-ready",
+        slug: "map-ready",
+        catalogCoverage: {
+          searchableProductCount: 8,
+          publicServiceCount: 2,
+          vendorsMissingMapPositions: 0,
+          missingMapPositionVendors: [],
+        },
+      }),
+    ];
+
+    expect(marketReadinessStats(markets)).toMatchObject({
+      vendorsMissingMapPositions: 3,
+      marketsMissingMapLayout: 1,
+    });
+    expect(
+      filterMarketsByReadiness(markets, "missingMaps").map(
+        (entry) => entry.slug,
+      ),
+    ).toEqual(["missing-layout", "missing-positions"]);
   });
 
   it("scores catalog completion priority from missing products, services, customer empties, and readiness", () => {

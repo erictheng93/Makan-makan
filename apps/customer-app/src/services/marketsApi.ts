@@ -67,6 +67,7 @@ export interface MarketPublicReadiness {
       | "location"
       | "openingHours"
       | "image"
+      | "map"
       | "vendors"
       | "products"
       | "services";

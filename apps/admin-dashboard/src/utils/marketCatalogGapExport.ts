@@ -36,6 +36,8 @@ const vendorImportWorklistFields = [
   "email",
   "website",
   "stallNumber",
+  "mapX",
+  "mapY",
   "isPrimary",
 ] as const;
 
@@ -43,6 +45,7 @@ type MarketCatalogGapType =
   | "products"
   | "services"
   | "stallNumbers"
+  | "mapPositions"
   | "searchEntrypoints"
   | "marketVendors"
   | "searchableCatalog";
@@ -74,6 +77,11 @@ export function buildMarketCatalogGapCsv(markets: MarketListItem[]) {
       ),
       ...gapRowsForMarket(
         market,
+        "mapPositions",
+        market.catalogCoverage?.missingMapPositionVendors ?? [],
+      ),
+      ...gapRowsForMarket(
+        market,
         "searchEntrypoints",
         market.catalogCoverage?.missingSearchEntrypointVendors ?? [],
       ),
@@ -89,6 +97,7 @@ export function countMarketCatalogGapRows(markets: MarketListItem[]) {
       (market.catalogCoverage?.missingProductVendors?.length ?? 0) +
       (market.catalogCoverage?.missingServiceVendors?.length ?? 0) +
       (market.catalogCoverage?.missingStallNumberVendors?.length ?? 0) +
+      (market.catalogCoverage?.missingMapPositionVendors?.length ?? 0) +
       (market.catalogCoverage?.missingSearchEntrypointVendors?.length ?? 0),
     0,
   );
@@ -199,6 +208,8 @@ function vendorImportWorklistRows(
       email: "",
       website: "",
       stallNumber: "",
+      mapX: "",
+      mapY: "",
       isPrimary: "false",
     });
   }
@@ -223,6 +234,34 @@ function vendorImportWorklistRows(
       email: "",
       website: "",
       stallNumber: "",
+      mapX: "",
+      mapY: "",
+      isPrimary: "true",
+    });
+  }
+
+  for (const vendor of market.catalogCoverage?.missingMapPositionVendors ??
+    []) {
+    rows.push({
+      marketId: market.id,
+      marketSlug: market.slug,
+      marketName: market.name,
+      restaurantId: vendor.restaurantId,
+      name: vendor.name,
+      type: "",
+      category: "",
+      description: "",
+      address: "",
+      district: market.district,
+      city: market.city,
+      latitude: "",
+      longitude: "",
+      phone: "",
+      email: "",
+      website: "",
+      stallNumber: vendor.stallNumber ?? "",
+      mapX: "",
+      mapY: "",
       isPrimary: "true",
     });
   }
@@ -234,6 +273,7 @@ function actionForGapType(gapType: MarketCatalogGapType) {
   if (gapType === "products") return "補商品";
   if (gapType === "services") return "補服務";
   if (gapType === "stallNumbers") return "補攤位號";
+  if (gapType === "mapPositions") return "補攤位座標";
   if (gapType === "marketVendors") return "匯入或加入店鋪";
   if (gapType === "searchableCatalog") return "補菜單/商品/服務或重建索引";
   return "補商品或補服務";
@@ -243,6 +283,7 @@ function actionTargetForGapType(gapType: MarketCatalogGapType) {
   if (gapType === "products") return "menu";
   if (gapType === "services") return "services";
   if (gapType === "stallNumbers") return "market_vendor";
+  if (gapType === "mapPositions") return "market_vendor";
   if (gapType === "marketVendors") return "market_vendors";
   return "menu_or_services";
 }
