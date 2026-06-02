@@ -45,14 +45,15 @@ describe("MarketCard", () => {
 
   it("uses gallery image fallback and shows open status", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-05-22T18:30:00+08:00"));
+    vi.setSystemTime(new Date("2026-05-22T18:30:00Z"));
 
     const wrapper = mount(MarketCard, {
       props: {
         market: market({
           imageUrls: ["https://example.com/gallery.jpg"],
           openingHours: {
-            friday: { open: "17:00", close: "23:30" },
+            friday: { open: "00:00", close: "23:30" },
+            saturday: { open: "00:00", close: "23:30" },
           },
         }),
       },

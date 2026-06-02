@@ -288,11 +288,7 @@ describe("Market checkouts API - real integration", () => {
     });
     expect(parentPayment?.completedAt).toBeInstanceOf(Date);
 
-    const admin = await seed.user({ role: 0 });
-    const adminToken = await testApp.authHelper.adminToken(
-      String(vendorA.id),
-      admin.id,
-    );
+    const adminToken = await testApp.authHelper.adminToken(String(vendorA.id));
     const adminRes = await testApp.app.fetch(
       new Request(
         `https://test/api/v1/market-checkouts/admin?paymentStatus=paid`,
