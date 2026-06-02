@@ -216,8 +216,9 @@ export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckou
       );
     }
 
-    const allocationByOrderId = new Map(
-      result.allocations.map((allocation) => [allocation.orderId, allocation]),
+    const allocationByOrderId = validateProviderSplitAllocations(
+      allocations,
+      result.allocations,
     );
 
     return {
@@ -226,10 +227,8 @@ export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckou
       idempotencyKey: parentIdempotencyKey,
       providerTransactionId: result.providerTransactionId,
       childPayments: input.childOrders.map((child) => {
-        const allocation = allocationByOrderId.get(child.orderId);
-        const amountCents =
-          allocation?.amountCents ??
-          Math.round(Number(child.totalAmount ?? 0) * 100);
+        const allocation = allocationByOrderId.get(child.orderId)!;
+        const amountCents = allocation.amountCents;
 
         return {
           restaurantId: child.restaurantId,
@@ -237,7 +236,7 @@ export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckou
           orderId: child.orderId,
           orderNumber: child.orderNumber,
           paymentId:
-            allocation?.paymentId ??
+            allocation.paymentId ??
             `${result.providerTransactionId}:${child.orderId}`,
           status: "paid" as const,
           amount: amountCents / 100,
@@ -340,4 +339,33 @@ function parseHttpGatewayResult(
       };
     }),
   };
+}
+
+function validateProviderSplitAllocations(
+  expectedAllocations: MarketCheckoutProviderSplitAllocation[],
+  actualAllocations: MarketCheckoutProviderSplitGatewayResult["allocations"],
+) {
+  const actualByOrderId = new Map<
+    number,
+    MarketCheckoutProviderSplitGatewayResult["allocations"][number]
+  >();
+
+  for (const allocation of actualAllocations) {
+    if (actualByOrderId.has(allocation.orderId)) {
+      throw new Error("Provider split returned duplicate child allocation");
+    }
+    actualByOrderId.set(allocation.orderId, allocation);
+  }
+
+  for (const expected of expectedAllocations) {
+    const actual = actualByOrderId.get(expected.orderId);
+    if (!actual) {
+      throw new Error("Provider split response is missing child allocation");
+    }
+    if (actual.amountCents !== expected.amountCents) {
+      throw new Error("Provider split child allocation amount does not match");
+    }
+  }
+
+  return actualByOrderId;
 }

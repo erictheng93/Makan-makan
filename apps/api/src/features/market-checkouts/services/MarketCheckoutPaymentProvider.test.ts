@@ -440,6 +440,116 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     );
   });
 
+  it("rejects provider split responses missing child allocations", async () => {
+    const provider = new ProviderSplitMarketCheckoutPaymentProvider({
+      process: vi.fn(async () => ({
+        provider: "stripe_connect",
+        providerTransactionId: "pi_market_1",
+        authorizedAmountCents: 20000,
+        allocations: [{ orderId: 1001, amountCents: 12000 }],
+      })),
+    });
+
+    await expect(
+      provider.process({
+        checkoutId: "checkout-1",
+        marketSlug: "fengjia",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "Noodle Stall",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "Dessert Stall",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+          },
+        ],
+        method: "stripe_connect",
+        country: "TW",
+        currency: "TWD",
+      }),
+    ).rejects.toThrow("Provider split response is missing child allocation");
+  });
+
+  it("rejects provider split child allocations with mismatched amounts", async () => {
+    const provider = new ProviderSplitMarketCheckoutPaymentProvider({
+      process: vi.fn(async () => ({
+        provider: "stripe_connect",
+        providerTransactionId: "pi_market_1",
+        authorizedAmountCents: 20000,
+        allocations: [
+          { orderId: 1001, amountCents: 11900 },
+          { orderId: 1002, amountCents: 8100 },
+        ],
+      })),
+    });
+
+    await expect(
+      provider.process({
+        checkoutId: "checkout-1",
+        marketSlug: "fengjia",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "Noodle Stall",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "Dessert Stall",
+            orderId: 1002,
+            orderNumber: "A002",
+            totalAmount: 80,
+          },
+        ],
+        method: "stripe_connect",
+        country: "TW",
+        currency: "TWD",
+      }),
+    ).rejects.toThrow("Provider split child allocation amount does not match");
+  });
+
+  it("rejects duplicate provider split child allocations", async () => {
+    const provider = new ProviderSplitMarketCheckoutPaymentProvider({
+      process: vi.fn(async () => ({
+        provider: "stripe_connect",
+        providerTransactionId: "pi_market_1",
+        authorizedAmountCents: 12000,
+        allocations: [
+          { orderId: 1001, amountCents: 12000 },
+          { orderId: 1001, amountCents: 12000 },
+        ],
+      })),
+    });
+
+    await expect(
+      provider.process({
+        checkoutId: "checkout-1",
+        marketSlug: "fengjia",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "Noodle Stall",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+          },
+        ],
+        method: "stripe_connect",
+        country: "TW",
+        currency: "TWD",
+      }),
+    ).rejects.toThrow("Provider split returned duplicate child allocation");
+  });
+
   it("creates an explicit provider split provider when configured", async () => {
     const provider = createMarketCheckoutPaymentProvider({
       MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
