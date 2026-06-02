@@ -910,6 +910,40 @@ app.get("/admin/vendors", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
+app.get(
+  "/admin/vendors/export",
+  authMiddleware,
+  requireRole([0]),
+  async (c) => {
+    const marketSlug = c.req.query("marketSlug");
+    const paymentStatus = c.req.query("paymentStatus");
+    const dateRange = parseMarketCheckoutDateRange(c);
+    const sessions = await readPersistedMarketCheckoutOpsSessions(c.env);
+    const filtered = sessions.filter((session) => {
+      if (marketSlug && session.market.slug !== marketSlug) return false;
+      if (
+        paymentStatus &&
+        (session.payment?.status ?? "pending") !== paymentStatus
+      ) {
+        return false;
+      }
+      if (!isWithinMarketCheckoutDateRange(session.createdAt, dateRange)) {
+        return false;
+      }
+      return true;
+    });
+    const csv = buildMarketCheckoutVendorSettlementCsv(
+      buildMarketCheckoutVendorSettlements(filtered),
+    );
+    const suffix = new Date().toISOString().slice(0, 10);
+
+    return c.body(csv, 200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="market-checkout-vendors-${suffix}.csv"`,
+    });
+  },
+);
+
 app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
   const checkoutId = c.req.param("id") ?? "";
   const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
@@ -1349,6 +1383,39 @@ function buildMarketCheckoutCsv(items: MarketCheckoutSummaryItem[]) {
       item.updatedAt,
     ];
   });
+
+  return [headers, ...rows]
+    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
+    .join("\n");
+}
+
+function buildMarketCheckoutVendorSettlementCsv(
+  vendors: MarketCheckoutVendorSettlement[],
+) {
+  const headers = [
+    "restaurant_id",
+    "restaurant_name",
+    "checkout_count",
+    "child_order_count",
+    "subtotal_cents",
+    "paid_amount_cents",
+    "refunded_amount_cents",
+    "net_paid_amount_cents",
+    "refunded_payment_count",
+    "failed_payment_count",
+  ];
+  const rows = vendors.map((vendor) => [
+    vendor.restaurantId,
+    vendor.restaurantName,
+    vendor.checkoutCount,
+    vendor.childOrderCount,
+    vendor.subtotalCents,
+    vendor.paidAmountCents,
+    vendor.refundedAmountCents,
+    vendor.netPaidAmountCents,
+    vendor.refundedPaymentCount,
+    vendor.failedPaymentCount,
+  ]);
 
   return [headers, ...rows]
     .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))

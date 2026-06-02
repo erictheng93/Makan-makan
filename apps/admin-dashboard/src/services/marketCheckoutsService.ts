@@ -209,6 +209,29 @@ export const marketCheckoutsService = {
     return response.data;
   },
 
+  async exportVendorsCsv(
+    input: {
+      marketSlug?: string;
+      paymentStatus?: MarketCheckoutPaymentStatus | "";
+      dateFrom?: string;
+      dateTo?: string;
+    } = {},
+  ): Promise<Blob> {
+    const response = await api.instance.get<Blob>(
+      "/market-checkouts/admin/vendors/export",
+      {
+        params: {
+          marketSlug: input.marketSlug || undefined,
+          paymentStatus: input.paymentStatus || undefined,
+          dateFrom: input.dateFrom || undefined,
+          dateTo: input.dateTo || undefined,
+        },
+        responseType: "blob",
+      },
+    );
+    return response.data;
+  },
+
   async refund(id: string, reason?: string): Promise<MarketCheckoutDetail> {
     const response = await api.post<{ checkout: MarketCheckoutDetail }>(
       `/market-checkouts/${id}/refund`,

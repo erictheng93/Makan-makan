@@ -12,6 +12,7 @@ vi.mock("@/services/marketCheckoutsService", () => ({
     summary: vi.fn(),
     vendors: vi.fn(),
     exportCsv: vi.fn(),
+    exportVendorsCsv: vi.fn(),
     refund: vi.fn(),
   },
 }));
@@ -146,6 +147,9 @@ describe("PlatformMarketCheckoutsView", () => {
     vi.mocked(marketCheckoutsService.exportCsv).mockResolvedValue(
       new Blob(["checkout_id\ncheckout-1"], { type: "text/csv" }),
     );
+    vi.mocked(marketCheckoutsService.exportVendorsCsv).mockResolvedValue(
+      new Blob(["restaurant_id\nrestaurant-1"], { type: "text/csv" }),
+    );
     vi.mocked(marketCheckoutsService.refund).mockResolvedValue({
       id: "checkout-1",
       market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
@@ -251,6 +255,18 @@ describe("PlatformMarketCheckoutsView", () => {
     await flushPromises();
 
     expect(marketCheckoutsService.exportCsv).toHaveBeenCalledWith({
+      marketSlug: "",
+      paymentStatus: "",
+      dateFrom: "2026-06-01",
+      dateTo: "2026-06-02",
+    });
+
+    await wrapper
+      .get('[data-testid="export-vendor-settlements"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(marketCheckoutsService.exportVendorsCsv).toHaveBeenCalledWith({
       marketSlug: "",
       paymentStatus: "",
       dateFrom: "2026-06-01",

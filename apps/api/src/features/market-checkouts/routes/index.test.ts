@@ -1570,6 +1570,109 @@ describe("market checkout routes", () => {
     ]);
   });
 
+  it("exports vendor settlement summaries as CSV", async () => {
+    const env = createEnv();
+    databaseMocks.selectQueue.push(
+      {
+        all: [
+          {
+            id: "checkout-1",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "refunded",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: {
+              status: "refunded",
+              method: "line_pay",
+              currency: "TWD",
+              country: "TW",
+              totalAmount: 120,
+              totalAmountCents: 12000,
+              paidAmount: 120,
+              paidAmountCents: 12000,
+              refundedAmount: 120,
+              refundedAmountCents: 12000,
+              childPayments: [
+                {
+                  restaurantId: "restaurant-1",
+                  restaurantName: "雞排攤",
+                  orderId: 1001,
+                  orderNumber: "A001",
+                  paymentId: "pay-1001",
+                  refundId: "refund-1001",
+                  status: "refunded",
+                  amount: 120,
+                  amountCents: 12000,
+                },
+              ],
+            },
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+          },
+          {
+            id: "checkout-2",
+            marketId: "market-2",
+            marketSlug: "outside",
+            marketName: "區間外商圈",
+            status: "submitted",
+            paymentStatus: "paid",
+            subtotalCents: 99900,
+            childOrderCount: 1,
+            paymentSummary: null,
+            createdAt: new Date("2026-05-31T10:00:00.000Z"),
+            updatedAt: new Date("2026-05-31T10:05:00.000Z"),
+          },
+        ],
+      },
+      {
+        all: [
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T14:00:00.000Z"),
+          },
+          {
+            checkoutId: "checkout-2",
+            restaurantId: "restaurant-9",
+            restaurantName: "區間外攤位",
+            orderId: 1009,
+            orderNumber: "A009",
+            totalAmount: 999,
+            totalAmountCents: 99900,
+            tokenExpiresAt: new Date("2026-05-31T14:00:00.000Z"),
+          },
+        ],
+      },
+    );
+
+    const response = await routes.fetch(
+      new Request(
+        "https://test/admin/vendors/export?marketSlug=fengjia&dateFrom=2026-06-01&dateTo=2026-06-01",
+      ),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/csv");
+    expect(response.headers.get("content-disposition")).toContain(
+      "market-checkout-vendors-",
+    );
+    const csv = await response.text();
+    expect(csv).toContain(
+      "restaurant_id,restaurant_name,checkout_count,child_order_count",
+    );
+    expect(csv).toContain("restaurant-1,雞排攤,1,1,12000,12000,12000,0,1,0");
+    expect(csv).not.toContain("restaurant-9");
+  });
+
   it("falls back to the KV index when no persisted checkout sessions exist", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
