@@ -421,6 +421,61 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     });
   });
 
+  it.each([
+    {
+      nextAction: { type: "redirect" },
+      label: "redirect without redirectUrl",
+    },
+    {
+      nextAction: { type: "client_secret" },
+      label: "client_secret without clientSecret",
+    },
+    {
+      nextAction: { type: "sdk_confirmation" },
+      label: "sdk_confirmation without providerPayload",
+    },
+    {
+      nextAction: { type: "unsupported_action" },
+      label: "unsupported action type",
+    },
+  ])(
+    "rejects invalid HTTP provider split next action: $label",
+    async ({ nextAction }) => {
+      const gateway = new HttpProviderSplitGateway(
+        "https://payments.example.test/market-split",
+        undefined,
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                provider: "future_provider",
+                providerTransactionId: "intent-market-1",
+                status: "requires_action",
+                authorizedAmountCents: 0,
+                allocations: [],
+                nextAction,
+              }),
+            ),
+        ) as never,
+      );
+
+      await expect(
+        gateway.process({
+          checkoutId: "checkout-1",
+          marketSlug: "fengjia",
+          method: "future_provider",
+          country: "TW",
+          currency: "TWD",
+          idempotencyKey: "market-pay-1",
+          amountCents: 12000,
+          allocations: [],
+        }),
+      ).rejects.toThrow(
+        "Market checkout provider split next action is invalid",
+      );
+    },
+  );
+
   it("accepts the mock provider pending fixture as the gateway contract", async () => {
     const gateway = new HttpProviderSplitGateway(
       "https://payments.example.test/market-split",

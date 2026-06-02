@@ -244,6 +244,14 @@ Customer behavior:
 - `sdk_confirmation`: keep the checkout in pending state and hand
   `providerPayload` to a provider-specific SDK once that provider is selected.
 
+Validation:
+
+- `redirect` actions must include a non-empty `redirectUrl`.
+- `client_secret` actions must include a non-empty `clientSecret`.
+- `sdk_confirmation` actions must include an object `providerPayload`.
+- Invalid `nextAction` payloads fail closed and are rejected as invalid provider
+  split responses.
+
 ## Webhook Contract
 
 Provider callbacks are sent to:

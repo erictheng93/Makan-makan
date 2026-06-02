@@ -924,7 +924,29 @@ function parseProviderNextAction(
     action.type !== "client_secret" &&
     action.type !== "sdk_confirmation"
   ) {
-    return undefined;
+    throw new Error("Market checkout provider split next action is invalid");
+  }
+
+  if (
+    action.type === "redirect" &&
+    (typeof action.redirectUrl !== "string" || action.redirectUrl.length === 0)
+  ) {
+    throw new Error("Market checkout provider split next action is invalid");
+  }
+  if (
+    action.type === "client_secret" &&
+    (typeof action.clientSecret !== "string" ||
+      action.clientSecret.length === 0)
+  ) {
+    throw new Error("Market checkout provider split next action is invalid");
+  }
+  if (
+    action.type === "sdk_confirmation" &&
+    (!action.providerPayload ||
+      typeof action.providerPayload !== "object" ||
+      Array.isArray(action.providerPayload))
+  ) {
+    throw new Error("Market checkout provider split next action is invalid");
   }
 
   return {
