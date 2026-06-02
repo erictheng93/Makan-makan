@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   dishSearchIndex,
   marketCheckoutChildOrders,
+  marketCheckoutPayments,
   marketCheckoutSessions,
   markets,
   menuItems,
@@ -150,6 +151,41 @@ describe("market discovery schema", () => {
     );
     expect(columnSqlType(marketCheckoutChildOrders, "order_id")).toBe(
       "integer",
+    );
+
+    expect(columnNames(marketCheckoutPayments)).toEqual(
+      expect.arrayContaining([
+        "id",
+        "payment_id",
+        "checkout_id",
+        "market_id",
+        "provider",
+        "split_mode",
+        "idempotency_key",
+        "status",
+        "amount_cents",
+        "paid_amount_cents",
+        "refunded_amount_cents",
+        "currency",
+        "country_code",
+        "child_payment_ids",
+        "provider_transaction_id",
+        "provider_payload",
+        "error_code",
+        "error_message",
+        "created_at_ms",
+        "updated_at_ms",
+        "completed_at_ms",
+        "refunded_at_ms",
+        "failed_at_ms",
+      ]),
+    );
+    expect(columnSqlType(marketCheckoutPayments, "payment_id")).toBe("text");
+    expect(columnSqlType(marketCheckoutPayments, "amount_cents")).toBe(
+      "integer",
+    );
+    expect(columnSqlType(marketCheckoutPayments, "child_payment_ids")).toBe(
+      "text",
     );
   });
 });

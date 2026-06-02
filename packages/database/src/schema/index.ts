@@ -74,6 +74,7 @@ export {
 export {
   marketsRelations,
   marketCheckoutChildOrdersRelations,
+  marketCheckoutPaymentsRelations,
   marketCheckoutSessionsRelations,
   restaurantMarketMembershipsRelations,
   marketJoinRequestsRelations,

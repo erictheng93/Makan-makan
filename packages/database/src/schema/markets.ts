@@ -202,9 +202,62 @@ export const marketCheckoutChildOrders = sqliteTable(
   }),
 );
 
+export const marketCheckoutPayments = sqliteTable(
+  "market_checkout_payments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    paymentId: text("payment_id").notNull().unique(),
+    checkoutId: text("checkout_id")
+      .notNull()
+      .references(() => marketCheckoutSessions.id, { onDelete: "cascade" }),
+    marketId: text("market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "restrict" }),
+    provider: text("provider").notNull(),
+    splitMode: text("split_mode").notNull(),
+    idempotencyKey: text("idempotency_key"),
+    status: text("status").notNull().default("pending"),
+    amountCents: integer("amount_cents").notNull(),
+    paidAmountCents: integer("paid_amount_cents").notNull().default(0),
+    refundedAmountCents: integer("refunded_amount_cents").notNull().default(0),
+    currency: text("currency"),
+    countryCode: text("country_code"),
+    childPaymentIds: text("child_payment_ids", { mode: "json" }).$type<
+      string[]
+    >(),
+    providerTransactionId: text("provider_transaction_id"),
+    providerPayload: text("provider_payload", { mode: "json" }).$type<Record<
+      string,
+      unknown
+    > | null>(),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
+    completedAt: integer("completed_at_ms", { mode: "timestamp_ms" }),
+    refundedAt: integer("refunded_at_ms", { mode: "timestamp_ms" }),
+    failedAt: integer("failed_at_ms", { mode: "timestamp_ms" }),
+  },
+  (table) => ({
+    checkoutIdx: index("market_checkout_payments_checkout_idx").on(
+      table.checkoutId,
+      table.createdAt,
+    ),
+    marketStatusIdx: index("market_checkout_payments_market_status_idx").on(
+      table.marketId,
+      table.status,
+      table.createdAt,
+    ),
+    idempotencyIdx: index("market_checkout_payments_idempotency_idx").on(
+      table.idempotencyKey,
+    ),
+  }),
+);
+
 export const marketsRelations = relations(markets, ({ many }) => ({
   memberships: many(restaurantMarketMemberships),
   checkoutSessions: many(marketCheckoutSessions),
+  checkoutPayments: many(marketCheckoutPayments),
 }));
 
 export const restaurantMarketMembershipsRelations = relations(
@@ -243,6 +296,7 @@ export const marketCheckoutSessionsRelations = relations(
       references: [markets.id],
     }),
     childOrders: many(marketCheckoutChildOrders),
+    payments: many(marketCheckoutPayments),
   }),
 );
 
@@ -256,6 +310,20 @@ export const marketCheckoutChildOrdersRelations = relations(
     restaurant: one(restaurants, {
       fields: [marketCheckoutChildOrders.restaurantId],
       references: [restaurants.id],
+    }),
+  }),
+);
+
+export const marketCheckoutPaymentsRelations = relations(
+  marketCheckoutPayments,
+  ({ one }) => ({
+    checkout: one(marketCheckoutSessions, {
+      fields: [marketCheckoutPayments.checkoutId],
+      references: [marketCheckoutSessions.id],
+    }),
+    market: one(markets, {
+      fields: [marketCheckoutPayments.marketId],
+      references: [markets.id],
     }),
   }),
 );

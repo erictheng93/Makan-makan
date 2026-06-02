@@ -1216,6 +1216,95 @@ async function updatePersistedMarketCheckoutPayment(
       updatedAt: new Date(),
     })
     .where(eq(marketCheckoutSessions.id, session.id));
+
+  await upsertMarketCheckoutParentPayment(env, session);
+}
+
+async function upsertMarketCheckoutParentPayment(
+  env: Env,
+  session: MarketCheckoutSession,
+) {
+  const parentPayment = session.payment?.parentPayment;
+  if (!session.payment || !parentPayment) return;
+
+  const updatedAt = parseTimestampMs(parentPayment.updatedAt) ?? Date.now();
+  const createdAt =
+    parseTimestampMs(parentPayment.createdAt) ??
+    parseTimestampMs(session.createdAt) ??
+    updatedAt;
+  const completedAt =
+    session.payment.status === "paid"
+      ? (parseTimestampMs(session.payment.paidAt) ?? updatedAt)
+      : null;
+  const refundedAt =
+    session.payment.status === "refunded" ||
+    session.payment.status === "partial_refunded"
+      ? (parseTimestampMs(session.payment.refundedAt) ?? updatedAt)
+      : null;
+  const failedAt =
+    session.payment.status === "failed"
+      ? (parseTimestampMs(session.payment.failedAt) ?? updatedAt)
+      : null;
+
+  await env.DB.prepare(
+    `INSERT INTO market_checkout_payments (
+        payment_id, checkout_id, market_id, provider, split_mode,
+        idempotency_key, status, amount_cents, paid_amount_cents,
+        refunded_amount_cents, currency, country_code, child_payment_ids,
+        provider_payload, created_at_ms, updated_at_ms, completed_at_ms,
+        refunded_at_ms, failed_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(payment_id) DO UPDATE SET
+        checkout_id = excluded.checkout_id,
+        market_id = excluded.market_id,
+        provider = excluded.provider,
+        split_mode = excluded.split_mode,
+        idempotency_key = excluded.idempotency_key,
+        status = excluded.status,
+        amount_cents = excluded.amount_cents,
+        paid_amount_cents = excluded.paid_amount_cents,
+        refunded_amount_cents = excluded.refunded_amount_cents,
+        currency = excluded.currency,
+        country_code = excluded.country_code,
+        child_payment_ids = excluded.child_payment_ids,
+        provider_payload = excluded.provider_payload,
+        updated_at_ms = excluded.updated_at_ms,
+        completed_at_ms = COALESCE(excluded.completed_at_ms, market_checkout_payments.completed_at_ms),
+        refunded_at_ms = COALESCE(excluded.refunded_at_ms, market_checkout_payments.refunded_at_ms),
+        failed_at_ms = COALESCE(excluded.failed_at_ms, market_checkout_payments.failed_at_ms)`,
+  )
+    .bind(
+      parentPayment.paymentId,
+      session.id,
+      session.market.id,
+      parentPayment.provider,
+      parentPayment.splitMode,
+      parentPayment.idempotencyKey,
+      parentPayment.status,
+      parentPayment.amountCents,
+      parentPayment.paidAmountCents,
+      parentPayment.refundedAmountCents,
+      session.payment.currency,
+      session.payment.country,
+      JSON.stringify(parentPayment.childPaymentIds),
+      JSON.stringify({
+        source: "market-checkouts",
+        splitMode: parentPayment.splitMode,
+        settlement: session.payment.settlement ?? null,
+      }),
+      createdAt,
+      updatedAt,
+      completedAt,
+      refundedAt,
+      failedAt,
+    )
+    .run();
+}
+
+function parseTimestampMs(value: string | undefined): number | null {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? null : timestamp;
 }
 
 async function readPersistedMarketCheckoutIndex(

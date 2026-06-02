@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   marketCheckoutChildOrders,
+  marketCheckoutPayments,
   marketCheckoutSessions,
   markets,
   orders,
@@ -213,6 +214,37 @@ describe("Market checkouts API - real integration", () => {
         vendorNetAmountCents: 19300,
       },
     });
+
+    const [parentPayment] = await testApp.testDb.drizzle
+      .select()
+      .from(marketCheckoutPayments)
+      .where(eq(marketCheckoutPayments.checkoutId, checkoutId))
+      .all();
+    expect(parentPayment).toMatchObject({
+      paymentId: `market_pay_${checkoutId}`,
+      checkoutId,
+      marketId: market.id,
+      provider: "line_pay",
+      splitMode: "child_transactions",
+      idempotencyKey: `market-pay-${checkoutId}`,
+      status: "paid",
+      amountCents: 20000,
+      paidAmountCents: 20000,
+      refundedAmountCents: 0,
+      currency: "TWD",
+      countryCode: "TW",
+    });
+    expect(parentPayment?.childPaymentIds).toHaveLength(2);
+    expect(parentPayment?.providerPayload).toMatchObject({
+      source: "market-checkouts",
+      splitMode: "child_transactions",
+      settlement: {
+        platformFeeRateBps: 350,
+        platformFeeCents: 700,
+        vendorNetAmountCents: 19300,
+      },
+    });
+    expect(parentPayment?.completedAt).toBeInstanceOf(Date);
 
     const admin = await seed.user({ role: 0 });
     const adminToken = await testApp.authHelper.adminToken(
