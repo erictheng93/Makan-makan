@@ -149,7 +149,9 @@ interface MarketCheckoutOperationAlert {
     | "provider_pending_stale"
     | "provider_webhook_missing"
     | "provider_webhook_failed"
-    | "provider_status_mismatch";
+    | "provider_status_mismatch"
+    | "provider_refund_pending"
+    | "provider_refund_failed";
   label: string;
   severity: "warning" | "critical";
 }
@@ -235,6 +237,7 @@ interface MarketCheckoutParentPaymentSummary {
   nextAction?: MarketCheckoutProviderNextAction;
   lastWebhook?: MarketCheckoutProviderLastWebhook;
   lastReconciliation?: MarketCheckoutProviderLastWebhook;
+  lastRefund?: MarketCheckoutProviderLastWebhook;
   amountCents: number;
   paidAmountCents: number;
   refundedAmountCents: number;
@@ -889,6 +892,24 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
       },
     );
     const now = new Date().toISOString();
+    const lastRefund: MarketCheckoutProviderLastWebhook = {
+      provider: providerRefund.provider,
+      eventId: providerRefund.eventId ?? providerRefund.refundId,
+      eventType:
+        providerRefund.eventType ??
+        `market_checkout.refund_${providerRefund.status}`,
+      status: providerRefund.status,
+      receivedAt: now,
+      payloadSummary: summarizeProviderPayload({
+        providerTransactionId:
+          providerRefund.providerTransactionId ??
+          parentPayment.providerTransactionId,
+        status: providerRefund.status,
+        amountRefundedCents: providerRefund.refundedAmountCents,
+        currency: providerRefund.currency ?? session.payment.currency,
+        providerPayload: providerRefund.providerPayload,
+      }),
+    };
     const refundCompleted =
       providerRefund.status === "refunded" ||
       providerRefund.status === "partial_refunded";
@@ -927,6 +948,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
         providerTransactionId:
           providerRefund.providerTransactionId ??
           parentPayment.providerTransactionId,
+        lastRefund,
         now,
       }),
       settlement: buildMarketCheckoutSettlement(session, paymentBase),
@@ -1471,6 +1493,7 @@ async function hydrateMarketCheckoutParentPayment(
     nextAction: providerPayload.nextAction,
     lastWebhook: providerPayload.lastWebhook,
     lastReconciliation: providerPayload.lastReconciliation,
+    lastRefund: providerPayload.lastRefund,
     amountCents: row.amount_cents,
     paidAmountCents: row.paid_amount_cents,
     refundedAmountCents: row.refunded_amount_cents,
@@ -1656,6 +1679,7 @@ function buildMarketCheckoutParentPayment(input: {
   idempotencyKey: string;
   providerTransactionId?: string;
   nextAction?: MarketCheckoutProviderNextAction;
+  lastRefund?: MarketCheckoutProviderLastWebhook;
   now: string;
 }): MarketCheckoutParentPaymentSummary {
   const childPaymentIds = input.payment.childPayments
@@ -1671,6 +1695,9 @@ function buildMarketCheckoutParentPayment(input: {
     providerTransactionId:
       input.existing?.providerTransactionId ?? input.providerTransactionId,
     nextAction: input.nextAction ?? input.existing?.nextAction,
+    lastWebhook: input.existing?.lastWebhook,
+    lastReconciliation: input.existing?.lastReconciliation,
+    lastRefund: input.lastRefund ?? input.existing?.lastRefund,
     amountCents: input.payment.totalAmountCents,
     paidAmountCents: input.payment.paidAmountCents,
     refundedAmountCents: input.payment.refundedAmountCents ?? 0,
@@ -1819,6 +1846,9 @@ async function upsertMarketCheckoutParentPayment(
         source: "market-checkouts",
         splitMode: parentPayment.splitMode,
         nextAction: parentPayment.nextAction ?? null,
+        lastWebhook: parentPayment.lastWebhook ?? null,
+        lastReconciliation: parentPayment.lastReconciliation ?? null,
+        lastRefund: parentPayment.lastRefund ?? null,
         settlement: session.payment.settlement ?? null,
       }),
       createdAt,
@@ -1851,6 +1881,7 @@ function parseProviderPayload(value: string | null | undefined): {
   nextAction?: MarketCheckoutProviderNextAction;
   lastWebhook?: MarketCheckoutProviderLastWebhook;
   lastReconciliation?: MarketCheckoutProviderLastWebhook;
+  lastRefund?: MarketCheckoutProviderLastWebhook;
 } {
   if (!value) return {};
   try {
@@ -1858,6 +1889,7 @@ function parseProviderPayload(value: string | null | undefined): {
       nextAction?: unknown;
       lastWebhook?: unknown;
       lastReconciliation?: unknown;
+      lastRefund?: unknown;
     };
 
     return {
@@ -1866,6 +1898,7 @@ function parseProviderPayload(value: string | null | undefined): {
       lastReconciliation: parseProviderPayloadLastWebhook(
         parsed.lastReconciliation,
       ),
+      lastRefund: parseProviderPayloadLastWebhook(parsed.lastRefund),
     };
   } catch {
     return {};
@@ -2689,6 +2722,20 @@ function buildMarketCheckoutOperationAlerts(
     alerts.push({
       type: "provider_status_mismatch",
       label: "狀態不一致",
+      severity: "critical",
+    });
+  }
+  if (parentPayment.lastRefund?.status === "pending") {
+    alerts.push({
+      type: "provider_refund_pending",
+      label: "退款處理中",
+      severity: "warning",
+    });
+  }
+  if (parentPayment.lastRefund?.status === "failed") {
+    alerts.push({
+      type: "provider_refund_failed",
+      label: "退款失敗",
       severity: "critical",
     });
   }

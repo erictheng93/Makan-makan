@@ -249,6 +249,19 @@ describe("PlatformMarketCheckoutsView", () => {
               failureReason: "Provider status remained pending",
             },
           },
+          lastRefund: {
+            provider: "mock_market_provider",
+            eventId: "refund-pending-1",
+            eventType: "market_checkout.refund_pending",
+            status: "pending",
+            receivedAt: "2026-06-01T10:12:00.000Z",
+            payloadSummary: {
+              providerTransactionId: "intent-market-checkout-1",
+              status: "pending",
+              amountRefundedCents: 0,
+              currency: "TWD",
+            },
+          },
           amountCents: 24000,
           paidAmountCents: 16000,
           refundedAmountCents: 0,
@@ -570,11 +583,29 @@ describe("PlatformMarketCheckoutsView", () => {
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("provider_pending_timeout · Provider status remained pending");
     expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("最後退款");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("refund-pending-1");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("market_checkout.refund_pending");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("退款摘要");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("intent-market-checkout-1 · pending · TWD 0");
+    expect(
       wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
     ).toContain("Provider 付款仍待處理超過 30 分鐘");
     expect(
       wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
     ).toContain("最後 webhook 回報付款失敗");
+    expect(
+      wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
+    ).toContain("Provider 退款仍在處理中");
     await wrapper.get('[data-testid="reconcile-checkout"]').trigger("click");
     await flushPromises();
 

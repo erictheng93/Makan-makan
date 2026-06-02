@@ -65,7 +65,9 @@ export interface MarketCheckoutOperationAlert {
     | "provider_pending_stale"
     | "provider_webhook_missing"
     | "provider_webhook_failed"
-    | "provider_status_mismatch";
+    | "provider_status_mismatch"
+    | "provider_refund_pending"
+    | "provider_refund_failed";
   label: string;
   severity: "warning" | "critical";
 }
@@ -124,6 +126,7 @@ export interface MarketCheckoutDetail extends MarketCheckoutListItem {
       nextAction?: MarketCheckoutProviderNextAction;
       lastWebhook?: MarketCheckoutProviderLastWebhook;
       lastReconciliation?: MarketCheckoutProviderLastWebhook;
+      lastRefund?: MarketCheckoutProviderLastWebhook;
       amountCents: number;
       paidAmountCents: number;
       refundedAmountCents: number;

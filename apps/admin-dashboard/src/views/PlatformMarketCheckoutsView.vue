@@ -81,6 +81,8 @@
           <option value="provider_webhook_missing">未收到 webhook</option>
           <option value="provider_webhook_failed">webhook 失敗</option>
           <option value="provider_status_mismatch">狀態不一致</option>
+          <option value="provider_refund_pending">退款處理中</option>
+          <option value="provider_refund_failed">退款失敗</option>
         </select>
         <input
           v-model="dateFrom"
@@ -611,6 +613,43 @@
               )
             }}
           </span>
+          <span
+            v-if="selectedCheckout.payment.parentPayment.lastRefund"
+            class="rounded-full bg-orange-50 px-2.5 py-1 text-orange-700"
+          >
+            最後退款
+            {{
+              selectedCheckout.payment.parentPayment.lastRefund.eventId || "-"
+            }}
+            ·
+            {{ selectedCheckout.payment.parentPayment.lastRefund.eventType }}
+            ·
+            {{
+              webhookStatusLabel(
+                selectedCheckout.payment.parentPayment.lastRefund.status,
+              )
+            }}
+            ·
+            {{
+              formatDate(
+                selectedCheckout.payment.parentPayment.lastRefund.receivedAt,
+              )
+            }}
+          </span>
+          <span
+            v-if="
+              selectedCheckout.payment.parentPayment.lastRefund?.payloadSummary
+            "
+            class="rounded-full bg-orange-50 px-2.5 py-1 text-orange-700"
+          >
+            退款摘要
+            {{
+              providerPayloadSummaryLabel(
+                selectedCheckout.payment.parentPayment.lastRefund
+                  .payloadSummary,
+              )
+            }}
+          </span>
           <span class="rounded-full bg-gray-100 px-2.5 py-1">
             冪等鍵
             {{ selectedCheckout.payment.parentPayment.idempotencyKey }}
@@ -978,6 +1017,12 @@ const providerPaymentAlerts = computed(() => {
     parentPayment.lastWebhook?.status === "paid"
   ) {
     alerts.push("最後 webhook 已付款，但父層付款仍待處理");
+  }
+  if (parentPayment.lastRefund?.status === "pending") {
+    alerts.push("Provider 退款仍在處理中");
+  }
+  if (parentPayment.lastRefund?.status === "failed") {
+    alerts.push("Provider 退款失敗");
   }
 
   return alerts;

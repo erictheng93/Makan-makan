@@ -116,6 +116,88 @@ function createEnv(dbFirstRows: unknown[] = []) {
   };
 }
 
+function providerSplitPaidSessionFixture() {
+  return {
+    id: "checkout-1",
+    market: {
+      id: "market-1",
+      slug: "fengjia",
+      name: "逢甲夜市",
+      platformFeeRateBps: 350,
+    },
+    status: "submitted",
+    childOrders: [
+      {
+        restaurantId: "restaurant-1",
+        restaurantName: "雞排攤",
+        orderId: 101,
+        orderNumber: "A001",
+        totalAmount: 160,
+        totalAmountCents: 16000,
+        tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+      },
+      {
+        restaurantId: "restaurant-2",
+        restaurantName: "甜點攤",
+        orderId: 102,
+        orderNumber: "A002",
+        totalAmount: 80,
+        totalAmountCents: 8000,
+        tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+      },
+    ],
+    payment: {
+      status: "paid",
+      method: "market_online",
+      currency: "TWD",
+      country: "TW",
+      totalAmount: 240,
+      totalAmountCents: 24000,
+      paidAmount: 240,
+      paidAmountCents: 24000,
+      paidAt: "2026-06-01T10:10:00.000Z",
+      parentPayment: {
+        paymentId: "market_pay_checkout-1",
+        status: "paid",
+        provider: "mock_market_provider",
+        splitMode: "provider_split",
+        idempotencyKey: "market-checkout:checkout-1",
+        providerTransactionId: "intent-market-checkout-1",
+        amountCents: 24000,
+        paidAmountCents: 24000,
+        refundedAmountCents: 0,
+        childPaymentIds: ["mock-pay-101", "mock-pay-102"],
+        createdAt: "2026-06-01T10:10:00.000Z",
+        updatedAt: "2026-06-01T10:10:00.000Z",
+      },
+      childPayments: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          paymentId: "mock-pay-101",
+          status: "paid",
+          amount: 160,
+          amountCents: 16000,
+        },
+        {
+          restaurantId: "restaurant-2",
+          restaurantName: "甜點攤",
+          orderId: 102,
+          orderNumber: "A002",
+          paymentId: "mock-pay-102",
+          status: "paid",
+          amount: 80,
+          amountCents: 8000,
+        },
+      ],
+    },
+    subtotal: 24000,
+    createdAt: "2026-06-01T10:00:00.000Z",
+  };
+}
+
 describe("market checkout routes", () => {
   beforeEach(() => {
     databaseMocks.selectQueue.length = 0;
@@ -1270,6 +1352,93 @@ describe("market checkout routes", () => {
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:index",
       expect.stringContaining('"paymentStatus":"refunded"'),
+      { expirationTtl: 14400 },
+    );
+  });
+
+  it("surfaces pending provider split refunds without marking payment refunded", async () => {
+    const env = {
+      ...createEnv(),
+      MARKET_CHECKOUT_SPLIT_MODE: "provider_split",
+      MARKET_CHECKOUT_PROVIDER_REFUND_URL:
+        "https://payments.example.test/market-split/refunds",
+    };
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...mockMarketCheckoutProviderRefundResponse,
+            status: "pending",
+            refundedAmountCents: 0,
+            eventId: "refund-pending-1",
+            eventType: "market_checkout.refund_pending",
+          }),
+        ),
+    );
+    globalThis.fetch = fetcher as never;
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(providerSplitPaidSessionFixture()),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/refund", {
+        method: "POST",
+        body: JSON.stringify({ reason: "customer_request" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        payment: {
+          status: string;
+          refundedAmountCents?: number;
+          parentPayment: {
+            status: string;
+            refundedAmountCents: number;
+            lastRefund?: {
+              provider: string;
+              eventId?: string;
+              eventType: string;
+              status: string;
+              receivedAt: string;
+              payloadSummary?: {
+                providerTransactionId?: string;
+                amountRefundedCents?: number;
+              };
+            };
+          };
+          childPayments: Array<{ status: string; refundId?: string }>;
+        };
+      };
+    };
+    expect(json.data.payment).toMatchObject({
+      status: "paid",
+      refundedAmountCents: 0,
+      parentPayment: {
+        status: "paid",
+        refundedAmountCents: 0,
+        lastRefund: {
+          provider: "mock_market_provider",
+          eventId: "refund-pending-1",
+          eventType: "market_checkout.refund_pending",
+          status: "pending",
+          payloadSummary: {
+            providerTransactionId: "intent-market-checkout-1",
+            amountRefundedCents: 0,
+          },
+        },
+      },
+      childPayments: [
+        expect.objectContaining({ status: "paid" }),
+        expect.objectContaining({ status: "paid" }),
+      ],
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:index",
+      expect.stringContaining('"type":"provider_refund_pending"'),
       { expirationTtl: 14400 },
     );
   });
