@@ -3227,6 +3227,10 @@ describe("market checkout routes", () => {
                     marketCheckoutId: "checkout-1",
                     customerPhone: "+886912345678",
                   },
+                  last_payment_error: {
+                    code: "card_declined",
+                    message: "Card was declined by issuer",
+                  },
                 },
               },
             },
@@ -3242,6 +3246,8 @@ describe("market checkout routes", () => {
               status: "paid",
               amountReceivedCents: 20000,
               currency: "TWD",
+              failureCode: "provider_pending_timeout",
+              failureReason: "Provider status remained pending",
               providerPayload: {
                 metadata: {
                   marketCheckoutId: "checkout-1",
@@ -3341,6 +3347,8 @@ describe("market checkout routes", () => {
                   amountReceivedCents?: number;
                   currency?: string;
                   metadataKeys?: string[];
+                  failureCode?: string;
+                  failureReason?: string;
                 };
               };
               lastReconciliation?: {
@@ -3355,6 +3363,8 @@ describe("market checkout routes", () => {
                   amountReceivedCents?: number;
                   currency?: string;
                   metadataKeys?: string[];
+                  failureCode?: string;
+                  failureReason?: string;
                 };
               };
             };
@@ -3382,6 +3392,8 @@ describe("market checkout routes", () => {
             amountReceivedCents: 20000,
             currency: "TWD",
             metadataKeys: ["customerPhone", "marketCheckoutId"],
+            failureCode: "card_declined",
+            failureReason: "Card was declined by issuer",
           },
         },
         lastReconciliation: {
@@ -3396,6 +3408,8 @@ describe("market checkout routes", () => {
             amountReceivedCents: 20000,
             currency: "TWD",
             metadataKeys: ["internalTrace", "marketCheckoutId"],
+            failureCode: "provider_pending_timeout",
+            failureReason: "Provider status remained pending",
           },
         },
       },

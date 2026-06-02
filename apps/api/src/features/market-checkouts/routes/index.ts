@@ -260,6 +260,8 @@ interface MarketCheckoutProviderPayloadSummary {
   amountRefundedCents?: number;
   currency?: string;
   metadataKeys?: string[];
+  failureCode?: string;
+  failureReason?: string;
 }
 
 app.post("/", async (c) => {
@@ -1792,6 +1794,14 @@ function summarizeProviderPayload(
   const payload = value as Record<string, unknown>;
   const nestedObject = objectRecord(objectRecord(payload.data)?.object);
   const providerPayload = objectRecord(payload.providerPayload);
+  const nestedFailure = objectRecord(
+    nestedObject?.last_payment_error ??
+      nestedObject?.failure ??
+      nestedObject?.error,
+  );
+  const providerFailure = objectRecord(
+    providerPayload?.failure ?? providerPayload?.error,
+  );
   const summary: MarketCheckoutProviderPayloadSummary = {
     objectId: stringValue(nestedObject?.id ?? payload.id),
     providerTransactionId: stringValue(payload.providerTransactionId),
@@ -1806,6 +1816,21 @@ function summarizeProviderPayload(
     currency: stringValue(nestedObject?.currency ?? payload.currency),
     metadataKeys: metadataKeysFrom(
       nestedObject?.metadata ?? payload.metadata ?? providerPayload?.metadata,
+    ),
+    failureCode: stringValue(
+      nestedFailure?.code ??
+        providerFailure?.code ??
+        payload.failureCode ??
+        payload.errorCode,
+    ),
+    failureReason: stringValue(
+      nestedFailure?.message ??
+        nestedFailure?.reason ??
+        providerFailure?.message ??
+        providerFailure?.reason ??
+        payload.failureReason ??
+        payload.errorMessage ??
+        payload.message,
     ),
   };
 

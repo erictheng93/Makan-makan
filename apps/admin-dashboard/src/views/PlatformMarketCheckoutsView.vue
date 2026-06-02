@@ -1192,6 +1192,7 @@ function providerPayloadSummaryLabel(
       : `${summary.currency ?? ""} ${formatProviderAmountCents(amountCents)}`.trim();
   return [
     [identity, summary.status, amount].filter(Boolean).join(" · "),
+    [summary.failureCode, summary.failureReason].filter(Boolean).join(" · "),
     summary.metadataKeys?.length
       ? `metadata: ${[...summary.metadataKeys].sort().join(", ")}`
       : undefined,

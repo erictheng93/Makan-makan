@@ -40,6 +40,8 @@ export interface MarketCheckoutProviderPayloadSummary {
   amountRefundedCents?: number;
   currency?: string;
   metadataKeys?: string[];
+  failureCode?: string;
+  failureReason?: string;
 }
 
 export interface MarketCheckoutListItem {

@@ -228,6 +228,8 @@ describe("PlatformMarketCheckoutsView", () => {
               amountReceivedCents: 16000,
               currency: "TWD",
               metadataKeys: ["marketCheckoutId", "customerPhone"],
+              failureCode: "card_declined",
+              failureReason: "Card was declined by issuer",
             },
           },
           lastReconciliation: {
@@ -242,6 +244,8 @@ describe("PlatformMarketCheckoutsView", () => {
               amountCents: 24000,
               currency: "TWD",
               metadataKeys: ["marketCheckoutId"],
+              failureCode: "provider_pending_timeout",
+              failureReason: "Provider status remained pending",
             },
           },
           amountCents: 24000,
@@ -536,6 +540,9 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("metadata: customerPhone, marketCheckoutId");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("card_declined · Card was declined by issuer");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("最後查單");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
@@ -555,6 +562,9 @@ describe("PlatformMarketCheckoutsView", () => {
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("intent-market-checkout-1 · pending · TWD 240");
+    expect(
+      wrapper.get('[data-testid="checkout-parent-payment"]').text(),
+    ).toContain("provider_pending_timeout · Provider status remained pending");
     expect(
       wrapper.get('[data-testid="checkout-provider-alerts"]').text(),
     ).toContain("Provider 付款仍待處理超過 30 分鐘");
