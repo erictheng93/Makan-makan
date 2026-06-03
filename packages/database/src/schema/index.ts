@@ -43,6 +43,8 @@ export * from "./data-integrity-audit";
 export * from "./payment-audit-log";
 export * from "./cycle-snapshots";
 export * from "./notification-dispatch-log";
+export * from "./credits";
+export * from "./user-coupons";
 
 // 匯出所有關聯定義
 export { restaurantFaqRelations, restaurantRelations } from "./restaurants";
@@ -148,6 +150,12 @@ export { storageCountersRelations } from "./storage-counters";
 export { paymentAuditLogRelations } from "./payment-audit-log";
 export { cycleSnapshotsRelations } from "./cycle-snapshots";
 export { notificationDispatchLogRelations } from "./notification-dispatch-log";
+export {
+  creditAccountsRelations,
+  creditCardsRelations,
+  creditLedgerEntriesRelations,
+} from "./credits";
+export { userCouponsRelations } from "./user-coupons";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -235,3 +243,15 @@ export { MENU_MAPPING_SYNC_STATUS } from "./platform-menu-mappings";
 export type { MenuMappingSyncStatus } from "./platform-menu-mappings";
 export { WEBHOOK_LOG_STATUS } from "./platform-webhook-logs";
 export type { WebhookLogStatus } from "./platform-webhook-logs";
+export {
+  CREDIT_ACCOUNT_STATUS,
+  CREDIT_CARD_STATUS,
+  CREDIT_ENTRY_TYPE,
+} from "./credits";
+export type {
+  CreditAccountStatus,
+  CreditCardStatus,
+  CreditEntryType,
+} from "./credits";
+export { USER_COUPON_STATE } from "./user-coupons";
+export type { UserCouponState } from "./user-coupons";
