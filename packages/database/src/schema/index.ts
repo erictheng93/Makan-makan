@@ -45,6 +45,7 @@ export * from "./cycle-snapshots";
 export * from "./notification-dispatch-log";
 export * from "./credits";
 export * from "./user-coupons";
+export * from "./credit-topup-intents";
 
 // 匯出所有關聯定義
 export { restaurantFaqRelations, restaurantRelations } from "./restaurants";
@@ -156,6 +157,7 @@ export {
   creditLedgerEntriesRelations,
 } from "./credits";
 export { userCouponsRelations } from "./user-coupons";
+export { creditTopupIntentsRelations } from "./credit-topup-intents";
 
 // 重新匯出類型
 export type { UserRole } from "./users";
@@ -255,3 +257,5 @@ export type {
 } from "./credits";
 export { USER_COUPON_STATE } from "./user-coupons";
 export type { UserCouponState } from "./user-coupons";
+export { CREDIT_TOPUP_INTENT_STATUS } from "./credit-topup-intents";
+export type { CreditTopupIntentStatus } from "./credit-topup-intents";
