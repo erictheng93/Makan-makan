@@ -15,7 +15,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@makanmakan/database/testing";
-import { creditLedgerEntries } from "@makanmakan/database";
+import { creditAccounts, creditLedgerEntries } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { CreditService } from "../../features/credits/services/CreditService";
@@ -98,9 +98,11 @@ describe("CreditService — spend guards", () => {
     expect(result.balanceAfterCents).toBe(700);
     expect((await service.getBalance(card.publicId)).balanceCents).toBe(700);
 
-    const entries = await ledgerEntriesFor(card.accountId);
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({
+    const spendEntries = (await ledgerEntriesFor(card.accountId)).filter(
+      (e) => e.entryType === "spend",
+    );
+    expect(spendEntries).toHaveLength(1);
+    expect(spendEntries[0]).toMatchObject({
       entryType: "spend",
       amountCents: -300,
       balanceAfterCents: 700,
@@ -127,7 +129,10 @@ describe("CreditService — spend guards", () => {
     ).rejects.toMatchObject({ code: "INSUFFICIENT_BALANCE" });
 
     expect((await service.getBalance(card.publicId)).balanceCents).toBe(200);
-    expect(await ledgerEntriesFor(card.accountId)).toHaveLength(0);
+    const spends = (await ledgerEntriesFor(card.accountId)).filter(
+      (e) => e.entryType === "spend",
+    );
+    expect(spends).toHaveLength(0); // no spend written (opening adjust entry aside)
   });
 
   it("rejects a currency mismatch", async () => {
@@ -211,7 +216,10 @@ describe("CreditService — spend guards", () => {
 
     expect(second.ledgerEntryId).toBe(first.ledgerEntryId);
     expect((await service.getBalance(card.publicId)).balanceCents).toBe(600);
-    expect(await ledgerEntriesFor(card.accountId)).toHaveLength(1);
+    const spends = (await ledgerEntriesFor(card.accountId)).filter(
+      (e) => e.entryType === "spend",
+    );
+    expect(spends).toHaveLength(1); // replay did not write a second spend
   });
 });
 
@@ -480,5 +488,71 @@ describe("CreditService — card management", () => {
     });
     expect(page.entries).toHaveLength(1);
     expect(page.entries[0].entryType).toBe("topup");
+  });
+});
+
+describe("CreditService — ledger integrity", () => {
+  it("audits the opening balance as a ledger entry", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 5000,
+    });
+
+    const entries = await ledgerEntriesFor(card.accountId);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      entryType: "adjust",
+      amountCents: 5000,
+      balanceAfterCents: 5000,
+      sourceType: "card_issue",
+    });
+    expect(await service.findBalanceLedgerDrift()).toHaveLength(0);
+  });
+
+  it("reports no drift for healthy accounts after spend + topup", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 1000,
+    });
+    await service.spend({
+      publicId: card.publicId,
+      amountCents: 300,
+      currency: "TWD",
+      idempotencyKey: "drift-spend",
+      sourceType: "market_checkout",
+    });
+    await service.topup({
+      publicId: card.publicId,
+      amountCents: 500,
+      currency: "TWD",
+      idempotencyKey: "drift-topup",
+      sourceType: "topup",
+    });
+
+    expect(await service.findBalanceLedgerDrift()).toHaveLength(0);
+  });
+
+  it("detects a balance that drifts from its ledger sum", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 1000,
+    });
+    // Simulate the deduct-then-ledger crash window: balance moved, no ledger row.
+    await testDb.drizzle
+      .update(creditAccounts)
+      .set({ balanceCents: 1234 })
+      .where(eq(creditAccounts.id, card.accountId));
+
+    const drift = await service.findBalanceLedgerDrift();
+    expect(drift).toHaveLength(1);
+    expect(drift[0]).toMatchObject({
+      accountId: card.accountId,
+      balanceCents: 1234,
+      ledgerSumCents: 1000,
+      driftCents: 234,
+    });
   });
 });

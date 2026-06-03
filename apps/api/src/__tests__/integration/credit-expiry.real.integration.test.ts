@@ -64,6 +64,7 @@ describe("credit expiry worker", () => {
       scanned: 1,
       expired: 1,
       totalExpiredCents: 5000,
+      driftAccounts: 0, // opening + expire entries net to the zeroed balance
     });
     expect((await service().getBalance(card.publicId)).balanceCents).toBe(0);
 

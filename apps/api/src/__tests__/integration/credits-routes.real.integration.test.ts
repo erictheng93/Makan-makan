@@ -190,3 +190,29 @@ describe("credits routes — online topup", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("credits routes — accounting export", () => {
+  it("returns the credit liability sub-ledger as CSV for an admin", async () => {
+    const card = await new CreditService(testApp.env).issueCard({
+      currency: "TWD",
+      initialBalanceCents: 5000,
+    });
+
+    const res = await call("/api/v1/credits/accounting/export", {
+      headers: await adminAuth(),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/csv");
+
+    const body = await res.text();
+    expect(body).toContain("account_code");
+    expect(body).toContain("2100");
+    expect(body).toContain("credits_liability");
+    expect(body).toContain(card.accountId); // the opening-balance entry
+  });
+
+  it("rejects export without admin auth", async () => {
+    const res = await call("/api/v1/credits/accounting/export");
+    expect([401, 403]).toContain(res.status);
+  });
+});
