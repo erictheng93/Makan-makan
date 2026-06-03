@@ -50,11 +50,25 @@ export class DiscoveryService {
   private db;
   private d1: D1Database;
 
+  /**
+   * @param sessionConstraint When set (e.g. "first-unconstrained" or a prior
+   *   bookmark), read queries run through a D1 Session so they can be served by
+   *   regional read replicas instead of always hitting the primary. Only the
+   *   read query builder (`this.db`) uses the session; `this.d1` stays on the
+   *   primary for the reindex write path. No-op until read replication is
+   *   enabled on the database in the Cloudflare dashboard.
+   *   Drizzle's d1 driver only calls prepare()/batch(), both of which a
+   *   D1DatabaseSession supports, so the cast below is safe at runtime.
+   */
   constructor(
     d1: D1Database,
     private kv: KVNamespace,
+    sessionConstraint?: string,
   ) {
-    this.db = drizzle(d1);
+    const readClient = sessionConstraint
+      ? (d1.withSession(sessionConstraint) as unknown as D1Database)
+      : d1;
+    this.db = drizzle(readClient);
     this.d1 = d1;
   }
 
@@ -169,6 +183,12 @@ export class DiscoveryService {
           ];
         });
       const searchCondition = or(
+        // FTS5 trigram substring match on dish_name/category/tags. Catches
+        // mid-string CJK matches that the prefix LIKE below misses (e.g.
+        // "牛肉麵" → "蕃茄牛肉麵"). Additive: it only widens recall, never
+        // removes the existing LIKE behavior. Trigram requires >= 3 chars, so
+        // 1-2 char queries fall through to LIKE only.
+        this.ftsMatchCondition(rawQuery),
         like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
         like(dishSearchIndex.tags, tagPattern),
         like(dishSearchIndex.categoryName, tagPattern),
@@ -1502,6 +1522,21 @@ export class DiscoveryService {
     return query.trim().toLowerCase().replace(/\s+/g, "");
   }
 
+  /**
+   * FTS5 trigram substring match against dish_search_fts, returning a condition
+   * that selects dish_search_index rows whose indexed text contains the query.
+   * Returns undefined for queries under 3 characters, which the trigram
+   * tokenizer cannot match (callers fall back to LIKE). The term is wrapped as
+   * an FTS5 string literal (doubling embedded quotes) so user input is treated
+   * as a phrase, not as FTS query operators.
+   */
+  private ftsMatchCondition(rawQuery: string): SQL | undefined {
+    const term = rawQuery.trim();
+    if ([...term].length < 3) return undefined;
+    const ftsTerm = `"${term.replace(/"/g, '""')}"`;
+    return sql`${dishSearchIndex.id} IN (SELECT rowid FROM dish_search_fts WHERE dish_search_fts MATCH ${ftsTerm})`;
+  }
+
   private restaurantDetailUrl(restaurantId: string): string {
     return `/api/v1/restaurants/${restaurantId}`;
   }
@@ -2171,4 +2206,19 @@ export class DiscoveryService {
   private sortOpenResultsFirst<T extends { isOpen: boolean }>(results: T[]) {
     return [...results].sort((a, b) => Number(b.isOpen) - Number(a.isOpen));
   }
+}
+
+/**
+ * Build a DiscoveryService for the public catalog read path, routing queries
+ * through a D1 Session so they can be served by regional read replicas.
+ * "first-unconstrained" lets the first query hit any replica — acceptable for
+ * public browsing where slight staleness is fine and clients don't write the
+ * catalog (no read-your-write requirement). No latency change until read
+ * replication is enabled on the D1 database in the Cloudflare dashboard.
+ */
+export function createDiscoveryRead(env: {
+  DB: D1Database;
+  CACHE_KV: KVNamespace;
+}): DiscoveryService {
+  return new DiscoveryService(env.DB, env.CACHE_KV, "first-unconstrained");
 }

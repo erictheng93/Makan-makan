@@ -7,7 +7,7 @@ import {
   validateQuery,
 } from "../../../middleware/validation";
 import type { Env } from "../../../shared/types";
-import { SearchIndexSyncService } from "../../discovery/services/SearchIndexSyncService";
+import { createSearchIndexSync } from "../../discovery/services/SearchIndexSyncService";
 import {
   addMarketVendorSchema,
   adminMarketJoinRequestsQuerySchema,
@@ -314,7 +314,7 @@ routes.post(
       );
     }
 
-    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const sync = createSearchIndexSync(c.env);
     await sync.onMarketMembershipChanged(result.membership.restaurantId);
 
     return c.json({
@@ -389,7 +389,7 @@ routes.put(
       );
     }
 
-    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const sync = createSearchIndexSync(c.env);
     await sync.onMarketChanged(id);
 
     return c.json({ success: true, data: { market } });
@@ -411,7 +411,7 @@ routes.delete("/:id", validateParams(marketIdParamSchema), async (c) => {
     );
   }
 
-  const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+  const sync = createSearchIndexSync(c.env);
   await sync.onMarketChanged(id);
 
   return c.json({ success: true, data: { deleted } });
@@ -455,7 +455,7 @@ routes.post(
       );
     }
 
-    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const sync = createSearchIndexSync(c.env);
     await sync.onMarketMembershipChanged(body.restaurantId);
 
     return c.json({ success: true, data: { membership } }, 201);
@@ -494,7 +494,7 @@ routes.put(
       isPrimary: body.isPrimary,
     });
 
-    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const sync = createSearchIndexSync(c.env);
     await sync.onMarketMembershipChanged(restaurantId);
 
     return c.json({ success: true, data: { membership } });
@@ -546,7 +546,7 @@ routes.post(
       });
     }
 
-    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const sync = createSearchIndexSync(c.env);
     const results = [];
     let createdRestaurants = 0;
     let attachedVendors = 0;
@@ -732,7 +732,7 @@ routes.delete(
     const removed = await service.removeVendor(id, restaurantId);
 
     if (removed) {
-      const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+      const sync = createSearchIndexSync(c.env);
       await sync.onMarketMembershipChanged(restaurantId);
     }
 

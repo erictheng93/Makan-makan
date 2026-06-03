@@ -26,7 +26,7 @@ import { menuSchemas } from "../schemas/validation";
 
 // Import services
 import { MenuService } from "../services/MenuService";
-import { SearchIndexSyncService } from "../../discovery/services/SearchIndexSyncService";
+import { createSearchIndexSync } from "../../discovery/services/SearchIndexSyncService";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -34,12 +34,12 @@ async function syncMenuItems(env: Env, menuItemIds: number[]): Promise<void> {
   const uniqueIds = [...new Set(menuItemIds)];
   if (uniqueIds.length === 0) return;
 
-  const sync = new SearchIndexSyncService(env.DB, env.CACHE_KV);
+  const sync = createSearchIndexSync(env);
   await Promise.all(uniqueIds.map((id) => sync.onMenuItemChanged(id)));
 }
 
 async function syncCategoryItems(env: Env, categoryId: number): Promise<void> {
-  const sync = new SearchIndexSyncService(env.DB, env.CACHE_KV);
+  const sync = createSearchIndexSync(env);
   await sync.onCategoryChanged(categoryId);
 }
 

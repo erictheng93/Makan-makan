@@ -82,6 +82,10 @@ export interface Env {
   IMAGES_BUCKET: R2Bucket;
   BACKUP_STORAGE: R2Bucket;
   JOB_QUEUE: Queue;
+  // Fan-out queue for search-index re-sync (market/category changes).
+  // Optional so the service falls back to inline processing when unbound
+  // (e.g. local tests). See SearchIndexSyncService.
+  SEARCH_SYNC_QUEUE?: Queue;
   REALTIME_ORDERS: DurableObjectNamespace;
 
   // Advanced Cloudflare bindings for 100/100 optimization
