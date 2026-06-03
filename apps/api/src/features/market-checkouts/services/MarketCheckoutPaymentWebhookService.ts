@@ -321,7 +321,7 @@ export class MarketCheckoutPaymentWebhookService {
       ? `${parseStripeTimestamp(stripeSignature)}.${rawBody}`
       : rawBody;
     const expected = await hmacSha256Hex(secret, signedPayload);
-    if (signature !== expected) {
+    if (!timingSafeEqual(signature, expected)) {
       throw new Error("Invalid webhook signature");
     }
   }
@@ -346,10 +346,23 @@ export class MarketCheckoutPaymentWebhookService {
       secret,
       `${secret}${rawBody}${nonce}`,
     );
-    if (signature !== expected) {
+    if (!timingSafeEqual(signature, expected)) {
       throw new Error("Invalid LINE Pay webhook signature");
     }
   }
+}
+
+/**
+ * Length-checked, constant-time string comparison. A plain `!==` returns as
+ * soon as two bytes differ, leaking the expected signature byte by byte.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 function eventIdFrom(payload: MarketCheckoutWebhookPayload, headers: Headers) {
