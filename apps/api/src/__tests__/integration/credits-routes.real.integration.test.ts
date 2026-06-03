@@ -154,3 +154,39 @@ describe("credits routes — topup idempotency", () => {
     expect((await service.getBalance(card.publicId)).balanceCents).toBe(1500);
   });
 });
+
+describe("credits routes — online topup", () => {
+  it("is public, validated, and reaches the service (no provider configured)", async () => {
+    const card = await new CreditService(testApp.env).issueCard({
+      currency: "TWD",
+    });
+    // No CREDIT_TOPUP_PROVIDER_URL in the test env → the service rejects with a
+    // configuration error, proving the public route is mounted and wired.
+    const res = await call(
+      `/api/v1/credits/cards/${card.publicId}/topup/online`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...CSRF_HEADERS },
+        body: JSON.stringify({ amountCents: 5000, currency: "TWD" }),
+      },
+    );
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { error: { code: string } };
+    expect(json.error.code).toBe("CREDIT_TOPUP_NOT_CONFIGURED");
+  });
+
+  it("validates the request body", async () => {
+    const card = await new CreditService(testApp.env).issueCard({
+      currency: "TWD",
+    });
+    const res = await call(
+      `/api/v1/credits/cards/${card.publicId}/topup/online`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...CSRF_HEADERS },
+        body: JSON.stringify({ amountCents: -1, currency: "TWD" }),
+      },
+    );
+    expect(res.status).toBe(400);
+  });
+});
