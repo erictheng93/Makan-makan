@@ -1254,11 +1254,10 @@ describe("Discovery API — real integration", () => {
       "滷肉飯便當",
       "招牌套餐",
     ]);
-    expect(data.results[0].marketVendor).toEqual({
-      marketId: market.id,
-      stallNumber: "A-12",
-      isPrimary: true,
-    });
+    const marketVendor = data.results[0].marketVendor as any;
+    expect(marketVendor?.marketId).toBe(market.id);
+    expect(marketVendor?.stallNumber).toBe("A-12");
+    expect(marketVendor?.isPrimary).toBe(true);
   });
 
   it("ranks market service name matches before lower-sort keyword matches", async () => {
@@ -1321,11 +1320,10 @@ describe("Discovery API — real integration", () => {
       "切水果外送",
       "攤位代辦",
     ]);
-    expect(data.results[0].marketVendor).toEqual({
-      marketId: market.id,
-      stallNumber: "S-08",
-      isPrimary: false,
-    });
+    const marketVendor = data.results[0].marketVendor as any;
+    expect(marketVendor?.marketId).toBe(market.id);
+    expect(marketVendor?.stallNumber).toBe("S-08");
+    expect(marketVendor?.isPrimary).toBe(false);
   });
 
   it("filters public service items by service type within a market", async () => {

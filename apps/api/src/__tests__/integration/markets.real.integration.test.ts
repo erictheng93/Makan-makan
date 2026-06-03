@@ -2683,10 +2683,11 @@ describe("Markets API — real integration", () => {
       },
       publicReadiness: {
         ready: false,
-        score: 71,
+        score: 63,
         completedCount: 5,
-        totalCount: 7,
+        totalCount: 8,
         issues: [
+          { key: "map", severity: "recommended" },
           { key: "products", severity: "required" },
           { key: "services", severity: "recommended" },
         ],
@@ -2925,10 +2926,11 @@ describe("Markets API — real integration", () => {
       skipped: 3,
       publicReadiness: {
         ready: false,
-        score: 71,
+        score: 63,
         completedCount: 5,
-        totalCount: 7,
+        totalCount: 8,
         issues: [
+          { key: "map", severity: "recommended" },
           { key: "products", severity: "required" },
           { key: "services", severity: "recommended" },
         ],
