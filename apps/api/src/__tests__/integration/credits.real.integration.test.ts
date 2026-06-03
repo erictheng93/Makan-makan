@@ -398,3 +398,87 @@ describe("CreditService — topup & refund", () => {
     expect((await service.getBalance(card.publicId)).balanceCents).toBe(1000);
   });
 });
+
+describe("CreditService — card management", () => {
+  it("sets a PIN that then authorises an above-threshold spend", async () => {
+    const service = makeService({ CREDIT_PIN_THRESHOLD_CENTS: "1000" });
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 5000,
+    });
+
+    await expect(
+      service.spend({
+        publicId: card.publicId,
+        amountCents: 2000,
+        currency: "TWD",
+        idempotencyKey: "no-pin",
+        sourceType: "market_checkout",
+      }),
+    ).rejects.toMatchObject({ code: "CREDIT_PIN_NOT_SET" });
+
+    await service.setPin(card.publicId, "4321");
+
+    await expect(
+      service.spend({
+        publicId: card.publicId,
+        amountCents: 2000,
+        currency: "TWD",
+        idempotencyKey: "with-pin",
+        sourceType: "market_checkout",
+        pin: "4321",
+      }),
+    ).resolves.toMatchObject({ balanceAfterCents: 3000 });
+  });
+
+  it("freezes a card so further spends are rejected", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 5000,
+    });
+
+    await service.setCardStatus(card.publicId, "frozen");
+    expect((await service.getBalance(card.publicId)).cardStatus).toBe("frozen");
+
+    await expect(
+      service.spend({
+        publicId: card.publicId,
+        amountCents: 100,
+        currency: "TWD",
+        idempotencyKey: "frozen-spend",
+        sourceType: "market_checkout",
+      }),
+    ).rejects.toMatchObject({ code: "CREDIT_CARD_INACTIVE" });
+  });
+
+  it("lists ledger entries newest-first with pagination", async () => {
+    const service = makeService();
+    const card = await service.issueCard({ currency: "TWD" });
+    await service.topup({
+      publicId: card.publicId,
+      amountCents: 1000,
+      currency: "TWD",
+      idempotencyKey: "lg-topup",
+      sourceType: "topup",
+    });
+    await service.spend({
+      publicId: card.publicId,
+      amountCents: 300,
+      currency: "TWD",
+      idempotencyKey: "lg-spend",
+      sourceType: "market_checkout",
+    });
+
+    const all = await service.listLedger(card.publicId);
+    expect(all.entries).toHaveLength(2);
+    expect(all.entries[0].entryType).toBe("spend"); // newest first
+
+    const page = await service.listLedger(card.publicId, {
+      limit: 1,
+      offset: 1,
+    });
+    expect(page.entries).toHaveLength(1);
+    expect(page.entries[0].entryType).toBe("topup");
+  });
+});

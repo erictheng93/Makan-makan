@@ -1,10 +1,11 @@
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   creditAccounts,
   creditCards,
   creditLedgerEntries,
+  type CreditCardStatus,
   type CreditEntryType,
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
@@ -362,6 +363,55 @@ export class CreditService {
       sourceId: input.sourceId,
       marketCheckoutPaymentId: input.marketCheckoutPaymentId,
     });
+  }
+
+  /** Set or reset the card PIN (admin action); clears retry count and lock. */
+  async setPin(publicId: string, newPin: string): Promise<void> {
+    const { card } = await this.loadCardAndAccount(publicId);
+    const secretHash = await bcrypt.hash(newPin, BCRYPT_COST);
+    await this.db
+      .update(creditCards)
+      .set({
+        secretHash,
+        pinRetryCount: 0,
+        lockedUntilMs: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(creditCards.id, card.id));
+  }
+
+  /** Freeze or mark a card lost. Balance stays on the account for reissue. */
+  async setCardStatus(
+    publicId: string,
+    status: CreditCardStatus,
+  ): Promise<void> {
+    const { card } = await this.loadCardAndAccount(publicId);
+    await this.db
+      .update(creditCards)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(creditCards.id, card.id));
+  }
+
+  /** Paginated ledger history for a card's account (newest first). */
+  async listLedger(
+    publicId: string,
+    options: { limit?: number; offset?: number } = {},
+  ): Promise<{
+    accountId: string;
+    entries: (typeof creditLedgerEntries.$inferSelect)[];
+  }> {
+    const { account } = await this.loadCardAndAccount(publicId);
+    const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+    const offset = Math.max(options.offset ?? 0, 0);
+    const entries = await this.db
+      .select()
+      .from(creditLedgerEntries)
+      .where(eq(creditLedgerEntries.accountId, account.id))
+      .orderBy(desc(creditLedgerEntries.createdAt))
+      .limit(limit)
+      .offset(offset)
+      .all();
+    return { accountId: account.id, entries };
   }
 
   // ---- internals -----------------------------------------------------------
