@@ -16,10 +16,13 @@ import {
   validateQuery,
 } from "../../../middleware/validation";
 import { CreditService } from "../services/CreditService";
+import { CreditTopupService } from "../services/CreditTopupService";
+import { CreditTopupWebhookService } from "../services/CreditTopupWebhookService";
 import {
   freezeSchema,
   issueCardSchema,
   ledgerQuerySchema,
+  onlineTopupSchema,
   publicIdParamSchema,
   setPinSchema,
   topupSchema,
@@ -67,6 +70,54 @@ app.post(
     return c.json({ success: true, data: result });
   },
 );
+
+// Start an online top-up (public, rate-limited). Creates a pending intent and
+// returns a provider next action; the balance is credited only on a verified
+// webhook (POST /topup-webhooks/:provider) — the client is never trusted.
+app.post(
+  "/cards/:publicId/topup/online",
+  rateLimitMiddleware({
+    windowMs: 60 * 1000,
+    maxRequests: 10,
+    keyPrefix: "credit_topup_online",
+    message: "Too many top-up attempts. Please try again later.",
+  }),
+  validateParams(publicIdParamSchema),
+  validateBody(onlineTopupSchema),
+  async (c) => {
+    const { publicId } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const result = await new CreditTopupService(c.env).createIntent({
+      publicId,
+      amountCents: body.amountCents,
+      currency: body.currency,
+    });
+    return c.json(
+      {
+        success: true,
+        data: {
+          intentId: result.intent.id,
+          status: result.intent.status,
+          amountCents: result.intent.amountCents,
+          currency: result.intent.currency,
+          providerTransactionId: result.intent.providerTransactionId,
+          nextAction: result.nextAction ?? null,
+        },
+      },
+      201,
+    );
+  },
+);
+
+// Provider top-up callback (signature-verified; credits on confirmed payment).
+app.post("/topup-webhooks/:provider", async (c) => {
+  const rawBody = await c.req.text();
+  const result = await new CreditTopupWebhookService(c.env).handle(
+    rawBody,
+    c.req.raw.headers,
+  );
+  return c.json({ success: true, data: result });
+});
 
 // Public balance lookup by card public id (rate-limited, no PII).
 app.get(

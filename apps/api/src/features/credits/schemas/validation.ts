@@ -32,6 +32,12 @@ export const topupSchema = z.object({
 });
 export type TopupBody = z.infer<typeof topupSchema>;
 
+export const onlineTopupSchema = z.object({
+  amountCents: z.number().int().positive().max(100_000_000),
+  currency: currencySchema,
+});
+export type OnlineTopupBody = z.infer<typeof onlineTopupSchema>;
+
 export const setPinSchema = z.object({ newPin: pinSchema });
 export type SetPinBody = z.infer<typeof setPinSchema>;
 
