@@ -436,7 +436,12 @@ export class CreditService {
    */
   async expireStaleAccounts(
     options: { nowMs?: number; limit?: number } = {},
-  ): Promise<{ scanned: number; expired: number; totalExpiredCents: number }> {
+  ): Promise<{
+    scanned: number;
+    expired: number;
+    totalExpiredCents: number;
+    failures: Array<{ accountId: string; error: string }>;
+  }> {
     const now = new Date(options.nowMs ?? Date.now());
     const limit = Math.min(Math.max(options.limit ?? 200, 1), 1000);
 
@@ -462,45 +467,54 @@ export class CreditService {
 
     let expired = 0;
     let totalExpiredCents = 0;
+    const failures: Array<{ accountId: string; error: string }> = [];
     for (const account of candidates) {
-      const zeroed = await this.db
-        .update(creditAccounts)
-        .set({
-          balanceCents: 0,
-          version: sql`${creditAccounts.version} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(creditAccounts.id, account.id),
-            eq(creditAccounts.version, account.version),
-            gt(creditAccounts.balanceCents, 0),
-          ),
-        )
-        .returning({ id: creditAccounts.id });
-      if (zeroed.length === 0) continue; // concurrent activity won
+      // Isolate each account so one bad row can't abort the rest of the batch.
+      try {
+        const zeroed = await this.db
+          .update(creditAccounts)
+          .set({
+            balanceCents: 0,
+            version: sql`${creditAccounts.version} + 1`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(creditAccounts.id, account.id),
+              eq(creditAccounts.version, account.version),
+              gt(creditAccounts.balanceCents, 0),
+            ),
+          )
+          .returning({ id: creditAccounts.id });
+        if (zeroed.length === 0) continue; // concurrent activity won
 
-      await this.db
-        .insert(creditLedgerEntries)
-        .values({
+        await this.db
+          .insert(creditLedgerEntries)
+          .values({
+            accountId: account.id,
+            entryType: "expire",
+            amountCents: -account.balanceCents,
+            balanceAfterCents: 0,
+            currency: account.currency,
+            sourceType: "expiry_job",
+            sourceId: account.id,
+            idempotencyKey: `credit-expire:${account.id}:${
+              account.expiresAtMs?.getTime() ?? now.getTime()
+            }`,
+          })
+          .onConflictDoNothing({ target: creditLedgerEntries.idempotencyKey });
+
+        expired += 1;
+        totalExpiredCents += account.balanceCents;
+      } catch (error) {
+        failures.push({
           accountId: account.id,
-          entryType: "expire",
-          amountCents: -account.balanceCents,
-          balanceAfterCents: 0,
-          currency: account.currency,
-          sourceType: "expiry_job",
-          sourceId: account.id,
-          idempotencyKey: `credit-expire:${account.id}:${
-            account.expiresAtMs?.getTime() ?? now.getTime()
-          }`,
-        })
-        .onConflictDoNothing({ target: creditLedgerEntries.idempotencyKey });
-
-      expired += 1;
-      totalExpiredCents += account.balanceCents;
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
-    return { scanned: candidates.length, expired, totalExpiredCents };
+    return { scanned: candidates.length, expired, totalExpiredCents, failures };
   }
 
   /** Credit ledger entries in a time range, oldest first — for the liability sub-ledger export. */
