@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNotNull, lt, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   creditAccounts,
@@ -412,6 +412,80 @@ export class CreditService {
       .offset(offset)
       .all();
     return { accountId: account.id, entries };
+  }
+
+  /**
+   * Zero out balances whose rolling expiry has lapsed (inactivity), recording
+   * an `expire` ledger entry per account. Batch job — run from cron. A
+   * concurrent spend/topup wins via the version guard (it also extends expiry).
+   */
+  async expireStaleAccounts(
+    options: { nowMs?: number; limit?: number } = {},
+  ): Promise<{ scanned: number; expired: number; totalExpiredCents: number }> {
+    const now = new Date(options.nowMs ?? Date.now());
+    const limit = Math.min(Math.max(options.limit ?? 200, 1), 1000);
+
+    const candidates = await this.db
+      .select({
+        id: creditAccounts.id,
+        balanceCents: creditAccounts.balanceCents,
+        version: creditAccounts.version,
+        currency: creditAccounts.currency,
+        expiresAtMs: creditAccounts.expiresAtMs,
+      })
+      .from(creditAccounts)
+      .where(
+        and(
+          eq(creditAccounts.status, "active"),
+          isNotNull(creditAccounts.expiresAtMs),
+          lt(creditAccounts.expiresAtMs, now),
+          gt(creditAccounts.balanceCents, 0),
+        ),
+      )
+      .limit(limit)
+      .all();
+
+    let expired = 0;
+    let totalExpiredCents = 0;
+    for (const account of candidates) {
+      const zeroed = await this.db
+        .update(creditAccounts)
+        .set({
+          balanceCents: 0,
+          version: sql`${creditAccounts.version} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(creditAccounts.id, account.id),
+            eq(creditAccounts.version, account.version),
+            gt(creditAccounts.balanceCents, 0),
+          ),
+        )
+        .returning({ id: creditAccounts.id });
+      if (zeroed.length === 0) continue; // concurrent activity won
+
+      await this.db
+        .insert(creditLedgerEntries)
+        .values({
+          accountId: account.id,
+          entryType: "expire",
+          amountCents: -account.balanceCents,
+          balanceAfterCents: 0,
+          currency: account.currency,
+          sourceType: "expiry_job",
+          sourceId: account.id,
+          idempotencyKey: `credit-expire:${account.id}:${
+            account.expiresAtMs?.getTime() ?? now.getTime()
+          }`,
+        })
+        .onConflictDoNothing({ target: creditLedgerEntries.idempotencyKey });
+
+      expired += 1;
+      totalExpiredCents += account.balanceCents;
+    }
+
+    return { scanned: candidates.length, expired, totalExpiredCents };
   }
 
   // ---- internals -----------------------------------------------------------
