@@ -118,8 +118,19 @@ async function readBodyForIdempotency(
   try {
     return await c.req.raw.clone().text();
   } catch (error) {
+    // The body may already be consumed by an upstream middleware (e.g. the
+    // global input-sanitization middleware calls c.req.json()). Different
+    // runtimes report this differently: undici → "unusable"/"disturbed",
+    // Workers → "locked"/"ReadableStream"/"Body has already been used". In all
+    // cases Hono's cached c.req.json() still returns the parsed body.
     const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes("ReadableStream") && !message.includes("locked")) {
+    const bodyAlreadyRead =
+      message.includes("ReadableStream") ||
+      message.includes("locked") ||
+      message.includes("unusable") ||
+      message.includes("disturbed") ||
+      message.includes("already been");
+    if (!bodyAlreadyRead) {
       throw error;
     }
 
