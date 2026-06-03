@@ -13,6 +13,12 @@ const POS_BASE = "https://test/api/v1/pos";
 const CUSTOMER_ORDERS_ENDPOINT = "https://test/api/v1/customers/me/orders";
 const CUSTOMER_AUTH_BASE = "https://test/api/v1/customer/auth";
 const DUMMY_UUID = "00000000-0000-4000-8000-000000000001";
+const CSRF_HEADERS = {
+  host: "test",
+  origin: "https://test",
+  cookie: `csrf_token=${"a".repeat(64)}`,
+  "x-csrf-token": "a".repeat(64),
+};
 
 describe("POS and customer role coverage", () => {
   let testApp: RealIntegrationTestApp;
@@ -30,6 +36,24 @@ describe("POS and customer role coverage", () => {
   beforeEach(async () => {
     await testApp.testDb.truncateAll();
   });
+
+  async function insertActiveSubscription(restaurantId: string) {
+    const now = Date.now();
+    await testApp.env.DB.prepare(
+      `INSERT INTO shop_subscriptions
+        (id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+         is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+       VALUES (?, ?, 'trial', '{}', 'managed', 1, ?, ?, ?)`,
+    )
+      .bind(
+        `sub-${restaurantId}`,
+        restaurantId,
+        now + 24 * 60 * 60 * 1000,
+        now,
+        now,
+      )
+      .run();
+  }
 
   it("allows role 4 (cashier) to read register status", async () => {
     const restaurant = await seed.restaurant();
@@ -79,6 +103,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/shifts/start`, {
         method: "POST",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
           "content-type": "application/json",
         },
@@ -99,6 +124,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/shifts/${shiftId}/end`, {
         method: "POST",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
           "content-type": "application/json",
         },
@@ -122,6 +148,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/shifts/start`, {
         method: "POST",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
           "content-type": "application/json",
         },
@@ -137,18 +164,15 @@ describe("POS and customer role coverage", () => {
     const shiftId = startShiftJson.data?.id as string;
 
     const movementsRes = await testApp.app.fetch(
-      new Request(
-        `${POS_BASE}/cash-movements/shifts/${shiftId}/cash-movements`,
-        {
-          headers: { authorization: `Bearer ${cashierToken}` },
-        },
-      ),
+      new Request(`${POS_BASE}/shifts/${shiftId}/cash-movements`, {
+        headers: { authorization: `Bearer ${cashierToken}` },
+      }),
     );
 
     expect(movementsRes.status).toBe(200);
     const movementsJson: any = await movementsRes.json();
     expect(movementsJson.success).toBe(true);
-    expect(Array.isArray(movementsJson.data)).toBe(true);
+    expect(Array.isArray(movementsJson.data?.movements)).toBe(true);
   });
 
   it("allows role 4 (cashier) to read refunds and receipts", async () => {
@@ -167,7 +191,7 @@ describe("POS and customer role coverage", () => {
     expect(refundsRes.status).toBe(200);
     const refundsJson: any = await refundsRes.json();
     expect(refundsJson.success).toBe(true);
-    expect(Array.isArray(refundsJson.data)).toBe(true);
+    expect(Array.isArray(refundsJson.data?.refunds)).toBe(true);
 
     const receiptsRes = await testApp.app.fetch(
       new Request(
@@ -178,11 +202,12 @@ describe("POS and customer role coverage", () => {
     expect(receiptsRes.status).toBe(200);
     const receiptsJson: any = await receiptsRes.json();
     expect(receiptsJson.success).toBe(true);
-    expect(Array.isArray(receiptsJson.data)).toBe(true);
+    expect(Array.isArray(receiptsJson.data?.receipts)).toBe(true);
   });
 
   it("denies role 4 (cashier) from creating registers", async () => {
     const restaurant = await seed.restaurant();
+    await insertActiveSubscription(String(restaurant.id));
     const cashier = await seed.user({
       username: "cashier-role4-create-deny",
       role: 4,
@@ -198,6 +223,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/registers`, {
         method: "POST",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
           "content-type": "application/json",
         },
@@ -225,6 +251,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/registers/${restaurantRegister.id}`, {
         method: "PUT",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
           "content-type": "application/json",
         },
@@ -242,6 +269,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/registers/${restaurantRegister.id}/activate`, {
         method: "POST",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
         },
       }),
@@ -255,6 +283,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/registers/${restaurantRegister.id}`, {
         method: "DELETE",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${cashierToken}`,
         },
       }),
@@ -307,6 +336,7 @@ describe("POS and customer role coverage", () => {
         new Request(`${POS_BASE}${path}`, {
           method,
           headers: {
+            ...CSRF_HEADERS,
             authorization: `Bearer ${cashierToken}`,
           },
         }),
@@ -397,6 +427,8 @@ describe("POS and customer role coverage", () => {
     cashierId: number;
     cashierToken: string;
   }> {
+    await insertActiveSubscription(String(restaurant.id));
+
     const owner = await seed.user({
       username: `${usernamePrefix}-owner`,
       role: 1,
@@ -411,6 +443,7 @@ describe("POS and customer role coverage", () => {
       new Request(`${POS_BASE}/registers`, {
         method: "POST",
         headers: {
+          ...CSRF_HEADERS,
           authorization: `Bearer ${ownerToken}`,
           "content-type": "application/json",
         },
