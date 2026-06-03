@@ -155,6 +155,9 @@ export interface Env {
   MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
+  // Stored-value credits (代幣): spends at or below this amount skip PIN ((b) 門檻式 PIN)
+  CREDIT_PIN_THRESHOLD_CENTS?: string;
+
   // AI and machine learning
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
