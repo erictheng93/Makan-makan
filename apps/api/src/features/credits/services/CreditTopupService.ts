@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   creditAccounts,
   creditCards,
@@ -248,21 +248,36 @@ export class CreditTopupService {
         "CREDIT_TOPUP_IDENTIFIER_REQUIRED",
       );
     }
-    const conditions = [
-      input.intentId ? eq(creditTopupIntents.id, input.intentId) : undefined,
-      input.providerTransactionId
-        ? eq(
-            creditTopupIntents.providerTransactionId,
-            input.providerTransactionId,
-          )
-        : undefined,
-    ].filter(Boolean) as ReturnType<typeof eq>[];
 
-    return this.db
+    // Resolve a UNIQUE row from one identifier — never OR across both, which
+    // could match a different intent than intended (webhook spoofing).
+    const where = input.intentId
+      ? eq(creditTopupIntents.id, input.intentId)
+      : eq(
+          creditTopupIntents.providerTransactionId,
+          input.providerTransactionId as string,
+        );
+    const row = await this.db
       .select()
       .from(creditTopupIntents)
-      .where(conditions.length === 1 ? conditions[0] : or(...conditions))
+      .where(where)
       .get();
+
+    // If both identifiers were supplied they must agree with the resolved row.
+    if (
+      row &&
+      input.intentId &&
+      input.providerTransactionId &&
+      row.providerTransactionId !== null &&
+      row.providerTransactionId !== input.providerTransactionId
+    ) {
+      throw badRequest(
+        "Top-up identifiers do not match",
+        "CREDIT_TOPUP_IDENTIFIER_MISMATCH",
+      );
+    }
+
+    return row;
   }
 }
 

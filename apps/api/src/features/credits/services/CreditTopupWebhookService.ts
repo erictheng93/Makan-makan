@@ -2,6 +2,10 @@ import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import { CreditTopupService, hmacSha256Hex } from "./CreditTopupService";
 
+// Reject callbacks whose signature timestamp is outside this skew, to bound the
+// replay window even if a valid signed payload is captured.
+const WEBHOOK_MAX_SKEW_MS = 5 * 60 * 1000;
+
 interface CreditTopupWebhookPayload {
   intentId?: string;
   intent_id?: string;
@@ -91,14 +95,39 @@ export class CreditTopupWebhookService {
     }
     const timestamp = headers.get("x-credit-topup-signature-timestamp") ?? "";
     const expected = await hmacSha256Hex(secret, `${timestamp}.${rawBody}`);
-    if (signature !== expected) {
+    // Constant-time compare — a fast-fail `!==` leaks the signature byte by byte.
+    if (!timingSafeEqualHex(signature, expected)) {
       throw new ApiError(
         "CREDIT_TOPUP_WEBHOOK_SIGNATURE_INVALID",
         "Invalid webhook signature",
         401,
       );
     }
+
+    // Bound the replay window: the timestamp is covered by the HMAC, so a forged
+    // value cannot pass the check above, but a captured-and-replayed payload can.
+    const signedAtMs = Date.parse(timestamp);
+    if (
+      !Number.isFinite(signedAtMs) ||
+      Math.abs(Date.now() - signedAtMs) > WEBHOOK_MAX_SKEW_MS
+    ) {
+      throw new ApiError(
+        "CREDIT_TOPUP_WEBHOOK_SIGNATURE_STALE",
+        "Webhook timestamp is missing or out of range",
+        401,
+      );
+    }
   }
+}
+
+/** Length-checked, constant-time hex string comparison. */
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 function stringValue(value: unknown): string | undefined {

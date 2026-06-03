@@ -161,8 +161,10 @@ describe("CreditTopupService — intent lifecycle", () => {
 });
 
 describe("CreditTopupWebhookService — signature + idempotency", () => {
-  async function signedHeaders(body: string): Promise<Headers> {
-    const timestamp = "2026-06-03T00:00:00.000Z";
+  async function signedHeaders(
+    body: string,
+    timestamp = new Date().toISOString(),
+  ): Promise<Headers> {
     const signature = await hmacSha256Hex(
       WEBHOOK_SECRET,
       `${timestamp}.${body}`,
@@ -209,6 +211,44 @@ describe("CreditTopupWebhookService — signature + idempotency", () => {
     await expect(
       new CreditTopupWebhookService(buildEnv()).handle(body, headers),
     ).rejects.toMatchObject({ code: "CREDIT_TOPUP_WEBHOOK_SIGNATURE_INVALID" });
+    expect(await balanceOf(card.publicId)).toBe(0);
+  });
+
+  it("rejects a stale (replayed) timestamp even with a valid signature", async () => {
+    const card = await issueCard();
+    const { intent } = await topupService().createIntent({
+      publicId: card.publicId,
+      amountCents: 8000,
+      currency: "TWD",
+    });
+
+    const body = JSON.stringify({ intentId: intent.id, status: "paid" });
+    const stale = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+    await expect(
+      new CreditTopupWebhookService(buildEnv()).handle(
+        body,
+        await signedHeaders(body, stale),
+      ),
+    ).rejects.toMatchObject({ code: "CREDIT_TOPUP_WEBHOOK_SIGNATURE_STALE" });
+    expect(await balanceOf(card.publicId)).toBe(0);
+  });
+
+  it("rejects mismatched intent / provider-transaction identifiers", async () => {
+    const card = await issueCard();
+    const { intent } = await topupService().createIntent({
+      publicId: card.publicId,
+      amountCents: 8000,
+      currency: "TWD",
+    });
+
+    await expect(
+      topupService().confirmIntent({
+        intentId: intent.id,
+        providerTransactionId: "ptxn-someone-else",
+        status: "paid",
+      }),
+    ).rejects.toMatchObject({ code: "CREDIT_TOPUP_IDENTIFIER_MISMATCH" });
     expect(await balanceOf(card.publicId)).toBe(0);
   });
 
