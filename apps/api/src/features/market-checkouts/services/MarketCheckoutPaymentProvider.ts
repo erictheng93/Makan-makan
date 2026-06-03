@@ -1,5 +1,6 @@
 import type { Env } from "../../../types/env";
 import { PaymentService } from "../../payments/services/PaymentService";
+import { CreditService } from "../../credits/services/CreditService";
 
 export type MarketCheckoutChildPaymentStatus = "paid" | "failed" | "refunded";
 export type MarketCheckoutSplitMode = "child_transactions" | "provider_split";
@@ -365,6 +366,81 @@ export class ProviderSplitMarketCheckoutPaymentProvider implements MarketCheckou
   }
 }
 
+function readProviderInputString(
+  providerInput: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = providerInput?.[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+/**
+ * Pays a market checkout in full from a stored-value credit (代幣) balance.
+ * Settlement is synchronous and atomic (no external gateway, webhook, or
+ * nextAction): the wallet deduction either covers the whole total or throws.
+ * Card credentials flow through `providerInput` (`creditCardPublicId`,
+ * optional `creditCardPin`).
+ */
+export class CreditBalanceMarketCheckoutPaymentProvider implements MarketCheckoutPaymentProvider {
+  constructor(
+    private readonly env: Env,
+    private readonly creditService = new CreditService(env),
+  ) {}
+
+  async process(
+    input: MarketCheckoutPaymentProviderInput,
+  ): Promise<MarketCheckoutPaymentProviderResult> {
+    const parentIdempotencyKey =
+      input.requestIdempotencyKey ?? `market-checkout:${input.checkoutId}`;
+    const publicId = readProviderInputString(
+      input.providerInput,
+      "creditCardPublicId",
+    );
+    if (!publicId) {
+      throw new Error("Credit card public id is required for credit payment");
+    }
+    const pin = readProviderInputString(input.providerInput, "creditCardPin");
+
+    const amountCents = input.childOrders.reduce(
+      (sum, child) => sum + Math.round(Number(child.totalAmount ?? 0) * 100),
+      0,
+    );
+
+    const result = await this.creditService.spend({
+      publicId,
+      amountCents,
+      currency: input.currency,
+      idempotencyKey: parentIdempotencyKey,
+      sourceType: "market_checkout",
+      sourceId: input.checkoutId,
+      pin,
+    });
+
+    return {
+      provider: "credit_balance",
+      splitMode: "provider_split",
+      idempotencyKey: parentIdempotencyKey,
+      paymentStatus: "paid",
+      providerTransactionId: result.ledgerEntryId,
+      childPayments: input.childOrders.map((child) => {
+        const childAmountCents = Math.round(
+          Number(child.totalAmount ?? 0) * 100,
+        );
+        return {
+          restaurantId: child.restaurantId,
+          restaurantName: child.restaurantName,
+          orderId: child.orderId,
+          orderNumber: child.orderNumber,
+          paymentId: `${result.ledgerEntryId}:${child.orderId}`,
+          status: "paid" as const,
+          amount: childAmountCents / 100,
+          amountCents: childAmountCents,
+        };
+      }),
+    };
+  }
+}
+
 class UnconfiguredProviderSplitGateway implements MarketCheckoutProviderSplitGateway {
   async process(): Promise<MarketCheckoutProviderSplitGatewayResult> {
     throw new Error("Market checkout provider split gateway is not configured");
@@ -422,7 +498,11 @@ export class HttpProviderSplitGateway implements MarketCheckoutProviderSplitGate
 
 export function createMarketCheckoutPaymentProvider(
   env: Env,
+  method?: string,
 ): MarketCheckoutPaymentProvider {
+  if (method === "credits") {
+    return new CreditBalanceMarketCheckoutPaymentProvider(env);
+  }
   const splitMode = env.MARKET_CHECKOUT_SPLIT_MODE;
   if (splitMode === "provider_split") {
     return new ProviderSplitMarketCheckoutPaymentProvider(
@@ -438,6 +518,43 @@ export function createMarketCheckoutPaymentProvider(
   }
 
   return new ChildTransactionMarketCheckoutPaymentProvider(env);
+}
+
+/**
+ * Refund a credit-funded market checkout by crediting the stored-value balance
+ * back. Returns the generic refund result shape so the route reuses the same
+ * downstream settlement/persistence logic as provider-split refunds.
+ */
+export async function refundCreditMarketCheckoutPayment(
+  env: Env,
+  input: {
+    spendIdempotencyKey: string;
+    refundIdempotencyKey: string;
+    amountCents: number;
+    currency: string;
+    checkoutId: string;
+    providerTransactionId?: string;
+  },
+  creditService = new CreditService(env),
+): Promise<MarketCheckoutProviderSplitRefundResult> {
+  const result = await creditService.refundByOriginalSpend({
+    spendIdempotencyKey: input.spendIdempotencyKey,
+    refundIdempotencyKey: input.refundIdempotencyKey,
+    amountCents: input.amountCents,
+    currency: input.currency,
+    sourceType: "market_checkout",
+    sourceId: input.checkoutId,
+  });
+
+  return {
+    provider: "credit_balance",
+    providerTransactionId: input.providerTransactionId,
+    refundId: result.ledgerEntryId,
+    status: "refunded",
+    refundedAmountCents: input.amountCents,
+    currency: input.currency,
+    eventType: "market_checkout.payment_refunded",
+  };
 }
 
 export function getMarketCheckoutPaymentProviderStatus(
