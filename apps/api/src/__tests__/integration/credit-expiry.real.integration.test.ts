@@ -11,7 +11,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@makanmakan/database/testing";
-import { creditLedgerEntries } from "@makanmakan/database";
+import { creditAccounts, creditLedgerEntries } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { CreditService } from "../../features/credits/services/CreditService";
@@ -117,5 +117,52 @@ describe("credit expiry worker", () => {
       (e) => e.entryType === "expire",
     );
     expect(expireEntries).toHaveLength(1);
+  });
+
+  it("drains more accounts than one batch (limit) holds", async () => {
+    for (let i = 0; i < 3; i++) {
+      await service().issueCard({ currency: "TWD", initialBalanceCents: 1000 });
+    }
+
+    // limit 1 forces multiple batches; the worker should drain all 3.
+    const result = await expireStaleCredits(env(), {
+      nowMs: Date.now() + TWO_YEARS_MS,
+      limit: 1,
+    });
+
+    expect(result.expired).toBe(3);
+    expect(result.capped).toBe(false);
+  });
+
+  it("reports capped when the batch cap is hit before draining", async () => {
+    for (let i = 0; i < 2; i++) {
+      await service().issueCard({ currency: "TWD", initialBalanceCents: 1000 });
+    }
+
+    const result = await expireStaleCredits(env(), {
+      nowMs: Date.now() + TWO_YEARS_MS,
+      limit: 1,
+      maxBatches: 1,
+    });
+
+    expect(result.expired).toBe(1); // only one batch ran
+    expect(result.capped).toBe(true);
+  });
+
+  it("surfaces balance/ledger drift in the result", async () => {
+    const card = await service().issueCard({
+      currency: "TWD",
+      initialBalanceCents: 1000,
+    });
+    // Simulate the crash window: balance moved without a ledger entry.
+    await testDb.drizzle
+      .update(creditAccounts)
+      .set({ balanceCents: 4242 })
+      .where(eq(creditAccounts.id, card.accountId));
+
+    // nowMs default → not lapsed, so nothing expires, but drift is detected.
+    const result = await expireStaleCredits(env());
+    expect(result.expired).toBe(0);
+    expect(result.driftAccounts).toBeGreaterThanOrEqual(1);
   });
 });
