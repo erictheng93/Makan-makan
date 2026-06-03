@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { and, desc, eq, gt, gte, isNotNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, lt, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   creditAccounts,
@@ -143,6 +143,21 @@ export class CreditService {
         secretHash,
       })
       .returning();
+
+    // Audit the opening balance as a ledger entry so the ledger is the complete
+    // source of truth (balance == sum(ledger)) — no un-audited money creation.
+    if ((input.initialBalanceCents ?? 0) > 0) {
+      await this.db.insert(creditLedgerEntries).values({
+        accountId: account.id,
+        entryType: "adjust",
+        amountCents: account.balanceCents,
+        balanceAfterCents: account.balanceCents,
+        currency: account.currency,
+        sourceType: "card_issue",
+        sourceId: card.id,
+        idempotencyKey: `credit-issue:${account.id}`,
+      });
+    }
 
     return {
       cardId: card.id,
@@ -486,6 +501,76 @@ export class CreditService {
     }
 
     return { scanned: candidates.length, expired, totalExpiredCents };
+  }
+
+  /** Credit ledger entries in a time range, oldest first — for the liability sub-ledger export. */
+  async listLedgerForExport(
+    options: { fromMs?: number; toMs?: number; limit?: number } = {},
+  ): Promise<(typeof creditLedgerEntries.$inferSelect)[]> {
+    const limit = Math.min(Math.max(options.limit ?? 5000, 1), 50000);
+    const conds = [
+      options.fromMs !== undefined
+        ? gte(creditLedgerEntries.createdAt, new Date(options.fromMs))
+        : undefined,
+      options.toMs !== undefined
+        ? lt(creditLedgerEntries.createdAt, new Date(options.toMs))
+        : undefined,
+    ].filter(Boolean) as ReturnType<typeof gte>[];
+
+    const order = asc(creditLedgerEntries.createdAt);
+    if (conds.length === 0) {
+      return this.db
+        .select()
+        .from(creditLedgerEntries)
+        .orderBy(order)
+        .limit(limit)
+        .all();
+    }
+    return this.db
+      .select()
+      .from(creditLedgerEntries)
+      .where(conds.length === 1 ? conds[0] : and(...conds))
+      .orderBy(order)
+      .limit(limit)
+      .all();
+  }
+
+  /**
+   * Integrity check: accounts whose materialized balance disagrees with the sum
+   * of their ledger entries. With opening balances audited, `balance == Σledger`
+   * is an invariant, so any drift flags the narrow deduct-then-ledger crash
+   * window (or a bug). Detection only — money is never auto-repaired.
+   */
+  async findBalanceLedgerDrift(options: { limit?: number } = {}): Promise<
+    Array<{
+      accountId: string;
+      balanceCents: number;
+      ledgerSumCents: number;
+      driftCents: number;
+    }>
+  > {
+    const limit = Math.min(Math.max(options.limit ?? 100, 1), 1000);
+    const rows = await this.db
+      .select({
+        accountId: creditAccounts.id,
+        balanceCents: creditAccounts.balanceCents,
+        ledgerSumCents: sql<number>`COALESCE(SUM(${creditLedgerEntries.amountCents}), 0)`,
+      })
+      .from(creditAccounts)
+      .leftJoin(
+        creditLedgerEntries,
+        eq(creditLedgerEntries.accountId, creditAccounts.id),
+      )
+      .groupBy(creditAccounts.id)
+      .having(
+        sql`${creditAccounts.balanceCents} != COALESCE(SUM(${creditLedgerEntries.amountCents}), 0)`,
+      )
+      .limit(limit)
+      .all();
+    return rows.map((r) => ({
+      ...r,
+      driftCents: r.balanceCents - r.ledgerSumCents,
+    }));
   }
 
   // ---- internals -----------------------------------------------------------

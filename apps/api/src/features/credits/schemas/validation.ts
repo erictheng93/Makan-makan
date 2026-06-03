@@ -51,3 +51,9 @@ export const ledgerQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 export type LedgerQuery = z.infer<typeof ledgerQuerySchema>;
+
+export const accountingExportQuerySchema = z.object({
+  from: z.coerce.number().int().nonnegative().optional(),
+  to: z.coerce.number().int().nonnegative().optional(),
+});
+export type AccountingExportQuery = z.infer<typeof accountingExportQuerySchema>;

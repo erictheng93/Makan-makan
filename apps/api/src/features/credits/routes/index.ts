@@ -19,6 +19,7 @@ import { CreditService } from "../services/CreditService";
 import { CreditTopupService } from "../services/CreditTopupService";
 import { CreditTopupWebhookService } from "../services/CreditTopupWebhookService";
 import {
+  accountingExportQuerySchema,
   freezeSchema,
   issueCardSchema,
   ledgerQuerySchema,
@@ -27,6 +28,7 @@ import {
   setPinSchema,
   topupSchema,
 } from "../schemas/validation";
+import type { creditLedgerEntries } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -190,4 +192,72 @@ app.get(
   },
 );
 
+// Credits liability (2100) sub-ledger CSV export (admin). NOTE: the spend/refund
+// *settlement* legs (vendor payable, platform fee) are journaled by the
+// market-checkout accounting export; this report is the liability-movement
+// detail (topup / spend / refund / expire / adjust) that reconciles to 2100.
+app.get(
+  "/accounting/export",
+  authMiddleware,
+  ADMIN_ONLY,
+  validateQuery(accountingExportQuerySchema),
+  async (c) => {
+    const { from, to } = c.get("validatedQuery");
+    const entries = await new CreditService(c.env).listLedgerForExport({
+      fromMs: from,
+      toMs: to,
+    });
+    return new Response(buildCreditLedgerCsv(entries), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition":
+          'attachment; filename="credit-liability-ledger.csv"',
+      },
+    });
+  },
+);
+
 export default app;
+
+const CREDIT_LIABILITY_ACCOUNT = { code: "2100", name: "credits_liability" };
+
+function buildCreditLedgerCsv(
+  entries: (typeof creditLedgerEntries.$inferSelect)[],
+): string {
+  const headers = [
+    "created_at_ms",
+    "account_id",
+    "entry_type",
+    "account_code",
+    "account_name",
+    "direction",
+    "amount_cents",
+    "currency",
+    "source_type",
+    "source_id",
+    "balance_after_cents",
+    "idempotency_key",
+  ];
+  const rows = entries.map((e) => [
+    e.createdAt instanceof Date ? e.createdAt.getTime() : e.createdAt,
+    e.accountId,
+    e.entryType,
+    CREDIT_LIABILITY_ACCOUNT.code,
+    CREDIT_LIABILITY_ACCOUNT.name,
+    // Liability increases (credit) on inflows, decreases (debit) on outflows.
+    e.amountCents >= 0 ? "credit" : "debit",
+    Math.abs(e.amountCents),
+    e.currency,
+    e.sourceType,
+    e.sourceId ?? "",
+    e.balanceAfterCents,
+    e.idempotencyKey,
+  ]);
+  return [headers, ...rows]
+    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
+    .join("\n");
+}
+
+function escapeCsvValue(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+}

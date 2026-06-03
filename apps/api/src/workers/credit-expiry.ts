@@ -12,6 +12,8 @@ export interface CreditExpiryWorkerResult {
   scanned: number;
   expired: number;
   totalExpiredCents: number;
+  /** Accounts whose balance disagrees with their ledger sum (should be 0). */
+  driftAccounts: number;
   durationMs: number;
 }
 
@@ -25,9 +27,24 @@ export async function expireStaleCredits(
   options: CreditExpiryWorkerOptions = {},
 ): Promise<CreditExpiryWorkerResult> {
   const startedAt = Date.now();
-  const result = await new CreditService(env).expireStaleAccounts({
+  const service = new CreditService(env);
+  const result = await service.expireStaleAccounts({
     nowMs: options.nowMs,
     limit: options.limit ?? DEFAULT_BATCH_LIMIT,
   });
-  return { ...result, durationMs: Date.now() - startedAt };
+
+  // Integrity sweep: surface any balance/ledger drift (the narrow crash window).
+  const drift = await service.findBalanceLedgerDrift({ limit: 100 });
+  if (drift.length > 0) {
+    console.warn(
+      "[CreditExpiry] balance/ledger drift detected",
+      drift.slice(0, 20),
+    );
+  }
+
+  return {
+    ...result,
+    driftAccounts: drift.length,
+    durationMs: Date.now() - startedAt,
+  };
 }
