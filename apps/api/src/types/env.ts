@@ -155,6 +155,14 @@ export interface Env {
   MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
+  // Stored-value credits (代幣): spends at or below this amount skip PIN ((b) 門檻式 PIN)
+  CREDIT_PIN_THRESHOLD_CENTS?: string;
+  // Online top-up (Phase 2) provider gateway + webhook verification
+  CREDIT_TOPUP_PROVIDER_URL?: string;
+  CREDIT_TOPUP_PROVIDER_TOKEN?: string;
+  CREDIT_TOPUP_PROVIDER_SIGNING_SECRET?: string;
+  CREDIT_TOPUP_WEBHOOK_SECRET?: string;
+
   // AI and machine learning
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;

@@ -107,6 +107,13 @@ export default {
         console.log("[Cron] Customer push pruning result:", result);
       }
 
+      if (event.cron === "0 4 * * *") {
+        console.log("[Cron] Running stored-value credit expiry...");
+        const { expireStaleCredits } = await import("./workers/credit-expiry");
+        const result = await expireStaleCredits(env);
+        console.log("[Cron] Credit expiry result:", result);
+      }
+
       if (event.cron === "15 2 * * *") {
         console.log("[Cron] Running billing cycle closer...");
         const { BillingCycleService, TrialReaperService } =

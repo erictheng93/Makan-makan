@@ -36,6 +36,7 @@ import {
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
   queryMarketCheckoutProviderSplitStatus,
+  refundCreditMarketCheckoutPayment,
   refundMarketCheckoutProviderSplitPayment,
   type MarketCheckoutProviderNextAction,
   type MarketCheckoutSplitMode,
@@ -556,11 +557,16 @@ app.post("/:id/pay", async (c) => {
   }
 
   const requestIdempotencyKey = c.req.header("Idempotency-Key");
-  const paymentProvider = createMarketCheckoutPaymentProvider(c.env);
+  const paymentProvider = createMarketCheckoutPaymentProvider(
+    c.env,
+    parsed.data.method,
+  );
   const providerSplitMode =
-    c.env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
+    parsed.data.method === "credits"
       ? "provider_split"
-      : "child_transactions";
+      : c.env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
+        ? "provider_split"
+        : "child_transactions";
   let providerResult;
   try {
     providerResult = await paymentProvider.process({
@@ -878,20 +884,27 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
       throw badRequest("Market checkout provider payment is not refundable");
     }
 
-    const providerRefund = await refundMarketCheckoutProviderSplitPayment(
-      c.env,
-      {
-        checkoutId,
-        paymentId: parentPayment.paymentId,
-        provider: parentPayment.provider,
-        providerTransactionId: parentPayment.providerTransactionId,
-        idempotencyKey: `${parentPayment.idempotencyKey}:refund`,
-        amountCents,
-        currency: session.payment.currency,
-        reason: parsed.data.reason,
-        allocations,
-      },
-    );
+    const providerRefund =
+      parentPayment.provider === "credit_balance"
+        ? await refundCreditMarketCheckoutPayment(c.env, {
+            spendIdempotencyKey: parentPayment.idempotencyKey,
+            refundIdempotencyKey: `${parentPayment.idempotencyKey}:refund`,
+            amountCents,
+            currency: session.payment.currency,
+            checkoutId,
+            providerTransactionId: parentPayment.providerTransactionId,
+          })
+        : await refundMarketCheckoutProviderSplitPayment(c.env, {
+            checkoutId,
+            paymentId: parentPayment.paymentId,
+            provider: parentPayment.provider,
+            providerTransactionId: parentPayment.providerTransactionId,
+            idempotencyKey: `${parentPayment.idempotencyKey}:refund`,
+            amountCents,
+            currency: session.payment.currency,
+            reason: parsed.data.reason,
+            allocations,
+          });
     const now = new Date().toISOString();
     const lastRefund: MarketCheckoutProviderLastWebhook = {
       provider: providerRefund.provider,
@@ -2475,12 +2488,18 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
           (childPayment) => childPayment.orderId === allocation.orderId,
         )?.paymentId ??
         session.id;
+      // Credit-funded checkouts draw down the stored-value liability (2100)
+      // instead of external payment clearing (1100).
+      const customerClearing =
+        payment.parentPayment?.provider === "credit_balance"
+          ? { code: "2100", name: "credits_liability" }
+          : { code: "1100", name: "payment_clearing" };
 
       if (netBeforeFeeCents > 0) {
         rows.push([
           ...base,
-          "1100",
-          "payment_clearing",
+          customerClearing.code,
+          customerClearing.name,
           "debit",
           netBeforeFeeCents,
           payment.currency,
@@ -2529,8 +2548,8 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
         ]);
         rows.push([
           ...base,
-          "1100",
-          "payment_clearing",
+          customerClearing.code,
+          customerClearing.name,
           "credit",
           allocation.refundedAmountCents,
           payment.currency,

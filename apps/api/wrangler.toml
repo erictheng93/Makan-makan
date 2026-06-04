@@ -257,7 +257,8 @@ crons = [
   "0 3 * * SUN",   # Weekly log cleanup (CF rejects DOW=0; use SUN or 7)
   "30 2 * * *",    # Daily forecast warmup
   "*/5 * * * *",   # Usage meter aggregation
-  "15 2 * * *"     # Billing lifecycle: cycle close, trial reaper, reminders
+  "15 2 * * *",    # Billing lifecycle: cycle close, trial reaper, reminders
+  "0 4 * * *"      # Stored-value credit expiry (breakage)
 ]
 
 # ========================================
