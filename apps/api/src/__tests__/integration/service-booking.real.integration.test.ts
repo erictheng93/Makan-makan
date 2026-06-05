@@ -630,7 +630,7 @@ describe("ServiceBookingService — production booking extensions", () => {
 });
 
 describe("ServiceBookingService — confirmation contact proof", () => {
-  it("keeps code-only lookup compatible and enforces required phone/email proof", async () => {
+  it("requires phone/email proof for confirmation-code lookup", async () => {
     const serviceId = await seedService({ priceCents: 0 });
     const booking = await service().createBooking({
       restaurantId: RESTAURANT_ID,
@@ -644,11 +644,11 @@ describe("ServiceBookingService — confirmation contact proof", () => {
 
     await expect(
       service().getByConfirmationCode(booking.confirmationCode),
-    ).resolves.toMatchObject({ id: booking.id });
+    ).rejects.toMatchObject({ code: "SERVICE_BOOKING_CONTACT_REQUIRED" });
 
     await expect(
       service().getByConfirmationCode(booking.confirmationCode, {
-        requireContact: true,
+        requireContact: false,
       }),
     ).rejects.toMatchObject({ code: "SERVICE_BOOKING_CONTACT_REQUIRED" });
 
@@ -729,6 +729,40 @@ describe("ServiceBookingService — employee assignment availability", () => {
     });
 
     expect(booking.employeeId).toBe(employeeId);
+  });
+
+  it("rejects an assigned employee whose existing booking overlaps the requested time", async () => {
+    const serviceId = await seedService({ durationMinutes: 60 });
+    const employeeId = await seedEmployee();
+    await seedEmployeeAvailability({
+      employeeId,
+      dayOfWeek: 5,
+      startTime: "09:00",
+      endTime: "17:00",
+      preferenceType: "available",
+    });
+
+    await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      employeeId,
+    });
+
+    await expect(
+      service().createBooking({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Other Guest",
+        customerPhone: "0944555666",
+        bookingDate: "2026-06-05",
+        bookingTime: "14:30",
+        employeeId,
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_EMPLOYEE_UNAVAILABLE" });
   });
 
   it("rejects an assigned employee with no matching availability", async () => {

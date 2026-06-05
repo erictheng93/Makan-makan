@@ -220,3 +220,96 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
     redeemSpy.mockRestore();
   });
 });
+
+describe("MarketCheckoutVoucherService.redeem", () => {
+  it("does not increment used_count when a concurrent duplicate insert loses the race", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const insertRun = vi.fn(async () => {
+        throw new Error("UNIQUE constraint failed: coupon_usage.coupon_id");
+      });
+      const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+      const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+      await service.redeem(appliedVoucherForRedeemRace());
+
+      expect(insertRun).toHaveBeenCalledTimes(2);
+      expect(couponUpdateRun).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("does not increment used_count when only a non-claim usage row wins the race", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const insertRun = vi
+        .fn()
+        .mockRejectedValueOnce(
+          new Error("UNIQUE constraint failed: coupon_usage.coupon_id"),
+        )
+        .mockResolvedValueOnce(undefined);
+      const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+      const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+      await service.redeem(appliedVoucherForRedeemRace());
+
+      expect(insertRun).toHaveBeenCalledTimes(2);
+      expect(couponUpdateRun).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+});
+
+function makeRedeemUnitService(
+  insertRun: ReturnType<typeof vi.fn>,
+  couponUpdateRun: ReturnType<typeof vi.fn>,
+) {
+  const service = Object.create(MarketCheckoutVoucherService.prototype) as {
+    db: {
+      select: ReturnType<typeof vi.fn>;
+      insert: ReturnType<typeof vi.fn>;
+    };
+    d1: {
+      prepare: ReturnType<typeof vi.fn>;
+    };
+    redeem: MarketCheckoutVoucherService["redeem"];
+  };
+  service.db = {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          all: vi.fn(async () => []),
+        })),
+      })),
+    })),
+    insert: vi.fn(() => ({
+      values: vi.fn(() => ({
+        run: insertRun,
+      })),
+    })),
+  };
+  service.d1 = {
+    prepare: vi.fn(() => ({
+      bind: vi.fn(() => ({
+        run: couponUpdateRun,
+      })),
+    })),
+  };
+  return service;
+}
+
+function appliedVoucherForRedeemRace() {
+  return {
+    couponId: 42,
+    code: "ASYNC10",
+    name: "ASYNC10",
+    fundedBy: "platform" as const,
+    discountCents: 2400,
+    allocations: [
+      { orderId: 1001, amountCents: 16000, discountCents: 1600 },
+      { orderId: 1002, amountCents: 8000, discountCents: 800 },
+    ],
+  };
+}

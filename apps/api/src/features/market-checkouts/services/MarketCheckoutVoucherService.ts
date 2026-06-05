@@ -276,22 +276,8 @@ export class MarketCheckoutVoucherService {
       return;
     }
 
-    if (existingOrderIds.size === 0) {
-      // First redemption of this checkout: claim one use. Best-effort guard —
-      // the payment already succeeded, so we honor the discount even if the
-      // limit was hit between apply and pay.
-      await this.d1
-        .prepare(
-          `UPDATE coupons
-              SET used_count = coalesce(used_count, 0) + 1,
-                  updated_at_ms = unixepoch('now') * 1000
-            WHERE id = ?
-              AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)`,
-        )
-        .bind(applied.couponId)
-        .run();
-    }
-
+    const claimOrderId = Math.min(...orderIds);
+    let insertedClaimUsage = false;
     for (const alloc of applied.allocations) {
       if (existingOrderIds.has(alloc.orderId)) continue;
       const finalCents = Math.max(0, alloc.amountCents - alloc.discountCents);
@@ -310,6 +296,9 @@ export class MarketCheckoutVoucherService {
             status: "active",
           })
           .run();
+        if (alloc.orderId === claimOrderId) {
+          insertedClaimUsage = true;
+        }
       } catch (error) {
         // Unique-index race (concurrent webhook + success path) — the row is
         // already there, so the redemption stays idempotent.
@@ -318,6 +307,21 @@ export class MarketCheckoutVoucherService {
           error,
         );
       }
+    }
+
+    if (existingOrderIds.size === 0 && insertedClaimUsage) {
+      // First successful redemption of this checkout: claim one use after at
+      // least the deterministic claim row won the unique-index race.
+      await this.d1
+        .prepare(
+          `UPDATE coupons
+              SET used_count = coalesce(used_count, 0) + 1,
+                  updated_at_ms = unixepoch('now') * 1000
+            WHERE id = ?
+              AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)`,
+        )
+        .bind(applied.couponId)
+        .run();
     }
   }
 

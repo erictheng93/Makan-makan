@@ -13,7 +13,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, isNull, lte } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 import {
   employeeAvailability,
   serviceBookings,
@@ -851,6 +851,55 @@ export class ServiceBookingService {
         "SERVICE_EMPLOYEE_UNAVAILABLE",
       );
     }
+
+    await this.assertEmployeeHasNoOverlappingBooking(input);
+  }
+
+  private async assertEmployeeHasNoOverlappingBooking(input: {
+    restaurantId: string;
+    employeeId: number;
+    bookingDate: string;
+    bookingTime: string;
+    durationMinutes: number;
+  }): Promise<void> {
+    const bookingEnd = addMinutesToTime(
+      input.bookingTime,
+      input.durationMinutes,
+    );
+    const activeBookings = await this.db
+      .select({
+        bookingTime: serviceBookings.bookingTime,
+        durationMinutesSnapshot: serviceBookings.durationMinutesSnapshot,
+      })
+      .from(serviceBookings)
+      .where(
+        and(
+          eq(serviceBookings.restaurantId, input.restaurantId),
+          eq(serviceBookings.employeeId, input.employeeId),
+          eq(serviceBookings.bookingDate, input.bookingDate),
+          inArray(serviceBookings.status, [
+            SERVICE_BOOKING_STATUS.PENDING,
+            SERVICE_BOOKING_STATUS.CONFIRMED,
+          ]),
+        ),
+      )
+      .all();
+
+    const overlaps = activeBookings.some((booking) => {
+      const existingEnd = addMinutesToTime(
+        booking.bookingTime,
+        booking.durationMinutesSnapshot ?? 0,
+      );
+      return (
+        input.bookingTime < existingEnd && booking.bookingTime < bookingEnd
+      );
+    });
+    if (overlaps) {
+      throw badRequest(
+        "The assigned employee is not available for this booking",
+        "SERVICE_EMPLOYEE_UNAVAILABLE",
+      );
+    }
   }
 
   private async markConfirmed(
@@ -1270,17 +1319,14 @@ function assertContactProof(
   booking: ServiceBookingRow,
   contactProof: ServiceBookingContactProof | undefined,
 ): void {
-  if (!contactProof) return;
-
-  const phone = normalizePhone(contactProof.customerPhone);
-  const email = normalizeEmail(contactProof.customerEmail);
-  if (contactProof.requireContact && !phone && !email) {
+  const phone = normalizePhone(contactProof?.customerPhone);
+  const email = normalizeEmail(contactProof?.customerEmail);
+  if (!phone && !email) {
     throw badRequest(
       "Booking phone or email is required",
       "SERVICE_BOOKING_CONTACT_REQUIRED",
     );
   }
-  if (!phone && !email) return;
 
   const phoneMatches =
     phone !== "" && normalizePhone(booking.customerPhone) === phone;
