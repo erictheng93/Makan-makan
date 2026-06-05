@@ -1363,6 +1363,7 @@ const viVN: Messages = {
     scheduling: "Lịch làm việc",
     leaves: "Quản lý nghỉ phép",
     reservations: "Quản lý đặt bàn",
+    serviceBookings: "Quản lý đặt dịch vụ",
     waitingList: "Quản lý hàng đợi",
     seatingManagement: "Quản lý chỗ ngồi",
     monitoring: "Giám sát hệ thống",

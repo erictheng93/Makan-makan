@@ -1364,6 +1364,7 @@ const jaJP: Messages = {
     scheduling: "シフト管理",
     leaves: "休暇管理",
     reservations: "予約管理",
+    serviceBookings: "サービス予約管理",
     waitingList: "待ち管理",
     seatingManagement: "座席管理",
     monitoring: "システム監視",

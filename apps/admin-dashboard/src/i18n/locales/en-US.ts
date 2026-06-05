@@ -1518,6 +1518,7 @@ const enUS: Messages = {
     scheduling: "Scheduling",
     leaves: "Leave Management",
     reservations: "Reservations",
+    serviceBookings: "Service Bookings",
     waitingList: "Waiting List",
     waitingManagement: "Waiting Management",
     seatingManagement: "Seating Management",

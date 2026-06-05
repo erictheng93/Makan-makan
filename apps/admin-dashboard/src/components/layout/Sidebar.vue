@@ -118,6 +118,7 @@ import {
   UserPlus,
   Crown,
   MessageSquare,
+  CalendarCheck,
 } from "lucide-vue-next";
 
 interface Props {
@@ -270,6 +271,18 @@ const navigationItems = computed(() => {
       path: "/dashboard/group-orders",
       label: t("nav.groupOrders"),
       icon: Users,
+      visible: authStore.hasPermission([
+        UserRole.ADMIN,
+        UserRole.OWNER,
+        UserRole.SERVICE,
+        UserRole.CASHIER,
+      ]),
+    },
+    {
+      name: "service-bookings",
+      path: "/dashboard/service-bookings",
+      label: "服務預約",
+      icon: CalendarCheck,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
         UserRole.OWNER,

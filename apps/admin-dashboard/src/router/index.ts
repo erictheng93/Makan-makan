@@ -275,6 +275,20 @@ const routes: RouteRecordRaw[] = [
           ],
         },
       },
+      {
+        path: "service-bookings",
+        name: "ServiceBookings",
+        component: () => import("@/views/ServiceBookingsView.vue"),
+        meta: {
+          titleKey: "pages.serviceBookings",
+          roles: [
+            UserRole.ADMIN,
+            UserRole.OWNER,
+            UserRole.SERVICE,
+            UserRole.CASHIER,
+          ],
+        },
+      },
       // Redirect old /queue path to unified seating management
       {
         path: "queue",
