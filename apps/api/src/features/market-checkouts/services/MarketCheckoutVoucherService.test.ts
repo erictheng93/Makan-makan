@@ -128,6 +128,7 @@ describe("market checkout stacked voucher helpers", () => {
     couponId: 1,
     code: "PLATFORM10",
     name: "Platform 10",
+    fundedBy: "platform" as const,
     discountCents: 1000,
     allocations: [
       { orderId: 1, amountCents: 6000, discountCents: 600 },
@@ -138,6 +139,7 @@ describe("market checkout stacked voucher helpers", () => {
     couponId: 2,
     code: "SHOP50",
     name: "Shop 50",
+    fundedBy: "vendor" as const,
     discountCents: 500,
     allocations: [{ orderId: 2, amountCents: 3600, discountCents: 500 }],
   };

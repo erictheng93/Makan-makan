@@ -778,7 +778,55 @@ describe("Market checkouts API - real integration", () => {
       status: "paid",
       totalAmountCents: 17500,
       paidAmountCents: 17500,
+      settlement: {
+        platformFeeRateBps: 350,
+        platformFeeCents: 683,
+        vendorNetAmountCents: 18817,
+        vendorAllocations: [
+          expect.objectContaining({
+            restaurantId: String(vendorA.id),
+            grossAmountCents: 10300,
+            originalAmountCents: 12000,
+            platformDiscountCents: 1200,
+            vendorDiscountCents: 500,
+            settlementBaseCents: 11500,
+            platformFeeCents: 403,
+            netAmountCents: 11097,
+          }),
+          expect.objectContaining({
+            restaurantId: String(vendorB.id),
+            grossAmountCents: 7200,
+            originalAmountCents: 8000,
+            platformDiscountCents: 800,
+            vendorDiscountCents: 0,
+            settlementBaseCents: 8000,
+            platformFeeCents: 280,
+            netAmountCents: 7720,
+          }),
+        ],
+      },
     });
+
+    const adminToken = await testApp.authHelper.adminToken(String(vendorA.id));
+    const accountingRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/admin/accounting/export?paymentStatus=paid`,
+        {
+          headers: { authorization: `Bearer ${adminToken}` },
+        },
+      ),
+    );
+    expect(accountingRes.status).toBe(200);
+    const accountingCsv = await accountingRes.text();
+    expect(accountingCsv).toContain("platform-funded voucher discount");
+    expect(accountingCsv).toContain(
+      ",5000,discounts_contra_revenue,debit,1200,",
+    );
+    expect(accountingCsv).toContain(
+      ",5000,discounts_contra_revenue,debit,800,",
+    );
+    expect(accountingCsv).toContain(",2200,vendor_payable,credit,11097,");
+    expect(accountingCsv).toContain(",2200,vendor_payable,credit,7720,");
 
     const platformUsage = await testApp.testDb.drizzle
       .select()

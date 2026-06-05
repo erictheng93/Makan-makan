@@ -184,6 +184,9 @@ interface MarketCheckoutVendorSettlement {
   vendorNetAmountCents: number;
   refundedPaymentCount: number;
   failedPaymentCount: number;
+  platformDiscountCents: number;
+  vendorDiscountCents: number;
+  settlementBaseCents: number;
 }
 
 interface MarketCheckoutSettlementSummary {
@@ -196,6 +199,10 @@ interface MarketCheckoutSettlementSummary {
     orderId: number;
     orderNumber: string;
     grossAmountCents: number;
+    originalAmountCents?: number;
+    platformDiscountCents?: number;
+    vendorDiscountCents?: number;
+    settlementBaseCents?: number;
     refundedAmountCents: number;
     platformFeeCents: number;
     netAmountCents: number;
@@ -739,10 +746,6 @@ app.post("/:id/pay", async (c) => {
         };
       })
     : session.childOrders;
-  const payableSession: MarketCheckoutSession = appliedVoucher
-    ? { ...session, childOrders: payableChildOrders }
-    : session;
-
   let providerResult;
   try {
     providerResult = await paymentProvider.process({
@@ -850,7 +853,7 @@ app.post("/:id/pay", async (c) => {
       nextAction: providerResult.nextAction,
       now,
     }),
-    settlement: buildMarketCheckoutSettlement(payableSession, paymentBase),
+    settlement: buildMarketCheckoutSettlement(session, paymentBase),
   };
 
   const updatedSession: MarketCheckoutSession = {
@@ -1845,17 +1848,28 @@ function buildMarketCheckoutSettlement(
   const platformFeeRateBps = clampPlatformFeeRateBps(
     session.market.platformFeeRateBps,
   );
+  const voucherDiscountsByOrderId = buildVoucherDiscountAttribution(session);
   const vendorAllocations = session.childOrders.map((child) => {
     const childPayment = paymentByOrderId.get(child.orderId);
-    const grossAmountCents =
-      childPayment?.status === "paid" || childPayment?.status === "refunded"
-        ? childPayment.amountCents
-        : 0;
+    const originalAmountCents = orderChildTotalCents(child);
+    const voucherDiscounts = voucherDiscountsByOrderId.get(child.orderId) ?? {
+      platformDiscountCents: 0,
+      vendorDiscountCents: 0,
+    };
+    const isSettled =
+      childPayment?.status === "paid" || childPayment?.status === "refunded";
+    const grossAmountCents = isSettled ? childPayment.amountCents : 0;
     const refundedAmountCents =
       childPayment?.status === "refunded" ? childPayment.amountCents : 0;
-    const netBeforeFeeCents = grossAmountCents - refundedAmountCents;
+    const settlementBaseCents =
+      childPayment?.status === "paid"
+        ? Math.max(
+            0,
+            originalAmountCents - voucherDiscounts.vendorDiscountCents,
+          )
+        : 0;
     const platformFeeCents = Math.round(
-      (netBeforeFeeCents * platformFeeRateBps) / 10000,
+      (settlementBaseCents * platformFeeRateBps) / 10000,
     );
 
     return {
@@ -1864,9 +1878,19 @@ function buildMarketCheckoutSettlement(
       orderId: child.orderId,
       orderNumber: child.orderNumber,
       grossAmountCents,
+      originalAmountCents,
+      platformDiscountCents:
+        childPayment?.status === "paid"
+          ? voucherDiscounts.platformDiscountCents
+          : 0,
+      vendorDiscountCents:
+        childPayment?.status === "paid"
+          ? voucherDiscounts.vendorDiscountCents
+          : 0,
+      settlementBaseCents,
       refundedAmountCents,
       platformFeeCents,
-      netAmountCents: netBeforeFeeCents - platformFeeCents,
+      netAmountCents: settlementBaseCents - platformFeeCents,
     };
   });
   const platformFeeCents = vendorAllocations.reduce(
@@ -1884,6 +1908,32 @@ function buildMarketCheckoutSettlement(
     vendorNetAmountCents,
     vendorAllocations,
   };
+}
+
+function buildVoucherDiscountAttribution(session: MarketCheckoutSession) {
+  const discountsByOrderId = new Map<
+    number,
+    { platformDiscountCents: number; vendorDiscountCents: number }
+  >();
+
+  for (const voucher of listAppliedMarketCheckoutVouchers(
+    session.appliedVoucher,
+  )) {
+    for (const alloc of voucher.allocations) {
+      const discounts = discountsByOrderId.get(alloc.orderId) ?? {
+        platformDiscountCents: 0,
+        vendorDiscountCents: 0,
+      };
+      if (voucher.fundedBy === "vendor") {
+        discounts.vendorDiscountCents += alloc.discountCents;
+      } else {
+        discounts.platformDiscountCents += alloc.discountCents;
+      }
+      discountsByOrderId.set(alloc.orderId, discounts);
+    }
+  }
+
+  return discountsByOrderId;
 }
 
 async function markMarketCheckoutVoucherRefunded(
@@ -2530,6 +2580,9 @@ function buildMarketCheckoutVendorSettlements(
         vendorNetAmountCents: 0,
         refundedPaymentCount: 0,
         failedPaymentCount: 0,
+        platformDiscountCents: 0,
+        vendorDiscountCents: 0,
+        settlementBaseCents: 0,
         checkoutIds: new Set<string>(),
       };
 
@@ -2542,6 +2595,10 @@ function buildMarketCheckoutVendorSettlements(
         settlement.refundedAmountCents += allocation.refundedAmountCents;
         settlement.platformFeeCents += allocation.platformFeeCents;
         settlement.vendorNetAmountCents += allocation.netAmountCents;
+        settlement.platformDiscountCents +=
+          allocation.platformDiscountCents ?? 0;
+        settlement.vendorDiscountCents += allocation.vendorDiscountCents ?? 0;
+        settlement.settlementBaseCents += allocation.settlementBaseCents ?? 0;
       } else if (payment?.status === "paid" || payment?.status === "refunded") {
         settlement.paidAmountCents += payment.amountCents;
         if (payment.status === "refunded") {
@@ -2655,6 +2712,9 @@ function buildMarketCheckoutVendorSettlementCsv(
     "paid_amount_cents",
     "refunded_amount_cents",
     "net_paid_amount_cents",
+    "platform_discount_cents",
+    "vendor_discount_cents",
+    "settlement_base_cents",
     "platform_fee_cents",
     "vendor_net_amount_cents",
     "refunded_payment_count",
@@ -2669,6 +2729,9 @@ function buildMarketCheckoutVendorSettlementCsv(
     vendor.paidAmountCents,
     vendor.refundedAmountCents,
     vendor.netPaidAmountCents,
+    vendor.platformDiscountCents,
+    vendor.vendorDiscountCents,
+    vendor.settlementBaseCents,
     vendor.platformFeeCents,
     vendor.vendorNetAmountCents,
     vendor.refundedPaymentCount,
@@ -2756,6 +2819,19 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
           "market_checkout_settlement",
           sourceId,
           "net paid amount before platform fee",
+        ]);
+      }
+      if ((allocation.platformDiscountCents ?? 0) > 0) {
+        rows.push([
+          ...base,
+          "5000",
+          "discounts_contra_revenue",
+          "debit",
+          allocation.platformDiscountCents ?? 0,
+          payment.currency,
+          "market_checkout_settlement",
+          sourceId,
+          "platform-funded voucher discount",
         ]);
       }
       if (allocation.netAmountCents > 0) {

@@ -37,6 +37,7 @@ export interface AppliedVoucher {
   code: string;
   name: string;
   restaurantId?: string | null;
+  fundedBy: "platform" | "vendor";
   /** Total discount, clamped to the subtotal. */
   discountCents: number;
   allocations: VoucherAllocation[];
@@ -238,6 +239,7 @@ export class MarketCheckoutVoucherService {
       code: coupon.code,
       name: coupon.name,
       restaurantId: coupon.restaurantId,
+      fundedBy: coupon.restaurantId == null ? "platform" : "vendor",
       discountCents,
       allocations: MarketCheckoutVoucherService.splitDiscount(
         discountCents,
@@ -346,8 +348,10 @@ export function listAppliedMarketCheckoutVouchers(
   applied: AppliedMarketCheckoutVoucher | null | undefined,
 ): AppliedVoucher[] {
   if (!applied) return [];
-  if (isAppliedVoucherBundle(applied)) return applied.vouchers;
-  return [applied];
+  if (isAppliedVoucherBundle(applied)) {
+    return applied.vouchers.map(normalizeAppliedVoucherFunding);
+  }
+  return [normalizeAppliedVoucherFunding(applied)];
 }
 
 export function combineAppliedMarketCheckoutVouchers(
@@ -394,6 +398,18 @@ function isAppliedVoucherBundle(
   applied: AppliedMarketCheckoutVoucher,
 ): applied is AppliedVoucherBundle {
   return Array.isArray((applied as AppliedVoucherBundle).vouchers);
+}
+
+function normalizeAppliedVoucherFunding(
+  voucher: AppliedVoucher,
+): AppliedVoucher {
+  if (voucher.fundedBy === "platform" || voucher.fundedBy === "vendor") {
+    return voucher;
+  }
+  return {
+    ...voucher,
+    fundedBy: voucher.restaurantId == null ? "platform" : "vendor",
+  };
 }
 
 export async function redeemCachedMarketCheckoutVoucher(
@@ -473,6 +489,12 @@ function readAppliedVoucherObject(value: unknown): AppliedVoucher | null {
     code: candidate.code,
     name: candidate.name,
     restaurantId: candidate.restaurantId,
+    fundedBy:
+      candidate.fundedBy === "platform" || candidate.fundedBy === "vendor"
+        ? candidate.fundedBy
+        : candidate.restaurantId == null
+          ? "platform"
+          : "vendor",
     discountCents: candidate.discountCents,
     allocations,
   };
