@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { D1Database } from "@cloudflare/workers-types";
 
-const MIGRATIONS_DIR = path.resolve(__dirname, "../../migrations_fresh");
+export const MIGRATIONS_DIR = path.resolve(__dirname, "../../migrations_fresh");
 
 export async function runMigrations(db: D1Database): Promise<void> {
   const label = `[runMigrations:${Date.now()}:${Math.random()

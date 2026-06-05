@@ -637,6 +637,7 @@ routes.post(
       const memberships =
         await marketsService.listRestaurantMemberships(restaurantId);
       if (
+        status === "attached" &&
         memberships.memberships.some((membership) => membership.marketId === id)
       ) {
         skipped += 1;
