@@ -20,6 +20,7 @@ import { fromCents, toCents } from "../../../shared/utils/money";
 
 export interface VoucherChildOrder {
   orderId: number;
+  restaurantId?: string;
   amountCents: number;
 }
 
@@ -35,10 +36,22 @@ export interface AppliedVoucher {
   couponId: number;
   code: string;
   name: string;
+  restaurantId?: string | null;
   /** Total discount, clamped to the subtotal. */
   discountCents: number;
   allocations: VoucherAllocation[];
 }
+
+export interface AppliedVoucherBundle {
+  vouchers: AppliedVoucher[];
+  /** Total discount across all stacked vouchers, clamped by child allocation. */
+  discountCents: number;
+  allocations: VoucherAllocation[];
+}
+
+export type AppliedMarketCheckoutVoucher =
+  | AppliedVoucher
+  | AppliedVoucherBundle;
 
 interface NormalizedCoupon {
   discountType: "percentage" | "fixed";
@@ -153,14 +166,22 @@ export class MarketCheckoutVoucherService {
       throw notFound("Voucher not found", "VOUCHER_NOT_FOUND");
     }
 
-    // MVP: market checkout accepts platform-wide vouchers only. A vendor-scoped
-    // coupon belongs to that shop's own order flow, not the multi-vendor basket.
-    if (coupon.restaurantId != null) {
+    const applicableChildOrders =
+      coupon.restaurantId == null
+        ? input.childOrders
+        : input.childOrders.filter(
+            (child) => child.restaurantId === coupon.restaurantId,
+          );
+    if (applicableChildOrders.length === 0) {
       throw badRequest(
-        "This voucher can only be used at its own shop, not the market checkout",
+        "This voucher can only be used at its own shop",
         "VOUCHER_NOT_APPLICABLE",
       );
     }
+    const applicableSubtotalCents = applicableChildOrders.reduce(
+      (sum, child) => sum + child.amountCents,
+      0,
+    );
 
     if (!coupon.isActive || !coupon.isVisible) {
       throw badRequest(
@@ -186,7 +207,7 @@ export class MarketCheckoutVoucherService {
 
     const minOrderCents =
       coupon.minOrderAmountCents ?? toCents(coupon.minOrderAmount) ?? 0;
-    if (input.subtotalCents < minOrderCents) {
+    if (applicableSubtotalCents < minOrderCents) {
       throw badRequest(
         `This voucher requires a minimum order of ${fromCents(minOrderCents)}`,
         "VOUCHER_MIN_ORDER_NOT_MET",
@@ -202,7 +223,7 @@ export class MarketCheckoutVoucherService {
         maxDiscountAmountCents:
           coupon.maxDiscountAmountCents ?? toCents(coupon.maxDiscountAmount),
       },
-      input.subtotalCents,
+      applicableSubtotalCents,
     );
 
     if (discountCents <= 0) {
@@ -216,10 +237,11 @@ export class MarketCheckoutVoucherService {
       couponId: coupon.id,
       code: coupon.code,
       name: coupon.name,
+      restaurantId: coupon.restaurantId,
       discountCents,
       allocations: MarketCheckoutVoucherService.splitDiscount(
         discountCents,
-        input.childOrders,
+        applicableChildOrders,
       ),
     };
   }
@@ -320,6 +342,60 @@ export class MarketCheckoutVoucherService {
   }
 }
 
+export function listAppliedMarketCheckoutVouchers(
+  applied: AppliedMarketCheckoutVoucher | null | undefined,
+): AppliedVoucher[] {
+  if (!applied) return [];
+  if (isAppliedVoucherBundle(applied)) return applied.vouchers;
+  return [applied];
+}
+
+export function combineAppliedMarketCheckoutVouchers(
+  vouchers: AppliedVoucher[],
+): AppliedMarketCheckoutVoucher | undefined {
+  if (vouchers.length === 0) return undefined;
+  if (vouchers.length === 1) return vouchers[0];
+
+  const allocationByOrderId = new Map<number, VoucherAllocation>();
+  for (const voucher of vouchers) {
+    for (const alloc of voucher.allocations) {
+      const existing = allocationByOrderId.get(alloc.orderId);
+      if (!existing) {
+        allocationByOrderId.set(alloc.orderId, { ...alloc });
+        continue;
+      }
+      existing.amountCents = Math.max(existing.amountCents, alloc.amountCents);
+      existing.discountCents += alloc.discountCents;
+    }
+  }
+
+  return {
+    vouchers,
+    discountCents: vouchers.reduce(
+      (sum, voucher) => sum + voucher.discountCents,
+      0,
+    ),
+    allocations: Array.from(allocationByOrderId.values()).sort(
+      (a, b) => a.orderId - b.orderId,
+    ),
+  };
+}
+
+export function totalAppliedVoucherDiscountCents(
+  applied: AppliedMarketCheckoutVoucher | null | undefined,
+): number {
+  return listAppliedMarketCheckoutVouchers(applied).reduce(
+    (sum, voucher) => sum + voucher.discountCents,
+    0,
+  );
+}
+
+function isAppliedVoucherBundle(
+  applied: AppliedMarketCheckoutVoucher,
+): applied is AppliedVoucherBundle {
+  return Array.isArray((applied as AppliedVoucherBundle).vouchers);
+}
+
 export async function redeemCachedMarketCheckoutVoucher(
   env: Env,
   checkoutId: string,
@@ -334,11 +410,14 @@ export async function redeemCachedMarketCheckoutVoucher(
     return;
   }
 
-  const appliedVoucher = readAppliedVoucher(session);
+  const appliedVoucher = readAppliedMarketCheckoutVoucher(session);
   if (!appliedVoucher) return;
 
   try {
-    await new MarketCheckoutVoucherService(env).redeem(appliedVoucher);
+    const service = new MarketCheckoutVoucherService(env);
+    for (const voucher of listAppliedMarketCheckoutVouchers(appliedVoucher)) {
+      await service.redeem(voucher);
+    }
   } catch (error) {
     console.error(
       `Voucher redemption failed for async market checkout ${checkoutId}:`,
@@ -347,12 +426,28 @@ export async function redeemCachedMarketCheckoutVoucher(
   }
 }
 
-function readAppliedVoucher(value: unknown): AppliedVoucher | null {
+function readAppliedMarketCheckoutVoucher(
+  value: unknown,
+): AppliedMarketCheckoutVoucher | null {
   if (!value || typeof value !== "object") return null;
   const appliedVoucher = (value as { appliedVoucher?: unknown }).appliedVoucher;
   if (!appliedVoucher || typeof appliedVoucher !== "object") return null;
 
-  const candidate = appliedVoucher as Partial<AppliedVoucher>;
+  const bundleCandidate = appliedVoucher as Partial<AppliedVoucherBundle>;
+  if (Array.isArray(bundleCandidate.vouchers)) {
+    const vouchers = bundleCandidate.vouchers
+      .map(readAppliedVoucherObject)
+      .filter((voucher): voucher is AppliedVoucher => voucher != null);
+    if (vouchers.length !== bundleCandidate.vouchers.length) return null;
+    return combineAppliedMarketCheckoutVouchers(vouchers) ?? null;
+  }
+
+  return readAppliedVoucherObject(appliedVoucher);
+}
+
+function readAppliedVoucherObject(value: unknown): AppliedVoucher | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<AppliedVoucher>;
   if (
     typeof candidate.couponId !== "number" ||
     typeof candidate.code !== "string" ||
@@ -377,6 +472,7 @@ function readAppliedVoucher(value: unknown): AppliedVoucher | null {
     couponId: candidate.couponId,
     code: candidate.code,
     name: candidate.name,
+    restaurantId: candidate.restaurantId,
     discountCents: candidate.discountCents,
     allocations,
   };

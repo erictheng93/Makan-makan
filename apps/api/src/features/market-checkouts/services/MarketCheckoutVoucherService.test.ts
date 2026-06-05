@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { MarketCheckoutVoucherService } from "./MarketCheckoutVoucherService";
+import {
+  MarketCheckoutVoucherService,
+  combineAppliedMarketCheckoutVouchers,
+  listAppliedMarketCheckoutVouchers,
+} from "./MarketCheckoutVoucherService";
 
 describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
   it("computes a percentage discount", () => {
@@ -116,5 +120,56 @@ describe("MarketCheckoutVoucherService.splitDiscount", () => {
       { orderId: 2, amountCents: 0 },
     ]);
     expect(allocations.every((a) => a.discountCents === 0)).toBe(true);
+  });
+});
+
+describe("market checkout stacked voucher helpers", () => {
+  const platformVoucher = {
+    couponId: 1,
+    code: "PLATFORM10",
+    name: "Platform 10",
+    discountCents: 1000,
+    allocations: [
+      { orderId: 1, amountCents: 6000, discountCents: 600 },
+      { orderId: 2, amountCents: 4000, discountCents: 400 },
+    ],
+  };
+  const vendorVoucher = {
+    couponId: 2,
+    code: "SHOP50",
+    name: "Shop 50",
+    discountCents: 500,
+    allocations: [{ orderId: 2, amountCents: 3600, discountCents: 500 }],
+  };
+
+  it("combines multiple vouchers into aggregate allocations", () => {
+    const bundle = combineAppliedMarketCheckoutVouchers([
+      platformVoucher,
+      vendorVoucher,
+    ]);
+
+    expect(bundle).toMatchObject({
+      discountCents: 1500,
+      vouchers: [platformVoucher, vendorVoucher],
+      allocations: [
+        { orderId: 1, amountCents: 6000, discountCents: 600 },
+        { orderId: 2, amountCents: 4000, discountCents: 900 },
+      ],
+    });
+  });
+
+  it("normalizes legacy single vouchers and stacked voucher bundles", () => {
+    expect(listAppliedMarketCheckoutVouchers(platformVoucher)).toEqual([
+      platformVoucher,
+    ]);
+
+    const bundle = combineAppliedMarketCheckoutVouchers([
+      platformVoucher,
+      vendorVoucher,
+    ]);
+    expect(listAppliedMarketCheckoutVouchers(bundle)).toEqual([
+      platformVoucher,
+      vendorVoucher,
+    ]);
   });
 });
