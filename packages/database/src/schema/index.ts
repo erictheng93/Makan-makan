@@ -8,6 +8,7 @@ export * from "./restaurant-service-items";
 export * from "./tables";
 export * from "./seats";
 export * from "./reservations";
+export * from "./service-bookings";
 export * from "./waiting-list";
 export * from "./orders";
 export * from "./order-items";
