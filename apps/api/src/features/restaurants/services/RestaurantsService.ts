@@ -8,7 +8,9 @@ import { asc, eq, isNull, and } from "drizzle-orm";
 import {
   RestaurantService as DatabaseRestaurantService,
   type RestaurantServiceType,
+  markets,
   restaurantFaqs,
+  restaurantMarketMemberships,
   restaurantServiceItems,
   restaurants,
 } from "@makanmakan/database";
@@ -25,6 +27,7 @@ import type {
   RestaurantFilters,
   RestaurantEvent,
 } from "../types";
+import { distanceKm, pointInGeoJsonBoundary } from "../../markets/services/geo";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
 
@@ -254,6 +257,8 @@ export class RestaurantsService {
       this.logger.debug("Creating restaurant", { name: data.name });
 
       const restaurant = await this.dbService.createRestaurant(data);
+
+      await this.attachNearestActiveMarketIfPresent(restaurant);
 
       // Auto-create a 30-day trial subscription for the new restaurant
       const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -605,6 +610,55 @@ export class RestaurantsService {
       .limit(1);
 
     return restaurant ?? null;
+  }
+
+  private async attachNearestActiveMarketIfPresent(
+    restaurant: Restaurant,
+  ): Promise<void> {
+    if (restaurant.latitude == null || restaurant.longitude == null) return;
+
+    const activeMarkets = await this.db
+      .select({
+        id: markets.id,
+        latitude: markets.latitude,
+        longitude: markets.longitude,
+        boundaryGeojson: markets.boundaryGeojson,
+      })
+      .from(markets)
+      .where(and(eq(markets.isActive, true), isNull(markets.deletedAt)))
+      .all();
+
+    const nearest = activeMarkets
+      .map((market) => {
+        const point = {
+          lat: restaurant.latitude as number,
+          lng: restaurant.longitude as number,
+        };
+        const containsPoint = pointInGeoJsonBoundary(
+          point,
+          market.boundaryGeojson,
+        );
+        return {
+          id: market.id,
+          distanceKm: containsPoint
+            ? 0
+            : distanceKm(point, {
+                lat: market.latitude,
+                lng: market.longitude,
+              }),
+        };
+      })
+      .sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
+    if (!nearest) return;
+
+    await this.db.insert(restaurantMarketMemberships).values({
+      restaurantId: restaurant.id,
+      marketId: nearest.id,
+      isPrimary: true,
+      joinedAt: new Date(),
+    });
+    await this.bumpMarketPublicCacheVersion();
   }
 
   private mapServiceItem(

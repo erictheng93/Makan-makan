@@ -221,6 +221,8 @@ const createRestaurantSchema = z.object({
     .optional(),
   website: z.string().url("Invalid website URL").optional(),
   businessHours: businessHoursSchema,
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   logoUrl: z.string().url("Invalid logo URL").optional(),
   bannerUrl: z.string().url("Invalid banner URL").optional(),
 });
