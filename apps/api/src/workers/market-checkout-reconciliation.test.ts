@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { reconcilePendingMarketCheckoutPayments } from "./market-checkout-reconciliation";
 import { mockMarketCheckoutProviderPaidStatusResponse } from "../features/market-checkouts/testing/mockMarketCheckoutProviderContract";
+import { MarketCheckoutVoucherService } from "../features/market-checkouts/services/MarketCheckoutVoucherService";
 
 function createEnv(rows: unknown[]) {
   const kv = new Map<string, string>();
@@ -39,6 +40,9 @@ function createEnv(rows: unknown[]) {
 
 describe("reconcilePendingMarketCheckoutPayments", () => {
   it("reconciles stale pending provider split payments through provider status lookup", async () => {
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockResolvedValueOnce();
     const staleUpdatedAt = Date.parse("2026-06-01T10:00:00.000Z");
     const env = createEnv([
       {
@@ -72,6 +76,23 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
         }),
       },
     ]);
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        id: "checkout-1",
+        payment: { status: "pending" },
+        appliedVoucher: {
+          couponId: 42,
+          code: "ASYNC10",
+          name: "ASYNC10",
+          discountCents: 2400,
+          allocations: [
+            { orderId: 1001, amountCents: 16000, discountCents: 1600 },
+            { orderId: 1002, amountCents: 8000, discountCents: 800 },
+          ],
+        },
+      }),
+    );
     const fetcher = vi.fn(
       async () =>
         new Response(
@@ -112,6 +133,17 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
     expect(env.DB.prepare).toHaveBeenCalledWith(
       expect.stringContaining("UPDATE market_checkout_payments"),
     );
+    expect(redeemSpy).toHaveBeenCalledWith({
+      couponId: 42,
+      code: "ASYNC10",
+      name: "ASYNC10",
+      discountCents: 2400,
+      allocations: [
+        { orderId: 1001, amountCents: 16000, discountCents: 1600 },
+        { orderId: 1002, amountCents: 8000, discountCents: 800 },
+      ],
+    });
+    redeemSpy.mockRestore();
   });
 
   it("reconciles stale pending provider split refunds through provider status lookup", async () => {

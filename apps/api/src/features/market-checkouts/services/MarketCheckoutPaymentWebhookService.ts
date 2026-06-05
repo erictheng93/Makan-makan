@@ -3,6 +3,7 @@ import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import { PaymentAuditService } from "../../billing/services/PaymentAuditService";
 import type { MarketCheckoutSplitMode } from "./MarketCheckoutPaymentProvider";
+import { redeemCachedMarketCheckoutVoucher } from "./MarketCheckoutVoucherService";
 
 const MARKET_CHECKOUT_INDEX_KEY = "market_checkout:index";
 
@@ -187,6 +188,9 @@ export class MarketCheckoutPaymentWebhookService {
       this.updateCachedSession(row.checkout_id, paymentSummary),
       this.updateCachedIndex(row.checkout_id, status),
     ]);
+    if (status === "paid") {
+      await redeemCachedMarketCheckoutVoucher(this.env, row.checkout_id);
+    }
 
     return {
       provider,

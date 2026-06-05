@@ -319,3 +319,65 @@ export class MarketCheckoutVoucherService {
       .run();
   }
 }
+
+export async function redeemCachedMarketCheckoutVoucher(
+  env: Env,
+  checkoutId: string,
+): Promise<void> {
+  const stored = await env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  if (!stored) return;
+
+  let session: unknown;
+  try {
+    session = JSON.parse(stored) as unknown;
+  } catch {
+    return;
+  }
+
+  const appliedVoucher = readAppliedVoucher(session);
+  if (!appliedVoucher) return;
+
+  try {
+    await new MarketCheckoutVoucherService(env).redeem(appliedVoucher);
+  } catch (error) {
+    console.error(
+      `Voucher redemption failed for async market checkout ${checkoutId}:`,
+      error,
+    );
+  }
+}
+
+function readAppliedVoucher(value: unknown): AppliedVoucher | null {
+  if (!value || typeof value !== "object") return null;
+  const appliedVoucher = (value as { appliedVoucher?: unknown }).appliedVoucher;
+  if (!appliedVoucher || typeof appliedVoucher !== "object") return null;
+
+  const candidate = appliedVoucher as Partial<AppliedVoucher>;
+  if (
+    typeof candidate.couponId !== "number" ||
+    typeof candidate.code !== "string" ||
+    typeof candidate.name !== "string" ||
+    typeof candidate.discountCents !== "number" ||
+    !Array.isArray(candidate.allocations)
+  ) {
+    return null;
+  }
+
+  const allocations = candidate.allocations.filter(
+    (alloc): alloc is VoucherAllocation =>
+      alloc != null &&
+      typeof alloc === "object" &&
+      typeof (alloc as VoucherAllocation).orderId === "number" &&
+      typeof (alloc as VoucherAllocation).amountCents === "number" &&
+      typeof (alloc as VoucherAllocation).discountCents === "number",
+  );
+  if (allocations.length !== candidate.allocations.length) return null;
+
+  return {
+    couponId: candidate.couponId,
+    code: candidate.code,
+    name: candidate.name,
+    discountCents: candidate.discountCents,
+    allocations,
+  };
+}

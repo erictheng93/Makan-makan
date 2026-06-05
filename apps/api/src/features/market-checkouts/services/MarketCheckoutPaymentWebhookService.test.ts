@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Env } from "../../../types/env";
 import { MarketCheckoutPaymentWebhookService } from "./MarketCheckoutPaymentWebhookService";
+import { MarketCheckoutVoucherService } from "./MarketCheckoutVoucherService";
 import {
   mockMarketCheckoutProviderPaidWebhookPayload,
   signMockMarketCheckoutWebhook,
@@ -116,6 +117,9 @@ async function linePaySignature(secret: string, rawBody: string) {
 
 describe("MarketCheckoutPaymentWebhookService", () => {
   it("reconciles a signed provider payment event into parent ledger and session summary", async () => {
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockResolvedValueOnce();
     const rawBody = JSON.stringify({
       id: "evt_1",
       type: "payment_intent.succeeded",
@@ -134,6 +138,16 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       cachedSession: {
         id: "checkout-1",
         payment: { status: "pending" },
+        appliedVoucher: {
+          couponId: 42,
+          code: "ASYNC10",
+          name: "ASYNC10",
+          discountCents: 1250,
+          allocations: [
+            { orderId: 1001, amountCents: 8000, discountCents: 800 },
+            { orderId: 1002, amountCents: 4500, discountCents: 450 },
+          ],
+        },
       },
       cachedIndex: [
         {
@@ -216,6 +230,17 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       expect.stringContaining('"paymentStatus":"paid"'),
       { expirationTtl: 14400 },
     );
+    expect(redeemSpy).toHaveBeenCalledWith({
+      couponId: 42,
+      code: "ASYNC10",
+      name: "ASYNC10",
+      discountCents: 1250,
+      allocations: [
+        { orderId: 1001, amountCents: 8000, discountCents: 800 },
+        { orderId: 1002, amountCents: 4500, discountCents: 450 },
+      ],
+    });
+    redeemSpy.mockRestore();
   });
 
   it("deduplicates provider events through payment audit log", async () => {
