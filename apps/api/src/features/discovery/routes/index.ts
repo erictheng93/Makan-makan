@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { validateQuery, validateParams } from "../../../middleware/validation";
-import { DiscoveryService } from "../services/DiscoveryService";
+import {
+  DiscoveryService,
+  createDiscoveryRead,
+} from "../services/DiscoveryService";
 import {
   dishCategoryQuerySchema,
   dishSearchQuerySchema,
@@ -16,6 +19,7 @@ const routes = new Hono<{ Bindings: Env }>();
 
 // GET /api/v1/discovery/index-status — admin only (role 0)
 routes.get("/index-status", authMiddleware, requireRole([0]), async (c) => {
+  // Admin freshness check → read from primary, not a replica.
   const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
 
   const result = await service.getIndexStatus();
@@ -26,7 +30,7 @@ routes.get("/index-status", authMiddleware, requireRole([0]), async (c) => {
 // GET /api/v1/discovery/search — public
 routes.get("/search", validateQuery(dishSearchQuerySchema), async (c) => {
   const query = c.get("validatedQuery");
-  const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+  const service = createDiscoveryRead(c.env);
 
   const results = await service.searchDishes(query);
 
@@ -36,7 +40,7 @@ routes.get("/search", validateQuery(dishSearchQuerySchema), async (c) => {
 // GET /api/v1/discovery/categories — public
 routes.get("/categories", validateQuery(dishCategoryQuerySchema), async (c) => {
   const query = c.get("validatedQuery");
-  const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+  const service = createDiscoveryRead(c.env);
 
   const data = await service.listDishCategories(query);
 
@@ -46,7 +50,7 @@ routes.get("/categories", validateQuery(dishCategoryQuerySchema), async (c) => {
 // GET /api/v1/discovery/services — public
 routes.get("/services", validateQuery(serviceSearchQuerySchema), async (c) => {
   const query = c.get("validatedQuery");
-  const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+  const service = createDiscoveryRead(c.env);
 
   const results = await service.searchServices(query);
 
@@ -59,7 +63,7 @@ routes.get(
   validateQuery(serviceTypeFacetQuerySchema),
   async (c) => {
     const query = c.get("validatedQuery");
-    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+    const service = createDiscoveryRead(c.env);
 
     const data = await service.listServiceTypes(query);
 
@@ -73,7 +77,7 @@ routes.get(
   validateQuery(restaurantBrowseQuerySchema),
   async (c) => {
     const query = c.get("validatedQuery");
-    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+    const service = createDiscoveryRead(c.env);
 
     const results = await service.browseRestaurants(query);
 
@@ -87,7 +91,7 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+    const service = createDiscoveryRead(c.env);
 
     const result = await service.getTakeawayEligibility(id);
 
@@ -101,7 +105,7 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+    const service = createDiscoveryRead(c.env);
 
     const data = await service.getRestaurantMarkets(id);
 
@@ -115,7 +119,7 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+    const service = createDiscoveryRead(c.env);
 
     const services = await service.getRestaurantServices(id);
 
@@ -129,7 +133,7 @@ routes.get(
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+    const service = createDiscoveryRead(c.env);
 
     const items = await service.getRestaurantMenu(id);
 
@@ -139,7 +143,7 @@ routes.get(
 
 // GET /api/v1/discovery/popular — public
 routes.get("/popular", async (c) => {
-  const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
+  const service = createDiscoveryRead(c.env);
 
   const results = await service.getPopular();
 
@@ -148,6 +152,7 @@ routes.get("/popular", async (c) => {
 
 // POST /api/v1/discovery/reindex — admin only (role 0)
 routes.post("/reindex", authMiddleware, requireRole([0]), async (c) => {
+  // Write-heavy rebuild → use primary directly.
   const service = new DiscoveryService(c.env.DB, c.env.CACHE_KV);
 
   const result = await service.reindex();

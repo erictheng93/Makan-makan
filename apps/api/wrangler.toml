@@ -85,6 +85,20 @@ name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
 script_name = "makanmasak-realtime"
 
+# Search-index fan-out queue (this worker is both producer and consumer).
+# Create once with: wrangler queues create makanmasak-search-sync-dev
+#                   wrangler queues create makanmasak-search-sync-dlq-dev
+[[queues.producers]]
+binding = "SEARCH_SYNC_QUEUE"
+queue = "makanmasak-search-sync-dev"
+
+[[queues.consumers]]
+queue = "makanmasak-search-sync-dev"
+max_batch_size = 25
+max_batch_timeout = 10
+max_retries = 3
+dead_letter_queue = "makanmasak-search-sync-dlq-dev"
+
 # === DEVELOPMENT ENVIRONMENT ===
 [env.development]
 name = "makanmasak-api-dev"
@@ -129,6 +143,17 @@ bucket_name = "makanmasak-backups-dev"
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
 script_name = "makanmasak-realtime"
+
+[[env.development.queues.producers]]
+binding = "SEARCH_SYNC_QUEUE"
+queue = "makanmasak-search-sync-dev"
+
+[[env.development.queues.consumers]]
+queue = "makanmasak-search-sync-dev"
+max_batch_size = 25
+max_batch_timeout = 10
+max_retries = 3
+dead_letter_queue = "makanmasak-search-sync-dlq-dev"
 
 # === STAGING ENVIRONMENT ===
 [env.staging]
@@ -182,6 +207,17 @@ name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
 script_name = "makanmasak-realtime-staging"
 
+[[env.staging.queues.producers]]
+binding = "SEARCH_SYNC_QUEUE"
+queue = "makanmasak-search-sync-staging"
+
+[[env.staging.queues.consumers]]
+queue = "makanmasak-search-sync-staging"
+max_batch_size = 25
+max_batch_timeout = 10
+max_retries = 3
+dead_letter_queue = "makanmasak-search-sync-dlq-staging"
+
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmasak-api-prod"
@@ -233,6 +269,17 @@ bucket_name = "makanmasak-backups-prod"
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
 script_name = "makanmasak-realtime-prod"
+
+[[env.production.queues.producers]]
+binding = "SEARCH_SYNC_QUEUE"
+queue = "makanmasak-search-sync-prod"
+
+[[env.production.queues.consumers]]
+queue = "makanmasak-search-sync-prod"
+max_batch_size = 25
+max_batch_timeout = 10
+max_retries = 3
+dead_letter_queue = "makanmasak-search-sync-dlq-prod"
 
 # Smart placement for production
 [env.production.placement]

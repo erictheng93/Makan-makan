@@ -42,7 +42,26 @@ export async function runMigrations(db: D1Database): Promise<void> {
 export async function listUserTables(db: D1Database): Promise<string[]> {
   const result = await db
     .prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__drizzle_migrations'`,
+      // Exclude FTS5 virtual tables (`CREATE VIRTUAL TABLE`) and their shadow
+      // tables (e.g. dish_search_fts_data / _idx / _docsize / _config) — neither
+      // can be DELETEd directly (FTS5 raises "table X may not be modified"), and
+      // they are derived search indexes, not user data.
+      //
+      // NOTE: shadow tables have a real `CREATE TABLE` sql (NOT NULL), so they
+      // can't be filtered by `sql IS NULL`. Instead exclude any table whose name
+      // is `<virtual table>_<suffix>`, which is how FTS5 names its shadows.
+      `SELECT name FROM sqlite_master AS m
+       WHERE m.type='table'
+         AND m.name NOT LIKE 'sqlite_%'
+         AND m.name != '__drizzle_migrations'
+         AND m.sql IS NOT NULL
+         AND m.sql NOT LIKE 'CREATE VIRTUAL TABLE%'
+         AND NOT EXISTS (
+           SELECT 1 FROM sqlite_master AS v
+           WHERE v.type='table'
+             AND v.sql LIKE 'CREATE VIRTUAL TABLE%'
+             AND m.name LIKE replace(v.name, '_', '\\_') || '\\_%' ESCAPE '\\'
+         )`,
     )
     .all<{ name: string }>();
   return (result.results ?? []).map((r) => r.name);

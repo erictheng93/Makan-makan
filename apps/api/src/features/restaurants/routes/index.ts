@@ -23,7 +23,7 @@ import { RestaurantsService } from "../services/RestaurantsService";
 import { restaurantSchemas } from "../schemas/validation";
 import { MarketsService } from "../../markets/services/MarketsService";
 import { createMarketJoinRequestSchema } from "../../markets/schemas/validation";
-import { SearchIndexSyncService } from "../../discovery/services/SearchIndexSyncService";
+import { createSearchIndexSync } from "../../discovery/services/SearchIndexSyncService";
 
 const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("RestaurantsRoutes");
@@ -577,7 +577,7 @@ app.put(
       throw notFound("Restaurant not found");
     }
 
-    const sync = new SearchIndexSyncService(c.env.DB, c.env.CACHE_KV);
+    const sync = createSearchIndexSync(c.env);
     await sync.onRestaurantChanged(id, {
       previousDistrict: previousRestaurant?.district,
     });
