@@ -44,6 +44,12 @@ const paySchema = z.object({
   pin: z.string().optional(),
 });
 
+const contactProofSchema = z.object({
+  requireContact: z.boolean().optional().default(false),
+  customerPhone: z.string().min(3).max(30).optional(),
+  customerEmail: z.string().email().optional(),
+});
+
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const timeSlotSchema = z.string().regex(/^\d{2}:\d{2}$/);
 
@@ -143,8 +149,24 @@ const verifyRateLimit = rateLimitMiddleware({
 });
 
 app.get("/verify/:code", verifyRateLimit, async (c) => {
+  const parsed = contactProofSchema.safeParse({
+    requireContact: parseBoolean(c.req.query("requireContact")),
+    customerPhone: c.req.query("customerPhone") ?? c.req.query("phone"),
+    customerEmail: c.req.query("customerEmail") ?? c.req.query("email"),
+  });
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
   const booking = await new ServiceBookingService(c.env).getByConfirmationCode(
     c.req.param("code") ?? "",
+    parsed.data,
   );
   if (!booking) throw notFound("Booking not found", "BOOKING_NOT_FOUND");
   return c.json({ success: true, data: { booking } });
@@ -153,9 +175,35 @@ app.get("/verify/:code", verifyRateLimit, async (c) => {
 // Public cancel proves ownership with the confirmation code (NOT the booking id,
 // which would be an IDOR). Rate-limited against code enumeration.
 app.post("/verify/:code/cancel", verifyRateLimit, async (c) => {
+  const body = await readJsonBody(c.req);
+  const parsed = contactProofSchema.safeParse({
+    requireContact:
+      parseBoolean(body.requireContact) ??
+      parseBoolean(c.req.query("requireContact")),
+    customerPhone:
+      stringValue(body.customerPhone) ??
+      stringValue(body.phone) ??
+      c.req.query("customerPhone") ??
+      c.req.query("phone"),
+    customerEmail:
+      stringValue(body.customerEmail) ??
+      stringValue(body.email) ??
+      c.req.query("customerEmail") ??
+      c.req.query("email"),
+  });
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
   const booking = await new ServiceBookingService(
     c.env,
-  ).cancelByConfirmationCode(c.req.param("code") ?? "");
+  ).cancelByConfirmationCode(c.req.param("code") ?? "", parsed.data);
   return c.json({ success: true, data: { booking } });
 });
 
@@ -176,6 +224,30 @@ function assertRestaurantScope(user: AuthUser, restaurantId: string): void {
   if (user.role !== 0 && restaurantId !== scoped) {
     throw forbidden("無權限操作此餐廳的預約");
   }
+}
+
+function parseBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+async function readJsonBody(req: {
+  json: () => Promise<unknown>;
+  header: (name: string) => string | undefined;
+}): Promise<Record<string, unknown>> {
+  if (!req.header("content-type")?.includes("application/json")) return {};
+  const body = await req.json().catch(() => ({}));
+  return body && typeof body === "object" && !Array.isArray(body)
+    ? (body as Record<string, unknown>)
+    : {};
 }
 
 async function loadBookingInScope(

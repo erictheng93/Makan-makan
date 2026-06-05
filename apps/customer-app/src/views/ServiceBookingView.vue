@@ -274,7 +274,7 @@
 
         <section class="mt-4 rounded-xl border border-gray-200 bg-white p-4">
           <h2 class="text-base font-semibold text-gray-900">查詢/取消預約</h2>
-          <div class="mt-3 flex gap-2">
+          <div class="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <input
               v-model="verifyCode"
               data-testid="service-booking-verify-code"
@@ -282,10 +282,17 @@
               class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
               placeholder="輸入確認碼"
             />
+            <input
+              v-model="verifyContact"
+              data-testid="service-booking-verify-contact"
+              type="text"
+              class="min-w-0 rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-start-1"
+              placeholder="預約電話或 Email（可選）"
+            />
             <button
               type="button"
               data-testid="service-booking-verify"
-              class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-semibold text-ios-blue"
+              class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-semibold text-ios-blue sm:col-start-2 sm:row-span-2 sm:row-start-1"
               @click="verifyBooking"
             >
               查詢
@@ -362,6 +369,7 @@ const selectedTime = ref("");
 const creditCardPublicId = ref("");
 const creditPin = ref("");
 const verifyCode = ref("");
+const verifyContact = ref("");
 
 const form = reactive({
   customerName: "",
@@ -447,6 +455,8 @@ async function createBooking() {
       voucherCode: form.voucherCode.trim() || undefined,
     });
     verifyCode.value = booking.value.confirmationCode;
+    verifyContact.value =
+      form.customerEmail.trim() || form.customerPhone.trim() || "";
     successMessage.value = "預約已建立，請保留確認碼。";
     await loadAvailability();
   } catch (error) {
@@ -487,6 +497,7 @@ async function verifyBooking() {
   try {
     verifiedBooking.value = await serviceBookingsApi.verify(
       verifyCode.value.trim(),
+      contactProofFromInput(),
     );
   } catch (error) {
     console.error("Verify service booking failed:", error);
@@ -502,6 +513,7 @@ async function cancelVerifiedBooking() {
   try {
     verifiedBooking.value = await serviceBookingsApi.cancelByCode(
       verifyCode.value.trim(),
+      contactProofFromInput(),
     );
     if (
       booking.value?.confirmationCode === verifiedBooking.value.confirmationCode
@@ -542,6 +554,14 @@ function statusLabel(status: ServiceBookingStatus): string {
     no_show: "未到",
   };
   return labels[status];
+}
+
+function contactProofFromInput() {
+  const value = verifyContact.value.trim();
+  if (!value) return undefined;
+  return value.includes("@")
+    ? { requireContact: true, customerEmail: value }
+    : { requireContact: true, customerPhone: value };
 }
 
 function serviceTypeLabel(type: RestaurantServiceItem["serviceType"]): string {

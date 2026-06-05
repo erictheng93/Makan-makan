@@ -28,6 +28,7 @@ import type { Env } from "../../../types/env";
 import {
   badRequest,
   conflict,
+  forbidden,
   notFound,
 } from "../../../shared/utils/api-error";
 import { toCents } from "../../../shared/utils/money";
@@ -75,6 +76,12 @@ export interface BatchCreateServiceBookingSlotsInput {
   timeSlots: string[];
   maxCapacity: number;
   isAvailable?: boolean;
+}
+
+export interface ServiceBookingContactProof {
+  requireContact?: boolean;
+  customerPhone?: string;
+  customerEmail?: string;
 }
 
 export class ServiceBookingService {
@@ -364,8 +371,11 @@ export class ServiceBookingService {
   }
 
   /** Public cancel — the confirmation code is the anonymous ownership proof. */
-  async cancelByConfirmationCode(code: string): Promise<ServiceBookingRow> {
-    const booking = await this.getByConfirmationCode(code);
+  async cancelByConfirmationCode(
+    code: string,
+    contactProof?: ServiceBookingContactProof,
+  ): Promise<ServiceBookingRow> {
+    const booking = await this.getByConfirmationCode(code, contactProof);
     if (!booking) throw notFound("Booking not found", "BOOKING_NOT_FOUND");
     return this.cancelBookingRow(booking);
   }
@@ -449,12 +459,18 @@ export class ServiceBookingService {
     return this.requireBooking(id);
   }
 
-  async getByConfirmationCode(code: string): Promise<ServiceBookingRow | null> {
+  async getByConfirmationCode(
+    code: string,
+    contactProof?: ServiceBookingContactProof,
+  ): Promise<ServiceBookingRow | null> {
     const booking = await this.db
       .select()
       .from(serviceBookings)
       .where(eq(serviceBookings.confirmationCode, code.toUpperCase()))
       .get();
+    if (booking) {
+      assertContactProof(booking, contactProof);
+    }
     return booking ?? null;
   }
 
@@ -737,6 +753,42 @@ function enumerateDates(start: string, end: string): string[] {
     dates.push(date.toISOString().slice(0, 10));
   }
   return dates;
+}
+
+function assertContactProof(
+  booking: ServiceBookingRow,
+  contactProof: ServiceBookingContactProof | undefined,
+): void {
+  if (!contactProof) return;
+
+  const phone = normalizePhone(contactProof.customerPhone);
+  const email = normalizeEmail(contactProof.customerEmail);
+  if (contactProof.requireContact && !phone && !email) {
+    throw badRequest(
+      "Booking phone or email is required",
+      "SERVICE_BOOKING_CONTACT_REQUIRED",
+    );
+  }
+  if (!phone && !email) return;
+
+  const phoneMatches =
+    phone !== "" && normalizePhone(booking.customerPhone) === phone;
+  const emailMatches =
+    email !== "" && normalizeEmail(booking.customerEmail) === email;
+  if (!phoneMatches && !emailMatches) {
+    throw forbidden(
+      "Booking contact does not match",
+      "SERVICE_BOOKING_CONTACT_MISMATCH",
+    );
+  }
+}
+
+function normalizePhone(value: string | null | undefined): string {
+  return (value ?? "").replace(/[^\d+]/g, "");
+}
+
+function normalizeEmail(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
 }
 
 // 16 bytes = 128 bits of entropy. The code doubles as the anonymous ownership

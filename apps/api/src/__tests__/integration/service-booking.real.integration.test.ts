@@ -422,3 +422,80 @@ describe("ServiceBookingService — payment & lifecycle", () => {
     expect(done.status).toBe("completed");
   });
 });
+
+describe("ServiceBookingService — confirmation contact proof", () => {
+  it("keeps code-only lookup compatible and enforces required phone/email proof", async () => {
+    const serviceId = await seedService({ priceCents: 0 });
+    const booking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      customerEmail: "Guest@Example.test",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+    });
+
+    await expect(
+      service().getByConfirmationCode(booking.confirmationCode),
+    ).resolves.toMatchObject({ id: booking.id });
+
+    await expect(
+      service().getByConfirmationCode(booking.confirmationCode, {
+        requireContact: true,
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_BOOKING_CONTACT_REQUIRED" });
+
+    await expect(
+      service().getByConfirmationCode(booking.confirmationCode, {
+        requireContact: true,
+        customerPhone: "0900000000",
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_BOOKING_CONTACT_MISMATCH" });
+
+    await expect(
+      service().getByConfirmationCode(booking.confirmationCode, {
+        requireContact: true,
+        customerPhone: "0911-222-333",
+      }),
+    ).resolves.toMatchObject({ id: booking.id });
+
+    await expect(
+      service().getByConfirmationCode(booking.confirmationCode, {
+        requireContact: true,
+        customerEmail: "guest@example.test",
+      }),
+    ).resolves.toMatchObject({ id: booking.id });
+  });
+
+  it("does not cancel when the supplied second factor is wrong", async () => {
+    const serviceId = await seedService({ priceCents: 0 });
+    const booking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      customerEmail: "guest@example.test",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+    });
+
+    await expect(
+      service().cancelByConfirmationCode(booking.confirmationCode, {
+        requireContact: true,
+        customerEmail: "other@example.test",
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_BOOKING_CONTACT_MISMATCH" });
+
+    await expect(service().getById(booking.id)).resolves.toMatchObject({
+      status: "pending",
+    });
+
+    await expect(
+      service().cancelByConfirmationCode(booking.confirmationCode, {
+        requireContact: true,
+        customerEmail: "GUEST@example.test",
+      }),
+    ).resolves.toMatchObject({ status: "cancelled" });
+  });
+});

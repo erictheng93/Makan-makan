@@ -181,7 +181,10 @@ describe("ServiceBookingView", () => {
       .trigger("click");
     await flushPromises();
 
-    expect(serviceBookingsApi.verify).toHaveBeenCalledWith("ABC123");
+    expect(serviceBookingsApi.verify).toHaveBeenCalledWith("ABC123", {
+      requireContact: true,
+      customerEmail: "guest@example.test",
+    });
     expect(
       wrapper.get('[data-testid="service-booking-verified"]').text(),
     ).toContain("已確認");
@@ -191,7 +194,10 @@ describe("ServiceBookingView", () => {
       .trigger("click");
     await flushPromises();
 
-    expect(serviceBookingsApi.cancelByCode).toHaveBeenCalledWith("ABC123");
+    expect(serviceBookingsApi.cancelByCode).toHaveBeenCalledWith("ABC123", {
+      requireContact: true,
+      customerEmail: "guest@example.test",
+    });
     expect(wrapper.text()).toContain("預約已取消");
   });
 });

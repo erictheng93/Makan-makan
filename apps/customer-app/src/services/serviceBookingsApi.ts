@@ -49,6 +49,12 @@ export interface CreateServiceBookingInput {
   voucherCode?: string;
 }
 
+export interface ServiceBookingContactProof {
+  requireContact?: boolean;
+  customerPhone?: string;
+  customerEmail?: string;
+}
+
 export const serviceBookingsApi = {
   async getAvailability(input: {
     serviceItemId: number;
@@ -85,16 +91,24 @@ export const serviceBookingsApi = {
     return response.booking;
   },
 
-  async verify(code: string): Promise<ServiceBooking> {
+  async verify(
+    code: string,
+    contactProof?: ServiceBookingContactProof,
+  ): Promise<ServiceBooking> {
     const response = await apiClient.get<{ booking: ServiceBooking }>(
       `/service-bookings/verify/${encodeURIComponent(code)}`,
+      contactProof,
     );
     return response.booking;
   },
 
-  async cancelByCode(code: string): Promise<ServiceBooking> {
+  async cancelByCode(
+    code: string,
+    contactProof?: ServiceBookingContactProof,
+  ): Promise<ServiceBooking> {
     const response = await apiClient.post<{ booking: ServiceBooking }>(
       `/service-bookings/verify/${encodeURIComponent(code)}/cancel`,
+      contactProof,
     );
     return response.booking;
   },
