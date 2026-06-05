@@ -17,6 +17,9 @@ const ACCESS_TOKEN_SECONDS = 15 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
+const OTP_CODE_SPACE = 1_000_000;
+const OTP_RANDOM_BOUNDARY = 4_294_000_000;
+type Uint32RandomValues = (values: Uint32Array) => Uint32Array;
 
 const phoneSchema = z
   .string()
@@ -999,9 +1002,22 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&amp;/g, "&");
 }
 
-function generateOtp(): string {
-  const value = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
-  return value.toString().padStart(6, "0");
+export function generateOtp(
+  getRandomValues: Uint32RandomValues = (values) =>
+    crypto.getRandomValues(values),
+): string {
+  const values = new Uint32Array(1);
+
+  while (true) {
+    getRandomValues(values);
+    const value = values[0];
+
+    if (value >= OTP_RANDOM_BOUNDARY) {
+      continue;
+    }
+
+    return (value % OTP_CODE_SPACE).toString().padStart(6, "0");
+  }
 }
 
 function parseJsonArray(value: unknown): string[] {
