@@ -986,15 +986,17 @@ function toRecentMarketSummary(row: unknown) {
 }
 
 function decodeHtmlEntities(value: string): string {
+  // Decode &amp; LAST so a literal `&amp;lt;` round-trips to `&lt;`, not `<`
+  // (decoding it first would re-expose escaped markup — a sanitizer bypass).
   return value
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&#x2F;/g, "/")
     .replace(/&#x60;/g, "`")
-    .replace(/&#x3D;/g, "=");
+    .replace(/&#x3D;/g, "=")
+    .replace(/&amp;/g, "&");
 }
 
 function generateOtp(): string {
