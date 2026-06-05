@@ -395,16 +395,15 @@
             {{ service.isOpen ? "目前營業中" : "目前未營業" }}
           </p>
           <div class="flex flex-wrap justify-end gap-2">
-            <a
-              v-if="service.bookingUrl"
-              :href="service.bookingUrl"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              v-if="service.requiresBooking"
+              type="button"
               data-testid="service-result-booking"
-              class="h-9 rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700"
+              class="h-9 rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
+              @click="openServiceBooking(service)"
             >
               直接預約
-            </a>
+            </button>
             <button
               type="button"
               data-testid="service-result-open"
@@ -438,6 +437,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import DishResultCard from "@/components/discovery/DishResultCard.vue";
 import { useCurrency } from "@/composables/useCurrency";
 import {
@@ -504,6 +504,7 @@ const emit = defineEmits<{
 }>();
 
 const { formatPrice } = useCurrency();
+const router = useRouter();
 const query = ref(props.initialQuery);
 const takeawayOnly = ref(props.initialTakeaway);
 const deliveryOnly = ref(props.initialDelivery);
@@ -957,6 +958,16 @@ function servicePriceLabel(service: ServiceSearchResult) {
     return formatPrice(service.priceCents / 100);
   }
   return "";
+}
+
+function openServiceBooking(service: ServiceSearchResult) {
+  router.push({
+    name: "ServiceBooking",
+    params: {
+      restaurantId: service.restaurantId,
+      serviceItemId: String(service.serviceItemId),
+    },
+  });
 }
 
 function distanceLabel(result: { distanceKm?: number }) {

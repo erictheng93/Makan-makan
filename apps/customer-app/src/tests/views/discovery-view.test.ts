@@ -370,7 +370,7 @@ describe("DiscoveryView", () => {
     });
   });
 
-  it("shows a direct booking link for service search results", async () => {
+  it("opens bookable service search results in the site booking flow", async () => {
     const store = discoveryStore({
       dishResults: [],
       serviceResults: [
@@ -398,15 +398,19 @@ describe("DiscoveryView", () => {
 
     const wrapper = mountView();
 
-    const bookingLink = wrapper.get<HTMLAnchorElement>(
+    const bookingButton = wrapper.get(
       '[data-testid="discovery-service-booking"]',
     );
-    expect(bookingLink.text()).toContain("直接預約");
-    expect(bookingLink.attributes("href")).toBe(
-      "https://booking.example/service-7",
-    );
-    expect(bookingLink.attributes("target")).toBe("_blank");
-    expect(bookingLink.attributes("rel")).toContain("noopener");
+    expect(bookingButton.text()).toContain("直接預約");
+    await bookingButton.trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ServiceBooking",
+      params: {
+        restaurantId: "service-restaurant-1",
+        serviceItemId: "7",
+      },
+    });
     expect(wrapper.get('[data-testid="select-service"]').text()).toContain(
       "查看服務",
     );
