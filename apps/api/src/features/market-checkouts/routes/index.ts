@@ -1130,6 +1130,11 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     );
     await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
     await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+    if (refundCompleted) {
+      await markMarketCheckoutVoucherRefunded(c.env, session, [
+        ...refundedOrderIds,
+      ]);
+    }
 
     return c.json({
       success: true,
@@ -1246,6 +1251,11 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   );
   await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
   await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+  await markMarketCheckoutVoucherRefunded(
+    c.env,
+    session,
+    refunds.map((refund) => refund.orderId),
+  );
 
   return c.json({
     success: true,
@@ -1833,6 +1843,27 @@ function buildMarketCheckoutSettlement(
     vendorNetAmountCents,
     vendorAllocations,
   };
+}
+
+async function markMarketCheckoutVoucherRefunded(
+  env: Env,
+  session: MarketCheckoutSession,
+  orderIds: number[],
+): Promise<void> {
+  const appliedVoucher = session.appliedVoucher;
+  if (!appliedVoucher || orderIds.length === 0) return;
+
+  try {
+    await new MarketCheckoutVoucherService(env).markRefunded({
+      couponId: appliedVoucher.couponId,
+      orderIds,
+    });
+  } catch (error) {
+    console.error(
+      `Voucher refund marking failed for market checkout ${session.id}:`,
+      error,
+    );
+  }
 }
 
 function buildMarketCheckoutParentPayment(input: {
