@@ -3034,6 +3034,9 @@ describe("market checkout routes", () => {
           paidAmountCents: number;
           refundedAmountCents: number;
           netPaidAmountCents: number;
+          platformDiscountCents: number;
+          vendorDiscountCents: number;
+          settlementBaseCents: number;
           platformFeeCents: number;
           vendorNetAmountCents: number;
           refundedPaymentCount: number;
@@ -3051,6 +3054,9 @@ describe("market checkout routes", () => {
         paidAmountCents: 24000,
         refundedAmountCents: 12000,
         netPaidAmountCents: 12000,
+        platformDiscountCents: 0,
+        vendorDiscountCents: 0,
+        settlementBaseCents: 0,
         platformFeeCents: 420,
         vendorNetAmountCents: 11580,
         refundedPaymentCount: 1,
@@ -3065,6 +3071,9 @@ describe("market checkout routes", () => {
         paidAmountCents: 8000,
         refundedAmountCents: 0,
         netPaidAmountCents: 8000,
+        platformDiscountCents: 0,
+        vendorDiscountCents: 0,
+        settlementBaseCents: 0,
         platformFeeCents: 280,
         vendorNetAmountCents: 7720,
         refundedPaymentCount: 0,
@@ -3190,7 +3199,7 @@ describe("market checkout routes", () => {
       "restaurant_id,restaurant_name,checkout_count,child_order_count",
     );
     expect(csv).toContain(
-      "restaurant-1,雞排攤,1,1,12000,12000,12000,0,0,0,1,0",
+      "restaurant-1,雞排攤,1,1,12000,12000,12000,0,0,0,0,0,0,1,0",
     );
     expect(csv).not.toContain("restaurant-9");
   });

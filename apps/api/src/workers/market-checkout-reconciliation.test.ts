@@ -138,6 +138,8 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
       code: "ASYNC10",
       name: "ASYNC10",
       discountCents: 2400,
+      fundedBy: "platform",
+      restaurantId: undefined,
       allocations: [
         { orderId: 1001, amountCents: 16000, discountCents: 1600 },
         { orderId: 1002, amountCents: 8000, discountCents: 800 },
