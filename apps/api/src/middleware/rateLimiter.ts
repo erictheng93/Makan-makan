@@ -15,6 +15,15 @@ export interface RateLimitConfig {
   message?: string; // Error message
 }
 
+interface RateLimitTenant {
+  tenantId?: string | null;
+}
+
+interface RateLimitUser {
+  id?: string | number | null;
+  restaurantId?: string | number | null;
+}
+
 export interface RateLimitResult {
   allowed: boolean;
   limit: number;
@@ -98,6 +107,42 @@ export function rateLimitMiddleware(config: RateLimitConfig) {
 
     if (!kv) {
       console.warn("CACHE_KV not available, skipping rate limiting");
+      return next();
+    }
+
+    const tenant = c.get("tenant" as never) as RateLimitTenant | undefined;
+    const user = c.get("user" as never) as RateLimitUser | undefined;
+
+    const tenantScopedKey =
+      tenant?.tenantId != null
+        ? `tenant:${tenant.tenantId}`
+        : user?.restaurantId != null
+          ? `tenant:${user.restaurantId}`
+          : user?.id != null
+            ? `user:${user.id}`
+            : undefined;
+
+    if (tenantScopedKey) {
+      const rateLimiter = new RateLimiter(kv, config);
+      const result = await rateLimiter.checkLimit(tenantScopedKey);
+
+      c.header("X-RateLimit-Limit", result.limit.toString());
+      c.header("X-RateLimit-Remaining", result.remaining.toString());
+      c.header("X-RateLimit-Reset", new Date(result.resetTime).toISOString());
+
+      if (!result.allowed) {
+        c.header("Retry-After", result.retryAfter!.toString());
+        return c.json(
+          {
+            success: false,
+            error:
+              config.message || "Too many requests. Please try again later.",
+            retryAfter: result.retryAfter,
+          },
+          429,
+        );
+      }
+
       return next();
     }
 

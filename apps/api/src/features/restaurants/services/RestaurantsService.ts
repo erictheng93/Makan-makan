@@ -260,26 +260,15 @@ export class RestaurantsService {
 
       await this.attachNearestActiveMarketIfPresent(restaurant);
 
-      // Auto-create a 30-day trial subscription for the new restaurant
-      const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      try {
-        await this.subscriptionService.create({
+      const subscription =
+        await this.subscriptionService.provisionDefaultForRestaurant({
           restaurantId: restaurant.id,
-          planTier: "trial",
-          trialEndsAt,
         });
-        this.logger.info("Trial subscription created", {
-          restaurantId: restaurant.id,
-          trialEndsAt,
-        });
-      } catch (subError) {
-        // Non-fatal — log and continue. Admin can create subscription manually.
-        this.logger.error(
-          "Failed to auto-create subscription (non-fatal)",
-          subError as Error,
-          { restaurantId: restaurant.id },
-        );
-      }
+      this.logger.info("Tenant subscription provisioned", {
+        restaurantId: restaurant.id,
+        planTier: subscription.planTier,
+        trialEndsAt: subscription.trialEndsAt,
+      });
 
       // Clear relevant caches
       await this.invalidateListCaches();

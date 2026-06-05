@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { markets, restaurantMarketMemberships } from "@makanmakan/database";
+import {
+  markets,
+  PLAN_QUOTAS,
+  restaurantMarketMemberships,
+  shopSubscriptions,
+} from "@makanmakan/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -117,5 +122,19 @@ describe("Restaurant onboarding — real integration", () => {
       marketId: nearest.id,
       isPrimary: true,
     });
+
+    const subscription = await testApp.testDb.drizzle
+      .select()
+      .from(shopSubscriptions)
+      .where(eq(shopSubscriptions.restaurantId, restaurantId))
+      .get();
+    expect(subscription).toMatchObject({
+      restaurantId,
+      planTier: "trial",
+      isActive: true,
+    });
+    expect(subscription?.trialEndsAt).toBeInstanceOf(Date);
+    expect(PLAN_QUOTAS.trial["orders.created"]?.hard).toBeGreaterThan(0);
+    expect(PLAN_QUOTAS.trial["api.requests"]?.hard).toBeGreaterThan(0);
   });
 });

@@ -6,7 +6,12 @@ import type { Env } from "../../types/env";
 type MeterContext<E extends { Bindings: Env } = { Bindings: Env }> = Context<E>;
 
 interface MeterUser {
+  role?: number | null;
   restaurantId?: string | number | null;
+}
+
+interface MeterTenant {
+  tenantId?: string | null;
 }
 
 export interface MeterEmitOptions {
@@ -48,9 +53,13 @@ export async function meterEmit<E extends { Bindings: Env }>(
   options: MeterEmitOptions = {},
 ): Promise<void> {
   const user = c.get("user" as never) as MeterUser | undefined;
+  const tenant = c.get("tenant" as never) as MeterTenant | undefined;
   const restaurantId =
     options.restaurantId ??
-    (user?.restaurantId == null ? undefined : String(user.restaurantId));
+    (tenant?.tenantId == null ? undefined : String(tenant.tenantId)) ??
+    (user?.role === 0 || user?.restaurantId == null
+      ? undefined
+      : String(user.restaurantId));
 
   if (!restaurantId) return;
 
