@@ -168,6 +168,9 @@ export interface Env {
   CREDIT_TOPUP_WEBHOOK_SECRET?: string;
 
   // AI and machine learning
+  AI?: unknown;
+  DISCOVERY_VECTORIZE?: unknown;
+  DISCOVERY_EMBEDDING_MODEL?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
 

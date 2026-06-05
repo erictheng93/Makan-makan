@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  vi,
+} from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -390,6 +398,65 @@ describe("Discovery API — real integration", () => {
     expect(data.results.length).toBe(10);
 
     expect(data.total).toBe(12);
+  });
+
+  it("uses semantic Vectorize recall when lexical search has no dish match", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Semantic Search Vendor",
+    });
+    const menuItem = await seed.menuItem(String(restaurant.id), {
+      isAvailable: true,
+      name: "Golden Curry Rice",
+      price: 130,
+    });
+    await seedSearchIndex(testApp, String(restaurant.id), [
+      {
+        menuItemId: menuItem.id,
+        name: "Golden Curry Rice",
+        price: 130,
+        tags: ["咖哩", "comfort"],
+      },
+    ]);
+
+    const originalAi = testApp.env.AI;
+    const originalVectorize = testApp.env.DISCOVERY_VECTORIZE;
+    const originalModel = testApp.env.DISCOVERY_EMBEDDING_MODEL;
+    const ai = {
+      run: vi.fn(async () => ({ data: [[0.2, 0.4, 0.6]] })),
+    };
+    const vectorize = {
+      query: vi.fn(async () => ({
+        matches: [{ id: `dish:${menuItem.id}`, score: 0.94 }],
+        count: 1,
+      })),
+    };
+
+    testApp.env.AI = ai;
+    testApp.env.DISCOVERY_VECTORIZE = vectorize;
+    testApp.env.DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3";
+
+    try {
+      const res = await testApp.app.fetch(
+        new Request(
+          "https://test/api/v1/discovery/search?q=warm+comfort+meal&limit=5",
+        ),
+      );
+
+      expect(res.status).toBe(200);
+      const json: any = await res.json();
+      expect(json.data.results.map((item: any) => item.menuItemId)).toContain(
+        menuItem.id,
+      );
+      expect(vectorize.query).toHaveBeenCalledWith([0.2, 0.4, 0.6], {
+        topK: 50,
+        namespace: "dishes",
+        returnMetadata: "indexed",
+      });
+    } finally {
+      testApp.env.AI = originalAi;
+      testApp.env.DISCOVERY_VECTORIZE = originalVectorize;
+      testApp.env.DISCOVERY_EMBEDDING_MODEL = originalModel;
+    }
   });
 
   it("returns openable store entrypoints from dish and service searches", async () => {
@@ -4123,6 +4190,67 @@ describe("Discovery API — real integration", () => {
     });
     expect(Number(json.data.version)).toBeGreaterThan(0);
     expect(Date.parse(json.data.lastReindexedAt)).not.toBeNaN();
+  });
+
+  it("upserts semantic dish vectors during admin reindex when bindings are configured", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Semantic Reindex Vendor",
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const menuItem = await seed.menuItem(String(restaurant.id), {
+      name: "Semantic Reindex Curry",
+      price: 120,
+      tags: ["咖哩", "語意"],
+      keywords: "咖哩 語意",
+    });
+
+    const originalAi = testApp.env.AI;
+    const originalVectorize = testApp.env.DISCOVERY_VECTORIZE;
+    const ai = {
+      run: vi.fn(async (_model: string, input: any) => {
+        const texts = Array.isArray(input.text) ? input.text : [input.text];
+        return {
+          data: texts.map(() => [0.3, 0.2, 0.1]),
+        };
+      }),
+    };
+    const vectorize = {
+      query: vi.fn(),
+      upsert: vi.fn(async () => ({ mutationId: "mutation-1" })),
+    };
+    testApp.env.AI = ai;
+    testApp.env.DISCOVERY_VECTORIZE = vectorize;
+
+    try {
+      const res = await testApp.app.fetch(
+        new Request("https://test/api/v1/discovery/reindex", {
+          method: "POST",
+          headers: withCsrf({
+            authorization: `Bearer ${adminToken}`,
+          }),
+        }),
+      );
+
+      expect(res.status).toBe(200);
+      const json: any = await res.json();
+      expect(json.data.semanticDishes).toBe(1);
+      expect(vectorize.upsert).toHaveBeenCalledWith([
+        expect.objectContaining({
+          id: `dish:${menuItem.id}`,
+          namespace: "dishes",
+          values: [0.3, 0.2, 0.1],
+          metadata: expect.objectContaining({
+            restaurantId: String(restaurant.id),
+            catalogType: "menu_item",
+          }),
+        }),
+      ]);
+    } finally {
+      testApp.env.AI = originalAi;
+      testApp.env.DISCOVERY_VECTORIZE = originalVectorize;
+    }
   });
 
   it("reports public menu items that have not entered the discovery index", async () => {
