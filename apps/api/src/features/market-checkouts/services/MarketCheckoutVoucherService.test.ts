@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   MarketCheckoutVoucherService,
   combineAppliedMarketCheckoutVouchers,
   listAppliedMarketCheckoutVouchers,
+  redeemCachedMarketCheckoutVoucher,
 } from "./MarketCheckoutVoucherService";
 
 describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
@@ -173,5 +174,49 @@ describe("market checkout stacked voucher helpers", () => {
       platformVoucher,
       vendorVoucher,
     ]);
+  });
+});
+
+describe("redeemCachedMarketCheckoutVoucher", () => {
+  it("redeems a persisted voucher when the cached checkout session has expired", async () => {
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockResolvedValueOnce();
+    const appliedVoucher = {
+      couponId: 42,
+      code: "ASYNC10",
+      name: "ASYNC10",
+      discountCents: 2400,
+      allocations: [
+        { orderId: 1001, amountCents: 16000, discountCents: 1600 },
+        { orderId: 1002, amountCents: 8000, discountCents: 800 },
+      ],
+    };
+    const env = {
+      CACHE_KV: {
+        get: vi.fn(async () => null),
+      },
+      DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            first: vi.fn(async () => ({
+              applied_voucher: JSON.stringify(appliedVoucher),
+            })),
+          })),
+        })),
+      },
+    };
+
+    await redeemCachedMarketCheckoutVoucher(env as never, "checkout-1");
+
+    expect(env.DB.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("SELECT applied_voucher"),
+    );
+    expect(redeemSpy).toHaveBeenCalledWith({
+      ...appliedVoucher,
+      fundedBy: "platform",
+      restaurantId: undefined,
+    });
+    redeemSpy.mockRestore();
   });
 });

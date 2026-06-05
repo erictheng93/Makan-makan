@@ -235,6 +235,8 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       code: "ASYNC10",
       name: "ASYNC10",
       discountCents: 1250,
+      fundedBy: "platform",
+      restaurantId: undefined,
       allocations: [
         { orderId: 1001, amountCents: 8000, discountCents: 800 },
         { orderId: 1002, amountCents: 4500, discountCents: 450 },

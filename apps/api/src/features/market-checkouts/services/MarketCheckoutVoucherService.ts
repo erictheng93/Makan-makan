@@ -416,17 +416,9 @@ export async function redeemCachedMarketCheckoutVoucher(
   env: Env,
   checkoutId: string,
 ): Promise<void> {
-  const stored = await env.CACHE_KV.get(`market_checkout:${checkoutId}`);
-  if (!stored) return;
-
-  let session: unknown;
-  try {
-    session = JSON.parse(stored) as unknown;
-  } catch {
-    return;
-  }
-
-  const appliedVoucher = readAppliedMarketCheckoutVoucher(session);
+  const appliedVoucher =
+    (await readCachedAppliedMarketCheckoutVoucher(env, checkoutId)) ??
+    (await readPersistedAppliedMarketCheckoutVoucher(env, checkoutId));
   if (!appliedVoucher) return;
 
   try {
@@ -439,6 +431,50 @@ export async function redeemCachedMarketCheckoutVoucher(
       `Voucher redemption failed for async market checkout ${checkoutId}:`,
       error,
     );
+  }
+}
+
+async function readCachedAppliedMarketCheckoutVoucher(
+  env: Env,
+  checkoutId: string,
+): Promise<AppliedMarketCheckoutVoucher | null> {
+  const stored = await env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  if (!stored) return null;
+
+  try {
+    return readAppliedMarketCheckoutVoucher(JSON.parse(stored) as unknown);
+  } catch {
+    return null;
+  }
+}
+
+async function readPersistedAppliedMarketCheckoutVoucher(
+  env: Env,
+  checkoutId: string,
+): Promise<AppliedMarketCheckoutVoucher | null> {
+  const row = await env.DB.prepare(
+    `SELECT applied_voucher
+       FROM market_checkout_sessions
+      WHERE id = ?
+      LIMIT 1`,
+  )
+    .bind(checkoutId)
+    .first<{ applied_voucher: string | Record<string, unknown> | null }>();
+  if (!row?.applied_voucher) return null;
+
+  const rawAppliedVoucher = row.applied_voucher;
+  const appliedVoucher =
+    typeof rawAppliedVoucher === "string"
+      ? safeJsonParse(rawAppliedVoucher)
+      : rawAppliedVoucher;
+  return readAppliedMarketCheckoutVoucher({ appliedVoucher });
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
   }
 }
 
