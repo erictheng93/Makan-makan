@@ -224,6 +224,91 @@ describe("ServiceBookingService — create", () => {
 });
 
 describe("ServiceBookingService — capacity", () => {
+  it("creates operator-managed slots that drive availability and blocking", async () => {
+    const serviceId = await seedService({});
+    const slot = await service().createSlot({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      date: "2026-06-05",
+      timeSlot: "14:00",
+      maxCapacity: 2,
+    });
+
+    expect(slot).toMatchObject({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      date: "2026-06-05",
+      timeSlot: "14:00",
+      maxCapacity: 2,
+      currentBookings: 0,
+      isAvailable: 1,
+    });
+    expect(
+      await service().getAvailability({
+        serviceItemId: serviceId,
+        date: "2026-06-05",
+      }),
+    ).toEqual([
+      {
+        timeSlot: "14:00",
+        remaining: 2,
+        isAvailable: true,
+      },
+    ]);
+
+    await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "First",
+      customerPhone: "0911000001",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+    });
+    expect(
+      await service().getAvailability({
+        serviceItemId: serviceId,
+        date: "2026-06-05",
+      }),
+    ).toEqual([
+      {
+        timeSlot: "14:00",
+        remaining: 1,
+        isAvailable: true,
+      },
+    ]);
+
+    await service().blockSlot({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      date: "2026-06-05",
+      timeSlot: "14:00",
+      blockReason: "Private event",
+    });
+    expect(
+      await service().getAvailability({
+        serviceItemId: serviceId,
+        date: "2026-06-05",
+      }),
+    ).toEqual([
+      {
+        timeSlot: "14:00",
+        remaining: 1,
+        isAvailable: false,
+      },
+    ]);
+
+    await expect(
+      service().createBooking({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Second",
+        customerPhone: "0911000002",
+        bookingDate: "2026-06-05",
+        bookingTime: "14:00",
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_SLOT_FULL" });
+  });
+
   it("reserves slot capacity and rejects an overbooked slot", async () => {
     const serviceId = await seedService({});
     await seedSlot(serviceId, "2026-06-05", "14:00", 1);

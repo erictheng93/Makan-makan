@@ -44,6 +44,37 @@ const paySchema = z.object({
   pin: z.string().optional(),
 });
 
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const timeSlotSchema = z.string().regex(/^\d{2}:\d{2}$/);
+
+const createSlotSchema = z.object({
+  restaurantId: z.string().min(1),
+  serviceItemId: z.number().int().positive(),
+  date: dateSchema,
+  timeSlot: timeSlotSchema,
+  maxCapacity: z.number().int().min(1).max(1000),
+  isAvailable: z.boolean().optional().default(true),
+  blockReason: z.string().max(300).optional(),
+});
+
+const batchCreateSlotsSchema = z.object({
+  restaurantId: z.string().min(1),
+  serviceItemId: z.number().int().positive(),
+  startDate: dateSchema,
+  endDate: dateSchema,
+  timeSlots: z.array(timeSlotSchema).min(1).max(96),
+  maxCapacity: z.number().int().min(1).max(1000),
+  isAvailable: z.boolean().optional().default(true),
+});
+
+const blockSlotSchema = z.object({
+  restaurantId: z.string().min(1),
+  serviceItemId: z.number().int().positive(),
+  date: dateSchema,
+  timeSlot: timeSlotSchema,
+  blockReason: z.string().max(300).optional(),
+});
+
 // ── Public ─────────────────────────────────────────────
 
 app.get("/availability", async (c) => {
@@ -140,6 +171,13 @@ function scopedRestaurantId(user: AuthUser): string | null {
   return user.restaurantId != null ? String(user.restaurantId) : null;
 }
 
+function assertRestaurantScope(user: AuthUser, restaurantId: string): void {
+  const scoped = scopedRestaurantId(user);
+  if (user.role !== 0 && restaurantId !== scoped) {
+    throw forbidden("無權限操作此餐廳的預約");
+  }
+}
+
 async function loadBookingInScope(
   service: ServiceBookingService,
   id: string,
@@ -153,6 +191,94 @@ async function loadBookingInScope(
 }
 
 // Owner(1)/admin(0)/cashier(4) manage; service crew(3) can confirm/complete.
+app.get("/slots", requireRole([0, 1]), async (c) => {
+  const user = c.get("user");
+  const requested = c.req.query("restaurantId") ?? "";
+  const restaurantId = user.role === 0 ? requested : scopedRestaurantId(user);
+  if (!restaurantId) {
+    throw badRequest("restaurantId is required", "RESTAURANT_ID_REQUIRED");
+  }
+  if (requested) assertRestaurantScope(user, requested);
+
+  const serviceItemId = c.req.query("serviceItemId")
+    ? Number(c.req.query("serviceItemId"))
+    : undefined;
+  if (
+    serviceItemId !== undefined &&
+    (!Number.isInteger(serviceItemId) || serviceItemId <= 0)
+  ) {
+    throw badRequest("serviceItemId must be a positive integer");
+  }
+
+  const date = c.req.query("date") ?? undefined;
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw badRequest("date must use YYYY-MM-DD", "DATE_REQUIRED");
+  }
+
+  const slots = await new ServiceBookingService(c.env).listSlots({
+    restaurantId,
+    serviceItemId,
+    date,
+  });
+  return c.json({ success: true, data: { slots } });
+});
+
+app.post("/slots", requireRole([0, 1]), async (c) => {
+  const parsed = createSlotSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  assertRestaurantScope(c.get("user"), parsed.data.restaurantId);
+  const slot = await new ServiceBookingService(c.env).createSlot(parsed.data);
+  return c.json({ success: true, data: { slot } }, 201);
+});
+
+app.post("/slots/batch", requireRole([0, 1]), async (c) => {
+  const parsed = batchCreateSlotsSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  assertRestaurantScope(c.get("user"), parsed.data.restaurantId);
+  const result = await new ServiceBookingService(c.env).batchCreateSlots(
+    parsed.data,
+  );
+  return c.json({ success: true, data: result }, 201);
+});
+
+app.post("/slots/block", requireRole([0, 1]), async (c) => {
+  const parsed = blockSlotSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  assertRestaurantScope(c.get("user"), parsed.data.restaurantId);
+  const slot = await new ServiceBookingService(c.env).blockSlot(parsed.data);
+  return c.json({ success: true, data: { slot } });
+});
+
 app.get("/", requireRole([0, 1, 3, 4]), async (c) => {
   const user = c.get("user");
   const requested = c.req.query("restaurantId") ?? "";

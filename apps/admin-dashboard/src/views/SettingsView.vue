@@ -705,6 +705,7 @@
       <div
         ref="serviceItemsSection"
         data-testid="settings-service-items-section"
+        class="space-y-6"
       >
         <RestaurantServiceItemsManager
           :restaurant-id="authStore.restaurantId"
@@ -714,6 +715,7 @@
           :market-gap-area-city="marketServiceGapAreaCity"
           :market-gap-area-district="marketServiceGapAreaDistrict"
         />
+        <ServiceBookingSlotsManager :restaurant-id="authStore.restaurantId" />
       </div>
     </div>
 
@@ -1769,6 +1771,7 @@ import { useRoute } from "vue-router";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
 import RestaurantServiceItemsManager from "@/components/settings/RestaurantServiceItemsManager.vue";
+import ServiceBookingSlotsManager from "@/components/settings/ServiceBookingSlotsManager.vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";

@@ -38,12 +38,18 @@ vi.mock("../../../middleware/rateLimiter", () => ({
 const getById = vi.hoisted(() => vi.fn());
 const cancelBooking = vi.hoisted(() => vi.fn());
 const confirmCash = vi.hoisted(() => vi.fn());
+const createSlot = vi.hoisted(() => vi.fn());
+const batchCreateSlots = vi.hoisted(() => vi.fn());
+const blockSlot = vi.hoisted(() => vi.fn());
 
 vi.mock("../services/ServiceBookingService", () => ({
   ServiceBookingService: class {
     getById = getById;
     cancelBooking = cancelBooking;
     confirmCash = confirmCash;
+    createSlot = createSlot;
+    batchCreateSlots = batchCreateSlots;
+    blockSlot = blockSlot;
   },
 }));
 
@@ -74,14 +80,44 @@ beforeEach(() => {
   getById.mockResolvedValue(BOOKING_B);
   cancelBooking.mockResolvedValue({ ...BOOKING_B, status: "cancelled" });
   confirmCash.mockResolvedValue({ ...BOOKING_B, status: "confirmed" });
+  createSlot.mockResolvedValue({
+    id: "slot-1",
+    restaurantId: "rest-B",
+    serviceItemId: 10,
+    date: "2026-06-10",
+    timeSlot: "10:00",
+    maxCapacity: 2,
+    currentBookings: 0,
+    isAvailable: 1,
+  });
+  batchCreateSlots.mockResolvedValue({ created: 2, slots: [] });
+  blockSlot.mockResolvedValue({
+    id: "slot-1",
+    restaurantId: "rest-B",
+    serviceItemId: 10,
+    date: "2026-06-10",
+    timeSlot: "10:00",
+    maxCapacity: 2,
+    currentBookings: 0,
+    isAvailable: 0,
+  });
   auth.user = { role: 1, restaurantId: "rest-A" };
 });
 
-function req(path: string, method = "GET") {
-  return app.request(path, { method }, {
-    DB: {},
-    CACHE_KV: {},
-  } as unknown as Record<string, unknown>);
+function req(path: string, method = "GET", body?: unknown) {
+  return app.request(
+    path,
+    {
+      method,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      headers:
+        body === undefined ? undefined : { "Content-Type": "application/json" },
+    },
+    {
+      DB: {},
+      CACHE_KV: {},
+    } as unknown as Record<string, unknown>,
+  );
 }
 
 describe("service-bookings staff route scoping", () => {
@@ -116,5 +152,65 @@ describe("service-bookings staff route scoping", () => {
     const res = await req("/bk-1", "DELETE");
     expect(res.status).toBe(200);
     expect(cancelBooking).toHaveBeenCalledWith("bk-1");
+  });
+
+  it("forbids a non-admin from creating slots for another restaurant", async () => {
+    auth.user = { role: 1, restaurantId: "rest-A" };
+    const res = await req("/slots", "POST", {
+      restaurantId: "rest-B",
+      serviceItemId: 10,
+      date: "2026-06-10",
+      timeSlot: "10:00",
+      maxCapacity: 2,
+    });
+    expect(res.status).toBe(403);
+    expect(createSlot).not.toHaveBeenCalled();
+  });
+
+  it("allows a staff member to create slots for their own restaurant", async () => {
+    auth.user = { role: 1, restaurantId: "rest-B" };
+    const res = await req("/slots", "POST", {
+      restaurantId: "rest-B",
+      serviceItemId: 10,
+      date: "2026-06-10",
+      timeSlot: "10:00",
+      maxCapacity: 2,
+    });
+    expect(res.status).toBe(201);
+    expect(createSlot).toHaveBeenCalledWith({
+      restaurantId: "rest-B",
+      serviceItemId: 10,
+      date: "2026-06-10",
+      timeSlot: "10:00",
+      maxCapacity: 2,
+      isAvailable: true,
+    });
+  });
+
+  it("forbids a non-admin from batch creating slots for another restaurant", async () => {
+    auth.user = { role: 1, restaurantId: "rest-A" };
+    const res = await req("/slots/batch", "POST", {
+      restaurantId: "rest-B",
+      serviceItemId: 10,
+      startDate: "2026-06-10",
+      endDate: "2026-06-11",
+      timeSlots: ["10:00"],
+      maxCapacity: 2,
+    });
+    expect(res.status).toBe(403);
+    expect(batchCreateSlots).not.toHaveBeenCalled();
+  });
+
+  it("forbids a non-admin from blocking slots for another restaurant", async () => {
+    auth.user = { role: 1, restaurantId: "rest-A" };
+    const res = await req("/slots/block", "POST", {
+      restaurantId: "rest-B",
+      serviceItemId: 10,
+      date: "2026-06-10",
+      timeSlot: "10:00",
+      blockReason: "holiday",
+    });
+    expect(res.status).toBe(403);
+    expect(blockSlot).not.toHaveBeenCalled();
   });
 });

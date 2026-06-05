@@ -34,6 +34,7 @@ import { toCents } from "../../../shared/utils/money";
 import { CreditService } from "../../credits/services/CreditService";
 
 type ServiceBookingRow = typeof serviceBookings.$inferSelect;
+type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;
 
 export interface CreateServiceBookingInput {
   restaurantId: string;
@@ -54,6 +55,26 @@ export interface AvailabilitySlot {
   timeSlot: string;
   remaining: number | null; // null = uncapped (no slot row)
   isAvailable: boolean;
+}
+
+export interface CreateServiceBookingSlotInput {
+  restaurantId: string;
+  serviceItemId: number;
+  date: string;
+  timeSlot: string;
+  maxCapacity: number;
+  isAvailable?: boolean;
+  blockReason?: string | null;
+}
+
+export interface BatchCreateServiceBookingSlotsInput {
+  restaurantId: string;
+  serviceItemId: number;
+  startDate: string;
+  endDate: string;
+  timeSlots: string[];
+  maxCapacity: number;
+  isAvailable?: boolean;
 }
 
 export class ServiceBookingService {
@@ -173,6 +194,131 @@ export class ServiceBookingService {
       .returning();
 
     return row;
+  }
+
+  async listSlots(filters: {
+    restaurantId: string;
+    serviceItemId?: number;
+    date?: string;
+  }): Promise<ServiceBookingSlotRow[]> {
+    const conditions = [
+      eq(serviceBookingSlots.restaurantId, filters.restaurantId),
+    ];
+    if (filters.serviceItemId) {
+      conditions.push(
+        eq(serviceBookingSlots.serviceItemId, filters.serviceItemId),
+      );
+    }
+    if (filters.date) {
+      conditions.push(eq(serviceBookingSlots.date, filters.date));
+    }
+
+    return this.db
+      .select()
+      .from(serviceBookingSlots)
+      .where(and(...conditions))
+      .all();
+  }
+
+  async createSlot(
+    input: CreateServiceBookingSlotInput,
+  ): Promise<ServiceBookingSlotRow> {
+    await this.assertServiceBelongsToRestaurant(
+      input.serviceItemId,
+      input.restaurantId,
+    );
+
+    const id = crypto.randomUUID();
+    const isAvailable = input.isAvailable === false ? 0 : 1;
+    const blockReason = input.blockReason ?? null;
+
+    await this.d1
+      .prepare(
+        `INSERT INTO service_booking_slots (
+            id, restaurant_id, service_item_id, date, time_slot, max_capacity,
+            current_bookings, is_available, block_reason, created_at_ms,
+            updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, unixepoch('now') * 1000,
+            unixepoch('now') * 1000)
+          ON CONFLICT(service_item_id, date, time_slot) DO UPDATE SET
+            restaurant_id = excluded.restaurant_id,
+            max_capacity = excluded.max_capacity,
+            is_available = excluded.is_available,
+            block_reason = excluded.block_reason,
+            updated_at_ms = unixepoch('now') * 1000`,
+      )
+      .bind(
+        id,
+        input.restaurantId,
+        input.serviceItemId,
+        input.date,
+        input.timeSlot,
+        input.maxCapacity,
+        isAvailable,
+        blockReason,
+      )
+      .run();
+
+    return this.requireSlot(input.serviceItemId, input.date, input.timeSlot);
+  }
+
+  async batchCreateSlots(
+    input: BatchCreateServiceBookingSlotsInput,
+  ): Promise<{ created: number; slots: ServiceBookingSlotRow[] }> {
+    const dates = enumerateDates(input.startDate, input.endDate);
+    const slots: ServiceBookingSlotRow[] = [];
+
+    for (const date of dates) {
+      for (const timeSlot of input.timeSlots) {
+        slots.push(
+          await this.createSlot({
+            restaurantId: input.restaurantId,
+            serviceItemId: input.serviceItemId,
+            date,
+            timeSlot,
+            maxCapacity: input.maxCapacity,
+            isAvailable: input.isAvailable,
+          }),
+        );
+      }
+    }
+
+    return { created: slots.length, slots };
+  }
+
+  async blockSlot(input: {
+    restaurantId: string;
+    serviceItemId: number;
+    date: string;
+    timeSlot: string;
+    blockReason?: string | null;
+  }): Promise<ServiceBookingSlotRow> {
+    await this.assertServiceBelongsToRestaurant(
+      input.serviceItemId,
+      input.restaurantId,
+    );
+
+    const existing = await this.db
+      .select()
+      .from(serviceBookingSlots)
+      .where(
+        and(
+          eq(serviceBookingSlots.serviceItemId, input.serviceItemId),
+          eq(serviceBookingSlots.date, input.date),
+          eq(serviceBookingSlots.timeSlot, input.timeSlot),
+        ),
+      )
+      .get();
+
+    return this.createSlot({
+      restaurantId: input.restaurantId,
+      serviceItemId: input.serviceItemId,
+      date: input.date,
+      timeSlot: input.timeSlot,
+      maxCapacity: existing?.maxCapacity ?? 0,
+      isAvailable: false,
+      blockReason: input.blockReason ?? "Blocked",
+    });
   }
 
   /** Pay the (voucher-discounted) amount with 代幣 and confirm the booking. */
@@ -341,6 +487,50 @@ export class ServiceBookingService {
       .get();
     if (!booking) throw notFound("Booking not found", "BOOKING_NOT_FOUND");
     return booking;
+  }
+
+  private async requireSlot(
+    serviceItemId: number,
+    date: string,
+    timeSlot: string,
+  ): Promise<ServiceBookingSlotRow> {
+    const slot = await this.db
+      .select()
+      .from(serviceBookingSlots)
+      .where(
+        and(
+          eq(serviceBookingSlots.serviceItemId, serviceItemId),
+          eq(serviceBookingSlots.date, date),
+          eq(serviceBookingSlots.timeSlot, timeSlot),
+        ),
+      )
+      .get();
+    if (!slot) throw notFound("Slot not found", "SERVICE_SLOT_NOT_FOUND");
+    return slot;
+  }
+
+  private async assertServiceBelongsToRestaurant(
+    serviceItemId: number,
+    restaurantId: string,
+  ): Promise<void> {
+    const service = await this.db
+      .select({
+        id: restaurantServiceItems.id,
+        restaurantId: restaurantServiceItems.restaurantId,
+      })
+      .from(restaurantServiceItems)
+      .where(eq(restaurantServiceItems.id, serviceItemId))
+      .get();
+
+    if (!service) {
+      throw notFound("Service not found", "SERVICE_NOT_FOUND");
+    }
+    if (service.restaurantId !== restaurantId) {
+      throw badRequest(
+        "Service does not belong to this restaurant",
+        "SERVICE_RESTAURANT_MISMATCH",
+      );
+    }
   }
 
   private async loadPayableBooking(id: string): Promise<ServiceBookingRow> {
@@ -526,6 +716,27 @@ function assertWithinServiceHours(
       "SERVICE_TIME_UNAVAILABLE",
     );
   }
+}
+
+function enumerateDates(start: string, end: string): string[] {
+  const startDate = new Date(`${start}T00:00:00Z`);
+  const endDate = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    throw badRequest("Invalid date range", "DATE_REQUIRED");
+  }
+  if (startDate > endDate) {
+    throw badRequest("startDate must be before endDate", "DATE_RANGE_INVALID");
+  }
+
+  const dates: string[] = [];
+  for (
+    const date = new Date(startDate);
+    date <= endDate;
+    date.setUTCDate(date.getUTCDate() + 1)
+  ) {
+    dates.push(date.toISOString().slice(0, 10));
+  }
+  return dates;
 }
 
 // 16 bytes = 128 bits of entropy. The code doubles as the anonymous ownership
