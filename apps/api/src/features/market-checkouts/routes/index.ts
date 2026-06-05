@@ -43,6 +43,11 @@ import {
 } from "../services/MarketCheckoutPaymentProvider";
 import { MarketCheckoutPaymentReconciliationService } from "../services/MarketCheckoutPaymentReconciliationService";
 import { MarketCheckoutPaymentWebhookService } from "../services/MarketCheckoutPaymentWebhookService";
+import {
+  MarketCheckoutVoucherService,
+  type AppliedVoucher,
+} from "../services/MarketCheckoutVoucherService";
+import { fromCents } from "../../../shared/utils/money";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
@@ -130,6 +135,8 @@ interface MarketCheckoutSession {
   childOrders: MarketCheckoutChildOrder[];
   payment?: MarketCheckoutPaymentSummary;
   subtotal: number;
+  /** MVP voucher (卷) applied to this checkout; KV-session scoped. */
+  appliedVoucher?: AppliedVoucher;
   createdAt: string;
 }
 
@@ -518,6 +525,107 @@ app.post("/", async (c) => {
   );
 });
 
+const applyVoucherSchema = z.object({
+  code: z.string().min(1).max(64),
+});
+
+// Apply a platform-wide 卷 (voucher) code to an unpaid market checkout. MVP:
+// anonymous code redemption, KV-session scoped. See
+// docs/superpowers/specs/2026-06-03-market-checkout-voucher-redemption.md.
+app.post("/:id/voucher", async (c) => {
+  const checkoutId = c.req.param("id");
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+
+  if (!session) {
+    throw notFound("Market checkout not found");
+  }
+  if (session.payment?.status === "paid") {
+    throw badRequest(
+      "This checkout is already paid",
+      "MARKET_CHECKOUT_ALREADY_PAID",
+    );
+  }
+
+  const body = await c.req.json();
+  const parsed = applyVoucherSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  const voucherChildOrders = session.childOrders.map((child) => ({
+    orderId: child.orderId,
+    amountCents: orderChildTotalCents(child),
+  }));
+  const subtotalCents = voucherChildOrders.reduce(
+    (sum, child) => sum + child.amountCents,
+    0,
+  );
+
+  const voucherService = new MarketCheckoutVoucherService(c.env);
+  const appliedVoucher = await voucherService.validateAndPrice({
+    code: parsed.data.code,
+    subtotalCents,
+    childOrders: voucherChildOrders,
+  });
+
+  const updatedSession: MarketCheckoutSession = { ...session, appliedVoucher };
+  await c.env.CACHE_KV.put(
+    `market_checkout:${checkoutId}`,
+    JSON.stringify(updatedSession),
+    { expirationTtl: 4 * 60 * 60 },
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      checkout: updatedSession,
+      voucher: appliedVoucher,
+      subtotalCents,
+      discountCents: appliedVoucher.discountCents,
+      payableCents: Math.max(0, subtotalCents - appliedVoucher.discountCents),
+    },
+  });
+});
+
+// Remove an applied voucher from an unpaid market checkout.
+app.delete("/:id/voucher", async (c) => {
+  const checkoutId = c.req.param("id");
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+
+  if (!session) {
+    throw notFound("Market checkout not found");
+  }
+  if (session.payment?.status === "paid") {
+    throw badRequest(
+      "This checkout is already paid",
+      "MARKET_CHECKOUT_ALREADY_PAID",
+    );
+  }
+
+  const { appliedVoucher: _removed, ...rest } = session;
+  const updatedSession = rest as MarketCheckoutSession;
+  await c.env.CACHE_KV.put(
+    `market_checkout:${checkoutId}`,
+    JSON.stringify(updatedSession),
+    { expirationTtl: 4 * 60 * 60 },
+  );
+
+  return c.json({ success: true, data: { checkout: updatedSession } });
+});
+
 app.post("/:id/pay", async (c) => {
   const checkoutId = c.req.param("id");
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
@@ -567,12 +675,42 @@ app.post("/:id/pay", async (c) => {
       : c.env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
         ? "provider_split"
         : "child_transactions";
+  // A 卷 (voucher), if applied, is funded proportionally per vendor: the amount
+  // sent to the provider for each child order is reduced by its discount share,
+  // so allocations still sum to the aggregate charge (provider contract).
+  const appliedVoucher = session.appliedVoucher;
+  const voucherDiscountByOrderId = new Map<number, number>(
+    appliedVoucher
+      ? appliedVoucher.allocations.map((alloc) => [
+          alloc.orderId,
+          alloc.discountCents,
+        ])
+      : [],
+  );
+  const payableChildOrders: MarketCheckoutChildOrder[] = appliedVoucher
+    ? session.childOrders.map((child) => {
+        const originalCents = orderChildTotalCents(child);
+        const netCents = Math.max(
+          0,
+          originalCents - (voucherDiscountByOrderId.get(child.orderId) ?? 0),
+        );
+        return {
+          ...child,
+          totalAmount: fromCents(netCents),
+          totalAmountCents: netCents,
+        };
+      })
+    : session.childOrders;
+  const payableSession: MarketCheckoutSession = appliedVoucher
+    ? { ...session, childOrders: payableChildOrders }
+    : session;
+
   let providerResult;
   try {
     providerResult = await paymentProvider.process({
       checkoutId,
       marketSlug: session.market.slug,
-      childOrders: session.childOrders,
+      childOrders: payableChildOrders,
       existingChildPayments: session.payment?.childPayments,
       method: parsed.data.method,
       country: parsed.data.country,
@@ -626,7 +764,7 @@ app.post("/:id/pay", async (c) => {
   const paidPayments = childPayments.filter(
     (payment) => payment?.status === "paid",
   );
-  const totalAmount = session.childOrders.reduce(
+  const totalAmount = payableChildOrders.reduce(
     (sum, child) => sum + Number(child.totalAmount ?? 0),
     0,
   );
@@ -674,7 +812,7 @@ app.post("/:id/pay", async (c) => {
       nextAction: providerResult.nextAction,
       now,
     }),
-    settlement: buildMarketCheckoutSettlement(session, paymentBase),
+    settlement: buildMarketCheckoutSettlement(payableSession, paymentBase),
   };
 
   const updatedSession: MarketCheckoutSession = {
@@ -691,6 +829,19 @@ app.post("/:id/pay", async (c) => {
   );
   await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
   await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+
+  // Record voucher redemption only on verified full payment. Idempotent on
+  // replay; a failure here must not fail the payment response (audit-only).
+  if (appliedVoucher && updatedSession.payment?.status === "paid") {
+    try {
+      await new MarketCheckoutVoucherService(c.env).redeem(appliedVoucher);
+    } catch (error) {
+      console.error(
+        `Voucher redemption failed for checkout ${checkoutId}:`,
+        error,
+      );
+    }
+  }
 
   return c.json(
     {
