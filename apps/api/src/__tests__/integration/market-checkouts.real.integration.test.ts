@@ -512,6 +512,126 @@ describe("Market checkouts API - real integration", () => {
     );
   });
 
+  it("persists applied vouchers so checkout can pay discounted total after KV expiry", async () => {
+    const market = await seedMarket(testApp);
+    const couponId = await seedPlatformVoucher(testApp, "PERSIST10");
+    const creditCardPublicId = await issueCreditCard(testApp, 50000);
+    const vendorA = await seed.restaurant({ name: "持久券雞排攤" });
+    const vendorB = await seed.restaurant({ name: "持久券甜點攤" });
+    const [itemA, itemB] = await Promise.all([
+      seed.menuItem(vendorA.id, {
+        name: "持久券雞排",
+        price: 120,
+        priceCents: 12000,
+      }),
+      seed.menuItem(vendorB.id, {
+        name: "持久券地瓜球",
+        price: 80,
+        priceCents: 8000,
+      }),
+    ]);
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(vendorA.id),
+        marketId: market.id,
+        stallNumber: "V01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(vendorB.id),
+        marketId: market.id,
+        stallNumber: "V02",
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const createRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/market-checkouts", {
+        method: "POST",
+        headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+        body: JSON.stringify({
+          marketSlug: market.slug,
+          guestName: "Persisted Voucher Guest",
+          phoneLastDigits: "654",
+          vendors: [
+            {
+              restaurantId: String(vendorA.id),
+              items: [{ menuItemId: itemA.id, quantity: 1 }],
+            },
+            {
+              restaurantId: String(vendorB.id),
+              items: [{ menuItemId: itemB.id, quantity: 1 }],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    const checkoutId = createJson.data.checkout.id as string;
+
+    const applyVoucherRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
+        {
+          method: "POST",
+          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          body: JSON.stringify({ code: "PERSIST10" }),
+        },
+      ),
+    );
+    expect(applyVoucherRes.status).toBe(200);
+    const applyVoucherJson: any = await applyVoucherRes.json();
+    expect(applyVoucherJson.data.payableCents).toBe(18000);
+
+    await testApp.env.CACHE_KV.delete(`market_checkout:${checkoutId}`);
+
+    const publicRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}`),
+    );
+    expect(publicRes.status).toBe(200);
+    const publicJson: any = await publicRes.json();
+    expect(publicJson.data.checkout.appliedVoucher).toMatchObject({
+      couponId,
+      code: "PERSIST10",
+      discountCents: 2000,
+    });
+
+    const payRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          "content-type": "application/json",
+          "idempotency-key": `market-voucher-persist-pay-${checkoutId}`,
+        },
+        body: JSON.stringify({
+          method: "credits",
+          providerInput: { creditCardPublicId },
+        }),
+      }),
+    );
+    expect(payRes.status).toBe(200);
+    const payJson: any = await payRes.json();
+    expect(payJson.data.payment).toMatchObject({
+      status: "paid",
+      totalAmountCents: 18000,
+      paidAmountCents: 18000,
+    });
+
+    const usage = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, couponId))
+      .all();
+    expect(usage).toHaveLength(2);
+    expect(usage.every((row) => row.status === "active")).toBe(true);
+    expect(usage.reduce((sum, row) => sum + row.discountAmountCents!, 0)).toBe(
+      2000,
+    );
+  });
+
   it("records market checkout onsite payment through an active POS shift", async () => {
     const market = await seedMarket(testApp);
     const vendorA = await seed.restaurant({ name: "現場收款攤" });

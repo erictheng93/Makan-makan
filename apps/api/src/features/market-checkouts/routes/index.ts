@@ -584,6 +584,7 @@ app.post("/:id/voucher", async (c) => {
     JSON.stringify(updatedSession),
     { expirationTtl: 4 * 60 * 60 },
   );
+  await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
 
   return c.json({
     success: true,
@@ -622,6 +623,7 @@ app.delete("/:id/voucher", async (c) => {
     JSON.stringify(updatedSession),
     { expirationTtl: 4 * 60 * 60 },
   );
+  await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
 
   return c.json({ success: true, data: { checkout: updatedSession } });
 });
@@ -1929,6 +1931,7 @@ async function persistMarketCheckoutSession(
     subtotalCents: session.subtotal,
     childOrderCount: session.childOrders.length,
     paymentSummary: serializePaymentSummary(session.payment),
+    appliedVoucher: serializeAppliedVoucher(session.appliedVoucher),
     createdAt,
     updatedAt: createdAt,
   });
@@ -1950,6 +1953,20 @@ async function persistMarketCheckoutSession(
   );
 }
 
+async function updatePersistedMarketCheckoutVoucher(
+  env: Env,
+  session: MarketCheckoutSession,
+) {
+  const db = createDatabase(env.DB);
+  await db
+    .update(marketCheckoutSessions)
+    .set({
+      appliedVoucher: serializeAppliedVoucher(session.appliedVoucher),
+      updatedAt: new Date(),
+    })
+    .where(eq(marketCheckoutSessions.id, session.id));
+}
+
 async function updatePersistedMarketCheckoutPayment(
   env: Env,
   session: MarketCheckoutSession,
@@ -1962,6 +1979,7 @@ async function updatePersistedMarketCheckoutPayment(
     .set({
       paymentStatus: session.payment.status,
       paymentSummary: serializePaymentSummary(session.payment),
+      appliedVoucher: serializeAppliedVoucher(session.appliedVoucher),
       updatedAt: new Date(),
     })
     .where(eq(marketCheckoutSessions.id, session.id));
@@ -2355,6 +2373,9 @@ async function readPersistedMarketCheckoutOpsSessions(
     })),
     payment: (row.paymentSummary ?? undefined) as
       | MarketCheckoutPaymentSummary
+      | undefined,
+    appliedVoucher: (row.appliedVoucher ?? undefined) as
+      | AppliedVoucher
       | undefined,
     subtotal: row.subtotalCents,
     createdAt: toIsoString(row.createdAt),
@@ -2792,6 +2813,9 @@ async function readPersistedMarketCheckoutSession(
     payment: (row.paymentSummary ?? undefined) as
       | MarketCheckoutPaymentSummary
       | undefined,
+    appliedVoucher: (row.appliedVoucher ?? undefined) as
+      | AppliedVoucher
+      | undefined,
     subtotal: row.subtotalCents,
     createdAt: toIsoString(row.createdAt),
   };
@@ -2815,6 +2839,13 @@ function serializePaymentSummary(
 ): Record<string, unknown> | null {
   if (!payment) return null;
   return JSON.parse(JSON.stringify(payment)) as Record<string, unknown>;
+}
+
+function serializeAppliedVoucher(
+  appliedVoucher: AppliedVoucher | undefined,
+): Record<string, unknown> | null {
+  if (!appliedVoucher) return null;
+  return JSON.parse(JSON.stringify(appliedVoucher)) as Record<string, unknown>;
 }
 
 async function readMarketCheckoutIndex(

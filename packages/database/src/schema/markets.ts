@@ -170,6 +170,10 @@ export const marketCheckoutSessions = sqliteTable(
       string,
       unknown
     > | null>(),
+    appliedVoucher: text("applied_voucher", { mode: "json" }).$type<Record<
+      string,
+      unknown
+    > | null>(),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
