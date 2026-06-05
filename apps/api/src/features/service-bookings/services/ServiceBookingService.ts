@@ -13,15 +13,18 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 import {
   employeeAvailability,
   serviceBookings,
   serviceBookingSlots,
+  serviceBookingWaitlist,
   restaurantServiceItems,
   SERVICE_BOOKING_STATUS,
   SERVICE_BOOKING_PAYMENT_METHOD,
   SERVICE_BOOKING_PAYMENT_STATUS,
+  SERVICE_BOOKING_PAYMENT_REQUIREMENT,
+  SERVICE_BOOKING_WAITLIST_STATUS,
   type ServiceBookingStatus,
   users,
 } from "@makanmakan/database";
@@ -38,7 +41,11 @@ import { CreditService } from "../../credits/services/CreditService";
 
 type ServiceBookingRow = typeof serviceBookings.$inferSelect;
 type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;
+type ServiceBookingWaitlistRow = typeof serviceBookingWaitlist.$inferSelect;
 type EmployeeAvailabilityRow = typeof employeeAvailability.$inferSelect;
+
+type ServiceBookingPaymentRequirement =
+  (typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT)[keyof typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT];
 
 export interface CreateServiceBookingInput {
   restaurantId: string;
@@ -54,6 +61,37 @@ export interface CreateServiceBookingInput {
   specialRequests?: string;
   /** 卷 code applied as a pricing-layer discount. */
   voucherCode?: string;
+  paymentRequirement?: ServiceBookingPaymentRequirement;
+  depositAmountCents?: number;
+  reminderOptIn?: boolean;
+  reminderMinutesBefore?: number;
+  recurrenceGroupId?: string;
+  recurrenceIndex?: number;
+  recurrenceCount?: number;
+}
+
+export interface CreateRecurringServiceBookingsInput extends Omit<
+  CreateServiceBookingInput,
+  "bookingDate" | "recurrenceGroupId" | "recurrenceIndex" | "recurrenceCount"
+> {
+  startDate: string;
+  count: number;
+  intervalWeeks?: number;
+}
+
+export interface JoinServiceBookingWaitlistInput {
+  restaurantId: string;
+  serviceItemId: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  customerId?: string;
+  bookingDate: string;
+  bookingTime: string;
+  partySize?: number;
+  employeeId?: number;
+  specialRequests?: string;
+  notes?: string;
 }
 
 export interface AvailabilitySlot {
@@ -186,8 +224,20 @@ export class ServiceBookingService {
       voucherDiscountCents = priced.discountCents;
     }
     const amountDueCents = Math.max(0, priceCents - voucherDiscountCents);
+    const payment = resolvePaymentTerms({
+      requirement: input.paymentRequirement,
+      amountDueCents,
+      depositAmountCents: input.depositAmountCents,
+    });
+    const reminder = resolveReminder({
+      optIn: input.reminderOptIn,
+      minutesBefore: input.reminderMinutesBefore,
+      bookingDate: input.bookingDate,
+      bookingTime: input.bookingTime,
+    });
 
     const confirmationCode = generateConfirmationCode();
+    const calendarUid = `${crypto.randomUUID()}@makanmakan.service-bookings`;
     const [row] = await this.db
       .insert(serviceBookings)
       .values({
@@ -209,12 +259,125 @@ export class ServiceBookingService {
         specialRequests: input.specialRequests ?? null,
         couponId,
         voucherDiscountCents,
-        amountDueCents,
+        paymentRequirement: payment.requirement,
+        depositRequiredCents: payment.depositRequiredCents,
+        balanceDueCents: payment.balanceDueCents,
+        amountDueCents: payment.amountDueCents,
         paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.UNPAID,
         paymentMethod: SERVICE_BOOKING_PAYMENT_METHOD.NONE,
+        reminderOptIn: reminder.optIn ? 1 : 0,
+        reminderMinutesBefore: reminder.minutesBefore,
+        reminderScheduledAt: reminder.scheduledAt,
+        calendarUid,
+        recurrenceGroupId: input.recurrenceGroupId ?? null,
+        recurrenceIndex: input.recurrenceIndex ?? null,
+        recurrenceCount: input.recurrenceCount ?? null,
       })
       .returning();
 
+    return row;
+  }
+
+  async createRecurringBookings(
+    input: CreateRecurringServiceBookingsInput,
+  ): Promise<ServiceBookingRow[]> {
+    if (!Number.isInteger(input.count) || input.count < 1 || input.count > 52) {
+      throw badRequest(
+        "count must be between 1 and 52",
+        "RECURRENCE_COUNT_INVALID",
+      );
+    }
+    const intervalWeeks = input.intervalWeeks ?? 1;
+    if (
+      !Number.isInteger(intervalWeeks) ||
+      intervalWeeks < 1 ||
+      intervalWeeks > 52
+    ) {
+      throw badRequest(
+        "intervalWeeks must be between 1 and 52",
+        "RECURRENCE_INTERVAL_INVALID",
+      );
+    }
+
+    const groupId = crypto.randomUUID();
+    const bookings: ServiceBookingRow[] = [];
+    for (let index = 1; index <= input.count; index += 1) {
+      const bookingDate = addWeeks(
+        input.startDate,
+        (index - 1) * intervalWeeks,
+      );
+      bookings.push(
+        await this.createBooking({
+          ...input,
+          bookingDate,
+          recurrenceGroupId: groupId,
+          recurrenceIndex: index,
+          recurrenceCount: input.count,
+        }),
+      );
+    }
+    return bookings;
+  }
+
+  async joinWaitlist(
+    input: JoinServiceBookingWaitlistInput,
+  ): Promise<ServiceBookingWaitlistRow> {
+    const service = await this.db
+      .select()
+      .from(restaurantServiceItems)
+      .where(eq(restaurantServiceItems.id, input.serviceItemId))
+      .get();
+
+    if (!service || service.deletedAt || !service.isActive) {
+      throw notFound("Service not found", "SERVICE_NOT_FOUND");
+    }
+    if (service.restaurantId !== input.restaurantId) {
+      throw badRequest(
+        "Service does not belong to this restaurant",
+        "SERVICE_RESTAURANT_MISMATCH",
+      );
+    }
+    if (!service.requiresBooking) {
+      throw badRequest(
+        "This service does not accept waitlist entries",
+        "SERVICE_NOT_BOOKABLE",
+      );
+    }
+
+    assertWithinServiceHours(
+      service.availableHours,
+      input.bookingDate,
+      input.bookingTime,
+    );
+
+    if (input.employeeId !== undefined) {
+      await this.assertEmployeeAvailable({
+        restaurantId: input.restaurantId,
+        employeeId: input.employeeId,
+        bookingDate: input.bookingDate,
+        bookingTime: input.bookingTime,
+        durationMinutes: service.durationMinutes ?? 0,
+      });
+    }
+
+    const [row] = await this.db
+      .insert(serviceBookingWaitlist)
+      .values({
+        restaurantId: input.restaurantId,
+        serviceItemId: input.serviceItemId,
+        customerId: input.customerId ?? null,
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        customerEmail: input.customerEmail ?? null,
+        bookingDate: input.bookingDate,
+        bookingTime: input.bookingTime,
+        partySize: input.partySize ?? 1,
+        employeeId: input.employeeId ?? null,
+        status: SERVICE_BOOKING_WAITLIST_STATUS.WAITING,
+        specialRequests: input.specialRequests ?? null,
+        notes: input.notes ?? null,
+      })
+      .returning();
     return row;
   }
 
@@ -508,6 +671,52 @@ export class ServiceBookingService {
       .all();
   }
 
+  async listDueReminders(input: {
+    before: Date;
+    restaurantId?: string;
+  }): Promise<ServiceBookingRow[]> {
+    const conditions = [
+      eq(serviceBookings.status, SERVICE_BOOKING_STATUS.CONFIRMED),
+      eq(serviceBookings.reminderOptIn, 1),
+      isNull(serviceBookings.reminderSentAt),
+      lte(serviceBookings.reminderScheduledAt, input.before),
+    ];
+    if (input.restaurantId) {
+      conditions.push(eq(serviceBookings.restaurantId, input.restaurantId));
+    }
+
+    return this.db
+      .select()
+      .from(serviceBookings)
+      .where(and(...conditions))
+      .all();
+  }
+
+  async markReminderSent(bookingId: string): Promise<ServiceBookingRow> {
+    const booking = await this.requireBooking(bookingId);
+    const now = new Date();
+    const [row] = await this.db
+      .update(serviceBookings)
+      .set({ reminderSentAt: now, updatedAt: now })
+      .where(eq(serviceBookings.id, booking.id))
+      .returning();
+    return row;
+  }
+
+  async generateCalendarInvite(bookingId: string): Promise<string> {
+    const booking = await this.requireBooking(bookingId);
+    return renderCalendarInvite(booking);
+  }
+
+  async generateCalendarInviteByConfirmationCode(
+    code: string,
+    contactProof?: ServiceBookingContactProof,
+  ): Promise<string> {
+    const booking = await this.getByConfirmationCode(code, contactProof);
+    if (!booking) throw notFound("Booking not found", "BOOKING_NOT_FOUND");
+    return renderCalendarInvite(booking);
+  }
+
   // ── internals ────────────────────────────────────────
 
   private async requireBooking(id: string): Promise<ServiceBookingRow> {
@@ -660,7 +869,11 @@ export class ServiceBookingService {
       .update(serviceBookings)
       .set({
         status: SERVICE_BOOKING_STATUS.CONFIRMED,
-        paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.PAID,
+        paymentStatus:
+          booking.paymentRequirement ===
+          SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT
+            ? SERVICE_BOOKING_PAYMENT_STATUS.DEPOSIT_PAID
+            : SERVICE_BOOKING_PAYMENT_STATUS.PAID,
         paymentMethod: payment.method,
         amountPaidCents: payment.amountPaidCents,
         paymentRef: payment.paymentRef,
@@ -899,6 +1112,158 @@ function addMinutesToTime(time: string, minutes: number): string {
     2,
     "0",
   )}`;
+}
+
+function addWeeks(date: string, weeks: number): string {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw badRequest("Invalid recurrence start date", "DATE_REQUIRED");
+  }
+  parsed.setUTCDate(parsed.getUTCDate() + weeks * 7);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function resolvePaymentTerms(input: {
+  requirement: ServiceBookingPaymentRequirement | undefined;
+  amountDueCents: number;
+  depositAmountCents: number | undefined;
+}): {
+  requirement: ServiceBookingPaymentRequirement;
+  depositRequiredCents: number;
+  balanceDueCents: number;
+  amountDueCents: number;
+} {
+  const requirement =
+    input.requirement ?? SERVICE_BOOKING_PAYMENT_REQUIREMENT.PREPAY;
+  if (requirement === SERVICE_BOOKING_PAYMENT_REQUIREMENT.NONE) {
+    return {
+      requirement,
+      depositRequiredCents: 0,
+      balanceDueCents: input.amountDueCents,
+      amountDueCents: 0,
+    };
+  }
+  if (requirement === SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT) {
+    const deposit = input.depositAmountCents ?? 0;
+    if (!Number.isInteger(deposit) || deposit <= 0) {
+      throw badRequest(
+        "depositAmountCents is required for deposit bookings",
+        "SERVICE_DEPOSIT_REQUIRED",
+      );
+    }
+    if (deposit > input.amountDueCents) {
+      throw badRequest(
+        "depositAmountCents cannot exceed the service balance",
+        "SERVICE_DEPOSIT_INVALID",
+      );
+    }
+    return {
+      requirement,
+      depositRequiredCents: deposit,
+      balanceDueCents: input.amountDueCents - deposit,
+      amountDueCents: deposit,
+    };
+  }
+  return {
+    requirement: SERVICE_BOOKING_PAYMENT_REQUIREMENT.PREPAY,
+    depositRequiredCents: 0,
+    balanceDueCents: 0,
+    amountDueCents: input.amountDueCents,
+  };
+}
+
+function resolveReminder(input: {
+  optIn: boolean | undefined;
+  minutesBefore: number | undefined;
+  bookingDate: string;
+  bookingTime: string;
+}): {
+  optIn: boolean;
+  minutesBefore: number | null;
+  scheduledAt: Date | null;
+} {
+  if (!input.optIn) {
+    return { optIn: false, minutesBefore: null, scheduledAt: null };
+  }
+  const minutesBefore = input.minutesBefore ?? 60;
+  if (
+    !Number.isInteger(minutesBefore) ||
+    minutesBefore < 5 ||
+    minutesBefore > 10080
+  ) {
+    throw badRequest(
+      "reminderMinutesBefore must be between 5 minutes and 7 days",
+      "SERVICE_REMINDER_INVALID",
+    );
+  }
+  const start = parseBookingDateTime(input.bookingDate, input.bookingTime);
+  return {
+    optIn: true,
+    minutesBefore,
+    scheduledAt: new Date(start.getTime() - minutesBefore * 60 * 1000),
+  };
+}
+
+function renderCalendarInvite(booking: ServiceBookingRow): string {
+  const startsAt = parseBookingDateTime(
+    booking.bookingDate,
+    booking.bookingTime,
+  );
+  const endsAt = new Date(
+    startsAt.getTime() + (booking.durationMinutesSnapshot ?? 60) * 60 * 1000,
+  );
+  const stamp = formatIcsDate(new Date());
+  const summary = escapeIcsText(booking.serviceNameSnapshot);
+  const description = escapeIcsText(
+    [
+      `Confirmation: ${booking.confirmationCode}`,
+      booking.specialRequests ? `Requests: ${booking.specialRequests}` : "",
+    ]
+      .filter(Boolean)
+      .join("\\n"),
+  );
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//MakanMakan//Service Bookings//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${escapeIcsText(booking.calendarUid)}`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${formatIcsDate(startsAt)}`,
+    `DTEND:${formatIcsDate(endsAt)}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description}`,
+    `STATUS:${booking.status === SERVICE_BOOKING_STATUS.CANCELLED ? "CANCELLED" : "CONFIRMED"}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+    "",
+  ].join("\r\n");
+}
+
+function parseBookingDateTime(date: string, time: string): Date {
+  const parsed = new Date(`${date}T${time}:00+08:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw badRequest("Invalid booking date or time", "DATE_REQUIRED");
+  }
+  return parsed;
+}
+
+function formatIcsDate(date: Date): string {
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+}
+
+function escapeIcsText(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
 }
 
 function assertContactProof(

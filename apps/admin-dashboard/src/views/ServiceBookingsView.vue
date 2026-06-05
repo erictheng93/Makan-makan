@@ -324,6 +324,7 @@ function paymentMethodLabel(method: ServiceBooking["paymentMethod"]): string {
 function paymentStatusLabel(status: ServiceBooking["paymentStatus"]): string {
   const labels: Record<ServiceBooking["paymentStatus"], string> = {
     unpaid: "未付款",
+    deposit_paid: "已付訂金",
     paid: "已付款",
     refunded: "已退款",
   };

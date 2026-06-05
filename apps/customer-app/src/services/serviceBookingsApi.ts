@@ -30,10 +30,21 @@ export interface ServiceBooking {
   confirmationCode: string;
   specialRequests?: string | null;
   voucherDiscountCents: number;
+  paymentRequirement: "none" | "deposit" | "prepay";
+  depositRequiredCents: number;
+  balanceDueCents: number;
   amountDueCents: number;
   amountPaidCents: number;
-  paymentStatus: "unpaid" | "paid" | "refunded";
+  paymentStatus: "unpaid" | "deposit_paid" | "paid" | "refunded";
   paymentMethod: "none" | "credits" | "cash";
+  reminderOptIn: number;
+  reminderMinutesBefore?: number | null;
+  reminderScheduledAt?: string | null;
+  reminderSentAt?: string | null;
+  calendarUid: string;
+  recurrenceGroupId?: string | null;
+  recurrenceIndex?: number | null;
+  recurrenceCount?: number | null;
 }
 
 export interface CreateServiceBookingInput {
@@ -48,6 +59,45 @@ export interface CreateServiceBookingInput {
   employeeId?: number;
   specialRequests?: string;
   voucherCode?: string;
+  paymentRequirement?: "none" | "deposit" | "prepay";
+  depositAmountCents?: number;
+  reminderOptIn?: boolean;
+  reminderMinutesBefore?: number;
+}
+
+export interface CreateRecurringServiceBookingInput extends Omit<
+  CreateServiceBookingInput,
+  "bookingDate"
+> {
+  startDate: string;
+  count: number;
+  intervalWeeks?: number;
+}
+
+export interface JoinServiceBookingWaitlistInput extends Omit<
+  CreateServiceBookingInput,
+  | "voucherCode"
+  | "paymentRequirement"
+  | "depositAmountCents"
+  | "reminderOptIn"
+  | "reminderMinutesBefore"
+> {
+  notes?: string;
+}
+
+export interface ServiceBookingWaitlistEntry {
+  id: string;
+  restaurantId: string;
+  serviceItemId: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string | null;
+  bookingDate: string;
+  bookingTime: string;
+  partySize: number;
+  status: "waiting" | "notified" | "converted" | "cancelled";
+  specialRequests?: string | null;
+  notes?: string | null;
 }
 
 export interface ServiceBookingContactProof {
@@ -75,6 +125,25 @@ export const serviceBookingsApi = {
       input,
     );
     return response.booking;
+  },
+
+  async createRecurringBookings(
+    input: CreateRecurringServiceBookingInput,
+  ): Promise<ServiceBooking[]> {
+    const response = await apiClient.post<{ bookings: ServiceBooking[] }>(
+      "/service-bookings/recurring",
+      input,
+    );
+    return response.bookings;
+  },
+
+  async joinWaitlist(
+    input: JoinServiceBookingWaitlistInput,
+  ): Promise<ServiceBookingWaitlistEntry> {
+    const response = await apiClient.post<{
+      waitlistEntry: ServiceBookingWaitlistEntry;
+    }>("/service-bookings/waitlist", input);
+    return response.waitlistEntry;
   },
 
   async payWithCredits(input: {
@@ -112,5 +181,20 @@ export const serviceBookingsApi = {
       contactProof,
     );
     return response.booking;
+  },
+
+  calendarInviteUrl(code: string, contactProof?: ServiceBookingContactProof) {
+    const params = new URLSearchParams();
+    if (contactProof?.requireContact) params.set("requireContact", "true");
+    if (contactProof?.customerPhone) {
+      params.set("customerPhone", contactProof.customerPhone);
+    }
+    if (contactProof?.customerEmail) {
+      params.set("customerEmail", contactProof.customerEmail);
+    }
+    const query = params.toString();
+    return `/service-bookings/verify/${encodeURIComponent(code)}/ics${
+      query ? `?${query}` : ""
+    }`;
   },
 };

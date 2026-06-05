@@ -60,10 +60,21 @@ export interface ServiceBooking {
   partySize: number;
   status: ServiceBookingStatus;
   confirmationCode: string;
+  paymentRequirement: "none" | "deposit" | "prepay";
+  depositRequiredCents: number;
+  balanceDueCents: number;
   amountDueCents: number;
   amountPaidCents: number;
-  paymentStatus: "unpaid" | "paid" | "refunded";
+  paymentStatus: "unpaid" | "deposit_paid" | "paid" | "refunded";
   paymentMethod: "none" | "credits" | "cash";
+  reminderOptIn: number;
+  reminderMinutesBefore?: number | null;
+  reminderScheduledAt?: string | null;
+  reminderSentAt?: string | null;
+  calendarUid: string;
+  recurrenceGroupId?: string | null;
+  recurrenceIndex?: number | null;
+  recurrenceCount?: number | null;
   specialRequests?: string | null;
 }
 
@@ -124,6 +135,29 @@ export const serviceBookingsService = {
     );
     return unwrapApiPayload<{ bookings: ServiceBooking[] }>(response.data)
       .bookings;
+  },
+
+  async listDueReminders(filters: {
+    restaurantId?: string;
+    before?: string;
+  }): Promise<ServiceBooking[]> {
+    const response = await api.get<{ bookings: ServiceBooking[] }>(
+      "/service-bookings/reminders/due",
+      filters,
+    );
+    return unwrapApiPayload<{ bookings: ServiceBooking[] }>(response.data)
+      .bookings;
+  },
+
+  async markReminderSent(id: string): Promise<ServiceBooking> {
+    const response = await api.post<{ booking: ServiceBooking }>(
+      `/service-bookings/${id}/reminder-sent`,
+    );
+    return unwrapApiPayload<{ booking: ServiceBooking }>(response.data).booking;
+  },
+
+  calendarInviteUrl(id: string): string {
+    return `/service-bookings/${encodeURIComponent(id)}/ics`;
   },
 
   async confirmCash(id: string): Promise<ServiceBooking> {

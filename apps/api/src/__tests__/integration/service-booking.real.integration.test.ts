@@ -418,6 +418,46 @@ describe("ServiceBookingService — payment & lifecycle", () => {
     expect(balance.balanceCents).toBe(100000 - 13500);
   });
 
+  it("pays only the required deposit and leaves the venue balance due", async () => {
+    const serviceId = await seedService({ priceCents: 10000 });
+    const publicId = await issueCard(100000);
+
+    const booking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      paymentRequirement: "deposit",
+      depositAmountCents: 2500,
+    });
+
+    expect(booking).toMatchObject({
+      paymentRequirement: "deposit",
+      depositRequiredCents: 2500,
+      amountDueCents: 2500,
+      balanceDueCents: 7500,
+      paymentStatus: "unpaid",
+    });
+
+    const paid = await service().payWithCredits({
+      bookingId: booking.id,
+      creditCardPublicId: publicId,
+    });
+
+    expect(paid).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "deposit_paid",
+      paymentMethod: "credits",
+      amountPaidCents: 2500,
+      balanceDueCents: 7500,
+    });
+
+    const balance = await new CreditService(env()).getBalance(publicId);
+    expect(balance.balanceCents).toBe(97500);
+  });
+
   it("cancels a confirmed booking, restoring capacity and voucher count", async () => {
     const serviceId = await seedService({ priceCents: 15000 });
     const couponId = await seedPlatformCoupon("SVC10", 10);
@@ -460,6 +500,132 @@ describe("ServiceBookingService — payment & lifecycle", () => {
     await service().confirmCash(booking.id);
     const done = await service().transition(booking.id, "completed");
     expect(done.status).toBe("completed");
+  });
+});
+
+describe("ServiceBookingService — production booking extensions", () => {
+  it("adds a waitlist entry without consuming full slot capacity", async () => {
+    const serviceId = await seedService({});
+    await seedSlot(serviceId, "2026-06-05", "14:00", 1);
+    await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "First",
+      customerPhone: "0911000001",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+    });
+
+    const waitlistEntry = await service().joinWaitlist({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Second",
+      customerPhone: "0911000002",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      partySize: 2,
+      notes: "Can arrive early",
+    });
+
+    expect(waitlistEntry).toMatchObject({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      status: "waiting",
+      customerName: "Second",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      partySize: 2,
+      notes: "Can arrive early",
+    });
+    expect(await slotBookings(serviceId)).toBe(1);
+  });
+
+  it("creates weekly recurring bookings with shared recurrence metadata", async () => {
+    const serviceId = await seedService({});
+    const bookings = await service().createRecurringBookings({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      startDate: "2026-06-05",
+      bookingTime: "14:00",
+      count: 3,
+      intervalWeeks: 1,
+    });
+
+    expect(bookings.map((booking) => booking.bookingDate)).toEqual([
+      "2026-06-05",
+      "2026-06-12",
+      "2026-06-19",
+    ]);
+    expect(
+      new Set(bookings.map((booking) => booking.recurrenceGroupId)).size,
+    ).toBe(1);
+    expect(bookings.map((booking) => booking.recurrenceIndex)).toEqual([
+      1, 2, 3,
+    ]);
+    expect(bookings.every((booking) => booking.recurrenceCount === 3)).toBe(
+      true,
+    );
+  });
+
+  it("lists due reminders and marks them sent", async () => {
+    const serviceId = await seedService({ priceCents: 0 });
+    const booking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      reminderOptIn: true,
+      reminderMinutesBefore: 60,
+    });
+    await service().confirmCash(booking.id);
+
+    const due = await service().listDueReminders({
+      before: new Date("2026-06-05T05:00:00Z"),
+      restaurantId: RESTAURANT_ID,
+    });
+    expect(due).toHaveLength(1);
+    expect(due[0]).toMatchObject({
+      id: booking.id,
+      reminderOptIn: 1,
+      reminderMinutesBefore: 60,
+    });
+
+    const sent = await service().markReminderSent(booking.id);
+    expect(sent.reminderSentAt).toBeInstanceOf(Date);
+    await expect(
+      service().listDueReminders({
+        before: new Date("2026-06-05T05:00:00Z"),
+        restaurantId: RESTAURANT_ID,
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it("generates a standards-compatible ICS calendar invite", async () => {
+    const serviceId = await seedService({ priceCents: 0, durationMinutes: 90 });
+    const booking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      specialRequests: "Window seat",
+    });
+
+    const ics = await service().generateCalendarInvite(booking.id);
+
+    expect(ics).toContain("BEGIN:VCALENDAR");
+    expect(ics).toContain("BEGIN:VEVENT");
+    expect(ics).toContain(`UID:${booking.calendarUid}`);
+    expect(ics).toContain("SUMMARY:Lantern Painting");
+    expect(ics).toContain("DTSTART:20260605T060000Z");
+    expect(ics).toContain("DTEND:20260605T073000Z");
+    expect(ics).toContain(`Confirmation: ${booking.confirmationCode}`);
+    expect(ics).toContain("END:VCALENDAR");
   });
 });
 

@@ -58,10 +58,15 @@ const pendingBooking = {
   status: "pending" as const,
   confirmationCode: "ABC123",
   voucherDiscountCents: 0,
+  paymentRequirement: "prepay" as const,
+  depositRequiredCents: 0,
+  balanceDueCents: 0,
   amountDueCents: 12000,
   amountPaidCents: 0,
   paymentStatus: "unpaid" as const,
   paymentMethod: "none" as const,
+  reminderOptIn: 0,
+  calendarUid: "booking-1@makanmakan.service-bookings",
 };
 
 function mountView() {

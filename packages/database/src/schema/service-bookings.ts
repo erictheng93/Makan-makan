@@ -54,10 +54,28 @@ export type ServiceBookingPaymentMethod =
 
 export const SERVICE_BOOKING_PAYMENT_STATUS = {
   UNPAID: "unpaid",
+  DEPOSIT_PAID: "deposit_paid",
   PAID: "paid",
 } as const;
 export type ServiceBookingPaymentStatus =
   (typeof SERVICE_BOOKING_PAYMENT_STATUS)[keyof typeof SERVICE_BOOKING_PAYMENT_STATUS];
+
+export const SERVICE_BOOKING_PAYMENT_REQUIREMENT = {
+  NONE: "none",
+  DEPOSIT: "deposit",
+  PREPAY: "prepay",
+} as const;
+export type ServiceBookingPaymentRequirement =
+  (typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT)[keyof typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT];
+
+export const SERVICE_BOOKING_WAITLIST_STATUS = {
+  WAITING: "waiting",
+  NOTIFIED: "notified",
+  CONVERTED: "converted",
+  CANCELLED: "cancelled",
+} as const;
+export type ServiceBookingWaitlistStatus =
+  (typeof SERVICE_BOOKING_WAITLIST_STATUS)[keyof typeof SERVICE_BOOKING_WAITLIST_STATUS];
 
 // ── Bookings table ─────────────────────────────────────
 
@@ -114,6 +132,14 @@ export const serviceBookings = sqliteTable(
       .default(0),
 
     // Payment (代幣 / cash / none).
+    paymentRequirement: text("payment_requirement")
+      .$type<ServiceBookingPaymentRequirement>()
+      .notNull()
+      .default(SERVICE_BOOKING_PAYMENT_REQUIREMENT.PREPAY),
+    depositRequiredCents: integer("deposit_required_cents")
+      .notNull()
+      .default(0),
+    balanceDueCents: integer("balance_due_cents").notNull().default(0),
     amountDueCents: integer("amount_due_cents").notNull().default(0),
     amountPaidCents: integer("amount_paid_cents").notNull().default(0),
     paymentMethod: text("payment_method")
@@ -125,6 +151,17 @@ export const serviceBookings = sqliteTable(
       .notNull()
       .default(SERVICE_BOOKING_PAYMENT_STATUS.UNPAID),
     paymentRef: text("payment_ref"), // e.g. credit ledger entry id
+
+    reminderOptIn: integer("reminder_opt_in").notNull().default(0),
+    reminderMinutesBefore: integer("reminder_minutes_before"),
+    reminderScheduledAt: integer("reminder_scheduled_at_ms", {
+      mode: "timestamp_ms",
+    }),
+    reminderSentAt: integer("reminder_sent_at_ms", { mode: "timestamp_ms" }),
+    calendarUid: text("calendar_uid").notNull(),
+    recurrenceGroupId: text("recurrence_group_id"),
+    recurrenceIndex: integer("recurrence_index"),
+    recurrenceCount: integer("recurrence_count"),
 
     confirmedAt: integer("confirmed_at_ms", { mode: "timestamp_ms" }),
     completedAt: integer("completed_at_ms", { mode: "timestamp_ms" }),
@@ -152,6 +189,14 @@ export const serviceBookings = sqliteTable(
     ).on(table.confirmationCode),
     customerPhoneIdx: index("service_bookings_customer_phone_idx").on(
       table.customerPhone,
+    ),
+    reminderDueIdx: index("service_bookings_reminder_due_idx").on(
+      table.reminderScheduledAt,
+      table.reminderSentAt,
+      table.status,
+    ),
+    recurrenceGroupIdx: index("service_bookings_recurrence_group_idx").on(
+      table.recurrenceGroupId,
     ),
   }),
 );
@@ -196,6 +241,66 @@ export const serviceBookingSlots = sqliteTable(
   }),
 );
 
+// ── Waitlist ───────────────────────────────────────────
+
+export const serviceBookingWaitlist = sqliteTable(
+  "service_booking_waitlist",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    restaurantId: text("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
+    serviceItemId: integer("service_item_id")
+      .notNull()
+      .references(() => restaurantServiceItems.id, { onDelete: "cascade" }),
+    customerId: text("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
+    customerName: text("customer_name").notNull(),
+    customerPhone: text("customer_phone").notNull(),
+    customerEmail: text("customer_email"),
+    bookingDate: text("booking_date").notNull(),
+    bookingTime: text("booking_time").notNull(),
+    partySize: integer("party_size").notNull().default(1),
+    employeeId: integer("employee_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: text("status")
+      .$type<ServiceBookingWaitlistStatus>()
+      .notNull()
+      .default(SERVICE_BOOKING_WAITLIST_STATUS.WAITING),
+    specialRequests: text("special_requests"),
+    notes: text("notes"),
+    notifiedAt: integer("notified_at_ms", { mode: "timestamp_ms" }),
+    convertedBookingId: text("converted_booking_id").references(
+      () => serviceBookings.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+  },
+  (table) => ({
+    serviceDateTimeIdx: index("service_booking_waitlist_service_time_idx").on(
+      table.serviceItemId,
+      table.bookingDate,
+      table.bookingTime,
+      table.status,
+    ),
+    restaurantStatusIdx: index(
+      "service_booking_waitlist_restaurant_status_idx",
+    ).on(table.restaurantId, table.status, table.createdAt),
+    customerPhoneIdx: index("service_booking_waitlist_customer_phone_idx").on(
+      table.customerPhone,
+    ),
+  }),
+);
+
 // ── Relations ──────────────────────────────────────────
 
 export const serviceBookingRelations = relations(
@@ -222,6 +327,28 @@ export const serviceBookingSlotRelations = relations(
     serviceItem: one(restaurantServiceItems, {
       fields: [serviceBookingSlots.serviceItemId],
       references: [restaurantServiceItems.id],
+    }),
+  }),
+);
+
+export const serviceBookingWaitlistRelations = relations(
+  serviceBookingWaitlist,
+  ({ one }) => ({
+    restaurant: one(restaurants, {
+      fields: [serviceBookingWaitlist.restaurantId],
+      references: [restaurants.id],
+    }),
+    serviceItem: one(restaurantServiceItems, {
+      fields: [serviceBookingWaitlist.serviceItemId],
+      references: [restaurantServiceItems.id],
+    }),
+    customer: one(customers, {
+      fields: [serviceBookingWaitlist.customerId],
+      references: [customers.id],
+    }),
+    convertedBooking: one(serviceBookings, {
+      fields: [serviceBookingWaitlist.convertedBookingId],
+      references: [serviceBookings.id],
     }),
   }),
 );

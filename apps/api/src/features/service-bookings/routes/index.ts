@@ -38,7 +38,29 @@ const createSchema = z.object({
   employeeId: z.number().int().positive().optional(),
   specialRequests: z.string().max(500).optional(),
   voucherCode: z.string().min(1).max(64).optional(),
+  paymentRequirement: z.enum(["none", "deposit", "prepay"]).optional(),
+  depositAmountCents: z.number().int().min(1).optional(),
+  reminderOptIn: z.boolean().optional(),
+  reminderMinutesBefore: z.number().int().min(5).max(10080).optional(),
 });
+
+const recurringCreateSchema = createSchema.omit({ bookingDate: true }).extend({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  count: z.number().int().min(1).max(52),
+  intervalWeeks: z.number().int().min(1).max(52).optional(),
+});
+
+const waitlistSchema = createSchema
+  .omit({
+    voucherCode: true,
+    paymentRequirement: true,
+    depositAmountCents: true,
+    reminderOptIn: true,
+    reminderMinutesBefore: true,
+  })
+  .extend({
+    notes: z.string().max(500).optional(),
+  });
 
 const paySchema = z.object({
   creditCardPublicId: z.string().min(1),
@@ -119,6 +141,44 @@ app.post("/", async (c) => {
   return c.json({ success: true, data: { booking } }, 201);
 });
 
+app.post("/recurring", async (c) => {
+  const body = await c.req.json();
+  const parsed = recurringCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+  const bookings = await new ServiceBookingService(
+    c.env,
+  ).createRecurringBookings(parsed.data);
+  return c.json({ success: true, data: { bookings } }, 201);
+});
+
+app.post("/waitlist", async (c) => {
+  const body = await c.req.json();
+  const parsed = waitlistSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+  const waitlistEntry = await new ServiceBookingService(c.env).joinWaitlist(
+    parsed.data,
+  );
+  return c.json({ success: true, data: { waitlistEntry } }, 201);
+});
+
 app.post("/:id/pay", async (c) => {
   const body = await c.req.json();
   const parsed = paySchema.safeParse(body);
@@ -147,6 +207,36 @@ const verifyRateLimit = rateLimitMiddleware({
   maxRequests: 20,
   keyPrefix: "service_booking_verify",
   message: "Too many lookups. Please try again later.",
+});
+
+app.get("/verify/:code/ics", verifyRateLimit, async (c) => {
+  const parsed = contactProofSchema.safeParse({
+    requireContact: parseBoolean(c.req.query("requireContact")),
+    customerPhone: c.req.query("customerPhone") ?? c.req.query("phone"),
+    customerEmail: c.req.query("customerEmail") ?? c.req.query("email"),
+  });
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+  const ics = await new ServiceBookingService(
+    c.env,
+  ).generateCalendarInviteByConfirmationCode(
+    c.req.param("code") ?? "",
+    parsed.data,
+  );
+  return new Response(ics, {
+    headers: {
+      "Content-Type": "text/calendar; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="service-booking.ics"',
+    },
+  });
 });
 
 app.get("/verify/:code", verifyRateLimit, async (c) => {
@@ -350,6 +440,45 @@ app.post("/slots/block", requireRole([0, 1]), async (c) => {
   assertRestaurantScope(c.get("user"), parsed.data.restaurantId);
   const slot = await new ServiceBookingService(c.env).blockSlot(parsed.data);
   return c.json({ success: true, data: { slot } });
+});
+
+app.get("/reminders/due", requireRole([0, 1, 3, 4]), async (c) => {
+  const user = c.get("user");
+  const requested = c.req.query("restaurantId") ?? "";
+  const restaurantId =
+    user.role === 0 ? requested || undefined : scopedRestaurantId(user);
+  if (requested) assertRestaurantScope(user, requested);
+  const beforeRaw = c.req.query("before") ?? new Date().toISOString();
+  const before = new Date(beforeRaw);
+  if (Number.isNaN(before.getTime())) {
+    throw badRequest("before must be an ISO datetime", "DATETIME_INVALID");
+  }
+  const bookings = await new ServiceBookingService(c.env).listDueReminders({
+    before,
+    restaurantId: restaurantId ?? undefined,
+  });
+  return c.json({ success: true, data: { bookings } });
+});
+
+app.post("/:id/reminder-sent", requireRole([0, 1, 3, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const id = c.req.param("id") ?? "";
+  await loadBookingInScope(service, id, c.get("user"));
+  const booking = await service.markReminderSent(id);
+  return c.json({ success: true, data: { booking } });
+});
+
+app.get("/:id/ics", requireRole([0, 1, 3, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const id = c.req.param("id") ?? "";
+  await loadBookingInScope(service, id, c.get("user"));
+  const ics = await service.generateCalendarInvite(id);
+  return new Response(ics, {
+    headers: {
+      "Content-Type": "text/calendar; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="service-booking.ics"',
+    },
+  });
 });
 
 app.get("/", requireRole([0, 1, 3, 4]), async (c) => {
