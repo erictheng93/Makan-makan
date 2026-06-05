@@ -1,0 +1,222 @@
+/**
+ * Service Bookings Routes (預約服務)
+ *
+ * Public: browse availability, create a booking, pay with 代幣, verify/cancel by
+ * code. Staff/admin: list, confirm (cash), complete, no-show.
+ * See docs/superpowers/specs/2026-06-03-service-reservation-system.md.
+ */
+
+import { Hono } from "hono";
+import { z } from "zod";
+import { authMiddleware, requireRole } from "../../../middleware/auth";
+import type { AuthUser } from "../../../middleware/auth";
+import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
+import type { Env } from "../../../types/env";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from "../../../shared/utils/api-error";
+import {
+  SERVICE_BOOKING_STATUS,
+  type ServiceBookingStatus,
+} from "@makanmakan/database";
+import { ServiceBookingService } from "../services/ServiceBookingService";
+
+const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
+
+const createSchema = z.object({
+  restaurantId: z.string().min(1),
+  serviceItemId: z.number().int().positive(),
+  customerName: z.string().min(1).max(100),
+  customerPhone: z.string().min(3).max(30),
+  customerEmail: z.string().email().optional(),
+  customerId: z.string().optional(),
+  bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  bookingTime: z.string().regex(/^\d{2}:\d{2}$/),
+  partySize: z.number().int().positive().max(100).optional(),
+  specialRequests: z.string().max(500).optional(),
+  voucherCode: z.string().min(1).max(64).optional(),
+});
+
+const paySchema = z.object({
+  creditCardPublicId: z.string().min(1),
+  pin: z.string().optional(),
+});
+
+// ── Public ─────────────────────────────────────────────
+
+app.get("/availability", async (c) => {
+  const serviceItemId = Number(c.req.query("serviceItemId"));
+  const date = c.req.query("date") ?? "";
+  if (!Number.isInteger(serviceItemId) || serviceItemId <= 0) {
+    throw badRequest("serviceItemId is required", "SERVICE_ITEM_ID_REQUIRED");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw badRequest("date (YYYY-MM-DD) is required", "DATE_REQUIRED");
+  }
+  const slots = await new ServiceBookingService(c.env).getAvailability({
+    serviceItemId,
+    date,
+  });
+  return c.json({ success: true, data: { slots } });
+});
+
+app.post("/", async (c) => {
+  const body = await c.req.json();
+  const parsed = createSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+  const booking = await new ServiceBookingService(c.env).createBooking(
+    parsed.data,
+  );
+  return c.json({ success: true, data: { booking } }, 201);
+});
+
+app.post("/:id/pay", async (c) => {
+  const body = await c.req.json();
+  const parsed = paySchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+  const booking = await new ServiceBookingService(c.env).payWithCredits({
+    bookingId: c.req.param("id") ?? "",
+    creditCardPublicId: parsed.data.creditCardPublicId,
+    pin: parsed.data.pin,
+  });
+  return c.json({ success: true, data: { booking } });
+});
+
+// Rate-limited: the confirmation code is the anonymous ownership credential, so
+// throttle lookups to resist enumeration.
+const verifyRateLimit = rateLimitMiddleware({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 20,
+  keyPrefix: "service_booking_verify",
+  message: "Too many lookups. Please try again later.",
+});
+
+app.get("/verify/:code", verifyRateLimit, async (c) => {
+  const booking = await new ServiceBookingService(c.env).getByConfirmationCode(
+    c.req.param("code") ?? "",
+  );
+  if (!booking) throw notFound("Booking not found", "BOOKING_NOT_FOUND");
+  return c.json({ success: true, data: { booking } });
+});
+
+// Public cancel proves ownership with the confirmation code (NOT the booking id,
+// which would be an IDOR). Rate-limited against code enumeration.
+app.post("/verify/:code/cancel", verifyRateLimit, async (c) => {
+  const booking = await new ServiceBookingService(
+    c.env,
+  ).cancelByConfirmationCode(c.req.param("code") ?? "");
+  return c.json({ success: true, data: { booking } });
+});
+
+// ── Staff / admin ──────────────────────────────────────
+
+app.use("/*", authMiddleware);
+
+// Restaurant scope for staff routes: admins (role 0) are unscoped; everyone
+// else is confined to their own restaurant. Without this, role gating alone
+// lets any owner/crew/cashier read or mutate another restaurant's bookings
+// (cross-tenant IDOR). Mirrors the reservations feature's scope checks.
+function scopedRestaurantId(user: AuthUser): string | null {
+  return user.restaurantId != null ? String(user.restaurantId) : null;
+}
+
+async function loadBookingInScope(
+  service: ServiceBookingService,
+  id: string,
+  user: AuthUser,
+) {
+  const booking = await service.getById(id); // throws notFound if missing
+  if (user.role !== 0 && booking.restaurantId !== scopedRestaurantId(user)) {
+    throw forbidden("無權限操作此預約");
+  }
+  return booking;
+}
+
+// Owner(1)/admin(0)/cashier(4) manage; service crew(3) can confirm/complete.
+app.get("/", requireRole([0, 1, 3, 4]), async (c) => {
+  const user = c.get("user");
+  const requested = c.req.query("restaurantId") ?? "";
+  // Non-admins may only ever list their own restaurant — derive scope from the
+  // token, don't trust the query param.
+  const restaurantId = user.role === 0 ? requested : scopedRestaurantId(user);
+  if (!restaurantId) {
+    throw badRequest("restaurantId is required", "RESTAURANT_ID_REQUIRED");
+  }
+  if (user.role !== 0 && requested && requested !== restaurantId) {
+    throw forbidden("無權限查看此餐廳的預約");
+  }
+  const status = c.req.query("status") as ServiceBookingStatus | undefined;
+  const bookings = await new ServiceBookingService(c.env).listByRestaurant({
+    restaurantId,
+    date: c.req.query("date") ?? undefined,
+    status:
+      status && Object.values(SERVICE_BOOKING_STATUS).includes(status)
+        ? status
+        : undefined,
+  });
+  return c.json({ success: true, data: { bookings } });
+});
+
+app.get("/:id", requireRole([0, 1, 3, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const booking = await loadBookingInScope(
+    service,
+    c.req.param("id") ?? "",
+    c.get("user"),
+  );
+  return c.json({ success: true, data: { booking } });
+});
+
+app.delete("/:id", requireRole([0, 1, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const id = c.req.param("id") ?? "";
+  await loadBookingInScope(service, id, c.get("user"));
+  const booking = await service.cancelBooking(id);
+  return c.json({ success: true, data: { booking } });
+});
+
+app.post("/:id/confirm-cash", requireRole([0, 1, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const id = c.req.param("id") ?? "";
+  await loadBookingInScope(service, id, c.get("user"));
+  const booking = await service.confirmCash(id);
+  return c.json({ success: true, data: { booking } });
+});
+
+app.post("/:id/complete", requireRole([0, 1, 3, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const id = c.req.param("id") ?? "";
+  await loadBookingInScope(service, id, c.get("user"));
+  const booking = await service.transition(id, "completed");
+  return c.json({ success: true, data: { booking } });
+});
+
+app.post("/:id/no-show", requireRole([0, 1, 4]), async (c) => {
+  const service = new ServiceBookingService(c.env);
+  const id = c.req.param("id") ?? "";
+  await loadBookingInScope(service, id, c.get("user"));
+  const booking = await service.transition(id, "no_show");
+  return c.json({ success: true, data: { booking } });
+});
+
+export default app;

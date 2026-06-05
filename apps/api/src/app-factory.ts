@@ -90,6 +90,7 @@ import leavesFeature from "./features/leaves";
 import schedulingFeature from "./features/scheduling";
 // Reservation and waiting list features
 import reservationsFeature from "./features/reservations";
+import serviceBookingsFeature from "./features/service-bookings";
 import waitingListFeature from "./features/waiting-list";
 // Realtime authentication feature
 import realtimeRoutes from "./features/realtime/routes";
@@ -436,6 +437,7 @@ export function createApp(
         leaves: "/api/v1/leaves",
         scheduling: "/api/v1/scheduling",
         reservations: "/api/v1/reservations",
+        serviceBookings: "/api/v1/service-bookings",
         waitingList: "/api/v1/waiting-list",
         realtime: "/api/v1/realtime",
         notifications: "/api/v1/notifications",
@@ -468,6 +470,7 @@ export function createApp(
   // apiV1.route('/payments/webhook', paymentsRouter) // Payment webhooks 無需認證 - Disabled
   apiV1.route("/coupons", couponsFeature.routes); // 優惠券驗證端點為公開，管理端點需要認證
   apiV1.route("/reservations", reservationsFeature); // 訂位系統 (public + protected endpoints)
+  apiV1.route("/service-bookings", serviceBookingsFeature); // 預約服務 (public + protected endpoints)
   apiV1.route("/waiting-list", waitingListFeature); // 候位系統 (public + protected endpoints)
   apiV1.route("/realtime", realtimeRoutes); // WebSocket 認證端點為公開
   apiV1.route("/partnerships", partnershipsRoutes); // 特約商店體系 (部分公開端點 + 受保護端點)
