@@ -672,6 +672,7 @@ describe("i18n Integration Tests", () => {
       "navigation.orderTypeSelect",
       "navigation.verifyPhone",
       "navigation.shopMenu",
+      "navigation.serviceBooking",
       "navigation.shoppingCart",
       "navigation.orderTracking",
       "navigation.error",

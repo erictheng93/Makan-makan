@@ -335,8 +335,17 @@
                     {{ tag }}
                   </span>
                 </div>
+                <button
+                  v-if="service.requiresBooking"
+                  type="button"
+                  data-testid="shop-service-booking"
+                  class="mt-3 inline-flex text-sm font-medium text-ios-blue"
+                  @click="openServiceBooking(service)"
+                >
+                  站內預約
+                </button>
                 <a
-                  v-if="service.bookingUrl"
+                  v-else-if="service.bookingUrl"
                   :href="service.bookingUrl"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -898,6 +907,16 @@ const openMarketPage = (marketUrl: string) => {
   url.searchParams.set("returnLabel", restaurant.value?.name ?? "店鋪");
 
   router.push(`${url.pathname}${url.search}${url.hash}`);
+};
+
+const openServiceBooking = (service: RestaurantServiceItem) => {
+  router.push({
+    name: "ServiceBooking",
+    params: {
+      restaurantId: props.restaurantId,
+      serviceItemId: String(service.id),
+    },
+  });
 };
 
 const goBack = () => {

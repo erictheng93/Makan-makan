@@ -342,6 +342,34 @@ describe("ShopMenuView service items", () => {
     wrapper.unmount();
   });
 
+  it("opens the internal service booking flow for bookable services", async () => {
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1", linkedServices: "true" },
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.get('[data-testid="shop-service-booking"]').trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ServiceBooking",
+      params: {
+        restaurantId: "restaurant-1",
+        serviceItemId: "1",
+      },
+    });
+    wrapper.unmount();
+  });
+
   it("shows the linked service target and returns to the search context", async () => {
     const wrapper = mount(ShopMenuView, {
       props: {
