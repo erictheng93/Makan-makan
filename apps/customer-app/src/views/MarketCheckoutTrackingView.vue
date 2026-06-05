@@ -84,12 +84,92 @@
               </dd>
             </div>
             <div class="text-right">
-              <dt class="text-gray-500">總額</dt>
+              <dt class="text-gray-500">小計</dt>
               <dd class="mt-1 font-semibold text-gray-900">
                 {{ formatPrice(checkout.subtotal) }}
               </dd>
             </div>
+            <div v-if="voucherDiscountCents > 0">
+              <dt class="text-gray-500">卷折抵</dt>
+              <dd
+                data-testid="market-checkout-voucher-discount"
+                class="mt-1 font-semibold text-emerald-700"
+              >
+                -{{ formatPrice(voucherDiscountAmount) }}
+              </dd>
+            </div>
+            <div class="text-right">
+              <dt class="text-gray-500">應付</dt>
+              <dd
+                data-testid="market-checkout-payable"
+                class="mt-1 font-semibold text-gray-900"
+              >
+                {{ formatPrice(payableAmount) }}
+              </dd>
+            </div>
           </dl>
+
+          <section
+            v-if="canPayCheckout"
+            class="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3"
+            data-testid="market-checkout-voucher"
+          >
+            <div
+              v-if="checkout.appliedVoucher"
+              class="flex items-center justify-between gap-3"
+            >
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-gray-900">
+                  {{ checkout.appliedVoucher.name }}
+                </p>
+                <p class="mt-1 text-xs text-gray-500">
+                  {{ checkout.appliedVoucher.code }} · 已折抵
+                  {{ formatPrice(voucherDiscountAmount) }}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-testid="market-checkout-voucher-remove"
+                class="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 disabled:opacity-50"
+                :disabled="isVoucherRemoving"
+                @click="removeVoucher"
+              >
+                移除
+              </button>
+            </div>
+            <form v-else class="flex gap-2" @submit.prevent="applyVoucher">
+              <input
+                v-model="voucherCode"
+                data-testid="market-checkout-voucher-code"
+                type="text"
+                maxlength="64"
+                class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:ring-2 focus:ring-blue-500/20"
+                placeholder="輸入卷碼"
+              />
+              <button
+                type="submit"
+                data-testid="market-checkout-voucher-apply"
+                class="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                :disabled="isVoucherApplying || !voucherCode.trim()"
+              >
+                套用
+              </button>
+            </form>
+            <p
+              v-if="voucherError"
+              data-testid="market-checkout-voucher-error"
+              class="mt-2 text-xs text-red-600"
+            >
+              {{ voucherError }}
+            </p>
+            <p
+              v-if="voucherSuccess"
+              data-testid="market-checkout-voucher-success"
+              class="mt-2 text-xs text-emerald-700"
+            >
+              {{ voucherSuccess }}
+            </p>
+          </section>
 
           <div
             v-if="checkout.payment"
@@ -235,6 +315,7 @@ import {
   type MarketCheckoutProviderNextAction,
   type MarketCheckoutSummary,
 } from "@/services/orderApi";
+import type { ApiException } from "@/services/api";
 import { useCurrency } from "@/composables/useCurrency";
 import {
   activateMarketCheckoutGuestToken,
@@ -256,6 +337,11 @@ const error = ref<string | null>(null);
 const paymentError = ref<string | null>(null);
 const paymentActionMessage = ref<string | null>(null);
 const orderAccessError = ref<string | null>(null);
+const voucherCode = ref("");
+const voucherError = ref<string | null>(null);
+const voucherSuccess = ref<string | null>(null);
+const isVoucherApplying = ref(false);
+const isVoucherRemoving = ref(false);
 
 const statusLabel = computed(() => {
   if (checkout.value?.status === "submitted") {
@@ -305,6 +391,20 @@ const canPayCheckout = computed(() => {
   return !checkout.value?.payment || checkout.value.payment.status !== "paid";
 });
 
+const voucherDiscountCents = computed(() => {
+  return checkout.value?.appliedVoucher?.discountCents ?? 0;
+});
+
+const voucherDiscountAmount = computed(() => voucherDiscountCents.value / 100);
+
+const payableAmount = computed(() => {
+  if (checkout.value?.payment?.totalAmount != null) {
+    return checkout.value.payment.totalAmount;
+  }
+  const subtotal = checkout.value?.subtotal ?? 0;
+  return Math.max(0, subtotal - voucherDiscountAmount.value);
+});
+
 const payButtonLabel = computed(() => {
   if (isPaying.value) return "付款處理中";
   if (checkout.value?.payment?.status === "partial_paid")
@@ -350,6 +450,46 @@ async function payCheckout() {
       payError instanceof Error ? payError.message : "市場聯合付款失敗";
   } finally {
     isPaying.value = false;
+  }
+}
+
+async function applyVoucher() {
+  if (!voucherCode.value.trim()) return;
+  voucherError.value = null;
+  voucherSuccess.value = null;
+  isVoucherApplying.value = true;
+  try {
+    const result = await orderApi.applyMarketCheckoutVoucher(
+      props.checkoutId,
+      voucherCode.value.trim(),
+    );
+    checkout.value = result.checkout;
+    recordRecentMarketCheckout(result.checkout);
+    voucherCode.value = "";
+    voucherSuccess.value = "卷已套用。";
+  } catch (error) {
+    console.error("Failed to apply market checkout voucher:", error);
+    voucherError.value = voucherErrorMessage(error);
+  } finally {
+    isVoucherApplying.value = false;
+  }
+}
+
+async function removeVoucher() {
+  voucherError.value = null;
+  voucherSuccess.value = null;
+  isVoucherRemoving.value = true;
+  try {
+    const result = await orderApi.removeMarketCheckoutVoucher(props.checkoutId);
+    checkout.value = result.checkout;
+    recordRecentMarketCheckout(result.checkout);
+    voucherSuccess.value = "卷已移除。";
+  } catch (error) {
+    console.error("Failed to remove market checkout voucher:", error);
+    voucherError.value =
+      error instanceof Error ? error.message : "移除卷失敗，請稍後再試。";
+  } finally {
+    isVoucherRemoving.value = false;
   }
 }
 
@@ -461,6 +601,23 @@ function marketPaymentStatusLabel(
     partial_refunded: "部分退款",
   };
   return labels[status];
+}
+
+function voucherErrorMessage(error: unknown): string {
+  const apiError = error as Partial<ApiException>;
+  const code = typeof apiError.code === "string" ? apiError.code : "";
+  const messages: Record<string, string> = {
+    VOUCHER_NOT_FOUND: "找不到這張卷，請確認卷碼。",
+    VOUCHER_NOT_APPLICABLE: "這張卷不適用於此市場結帳。",
+    VOUCHER_EXPIRED: "這張卷已過期。",
+    VOUCHER_EXHAUSTED: "這張卷已用完。",
+    VOUCHER_MIN_ORDER_NOT_MET: "尚未達到這張卷的最低消費。",
+    MARKET_CHECKOUT_ALREADY_PAID: "此訂單已付款，無法變更卷。",
+  };
+  if (Object.prototype.hasOwnProperty.call(messages, code)) {
+    return messages[code];
+  }
+  return error instanceof Error ? error.message : "套用卷失敗，請稍後再試。";
 }
 
 onMounted(loadCheckout);
