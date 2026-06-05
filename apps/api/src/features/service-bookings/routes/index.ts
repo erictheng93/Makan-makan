@@ -35,6 +35,7 @@ const createSchema = z.object({
   bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   bookingTime: z.string().regex(/^\d{2}:\d{2}$/),
   partySize: z.number().int().positive().max(100).optional(),
+  employeeId: z.number().int().positive().optional(),
   specialRequests: z.string().max(500).optional(),
   voucherCode: z.string().min(1).max(64).optional(),
 });

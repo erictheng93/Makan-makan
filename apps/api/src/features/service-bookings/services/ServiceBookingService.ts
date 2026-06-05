@@ -15,6 +15,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq } from "drizzle-orm";
 import {
+  employeeAvailability,
   serviceBookings,
   serviceBookingSlots,
   restaurantServiceItems,
@@ -22,6 +23,7 @@ import {
   SERVICE_BOOKING_PAYMENT_METHOD,
   SERVICE_BOOKING_PAYMENT_STATUS,
   type ServiceBookingStatus,
+  users,
 } from "@makanmakan/database";
 import { CouponService } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
@@ -36,6 +38,7 @@ import { CreditService } from "../../credits/services/CreditService";
 
 type ServiceBookingRow = typeof serviceBookings.$inferSelect;
 type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;
+type EmployeeAvailabilityRow = typeof employeeAvailability.$inferSelect;
 
 export interface CreateServiceBookingInput {
   restaurantId: string;
@@ -47,6 +50,7 @@ export interface CreateServiceBookingInput {
   bookingDate: string; // YYYY-MM-DD
   bookingTime: string; // HH:MM
   partySize?: number;
+  employeeId?: number;
   specialRequests?: string;
   /** 卷 code applied as a pricing-layer discount. */
   voucherCode?: string;
@@ -151,6 +155,16 @@ export class ServiceBookingService {
       input.bookingTime,
     );
 
+    if (input.employeeId !== undefined) {
+      await this.assertEmployeeAvailable({
+        restaurantId: input.restaurantId,
+        employeeId: input.employeeId,
+        bookingDate: input.bookingDate,
+        bookingTime: input.bookingTime,
+        durationMinutes: service.durationMinutes ?? 0,
+      });
+    }
+
     // Reserve capacity if a slot row exists (operator-defined cap). A guarded
     // UPDATE makes the reservation atomic against concurrent bookings.
     await this.reserveSlotCapacity(
@@ -189,6 +203,7 @@ export class ServiceBookingService {
         bookingDate: input.bookingDate,
         bookingTime: input.bookingTime,
         partySize: input.partySize ?? 1,
+        employeeId: input.employeeId ?? null,
         status: SERVICE_BOOKING_STATUS.PENDING,
         confirmationCode,
         specialRequests: input.specialRequests ?? null,
@@ -557,6 +572,78 @@ export class ServiceBookingService {
     return booking;
   }
 
+  private async assertEmployeeAvailable(input: {
+    restaurantId: string;
+    employeeId: number;
+    bookingDate: string;
+    bookingTime: string;
+    durationMinutes: number;
+  }): Promise<void> {
+    const employee = await this.db
+      .select({
+        id: users.id,
+        restaurantId: users.restaurantId,
+        isActive: users.isActive,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.id, input.employeeId))
+      .get();
+
+    if (
+      !employee ||
+      !employee.isActive ||
+      employee.restaurantId !== input.restaurantId ||
+      employee.role === 5
+    ) {
+      throw badRequest(
+        "The assigned employee is not available for this booking",
+        "SERVICE_EMPLOYEE_UNAVAILABLE",
+      );
+    }
+
+    const rows = await this.db
+      .select()
+      .from(employeeAvailability)
+      .where(
+        and(
+          eq(employeeAvailability.restaurantId, input.restaurantId),
+          eq(employeeAvailability.employeeId, input.employeeId),
+          eq(employeeAvailability.isActive, true),
+        ),
+      )
+      .all();
+
+    const bookingEnd = addMinutesToTime(
+      input.bookingTime,
+      input.durationMinutes,
+    );
+    const dayOfWeek = new Date(`${input.bookingDate}T00:00:00Z`).getUTCDay();
+    const matching = rows
+      .filter((row) =>
+        availabilityRowMatches(row, {
+          bookingDate: input.bookingDate,
+          bookingTime: input.bookingTime,
+          bookingEnd,
+          dayOfWeek,
+        }),
+      )
+      .sort(
+        (a, b) =>
+          (b.priority ?? 0) - (a.priority ?? 0) ||
+          (b.availabilityType === "specific_date" ? 1 : 0) -
+            (a.availabilityType === "specific_date" ? 1 : 0),
+      );
+
+    const decision = matching[0];
+    if (!decision || decision.preferenceType === "unavailable") {
+      throw badRequest(
+        "The assigned employee is not available for this booking",
+        "SERVICE_EMPLOYEE_UNAVAILABLE",
+      );
+    }
+  }
+
   private async markConfirmed(
     booking: ServiceBookingRow,
     payment: {
@@ -753,6 +840,65 @@ function enumerateDates(start: string, end: string): string[] {
     dates.push(date.toISOString().slice(0, 10));
   }
   return dates;
+}
+
+function availabilityRowMatches(
+  row: EmployeeAvailabilityRow,
+  booking: {
+    bookingDate: string;
+    bookingTime: string;
+    bookingEnd: string;
+    dayOfWeek: number;
+  },
+): boolean {
+  if (row.availabilityType === "recurring") {
+    if (row.dayOfWeek !== booking.dayOfWeek) return false;
+    return timeWindowCoversBooking(
+      row.startTime,
+      row.endTime,
+      booking.bookingTime,
+      booking.bookingEnd,
+    );
+  }
+
+  if (row.availabilityType === "specific_date") {
+    if (!row.startDate || !row.endDate) return false;
+    if (
+      row.startDate > booking.bookingDate ||
+      row.endDate < booking.bookingDate
+    )
+      return false;
+    if (!row.startTime && !row.endTime) return true;
+    return timeWindowCoversBooking(
+      row.startTime,
+      row.endTime,
+      booking.bookingTime,
+      booking.bookingEnd,
+    );
+  }
+
+  return false;
+}
+
+function timeWindowCoversBooking(
+  availabilityStart: string | null,
+  availabilityEnd: string | null,
+  bookingStart: string,
+  bookingEnd: string,
+): boolean {
+  if (!availabilityStart || !availabilityEnd) return false;
+  return availabilityStart <= bookingStart && bookingEnd <= availabilityEnd;
+}
+
+function addMinutesToTime(time: string, minutes: number): string {
+  const [hours = "0", mins = "0"] = time.split(":");
+  const totalMinutes = Number(hours) * 60 + Number(mins) + minutes;
+  const nextHours = Math.floor(totalMinutes / 60);
+  const nextMinutes = totalMinutes % 60;
+  return `${String(nextHours).padStart(2, "0")}:${String(nextMinutes).padStart(
+    2,
+    "0",
+  )}`;
 }
 
 function assertContactProof(

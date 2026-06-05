@@ -16,6 +16,8 @@ import {
   restaurantServiceItems,
   serviceBookingSlots,
   coupons,
+  employeeAvailability,
+  users,
 } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
@@ -105,6 +107,44 @@ async function seedPlatformCoupon(
     })
     .returning({ id: coupons.id });
   return row.id;
+}
+
+async function seedEmployee(
+  overrides: Partial<typeof users.$inferInsert> = {},
+): Promise<number> {
+  const [row] = await testDb.drizzle
+    .insert(users)
+    .values({
+      username: `booking-employee-${crypto.randomUUID()}`,
+      email: null,
+      phone: null,
+      fullName: "Booking Employee",
+      passwordHash: "test",
+      role: 3,
+      restaurantId: RESTAURANT_ID,
+      isActive: true,
+      ...overrides,
+    })
+    .returning({ id: users.id });
+  return row.id;
+}
+
+async function seedEmployeeAvailability(
+  input: Partial<typeof employeeAvailability.$inferInsert> & {
+    employeeId: number;
+  },
+): Promise<void> {
+  await testDb.drizzle.insert(employeeAvailability).values({
+    restaurantId: RESTAURANT_ID,
+    availabilityType: "recurring",
+    dayOfWeek: 5,
+    startTime: "09:00",
+    endTime: "17:00",
+    preferenceType: "available",
+    priority: 0,
+    isActive: true,
+    ...input,
+  });
 }
 
 async function usedCount(couponId: number): Promise<number> {
@@ -497,5 +537,84 @@ describe("ServiceBookingService — confirmation contact proof", () => {
         customerEmail: "GUEST@example.test",
       }),
     ).resolves.toMatchObject({ status: "cancelled" });
+  });
+});
+
+describe("ServiceBookingService — employee assignment availability", () => {
+  it("stores an assigned employee when the employee is available for the service duration", async () => {
+    const serviceId = await seedService({ durationMinutes: 60 });
+    const employeeId = await seedEmployee();
+    await seedEmployeeAvailability({
+      employeeId,
+      dayOfWeek: 5, // 2026-06-05 is Friday
+      startTime: "13:00",
+      endTime: "15:00",
+      preferenceType: "preferred",
+    });
+
+    const booking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      employeeId,
+    });
+
+    expect(booking.employeeId).toBe(employeeId);
+  });
+
+  it("rejects an assigned employee with no matching availability", async () => {
+    const serviceId = await seedService({ durationMinutes: 60 });
+    const employeeId = await seedEmployee();
+
+    await expect(
+      service().createBooking({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Guest",
+        customerPhone: "0911222333",
+        bookingDate: "2026-06-05",
+        bookingTime: "14:00",
+        employeeId,
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_EMPLOYEE_UNAVAILABLE" });
+  });
+
+  it("lets a specific-date unavailable override block recurring availability", async () => {
+    const serviceId = await seedService({ durationMinutes: 60 });
+    const employeeId = await seedEmployee();
+    await seedEmployeeAvailability({
+      employeeId,
+      dayOfWeek: 5,
+      startTime: "09:00",
+      endTime: "17:00",
+      preferenceType: "available",
+      priority: 0,
+    });
+    await seedEmployeeAvailability({
+      employeeId,
+      availabilityType: "specific_date",
+      dayOfWeek: null,
+      startTime: null,
+      endTime: null,
+      startDate: "2026-06-05",
+      endDate: "2026-06-05",
+      preferenceType: "unavailable",
+      priority: 10,
+    });
+
+    await expect(
+      service().createBooking({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Guest",
+        customerPhone: "0911222333",
+        bookingDate: "2026-06-05",
+        bookingTime: "14:00",
+        employeeId,
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_EMPLOYEE_UNAVAILABLE" });
   });
 });

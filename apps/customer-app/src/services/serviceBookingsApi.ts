@@ -45,6 +45,7 @@ export interface CreateServiceBookingInput {
   bookingDate: string;
   bookingTime: string;
   partySize?: number;
+  employeeId?: number;
   specialRequests?: string;
   voucherCode?: string;
 }
