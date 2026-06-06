@@ -1701,6 +1701,58 @@ const zhCN: Messages = {
     daysAgo: "{count}天前",
   },
 
+  serviceBookings: {
+    title: "服务预约管理",
+    subtitle: "查看服务预约并处理现金确认、完成、未到与取消。",
+    empty: "目前没有服务预约。",
+    partySize: "{count} 人",
+    filters: {
+      date: "日期",
+      status: "状态",
+      allStatuses: "全部",
+    },
+    table: {
+      booking: "预约",
+      customer: "顾客",
+      time: "时间",
+      payment: "付款",
+      status: "状态",
+      actions: "操作",
+    },
+    status: {
+      pending: "待处理",
+      pendingPayment: "待付款/待确认",
+      confirmed: "已确认",
+      completed: "已完成",
+      cancelled: "已取消",
+      no_show: "未到",
+    },
+    actions: {
+      confirmCash: "现金确认",
+      complete: "完成",
+      noShow: "未到",
+    },
+    paymentMethods: {
+      none: "未选付款",
+      credits: "代币",
+      cash: "现金",
+    },
+    paymentStatuses: {
+      unpaid: "未付款",
+      deposit_paid: "已付订金",
+      paid: "已付款",
+      refunded: "已退款",
+    },
+    messages: {
+      loadFailed: "载入服务预约失败。",
+      updateFailed: "更新服务预约失败。",
+      confirmCashSuccess: "预约已以现金确认。",
+      completeSuccess: "预约已完成。",
+      noShowSuccess: "预约已标记未到。",
+      cancelSuccess: "预约已取消。",
+    },
+  },
+
   // 店主仪表板
   owner: {
     kpi: {

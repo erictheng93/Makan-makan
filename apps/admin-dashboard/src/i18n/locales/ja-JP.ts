@@ -1620,6 +1620,59 @@ const jaJP: Messages = {
     daysAgo: "{count}日前",
   },
 
+  serviceBookings: {
+    title: "サービス予約管理",
+    subtitle:
+      "サービス予約を確認し、現金確認、完了、無断キャンセル、取消を処理します。",
+    empty: "現在サービス予約はありません。",
+    partySize: "{count}名",
+    filters: {
+      date: "日付",
+      status: "ステータス",
+      allStatuses: "すべて",
+    },
+    table: {
+      booking: "予約",
+      customer: "顧客",
+      time: "時間",
+      payment: "支払い",
+      status: "ステータス",
+      actions: "操作",
+    },
+    status: {
+      pending: "保留中",
+      pendingPayment: "支払い/確認待ち",
+      confirmed: "確認済み",
+      completed: "完了",
+      cancelled: "取消済み",
+      no_show: "無断キャンセル",
+    },
+    actions: {
+      confirmCash: "現金確認",
+      complete: "完了",
+      noShow: "無断キャンセル",
+    },
+    paymentMethods: {
+      none: "支払い未選択",
+      credits: "クレジット",
+      cash: "現金",
+    },
+    paymentStatuses: {
+      unpaid: "未払い",
+      deposit_paid: "内金支払い済み",
+      paid: "支払い済み",
+      refunded: "返金済み",
+    },
+    messages: {
+      loadFailed: "サービス予約の読み込みに失敗しました。",
+      updateFailed: "サービス予約の更新に失敗しました。",
+      confirmCashSuccess: "予約は現金支払いとして確認されました。",
+      completeSuccess: "予約が完了しました。",
+      noShowSuccess: "予約を無断キャンセルとして記録しました。",
+      cancelSuccess: "予約を取消しました。",
+    },
+  },
+
   // オーナーダッシュボード
   owner: {
     kpi: {

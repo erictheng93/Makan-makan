@@ -1822,6 +1822,58 @@ const zhTW = {
     daysAgo: "{count}天前",
   },
 
+  serviceBookings: {
+    title: "服務預約管理",
+    subtitle: "查看服務預約並處理現金確認、完成、未到與取消。",
+    empty: "目前沒有服務預約。",
+    partySize: "{count} 人",
+    filters: {
+      date: "日期",
+      status: "狀態",
+      allStatuses: "全部",
+    },
+    table: {
+      booking: "預約",
+      customer: "顧客",
+      time: "時間",
+      payment: "付款",
+      status: "狀態",
+      actions: "操作",
+    },
+    status: {
+      pending: "待處理",
+      pendingPayment: "待付款/待確認",
+      confirmed: "已確認",
+      completed: "已完成",
+      cancelled: "已取消",
+      no_show: "未到",
+    },
+    actions: {
+      confirmCash: "現金確認",
+      complete: "完成",
+      noShow: "未到",
+    },
+    paymentMethods: {
+      none: "未選付款",
+      credits: "代幣",
+      cash: "現金",
+    },
+    paymentStatuses: {
+      unpaid: "未付款",
+      deposit_paid: "已付訂金",
+      paid: "已付款",
+      refunded: "已退款",
+    },
+    messages: {
+      loadFailed: "載入服務預約失敗。",
+      updateFailed: "更新服務預約失敗。",
+      confirmCashSuccess: "預約已以現金確認。",
+      completeSuccess: "預約已完成。",
+      noShowSuccess: "預約已標記未到。",
+      cancelSuccess: "預約已取消。",
+    },
+  },
+
   // 店主儀表板
   owner: {
     kpi: {

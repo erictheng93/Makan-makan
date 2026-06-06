@@ -5,9 +5,35 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServiceBookingsView from "./ServiceBookingsView.vue";
 import { serviceBookingsService } from "@/services/serviceBookingsService";
 
+const i18nMock = vi.hoisted(() => {
+  const locale = { value: "zh-TW" };
+  const messages: Record<string, Record<string, string>> = {
+    "zh-TW": {
+      "serviceBookings.title": "服務預約管理",
+      "serviceBookings.status.pending": "待處理",
+    },
+    "en-US": {
+      "serviceBookings.title": "Service Bookings",
+      "serviceBookings.status.pending": "Pending",
+    },
+  };
+
+  return {
+    locale,
+    t: vi.fn((key: string) => messages[locale.value]?.[key] ?? key),
+  };
+});
+
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({
     restaurantId: "restaurant-1",
+  }),
+}));
+
+vi.mock("@/i18n", () => ({
+  useI18n: () => ({
+    locale: i18nMock.locale,
+    t: i18nMock.t,
   }),
 }));
 
@@ -53,6 +79,7 @@ const confirmedBooking = {
 describe("ServiceBookingsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    i18nMock.locale.value = "zh-TW";
     vi.mocked(serviceBookingsService.listBookings).mockResolvedValue([
       pendingBooking,
       confirmedBooking,
@@ -90,6 +117,20 @@ describe("ServiceBookingsView", () => {
     expect(wrapper.findAll('[data-testid="service-booking-row"]')).toHaveLength(
       2,
     );
+  });
+
+  it("renders labels through i18n when locale changes", async () => {
+    const wrapper = mount(ServiceBookingsView);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("服務預約管理");
+    expect(wrapper.text()).toContain("待處理");
+
+    i18nMock.locale.value = "en-US";
+    await wrapper.vm.$forceUpdate();
+
+    expect(wrapper.text()).toContain("Service Bookings");
+    expect(wrapper.text()).toContain("Pending");
   });
 
   it("filters bookings by status and date", async () => {

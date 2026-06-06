@@ -1618,6 +1618,59 @@ const viVN: Messages = {
     daysAgo: "{count} ngày trước",
   },
 
+  serviceBookings: {
+    title: "Quản lý đặt dịch vụ",
+    subtitle:
+      "Xem đặt dịch vụ và xử lý xác nhận tiền mặt, hoàn tất, vắng mặt và hủy.",
+    empty: "Hiện chưa có đặt dịch vụ.",
+    partySize: "{count} người",
+    filters: {
+      date: "Ngày",
+      status: "Trạng thái",
+      allStatuses: "Tất cả",
+    },
+    table: {
+      booking: "Đặt dịch vụ",
+      customer: "Khách hàng",
+      time: "Thời gian",
+      payment: "Thanh toán",
+      status: "Trạng thái",
+      actions: "Thao tác",
+    },
+    status: {
+      pending: "Đang chờ",
+      pendingPayment: "Chờ thanh toán/xác nhận",
+      confirmed: "Đã xác nhận",
+      completed: "Đã hoàn tất",
+      cancelled: "Đã hủy",
+      no_show: "Vắng mặt",
+    },
+    actions: {
+      confirmCash: "Xác nhận tiền mặt",
+      complete: "Hoàn tất",
+      noShow: "Vắng mặt",
+    },
+    paymentMethods: {
+      none: "Chưa chọn thanh toán",
+      credits: "Tín dụng",
+      cash: "Tiền mặt",
+    },
+    paymentStatuses: {
+      unpaid: "Chưa thanh toán",
+      deposit_paid: "Đã trả cọc",
+      paid: "Đã thanh toán",
+      refunded: "Đã hoàn tiền",
+    },
+    messages: {
+      loadFailed: "Không thể tải đặt dịch vụ.",
+      updateFailed: "Không thể cập nhật đặt dịch vụ.",
+      confirmCashSuccess: "Đặt dịch vụ đã được xác nhận thanh toán tiền mặt.",
+      completeSuccess: "Đặt dịch vụ đã hoàn tất.",
+      noShowSuccess: "Đặt dịch vụ đã được đánh dấu vắng mặt.",
+      cancelSuccess: "Đặt dịch vụ đã hủy.",
+    },
+  },
+
   // Bảng điều khiển chủ cửa hàng
   owner: {
     kpi: {

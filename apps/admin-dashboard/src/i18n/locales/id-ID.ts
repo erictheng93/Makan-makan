@@ -1696,6 +1696,59 @@ const idID: Messages = {
     daysAgo: "{count} hari lalu",
   },
 
+  serviceBookings: {
+    title: "Manajemen Reservasi Layanan",
+    subtitle:
+      "Tinjau reservasi layanan dan tangani konfirmasi tunai, selesai, tidak hadir, dan pembatalan.",
+    empty: "Belum ada reservasi layanan.",
+    partySize: "{count} orang",
+    filters: {
+      date: "Tanggal",
+      status: "Status",
+      allStatuses: "Semua",
+    },
+    table: {
+      booking: "Reservasi",
+      customer: "Pelanggan",
+      time: "Waktu",
+      payment: "Pembayaran",
+      status: "Status",
+      actions: "Aksi",
+    },
+    status: {
+      pending: "Menunggu",
+      pendingPayment: "Menunggu pembayaran/konfirmasi",
+      confirmed: "Dikonfirmasi",
+      completed: "Selesai",
+      cancelled: "Dibatalkan",
+      no_show: "Tidak hadir",
+    },
+    actions: {
+      confirmCash: "Konfirmasi Tunai",
+      complete: "Selesai",
+      noShow: "Tidak hadir",
+    },
+    paymentMethods: {
+      none: "Pembayaran belum dipilih",
+      credits: "Kredit",
+      cash: "Tunai",
+    },
+    paymentStatuses: {
+      unpaid: "Belum dibayar",
+      deposit_paid: "Deposit dibayar",
+      paid: "Dibayar",
+      refunded: "Dikembalikan",
+    },
+    messages: {
+      loadFailed: "Gagal memuat reservasi layanan.",
+      updateFailed: "Gagal memperbarui reservasi layanan.",
+      confirmCashSuccess: "Reservasi dikonfirmasi sebagai pembayaran tunai.",
+      completeSuccess: "Reservasi selesai.",
+      noShowSuccess: "Reservasi ditandai tidak hadir.",
+      cancelSuccess: "Reservasi dibatalkan.",
+    },
+  },
+
   // Dasbor pemilik
   owner: {
     kpi: {

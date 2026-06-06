@@ -4,9 +4,11 @@
       class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
     >
       <div>
-        <h1 class="text-2xl font-semibold text-gray-900">服務預約管理</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">
+          {{ t("serviceBookings.title") }}
+        </h1>
         <p class="mt-1 text-sm text-gray-500">
-          查看服務預約並處理現金確認、完成、未到與取消。
+          {{ t("serviceBookings.subtitle") }}
         </p>
       </div>
       <button
@@ -16,7 +18,7 @@
         :disabled="isLoading"
         @click="loadBookings"
       >
-        重新整理
+        {{ t("common.refresh") }}
       </button>
     </div>
 
@@ -24,7 +26,7 @@
       <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div>
           <label class="mb-2 block text-sm font-medium text-gray-700">
-            日期
+            {{ t("serviceBookings.filters.date") }}
           </label>
           <input
             v-model="filters.date"
@@ -36,7 +38,7 @@
         </div>
         <div>
           <label class="mb-2 block text-sm font-medium text-gray-700">
-            狀態
+            {{ t("serviceBookings.filters.status") }}
           </label>
           <select
             v-model="filters.status"
@@ -44,12 +46,24 @@
             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             @change="loadBookings"
           >
-            <option value="">全部</option>
-            <option value="pending">待付款/待確認</option>
-            <option value="confirmed">已確認</option>
-            <option value="completed">已完成</option>
-            <option value="no_show">未到</option>
-            <option value="cancelled">已取消</option>
+            <option value="">
+              {{ t("serviceBookings.filters.allStatuses") }}
+            </option>
+            <option value="pending">
+              {{ t("serviceBookings.status.pendingPayment") }}
+            </option>
+            <option value="confirmed">
+              {{ t("serviceBookings.status.confirmed") }}
+            </option>
+            <option value="completed">
+              {{ t("serviceBookings.status.completed") }}
+            </option>
+            <option value="no_show">
+              {{ t("serviceBookings.status.no_show") }}
+            </option>
+            <option value="cancelled">
+              {{ t("serviceBookings.status.cancelled") }}
+            </option>
           </select>
         </div>
       </div>
@@ -66,23 +80,35 @@
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th class="px-4 py-3">預約</th>
-              <th class="px-4 py-3">顧客</th>
-              <th class="px-4 py-3">時間</th>
-              <th class="px-4 py-3">付款</th>
-              <th class="px-4 py-3">狀態</th>
-              <th class="px-4 py-3 text-right">操作</th>
+              <th class="px-4 py-3">
+                {{ t("serviceBookings.table.booking") }}
+              </th>
+              <th class="px-4 py-3">
+                {{ t("serviceBookings.table.customer") }}
+              </th>
+              <th class="px-4 py-3">
+                {{ t("serviceBookings.table.time") }}
+              </th>
+              <th class="px-4 py-3">
+                {{ t("serviceBookings.table.payment") }}
+              </th>
+              <th class="px-4 py-3">
+                {{ t("serviceBookings.table.status") }}
+              </th>
+              <th class="px-4 py-3 text-right">
+                {{ t("serviceBookings.table.actions") }}
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <tr v-if="isLoading">
               <td colspan="6" class="px-4 py-8 text-center text-gray-500">
-                載入中...
+                {{ t("common.loading") }}
               </td>
             </tr>
             <tr v-else-if="bookings.length === 0">
               <td colspan="6" class="px-4 py-8 text-center text-gray-500">
-                目前沒有服務預約。
+                {{ t("serviceBookings.empty") }}
               </td>
             </tr>
             <tr
@@ -113,7 +139,13 @@
                 <div v-if="booking.customerEmail">
                   {{ booking.customerEmail }}
                 </div>
-                <div>{{ booking.partySize }} 人</div>
+                <div>
+                  {{
+                    t("serviceBookings.partySize", {
+                      count: booking.partySize,
+                    })
+                  }}
+                </div>
               </td>
               <td class="px-4 py-3 align-top text-gray-600">
                 <div>{{ booking.bookingDate }}</div>
@@ -144,7 +176,7 @@
                     :disabled="isSaving"
                     @click="runAction(() => confirmCash(booking.id))"
                   >
-                    現金確認
+                    {{ t("serviceBookings.actions.confirmCash") }}
                   </button>
                   <button
                     v-if="booking.status === 'confirmed'"
@@ -154,7 +186,7 @@
                     :disabled="isSaving"
                     @click="runAction(() => completeBooking(booking.id))"
                   >
-                    完成
+                    {{ t("serviceBookings.actions.complete") }}
                   </button>
                   <button
                     v-if="booking.status === 'confirmed'"
@@ -164,7 +196,7 @@
                     :disabled="isSaving"
                     @click="runAction(() => markNoShow(booking.id))"
                   >
-                    未到
+                    {{ t("serviceBookings.actions.noShow") }}
                   </button>
                   <button
                     v-if="
@@ -177,7 +209,7 @@
                     :disabled="isSaving"
                     @click="runAction(() => cancelBooking(booking.id))"
                   >
-                    取消
+                    {{ t("common.cancel") }}
                   </button>
                 </div>
               </td>
@@ -191,6 +223,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue";
+import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import {
   serviceBookingsService,
@@ -199,6 +232,7 @@ import {
 } from "@/services/serviceBookingsService";
 
 const authStore = useAuthStore();
+const { locale, t } = useI18n();
 const today = new Date().toISOString().slice(0, 10);
 
 const bookings = ref<ServiceBooking[]>([]);
@@ -241,7 +275,7 @@ async function loadBookings() {
     });
   } catch (error) {
     console.error("Load service bookings failed:", error);
-    errorMessage.value = "載入服務預約失敗。";
+    errorMessage.value = t("serviceBookings.messages.loadFailed");
   } finally {
     isLoading.value = false;
   }
@@ -256,7 +290,7 @@ async function runAction(action: () => Promise<string>) {
     await loadBookings();
   } catch (error) {
     console.error("Service booking action failed:", error);
-    errorMessage.value = "更新服務預約失敗。";
+    errorMessage.value = t("serviceBookings.messages.updateFailed");
   } finally {
     isSaving.value = false;
   }
@@ -264,26 +298,26 @@ async function runAction(action: () => Promise<string>) {
 
 async function confirmCash(id: string): Promise<string> {
   await serviceBookingsService.confirmCash(id);
-  return "預約已以現金確認。";
+  return t("serviceBookings.messages.confirmCashSuccess");
 }
 
 async function completeBooking(id: string): Promise<string> {
   await serviceBookingsService.complete(id);
-  return "預約已完成。";
+  return t("serviceBookings.messages.completeSuccess");
 }
 
 async function markNoShow(id: string): Promise<string> {
   await serviceBookingsService.markNoShow(id);
-  return "預約已標記未到。";
+  return t("serviceBookings.messages.noShowSuccess");
 }
 
 async function cancelBooking(id: string): Promise<string> {
   await serviceBookingsService.cancel(id);
-  return "預約已取消。";
+  return t("serviceBookings.messages.cancelSuccess");
 }
 
 function formatCents(cents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
+  return new Intl.NumberFormat(locale.value, {
     style: "currency",
     currency: "TWD",
     maximumFractionDigits: 0,
@@ -291,14 +325,7 @@ function formatCents(cents: number): string {
 }
 
 function statusLabel(status: ServiceBookingStatus): string {
-  const labels: Record<ServiceBookingStatus, string> = {
-    pending: "待處理",
-    confirmed: "已確認",
-    completed: "已完成",
-    cancelled: "已取消",
-    no_show: "未到",
-  };
-  return labels[status];
+  return t(`serviceBookings.status.${status}`);
 }
 
 function statusClass(status: ServiceBookingStatus): string {
@@ -313,21 +340,10 @@ function statusClass(status: ServiceBookingStatus): string {
 }
 
 function paymentMethodLabel(method: ServiceBooking["paymentMethod"]): string {
-  const labels: Record<ServiceBooking["paymentMethod"], string> = {
-    none: "未選付款",
-    credits: "代幣",
-    cash: "現金",
-  };
-  return labels[method];
+  return t(`serviceBookings.paymentMethods.${method}`);
 }
 
 function paymentStatusLabel(status: ServiceBooking["paymentStatus"]): string {
-  const labels: Record<ServiceBooking["paymentStatus"], string> = {
-    unpaid: "未付款",
-    deposit_paid: "已付訂金",
-    paid: "已付款",
-    refunded: "已退款",
-  };
-  return labels[status];
+  return t(`serviceBookings.paymentStatuses.${status}`);
 }
 </script>

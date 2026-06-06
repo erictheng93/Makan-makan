@@ -1784,6 +1784,59 @@ const enUS: Messages = {
     daysAgo: "{count} days ago",
   },
 
+  serviceBookings: {
+    title: "Service Bookings",
+    subtitle:
+      "Review service bookings and handle cash confirmation, completion, no-shows, and cancellations.",
+    empty: "There are no service bookings.",
+    partySize: "{count} people",
+    filters: {
+      date: "Date",
+      status: "Status",
+      allStatuses: "All",
+    },
+    table: {
+      booking: "Booking",
+      customer: "Customer",
+      time: "Time",
+      payment: "Payment",
+      status: "Status",
+      actions: "Actions",
+    },
+    status: {
+      pending: "Pending",
+      pendingPayment: "Pending payment/confirmation",
+      confirmed: "Confirmed",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      no_show: "No-show",
+    },
+    actions: {
+      confirmCash: "Confirm Cash",
+      complete: "Complete",
+      noShow: "No-show",
+    },
+    paymentMethods: {
+      none: "No payment selected",
+      credits: "Credits",
+      cash: "Cash",
+    },
+    paymentStatuses: {
+      unpaid: "Unpaid",
+      deposit_paid: "Deposit paid",
+      paid: "Paid",
+      refunded: "Refunded",
+    },
+    messages: {
+      loadFailed: "Failed to load service bookings.",
+      updateFailed: "Failed to update service booking.",
+      confirmCashSuccess: "Booking confirmed as cash payment.",
+      completeSuccess: "Booking completed.",
+      noShowSuccess: "Booking marked as no-show.",
+      cancelSuccess: "Booking cancelled.",
+    },
+  },
+
   // Owner dashboard
   owner: {
     kpi: {
