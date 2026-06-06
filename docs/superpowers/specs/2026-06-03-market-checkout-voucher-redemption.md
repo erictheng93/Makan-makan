@@ -65,13 +65,10 @@ appliedVoucher?: {
 };
 ```
 
-Persistence: the applied voucher lives **only in the KV `market_checkout:{id}`
-session blob** (4h TTL). The persisted `market_checkout_sessions` DB row stores
-discrete columns, not the full session JSON, so the DB fallback in
-`readPersistedMarketCheckoutSession` does **not** carry `appliedVoucher`. This is
-acceptable for MVP: apply→pay happens inside the KV TTL window; a DB-fallback pay
-simply charges full price (no double-charge, no stuck redemption). Persisting to
-a dedicated column is a follow-up if early KV eviction proves a problem.
+Persistence: the applied voucher is stored in both the KV
+`market_checkout:{id}` session blob and the persisted
+`market_checkout_sessions.applied_voucher` column, so DB fallback reads still
+carry the voucher after KV expiry.
 
 ## API
 
@@ -97,13 +94,13 @@ unified `ApiError` shape with codes (`VOUCHER_NOT_FOUND`, `VOUCHER_NOT_APPLICABL
   `coupons.used_count` once; idempotent on replay.
 - **On failure / abandonment**: clear `appliedVoucher` from the session.
 - **On refund of a paid checkout**: `MarketCheckoutVoucherService.markRefunded`
-  exists and is tested, but wiring it into the multi-branch refund route is a
-  **follow-up** (not on the apply→pay→redeem MVP critical path).
-- **Async provider success** (webhook / reconciliation paid): redemption
-  currently fires only from the synchronous pay route (covers the credits MVP,
-  which pays immediately). Hooking `redeem` into the webhook/reconciliation paid
-  path is a **follow-up** for future async acquirers — safe because `redeem` is
-  idempotent.
+  is wired into the refund route. It marks only the refunded child usage rows
+  first, then releases `coupons.used_count` once when the checkout's full voucher
+  usage set is refunded; `coupon_usage.refund_count_released_at_ms` makes the
+  release idempotent across retries.
+- **Async provider success** (webhook / reconciliation paid): redemption also
+  runs from webhook and reconciliation paid paths via
+  `redeemCachedMarketCheckoutVoucher`; `redeem` remains idempotent.
 
 ## Discount math (reused from CouponsService)
 
@@ -119,8 +116,10 @@ unified `ApiError` shape with codes (`VOUCHER_NOT_FOUND`, `VOUCHER_NOT_APPLICABL
 - `MarketCheckoutVoucherService` unit tests: discount math (pct, pct-capped,
   fixed, clamp), proportional split + remainder, platform-wide guard.
 - Real-D1 integration: apply → pay (credits/child mode) → `coupon_usage` rows +
-  `used_count` once; idempotent replay; failure leaves no usage; refund marks
-  usage refunded; min-order / exhausted / vendor-scoped rejections.
+  `used_count` once; idempotent replay; failure leaves no usage; full refund
+  marks usage refunded and releases `used_count`; partial refund keeps the use
+  counted until every checkout usage row is refunded; min-order / exhausted /
+  vendor-scoped rejections.
 - Gates: `pnpm --filter @makanmakan/api typecheck`, lint, the market-checkout
   route tests, and the new voucher tests.
 

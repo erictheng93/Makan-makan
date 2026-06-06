@@ -4,7 +4,7 @@
 |---|---|
 | **狀態** | P1/P2/P3 已合併，§0.4 audit gaps 已補齊 |
 | **建立日期** | 2026-05-03 |
-| **最後更新** | 2026-05-04（含 §0.4 驗證快照與 production cron / webhook fail-closed 補齊）|
+| **最後更新** | 2026-06-06（含 §0.4 驗證快照、production quota enforce、cron / webhook fail-closed 補齊）|
 | **作者** | Eric + Claude（驗證），Codex（實作） |
 | **影響範圍** | `apps/api`、`apps/management-api`、`apps/admin-dashboard`、`apps/customer-app`、`apps/kitchen-display`、`apps/onboarding-app`、`packages/database`、`packages/shared` |
 | **預計分階段** | 3 階段 / 13 個 PR（P1: 5 / P2: 4 / P3: 4） |
@@ -58,7 +58,7 @@
 | 3.7#7 | 3 個 usage GET API | ✅ | `/me/usage`（me/routes:100-120）、`/admin/subscriptions/:id/usage` + `/usage/events`（subscriptions/routes:28,43）|
 | 3.7#8 | admin-dashboard 用量頁籤 | ✅ | `apps/admin-dashboard/src/components/billing/UsageTab.vue` |
 | §9.3 | `quotaExceeded(meterKey, hardLimit)` factory | ✅ | `apps/api/src/middleware/quotaGate.ts` 匯出 `quotaExceeded()`，details 含 `{ meterKey, hardLimit, current }` |
-| 3.4.4 | `QUOTA_ENFORCEMENT_MODE` 三模式 | ✅ | `quotaGate.ts:26` 讀取，預設 `disabled` |
+| 3.4.4 | `QUOTA_ENFORCEMENT_MODE` 三模式 | ✅ | `quotaGate.ts:26` 讀取；runtime 未設定時預設 `disabled`，staging/production `wrangler.toml` 皆設定 `enforce` |
 
 ### P3 — Billing Lifecycle（7/7 ✅）
 
@@ -963,8 +963,9 @@ P2 的 `quotaGate` middleware 上線時用環境變數 `QUOTA_ENFORCEMENT_MODE`�
 - `warn`：只發 header，不擋
 - `enforce`：完整擋下（最終態）
 
-逐 restaurant 切換到 `enforce`，避免大爆炸。
-目前 production 不在 `wrangler.toml` 強制設定 `enforce`；維持預設 `disabled` 是 rollout 決策，等 §5 #6 quota 數字用真實客戶 30 天用量校準後再切換。
+目前 staging 與 production 的 `apps/api/wrangler.toml` 都已明確設定
+`QUOTA_ENFORCEMENT_MODE = "enforce"`；未設定的環境仍由 `quotaGate`
+runtime 預設 `disabled`。
 
 ### 6.3 觀測
 
@@ -1082,7 +1083,7 @@ Cache invalidation hook：subscription 變更走既有 `invalidateSubscriptionCa
 P2/P3 新增：
 | 變數 | 用途 | 預設 |
 |---|---|---|
-| `QUOTA_ENFORCEMENT_MODE` | `disabled` / `warn` / `enforce` | `disabled`（P2-c 上線初期）|
+| `QUOTA_ENFORCEMENT_MODE` | `disabled` / `warn` / `enforce` | runtime 預設 `disabled`；staging/production 設定 `enforce` |
 | `RESEND_API_KEY` | Email 寄送 | 未設定時降級為 skip + audit log |
 | `BILLING_EMAIL_FROM` | Email From 地址 | 未設定時降級為 skip + audit log |
 | `STRIPE_WEBHOOK_SECRET`（或對應 provider） | Webhook 驗簽 | P3-c 啟動前設定 |

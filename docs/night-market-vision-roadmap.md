@@ -43,8 +43,8 @@ after · **P2** = scale/polish. Effort: S < 1 day · M ≈ 2–4 days · L ≈ 1
 |---|---|---|---|
 | 卷 voucher MVP (apply→pay→redeem) | ✅ **Done 2026-06-03** | — | `spec 2026-06-03-market-checkout-voucher-redemption` |
 | 代幣 credits (issue/topup/spend/refund/expiry) | ✅ **Done and merged** (PR #49) | — | landed in `main` |
-| 卷 follow-ups: refund-route wiring + appliedVoucher persist column | ✅ Done | — | refund marks `coupon_usage` refunded; applied voucher persists beyond KV TTL |
-| **Service booking system** (預約服務) | ✅ Done | — | customer booking flow, slots capacity API/admin UI, staff lifecycle, employee availability, deposits/prepay, reminders, waitlist, recurrence, ICS |
+| 卷 follow-ups: refund-route wiring + appliedVoucher persist column | ✅ Done | — | refund marks `coupon_usage` refunded; applied voucher persists beyond KV TTL; partial refunds release `used_count` only after the full checkout voucher use is refunded |
+| **Service booking system** (預約服務) | ✅ Done | — | customer booking flow, slots capacity API/admin UI, staff lifecycle, employee availability, `service_bookings` employee-overlap DB guard, deposits/prepay, reminders, waitlist, recurrence, ICS |
 | Onboarding → market auto-assignment (geo) | ✅ Done | — | new shops with lat/lng are assigned/suggested to nearest active market |
 
 ### P1 — soon after launch
@@ -53,7 +53,7 @@ after · **P2** = scale/polish. Effort: S < 1 day · M ≈ 2–4 days · L ≈ 1
 |---|---|---|---|
 | Search quality: SQLite FTS5 + fuzzy/typo tolerance | ✅ Done | — | FTS5 trigram hybrid search shipped before semantic layer |
 | 代幣 online self-serve top-up via acquirer | ⏸ Deferred | M | current project does not connect a live acquirer; provider-agnostic intent/webhook flow is ready for future use |
-| Service booking: staff assignment (link `employee_availability`) | ✅ Done | — | booking can select an employee and validates employee availability |
+| Service booking: staff assignment (link `employee_availability`) | ✅ Done | — | booking can select an employee, validates employee availability, and rejects overlapping active employee bookings at the DB layer |
 | Voucher: per-vendor / stacked / voucher+credits combos | ✅ Done | — | platform + vendor vouchers can stack and combine with credits |
 
 ### P2 — scale & polish
@@ -62,7 +62,7 @@ after · **P2** = scale/polish. Effort: S < 1 day · M ≈ 2–4 days · L ≈ 1
 |---|---|---|---|
 | Real payment acquirer (ECPay / Stripe / LINE Pay) | ⏸ Deferred | L | product decision: no live acquirer in current project; future work tracked in `TODOS.md` |
 | Semantic search (embeddings / Vectorize) | ✅ Done | — | Workers AI embeddings + Vectorize recall above FTS5 |
-| Multi-tenant auto-provisioning (currently manual trigger) | ✅ Done | — | tenant provisioning includes quotas and rate limits |
+| Multi-tenant auto-provisioning (currently manual trigger) | ✅ Done | — | tenant provisioning includes quotas and rate limits; staging and production set `QUOTA_ENFORCEMENT_MODE=enforce` |
 | Booking deposits / prepay, reminders, waitlists | ✅ Done | — | implemented with recurring bookings and ICS export |
 | Settlement attribution (platform- vs vendor-funded discounts) | ✅ Done | — | platform vs vendor discount attribution included in settlement/accounting exports |
 
