@@ -101,13 +101,14 @@ export class DiscoveryService {
     // 2. Normalize query
     const serviceIntent = q ? this.getServiceIntent(q) : null;
     const normalized = q && !serviceIntent ? this.normalizeQuery(q) : null;
-    const semanticMatches = normalized
-      ? await this.semanticSearch.searchDishIds(q, {
+    const semanticResult = normalized
+      ? await this.semanticSearch.searchDishIdsWithStatus(q, {
           topK: Math.max(limit * 5, 50),
           namespace: "dishes",
+          embeddingMode: "cache-only",
         })
-      : [];
-    const semanticMenuItemIds = semanticMatches
+      : { matches: [], embeddingStatus: "disabled" as const };
+    const semanticMenuItemIds = semanticResult.matches
       .map((match) => match.menuItemId)
       .slice(0, 50);
 
@@ -435,11 +436,18 @@ export class DiscoveryService {
     }
     const scope = await this.getSearchScopeMetadata(filters);
     const response = { results, total, page, limit, scope };
-    await this.kv.put(
-      cacheKey,
-      JSON.stringify({ results, total, scope, cachedAt: Date.now() }),
-      { expirationTtl: KV_SEARCH_TTL },
-    );
+    const semanticWarmupScheduled =
+      normalized &&
+      semanticResult.embeddingStatus === "cache-miss" &&
+      results.length < limit &&
+      this.semanticSearch.warmQueryEmbedding(q);
+    if (!semanticWarmupScheduled) {
+      await this.kv.put(
+        cacheKey,
+        JSON.stringify({ results, total, scope, cachedAt: Date.now() }),
+        { expirationTtl: KV_SEARCH_TTL },
+      );
+    }
 
     return response;
   }
@@ -2286,13 +2294,18 @@ export class DiscoveryService {
  * catalog (no read-your-write requirement). No latency change until read
  * replication is enabled on the D1 database in the Cloudflare dashboard.
  */
-export function createDiscoveryRead(env: {
-  DB: D1Database;
-  CACHE_KV: KVNamespace;
-  AI?: unknown;
-  DISCOVERY_VECTORIZE?: unknown;
-  DISCOVERY_EMBEDDING_MODEL?: string;
-}): DiscoveryService {
+export function createDiscoveryRead(
+  env: {
+    DB: D1Database;
+    CACHE_KV: KVNamespace;
+    AI?: unknown;
+    DISCOVERY_VECTORIZE?: unknown;
+    DISCOVERY_EMBEDDING_MODEL?: string;
+  },
+  options: {
+    waitUntil?: (promise: Promise<unknown>) => void;
+  } = {},
+): DiscoveryService {
   return new DiscoveryService(
     env.DB,
     env.CACHE_KV,
@@ -2302,6 +2315,7 @@ export function createDiscoveryRead(env: {
       vectorize: env.DISCOVERY_VECTORIZE as never,
       embeddingModel: env.DISCOVERY_EMBEDDING_MODEL,
       embeddingCache: env.CACHE_KV,
+      waitUntil: options.waitUntil,
     }),
   );
 }

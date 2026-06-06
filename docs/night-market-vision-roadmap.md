@@ -17,7 +17,7 @@ by product decision on 2026-06-06.
 | # | Vision pillar | State | Maturity |
 |---|---|---|---|
 | 1 | Market/district aggregation layer | `markets` + `restaurant_market_memberships` + join-requests, geo + map + platform fee | **8/10 — built** |
-| 2 | Cross-shop product/service search | `dish_search_index` + `/discovery/*`, market/district/city/geo filters | **7/10 — built** (prefix match, no FTS/semantic) |
+| 2 | Cross-shop product/service search | `dish_search_index` + `/discovery/*`, market/district/city/geo filters, FTS5 trigram + semantic recall | **8/10 — built** |
 | 3 | Open any shop, browse menu | QR / manual / market-browse entry all wired | **7/10 — built** |
 | 4 | Food ordering (點餐) | cart, modifiers, guest order, realtime tracking, multi-vendor market cart | **6/10 — functional MVP** |
 | 5a | Pay via 代幣 (stored-value) | full ledger, cash/admin top-up, cross-shop spend (PIN), refund, expiry, accounting, `/api/v1/credits` | **8/10 — shipped and merged to `main`** |
@@ -61,7 +61,7 @@ after · **P2** = scale/polish. Effort: S < 1 day · M ≈ 2–4 days · L ≈ 1
 | Item | Status | Effort | Notes |
 |---|---|---|---|
 | Real payment acquirer (ECPay / Stripe / LINE Pay) | ⏸ Deferred | L | product decision: no live acquirer in current project; future work tracked in `TODOS.md` |
-| Semantic search (embeddings / Vectorize) | ✅ Done | — | Workers AI embeddings + Vectorize recall above FTS5 |
+| Semantic search (embeddings / Vectorize) | ✅ Done | — | Workers AI embeddings + Vectorize recall; first cache-miss embeddings warm off the request path |
 | Multi-tenant auto-provisioning (currently manual trigger) | ✅ Done | — | tenant provisioning includes quotas and rate limits; staging and production set `QUOTA_ENFORCEMENT_MODE=enforce` |
 | Booking deposits / prepay, reminders, waitlists | ✅ Done | — | implemented with recurring bookings and ICS export |
 | Settlement attribution (platform- vs vendor-funded discounts) | ✅ Done | — | platform vs vendor discount attribution included in settlement/accounting exports |

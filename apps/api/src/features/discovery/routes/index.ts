@@ -31,7 +31,9 @@ routes.get("/index-status", authMiddleware, requireRole([0]), async (c) => {
 // GET /api/v1/discovery/search — public
 routes.get("/search", validateQuery(dishSearchQuerySchema), async (c) => {
   const query = c.get("validatedQuery");
-  const service = createDiscoveryRead(c.env);
+  const service = createDiscoveryRead(c.env, {
+    waitUntil: c.executionCtx?.waitUntil?.bind(c.executionCtx),
+  });
 
   const results = await service.searchDishes(query);
 

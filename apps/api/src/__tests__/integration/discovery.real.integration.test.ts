@@ -400,7 +400,7 @@ describe("Discovery API — real integration", () => {
     expect(data.total).toBe(12);
   });
 
-  it("uses semantic Vectorize recall when lexical search has no dish match", async () => {
+  it("warms semantic recall off the first lexical miss before querying Vectorize", async () => {
     const restaurant = await seed.restaurant({
       name: "Semantic Search Vendor",
     });
@@ -436,17 +436,48 @@ describe("Discovery API — real integration", () => {
     testApp.env.DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3";
 
     try {
-      const res = await testApp.app.fetch(
-        new Request(
-          "https://test/api/v1/discovery/search?q=warm+comfort+meal&limit=5",
-        ),
+      const query = `semantic warmup ${crypto
+        .randomUUID()
+        .replaceAll("-", "")
+        .slice(0, 8)}`;
+      const url = new URL("https://test/api/v1/discovery/search");
+      url.searchParams.set("q", query);
+      url.searchParams.set("limit", "5");
+      const waitUntilPromises: Array<Promise<unknown>> = [];
+      const executionCtx = {
+        waitUntil: (promise: Promise<unknown>) => {
+          waitUntilPromises.push(promise);
+        },
+        passThroughOnException: () => {},
+      } as unknown as ExecutionContext;
+
+      const firstRes = await testApp.app.fetch(
+        new Request(url),
+        undefined,
+        executionCtx,
       );
 
-      expect(res.status).toBe(200);
-      const json: any = await res.json();
-      expect(json.data.results.map((item: any) => item.menuItemId)).toContain(
-        menuItem.id,
+      expect(firstRes.status).toBe(200);
+      const firstJson: any = await firstRes.json();
+      expect(
+        firstJson.data.results.map((item: any) => item.menuItemId),
+      ).not.toContain(menuItem.id);
+      expect(vectorize.query).not.toHaveBeenCalled();
+      expect(waitUntilPromises).toHaveLength(1);
+
+      await Promise.all(waitUntilPromises);
+      expect(ai.run).toHaveBeenCalledTimes(1);
+
+      const secondRes = await testApp.app.fetch(
+        new Request(url),
+        undefined,
+        executionCtx,
       );
+      expect(secondRes.status).toBe(200);
+      const secondJson: any = await secondRes.json();
+      expect(
+        secondJson.data.results.map((item: any) => item.menuItemId),
+      ).toContain(menuItem.id);
       expect(vectorize.query).toHaveBeenCalledWith([0.2, 0.4, 0.6], {
         topK: 50,
         namespace: "dishes",

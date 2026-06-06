@@ -31,6 +31,8 @@ interface EmbeddingCache {
   ): Promise<void>;
 }
 
+type WaitUntil = (promise: Promise<unknown>) => void;
+
 export interface SemanticDishMatch {
   menuItemId: number;
   score: number;
@@ -62,6 +64,31 @@ export interface SemanticDiscoveryConfig {
   embeddingModel?: string;
   embeddingCache?: EmbeddingCache;
   embeddingCacheTtlSeconds?: number;
+  waitUntil?: WaitUntil;
+}
+
+export type SemanticEmbeddingStatus =
+  | "disabled"
+  | "cache-hit"
+  | "cache-miss"
+  | "generated"
+  | "empty"
+  | "failed";
+
+export interface SemanticDishSearchOptions {
+  topK?: number;
+  namespace?: string;
+  embeddingMode?: "generate" | "cache-only";
+}
+
+export interface SemanticDishSearchResult {
+  matches: SemanticDishMatch[];
+  embeddingStatus: SemanticEmbeddingStatus;
+}
+
+interface EmbeddingLookup {
+  embedding: number[];
+  status: SemanticEmbeddingStatus;
 }
 
 const DEFAULT_EMBEDDING_MODEL = "@cf/baai/bge-m3";
@@ -73,28 +100,73 @@ export class SemanticDiscoveryService {
 
   async searchDishIds(
     query: string | undefined,
-    options: { topK?: number; namespace?: string } = {},
+    options: SemanticDishSearchOptions = {},
   ): Promise<SemanticDishMatch[]> {
+    const result = await this.searchDishIdsWithStatus(query, options);
+    return result.matches;
+  }
+
+  async searchDishIdsWithStatus(
+    query: string | undefined,
+    options: SemanticDishSearchOptions = {},
+  ): Promise<SemanticDishSearchResult> {
     const trimmed = query?.trim();
-    if (!trimmed || !this.config.ai || !this.config.vectorize) return [];
+    if (!trimmed || !this.config.ai || !this.config.vectorize) {
+      return { matches: [], embeddingStatus: "disabled" };
+    }
 
     try {
-      const embedding = await this.embed(trimmed);
-      if (!embedding.length) return [];
+      const lookup =
+        options.embeddingMode === "cache-only"
+          ? await this.readCachedEmbedding(trimmed)
+          : await this.resolveEmbedding(trimmed);
+      if (!lookup.embedding.length) {
+        return { matches: [], embeddingStatus: lookup.status };
+      }
 
-      const matches = await this.config.vectorize.query(embedding, {
+      const matches = await this.config.vectorize.query(lookup.embedding, {
         topK: options.topK ?? 50,
         namespace: options.namespace ?? "dishes",
         returnMetadata: "indexed",
       });
 
-      return (matches.matches ?? [])
+      const dishMatches = (matches.matches ?? [])
         .map((match) => this.toDishMatch(match.id, match.score))
         .filter((match): match is SemanticDishMatch => match !== null);
+      return { matches: dishMatches, embeddingStatus: lookup.status };
     } catch (error) {
       console.warn("semanticDiscovery.search.failed", { error });
-      return [];
+      return { matches: [], embeddingStatus: "failed" };
     }
+  }
+
+  warmQueryEmbedding(query: string | undefined): boolean {
+    const trimmed = query?.trim();
+    if (
+      !trimmed ||
+      !this.config.ai ||
+      !this.config.vectorize ||
+      !this.config.embeddingCache
+    ) {
+      return false;
+    }
+
+    const warmup = this.resolveEmbedding(trimmed)
+      .then(() => undefined)
+      .catch((error) => {
+        console.warn("semanticDiscovery.embeddingWarmup.failed", { error });
+      });
+
+    try {
+      if (this.config.waitUntil) {
+        this.config.waitUntil(warmup);
+      }
+    } catch {
+      // If the Workers execution context is unavailable, the started promise
+      // can still complete in local/test runtimes.
+    }
+
+    return true;
   }
 
   async upsertDishes(
@@ -129,21 +201,21 @@ export class SemanticDiscoveryService {
     }
   }
 
-  private async embed(query: string): Promise<number[]> {
+  private async resolveEmbedding(query: string): Promise<EmbeddingLookup> {
+    const cached = await this.readCachedEmbedding(query);
+    if (cached.status === "cache-hit") return cached;
+
     const normalized = normalizeEmbeddingQuery(query);
-    if (!normalized) return [];
+    if (!normalized) return { embedding: [], status: "empty" };
 
     const model = this.config.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
-    const cacheKey = await buildEmbeddingCacheKey(model, normalized);
-    const cached = await this.config.embeddingCache
-      ?.get<number[]>(cacheKey, "json")
-      .catch(() => null);
-
-    if (isEmbedding(cached)) return cached;
+    const cacheKey = this.config.embeddingCache
+      ? await buildEmbeddingCacheKey(model, normalized)
+      : null;
 
     const embeddings = await this.embedBatch([normalized]);
     const embedding = embeddings[0] ?? [];
-    if (embedding.length) {
+    if (embedding.length && cacheKey) {
       await this.config.embeddingCache
         ?.put(cacheKey, JSON.stringify(embedding), {
           expirationTtl:
@@ -152,7 +224,30 @@ export class SemanticDiscoveryService {
         })
         .catch(() => undefined);
     }
-    return embedding;
+
+    return {
+      embedding,
+      status: embedding.length ? "generated" : "empty",
+    };
+  }
+
+  private async readCachedEmbedding(query: string): Promise<EmbeddingLookup> {
+    const normalized = normalizeEmbeddingQuery(query);
+    if (!normalized || !this.config.embeddingCache) {
+      return { embedding: [], status: "cache-miss" };
+    }
+
+    const model = this.config.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
+    const cacheKey = await buildEmbeddingCacheKey(model, normalized);
+    const cached = await this.config.embeddingCache
+      ?.get<number[]>(cacheKey, "json")
+      .catch(() => null);
+
+    if (isEmbedding(cached)) {
+      return { embedding: cached, status: "cache-hit" };
+    }
+
+    return { embedding: [], status: "cache-miss" };
   }
 
   private async embedBatch(text: string[]): Promise<number[][]> {

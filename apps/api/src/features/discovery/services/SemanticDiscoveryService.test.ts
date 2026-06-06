@@ -95,6 +95,57 @@ describe("SemanticDiscoveryService", () => {
     });
   });
 
+  it("warms cache misses in the background for cached-only searches", async () => {
+    const ai = {
+      run: vi.fn(async () => ({
+        data: [[0.7, 0.8, 0.9]],
+      })),
+    };
+    const vectorize = {
+      query: vi.fn(async () => ({
+        matches: [{ id: "dish:88", score: 0.93 }],
+      })),
+    };
+    const embeddingCache = createKv();
+    const waitUntilPromises: Array<Promise<unknown>> = [];
+    const service = new SemanticDiscoveryService({
+      ai,
+      vectorize,
+      embeddingCache,
+      waitUntil: (promise) => {
+        waitUntilPromises.push(promise);
+      },
+    });
+
+    await expect(
+      service.searchDishIdsWithStatus("  New   semantic query ", {
+        embeddingMode: "cache-only",
+      }),
+    ).resolves.toEqual({ matches: [], embeddingStatus: "cache-miss" });
+    expect(ai.run).not.toHaveBeenCalled();
+    expect(vectorize.query).not.toHaveBeenCalled();
+
+    expect(service.warmQueryEmbedding("new semantic query")).toBe(true);
+    expect(waitUntilPromises).toHaveLength(1);
+    await Promise.all(waitUntilPromises);
+    expect(ai.run).toHaveBeenCalledTimes(1);
+
+    await expect(
+      service.searchDishIdsWithStatus("new semantic query", {
+        embeddingMode: "cache-only",
+      }),
+    ).resolves.toEqual({
+      matches: [{ menuItemId: 88, score: 0.93 }],
+      embeddingStatus: "cache-hit",
+    });
+    expect(ai.run).toHaveBeenCalledTimes(1);
+    expect(vectorize.query).toHaveBeenCalledWith([0.7, 0.8, 0.9], {
+      topK: 50,
+      namespace: "dishes",
+      returnMetadata: "indexed",
+    });
+  });
+
   it("fails closed when semantic bindings are missing or unavailable", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const missing = new SemanticDiscoveryService({});
