@@ -19,11 +19,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src",
-    "test": "vitest run --root ../.. __tests__/i18n-types.test.ts __tests__/i18n-static-messages.test.ts",
-    "test:watch": "vitest --root ../.. __tests__/i18n-types.test.ts __tests__/i18n-static-messages.test.ts",
-    "typecheck": "tsc --noEmit",
-    "validate-translations": "node scripts/validate-translations.js",
-    "generate-types": "node scripts/generate-types.js"
+    "test": "vitest run --root ../.. src/i18n/src/index.test.ts",
+    "test:watch": "vitest --root ../.. src/i18n/src/index.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "vue-i18n": "^9.14.5"
