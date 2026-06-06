@@ -1436,7 +1436,11 @@ const enUS: Messages = {
     home: "Home",
     realtime: {
       connected: "Real-time Connected",
+      connecting: "Connecting",
+      reconnecting: "Reconnecting",
       disconnected: "Connection Lost",
+      error: "Connection Error",
+      noRestaurant: "Select Restaurant",
     },
     userMenu: {
       logout: "Logout",

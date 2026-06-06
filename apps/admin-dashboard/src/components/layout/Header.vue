@@ -38,15 +38,8 @@
         <div
           class="hidden sm:flex items-center space-x-2 text-sm text-gray-500"
         >
-          <div
-            class="w-2 h-2 rounded-full"
-            :class="isConnected ? 'bg-green-500' : 'bg-red-500'"
-          />
-          <span>{{
-            isConnected
-              ? t("header.realtime.connected")
-              : t("header.realtime.disconnected")
-          }}</span>
+          <div class="w-2 h-2 rounded-full" :class="realtimeStatusClass" />
+          <span>{{ realtimeStatusText }}</span>
         </div>
 
         <!-- Language Switcher -->
@@ -117,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, unref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
@@ -143,7 +136,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
-const { isConnected } = useRealtimeConnection();
+const { status: realtimeConnectionStatus } = useRealtimeConnection();
 const { t } = useI18n();
 
 const showUserMenu = ref(false);
@@ -151,6 +144,37 @@ const showNotificationPanel = ref(false);
 
 const user = computed(() => authStore.user);
 const unreadNotifications = computed(() => notificationStore.unreadCount);
+
+const hasRestaurantContext = computed(() => !!unref(authStore.restaurantId));
+
+const realtimeDisplayStatus = computed(() => {
+  if (!hasRestaurantContext.value) {
+    return "noRestaurant";
+  }
+
+  return realtimeConnectionStatus.value;
+});
+
+const realtimeStatusText = computed(() =>
+  t(`header.realtime.${realtimeDisplayStatus.value}`),
+);
+
+const realtimeStatusClass = computed(() => {
+  switch (realtimeDisplayStatus.value) {
+    case "connected":
+      return "bg-green-500";
+    case "connecting":
+      return "bg-yellow-500 animate-pulse";
+    case "reconnecting":
+      return "bg-orange-500 animate-pulse";
+    case "noRestaurant":
+      return "bg-gray-400";
+    case "error":
+    case "disconnected":
+    default:
+      return "bg-red-500";
+  }
+});
 
 const pageTitle = computed(() => {
   const titleKey = route.meta.titleKey as string | undefined;

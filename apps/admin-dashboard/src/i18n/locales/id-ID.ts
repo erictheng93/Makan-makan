@@ -1367,7 +1367,11 @@ const idID: Messages = {
     home: "Beranda",
     realtime: {
       connected: "Terhubung real-time",
+      connecting: "Menghubungkan",
+      reconnecting: "Menghubungkan ulang",
       disconnected: "Koneksi terputus",
+      error: "Kesalahan koneksi",
+      noRestaurant: "Pilih restoran",
     },
     userMenu: {
       logout: "Keluar",

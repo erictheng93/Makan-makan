@@ -44,6 +44,7 @@ export function useRealtimeConnection() {
   const realtimeService = useWebSocketService();
 
   const isConnected = computed(() => realtimeService.isConnected.value);
+  const status = computed(() => realtimeService.status.value);
 
   const connect = async () => {
     if (!authStore.isAuthenticated || !authStore.restaurantId) {
@@ -195,6 +196,7 @@ export function useRealtimeConnection() {
 
   return {
     isConnected: readonly(isConnected),
+    status: readonly(status),
     connect,
     disconnect,
     reconnectAttempts: readonly(reconnectAttempts),

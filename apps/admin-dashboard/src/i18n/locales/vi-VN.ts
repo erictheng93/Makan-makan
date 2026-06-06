@@ -1288,7 +1288,11 @@ const viVN: Messages = {
     home: "Trang chủ",
     realtime: {
       connected: "Kết nối trực tiếp",
+      connecting: "Đang kết nối",
+      reconnecting: "Đang kết nối lại",
       disconnected: "Mất kết nối",
+      error: "Lỗi kết nối",
+      noRestaurant: "Chọn nhà hàng",
     },
     userMenu: {
       logout: "Đăng xuất",

@@ -1289,7 +1289,11 @@ const jaJP: Messages = {
     home: "ホーム",
     realtime: {
       connected: "リアルタイム接続中",
+      connecting: "接続中",
+      reconnecting: "再接続中",
       disconnected: "接続が切断されました",
+      error: "接続エラー",
+      noRestaurant: "店舗未選択",
     },
     userMenu: {
       logout: "ログアウト",

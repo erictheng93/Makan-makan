@@ -319,7 +319,7 @@ class WebSocketService {
         // 設置心跳超時
         this.heartbeatTimeoutTimer = window.setTimeout(() => {
           console.warn("⚠️ Heartbeat timeout, closing connection");
-          this.ws?.close(1000, "Heartbeat timeout");
+          this.ws?.close(4000, "Heartbeat timeout");
         }, this.config.heartbeatTimeout);
       }
     }, this.config.heartbeatInterval);

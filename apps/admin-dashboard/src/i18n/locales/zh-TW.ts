@@ -1476,7 +1476,11 @@ const zhTW = {
     home: "首頁",
     realtime: {
       connected: "即時連線",
+      connecting: "連線中",
+      reconnecting: "重新連線中",
       disconnected: "連線中斷",
+      error: "連線錯誤",
+      noRestaurant: "未選擇餐廳",
     },
     userMenu: {
       logout: "登出",

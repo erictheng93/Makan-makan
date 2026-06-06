@@ -1369,7 +1369,11 @@ const zhCN: Messages = {
     home: "首页",
     realtime: {
       connected: "实时连线",
+      connecting: "连接中",
+      reconnecting: "重新连接中",
       disconnected: "连线中断",
+      error: "连接错误",
+      noRestaurant: "未选择餐厅",
     },
     userMenu: {
       logout: "退出登录",
