@@ -2301,6 +2301,7 @@ export function createDiscoveryRead(env: {
       ai: env.AI as never,
       vectorize: env.DISCOVERY_VECTORIZE as never,
       embeddingModel: env.DISCOVERY_EMBEDDING_MODEL,
+      embeddingCache: env.CACHE_KV,
     }),
   );
 }

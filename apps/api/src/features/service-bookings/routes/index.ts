@@ -25,6 +25,22 @@ import { ServiceBookingService } from "../services/ServiceBookingService";
 
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
+const MAX_PUBLIC_RECURRENCE_COUNT = 12;
+
+const recurringCreateRateLimit = rateLimitMiddleware({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 5,
+  keyPrefix: "service_booking_recurring",
+  message: "Too many recurring booking requests. Please try again later.",
+});
+
+const waitlistRateLimit = rateLimitMiddleware({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 5,
+  keyPrefix: "service_booking_waitlist",
+  message: "Too many waitlist requests. Please try again later.",
+});
+
 const createSchema = z.object({
   restaurantId: z.string().min(1),
   serviceItemId: z.number().int().positive(),
@@ -46,7 +62,7 @@ const createSchema = z.object({
 
 const recurringCreateSchema = createSchema.omit({ bookingDate: true }).extend({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  count: z.number().int().min(1).max(52),
+  count: z.number().int().min(1).max(MAX_PUBLIC_RECURRENCE_COUNT),
   intervalWeeks: z.number().int().min(1).max(52).optional(),
 });
 
@@ -141,7 +157,7 @@ app.post("/", async (c) => {
   return c.json({ success: true, data: { booking } }, 201);
 });
 
-app.post("/recurring", async (c) => {
+app.post("/recurring", recurringCreateRateLimit, async (c) => {
   const body = await c.req.json();
   const parsed = recurringCreateSchema.safeParse(body);
   if (!parsed.success) {
@@ -160,7 +176,7 @@ app.post("/recurring", async (c) => {
   return c.json({ success: true, data: { bookings } }, 201);
 });
 
-app.post("/waitlist", async (c) => {
+app.post("/waitlist", waitlistRateLimit, async (c) => {
   const body = await c.req.json();
   const parsed = waitlistSchema.safeParse(body);
   if (!parsed.success) {

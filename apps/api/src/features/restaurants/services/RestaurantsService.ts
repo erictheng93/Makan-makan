@@ -30,6 +30,7 @@ import type {
 import { distanceKm, pointInGeoJsonBoundary } from "../../markets/services/geo";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
+const AUTO_ATTACH_MARKET_RADIUS_KM = 2;
 
 interface RestaurantListResult {
   restaurants: Restaurant[];
@@ -639,15 +640,39 @@ export class RestaurantsService {
       })
       .sort((a, b) => a.distanceKm - b.distanceKm)[0];
 
-    if (!nearest) return;
+    if (!nearest || nearest.distanceKm > AUTO_ATTACH_MARKET_RADIUS_KM) return;
 
-    await this.db.insert(restaurantMarketMemberships).values({
-      restaurantId: restaurant.id,
-      marketId: nearest.id,
-      isPrimary: true,
-      joinedAt: new Date(),
-    });
-    await this.bumpMarketPublicCacheVersion();
+    const existingPrimary = await this.db
+      .select({ id: restaurantMarketMemberships.id })
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurant.id),
+          eq(restaurantMarketMemberships.isPrimary, true),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .limit(1);
+
+    try {
+      await this.db.insert(restaurantMarketMemberships).values({
+        restaurantId: restaurant.id,
+        marketId: nearest.id,
+        isPrimary: existingPrimary.length === 0,
+        joinedAt: new Date(),
+      });
+      await this.bumpMarketPublicCacheVersion();
+    } catch (error) {
+      this.logger.error(
+        "Automatic market membership attachment failed",
+        error as Error,
+        {
+          restaurantId: restaurant.id,
+          marketId: nearest.id,
+          distanceKm: nearest.distanceKm,
+        },
+      );
+    }
   }
 
   private mapServiceItem(

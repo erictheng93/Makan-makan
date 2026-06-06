@@ -14,6 +14,7 @@ import {
 import {
   restaurants,
   restaurantServiceItems,
+  serviceBookings,
   serviceBookingSlots,
   coupons,
   employeeAvailability,
@@ -22,6 +23,7 @@ import {
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { ServiceBookingService } from "../../features/service-bookings/services/ServiceBookingService";
+import serviceBookingRoutes from "../../features/service-bookings/routes";
 import { CreditService } from "../../features/credits/services/CreditService";
 
 let testDb: TestDatabase;
@@ -163,6 +165,11 @@ async function slotBookings(serviceItemId: number): Promise<number> {
     .where(eq(serviceBookingSlots.serviceItemId, serviceItemId))
     .all();
   return row?.currentBookings ?? 0;
+}
+
+async function bookingCount(): Promise<number> {
+  const rows = await testDb.drizzle.select().from(serviceBookings).all();
+  return rows.length;
 }
 
 beforeAll(async () => {
@@ -540,6 +547,43 @@ describe("ServiceBookingService — production booking extensions", () => {
     expect(await slotBookings(serviceId)).toBe(1);
   });
 
+  it("rate-limits public waitlist joins by client IP", async () => {
+    const serviceId = await seedService({});
+    const requestBody = {
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Waitlist Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+    };
+
+    const responses = [];
+    for (let index = 0; index < 6; index += 1) {
+      responses.push(
+        await serviceBookingRoutes.fetch(
+          new Request("https://test/waitlist", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "cf-connecting-ip": "203.0.113.10",
+            },
+            body: JSON.stringify({
+              ...requestBody,
+              customerPhone: `09112223${String(index).padStart(2, "0")}`,
+            }),
+          }),
+          env(),
+        ),
+      );
+    }
+
+    expect(responses.slice(0, 5).map((response) => response.status)).toEqual([
+      201, 201, 201, 201, 201,
+    ]);
+    expect(responses[5].status).toBe(429);
+  });
+
   it("creates weekly recurring bookings with shared recurrence metadata", async () => {
     const serviceId = await seedService({});
     const bookings = await service().createRecurringBookings({
@@ -567,6 +611,88 @@ describe("ServiceBookingService — production booking extensions", () => {
     expect(bookings.every((booking) => booking.recurrenceCount === 3)).toBe(
       true,
     );
+  });
+
+  it("rolls back previously created recurring bookings and slot claims when a later occurrence fails", async () => {
+    const serviceId = await seedService({});
+    await seedSlot(serviceId, "2026-06-05", "14:00", 1);
+    await seedSlot(serviceId, "2026-06-12", "14:00", 1);
+    await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Existing Guest",
+      customerPhone: "0911000999",
+      bookingDate: "2026-06-12",
+      bookingTime: "14:00",
+    });
+
+    await expect(
+      service().createRecurringBookings({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Recurring Guest",
+        customerPhone: "0911222333",
+        startDate: "2026-06-05",
+        bookingTime: "14:00",
+        count: 2,
+        intervalWeeks: 1,
+      }),
+    ).rejects.toMatchObject({ code: "SERVICE_SLOT_FULL" });
+
+    expect(await bookingCount()).toBe(1);
+
+    const slots = await testDb.drizzle
+      .select({
+        date: serviceBookingSlots.date,
+        currentBookings: serviceBookingSlots.currentBookings,
+      })
+      .from(serviceBookingSlots)
+      .where(eq(serviceBookingSlots.serviceItemId, serviceId))
+      .all();
+    expect(slots).toEqual(
+      expect.arrayContaining([
+        { date: "2026-06-05", currentBookings: 0 },
+        { date: "2026-06-12", currentBookings: 1 },
+      ]),
+    );
+  });
+
+  it("rejects vouchers on recurring bookings by policy", async () => {
+    const serviceId = await seedService({ priceCents: 15000 });
+    await seedPlatformCoupon("SVC10", 10);
+
+    await expect(
+      service().createRecurringBookings({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Recurring Guest",
+        customerPhone: "0911222333",
+        startDate: "2026-06-05",
+        bookingTime: "14:00",
+        count: 2,
+        intervalWeeks: 1,
+        voucherCode: "SVC10",
+      }),
+    ).rejects.toMatchObject({ code: "RECURRENCE_VOUCHER_UNSUPPORTED" });
+
+    expect(await bookingCount()).toBe(0);
+  });
+
+  it("caps recurring booking batches below the old public 52-booking maximum", async () => {
+    const serviceId = await seedService({});
+
+    await expect(
+      service().createRecurringBookings({
+        restaurantId: RESTAURANT_ID,
+        serviceItemId: serviceId,
+        customerName: "Recurring Guest",
+        customerPhone: "0911222333",
+        startDate: "2026-06-05",
+        bookingTime: "14:00",
+        count: 13,
+        intervalWeeks: 1,
+      }),
+    ).rejects.toMatchObject({ code: "RECURRENCE_COUNT_INVALID" });
   });
 
   it("lists due reminders and marks them sent", async () => {

@@ -47,6 +47,8 @@ type EmployeeAvailabilityRow = typeof employeeAvailability.$inferSelect;
 type ServiceBookingPaymentRequirement =
   (typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT)[keyof typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT];
 
+const MAX_RECURRING_BOOKING_COUNT = 12;
+
 export interface CreateServiceBookingInput {
   restaurantId: string;
   serviceItemId: number;
@@ -203,88 +205,118 @@ export class ServiceBookingService {
       });
     }
 
-    // Reserve capacity if a slot row exists (operator-defined cap). A guarded
-    // UPDATE makes the reservation atomic against concurrent bookings.
-    await this.reserveSlotCapacity(
-      input.serviceItemId,
-      input.bookingDate,
-      input.bookingTime,
-    );
-
-    const priceCents = service.priceCents ?? 0;
-    let couponId: number | null = null;
-    let voucherDiscountCents = 0;
-    if (input.voucherCode) {
-      const priced = await this.priceVoucher(
-        input.voucherCode,
-        input.restaurantId,
-        priceCents,
+    let capacityReserved = false;
+    try {
+      // Reserve capacity if a slot row exists (operator-defined cap). A guarded
+      // UPDATE makes the reservation atomic against concurrent bookings.
+      await this.reserveSlotCapacity(
+        input.serviceItemId,
+        input.bookingDate,
+        input.bookingTime,
       );
-      couponId = priced.couponId;
-      voucherDiscountCents = priced.discountCents;
-    }
-    const amountDueCents = Math.max(0, priceCents - voucherDiscountCents);
-    const payment = resolvePaymentTerms({
-      requirement: input.paymentRequirement,
-      amountDueCents,
-      depositAmountCents: input.depositAmountCents,
-    });
-    const reminder = resolveReminder({
-      optIn: input.reminderOptIn,
-      minutesBefore: input.reminderMinutesBefore,
-      bookingDate: input.bookingDate,
-      bookingTime: input.bookingTime,
-    });
+      capacityReserved = true;
 
-    const confirmationCode = generateConfirmationCode();
-    const calendarUid = `${crypto.randomUUID()}@makanmakan.service-bookings`;
-    const [row] = await this.db
-      .insert(serviceBookings)
-      .values({
-        restaurantId: input.restaurantId,
-        serviceItemId: input.serviceItemId,
-        serviceNameSnapshot: service.name,
-        durationMinutesSnapshot: service.durationMinutes ?? null,
-        priceCentsSnapshot: priceCents,
-        customerId: input.customerId ?? null,
-        customerName: input.customerName,
-        customerPhone: input.customerPhone,
-        customerEmail: input.customerEmail ?? null,
+      const priceCents = service.priceCents ?? 0;
+      let couponId: number | null = null;
+      let voucherDiscountCents = 0;
+      if (input.voucherCode) {
+        const priced = await this.priceVoucher(
+          input.voucherCode,
+          input.restaurantId,
+          priceCents,
+        );
+        couponId = priced.couponId;
+        voucherDiscountCents = priced.discountCents;
+      }
+      const amountDueCents = Math.max(0, priceCents - voucherDiscountCents);
+      const payment = resolvePaymentTerms({
+        requirement: input.paymentRequirement,
+        amountDueCents,
+        depositAmountCents: input.depositAmountCents,
+      });
+      const reminder = resolveReminder({
+        optIn: input.reminderOptIn,
+        minutesBefore: input.reminderMinutesBefore,
         bookingDate: input.bookingDate,
         bookingTime: input.bookingTime,
-        partySize: input.partySize ?? 1,
-        employeeId: input.employeeId ?? null,
-        status: SERVICE_BOOKING_STATUS.PENDING,
-        confirmationCode,
-        specialRequests: input.specialRequests ?? null,
-        couponId,
-        voucherDiscountCents,
-        paymentRequirement: payment.requirement,
-        depositRequiredCents: payment.depositRequiredCents,
-        balanceDueCents: payment.balanceDueCents,
-        amountDueCents: payment.amountDueCents,
-        paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.UNPAID,
-        paymentMethod: SERVICE_BOOKING_PAYMENT_METHOD.NONE,
-        reminderOptIn: reminder.optIn ? 1 : 0,
-        reminderMinutesBefore: reminder.minutesBefore,
-        reminderScheduledAt: reminder.scheduledAt,
-        calendarUid,
-        recurrenceGroupId: input.recurrenceGroupId ?? null,
-        recurrenceIndex: input.recurrenceIndex ?? null,
-        recurrenceCount: input.recurrenceCount ?? null,
-      })
-      .returning();
+      });
 
-    return row;
+      const confirmationCode = generateConfirmationCode();
+      const calendarUid = `${crypto.randomUUID()}@makanmakan.service-bookings`;
+      const [row] = await this.db
+        .insert(serviceBookings)
+        .values({
+          restaurantId: input.restaurantId,
+          serviceItemId: input.serviceItemId,
+          serviceNameSnapshot: service.name,
+          durationMinutesSnapshot: service.durationMinutes ?? null,
+          priceCentsSnapshot: priceCents,
+          customerId: input.customerId ?? null,
+          customerName: input.customerName,
+          customerPhone: input.customerPhone,
+          customerEmail: input.customerEmail ?? null,
+          bookingDate: input.bookingDate,
+          bookingTime: input.bookingTime,
+          partySize: input.partySize ?? 1,
+          employeeId: input.employeeId ?? null,
+          status: SERVICE_BOOKING_STATUS.PENDING,
+          confirmationCode,
+          specialRequests: input.specialRequests ?? null,
+          couponId,
+          voucherDiscountCents,
+          paymentRequirement: payment.requirement,
+          depositRequiredCents: payment.depositRequiredCents,
+          balanceDueCents: payment.balanceDueCents,
+          amountDueCents: payment.amountDueCents,
+          paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.UNPAID,
+          paymentMethod: SERVICE_BOOKING_PAYMENT_METHOD.NONE,
+          reminderOptIn: reminder.optIn ? 1 : 0,
+          reminderMinutesBefore: reminder.minutesBefore,
+          reminderScheduledAt: reminder.scheduledAt,
+          calendarUid,
+          recurrenceGroupId: input.recurrenceGroupId ?? null,
+          recurrenceIndex: input.recurrenceIndex ?? null,
+          recurrenceCount: input.recurrenceCount ?? null,
+        })
+        .returning();
+
+      return row;
+    } catch (error) {
+      if (capacityReserved) {
+        await this.releaseSlotCapacity(
+          input.serviceItemId,
+          input.bookingDate,
+          input.bookingTime,
+        ).catch((releaseError) => {
+          console.error("serviceBooking.capacity.rollback.failed", {
+            releaseError,
+            serviceItemId: input.serviceItemId,
+            bookingDate: input.bookingDate,
+            bookingTime: input.bookingTime,
+          });
+        });
+      }
+      throw error;
+    }
   }
 
   async createRecurringBookings(
     input: CreateRecurringServiceBookingsInput,
   ): Promise<ServiceBookingRow[]> {
-    if (!Number.isInteger(input.count) || input.count < 1 || input.count > 52) {
+    if (
+      !Number.isInteger(input.count) ||
+      input.count < 1 ||
+      input.count > MAX_RECURRING_BOOKING_COUNT
+    ) {
       throw badRequest(
-        "count must be between 1 and 52",
+        `count must be between 1 and ${MAX_RECURRING_BOOKING_COUNT}`,
         "RECURRENCE_COUNT_INVALID",
+      );
+    }
+    if (input.voucherCode) {
+      throw badRequest(
+        "Vouchers can only be applied to single bookings",
+        "RECURRENCE_VOUCHER_UNSUPPORTED",
       );
     }
     const intervalWeeks = input.intervalWeeks ?? 1;
@@ -301,20 +333,25 @@ export class ServiceBookingService {
 
     const groupId = crypto.randomUUID();
     const bookings: ServiceBookingRow[] = [];
-    for (let index = 1; index <= input.count; index += 1) {
-      const bookingDate = addWeeks(
-        input.startDate,
-        (index - 1) * intervalWeeks,
-      );
-      bookings.push(
-        await this.createBooking({
-          ...input,
-          bookingDate,
-          recurrenceGroupId: groupId,
-          recurrenceIndex: index,
-          recurrenceCount: input.count,
-        }),
-      );
+    try {
+      for (let index = 1; index <= input.count; index += 1) {
+        const bookingDate = addWeeks(
+          input.startDate,
+          (index - 1) * intervalWeeks,
+        );
+        bookings.push(
+          await this.createBooking({
+            ...input,
+            bookingDate,
+            recurrenceGroupId: groupId,
+            recurrenceIndex: index,
+            recurrenceCount: input.count,
+          }),
+        );
+      }
+    } catch (error) {
+      await this.rollbackRecurringBookings(bookings);
+      throw error;
     }
     return bookings;
   }
@@ -1015,6 +1052,37 @@ export class ServiceBookingService {
       )
       .bind(serviceItemId, date, timeSlot)
       .run();
+  }
+
+  private async rollbackRecurringBookings(
+    bookings: ServiceBookingRow[],
+  ): Promise<void> {
+    for (const booking of [...bookings].reverse()) {
+      if (booking.status !== SERVICE_BOOKING_STATUS.PENDING) continue;
+
+      try {
+        await this.db
+          .delete(serviceBookings)
+          .where(eq(serviceBookings.id, booking.id));
+      } catch (error) {
+        console.error("serviceBooking.recurring.rowRollback.failed", {
+          error,
+          bookingId: booking.id,
+        });
+        continue;
+      }
+
+      await this.releaseSlotCapacity(
+        booking.serviceItemId,
+        booking.bookingDate,
+        booking.bookingTime,
+      ).catch((error) => {
+        console.error("serviceBooking.recurring.capacityRollback.failed", {
+          error,
+          bookingId: booking.id,
+        });
+      });
+    }
   }
 
   private async claimCouponUse(couponId: number): Promise<void> {

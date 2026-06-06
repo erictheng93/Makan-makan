@@ -2,6 +2,20 @@ import { describe, expect, it, vi } from "vitest";
 import { SemanticDiscoveryService } from "./SemanticDiscoveryService";
 
 describe("SemanticDiscoveryService", () => {
+  function createKv() {
+    const kv = new Map<string, string>();
+    return {
+      get: vi.fn(async (key: string, type?: "json") => {
+        const value = kv.get(key);
+        if (value == null) return null;
+        return type === "json" ? JSON.parse(value) : value;
+      }),
+      put: vi.fn(async (key: string, value: string) => {
+        kv.set(key, value);
+      }),
+    };
+  }
+
   it("queries Vectorize with a Workers AI embedding and returns menu item ids ranked by score", async () => {
     const ai = {
       run: vi.fn(async () => ({
@@ -43,6 +57,42 @@ describe("SemanticDiscoveryService", () => {
       { menuItemId: 42, score: 0.91 },
       { menuItemId: 7, score: 0.88 },
     ]);
+  });
+
+  it("caches search query embeddings by normalized query", async () => {
+    const ai = {
+      run: vi.fn(async () => ({
+        data: [[0.4, 0.5, 0.6]],
+      })),
+    };
+    const vectorize = {
+      query: vi.fn(async () => ({
+        matches: [{ id: "dish:42", score: 0.91 }],
+      })),
+    };
+    const embeddingCache = createKv();
+    const service = new SemanticDiscoveryService({
+      ai,
+      vectorize,
+      embeddingCache,
+      embeddingModel: "@cf/baai/bge-m3",
+    });
+
+    await expect(service.searchDishIds("  Curry   Rice ")).resolves.toEqual([
+      { menuItemId: 42, score: 0.91 },
+    ]);
+    await expect(service.searchDishIds("curry rice")).resolves.toEqual([
+      { menuItemId: 42, score: 0.91 },
+    ]);
+
+    expect(ai.run).toHaveBeenCalledTimes(1);
+    expect(embeddingCache.put).toHaveBeenCalledTimes(1);
+    expect(vectorize.query).toHaveBeenCalledTimes(2);
+    expect(vectorize.query).toHaveBeenNthCalledWith(2, [0.4, 0.5, 0.6], {
+      topK: 50,
+      namespace: "dishes",
+      returnMetadata: "indexed",
+    });
   });
 
   it("fails closed when semantic bindings are missing or unavailable", async () => {

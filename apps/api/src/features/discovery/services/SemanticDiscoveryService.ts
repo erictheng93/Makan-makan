@@ -22,6 +22,15 @@ interface VectorizeBinding {
   upsert?(vectors: SemanticDishVector[]): Promise<unknown>;
 }
 
+interface EmbeddingCache {
+  get<T = unknown>(key: string, type: "json"): Promise<T | null>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void>;
+}
+
 export interface SemanticDishMatch {
   menuItemId: number;
   score: number;
@@ -51,9 +60,12 @@ export interface SemanticDiscoveryConfig {
   ai?: WorkersAiBinding;
   vectorize?: VectorizeBinding;
   embeddingModel?: string;
+  embeddingCache?: EmbeddingCache;
+  embeddingCacheTtlSeconds?: number;
 }
 
 const DEFAULT_EMBEDDING_MODEL = "@cf/baai/bge-m3";
+const DEFAULT_EMBEDDING_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 const DISH_VECTOR_ID_PREFIX = "dish:";
 
 export class SemanticDiscoveryService {
@@ -118,8 +130,29 @@ export class SemanticDiscoveryService {
   }
 
   private async embed(query: string): Promise<number[]> {
-    const embeddings = await this.embedBatch([query]);
-    return embeddings[0] ?? [];
+    const normalized = normalizeEmbeddingQuery(query);
+    if (!normalized) return [];
+
+    const model = this.config.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
+    const cacheKey = await buildEmbeddingCacheKey(model, normalized);
+    const cached = await this.config.embeddingCache
+      ?.get<number[]>(cacheKey, "json")
+      .catch(() => null);
+
+    if (isEmbedding(cached)) return cached;
+
+    const embeddings = await this.embedBatch([normalized]);
+    const embedding = embeddings[0] ?? [];
+    if (embedding.length) {
+      await this.config.embeddingCache
+        ?.put(cacheKey, JSON.stringify(embedding), {
+          expirationTtl:
+            this.config.embeddingCacheTtlSeconds ??
+            DEFAULT_EMBEDDING_CACHE_TTL_SECONDS,
+        })
+        .catch(() => undefined);
+    }
+    return embedding;
   }
 
   private async embedBatch(text: string[]): Promise<number[][]> {
@@ -168,4 +201,33 @@ export class SemanticDiscoveryService {
       },
     };
   }
+}
+
+function normalizeEmbeddingQuery(query: string): string {
+  return query.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function buildEmbeddingCacheKey(
+  model: string,
+  normalizedQuery: string,
+): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`${model}\0${normalizedQuery}`),
+  );
+  return `semantic:embedding:${toHex(digest)}`;
+}
+
+function toHex(buffer: ArrayBuffer): string {
+  return [...new Uint8Array(buffer)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function isEmbedding(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => typeof item === "number")
+  );
 }
