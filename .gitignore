@@ -140,6 +140,7 @@ playwright-report/
 security-reports/
 
 # Test output files (temporary debugging and verification files)
+*.png
 test-*.txt
 *-test.txt
 *-test-*.txt
