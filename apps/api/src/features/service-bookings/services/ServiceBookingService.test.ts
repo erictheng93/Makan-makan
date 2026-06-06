@@ -13,7 +13,7 @@ describe("ServiceBookingService.blockSlot", () => {
       maxCapacity: 2,
       currentBookings: 0,
       isAvailable: 1,
-      blockReason: null,
+      blockReason: null as string | null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

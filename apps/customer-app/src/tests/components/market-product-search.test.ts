@@ -558,6 +558,40 @@ describe("MarketProductSearch", () => {
     );
   });
 
+  it("shows external booking links for market services without in-app booking", async () => {
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          requiresBooking: false,
+          bookingUrl: "https://booking.example/service-10",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-result-kind-service"]')
+      .trigger("click");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    const bookingLink = wrapper.get(
+      '[data-testid="service-result-booking-url"]',
+    );
+    expect(bookingLink.text()).toContain("開啟預約");
+    expect(bookingLink.attributes("href")).toBe(
+      "https://booking.example/service-10",
+    );
+    expect(bookingLink.attributes("target")).toBe("_blank");
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
   it("switches to service results when filtering by service type", async () => {
     vi.mocked(discoveryApi.listServiceTypes).mockResolvedValueOnce({
       serviceTypes: [{ serviceType: "delivery", count: 2 }],

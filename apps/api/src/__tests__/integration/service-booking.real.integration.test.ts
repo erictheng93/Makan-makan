@@ -18,6 +18,8 @@ import {
   serviceBookingSlots,
   coupons,
   employeeAvailability,
+  SERVICE_BOOKING_STATUS,
+  type ServiceBookingStatus,
   users,
 } from "@makanmakan/database";
 import { eq } from "drizzle-orm";
@@ -170,6 +172,31 @@ async function slotBookings(serviceItemId: number): Promise<number> {
 async function bookingCount(): Promise<number> {
   const rows = await testDb.drizzle.select().from(serviceBookings).all();
   return rows.length;
+}
+
+async function insertAssignedServiceBooking(input: {
+  serviceItemId: number;
+  employeeId: number;
+  bookingDate: string;
+  bookingTime: string;
+  durationMinutes: number;
+  status?: ServiceBookingStatus;
+}): Promise<void> {
+  await testDb.drizzle.insert(serviceBookings).values({
+    restaurantId: RESTAURANT_ID,
+    serviceItemId: input.serviceItemId,
+    serviceNameSnapshot: "Lantern Painting",
+    durationMinutesSnapshot: input.durationMinutes,
+    priceCentsSnapshot: 0,
+    customerName: `Guest ${crypto.randomUUID()}`,
+    customerPhone: "0911222333",
+    bookingDate: input.bookingDate,
+    bookingTime: input.bookingTime,
+    employeeId: input.employeeId,
+    status: input.status ?? SERVICE_BOOKING_STATUS.PENDING,
+    confirmationCode: crypto.randomUUID().replace(/-/g, ""),
+    calendarUid: `${crypto.randomUUID()}@makanmakan.service-bookings`,
+  });
 }
 
 beforeAll(async () => {
@@ -891,6 +918,48 @@ describe("ServiceBookingService — employee assignment availability", () => {
     ).rejects.toMatchObject({ code: "SERVICE_EMPLOYEE_UNAVAILABLE" });
   });
 
+  it("rejects direct overlapping active employee bookings at the database layer", async () => {
+    const serviceId = await seedService({ durationMinutes: 60 });
+    const employeeId = await seedEmployee();
+
+    await insertAssignedServiceBooking({
+      serviceItemId: serviceId,
+      employeeId,
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      durationMinutes: 60,
+      status: SERVICE_BOOKING_STATUS.PENDING,
+    });
+
+    let overlapError: unknown;
+    try {
+      await insertAssignedServiceBooking({
+        serviceItemId: serviceId,
+        employeeId,
+        bookingDate: "2026-06-05",
+        bookingTime: "14:30",
+        durationMinutes: 60,
+        status: SERVICE_BOOKING_STATUS.CONFIRMED,
+      });
+    } catch (error) {
+      overlapError = error;
+    }
+    expect(errorChainText(overlapError)).toMatch(
+      /overlapping active employee service booking/,
+    );
+
+    await expect(
+      insertAssignedServiceBooking({
+        serviceItemId: serviceId,
+        employeeId,
+        bookingDate: "2026-06-05",
+        bookingTime: "15:00",
+        durationMinutes: 60,
+        status: SERVICE_BOOKING_STATUS.PENDING,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("rejects an assigned employee with no matching availability", async () => {
     const serviceId = await seedService({ durationMinutes: 60 });
     const employeeId = await seedEmployee();
@@ -944,3 +1013,15 @@ describe("ServiceBookingService — employee assignment availability", () => {
     ).rejects.toMatchObject({ code: "SERVICE_EMPLOYEE_UNAVAILABLE" });
   });
 });
+
+function errorChainText(error: unknown): string {
+  const messages: string[] = [];
+  let current = error as { message?: unknown; cause?: unknown } | undefined;
+  while (current) {
+    messages.push(String(current.message ?? current));
+    current = current.cause as
+      | { message?: unknown; cause?: unknown }
+      | undefined;
+  }
+  return messages.join("\n");
+}

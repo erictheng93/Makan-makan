@@ -404,6 +404,16 @@
             >
               直接預約
             </button>
+            <a
+              v-else-if="service.bookingUrl"
+              :href="service.bookingUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="service-result-booking-url"
+              class="inline-flex h-9 items-center rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
+            >
+              開啟預約
+            </a>
             <button
               type="button"
               data-testid="service-result-open"
