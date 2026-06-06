@@ -1,8 +1,11 @@
-// Real-time service using Server-Sent Events (SSE) and WebSocket fallback
-import { ref } from "vue";
-import { apiClient, unwrapApiData } from "./api";
+import { computed } from "vue";
+import {
+  RealtimeEventType,
+  type RealtimeEvent,
+} from "@makanmakan/shared-types";
+import { useWebSocketService } from "./websocketService";
 
-export interface SSEMessage {
+export interface RealtimeMessage {
   id: string;
   type: string;
   data: any;
@@ -13,369 +16,171 @@ export interface SSEMessage {
 export interface RealtimeSubscription {
   id: string;
   types: string[];
-  callback: (message: SSEMessage) => void;
+  callback: (message: RealtimeMessage) => void;
   restaurantId?: string;
+  websocketSubscriptionId: string;
+}
+
+export type RealtimeConnectionStatus =
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "error";
+
+const CANONICAL_EVENT_ALIASES: Record<string, RealtimeEventType> = {
+  order_created: RealtimeEventType.NEW_ORDER,
+  order_updated: RealtimeEventType.ORDER_STATUS_UPDATE,
+  order_status_changed: RealtimeEventType.ORDER_STATUS_UPDATE,
+  order_cancelled: RealtimeEventType.ORDER_CANCELLED,
+  menu_updated: RealtimeEventType.MENU_ITEM_UPDATE,
+  queue_joined: RealtimeEventType.WAITING_LIST_JOINED,
+  queue_called: RealtimeEventType.WAITING_LIST_CALLED,
+  queue_notified: RealtimeEventType.WAITING_LIST_CALLED,
+  queue_seated: RealtimeEventType.WAITING_LIST_SEATED,
+  queue_no_show: RealtimeEventType.WAITING_LIST_EXPIRED,
+  queue_cancelled: RealtimeEventType.WAITING_LIST_CANCELLED,
+  table_occupied: RealtimeEventType.TABLE_STATUS_UPDATE,
+  table_available: RealtimeEventType.TABLE_STATUS_UPDATE,
+  table_reserved: RealtimeEventType.TABLE_STATUS_UPDATE,
+  table_cleaning: RealtimeEventType.TABLE_STATUS_UPDATE,
+  system_notification: RealtimeEventType.SYSTEM_NOTIFICATION,
+};
+
+function normalizeEventType(type: string): RealtimeEventType {
+  return (
+    CANONICAL_EVENT_ALIASES[type] ?? (type as unknown as RealtimeEventType)
+  );
+}
+
+function toRealtimeMessage(event: RealtimeEvent): RealtimeMessage {
+  return {
+    id: event.eventId,
+    type: event.type,
+    data: event.data,
+    timestamp: new Date(event.timestamp).toISOString(),
+    restaurantId: String(event.restaurantId),
+  };
+}
+
+function resolveRealtimeHttpBase(): string {
+  const realtimeBase =
+    import.meta.env.VITE_REALTIME_HTTP_URL ||
+    import.meta.env.VITE_REALTIME_URL ||
+    import.meta.env.VITE_REALTIME_WS_URL;
+
+  if (!realtimeBase) {
+    throw new Error("Realtime service URL is not configured");
+  }
+
+  return String(realtimeBase)
+    .replace(/^wss:/, "https:")
+    .replace(/^ws:/, "http:")
+    .replace(/\/$/, "");
 }
 
 class RealtimeService {
-  private eventSource: EventSource | null = null;
+  private websocketService = useWebSocketService();
   private subscriptions: Map<string, RealtimeSubscription> = new Map();
-  private connectionStatus = ref<
-    "connecting" | "connected" | "disconnected" | "error"
-  >("disconnected");
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
-  private heartbeatInterval: number | null = null;
-  private lastEventId = ref<string | null>(null);
-  private messageBuffer: SSEMessage[] = [];
+  private lastEventId: string | null = null;
+  private messageBuffer: RealtimeMessage[] = [];
   private maxBufferSize = 100;
+  private currentRestaurantId: string | null = null;
+  private connectionStatus = computed<RealtimeConnectionStatus>(() => {
+    const status = this.websocketService.status.value;
+    if (status === "connected") return "connected";
+    if (status === "connecting" || status === "reconnecting") {
+      return "connecting";
+    }
+    if (status === "error") return "error";
+    return "disconnected";
+  });
 
-  constructor() {
-    // 監聽頁面可見性變化，自動重連
-    document.addEventListener("visibilitychange", () => {
-      if (
-        document.visibilityState === "visible" &&
-        this.connectionStatus.value === "disconnected"
-      ) {
-        this.connect();
-      }
-    });
-
-    // 監聽網絡狀態變化
-    window.addEventListener("online", () => {
-      if (this.connectionStatus.value === "disconnected") {
-        this.connect();
-      }
-    });
-
-    window.addEventListener("offline", () => {
-      this.disconnect();
-    });
-  }
-
-  // 建立 SSE 連接
   async connect(restaurantId?: string): Promise<void> {
-    if (this.eventSource) {
-      this.disconnect();
-    }
-
-    this.connectionStatus.value = "connecting";
-
-    try {
-      const token = localStorage.getItem("auth_token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      // 構建 SSE URL
-      const baseUrl = import.meta.env.VITE_API_URL || "/api";
-      let sseUrl = `${baseUrl}/v1/sse/connect`;
-
-      const params = new URLSearchParams();
-      if (restaurantId) {
-        params.append("restaurantId", restaurantId);
-      }
-      if (this.lastEventId.value) {
-        params.append("lastEventId", this.lastEventId.value);
-      }
-      if (params.toString()) {
-        sseUrl += `?${params.toString()}`;
-      }
-
-      // 創建 EventSource
-      this.eventSource = new EventSource(sseUrl);
-
-      // 設定事件監聽器
-      this.setupEventListeners();
-
-      // 開始心跳檢測
-      this.startHeartbeat();
-    } catch (error) {
-      console.error("Failed to connect to realtime service:", error);
-      this.connectionStatus.value = "error";
-      this.scheduleReconnect();
-    }
-  }
-
-  // 設定事件監聽器
-  private setupEventListeners(): void {
-    if (!this.eventSource) return;
-
-    this.eventSource.onopen = () => {
-      console.log("SSE connection established");
-      this.connectionStatus.value = "connected";
-      this.reconnectAttempts = 0;
-      this.reconnectDelay = 1000;
-    };
-
-    this.eventSource.onmessage = (event) => {
-      try {
-        const message: SSEMessage = JSON.parse(event.data);
-        this.handleMessage(message);
-      } catch (error) {
-        console.error("Failed to parse SSE message:", error);
-      }
-    };
-
-    this.eventSource.onerror = (event) => {
-      console.error("SSE connection error:", event);
-      this.connectionStatus.value = "error";
-
-      if (this.eventSource?.readyState === EventSource.CLOSED) {
-        this.scheduleReconnect();
-      }
-    };
-
-    // 監聽特定事件類型
-    const eventTypes = [
-      // 訂單相關
-      "order_created",
-      "order_updated",
-      "order_status_changed",
-
-      // 群組訂單相關
-      "group_order_created",
-      "group_order_updated",
-      "group_order_expired",
-      "group_order_completed",
-      "group_order_cancelled",
-
-      // 群組成員相關
-      "group_member_joined",
-      "group_member_left",
-      "group_member_promoted",
-      "group_member_activity",
-
-      // 群組購物車相關
-      "group_cart_item_added",
-      "group_cart_item_updated",
-      "group_cart_item_removed",
-      "group_cart_conflict",
-      "group_cart_synced",
-
-      // 群組分帳相關
-      "group_split_initiated",
-      "group_split_updated",
-      "group_payment_completed",
-      "group_payment_failed",
-      "group_payment_reminder",
-
-      // 候位系統相關
-      "queue_joined",
-      "queue_called",
-      "queue_notified",
-      "queue_seated",
-      "queue_no_show",
-      "queue_cancelled",
-
-      // POS 系統相關
-      "pos_transaction",
-      "cash_movement",
-      "shift_started",
-      "shift_ended",
-      "register_status_changed",
-
-      // 桌位相關
-      "table_occupied",
-      "table_available",
-      "table_reserved",
-      "table_cleaning",
-
-      // 系統相關
-      "menu_updated",
-      "user_activity",
-      "system_notification",
-      "connection_status",
-      "heartbeat",
-    ];
-
-    eventTypes.forEach((eventType) => {
-      this.eventSource!.addEventListener(eventType, (event) => {
-        try {
-          const customEvent = event as MessageEvent;
-          const message: SSEMessage = {
-            id: customEvent.lastEventId || Date.now().toString(),
-            type: eventType,
-            data: JSON.parse(customEvent.data),
-            timestamp: new Date().toISOString(),
-            restaurantId: customEvent.data.restaurantId,
-          };
-          this.handleMessage(message);
-        } catch (error) {
-          console.error(`Failed to parse ${eventType} event:`, error);
-        }
-      });
-    });
-  }
-
-  // 處理收到的消息
-  private handleMessage(message: SSEMessage): void {
-    // 更新最後事件 ID
-    this.lastEventId.value = message.id;
-
-    // 加入消息緩衝區
-    this.messageBuffer.push(message);
-    if (this.messageBuffer.length > this.maxBufferSize) {
-      this.messageBuffer.shift();
-    }
-
-    // 分發消息給訂閱者
-    this.subscriptions.forEach((subscription) => {
-      if (this.shouldNotifySubscription(subscription, message)) {
-        try {
-          subscription.callback(message);
-        } catch (error) {
-          console.error("Error in subscription callback:", error);
-        }
-      }
-    });
-
-    console.log("Received realtime message:", message);
-  }
-
-  // 檢查是否應該通知訂閱者
-  private shouldNotifySubscription(
-    subscription: RealtimeSubscription,
-    message: SSEMessage,
-  ): boolean {
-    // 檢查事件類型
-    const typeMatch =
-      subscription.types.includes("*") ||
-      subscription.types.includes(message.type);
-
-    // 檢查餐廳 ID（如果指定）
-    const restaurantMatch =
-      !subscription.restaurantId ||
-      !message.restaurantId ||
-      subscription.restaurantId === message.restaurantId;
-
-    return typeMatch && restaurantMatch;
-  }
-
-  // 訂閱特定類型的事件
-  subscribe(
-    types: string | string[],
-    callback: (message: SSEMessage) => void,
-    restaurantId?: string,
-  ): string {
-    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const subscription: RealtimeSubscription = {
-      id: subscriptionId,
-      types: Array.isArray(types) ? types : [types],
-      callback,
-      restaurantId,
-    };
-
-    this.subscriptions.set(subscriptionId, subscription);
-
-    console.log(
-      `Created subscription ${subscriptionId} for types:`,
-      subscription.types,
-    );
-    return subscriptionId;
-  }
-
-  // 取消訂閱
-  unsubscribe(subscriptionId: string): boolean {
-    const result = this.subscriptions.delete(subscriptionId);
-    console.log(`Unsubscribed ${subscriptionId}:`, result);
-    return result;
-  }
-
-  // 斷開連接
-  disconnect(): void {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-    }
-
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
-
-    this.connectionStatus.value = "disconnected";
-    console.log("SSE connection closed");
-  }
-
-  // 安排重連
-  private scheduleReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error("Max reconnection attempts reached");
+    const targetRestaurantId = restaurantId ?? this.currentRestaurantId;
+    if (!targetRestaurantId) {
+      console.warn("Realtime WebSocket requires a restaurant ID");
       return;
     }
 
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
-    this.reconnectAttempts++;
+    this.currentRestaurantId = targetRestaurantId;
+    await this.websocketService.connect(targetRestaurantId);
+  }
 
-    console.log(
-      `Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`,
+  subscribe(
+    types: string | string[],
+    callback: (message: RealtimeMessage) => void,
+    restaurantId?: string,
+  ): string {
+    const subscriptionTypes = Array.isArray(types) ? types : [types];
+    const normalizedTypes = subscriptionTypes
+      .filter((type) => type !== "*")
+      .map(normalizeEventType);
+    const websocketTypes =
+      normalizedTypes.length > 0
+        ? normalizedTypes
+        : (Object.values(RealtimeEventType) as RealtimeEventType[]);
+    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+    const websocketSubscriptionId = this.websocketService.subscribe(
+      websocketTypes,
+      (event) => {
+        const message = toRealtimeMessage(event);
+        this.handleMessage(message);
+        callback(message);
+      },
+      (event) =>
+        !restaurantId || String(event.restaurantId) === String(restaurantId),
     );
 
-    setTimeout(() => {
-      if (this.connectionStatus.value !== "connected") {
-        this.connect();
-      }
-    }, delay);
+    this.subscriptions.set(subscriptionId, {
+      id: subscriptionId,
+      types: subscriptionTypes,
+      callback,
+      restaurantId,
+      websocketSubscriptionId,
+    });
+
+    return subscriptionId;
   }
 
-  // 心跳檢測
-  private startHeartbeat(): void {
-    this.heartbeatInterval = window.setInterval(() => {
-      if (this.connectionStatus.value === "connected" && this.eventSource) {
-        // 檢查連接是否還活著
-        if (this.eventSource.readyState !== EventSource.OPEN) {
-          console.warn("SSE connection lost, attempting reconnect");
-          this.scheduleReconnect();
-        }
-      }
-    }, 30000); // 每30秒檢查一次
-  }
-
-  // 獲取連接狀態
-  getConnectionStatus() {
-    return this.connectionStatus;
-  }
-
-  // 獲取消息緩衝區
-  getMessageBuffer(): SSEMessage[] {
-    return [...this.messageBuffer];
-  }
-
-  // 手動觸發重連
-  reconnect(): void {
-    this.disconnect();
-    this.reconnectAttempts = 0;
-    this.connect();
-  }
-
-  // 發送 ping 測試連接
-  async ping(): Promise<boolean> {
-    try {
-      await apiClient.get("/sse/ping");
-      return true;
-    } catch {
+  unsubscribe(subscriptionId: string): boolean {
+    const subscription = this.subscriptions.get(subscriptionId);
+    if (!subscription) {
       return false;
     }
+
+    this.websocketService.unsubscribe(subscription.websocketSubscriptionId);
+    return this.subscriptions.delete(subscriptionId);
   }
 
-  // 獲取伺服器時間（用於同步）
-  async getServerTime(): Promise<Date> {
-    try {
-      const response = await apiClient.get("/sse/time");
-      const data = unwrapApiData<{ timestamp?: string | number | Date }>(
-        response,
-      );
-      const serverTime =
-        data.timestamp === undefined ? new Date() : new Date(data.timestamp);
-      return Number.isNaN(serverTime.getTime()) ? new Date() : serverTime;
-    } catch {
-      return new Date(); // 退回到客戶端時間
+  disconnect(): void {
+    for (const subscription of this.subscriptions.values()) {
+      this.websocketService.unsubscribe(subscription.websocketSubscriptionId);
+    }
+    this.subscriptions.clear();
+    this.websocketService.disconnect();
+  }
+
+  reconnect(): void {
+    const restaurantId = this.currentRestaurantId;
+    this.websocketService.disconnect();
+    if (restaurantId) {
+      void this.websocketService.connect(restaurantId);
     }
   }
 
-  // 廣播群組事件到特定群組
+  async ping(): Promise<boolean> {
+    if (this.websocketService.isConnected.value) {
+      this.websocketService.send({ type: "ping", timestamp: Date.now() });
+      return true;
+    }
+    return false;
+  }
+
+  async getServerTime(): Promise<Date> {
+    return new Date();
+  }
+
   async broadcastToGroup(
     groupOrderId: string,
     event: {
@@ -393,7 +198,6 @@ class RealtimeService {
     }
   }
 
-  // 發送群組通知
   async sendGroupNotification(
     groupOrderId: string,
     notification: {
@@ -404,20 +208,87 @@ class RealtimeService {
       priority?: "low" | "normal" | "high" | "urgent";
     },
   ): Promise<boolean> {
+    return this.broadcastToGroup(groupOrderId, {
+      type: "group_notification",
+      data: {
+        ...notification,
+        groupOrderId,
+        timestamp: Date.now(),
+        id: crypto.randomUUID(),
+      },
+    });
+  }
+
+  async checkGroupConnectionHealth(groupOrderId: string): Promise<{
+    connected: boolean;
+    memberCount: number;
+    activeMembers: number;
+    lastActivity: number;
+  }> {
     try {
-      await this.postRealtimeRoom("group_order", groupOrderId, {
-        type: "group_notification",
-        data: {
-          ...notification,
-          groupOrderId,
-          timestamp: Date.now(),
-          id: crypto.randomUUID(),
-        },
-      });
-      return true;
+      const stats = await this.getRealtimeRoomStats(
+        "group_order",
+        groupOrderId,
+      );
+      const connectionCount = Number(stats.connectionCount ?? 0);
+      return {
+        connected: connectionCount > 0,
+        memberCount: connectionCount,
+        activeMembers: connectionCount,
+        lastActivity: Date.now(),
+      };
     } catch (error) {
-      console.error("Failed to send group notification:", error);
-      return false;
+      console.error("Failed to check group connection health:", error);
+      return {
+        connected: false,
+        memberCount: 0,
+        activeMembers: 0,
+        lastActivity: 0,
+      };
+    }
+  }
+
+  async syncGroupState(_groupOrderId: string): Promise<any> {
+    return null;
+  }
+
+  getConnectionStatus() {
+    return this.connectionStatus;
+  }
+
+  getMessageBuffer(): RealtimeMessage[] {
+    return [...this.messageBuffer];
+  }
+
+  getMessageLatency(): number {
+    const lastMessage = this.messageBuffer[this.messageBuffer.length - 1];
+    if (!lastMessage) return 0;
+
+    const messageTime = new Date(lastMessage.timestamp).getTime();
+    return Math.max(0, Date.now() - messageTime);
+  }
+
+  getConnectionStats() {
+    return {
+      status: this.connectionStatus.value,
+      totalMessages: this.messageBuffer.length,
+      subscriptions: this.subscriptions.size,
+      lastEventId: this.lastEventId,
+      reconnectAttempts: 0,
+      latency: this.getMessageLatency(),
+    };
+  }
+
+  cleanup(): void {
+    this.disconnect();
+    this.messageBuffer = [];
+  }
+
+  private handleMessage(message: RealtimeMessage): void {
+    this.lastEventId = message.id;
+    this.messageBuffer.push(message);
+    if (this.messageBuffer.length > this.maxBufferSize) {
+      this.messageBuffer.shift();
     }
   }
 
@@ -426,22 +297,9 @@ class RealtimeService {
     roomId: string,
     payload: unknown,
   ): Promise<void> {
-    const realtimeBase =
-      import.meta.env.VITE_REALTIME_HTTP_URL ||
-      import.meta.env.VITE_REALTIME_URL ||
-      import.meta.env.VITE_REALTIME_WS_URL;
-
-    if (!realtimeBase) {
-      throw new Error("Realtime service URL is not configured");
-    }
-
-    const httpBase = String(realtimeBase)
-      .replace(/^wss:/, "https:")
-      .replace(/^ws:/, "http:")
-      .replace(/\/$/, "");
     const token = localStorage.getItem("auth_token");
     const response = await fetch(
-      `${httpBase}/broadcast/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
+      `${resolveRealtimeHttpBase()}/broadcast/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
       {
         method: "POST",
         headers: {
@@ -457,92 +315,24 @@ class RealtimeService {
     }
   }
 
-  // 檢查群組連接狀態
-  async checkGroupConnectionHealth(groupOrderId: string): Promise<{
-    connected: boolean;
-    memberCount: number;
-    activeMembers: number;
-    lastActivity: number;
-  }> {
-    try {
-      const response = await apiClient.get(`/sse/group/${groupOrderId}/health`);
-      return unwrapApiData<{
-        connected: boolean;
-        memberCount: number;
-        activeMembers: number;
-        lastActivity: number;
-      }>(response);
-    } catch (error) {
-      console.error("Failed to check group connection health:", error);
-      return {
-        connected: false,
-        memberCount: 0,
-        activeMembers: 0,
-        lastActivity: 0,
-      };
+  private async getRealtimeRoomStats(
+    roomType: string,
+    roomId: string,
+  ): Promise<Record<string, unknown>> {
+    const response = await fetch(
+      `${resolveRealtimeHttpBase()}/stats/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(`Realtime stats failed with ${response.status}`);
     }
-  }
 
-  // 同步群組狀態
-  async syncGroupState(
-    groupOrderId: string,
-    lastSyncTime?: number,
-  ): Promise<any> {
-    try {
-      const params = new URLSearchParams();
-      if (lastSyncTime) {
-        params.append("lastSync", lastSyncTime.toString());
-      }
-
-      const query = params.toString();
-      const response = await apiClient.get(
-        `/sse/group/${groupOrderId}/sync${query ? `?${query}` : ""}`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Failed to sync group state:", error);
-      return null;
-    }
-  }
-
-  // 監控消息延遲
-  getMessageLatency(): number {
-    const lastMessage = this.messageBuffer[this.messageBuffer.length - 1];
-    if (!lastMessage) return 0;
-
-    const messageTime = new Date(lastMessage.timestamp).getTime();
-    const receivedTime = Date.now();
-    return Math.max(0, receivedTime - messageTime);
-  }
-
-  // 獲取連接統計信息
-  getConnectionStats() {
-    return {
-      status: this.connectionStatus.value,
-      totalMessages: this.messageBuffer.length,
-      subscriptions: this.subscriptions.size,
-      lastEventId: this.lastEventId.value,
-      reconnectAttempts: this.reconnectAttempts,
-      latency: this.getMessageLatency(),
-    };
-  }
-
-  // 清理資源
-  cleanup(): void {
-    this.disconnect();
-    this.subscriptions.clear();
-    this.messageBuffer = [];
-
-    document.removeEventListener("visibilitychange", () => {});
-    window.removeEventListener("online", () => {});
-    window.removeEventListener("offline", () => {});
+    return (await response.json()) as Record<string, unknown>;
   }
 }
 
-// 單例實例
 export const realtimeService = new RealtimeService();
 
-// Vue 組合式函數
 export function useRealtime() {
   return {
     connectionStatus: realtimeService.getConnectionStatus(),
@@ -550,7 +340,7 @@ export function useRealtime() {
     disconnect: () => realtimeService.disconnect(),
     subscribe: (
       types: string | string[],
-      callback: (message: SSEMessage) => void,
+      callback: (message: RealtimeMessage) => void,
       restaurantId?: string,
     ) => realtimeService.subscribe(types, callback, restaurantId),
     unsubscribe: (subscriptionId: string) =>
@@ -561,69 +351,50 @@ export function useRealtime() {
   };
 }
 
-// 專用的事件類型常量
 export const REALTIME_EVENTS = {
-  // 訂單相關
-  ORDER_CREATED: "order_created",
-  ORDER_UPDATED: "order_updated",
-  ORDER_STATUS_CHANGED: "order_status_changed",
-
-  // 群組訂單核心事件
-  GROUP_ORDER_CREATED: "group_order_created",
+  ORDER_CREATED: RealtimeEventType.NEW_ORDER,
+  ORDER_UPDATED: RealtimeEventType.ORDER_STATUS_UPDATE,
+  ORDER_STATUS_CHANGED: RealtimeEventType.ORDER_STATUS_UPDATE,
+  ORDER_CANCELLED: RealtimeEventType.ORDER_CANCELLED,
+  GROUP_ORDER_CREATED: RealtimeEventType.GROUP_ORDER_CREATED,
   GROUP_ORDER_UPDATED: "group_order_updated",
   GROUP_ORDER_EXPIRED: "group_order_expired",
   GROUP_ORDER_COMPLETED: "group_order_completed",
   GROUP_ORDER_CANCELLED: "group_order_cancelled",
-
-  // 群組成員管理事件
-  GROUP_MEMBER_JOINED: "group_member_joined",
+  GROUP_MEMBER_JOINED: RealtimeEventType.GROUP_MEMBER_JOINED,
   GROUP_MEMBER_LEFT: "group_member_left",
-  GROUP_MEMBER_PROMOTED: "group_member_promoted", // 角色提升（admin等）
-  GROUP_MEMBER_ACTIVITY: "group_member_activity", // 成員活動狀態
-
-  // 群組購物車協作事件
-  GROUP_CART_ITEM_ADDED: "group_cart_item_added",
-  GROUP_CART_ITEM_UPDATED: "group_cart_item_updated",
-  GROUP_CART_ITEM_REMOVED: "group_cart_item_removed",
-  GROUP_CART_CONFLICT: "group_cart_conflict", // 併發編輯衝突
-  GROUP_CART_SYNCED: "group_cart_synced", // 購物車同步完成
-
-  // 群組分帳系統事件
+  GROUP_MEMBER_PROMOTED: "group_member_promoted",
+  GROUP_MEMBER_ACTIVITY: "group_member_activity",
+  GROUP_CART_ITEM_ADDED: RealtimeEventType.GROUP_CART_ITEM_ADDED,
+  GROUP_CART_ITEM_UPDATED: RealtimeEventType.GROUP_CART_ITEM_UPDATED,
+  GROUP_CART_ITEM_REMOVED: RealtimeEventType.GROUP_CART_ITEM_REMOVED,
+  GROUP_CART_CONFLICT: "group_cart_conflict",
+  GROUP_CART_SYNCED: "group_cart_synced",
   GROUP_SPLIT_INITIATED: "group_split_initiated",
   GROUP_SPLIT_UPDATED: "group_split_updated",
   GROUP_PAYMENT_COMPLETED: "group_payment_completed",
   GROUP_PAYMENT_FAILED: "group_payment_failed",
   GROUP_PAYMENT_REMINDER: "group_payment_reminder",
-
-  // 候位系統相關
-  QUEUE_JOINED: "queue_joined",
-  QUEUE_CALLED: "queue_called",
-  QUEUE_NOTIFIED: "queue_notified",
-  QUEUE_SEATED: "queue_seated",
-  QUEUE_NO_SHOW: "queue_no_show",
-  QUEUE_CANCELLED: "queue_cancelled",
-
-  // POS 系統相關
+  QUEUE_JOINED: RealtimeEventType.WAITING_LIST_JOINED,
+  QUEUE_CALLED: RealtimeEventType.WAITING_LIST_CALLED,
+  QUEUE_NOTIFIED: RealtimeEventType.WAITING_LIST_CALLED,
+  QUEUE_SEATED: RealtimeEventType.WAITING_LIST_SEATED,
+  QUEUE_NO_SHOW: RealtimeEventType.WAITING_LIST_EXPIRED,
+  QUEUE_CANCELLED: RealtimeEventType.WAITING_LIST_CANCELLED,
   POS_TRANSACTION: "pos_transaction",
   CASH_MOVEMENT: "cash_movement",
   SHIFT_STARTED: "shift_started",
   SHIFT_ENDED: "shift_ended",
   REGISTER_STATUS_CHANGED: "register_status_changed",
-
-  // 桌位相關
-  TABLE_OCCUPIED: "table_occupied",
-  TABLE_AVAILABLE: "table_available",
-  TABLE_RESERVED: "table_reserved",
-  TABLE_CLEANING: "table_cleaning",
-
-  // 系統相關
-  MENU_UPDATED: "menu_updated",
+  TABLE_OCCUPIED: RealtimeEventType.TABLE_STATUS_UPDATE,
+  TABLE_AVAILABLE: RealtimeEventType.TABLE_STATUS_UPDATE,
+  TABLE_RESERVED: RealtimeEventType.TABLE_STATUS_UPDATE,
+  TABLE_CLEANING: RealtimeEventType.TABLE_STATUS_UPDATE,
+  MENU_UPDATED: RealtimeEventType.MENU_ITEM_UPDATE,
   USER_ACTIVITY: "user_activity",
-  SYSTEM_NOTIFICATION: "system_notification",
-  CONNECTION_STATUS: "connection_status",
-  HEARTBEAT: "heartbeat",
-
-  // 通用事件
+  SYSTEM_NOTIFICATION: RealtimeEventType.SYSTEM_NOTIFICATION,
+  CONNECTION_STATUS: RealtimeEventType.CONNECTION_ACK,
+  HEARTBEAT: RealtimeEventType.HEARTBEAT,
   ALL: "*",
 } as const;
 

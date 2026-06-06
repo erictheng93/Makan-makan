@@ -2,7 +2,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import {
   useRealtime,
   REALTIME_EVENTS,
-  type SSEMessage,
+  type RealtimeMessage,
 } from "@/services/realtimeService";
 import { useAuthStore } from "@/stores/auth";
 
@@ -70,7 +70,7 @@ export function useRealtimePOS() {
   });
 
   // 交易更新處理函數
-  const handleTransactionUpdate = (message: SSEMessage) => {
+  const handleTransactionUpdate = (message: RealtimeMessage) => {
     const transaction: RealtimePOSTransaction = {
       transactionId: message.data.id,
       registerId: message.data.registerId,
@@ -101,7 +101,7 @@ export function useRealtimePOS() {
   };
 
   // 現金異動處理函數
-  const handleCashMovement = (message: SSEMessage) => {
+  const handleCashMovement = (message: RealtimeMessage) => {
     const movement: RealtimeCashMovement = {
       movementId: message.data.id,
       registerId: message.data.registerId,
@@ -129,7 +129,7 @@ export function useRealtimePOS() {
   };
 
   // 班次事件處理函數
-  const handleShiftEvent = (message: SSEMessage) => {
+  const handleShiftEvent = (message: RealtimeMessage) => {
     const shiftEvent: RealtimeShiftEvent = {
       shiftId: message.data.shiftId,
       registerId: message.data.registerId,
@@ -166,7 +166,7 @@ export function useRealtimePOS() {
   };
 
   // 現金櫃狀態處理函數
-  const handleRegisterStatus = (message: SSEMessage) => {
+  const handleRegisterStatus = (message: RealtimeMessage) => {
     const status: RealtimeRegisterStatus = {
       registerId: message.data.registerId,
       status: message.data.status,

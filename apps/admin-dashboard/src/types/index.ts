@@ -212,12 +212,6 @@ export interface PaginationParams {
   order?: "asc" | "desc";
 }
 
-export interface SSEEvent {
-  type: "order_update" | "menu_update" | "system_notification";
-  data: any;
-  timestamp: string;
-}
-
 export interface NotificationSettings {
   newOrders: boolean;
   orderStatusChanges: boolean;

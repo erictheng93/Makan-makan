@@ -121,7 +121,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
-import { useSSE } from "@/composables/useSSE";
+import { useRealtimeConnection } from "@/composables/useRealtimeConnection";
 import { useI18n } from "@/i18n";
 import { UserRole } from "@/types";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
@@ -143,7 +143,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
-const { isConnected } = useSSE();
+const { isConnected } = useRealtimeConnection();
 const { t } = useI18n();
 
 const showUserMenu = ref(false);

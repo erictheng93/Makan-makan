@@ -12,12 +12,15 @@ declare module "*.vue" {
 }
 
 interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL: string;
   readonly VITE_API_URL: string;
   readonly VITE_APP_TITLE: string;
   readonly VITE_APP_VERSION: string;
-  readonly VITE_SSE_URL: string;
-  readonly VITE_WEBSOCKET_URL: string;
+  readonly VITE_REALTIME_WS_URL: string;
+  readonly VITE_REALTIME_HTTP_URL?: string;
+  readonly VITE_REALTIME_URL?: string;
   readonly VITE_RESTAURANT_ID: string;
+  readonly VITE_KITCHEN_DISPLAY_URL?: string;
   readonly MODE: string;
   readonly DEV: boolean;
   readonly PROD: boolean;

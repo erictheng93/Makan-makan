@@ -222,7 +222,7 @@ const { confirm: confirmModal } = useConfirmModal();
 
 // 響應式狀態
 const isConnected = ref(navigator.onLine);
-const isSSEConnected = ref(false);
+const isRealtimeConnected = ref(true);
 const showConnectionStatus = ref(false);
 const showOfflineBanner = ref(false);
 const showPendingRequests = ref(false);
@@ -242,7 +242,7 @@ const isDevelopment = ref(import.meta.env.DEV);
 
 // 計算屬性
 const connectionStatusClass = computed(() => {
-  if (isConnected.value && isSSEConnected.value) {
+  if (isConnected.value && isRealtimeConnected.value) {
     return "bg-green-500 text-white";
   } else if (isConnected.value) {
     return "bg-yellow-500 text-white";
@@ -252,7 +252,7 @@ const connectionStatusClass = computed(() => {
 });
 
 const connectionStatusText = computed(() => {
-  if (isConnected.value && isSSEConnected.value) {
+  if (isConnected.value && isRealtimeConnected.value) {
     return t("errorDisplay.connectionNormal");
   } else if (isConnected.value) {
     return t("errorDisplay.realtimeDisconnected");
@@ -271,7 +271,7 @@ const offlineMessage = computed(() => {
 });
 
 const canReconnect = computed(() => {
-  return isConnected.value && !isSSEConnected.value;
+  return isConnected.value && !isRealtimeConnected.value;
 });
 
 const totalErrors = computed(() => {
@@ -341,7 +341,7 @@ const handleReportProblem = () => {
     timestamp: new Date().toISOString(),
     errorStats: errorStats.value,
     isOnline: isConnected.value,
-    isSSEConnected: isSSEConnected.value,
+    isRealtimeConnected: isRealtimeConnected.value,
   };
 
   // 在實際應用中，這裡應該打開問題回報表單或發送錯誤報告
@@ -375,13 +375,13 @@ const handleOnlineStatusChange = () => {
   }
 };
 
-const handleSSEStatusChange = (event: CustomEvent) => {
-  isSSEConnected.value = event.detail.connected;
+const handleRealtimeStatusChange = (event: CustomEvent) => {
+  isRealtimeConnected.value = event.detail.connected;
 
   if (props.showConnectionIndicator) {
     showConnectionStatus.value = true;
     setTimeout(() => {
-      if (isConnected.value && isSSEConnected.value) {
+      if (isConnected.value && isRealtimeConnected.value) {
         showConnectionStatus.value = false;
       }
     }, 3000);
@@ -412,10 +412,10 @@ onMounted(() => {
   window.addEventListener("online", handleOnlineStatusChange);
   window.addEventListener("offline", handleOnlineStatusChange);
 
-  // 監聽 SSE 狀態變化
+  // 監聽 realtime 狀態變化
   window.addEventListener(
-    "sse-status-change",
-    handleSSEStatusChange as EventListener,
+    "realtime-status-change",
+    handleRealtimeStatusChange as EventListener,
   );
 
   // 監聽錯誤事件
@@ -451,8 +451,8 @@ onUnmounted(() => {
   window.removeEventListener("online", handleOnlineStatusChange);
   window.removeEventListener("offline", handleOnlineStatusChange);
   window.removeEventListener(
-    "sse-status-change",
-    handleSSEStatusChange as EventListener,
+    "realtime-status-change",
+    handleRealtimeStatusChange as EventListener,
   );
   window.removeEventListener(
     "error-occurred",

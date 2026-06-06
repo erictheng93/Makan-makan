@@ -13,7 +13,7 @@ import {
 import {
   realtimeService,
   REALTIME_EVENTS,
-  type SSEMessage,
+  type RealtimeMessage,
 } from "./realtimeService";
 
 type BroadcastEntity = StateOperation["entity"];
@@ -730,7 +730,7 @@ class CollaborativeOrderService {
   /**
    * 處理協作事件
    */
-  private handleCollaborationEvent(message: SSEMessage): void {
+  private handleCollaborationEvent(message: RealtimeMessage): void {
     switch (message.type) {
       case "edit_lock_acquired": {
         const lock = message.data.lock;

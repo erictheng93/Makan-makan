@@ -2,7 +2,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import {
   useRealtime,
   REALTIME_EVENTS,
-  type SSEMessage,
+  type RealtimeMessage,
 } from "@/services/realtimeService";
 import { useAuthStore } from "@/stores/auth";
 
@@ -42,7 +42,7 @@ export function useRealtimeOrders() {
   const subscriptionIds = ref<string[]>([]);
 
   // 訂單更新處理函數
-  const handleOrderUpdate = (message: SSEMessage) => {
+  const handleOrderUpdate = (message: RealtimeMessage) => {
     const update: RealtimeOrderUpdate = {
       orderId: message.data.id,
       orderNumber: message.data.orderNumber,
@@ -68,7 +68,7 @@ export function useRealtimeOrders() {
   };
 
   // 團體訂單更新處理函數
-  const handleGroupOrderUpdate = (message: SSEMessage) => {
+  const handleGroupOrderUpdate = (message: RealtimeMessage) => {
     const update: RealtimeGroupOrderUpdate = {
       groupOrderId: message.data.id,
       shareCode: message.data.shareCode,

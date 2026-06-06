@@ -2,7 +2,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import {
   useRealtime,
   REALTIME_EVENTS,
-  type SSEMessage,
+  type RealtimeMessage,
 } from "@/services/realtimeService";
 import { useAuthStore } from "@/stores/auth";
 
@@ -56,7 +56,7 @@ export function useRealtimeQueue() {
   });
 
   // 候位更新處理函數 - 適配新模組化事件結構
-  const handleQueueUpdate = (message: SSEMessage) => {
+  const handleQueueUpdate = (message: RealtimeMessage) => {
     const update: RealtimeQueueUpdate = {
       queueId: message.data.queueId || message.data.id,
       queueNumber: message.data.queueNumber || message.data.queue_number,
@@ -126,7 +126,7 @@ export function useRealtimeQueue() {
   };
 
   // 桌位更新處理函數
-  const handleTableUpdate = (message: SSEMessage) => {
+  const handleTableUpdate = (message: RealtimeMessage) => {
     const update: RealtimeTableUpdate = {
       tableId: message.data.id,
       tableNumber: message.data.number,

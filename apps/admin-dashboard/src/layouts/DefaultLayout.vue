@@ -39,7 +39,7 @@ import Sidebar from "@/components/layout/Sidebar.vue";
 import Header from "@/components/layout/Header.vue";
 import NotificationPanel from "@/components/layout/NotificationPanel.vue";
 import RestaurantContextBanner from "@/components/layout/RestaurantContextBanner.vue";
-import { useSSE } from "@/composables/useSSE";
+import { useRealtimeConnection } from "@/composables/useRealtimeConnection";
 import { useAuthStore } from "@/stores/auth";
 
 const MOBILE_BREAKPOINT = 1024;
@@ -47,7 +47,7 @@ const isMobile = ref(false);
 const isSidebarCollapsed = ref(false);
 const showNotifications = ref(false);
 
-const { connect, disconnect } = useSSE();
+const { connect, disconnect } = useRealtimeConnection();
 const authStore = useAuthStore();
 
 function checkMobile() {
@@ -73,7 +73,7 @@ onMounted(() => {
   window.addEventListener("resize", checkMobile);
 });
 
-// Reactively connect/disconnect SSE based on restaurant context
+// Reactively connect/disconnect realtime WebSocket based on restaurant context
 watch(
   () => authStore.restaurantId,
   (newId, oldId) => {

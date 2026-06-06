@@ -177,7 +177,7 @@ class GroupOrderBroadcastService {
    */
   private async sendBroadcast(message: BroadcastMessage): Promise<void> {
     try {
-      // 通過 SSE 發送
+      // Send through realtime worker broadcast endpoint.
       const success = await realtimeService.broadcastToGroup(
         message.groupOrderId,
         {
