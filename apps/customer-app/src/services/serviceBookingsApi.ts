@@ -165,10 +165,11 @@ export const serviceBookingsApi = {
     code: string,
     contactProof?: ServiceBookingContactProof,
   ): Promise<ServiceBooking> {
-    const response = await apiClient.get<{ booking: ServiceBooking }>(
-      `/service-bookings/verify/${encodeURIComponent(code)}`,
-      contactProof,
-    );
+    const url = `/service-bookings/verify/${encodeURIComponent(code)}`;
+    const response =
+      contactProof === undefined
+        ? await apiClient.get<{ booking: ServiceBooking }>(url)
+        : await apiClient.get<{ booking: ServiceBooking }>(url, contactProof);
     return response.booking;
   },
 
@@ -176,10 +177,11 @@ export const serviceBookingsApi = {
     code: string,
     contactProof?: ServiceBookingContactProof,
   ): Promise<ServiceBooking> {
-    const response = await apiClient.post<{ booking: ServiceBooking }>(
-      `/service-bookings/verify/${encodeURIComponent(code)}/cancel`,
-      contactProof,
-    );
+    const url = `/service-bookings/verify/${encodeURIComponent(code)}/cancel`;
+    const response =
+      contactProof === undefined
+        ? await apiClient.post<{ booking: ServiceBooking }>(url)
+        : await apiClient.post<{ booking: ServiceBooking }>(url, contactProof);
     return response.booking;
   },
 
