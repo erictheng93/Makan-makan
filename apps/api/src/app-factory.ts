@@ -90,6 +90,7 @@ import leavesFeature from "./features/leaves";
 import schedulingFeature from "./features/scheduling";
 // Reservation and waiting list features
 import reservationsFeature from "./features/reservations";
+import serviceBookingsFeature from "./features/service-bookings";
 import waitingListFeature from "./features/waiting-list";
 // Realtime authentication feature
 import realtimeRoutes from "./features/realtime/routes";
@@ -110,6 +111,7 @@ import ingredientsFeature from "./features/ingredients";
 import discoveryFeature from "./features/discovery";
 import marketsFeature from "./features/markets";
 import marketCheckoutsFeature from "./features/market-checkouts";
+import creditsFeature from "./features/credits";
 import feedbackFeature from "./features/feedback";
 import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
@@ -435,6 +437,7 @@ export function createApp(
         leaves: "/api/v1/leaves",
         scheduling: "/api/v1/scheduling",
         reservations: "/api/v1/reservations",
+        serviceBookings: "/api/v1/service-bookings",
         waitingList: "/api/v1/waiting-list",
         realtime: "/api/v1/realtime",
         notifications: "/api/v1/notifications",
@@ -443,6 +446,7 @@ export function createApp(
         partnerships: "/api/v1/partnerships",
         guestOrders: "/api/v1/guest-orders",
         marketCheckouts: "/api/v1/market-checkouts",
+        credits: "/api/v1/credits",
         integrations: "/api/v1/integrations",
         ingredients: "/api/v1/ingredients",
         me: "/api/v1/me",
@@ -466,11 +470,13 @@ export function createApp(
   // apiV1.route('/payments/webhook', paymentsRouter) // Payment webhooks 無需認證 - Disabled
   apiV1.route("/coupons", couponsFeature.routes); // 優惠券驗證端點為公開，管理端點需要認證
   apiV1.route("/reservations", reservationsFeature); // 訂位系統 (public + protected endpoints)
+  apiV1.route("/service-bookings", serviceBookingsFeature); // 預約服務 (public + protected endpoints)
   apiV1.route("/waiting-list", waitingListFeature); // 候位系統 (public + protected endpoints)
   apiV1.route("/realtime", realtimeRoutes); // WebSocket 認證端點為公開
   apiV1.route("/partnerships", partnershipsRoutes); // 特約商店體系 (部分公開端點 + 受保護端點)
   apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest token auth)
   apiV1.route("/market-checkouts", marketCheckoutsFeature.routes); // 市場多攤位訪客結帳
+  apiV1.route("/credits", creditsFeature.routes); // 代幣儲值卡 (查餘額公開限流, 管理端點 admin)
   apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
 
   // 受保護的路由（需要認證）

@@ -39,6 +39,10 @@ import {
   toCents,
   toRequiredCents,
 } from "../../../shared/utils/money";
+import {
+  SemanticDiscoveryService,
+  type SemanticDishDocument,
+} from "./SemanticDiscoveryService";
 
 const KV_SEARCH_TTL = 15 * 60; // 15 minutes
 const KV_RESTAURANT_TTL = 30 * 60; // 30 minutes
@@ -50,11 +54,26 @@ export class DiscoveryService {
   private db;
   private d1: D1Database;
 
+  /**
+   * @param sessionConstraint When set (e.g. "first-unconstrained" or a prior
+   *   bookmark), read queries run through a D1 Session so they can be served by
+   *   regional read replicas instead of always hitting the primary. Only the
+   *   read query builder (`this.db`) uses the session; `this.d1` stays on the
+   *   primary for the reindex write path. No-op until read replication is
+   *   enabled on the database in the Cloudflare dashboard.
+   *   Drizzle's d1 driver only calls prepare()/batch(), both of which a
+   *   D1DatabaseSession supports, so the cast below is safe at runtime.
+   */
   constructor(
     d1: D1Database,
     private kv: KVNamespace,
+    sessionConstraint?: string,
+    private semanticSearch = new SemanticDiscoveryService({}),
   ) {
-    this.db = drizzle(d1);
+    const readClient = sessionConstraint
+      ? (d1.withSession(sessionConstraint) as unknown as D1Database)
+      : d1;
+    this.db = drizzle(readClient);
     this.d1 = d1;
   }
 
@@ -82,6 +101,16 @@ export class DiscoveryService {
     // 2. Normalize query
     const serviceIntent = q ? this.getServiceIntent(q) : null;
     const normalized = q && !serviceIntent ? this.normalizeQuery(q) : null;
+    const semanticResult = normalized
+      ? await this.semanticSearch.searchDishIdsWithStatus(q, {
+          topK: Math.max(limit * 5, 50),
+          namespace: "dishes",
+          embeddingMode: "cache-only",
+        })
+      : { matches: [], embeddingStatus: "disabled" as const };
+    const semanticMenuItemIds = semanticResult.matches
+      .map((match) => match.menuItemId)
+      .slice(0, 50);
 
     // 3. D1 prefix search
     const offset = (page - 1) * limit;
@@ -168,7 +197,13 @@ export class DiscoveryService {
             like(dishSearchIndex.categoryName, aliasPattern),
           ];
         });
-      const searchCondition = or(
+      const searchConditions: Array<SQL | undefined> = [
+        // FTS5 trigram substring match on dish_name/category/tags. Catches
+        // mid-string CJK matches that the prefix LIKE below misses (e.g.
+        // "牛肉麵" → "蕃茄牛肉麵"). Additive: it only widens recall, never
+        // removes the existing LIKE behavior. Trigram requires >= 3 chars, so
+        // 1-2 char queries fall through to LIKE only.
+        this.ftsMatchCondition(rawQuery),
         like(dishSearchIndex.dishNameNormalized, `${normalized}%`),
         like(dishSearchIndex.tags, tagPattern),
         like(dishSearchIndex.categoryName, tagPattern),
@@ -178,6 +213,14 @@ export class DiscoveryService {
         like(restaurants.city, tagPattern),
         like(restaurants.district, tagPattern),
         this.marketVendorKeywordCondition(tagPattern, filters.marketId),
+        semanticMenuItemIds.length > 0
+          ? inArray(dishSearchIndex.menuItemId, semanticMenuItemIds)
+          : undefined,
+      ];
+      const searchCondition = or(
+        ...searchConditions.filter((condition): condition is SQL =>
+          Boolean(condition),
+        ),
       );
       if (searchCondition) prefixConditions.push(searchCondition);
     }
@@ -219,7 +262,12 @@ export class DiscoveryService {
         .innerJoin(menuItems, eq(dishSearchIndex.menuItemId, menuItems.id))
         .where(whereClause)
         .orderBy(
-          ...this.getDishSearchOrderBy(filters, effectivePrice, normalized),
+          ...this.getDishSearchOrderBy(
+            filters,
+            effectivePrice,
+            normalized,
+            semanticMenuItemIds,
+          ),
         )
         .limit(queryLimit)
         .offset(queryOffset),
@@ -306,7 +354,12 @@ export class DiscoveryService {
             ),
           )
           .orderBy(
-            ...this.getDishSearchOrderBy(filters, effectivePrice, normalized),
+            ...this.getDishSearchOrderBy(
+              filters,
+              effectivePrice,
+              normalized,
+              semanticMenuItemIds,
+            ),
           )
           .limit(50);
         allRows.push(...tagResults);
@@ -383,11 +436,18 @@ export class DiscoveryService {
     }
     const scope = await this.getSearchScopeMetadata(filters);
     const response = { results, total, page, limit, scope };
-    await this.kv.put(
-      cacheKey,
-      JSON.stringify({ results, total, scope, cachedAt: Date.now() }),
-      { expirationTtl: KV_SEARCH_TTL },
-    );
+    const semanticWarmupScheduled =
+      normalized &&
+      semanticResult.embeddingStatus === "cache-miss" &&
+      results.length < limit &&
+      this.semanticSearch.warmQueryEmbedding(q);
+    if (!semanticWarmupScheduled) {
+      await this.kv.put(
+        cacheKey,
+        JSON.stringify({ results, total, scope, cachedAt: Date.now() }),
+        { expirationTtl: KV_SEARCH_TTL },
+      );
+    }
 
     return response;
   }
@@ -1250,6 +1310,7 @@ export class DiscoveryService {
   async reindex(): Promise<{
     dishes: number;
     restaurants: number;
+    semanticDishes: number;
     duration_ms: number;
   }> {
     const start = Date.now();
@@ -1372,13 +1433,17 @@ export class DiscoveryService {
         menuItemId: dishSearchIndex.menuItemId,
         restaurantId: dishSearchIndex.restaurantId,
         dishName: dishSearchIndex.dishName,
+        categoryName: dishSearchIndex.categoryName,
         price: dishSearchIndex.price,
         priceCents: dishSearchIndex.priceCents,
+        catalogType: dishSearchIndex.catalogType,
         tags: dishSearchIndex.tags,
+        primaryMarketId: dishSearchIndex.primaryMarketId,
       })
       .from(dishSearchIndex)
       .where(eq(dishSearchIndex.isAvailable, true));
 
+    let semanticDishCount = 0;
     const tagIndexMap: Record<
       string,
       {
@@ -1404,6 +1469,23 @@ export class DiscoveryService {
         });
       }
     }
+    const semanticDocuments: SemanticDishDocument[] = allTags.map((row) => ({
+      menuItemId: row.menuItemId,
+      restaurantId: row.restaurantId,
+      text: this.semanticDishText({
+        dishName: row.dishName,
+        categoryName: row.categoryName,
+        tags: row.tags ?? [],
+      }),
+      catalogType: row.catalogType ?? "menu_item",
+      primaryMarketId: row.primaryMarketId,
+    }));
+    for (let i = 0; i < semanticDocuments.length; i += 50) {
+      const result = await this.semanticSearch.upsertDishes(
+        semanticDocuments.slice(i, i + 50),
+      );
+      semanticDishCount += result.upserted;
+    }
     await this.kv.put("search:tags:index", JSON.stringify(tagIndexMap), {
       expirationTtl: 30 * 60,
     });
@@ -1414,6 +1496,7 @@ export class DiscoveryService {
     return {
       dishes: dishCount,
       restaurants: items.length,
+      semanticDishes: semanticDishCount,
       duration_ms,
     };
   }
@@ -1500,6 +1583,21 @@ export class DiscoveryService {
 
   private normalizeQuery(query: string): string {
     return query.trim().toLowerCase().replace(/\s+/g, "");
+  }
+
+  /**
+   * FTS5 trigram substring match against dish_search_fts, returning a condition
+   * that selects dish_search_index rows whose indexed text contains the query.
+   * Returns undefined for queries under 3 characters, which the trigram
+   * tokenizer cannot match (callers fall back to LIKE). The term is wrapped as
+   * an FTS5 string literal (doubling embedded quotes) so user input is treated
+   * as a phrase, not as FTS query operators.
+   */
+  private ftsMatchCondition(rawQuery: string): SQL | undefined {
+    const term = rawQuery.trim();
+    if ([...term].length < 3) return undefined;
+    const ftsTerm = `"${term.replace(/"/g, '""')}"`;
+    return sql`${dishSearchIndex.id} IN (SELECT rowid FROM dish_search_fts WHERE dish_search_fts MATCH ${ftsTerm})`;
   }
 
   private restaurantDetailUrl(restaurantId: string): string {
@@ -2053,6 +2151,7 @@ export class DiscoveryService {
     filters: SearchFilters,
     effectivePrice: SQL<number>,
     normalizedQuery: string | null,
+    semanticMenuItemIds: number[] = [],
   ) {
     if (filters.sortBy === "popular") {
       return [desc(menuItems.orderCount), asc(effectivePrice)];
@@ -2063,11 +2162,15 @@ export class DiscoveryService {
     if (normalizedQuery) {
       const rawQuery = filters.q?.trim() ?? "";
       const tagPattern = `%${rawQuery}%`;
+      const semanticMatch = semanticMenuItemIds.length
+        ? sql`WHEN ${inArray(dishSearchIndex.menuItemId, semanticMenuItemIds)} THEN 3`
+        : sql``;
       const relevance = sql<number>`CASE
         WHEN ${dishSearchIndex.dishNameNormalized} = ${normalizedQuery} THEN 0
         WHEN ${dishSearchIndex.dishNameNormalized} LIKE ${`${normalizedQuery}%`} THEN 1
         WHEN ${dishSearchIndex.tags} LIKE ${tagPattern} THEN 2
-        ELSE 3
+        ${semanticMatch}
+        ELSE 4
       END`;
       return [asc(relevance), asc(effectivePrice)];
     }
@@ -2171,4 +2274,48 @@ export class DiscoveryService {
   private sortOpenResultsFirst<T extends { isOpen: boolean }>(results: T[]) {
     return [...results].sort((a, b) => Number(b.isOpen) - Number(a.isOpen));
   }
+
+  private semanticDishText(row: {
+    dishName: string;
+    categoryName: string | null;
+    tags: string[];
+  }) {
+    return [row.dishName, row.categoryName, ...row.tags]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join(" ");
+  }
+}
+
+/**
+ * Build a DiscoveryService for the public catalog read path, routing queries
+ * through a D1 Session so they can be served by regional read replicas.
+ * "first-unconstrained" lets the first query hit any replica — acceptable for
+ * public browsing where slight staleness is fine and clients don't write the
+ * catalog (no read-your-write requirement). No latency change until read
+ * replication is enabled on the D1 database in the Cloudflare dashboard.
+ */
+export function createDiscoveryRead(
+  env: {
+    DB: D1Database;
+    CACHE_KV: KVNamespace;
+    AI?: unknown;
+    DISCOVERY_VECTORIZE?: unknown;
+    DISCOVERY_EMBEDDING_MODEL?: string;
+  },
+  options: {
+    waitUntil?: (promise: Promise<unknown>) => void;
+  } = {},
+): DiscoveryService {
+  return new DiscoveryService(
+    env.DB,
+    env.CACHE_KV,
+    "first-unconstrained",
+    new SemanticDiscoveryService({
+      ai: env.AI as never,
+      vectorize: env.DISCOVERY_VECTORIZE as never,
+      embeddingModel: env.DISCOVERY_EMBEDDING_MODEL,
+      embeddingCache: env.CACHE_KV,
+      waitUntil: options.waitUntil,
+    }),
+  );
 }

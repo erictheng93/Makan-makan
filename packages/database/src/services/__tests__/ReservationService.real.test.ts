@@ -79,11 +79,12 @@ async function seedReservation(
 let testDb: TestDatabase;
 let service: ReservationService;
 
-// Shared miniflare instance across all describes — boot + 22 migrations
-// is ~10s, so we pay it once instead of per file/describe.
+// Shared miniflare instance across all describes — paid once instead of per
+// file/describe. Boot + replaying the full migration set is ~45s in isolation
+// and slower under full-suite CPU contention, so allow generous headroom.
 beforeAll(async () => {
   testDb = await createTestDatabase();
-}, 60000);
+}, 120000);
 
 afterAll(async () => {
   await testDb?.dispose();

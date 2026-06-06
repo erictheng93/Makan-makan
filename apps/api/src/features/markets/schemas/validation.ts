@@ -2,14 +2,16 @@ import { z } from "zod";
 
 const decodeHtmlEntities = (value: string): string =>
   value
-    .replace(/&amp;/g, "&")
+    // Decode &amp; LAST so a literal `&amp;lt;` round-trips to `&lt;`, not `<`
+    // (decoding it first would re-expose escaped markup — a sanitizer bypass).
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&#x2F;/g, "/")
     .replace(/&#x60;/g, "`")
-    .replace(/&#x3D;/g, "=");
+    .replace(/&#x3D;/g, "=")
+    .replace(/&amp;/g, "&");
 
 const urlSchema = z
   .string()

@@ -24,12 +24,12 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
+    "@cloudflare/workers-types": "^4.20260603.1",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/ws": "^8.5.10",
     "@vitest/coverage-v8": "4.0.17",
     "typescript": "^5.0.0",
     "vitest": "4.0.17",
-    "wrangler": "^4.85.0"
+    "wrangler": "^4.98.0"
   }
 }

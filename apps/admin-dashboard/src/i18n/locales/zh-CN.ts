@@ -1449,6 +1449,7 @@ const zhCN: Messages = {
     scheduling: "员工排班",
     leaves: "请假管理",
     reservations: "预订管理",
+    serviceBookings: "服务预约管理",
     waitingList: "候位管理",
     waitingManagement: "候位管理",
     seatingManagement: "座位管理",

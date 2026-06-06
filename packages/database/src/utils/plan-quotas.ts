@@ -10,7 +10,13 @@ export const PLAN_QUOTAS: Record<
   PlanTier,
   Partial<Record<MeterKey, MeterQuota>>
 > = {
-  trial: {},
+  trial: {
+    "orders.created": { soft: 80, hard: 100 },
+    "api.requests": { soft: 8_000, hard: 10_000 },
+    "print.jobs": { soft: 80, hard: 100 },
+    "ai.requests": { soft: 8, hard: 10 },
+    "storage.bytes": { soft: 800_000_000, hard: 1_000_000_000 },
+  },
   basic: {
     "orders.created": { soft: 800, hard: 1000 },
     "api.requests": { soft: 80_000, hard: 100_000 },

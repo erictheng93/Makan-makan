@@ -8,6 +8,14 @@ import {
   type ServiceSearchResult,
 } from "@/services/discoveryApi";
 
+const routerPush = vi.hoisted(() => vi.fn());
+
+vi.mock("vue-router", () => ({
+  useRouter: () => ({
+    push: routerPush,
+  }),
+}));
+
 vi.mock("vue-i18n", async (importOriginal) => {
   const actual = await importOriginal<typeof import("vue-i18n")>();
   return {
@@ -511,7 +519,7 @@ describe("MarketProductSearch", () => {
     });
   });
 
-  it("shows direct booking links for market service results", async () => {
+  it("opens bookable market service results in the site booking flow", async () => {
     vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
       results: [
         service({
@@ -534,18 +542,54 @@ describe("MarketProductSearch", () => {
       .trigger("click");
     await wrapper.get("form").trigger("submit.prevent");
 
-    const bookingLink = wrapper.get<HTMLAnchorElement>(
-      '[data-testid="service-result-booking"]',
+    const bookingButton = wrapper.get('[data-testid="service-result-booking"]');
+    expect(bookingButton.text()).toContain("直接預約");
+    await bookingButton.trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ServiceBooking",
+      params: {
+        restaurantId: "service-r1",
+        serviceItemId: "10",
+      },
+    });
+    expect(wrapper.get('[data-testid="service-result-open"]').text()).toContain(
+      "查看服務",
     );
-    expect(bookingLink.text()).toContain("直接預約");
+  });
+
+  it("shows external booking links for market services without in-app booking", async () => {
+    vi.mocked(discoveryApi.searchServices).mockResolvedValueOnce({
+      results: [
+        service({
+          requiresBooking: false,
+          bookingUrl: "https://booking.example/service-10",
+        }),
+      ],
+      total: 1,
+    } as never);
+
+    const wrapper = mount(MarketProductSearch, {
+      props: {
+        marketId: "market-1",
+        autoLoad: false,
+      },
+    });
+
+    await wrapper
+      .get('[data-testid="market-result-kind-service"]')
+      .trigger("click");
+    await wrapper.get("form").trigger("submit.prevent");
+
+    const bookingLink = wrapper.get(
+      '[data-testid="service-result-booking-url"]',
+    );
+    expect(bookingLink.text()).toContain("開啟預約");
     expect(bookingLink.attributes("href")).toBe(
       "https://booking.example/service-10",
     );
     expect(bookingLink.attributes("target")).toBe("_blank");
-    expect(bookingLink.attributes("rel")).toContain("noopener");
-    expect(wrapper.get('[data-testid="service-result-open"]').text()).toContain(
-      "查看服務",
-    );
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
   it("switches to service results when filtering by service type", async () => {

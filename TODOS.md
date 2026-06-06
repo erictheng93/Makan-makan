@@ -2,6 +2,21 @@
 
 Organized by skill/component, then priority (P0 top → P4 bottom, then Completed).
 
+## payments / provider integrations
+
+### Defer real payment acquirer integration
+
+**Priority:** P2 **Status:** Deferred 2026-06-06 — product decision **Context:** This project is not connecting a live payment acquirer for the current scope. Stored-value 代幣, admin/cash top-up, pay-at-venue, and vouchers are the supported MVP money loop. The market-checkout provider split and online credit top-up code paths intentionally remain provider-agnostic and fail closed when no provider endpoint is configured.
+
+**Deferred scope:**
+
+- Select and contract a live acquirer such as ECPay, Stripe, LINE Pay, TapPay, or NewebPay
+- Provide production credentials and endpoints for `MARKET_CHECKOUT_PROVIDER_SPLIT_URL`, `MARKET_CHECKOUT_PROVIDER_STATUS_URL`, `MARKET_CHECKOUT_PROVIDER_REFUND_URL`, and `CREDIT_TOPUP_PROVIDER_URL`
+- Enable real card / wallet payment confirmation and provider-split market payments
+- Enable customer-facing online self-serve 代幣 top-up backed by the selected acquirer
+
+**Current supported behavior:** The provider contracts, webhook/reconciliation plumbing, admin readiness checks, and online top-up intent flow are implemented for future use. When no provider is configured, online top-up returns `CREDIT_TOPUP_NOT_CONFIGURED` and market checkout provider status reports missing provider configuration.
+
 ## i18n
 
 ### Consolidate 3 duplicate i18n runtimes into @makanmakan/i18n shared package

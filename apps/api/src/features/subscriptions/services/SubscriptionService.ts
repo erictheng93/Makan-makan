@@ -19,6 +19,11 @@ export interface CreateSubscriptionInput {
   notes?: string;
 }
 
+export interface ProvisionDefaultSubscriptionInput {
+  restaurantId: string;
+  trialDays?: number;
+}
+
 export interface UpdateModulesInput {
   /** Partial overrides to merge into existing moduleOverrides */
   overrides: ModuleMap;
@@ -74,6 +79,21 @@ export class SubscriptionService {
       .returning();
 
     return created;
+  }
+
+  async provisionDefaultForRestaurant(
+    input: ProvisionDefaultSubscriptionInput,
+  ) {
+    const existing = await this.getByRestaurantId(input.restaurantId);
+    if (existing) return existing;
+
+    const trialDays = input.trialDays ?? 30;
+    return this.create({
+      restaurantId: input.restaurantId,
+      planTier: "trial",
+      trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
+      notes: "auto-provisioned during restaurant onboarding",
+    });
   }
 
   /**

@@ -1558,6 +1558,7 @@ const zhTW = {
     scheduling: "員工排班",
     leaves: "請假管理",
     reservations: "訂位管理",
+    serviceBookings: "服務預約管理",
     waitingList: "候位管理",
     waitingManagement: "候位管理",
     seatingManagement: "座位管理",

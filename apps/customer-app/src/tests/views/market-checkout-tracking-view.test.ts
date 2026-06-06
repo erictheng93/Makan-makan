@@ -5,6 +5,8 @@ import MarketCheckoutTrackingView from "@/views/MarketCheckoutTrackingView.vue";
 const routerPush = vi.hoisted(() => vi.fn());
 const getMarketCheckout = vi.hoisted(() => vi.fn());
 const payMarketCheckout = vi.hoisted(() => vi.fn());
+const applyMarketCheckoutVoucher = vi.hoisted(() => vi.fn());
+const removeMarketCheckoutVoucher = vi.hoisted(() => vi.fn());
 const recoverMarketCheckoutGuestToken = vi.hoisted(() => vi.fn());
 const windowOpen = vi.hoisted(() => vi.fn());
 
@@ -20,6 +22,8 @@ vi.mock("@/services/orderApi", () => ({
   orderApi: {
     getMarketCheckout,
     payMarketCheckout,
+    applyMarketCheckoutVoucher,
+    removeMarketCheckoutVoucher,
     recoverMarketCheckoutGuestToken,
   },
 }));
@@ -45,6 +49,8 @@ describe("MarketCheckoutTrackingView", () => {
     routerPush.mockReset();
     getMarketCheckout.mockReset();
     payMarketCheckout.mockReset();
+    applyMarketCheckoutVoucher.mockReset();
+    removeMarketCheckoutVoucher.mockReset();
     recoverMarketCheckoutGuestToken.mockReset();
     windowOpen.mockReset();
   });
@@ -389,6 +395,150 @@ describe("MarketCheckoutTrackingView", () => {
     expect(
       localStorage.getItem("makanmakan_recent_market_checkouts"),
     ).toContain('"paymentStatus":"paid"');
+  });
+
+  it("applies and removes a platform voucher before payment", async () => {
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [
+        {
+          restaurantId: "restaurant-1",
+          restaurantName: "雞排攤",
+          orderId: 101,
+          orderNumber: "A001",
+          totalAmount: 160,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+        {
+          restaurantId: "restaurant-2",
+          restaurantName: "甜點攤",
+          orderId: 102,
+          orderNumber: "A002",
+          totalAmount: 80,
+          tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+        },
+      ],
+      subtotal: 240,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+    applyMarketCheckoutVoucher.mockResolvedValueOnce({
+      checkout: {
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 160,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+          {
+            restaurantId: "restaurant-2",
+            restaurantName: "甜點攤",
+            orderId: 102,
+            orderNumber: "A002",
+            totalAmount: 80,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
+        subtotal: 240,
+        appliedVoucher: {
+          couponId: 5,
+          code: "MARKET10",
+          name: "市場 9 折",
+          discountCents: 2400,
+          allocations: [
+            { orderId: 101, amountCents: 16000, discountCents: 1600 },
+            { orderId: 102, amountCents: 8000, discountCents: 800 },
+          ],
+        },
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+      discountCents: 2400,
+      payableCents: 21600,
+    });
+    removeMarketCheckoutVoucher.mockResolvedValueOnce({
+      checkout: {
+        id: "checkout-1",
+        market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+        status: "submitted",
+        childOrders: [],
+        subtotal: 240,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-checkout-voucher-code"]')
+      .setValue("MARKET10");
+    await wrapper
+      .get('[data-testid="market-checkout-voucher-apply"]')
+      .trigger("submit");
+    await flushPromises();
+
+    expect(applyMarketCheckoutVoucher).toHaveBeenCalledWith(
+      "checkout-1",
+      "MARKET10",
+    );
+    expect(
+      wrapper.get('[data-testid="market-checkout-voucher-discount"]').text(),
+    ).toContain("NT$24");
+    expect(
+      wrapper.get('[data-testid="market-checkout-payable"]').text(),
+    ).toContain("NT$216");
+    expect(wrapper.text()).toContain("市場 9 折");
+
+    await wrapper
+      .get('[data-testid="market-checkout-voucher-remove"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(removeMarketCheckoutVoucher).toHaveBeenCalledWith("checkout-1");
+    expect(
+      wrapper.find('[data-testid="market-checkout-voucher-discount"]').exists(),
+    ).toBe(false);
+    expect(
+      wrapper.get('[data-testid="market-checkout-payable"]').text(),
+    ).toContain("NT$240");
+  });
+
+  it("shows voucher-specific error messages", async () => {
+    getMarketCheckout.mockResolvedValueOnce({
+      id: "checkout-1",
+      market: { id: "market-1", slug: "fengjia", name: "逢甲夜市" },
+      status: "submitted",
+      childOrders: [],
+      subtotal: 240,
+      createdAt: "2026-06-01T10:00:00.000Z",
+    });
+    applyMarketCheckoutVoucher.mockRejectedValueOnce(
+      Object.assign(new Error("min order"), {
+        code: "VOUCHER_MIN_ORDER_NOT_MET",
+      }),
+    );
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-checkout-voucher-code"]')
+      .setValue("MARKET500");
+    await wrapper
+      .get('[data-testid="market-checkout-voucher-apply"]')
+      .trigger("submit");
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="market-checkout-voucher-error"]').text(),
+    ).toContain("最低消費");
   });
 
   it("redirects users when a provider payment requires an external action", async () => {

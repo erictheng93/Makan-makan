@@ -1442,6 +1442,7 @@ const idID: Messages = {
     scheduling: "Jadwal Karyawan",
     leaves: "Manajemen Cuti",
     reservations: "Manajemen Reservasi",
+    serviceBookings: "Manajemen Reservasi Layanan",
     waitingList: "Manajemen Antrean",
     seatingManagement: "Manajemen Tempat Duduk",
     monitoring: "Pemantauan Sistem",

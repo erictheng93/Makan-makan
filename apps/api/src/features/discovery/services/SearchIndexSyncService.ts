@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, isNull, sql } from "drizzle-orm";
+import type { Queue } from "@cloudflare/workers-types";
 import {
   dishSearchIndex,
   menuItems,
@@ -7,11 +8,25 @@ import {
   restaurants,
   restaurantMarketMemberships,
 } from "@makanmakan/database";
+import type { Env } from "../../../types/env";
 import { toCents } from "../../../shared/utils/money";
 import { normalizeSearchTags } from "../utils/search-normalization";
 
 const KV_SEARCH_VERSION_KEY = "search:query:version";
 const MARKET_CACHE_VERSION_KEY = "markets:version";
+
+/**
+ * Unit of work for the search-index sync queue. Fan-out operations
+ * (market / category changes) enqueue one of these per affected entity so
+ * each re-denormalization runs in its own Worker invocation, staying well
+ * under D1's 1000-subrequest-per-invocation limit.
+ */
+export type SearchSyncMessage =
+  | { type: "restaurant"; restaurantId: string }
+  | { type: "menuItem"; menuItemId: number };
+
+// Cloudflare Queues accept at most 100 messages per sendBatch call.
+const QUEUE_BATCH_LIMIT = 100;
 
 export class SearchIndexSyncService {
   private db;
@@ -19,6 +34,13 @@ export class SearchIndexSyncService {
   constructor(
     d1: D1Database,
     private kv: KVNamespace,
+    /**
+     * Optional fan-out queue. When provided, {@link onMarketChanged} and
+     * {@link onCategoryChanged} enqueue per-entity work instead of processing
+     * inline. When absent (tests, queue consumer), they fall back to inline
+     * processing so behavior is unchanged.
+     */
+    private queue?: Queue<SearchSyncMessage>,
   ) {
     this.db = drizzle(d1);
   }
@@ -226,6 +248,14 @@ export class SearchIndexSyncService {
       .from(menuItems)
       .where(eq(menuItems.categoryId, categoryId));
 
+    if (this.queue) {
+      await this.enqueue(
+        items.map((item) => ({ type: "menuItem", menuItemId: item.id })),
+      );
+      await this.bumpSearchVersion();
+      return;
+    }
+
     await Promise.all(items.map((item) => this.onMenuItemChanged(item.id)));
 
     if (items.length === 0) {
@@ -234,6 +264,7 @@ export class SearchIndexSyncService {
   }
 
   async onMarketMembershipChanged(restaurantId: string): Promise<void> {
+    // Bounded to a single restaurant's index rows — safe to run inline.
     await this.onRestaurantChanged(restaurantId);
   }
 
@@ -248,11 +279,50 @@ export class SearchIndexSyncService {
         ),
       );
 
+    // A market may contain hundreds of restaurants, each with many menu items.
+    // Processing them inline would blow past D1's 1000-subrequest-per-invocation
+    // limit and time out the triggering request. When a fan-out queue is wired,
+    // enqueue one job per restaurant so each re-syncs in its own invocation.
+    if (this.queue) {
+      await this.enqueue(
+        memberships.map(({ restaurantId }) => ({
+          type: "restaurant",
+          restaurantId,
+        })),
+      );
+      await this.bumpSearchVersion();
+      return;
+    }
+
     await Promise.all(
       memberships.map(({ restaurantId }) =>
         this.onRestaurantChanged(restaurantId),
       ),
     );
+  }
+
+  /**
+   * Dispatch a single queued fan-out message. Called by the queue consumer.
+   * Only invokes bounded single-entity handlers, which never re-enqueue, so
+   * there is no risk of a fan-out loop.
+   */
+  async processMessage(message: SearchSyncMessage): Promise<void> {
+    switch (message.type) {
+      case "restaurant":
+        await this.onRestaurantChanged(message.restaurantId);
+        break;
+      case "menuItem":
+        await this.onMenuItemChanged(message.menuItemId);
+        break;
+    }
+  }
+
+  private async enqueue(messages: SearchSyncMessage[]): Promise<void> {
+    if (!this.queue || messages.length === 0) return;
+    for (let i = 0; i < messages.length; i += QUEUE_BATCH_LIMIT) {
+      const chunk = messages.slice(i, i + QUEUE_BATCH_LIMIT);
+      await this.queue.sendBatch(chunk.map((body) => ({ body })));
+    }
   }
 
   private async bumpSearchVersion(): Promise<void> {
@@ -265,4 +335,18 @@ export class SearchIndexSyncService {
     const next = Number.isFinite(current) ? current + 1 : Date.now();
     await this.kv.put(MARKET_CACHE_VERSION_KEY, String(next));
   }
+}
+
+/**
+ * Build a {@link SearchIndexSyncService} wired to the request's bindings,
+ * including the fan-out queue when it is configured. Centralizing construction
+ * here keeps call sites uniform and gives a single seam for swapping the
+ * catalog DB binding later (P1).
+ */
+export function createSearchIndexSync(env: Env): SearchIndexSyncService {
+  return new SearchIndexSyncService(
+    env.DB,
+    env.CACHE_KV,
+    env.SEARCH_SYNC_QUEUE as Queue<SearchSyncMessage> | undefined,
+  );
 }

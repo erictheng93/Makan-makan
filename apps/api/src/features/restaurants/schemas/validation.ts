@@ -9,14 +9,16 @@ import { VALIDATION_LIMITS } from "../../../shared/constants";
 
 const decodeHtmlEntities = (value: string): string =>
   value
-    .replace(/&amp;/g, "&")
+    // Decode &amp; LAST so a literal `&amp;lt;` round-trips to `&lt;`, not `<`
+    // (decoding it first would re-expose escaped markup — a sanitizer bypass).
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&#x2F;/g, "/")
     .replace(/&#x60;/g, "`")
-    .replace(/&#x3D;/g, "=");
+    .replace(/&#x3D;/g, "=")
+    .replace(/&amp;/g, "&");
 
 const sanitizeFreeText = (value: string): string =>
   decodeHtmlEntities(value).replace(/[<>"`=]/g, "");
@@ -219,6 +221,8 @@ const createRestaurantSchema = z.object({
     .optional(),
   website: z.string().url("Invalid website URL").optional(),
   businessHours: businessHoursSchema,
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   logoUrl: z.string().url("Invalid logo URL").optional(),
   bannerUrl: z.string().url("Invalid banner URL").optional(),
 });

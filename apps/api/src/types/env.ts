@@ -82,6 +82,10 @@ export interface Env {
   IMAGES_BUCKET: R2Bucket;
   BACKUP_STORAGE: R2Bucket;
   JOB_QUEUE: Queue;
+  // Fan-out queue for search-index re-sync (market/category changes).
+  // Optional so the service falls back to inline processing when unbound
+  // (e.g. local tests). See SearchIndexSyncService.
+  SEARCH_SYNC_QUEUE?: Queue;
   REALTIME_ORDERS: DurableObjectNamespace;
 
   // Advanced Cloudflare bindings for 100/100 optimization
@@ -155,7 +159,18 @@ export interface Env {
   MARKET_CHECKOUT_PROVIDER_SPLIT_SIGNING_SECRET?: string;
   NOTIFICATION_FROM_EMAIL?: string;
 
+  // Stored-value credits (代幣): spends at or below this amount skip PIN ((b) 門檻式 PIN)
+  CREDIT_PIN_THRESHOLD_CENTS?: string;
+  // Online top-up (Phase 2) provider gateway + webhook verification
+  CREDIT_TOPUP_PROVIDER_URL?: string;
+  CREDIT_TOPUP_PROVIDER_TOKEN?: string;
+  CREDIT_TOPUP_PROVIDER_SIGNING_SECRET?: string;
+  CREDIT_TOPUP_WEBHOOK_SECRET?: string;
+
   // AI and machine learning
+  AI?: unknown;
+  DISCOVERY_VECTORIZE?: unknown;
+  DISCOVERY_EMBEDDING_MODEL?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
 

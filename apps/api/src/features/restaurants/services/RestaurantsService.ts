@@ -8,7 +8,9 @@ import { asc, eq, isNull, and } from "drizzle-orm";
 import {
   RestaurantService as DatabaseRestaurantService,
   type RestaurantServiceType,
+  markets,
   restaurantFaqs,
+  restaurantMarketMemberships,
   restaurantServiceItems,
   restaurants,
 } from "@makanmakan/database";
@@ -25,8 +27,10 @@ import type {
   RestaurantFilters,
   RestaurantEvent,
 } from "../types";
+import { distanceKm, pointInGeoJsonBoundary } from "../../markets/services/geo";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
+const AUTO_ATTACH_MARKET_RADIUS_KM = 2;
 
 interface RestaurantListResult {
   restaurants: Restaurant[];
@@ -255,26 +259,17 @@ export class RestaurantsService {
 
       const restaurant = await this.dbService.createRestaurant(data);
 
-      // Auto-create a 30-day trial subscription for the new restaurant
-      const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      try {
-        await this.subscriptionService.create({
+      await this.attachNearestActiveMarketIfPresent(restaurant);
+
+      const subscription =
+        await this.subscriptionService.provisionDefaultForRestaurant({
           restaurantId: restaurant.id,
-          planTier: "trial",
-          trialEndsAt,
         });
-        this.logger.info("Trial subscription created", {
-          restaurantId: restaurant.id,
-          trialEndsAt,
-        });
-      } catch (subError) {
-        // Non-fatal — log and continue. Admin can create subscription manually.
-        this.logger.error(
-          "Failed to auto-create subscription (non-fatal)",
-          subError as Error,
-          { restaurantId: restaurant.id },
-        );
-      }
+      this.logger.info("Tenant subscription provisioned", {
+        restaurantId: restaurant.id,
+        planTier: subscription.planTier,
+        trialEndsAt: subscription.trialEndsAt,
+      });
 
       // Clear relevant caches
       await this.invalidateListCaches();
@@ -605,6 +600,79 @@ export class RestaurantsService {
       .limit(1);
 
     return restaurant ?? null;
+  }
+
+  private async attachNearestActiveMarketIfPresent(
+    restaurant: Restaurant,
+  ): Promise<void> {
+    if (restaurant.latitude == null || restaurant.longitude == null) return;
+
+    const activeMarkets = await this.db
+      .select({
+        id: markets.id,
+        latitude: markets.latitude,
+        longitude: markets.longitude,
+        boundaryGeojson: markets.boundaryGeojson,
+      })
+      .from(markets)
+      .where(and(eq(markets.isActive, true), isNull(markets.deletedAt)))
+      .all();
+
+    const nearest = activeMarkets
+      .map((market) => {
+        const point = {
+          lat: restaurant.latitude as number,
+          lng: restaurant.longitude as number,
+        };
+        const containsPoint = pointInGeoJsonBoundary(
+          point,
+          market.boundaryGeojson,
+        );
+        return {
+          id: market.id,
+          distanceKm: containsPoint
+            ? 0
+            : distanceKm(point, {
+                lat: market.latitude,
+                lng: market.longitude,
+              }),
+        };
+      })
+      .sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
+    if (!nearest || nearest.distanceKm > AUTO_ATTACH_MARKET_RADIUS_KM) return;
+
+    const existingPrimary = await this.db
+      .select({ id: restaurantMarketMemberships.id })
+      .from(restaurantMarketMemberships)
+      .where(
+        and(
+          eq(restaurantMarketMemberships.restaurantId, restaurant.id),
+          eq(restaurantMarketMemberships.isPrimary, true),
+          isNull(restaurantMarketMemberships.leftAt),
+        ),
+      )
+      .limit(1);
+
+    try {
+      await this.db.insert(restaurantMarketMemberships).values({
+        restaurantId: restaurant.id,
+        marketId: nearest.id,
+        isPrimary: existingPrimary.length === 0,
+        joinedAt: new Date(),
+      });
+      await this.bumpMarketPublicCacheVersion();
+    } catch (error) {
+      this.logger.error(
+        "Automatic market membership attachment failed",
+        error as Error,
+        {
+          restaurantId: restaurant.id,
+          marketId: nearest.id,
+          distanceKm: nearest.distanceKm,
+        },
+      );
+    }
   }
 
   private mapServiceItem(

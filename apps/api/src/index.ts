@@ -1,11 +1,45 @@
 import { createApp } from "./app-factory";
 import type { Env } from "./types/env";
+import type {
+  MessageBatch,
+  ExecutionContext as CfExecutionContext,
+} from "@cloudflare/workers-types";
+import type { SearchSyncMessage } from "./features/discovery/services/SearchIndexSyncService";
 
 const app = createApp();
 
 // 匯出應用
 export default {
   fetch: app.fetch,
+
+  // Queue consumer: drains search-index fan-out jobs enqueued by
+  // SearchIndexSyncService.onMarketChanged / onCategoryChanged. Each message
+  // re-syncs one entity in its own invocation, well under D1's subrequest cap.
+  queue: async (
+    batch: MessageBatch<SearchSyncMessage>,
+    env: Env,
+    _ctx: CfExecutionContext,
+  ) => {
+    const { SearchIndexSyncService } =
+      await import("./features/discovery/services/SearchIndexSyncService");
+    // Construct WITHOUT a queue so consumer work stays inline and never
+    // re-enqueues (defense-in-depth; processMessage only calls bounded handlers).
+    const sync = new SearchIndexSyncService(env.DB, env.CACHE_KV);
+
+    for (const message of batch.messages) {
+      try {
+        await sync.processMessage(message.body);
+        message.ack();
+      } catch (error) {
+        console.error(
+          "[Queue] search-sync message failed, will retry:",
+          message.body,
+          error,
+        );
+        message.retry();
+      }
+    }
+  },
 
   // 計畫任務處理器 (Cron Jobs)
   scheduled: async (
@@ -105,6 +139,13 @@ export default {
           await import("./features/customer/routes");
         const result = await pruneStaleCustomerPushSubscriptions(env);
         console.log("[Cron] Customer push pruning result:", result);
+      }
+
+      if (event.cron === "0 4 * * *") {
+        console.log("[Cron] Running stored-value credit expiry...");
+        const { expireStaleCredits } = await import("./workers/credit-expiry");
+        const result = await expireStaleCredits(env);
+        console.log("[Cron] Credit expiry result:", result);
       }
 
       if (event.cron === "15 2 * * *") {

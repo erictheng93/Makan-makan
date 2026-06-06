@@ -36,12 +36,21 @@ import {
   createMarketCheckoutPaymentProvider,
   getMarketCheckoutPaymentProviderStatus,
   queryMarketCheckoutProviderSplitStatus,
+  refundCreditMarketCheckoutPayment,
   refundMarketCheckoutProviderSplitPayment,
   type MarketCheckoutProviderNextAction,
   type MarketCheckoutSplitMode,
 } from "../services/MarketCheckoutPaymentProvider";
 import { MarketCheckoutPaymentReconciliationService } from "../services/MarketCheckoutPaymentReconciliationService";
 import { MarketCheckoutPaymentWebhookService } from "../services/MarketCheckoutPaymentWebhookService";
+import {
+  MarketCheckoutVoucherService,
+  combineAppliedMarketCheckoutVouchers,
+  listAppliedMarketCheckoutVouchers,
+  totalAppliedVoucherDiscountCents,
+  type AppliedMarketCheckoutVoucher,
+} from "../services/MarketCheckoutVoucherService";
+import { fromCents } from "../../../shared/utils/money";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 
@@ -129,6 +138,8 @@ interface MarketCheckoutSession {
   childOrders: MarketCheckoutChildOrder[];
   payment?: MarketCheckoutPaymentSummary;
   subtotal: number;
+  /** Voucher(s) applied to this checkout; KV-session scoped. */
+  appliedVoucher?: AppliedMarketCheckoutVoucher;
   createdAt: string;
 }
 
@@ -173,6 +184,9 @@ interface MarketCheckoutVendorSettlement {
   vendorNetAmountCents: number;
   refundedPaymentCount: number;
   failedPaymentCount: number;
+  platformDiscountCents: number;
+  vendorDiscountCents: number;
+  settlementBaseCents: number;
 }
 
 interface MarketCheckoutSettlementSummary {
@@ -185,6 +199,10 @@ interface MarketCheckoutSettlementSummary {
     orderId: number;
     orderNumber: string;
     grossAmountCents: number;
+    originalAmountCents?: number;
+    platformDiscountCents?: number;
+    vendorDiscountCents?: number;
+    settlementBaseCents?: number;
     refundedAmountCents: number;
     platformFeeCents: number;
     netAmountCents: number;
@@ -517,6 +535,143 @@ app.post("/", async (c) => {
   );
 });
 
+const applyVoucherSchema = z.object({
+  code: z.string().min(1).max(64),
+});
+
+// Apply a 卷 (voucher) code to an unpaid market checkout. Supports platform
+// vouchers, vendor-scoped vouchers, and stacked voucher bundles.
+app.post("/:id/voucher", async (c) => {
+  const checkoutId = c.req.param("id");
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+
+  if (!session) {
+    throw notFound("Market checkout not found");
+  }
+  if (session.payment?.status === "paid") {
+    throw badRequest(
+      "This checkout is already paid",
+      "MARKET_CHECKOUT_ALREADY_PAID",
+    );
+  }
+
+  const body = await c.req.json();
+  const parsed = applyVoucherSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      {
+        success: false,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
+    );
+  }
+
+  const existingVouchers = listAppliedMarketCheckoutVouchers(
+    session.appliedVoucher,
+  );
+  const requestedCode = parsed.data.code.trim().toUpperCase();
+  if (existingVouchers.some((voucher) => voucher.code === requestedCode)) {
+    throw badRequest(
+      "This voucher is already applied",
+      "VOUCHER_ALREADY_APPLIED",
+    );
+  }
+
+  const existingDiscountByOrderId = new Map<number, number>();
+  for (const voucher of existingVouchers) {
+    for (const alloc of voucher.allocations) {
+      existingDiscountByOrderId.set(
+        alloc.orderId,
+        (existingDiscountByOrderId.get(alloc.orderId) ?? 0) +
+          alloc.discountCents,
+      );
+    }
+  }
+
+  const voucherChildOrders = session.childOrders.map((child) => ({
+    orderId: child.orderId,
+    restaurantId: child.restaurantId,
+    amountCents: Math.max(
+      0,
+      orderChildTotalCents(child) -
+        (existingDiscountByOrderId.get(child.orderId) ?? 0),
+    ),
+  }));
+  const subtotalCents = voucherChildOrders.reduce(
+    (sum, child) => sum + child.amountCents,
+    0,
+  );
+
+  const voucherService = new MarketCheckoutVoucherService(c.env);
+  const nextVoucher = await voucherService.validateAndPrice({
+    code: parsed.data.code,
+    subtotalCents,
+    childOrders: voucherChildOrders,
+  });
+  const appliedVoucher = combineAppliedMarketCheckoutVouchers([
+    ...existingVouchers,
+    nextVoucher,
+  ]);
+
+  const updatedSession: MarketCheckoutSession = { ...session, appliedVoucher };
+  await c.env.CACHE_KV.put(
+    `market_checkout:${checkoutId}`,
+    JSON.stringify(updatedSession),
+    { expirationTtl: 4 * 60 * 60 },
+  );
+  await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
+
+  return c.json({
+    success: true,
+    data: {
+      checkout: updatedSession,
+      voucher: appliedVoucher,
+      vouchers: listAppliedMarketCheckoutVouchers(appliedVoucher),
+      subtotalCents: session.subtotal,
+      discountCents: totalAppliedVoucherDiscountCents(appliedVoucher),
+      payableCents: Math.max(
+        0,
+        session.subtotal - totalAppliedVoucherDiscountCents(appliedVoucher),
+      ),
+    },
+  });
+});
+
+// Remove an applied voucher from an unpaid market checkout.
+app.delete("/:id/voucher", async (c) => {
+  const checkoutId = c.req.param("id");
+  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+  const session = stored
+    ? (JSON.parse(stored) as MarketCheckoutSession)
+    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+
+  if (!session) {
+    throw notFound("Market checkout not found");
+  }
+  if (session.payment?.status === "paid") {
+    throw badRequest(
+      "This checkout is already paid",
+      "MARKET_CHECKOUT_ALREADY_PAID",
+    );
+  }
+
+  const { appliedVoucher: _removed, ...rest } = session;
+  const updatedSession = rest as MarketCheckoutSession;
+  await c.env.CACHE_KV.put(
+    `market_checkout:${checkoutId}`,
+    JSON.stringify(updatedSession),
+    { expirationTtl: 4 * 60 * 60 },
+  );
+  await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
+
+  return c.json({ success: true, data: { checkout: updatedSession } });
+});
+
 app.post("/:id/pay", async (c) => {
   const checkoutId = c.req.param("id");
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
@@ -556,17 +711,47 @@ app.post("/:id/pay", async (c) => {
   }
 
   const requestIdempotencyKey = c.req.header("Idempotency-Key");
-  const paymentProvider = createMarketCheckoutPaymentProvider(c.env);
+  const paymentProvider = createMarketCheckoutPaymentProvider(
+    c.env,
+    parsed.data.method,
+  );
   const providerSplitMode =
-    c.env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
+    parsed.data.method === "credits"
       ? "provider_split"
-      : "child_transactions";
+      : c.env.MARKET_CHECKOUT_SPLIT_MODE === "provider_split"
+        ? "provider_split"
+        : "child_transactions";
+  // A 卷 (voucher), if applied, is funded proportionally per vendor: the amount
+  // sent to the provider for each child order is reduced by its discount share,
+  // so allocations still sum to the aggregate charge (provider contract).
+  const appliedVoucher = session.appliedVoucher;
+  const appliedVouchers = listAppliedMarketCheckoutVouchers(appliedVoucher);
+  const voucherDiscountByOrderId = new Map<number, number>(
+    appliedVoucher?.allocations.map((alloc) => [
+      alloc.orderId,
+      alloc.discountCents,
+    ]) ?? [],
+  );
+  const payableChildOrders: MarketCheckoutChildOrder[] = appliedVoucher
+    ? session.childOrders.map((child) => {
+        const originalCents = orderChildTotalCents(child);
+        const netCents = Math.max(
+          0,
+          originalCents - (voucherDiscountByOrderId.get(child.orderId) ?? 0),
+        );
+        return {
+          ...child,
+          totalAmount: fromCents(netCents),
+          totalAmountCents: netCents,
+        };
+      })
+    : session.childOrders;
   let providerResult;
   try {
     providerResult = await paymentProvider.process({
       checkoutId,
       marketSlug: session.market.slug,
-      childOrders: session.childOrders,
+      childOrders: payableChildOrders,
       existingChildPayments: session.payment?.childPayments,
       method: parsed.data.method,
       country: parsed.data.country,
@@ -620,7 +805,7 @@ app.post("/:id/pay", async (c) => {
   const paidPayments = childPayments.filter(
     (payment) => payment?.status === "paid",
   );
-  const totalAmount = session.childOrders.reduce(
+  const totalAmount = payableChildOrders.reduce(
     (sum, child) => sum + Number(child.totalAmount ?? 0),
     0,
   );
@@ -685,6 +870,22 @@ app.post("/:id/pay", async (c) => {
   );
   await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
   await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+
+  // Record voucher redemption only on verified full payment. Idempotent on
+  // replay; a failure here must not fail the payment response (audit-only).
+  if (appliedVouchers.length > 0 && updatedSession.payment?.status === "paid") {
+    try {
+      const voucherService = new MarketCheckoutVoucherService(c.env);
+      for (const voucher of appliedVouchers) {
+        await voucherService.redeem(voucher);
+      }
+    } catch (error) {
+      console.error(
+        `Voucher redemption failed for checkout ${checkoutId}:`,
+        error,
+      );
+    }
+  }
 
   return c.json(
     {
@@ -878,20 +1079,27 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
       throw badRequest("Market checkout provider payment is not refundable");
     }
 
-    const providerRefund = await refundMarketCheckoutProviderSplitPayment(
-      c.env,
-      {
-        checkoutId,
-        paymentId: parentPayment.paymentId,
-        provider: parentPayment.provider,
-        providerTransactionId: parentPayment.providerTransactionId,
-        idempotencyKey: `${parentPayment.idempotencyKey}:refund`,
-        amountCents,
-        currency: session.payment.currency,
-        reason: parsed.data.reason,
-        allocations,
-      },
-    );
+    const providerRefund =
+      parentPayment.provider === "credit_balance"
+        ? await refundCreditMarketCheckoutPayment(c.env, {
+            spendIdempotencyKey: parentPayment.idempotencyKey,
+            refundIdempotencyKey: `${parentPayment.idempotencyKey}:refund`,
+            amountCents,
+            currency: session.payment.currency,
+            checkoutId,
+            providerTransactionId: parentPayment.providerTransactionId,
+          })
+        : await refundMarketCheckoutProviderSplitPayment(c.env, {
+            checkoutId,
+            paymentId: parentPayment.paymentId,
+            provider: parentPayment.provider,
+            providerTransactionId: parentPayment.providerTransactionId,
+            idempotencyKey: `${parentPayment.idempotencyKey}:refund`,
+            amountCents,
+            currency: session.payment.currency,
+            reason: parsed.data.reason,
+            allocations,
+          });
     const now = new Date().toISOString();
     const lastRefund: MarketCheckoutProviderLastWebhook = {
       provider: providerRefund.provider,
@@ -966,6 +1174,11 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     );
     await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
     await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+    if (refundCompleted) {
+      await markMarketCheckoutVoucherRefunded(c.env, session, [
+        ...refundedOrderIds,
+      ]);
+    }
 
     return c.json({
       success: true,
@@ -1082,6 +1295,11 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   );
   await updatePersistedMarketCheckoutPayment(c.env, updatedSession);
   await upsertMarketCheckoutIndex(c.env.CACHE_KV, updatedSession);
+  await markMarketCheckoutVoucherRefunded(
+    c.env,
+    session,
+    refunds.map((refund) => refund.orderId),
+  );
 
   return c.json({
     success: true,
@@ -1630,17 +1848,28 @@ function buildMarketCheckoutSettlement(
   const platformFeeRateBps = clampPlatformFeeRateBps(
     session.market.platformFeeRateBps,
   );
+  const voucherDiscountsByOrderId = buildVoucherDiscountAttribution(session);
   const vendorAllocations = session.childOrders.map((child) => {
     const childPayment = paymentByOrderId.get(child.orderId);
-    const grossAmountCents =
-      childPayment?.status === "paid" || childPayment?.status === "refunded"
-        ? childPayment.amountCents
-        : 0;
+    const originalAmountCents = orderChildTotalCents(child);
+    const voucherDiscounts = voucherDiscountsByOrderId.get(child.orderId) ?? {
+      platformDiscountCents: 0,
+      vendorDiscountCents: 0,
+    };
+    const isSettled =
+      childPayment?.status === "paid" || childPayment?.status === "refunded";
+    const grossAmountCents = isSettled ? childPayment.amountCents : 0;
     const refundedAmountCents =
       childPayment?.status === "refunded" ? childPayment.amountCents : 0;
-    const netBeforeFeeCents = grossAmountCents - refundedAmountCents;
+    const settlementBaseCents =
+      childPayment?.status === "paid"
+        ? Math.max(
+            0,
+            originalAmountCents - voucherDiscounts.vendorDiscountCents,
+          )
+        : 0;
     const platformFeeCents = Math.round(
-      (netBeforeFeeCents * platformFeeRateBps) / 10000,
+      (settlementBaseCents * platformFeeRateBps) / 10000,
     );
 
     return {
@@ -1649,9 +1878,19 @@ function buildMarketCheckoutSettlement(
       orderId: child.orderId,
       orderNumber: child.orderNumber,
       grossAmountCents,
+      originalAmountCents,
+      platformDiscountCents:
+        childPayment?.status === "paid"
+          ? voucherDiscounts.platformDiscountCents
+          : 0,
+      vendorDiscountCents:
+        childPayment?.status === "paid"
+          ? voucherDiscounts.vendorDiscountCents
+          : 0,
+      settlementBaseCents,
       refundedAmountCents,
       platformFeeCents,
-      netAmountCents: netBeforeFeeCents - platformFeeCents,
+      netAmountCents: settlementBaseCents - platformFeeCents,
     };
   });
   const platformFeeCents = vendorAllocations.reduce(
@@ -1669,6 +1908,61 @@ function buildMarketCheckoutSettlement(
     vendorNetAmountCents,
     vendorAllocations,
   };
+}
+
+function buildVoucherDiscountAttribution(session: MarketCheckoutSession) {
+  const discountsByOrderId = new Map<
+    number,
+    { platformDiscountCents: number; vendorDiscountCents: number }
+  >();
+
+  for (const voucher of listAppliedMarketCheckoutVouchers(
+    session.appliedVoucher,
+  )) {
+    for (const alloc of voucher.allocations) {
+      const discounts = discountsByOrderId.get(alloc.orderId) ?? {
+        platformDiscountCents: 0,
+        vendorDiscountCents: 0,
+      };
+      if (voucher.fundedBy === "vendor") {
+        discounts.vendorDiscountCents += alloc.discountCents;
+      } else {
+        discounts.platformDiscountCents += alloc.discountCents;
+      }
+      discountsByOrderId.set(alloc.orderId, discounts);
+    }
+  }
+
+  return discountsByOrderId;
+}
+
+async function markMarketCheckoutVoucherRefunded(
+  env: Env,
+  session: MarketCheckoutSession,
+  orderIds: number[],
+): Promise<void> {
+  const appliedVouchers = listAppliedMarketCheckoutVouchers(
+    session.appliedVoucher,
+  );
+  if (appliedVouchers.length === 0 || orderIds.length === 0) return;
+
+  try {
+    const voucherService = new MarketCheckoutVoucherService(env);
+    for (const voucher of appliedVouchers) {
+      const voucherOrderIds = voucher.allocations
+        .map((alloc) => alloc.orderId)
+        .filter((orderId) => orderIds.includes(orderId));
+      await voucherService.markRefunded({
+        couponId: voucher.couponId,
+        orderIds: voucherOrderIds,
+      });
+    }
+  } catch (error) {
+    console.error(
+      `Voucher refund marking failed for market checkout ${session.id}:`,
+      error,
+    );
+  }
 }
 
 function buildMarketCheckoutParentPayment(input: {
@@ -1734,6 +2028,7 @@ async function persistMarketCheckoutSession(
     subtotalCents: session.subtotal,
     childOrderCount: session.childOrders.length,
     paymentSummary: serializePaymentSummary(session.payment),
+    appliedVoucher: serializeAppliedVoucher(session.appliedVoucher),
     createdAt,
     updatedAt: createdAt,
   });
@@ -1755,6 +2050,20 @@ async function persistMarketCheckoutSession(
   );
 }
 
+async function updatePersistedMarketCheckoutVoucher(
+  env: Env,
+  session: MarketCheckoutSession,
+) {
+  const db = createDatabase(env.DB);
+  await db
+    .update(marketCheckoutSessions)
+    .set({
+      appliedVoucher: serializeAppliedVoucher(session.appliedVoucher),
+      updatedAt: new Date(),
+    })
+    .where(eq(marketCheckoutSessions.id, session.id));
+}
+
 async function updatePersistedMarketCheckoutPayment(
   env: Env,
   session: MarketCheckoutSession,
@@ -1767,6 +2076,7 @@ async function updatePersistedMarketCheckoutPayment(
     .set({
       paymentStatus: session.payment.status,
       paymentSummary: serializePaymentSummary(session.payment),
+      appliedVoucher: serializeAppliedVoucher(session.appliedVoucher),
       updatedAt: new Date(),
     })
     .where(eq(marketCheckoutSessions.id, session.id));
@@ -2161,6 +2471,9 @@ async function readPersistedMarketCheckoutOpsSessions(
     payment: (row.paymentSummary ?? undefined) as
       | MarketCheckoutPaymentSummary
       | undefined,
+    appliedVoucher: (row.appliedVoucher ?? undefined) as
+      | AppliedMarketCheckoutVoucher
+      | undefined,
     subtotal: row.subtotalCents,
     createdAt: toIsoString(row.createdAt),
   }));
@@ -2267,6 +2580,9 @@ function buildMarketCheckoutVendorSettlements(
         vendorNetAmountCents: 0,
         refundedPaymentCount: 0,
         failedPaymentCount: 0,
+        platformDiscountCents: 0,
+        vendorDiscountCents: 0,
+        settlementBaseCents: 0,
         checkoutIds: new Set<string>(),
       };
 
@@ -2279,6 +2595,10 @@ function buildMarketCheckoutVendorSettlements(
         settlement.refundedAmountCents += allocation.refundedAmountCents;
         settlement.platformFeeCents += allocation.platformFeeCents;
         settlement.vendorNetAmountCents += allocation.netAmountCents;
+        settlement.platformDiscountCents +=
+          allocation.platformDiscountCents ?? 0;
+        settlement.vendorDiscountCents += allocation.vendorDiscountCents ?? 0;
+        settlement.settlementBaseCents += allocation.settlementBaseCents ?? 0;
       } else if (payment?.status === "paid" || payment?.status === "refunded") {
         settlement.paidAmountCents += payment.amountCents;
         if (payment.status === "refunded") {
@@ -2392,6 +2712,9 @@ function buildMarketCheckoutVendorSettlementCsv(
     "paid_amount_cents",
     "refunded_amount_cents",
     "net_paid_amount_cents",
+    "platform_discount_cents",
+    "vendor_discount_cents",
+    "settlement_base_cents",
     "platform_fee_cents",
     "vendor_net_amount_cents",
     "refunded_payment_count",
@@ -2406,6 +2729,9 @@ function buildMarketCheckoutVendorSettlementCsv(
     vendor.paidAmountCents,
     vendor.refundedAmountCents,
     vendor.netPaidAmountCents,
+    vendor.platformDiscountCents,
+    vendor.vendorDiscountCents,
+    vendor.settlementBaseCents,
     vendor.platformFeeCents,
     vendor.vendorNetAmountCents,
     vendor.refundedPaymentCount,
@@ -2475,18 +2801,37 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
           (childPayment) => childPayment.orderId === allocation.orderId,
         )?.paymentId ??
         session.id;
+      // Credit-funded checkouts draw down the stored-value liability (2100)
+      // instead of external payment clearing (1100).
+      const customerClearing =
+        payment.parentPayment?.provider === "credit_balance"
+          ? { code: "2100", name: "credits_liability" }
+          : { code: "1100", name: "payment_clearing" };
 
       if (netBeforeFeeCents > 0) {
         rows.push([
           ...base,
-          "1100",
-          "payment_clearing",
+          customerClearing.code,
+          customerClearing.name,
           "debit",
           netBeforeFeeCents,
           payment.currency,
           "market_checkout_settlement",
           sourceId,
           "net paid amount before platform fee",
+        ]);
+      }
+      if ((allocation.platformDiscountCents ?? 0) > 0) {
+        rows.push([
+          ...base,
+          "5000",
+          "discounts_contra_revenue",
+          "debit",
+          allocation.platformDiscountCents ?? 0,
+          payment.currency,
+          "market_checkout_settlement",
+          sourceId,
+          "platform-funded voucher discount",
         ]);
       }
       if (allocation.netAmountCents > 0) {
@@ -2529,8 +2874,8 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
         ]);
         rows.push([
           ...base,
-          "1100",
-          "payment_clearing",
+          customerClearing.code,
+          customerClearing.name,
           "credit",
           allocation.refundedAmountCents,
           payment.currency,
@@ -2591,6 +2936,9 @@ async function readPersistedMarketCheckoutSession(
     payment: (row.paymentSummary ?? undefined) as
       | MarketCheckoutPaymentSummary
       | undefined,
+    appliedVoucher: (row.appliedVoucher ?? undefined) as
+      | AppliedMarketCheckoutVoucher
+      | undefined,
     subtotal: row.subtotalCents,
     createdAt: toIsoString(row.createdAt),
   };
@@ -2614,6 +2962,13 @@ function serializePaymentSummary(
 ): Record<string, unknown> | null {
   if (!payment) return null;
   return JSON.parse(JSON.stringify(payment)) as Record<string, unknown>;
+}
+
+function serializeAppliedVoucher(
+  appliedVoucher: AppliedMarketCheckoutVoucher | undefined,
+): Record<string, unknown> | null {
+  if (!appliedVoucher) return null;
+  return JSON.parse(JSON.stringify(appliedVoucher)) as Record<string, unknown>;
 }
 
 async function readMarketCheckoutIndex(

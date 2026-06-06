@@ -370,7 +370,7 @@ describe("DiscoveryView", () => {
     });
   });
 
-  it("shows a direct booking link for service search results", async () => {
+  it("opens bookable service search results in the site booking flow", async () => {
     const store = discoveryStore({
       dishResults: [],
       serviceResults: [
@@ -398,18 +398,61 @@ describe("DiscoveryView", () => {
 
     const wrapper = mountView();
 
-    const bookingLink = wrapper.get<HTMLAnchorElement>(
+    const bookingButton = wrapper.get(
       '[data-testid="discovery-service-booking"]',
     );
-    expect(bookingLink.text()).toContain("直接預約");
+    expect(bookingButton.text()).toContain("直接預約");
+    await bookingButton.trigger("click");
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "ServiceBooking",
+      params: {
+        restaurantId: "service-restaurant-1",
+        serviceItemId: "7",
+      },
+    });
+    expect(wrapper.get('[data-testid="select-service"]').text()).toContain(
+      "查看服務",
+    );
+  });
+
+  it("shows an external booking link for service results without in-app booking", async () => {
+    const store = discoveryStore({
+      dishResults: [],
+      serviceResults: [
+        {
+          serviceItemId: 7,
+          name: "代客切水果",
+          description: "現場代切並分裝",
+          serviceType: "general",
+          priceCents: 3000,
+          priceLabel: null,
+          durationMinutes: null,
+          requiresBooking: false,
+          bookingUrl: "https://booking.example/service-7",
+          tags: ["水果"],
+          restaurantId: "service-restaurant-1",
+          restaurantName: "水果攤",
+          district: "西屯區",
+          city: "台中市",
+          isOpen: true,
+        },
+      ],
+      total: 1,
+    });
+    vi.mocked(useDiscoveryStore).mockReturnValue(store as never);
+
+    const wrapper = mountView();
+
+    const bookingLink = wrapper.get(
+      '[data-testid="discovery-service-booking-url"]',
+    );
+    expect(bookingLink.text()).toContain("開啟預約");
     expect(bookingLink.attributes("href")).toBe(
       "https://booking.example/service-7",
     );
     expect(bookingLink.attributes("target")).toBe("_blank");
-    expect(bookingLink.attributes("rel")).toContain("noopener");
-    expect(wrapper.get('[data-testid="select-service"]').text()).toContain(
-      "查看服務",
-    );
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
   it("uses the selected market name when opening a service result", async () => {

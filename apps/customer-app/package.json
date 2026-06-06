@@ -59,6 +59,6 @@
     "vite-plugin-pwa": "^0.17.0",
     "vitest": "^3.2.4",
     "vue-tsc": "^3.0.6",
-    "wrangler": "^4.85.0"
+    "wrangler": "^4.98.0"
   }
 }

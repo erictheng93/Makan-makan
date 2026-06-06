@@ -98,6 +98,7 @@ export interface MarketCheckoutResponse {
       updatedAt?: number;
     }>;
     payment?: MarketCheckoutPaymentSummary;
+    appliedVoucher?: AppliedMarketCheckoutVoucher;
     subtotal: number;
     createdAt: string;
   };
@@ -111,6 +112,26 @@ export interface MarketCheckoutResponse {
 }
 
 export type MarketCheckoutSummary = MarketCheckoutResponse["checkout"];
+
+export interface AppliedMarketCheckoutVoucher {
+  couponId: number;
+  code: string;
+  name: string;
+  discountCents: number;
+  allocations: Array<{
+    orderId: number;
+    amountCents: number;
+    discountCents: number;
+  }>;
+}
+
+export interface MarketCheckoutVoucherEnvelope {
+  checkout: MarketCheckoutSummary;
+  voucher?: AppliedMarketCheckoutVoucher;
+  subtotalCents?: number;
+  discountCents?: number;
+  payableCents?: number;
+}
 
 export interface MarketCheckoutPaymentSummary {
   status:
@@ -287,6 +308,24 @@ export const orderApi = {
     return apiClient.post<MarketCheckoutPaymentEnvelope>(
       `/market-checkouts/${checkoutId}/pay`,
       paymentData,
+    );
+  },
+
+  async applyMarketCheckoutVoucher(
+    checkoutId: string,
+    code: string,
+  ): Promise<MarketCheckoutVoucherEnvelope> {
+    return apiClient.post<MarketCheckoutVoucherEnvelope>(
+      `/market-checkouts/${checkoutId}/voucher`,
+      { code },
+    );
+  },
+
+  async removeMarketCheckoutVoucher(
+    checkoutId: string,
+  ): Promise<MarketCheckoutVoucherEnvelope> {
+    return apiClient.delete<MarketCheckoutVoucherEnvelope>(
+      `/market-checkouts/${checkoutId}/voucher`,
     );
   },
 

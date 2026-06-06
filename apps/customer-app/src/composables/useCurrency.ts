@@ -14,7 +14,7 @@ import { useAppStore } from "@/stores/app";
  * Usage:
  * ```vue
  * const { formatPrice, currencySymbol } = useCurrency()
- * // In template: {{ formatPrice(1250) }}  → "RM 12.50"
+ * // In template: {{ formatPrice(12.5) }}  → "RM 12.50"
  * ```
  */
 export function useCurrency() {
@@ -31,7 +31,7 @@ export function useCurrency() {
 
   /**
    * Format a price amount using the current restaurant's currency.
-   * Prices in the database are stored as dollar values (e.g. 320 = NT$320).
+   * Accepts major currency units, not cents (e.g. 320 = NT$320).
    */
   const formatPrice = (amount: number): string => {
     if (typeof amount !== "number" || isNaN(amount)) {

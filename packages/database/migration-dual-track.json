@@ -1,0 +1,32 @@
+{
+  "freshDir": "packages/database/migrations_fresh",
+  "legacyDir": "packages/database/migrations",
+  "reviewedThrough": {
+    "fresh": "0066_coupon_usage_refund_release_marker.sql",
+    "legacy": "0084_coupon_usage_refund_release_marker.sql"
+  },
+  "pairs": [
+    {
+      "fresh": "0064_employee_schedule_active_slot_guard.sql",
+      "legacy": "0083_employee_schedule_active_slot_guard.sql",
+      "reason": "Active employee schedule slot guard exists in both generated and Wrangler migration tracks."
+    },
+    {
+      "fresh": "0066_coupon_usage_refund_release_marker.sql",
+      "legacy": "0084_coupon_usage_refund_release_marker.sql",
+      "reason": "Coupon usage refund release marker exists in both tracks; SQL differs only where each track has different timestamp columns available."
+    }
+  ],
+  "freshOnly": [
+    {
+      "fresh": "0065_service_booking_employee_overlap_guard.sql",
+      "reason": "Fresh baseline owns the service_bookings overlap guard; the legacy migration track does not currently carry the service_bookings table migration."
+    }
+  ],
+  "legacyOnly": [
+    {
+      "legacy": "20251001_performance_indexes.sql",
+      "reason": "Legacy operational performance-index migration predates this guard and is reviewed as legacy-only."
+    }
+  ]
+}

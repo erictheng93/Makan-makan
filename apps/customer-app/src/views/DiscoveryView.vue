@@ -188,15 +188,24 @@
                 {{ service.isOpen ? "目前營業中" : "目前未營業" }}
               </p>
               <div class="flex flex-wrap justify-end gap-2">
+                <button
+                  v-if="service.requiresBooking"
+                  type="button"
+                  data-testid="discovery-service-booking"
+                  class="h-9 rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
+                  @click="onServiceBooking(service)"
+                >
+                  直接預約
+                </button>
                 <a
-                  v-if="service.bookingUrl"
+                  v-else-if="service.bookingUrl"
                   :href="service.bookingUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  data-testid="discovery-service-booking"
-                  class="h-9 rounded-lg border border-emerald-500 px-3 py-2 text-sm font-medium text-emerald-700"
+                  data-testid="discovery-service-booking-url"
+                  class="inline-flex h-9 items-center rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
                 >
-                  直接預約
+                  開啟預約
                 </a>
                 <button
                   type="button"
@@ -374,6 +383,16 @@ function onServiceSelect(service: ServiceSearchResult) {
         path: route.fullPath,
         label: discoveryReturnLabel.value,
       }),
+    },
+  });
+}
+
+function onServiceBooking(service: ServiceSearchResult) {
+  router.push({
+    name: "ServiceBooking",
+    params: {
+      restaurantId: service.restaurantId,
+      serviceItemId: String(service.serviceItemId),
     },
   });
 }

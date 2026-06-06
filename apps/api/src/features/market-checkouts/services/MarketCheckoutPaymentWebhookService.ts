@@ -3,6 +3,7 @@ import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import { PaymentAuditService } from "../../billing/services/PaymentAuditService";
 import type { MarketCheckoutSplitMode } from "./MarketCheckoutPaymentProvider";
+import { redeemCachedMarketCheckoutVoucher } from "./MarketCheckoutVoucherService";
 
 const MARKET_CHECKOUT_INDEX_KEY = "market_checkout:index";
 
@@ -187,6 +188,9 @@ export class MarketCheckoutPaymentWebhookService {
       this.updateCachedSession(row.checkout_id, paymentSummary),
       this.updateCachedIndex(row.checkout_id, status),
     ]);
+    if (status === "paid") {
+      await redeemCachedMarketCheckoutVoucher(this.env, row.checkout_id);
+    }
 
     return {
       provider,
@@ -321,7 +325,7 @@ export class MarketCheckoutPaymentWebhookService {
       ? `${parseStripeTimestamp(stripeSignature)}.${rawBody}`
       : rawBody;
     const expected = await hmacSha256Hex(secret, signedPayload);
-    if (signature !== expected) {
+    if (!timingSafeEqual(signature, expected)) {
       throw new Error("Invalid webhook signature");
     }
   }
@@ -346,10 +350,23 @@ export class MarketCheckoutPaymentWebhookService {
       secret,
       `${secret}${rawBody}${nonce}`,
     );
-    if (signature !== expected) {
+    if (!timingSafeEqual(signature, expected)) {
       throw new Error("Invalid LINE Pay webhook signature");
     }
   }
+}
+
+/**
+ * Length-checked, constant-time string comparison. A plain `!==` returns as
+ * soon as two bytes differ, leaking the expected signature byte by byte.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 function eventIdFrom(payload: MarketCheckoutWebhookPayload, headers: Headers) {

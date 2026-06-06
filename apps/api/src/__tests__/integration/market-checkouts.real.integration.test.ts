@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import {
   cashMovements,
   cashShifts,
+  coupons,
+  couponUsage,
   marketCheckoutChildOrders,
   marketCheckoutPayments,
   marketCheckoutSessions,
@@ -16,6 +18,7 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
+import { CreditService } from "../../features/credits/services/CreditService";
 
 const CSRF_HEADERS = {
   host: "test",
@@ -50,6 +53,65 @@ async function seedMarket(testApp: RealIntegrationTestApp) {
     })
     .returning();
   return market;
+}
+
+async function seedPlatformVoucher(
+  testApp: RealIntegrationTestApp,
+  code: string,
+) {
+  const [coupon] = await testApp.testDb.drizzle
+    .insert(coupons)
+    .values({
+      code,
+      name: code,
+      restaurantId: null,
+      discountType: "percentage",
+      discountValue: 10,
+      minOrderAmount: 0,
+      validFrom: "2020-01-01",
+      validTo: "2099-12-31",
+      isActive: true,
+      isVisible: true,
+      usedCount: 0,
+    })
+    .returning({ id: coupons.id });
+  return coupon.id;
+}
+
+async function seedVendorVoucher(
+  testApp: RealIntegrationTestApp,
+  code: string,
+  restaurantId: string,
+) {
+  const [coupon] = await testApp.testDb.drizzle
+    .insert(coupons)
+    .values({
+      code,
+      name: code,
+      restaurantId,
+      discountType: "fixed",
+      discountValue: 5,
+      discountValueCents: 500,
+      minOrderAmount: 0,
+      validFrom: "2020-01-01",
+      validTo: "2099-12-31",
+      isActive: true,
+      isVisible: true,
+      usedCount: 0,
+    })
+    .returning({ id: coupons.id });
+  return coupon.id;
+}
+
+async function issueCreditCard(
+  testApp: RealIntegrationTestApp,
+  balanceCents: number,
+) {
+  const card = await new CreditService(testApp.env as never).issueCard({
+    currency: "TWD",
+    initialBalanceCents: balanceCents,
+  });
+  return card.publicId;
 }
 
 describe("Market checkouts API - real integration", () => {
@@ -352,6 +414,437 @@ describe("Market checkouts API - real integration", () => {
         status: "refunded",
         refundedAmountCents: 20000,
       },
+    });
+  });
+
+  it("marks redeemed voucher usage refunded when a paid market checkout is refunded", async () => {
+    const market = await seedMarket(testApp);
+    const couponId = await seedPlatformVoucher(testApp, "REFUND10");
+    const creditCardPublicId = await issueCreditCard(testApp, 50000);
+    const vendorA = await seed.restaurant({ name: "退款雞排攤" });
+    const vendorB = await seed.restaurant({ name: "退款甜點攤" });
+    const [itemA, itemB] = await Promise.all([
+      seed.menuItem(vendorA.id, {
+        name: "退款雞排",
+        price: 120,
+        priceCents: 12000,
+      }),
+      seed.menuItem(vendorB.id, {
+        name: "退款地瓜球",
+        price: 80,
+        priceCents: 8000,
+      }),
+    ]);
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(vendorA.id),
+        marketId: market.id,
+        stallNumber: "R01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(vendorB.id),
+        marketId: market.id,
+        stallNumber: "R02",
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const createRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/market-checkouts", {
+        method: "POST",
+        headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+        body: JSON.stringify({
+          marketSlug: market.slug,
+          guestName: "Voucher Refund Guest",
+          phoneLastDigits: "456",
+          vendors: [
+            {
+              restaurantId: String(vendorA.id),
+              items: [{ menuItemId: itemA.id, quantity: 1 }],
+            },
+            {
+              restaurantId: String(vendorB.id),
+              items: [{ menuItemId: itemB.id, quantity: 1 }],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    const checkoutId = createJson.data.checkout.id as string;
+
+    const applyVoucherRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
+        {
+          method: "POST",
+          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          body: JSON.stringify({ code: "REFUND10" }),
+        },
+      ),
+    );
+    expect(applyVoucherRes.status).toBe(200);
+
+    const payRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          "content-type": "application/json",
+          "idempotency-key": `market-voucher-pay-${checkoutId}`,
+        },
+        body: JSON.stringify({
+          method: "credits",
+          providerInput: { creditCardPublicId },
+        }),
+      }),
+    );
+    expect(payRes.status).toBe(200);
+
+    const activeUsage = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, couponId))
+      .all();
+    expect(activeUsage).toHaveLength(2);
+    expect(activeUsage.every((usage) => usage.status === "active")).toBe(true);
+
+    const adminToken = await testApp.authHelper.adminToken(String(vendorA.id));
+    const refundRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}/refund`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ reason: "voucher_refund" }),
+      }),
+    );
+    expect(refundRes.status).toBe(200);
+
+    const refundedUsage = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, couponId))
+      .all();
+    expect(refundedUsage).toHaveLength(2);
+    expect(refundedUsage.every((usage) => usage.status === "refunded")).toBe(
+      true,
+    );
+  });
+
+  it("persists applied vouchers so checkout can pay discounted total after KV expiry", async () => {
+    const market = await seedMarket(testApp);
+    const couponId = await seedPlatformVoucher(testApp, "PERSIST10");
+    const creditCardPublicId = await issueCreditCard(testApp, 50000);
+    const vendorA = await seed.restaurant({ name: "持久券雞排攤" });
+    const vendorB = await seed.restaurant({ name: "持久券甜點攤" });
+    const [itemA, itemB] = await Promise.all([
+      seed.menuItem(vendorA.id, {
+        name: "持久券雞排",
+        price: 120,
+        priceCents: 12000,
+      }),
+      seed.menuItem(vendorB.id, {
+        name: "持久券地瓜球",
+        price: 80,
+        priceCents: 8000,
+      }),
+    ]);
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(vendorA.id),
+        marketId: market.id,
+        stallNumber: "V01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(vendorB.id),
+        marketId: market.id,
+        stallNumber: "V02",
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const createRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/market-checkouts", {
+        method: "POST",
+        headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+        body: JSON.stringify({
+          marketSlug: market.slug,
+          guestName: "Persisted Voucher Guest",
+          phoneLastDigits: "654",
+          vendors: [
+            {
+              restaurantId: String(vendorA.id),
+              items: [{ menuItemId: itemA.id, quantity: 1 }],
+            },
+            {
+              restaurantId: String(vendorB.id),
+              items: [{ menuItemId: itemB.id, quantity: 1 }],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    const checkoutId = createJson.data.checkout.id as string;
+
+    const applyVoucherRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
+        {
+          method: "POST",
+          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          body: JSON.stringify({ code: "PERSIST10" }),
+        },
+      ),
+    );
+    expect(applyVoucherRes.status).toBe(200);
+    const applyVoucherJson: any = await applyVoucherRes.json();
+    expect(applyVoucherJson.data.payableCents).toBe(18000);
+
+    await testApp.env.CACHE_KV.delete(`market_checkout:${checkoutId}`);
+
+    const publicRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}`),
+    );
+    expect(publicRes.status).toBe(200);
+    const publicJson: any = await publicRes.json();
+    expect(publicJson.data.checkout.appliedVoucher).toMatchObject({
+      couponId,
+      code: "PERSIST10",
+      discountCents: 2000,
+    });
+
+    const payRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          "content-type": "application/json",
+          "idempotency-key": `market-voucher-persist-pay-${checkoutId}`,
+        },
+        body: JSON.stringify({
+          method: "credits",
+          providerInput: { creditCardPublicId },
+        }),
+      }),
+    );
+    expect(payRes.status).toBe(200);
+    const payJson: any = await payRes.json();
+    expect(payJson.data.payment).toMatchObject({
+      status: "paid",
+      totalAmountCents: 18000,
+      paidAmountCents: 18000,
+    });
+
+    const usage = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, couponId))
+      .all();
+    expect(usage).toHaveLength(2);
+    expect(usage.every((row) => row.status === "active")).toBe(true);
+    expect(usage.reduce((sum, row) => sum + row.discountAmountCents!, 0)).toBe(
+      2000,
+    );
+  });
+
+  it("stacks platform and vendor vouchers before credit checkout payment", async () => {
+    const market = await seedMarket(testApp);
+    const creditCardPublicId = await issueCreditCard(testApp, 50000);
+    const vendorA = await seed.restaurant({ name: "疊券雞排攤" });
+    const vendorB = await seed.restaurant({ name: "疊券甜點攤" });
+    const [platformCouponId, vendorCouponId] = await Promise.all([
+      seedPlatformVoucher(testApp, "STACK10"),
+      seedVendorVoucher(testApp, "SHOP500", String(vendorA.id)),
+    ]);
+    const [itemA, itemB] = await Promise.all([
+      seed.menuItem(vendorA.id, {
+        name: "疊券雞排",
+        price: 120,
+        priceCents: 12000,
+      }),
+      seed.menuItem(vendorB.id, {
+        name: "疊券地瓜球",
+        price: 80,
+        priceCents: 8000,
+      }),
+    ]);
+
+    await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values([
+      {
+        restaurantId: String(vendorA.id),
+        marketId: market.id,
+        stallNumber: "S01",
+        joinedAt: new Date(),
+      },
+      {
+        restaurantId: String(vendorB.id),
+        marketId: market.id,
+        stallNumber: "S02",
+        joinedAt: new Date(),
+      },
+    ]);
+
+    const createRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/market-checkouts", {
+        method: "POST",
+        headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+        body: JSON.stringify({
+          marketSlug: market.slug,
+          guestName: "Stacked Voucher Guest",
+          phoneLastDigits: "321",
+          vendors: [
+            {
+              restaurantId: String(vendorA.id),
+              items: [{ menuItemId: itemA.id, quantity: 1 }],
+            },
+            {
+              restaurantId: String(vendorB.id),
+              items: [{ menuItemId: itemB.id, quantity: 1 }],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const createJson: any = await createRes.json();
+    const checkoutId = createJson.data.checkout.id as string;
+
+    const platformApplyRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
+        {
+          method: "POST",
+          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          body: JSON.stringify({ code: "STACK10" }),
+        },
+      ),
+    );
+    expect(platformApplyRes.status).toBe(200);
+    const platformApplyJson: any = await platformApplyRes.json();
+    expect(platformApplyJson.data.payableCents).toBe(18000);
+
+    const vendorApplyRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
+        {
+          method: "POST",
+          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          body: JSON.stringify({ code: "SHOP500" }),
+        },
+      ),
+    );
+    expect(vendorApplyRes.status).toBe(200);
+    const vendorApplyJson: any = await vendorApplyRes.json();
+    expect(vendorApplyJson.data).toMatchObject({
+      discountCents: 2500,
+      payableCents: 17500,
+    });
+    expect(vendorApplyJson.data.vouchers).toHaveLength(2);
+    expect(vendorApplyJson.data.checkout.appliedVoucher).toMatchObject({
+      discountCents: 2500,
+      vouchers: [
+        { couponId: platformCouponId, code: "STACK10" },
+        { couponId: vendorCouponId, code: "SHOP500" },
+      ],
+    });
+
+    const payRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
+        method: "POST",
+        headers: {
+          ...CSRF_HEADERS,
+          "content-type": "application/json",
+          "idempotency-key": `market-voucher-stack-pay-${checkoutId}`,
+        },
+        body: JSON.stringify({
+          method: "credits",
+          providerInput: { creditCardPublicId },
+        }),
+      }),
+    );
+    expect(payRes.status).toBe(200);
+    const payJson: any = await payRes.json();
+    expect(payJson.data.payment).toMatchObject({
+      status: "paid",
+      totalAmountCents: 17500,
+      paidAmountCents: 17500,
+      settlement: {
+        platformFeeRateBps: 350,
+        platformFeeCents: 683,
+        vendorNetAmountCents: 18817,
+        vendorAllocations: [
+          expect.objectContaining({
+            restaurantId: String(vendorA.id),
+            grossAmountCents: 10300,
+            originalAmountCents: 12000,
+            platformDiscountCents: 1200,
+            vendorDiscountCents: 500,
+            settlementBaseCents: 11500,
+            platformFeeCents: 403,
+            netAmountCents: 11097,
+          }),
+          expect.objectContaining({
+            restaurantId: String(vendorB.id),
+            grossAmountCents: 7200,
+            originalAmountCents: 8000,
+            platformDiscountCents: 800,
+            vendorDiscountCents: 0,
+            settlementBaseCents: 8000,
+            platformFeeCents: 280,
+            netAmountCents: 7720,
+          }),
+        ],
+      },
+    });
+
+    const adminToken = await testApp.authHelper.adminToken(String(vendorA.id));
+    const accountingRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/market-checkouts/admin/accounting/export?paymentStatus=paid`,
+        {
+          headers: { authorization: `Bearer ${adminToken}` },
+        },
+      ),
+    );
+    expect(accountingRes.status).toBe(200);
+    const accountingCsv = await accountingRes.text();
+    expect(accountingCsv).toContain("platform-funded voucher discount");
+    expect(accountingCsv).toContain(
+      ",5000,discounts_contra_revenue,debit,1200,",
+    );
+    expect(accountingCsv).toContain(
+      ",5000,discounts_contra_revenue,debit,800,",
+    );
+    expect(accountingCsv).toContain(",2200,vendor_payable,credit,11097,");
+    expect(accountingCsv).toContain(",2200,vendor_payable,credit,7720,");
+
+    const platformUsage = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, platformCouponId))
+      .all();
+    const vendorUsage = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, vendorCouponId))
+      .all();
+    expect(platformUsage).toHaveLength(2);
+    expect(vendorUsage).toHaveLength(1);
+    expect(
+      platformUsage.reduce((sum, row) => sum + row.discountAmountCents!, 0),
+    ).toBe(2000);
+    expect(vendorUsage[0]).toMatchObject({
+      discountAmountCents: 500,
     });
   });
 

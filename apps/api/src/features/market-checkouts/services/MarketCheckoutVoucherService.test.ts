@@ -1,0 +1,315 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  MarketCheckoutVoucherService,
+  combineAppliedMarketCheckoutVouchers,
+  listAppliedMarketCheckoutVouchers,
+  redeemCachedMarketCheckoutVoucher,
+} from "./MarketCheckoutVoucherService";
+
+describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
+  it("computes a percentage discount", () => {
+    expect(
+      MarketCheckoutVoucherService.computeDiscountCents(
+        {
+          discountType: "percentage",
+          discountValue: 10,
+          discountValueCents: null,
+          maxDiscountAmountCents: null,
+        },
+        24000,
+      ),
+    ).toBe(2400);
+  });
+
+  it("caps a percentage discount at the max discount amount", () => {
+    expect(
+      MarketCheckoutVoucherService.computeDiscountCents(
+        {
+          discountType: "percentage",
+          discountValue: 50,
+          discountValueCents: null,
+          maxDiscountAmountCents: 5000,
+        },
+        24000,
+      ),
+    ).toBe(5000);
+  });
+
+  it("applies a fixed discount in cents", () => {
+    expect(
+      MarketCheckoutVoucherService.computeDiscountCents(
+        {
+          discountType: "fixed",
+          discountValue: 30,
+          discountValueCents: 3000,
+          maxDiscountAmountCents: null,
+        },
+        24000,
+      ),
+    ).toBe(3000);
+  });
+
+  it("clamps a discount larger than the subtotal", () => {
+    expect(
+      MarketCheckoutVoucherService.computeDiscountCents(
+        {
+          discountType: "fixed",
+          discountValue: 300,
+          discountValueCents: 30000,
+          maxDiscountAmountCents: null,
+        },
+        24000,
+      ),
+    ).toBe(24000);
+  });
+
+  it("returns zero for a non-positive subtotal", () => {
+    expect(
+      MarketCheckoutVoucherService.computeDiscountCents(
+        {
+          discountType: "percentage",
+          discountValue: 10,
+          discountValueCents: null,
+          maxDiscountAmountCents: null,
+        },
+        0,
+      ),
+    ).toBe(0);
+  });
+});
+
+describe("MarketCheckoutVoucherService.splitDiscount", () => {
+  it("splits proportionally by child amount", () => {
+    const allocations = MarketCheckoutVoucherService.splitDiscount(2400, [
+      { orderId: 1, amountCents: 16000 },
+      { orderId: 2, amountCents: 8000 },
+    ]);
+    expect(allocations).toEqual([
+      { orderId: 1, amountCents: 16000, discountCents: 1600 },
+      { orderId: 2, amountCents: 8000, discountCents: 800 },
+    ]);
+  });
+
+  it("gives the rounding remainder to the largest child", () => {
+    // 1000 split over 3/3/4 -> floor 300/300/400 = 1000 (exact); use amounts
+    // that force a remainder: 100 over 333/333/334 of 1000.
+    const allocations = MarketCheckoutVoucherService.splitDiscount(100, [
+      { orderId: 1, amountCents: 333 },
+      { orderId: 2, amountCents: 333 },
+      { orderId: 3, amountCents: 334 },
+    ]);
+    const total = allocations.reduce((sum, a) => sum + a.discountCents, 0);
+    expect(total).toBe(100);
+    // largest child (order 3) absorbs the remainder
+    const largest = allocations.find((a) => a.orderId === 3)!;
+    expect(largest.discountCents).toBeGreaterThanOrEqual(34);
+  });
+
+  it("always sums to the full discount", () => {
+    const allocations = MarketCheckoutVoucherService.splitDiscount(777, [
+      { orderId: 1, amountCents: 1234 },
+      { orderId: 2, amountCents: 5678 },
+      { orderId: 3, amountCents: 9012 },
+    ]);
+    const total = allocations.reduce((sum, a) => sum + a.discountCents, 0);
+    expect(total).toBe(777);
+  });
+
+  it("assigns no discount when the subtotal is zero", () => {
+    const allocations = MarketCheckoutVoucherService.splitDiscount(500, [
+      { orderId: 1, amountCents: 0 },
+      { orderId: 2, amountCents: 0 },
+    ]);
+    expect(allocations.every((a) => a.discountCents === 0)).toBe(true);
+  });
+});
+
+describe("market checkout stacked voucher helpers", () => {
+  const platformVoucher = {
+    couponId: 1,
+    code: "PLATFORM10",
+    name: "Platform 10",
+    fundedBy: "platform" as const,
+    discountCents: 1000,
+    allocations: [
+      { orderId: 1, amountCents: 6000, discountCents: 600 },
+      { orderId: 2, amountCents: 4000, discountCents: 400 },
+    ],
+  };
+  const vendorVoucher = {
+    couponId: 2,
+    code: "SHOP50",
+    name: "Shop 50",
+    fundedBy: "vendor" as const,
+    discountCents: 500,
+    allocations: [{ orderId: 2, amountCents: 3600, discountCents: 500 }],
+  };
+
+  it("combines multiple vouchers into aggregate allocations", () => {
+    const bundle = combineAppliedMarketCheckoutVouchers([
+      platformVoucher,
+      vendorVoucher,
+    ]);
+
+    expect(bundle).toMatchObject({
+      discountCents: 1500,
+      vouchers: [platformVoucher, vendorVoucher],
+      allocations: [
+        { orderId: 1, amountCents: 6000, discountCents: 600 },
+        { orderId: 2, amountCents: 4000, discountCents: 900 },
+      ],
+    });
+  });
+
+  it("normalizes legacy single vouchers and stacked voucher bundles", () => {
+    expect(listAppliedMarketCheckoutVouchers(platformVoucher)).toEqual([
+      platformVoucher,
+    ]);
+
+    const bundle = combineAppliedMarketCheckoutVouchers([
+      platformVoucher,
+      vendorVoucher,
+    ]);
+    expect(listAppliedMarketCheckoutVouchers(bundle)).toEqual([
+      platformVoucher,
+      vendorVoucher,
+    ]);
+  });
+});
+
+describe("redeemCachedMarketCheckoutVoucher", () => {
+  it("redeems a persisted voucher when the cached checkout session has expired", async () => {
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockResolvedValueOnce();
+    const appliedVoucher = {
+      couponId: 42,
+      code: "ASYNC10",
+      name: "ASYNC10",
+      discountCents: 2400,
+      allocations: [
+        { orderId: 1001, amountCents: 16000, discountCents: 1600 },
+        { orderId: 1002, amountCents: 8000, discountCents: 800 },
+      ],
+    };
+    const env = {
+      CACHE_KV: {
+        get: vi.fn(async () => null),
+      },
+      DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            first: vi.fn(async () => ({
+              applied_voucher: JSON.stringify(appliedVoucher),
+            })),
+          })),
+        })),
+      },
+    };
+
+    await redeemCachedMarketCheckoutVoucher(env as never, "checkout-1");
+
+    expect(env.DB.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("SELECT applied_voucher"),
+    );
+    expect(redeemSpy).toHaveBeenCalledWith({
+      ...appliedVoucher,
+      fundedBy: "platform",
+      restaurantId: undefined,
+    });
+    redeemSpy.mockRestore();
+  });
+});
+
+describe("MarketCheckoutVoucherService.redeem", () => {
+  it("does not increment used_count when a concurrent duplicate insert loses the race", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const insertRun = vi.fn(async () => {
+        throw new Error("UNIQUE constraint failed: coupon_usage.coupon_id");
+      });
+      const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+      const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+      await service.redeem(appliedVoucherForRedeemRace());
+
+      expect(insertRun).toHaveBeenCalledTimes(2);
+      expect(couponUpdateRun).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("does not increment used_count when only a non-claim usage row wins the race", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const insertRun = vi
+        .fn()
+        .mockRejectedValueOnce(
+          new Error("UNIQUE constraint failed: coupon_usage.coupon_id"),
+        )
+        .mockResolvedValueOnce(undefined);
+      const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+      const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+      await service.redeem(appliedVoucherForRedeemRace());
+
+      expect(insertRun).toHaveBeenCalledTimes(2);
+      expect(couponUpdateRun).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+});
+
+function makeRedeemUnitService(
+  insertRun: ReturnType<typeof vi.fn>,
+  couponUpdateRun: ReturnType<typeof vi.fn>,
+) {
+  const service = Object.create(MarketCheckoutVoucherService.prototype) as {
+    db: {
+      select: ReturnType<typeof vi.fn>;
+      insert: ReturnType<typeof vi.fn>;
+    };
+    d1: {
+      prepare: ReturnType<typeof vi.fn>;
+    };
+    redeem: MarketCheckoutVoucherService["redeem"];
+  };
+  service.db = {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          all: vi.fn(async () => []),
+        })),
+      })),
+    })),
+    insert: vi.fn(() => ({
+      values: vi.fn(() => ({
+        run: insertRun,
+      })),
+    })),
+  };
+  service.d1 = {
+    prepare: vi.fn(() => ({
+      bind: vi.fn(() => ({
+        run: couponUpdateRun,
+      })),
+    })),
+  };
+  return service;
+}
+
+function appliedVoucherForRedeemRace() {
+  return {
+    couponId: 42,
+    code: "ASYNC10",
+    name: "ASYNC10",
+    fundedBy: "platform" as const,
+    discountCents: 2400,
+    allocations: [
+      { orderId: 1001, amountCents: 16000, discountCents: 1600 },
+      { orderId: 1002, amountCents: 8000, discountCents: 800 },
+    ],
+  };
+}

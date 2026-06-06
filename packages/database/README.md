@@ -198,12 +198,21 @@ pnpm db:migrate:local     # Local SQLite
 pnpm db:migrate:staging   # Staging D1
 pnpm db:migrate:prod      # Production D1
 
+# Verify fresh/legacy migration tracks stay reviewed
+pnpm check:migration-dual-track
+
 # Database studio
 pnpm db:studio
 
 # Seed data
 pnpm db:seed
 ```
+
+`migrations_fresh/` is the generated fresh baseline used by real-D1 tests, while
+`migrations/` is the Wrangler deployment track. When adding a migration after
+the reviewed checkpoint, update
+`packages/database/migration-dual-track.json` with a pair or a documented
+single-track reason; CI runs `pnpm check:migration-dual-track`.
 
 ## Environment Setup
 
