@@ -576,7 +576,8 @@
       "served": "Disajikan",
       "cancelled": "Dibatalkan",
       "paid": "Selesai",
-      "refunded": "Dikembalikan"
+      "refunded": "Dikembalikan",
+      "unknown": "Status tidak diketahui"
     }
   },
   "orderHistory": {

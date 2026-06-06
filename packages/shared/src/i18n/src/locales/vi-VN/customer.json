@@ -576,7 +576,8 @@
       "served": "Đã phục vụ",
       "cancelled": "Đã hủy",
       "paid": "Đã hoàn thành",
-      "refunded": "Đã hoàn tiền"
+      "refunded": "Đã hoàn tiền",
+      "unknown": "Trạng thái không xác định"
     }
   },
   "orderHistory": {

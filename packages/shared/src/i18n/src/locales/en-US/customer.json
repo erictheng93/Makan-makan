@@ -576,7 +576,8 @@
       "served": "Served",
       "cancelled": "Cancelled",
       "paid": "Completed",
-      "refunded": "Refunded"
+      "refunded": "Refunded",
+      "unknown": "Unknown"
     }
   },
   "orderHistory": {

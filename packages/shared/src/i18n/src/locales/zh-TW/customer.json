@@ -576,7 +576,8 @@
       "served": "已送達",
       "cancelled": "已取消",
       "paid": "已完成",
-      "refunded": "已退款"
+      "refunded": "已退款",
+      "unknown": "未知狀態"
     }
   },
   "orderHistory": {
