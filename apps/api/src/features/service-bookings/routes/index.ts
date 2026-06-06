@@ -21,7 +21,10 @@ import {
   SERVICE_BOOKING_STATUS,
   type ServiceBookingStatus,
 } from "@makanmakan/database";
-import { ServiceBookingService } from "../services/ServiceBookingService";
+import {
+  MAX_BATCH_SLOT_CREATION_COUNT,
+  ServiceBookingService,
+} from "../services/ServiceBookingService";
 
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
@@ -102,15 +105,30 @@ const createSlotSchema = z.object({
   blockReason: z.string().max(300).optional(),
 });
 
-const batchCreateSlotsSchema = z.object({
-  restaurantId: z.string().min(1),
-  serviceItemId: z.number().int().positive(),
-  startDate: dateSchema,
-  endDate: dateSchema,
-  timeSlots: z.array(timeSlotSchema).min(1).max(96),
-  maxCapacity: z.number().int().min(1).max(1000),
-  isAvailable: z.boolean().optional().default(true),
-});
+const batchCreateSlotsSchema = z
+  .object({
+    restaurantId: z.string().min(1),
+    serviceItemId: z.number().int().positive(),
+    startDate: dateSchema,
+    endDate: dateSchema,
+    timeSlots: z.array(timeSlotSchema).min(1).max(96),
+    maxCapacity: z.number().int().min(1).max(1000),
+    isAvailable: z.boolean().optional().default(true),
+  })
+  .superRefine((value, ctx) => {
+    const totalSlots = countBatchSlots(
+      value.startDate,
+      value.endDate,
+      value.timeSlots.length,
+    );
+    if (totalSlots != null && totalSlots > MAX_BATCH_SLOT_CREATION_COUNT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["timeSlots"],
+        message: `Cannot create more than ${MAX_BATCH_SLOT_CREATION_COUNT} slots at once`,
+      });
+    }
+  });
 
 const blockSlotSchema = z.object({
   restaurantId: z.string().min(1),
@@ -119,6 +137,22 @@ const blockSlotSchema = z.object({
   timeSlot: timeSlotSchema,
   blockReason: z.string().max(300).optional(),
 });
+
+function countBatchSlots(
+  startDate: string,
+  endDate: string,
+  timeSlotCount: number,
+): number | null {
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null;
+  }
+  if (start > end) return null;
+  const dayCount =
+    Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+  return dayCount * timeSlotCount;
+}
 
 // ── Public ─────────────────────────────────────────────
 

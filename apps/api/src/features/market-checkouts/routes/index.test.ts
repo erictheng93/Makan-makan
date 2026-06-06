@@ -19,6 +19,7 @@ const getOrder = vi.hoisted(() => vi.fn());
 const processPayment = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
+const markVoucherRefunded = vi.hoisted(() => vi.fn());
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
 const originalFetch = globalThis.fetch;
 
@@ -61,6 +62,19 @@ vi.mock("../../payments/services/PaymentService", () => ({
     return { processPayment };
   },
 }));
+
+vi.mock("../services/MarketCheckoutVoucherService", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("../services/MarketCheckoutVoucherService")
+    >();
+  return {
+    ...actual,
+    MarketCheckoutVoucherService: class {
+      markRefunded = markVoucherRefunded;
+    },
+  };
+});
 
 function createMockDb() {
   const createSelectChain = () => {
@@ -209,6 +223,8 @@ describe("market checkout routes", () => {
     processPayment.mockReset();
     enforceQuota.mockReset();
     meterEmit.mockReset();
+    markVoucherRefunded.mockReset();
+    markVoucherRefunded.mockResolvedValue(undefined);
     tokenCounter.value = 0;
     globalThis.fetch = originalFetch;
   });
@@ -1005,6 +1021,17 @@ describe("market checkout routes", () => {
             tokenExpiresAt: "2026-06-01T12:00:00.000Z",
           },
         ],
+        appliedVoucher: {
+          couponId: 42,
+          code: "MARKET10",
+          name: "Market 10",
+          fundedBy: "platform",
+          discountCents: 2000,
+          allocations: [
+            { orderId: 1001, amountCents: 12000, discountCents: 1200 },
+            { orderId: 1002, amountCents: 8000, discountCents: 800 },
+          ],
+        },
         payment: {
           status: "paid",
           method: "line_pay",
@@ -1136,6 +1163,10 @@ describe("market checkout routes", () => {
       expect.objectContaining({ transactionId: "pay-1001", amount: 120 }),
       expect.objectContaining({ transactionId: "pay-1002", amount: 80 }),
     ]);
+    expect(markVoucherRefunded).toHaveBeenCalledWith({
+      couponId: 42,
+      orderIds: [1001, 1002],
+    });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:index",
       expect.stringContaining('"paymentStatus":"refunded"'),

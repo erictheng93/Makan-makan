@@ -271,7 +271,7 @@ describe("MarketCheckoutVoucherService — redeem", () => {
     expect(await usedCountFor(couponId)).toBe(1);
   });
 
-  it("marks redemption refunded", async () => {
+  it("marks redemption refunded and releases the checkout's voucher use", async () => {
     const couponId = await seedCoupon({ code: "MARKET10", discountValue: 10 });
     await seedRestaurant();
     await seedOrder(101, 16000);
@@ -286,10 +286,13 @@ describe("MarketCheckoutVoucherService — redeem", () => {
       ],
     });
     await service.redeem(applied);
+    expect(await usedCountFor(couponId)).toBe(1);
 
+    await service.markRefunded({ couponId, orderIds: [101, 102] });
     await service.markRefunded({ couponId, orderIds: [101, 102] });
 
     const usage = await usageFor(couponId);
     expect(usage.every((u) => u.status === "refunded")).toBe(true);
+    expect(await usedCountFor(couponId)).toBe(0);
   });
 });

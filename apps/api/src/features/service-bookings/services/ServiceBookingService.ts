@@ -48,6 +48,7 @@ type ServiceBookingPaymentRequirement =
   (typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT)[keyof typeof SERVICE_BOOKING_PAYMENT_REQUIREMENT];
 
 const MAX_RECURRING_BOOKING_COUNT = 12;
+export const MAX_BATCH_SLOT_CREATION_COUNT = 1000;
 
 export interface CreateServiceBookingInput {
   restaurantId: string;
@@ -488,6 +489,14 @@ export class ServiceBookingService {
     input: BatchCreateServiceBookingSlotsInput,
   ): Promise<{ created: number; slots: ServiceBookingSlotRow[] }> {
     const dates = enumerateDates(input.startDate, input.endDate);
+    const totalSlots = dates.length * input.timeSlots.length;
+    if (totalSlots > MAX_BATCH_SLOT_CREATION_COUNT) {
+      throw badRequest(
+        `Cannot create more than ${MAX_BATCH_SLOT_CREATION_COUNT} slots at once`,
+        "SERVICE_SLOT_BATCH_TOO_LARGE",
+      );
+    }
+
     const slots: ServiceBookingSlotRow[] = [];
 
     for (const date of dates) {
@@ -520,27 +529,31 @@ export class ServiceBookingService {
       input.restaurantId,
     );
 
-    const existing = await this.db
-      .select()
-      .from(serviceBookingSlots)
-      .where(
-        and(
-          eq(serviceBookingSlots.serviceItemId, input.serviceItemId),
-          eq(serviceBookingSlots.date, input.date),
-          eq(serviceBookingSlots.timeSlot, input.timeSlot),
-        ),
+    const id = crypto.randomUUID();
+    await this.d1
+      .prepare(
+        `INSERT INTO service_booking_slots (
+            id, restaurant_id, service_item_id, date, time_slot, max_capacity,
+            current_bookings, is_available, block_reason, created_at_ms,
+            updated_at_ms
+          ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?, unixepoch('now') * 1000,
+            unixepoch('now') * 1000)
+          ON CONFLICT(service_item_id, date, time_slot) DO UPDATE SET
+            is_available = 0,
+            block_reason = excluded.block_reason,
+            updated_at_ms = unixepoch('now') * 1000`,
       )
-      .get();
+      .bind(
+        id,
+        input.restaurantId,
+        input.serviceItemId,
+        input.date,
+        input.timeSlot,
+        input.blockReason ?? "Blocked",
+      )
+      .run();
 
-    return this.createSlot({
-      restaurantId: input.restaurantId,
-      serviceItemId: input.serviceItemId,
-      date: input.date,
-      timeSlot: input.timeSlot,
-      maxCapacity: existing?.maxCapacity ?? 0,
-      isAvailable: false,
-      blockReason: input.blockReason ?? "Blocked",
-    });
+    return this.requireSlot(input.serviceItemId, input.date, input.timeSlot);
   }
 
   /** Pay the (voucher-discounted) amount with 代幣 and confirm the booking. */

@@ -43,6 +43,7 @@ const batchCreateSlots = vi.hoisted(() => vi.fn());
 const blockSlot = vi.hoisted(() => vi.fn());
 
 vi.mock("../services/ServiceBookingService", () => ({
+  MAX_BATCH_SLOT_CREATION_COUNT: 1000,
   ServiceBookingService: class {
     getById = getById;
     cancelBooking = cancelBooking;
@@ -198,6 +199,28 @@ describe("service-bookings staff route scoping", () => {
       maxCapacity: 2,
     });
     expect(res.status).toBe(403);
+    expect(batchCreateSlots).not.toHaveBeenCalled();
+  });
+
+  it("rejects batch slot creation when date count times time slots is too large", async () => {
+    auth.user = { role: 1, restaurantId: "rest-B" };
+    const timeSlots = Array.from(
+      { length: 96 },
+      (_, index) =>
+        `${String(Math.floor(index / 4)).padStart(2, "0")}:${String(
+          (index % 4) * 15,
+        ).padStart(2, "0")}`,
+    );
+    const res = await req("/slots/batch", "POST", {
+      restaurantId: "rest-B",
+      serviceItemId: 10,
+      startDate: "2026-06-01",
+      endDate: "2026-06-11",
+      timeSlots,
+      maxCapacity: 2,
+    });
+
+    expect(res.status).toBe(400);
     expect(batchCreateSlots).not.toHaveBeenCalled();
   });
 

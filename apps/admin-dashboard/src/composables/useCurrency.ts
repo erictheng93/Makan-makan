@@ -49,6 +49,7 @@ export function useCurrency() {
 
   /**
    * Format an amount using the current restaurant's currency.
+   * Accepts major currency units, not cents.
    * Replaces all local formatMoney() implementations.
    */
   const formatPrice = (amount: number): string => {

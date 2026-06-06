@@ -334,7 +334,8 @@ export class MarketCheckoutVoucherService {
     orderIds: number[];
   }): Promise<void> {
     if (input.orderIds.length === 0) return;
-    await this.db
+    const claimOrderId = Math.min(...input.orderIds);
+    const refundedRows = await this.db
       .update(couponUsage)
       .set({ status: "refunded", updatedAt: new Date() })
       .where(
@@ -344,7 +345,21 @@ export class MarketCheckoutVoucherService {
           sql`(${couponUsage.status} IS NULL OR ${couponUsage.status} = 'active')`,
         ),
       )
-      .run();
+      .returning({ orderId: couponUsage.orderId });
+
+    if (refundedRows.some((row) => row.orderId === claimOrderId)) {
+      await this.d1
+        .prepare(
+          `UPDATE coupons
+              SET used_count = CASE
+                    WHEN coalesce(used_count, 0) > 0
+                    THEN coalesce(used_count, 0) - 1 ELSE 0 END,
+                  updated_at_ms = unixepoch('now') * 1000
+            WHERE id = ?`,
+        )
+        .bind(input.couponId)
+        .run();
+    }
   }
 }
 
