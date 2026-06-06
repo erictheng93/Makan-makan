@@ -13,7 +13,11 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { coupons, couponUsage } from "@makanmakan/database";
+import {
+  coupons,
+  couponUsage,
+  marketCheckoutChildOrders,
+} from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { fromCents, toCents } from "../../../shared/utils/money";
@@ -333,21 +337,33 @@ export class MarketCheckoutVoucherService {
     couponId: number;
     orderIds: number[];
   }): Promise<void> {
-    if (input.orderIds.length === 0) return;
-    const claimOrderId = Math.min(...input.orderIds);
-    const refundedRows = await this.db
+    const orderIds = Array.from(new Set(input.orderIds));
+    if (orderIds.length === 0) return;
+
+    await this.db
       .update(couponUsage)
       .set({ status: "refunded", updatedAt: new Date() })
       .where(
         and(
           eq(couponUsage.couponId, input.couponId),
-          inArray(couponUsage.orderId, input.orderIds),
+          inArray(couponUsage.orderId, orderIds),
           sql`(${couponUsage.status} IS NULL OR ${couponUsage.status} = 'active')`,
         ),
       )
-      .returning({ orderId: couponUsage.orderId });
+      .run();
 
-    if (refundedRows.some((row) => row.orderId === claimOrderId)) {
+    const orderGroups = await this.resolveRefundOrderGroups(orderIds);
+    for (const groupOrderIds of orderGroups) {
+      const claimOrderId = await this.getFullyRefundedVoucherClaimOrderId(
+        input.couponId,
+        groupOrderIds,
+      );
+      if (
+        claimOrderId == null ||
+        !(await this.claimRefundCountRelease(input.couponId, claimOrderId))
+      ) {
+        continue;
+      }
       await this.d1
         .prepare(
           `UPDATE coupons
@@ -360,6 +376,103 @@ export class MarketCheckoutVoucherService {
         .bind(input.couponId)
         .run();
     }
+  }
+
+  private async resolveRefundOrderGroups(
+    orderIds: number[],
+  ): Promise<number[][]> {
+    const checkoutRows = await this.db
+      .select({
+        checkoutId: marketCheckoutChildOrders.checkoutId,
+        orderId: marketCheckoutChildOrders.orderId,
+      })
+      .from(marketCheckoutChildOrders)
+      .where(inArray(marketCheckoutChildOrders.orderId, orderIds))
+      .all();
+
+    const checkoutIds = Array.from(
+      new Set(checkoutRows.map((row) => row.checkoutId)),
+    );
+    const mappedOrderIds = new Set(checkoutRows.map((row) => row.orderId));
+    const groups: number[][] = [];
+
+    if (checkoutIds.length > 0) {
+      const childRows = await this.db
+        .select({
+          checkoutId: marketCheckoutChildOrders.checkoutId,
+          orderId: marketCheckoutChildOrders.orderId,
+        })
+        .from(marketCheckoutChildOrders)
+        .where(inArray(marketCheckoutChildOrders.checkoutId, checkoutIds))
+        .all();
+      const orderIdsByCheckout = new Map<string, Set<number>>();
+      for (const row of childRows) {
+        const checkoutOrderIds =
+          orderIdsByCheckout.get(row.checkoutId) ?? new Set<number>();
+        checkoutOrderIds.add(row.orderId);
+        orderIdsByCheckout.set(row.checkoutId, checkoutOrderIds);
+      }
+      for (const checkoutOrderIds of orderIdsByCheckout.values()) {
+        groups.push(Array.from(checkoutOrderIds));
+      }
+    }
+
+    const unmappedOrderIds = orderIds.filter(
+      (orderId) => !mappedOrderIds.has(orderId),
+    );
+    if (unmappedOrderIds.length > 0) {
+      groups.push(unmappedOrderIds);
+    }
+
+    return groups;
+  }
+
+  private async getFullyRefundedVoucherClaimOrderId(
+    couponId: number,
+    orderIds: number[],
+  ): Promise<number | null> {
+    if (orderIds.length === 0) return null;
+
+    const usageRows = await this.db
+      .select({ orderId: couponUsage.orderId, status: couponUsage.status })
+      .from(couponUsage)
+      .where(
+        and(
+          eq(couponUsage.couponId, couponId),
+          inArray(couponUsage.orderId, orderIds),
+          sql`(${couponUsage.status} IS NULL OR ${couponUsage.status} != 'cancelled')`,
+        ),
+      )
+      .all();
+
+    if (
+      usageRows.length === 0 ||
+      !usageRows.every((row) => row.status === "refunded")
+    ) {
+      return null;
+    }
+
+    return Math.min(...usageRows.map((row) => row.orderId));
+  }
+
+  private async claimRefundCountRelease(
+    couponId: number,
+    claimOrderId: number,
+  ): Promise<boolean> {
+    const releasedRows = await this.db
+      .update(couponUsage)
+      .set({ refundCountReleasedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(couponUsage.couponId, couponId),
+          eq(couponUsage.orderId, claimOrderId),
+          eq(couponUsage.status, "refunded"),
+          sql`${couponUsage.refundCountReleasedAt} IS NULL`,
+        ),
+      )
+      .returning({ id: couponUsage.id });
+
+    return releasedRows.length > 0;
   }
 }
 

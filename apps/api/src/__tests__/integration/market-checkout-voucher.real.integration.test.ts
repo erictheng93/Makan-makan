@@ -17,6 +17,9 @@ import {
 import {
   coupons,
   couponUsage,
+  marketCheckoutChildOrders,
+  marketCheckoutSessions,
+  markets,
   orders,
   restaurants,
 } from "@makanmakan/database";
@@ -86,6 +89,51 @@ async function seedRestaurant(id: string = TEST_RESTAURANT_ID): Promise<void> {
     district: "West",
     phone: "0900000000",
   });
+}
+
+async function seedMarketCheckout(
+  checkoutId: string,
+  childOrderIds: number[],
+): Promise<void> {
+  const now = new Date();
+  await testDb.drizzle.insert(markets).values({
+    id: "market-test",
+    slug: "market-test",
+    name: "Test Market",
+    type: "night_market",
+    city: "Test City",
+    district: "Test District",
+    address: "1 Market Rd",
+    latitude: 24.15,
+    longitude: 120.67,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await testDb.drizzle.insert(marketCheckoutSessions).values({
+    id: checkoutId,
+    marketId: "market-test",
+    marketSlug: "market-test",
+    marketName: "Test Market",
+    status: "paid",
+    paymentStatus: "paid",
+    subtotalCents: 24000,
+    childOrderCount: childOrderIds.length,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await testDb.drizzle.insert(marketCheckoutChildOrders).values(
+    childOrderIds.map((orderId) => ({
+      checkoutId,
+      restaurantId: TEST_RESTAURANT_ID,
+      restaurantName: "Test Stall",
+      orderId,
+      orderNumber: `ORDER-${orderId}`,
+      totalAmount: 0,
+      totalAmountCents: 0,
+      tokenExpiresAt: now,
+      createdAt: now,
+    })),
+  );
 }
 
 async function seedOrder(
@@ -294,5 +342,64 @@ describe("MarketCheckoutVoucherService — redeem", () => {
     const usage = await usageFor(couponId);
     expect(usage.every((u) => u.status === "refunded")).toBe(true);
     expect(await usedCountFor(couponId)).toBe(0);
+  });
+
+  it("keeps the voucher use counted until every usage row in the checkout is refunded", async () => {
+    const couponId = await seedCoupon({ code: "PARTIAL10", discountValue: 10 });
+    await seedRestaurant();
+    await seedOrder(101, 16000);
+    await seedOrder(102, 8000);
+    await seedMarketCheckout("checkout-partial", [101, 102]);
+    const service = makeService();
+    const applied = await service.validateAndPrice({
+      code: "PARTIAL10",
+      subtotalCents: 24000,
+      childOrders: [
+        { orderId: 101, amountCents: 16000 },
+        { orderId: 102, amountCents: 8000 },
+      ],
+    });
+    await service.redeem(applied);
+    expect(await usedCountFor(couponId)).toBe(1);
+    await testDb.drizzle
+      .update(coupons)
+      .set({ usedCount: 2 })
+      .where(eq(coupons.id, couponId));
+    expect(await usedCountFor(couponId)).toBe(2);
+
+    await service.markRefunded({ couponId, orderIds: [102] });
+
+    const partiallyRefundedUsage = await usageFor(couponId);
+    expect(
+      Object.fromEntries(
+        partiallyRefundedUsage.map((usage) => [usage.orderId, usage.status]),
+      ),
+    ).toEqual({
+      101: "active",
+      102: "refunded",
+    });
+    expect(
+      partiallyRefundedUsage.every(
+        (usage) => usage.refundCountReleasedAt == null,
+      ),
+    ).toBe(true);
+    expect(await usedCountFor(couponId)).toBe(2);
+
+    await service.markRefunded({ couponId, orderIds: [101] });
+    await service.markRefunded({ couponId, orderIds: [101, 102] });
+
+    const fullyRefundedUsage = await usageFor(couponId);
+    expect(
+      fullyRefundedUsage.every((usage) => usage.status === "refunded"),
+    ).toBe(true);
+    const releaseMarkersByOrderId = Object.fromEntries(
+      fullyRefundedUsage.map((usage) => [
+        usage.orderId,
+        usage.refundCountReleasedAt,
+      ]),
+    );
+    expect(releaseMarkersByOrderId[101]).toBeInstanceOf(Date);
+    expect(releaseMarkersByOrderId[102]).toBeNull();
+    expect(await usedCountFor(couponId)).toBe(1);
   });
 });

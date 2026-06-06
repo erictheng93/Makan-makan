@@ -155,6 +155,9 @@ export const couponUsage = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
+    refundCountReleasedAt: integer("refund_count_released_at_ms", {
+      mode: "timestamp_ms",
+    }),
   },
   (table) => ({
     couponIdIdx: index("idx_coupon_usage_coupon_id").on(table.couponId),
