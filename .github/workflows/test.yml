@@ -71,6 +71,9 @@ jobs:
       - name: 🚦 Production config 檢查
         run: pnpm run check:prod-config
 
+      - name: 🧭 Migration dual-track guard
+        run: pnpm run check:migration-dual-track
+
   # 單元測試
   unit-tests:
     name: 🧪 單元測試
