@@ -1,6 +1,7 @@
 import { createI18n, type AppLocaleConfig } from "@makanmakan/i18n";
 import type { Messages } from "./types";
 import zhTWMessages from "./locales/zh-TW";
+import { mergeLocaleMessages } from "./merge-locale-messages";
 
 export type Locale = "zh-TW" | "zh-CN" | "en-US" | "ja-JP" | "vi-VN" | "id-ID";
 
@@ -75,7 +76,10 @@ const runtime = createI18n<Locale, Messages>({
   supportedLocales: SUPPORTED_LOCALES,
   initialMessages: { "zh-TW": zhTWMessages },
   loadMessages: async (locale) =>
-    (await import(`./locales/${locale}.ts`)).default,
+    mergeLocaleMessages(
+      zhTWMessages,
+      (await import(`./locales/${locale}.ts`)).default,
+    ),
 });
 
 export const getCurrentLocaleConfig = runtime.getCurrentLocaleConfig;

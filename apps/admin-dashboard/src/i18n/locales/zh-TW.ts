@@ -1,7 +1,9 @@
+import { mergeLocaleMessages } from "../merge-locale-messages";
+
 /**
  * 繁體中文
  */
-const zhTW = {
+const zhTWCore = {
   // 通用詞彙
   common: {
     save: "儲存",
@@ -806,8 +808,10 @@ const zhTW = {
     creating: "建立中...",
     stats: {
       total: "總訂位數",
+      pending: "待確認",
       confirmed: "已確認",
       completed: "已完成",
+      seated: "已入座",
       noShowRate: "未到店率",
     },
     statusText: {
@@ -4661,5 +4665,289 @@ const zhTW = {
     },
   },
 };
+
+const zhTWRuntimeKeys = {
+  common: {
+    processing: "處理中...",
+  },
+  backup: {
+    dashboard: {
+      title: "備份儀表板",
+    },
+    actions: {
+      create: "建立備份",
+      refresh: "重新整理",
+      download: "下載",
+      restore: "還原",
+      details: "詳情",
+      delete: "刪除",
+    },
+    alerts: {
+      title: "備份警示",
+      acknowledge: "確認",
+      resolve: "解決",
+    },
+    status: {
+      processing: "處理中",
+    },
+    types: {
+      full: "完整備份",
+      incremental: "增量備份",
+      differential: "差異備份",
+    },
+    create: {
+      title: "建立備份",
+      basicInfo: "基本資訊",
+      name: "名稱",
+      namePlaceholder: "輸入備份名稱",
+      description: "描述",
+      descriptionPlaceholder: "輸入備份描述",
+      type: "備份類型",
+      configuration: "設定",
+      useConfiguration: "使用設定",
+      useExisting: "使用現有設定",
+      manualConfig: "手動設定",
+      selectConfig: "選擇設定",
+      selectConfigPlaceholder: "選擇備份設定",
+      advancedOptions: "進階選項",
+      tableSelection: "資料表選擇",
+      allTables: "所有資料表",
+      includeTables: "包含資料表",
+      excludeTables: "排除資料表",
+      tablesToInclude: "要包含的資料表",
+      tablesToExclude: "要排除的資料表",
+      execution: "執行",
+      forceImmediate: "立即執行",
+      forceImmediateDescription: "略過排程並立即開始備份",
+      creating: "建立中...",
+      create: "建立",
+    },
+    errors: {
+      nameRequired: "請輸入備份名稱",
+      nameTooLong: "備份名稱過長",
+    },
+    restore: {
+      title: "還原備份",
+      createdAt: "建立時間",
+      size: "大小",
+      warning: "注意",
+      warningMessage: "還原會覆蓋目前資料，請確認後再繼續。",
+      overwriteExisting: "覆蓋現有資料",
+      restoring: "還原中...",
+      confirm: "確認還原",
+      error: "還原失敗",
+    },
+    details: {
+      id: "備份 ID",
+      configuration: "設定",
+      manual: "手動",
+      recordsCount: "資料筆數",
+      storage: "儲存空間",
+      encrypted: "已加密",
+      checksum: "校驗碼",
+      tables: "資料表",
+      performance: "效能",
+    },
+    metrics: {
+      duration: "耗時",
+      compression: "壓縮率",
+      uploadSpeed: "上傳速度",
+      running: "執行中",
+      failed24h: "24 小時失敗",
+    },
+    stats: {
+      totalBackups: "備份總數",
+      successful: "成功",
+      storageUsed: "已用儲存空間",
+      estimatedCost: "預估成本",
+    },
+    recent: {
+      title: "近期備份",
+      viewAll: "查看全部",
+    },
+    empty: {
+      title: "尚無備份",
+      description: "建立第一個備份以保護餐廳資料。",
+      createFirst: "建立第一個備份",
+    },
+    health: {
+      loading: "載入健康狀態中...",
+      failuresDetected: "偵測到備份失敗",
+      backupsRunning: "備份執行中",
+      allSystemsNormal: "所有系統正常",
+    },
+    confirm: {
+      deleteTitle: "刪除備份",
+      delete: "確定要刪除此備份嗎？",
+    },
+    monitoring: {
+      title: "備份監控",
+      systemHealth: "系統健康",
+      totalRestaurants: "餐廳總數",
+      activeConfigs: "啟用設定",
+      runningBackups: "執行中備份",
+      failed24h: "24 小時失敗",
+      storageUsage: "儲存使用量",
+      performanceTrends: "效能趨勢",
+      last24h: "近 24 小時",
+      last7days: "近 7 天",
+      last30days: "近 30 天",
+      noPerformanceData: "暫無效能資料",
+      restaurantStatus: "餐廳狀態",
+      allRestaurants: "所有餐廳",
+      healthyOnly: "僅健康",
+      withIssues: "有問題",
+      lastBackup: "上次備份",
+      successRate: "成功率",
+      totalBackups: "備份總數",
+      storageUsed: "已用儲存空間",
+      viewDetails: "查看詳情",
+      criticalAlerts: "重大警示",
+      relatedBackup: "相關備份",
+      acknowledge: "確認",
+      resolve: "解決",
+      justNow: "剛剛",
+      hoursAgo: "{count} 小時前",
+      yesterday: "昨天",
+    },
+  },
+  forecast: {
+    accuracyReport: "準確率報告",
+    accuracyDescription: "比較預測值與實際用量，追蹤預測表現。",
+    actual: "實際",
+    deviation: "偏差",
+    noAccuracyData: "暫無準確率資料",
+  },
+  monitoring: {
+    performance: {
+      last15Minutes: "近 15 分鐘",
+      lastHour: "近 1 小時",
+      last24Hours: "近 24 小時",
+      custom: "自訂",
+    },
+    components: {
+      storage: "儲存",
+      websocket: "WebSocket",
+      queue: "佇列",
+    },
+    alerts: {
+      status: {
+        active: "啟用",
+        acknowledged: "已確認",
+        resolved: "已解決",
+        muted: "已靜音",
+      },
+    },
+  },
+  realtime: {
+    rooms: {
+      kitchen: "廚房",
+      admin: "管理端",
+      customer: "顧客端",
+    },
+    title: "即時連線",
+    totalConnections: "總連線數",
+    status: {
+      active: "啟用",
+      inactive: "未啟用",
+    },
+    lastUpdate: "最後更新",
+    loading: "載入即時狀態中...",
+    autoRefresh: "自動重新整理",
+  },
+  scheduling: {
+    batch: {
+      confirm: "確認批次操作",
+      cancel: "取消批次操作",
+    },
+    deleteTemplate: "刪除模板",
+  },
+  swapRequests: {
+    actions: {
+      approve: "核准",
+      reject: "拒絕",
+    },
+  },
+  cashier: {
+    paymentFailed: "付款失敗",
+  },
+  coupons: {
+    messages: {
+      deleteConfirmTitle: "刪除優惠券",
+    },
+  },
+  leaveActions: {
+    cancelReasonPrompt: "請輸入取消原因",
+    approve: "核准",
+  },
+  orders: {
+    status: {
+      refunded: "已退款",
+    },
+  },
+  schedulingAnalytics: {
+    title: "排班分析",
+    subtitle: "分析工時、出勤與排班效率",
+    refreshData: "重新整理資料",
+    exportReport: "匯出報告",
+    dataInsights: "資料洞察",
+    viewDetails: "查看詳情",
+    activeEmployees: "活躍員工",
+    totalScheduledHours: "總排班時數",
+    weeklySchedules: "本週排班",
+    currentlyOnDuty: "目前在班",
+    insightAbsenceTitle: "缺勤趨勢",
+    insightAbsenceDesc: "近期缺勤狀況需要關注。",
+    insightOvertimeTitle: "加班提醒",
+    insightOvertimeDesc: "部分員工工時接近上限。",
+    insightCancelledTitle: "取消排班",
+    insightCancelledDesc: "近期有取消排班紀錄。",
+    insightAllGoodTitle: "排班狀態良好",
+    insightAllGoodDesc: "目前未偵測到重大排班風險。",
+    viewInsightDetail: "查看洞察詳情",
+  },
+  reservation: {
+    confirmTitle: "確認訂位",
+    confirmAction: "確認",
+    cancelTitle: "取消訂位",
+    cancelAction: "取消訂位",
+  },
+  tables: {
+    confirm: {
+      regenerateAllQRTitle: "重新產生所有 QR 碼",
+      regenerateAllQRAction: "重新產生",
+    },
+  },
+  waitingList: {
+    expireTitle: "標記候位過期",
+    expireAction: "標記過期",
+    cancelTitle: "取消候位",
+    cancelAction: "取消候位",
+  },
+  settings: {
+    confirms: {
+      resetDefaultsTitle: "重置為預設值",
+      resetDefaultsAction: "重置",
+      regenerateQRTitle: "重新產生 QR 碼",
+      regenerateQRAction: "重新產生",
+    },
+  },
+  tableDetail: {
+    confirm: {
+      switchModeTitle: "切換桌台模式",
+      switchModeAction: "切換",
+      regenerateTitle: "重新產生 QR 碼",
+      regenerateAction: "重新產生",
+    },
+  },
+  unauthorized: {
+    permissions: {
+      orderProcessing: "訂單處理",
+      cashier: "收銀",
+    },
+  },
+};
+
+const zhTW = mergeLocaleMessages(zhTWCore, zhTWRuntimeKeys);
 
 export default zhTW;
