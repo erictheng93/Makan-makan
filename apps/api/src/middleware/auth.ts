@@ -49,6 +49,8 @@ interface CustomerAuthTokenPayload {
   nbf?: number;
 }
 
+const MAX_ACCESS_TOKEN_AGE_SECONDS = 72 * 60 * 60;
+
 declare module "hono" {
   interface ContextVariableMap {
     user: AuthUser;
@@ -154,8 +156,7 @@ function createAuthMiddleware(maxRole: number) {
       }
 
       const tokenAge = now - (decoded.iat || 0);
-      const maxTokenAge = 24 * 60 * 60;
-      if (tokenAge > maxTokenAge) {
+      if (tokenAge > MAX_ACCESS_TOKEN_AGE_SECONDS) {
         throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
       }
 

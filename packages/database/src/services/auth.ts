@@ -64,6 +64,10 @@ const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
   return decoded as AuthTokenPayload;
 };
 
+const ACCESS_TOKEN_TTL_HOURS = 72;
+const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_HOURS * 60 * 60 * 1000;
+const ACCESS_TOKEN_EXPIRES_IN = `${ACCESS_TOKEN_TTL_HOURS}h`;
+
 export interface SessionData {
   userId: number;
   token: string;
@@ -188,7 +192,7 @@ export class AuthService extends BaseService {
           "JWT_SECRET must be set and at least 32 characters for security",
         );
       }
-      const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小時
+      const accessTokenExpiry = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
       const tokenVersion = normalizeTokenVersion(user.tokenVersion);
 
       const accessToken = sign(
@@ -200,7 +204,7 @@ export class AuthService extends BaseService {
           tv: tokenVersion,
         },
         jwtSecret,
-        { expiresIn: "24h" },
+        { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
 
       const refreshToken = sign(
@@ -419,7 +423,7 @@ export class AuthService extends BaseService {
       }
 
       // 生成新的 access token
-      const accessTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const accessTokenExpiry = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
       const tokenVersion = normalizeTokenVersion(user.tokenVersion);
       const accessToken = sign(
         {
@@ -430,7 +434,7 @@ export class AuthService extends BaseService {
           tv: tokenVersion,
         },
         jwtSecret,
-        { expiresIn: "24h" },
+        { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
 
       // 更新 session
