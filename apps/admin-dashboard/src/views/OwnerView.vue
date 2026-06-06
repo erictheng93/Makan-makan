@@ -413,6 +413,10 @@ import { api, unwrapApiList } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { ownerService } from "@/services/ownerService";
 import {
+  resolveOwnerSystemHealth,
+  type OwnerHealthStatusPayload,
+} from "@/utils/ownerSystemHealth";
+import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   UsersIcon,
@@ -500,7 +504,9 @@ const staffListData = ref<
   }>
 >([]);
 
-const healthData = ref<{ status: string } | null>(null);
+const healthData = ref<OwnerHealthStatusPayload | { status: string } | null>(
+  null,
+);
 
 // --- Quick actions (static UI config, not data) ---
 const quickActions = [
@@ -655,28 +661,27 @@ const popularItems = computed(() => {
 
 // --- Computed: System health ---
 const systemHealth = computed(() => {
-  const apiStatus = healthData.value?.status === "ok" ? "healthy" : "warning";
-  const tableTotal = dashboardTableStatus.value.total;
-  const dbStatus =
-    tableTotal > 0 || dashboardSummary.value.todayOrders > 0
-      ? "healthy"
-      : "warning";
+  const statuses = resolveOwnerSystemHealth({
+    healthData: healthData.value,
+    tableTotal: dashboardTableStatus.value.total,
+    todayOrders: dashboardSummary.value.todayOrders,
+  });
 
   return [
     {
       name: t("owner.systemNames.api"),
       description: t("owner.systemDescriptions.api"),
-      status: apiStatus,
+      status: statuses.api,
     },
     {
       name: t("owner.systemNames.database"),
       description: t("owner.systemDescriptions.database"),
-      status: dbStatus,
+      status: statuses.database,
     },
     {
       name: t("owner.systemNames.realtime"),
       description: t("owner.systemDescriptions.realtime"),
-      status: apiStatus, // realtime service health follows API health
+      status: statuses.realtime,
     },
   ];
 });
@@ -786,8 +791,11 @@ async function fetchAllData() {
     }
 
     // Health check
-    if (healthRes.status === "fulfilled" && healthRes.value.data?.success) {
-      healthData.value = healthRes.value.data.data as typeof healthData.value;
+    if (healthRes.status === "fulfilled") {
+      const payload = healthRes.value.data;
+      healthData.value = (
+        payload?.success ? payload.data : payload
+      ) as typeof healthData.value;
     }
 
     // Check if all requests failed

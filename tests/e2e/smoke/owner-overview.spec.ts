@@ -127,7 +127,38 @@ const defaultUsers = [
   },
 ];
 
-const defaultHealth = { status: "ok" };
+const defaultHealth = {
+  overall: "healthy",
+  components: {
+    api: {
+      status: "healthy",
+      latency: 24,
+      errorRate: 0,
+      lastCheck: Date.now(),
+      issues: [],
+    },
+    database: {
+      status: "healthy",
+      latency: 4,
+      errorRate: 0,
+      lastCheck: Date.now(),
+      issues: [],
+    },
+    cache: {
+      status: "healthy",
+      lastCheck: Date.now(),
+      issues: [],
+    },
+    external: {
+      status: "healthy",
+      lastCheck: Date.now(),
+      issues: [],
+    },
+  },
+  uptime: 1000,
+  version: "2.0.0",
+  timestamp: Date.now(),
+};
 
 function successResponse(body: unknown): MockRouteResult {
   return {
