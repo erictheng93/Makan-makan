@@ -284,6 +284,20 @@ function createOrder(overrides: Record<string, unknown> = {}) {
   };
 }
 
+async function expectSilencedRejection(
+  action: () => Promise<unknown>,
+  match: Record<string, unknown>,
+) {
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
+  try {
+    await expect(action()).rejects.toMatchObject(match);
+  } finally {
+    consoleError.mockRestore();
+  }
+}
+
 describe("OrdersService workflows", () => {
   beforeEach(() => {
     createBaseOrder.mockReset();
@@ -308,6 +322,87 @@ describe("OrdersService workflows", () => {
       success: true,
       eventId: "evt-cancel",
       recipientCount: 2,
+    });
+  });
+
+  it("validates direct create order inputs before delegating to the base service", async () => {
+    const service = new OrdersService(createEnv() as never);
+    const validOrder = {
+      restaurantId: "restaurant-1",
+      orderType: "table",
+      items: [{ menuItemId: 101, quantity: 1 }],
+    };
+
+    const cases: Array<[Record<string, unknown>, string]> = [
+      [{ ...validOrder, restaurantId: "" }, "INVALID_RESTAURANT_ID"],
+      [{ ...validOrder, items: [] }, "EMPTY_ORDER_ITEMS"],
+      [
+        {
+          ...validOrder,
+          items: Array.from({ length: 101 }, () => ({
+            menuItemId: 101,
+            quantity: 1,
+          })),
+        },
+        "TOO_MANY_ORDER_ITEMS",
+      ],
+      [
+        { ...validOrder, items: [{ menuItemId: 0, quantity: 1 }] },
+        "INVALID_MENU_ITEM_ID",
+      ],
+      [
+        { ...validOrder, items: [{ menuItemId: 101, quantity: 0 }] },
+        "INVALID_ITEM_QUANTITY",
+      ],
+      [
+        { ...validOrder, items: [{ menuItemId: 101, quantity: 1000 }] },
+        "ITEM_QUANTITY_EXCEEDED",
+      ],
+      [
+        { ...validOrder, customerInfo: { phone: "abc" } },
+        "INVALID_PHONE_FORMAT",
+      ],
+      [
+        { ...validOrder, customerInfo: { email: "not-email" } },
+        "INVALID_EMAIL_FORMAT",
+      ],
+      [{ ...validOrder, notes: "x".repeat(1001) }, "NOTES_TOO_LONG"],
+      [{ ...validOrder, couponCode: "AB" }, "INVALID_COUPON_CODE_FORMAT"],
+    ];
+
+    for (const [input, code] of cases) {
+      await expectSilencedRejection(() => service.createOrder(input as never), {
+        code,
+      });
+    }
+    expect(createBaseOrder).not.toHaveBeenCalled();
+  });
+
+  it("maps waiting-list base service failures to API errors", async () => {
+    const service = new OrdersService(createEnv() as never);
+    const input = {
+      restaurantId: "restaurant-1",
+      orderType: "table",
+      waitingListId: 55,
+      items: [{ menuItemId: 101, quantity: 1 }],
+    };
+    createBaseOrder
+      .mockRejectedValueOnce(new Error("WAITING_LIST_PREORDER_EXISTS"))
+      .mockRejectedValueOnce(new Error("WAITING_LIST_TICKET_NOT_FOUND"))
+      .mockRejectedValueOnce(new Error("WAITING_LIST_TICKET_NOT_ACTIVE"))
+      .mockRejectedValueOnce(new Error("WAITING_LIST_PHONE_MISMATCH"));
+
+    await expect(service.createOrder(input as never)).rejects.toMatchObject({
+      code: "WAITING_LIST_PREORDER_EXISTS",
+    });
+    await expect(service.createOrder(input as never)).rejects.toMatchObject({
+      code: "WAITING_LIST_TICKET_NOT_FOUND",
+    });
+    await expect(service.createOrder(input as never)).rejects.toMatchObject({
+      code: "WAITING_LIST_TICKET_NOT_ACTIVE",
+    });
+    await expect(service.createOrder(input as never)).rejects.toMatchObject({
+      code: "WAITING_LIST_PHONE_MISMATCH",
     });
   });
 
@@ -443,6 +538,89 @@ describe("OrdersService workflows", () => {
     expect(updateBaseOrderStatus).not.toHaveBeenCalled();
   });
 
+  it("handles update, delete, and item-status service branches", async () => {
+    const env = createEnv();
+    const service = new OrdersService(env as never);
+
+    getBaseOrder.mockResolvedValueOnce(null);
+    await expect(
+      service.updateOrder(404, { status: "ready" } as never, 10),
+    ).resolves.toBeNull();
+
+    getBaseOrder.mockResolvedValueOnce(createOrder({ status: "confirmed" }));
+    await expectSilencedRejection(() => service.deleteOrder(42, 10), {
+      code: "ORDER_NOT_DELETABLE",
+    });
+
+    getBaseOrder.mockResolvedValueOnce(createOrder({ status: "pending" }));
+    cancelBaseOrder.mockResolvedValueOnce(createOrder({ status: "cancelled" }));
+    await expect(service.deleteOrder(42, 10)).resolves.toBe(true);
+    expect(cancelBaseOrder).toHaveBeenCalledWith(42, "Order deleted");
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
+
+    updateBaseOrderItemStatus.mockRejectedValueOnce(
+      new Error("Order item status conflict: stale version"),
+    );
+    await expect(service.updateItemStatus(501, "ready")).rejects.toMatchObject({
+      code: "ORDER_ITEM_STATUS_CONFLICT",
+    });
+  });
+
+  it("covers status history, payment status, and search fallback paths", async () => {
+    const env = createEnv();
+    const service = new OrdersService(env as never);
+
+    getBaseOrder.mockResolvedValueOnce(
+      createOrder({
+        status: "ready",
+        notes: "ready for pickup",
+        updatedAt: "2026-06-07T01:25:00.000Z",
+      }),
+    );
+    await expect(service.getOrderStatusHistory(42)).resolves.toEqual([
+      {
+        status: "ready",
+        timestamp: new Date("2026-06-07T01:25:00.000Z"),
+        notes: "ready for pickup",
+      },
+    ]);
+
+    getBaseOrder.mockResolvedValueOnce(null);
+    await expect(service.getOrderStatusHistory(404)).resolves.toEqual([]);
+
+    getBaseOrder.mockRejectedValueOnce(new Error("history backend down"));
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      await expect(service.getOrderStatusHistory(500)).resolves.toEqual([]);
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    getBaseOrder.mockResolvedValueOnce(createOrder());
+    await expect(
+      service.updatePaymentStatus(42, "paid" as never, "cash" as never),
+    ).resolves.toMatchObject({ id: 42 });
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
+
+    getBaseOrders.mockRejectedValueOnce(new Error("search backend down"));
+    const searchConsoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      await expect(
+        service.searchOrders(
+          { query: "ORD-42" },
+          { restaurantId: "restaurant-1" },
+        ),
+      ).resolves.toEqual([]);
+    } finally {
+      searchConsoleError.mockRestore();
+    }
+  });
+
   it("summarizes bulk cancellations and unsupported bulk actions", async () => {
     const service = new OrdersService(createEnv() as never);
     cancelBaseOrder
@@ -525,6 +703,53 @@ describe("OrdersService workflows", () => {
       "[]",
       { expirationTtl: 1800 },
     );
+  });
+
+  it("uses cached analytics and rejects analytics without a restaurant", async () => {
+    const cachedAnalytics = {
+      summary: {
+        totalOrders: 3,
+        totalRevenue: 900,
+        averageOrderValue: 300,
+        averagePreparationTime: 0,
+        orderCompletionRate: 1,
+        customerRetentionRate: 0,
+      },
+      byStatus: [],
+      byPaymentStatus: [],
+      byOrderType: [],
+      byTime: { hourly: [], daily: [], weekly: [], monthly: [] },
+      topItems: [],
+      customerAnalytics: {
+        newCustomers: 0,
+        returningCustomers: 0,
+        averageOrdersPerCustomer: 0,
+        customerLifetimeValue: 0,
+      },
+      performanceMetrics: {
+        averageOrderProcessingTime: 0,
+        peakHours: [],
+        busyDays: [],
+        orderAccuracy: 1,
+        cancellationRate: 0,
+      },
+    };
+    const env = createEnv({
+      cacheGet: async (key) =>
+        key === 'analytics:{"restaurantId":"restaurant-1"}'
+          ? cachedAnalytics
+          : null,
+    });
+    const service = new OrdersService(env as never);
+
+    await expect(
+      service.getOrderAnalytics({ restaurantId: "restaurant-1" }),
+    ).resolves.toBe(cachedAnalytics);
+    expect(getDailyOrderStats).not.toHaveBeenCalled();
+
+    await expectSilencedRejection(() => service.getOrderAnalytics({}), {
+      code: "RESTAURANT_ID_REQUIRED",
+    });
   });
 
   it("maps coupon validation success and converts failures to invalid previews", async () => {
