@@ -449,6 +449,43 @@ describe("OrdersService workflows", () => {
     expect(result.total).toBe(3);
   });
 
+  it("scopes customer order lists and converts complete date ranges", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrders.mockResolvedValue({
+      orders: [createOrder({ id: 5, restaurantId: "restaurant-1" })],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
+
+    await expect(
+      service.getOrders(
+        {
+          dateFrom: "2026-06-01T00:00:00.000Z",
+          dateTo: "2026-06-02T00:00:00.000Z",
+        },
+        77,
+        5,
+      ),
+    ).resolves.toMatchObject({ total: 1 });
+    expect(getBaseOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        customerId: "77",
+        dateRange: [
+          new Date("2026-06-01T00:00:00.000Z"),
+          new Date("2026-06-02T00:00:00.000Z"),
+        ],
+      }),
+      1,
+      20,
+    );
+
+    await service.getOrders({}, undefined, 5);
+    expect(getBaseOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ customerId: undefined }),
+      1,
+      20,
+    );
+  });
+
   it("enforces cached order restaurant access before returning data", async () => {
     const env = createEnv({
       cacheGet: async (key) =>
@@ -1025,6 +1062,35 @@ describe("OrdersService workflows", () => {
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
   });
 
+  it("keeps existing orders when status and payment updates are no-ops", async () => {
+    const env = createEnv();
+    const existing = createOrder({ id: 42, status: "confirmed" });
+    getBaseOrder.mockResolvedValue(existing);
+    updateBaseOrderStatus.mockResolvedValue(null);
+    const service = new OrdersService(env as never);
+
+    await expect(
+      service.updateOrder(
+        42,
+        {
+          status: "preparing",
+          paymentStatus: "paid",
+          paymentMethod: "cash",
+        } as never,
+        10,
+      ),
+    ).resolves.toBe(existing);
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith(42, {
+      status: "preparing",
+      notes: undefined,
+    });
+
+    getBaseOrder.mockResolvedValueOnce(null);
+    await expect(
+      service.updatePaymentStatus(404, "paid" as never),
+    ).resolves.toBeNull();
+  });
+
   it("covers status update null, mismatch, version conflict, and failed update branches", async () => {
     const service = new OrdersService(createEnv() as never);
 
@@ -1170,6 +1236,102 @@ describe("OrdersService workflows", () => {
     await expect(service.exportOrders({}, "csv")).resolves.toEqual(
       Buffer.from(""),
     );
+  });
+
+  it("handles broadcast failure branches without failing order workflows", async () => {
+    const service = new OrdersService(createEnv() as never);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      broadcastOrderStatusUpdate
+        .mockResolvedValueOnce({
+          success: false,
+          error: "room unavailable",
+        })
+        .mockRejectedValueOnce(new Error("realtime down"));
+      await expect(
+        (service as any).broadcastOrderStatusUpdate(
+          createOrder({ orderNumber: undefined, tableId: undefined }),
+          "confirmed",
+          "preparing",
+          0,
+        ),
+      ).resolves.toBeUndefined();
+      await expect(
+        (service as any).broadcastOrderStatusUpdate(
+          createOrder(),
+          "confirmed",
+          "preparing",
+          20,
+        ),
+      ).resolves.toBeUndefined();
+
+      broadcastOrderCancelled
+        .mockResolvedValueOnce({
+          success: false,
+          error: "cancel room unavailable",
+        })
+        .mockRejectedValueOnce(new Error("cancel down"));
+      await expect(
+        (service as any).broadcastOrderCancelled(
+          createOrder({ orderNumber: undefined }),
+          "customer request",
+          0,
+        ),
+      ).resolves.toBeUndefined();
+      await expect(
+        (service as any).broadcastOrderCancelled(
+          createOrder(),
+          "customer request",
+          20,
+        ),
+      ).resolves.toBeUndefined();
+
+      broadcastNewOrder.mockRejectedValueOnce(new Error("new order down"));
+      await expect(
+        (service as any).broadcastNewOrder(
+          createOrder({
+            orderNumber: undefined,
+            tableId: undefined,
+            customerInfo: undefined,
+            items: [
+              {
+                id: 1,
+                menuItemId: 2,
+                quantity: 1,
+                unitPrice: 50,
+                notes: undefined,
+                menuItem: undefined,
+              },
+            ],
+          }),
+        ),
+      ).resolves.toBeUndefined();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("formats receipt customization fallbacks without optional groups", async () => {
+    const service = new OrdersService(createEnv() as never);
+
+    expect((service as any).formatCustomizations(null)).toEqual([]);
+    expect(
+      (service as any).formatCustomizations({
+        options: [
+          {
+            optionName: "Ice",
+            choiceName: "Less",
+          },
+        ],
+      }),
+    ).toEqual(["Ice: Less"]);
+    expect(
+      (service as any).formatCustomizations({
+        addOns: [{ name: "Pearls", quantity: 3 }],
+      }),
+    ).toEqual(["Pearls x3"]);
   });
 
   it("rethrows non-conflict item status errors", async () => {
