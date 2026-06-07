@@ -4,6 +4,7 @@ import {
   combineAppliedMarketCheckoutVouchers,
   listAppliedMarketCheckoutVouchers,
   redeemCachedMarketCheckoutVoucher,
+  totalAppliedVoucherDiscountCents,
 } from "./MarketCheckoutVoucherService";
 
 describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
@@ -175,9 +176,71 @@ describe("market checkout stacked voucher helpers", () => {
       vendorVoucher,
     ]);
   });
+
+  it("returns no vouchers and zero discount for empty applied values", () => {
+    expect(listAppliedMarketCheckoutVouchers(null)).toEqual([]);
+    expect(listAppliedMarketCheckoutVouchers(undefined)).toEqual([]);
+    expect(combineAppliedMarketCheckoutVouchers([])).toBeUndefined();
+    expect(totalAppliedVoucherDiscountCents(undefined)).toBe(0);
+    expect(totalAppliedVoucherDiscountCents(platformVoucher)).toBe(1000);
+  });
 });
 
 describe("redeemCachedMarketCheckoutVoucher", () => {
+  it("redeems a valid cached stacked voucher bundle without querying persistence", async () => {
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockResolvedValue();
+    const cachedBundle = {
+      appliedVoucher: {
+        vouchers: [
+          {
+            couponId: 1,
+            code: "PLATFORM10",
+            name: "Platform 10",
+            discountCents: 1000,
+            allocations: [
+              { orderId: 1001, amountCents: 10000, discountCents: 1000 },
+            ],
+          },
+          {
+            couponId: 2,
+            code: "SHOP50",
+            name: "Shop 50",
+            restaurantId: "rest-1",
+            discountCents: 500,
+            allocations: [
+              { orderId: 1002, amountCents: 5000, discountCents: 500 },
+            ],
+          },
+        ],
+      },
+    };
+    const env = {
+      CACHE_KV: {
+        get: vi.fn(async () => JSON.stringify(cachedBundle)),
+      },
+      DB: {
+        prepare: vi.fn(),
+      },
+    };
+
+    await redeemCachedMarketCheckoutVoucher(env as never, "checkout-1");
+
+    expect(env.CACHE_KV.get).toHaveBeenCalledWith("market_checkout:checkout-1");
+    expect(env.DB.prepare).not.toHaveBeenCalled();
+    expect(redeemSpy).toHaveBeenCalledTimes(2);
+    expect(redeemSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ couponId: 1, fundedBy: "platform" }),
+    );
+    expect(redeemSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ couponId: 2, fundedBy: "vendor" }),
+    );
+    redeemSpy.mockRestore();
+  });
+
   it("redeems a persisted voucher when the cached checkout session has expired", async () => {
     const redeemSpy = vi
       .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
@@ -219,9 +282,232 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
     });
     redeemSpy.mockRestore();
   });
+
+  it("ignores malformed cached and persisted voucher payloads", async () => {
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockResolvedValueOnce();
+    const env = {
+      CACHE_KV: {
+        get: vi.fn(async () => "{invalid json"),
+      },
+      DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            first: vi.fn(async () => ({ applied_voucher: "{invalid json" })),
+          })),
+        })),
+      },
+    };
+
+    await redeemCachedMarketCheckoutVoucher(env as never, "checkout-1");
+
+    expect(redeemSpy).not.toHaveBeenCalled();
+    redeemSpy.mockRestore();
+  });
+
+  it("swallows async voucher redemption failures", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const redeemSpy = vi
+      .spyOn(MarketCheckoutVoucherService.prototype, "redeem")
+      .mockRejectedValueOnce(new Error("redeem failed"));
+    const env = {
+      CACHE_KV: {
+        get: vi.fn(async () =>
+          JSON.stringify({
+            appliedVoucher: {
+              couponId: 1,
+              code: "FAIL",
+              name: "Fail",
+              discountCents: 100,
+              allocations: [
+                { orderId: 1001, amountCents: 1000, discountCents: 100 },
+              ],
+            },
+          }),
+        ),
+      },
+      DB: { prepare: vi.fn() },
+    };
+
+    await redeemCachedMarketCheckoutVoucher(env as never, "checkout-1");
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Voucher redemption failed for async market checkout checkout-1:",
+      expect.any(Error),
+    );
+    redeemSpy.mockRestore();
+    consoleError.mockRestore();
+  });
+});
+
+describe("MarketCheckoutVoucherService.validateAndPrice", () => {
+  it("prices platform vouchers across all child orders", async () => {
+    const service = makeValidateUnitService({
+      id: 7,
+      code: "SAVE10",
+      name: "Save 10",
+      restaurantId: null,
+      deletedAt: null,
+      isActive: true,
+      isVisible: true,
+      validFrom: "2026-01-01",
+      validTo: "2099-12-31",
+      usageLimit: 10,
+      usedCount: 2,
+      minOrderAmountCents: 1000,
+      minOrderAmount: null,
+      discountType: "percentage",
+      discountValue: 10,
+      discountValueCents: null,
+      maxDiscountAmountCents: 500,
+      maxDiscountAmount: null,
+    });
+
+    await expect(
+      service.validateAndPrice({
+        code: " save10 ",
+        subtotalCents: 5000,
+        childOrders: [
+          { orderId: 1, restaurantId: "rest-1", amountCents: 3000 },
+          { orderId: 2, restaurantId: "rest-2", amountCents: 2000 },
+        ],
+      }),
+    ).resolves.toEqual({
+      couponId: 7,
+      code: "SAVE10",
+      name: "Save 10",
+      restaurantId: null,
+      fundedBy: "platform",
+      discountCents: 500,
+      allocations: [
+        { orderId: 1, amountCents: 3000, discountCents: 300 },
+        { orderId: 2, amountCents: 2000, discountCents: 200 },
+      ],
+    });
+  });
+
+  it("prices vendor vouchers only against matching child orders", async () => {
+    const service = makeValidateUnitService({
+      id: 8,
+      code: "SHOP50",
+      name: "Shop 50",
+      restaurantId: "rest-2",
+      deletedAt: null,
+      isActive: true,
+      isVisible: true,
+      validFrom: "2026-01-01",
+      validTo: "2099-12-31",
+      usageLimit: null,
+      usedCount: null,
+      minOrderAmountCents: null,
+      minOrderAmount: 10,
+      discountType: "fixed",
+      discountValue: 5,
+      discountValueCents: null,
+      maxDiscountAmountCents: null,
+      maxDiscountAmount: null,
+    });
+
+    await expect(
+      service.validateAndPrice({
+        code: "shop50",
+        subtotalCents: 7000,
+        childOrders: [
+          { orderId: 1, restaurantId: "rest-1", amountCents: 3000 },
+          { orderId: 2, restaurantId: "rest-2", amountCents: 4000 },
+        ],
+      }),
+    ).resolves.toMatchObject({
+      couponId: 8,
+      fundedBy: "vendor",
+      discountCents: 500,
+      allocations: [{ orderId: 2, amountCents: 4000, discountCents: 500 }],
+    });
+  });
+
+  it("rejects invalid voucher states with voucher-specific errors", async () => {
+    await expect(
+      makeValidateUnitService(null).validateAndPrice({
+        code: "",
+        subtotalCents: 1000,
+        childOrders: [{ orderId: 1, amountCents: 1000 }],
+      }),
+    ).rejects.toMatchObject({ code: "VOUCHER_CODE_REQUIRED" });
+
+    await expect(
+      makeValidateUnitService(null).validateAndPrice({
+        code: "missing",
+        subtotalCents: 1000,
+        childOrders: [{ orderId: 1, amountCents: 1000 }],
+      }),
+    ).rejects.toMatchObject({ code: "VOUCHER_NOT_FOUND" });
+
+    await expect(
+      makeValidateUnitService({
+        id: 9,
+        code: "OLD",
+        name: "Old",
+        restaurantId: null,
+        deletedAt: null,
+        isActive: true,
+        isVisible: true,
+        validFrom: "2000-01-01",
+        validTo: "2000-12-31",
+        usageLimit: null,
+        usedCount: null,
+        minOrderAmountCents: 0,
+        minOrderAmount: null,
+        discountType: "fixed",
+        discountValue: 0,
+        discountValueCents: 100,
+        maxDiscountAmountCents: null,
+        maxDiscountAmount: null,
+      }).validateAndPrice({
+        code: "old",
+        subtotalCents: 1000,
+        childOrders: [{ orderId: 1, amountCents: 1000 }],
+      }),
+    ).rejects.toMatchObject({ code: "VOUCHER_EXPIRED" });
+  });
 });
 
 describe("MarketCheckoutVoucherService.redeem", () => {
+  it("inserts missing usage rows and increments used_count for the claim row", async () => {
+    const insertRun = vi.fn(async () => undefined);
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+    await service.redeem(appliedVoucherForRedeemRace());
+
+    expect(insertRun).toHaveBeenCalledTimes(2);
+    expect(couponUpdateRun).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns without writes when redemption is fully recorded or empty", async () => {
+    const insertRun = vi.fn(async () => undefined);
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const service = makeRedeemUnitService(insertRun, couponUpdateRun, [
+      { orderId: 1001 },
+      { orderId: 1002 },
+    ]);
+
+    await service.redeem(appliedVoucherForRedeemRace());
+    await service.redeem({
+      couponId: 42,
+      code: "EMPTY",
+      name: "Empty",
+      fundedBy: "platform",
+      discountCents: 0,
+      allocations: [],
+    });
+
+    expect(insertRun).not.toHaveBeenCalled();
+    expect(couponUpdateRun).not.toHaveBeenCalled();
+  });
+
   it("does not increment used_count when a concurrent duplicate insert loses the race", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
@@ -262,9 +548,97 @@ describe("MarketCheckoutVoucherService.redeem", () => {
   });
 });
 
+describe("MarketCheckoutVoucherService.markRefunded", () => {
+  it("returns without writes when no order ids are provided", async () => {
+    const updateRun = vi.fn(async () => undefined);
+    const decrementRun = vi.fn(async () => undefined);
+    const service = makeRefundUnitService({
+      checkoutRows: [],
+      childRows: [],
+      usageRows: [],
+      releaseRows: [],
+      updateRun,
+      decrementRun,
+    });
+
+    await service.markRefunded({ couponId: 42, orderIds: [] });
+
+    expect(updateRun).not.toHaveBeenCalled();
+    expect(decrementRun).not.toHaveBeenCalled();
+  });
+
+  it("marks usage refunded and releases one used_count for fully refunded checkouts", async () => {
+    const updateRun = vi.fn(async () => undefined);
+    const decrementRun = vi.fn(async () => undefined);
+    const service = makeRefundUnitService({
+      checkoutRows: [{ checkoutId: "checkout-1", orderId: 1001 }],
+      childRows: [
+        { checkoutId: "checkout-1", orderId: 1001 },
+        { checkoutId: "checkout-1", orderId: 1002 },
+      ],
+      usageRows: [
+        { orderId: 1001, status: "refunded" },
+        { orderId: 1002, status: "refunded" },
+      ],
+      releaseRows: [{ id: 1 }],
+      updateRun,
+      decrementRun,
+    });
+
+    await service.markRefunded({
+      couponId: 42,
+      orderIds: [1001, 1001],
+    });
+
+    expect(updateRun).toHaveBeenCalledTimes(1);
+    expect(decrementRun).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not release used_count until every usage row is refunded", async () => {
+    const updateRun = vi.fn(async () => undefined);
+    const decrementRun = vi.fn(async () => undefined);
+    const service = makeRefundUnitService({
+      checkoutRows: [],
+      childRows: [],
+      usageRows: [{ orderId: 1001, status: "active" }],
+      releaseRows: [],
+      updateRun,
+      decrementRun,
+    });
+
+    await service.markRefunded({
+      couponId: 42,
+      orderIds: [1001],
+    });
+
+    expect(updateRun).toHaveBeenCalledTimes(1);
+    expect(decrementRun).not.toHaveBeenCalled();
+  });
+});
+
+function makeValidateUnitService(coupon: unknown) {
+  const service = Object.create(MarketCheckoutVoucherService.prototype) as {
+    db: {
+      select: ReturnType<typeof vi.fn>;
+    };
+    validateAndPrice: MarketCheckoutVoucherService["validateAndPrice"];
+  };
+  service.db = {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          get: vi.fn(async () => coupon),
+        })),
+      })),
+    })),
+  };
+  return service;
+}
+
 function makeRedeemUnitService(
   insertRun: ReturnType<typeof vi.fn>,
   couponUpdateRun: ReturnType<typeof vi.fn>,
+  existingRows: Array<{ orderId: number }> = [],
 ) {
   const service = Object.create(MarketCheckoutVoucherService.prototype) as {
     db: {
@@ -280,7 +654,7 @@ function makeRedeemUnitService(
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          all: vi.fn(async () => []),
+          all: vi.fn(async () => existingRows),
         })),
       })),
     })),
@@ -294,6 +668,71 @@ function makeRedeemUnitService(
     prepare: vi.fn(() => ({
       bind: vi.fn(() => ({
         run: couponUpdateRun,
+      })),
+    })),
+  };
+  return service;
+}
+
+function makeRefundUnitService(options: {
+  checkoutRows: Array<{ checkoutId: string; orderId: number }>;
+  childRows: Array<{ checkoutId: string; orderId: number }>;
+  usageRows: Array<{ orderId: number; status: string | null }>;
+  releaseRows: Array<{ id: number }>;
+  updateRun: ReturnType<typeof vi.fn>;
+  decrementRun: ReturnType<typeof vi.fn>;
+}) {
+  const selectRows = [
+    options.checkoutRows,
+    options.childRows,
+    options.usageRows,
+  ];
+  let updateCall = 0;
+  const service = Object.create(MarketCheckoutVoucherService.prototype) as {
+    db: {
+      select: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    d1: {
+      prepare: ReturnType<typeof vi.fn>;
+    };
+    markRefunded: MarketCheckoutVoucherService["markRefunded"];
+  };
+  service.db = {
+    select: vi.fn(() => {
+      const rows = selectRows.shift() ?? [];
+      return {
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            all: vi.fn(async () => rows),
+          })),
+        })),
+      };
+    }),
+    update: vi.fn(() => {
+      updateCall += 1;
+      if (updateCall === 1) {
+        return {
+          set: vi.fn(() => ({
+            where: vi.fn(() => ({
+              run: options.updateRun,
+            })),
+          })),
+        };
+      }
+      return {
+        set: vi.fn(() => ({
+          where: vi.fn(() => ({
+            returning: vi.fn(async () => options.releaseRows),
+          })),
+        })),
+      };
+    }),
+  };
+  service.d1 = {
+    prepare: vi.fn(() => ({
+      bind: vi.fn(() => ({
+        run: options.decrementRun,
       })),
     })),
   };
