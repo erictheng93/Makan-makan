@@ -282,6 +282,118 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     ).toBe(false);
   });
 
+  it("ignores signed provider events that do not map to a payment status", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_unknown",
+      type: "customer.created",
+      data: {
+        object: {
+          id: "cus_1",
+        },
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow(),
+    });
+
+    const result = await new MarketCheckoutPaymentWebhookService(env).handle(
+      "stripe",
+      rawBody,
+      new Headers({
+        "stripe-signature": await stripeSignature("market-secret", rawBody),
+      }),
+    );
+
+    expect(result).toEqual({
+      provider: "stripe",
+      eventId: "evt_unknown",
+      eventType: "customer.created",
+      duplicate: false,
+      reconciled: false,
+    });
+    const prepareCalls = vi.mocked(env.DB.prepare).mock.calls;
+    expect(
+      prepareCalls.some(([sql]) => sql.includes("payment_audit_log")),
+    ).toBe(false);
+    expect(
+      prepareCalls.some(([sql]) =>
+        sql.includes("UPDATE market_checkout_payments"),
+      ),
+    ).toBe(false);
+  });
+
+  it("requires a payment, checkout, or provider transaction identifier", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_missing_identifier",
+      type: "payment_intent.succeeded",
+    });
+    const env = createEnv({
+      paymentRow: paymentRow(),
+    });
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(env).handle(
+        "stripe",
+        rawBody,
+        new Headers({
+          "stripe-signature": await stripeSignature("market-secret", rawBody),
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "MARKET_CHECKOUT_PAYMENT_IDENTIFIER_REQUIRED",
+      status: 400,
+    });
+
+    const prepareCalls = vi.mocked(env.DB.prepare).mock.calls;
+    expect(
+      prepareCalls.some(([sql]) => sql.includes("payment_audit_log")),
+    ).toBe(true);
+    expect(
+      prepareCalls.some(([sql]) =>
+        sql.includes("UPDATE market_checkout_payments"),
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects reconciliable provider events when the payment row is missing", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_missing_payment",
+      type: "payment_intent.succeeded",
+      data: {
+        object: {
+          id: "pi_missing",
+          metadata: {
+            marketCheckoutId: "checkout-missing",
+          },
+        },
+      },
+    });
+    const env = createEnv({
+      paymentRow: null,
+    });
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(env).handle(
+        "stripe",
+        rawBody,
+        new Headers({
+          "stripe-signature": await stripeSignature("market-secret", rawBody),
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "MARKET_CHECKOUT_PAYMENT_NOT_FOUND",
+      status: 404,
+    });
+
+    expect(
+      vi
+        .mocked(env.DB.prepare)
+        .mock.calls.some(([sql]) =>
+          sql.includes("UPDATE market_checkout_payments"),
+        ),
+    ).toBe(false);
+  });
+
   it("reconciles the mock provider paid webhook fixture", async () => {
     const rawBody = JSON.stringify(
       mockMarketCheckoutProviderPaidWebhookPayload,
