@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SERVICE_BOOKING_PAYMENT_METHOD,
+  SERVICE_BOOKING_PAYMENT_REQUIREMENT,
+  SERVICE_BOOKING_PAYMENT_STATUS,
   SERVICE_BOOKING_STATUS,
+  SERVICE_BOOKING_WAITLIST_STATUS,
 } from "@makanmakan/database";
 import { ServiceBookingService } from "./ServiceBookingService";
 
@@ -76,8 +79,81 @@ describe("ServiceBookingService.blockSlot", () => {
 });
 
 describe("ServiceBookingService orchestration helpers", () => {
-  function createService() {
-    return new ServiceBookingService({ DB: {} as D1Database } as never);
+  function createD1Mock(results: Array<{ changes?: number }> = []) {
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    const d1 = {
+      prepare: vi.fn((sql: string) => ({
+        bind: vi.fn((...params: unknown[]) => ({
+          run: vi.fn(async () => {
+            calls.push({ sql, params });
+            const result = results.shift() ?? { changes: 1 };
+            return { meta: { changes: result.changes ?? 1 } };
+          }),
+        })),
+      })),
+    };
+    return { d1, calls };
+  }
+
+  function createDbMock(input: {
+    selectGet?: unknown[];
+    selectAll?: unknown[][];
+    insertReturning?: unknown[];
+    updateReturning?: unknown[];
+  }) {
+    const selectGet = [...(input.selectGet ?? [])];
+    const selectAll = [...(input.selectAll ?? [])];
+    const insertReturning = [...(input.insertReturning ?? [])];
+    const updateReturning = [...(input.updateReturning ?? [])];
+    const insertValues: unknown[] = [];
+    const updateSets: unknown[] = [];
+
+    const db = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            get: vi.fn(async () => selectGet.shift()),
+            all: vi.fn(async () => selectAll.shift() ?? []),
+          })),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn((values: unknown) => {
+          insertValues.push(values);
+          return {
+            returning: vi.fn(async () => [insertReturning.shift() ?? values]),
+          };
+        }),
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn((patch: unknown) => {
+          updateSets.push(patch);
+          return {
+            where: vi.fn(() => ({
+              returning: vi.fn(async () => [updateReturning.shift() ?? patch]),
+            })),
+          };
+        }),
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn(async () => undefined),
+      })),
+    };
+
+    return { db, insertValues, updateSets };
+  }
+
+  function createService(options?: { d1?: D1Database; db?: unknown }) {
+    const service = new ServiceBookingService({
+      DB: options?.d1 ?? ({} as D1Database),
+    } as never);
+    if (options?.db) {
+      Object.defineProperty(service, "db", { value: options.db });
+    }
+    if (options?.d1) {
+      Object.defineProperty(service, "d1", { value: options.d1 });
+    }
+    return service;
   }
 
   it("creates recurring bookings with weekly dates and recurrence metadata", async () => {
@@ -182,6 +258,335 @@ describe("ServiceBookingService orchestration helpers", () => {
         maxCapacity: 1,
       }),
     ).rejects.toThrow("Cannot create more than 1000 slots at once");
+  });
+
+  it("maps slot availability from capped booking slots", async () => {
+    const { db } = createDbMock({
+      selectAll: [
+        [
+          {
+            timeSlot: "10:00",
+            maxCapacity: 3,
+            currentBookings: 1,
+            isAvailable: 1,
+          },
+          {
+            timeSlot: "11:00",
+            maxCapacity: 2,
+            currentBookings: 2,
+            isAvailable: 1,
+          },
+          {
+            timeSlot: "12:00",
+            maxCapacity: 2,
+            currentBookings: 0,
+            isAvailable: 0,
+          },
+        ],
+      ],
+    });
+    const service = createService({ db });
+
+    await expect(
+      service.getAvailability({
+        serviceItemId: 10,
+        date: "2026-06-10",
+      }),
+    ).resolves.toEqual([
+      { timeSlot: "10:00", remaining: 2, isAvailable: true },
+      { timeSlot: "11:00", remaining: 0, isAvailable: false },
+      { timeSlot: "12:00", remaining: 2, isAvailable: false },
+    ]);
+  });
+
+  it("creates bookings with deposit terms and reminder scheduling", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const { d1, calls } = createD1Mock([{ changes: 0 }]);
+    const insertedRow = { id: "booking-1" };
+    const { db, insertValues } = createDbMock({
+      selectGet: [
+        {
+          id: 10,
+          restaurantId: "rest-1",
+          name: "Spa Session",
+          durationMinutes: 90,
+          priceCents: 5000,
+          availableHours: { start: "09:00", end: "18:00", days: [3] },
+          requiresBooking: true,
+          isActive: true,
+          deletedAt: null,
+        },
+        undefined,
+      ],
+      insertReturning: [insertedRow],
+    });
+    const service = createService({ d1: d1 as never, db });
+
+    await expect(
+      service.createBooking({
+        restaurantId: "rest-1",
+        serviceItemId: 10,
+        customerName: "Ada",
+        customerPhone: "+886 900 000 000",
+        customerEmail: "ada@example.test",
+        bookingDate: "2026-06-10",
+        bookingTime: "10:30",
+        partySize: 2,
+        paymentRequirement: SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT,
+        depositAmountCents: 1200,
+        reminderOptIn: true,
+        reminderMinutesBefore: 30,
+        specialRequests: "Window seat",
+      }),
+    ).resolves.toBe(insertedRow);
+
+    expect(calls[0]).toMatchObject({
+      params: [10, "2026-06-10", "10:30"],
+    });
+    expect(insertValues[0]).toMatchObject({
+      restaurantId: "rest-1",
+      serviceItemId: 10,
+      serviceNameSnapshot: "Spa Session",
+      priceCentsSnapshot: 5000,
+      customerName: "Ada",
+      customerEmail: "ada@example.test",
+      bookingDate: "2026-06-10",
+      bookingTime: "10:30",
+      partySize: 2,
+      status: SERVICE_BOOKING_STATUS.PENDING,
+      voucherDiscountCents: 0,
+      paymentRequirement: SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT,
+      depositRequiredCents: 1200,
+      balanceDueCents: 3800,
+      amountDueCents: 1200,
+      paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.UNPAID,
+      paymentMethod: SERVICE_BOOKING_PAYMENT_METHOD.NONE,
+      reminderOptIn: 1,
+      reminderMinutesBefore: 30,
+      specialRequests: "Window seat",
+    });
+    expect(
+      (insertValues[0] as { reminderScheduledAt: Date }).reminderScheduledAt,
+    ).toEqual(new Date("2026-06-10T02:00:00.000Z"));
+  });
+
+  it("rejects booking times outside configured service hours", async () => {
+    const { db } = createDbMock({
+      selectGet: [
+        {
+          id: 10,
+          restaurantId: "rest-1",
+          name: "Spa Session",
+          durationMinutes: 60,
+          priceCents: 1000,
+          availableHours: { start: "09:00", end: "18:00", days: [3] },
+          requiresBooking: true,
+          isActive: true,
+          deletedAt: null,
+        },
+      ],
+    });
+    const service = createService({ db });
+
+    await expect(
+      service.createBooking({
+        restaurantId: "rest-1",
+        serviceItemId: 10,
+        customerName: "Ada",
+        customerPhone: "+886900000000",
+        bookingDate: "2026-06-11",
+        bookingTime: "10:00",
+      }),
+    ).rejects.toThrow("The service is not available on this day");
+  });
+
+  it("rolls back reserved capacity when booking insertion fails", async () => {
+    const { d1, calls } = createD1Mock([{ changes: 1 }, { changes: 1 }]);
+    const db = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            get: vi.fn(async () => ({
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: 60,
+              priceCents: 1000,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            })),
+          })),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => ({
+          returning: vi.fn(async () => {
+            throw new Error("insert failed");
+          }),
+        })),
+      })),
+    };
+    const service = createService({ d1: d1 as never, db });
+
+    await expect(
+      service.createBooking({
+        restaurantId: "rest-1",
+        serviceItemId: 10,
+        customerName: "Ada",
+        customerPhone: "+886900000000",
+        bookingDate: "2026-06-10",
+        bookingTime: "10:00",
+      }),
+    ).rejects.toThrow("insert failed");
+    expect(calls).toHaveLength(2);
+    expect(calls[1].sql).toContain("current_bookings - 1");
+  });
+
+  it("creates waitlist entries with default party and waiting status", async () => {
+    const insertedRow = { id: "wait-1" };
+    const { db, insertValues } = createDbMock({
+      selectGet: [
+        {
+          id: 10,
+          restaurantId: "rest-1",
+          durationMinutes: 60,
+          availableHours: null,
+          requiresBooking: true,
+          isActive: true,
+          deletedAt: null,
+        },
+      ],
+      insertReturning: [insertedRow],
+    });
+    const service = createService({ db });
+
+    await expect(
+      service.joinWaitlist({
+        restaurantId: "rest-1",
+        serviceItemId: 10,
+        customerName: "Ada",
+        customerPhone: "+886900000000",
+        bookingDate: "2026-06-10",
+        bookingTime: "10:00",
+        notes: "Any staff is fine",
+      }),
+    ).resolves.toBe(insertedRow);
+    expect(insertValues[0]).toMatchObject({
+      restaurantId: "rest-1",
+      serviceItemId: 10,
+      customerName: "Ada",
+      customerEmail: null,
+      partySize: 1,
+      status: SERVICE_BOOKING_WAITLIST_STATUS.WAITING,
+      notes: "Any staff is fine",
+    });
+  });
+
+  it("requires matching contact proof for confirmation-code lookups", async () => {
+    const booking = {
+      id: "booking-1",
+      confirmationCode: "ABC123",
+      customerPhone: "+886 900-000-000",
+      customerEmail: "Ada@Example.Test",
+    };
+    const createLookupService = () => {
+      const { db } = createDbMock({ selectGet: [booking] });
+      return createService({ db });
+    };
+
+    await expect(
+      createLookupService().getByConfirmationCode("abc123", {
+        customerPhone: "+886900000000",
+      }),
+    ).resolves.toBe(booking);
+    await expect(
+      createLookupService().getByConfirmationCode("abc123", {
+        customerEmail: "ada@example.test",
+      }),
+    ).resolves.toBe(booking);
+    await expect(
+      createLookupService().getByConfirmationCode("abc123"),
+    ).rejects.toThrow("Booking phone or email is required");
+    await expect(
+      createLookupService().getByConfirmationCode("abc123", {
+        customerPhone: "+886911111111",
+      }),
+    ).rejects.toThrow("Booking contact does not match");
+  });
+
+  it("cancels confirmed bookings by proof and releases slot and voucher use", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const booking = {
+      id: "booking-1",
+      serviceItemId: 10,
+      bookingDate: "2026-06-10",
+      bookingTime: "10:00",
+      status: SERVICE_BOOKING_STATUS.CONFIRMED,
+      couponId: 99,
+      customerPhone: "+886900000000",
+      customerEmail: null,
+    };
+    const cancelled = { ...booking, status: SERVICE_BOOKING_STATUS.CANCELLED };
+    const { d1, calls } = createD1Mock([{ changes: 1 }, { changes: 1 }]);
+    const { db, updateSets } = createDbMock({
+      selectGet: [booking],
+      updateReturning: [cancelled],
+    });
+    const service = createService({ d1: d1 as never, db });
+
+    await expect(
+      service.cancelByConfirmationCode("booking-code", {
+        customerPhone: "+886900000000",
+      }),
+    ).resolves.toBe(cancelled);
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({
+      params: [10, "2026-06-10", "10:00"],
+    });
+    expect(calls[1]).toMatchObject({ params: [99] });
+    expect(updateSets[0]).toMatchObject({
+      status: SERVICE_BOOKING_STATUS.CANCELLED,
+      cancelledAt: new Date("2026-06-07T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+    });
+  });
+
+  it("marks reminders sent and transitions confirmed bookings", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const { db, updateSets } = createDbMock({
+      selectGet: [
+        { id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED },
+        { id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED },
+      ],
+      updateReturning: [
+        { id: "booking-1", reminderSentAt: new Date() },
+        { id: "booking-1", status: SERVICE_BOOKING_STATUS.COMPLETED },
+      ],
+    });
+    const service = createService({ db });
+
+    await expect(service.markReminderSent("booking-1")).resolves.toMatchObject({
+      id: "booking-1",
+    });
+    await expect(
+      service.transition("booking-1", "completed"),
+    ).resolves.toMatchObject({
+      status: SERVICE_BOOKING_STATUS.COMPLETED,
+    });
+    expect(updateSets[0]).toMatchObject({
+      reminderSentAt: new Date("2026-06-07T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+    });
+    expect(updateSets[1]).toMatchObject({
+      status: SERVICE_BOOKING_STATUS.COMPLETED,
+      completedAt: new Date("2026-06-07T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+    });
   });
 
   it("confirms cash bookings through the shared confirmation path", async () => {
