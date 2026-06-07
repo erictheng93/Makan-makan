@@ -542,10 +542,24 @@ describe("OrdersService workflows", () => {
     const env = createEnv();
     const service = new OrdersService(env as never);
 
+    const cachedOrder = createOrder({ id: 42 });
+    const cachedEnv = createEnv({
+      cacheGet: async (key) => (key === "order:42:basic" ? cachedOrder : null),
+    });
+    await expect(
+      new OrdersService(cachedEnv as never).getOrder(42, false, {
+        userId: 1,
+        userRole: 0,
+      }),
+    ).resolves.toBe(cachedOrder);
+
     getBaseOrder.mockResolvedValueOnce(null);
     await expect(
       service.updateOrder(404, { status: "ready" } as never, 10),
     ).resolves.toBeNull();
+
+    getBaseOrder.mockResolvedValueOnce(null);
+    await expect(service.deleteOrder(404, 10)).resolves.toBe(false);
 
     getBaseOrder.mockResolvedValueOnce(createOrder({ status: "confirmed" }));
     await expectSilencedRejection(() => service.deleteOrder(42, 10), {
@@ -658,6 +672,47 @@ describe("OrdersService workflows", () => {
     expect(unsupported.errors[0]).toMatchObject({
       orderId: 12,
       error: "Unsupported bulk operation: export",
+    });
+  });
+
+  it("summarizes generated batch status updates", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1780790400000);
+    vi.spyOn(Math, "random").mockReturnValue(0.123456789);
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder
+      .mockResolvedValueOnce(createOrder({ id: 20, status: "confirmed" }))
+      .mockResolvedValueOnce(createOrder({ id: 21, status: "confirmed" }));
+    updateBaseOrderStatus
+      .mockResolvedValueOnce(createOrder({ id: 20, status: "preparing" }))
+      .mockResolvedValueOnce(null);
+
+    const result = await service.bulkUpdateOrders(
+      {
+        action: "update_status",
+        orderIds: [20, 21],
+        data: { status: "preparing", notes: "bulk start" },
+      },
+      99,
+    );
+
+    expect(result).toMatchObject({
+      batchId: "batch_1780790400000_4fzzzxjyl",
+      totalOrders: 2,
+      successCount: 1,
+      failedCount: 1,
+    });
+    expect(result.results).toEqual([
+      { orderId: 20, success: true, data: expect.any(Object) },
+      {
+        orderId: 21,
+        success: false,
+        error: "Failed to update order status",
+      },
+    ]);
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith(20, {
+      status: "preparing",
+      notes: "bulk start",
+      expectedVersion: 3,
     });
   });
 
@@ -868,6 +923,71 @@ describe("OrdersService workflows", () => {
       expect.any(String),
       { expirationTtl: 300 },
     );
+  });
+
+  it("generates receipts with fallback restaurant, table, item, and payment fields", async () => {
+    const env = createEnv();
+    getBaseOrder.mockResolvedValue(
+      createOrder({
+        restaurantId: "2",
+        restaurant: undefined,
+        customerInfo: undefined,
+        tableId: undefined,
+        table: { id: 9, number: "", seats: 0 },
+        paymentMethod: undefined,
+        readyAt: "2026-06-07T01:20:00.000Z",
+        items: [
+          {
+            id: 502,
+            menuItemId: 102,
+            quantity: 1,
+            unitPrice: 80,
+            totalPrice: 80,
+            notes: undefined,
+            customizations: undefined,
+            menuItem: undefined,
+          },
+        ],
+      }),
+    );
+    const service = new OrdersService(env as never);
+
+    const receipt = await service.generateReceipt(42);
+
+    expect(receipt).toMatchObject({
+      restaurantInfo: {
+        id: 2,
+        name: "Restaurant",
+      },
+      customerInfo: {},
+      tableInfo: {
+        id: 9,
+        number: "N/A",
+        seats: 0,
+      },
+      items: [
+        {
+          name: "Unknown Item",
+          quantity: 1,
+          unitPrice: 80,
+          totalPrice: 80,
+          customizations: [],
+          notes: undefined,
+        },
+      ],
+      paymentInfo: {
+        method: "cash",
+        status: "pending",
+        paidAt: undefined,
+      },
+    });
+    expect(receipt.timestamps.readyAt).toEqual(
+      new Date("2026-06-07T01:20:00.000Z"),
+    );
+    expect(receipt.timestamps.confirmedAt).toEqual(
+      new Date("2026-06-07T01:02:00.000Z"),
+    );
+    expect(receipt.timestamps.deliveredAt).toBeUndefined();
   });
 
   it("updates status and payment branches through updateOrder", async () => {
