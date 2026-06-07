@@ -37,6 +37,10 @@ export default defineConfig({
         __dirname,
         "../../packages/database/src/index.ts",
       ),
+      "cloudflare:workers": path.resolve(
+        __dirname,
+        "./src/__tests__/cloudflare-workers.ts",
+      ),
     },
   },
   esbuild: {
