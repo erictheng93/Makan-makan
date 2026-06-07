@@ -1042,4 +1042,321 @@ describe("AdvancedRealtimeSession advanced coverage paths", () => {
       expect.any(Error),
     );
   });
+
+  it("rejects non-websocket upgrade requests before allocating a WebSocket pair", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+
+    const response = await session.fetch(
+      new Request("https://do.test/websocket?userId=1&restaurantId=10"),
+    );
+
+    expect(response.status).toBe(426);
+    await expect(response.text()).resolves.toBe("Expected Upgrade: websocket");
+  });
+
+  it("reports fetch handler failures and records the failed path", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    (session as any).handleHealthCheck = vi.fn(() => {
+      throw new Error("health failed");
+    });
+
+    const response = await session.fetch(new Request("https://do.test/health"));
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toBe("Internal Server Error");
+    expect((session as any).sessionState.errors.at(-1)).toMatchObject({
+      error: "health failed",
+      context: { path: "/health" },
+    });
+  });
+
+  it("handles group join rejection states", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const connection = createConnection();
+
+    await session.handleJoinGroupOrder(connection, {
+      shareCode: "MISSING",
+      memberName: "Guest",
+    });
+
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found or expired"),
+    );
+
+    const fullGroup = createGroupOrder({
+      settings: {
+        maxMembers: 1,
+        allowEditOthers: false,
+        splitType: "equal",
+      },
+    });
+    (session as any).sessionState.groupOrderStates.set(fullGroup.id, fullGroup);
+
+    await session.handleJoinGroupOrder(connection, {
+      shareCode: "SHARE1",
+      memberName: "Guest",
+    });
+
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order is not accepting new members"),
+    );
+
+    fullGroup.settings.maxMembers = 8;
+    fullGroup.status = "checkout";
+    await session.handleJoinGroupOrder(connection, {
+      shareCode: "SHARE1",
+      memberName: "Guest",
+    });
+
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order is not accepting new members"),
+    );
+  });
+
+  it("reports leave, add, update, remove, split, and payment validation errors", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const connection = createConnection();
+
+    await session.handleLeaveGroupOrder(connection, {
+      groupOrderId: "missing",
+      memberId: "1",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found"),
+    );
+
+    const groupOrder = createGroupOrder({
+      status: "checkout",
+      cart: new Map([
+        [
+          "item-1",
+          {
+            id: "item-1",
+            memberId: "missing-member",
+            menuItemId: 7,
+            menuItemName: "Nasi Lemak",
+            quantity: 1,
+            unitPrice: 120,
+            totalPrice: 120,
+            customizations: {},
+            addedAt: Date.now(),
+            updatedAt: Date.now(),
+            version: 1,
+          },
+        ],
+      ]),
+    });
+    (session as any).sessionState.groupOrderStates.set(
+      groupOrder.id,
+      groupOrder,
+    );
+
+    await session.handleLeaveGroupOrder(connection, {
+      groupOrderId: "group-1",
+      memberId: "missing-member",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Member not found in group order"),
+    );
+
+    await session.handleAddCartItem(connection, {
+      groupOrderId: "missing",
+      memberId: "1",
+      menuItemId: 7,
+      menuItemName: "Nasi Lemak",
+      quantity: 1,
+      unitPrice: 120,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found"),
+    );
+
+    await session.handleAddCartItem(connection, {
+      groupOrderId: "group-1",
+      memberId: "1",
+      menuItemId: 7,
+      menuItemName: "Nasi Lemak",
+      quantity: 1,
+      unitPrice: 120,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order is not accepting new items"),
+    );
+
+    groupOrder.status = "active";
+    await session.handleAddCartItem(connection, {
+      groupOrderId: "group-1",
+      memberId: "missing-member",
+      menuItemId: 7,
+      menuItemName: "Nasi Lemak",
+      quantity: 1,
+      unitPrice: 120,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Member not found in group order"),
+    );
+
+    await session.handleUpdateCartItem(connection, {
+      groupOrderId: "missing",
+      itemId: "item-1",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found"),
+    );
+
+    await session.handleUpdateCartItem(connection, {
+      groupOrderId: "group-1",
+      itemId: "missing-item",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Cart item not found"),
+    );
+
+    await session.handleUpdateCartItem(connection, {
+      groupOrderId: "group-1",
+      itemId: "item-1",
+      quantity: 2,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Member not found"),
+    );
+
+    await session.handleRemoveCartItem(connection, {
+      groupOrderId: "missing",
+      itemId: "item-1",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found"),
+    );
+
+    await session.handleRemoveCartItem(connection, {
+      groupOrderId: "group-1",
+      itemId: "missing-item",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Cart item not found"),
+    );
+
+    await session.handleRemoveCartItem(connection, {
+      groupOrderId: "group-1",
+      itemId: "item-1",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Member not found"),
+    );
+
+    await session.handleInitiateSplitBill(connection, {
+      groupOrderId: "missing",
+      splitType: "equal",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found"),
+    );
+
+    groupOrder.members.set("1", {
+      ...createGroupOrder().host,
+      sessionId: "other-connection",
+    });
+    groupOrder.members.set("2", {
+      id: "2",
+      sessionId: "connection-1",
+      name: "Guest",
+      role: "member",
+      joinedAt: Date.now(),
+      lastActiveAt: Date.now(),
+      isOnline: true,
+      totalAmount: 0,
+      itemCount: 0,
+      paymentStatus: "unpaid",
+    });
+
+    await session.handleInitiateSplitBill(connection, {
+      groupOrderId: "group-1",
+      splitType: "equal",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Permission denied to initiate split bill"),
+    );
+
+    await session.handleProcessPayment(connection, {
+      groupOrderId: "missing",
+      memberId: "1",
+      paymentMethod: "cash",
+      amount: 100,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order not found"),
+    );
+
+    await session.handleProcessPayment(connection, {
+      groupOrderId: "group-1",
+      memberId: "missing-member",
+      paymentMethod: "cash",
+      amount: 100,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Member not found"),
+    );
+  });
+
+  it("reports split bill state and missing split bill payment errors", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const host = {
+      ...createGroupOrder().host,
+      sessionId: "connection-1",
+    };
+    const groupOrder = createGroupOrder({
+      status: "checkout",
+      members: new Map([["1", host]]),
+      splitBills: new Map(),
+    });
+    (session as any).sessionState.groupOrderStates.set(
+      groupOrder.id,
+      groupOrder,
+    );
+    const connection = createConnection();
+
+    await session.handleInitiateSplitBill(connection, {
+      groupOrderId: "group-1",
+      splitType: "equal",
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Group order is not in active state"),
+    );
+
+    await session.handleProcessPayment(connection, {
+      groupOrderId: "group-1",
+      memberId: "1",
+      paymentMethod: "cash",
+      amount: 100,
+    });
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining("Split bill not found for member"),
+    );
+  });
+
+  it("does not send to closed sockets and logs send failures", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const closed = createConnection({
+      socket: { readyState: WebSocket.CLOSED, send: vi.fn(), close: vi.fn() },
+    });
+    await (session as any).sendMessage(closed, { type: "noop" });
+    expect(closed.socket.send).not.toHaveBeenCalled();
+
+    const failing = createConnection({
+      socket: {
+        readyState: WebSocket.OPEN,
+        send: vi.fn(() => {
+          throw new Error("send failed");
+        }),
+        close: vi.fn(),
+      },
+    });
+    await (session as any).sendMessage(failing, { type: "noop" });
+
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to send message:",
+      expect.any(Error),
+    );
+  });
 });
