@@ -252,6 +252,43 @@ function unpaidCheckoutSessionFixture() {
   };
 }
 
+function persistedSessionRows(
+  session: ReturnType<typeof unpaidCheckoutSessionFixture>,
+) {
+  return [
+    {
+      get: {
+        id: session.id,
+        marketId: session.market.id,
+        marketSlug: session.market.slug,
+        marketName: session.market.name,
+        platformFeeRateBps: session.market.platformFeeRateBps ?? 0,
+        status: session.status,
+        paymentStatus: session.payment?.status ?? "pending",
+        phoneLastDigits: session.phoneLastDigits ?? null,
+        subtotalCents: session.subtotal,
+        childOrderCount: session.childOrders.length,
+        paymentSummary: session.payment ?? null,
+        appliedVoucher: session.appliedVoucher ?? null,
+        createdAt: new Date(session.createdAt),
+        updatedAt: new Date(session.createdAt),
+      },
+    },
+    {
+      all: session.childOrders.map((child) => ({
+        checkoutId: session.id,
+        restaurantId: child.restaurantId,
+        restaurantName: child.restaurantName,
+        orderId: child.orderId,
+        orderNumber: child.orderNumber,
+        totalAmount: child.totalAmount,
+        totalAmountCents: child.totalAmountCents ?? null,
+        tokenExpiresAt: new Date(child.tokenExpiresAt),
+      })),
+    },
+  ];
+}
+
 async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
   const consoleError = vi
     .spyOn(console, "error")
@@ -439,6 +476,110 @@ describe("market checkout routes", () => {
     ]);
     expect(enforceQuota).toHaveBeenCalledTimes(2);
     expect(meterEmit).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the client address for anonymous market checkout active-order keys", async () => {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "Fengjia Night Market",
+          platformFeeRateBps: 350,
+          isActive: true,
+        },
+      },
+      {
+        get: {
+          id: "restaurant-1",
+          name: "Vendor 1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
+      {
+        get: {
+          id: "restaurant-2",
+          name: "Vendor 2",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
+      { all: [{ id: 101 }] },
+      { all: [{ id: 202 }] },
+    );
+    createOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+        totalAmountCents: null,
+      })
+      .mockResolvedValueOnce({
+        id: 1002,
+        orderNumber: "A002",
+        totalAmount: 80,
+        totalAmountCents: 8000,
+      });
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        headers: { "cf-connecting-ip": "203.0.113.9" },
+        body: JSON.stringify({
+          marketSlug: "fengjia",
+          guestName: "Anonymous",
+          phoneLastDigits: "000",
+          vendors: [
+            {
+              restaurantId: "restaurant-1",
+              items: [{ menuItemId: 101, quantity: 1 }],
+            },
+            {
+              restaurantId: "restaurant-2",
+              items: [{ menuItemId: 202, quantity: 1 }],
+            },
+          ],
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { checkout: { subtotal: 20000 } },
+    });
+    expect(env.CACHE_KV.get).toHaveBeenCalledWith(
+      "guest_active:restaurant-1:anon:203.0.113.9",
+    );
+    expect(env.CACHE_KV.get).toHaveBeenCalledWith(
+      "guest_active:restaurant-2:anon:203.0.113.9",
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "guest_active:restaurant-1:anon:203.0.113.9",
+      "1001",
+      { expirationTtl: 7200 },
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "guest_active:restaurant-2:anon:203.0.113.9",
+      "1002",
+      { expirationTtl: 7200 },
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "guest_active_lookup:1001",
+      "guest_active:restaurant-1:anon:203.0.113.9",
+      { expirationTtl: 7200 },
+    );
+    expect(databaseMocks.insertValues[0]).toMatchObject({
+      phoneLastDigits: "000",
+      subtotalCents: 20000,
+    });
   });
 
   it("rejects invalid market checkout creation requests before reading vendors", async () => {
@@ -1158,6 +1299,78 @@ describe("market checkout routes", () => {
     expect(json.data.checkout.childOrders[0].status).toBeUndefined();
   });
 
+  it("reads public checkout details from persisted storage before KV fallback", async () => {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "checkout-1",
+          marketId: "market-1",
+          marketSlug: "fengjia",
+          marketName: "Fengjia Night Market",
+          platformFeeRateBps: 350,
+          status: "submitted",
+          paymentStatus: "pending",
+          phoneLastDigits: null,
+          subtotalCents: 12000,
+          childOrderCount: 1,
+          paymentSummary: null,
+          appliedVoucher: null,
+          createdAt: new Date("2026-06-01T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+        },
+      },
+      {
+        all: [
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-1",
+            restaurantName: "Vendor 1",
+            orderId: 1001,
+            orderNumber: "A001",
+            totalAmount: 120,
+            totalAmountCents: null,
+            tokenExpiresAt: new Date("2026-06-01T12:00:00.000Z"),
+          },
+        ],
+      },
+    );
+    getOrder.mockResolvedValueOnce({
+      id: 1001,
+      orderNumber: "A001",
+      totalAmount: 120,
+      status: "ready",
+      paymentStatus: "pending",
+      updatedAt: 1780308400000,
+    });
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          phoneLastDigits?: string;
+          childOrders: Array<{
+            totalAmountCents?: number | null;
+            status?: string;
+          }>;
+        };
+      };
+    };
+    expect(env.CACHE_KV.get).not.toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+    );
+    expect(json.data.checkout.phoneLastDigits).toBeUndefined();
+    expect(json.data.checkout.childOrders[0]).toMatchObject({
+      totalAmountCents: 12000,
+      status: "ready",
+    });
+  });
+
   it("applies a voucher to an unpaid market checkout", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -1273,6 +1486,74 @@ describe("market checkout routes", () => {
       expect.stringContaining('"vouchers"'),
       { expirationTtl: 14400 },
     );
+  });
+
+  it("applies and removes vouchers from persisted checkouts when KV is empty", async () => {
+    databaseMocks.selectQueue.push(
+      ...persistedSessionRows(unpaidCheckoutSessionFixture()),
+    );
+    validateVoucherAndPrice.mockResolvedValue({
+      couponId: 42,
+      code: "MARKET10",
+      name: "Market 10",
+      fundedBy: "platform",
+      discountCents: 2000,
+      allocations: [
+        { orderId: 1001, amountCents: 12000, discountCents: 1200 },
+        { orderId: 1002, amountCents: 8000, discountCents: 800 },
+      ],
+    });
+    const env = createEnv();
+
+    const applyResponse = await routes.fetch(
+      new Request("https://test/checkout-1/voucher", {
+        method: "POST",
+        body: JSON.stringify({ code: "market10" }),
+      }),
+      env as never,
+    );
+
+    expect(applyResponse.status).toBe(200);
+    await expect(applyResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: { discountCents: 2000, payableCents: 18000 },
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"appliedVoucher"'),
+      { expirationTtl: 14400 },
+    );
+
+    databaseMocks.selectQueue.push(
+      ...persistedSessionRows({
+        ...unpaidCheckoutSessionFixture(),
+        appliedVoucher: {
+          couponId: 42,
+          code: "MARKET10",
+          name: "Market 10",
+          fundedBy: "platform",
+          discountCents: 2000,
+          allocations: [
+            { orderId: 1001, amountCents: 12000, discountCents: 1200 },
+            { orderId: 1002, amountCents: 8000, discountCents: 800 },
+          ],
+        },
+      }),
+    );
+
+    const removeResponse = await routes.fetch(
+      new Request("https://test/checkout-1/voucher", { method: "DELETE" }),
+      env as never,
+    );
+
+    expect(removeResponse.status).toBe(200);
+    const removeJson = (await removeResponse.json()) as {
+      data: { checkout: { appliedVoucher?: unknown } };
+    };
+    expect(removeJson.data.checkout.appliedVoucher).toBeUndefined();
+    expect(databaseMocks.updateValues.at(-1)).toMatchObject({
+      appliedVoucher: null,
+    });
   });
 
   it("rejects duplicate market checkout voucher codes", async () => {
@@ -1860,6 +2141,28 @@ describe("market checkout routes", () => {
       status: "paid",
       method: "line_pay",
     });
+  });
+
+  it("replays a persisted paid checkout without requiring a KV session", async () => {
+    databaseMocks.selectQueue.push(
+      ...persistedSessionRows(providerSplitPaidSessionFixture()),
+    );
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "market_online" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { payment: { status: "paid" } },
+    });
+    expect(processPayment).not.toHaveBeenCalled();
   });
 
   it("rejects malformed and unpaid market checkout refund requests", async () => {
@@ -4527,6 +4830,87 @@ describe("market checkout routes", () => {
       paymentStatus: "partial_paid",
       childOrderCount: 1,
     });
+  });
+
+  it("filters KV-backed admin checkout lists by market and status with default pagination", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:index",
+      JSON.stringify([
+        {
+          id: "checkout-1",
+          market: { id: "market-1", slug: "fengjia", name: "Fengjia" },
+          status: "submitted",
+          paymentStatus: "pending",
+          subtotal: 12000,
+          childOrderCount: 1,
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:05:00.000Z",
+        },
+        {
+          id: "checkout-2",
+          market: { id: "market-2", slug: "outside", name: "Outside" },
+          status: "submitted",
+          paymentStatus: "pending",
+          subtotal: 8000,
+          childOrderCount: 1,
+          createdAt: "2026-06-01T11:00:00.000Z",
+          updatedAt: "2026-06-01T11:05:00.000Z",
+        },
+      ]),
+    );
+
+    const response = await routes.fetch(
+      new Request(
+        "https://test/admin?marketSlug=fengjia&status=submitted&page=bad&limit=bad",
+      ),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: { checkouts: Array<{ id: string }>; page: number; limit: number };
+    };
+    expect(json.data).toMatchObject({
+      page: 1,
+      limit: 20,
+      checkouts: [{ id: "checkout-1" }],
+    });
+  });
+
+  it("exports KV-backed checkouts with escaped CSV fields and empty payment defaults", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:index",
+      JSON.stringify([
+        {
+          id: "checkout,quoted",
+          market: {
+            id: "market-1",
+            slug: "fengjia",
+            name: 'Fengjia "Night" Market',
+          },
+          status: "submitted",
+          paymentStatus: "pending",
+          subtotal: 12000,
+          childOrderCount: 1,
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: "2026-06-01T10:05:00.000Z",
+        },
+      ]),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/admin/export?marketSlug=fengjia"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const csv = await response.text();
+    expect(csv).toContain(
+      '"checkout,quoted",fengjia,"Fengjia ""Night"" Market",submitted,pending',
+    );
+    expect(csv).toContain(",,,,,,,,,,,1,0,0,12000,0,0,0,");
   });
 
   it("hydrates child order status when platform admins read checkout details", async () => {
