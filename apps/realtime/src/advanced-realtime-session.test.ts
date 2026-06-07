@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdvancedRealtimeSession } from "./advanced-realtime-session";
 import type { Env } from "./types";
 
-function createState() {
-  const values = new Map<string, unknown>();
+function createState(initialValues: Array<[string, unknown]> = []) {
+  const values = new Map<string, unknown>(initialValues);
 
   return {
     storage: {
@@ -34,6 +34,23 @@ function createEnv(): Env {
         fetch: vi.fn(async () => new Response("OK")),
       })),
     } as unknown as DurableObjectNamespace,
+  };
+}
+
+function createFakeSocket() {
+  const listeners = new Map<string, (event: any) => void | Promise<void>>();
+  return {
+    socket: {
+      readyState: WebSocket.OPEN,
+      send: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(
+        (event: string, handler: (event: any) => void) => {
+          listeners.set(event, handler);
+        },
+      ),
+    },
+    listeners,
   };
 }
 
@@ -544,5 +561,485 @@ describe("AdvancedRealtimeSession group order behavior", () => {
     expect((session as any).sessionState.orderStates.size).toBe(0);
     expect(state.storage.delete).toHaveBeenCalledWith("group_order:group-1");
     expect(state.storage.delete).toHaveBeenCalledWith("order:order-1");
+  });
+});
+
+describe("AdvancedRealtimeSession advanced coverage paths", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.mocked(console.log).mockRestore();
+    vi.mocked(console.error).mockRestore();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("dispatches websocket messages, records analytics, and reports malformed payloads", async () => {
+    const analytics = { writeDataPoint: vi.fn() };
+    const env = { ...createEnv(), ANALYTICS_ENGINE: analytics } as Env;
+    const session = new AdvancedRealtimeSession(createState(), env);
+    const fake = createFakeSocket();
+    const connection = createConnection({ socket: fake.socket });
+
+    (session as any).setupWebSocketHandlers(connection);
+
+    await fake.listeners.get("message")?.({
+      data: JSON.stringify({ type: "heartbeat" }),
+    });
+    await fake.listeners.get("message")?.({
+      data: JSON.stringify({ type: "add_cart_item", data: {} }),
+    });
+    await fake.listeners.get("message")?.({ data: "not-json" });
+
+    expect(fake.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"type":"heartbeat_ack"'),
+    );
+    expect(fake.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"error":"Invalid message payload"'),
+    );
+    expect(fake.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"error":"Message processing failed"'),
+    );
+    expect((session as any).sessionState.totalMessages).toBe(3);
+    expect((session as any).sessionState.errors).toHaveLength(2);
+    expect(analytics.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["websocket_message", "heartbeat"]),
+      }),
+    );
+  });
+
+  it("handles websocket close and error events with connection cleanup", async () => {
+    const analytics = { writeDataPoint: vi.fn() };
+    const env = { ...createEnv(), ANALYTICS_ENGINE: analytics } as Env;
+    const session = new AdvancedRealtimeSession(createState(), env);
+    const fake = createFakeSocket();
+    const connection = createConnection({ socket: fake.socket });
+    (session as any).sessionState.activeConnections.set(
+      connection.id,
+      connection,
+    );
+    (session as any).setupWebSocketHandlers(connection);
+
+    await fake.listeners.get("close")?.({});
+    expect((session as any).sessionState.activeConnections.size).toBe(0);
+    expect(analytics.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["disconnect"]),
+      }),
+    );
+
+    (session as any).sessionState.activeConnections.set(
+      connection.id,
+      connection,
+    );
+    await fake.listeners.get("error")?.(new Error("socket broke"));
+
+    expect((session as any).sessionState.activeConnections.size).toBe(0);
+    expect((session as any).sessionState.errors.at(-1)).toMatchObject({
+      error: "socket broke",
+      context: { connectionId: "connection-1" },
+    });
+  });
+
+  it("keeps active recent sessions awake and hibernates active stale sessions", async () => {
+    const state = createState();
+    const session = new AdvancedRealtimeSession(state, createEnv());
+    const active = createConnection();
+    (session as any).sessionState.activeConnections.set(active.id, active);
+    (session as any).sessionState.lastActivity = Date.now();
+
+    const awake = await session.fetch(
+      new Request("https://do.test/hibernate", { method: "POST" }),
+    );
+    await expect(awake.json()).resolves.toMatchObject({
+      hibernated: false,
+      activeConnections: 1,
+      lastActivity: Date.now(),
+    });
+
+    (session as any).sessionState.lastActivity = Date.now() - 31 * 60 * 1000;
+    const hibernated = await session.fetch(
+      new Request("https://do.test/hibernate", { method: "POST" }),
+    );
+
+    await expect(hibernated.json()).resolves.toMatchObject({
+      hibernated: true,
+      timestamp: Date.now(),
+    });
+    expect(active.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"type":"hibernating"'),
+    );
+    expect(active.socket.close).toHaveBeenCalledWith(
+      1000,
+      "Session hibernating",
+    );
+    expect((session as any).sessionState.activeConnections.size).toBe(0);
+  });
+
+  it("restores persisted orders, live group orders, metrics, and deletes expired groups", async () => {
+    const liveGroup = createGroupOrder({
+      id: "live-group",
+      expiresAt: Date.now() + 60_000,
+    });
+    const expiredGroup = createGroupOrder({
+      id: "expired-group",
+      expiresAt: Date.now() - 1,
+    });
+    const state = createState([
+      [
+        "order:order-1",
+        {
+          id: "order-1",
+          currentState: "confirmed",
+          restaurantId: 10,
+          transitions: [],
+          estimatedTimes: { preparation: 5, ready: 0, completion: 0 },
+          priority: "normal",
+          metadata: {},
+        },
+      ],
+      [
+        "group_order:live-group",
+        (AdvancedRealtimeSession.prototype as any).serializeGroupOrder.call(
+          { sessionState: {} },
+          liveGroup,
+        ),
+      ],
+      [
+        "group_order:expired-group",
+        (AdvancedRealtimeSession.prototype as any).serializeGroupOrder.call(
+          { sessionState: {} },
+          expiredGroup,
+        ),
+      ],
+      ["metrics:10", { activeOrders: 4 }],
+      ["hibernation_state", { hibernatedAt: Date.now() - 1000 }],
+    ]);
+
+    const session = new AdvancedRealtimeSession(state, createEnv());
+    await (session as any).loadPersistedState();
+
+    expect((session as any).sessionState.orderStates.has("order-1")).toBe(true);
+    expect(
+      (session as any).sessionState.groupOrderStates.has("live-group"),
+    ).toBe(true);
+    expect(
+      (session as any).sessionState.groupOrderStates.has("expired-group"),
+    ).toBe(false);
+    expect((session as any).sessionState.restaurantMetrics.get(10)).toEqual({
+      activeOrders: 4,
+    });
+    expect(state.storage.delete).toHaveBeenCalledWith(
+      "group_order:expired-group",
+    );
+  });
+
+  it("leaves group orders and removes the member cart items", async () => {
+    const state = createState();
+    const session = new AdvancedRealtimeSession(state, createEnv());
+    const host = createGroupOrder().host;
+    const guest = {
+      id: "2",
+      sessionId: "connection-2",
+      name: "Guest",
+      role: "member",
+      joinedAt: Date.now(),
+      lastActiveAt: Date.now(),
+      isOnline: true,
+      totalAmount: 120,
+      itemCount: 1,
+      paymentStatus: "unpaid",
+    };
+    const groupOrder = createGroupOrder({
+      members: new Map([
+        ["1", host],
+        ["2", guest],
+      ]),
+      cart: new Map([
+        [
+          "item-2",
+          {
+            id: "item-2",
+            memberId: "2",
+            menuItemId: 8,
+            menuItemName: "Satay",
+            quantity: 1,
+            unitPrice: 120,
+            totalPrice: 120,
+            customizations: {},
+            addedAt: Date.now(),
+            updatedAt: Date.now(),
+            version: 1,
+          },
+        ],
+      ]),
+      totalAmount: 120,
+    });
+    (session as any).sessionState.groupOrderStates.set(
+      groupOrder.id,
+      groupOrder,
+    );
+    const connection = createConnection({
+      id: "connection-2",
+      subscriptions: new Set(["group_order:group-1"]),
+    });
+
+    await session.handleLeaveGroupOrder(connection, {
+      groupOrderId: "group-1",
+      memberId: "2",
+    });
+
+    expect(groupOrder.members.has("2")).toBe(false);
+    expect(groupOrder.cart.size).toBe(0);
+    expect(groupOrder.totalAmount).toBe(0);
+    expect(connection.subscriptions.has("group_order:group-1")).toBe(false);
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"type":"group_order_left"'),
+    );
+    expect(state.storage.put).toHaveBeenCalledWith(
+      "group_order:group-1",
+      expect.objectContaining({
+        members: expect.not.objectContaining({ 2: expect.any(Object) }),
+        cart: {},
+      }),
+    );
+  });
+
+  it("removes cart items when editing others is allowed", async () => {
+    const state = createState();
+    const session = new AdvancedRealtimeSession(state, createEnv());
+    const otherMember = {
+      id: "2",
+      sessionId: "connection-2",
+      name: "Guest",
+      role: "member",
+      joinedAt: Date.now(),
+      lastActiveAt: Date.now(),
+      isOnline: true,
+      totalAmount: 120,
+      itemCount: 1,
+      paymentStatus: "unpaid",
+    };
+    const groupOrder = createGroupOrder({
+      settings: {
+        maxMembers: 8,
+        allowEditOthers: true,
+        splitType: "equal",
+      },
+      members: new Map([["2", otherMember]]),
+      cart: new Map([
+        [
+          "item-2",
+          {
+            id: "item-2",
+            memberId: "2",
+            menuItemId: 8,
+            menuItemName: "Satay",
+            quantity: 1,
+            unitPrice: 120,
+            totalPrice: 120,
+            customizations: {},
+            addedAt: Date.now(),
+            updatedAt: Date.now(),
+            version: 1,
+          },
+        ],
+      ]),
+      totalAmount: 120,
+    });
+    (session as any).sessionState.groupOrderStates.set(
+      groupOrder.id,
+      groupOrder,
+    );
+
+    await session.handleRemoveCartItem(createConnection(), {
+      groupOrderId: "group-1",
+      itemId: "item-2",
+    });
+
+    expect(groupOrder.cart.size).toBe(0);
+    expect(otherMember).toMatchObject({ totalAmount: 0, itemCount: 0 });
+    expect(state.storage.put).toHaveBeenCalledWith(
+      "group_order:group-1",
+      expect.objectContaining({ cart: {} }),
+    );
+  });
+
+  it("creates proportional and custom split bills", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const host = createGroupOrder().host;
+    const guest = {
+      id: "2",
+      sessionId: "connection-2",
+      name: "Guest",
+      role: "member",
+      joinedAt: Date.now(),
+      lastActiveAt: Date.now(),
+      isOnline: true,
+      totalAmount: 200,
+      itemCount: 1,
+      paymentStatus: "unpaid",
+    };
+    const groupOrder = createGroupOrder({
+      members: new Map([
+        ["1", { ...host, totalAmount: 100 }],
+        ["2", guest],
+      ]),
+      cart: new Map([
+        [
+          "item-1",
+          {
+            id: "item-1",
+            memberId: "1",
+            menuItemId: 7,
+            menuItemName: "Nasi Lemak",
+            quantity: 1,
+            unitPrice: 100,
+            totalPrice: 100,
+            customizations: {},
+            addedAt: Date.now(),
+            updatedAt: Date.now(),
+            version: 1,
+          },
+        ],
+        [
+          "item-2",
+          {
+            id: "item-2",
+            memberId: "2",
+            menuItemId: 8,
+            menuItemName: "Satay",
+            quantity: 1,
+            unitPrice: 200,
+            totalPrice: 200,
+            customizations: {},
+            addedAt: Date.now(),
+            updatedAt: Date.now(),
+            version: 1,
+          },
+        ],
+      ]),
+      totalAmount: 300,
+    });
+
+    const proportional = (session as any).calculateSplitBills(
+      groupOrder,
+      "proportional",
+    );
+    const custom = (session as any).calculateSplitBills(groupOrder, "custom", [
+      { memberId: "1", amount: 80, items: ["item-1"] },
+      { memberId: "2", amount: 220, items: ["item-2"] },
+    ]);
+
+    expect(proportional).toEqual([
+      expect.objectContaining({
+        memberId: "1",
+        subtotal: 100,
+        serviceCharge: 10,
+        taxAmount: 6,
+        totalAmount: 116,
+        items: ["item-1"],
+      }),
+      expect.objectContaining({
+        memberId: "2",
+        subtotal: 200,
+        serviceCharge: 20,
+        taxAmount: 12,
+        totalAmount: 232,
+        items: ["item-2"],
+      }),
+    ]);
+    expect(custom).toEqual([
+      expect.objectContaining({
+        memberId: "1",
+        subtotal: 80,
+        totalAmount: 92.8,
+        items: ["item-1"],
+      }),
+      expect.objectContaining({
+        memberId: "2",
+        subtotal: 220,
+        totalAmount: 255.2,
+        items: ["item-2"],
+      }),
+    ]);
+  });
+
+  it("rejects mismatched payment amounts without mutating payment state", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const member = createGroupOrder().host;
+    const groupOrder = createGroupOrder({
+      status: "checkout",
+      members: new Map([["1", member]]),
+      splitBills: new Map([
+        [
+          "1",
+          {
+            id: "split-1",
+            memberId: "1",
+            subtotal: 100,
+            taxAmount: 6,
+            serviceCharge: 10,
+            totalAmount: 116,
+            items: [],
+            paymentStatus: "pending",
+          },
+        ],
+      ]),
+    });
+    (session as any).sessionState.groupOrderStates.set(
+      groupOrder.id,
+      groupOrder,
+    );
+    const connection = createConnection();
+
+    await session.handleProcessPayment(connection, {
+      groupOrderId: "group-1",
+      memberId: "1",
+      paymentMethod: "cash",
+      amount: 115,
+    });
+
+    expect(groupOrder.status).toBe("checkout");
+    expect(member.paymentStatus).toBe("unpaid");
+    expect(groupOrder.splitBills.get("1")?.paymentStatus).toBe("pending");
+    expect(connection.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Payment amount does not match split bill amount",
+      ),
+    );
+  });
+
+  it("records analytics errors without interrupting order transitions", async () => {
+    const env = {
+      ...createEnv(),
+      ANALYTICS_ENGINE: {
+        writeDataPoint: vi.fn(() => {
+          throw new Error("analytics unavailable");
+        }),
+      },
+    } as Env;
+    const state = createState();
+    const session = new AdvancedRealtimeSession(state, env);
+
+    await session.handleOrderStateChange(createConnection(), {
+      orderId: "order-analytics",
+      newState: "confirmed",
+    });
+
+    expect(state.storage.put).toHaveBeenCalledWith(
+      "order:order-analytics",
+      expect.objectContaining({ currentState: "confirmed" }),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "Analytics error:",
+      expect.any(Error),
+    );
   });
 });
