@@ -1,0 +1,393 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { UsersService } from "./UsersService";
+import type { Env } from "../../../types/env";
+
+const dbMocks = vi.hoisted(() => ({
+  userServiceFns: {
+    getUserById: vi.fn(),
+    getAllUsers: vi.fn(),
+    getRestaurantUsers: vi.fn(),
+    createUser: vi.fn(),
+    updateUser: vi.fn(),
+    verifyUser: vi.fn(),
+    resetPassword: vi.fn(),
+    getUserStats: vi.fn(),
+    searchUsers: vi.fn(),
+  },
+  authServiceFns: {
+    changePassword: vi.fn(),
+  },
+  UserServiceCtor: vi.fn(),
+  AuthServiceCtor: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  USER_ROLES: {
+    ADMIN: 0,
+    OWNER: 1,
+    CHEF: 2,
+    SERVICE: 3,
+    CASHIER: 4,
+    CUSTOMER: 5,
+  },
+  UserService: vi.fn(function UserService(...args: unknown[]) {
+    dbMocks.UserServiceCtor(...args);
+    return dbMocks.userServiceFns;
+  }),
+  AuthService: vi.fn(function AuthService(...args: unknown[]) {
+    dbMocks.AuthServiceCtor(...args);
+    return dbMocks.authServiceFns;
+  }),
+}));
+
+const env = {
+  DB: { binding: "db" },
+} as unknown as Env;
+
+const admin = { id: 1, role: 0 };
+const owner = { id: 10, role: 1, restaurantId: "restaurant-1" };
+const cashier = { id: 42, role: 4, restaurantId: "restaurant-1" };
+
+function createService() {
+  return new UsersService(env);
+}
+
+function user(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 42,
+    username: "cashier",
+    role: 4,
+    restaurantId: "restaurant-1",
+    email: "cashier@example.test",
+    fullName: "Casey Cashier",
+    phone: "+60123456789",
+    address: "1 Test Street",
+    dateOfBirth: "1990-01-01",
+    profileImageUrl: "https://cdn.example.test/profile.jpg",
+    isActive: true,
+    isVerified: false,
+    preferences: { locale: "en-MY" },
+    totalOrders: 12,
+    totalSpent: 3450,
+    lastLoginAt: "2026-06-07T01:00:00.000Z",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-06-07T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("UsersService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("constructs database services with the API database binding", () => {
+    createService();
+
+    expect(dbMocks.UserServiceCtor).toHaveBeenCalledWith(env.DB, env);
+    expect(dbMocks.AuthServiceCtor).toHaveBeenCalledWith(env.DB, env);
+  });
+
+  it("evaluates management, viewing, and update permissions by role and restaurant", () => {
+    const service = createService();
+
+    expect(service.canManageUser(admin, 1, "any")).toBe(true);
+    expect(service.canManageUser(owner, 2, "restaurant-1")).toBe(true);
+    expect(service.canManageUser(owner, 4, "restaurant-1")).toBe(true);
+    expect(service.canManageUser(owner, 5, "restaurant-1")).toBe(false);
+    expect(service.canManageUser(owner, 2, "restaurant-2")).toBe(false);
+    expect(service.canManageUser(cashier, 4, "restaurant-1")).toBe(false);
+
+    expect(
+      service.canViewUser(owner, { id: 99, restaurantId: "restaurant-1" }),
+    ).toBe(true);
+    expect(service.canViewUser(cashier, { id: 42 })).toBe(true);
+    expect(
+      service.canViewUser(cashier, { id: 99, restaurantId: "restaurant-1" }),
+    ).toBe(false);
+
+    expect(service.canUpdateUser(cashier, { id: 42, role: 4 })).toBe(true);
+    expect(
+      service.canUpdateUser(owner, {
+        id: 43,
+        role: 4,
+        restaurantId: "restaurant-1",
+      }),
+    ).toBe(true);
+    expect(
+      service.canUpdateUser(owner, {
+        id: 44,
+        role: 4,
+        restaurantId: "restaurant-2",
+      }),
+    ).toBe(false);
+  });
+
+  it("formats users with role names and preserves optional profile fields", () => {
+    expect(createService().formatUser(user())).toEqual({
+      id: 42,
+      username: "cashier",
+      role: 4,
+      role_name: "Cashier",
+      restaurantId: "restaurant-1",
+      email: "cashier@example.test",
+      fullName: "Casey Cashier",
+      phone: "+60123456789",
+      address: "1 Test Street",
+      dateOfBirth: "1990-01-01",
+      profileImageUrl: "https://cdn.example.test/profile.jpg",
+      isActive: true,
+      isVerified: false,
+      preferences: { locale: "en-MY" },
+      totalOrders: 12,
+      totalSpent: 3450,
+      lastLoginAt: "2026-06-07T01:00:00.000Z",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-06-07T00:00:00.000Z",
+    });
+    expect(createService().formatUser(user({ role: 99 })).role_name).toBe(
+      "Unknown",
+    );
+  });
+
+  it("lists all users for admins and constrains owners to their restaurant", async () => {
+    dbMocks.userServiceFns.getAllUsers.mockResolvedValueOnce({
+      users: [user({ id: 1, role: 1, username: "owner" })],
+      pagination: { page: 1, limit: 20, total: 1 },
+    });
+    dbMocks.userServiceFns.getRestaurantUsers.mockResolvedValueOnce({
+      users: [user()],
+      pagination: { page: 2, limit: 5, total: 1 },
+    });
+    const service = createService();
+
+    await expect(
+      service.getUsers(admin, {
+        restaurantId: "restaurant-2",
+        role: 1,
+        page: 1,
+        limit: 20,
+      }),
+    ).resolves.toMatchObject({
+      data: [{ id: 1, role_name: "Shop Owner" }],
+      pagination: { total: 1 },
+    });
+    expect(dbMocks.userServiceFns.getAllUsers).toHaveBeenCalledWith({
+      restaurantId: "restaurant-2",
+      role: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    await expect(
+      service.getUsers(owner, {
+        restaurantId: "restaurant-2",
+        page: 2,
+        limit: 5,
+      }),
+    ).resolves.toMatchObject({
+      data: [{ id: 42, role_name: "Cashier" }],
+    });
+    expect(dbMocks.userServiceFns.getRestaurantUsers).toHaveBeenCalledWith(
+      "restaurant-1",
+      { restaurantId: "restaurant-1", page: 2, limit: 5 },
+    );
+  });
+
+  it("reads user detail only when the caller can view the target", async () => {
+    dbMocks.userServiceFns.getUserById
+      .mockResolvedValueOnce(user())
+      .mockResolvedValueOnce(user({ restaurantId: "restaurant-2" }))
+      .mockResolvedValueOnce(null);
+    const service = createService();
+
+    await expect(service.getUserById(owner, 42)).resolves.toMatchObject({
+      id: 42,
+      role_name: "Cashier",
+    });
+    await expect(service.getUserById(owner, 43)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Access denied",
+    });
+    await expect(service.getUserById(admin, 404)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "User not found",
+    });
+  });
+
+  it("creates users with effective restaurant scope and rejects forbidden roles", async () => {
+    dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
+      user({ id: 50, username: "chef", role: 2 }),
+    );
+    const service = createService();
+
+    await expect(
+      service.createUser(owner, {
+        username: "chef",
+        fullName: "Chef",
+        password: "Secret1!",
+        role: 2,
+      }),
+    ).resolves.toMatchObject({
+      id: 50,
+      role_name: "Chef",
+    });
+    expect(dbMocks.userServiceFns.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        username: "chef",
+        role: 2,
+        restaurantId: "restaurant-1",
+      }),
+    );
+
+    await expect(
+      service.createUser(owner, {
+        username: "customer",
+        fullName: "Customer",
+        password: "Secret1!",
+        role: 5,
+      }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Insufficient permissions to create this type of user",
+    });
+  });
+
+  it("updates users and changes passwords with permission checks", async () => {
+    dbMocks.userServiceFns.getUserById
+      .mockResolvedValueOnce(user())
+      .mockResolvedValueOnce(user({ restaurantId: "restaurant-2" }));
+    dbMocks.userServiceFns.updateUser.mockResolvedValueOnce(
+      user({ fullName: "Updated Cashier" }),
+    );
+    dbMocks.authServiceFns.changePassword
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: false, error: "Wrong password" });
+    const service = createService();
+
+    await expect(
+      service.updateUser(owner, 42, { fullName: "Updated Cashier" }),
+    ).resolves.toMatchObject({ fullName: "Updated Cashier" });
+    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith(42, {
+      fullName: "Updated Cashier",
+    });
+
+    await expect(
+      service.updateUser(owner, 43, { fullName: "Nope" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: "Access denied" });
+    await expect(
+      service.changePassword(cashier, 42, "Oldpass1!", "Newpass1!"),
+    ).resolves.toBeUndefined();
+    expect(dbMocks.authServiceFns.changePassword).toHaveBeenCalledWith(
+      42,
+      "Oldpass1!",
+      "Newpass1!",
+    );
+    await expect(
+      service.changePassword(cashier, 99, "Oldpass1!", "Newpass1!"),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: "Access denied" });
+    await expect(
+      service.changePassword(admin, 99, "wrong", "Newpass1!"),
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Wrong password",
+    });
+  });
+
+  it("updates status, verifies users, and resets passwords through managed-user checks", async () => {
+    dbMocks.userServiceFns.getUserById
+      .mockResolvedValueOnce(user())
+      .mockResolvedValueOnce(user({ id: 10, role: 1 }))
+      .mockResolvedValueOnce(user())
+      .mockResolvedValueOnce(user())
+      .mockResolvedValueOnce(user({ restaurantId: "restaurant-2" }));
+    dbMocks.userServiceFns.updateUser.mockResolvedValueOnce(user());
+    dbMocks.userServiceFns.verifyUser
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    dbMocks.userServiceFns.resetPassword.mockResolvedValueOnce(true);
+    const service = createService();
+
+    await expect(service.updateUserStatus(owner, 42, false)).resolves.toBe(
+      "User deactivated successfully",
+    );
+    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith(42, {
+      isActive: false,
+    });
+    await expect(
+      service.updateUserStatus({ id: 10, role: 0 }, 10, false),
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Cannot deactivate your own account",
+    });
+    await expect(service.verifyUser(owner, 42)).resolves.toBeUndefined();
+    await expect(service.verifyUser(owner, 42)).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+      message: "Failed to verify user",
+    });
+    await expect(
+      service.resetPassword(owner, 42, "Newpass1!"),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Insufficient permissions",
+    });
+  });
+
+  it("formats stats and constrains stats/search restaurant scopes", async () => {
+    dbMocks.userServiceFns.getUserStats
+      .mockResolvedValueOnce({
+        totalUsers: 6,
+        activeUsers: 4,
+        recentRegistrations: 2,
+        byRole: { 1: 1, 4: 3, 99: 2 },
+      })
+      .mockResolvedValueOnce({
+        totalUsers: 1,
+        activeUsers: 1,
+        recentRegistrations: 0,
+        byRole: { 4: 1 },
+      });
+    dbMocks.userServiceFns.searchUsers
+      .mockResolvedValueOnce([user()])
+      .mockResolvedValueOnce([user({ restaurantId: "restaurant-2" })]);
+    const service = createService();
+
+    await expect(service.getUserStats(admin, "restaurant-2")).resolves.toEqual({
+      summary: {
+        total_users: 6,
+        active_users: 4,
+        inactive_users: 2,
+        new_users_month: 2,
+      },
+      by_role: {
+        1: { count: 1, role_name: "Shop Owner" },
+        4: { count: 3, role_name: "Cashier" },
+        99: { count: 2, role_name: "Unknown" },
+      },
+    });
+    expect(dbMocks.userServiceFns.getUserStats).toHaveBeenCalledWith(
+      "restaurant-2",
+    );
+
+    await service.getUserStats(owner, "restaurant-2");
+    expect(dbMocks.userServiceFns.getUserStats).toHaveBeenLastCalledWith(
+      "restaurant-1",
+    );
+
+    await expect(
+      service.searchUsers(admin, "cash", "restaurant-2", 3),
+    ).resolves.toMatchObject([{ id: 42, role_name: "Cashier" }]);
+    expect(dbMocks.userServiceFns.searchUsers).toHaveBeenCalledWith(
+      "cash",
+      "restaurant-2",
+      3,
+    );
+
+    await service.searchUsers(owner, "cash", "restaurant-2", 5);
+    expect(dbMocks.userServiceFns.searchUsers).toHaveBeenLastCalledWith(
+      "cash",
+      "restaurant-1",
+      5,
+    );
+  });
+});
