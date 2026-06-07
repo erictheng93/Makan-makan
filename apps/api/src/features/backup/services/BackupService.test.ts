@@ -1300,4 +1300,286 @@ describe("BackupService", () => {
     );
     expect(executeBackup).toHaveBeenCalledWith("safety-backup-1");
   });
+
+  it("covers create/list/health fallback branches and low-level restore helpers", async () => {
+    const mutations = mockMutations();
+    const { d1, calls } = createD1Mock({
+      "PRAGMA table_info": (values) => {
+        const statement = calls.at(-1)?.statement ?? "";
+        if (statement.includes('"restaurants"')) return [{ name: "id" }];
+        if (statement.includes('"orders"')) {
+          return [{ name: "id" }, { name: "restaurant_id" }, { name: "total" }];
+        }
+        return [];
+      },
+      "SELECT COUNT": [{ total: 0 }],
+    });
+    const { service, configService, validationService } = createService(d1);
+    configService.getDefaultConfiguration.mockResolvedValue({
+      id: "config-empty",
+      restaurant_id: "restaurant-1",
+      backup_type: "full",
+      include_tables: ["menus"],
+      exclude_tables: ["menus"],
+      storage_provider: "r2",
+      encryption_enabled: false,
+      compression_enabled: false,
+    });
+
+    const scheduled = await service.createBackup(
+      {
+        restaurant_id: "restaurant-1",
+        name: "Empty",
+        force_immediate: false,
+      } as any,
+      "user-1",
+    );
+
+    expect(scheduled).toMatchObject({
+      status: "pending",
+      estimated_duration_minutes: 5,
+      manifest: { rowCounts: {}, tables: [] },
+    });
+    expect(validationService.validateTableNames).not.toHaveBeenCalled();
+    expect(mutations.inserted[0]).toMatchObject({
+      tablesIncluded: [],
+      backupType: "full",
+    });
+
+    mockSelectResults([
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          backupType: "full",
+          fileSize: 10,
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          startedAt: "2026-06-07T00:00:00.000Z",
+        },
+      ],
+      [{}],
+    ]);
+    await expect(
+      service.listBackups({
+        restaurant_id: "restaurant-1",
+        sort_by: "unsafe_column",
+        sort_order: "asc",
+      } as any),
+    ).resolves.toMatchObject({
+      total: 0,
+      backups: [{ id: "backup-1", backup_type: "full" }],
+    });
+
+    mockSelectResults([
+      [
+        {
+          totalRestaurants: 2,
+          totalBackups: 10,
+          runningBackups: 21,
+          failedBackups24h: 6,
+          avgDurationMs: 120000,
+          avgCompressionRatio: "2.5",
+        },
+      ],
+      [{ totalBytes: 2048 }],
+      [{ total: 3 }],
+      [{ severity: "medium" }],
+    ]);
+    await expect(service.getSystemHealth()).resolves.toMatchObject({
+      overall_status: "warning",
+      total_restaurants: 2,
+      active_configurations: 3,
+      running_backups: 21,
+      failed_backups_24h: 6,
+      storage_usage: { total_bytes: 2048 },
+      performance_metrics: {
+        average_backup_duration_minutes: 2,
+        average_success_rate_percentage: 40,
+        average_compression_ratio: 2.5,
+      },
+      alerts_summary: { critical: 0, high: 0, medium: 1, low: 0 },
+    });
+
+    await expect(
+      (service as any).getRestaurantScopeClause("restaurants", "restaurant-1"),
+    ).resolves.toEqual({ clause: "id = ?", values: ["restaurant-1"] });
+
+    const inserted = await (service as any).restoreTableData({
+      tableName: "orders",
+      restaurantId: "restaurant-1",
+      rows: [
+        {
+          id: 1,
+          restaurant_id: "restaurant-1",
+          total: 12,
+          note: undefined,
+        },
+      ],
+      overwriteExisting: false,
+    });
+    expect(inserted).toBe(1);
+    expect(calls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statement: 'DELETE FROM "orders" WHERE restaurant_id = ?',
+        }),
+      ]),
+    );
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statement:
+            'INSERT INTO "orders" ("id", "restaurant_id", "total") VALUES (?, ?, ?)',
+          values: [1, "restaurant-1", 12],
+          kind: "run",
+        }),
+      ]),
+    );
+  });
+
+  it("covers backup execution and parser fallback branches", async () => {
+    const mutations = mockMutations();
+    const { d1 } = createD1Mock({
+      "PRAGMA table_info": [{ name: "restaurant_id" }],
+      "SELECT *": [],
+      "SELECT COUNT": [{ total: 0 }],
+    });
+    const { service, storageService } = createService(d1);
+
+    mockSelectResults([[]]);
+    await expect(service.executeBackup("missing")).rejects.toThrow(
+      "Backup record not found",
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "failed" }),
+        expect.objectContaining({ errorMessage: "Backup record not found" }),
+      ]),
+    );
+
+    mutations.updated.length = 0;
+    storageService.storeBackup.mockResolvedValue({
+      storage_path: "backups/compressed.json",
+      checksum: "checksum-compressed",
+    });
+    await expect(
+      service.executeBackup("backup-compressed", {
+        id: "backup-compressed",
+        restaurant_id: "restaurant-1",
+        configuration_id: "config-1",
+        name: "Compressed",
+        backup_type: "full",
+        status: "pending",
+        file_size: 0,
+        compressed_size: 0,
+        compression_enabled: true,
+        records_count: 0,
+        tables_included: ["orders"],
+        storage_provider: "r2",
+        storage_path: "",
+        encryption_enabled: false,
+        checksum: "",
+        started_at: new Date().toISOString(),
+        created_by: "user-1",
+        metadata: null,
+      } as any),
+    ).resolves.toMatchObject({
+      checksum: "checksum-compressed",
+      manifest: { rowCounts: { orders: 0 }, tables: ["orders"] },
+      backup: { status: "completed" },
+    });
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "completed",
+          compressedSize: expect.any(Number),
+          metadata: expect.objectContaining({
+            performance_metrics: expect.objectContaining({
+              compression_ratio: expect.any(Number),
+            }),
+          }),
+        }),
+      ]),
+    );
+
+    await expect(
+      (service as any).getRestaurantTables("restaurant-1", undefined, [
+        "orders",
+        "users",
+      ]),
+    ).resolves.toEqual(["order_items", "menu_items", "categories", "tables"]);
+    expect(
+      (service as any).getManifestFromBackup(
+        {
+          tables_included: ["orders"],
+          metadata: { manifest: { createdAt: "2026-06-07T00:00:00.000Z" } },
+        },
+        { orders: [{ id: 1 }] },
+      ),
+    ).toEqual({
+      rowCounts: { orders: 1 },
+      tables: ["orders"],
+      createdAt: "2026-06-07T00:00:00.000Z",
+      checksum: undefined,
+    });
+
+    mockSelectResults([
+      [
+        {
+          restaurant_id: "restaurant-1",
+          backup_id: "backup-1",
+          restore_type: "full",
+          target_tables: null,
+          overwrite_existing: 0,
+          performed_by: "user-1",
+        },
+      ],
+    ]);
+    await expect(
+      (service as any).getRestoreOperation("restore-1"),
+    ).resolves.toMatchObject({
+      restaurantId: "restaurant-1",
+      backupId: "backup-1",
+      restoreType: "full",
+      targetTables: [],
+      overwriteExisting: false,
+      performedBy: "user-1",
+    });
+
+    expect(
+      (service as any).parseBackupAlerts([
+        {
+          id: "alert-1",
+          restaurantId: "restaurant-1",
+          message: undefined,
+          title: "Explicit title",
+          relatedBackupId: "backup-1",
+          acknowledgedAt: "2026-06-07T01:00:00.000Z",
+          resolvedAt: "2026-06-07T02:00:00.000Z",
+          details: { ignored: true },
+        },
+        {
+          id: "alert-2",
+          restaurant_id: "restaurant-1",
+          alert_type: undefined,
+          severity: undefined,
+          details: "",
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        title: "Explicit title",
+        message: "",
+        related_backup_id: "backup-1",
+        acknowledged_at: "2026-06-07T01:00:00.000Z",
+        resolved_at: "2026-06-07T02:00:00.000Z",
+      }),
+      expect.objectContaining({
+        alert_type: "backup_failed",
+        severity: "medium",
+        title: "Backup Failed",
+      }),
+    ]);
+  });
 });
