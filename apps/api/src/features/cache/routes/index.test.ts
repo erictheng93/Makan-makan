@@ -188,6 +188,25 @@ describe("cache routes", () => {
     });
     expect(body.data?.issues).toContain("Very low cache hit rate (< 30%)");
     expect(body.data?.issues).toContain("Large cache size detected");
+
+    mocks.service.getStats.mockResolvedValueOnce({
+      totalKeys: 12,
+      hitCount: 1,
+      missCount: 9,
+      totalSize: 20 * 1024 * 1024,
+      averageHitRate: 0.2,
+      mostAccessedKeys: [],
+      expiringKeys: [],
+    });
+    mocks.service.getExpiringKeys.mockResolvedValueOnce(
+      Array.from({ length: 101 }, (_, index) => ({ key: `critical:${index}` })),
+    );
+    response = await request("/health");
+    body = await json(response);
+    expect(body.data).toMatchObject({
+      status: "critical",
+    });
+    expect(body.data?.issues).toContain("Many keys expiring soon (101)");
   });
 
   it("invalidates tags and returns the audit details", async () => {
@@ -227,6 +246,28 @@ describe("cache routes", () => {
     expect(response.status).toBe(400);
     expect(body.error?.code).toBe("VALIDATION_ERROR");
     expect(mocks.service.invalidateByTags).not.toHaveBeenCalled();
+  });
+
+  it("invalidates tags without an optional reason", async () => {
+    const consoleLog = vi
+      .spyOn(console, "log")
+      .mockImplementation(() => undefined);
+
+    const response = await request("/invalidate", "POST", {
+      tags: ["menu"],
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(consoleLog).toHaveBeenCalledWith(
+      "Manual cache invalidation: 3 keys invalidated for tags: menu",
+    );
+    expect(body.data).toEqual({
+      invalidatedCount: 3,
+      tags: ["menu"],
+      timestamp: 1710000000000,
+    });
+    consoleLog.mockRestore();
   });
 
   it("supports dry-run and live cleanup", async () => {
@@ -379,6 +420,23 @@ describe("cache routes", () => {
       setSuccess: true,
       getSuccess: true,
       dataIntegrity: true,
+      deleteSuccess: true,
+      testKey: "test:1710000000000",
+      timestamp: 1710000000000,
+    });
+  });
+
+  it("reports a failed cache self-test read", async () => {
+    mocks.service.get.mockResolvedValueOnce(null);
+
+    const response = await request("/test", "POST");
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(body.data).toEqual({
+      setSuccess: true,
+      getSuccess: false,
+      dataIntegrity: false,
       deleteSuccess: true,
       testKey: "test:1710000000000",
       timestamp: 1710000000000,
