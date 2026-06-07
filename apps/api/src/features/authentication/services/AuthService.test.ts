@@ -93,6 +93,31 @@ function mockSelectGet(value: unknown) {
   });
 }
 
+function mockSelectRows(rows: unknown[]) {
+  const promise = Promise.resolve(rows);
+  const chain = {
+    where: vi.fn(() => chain),
+    groupBy: vi.fn(async () => rows),
+    get: vi.fn(async () => rows[0] ?? null),
+    then: promise.then.bind(promise),
+    catch: promise.catch.bind(promise),
+    finally: promise.finally.bind(promise),
+  };
+  mocks.db.select.mockReturnValueOnce({
+    from: vi.fn(() => chain),
+  });
+}
+
+function mockUpdateReturning(rows: unknown[]) {
+  mocks.db.update.mockReturnValueOnce({
+    set: vi.fn(() => ({
+      where: vi.fn(() => ({
+        returning: vi.fn(async () => rows),
+      })),
+    })),
+  });
+}
+
 describe("AuthService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -211,6 +236,103 @@ describe("AuthService", () => {
     );
   });
 
+  it("transforms registration and refresh results and clears related caches", async () => {
+    mocks.dbAuthService.register.mockResolvedValue({
+      success: true,
+      user: {
+        id: 8,
+        username: "chef",
+        fullName: "Chef",
+        role: 2,
+        restaurantId: "",
+        isActive: true,
+      },
+      tokens: {
+        accessToken: "new-access",
+        refreshToken: "new-refresh",
+        expiresAt: new Date("2026-06-07T00:30:00.000Z"),
+      },
+    });
+    mocks.dbAuthService.refreshToken.mockResolvedValue({
+      success: true,
+      user: {
+        id: 8,
+        username: "chef",
+        fullName: "Chef",
+        role: 2,
+        restaurantId: "restaurant-1",
+        isActive: true,
+      },
+      tokens: {
+        accessToken: "refreshed-access",
+        refreshToken: "refreshed-refresh",
+        expiresAt: new Date("2026-06-07T01:00:00.000Z"),
+      },
+    });
+
+    const service = createService();
+
+    await expect(
+      service.register(
+        {
+          username: "chef",
+          password: "secret",
+          fullName: "Chef",
+          role: 2,
+          email: "chef@example.test",
+          phone: "+886900000000",
+          restaurantId: null,
+        },
+        1,
+      ),
+    ).resolves.toMatchObject({
+      success: true,
+      user: {
+        id: 8,
+        role: 2,
+        restaurantId: undefined,
+        email: "chef@example.test",
+        phone: "+886900000000",
+      },
+      tokens: { expiresIn: 1800 },
+    });
+    expect(mocks.dbAuthService.register).toHaveBeenCalledWith(
+      expect.objectContaining({ restaurantId: undefined }),
+    );
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user:chef");
+
+    await expect(service.refreshToken("refresh")).resolves.toMatchObject({
+      success: true,
+      user: { id: 8, restaurantId: "restaurant-1" },
+      tokens: { accessToken: "refreshed-access", expiresIn: 3600 },
+    });
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "user-session:8:refreshed-access",
+      { userId: 8, token: "refreshed-access", cached: true },
+      expect.any(Number),
+    );
+  });
+
+  it("logs out single or all sessions and maps logout errors to false", async () => {
+    mocks.dbAuthService.logout.mockResolvedValueOnce(true);
+    const service = createService();
+
+    await expect(service.logout(7, "access-token")).resolves.toBe(true);
+    expect(mocks.cache.delete).toHaveBeenCalledWith("token:access-token");
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "security-event:1780790400000",
+      expect.objectContaining({ type: "LOGOUT", userId: 7 }),
+      expect.any(Number),
+    );
+
+    mocks.dbAuthService.logout.mockResolvedValueOnce(true);
+    await expect(service.logout(7, undefined, true)).resolves.toBe(true);
+    expect(mocks.cache.clear).toHaveBeenCalledWith("user-session:7");
+
+    mocks.dbAuthService.logout.mockRejectedValueOnce(new Error("db down"));
+    await expect(service.logout(7, "access-token")).resolves.toBe(false);
+  });
+
   it("returns cached token validation and avoids database validation", async () => {
     const cached = {
       valid: true,
@@ -307,6 +429,87 @@ describe("AuthService", () => {
     ]);
   });
 
+  it("loads, caches, updates, and terminates user profile sessions", async () => {
+    const user = {
+      id: 7,
+      username: "owner",
+      fullName: "Shop Owner",
+      email: null,
+      phone: "+886900000000",
+      role: 1,
+      restaurantId: "",
+      isActive: true,
+      isVerified: true,
+      lastLoginAt: null,
+      passwordChangedAt: null,
+      emailVerifiedAt: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-01T00:00:00.000Z"),
+    };
+    mocks.cache.get.mockResolvedValueOnce(null);
+    mockSelectGet(user);
+    mocks.dbAuthService.getUserSessions.mockResolvedValue([]);
+
+    const service = createService();
+    await expect(service.getUserProfile(7)).resolves.toMatchObject({
+      id: 7,
+      email: undefined,
+      phone: "+886900000000",
+      restaurantId: undefined,
+      twoFactorEnabled: false,
+      sessions: [],
+    });
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "user-profile:7",
+      expect.objectContaining({ id: 7 }),
+      expect.any(Number),
+    );
+
+    mockUpdateReturning([
+      {
+        ...user,
+        fullName: "Updated Owner",
+        email: "owner@example.test",
+        restaurantId: "restaurant-1",
+      },
+    ]);
+    await expect(
+      service.updateUserProfile(7, {
+        fullName: "Updated Owner",
+        email: "owner@example.test",
+      }),
+    ).resolves.toMatchObject({
+      id: 7,
+      fullName: "Updated Owner",
+      email: "owner@example.test",
+      restaurantId: "restaurant-1",
+    });
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user-profile:7");
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user:7");
+
+    mockUpdateReturning([{ id: "session-1" }]);
+    await expect(service.terminateSession(7, "session-1")).resolves.toBe(true);
+
+    mocks.dbAuthService.logout.mockResolvedValueOnce(true);
+    await expect(service.terminateAllSessions(7)).resolves.toBe(true);
+  });
+
+  it("returns null or false for profile/update/session failures", async () => {
+    mocks.cache.get.mockResolvedValueOnce(null);
+    mocks.db.select.mockImplementationOnce(() => {
+      throw new Error("select failed");
+    });
+    const service = createService();
+
+    await expect(service.getUserProfile(7)).resolves.toBeNull();
+    await expect(service.updateUserProfile(7, {})).resolves.toBeNull();
+
+    mocks.db.update.mockImplementationOnce(() => {
+      throw new Error("update failed");
+    });
+    await expect(service.terminateSession(7, "session-1")).resolves.toBe(false);
+  });
+
   it("resolves password reset targets without exposing missing accounts", async () => {
     mocks.verificationService.requestPasswordReset.mockResolvedValue({
       success: true,
@@ -335,6 +538,80 @@ describe("AuthService", () => {
     ).toHaveBeenNthCalledWith(2, {
       identifier: "owner@example.test",
       method: "email",
+    });
+  });
+
+  it("handles password changes, resets, and email verification workflows", async () => {
+    mocks.dbAuthService.changePassword.mockResolvedValueOnce({ success: true });
+    mocks.verificationService.resetPassword.mockResolvedValueOnce({
+      success: true,
+    });
+    mocks.verificationService.verifyEmail.mockResolvedValueOnce({
+      success: true,
+      userId: 7,
+    });
+    mocks.verificationService.sendEmailVerification.mockResolvedValueOnce({
+      success: true,
+    });
+    mockSelectGet({ email: "owner@example.test" });
+
+    const service = createService();
+
+    await expect(
+      service.changePassword(7, "old-password", "new-password"),
+    ).resolves.toEqual({ success: true });
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user-profile:7");
+    expect(mocks.cache.clear).toHaveBeenCalledWith("user-session:7");
+
+    await expect(
+      service.resetPassword("reset-token", "new-password"),
+    ).resolves.toEqual({ success: true, error: undefined });
+    await expect(service.verifyEmail("email-token")).resolves.toEqual({
+      success: true,
+      error: undefined,
+    });
+    await expect(service.requestEmailVerification(7)).resolves.toEqual({
+      success: true,
+      error: undefined,
+    });
+
+    mockSelectGet(null);
+    await expect(service.requestEmailVerification(8)).resolves.toEqual({
+      success: false,
+      error: "User email not found",
+    });
+  });
+
+  it("checks account security and aggregates authentication statistics", async () => {
+    mockSelectGet({ passwordChangedAt: new Date("2026-01-01T00:00:00.000Z") });
+    const service = createService();
+
+    await expect(service.checkAccountSecurity(7)).resolves.toMatchObject({
+      failedLoginAttempts: 0,
+      passwordStrength: "MEDIUM",
+      suspiciousActivity: false,
+      lastPasswordChangeAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    mockSelectRows([{ total: 20 }]);
+    mockSelectRows([{ total: 15 }]);
+    mockSelectRows([{ total: 6 }]);
+    mockSelectRows([
+      { platform: "ios", total: 4 },
+      { platform: null, total: 2 },
+      { platform: "web", total: 8 },
+    ]);
+    mockSelectRows([{ total: 9 }]);
+
+    await expect(service.getAuthStatistics("7d")).resolves.toMatchObject({
+      totalUsers: 20,
+      activeUsers: 15,
+      dailyLogins: 6,
+      uniqueDevices: 9,
+      platformDistribution: { ios: 4, web: 8 },
+      topCountries: [],
+      twoFactorAdoptionRate: 0,
+      recentSecurityEvents: [],
     });
   });
 
