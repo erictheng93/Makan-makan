@@ -43,7 +43,30 @@ vi.mock("@/services/api", () => ({
     get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
+    delete: vi.fn(),
   },
+  unwrapApiPayload: vi.fn((payload) => {
+    if (payload && typeof payload === "object" && "data" in payload) {
+      return (payload as { data: unknown }).data;
+    }
+
+    return payload;
+  }),
+  unwrapApiData: vi.fn((response: { data: unknown }) => {
+    const payload = response.data;
+    if (payload && typeof payload === "object" && "data" in payload) {
+      return (payload as { data: unknown }).data;
+    }
+
+    return payload;
+  }),
+  unwrapApiList: vi.fn((payload) => {
+    const data =
+      payload && typeof payload === "object" && "data" in payload
+        ? (payload as { data: unknown }).data
+        : payload;
+    return Array.isArray(data) ? data : [];
+  }),
 }));
 
 vi.mock("@/services/marketsService", () => ({
@@ -77,6 +100,12 @@ describe("SettingsView market join requests", () => {
       }
       if (url === "/restaurants/restaurant-1/qr/shop") {
         return { data: { data: { enabled: false } } };
+      }
+      if (url === "/restaurants/restaurant-1/service-items") {
+        return { data: { data: [] } };
+      }
+      if (url === "/service-bookings/slots") {
+        return { data: { data: { slots: [] } } };
       }
       return { data: { data: {} } };
     });
