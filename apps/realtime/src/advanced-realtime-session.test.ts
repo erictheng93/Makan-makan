@@ -42,6 +42,7 @@ function createFakeSocket() {
   return {
     socket: {
       readyState: WebSocket.OPEN,
+      accept: vi.fn(),
       send: vi.fn(),
       close: vi.fn(),
       addEventListener: vi.fn(
@@ -223,6 +224,7 @@ describe("AdvancedRealtimeSession order state behavior", () => {
   afterEach(() => {
     vi.mocked(console.log).mockRestore();
     vi.mocked(console.error).mockRestore();
+    vi.unstubAllGlobals();
     vi.clearAllTimers();
     vi.useRealTimers();
   });
@@ -1358,5 +1360,301 @@ describe("AdvancedRealtimeSession advanced coverage paths", () => {
       "Failed to send message:",
       expect.any(Error),
     );
+  });
+
+  it("attempts websocket upgrades and stores connection metadata", async () => {
+    const client = createFakeSocket();
+    const server = createFakeSocket();
+    const env = {
+      ...createEnv(),
+      ANALYTICS_ENGINE: { writeDataPoint: vi.fn() },
+    } as Env;
+    vi.stubGlobal("WebSocketPair", function WebSocketPair() {
+      return { 0: client.socket, 1: server.socket };
+    });
+    const session = new AdvancedRealtimeSession(createState(), env);
+
+    await expect(
+      session.fetch(
+        new Request(
+          "https://do.test/websocket?userId=7&restaurantId=10&role=2&sessionId=session-7",
+          {
+            headers: {
+              Upgrade: "websocket",
+              "CF-IPCountry": "TW",
+              "CF-IPCity": "Taipei",
+              "User-Agent": "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)",
+            },
+          },
+        ),
+      ),
+    ).rejects.toThrow('init["status"] must be in the range');
+
+    expect(server.socket.accept).toHaveBeenCalled();
+    expect(server.socket.addEventListener).toHaveBeenCalledWith(
+      "message",
+      expect.any(Function),
+    );
+    expect((session as any).sessionState.activeConnections.size).toBe(1);
+    expect(
+      Array.from((session as any).sessionState.activeConnections.values())[0],
+    ).toMatchObject({
+      userId: 7,
+      restaurantId: 10,
+      role: 2,
+      metadata: {
+        country: "TW",
+        city: "Taipei",
+        deviceType: "mobile",
+        sessionId: "session-7",
+      },
+    });
+    expect(env.ANALYTICS_ENGINE.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["connect", "7", "10"]),
+      }),
+    );
+  });
+
+  it("routes validated websocket messages to every advanced handler", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const fake = createFakeSocket();
+    const connection = createConnection({ socket: fake.socket });
+    const handlers = {
+      handleSubscription: vi.fn(),
+      handleOrderStateChange: vi.fn(),
+      handleBroadcastMessage: vi.fn(),
+      handleStateSyncRequest: vi.fn(),
+      handleJoinGroupOrder: vi.fn(),
+      handleLeaveGroupOrder: vi.fn(),
+      handleAddCartItem: vi.fn(),
+      handleUpdateCartItem: vi.fn(),
+      handleRemoveCartItem: vi.fn(),
+      handleInitiateSplitBill: vi.fn(),
+      handleProcessPayment: vi.fn(),
+    };
+    Object.assign(session as any, handlers);
+    (session as any).setupWebSocketHandlers(connection);
+    const dispatch = async (message: Record<string, unknown>) => {
+      await fake.listeners.get("message")?.({ data: JSON.stringify(message) });
+    };
+
+    await dispatch({ type: "subscribe", data: { channel: "orders" } });
+    await dispatch({
+      type: "order_state_change",
+      data: { orderId: "order-1", newState: "confirmed" },
+    });
+    await dispatch({ type: "broadcast", data: { text: "hello" } });
+    await dispatch({ type: "request_state_sync", data: { scope: "all" } });
+    await dispatch({
+      type: "join_group_order",
+      data: { shareCode: "SHARE1", memberName: "Guest" },
+    });
+    await dispatch({
+      type: "leave_group_order",
+      data: { groupOrderId: "group-1", memberId: "1" },
+    });
+    await dispatch({
+      type: "add_cart_item",
+      data: {
+        groupOrderId: "group-1",
+        memberId: "1",
+        menuItemId: 7,
+        menuItemName: "Nasi Lemak",
+        quantity: 1,
+        unitPrice: 120,
+      },
+    });
+    await dispatch({
+      type: "update_cart_item",
+      data: {
+        groupOrderId: "group-1",
+        itemId: "item-1",
+        customizations: { spice: "low" },
+        specialInstructions: "No peanuts",
+      },
+    });
+    await dispatch({
+      type: "remove_cart_item",
+      data: { groupOrderId: "group-1", itemId: "item-1" },
+    });
+    await dispatch({
+      type: "initiate_split_bill",
+      data: { groupOrderId: "group-1", splitType: "equal" },
+    });
+    await dispatch({
+      type: "process_payment",
+      data: {
+        groupOrderId: "group-1",
+        memberId: "1",
+        paymentMethod: "cash",
+        amount: 100,
+      },
+    });
+
+    for (const handler of Object.values(handlers)) {
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining(connection),
+        expect.any(Object),
+      );
+    }
+    expect((session as any).sessionState.totalMessages).toBe(11);
+  });
+
+  it("records cross-object notification and persistence failures", async () => {
+    const failingFetch = vi.fn(
+      async () => new Response("nope", { status: 503 }),
+    );
+    const env = {
+      REALTIME_SESSION: {
+        idFromName: vi.fn((name: string) => ({ name })),
+        get: vi.fn(() => ({ fetch: failingFetch })),
+      },
+    } as unknown as Env;
+    const session = new AdvancedRealtimeSession(createState(), env);
+    const orderState = {
+      id: "order-1",
+      currentState: "confirmed",
+      restaurantId: 10,
+      transitions: [],
+      estimatedTimes: { preparation: 0, ready: 0, completion: 0 },
+      priority: "normal",
+      metadata: {},
+    };
+
+    await session.notifyOtherRestaurantSessions(
+      orderState as any,
+      {
+        from: "pending",
+        to: "confirmed",
+        timestamp: Date.now(),
+        triggeredBy: 1,
+      } as any,
+    );
+
+    expect(failingFetch).toHaveBeenCalledTimes(2);
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to notify session admin:10:",
+      expect.any(Error),
+    );
+
+    (session as any).env.REALTIME_SESSION.idFromName = vi.fn(() => {
+      throw new Error("namespace unavailable");
+    });
+    await session.notifyOtherRestaurantSessions(
+      orderState as any,
+      {
+        from: "confirmed",
+        to: "preparing",
+        timestamp: Date.now(),
+        triggeredBy: 1,
+      } as any,
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to notify session admin:10:",
+      expect.any(Error),
+    );
+  });
+
+  it("handles hibernation, persisted state, and timer failure paths", async () => {
+    const state = createState();
+    const session = new AdvancedRealtimeSession(state, createEnv());
+    const connection = createConnection({
+      socket: {
+        readyState: WebSocket.OPEN,
+        send: vi.fn(() => {
+          throw new Error("cannot send hibernation notice");
+        }),
+        close: vi.fn(() => {
+          throw new Error("cannot close");
+        }),
+      },
+    });
+    (session as any).sessionState.activeConnections.set(
+      connection.id,
+      connection,
+    );
+
+    await (session as any).hibernateSession();
+
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to send message:",
+      expect.any(Error),
+    );
+    expect(connection.socket.close).toHaveBeenCalledWith(
+      1000,
+      "Session hibernating",
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to close connection connection-1:",
+      expect.any(Error),
+    );
+    expect((session as any).sessionState.hibernated).toBe(true);
+
+    vi.mocked(state.storage.put).mockRejectedValueOnce(
+      new Error("storage unavailable"),
+    );
+    await (session as any).hibernateSession();
+    expect(console.error).toHaveBeenCalledWith(
+      "Hibernation failed:",
+      expect.any(Error),
+    );
+
+    vi.mocked(state.storage.list).mockRejectedValueOnce(
+      new Error("list unavailable"),
+    );
+    await (session as any).loadPersistedState();
+    expect((session as any).sessionState.errors.at(-1)).toMatchObject({
+      error: "list unavailable",
+      context: { operation: "load_state" },
+    });
+  });
+
+  it("runs maintenance timers and broadcasts group events to subscribers", async () => {
+    const session = new AdvancedRealtimeSession(createState(), createEnv());
+    const hibernateSession = vi
+      .spyOn(session as any, "hibernateSession")
+      .mockResolvedValue(undefined);
+    const collectAndSendMetrics = vi
+      .spyOn(session as any, "collectAndSendMetrics")
+      .mockResolvedValue(undefined);
+    const cleanupOldData = vi
+      .spyOn(session as any, "cleanupOldData")
+      .mockResolvedValue(undefined);
+
+    (session as any).sessionState.lastActivity = Date.now() - 31 * 60 * 1000;
+
+    await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+    expect(hibernateSession).toHaveBeenCalled();
+    expect(collectAndSendMetrics).toHaveBeenCalledTimes(5);
+
+    await vi.advanceTimersByTimeAsync(55 * 60 * 1000);
+    expect(cleanupOldData).toHaveBeenCalled();
+
+    const subscribed = createConnection({
+      id: "connection-2",
+      subscriptions: new Set(["group_order:group-1"]),
+    });
+    const unsubscribed = createConnection({
+      id: "connection-3",
+      subscriptions: new Set(["group_order:other"]),
+    });
+    (session as any).sessionState.activeConnections.set(
+      subscribed.id,
+      subscribed,
+    );
+    (session as any).sessionState.activeConnections.set(
+      unsubscribed.id,
+      unsubscribed,
+    );
+
+    await (session as any).broadcastGroupOrderEvent(createGroupOrder(), {
+      type: "cart_item_updated",
+    });
+
+    expect(subscribed.socket.send).toHaveBeenCalledWith(
+      expect.stringContaining('"type":"group_order_event"'),
+    );
+    expect(unsubscribed.socket.send).not.toHaveBeenCalled();
   });
 });
