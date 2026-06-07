@@ -45,8 +45,7 @@ describe("MonitoringService", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.mocked(console.error).mockRestore();
-    vi.mocked(console.info).mockRestore();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -65,6 +64,34 @@ describe("MonitoringService", () => {
       p99ResponseTime: 700,
       slowRequestCount: 1,
     });
+  });
+
+  it("records server API failures as critical alerts", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    await service.recordApiRequest(1200, 503, "/orders");
+
+    await expect(service.getMetrics()).resolves.toMatchObject({
+      apiMetrics: {
+        totalRequests: 1,
+        averageResponseTime: 1200,
+        slowRequestCount: 1,
+      },
+      errorMetrics: {
+        totalErrors: 1,
+        criticalErrors: 1,
+        errorsByType: { api_error: 1 },
+      },
+    });
+    await expect(service.getRecentAlerts()).resolves.toEqual([
+      expect.objectContaining({
+        title: "CRITICAL: api_error",
+        message: "503 error on /orders",
+        severity: "critical",
+        type: "slack",
+      }),
+    ]);
   });
 
   it("records database, cache, and error metrics", async () => {
@@ -126,6 +153,34 @@ describe("MonitoringService", () => {
     });
   });
 
+  it("reports healthy status before cache activity and shows critical API issues", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    const healthy = await service.getHealthStatus();
+    expect(healthy).toMatchObject({
+      overall: "healthy",
+      components: {
+        api: { status: "healthy", issues: [] },
+        database: { status: "healthy", issues: [] },
+        cache: { status: "healthy", issues: ["Low hit rate: 0.00%"] },
+      },
+    });
+
+    await service.recordApiRequest(600, 200, "/slow");
+    await service.recordError("rate", "Elevated rate", "warning");
+    type MetricsState = Awaited<ReturnType<MonitoringService["getMetrics"]>>;
+    (
+      service as unknown as { metrics: MetricsState }
+    ).metrics.apiMetrics.errorRate = 0.2;
+
+    const degraded = await service.getHealthStatus();
+    expect(degraded.components.api).toMatchObject({
+      status: "critical",
+      issues: ["High error rate: 20.00%", "Slow response time: 600.00ms"],
+    });
+  });
+
   it("creates, updates, loads, and deletes alert rules", async () => {
     const { kv } = createKV();
     const service = new MonitoringService(kv);
@@ -151,6 +206,15 @@ describe("MonitoringService", () => {
     ).resolves.toBe(true);
     await expect(service.deleteAlertRule(id)).resolves.toBe(true);
     await expect(service.deleteAlertRule("missing")).resolves.toBe(false);
+  });
+
+  it("returns false when updating an unknown alert rule", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    await expect(
+      service.updateAlertRule("missing", { threshold: 10 }),
+    ).resolves.toBe(false);
   });
 
   it("triggers enabled alert rules and stores recent alerts", async () => {
@@ -198,6 +262,91 @@ describe("MonitoringService", () => {
     );
   });
 
+  it("evaluates alert operators and skips inactive, disabled, and cooling rules", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    await service.createAlertRule({
+      name: "Less than threshold",
+      condition: "errorMetrics.totalErrors < 5",
+      metric: "errorMetrics.totalErrors",
+      operator: "<",
+      threshold: 5,
+      duration: 60,
+      config: { type: "slack", severity: "warning", enabled: true },
+    });
+    await service.createAlertRule({
+      name: "At most threshold",
+      condition: "errorMetrics.totalErrors <= 1",
+      metric: "errorMetrics.totalErrors",
+      operator: "<=",
+      threshold: 1,
+      duration: 60,
+      config: { type: "slack", severity: "warning", enabled: true },
+    });
+    const equalityId = await service.createAlertRule({
+      name: "Equals threshold",
+      condition: "errorMetrics.totalErrors = 1",
+      metric: "errorMetrics.totalErrors",
+      operator: "=",
+      threshold: 1,
+      duration: 60,
+      config: { type: "slack", severity: "warning", enabled: true },
+    });
+    const inactiveId = await service.createAlertRule({
+      name: "Inactive rule",
+      condition: "errorMetrics.totalErrors >= 1",
+      metric: "errorMetrics.totalErrors",
+      operator: ">=",
+      threshold: 1,
+      duration: 60,
+      config: { type: "slack", severity: "warning", enabled: true },
+    });
+    await service.createAlertRule({
+      name: "Disabled rule",
+      condition: "errorMetrics.totalErrors >= 1",
+      metric: "errorMetrics.totalErrors",
+      operator: ">=",
+      threshold: 1,
+      duration: 60,
+      config: { type: "slack", severity: "warning", enabled: false },
+    });
+    await service.createAlertRule({
+      name: "Unknown operator",
+      condition: "errorMetrics.totalErrors != 2",
+      metric: "errorMetrics.totalErrors",
+      operator: "!=" as never,
+      threshold: 2,
+      duration: 60,
+      config: { type: "slack", severity: "warning", enabled: true },
+    });
+    await service.updateAlertRule(inactiveId, { isActive: false });
+
+    await service.recordError("first", "First", "info");
+    await service.recordError("second", "Second", "info");
+
+    const alerts = await service.getRecentAlerts();
+    expect(alerts.map((alert) => alert.title)).toEqual(
+      expect.arrayContaining([
+        "Less than threshold",
+        "At most threshold",
+        "Equals threshold",
+      ]),
+    );
+    expect(alerts.map((alert) => alert.title)).not.toEqual(
+      expect.arrayContaining([
+        "Inactive rule",
+        "Disabled rule",
+        "Unknown operator",
+      ]),
+    );
+
+    const rules = await service.getAlertRules();
+    expect(rules.find((rule) => rule.id === equalityId)).toMatchObject({
+      triggerCount: 1,
+    });
+  });
+
   it("filters recent alerts and resets metrics", async () => {
     const { kv } = createKV();
     const service = new MonitoringService(kv);
@@ -228,6 +377,16 @@ describe("MonitoringService", () => {
       apiMetrics: { totalRequests: 0 },
     });
     await expect(service.getRecentAlerts()).resolves.toEqual([]);
+  });
+
+  it("falls back safely when saved alert rules are invalid or absent", async () => {
+    const { kv, values } = createKV();
+    const service = new MonitoringService(kv);
+
+    await expect(service.getAlertRules()).resolves.toEqual([]);
+
+    values.set("_alert_rules", "{bad-json");
+    await expect(service.getAlertRules()).resolves.toEqual([]);
   });
 
   it("exposes default rules and singleton factory behavior", () => {
