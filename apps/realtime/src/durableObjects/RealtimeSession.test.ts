@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { sign } from "jsonwebtoken";
 import { RealtimeEventType } from "@makanmakan/shared-types";
 import { RealtimeSession } from "./RealtimeSession";
 import type { Env } from "../types/env";
+
+const jwtSecret = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 function createEnv(): Env {
   return {
@@ -14,6 +17,15 @@ function createEnv(): Env {
     CACHE_KV: {} as KVNamespace,
     TOKEN_BLACKLIST: {} as KVNamespace,
     DB: {} as D1Database,
+  };
+}
+
+function createAuthEnv(overrides: Partial<Env> = {}): Env {
+  return {
+    ...createEnv(),
+    JWT_SECRET: jwtSecret,
+    TOKEN_BLACKLIST: undefined as unknown as KVNamespace,
+    ...overrides,
   };
 }
 
@@ -72,7 +84,30 @@ function event(id: string, timestamp = Date.now()) {
   };
 }
 
+function tokenFor(payload: Record<string, unknown>) {
+  return sign(
+    {
+      roomType: "admin",
+      roomId: "restaurant-1",
+      restaurantId: "restaurant-1",
+      role: "admin",
+      ...payload,
+    },
+    jwtSecret,
+    { expiresIn: "1h" },
+  );
+}
+
 describe("RealtimeSession HTTP endpoints", () => {
+  it("returns 404 for unknown HTTP endpoints", async () => {
+    const session = new RealtimeSession(createEnv());
+
+    const response = await session.fetch(new Request("https://do.test/nope"));
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("Not found");
+  });
+
   it("rejects malformed broadcast events", async () => {
     const session = new RealtimeSession(createEnv());
     const response = await session.fetch(
@@ -170,6 +205,16 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     );
     await (session as any).handleMessage(
       socket,
+      JSON.stringify({ type: "subscribe", channel: "orders" }),
+      info,
+    );
+    await (session as any).handleMessage(
+      socket,
+      JSON.stringify({ type: "unsubscribe", channel: "orders" }),
+      info,
+    );
+    await (session as any).handleMessage(
+      socket,
       JSON.stringify({ type: "subscribe", channel: "" }),
       info,
     );
@@ -196,6 +241,188 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       },
     });
     expect(info.lastActivity).toEqual(expect.any(Number));
+  });
+
+  it("rejects websocket upgrades with missing room parameters or tokens", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const session = new RealtimeSession(createAuthEnv());
+
+      const missingRoom = await session.fetch(
+        new Request("https://do.test/admin", {
+          headers: { Upgrade: "websocket" },
+        }),
+      );
+      expect(missingRoom.status).toBe(400);
+      await expect(missingRoom.text()).resolves.toBe("Invalid room parameters");
+
+      const missingToken = await session.fetch(
+        new Request("https://do.test/admin/restaurant-1", {
+          headers: { Upgrade: "websocket" },
+        }),
+      );
+      expect(missingToken.status).toBe(401);
+      await expect(missingToken.text()).resolves.toBe(
+        "Unauthorized: Token required",
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("rejects websocket upgrades for invalid token and room claims", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      const invalidToken = await new RealtimeSession(createAuthEnv()).fetch(
+        new Request("https://do.test/admin/restaurant-1?token=not-a-jwt", {
+          headers: { Upgrade: "websocket" },
+        }),
+      );
+      expect(invalidToken.status).toBe(401);
+      await expect(invalidToken.text()).resolves.toBe(
+        "Unauthorized: Invalid token format",
+      );
+
+      const roomMismatch = await new RealtimeSession(createAuthEnv()).fetch(
+        new Request(
+          `https://do.test/admin/restaurant-1?token=${tokenFor({
+            roomId: "restaurant-2",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+      expect(roomMismatch.status).toBe(403);
+      await expect(roomMismatch.text()).resolves.toBe(
+        "Forbidden: Room ID does not match token",
+      );
+
+      const typeMismatch = await new RealtimeSession(createAuthEnv()).fetch(
+        new Request(
+          `https://do.test/admin/restaurant-1?token=${tokenFor({
+            roomType: "kitchen",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+      expect(typeMismatch.status).toBe(403);
+      await expect(typeMismatch.text()).resolves.toBe(
+        "Forbidden: Room type does not match token",
+      );
+
+      const roleRoomMismatch = await new RealtimeSession(createAuthEnv()).fetch(
+        new Request(
+          `https://do.test/admin/restaurant-1?token=${tokenFor({
+            role: "staff",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+      expect(roleRoomMismatch.status).toBe(403);
+      await expect(roleRoomMismatch.text()).resolves.toContain(
+        'Role "staff" is not authorized',
+      );
+    } finally {
+      warn.mockRestore();
+      error.mockRestore();
+    }
+  });
+
+  it("rejects websocket upgrades when restaurant or table access fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const staffDb = createDb([{ restaurant_id: "restaurant-2", role: 2 }]);
+      const staffDenied = await new RealtimeSession(
+        createAuthEnv({ DB: staffDb.DB }),
+      ).fetch(
+        new Request(
+          `https://do.test/kitchen/restaurant-1?token=${tokenFor({
+            roomType: "kitchen",
+            role: "staff",
+            userId: "10",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+      expect(staffDenied.status).toBe(403);
+      await expect(staffDenied.text()).resolves.toBe(
+        "Forbidden: User does not belong to this restaurant",
+      );
+
+      const tableDb = createDb([{ id: 7, restaurant_id: "restaurant-2" }]);
+      const tableDenied = await new RealtimeSession(
+        createAuthEnv({ DB: tableDb.DB }),
+      ).fetch(
+        new Request(
+          `https://do.test/customer/table-7?token=${tokenFor({
+            roomType: "customer",
+            roomId: "table-7",
+            role: "customer",
+            tableId: 7,
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+      expect(tableDenied.status).toBe(403);
+      await expect(tableDenied.text()).resolves.toBe(
+        "Forbidden: Table does not belong to this restaurant",
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("sets up authenticated websocket connections before 101 responses fail in node", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const client = createSocket();
+    const server = createSocket({
+      accept: vi.fn(),
+      addEventListener: vi.fn(),
+    });
+    vi.stubGlobal("WebSocketPair", function WebSocketPair() {
+      return { 0: client, 1: server };
+    });
+    try {
+      const db = createDb([{ restaurant_id: null, role: 0 }]);
+      const session = new RealtimeSession(createAuthEnv({ DB: db.DB }));
+
+      await expect(
+        session.fetch(
+          new Request(
+            `https://do.test/admin/restaurant-1?token=${tokenFor({
+              userId: "1",
+            })}`,
+            { headers: { Upgrade: "websocket" } },
+          ),
+        ),
+      ).rejects.toThrow('init["status"] must be in the range');
+
+      expect(server.accept).toHaveBeenCalled();
+      expect(server.addEventListener).toHaveBeenCalledWith(
+        "message",
+        expect.any(Function),
+      );
+      expect((session as any).roomInfo).toEqual({
+        type: "admin",
+        id: "restaurant-1",
+      });
+      expect((session as any).connections.get(server)).toMatchObject({
+        type: "admin",
+        roomId: "restaurant-1",
+        auth: expect.objectContaining({
+          userId: "1",
+          role: "admin",
+        }),
+      });
+      expect(server.send).toHaveBeenCalledWith(
+        expect.stringContaining(RealtimeEventType.CONNECTION_ACK),
+      );
+    } finally {
+      warn.mockRestore();
+      vi.unstubAllGlobals();
+    }
   });
 
   it("routes broadcast events by restaurant, role, event type, and socket readiness", async () => {
@@ -325,12 +552,19 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         },
       }),
     );
+    (session as any).connections.set(
+      createSocket(),
+      connection({
+        id: "anonymous",
+        auth: undefined,
+      }),
+    );
 
     const response = await session.fetch(new Request("https://do.test/stats"));
 
     await expect(response.json()).resolves.toMatchObject({
       roomInfo: { type: "kitchen", id: "restaurant-1" },
-      connectionCount: 1,
+      connectionCount: 2,
       connections: [
         {
           id: "staff-1",
@@ -339,6 +573,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
           connectedAt: "2026-06-07T00:00:00.000Z",
           lastActivity: "2026-06-07T00:01:00.000Z",
           lastEventId: "evt-1",
+        },
+        {
+          id: "anonymous",
         },
       ],
       eventHistorySize: 0,
