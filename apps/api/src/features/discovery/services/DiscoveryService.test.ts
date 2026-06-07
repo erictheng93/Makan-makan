@@ -324,6 +324,9 @@ describe("DiscoveryService", () => {
         "cat:Drinks:s:distance:pmin:50:pmax:100:open:ta:dl:" +
         "m:market-1:geo:25,121,20:p:3:l:10",
     );
+    expect(
+      helpers.buildCacheKey("search:query", { priceMin: 0, priceMax: 0 }, "9"),
+    ).toBe("search:query:v:9:p:1:l:20");
 
     expect(helpers.getServiceIntent("takeaway")).toBe("takeaway");
     expect(helpers.getServiceIntent("deliver")).toBe("delivery");
@@ -343,6 +346,9 @@ describe("DiscoveryService", () => {
       helpers.getDishSearchOrderBy({ q: "Laksa" }, {}, "laksa", [1]),
     ).toHaveLength(2);
     expect(
+      helpers.getDishSearchOrderBy({ q: "Laksa" }, {}, "laksa"),
+    ).toHaveLength(2);
+    expect(
       helpers.getServiceSearchOrderBy({ sortBy: "price_desc" }),
     ).toHaveLength(4);
     expect(
@@ -350,6 +356,7 @@ describe("DiscoveryService", () => {
     ).toHaveLength(4);
     expect(helpers.getServiceSearchOrderBy({})).toHaveLength(2);
     expect(helpers.getServiceSearchOrderBy({ q: "booking" })).toHaveLength(3);
+    expect(helpers.getServiceSearchOrderBy({ q: "massage" })).toHaveLength(3);
 
     const geo = helpers.getGeoFilter({ lat: 25, lng: 121, radiusKm: 50 });
     expect(geo).toMatchObject({ lat: 25, lng: 121, radiusKm: 10 });
@@ -357,6 +364,9 @@ describe("DiscoveryService", () => {
       helpers.resultDistanceKm(geo, { latitude: 25, longitude: 121 }),
     ).toBe(0);
     expect(helpers.getGeoFilter({ lat: 25 })).toBeNull();
+    expect(
+      helpers.getGeoFilter({ lat: 25, lng: 121, radiusKm: 0 }),
+    ).toMatchObject({ radiusKm: 0.1 });
     expect(
       helpers.sortDistanceResultsFirst([
         { id: "no-distance" },
@@ -400,6 +410,24 @@ describe("DiscoveryService", () => {
       stallNumber: "A12",
       locationLabel: "Food court",
       isPrimary: true,
+    });
+    expect(
+      helpers.marketVendorContext({
+        marketVendorMarketId: "market-1",
+        marketVendorStallNumber: null,
+        marketVendorLocationLabel: null,
+        marketVendorIsPrimary: 0,
+        marketVendorMarketSlug: null,
+        marketVendorMarketName: null,
+      }),
+    ).toEqual({
+      marketId: "market-1",
+      marketSlug: null,
+      marketName: null,
+      marketUrl: null,
+      stallNumber: null,
+      locationLabel: null,
+      isPrimary: false,
     });
     expect(
       helpers.marketVendorContext({
@@ -514,6 +542,120 @@ describe("DiscoveryService", () => {
     expect(
       JSON.parse(values.get("search:query:v:11:laksa:p:1:l:10") ?? "{}"),
     ).toMatchObject({ total: 2 });
+  });
+
+  it("applies dish search service intent filters without semantic lookup", async () => {
+    const semanticSearch = {
+      searchDishIdsWithStatus: vi.fn(),
+      warmQueryEmbedding: vi.fn(),
+      upsertDishes: vi.fn(),
+    };
+    const { kv, values } = createKV({ "search:query:version": "13" });
+    const service = new DiscoveryService(
+      {} as D1Database,
+      kv,
+      undefined,
+      semanticSearch as any,
+    );
+    mockSelectResults([
+      [
+        {
+          menuItemId: 4,
+          dishName: "Pickup Tea",
+          price: 40,
+          priceCents: null,
+          catalogType: "product",
+          categoryName: "Drinks",
+          restaurantId: "restaurant-4",
+          restaurantName: "Tea Stand",
+          district: "East",
+          businessHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+          tags: null,
+          latitude: null,
+          longitude: null,
+          marketVendorMarketId: "market-1",
+          marketVendorStallNumber: null,
+          marketVendorLocationLabel: null,
+          marketVendorIsPrimary: false,
+          marketVendorMarketSlug: null,
+          marketVendorMarketName: null,
+        },
+      ],
+      [{ count: Number.NaN }],
+      [{ count: undefined }],
+      [],
+    ]);
+
+    await expect(
+      service.searchDishes({
+        q: "takeaway",
+        city: "Taipei",
+        district: "East",
+        categoryName: "Drinks",
+        catalogType: "product",
+        priceMin: 1,
+        priceMax: 99,
+        marketId: "market-1",
+        page: 2,
+        limit: 5,
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      page: 2,
+      limit: 5,
+      results: [
+        {
+          menuItemId: 4,
+          price: 40,
+          supportsTakeaway: true,
+          marketVendor: { marketId: "market-1", marketUrl: null },
+        },
+      ],
+      scope: {
+        market: {
+          marketId: "market-1",
+          searchableProductCount: 0,
+          publicServiceCount: 0,
+          hasSearchableCatalog: false,
+        },
+      },
+    });
+    expect(semanticSearch.searchDishIdsWithStatus).not.toHaveBeenCalled();
+    expect(
+      JSON.parse(
+        values.get(
+          "search:query:v:13:takeaway:c:Taipei:d:East:ct:product:" +
+            "cat:Drinks:pmin:1:pmax:99:m:market-1:p:2:l:5",
+        ) ?? "{}",
+      ),
+    ).toMatchObject({ total: 1 });
+  });
+
+  it("schedules semantic warmup instead of caching sparse cache-miss searches", async () => {
+    const semanticSearch = {
+      searchDishIdsWithStatus: vi.fn(async () => ({
+        matches: [],
+        embeddingStatus: "cache-miss" as const,
+      })),
+      warmQueryEmbedding: vi.fn(() => true),
+      upsertDishes: vi.fn(),
+    };
+    const { service, kv } = createService({ "search:query:version": "14" });
+    (service as any).semanticSearch = semanticSearch;
+    mockSelectResults([[], [{ count: 0 }]]);
+
+    await expect(
+      service.searchDishes({ q: "Laksa", page: 1, limit: 10 }),
+    ).resolves.toMatchObject({
+      total: 0,
+      results: [],
+      scope: undefined,
+    });
+
+    expect(semanticSearch.warmQueryEmbedding).toHaveBeenCalledWith("Laksa");
+    expect(kv.put).not.toHaveBeenCalled();
   });
 
   it("queries and caches categories, restaurant browsing, and service search", async () => {
