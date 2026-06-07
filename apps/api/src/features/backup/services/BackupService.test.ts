@@ -17,12 +17,13 @@ vi.mock("drizzle-orm/d1", () => ({
 
 import { BackupService } from "./BackupService";
 
-function createService() {
+function createService(d1: D1Database = {} as D1Database) {
   const storageService = {
     generateDownloadResponse: vi.fn(),
     deleteBackup: vi.fn(),
     backupExists: vi.fn(),
     retrieveBackup: vi.fn(),
+    storeBackup: vi.fn(),
   };
   const configService = {
     getConfigurationById: vi.fn(),
@@ -36,7 +37,7 @@ function createService() {
     validateRestoreRequest: vi.fn(),
   };
   const service = new BackupService(
-    {} as D1Database,
+    d1,
     storageService as any,
     configService as any,
     validationService as any,
@@ -92,6 +93,56 @@ function mockMutations() {
   }));
 
   return { inserted, updated, deleted };
+}
+
+function createD1Mock(
+  handlers: Record<
+    string,
+    Array<Record<string, unknown>> | ((values: unknown[]) => Array<Record<string, unknown>>)
+  > = {},
+) {
+  const calls: Array<{ statement: string; values: unknown[]; kind: string }> =
+    [];
+  return {
+    calls,
+    d1: {
+      prepare: vi.fn((statement: string) => {
+        const prepared = {
+          bind: vi.fn((...values: unknown[]) => ({
+            all: vi.fn(async () => {
+              calls.push({ statement, values, kind: "all" });
+              const handler = Object.entries(handlers).find(([pattern]) =>
+                statement.includes(pattern),
+              )?.[1];
+              const results =
+                typeof handler === "function"
+                  ? handler(values)
+                  : handler ?? [];
+              return { results };
+            }),
+            run: vi.fn(async () => {
+              calls.push({ statement, values, kind: "run" });
+              return { meta: { changes: 1 } };
+            }),
+          })),
+          all: vi.fn(async () => {
+            calls.push({ statement, values: [], kind: "all" });
+            const handler = Object.entries(handlers).find(([pattern]) =>
+              statement.includes(pattern),
+            )?.[1];
+            const results =
+              typeof handler === "function" ? handler([]) : handler ?? [];
+            return { results };
+          }),
+          run: vi.fn(async () => {
+            calls.push({ statement, values: [], kind: "run" });
+            return { meta: { changes: 1 } };
+          }),
+        };
+        return prepared;
+      }),
+    } as unknown as D1Database,
+  };
 }
 
 describe("BackupService", () => {
@@ -526,5 +577,293 @@ describe("BackupService", () => {
         performedBy: "user-2",
       }),
     ]);
+  });
+
+  it("creates scheduled backups with configuration defaults and manifest counts", async () => {
+    const mutations = mockMutations();
+    const { d1 } = createD1Mock({
+      "PRAGMA table_info": [{ name: "restaurant_id" }],
+      "SELECT COUNT": [{ total: 3 }],
+    });
+    const { service, configService, validationService } = createService(d1);
+    configService.getDefaultConfiguration.mockResolvedValue({
+      id: "config-1",
+      restaurant_id: "restaurant-1",
+      backup_type: "incremental",
+      include_tables: ["orders", "menus"],
+      exclude_tables: ["menus"],
+      storage_provider: "r2",
+      encryption_enabled: true,
+      compression_enabled: false,
+    });
+
+    const response = await service.createBackup(
+      {
+        restaurant_id: "restaurant-1",
+        name: "Nightly",
+        force_immediate: false,
+      } as any,
+      "user-1",
+    );
+
+    expect(response).toMatchObject({
+      status: "pending",
+      message: "Backup has been scheduled successfully",
+      manifest: {
+        rowCounts: { orders: 3 },
+        tables: ["orders"],
+      },
+    });
+    expect(validationService.validateCreateBackupRequest).toHaveBeenCalled();
+    expect(validationService.checkBackupLimits).toHaveBeenCalledWith(
+      "restaurant-1",
+    );
+    expect(validationService.checkStorageQuota).toHaveBeenCalledWith(
+      "restaurant-1",
+    );
+    expect(validationService.validateTableNames).toHaveBeenCalledWith([
+      "orders",
+    ]);
+    expect(mutations.inserted[0]).toMatchObject({
+      restaurantId: "restaurant-1",
+      configurationId: "config-1",
+      name: "Nightly",
+      backupType: "incremental",
+      status: "pending",
+      tablesIncluded: ["orders"],
+      storageProvider: "r2",
+      encryptionEnabled: true,
+      createdBy: "user-1",
+      metadata: {
+        manifest: expect.objectContaining({
+          rowCounts: { orders: 3 },
+          tables: ["orders"],
+        }),
+      },
+    });
+  });
+
+  it("creates immediate backups by extracting scoped table data and storing the payload", async () => {
+    const mutations = mockMutations();
+    const { d1, calls } = createD1Mock({
+      "PRAGMA table_info": [{ name: "restaurant_id" }, { name: "id" }],
+      "SELECT COUNT": [{ total: 2 }],
+      "SELECT *": [
+        { id: 1, restaurant_id: "restaurant-1", total: 120 },
+        { id: 2, restaurant_id: "restaurant-1", total: 80 },
+      ],
+    });
+    const { service, configService, storageService } = createService(d1);
+    configService.getConfigurationById.mockResolvedValue({
+      id: "config-1",
+      restaurant_id: "restaurant-1",
+      backup_type: "full",
+      include_tables: ["orders"],
+      exclude_tables: [],
+      storage_provider: "r2",
+      encryption_enabled: false,
+      compression_enabled: false,
+    });
+    storageService.storeBackup.mockResolvedValue({
+      storage_path: "backups/backup.json",
+      checksum: "checksum-1",
+    });
+
+    const response = await service.createBackup(
+      {
+        restaurant_id: "restaurant-1",
+        configuration_id: "config-1",
+        name: "Immediate",
+        backup_type: "full",
+        include_tables: ["orders"],
+        force_immediate: true,
+      } as any,
+      "user-1",
+    );
+
+    expect(response).toMatchObject({
+      status: "completed",
+      message: "Backup completed successfully",
+      checksum: "checksum-1",
+      manifest: {
+        rowCounts: { orders: 2 },
+        tables: ["orders"],
+      },
+    });
+    expect(storageService.storeBackup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: response.backup_id,
+        restaurant_id: "restaurant-1",
+        tables_included: ["orders"],
+      }),
+      expect.stringContaining('"total": 120'),
+      "r2",
+    );
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statement: expect.stringContaining('SELECT * FROM "orders"'),
+          values: ["restaurant-1"],
+        }),
+        expect.objectContaining({
+          statement: expect.stringContaining(
+            'SELECT COUNT(*) as total FROM "orders"',
+          ),
+          values: ["restaurant-1"],
+        }),
+      ]),
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "in_progress" }),
+        expect.objectContaining({
+          status: "completed",
+          storagePath: "backups/backup.json",
+          checksum: "checksum-1",
+          recordsCount: 2,
+        }),
+      ]),
+    );
+    expect(mutations.inserted).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "pending" }),
+        expect.objectContaining({
+          action: "backup_created",
+          performedBy: "user-1",
+          details: expect.objectContaining({
+            records_count: 2,
+            tables_count: 1,
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("restores completed backups selectively after integrity and schema checks", async () => {
+    const mutations = mockMutations();
+    const backupData = JSON.stringify({
+      orders: [{ id: 1, restaurant_id: "restaurant-1", total: 120 }],
+    });
+    const { d1 } = createD1Mock({
+      "PRAGMA table_info": [
+        { name: "id" },
+        { name: "restaurant_id" },
+        { name: "total" },
+      ],
+    });
+    const { service, storageService, validationService } = createService(d1);
+    mockSelectResults([
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: false,
+          checksum: "",
+          completedAt: "2026-06-07T00:01:00.000Z",
+          metadata: {
+            manifest: {
+              row_counts: { orders: 1 },
+              tables: ["orders"],
+              created_at: "2026-06-07T00:01:00.000Z",
+            },
+          },
+        },
+      ],
+      [
+        {
+          id: "restore-1",
+          restaurantId: "restaurant-1",
+          backupId: "backup-1",
+          restoreType: "selective",
+          targetTables: ["orders"],
+          overwriteExisting: false,
+          performedBy: "user-1",
+        },
+      ],
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: false,
+          checksum: "",
+          completedAt: "2026-06-07T00:01:00.000Z",
+          metadata: {
+            manifest: {
+              row_counts: { orders: 1 },
+              tables: ["orders"],
+              created_at: "2026-06-07T00:01:00.000Z",
+            },
+          },
+        },
+      ],
+    ]);
+    storageService.backupExists.mockResolvedValue(true);
+    storageService.retrieveBackup.mockResolvedValue(backupData);
+
+    const result = await service.restoreFromBackup(
+      {
+        restaurant_id: "restaurant-1",
+        backup_id: "backup-1",
+        restore_type: "selective",
+        target_tables: ["orders"],
+        overwrite_existing: false,
+        safety_confirmation: {
+          backup_integrity_verified: true,
+          data_loss_risk_acknowledged: true,
+        },
+      } as any,
+      "user-1",
+    );
+
+    expect(result).toMatchObject({
+      restore_id: expect.any(String),
+      checksum: "",
+      rowCounts: { orders: 1 },
+    });
+    expect(validationService.validateRestoreRequest).toHaveBeenCalled();
+    expect(validationService.validateTableNames).toHaveBeenCalledWith([
+      "orders",
+    ]);
+    expect(storageService.retrieveBackup).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "backup-1" }),
+    );
+    expect(mutations.inserted).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          restaurantId: "restaurant-1",
+          backupId: "backup-1",
+          status: "pending",
+          targetTables: ["orders"],
+          performedBy: "user-1",
+        }),
+        expect.objectContaining({
+          action: "backup_restored",
+          performedBy: "user-1",
+          details: expect.objectContaining({
+            backup_id: "backup-1",
+            tables_restored: 1,
+            records_restored: 1,
+          }),
+        }),
+      ]),
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "in_progress" }),
+        expect.objectContaining({
+          status: "completed",
+          tablesRestored: 1,
+          recordsRestored: 1,
+        }),
+      ]),
+    );
   });
 });
