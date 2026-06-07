@@ -444,7 +444,10 @@ export class MenuService implements IMenuService {
         prices.length > 0
           ? prices.reduce((sum, price) => sum + price, 0) / prices.length
           : 0;
-      const priceRange = { min: Math.min(...prices), max: Math.max(...prices) };
+      const priceRange =
+        prices.length > 0
+          ? { min: Math.min(...prices), max: Math.max(...prices) }
+          : { min: 0, max: 0 };
       const categoryMap = new Map<number, { name: string; count: number }>();
       for (const item of items) {
         const category = menu.categories.find(

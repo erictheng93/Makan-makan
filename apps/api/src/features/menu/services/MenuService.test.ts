@@ -135,6 +135,41 @@ describe("MenuService", () => {
     expect(dbService.getMenu).toHaveBeenCalledWith("rest-1", undefined);
   });
 
+  it("bypasses public availability checks for privileged menu reads", async () => {
+    const db = createPublicDb([]);
+    const { service, dbService } = createService({
+      db,
+      dbService: {
+        getMenu: vi.fn(async () => ({
+          categories: [category()],
+          menuItems: [menuItem()],
+        })),
+      },
+    });
+
+    await expect(
+      service.getMenu("rest-1", { includeUnavailable: true }),
+    ).resolves.toMatchObject({ menuItems: [{ id: 101 }] });
+    expect(db.select).not.toHaveBeenCalled();
+    expect(dbService.getMenu).toHaveBeenCalledWith("rest-1", {
+      includeUnavailable: true,
+    });
+  });
+
+  it("returns null for missing menu item and category reads", async () => {
+    const { service, dbService } = createService({
+      dbService: {
+        getMenuItem: vi.fn(async () => null),
+        getCategory: vi.fn(async () => null),
+      },
+    });
+
+    await expect(service.getMenuItem(404)).resolves.toBeNull();
+    await expect(service.getCategoryById(404)).resolves.toBeNull();
+    expect(dbService.getMenuItem).toHaveBeenCalledWith(404);
+    expect(dbService.getCategory).toHaveBeenCalledWith(404);
+  });
+
   it("creates menu items only after category restaurant validation", async () => {
     const created = menuItem({ id: 202, restaurantId: "rest-1" });
     const { service, dbService } = createService({
@@ -179,6 +214,24 @@ describe("MenuService", () => {
     expect(dbService.createMenuItem).not.toHaveBeenCalled();
   });
 
+  it("rejects menu item creation when the category is missing", async () => {
+    const { service, dbService } = createService({
+      dbService: {
+        getCategory: vi.fn(async () => null),
+      },
+    });
+
+    await expect(
+      service.createMenuItem({
+        restaurantId: "rest-1",
+        categoryId: 404,
+        name: "Laksa",
+        price: 180,
+      } as never),
+    ).rejects.toThrow("Category not found");
+    expect(dbService.createMenuItem).not.toHaveBeenCalled();
+  });
+
   it("updates menu items with prefetched data and validates category moves", async () => {
     const { service, dbService } = createService({
       dbService: {
@@ -201,6 +254,19 @@ describe("MenuService", () => {
       restaurantId: "rest-1",
       name: "New Laksa",
     });
+  });
+
+  it("rejects updates for missing menu items before writing", async () => {
+    const { service, dbService } = createService({
+      dbService: {
+        getMenuItem: vi.fn(async () => null),
+      },
+    });
+
+    await expect(
+      service.updateMenuItem(404, { name: "Missing" }),
+    ).rejects.toThrow("Menu item not found");
+    expect(dbService.updateMenuItem).not.toHaveBeenCalled();
   });
 
   it("soft deletes menu items and reports missing items as false", async () => {
@@ -265,6 +331,18 @@ describe("MenuService", () => {
     await expect(service.deleteCategory(7)).rejects.toThrow(
       "Cannot delete category that contains menu items",
     );
+    expect(dbService.updateCategory).not.toHaveBeenCalled();
+  });
+
+  it("reports missing categories as already deleted", async () => {
+    const { service, dbService } = createService({
+      dbService: {
+        getCategory: vi.fn(async () => null),
+      },
+    });
+
+    await expect(service.deleteCategory(404)).resolves.toBe(false);
+    expect(dbService.searchMenuItems).not.toHaveBeenCalled();
     expect(dbService.updateCategory).not.toHaveBeenCalled();
   });
 
@@ -369,6 +447,29 @@ describe("MenuService", () => {
     });
   });
 
+  it("transforms raw category fields used by management views", async () => {
+    const { service } = createService({
+      dbService: {
+        getCategory: vi.fn(async () =>
+          category({
+            description: null,
+            parentId: 2,
+            isVisible: false,
+            itemCount: 6,
+          }),
+        ),
+      },
+    });
+
+    await expect(service.getCategoryById(7)).resolves.toMatchObject({
+      id: 7,
+      description: undefined,
+      parentId: 2,
+      isVisible: false,
+      itemCount: 6,
+    });
+  });
+
   it("computes analytics from the transformed menu", async () => {
     const service = new MenuService({ DB: {} as D1Database } as never);
     vi.spyOn(service, "getMenu").mockResolvedValue({
@@ -435,6 +536,38 @@ describe("MenuService", () => {
       },
       spiceLevelDistribution: { 1: 1, 3: 1 },
     });
+  });
+
+  it("reports empty analytics without infinite price bounds", async () => {
+    const service = new MenuService({ DB: {} as D1Database } as never);
+    vi.spyOn(service, "getMenu").mockResolvedValue({
+      categories: [category({ id: 7, createdAt: "", updatedAt: "" })],
+      menuItems: [],
+    } as never);
+
+    await expect(service.getMenuAnalytics("rest-1")).resolves.toMatchObject({
+      totalItems: 0,
+      averagePrice: 0,
+      priceRange: { min: 0, max: 0 },
+      categoryDistribution: [],
+      topPerformingItems: [],
+      dietaryInfoStats: {
+        vegetarian: 0,
+        vegan: 0,
+        glutenFree: 0,
+        halal: 0,
+      },
+      spiceLevelDistribution: {},
+    });
+  });
+
+  it("rejects analytics when the menu cannot be loaded", async () => {
+    const service = new MenuService({ DB: {} as D1Database } as never);
+    vi.spyOn(service, "getMenu").mockResolvedValue(null);
+
+    await expect(service.getMenuAnalytics("missing")).rejects.toThrow(
+      "Menu not found for restaurant",
+    );
   });
 
   it("builds popularity metrics with independently sorted item lists", async () => {
