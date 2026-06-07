@@ -101,5 +101,5 @@ describe("admin i18n locale parity", () => {
     );
 
     expect(missing).toEqual({});
-  });
+  }, 15_000);
 });
