@@ -135,6 +135,38 @@ describe("ai analytics routes", () => {
     });
   });
 
+  it("allows admins to read AI configuration", async () => {
+    currentUser.value = {
+      id: 1,
+      username: "admin",
+      role: 0,
+      restaurantId: "platform",
+    };
+    serviceMethods.getConfig.mockResolvedValue({
+      id: 1,
+      restaurantId: "restaurant-1",
+      provider: "anthropic",
+      apiKeyEncrypted: "secret-ciphertext",
+      model: "claude-test",
+      enabled: true,
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/config/restaurant-1"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      config: {
+        restaurantId: "restaurant-1",
+        provider: "anthropic",
+        apiKeyEncrypted: "***",
+      },
+    });
+  });
+
   it("rejects protected AI configuration access for non-owner roles", async () => {
     currentUser.value = {
       id: 42,
@@ -300,6 +332,31 @@ describe("ai analytics routes", () => {
       { range: "30d" },
       { includeForecasting: true, refreshCache: true },
     );
+  });
+
+  it("rejects AI report generation for non-owner roles", async () => {
+    currentUser.value = {
+      id: 42,
+      username: "chef",
+      role: 2,
+      restaurantId: "restaurant-1",
+    };
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/generate", {
+          method: "POST",
+          body: JSON.stringify({
+            restaurantId: "restaurant-1",
+            timeRange: { range: "30d" },
+          }),
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(serviceMethods.generateReport).not.toHaveBeenCalled();
   });
 
   it("returns product analytics for each product endpoint", async () => {
