@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+import { restaurantSchemas } from "./validation";
+
+describe("restaurant validation schemas", () => {
+  it("validates restaurant creation and business hours", () => {
+    expect(
+      restaurantSchemas.create.parse({
+        name: "Nasi House",
+        type: "restaurant",
+        category: "Malaysian",
+        address: "1 Market St",
+        district: "Central",
+        phone: "+886 912 345 678",
+        businessHours: {
+          monday: { open: "09:00", close: "21:00", isOpen: true },
+        },
+      }),
+    ).toMatchObject({
+      name: "Nasi House",
+      businessHours: {
+        monday: { open: "09:00", close: "21:00", isOpen: true },
+      },
+    });
+
+    expect(() =>
+      restaurantSchemas.create.parse({
+        name: "Nasi House",
+        type: "restaurant",
+        category: "Malaysian",
+        address: "1 Market St",
+        district: "Central",
+        phone: "bad",
+      }),
+    ).toThrow("Phone number must be at least 8 characters");
+  });
+
+  it("decodes contact URLs and sanitizes FAQs", () => {
+    expect(
+      restaurantSchemas.updateContactProfile.parse({
+        messagingChannels: {
+          line: "https://line.example.test/r/abc&amp;ref=shop",
+        },
+        faqs: [
+          {
+            question: "Do you serve <b>lunch</b>?",
+            answer: "Yes &lt;daily&gt;",
+            keywords: ["<lunch>"],
+          },
+        ],
+      }),
+    ).toEqual({
+      messagingChannels: {
+        line: "https://line.example.test/r/abc&ref=shop",
+      },
+      faqs: [
+        {
+          question: "Do you serve blunch/b?",
+          answer: "Yes daily",
+          keywords: ["lunch"],
+        },
+      ],
+    });
+  });
+
+  it("applies service item defaults and update constraints", () => {
+    expect(
+      restaurantSchemas.createServiceItem.parse({
+        name: "Private dining",
+      }),
+    ).toMatchObject({
+      name: "Private dining",
+      serviceType: "general",
+      requiresBooking: false,
+    });
+
+    expect(() => restaurantSchemas.updateServiceItem.parse({})).toThrow(
+      "At least one field is required",
+    );
+  });
+
+  it("transforms list and shop QR params", () => {
+    expect(
+      restaurantSchemas.list.parse({
+        page: "2",
+        limit: "50",
+        isAvailable: "true",
+      }),
+    ).toEqual({ page: 2, limit: 50, isAvailable: true });
+
+    expect(restaurantSchemas.nearby.parse({})).toEqual({ limit: 10 });
+    expect(
+      restaurantSchemas.qrCodeParams.parse({ qrCode: "SHOP-1-2" }),
+    ).toEqual({ qrCode: "SHOP-1-2" });
+  });
+});
