@@ -325,6 +325,70 @@ describe("MarketsService", () => {
     );
   });
 
+  it("sorts tied area readiness by city and district without readiness scores", async () => {
+    const { service } = createService();
+    vi.spyOn(service as any, "queryMarkets").mockResolvedValue({
+      markets: [
+        {
+          city: "Taipei",
+          district: "West",
+          vendorCount: 1,
+          catalogCoverage: {
+            searchableProductCount: 0,
+            publicServiceCount: 1,
+            vendorsMissingSearchableProducts: undefined,
+            vendorsMissingPublicServices: undefined,
+          },
+        },
+        {
+          city: "Taipei",
+          district: "East",
+          vendorCount: 1,
+          catalogCoverage: {
+            searchableProductCount: 1,
+            publicServiceCount: 0,
+            vendorsMissingSearchableProducts: 0,
+            vendorsMissingPublicServices: 0,
+          },
+        },
+        {
+          city: "Kaohsiung",
+          district: "North",
+          vendorCount: 1,
+          catalogCoverage: {
+            searchableProductCount: 1,
+            publicServiceCount: 0,
+            vendorsMissingSearchableProducts: 0,
+            vendorsMissingPublicServices: 0,
+          },
+        },
+      ],
+    });
+
+    await expect(service.listAreaReadiness()).resolves.toEqual({
+      areas: [
+        expect.objectContaining({
+          city: "Kaohsiung",
+          district: "North",
+          totalCatalogGapVendors: 0,
+          averageReadinessScore: 0,
+        }),
+        expect.objectContaining({
+          city: "Taipei",
+          district: "East",
+          totalCatalogGapVendors: 0,
+          averageReadinessScore: 0,
+        }),
+        expect.objectContaining({
+          city: "Taipei",
+          district: "West",
+          totalCatalogGapVendors: 0,
+          averageReadinessScore: 0,
+        }),
+      ],
+    });
+  });
+
   it("delegates admin and readiness helpers without public cache", async () => {
     const { service } = createService();
     vi.spyOn(service as any, "queryMarkets").mockResolvedValue(marketResult);
@@ -499,6 +563,25 @@ describe("MarketsService", () => {
     await (service as any).bumpPublicCacheVersion();
 
     expect(values.get("markets:version")).toBe("10");
+  });
+
+  it("handles default and non-numeric public cache versions", async () => {
+    const serviceWithoutKV = new MarketsService({} as D1Database);
+
+    await expect(
+      (serviceWithoutKV as any).publicCacheKey("areas", null),
+    ).resolves.toBe("markets:v1:areas:null");
+    await expect(
+      (serviceWithoutKV as any).bumpPublicCacheVersion(),
+    ).resolves.toBeUndefined();
+
+    const { service, values } = createService("invalid");
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_785_456_000_000);
+
+    await (service as any).bumpPublicCacheVersion();
+
+    expect(values.get("markets:version")).toBe("1785456000000");
+    nowSpy.mockRestore();
   });
 
   it("maps uncached market list rows with catalog coverage and public readiness", async () => {
@@ -772,6 +855,95 @@ describe("MarketsService", () => {
     vi.useRealTimers();
   });
 
+  it("updates existing vendor memberships with existing values as fallbacks", async () => {
+    const { service, values } = createService("30");
+    const existingMembership = {
+      id: 9,
+      marketId: "market-1",
+      restaurantId: "restaurant-1",
+      stallNumber: "B2",
+      locationLabel: "Corner",
+      mapPosition: { x: 1, y: 2 },
+      marketHours: { monday: { open: "09:00", close: "17:00" } },
+      isPrimary: true,
+    };
+    const mutations = mockMutationResults([[]]);
+    mockSelectResults([
+      [{ id: "market-1", deletedAt: null }],
+      [existingMembership],
+    ]);
+
+    await expect(
+      service.addVendor("market-1", {
+        restaurantId: "restaurant-1",
+      }),
+    ).resolves.toEqual(existingMembership);
+
+    expect(mutations.updated).toEqual([
+      {
+        stallNumber: "B2",
+        locationLabel: "Corner",
+        mapPosition: { x: 1, y: 2 },
+        marketHours: { monday: { open: "09:00", close: "17:00" } },
+        isPrimary: true,
+      },
+    ]);
+    expect(values.get("markets:version")).toBe("31");
+  });
+
+  it("handles missing vendor membership targets and insert defaults", async () => {
+    const { service, values } = createService("40");
+    const mutations = mockMutationResults([
+      [{ id: 12, marketId: "market-1", restaurantId: "restaurant-2" }],
+      [],
+    ]);
+    mockSelectResults([
+      [],
+      [{ id: "deleted-market", deletedAt: new Date("2026-06-07T00:00:00Z") }],
+      [{ id: "market-1", deletedAt: null }],
+      [],
+    ]);
+
+    await expect(
+      service.addVendor("missing-market", {
+        restaurantId: "restaurant-1",
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      service.addVendor("deleted-market", {
+        restaurantId: "restaurant-1",
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      service.addVendor("market-1", {
+        restaurantId: "restaurant-2",
+      }),
+    ).resolves.toEqual({
+      id: 12,
+      marketId: "market-1",
+      restaurantId: "restaurant-2",
+    });
+    await expect(
+      service.removeVendor("market-1", "restaurant-3"),
+    ).resolves.toBe(false);
+
+    expect(mutations.inserted).toEqual([
+      expect.objectContaining({
+        marketId: "market-1",
+        restaurantId: "restaurant-2",
+        stallNumber: null,
+        locationLabel: null,
+        mapPosition: null,
+        marketHours: null,
+        isPrimary: false,
+      }),
+    ]);
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ leftAt: expect.any(Date) }),
+    ]);
+    expect(values.get("markets:version")).toBe("41");
+  });
+
   it("lists sitemap entries, uncached areas, nearby markets, and direct market lookup", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("6");
@@ -952,6 +1124,59 @@ describe("MarketsService", () => {
       }),
     ).resolves.toEqual({
       restaurants: [expect.objectContaining({ id: "restaurant-2" })],
+      total: 1,
+    });
+  });
+
+  it("lists admin requests and vendor candidates with default filters", async () => {
+    const { service } = createService();
+    mockSelectResults([
+      [
+        {
+          id: 4,
+          restaurantId: "restaurant-3",
+          marketId: "market-2",
+          status: "pending",
+          message: "Interested",
+          requestedAt: new Date("2026-06-07T00:00:00.000Z"),
+          resolvedAt: null,
+          marketSlug: "morning-market",
+          marketName: "Morning Market",
+          marketType: "traditional_market",
+          city: "Kaohsiung",
+          district: "North",
+          restaurantName: "Candidate",
+          restaurantDistrict: "North",
+          restaurantCity: "Kaohsiung",
+        },
+      ],
+      [
+        {
+          id: "restaurant-4",
+          name: "Default Candidate",
+          city: "Kaohsiung",
+          district: "North",
+          address: "Market Road",
+          type: "taiwanese",
+          category: "casual",
+          isAvailable: true,
+          supportsTakeaway: false,
+          supportsDelivery: true,
+        },
+      ],
+    ]);
+
+    await expect(service.listJoinRequests()).resolves.toEqual({
+      requests: [
+        expect.objectContaining({
+          id: 4,
+          status: "pending",
+          market: expect.objectContaining({ slug: "morning-market" }),
+        }),
+      ],
+    });
+    await expect(service.listVendorCandidates({ q: "   " })).resolves.toEqual({
+      restaurants: [expect.objectContaining({ id: "restaurant-4" })],
       total: 1,
     });
   });
