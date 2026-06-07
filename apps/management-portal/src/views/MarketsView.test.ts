@@ -152,11 +152,13 @@ describe("MarketsView", () => {
             district: "西屯區",
             city: "台中市",
             stallNumber: "A-18",
+            locationLabel: null,
             isPrimary: true,
           },
           {
             restaurantId: "restaurant-123",
             stallNumber: "B-02",
+            locationLabel: null,
             isPrimary: false,
           },
         ],
