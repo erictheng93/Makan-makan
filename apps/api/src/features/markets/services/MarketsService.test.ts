@@ -216,6 +216,34 @@ describe("MarketsService", () => {
     );
   });
 
+  it("returns cached public area and vendor data without querying", async () => {
+    const cachedAreas = { areas: [{ city: "Taipei", districts: ["Central"] }] };
+    const cachedVendors = {
+      vendors: [{ restaurantId: "restaurant-1", name: "Vendor" }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    };
+    mocks.cache.get
+      .mockResolvedValueOnce(cachedAreas)
+      .mockResolvedValueOnce(cachedVendors);
+    const { service } = createService("7");
+    const queryAreasSpy = vi.spyOn(service as any, "queryAreas");
+    const queryVendorsSpy = vi.spyOn(service as any, "queryVendors");
+
+    await expect(service.listAreas()).resolves.toBe(cachedAreas);
+    await expect(
+      service.listVendors("night-market", { q: "vendor" }),
+    ).resolves.toBe(cachedVendors);
+
+    expect(mocks.cache.get).toHaveBeenCalledWith("markets:v7:areas:all");
+    expect(mocks.cache.get).toHaveBeenCalledWith(
+      'markets:v7:vendors:{"q":"vendor","slug":"night-market"}',
+    );
+    expect(queryAreasSpy).not.toHaveBeenCalled();
+    expect(queryVendorsSpy).not.toHaveBeenCalled();
+  });
+
   it("aggregates market area readiness and sorts largest gaps first", async () => {
     const { service } = createService();
     vi.spyOn(service as any, "queryMarkets").mockResolvedValue({
@@ -320,6 +348,141 @@ describe("MarketsService", () => {
       { includeVendorBreakdown: true },
     );
     expect(mocks.cache.get).not.toHaveBeenCalled();
+  });
+
+  it("computes public readiness for an existing market", async () => {
+    const { service } = createService();
+    vi.spyOn(service, "getMarketById").mockResolvedValue({
+      id: "market-1",
+      description: "Night market",
+      city: "Taipei",
+      district: "Central",
+      address: "Main Street",
+      latitude: 25,
+      longitude: 121,
+      openingHours: {
+        monday: { open: "10:00", close: "22:00", closed: false },
+      },
+      bannerUrl: "https://example.test/banner.jpg",
+      logoUrl: null,
+      imageUrls: [],
+      mapLayout: { title: "Map" },
+    } as any);
+    vi.spyOn(service as any, "countCatalogCoverage").mockResolvedValue({
+      searchableProductCount: 4,
+      publicServiceCount: 1,
+    });
+    mockSelectResults([[{ count: 2 }]]);
+
+    await expect(
+      service.getPublicReadiness("market-1", { additionalVendorCount: 1 }),
+    ).resolves.toMatchObject({
+      ready: true,
+      completedCount: 8,
+      totalCount: 8,
+      issues: [],
+    });
+    expect((service as any).countCatalogCoverage).toHaveBeenCalledWith(
+      "market-1",
+    );
+  });
+
+  it("builds catalog readiness gaps for empty and mixed vendor coverage", async () => {
+    const { service } = createService();
+    vi.spyOn(service as any, "countCatalogCoverage")
+      .mockResolvedValueOnce({
+        searchableProductCount: 0,
+        publicServiceCount: 0,
+        bookingRequiredServiceCount: 0,
+        bookingUrlMissingServiceCount: 0,
+      })
+      .mockResolvedValueOnce({
+        searchableProductCount: 5,
+        publicServiceCount: 2,
+        bookingRequiredServiceCount: 1,
+        bookingUrlMissingServiceCount: 1,
+      });
+
+    mockSelectResults([[]]);
+    await expect(
+      (service as any).catalogCoverageWithVendorBreakdown("empty-market"),
+    ).resolves.toMatchObject({
+      vendorsWithSearchableProducts: 0,
+      vendorsMissingSearchableProducts: 0,
+      missingProductVendors: [],
+      missingSearchEntrypointVendors: [],
+    });
+
+    (service as any).d1 = createD1(
+      [],
+      [[{ restaurantId: "restaurant-2" }], [{ restaurantId: "restaurant-3" }]],
+    );
+    mockSelectResults([
+      [
+        {
+          restaurantId: "restaurant-1",
+          name: "Vendor A",
+          stallNumber: "A1",
+          locationLabel: "Gate",
+          mapPosition: { x: 1, y: 2 },
+        },
+        {
+          restaurantId: "restaurant-2",
+          name: "Vendor B",
+          stallNumber: " ",
+          locationLabel: null,
+          mapPosition: null,
+        },
+        {
+          restaurantId: "restaurant-3",
+          name: "Vendor C",
+          stallNumber: "C1",
+          locationLabel: "Lane",
+          mapPosition: { x: "bad" },
+        },
+      ],
+      [{ restaurantId: "restaurant-1" }],
+    ]);
+
+    await expect(
+      (service as any).catalogCoverageWithVendorBreakdown("market-1"),
+    ).resolves.toMatchObject({
+      searchableProductCount: 5,
+      publicServiceCount: 2,
+      vendorsWithSearchableProducts: 1,
+      vendorsMissingSearchableProducts: 2,
+      vendorsWithPublicServices: 1,
+      vendorsMissingPublicServices: 2,
+      vendorsMissingBookingUrls: 1,
+      vendorsMissingStallNumbers: 1,
+      vendorsMissingMapPositions: 2,
+      vendorsMissingSearchEntrypoints: 1,
+      missingProductVendors: [
+        expect.objectContaining({ restaurantId: "restaurant-2" }),
+        expect.objectContaining({ restaurantId: "restaurant-3" }),
+      ],
+      missingBookingUrlVendors: [
+        expect.objectContaining({ restaurantId: "restaurant-3" }),
+      ],
+      missingSearchEntrypointVendors: [
+        expect.objectContaining({ restaurantId: "restaurant-3" }),
+      ],
+    });
+  });
+
+  it("returns null vendors for missing or not-public-ready markets", async () => {
+    mocks.cache.get.mockResolvedValue(null);
+    const { service } = createService();
+    vi.spyOn(service, "getMarketBySlug")
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        market: { id: "market-1" },
+        publicReadiness: { ready: false },
+      } as any);
+
+    await expect(service.listVendors("missing", {})).resolves.toBeNull();
+    await expect(service.listVendors("draft-market", {})).resolves.toBeNull();
+    expect(mocks.cache.set).not.toHaveBeenCalled();
   });
 
   it("builds stable public cache keys and bumps numeric versions", async () => {
