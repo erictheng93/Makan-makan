@@ -723,6 +723,84 @@ describe("MarketsService", () => {
     );
   });
 
+  it("does not cache missing market detail lookups", async () => {
+    mocks.cache.get.mockResolvedValue(null);
+    const { service } = createService("8");
+    mockSelectResults([[]]);
+
+    await expect(service.getMarketBySlug("missing-market")).resolves.toBeNull();
+
+    expect(mocks.cache.get).toHaveBeenCalledWith(
+      "markets:v8:detail:missing-market",
+    );
+    expect(mocks.cache.set).not.toHaveBeenCalled();
+  });
+
+  it("maps filtered admin market queries with vendor breakdown coverage", async () => {
+    const { service } = createService();
+    const coverage = {
+      searchableProductCount: 2,
+      publicServiceCount: 3,
+      vendorsWithSearchableProducts: 1,
+      vendorsMissingSearchableProducts: 0,
+    };
+    vi.spyOn(
+      service as any,
+      "catalogCoverageWithVendorBreakdown",
+    ).mockResolvedValue(coverage);
+    mockSelectResults([
+      [
+        {
+          id: "market-1",
+          slug: "filtered-market",
+          name: "Filtered Market",
+          type: "night_market",
+          description: "Food",
+          city: "Taipei",
+          district: "Central",
+          address: "Main road",
+          latitude: 25,
+          longitude: 121,
+          openingHours: {
+            monday: { open: "10:00", close: "22:00", closed: false },
+          },
+          vendorCount: "4",
+        },
+      ],
+      [{ count: "1" }],
+    ]);
+
+    await expect(
+      (service as any).queryMarkets(
+        {
+          q: "rice",
+          district: "Central",
+          type: "night_market",
+          page: 2,
+          limit: 10,
+        },
+        { includeVendorBreakdown: true },
+      ),
+    ).resolves.toMatchObject({
+      total: 1,
+      page: 2,
+      limit: 10,
+      markets: [
+        {
+          id: "market-1",
+          vendorCount: 4,
+          catalogCoverage: coverage,
+          publicReadiness: expect.objectContaining({
+            score: expect.any(Number),
+          }),
+        },
+      ],
+    });
+    expect(
+      (service as any).catalogCoverageWithVendorBreakdown,
+    ).toHaveBeenCalledWith("market-1");
+  });
+
   it("lists vendors with open and distance filters plus menu/service access counts", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("5");
@@ -795,6 +873,80 @@ describe("MarketsService", () => {
       expect.objectContaining({ total: 1 }),
       expect.any(Number),
     );
+  });
+
+  it("lists vendors with keyword, capability filters, rating order, and default access counts", async () => {
+    mocks.cache.get.mockResolvedValue(null);
+    const { service } = createService("11");
+    vi.spyOn(service, "getMarketBySlug").mockResolvedValue({
+      market: { id: "market-1" },
+      publicReadiness: { ready: true },
+    } as any);
+    mockSelectResults([
+      [
+        {
+          restaurantId: "restaurant-1",
+          name: "Vendor A",
+          type: "malaysian",
+          category: "casual",
+          district: "Central",
+          city: "Taipei",
+          latitude: null,
+          longitude: null,
+          priceRange: 2,
+          rating: 4.8,
+          businessHours: null,
+          marketHours: null,
+          supportsTakeaway: true,
+          supportsDelivery: true,
+          imageUrl: null,
+          stallNumber: "A1",
+          locationLabel: "Gate",
+          mapPosition: null,
+          isPrimary: false,
+        },
+      ],
+      [{ count: "3" }],
+      [],
+      [],
+    ]);
+
+    await expect(
+      service.listVendors("night-market", {
+        q: "Vendor",
+        takeaway: true,
+        delivery: true,
+        sortBy: "rating",
+        page: 2,
+        limit: 1,
+      }),
+    ).resolves.toMatchObject({
+      total: 3,
+      page: 2,
+      limit: 1,
+      vendors: [
+        {
+          restaurantId: "restaurant-1",
+          isOpen: false,
+          effectiveBusinessHours: null,
+          availableMenuItemCount: 0,
+          publicServiceItemCount: 0,
+        },
+      ],
+    });
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      expect.stringContaining("markets:v11:vendors:"),
+      expect.objectContaining({ total: 3 }),
+      expect.any(Number),
+    );
+  });
+
+  it("returns empty vendor access lists without running count queries", async () => {
+    const { service } = createService();
+
+    await expect((service as any).withVendorAccess([])).resolves.toEqual([]);
+
+    expect(mocks.db.select).not.toHaveBeenCalled();
   });
 
   it("creates, updates, soft-deletes markets and manages vendor membership cache versions", async () => {
@@ -889,6 +1041,55 @@ describe("MarketsService", () => {
       },
     ]);
     expect(values.get("markets:version")).toBe("31");
+  });
+
+  it("updates existing vendor memberships with explicit nullable fields", async () => {
+    const { service, values } = createService("32");
+    const existingMembership = {
+      id: 10,
+      marketId: "market-1",
+      restaurantId: "restaurant-1",
+      stallNumber: "B2",
+      locationLabel: "Corner",
+      mapPosition: { x: 1, y: 2 },
+      marketHours: { monday: { open: "09:00", close: "17:00" } },
+      isPrimary: true,
+    };
+    const updatedMembership = {
+      ...existingMembership,
+      stallNumber: null,
+      locationLabel: null,
+      mapPosition: null,
+      marketHours: null,
+      isPrimary: false,
+    };
+    const mutations = mockMutationResults([[updatedMembership]]);
+    mockSelectResults([
+      [{ id: "market-1", deletedAt: null }],
+      [existingMembership],
+    ]);
+
+    await expect(
+      service.addVendor("market-1", {
+        restaurantId: "restaurant-1",
+        stallNumber: null,
+        locationLabel: null,
+        mapPosition: null,
+        marketHours: null,
+        isPrimary: false,
+      }),
+    ).resolves.toEqual(updatedMembership);
+
+    expect(mutations.updated).toEqual([
+      {
+        stallNumber: null,
+        locationLabel: null,
+        mapPosition: null,
+        marketHours: null,
+        isPrimary: false,
+      },
+    ]);
+    expect(values.get("markets:version")).toBe("33");
   });
 
   it("handles missing vendor membership targets and insert defaults", async () => {
@@ -1257,5 +1458,38 @@ describe("MarketsService", () => {
       request: { id: 4, status: "rejected" },
     });
     expect(Number(values.get("markets:version"))).toBeGreaterThan(20);
+  });
+
+  it("reports join request not-found and market-not-found approval states", async () => {
+    const { service } = createService();
+
+    mockSelectResults([[]]);
+    await expect(service.rejectJoinRequest(404)).resolves.toEqual({
+      status: "not_found",
+    });
+
+    vi.spyOn(service, "addVendor").mockResolvedValueOnce(null);
+    mockSelectResults([
+      [
+        {
+          id: 5,
+          status: "pending",
+          marketId: "missing-market",
+          restaurantId: "restaurant-1",
+        },
+      ],
+    ]);
+
+    await expect(service.approveJoinRequest(5)).resolves.toEqual({
+      status: "market_not_found",
+    });
+    expect(service.addVendor).toHaveBeenCalledWith("missing-market", {
+      restaurantId: "restaurant-1",
+      stallNumber: null,
+      locationLabel: null,
+      mapPosition: null,
+      marketHours: null,
+      isPrimary: false,
+    });
   });
 });
