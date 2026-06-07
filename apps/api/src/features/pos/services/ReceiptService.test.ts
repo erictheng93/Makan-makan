@@ -28,6 +28,21 @@ function createQuery(result: unknown) {
   return builder;
 }
 
+function createRejectedQuery(error: Error) {
+  const builder = {
+    from: vi.fn(() => builder),
+    where: vi.fn(() => builder),
+    orderBy: vi.fn(() => builder),
+    limit: vi.fn(() => builder),
+    offset: vi.fn(() => builder),
+    then: (
+      resolve: (value: unknown) => void,
+      reject?: (reason: unknown) => void,
+    ) => Promise.reject(error).then(resolve, reject),
+  };
+  return builder;
+}
+
 function mockSelectResults(results: unknown[]) {
   mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
 }
@@ -293,5 +308,132 @@ describe("ReceiptService", () => {
     ]);
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("updates print status asynchronously after queued receipt prints", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("receipt-async");
+    const mutations = mockMutations();
+    mockSelectResults([
+      [orderRow()],
+      [itemRow()],
+      [receiptRow({ id: "receipt-async" })],
+    ]);
+
+    await expect(
+      createService().printReceipt({ orderId: 101, copies: 2 }, "register-1"),
+    ).resolves.toMatchObject({ success: true });
+
+    await vi.advanceTimersByTimeAsync(3_999);
+    expect(mutations.updated).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({
+        printStatus: "printed",
+        printedAt: new Date("2026-06-07T00:00:04.000Z"),
+      }),
+    ]);
+    vi.useRealTimers();
+  });
+
+  it("marks asynchronous print attempts failed when printed status update fails", async () => {
+    vi.useFakeTimers();
+    mockSelectResults([[receiptRow()]]);
+    const updated: unknown[] = [];
+    let updateAttempt = 0;
+    mocks.db.update.mockImplementation(() => {
+      updateAttempt++;
+      const builder = {
+        set: vi.fn((payload: unknown) => {
+          updated.push(payload);
+          return builder;
+        }),
+        where: vi.fn(() => builder),
+        then: (
+          resolve: (value: unknown) => void,
+          reject?: (reason: unknown) => void,
+        ) =>
+          (updateAttempt === 2
+            ? Promise.reject(new Error("printer status write failed"))
+            : Promise.resolve(undefined)
+          ).then(resolve, reject),
+      };
+      return builder;
+    });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(createService().reprintReceipt("receipt-1")).resolves.toEqual({
+      success: true,
+    });
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    expect(updated).toEqual([
+      expect.objectContaining({ printStatus: "pending" }),
+      expect.objectContaining({ printStatus: "printed" }),
+      expect.objectContaining({ printStatus: "failed" }),
+    ]);
+    expect(console.error).toHaveBeenCalledWith(
+      "更新打印狀態失敗:",
+      expect.any(Error),
+    );
+    vi.useRealTimers();
+  });
+
+  it("maps query and mutation failures to service error responses", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    mocks.db.select.mockImplementationOnce(() =>
+      createRejectedQuery(new Error("print lookup failed")),
+    );
+    await expect(
+      createService().printReceipt({ orderId: 101 }, "register-1"),
+    ).resolves.toMatchObject({
+      success: false,
+      error: "print lookup failed",
+    });
+
+    mocks.db.select.mockImplementationOnce(() =>
+      createRejectedQuery(new Error("reprint lookup failed")),
+    );
+    await expect(createService().reprintReceipt("receipt-1")).resolves.toEqual({
+      success: false,
+      error: "reprint lookup failed",
+    });
+
+    mocks.db.select.mockImplementationOnce(() =>
+      createRejectedQuery(new Error("list failed")),
+    );
+    await expect(createService().getReceipts("register-1")).resolves.toEqual({
+      success: false,
+      error: "list failed",
+    });
+
+    mocks.db.select.mockImplementationOnce(() =>
+      createRejectedQuery(new Error("detail failed")),
+    );
+    await expect(
+      createService().getReceiptDetail("receipt-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "detail failed",
+    });
+
+    mocks.db.update.mockImplementationOnce(() => {
+      const builder = {
+        set: vi.fn(() => builder),
+        where: vi.fn(() => builder),
+        then: (
+          resolve: (value: unknown) => void,
+          reject?: (reason: unknown) => void,
+        ) => Promise.reject(new Error("cancel failed")).then(resolve, reject),
+      };
+      return builder;
+    });
+    await expect(createService().cancelPrint("receipt-1")).resolves.toEqual({
+      success: false,
+      error: "cancel failed",
+    });
   });
 });
