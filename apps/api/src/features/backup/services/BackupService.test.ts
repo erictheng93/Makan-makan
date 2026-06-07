@@ -866,4 +866,438 @@ describe("BackupService", () => {
       ]),
     );
   });
+
+  it("wraps create backup failures when configuration is missing or mismatched", async () => {
+    mockMutations();
+    const { service, configService } = createService();
+
+    configService.getDefaultConfiguration.mockResolvedValueOnce(null);
+    await expect(
+      service.createBackup(
+        { restaurant_id: "restaurant-1", name: "Missing config" } as any,
+        "user-1",
+      ),
+    ).rejects.toThrow(
+      "Failed to create backup: Backup configuration not found",
+    );
+
+    configService.getConfigurationById.mockResolvedValueOnce({
+      id: "config-2",
+      restaurant_id: "restaurant-2",
+      include_tables: ["orders"],
+      exclude_tables: [],
+      backup_type: "full",
+      storage_provider: "r2",
+      encryption_enabled: false,
+      compression_enabled: false,
+    });
+    await expect(
+      service.createBackup(
+        {
+          restaurant_id: "restaurant-1",
+          configuration_id: "config-2",
+          name: "Wrong config",
+        } as any,
+        "user-1",
+      ),
+    ).rejects.toThrow(
+      "Failed to create backup: Backup configuration not found",
+    );
+  });
+
+  it("marks backups failed when execution cannot load or store a backup", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService();
+
+    mockSelectResults([[]]);
+    await expect(service.executeBackup("missing-backup")).rejects.toThrow(
+      "Backup record not found",
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "in_progress" }),
+        expect.objectContaining({ status: "failed" }),
+        expect.objectContaining({ errorMessage: "Backup record not found" }),
+      ]),
+    );
+
+    mutations.updated.length = 0;
+    storageService.storeBackup.mockRejectedValueOnce(new Error("r2 down"));
+    await expect(
+      service.executeBackup("backup-1", {
+        id: "backup-1",
+        restaurant_id: "restaurant-1",
+        tables_included: [],
+        storage_provider: "r2",
+        started_at: new Date().toISOString(),
+        created_by: "user-1",
+        compression_enabled: false,
+        metadata: {},
+      } as any),
+    ).rejects.toThrow("r2 down");
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "failed" }),
+        expect.objectContaining({ errorMessage: "r2 down" }),
+      ]),
+    );
+  });
+
+  it("covers low-level table scoping, prepared queries, schema validation, and restore inserts", async () => {
+    const { d1, calls } = createD1Mock({
+      "PRAGMA table_info": (values) => {
+        const statement = calls.at(-1)?.statement ?? "";
+        if (statement.includes('"restaurants"')) return [{ name: "public_id" }];
+        if (statement.includes('"missing"')) return [];
+        if (statement.includes('"orders"')) {
+          return [{ name: "id" }, { name: "restaurant_id" }, { name: "total" }];
+        }
+        return [];
+      },
+      "SELECT *": [{ id: 1, restaurant_id: "restaurant-1" }],
+      "SELECT COUNT": [{ total: 4 }],
+    });
+    const { service } = createService(d1);
+
+    await expect(
+      (service as any).getRestaurantScopeClause("restaurants", "public-1"),
+    ).resolves.toEqual({ clause: "public_id = ?", values: ["public-1"] });
+    await expect(
+      (service as any).getRestaurantScopeClause("missing", "restaurant-1"),
+    ).resolves.toBeNull();
+    await expect(
+      (service as any).extractTableData("restaurant-1", "orders"),
+    ).resolves.toEqual([{ id: 1, restaurant_id: "restaurant-1" }]);
+    await expect(
+      (service as any).countTableRows("restaurant-1", "orders"),
+    ).resolves.toBe(4);
+
+    await expect(
+      (service as any).validateRestoreSchemaCompatibility(
+        ["orders"],
+        { orders: [{ id: 1, missing_column: true }] },
+      ),
+    ).rejects.toThrow("Restore schema mismatch for orders: missing_column");
+
+    const inserted = await (service as any).restoreTableData({
+      tableName: "orders",
+      restaurantId: "restaurant-1",
+      rows: [
+        { id: 1, restaurant_id: "restaurant-1", total: 12, ignored: undefined },
+        {},
+      ],
+      overwriteExisting: true,
+    });
+    expect(inserted).toBe(1);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statement: 'DELETE FROM "orders" WHERE restaurant_id = ?',
+          values: ["restaurant-1"],
+          kind: "run",
+        }),
+        expect.objectContaining({
+          statement:
+            'INSERT INTO "orders" ("id", "restaurant_id", "total") VALUES (?, ?, ?)',
+          values: [1, "restaurant-1", 12],
+          kind: "run",
+        }),
+      ]),
+    );
+
+    const noPrepare = createService({} as D1Database).service;
+    await expect(
+      (noPrepare as any).runPreparedAll("SELECT 1"),
+    ).resolves.toEqual([]);
+  });
+
+  it("wraps list, delete, metrics, health, and alert failures", async () => {
+    const { service } = createService();
+    mocks.db.select.mockImplementationOnce(() => {
+      throw new Error("select down");
+    });
+    await expect(
+      service.listBackups({ restaurant_id: "restaurant-1" } as any),
+    ).rejects.toThrow("Failed to list backups: select down");
+
+    mockSelectResults([[]]);
+    await expect(service.deleteBackup("missing", "user-1")).rejects.toThrow(
+      "Failed to delete backup: Backup not found",
+    );
+
+    mocks.db.select.mockImplementationOnce(() => {
+      throw new Error("health down");
+    });
+    await expect(service.getSystemHealth()).rejects.toThrow(
+      "Failed to get system health",
+    );
+
+    mocks.db.select.mockImplementationOnce(() => {
+      throw new Error("metrics down");
+    });
+    await expect(
+      service.getRestaurantMetrics("restaurant-1", "week"),
+    ).rejects.toThrow("Failed to get restaurant metrics");
+
+    mocks.db.select.mockImplementationOnce(() => {
+      throw new Error("alerts down");
+    });
+    await expect(
+      service.getRestaurantAlerts("restaurant-1"),
+    ).rejects.toThrow("Failed to get restaurant alerts");
+
+    mocks.db.select.mockImplementationOnce(() => {
+      throw new Error("alert down");
+    });
+    await expect(service.getAlertById("alert-1")).rejects.toThrow(
+      "Failed to get backup alert",
+    );
+
+    mockSelectResults([[]]);
+    await expect(service.acknowledgeAlert("missing", "user-1")).rejects.toThrow(
+      "Failed to acknowledge backup alert: Alert not found",
+    );
+    mockSelectResults([[]]);
+    await expect(service.resolveAlert("missing", "user-1")).rejects.toThrow(
+      "Failed to resolve backup alert: Alert not found",
+    );
+  });
+
+  it("returns critical and default health/metric states from aggregate edge rows", async () => {
+    const { service } = createService();
+    mockSelectResults([
+      [
+        {
+          totalRestaurants: 0,
+          totalBackups: 0,
+          runningBackups: 0,
+          failedBackups24h: 11,
+          avgSize: 0,
+          avgDurationMs: 0,
+          avgCompressionRatio: null,
+        },
+      ],
+      [{}],
+      [],
+      [{ severity: "low", total: 3 }],
+      [],
+    ]);
+
+    await expect(service.getSystemHealth()).resolves.toMatchObject({
+      overall_status: "critical",
+      active_configurations: 0,
+      storage_usage: { total_bytes: 0 },
+      performance_metrics: {
+        average_success_rate_percentage: 100,
+        average_compression_ratio: 1,
+      },
+      alerts_summary: { critical: 0, high: 0, medium: 0, low: 3 },
+    });
+    await expect(
+      service.getRestaurantMetrics("restaurant-1", "day"),
+    ).resolves.toEqual({
+      total_backups: 0,
+      successful_backups: 0,
+      failed_backups: 0,
+      avg_backup_size: 0,
+      total_storage_used: 0,
+    });
+  });
+
+  it("initiates background restores and logs asynchronous restore failures", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService();
+    mockSelectResults([
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: false,
+          checksum: "",
+        },
+      ],
+    ]);
+    storageService.backupExists.mockResolvedValue(true);
+    const executeRestore = vi
+      .spyOn(service as any, "executeRestore")
+      .mockRejectedValue(new Error("restore worker down"));
+
+    const operationId = await service.restoreFromBackup(
+      {
+        restaurant_id: "restaurant-1",
+        backup_id: "backup-1",
+        restore_type: "full",
+        target_tables: ["orders"],
+        overwrite_existing: false,
+        safety_confirmation: {
+          backup_integrity_verified: true,
+          data_loss_risk_acknowledged: true,
+        },
+      } as any,
+      "user-1",
+    );
+    await Promise.resolve();
+
+    expect(operationId).toEqual(expect.any(String));
+    expect(executeRestore).toHaveBeenCalledWith(operationId);
+    expect(console.error).toHaveBeenCalledWith(
+      `Background restore failed for ${operationId}:`,
+      expect.any(Error),
+    );
+    expect(mutations.inserted[0]).toMatchObject({
+      restaurantId: "restaurant-1",
+      backupId: "backup-1",
+      status: "pending",
+      restoreType: "full",
+    });
+  });
+
+  it("wraps restore initiation failures for missing, incomplete, and absent backup files", async () => {
+    const { service, storageService } = createService();
+    const request = {
+      restaurant_id: "restaurant-1",
+      backup_id: "backup-1",
+      restore_type: "selective",
+      overwrite_existing: false,
+      safety_confirmation: {
+        backup_integrity_verified: true,
+        data_loss_risk_acknowledged: true,
+      },
+    } as any;
+
+    mockSelectResults([[]]);
+    await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
+      "Failed to initiate restore: Backup not found or access denied",
+    );
+
+    mockSelectResults([
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          status: "failed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: false,
+        },
+      ],
+    ]);
+    await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
+      "Failed to initiate restore: Cannot restore from incomplete backup",
+    );
+
+    mockSelectResults([
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: false,
+        },
+      ],
+    ]);
+    storageService.backupExists.mockResolvedValueOnce(false);
+    await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
+      "Failed to initiate restore: Backup file not found in storage",
+    );
+  });
+
+  it("fails restore execution on checksum mismatch and missing operation state", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService();
+
+    mockSelectResults([[]]);
+    await expect((service as any).executeRestore("missing")).rejects.toThrow(
+      "Restore operation not found",
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "failed",
+          errorMessage: "Restore operation not found",
+        }),
+      ]),
+    );
+
+    mutations.updated.length = 0;
+    mockSelectResults([
+      [
+        {
+          id: "restore-1",
+          restaurantId: "restaurant-1",
+          backupId: "backup-1",
+          restoreType: "selective",
+          targetTables: ["orders"],
+          overwriteExisting: false,
+          performedBy: "user-1",
+        },
+      ],
+      [
+        {
+          id: "backup-1",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: false,
+          checksum: "not-the-real-checksum",
+        },
+      ],
+    ]);
+    storageService.retrieveBackup.mockResolvedValue('{"orders":[]}');
+
+    await expect((service as any).executeRestore("restore-1")).rejects.toThrow(
+      "Backup checksum verification failed",
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "failed",
+          errorMessage: "Backup checksum verification failed",
+        }),
+      ]),
+    );
+  });
+
+  it("creates pre-restore safety backups before overwrite restores", async () => {
+    const { service } = createService();
+    const createBackup = vi.spyOn(service, "createBackup").mockResolvedValue({
+      backup_id: "safety-backup-1",
+      backup: { id: "safety-backup-1" },
+      status: "pending",
+      estimated_duration_minutes: 5,
+      message: "scheduled",
+      manifest: { rowCounts: {}, tables: [], createdAt: "" },
+    } as any);
+    const executeBackup = vi
+      .spyOn(service, "executeBackup")
+      .mockResolvedValue({} as any);
+
+    await expect(
+      (service as any).createPreRestoreSafetyBackup({
+        restaurantId: "restaurant-1",
+        targetTables: ["orders"],
+        userId: "user-1",
+      }),
+    ).resolves.toBe("safety-backup-1");
+    expect(createBackup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurant_id: "restaurant-1",
+        backup_type: "full",
+        include_tables: ["orders"],
+        force_immediate: false,
+      }),
+      "user-1",
+    );
+    expect(executeBackup).toHaveBeenCalledWith("safety-backup-1");
+  });
 });
