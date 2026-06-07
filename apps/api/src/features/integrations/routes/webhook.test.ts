@@ -1,0 +1,328 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  db: {
+    insert: vi.fn(),
+    select: vi.fn(),
+    update: vi.fn(),
+  },
+  drizzle: vi.fn(),
+  adapter: {
+    verifyWebhook: vi.fn(),
+  },
+  integrationService: {
+    getDecryptedCredentials: vi.fn(),
+  },
+  integrationServiceCtor: vi.fn(),
+  orderService: {
+    processWebhook: vi.fn(),
+  },
+  orderServiceCtor: vi.fn(),
+}));
+
+vi.mock("../../../middleware/idempotency", () => ({
+  idempotencyMiddleware: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+}));
+
+vi.mock("drizzle-orm/d1", () => ({
+  drizzle: mocks.drizzle,
+}));
+
+vi.mock("drizzle-orm", () => ({
+  and: vi.fn((...conditions: unknown[]) => ({ op: "and", conditions })),
+  eq: vi.fn((column: unknown, value: unknown) => ({ op: "eq", column, value })),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  platformIntegrations: {
+    enabled: "enabled",
+    platform: "platform",
+  },
+  platformWebhookLogs: {
+    id: "id",
+  },
+}));
+
+vi.mock("../adapters/PlatformAdapter", () => ({
+  getAdapter: vi.fn(() => mocks.adapter),
+}));
+
+vi.mock("../services/PlatformIntegrationService", () => ({
+  PlatformIntegrationService: vi.fn(function PlatformIntegrationService(
+    ...args: unknown[]
+  ) {
+    mocks.integrationServiceCtor(...args);
+    return mocks.integrationService;
+  }),
+}));
+
+vi.mock("../services/PlatformOrderService", () => ({
+  PlatformOrderService: vi.fn(function PlatformOrderService(
+    ...args: unknown[]
+  ) {
+    mocks.orderServiceCtor(...args);
+    return mocks.orderService;
+  }),
+}));
+
+import routes from "./webhook";
+
+function createQuery(result: unknown) {
+  const builder = {
+    from: vi.fn(() => builder),
+    where: vi.fn(() => builder),
+    then: (
+      resolve: (value: unknown) => void,
+      reject?: (reason: unknown) => void,
+    ) => Promise.resolve(result).then(resolve, reject),
+  };
+  return builder;
+}
+
+function mockSelectResults(results: unknown[]) {
+  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+}
+
+function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
+  const inserted: unknown[] = [];
+  const updated: unknown[] = [];
+
+  mocks.db.insert.mockImplementation(() => {
+    const builder = {
+      values: vi.fn((payload: unknown) => {
+        inserted.push(payload);
+        return builder;
+      }),
+      returning: vi.fn(() => createQuery(returningRows)),
+    };
+    return builder;
+  });
+
+  mocks.db.update.mockImplementation(() => {
+    const builder = {
+      set: vi.fn((payload: unknown) => {
+        updated.push(payload);
+        return builder;
+      }),
+      where: vi.fn(() => builder),
+      then: (
+        resolve: (value: unknown) => void,
+        reject?: (reason: unknown) => void,
+      ) => Promise.resolve(undefined).then(resolve, reject),
+    };
+    return builder;
+  });
+
+  return { inserted, updated };
+}
+
+function request(path: string, init: RequestInit = {}) {
+  return routes.request(path, init, {
+    DB: { binding: "db" },
+    ENCRYPTION_KEY: "test-key",
+  } as never);
+}
+
+async function json(response: Response) {
+  return (await response.json()) as {
+    data?: unknown;
+    error?: string;
+    orderId?: number;
+    success?: boolean;
+  };
+}
+
+function integration(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "integration-1",
+    restaurantId: "restaurant-1",
+    platform: "uber_eats",
+    enabled: true,
+    credentials: { storeId: "store-1" },
+    config: { webhookSecret: "configured-secret" },
+    ...overrides,
+  };
+}
+
+function webhookPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    event_id: "event-1",
+    event_type: "order.created",
+    store: { id: "store-1" },
+    order: { id: "uber-order-1" },
+    ...overrides,
+  };
+}
+
+describe("platform webhook routes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.drizzle.mockReturnValue(mocks.db);
+    mocks.adapter.verifyWebhook.mockResolvedValue(true);
+    mocks.integrationService.getDecryptedCredentials.mockResolvedValue({
+      clientSecret: "decrypted-secret",
+    });
+    mocks.orderService.processWebhook.mockResolvedValue(101);
+  });
+
+  it("rejects malformed payloads and payloads without a store id", async () => {
+    let response = await request("/uber-eats", {
+      method: "POST",
+      body: "{",
+    });
+    let body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "Invalid JSON payload" });
+    expect(mocks.db.select).not.toHaveBeenCalled();
+
+    response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify({ event_id: "event-1" }),
+      headers: { "Content-Type": "application/json" },
+    });
+    body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "Missing store.id in payload" });
+    expect(mocks.db.select).not.toHaveBeenCalled();
+  });
+
+  it("returns not found when no enabled integration matches the store", async () => {
+    mockSelectResults([
+      [
+        integration({ credentials: { storeId: "other-store" } }),
+        integration({ credentials: { storeId: "third-store" } }),
+      ],
+    ]);
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(404);
+    expect(body).toEqual({ error: "Unknown store" });
+    expect(mocks.adapter.verifyWebhook).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid webhook signatures with the configured secret", async () => {
+    mockSelectResults([[integration()]]);
+    mocks.adapter.verifyWebhook.mockResolvedValueOnce(false);
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Uber-Signature": "invalid",
+      },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({ error: "Invalid signature" });
+    expect(mocks.adapter.verifyWebhook).toHaveBeenCalledWith(
+      expect.any(Request),
+      "configured-secret",
+    );
+    expect(
+      mocks.integrationService.getDecryptedCredentials,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("decrypts credentials when no webhook secret is configured", async () => {
+    const mutations = mockMutations();
+    mockSelectResults([[integration({ config: {} })]]);
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(
+      mocks.integrationService.getDecryptedCredentials,
+    ).toHaveBeenCalledWith("restaurant-1", "uber_eats");
+    expect(mocks.adapter.verifyWebhook).toHaveBeenCalledWith(
+      expect.any(Request),
+      "decrypted-secret",
+    );
+    expect(mocks.orderService.processWebhook).toHaveBeenCalledWith(
+      "uber_eats",
+      webhookPayload(),
+      "restaurant-1",
+    );
+    expect(body).toEqual({ success: true, orderId: 101 });
+    expect(mutations.inserted[0]).toMatchObject({
+      restaurantId: "restaurant-1",
+      platform: "uber_eats",
+      eventType: "order.created",
+      status: "received",
+    });
+    expect(mutations.updated[0]).toMatchObject({ status: "processed" });
+  });
+
+  it("acknowledges payment events without order processing", async () => {
+    const mutations = mockMutations();
+    mockSelectResults([[integration()]]);
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload({ event_type: "payment.succeeded" })),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      data: {
+        acknowledged: true,
+        eventType: "payment.succeeded",
+      },
+    });
+    expect(mocks.orderService.processWebhook).not.toHaveBeenCalled();
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ status: "processed" }),
+    ]);
+  });
+
+  it("logs failed order processing and returns an error", async () => {
+    const mutations = mockMutations();
+    mockSelectResults([[integration()]]);
+    mocks.orderService.processWebhook.mockRejectedValueOnce(
+      new Error("menu item missing"),
+    );
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(500);
+    expect(body).toEqual({ error: "Processing failed" });
+    expect(mutations.updated[0]).toMatchObject({
+      status: "failed",
+      error: "menu item missing",
+    });
+  });
+
+  it("returns not implemented for foodpanda webhooks", async () => {
+    const response = await request("/foodpanda", { method: "POST" });
+    const body = await json(response);
+
+    expect(response.status).toBe(501);
+    expect(body).toEqual({
+      error: "Foodpanda integration not yet implemented",
+    });
+  });
+});
