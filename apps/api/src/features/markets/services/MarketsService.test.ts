@@ -71,6 +71,7 @@ function createQuery(result: unknown) {
     limit: vi.fn(() => builder),
     offset: vi.fn(() => builder),
     returning: vi.fn(async () => result),
+    get: vi.fn(async () => (Array.isArray(result) ? result[0] : result)),
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
@@ -606,5 +607,267 @@ describe("MarketsService", () => {
     ]);
     expect(values.get("markets:version")).toBe("15");
     vi.useRealTimers();
+  });
+
+  it("lists sitemap entries, uncached areas, nearby markets, and direct market lookup", async () => {
+    mocks.cache.get.mockResolvedValue(null);
+    const { service } = createService("6");
+    (service as any).d1 = createD1([
+      { count: 1 },
+      {
+        booking_required_service_count: 0,
+        booking_url_missing_service_count: 0,
+      },
+    ]);
+    const market = {
+      id: "market-1",
+      slug: "night-market",
+      name: "Night Market",
+      city: "Taipei",
+      district: "Central",
+      latitude: 25,
+      longitude: 121,
+      updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+    };
+    mockSelectResults([
+      [{ slug: "night-market", updatedAt: market.updatedAt }],
+      [
+        { city: "Taipei", district: "Central" },
+        { city: "Taipei", district: "East" },
+        { city: "Kaohsiung", district: "West" },
+      ],
+      [market],
+      [{ count: 2 }],
+      [market],
+    ]);
+
+    await expect(service.listSitemapEntries(3)).resolves.toEqual([
+      { slug: "night-market", updatedAt: market.updatedAt },
+    ]);
+    await expect(service.listAreas()).resolves.toEqual({
+      areas: [
+        { city: "Taipei", districts: ["Central", "East"] },
+        { city: "Kaohsiung", districts: ["West"] },
+      ],
+    });
+    await expect(service.findNearby(25, 121, 1, 5)).resolves.toEqual({
+      markets: [
+        expect.objectContaining({
+          id: "market-1",
+          distanceKm: 0,
+          catalogCoverage: expect.objectContaining({
+            searchableProductCount: 2,
+            publicServiceCount: 1,
+          }),
+        }),
+      ],
+    });
+    await expect(service.getMarketById("market-1")).resolves.toEqual(market);
+
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "markets:v6:areas:all",
+      expect.objectContaining({ areas: expect.any(Array) }),
+      expect.any(Number),
+    );
+  });
+
+  it("maps restaurant memberships, restaurant join requests, admin requests, and vendor candidates", async () => {
+    const { service } = createService();
+    mockSelectResults([
+      [
+        {
+          id: 1,
+          restaurantId: "restaurant-1",
+          marketId: "market-1",
+          stallNumber: "A1",
+          locationLabel: "Gate",
+          mapPosition: { x: 1, y: 2 },
+          marketHours: { monday: { open: "10:00", close: "18:00" } },
+          isPrimary: true,
+          joinedAt: new Date("2026-06-07T00:00:00.000Z"),
+          marketSlug: "night-market",
+          marketName: "Night Market",
+          marketType: "night_market",
+          city: "Taipei",
+          district: "Central",
+        },
+      ],
+      [
+        {
+          id: 2,
+          restaurantId: "restaurant-1",
+          marketId: "market-1",
+          status: "pending",
+          message: "Please add us",
+          requestedAt: new Date("2026-06-07T00:00:00.000Z"),
+          resolvedAt: null,
+          marketSlug: "night-market",
+          marketName: "Night Market",
+          marketType: "night_market",
+          city: "Taipei",
+          district: "Central",
+        },
+      ],
+      [
+        {
+          id: 3,
+          restaurantId: "restaurant-1",
+          marketId: "market-1",
+          status: "approved",
+          message: null,
+          requestedAt: new Date("2026-06-07T00:00:00.000Z"),
+          resolvedAt: new Date("2026-06-08T00:00:00.000Z"),
+          marketSlug: "night-market",
+          marketName: "Night Market",
+          marketType: "night_market",
+          city: "Taipei",
+          district: "Central",
+          restaurantName: "Makan",
+          restaurantDistrict: "Central",
+          restaurantCity: "Taipei",
+        },
+      ],
+      [
+        {
+          id: "restaurant-2",
+          name: "Candidate",
+          city: "Taipei",
+          district: "East",
+          address: "Street",
+          type: "malaysian",
+          category: "casual",
+          isAvailable: true,
+          supportsTakeaway: true,
+          supportsDelivery: false,
+        },
+      ],
+    ]);
+
+    await expect(
+      service.listRestaurantMemberships("restaurant-1"),
+    ).resolves.toEqual({
+      memberships: [
+        expect.objectContaining({
+          id: 1,
+          market: expect.objectContaining({
+            id: "market-1",
+            slug: "night-market",
+          }),
+        }),
+      ],
+    });
+    await expect(
+      service.listRestaurantJoinRequests("restaurant-1"),
+    ).resolves.toEqual({
+      requests: [
+        expect.objectContaining({
+          id: 2,
+          market: expect.objectContaining({ name: "Night Market" }),
+        }),
+      ],
+    });
+    await expect(
+      service.listJoinRequests({ status: "approved" }),
+    ).resolves.toEqual({
+      requests: [
+        expect.objectContaining({
+          id: 3,
+          restaurant: {
+            id: "restaurant-1",
+            name: "Makan",
+            city: "Taipei",
+            district: "Central",
+          },
+        }),
+      ],
+    });
+    await expect(
+      service.listVendorCandidates({
+        q: "candidate",
+        marketId: "market-1",
+        limit: 5,
+      }),
+    ).resolves.toEqual({
+      restaurants: [expect.objectContaining({ id: "restaurant-2" })],
+      total: 1,
+    });
+  });
+
+  it("handles join request creation states and approval/rejection branches", async () => {
+    const { service, values } = createService("20");
+    const market = {
+      id: "market-1",
+      slug: "night-market",
+      isActive: true,
+      deletedAt: null,
+    };
+
+    mockSelectResults([[market], [{ id: 10 }]]);
+    await expect(
+      service.createJoinRequest("restaurant-1", {
+        marketSlug: "night-market",
+      }),
+    ).resolves.toEqual({ status: "already_member" });
+
+    mockSelectResults([[market], [], [{ id: 11 }]]);
+    await expect(
+      service.createJoinRequest("restaurant-1", {
+        marketId: "market-1",
+      }),
+    ).resolves.toEqual({ status: "already_pending" });
+
+    mockSelectResults([[market], [], []]);
+    mockMutationResults([[{ id: 12, status: "pending" }]]);
+    await expect(
+      service.createJoinRequest("restaurant-1", {
+        marketId: "market-1",
+        message: "Please add us",
+      }),
+    ).resolves.toEqual({
+      status: "created",
+      request: { id: 12, status: "pending" },
+    });
+
+    mockSelectResults([[]]);
+    await expect(service.approveJoinRequest(99)).resolves.toEqual({
+      status: "not_found",
+    });
+
+    mockSelectResults([[{ id: 2, status: "approved" }]]);
+    await expect(service.rejectJoinRequest(2)).resolves.toEqual({
+      status: "not_pending",
+    });
+
+    mockSelectResults([
+      [
+        {
+          id: 3,
+          status: "pending",
+          marketId: "market-1",
+          restaurantId: "restaurant-1",
+        },
+      ],
+      [market],
+      [],
+    ]);
+    mockMutationResults([
+      [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
+      [{ id: 3, status: "approved" }],
+    ]);
+    await expect(
+      service.approveJoinRequest(3, { stallNumber: "A1", isPrimary: true }),
+    ).resolves.toMatchObject({
+      status: "approved",
+      request: { id: 3, status: "approved" },
+      membership: { id: 1 },
+    });
+
+    mockSelectResults([[{ id: 4, status: "pending" }]]);
+    mockMutationResults([[{ id: 4, status: "rejected" }]]);
+    await expect(service.rejectJoinRequest(4)).resolves.toEqual({
+      status: "rejected",
+      request: { id: 4, status: "rejected" },
+    });
+    expect(Number(values.get("markets:version"))).toBeGreaterThan(20);
   });
 });
