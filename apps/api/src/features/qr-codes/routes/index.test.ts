@@ -1,0 +1,339 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../../shared/utils/api-error";
+
+const auth = vi.hoisted(() => ({
+  user: { id: 7, role: 1, restaurantId: "42" } as {
+    id: number;
+    role: number;
+    restaurantId?: string | number | null;
+  },
+}));
+
+const qrServiceFns = vi.hoisted(() => ({
+  generateQR: vi.fn(),
+  generateBulkQR: vi.fn(),
+  downloadQR: vi.fn(),
+  downloadBatch: vi.fn(),
+  getStatistics: vi.fn(),
+  listTemplates: vi.fn(),
+  getTemplate: vi.fn(),
+  createTemplate: vi.fn(),
+  updateTemplate: vi.fn(),
+  deleteTemplate: vi.fn(),
+}));
+
+const marketServiceFns = vi.hoisted(() => ({
+  getMarketBySlug: vi.fn(),
+}));
+
+const restaurantServiceFns = vi.hoisted(() => ({
+  verifyShopQrCode: vi.fn(),
+}));
+
+vi.mock("../../../shared/middleware", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../../shared/middleware")>();
+
+  return {
+    ...actual,
+    authMiddleware: vi.fn(async (c, next) => {
+      c.set("user", auth.user);
+      await next();
+    }),
+    requireRole: vi.fn(
+      () => async (_c: unknown, next: () => Promise<void>) => next(),
+    ),
+  };
+});
+
+vi.mock("../services/QrCodesService", () => ({
+  QrCodesService: class {
+    generateQR = qrServiceFns.generateQR;
+    generateBulkQR = qrServiceFns.generateBulkQR;
+    downloadQR = qrServiceFns.downloadQR;
+    downloadBatch = qrServiceFns.downloadBatch;
+    getStatistics = qrServiceFns.getStatistics;
+    listTemplates = qrServiceFns.listTemplates;
+    getTemplate = qrServiceFns.getTemplate;
+    createTemplate = qrServiceFns.createTemplate;
+    updateTemplate = qrServiceFns.updateTemplate;
+    deleteTemplate = qrServiceFns.deleteTemplate;
+  },
+}));
+
+vi.mock("../../markets/services/MarketsService", () => ({
+  MarketsService: class {
+    getMarketBySlug = marketServiceFns.getMarketBySlug;
+  },
+}));
+
+vi.mock("../../restaurants/services/RestaurantsService", () => ({
+  RestaurantsService: class {
+    verifyShopQrCode = restaurantServiceFns.verifyShopQrCode;
+  },
+}));
+
+import routes from "./index";
+
+routes.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: err.code, message: err.message } },
+      err.status as 400 | 401 | 403 | 404 | 409,
+    );
+  }
+
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
+
+function request(path: string, method = "GET", body?: unknown) {
+  return routes.request(
+    path,
+    {
+      method,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      headers:
+        body === undefined ? undefined : { "Content-Type": "application/json" },
+    },
+    { DB: {}, CACHE_KV: {} } as never,
+  );
+}
+
+const qrStyle = {
+  backgroundColor: "#ffffff",
+  foregroundColor: "#111111",
+  size: 300,
+};
+
+describe("QR code routes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    auth.user = { id: 7, role: 1, restaurantId: "42" };
+  });
+
+  it("generates single and bulk QR codes with authenticated user context", async () => {
+    qrServiceFns.generateQR.mockResolvedValue({
+      id: 1,
+      url: "https://cdn.example.test/qr-1.png",
+    });
+    qrServiceFns.generateBulkQR.mockResolvedValue({
+      batchId: "batch-1",
+      count: 1,
+    });
+
+    const generateResponse = await request("/generate", "POST", {
+      content: "https://makan.test/table/1",
+      format: "png",
+      style: qrStyle,
+    });
+    const bulkResponse = await request("/bulk", "POST", {
+      tables: [{ id: 1, name: "A1", content: "https://makan.test/table/1" }],
+      format: "zip",
+      includeMetadata: false,
+    });
+
+    expect(generateResponse.status).toBe(201);
+    await expect(generateResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: { id: 1 },
+      message: "QR code generated successfully",
+    });
+    expect(qrServiceFns.generateQR).toHaveBeenCalledWith(
+      expect.objectContaining({ content: "https://makan.test/table/1" }),
+      7,
+      "42",
+    );
+    expect(bulkResponse.status).toBe(201);
+    await expect(bulkResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: { batchId: "batch-1" },
+      message: "Bulk QR codes generated successfully",
+    });
+    expect(qrServiceFns.generateBulkQR).toHaveBeenCalledWith(
+      expect.objectContaining({ format: "zip", includeMetadata: false }),
+      7,
+      "42",
+    );
+  });
+
+  it("downloads single and batch QR assets and reports missing assets", async () => {
+    qrServiceFns.downloadQR.mockResolvedValueOnce({
+      data: "png-bytes",
+      contentType: "image/png",
+      filename: "qr-1.png",
+    });
+    qrServiceFns.downloadBatch.mockResolvedValueOnce({
+      data: "zip-bytes",
+      contentType: "application/zip",
+      filename: "batch-1.zip",
+    });
+
+    const downloadResponse = await request("/1/download");
+    const batchResponse = await request("/batch/batch-1/download");
+    qrServiceFns.downloadQR.mockResolvedValueOnce(null);
+    qrServiceFns.downloadBatch.mockResolvedValueOnce(null);
+    const missingDownload = await request("/404/download");
+    const missingBatch = await request("/batch/missing/download");
+
+    expect(downloadResponse.status).toBe(200);
+    expect(downloadResponse.headers.get("Content-Type")).toBe("image/png");
+    expect(downloadResponse.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="qr-1.png"',
+    );
+    await expect(downloadResponse.text()).resolves.toBe("png-bytes");
+    expect(batchResponse.status).toBe(200);
+    expect(batchResponse.headers.get("Content-Type")).toBe("application/zip");
+    await expect(batchResponse.text()).resolves.toBe("zip-bytes");
+    expect(missingDownload.status).toBe(404);
+    await expect(missingDownload.json()).resolves.toMatchObject({
+      error: { code: "QR_CODE_NOT_FOUND" },
+    });
+    expect(missingBatch.status).toBe(404);
+    await expect(missingBatch.json()).resolves.toMatchObject({
+      error: { code: "BATCH_NOT_FOUND" },
+    });
+  });
+
+  it("reads statistics and template listings", async () => {
+    qrServiceFns.getStatistics.mockResolvedValue({ total: 5 });
+    qrServiceFns.listTemplates.mockResolvedValue([{ id: 1, name: "Modern" }]);
+
+    const statsResponse = await request("/stats?restaurantId=99&period=week");
+    const listResponse = await request("/templates?category=modern");
+
+    expect(statsResponse.status).toBe(200);
+    await expect(statsResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: { total: 5 },
+    });
+    expect(qrServiceFns.getStatistics).toHaveBeenCalledWith("99");
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: [{ id: 1, name: "Modern" }],
+    });
+    expect(qrServiceFns.listTemplates).toHaveBeenCalledWith("modern");
+  });
+
+  it("creates, reads, updates, and deletes templates", async () => {
+    qrServiceFns.createTemplate.mockResolvedValue({ id: 1, name: "Modern" });
+    qrServiceFns.getTemplate.mockResolvedValueOnce({ id: 1, name: "Modern" });
+    qrServiceFns.updateTemplate.mockResolvedValueOnce({
+      id: 1,
+      name: "Updated",
+    });
+    qrServiceFns.deleteTemplate.mockResolvedValueOnce(true);
+
+    const createResponse = await request("/templates", "POST", {
+      name: "Modern",
+      description: "Modern table QR",
+      category: "modern",
+      style: qrStyle,
+    });
+    const getResponse = await request("/templates/1");
+    const updateResponse = await request("/templates/1", "PUT", {
+      name: "Updated",
+    });
+    const deleteResponse = await request("/templates/1", "DELETE");
+
+    expect(createResponse.status).toBe(201);
+    await expect(createResponse.json()).resolves.toMatchObject({
+      data: { id: 1, name: "Modern" },
+      message: "Template created successfully",
+    });
+    expect(qrServiceFns.createTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Modern", createdBy: 7 }),
+    );
+    expect(getResponse.status).toBe(200);
+    await expect(getResponse.json()).resolves.toMatchObject({
+      data: { id: 1, name: "Modern" },
+    });
+    expect(updateResponse.status).toBe(200);
+    await expect(updateResponse.json()).resolves.toMatchObject({
+      data: { id: 1, name: "Updated" },
+      message: "Template updated successfully",
+    });
+    expect(deleteResponse.status).toBe(200);
+    await expect(deleteResponse.json()).resolves.toMatchObject({
+      success: true,
+      message: "Template deleted successfully",
+    });
+  });
+
+  it("reports missing templates on read, update, and delete", async () => {
+    qrServiceFns.getTemplate.mockResolvedValueOnce(null);
+    qrServiceFns.updateTemplate.mockResolvedValueOnce(null);
+    qrServiceFns.deleteTemplate.mockResolvedValueOnce(false);
+
+    const getResponse = await request("/templates/404");
+    const updateResponse = await request("/templates/404", "PUT", {
+      name: "Missing",
+    });
+    const deleteResponse = await request("/templates/404", "DELETE");
+
+    expect(getResponse.status).toBe(404);
+    await expect(getResponse.json()).resolves.toMatchObject({
+      error: { code: "TEMPLATE_NOT_FOUND" },
+    });
+    expect(updateResponse.status).toBe(404);
+    await expect(updateResponse.json()).resolves.toMatchObject({
+      error: { code: "TEMPLATE_NOT_FOUND" },
+    });
+    expect(deleteResponse.status).toBe(404);
+    await expect(deleteResponse.json()).resolves.toMatchObject({
+      error: { code: "TEMPLATE_NOT_FOUND" },
+    });
+  });
+
+  it("verifies public market and shop QR codes", async () => {
+    marketServiceFns.getMarketBySlug.mockResolvedValueOnce({
+      market: { id: "market-1", slug: "fengjia", name: "Fengjia" },
+    });
+    restaurantServiceFns.verifyShopQrCode.mockResolvedValueOnce({
+      valid: true,
+      restaurantId: "restaurant-1",
+      restaurant: { id: "restaurant-1", name: "Makan" },
+    });
+
+    const marketResponse = await request("/verify/market/fengjia");
+    const shopResponse = await request("/verify/shop/SHOP-GRANDMA-001");
+
+    expect(marketResponse.status).toBe(200);
+    await expect(marketResponse.json()).resolves.toMatchObject({
+      data: {
+        valid: true,
+        marketId: "market-1",
+        marketUrl: "/markets/fengjia",
+      },
+      message: "Market QR code verified successfully",
+    });
+    expect(shopResponse.status).toBe(200);
+    await expect(shopResponse.json()).resolves.toMatchObject({
+      data: {
+        valid: true,
+        restaurantId: "restaurant-1",
+        restaurant: { name: "Makan" },
+      },
+      message: "QR code verified successfully",
+    });
+  });
+
+  it("rejects invalid public market and shop QR codes", async () => {
+    marketServiceFns.getMarketBySlug.mockResolvedValueOnce(null);
+    restaurantServiceFns.verifyShopQrCode.mockResolvedValueOnce({
+      valid: false,
+    });
+
+    const marketResponse = await request("/verify/market/missing");
+    const shopResponse = await request("/verify/shop/SHOP-MISSING");
+
+    expect(marketResponse.status).toBe(404);
+    await expect(marketResponse.json()).resolves.toMatchObject({
+      error: { code: "MARKET_QR_INVALID" },
+    });
+    expect(shopResponse.status).toBe(404);
+    await expect(shopResponse.json()).resolves.toMatchObject({
+      error: { code: "QR_CODE_INVALID" },
+    });
+  });
+});
