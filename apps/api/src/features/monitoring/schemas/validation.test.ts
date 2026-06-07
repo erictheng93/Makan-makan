@@ -1,0 +1,63 @@
+import { describe, expect, it } from "vitest";
+import {
+  alertRuleSchema,
+  monitoringConfigSchema,
+  paginationSchema,
+  performanceReportQuerySchema,
+  updateAlertRuleSchema,
+} from "./validation";
+
+describe("monitoring validation schemas", () => {
+  it("decodes escaped alert operators and conditions", () => {
+    const parsed = alertRuleSchema.parse({
+      name: "High latency",
+      condition: "p95 &gt; 500 &amp;&amp; enabled &#x3D; true",
+      metric: "request_latency_ms",
+      operator: "&gt;=",
+      threshold: 500,
+      duration: 60,
+      config: {
+        type: "webhook",
+        severity: "critical",
+        enabled: true,
+        webhookUrl: "https://alerts.example.test/hook",
+      },
+    });
+
+    expect(parsed.operator).toBe(">=");
+    expect(parsed.condition).toBe("p95 > 500 && enabled = true");
+  });
+
+  it("validates partial alert updates", () => {
+    expect(updateAlertRuleSchema.parse({ operator: "&lt;" })).toEqual({
+      operator: "<",
+    });
+    expect(() => updateAlertRuleSchema.parse({ operator: "!=" })).toThrow();
+  });
+
+  it("applies pagination and performance report defaults", () => {
+    expect(paginationSchema.parse({})).toEqual({ page: 1, limit: 20 });
+    expect(performanceReportQuerySchema.parse({ days: "14" })).toEqual({
+      days: 14,
+    });
+
+    expect(() => paginationSchema.parse({ limit: "101" })).toThrow(
+      "Limit must be between 1 and 100",
+    );
+  });
+
+  it("applies monitoring config defaults and validates webhook URLs", () => {
+    expect(monitoringConfigSchema.parse({})).toMatchObject({
+      enableMetrics: true,
+      enableAlerts: true,
+      enablePerformanceTracking: true,
+      metricsRetentionDays: 30,
+      alertThrottleDuration: 300,
+      enableDebugLogging: false,
+    });
+
+    expect(() =>
+      monitoringConfigSchema.parse({ defaultSlackWebhook: "not-a-url" }),
+    ).toThrow();
+  });
+});
