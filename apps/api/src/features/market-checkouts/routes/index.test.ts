@@ -593,6 +593,163 @@ describe("market checkout routes", () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
+  it("rejects inactive, unavailable, and guest-order-disabled market vendors", async () => {
+    const scenarios = [
+      {
+        name: "missing membership",
+        firstRestaurant: {
+          id: "restaurant-1",
+          name: "Vendor 1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+        firstMembership: null,
+      },
+      {
+        name: "unavailable restaurant",
+        firstRestaurant: {
+          id: "restaurant-1",
+          name: "Vendor 1",
+          isActive: true,
+          isAvailable: false,
+          settings: { allowGuestOrders: true },
+        },
+        firstMembership: { restaurantId: "restaurant-1", marketId: "market-1" },
+      },
+      {
+        name: "guest orders disabled",
+        firstRestaurant: {
+          id: "restaurant-1",
+          name: "Vendor 1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: false },
+        },
+        firstMembership: { restaurantId: "restaurant-1", marketId: "market-1" },
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      databaseMocks.selectQueue.length = 0;
+      createOrder.mockClear();
+      databaseMocks.selectQueue.push(
+        {
+          get: {
+            id: "market-1",
+            slug: "fengjia",
+            name: "Fengjia Night Market",
+            platformFeeRateBps: 350,
+            isActive: true,
+          },
+        },
+        { get: scenario.firstRestaurant },
+        { get: scenario.firstMembership },
+        {
+          get: {
+            id: "restaurant-2",
+            name: "Vendor 2",
+            isActive: true,
+            isAvailable: true,
+            settings: { allowGuestOrders: true },
+          },
+        },
+        { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
+      );
+      const env = createEnv();
+
+      const response = await withSilencedRouteError(() =>
+        routes.fetch(
+          new Request("https://test/", {
+            method: "POST",
+            body: JSON.stringify({
+              marketSlug: "fengjia",
+              phoneLastDigits: "789",
+              vendors: [
+                {
+                  restaurantId: "restaurant-1",
+                  items: [{ menuItemId: 101, quantity: 1 }],
+                },
+                {
+                  restaurantId: "restaurant-2",
+                  items: [{ menuItemId: 202, quantity: 1 }],
+                },
+              ],
+            }),
+          }),
+          env as never,
+        ),
+      );
+
+      expect(response.status, scenario.name).toBe(500);
+      await expect(response.text()).resolves.toBe("Internal Server Error");
+      expect(createOrder).not.toHaveBeenCalled();
+    }
+  });
+
+  it("rejects market checkout creation when requested menu items are unavailable", async () => {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "Fengjia Night Market",
+          platformFeeRateBps: 350,
+          isActive: true,
+        },
+      },
+      {
+        get: {
+          id: "restaurant-1",
+          name: "Vendor 1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
+      {
+        get: {
+          id: "restaurant-2",
+          name: "Vendor 2",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
+      { all: [] },
+    );
+    const env = createEnv();
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/", {
+          method: "POST",
+          body: JSON.stringify({
+            marketSlug: "fengjia",
+            phoneLastDigits: "789",
+            vendors: [
+              {
+                restaurantId: "restaurant-1",
+                items: [{ menuItemId: 101, quantity: 1 }],
+              },
+              {
+                restaurantId: "restaurant-2",
+                items: [{ menuItemId: 202, quantity: 1 }],
+              },
+            ],
+          }),
+        }),
+        env as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toBe("Internal Server Error");
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
   it("hydrates child order status when reading a market checkout", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -1033,6 +1190,70 @@ describe("market checkout routes", () => {
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:checkout-1",
       expect.stringContaining('"appliedVoucher"'),
+      { expirationTtl: 14400 },
+    );
+  });
+
+  it("applies an additional voucher against remaining child order amounts", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        ...unpaidCheckoutSessionFixture(),
+        appliedVoucher: {
+          couponId: 41,
+          code: "FIRST10",
+          name: "First 10",
+          fundedBy: "platform",
+          discountCents: 3000,
+          allocations: [
+            { orderId: 1001, amountCents: 12000, discountCents: 2000 },
+            { orderId: 1002, amountCents: 8000, discountCents: 1000 },
+          ],
+        },
+      }),
+    );
+    validateVoucherAndPrice.mockResolvedValue({
+      couponId: 42,
+      code: "SECOND5",
+      name: "Second 5",
+      fundedBy: "vendor",
+      restaurantId: "restaurant-2",
+      discountCents: 500,
+      allocations: [{ orderId: 1002, amountCents: 7000, discountCents: 500 }],
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/voucher", {
+        method: "POST",
+        body: JSON.stringify({ code: "second5" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        discountCents: 3500,
+        payableCents: 16500,
+        vouchers: [
+          { code: "FIRST10", discountCents: 3000 },
+          { code: "SECOND5", discountCents: 500 },
+        ],
+      },
+    });
+    expect(validateVoucherAndPrice).toHaveBeenCalledWith({
+      code: "second5",
+      subtotalCents: 17000,
+      childOrders: [
+        { orderId: 1001, restaurantId: "restaurant-1", amountCents: 10000 },
+        { orderId: 1002, restaurantId: "restaurant-2", amountCents: 7000 },
+      ],
+    });
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"vouchers"'),
       { expirationTtl: 14400 },
     );
   });
