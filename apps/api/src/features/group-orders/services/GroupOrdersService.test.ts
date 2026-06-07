@@ -422,6 +422,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(db.select).toHaveBeenCalledTimes(3);
   });
 
+  it("returns empty lists when no rows exist or list queries fail", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([]);
+
+    service.db = {
+      select: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    };
+    await expect(
+      service.listGroupOrders("restaurant-1", "active"),
+    ).resolves.toEqual([]);
+  });
+
   it("creates a group order with host member, activity log, and cache aliases", async () => {
     const { kv, values } = createKV();
     const service = new GroupOrdersService({} as D1Database, kv) as any;
@@ -531,6 +547,30 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(values.has("group_order:group-1")).toBe(false);
   });
 
+  it("returns join errors for missing groups and database failures", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(
+      service.joinGroup("MISSING", { memberName: "Lin" }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order not found or expired",
+    });
+
+    service.db = {
+      select: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    };
+    await expect(
+      service.joinGroup("ABC12345", { memberName: "Lin" }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Failed to join group",
+    });
+  });
+
   it("adds and updates cart items while recalculating member and group totals", async () => {
     const { kv, values } = createKV();
     values.set("group_order_summary:group-1", JSON.stringify({ stale: true }));
@@ -606,6 +646,173 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       totalPriceCents: 3750,
       totalPrice: 37.5,
       specialInstructions: "Extra soup",
+    });
+  });
+
+  it("handles cart add validation, fallback response, and update errors", async () => {
+    const missingGroupService = createService();
+    missingGroupService.db = createDb([[]]);
+    await expect(
+      missingGroupService.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toEqual({ success: false, error: "Group order not found" });
+
+    const inactiveGroupService = createService();
+    inactiveGroupService.db = createDb([
+      [{ ...baseGroupOrder, status: "checkout" }],
+    ]);
+    await expect(
+      inactiveGroupService.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order is not active",
+    });
+
+    const expiredGroupService = createService();
+    expiredGroupService.db = createDb([
+      [{ ...baseGroupOrder, expiresAt: new Date("2026-06-06T00:00:00Z") }],
+    ]);
+    await expect(
+      expiredGroupService.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order has expired",
+    });
+
+    const missingMemberService = createService();
+    missingMemberService.db = createDb([[baseGroupOrder], []]);
+    await expect(
+      missingMemberService.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Member not found in group",
+    });
+
+    const missingMenuService = createService();
+    missingMenuService.db = createDb([[baseGroupOrder], [hostMember], []]);
+    await expect(
+      missingMenuService.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toEqual({ success: false, error: "Menu item not found" });
+
+    const fallbackService = createService();
+    const fallbackDb = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [{ id: 10, restaurantId: "restaurant-1", name: "Laksa", price: 9 }],
+      [{ total: 9 }],
+      [],
+      [{ total: 9 }],
+      [],
+    ]);
+    fallbackService.db = fallbackDb;
+    await expect(
+      fallbackService.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: { id: "uuid-1", totalPrice: 9 },
+    });
+
+    const updateMissingService = createService();
+    updateMissingService.db = createDb([[]]);
+    await expect(
+      updateMissingService.updateCartItem("group-1", "item-1", {
+        quantity: 2,
+      }),
+    ).resolves.toEqual({ success: false, error: "Cart item not found" });
+
+    const updateFailureService = createService();
+    updateFailureService.db = createDb([
+      [
+        {
+          id: "item-1",
+          groupOrderId: "group-1",
+          memberId: "member-1",
+          unitPrice: 9,
+        },
+      ],
+      [{ total: 18 }],
+      [],
+      [{ total: 18 }],
+      [],
+    ]);
+    await expect(
+      updateFailureService.updateCartItem("group-1", "item-1", {
+        quantity: 2,
+        customizations: { spice: "mild" },
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Failed to update cart item",
+    });
+  });
+
+  it("removes cart items and reports missing or failed removals", async () => {
+    const missingService = createService();
+    missingService.db = createDb([[]]);
+    await expect(
+      missingService.removeCartItem("group-1", "item-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Cart item not found or not owned by member",
+    });
+
+    const service = createService();
+    const db = createDb([
+      [
+        {
+          id: "item-1",
+          groupOrderId: "group-1",
+          memberId: "member-1",
+        },
+      ],
+      [{ total: 0 }],
+      [],
+      [{ total: 0 }],
+    ]);
+    service.db = db;
+    await expect(
+      service.removeCartItem("group-1", "item-1", "member-1"),
+    ).resolves.toEqual({ success: true });
+    expect(db.deletes).toHaveLength(1);
+    expect(db.inserts.at(-1)?.payload).toMatchObject({
+      action: "item_removed",
+      metadata: { itemId: "item-1" },
+    });
+
+    const failingService = createService();
+    failingService.db = {
+      select: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    };
+    await expect(
+      failingService.removeCartItem("group-1", "item-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Failed to remove cart item",
     });
   });
 
@@ -715,6 +922,188 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  it("splits bills by item or custom amounts and validates split inputs", async () => {
+    const byItemService = createService();
+    const byItemDb = createDb([
+      [baseGroupOrder],
+      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+      [
+        {
+          id: "cart-1",
+          groupOrderId: "group-1",
+          memberId: "member-1",
+          menuItemId: 10,
+          quantity: 2,
+          unitPrice: 9,
+          totalPrice: 18,
+          status: "active",
+        },
+      ],
+      [{ id: "split-1" }],
+      [],
+      [],
+    ]);
+    byItemService.db = byItemDb;
+    await expect(
+      byItemService.splitBill("group-1", {
+        splitType: "by_item",
+        serviceChargeRate: 10,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        {
+          memberId: "member-1",
+          subtotal: 18,
+          serviceCharge: 1.8,
+          items: [{ cartItemId: "cart-1", quantity: 2 }],
+        },
+        { memberId: "member-2", subtotal: 0 },
+      ],
+    });
+    expect(byItemDb.updates[1].payload).toMatchObject({
+      splitType: "individual",
+    });
+    expect(byItemDb.updates[1].payload.finalAmountCents).toBe(1980);
+
+    const customService = createService();
+    const customDb = createDb([[baseGroupOrder], [hostMember], [], []]);
+    customService.db = customDb;
+    await expect(
+      customService.splitBill("group-1", {
+        splitType: "custom",
+        customAmounts: [{ memberId: "member-1", amount: 12.34 }],
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [{ memberId: "member-1", totalAmount: 12.34 }],
+    });
+
+    const guards = [
+      { db: createDb([[]]), error: "Group order not found" },
+      {
+        db: createDb([[{ ...baseGroupOrder, status: "completed" }]]),
+        error: "Group order is already finalized",
+      },
+      {
+        db: createDb([[baseGroupOrder], []]),
+        error: "No active members found",
+      },
+      {
+        db: createDb([[baseGroupOrder], [hostMember], []]),
+        body: { splitType: "custom" },
+        error: "Custom amounts are required for custom split type",
+      },
+      {
+        db: createDb([[baseGroupOrder], [hostMember], []]),
+        body: {
+          splitType: "custom",
+          customAmounts: [{ memberId: "missing", amount: 1 }],
+        },
+        error: "Member missing not found in group",
+      },
+      {
+        db: createDb([[baseGroupOrder], [hostMember], []]),
+        body: { splitType: "unsupported" },
+        error: "Unsupported split type: unsupported",
+      },
+    ];
+
+    for (const guard of guards) {
+      const service = createService();
+      service.db = guard.db;
+      await expect(
+        service.splitBill("group-1", guard.body ?? { splitType: "equal" }),
+      ).resolves.toEqual({ success: false, error: guard.error });
+    }
+  });
+
+  it("validates payment guards and leaves checkout open while others owe", async () => {
+    const guards = [
+      { db: createDb([[]]), error: "Group order not found" },
+      {
+        db: createDb([[baseGroupOrder], []]),
+        error: "Member not found in group",
+      },
+      {
+        db: createDb([[baseGroupOrder], [hostMember], []]),
+        error: "Split bill not found for member. Please split the bill first.",
+      },
+      {
+        db: createDb([
+          [baseGroupOrder],
+          [hostMember],
+          [{ id: "split-1", paymentStatus: "paid" }],
+        ]),
+        error: "Payment already processed for this member",
+      },
+      {
+        db: createDb([
+          [baseGroupOrder],
+          [hostMember],
+          [
+            {
+              id: "split-1",
+              totalAmount: 10,
+              totalAmountCents: 1000,
+              paymentStatus: "pending",
+            },
+          ],
+        ]),
+        amount: 9,
+        error: "Payment amount (9) does not match split bill amount (10)",
+      },
+    ];
+
+    for (const guard of guards) {
+      const service = createService();
+      service.db = guard.db;
+      await expect(
+        service.processPayment("group-1", "member-1", {
+          paymentMethod: "cash",
+          amount: guard.amount,
+        }),
+      ).resolves.toEqual({ success: false, error: guard.error });
+    }
+
+    const service = createService();
+    const db = createDb([
+      [{ ...baseGroupOrder, status: "checkout" }],
+      [hostMember],
+      [
+        {
+          id: "split-1",
+          groupOrderId: "group-1",
+          memberId: "member-1",
+          totalAmount: 23.1,
+          totalAmountCents: 2310,
+          paymentStatus: "pending",
+        },
+      ],
+      [{ count: 1 }],
+    ]);
+    service.db = db;
+
+    await expect(
+      service.processPayment("group-1", "member-1", {
+        paymentMethod: "card",
+        paymentDetails: { terminalId: "pos-1" },
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: {
+        transactionId: "TXN-1780790400000-uuid-1",
+        groupOrderStatus: "checkout",
+      },
+    });
+    expect(db.updates).toHaveLength(1);
+    expect(JSON.parse(db.updates[0].payload.paymentReference)).toMatchObject({
+      transactionId: "TXN-1780790400000-uuid-1",
+      method: "card",
+      details: { terminalId: "pos-1" },
+    });
+  });
+
   it("handles leave guards, expired cleanup, activities, and statistics aggregation", async () => {
     const service = createService();
     service.db = createDb([[{ ...baseGroupOrder, status: "checkout" }]]);
@@ -773,6 +1162,150 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       averageOrderValue: 31.68,
       popularTimeSlots: [],
       conversionRate: 60,
+      paymentMethodDistribution: {},
+    });
+  });
+
+  it("allows members to leave active groups and validates leave edge cases", async () => {
+    const missingGroupService = createService();
+    missingGroupService.db = createDb([[]]);
+    await expect(
+      missingGroupService.leaveGroup("group-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order not found",
+    });
+
+    const missingMemberService = createService();
+    missingMemberService.db = createDb([[baseGroupOrder], []]);
+    await expect(
+      missingMemberService.leaveGroup("group-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Member not found in group",
+    });
+
+    const hostBlockedService = createService();
+    hostBlockedService.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+    ]);
+    await expect(
+      hostBlockedService.leaveGroup("group-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Host cannot leave while other members are still active",
+    });
+
+    const service = createService();
+    const db = createDb([
+      [baseGroupOrder],
+      [{ ...hostMember, id: "member-2", role: "member", name: "Lin" }],
+      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+      [{ total: 0 }],
+      [],
+      [{ total: 0 }],
+    ]);
+    service.db = db;
+    await expect(service.leaveGroup("group-1", "member-2")).resolves.toEqual({
+      success: true,
+    });
+    expect(db.updates[0].payload).toMatchObject({
+      isActive: false,
+      leftAt: new Date("2026-06-07T00:00:00.000Z"),
+    });
+    expect(db.updates[1].payload).toMatchObject({ status: "removed" });
+    expect(db.inserts[1].payload).toMatchObject({
+      action: "member_left",
+      description: "Lin left the group",
+    });
+
+    const failingService = createService();
+    failingService.db = {
+      select: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    };
+    await expect(
+      failingService.leaveGroup("group-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Failed to leave group",
+    });
+  });
+
+  it("reports cleanup item errors and top-level cleanup failures", async () => {
+    const service = createService();
+    const db = createDb([
+      [
+        { id: "group-1", shareCode: "ABC12345", expiresAt: new Date() },
+        { id: "group-2", shareCode: "XYZ12345", expiresAt: new Date() },
+      ],
+    ]);
+    const originalUpdate = db.update;
+    let updateAttempts = 0;
+    db.update = vi.fn((table: unknown) => {
+      updateAttempts += 1;
+      if (updateAttempts === 1) {
+        return {
+          set: vi.fn(() => ({
+            where: vi.fn(async () => {
+              throw new Error("update failed");
+            }),
+          })),
+        };
+      }
+      return originalUpdate(table);
+    }) as any;
+    service.db = db;
+
+    await expect(service.cleanupExpiredGroups()).resolves.toEqual({
+      cleaned: 1,
+      errors: ["group-1: update failed"],
+    });
+
+    const failingService = createService();
+    failingService.db = {
+      select: vi.fn(() => {
+        throw new Error("select failed");
+      }),
+    };
+    await expect(failingService.cleanupExpiredGroups()).resolves.toEqual({
+      cleaned: 0,
+      errors: ["select failed"],
+    });
+  });
+
+  it("keeps statistics usable when independent aggregate queries reject", async () => {
+    const service = createService();
+    const rejectQuery = (message: string) => {
+      const builder = {
+        from: vi.fn(() => builder),
+        where: vi.fn(() => builder),
+        then: (
+          resolve: (value: unknown) => void,
+          reject?: (reason: unknown) => void,
+        ) => Promise.reject(new Error(message)).then(resolve, reject),
+      };
+      return builder;
+    };
+    service.db = {
+      select: vi
+        .fn()
+        .mockImplementationOnce(() => rejectQuery("counts failed"))
+        .mockImplementationOnce(() => rejectQuery("active failed"))
+        .mockImplementationOnce(() => rejectQuery("avg size failed"))
+        .mockImplementationOnce(() => rejectQuery("avg value failed")),
+    };
+
+    await expect(service.getStatistics(undefined, "quarter")).resolves.toEqual({
+      totalGroupOrders: 0,
+      activeGroupOrders: 0,
+      averageGroupSize: 0,
+      averageOrderValue: 0,
+      popularTimeSlots: [],
+      conversionRate: 0,
       paymentMethodDistribution: {},
     });
   });
