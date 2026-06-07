@@ -115,6 +115,16 @@ async function linePaySignature(secret: string, rawBody: string) {
   return { nonce, signature };
 }
 
+function bindParamsFor(env: Env, sqlFragment: string) {
+  const callIndex = vi
+    .mocked(env.DB.prepare)
+    .mock.calls.findIndex(([sql]) => sql.includes(sqlFragment));
+  expect(callIndex).toBeGreaterThanOrEqual(0);
+
+  const prepared = vi.mocked(env.DB.prepare).mock.results[callIndex]?.value;
+  return vi.mocked(prepared.bind).mock.calls[0] ?? [];
+}
+
 describe("MarketCheckoutPaymentWebhookService", () => {
   it("reconciles a signed provider payment event into parent ledger and session summary", async () => {
     const redeemSpy = vi
@@ -491,6 +501,281 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     ).toBe(true);
   });
 
+  it("reconciles failed status payloads with payment summary fallbacks", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_failed_status",
+      status: "failed",
+      metadata: {
+        market_checkout_payment_id: "market_pay_checkout-1",
+        market_checkout_id: "checkout-1",
+        provider_transaction_id: "txn_failed_1",
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow({
+        provider: "",
+        idempotency_key: null,
+        paid_amount_cents: 2500,
+        refunded_amount_cents: 300,
+        currency: null,
+        country_code: null,
+        child_payment_ids: "not-json",
+        provider_payload: null,
+        session_payment_summary: null,
+      }),
+    });
+
+    const result = await new MarketCheckoutPaymentWebhookService(env).handle(
+      "mock_market_provider",
+      rawBody,
+      new Headers({
+        "x-webhook-signature": await signMockMarketCheckoutWebhook(
+          "market-secret",
+          rawBody,
+        ),
+      }),
+    );
+
+    expect(result).toMatchObject({
+      eventId: "evt_failed_status",
+      eventType: "unknown",
+      status: "failed",
+      reconciled: true,
+    });
+    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
+      "failed",
+      2500,
+      300,
+      "txn_failed_1",
+      expect.stringContaining('"status":"failed"'),
+      expect.any(Number),
+      "failed",
+      expect.any(Number),
+      "failed",
+      expect.any(Number),
+      "failed",
+      expect.any(Number),
+      "market_pay_checkout-1",
+    ]);
+
+    const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
+    const paymentSummary = JSON.parse(String(sessionParams[1])) as {
+      method: string;
+      currency: string;
+      country: string;
+      failedAt: string;
+      parentPayment: {
+        provider: string;
+        idempotencyKey: string;
+        childPaymentIds: string[];
+      };
+    };
+    expect(paymentSummary).toMatchObject({
+      method: "",
+      currency: "TWD",
+      country: "TW",
+      parentPayment: {
+        provider: "mock_market_provider",
+        idempotencyKey: "market-checkout:checkout-1",
+        childPaymentIds: [],
+      },
+    });
+    expect(paymentSummary.failedAt).toEqual(expect.any(String));
+    expect(env.CACHE_KV.put).not.toHaveBeenCalled();
+  });
+
+  it("reconciles full refunds and preserves object-based summary details", async () => {
+    const rawBody = JSON.stringify({
+      data: {
+        object: {
+          id: "pi_refunded",
+          amount_refunded: 8400,
+          metadata: {
+            marketCheckoutId: "checkout-1",
+          },
+        },
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow({
+        paid_amount_cents: 5000,
+        provider_payload: "null",
+        session_payment_summary: {
+          method: "card",
+          currency: "USD",
+          country: "US",
+          childPayments: [{ paymentId: "child-1" }],
+          parentPayment: { note: "existing" },
+        },
+      }),
+      cachedIndex: [{ id: "checkout-1", paymentStatus: "paid" }],
+    });
+
+    const result = await new MarketCheckoutPaymentWebhookService(env).handle(
+      "stripe",
+      rawBody,
+      new Headers({
+        "x-provider-event-type": "charge.refunded",
+        "stripe-signature": await stripeSignature("market-secret", rawBody),
+      }),
+    );
+
+    expect(result).toMatchObject({
+      eventId: "pi_refunded",
+      eventType: "charge.refunded",
+      status: "refunded",
+      reconciled: true,
+    });
+    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
+      "refunded",
+      12500,
+      8400,
+      "pi_refunded",
+      expect.stringContaining('"eventType":"charge.refunded"'),
+      expect.any(Number),
+      "refunded",
+      expect.any(Number),
+      "refunded",
+      expect.any(Number),
+      "refunded",
+      expect.any(Number),
+      "market_pay_checkout-1",
+    ]);
+
+    const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
+    const paymentSummary = JSON.parse(String(sessionParams[1])) as {
+      method: string;
+      currency: string;
+      country: string;
+      childPayments: unknown[];
+      refundedAt: string;
+      parentPayment: { note: string };
+    };
+    expect(paymentSummary).toMatchObject({
+      method: "card",
+      currency: "USD",
+      country: "US",
+      childPayments: [{ paymentId: "child-1" }],
+      parentPayment: { note: "existing" },
+    });
+    expect(paymentSummary.refundedAt).toEqual(expect.any(String));
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:index",
+      expect.stringContaining('"paymentStatus":"refunded"'),
+      { expirationTtl: 14400 },
+    );
+  });
+
+  it("reconciles partial refunds with fallback amounts and mixed cache index rows", async () => {
+    const rawBody = JSON.stringify({
+      data: {
+        object: {
+          status: "partially_refunded",
+          metadata: {
+            marketCheckoutId: "checkout-1",
+          },
+        },
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow({
+        refunded_amount_cents: -50,
+        provider_transaction_id: "existing-provider-txn",
+        provider_payload: "{bad-json",
+        child_payment_ids: JSON.stringify([123, "child-1", null, "child-2"]),
+        session_payment_summary: "[]",
+      }),
+      cachedIndex: [
+        null as unknown as Record<string, unknown>,
+        { id: "checkout-2", paymentStatus: "paid" },
+        { id: "checkout-1", paymentStatus: "paid" },
+      ],
+    });
+
+    const result = await new MarketCheckoutPaymentWebhookService(env).handle(
+      "stripe",
+      rawBody,
+      new Headers({
+        "stripe-signature": await stripeSignature("market-secret", rawBody),
+      }),
+    );
+
+    expect(result).toMatchObject({
+      eventId: null,
+      eventType: "unknown",
+      status: "partial_refunded",
+      reconciled: true,
+    });
+    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
+      "partial_refunded",
+      12500,
+      0,
+      "existing-provider-txn",
+      expect.stringContaining('"status":"partial_refunded"'),
+      expect.any(Number),
+      "partial_refunded",
+      expect.any(Number),
+      "partial_refunded",
+      expect.any(Number),
+      "partial_refunded",
+      expect.any(Number),
+      "market_pay_checkout-1",
+    ]);
+
+    const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
+    const paymentSummary = JSON.parse(String(sessionParams[1])) as {
+      childPayments: unknown[];
+      parentPayment: {
+        providerTransactionId: string;
+        childPaymentIds: string[];
+      };
+      refundedAt: string;
+    };
+    expect(paymentSummary).toMatchObject({
+      childPayments: [],
+      parentPayment: {
+        providerTransactionId: "existing-provider-txn",
+        childPaymentIds: ["child-1", "child-2"],
+      },
+    });
+    expect(paymentSummary.refundedAt).toEqual(expect.any(String));
+
+    const indexPut = vi
+      .mocked(env.CACHE_KV.put)
+      .mock.calls.find(([key]) => key === "market_checkout:index");
+    expect(indexPut?.[1]).toContain('"id":"checkout-2"');
+    expect(indexPut?.[1]).toContain('"paymentStatus":"partial_refunded"');
+  });
+
+  it("skips cache index rewrites when the cached index is not an array", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_failed_cache",
+      type: "payment_intent.payment_failed",
+      metadata: {
+        marketCheckoutId: "checkout-1",
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow(),
+    });
+    await env.CACHE_KV.put("market_checkout:index", JSON.stringify({}));
+    vi.mocked(env.CACHE_KV.put).mockClear();
+
+    await new MarketCheckoutPaymentWebhookService(env).handle(
+      "stripe",
+      rawBody,
+      new Headers({
+        "stripe-signature": await stripeSignature("market-secret", rawBody),
+      }),
+    );
+
+    expect(
+      vi
+        .mocked(env.CACHE_KV.put)
+        .mock.calls.some(([key]) => key === "market_checkout:index"),
+    ).toBe(false);
+  });
+
   it("rejects invalid provider signatures", async () => {
     const env = createEnv({
       paymentRow: paymentRow(),
@@ -533,6 +818,83 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       ),
     ).toBe(false);
     expect(env.CACHE_KV.put).not.toHaveBeenCalled();
+  });
+
+  it("uses the Stripe fallback secret and rejects missing webhook secrets", async () => {
+    const rawBody = JSON.stringify({
+      id: "evt_stripe_fallback",
+      type: "payment_intent.succeeded",
+      data: {
+        object: {
+          id: "pi_fallback",
+          metadata: { marketCheckoutId: "checkout-1" },
+        },
+      },
+    });
+    const env = createEnv({
+      paymentRow: paymentRow(),
+    });
+    env.MARKET_CHECKOUT_WEBHOOK_SECRET = undefined;
+    env.STRIPE_WEBHOOK_SECRET = "stripe-secret";
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(env).handle(
+        "stripe",
+        rawBody,
+        new Headers({
+          "stripe-signature": await stripeSignature("stripe-secret", rawBody),
+        }),
+      ),
+    ).resolves.toMatchObject({
+      eventId: "evt_stripe_fallback",
+      status: "paid",
+      reconciled: true,
+    });
+
+    const missingSecretEnv = createEnv({
+      paymentRow: paymentRow(),
+    });
+    missingSecretEnv.MARKET_CHECKOUT_WEBHOOK_SECRET = undefined;
+    missingSecretEnv.STRIPE_WEBHOOK_SECRET = undefined;
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(missingSecretEnv).handle(
+        "stripe",
+        rawBody,
+        new Headers({
+          "stripe-signature": await stripeSignature("stripe-secret", rawBody),
+        }),
+      ),
+    ).rejects.toThrow("Market checkout webhook secret is not configured");
+  });
+
+  it("rejects missing and invalid LINE Pay signatures", async () => {
+    const rawBody = JSON.stringify({
+      id: "linepay-event-invalid",
+      type: "market_checkout.payment_paid",
+    });
+    const env = createEnv({
+      paymentRow: paymentRow(),
+    });
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(env).handle(
+        "linepay",
+        rawBody,
+        new Headers(),
+      ),
+    ).rejects.toThrow("Missing LINE Pay webhook signature");
+
+    await expect(
+      new MarketCheckoutPaymentWebhookService(env).handle(
+        "linepay",
+        rawBody,
+        new Headers({
+          "x-linepay-nonce": "nonce",
+          "x-linepay-signature": "invalid",
+        }),
+      ),
+    ).rejects.toThrow("Invalid LINE Pay webhook signature");
   });
 });
 
