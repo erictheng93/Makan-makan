@@ -1064,6 +1064,23 @@ describe("market checkout routes", () => {
     expect(env.CACHE_KV.get).not.toHaveBeenCalledWith(
       "market_checkout:checkout-1",
     );
+
+    const missingEnv = createEnv();
+    const missingResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/missing-checkout/guest-token", {
+          method: "POST",
+          body: JSON.stringify({
+            orderId: 1001,
+            phoneLastDigits: "789",
+          }),
+        }),
+        missingEnv as never,
+      ),
+    );
+
+    expect(missingResponse.status).toBe(500);
+    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
   });
 
   it("rejects guest token recovery for orders outside the checkout", async () => {
@@ -1421,6 +1438,20 @@ describe("market checkout routes", () => {
   });
 
   it("rejects malformed and empty market checkout payment attempts", async () => {
+    const missingEnv = createEnv();
+    const missingResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/missing-checkout/pay", {
+          method: "POST",
+          body: JSON.stringify({ method: "market_online" }),
+        }),
+        missingEnv as never,
+      ),
+    );
+
+    expect(missingResponse.status).toBe(500);
+    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+
     const invalidEnv = createEnv();
     await invalidEnv.CACHE_KV.put(
       "market_checkout:checkout-1",
@@ -1663,6 +1694,124 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("charges voucher-adjusted child totals and logs redemption failures", async () => {
+    const env = createEnv();
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    redeemVoucher.mockRejectedValueOnce(new Error("voucher ledger offline"));
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        ...unpaidCheckoutSessionFixture(),
+        appliedVoucher: {
+          couponId: 42,
+          code: "MARKET10",
+          name: "Market 10",
+          fundedBy: "platform",
+          discountCents: 2000,
+          allocations: [
+            { orderId: 1001, amountCents: 12000, discountCents: 1200 },
+            { orderId: 1002, amountCents: 8000, discountCents: 800 },
+          ],
+        },
+      }),
+    );
+    processPayment
+      .mockResolvedValueOnce({
+        data: {
+          paymentId: "pay-1001",
+          orderId: 1001,
+          orderStatus: "preparing",
+          paymentStatus: "paid",
+          authorizedTotal: 108,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          paymentId: "pay-1002",
+          orderId: 1002,
+          orderStatus: "ready",
+          paymentStatus: "paid",
+          authorizedTotal: 72,
+        },
+      });
+
+    try {
+      const response = await routes.fetch(
+        new Request("https://test/checkout-1/pay", {
+          method: "POST",
+          body: JSON.stringify({
+            method: "line_pay",
+            country: "TW",
+            currency: "TWD",
+          }),
+        }),
+        env as never,
+      );
+
+      expect(response.status).toBe(200);
+      expect(processPayment).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          orderId: 1001,
+          amount: 108,
+          expectedTotal: 108,
+        }),
+        expect.any(Object),
+      );
+      expect(processPayment).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          orderId: 1002,
+          amount: 72,
+          expectedTotal: 72,
+        }),
+        expect.any(Object),
+      );
+      expect(redeemVoucher).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "MARKET10", discountCents: 2000 }),
+      );
+      expect(consoleError).toHaveBeenCalledWith(
+        "Voucher redemption failed for checkout checkout-1:",
+        expect.any(Error),
+      );
+      await expect(response.json()).resolves.toMatchObject({
+        data: {
+          payment: {
+            status: "paid",
+            totalAmount: 180,
+            totalAmountCents: 18000,
+            paidAmount: 180,
+            paidAmountCents: 18000,
+            settlement: {
+              platformFeeCents: 700,
+              vendorNetAmountCents: 19300,
+              vendorAllocations: [
+                {
+                  orderId: 1001,
+                  originalAmountCents: 12000,
+                  platformDiscountCents: 1200,
+                  settlementBaseCents: 12000,
+                  grossAmountCents: 10800,
+                },
+                {
+                  orderId: 1002,
+                  originalAmountCents: 8000,
+                  platformDiscountCents: 800,
+                  settlementBaseCents: 8000,
+                  grossAmountCents: 7200,
+                },
+              ],
+            },
+          },
+        },
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("replays an already paid market checkout without charging twice", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -1714,6 +1863,20 @@ describe("market checkout routes", () => {
   });
 
   it("rejects malformed and unpaid market checkout refund requests", async () => {
+    const missingEnv = createEnv();
+    const missingResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/missing-checkout/refund", {
+          method: "POST",
+          body: JSON.stringify({ reason: "customer requested cancellation" }),
+        }),
+        missingEnv as never,
+      ),
+    );
+
+    expect(missingResponse.status).toBe(500);
+    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+
     const invalidEnv = createEnv();
     await invalidEnv.CACHE_KV.put(
       "market_checkout:checkout-1",
