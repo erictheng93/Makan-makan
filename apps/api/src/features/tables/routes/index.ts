@@ -93,6 +93,86 @@ app.get(
 );
 
 /**
+ * Get available tables
+ * GET /tables/available
+ */
+app.get(
+  "/available",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([
+    USER_ROLES.ADMIN,
+    USER_ROLES.OWNER,
+    USER_ROLES.SERVICE,
+    USER_ROLES.CASHIER,
+  ]),
+  validateQuery(tableSchemas.availableTables),
+  async (c) => {
+    const { restaurantId, capacity } = c.get(
+      "validatedQuery",
+    ) as AvailableTablesInput;
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
+
+    // Permission check: non-admins can only view their own restaurant's tables
+    if (
+      !tablesService.validateRestaurantAccess(
+        restaurantId,
+        String(currentUser.restaurantId ?? ""),
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const availableTables = await tablesService.getAvailableTables(
+      restaurantId,
+      capacity,
+    );
+
+    return c.json({
+      success: true,
+      data: availableTables,
+    });
+  },
+);
+
+/**
+ * Get table statistics
+ * GET /tables/stats
+ */
+app.get(
+  "/stats",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateQuery(tableSchemas.stats),
+  async (c) => {
+    const { restaurantId } = c.get("validatedQuery") as TableStatsInput;
+    const currentUser = c.get("user");
+    const tablesService = new TablesService(c.env);
+
+    // Permission check: non-admins can only view their own restaurant's statistics
+    if (
+      !tablesService.validateRestaurantAccess(
+        restaurantId,
+        String(currentUser.restaurantId ?? ""),
+        currentUser.role === USER_ROLES.ADMIN,
+      )
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const stats = await tablesService.getTableStats(restaurantId);
+
+    return c.json({
+      success: true,
+      data: stats,
+    });
+  },
+);
+
+/**
  * Get single table details
  * GET /tables/:id
  */
@@ -518,86 +598,6 @@ app.post(
       success: true,
       data: result.qrCodes,
       message: "QR codes generated successfully",
-    });
-  },
-);
-
-/**
- * Get available tables
- * GET /tables/available
- */
-app.get(
-  "/available",
-  authMiddleware,
-  moduleGate("table_management"),
-  requireRole([
-    USER_ROLES.ADMIN,
-    USER_ROLES.OWNER,
-    USER_ROLES.SERVICE,
-    USER_ROLES.CASHIER,
-  ]),
-  validateQuery(tableSchemas.availableTables),
-  async (c) => {
-    const { restaurantId, capacity } = c.get(
-      "validatedQuery",
-    ) as AvailableTablesInput;
-    const currentUser = c.get("user");
-    const tablesService = new TablesService(c.env);
-
-    // Permission check: non-admins can only view their own restaurant's tables
-    if (
-      !tablesService.validateRestaurantAccess(
-        restaurantId,
-        String(currentUser.restaurantId ?? ""),
-        currentUser.role === USER_ROLES.ADMIN,
-      )
-    ) {
-      throw forbidden("Access denied");
-    }
-
-    const availableTables = await tablesService.getAvailableTables(
-      restaurantId,
-      capacity,
-    );
-
-    return c.json({
-      success: true,
-      data: availableTables,
-    });
-  },
-);
-
-/**
- * Get table statistics
- * GET /tables/stats
- */
-app.get(
-  "/stats",
-  authMiddleware,
-  moduleGate("table_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateQuery(tableSchemas.stats),
-  async (c) => {
-    const { restaurantId } = c.get("validatedQuery") as TableStatsInput;
-    const currentUser = c.get("user");
-    const tablesService = new TablesService(c.env);
-
-    // Permission check: non-admins can only view their own restaurant's statistics
-    if (
-      !tablesService.validateRestaurantAccess(
-        restaurantId,
-        String(currentUser.restaurantId ?? ""),
-        currentUser.role === USER_ROLES.ADMIN,
-      )
-    ) {
-      throw forbidden("Access denied");
-    }
-
-    const stats = await tablesService.getTableStats(restaurantId);
-
-    return c.json({
-      success: true,
-      data: stats,
     });
   },
 );
