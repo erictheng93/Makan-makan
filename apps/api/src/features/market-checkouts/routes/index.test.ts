@@ -1095,6 +1095,40 @@ describe("market checkout routes", () => {
     expect(validateVoucherAndPrice).not.toHaveBeenCalled();
   });
 
+  it("rejects voucher apply requests for missing and paid checkouts", async () => {
+    const missingEnv = createEnv();
+    const missingResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/missing-checkout/voucher", {
+          method: "POST",
+          body: JSON.stringify({ code: "MARKET10" }),
+        }),
+        missingEnv as never,
+      ),
+    );
+    expect(missingResponse.status).toBe(500);
+    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+
+    const paidEnv = createEnv();
+    await paidEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(providerSplitPaidSessionFixture()),
+    );
+    const paidResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", {
+          method: "POST",
+          body: JSON.stringify({ code: "MARKET10" }),
+        }),
+        paidEnv as never,
+      ),
+    );
+
+    expect(paidResponse.status).toBe(500);
+    await expect(paidResponse.text()).resolves.toBe("Internal Server Error");
+    expect(validateVoucherAndPrice).not.toHaveBeenCalled();
+  });
+
   it("removes a voucher from an unpaid market checkout", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -1132,6 +1166,82 @@ describe("market checkout routes", () => {
       expect.not.stringContaining('"appliedVoucher"'),
       { expirationTtl: 14400 },
     );
+  });
+
+  it("rejects voucher removal for missing and paid checkouts", async () => {
+    const missingEnv = createEnv();
+    const missingResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/missing-checkout/voucher", {
+          method: "DELETE",
+        }),
+        missingEnv as never,
+      ),
+    );
+    expect(missingResponse.status).toBe(500);
+    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+
+    const paidEnv = createEnv();
+    await paidEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(providerSplitPaidSessionFixture()),
+    );
+    const paidResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", {
+          method: "DELETE",
+        }),
+        paidEnv as never,
+      ),
+    );
+
+    expect(paidResponse.status).toBe(500);
+    await expect(paidResponse.text()).resolves.toBe("Internal Server Error");
+  });
+
+  it("rejects malformed and empty market checkout payment attempts", async () => {
+    const invalidEnv = createEnv();
+    await invalidEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+
+    const invalidResponse = await routes.fetch(
+      new Request("https://test/checkout-1/pay", {
+        method: "POST",
+        body: JSON.stringify({ method: "" }),
+      }),
+      invalidEnv as never,
+    );
+
+    expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: "Validation failed",
+    });
+
+    const emptyEnv = createEnv();
+    await emptyEnv.CACHE_KV.put(
+      "market_checkout:empty-checkout",
+      JSON.stringify({
+        ...unpaidCheckoutSessionFixture(),
+        id: "empty-checkout",
+        childOrders: [],
+      }),
+    );
+    const emptyResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/empty-checkout/pay", {
+          method: "POST",
+          body: JSON.stringify({ method: "market_online" }),
+        }),
+        emptyEnv as never,
+      ),
+    );
+
+    expect(emptyResponse.status).toBe(500);
+    await expect(emptyResponse.text()).resolves.toBe("Internal Server Error");
+    expect(processPayment).not.toHaveBeenCalled();
   });
 
   it("processes one aggregate market checkout payment across child orders", async () => {
@@ -1380,6 +1490,95 @@ describe("market checkout routes", () => {
       status: "paid",
       method: "line_pay",
     });
+  });
+
+  it("rejects malformed and unpaid market checkout refund requests", async () => {
+    const invalidEnv = createEnv();
+    await invalidEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+    const invalidResponse = await routes.fetch(
+      new Request("https://test/checkout-1/refund", {
+        method: "POST",
+        body: JSON.stringify({ reason: "x".repeat(501) }),
+      }),
+      invalidEnv as never,
+    );
+
+    expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: "Validation failed",
+    });
+
+    const unpaidEnv = createEnv();
+    await unpaidEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+    const unpaidResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/refund", {
+          method: "POST",
+          body: JSON.stringify({ reason: "customer requested cancellation" }),
+        }),
+        unpaidEnv as never,
+      ),
+    );
+
+    expect(unpaidResponse.status).toBe(500);
+    await expect(unpaidResponse.text()).resolves.toBe("Internal Server Error");
+  });
+
+  it("rejects provider split refunds without refundable provider state", async () => {
+    const missingTransactionEnv = createEnv();
+    const missingTransactionSession = providerSplitPaidSessionFixture();
+    delete missingTransactionSession.payment.parentPayment
+      .providerTransactionId;
+    await missingTransactionEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(missingTransactionSession),
+    );
+
+    const missingTransactionResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/refund", {
+          method: "POST",
+          body: JSON.stringify({ reason: "duplicate payment" }),
+        }),
+        missingTransactionEnv as never,
+      ),
+    );
+
+    expect(missingTransactionResponse.status).toBe(500);
+    await expect(missingTransactionResponse.text()).resolves.toBe(
+      "Internal Server Error",
+    );
+
+    const nonRefundableEnv = createEnv();
+    const nonRefundableSession = providerSplitPaidSessionFixture();
+    nonRefundableSession.payment.status = "failed";
+    nonRefundableSession.payment.parentPayment.status = "failed";
+    await nonRefundableEnv.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(nonRefundableSession),
+    );
+
+    const nonRefundableResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/refund", {
+          method: "POST",
+          body: JSON.stringify({ reason: "duplicate payment" }),
+        }),
+        nonRefundableEnv as never,
+      ),
+    );
+
+    expect(nonRefundableResponse.status).toBe(500);
+    await expect(nonRefundableResponse.text()).resolves.toBe(
+      "Internal Server Error",
+    );
   });
 
   it("refunds paid child payments for a market checkout", async () => {
