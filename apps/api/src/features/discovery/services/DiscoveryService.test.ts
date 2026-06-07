@@ -173,6 +173,31 @@ describe("DiscoveryService", () => {
     expect(mocks.db.select).not.toHaveBeenCalled();
   });
 
+  it("hydrates cached dish search scope when the cache entry is legacy", async () => {
+    const { service } = createService({
+      "search:query:version": "4",
+      "search:query:v:4:m:market-1:p:1:l:20": {
+        results: [],
+        total: 0,
+      },
+    });
+    mockSelectResults([[{ count: 2 }], [{ count: 3 }]]);
+
+    await expect(
+      service.searchDishes({ marketId: "market-1" }),
+    ).resolves.toMatchObject({
+      total: 0,
+      scope: {
+        market: {
+          marketId: "market-1",
+          searchableProductCount: 2,
+          publicServiceCount: 3,
+          hasSearchableCatalog: true,
+        },
+      },
+    });
+  });
+
   it("returns cached category and district restaurant browse results", async () => {
     const restaurant = {
       restaurantId: "restaurant-1",
@@ -327,11 +352,19 @@ describe("DiscoveryService", () => {
     expect(
       helpers.buildCacheKey("search:query", { priceMin: 0, priceMax: 0 }, "9"),
     ).toBe("search:query:v:9:p:1:l:20");
+    expect(
+      helpers.buildCacheKey(
+        "search:query",
+        { lat: 25, lng: 121, page: 0, limit: 0 },
+        "9",
+      ),
+    ).toBe("search:query:v:9:geo:25,121,2:p:1:l:20");
 
     expect(helpers.getServiceIntent("takeaway")).toBe("takeaway");
     expect(helpers.getServiceIntent("deliver")).toBe("delivery");
     expect(helpers.getServiceIntent("dine in")).toBeNull();
     expect(helpers.getServiceTypeIntent("booking")).toBe("booking");
+    expect(helpers.getServiceTypeIntent("unknown")).toBeNull();
     expect(helpers.getServiceQueryAliases("massage")).toEqual(["massage"]);
     expect(helpers.getCatalogQueryAliases("dessert")).toEqual(["dessert"]);
     expect(helpers.ftsMatchCondition("ab")).toBeUndefined();
@@ -348,6 +381,7 @@ describe("DiscoveryService", () => {
     expect(
       helpers.getDishSearchOrderBy({ q: "Laksa" }, {}, "laksa"),
     ).toHaveLength(2);
+    expect(helpers.getDishSearchOrderBy({}, {}, "laksa")).toHaveLength(2);
     expect(
       helpers.getServiceSearchOrderBy({ sortBy: "price_desc" }),
     ).toHaveLength(4);
@@ -357,6 +391,7 @@ describe("DiscoveryService", () => {
     expect(helpers.getServiceSearchOrderBy({})).toHaveLength(2);
     expect(helpers.getServiceSearchOrderBy({ q: "booking" })).toHaveLength(3);
     expect(helpers.getServiceSearchOrderBy({ q: "massage" })).toHaveLength(3);
+    expect(helpers.getServiceSearchOrderBy({ q: "撖" })).toHaveLength(3);
 
     const geo = helpers.getGeoFilter({ lat: 25, lng: 121, radiusKm: 50 });
     expect(geo).toMatchObject({ lat: 25, lng: 121, radiusKm: 10 });
@@ -364,6 +399,9 @@ describe("DiscoveryService", () => {
       helpers.resultDistanceKm(geo, { latitude: 25, longitude: 121 }),
     ).toBe(0);
     expect(helpers.getGeoFilter({ lat: 25 })).toBeNull();
+    expect(helpers.getGeoFilter({ lat: 25, lng: 121 })).toMatchObject({
+      radiusKm: 2,
+    });
     expect(
       helpers.getGeoFilter({ lat: 25, lng: 121, radiusKm: 0 }),
     ).toMatchObject({ radiusKm: 0.1 });
@@ -1012,6 +1050,7 @@ describe("DiscoveryService", () => {
         { serviceType: "delivery", businessHours: openAllWeek() },
         { serviceType: "booking", businessHours: openAllWeek() },
         { serviceType: "booking", businessHours: openAllWeek() },
+        { serviceType: "activity", businessHours: openAllWeek() },
         { serviceType: "tour", businessHours: closedAllWeek() },
       ],
     ]);
@@ -1027,6 +1066,7 @@ describe("DiscoveryService", () => {
     ).resolves.toEqual({
       serviceTypes: [
         { serviceType: "booking", count: 2 },
+        { serviceType: "activity", count: 1 },
         { serviceType: "delivery", count: 1 },
       ],
     });
@@ -1147,7 +1187,17 @@ describe("DiscoveryService", () => {
         { serviceType: "booking", count: 3 },
         { serviceType: "delivery", count: 1 },
       ],
-      [dishRow],
+      [
+        dishRow,
+        {
+          ...dishRow,
+          menuItemId: 2,
+          dishName: "Mystery",
+          price: null,
+          priceCents: null,
+          tags: null,
+        },
+      ],
       [],
       [{ count: 0 }],
       [
@@ -1223,7 +1273,10 @@ describe("DiscoveryService", () => {
     );
     await expect(service.getPopular()).resolves.toMatchObject({
       keywords: ["laksa"],
-      dishes: [{ menuItemId: 1, price: 9 }],
+      dishes: [
+        { menuItemId: 1, price: 9 },
+        { menuItemId: 2, price: 0, tags: [] },
+      ],
       restaurants: [],
     });
     expect(kv.get).toHaveBeenCalledWith("search:meta:popular-keywords");
@@ -1297,6 +1350,31 @@ describe("DiscoveryService", () => {
           marketIds: '["market-1"]',
           primaryMarketId: "market-1",
         },
+        {
+          menuItemId: 2,
+          name: "Hidden Tea",
+          price: 5,
+          priceCents: 500,
+          catalogType: "product",
+          isAvailable: true,
+          tags: null,
+          keywords: null,
+          deletedAtMs: 123,
+          categoryName: null,
+          categoryActive: true,
+          categoryVisible: true,
+          categoryDeleted: null,
+          restaurantId: "restaurant-2",
+          district: "East",
+          restaurantType: "tea",
+          supportsTakeaway: false,
+          supportsDelivery: true,
+          restaurantDeleted: null,
+          latitude: null,
+          longitude: null,
+          marketIds: null,
+          primaryMarketId: null,
+        },
       ],
       [
         {
@@ -1310,6 +1388,17 @@ describe("DiscoveryService", () => {
           tags: ["spicy"],
           primaryMarketId: "market-1",
         },
+        {
+          menuItemId: 2,
+          restaurantId: "restaurant-2",
+          dishName: "Hidden Tea",
+          categoryName: null,
+          price: null,
+          priceCents: null,
+          catalogType: null,
+          tags: null,
+          primaryMarketId: null,
+        },
       ],
       [
         {
@@ -1321,22 +1410,33 @@ describe("DiscoveryService", () => {
     ]);
 
     await expect(service.reindex()).resolves.toEqual({
-      dishes: 1,
-      restaurants: 1,
-      semanticDishes: 1,
+      dishes: 2,
+      restaurants: 2,
+      semanticDishes: 2,
       duration_ms: 0,
     });
-    expect(d1.batch).toHaveBeenCalledWith([
-      expect.objectContaining({
-        args: expect.arrayContaining([1, "restaurant-1", "Laksa"]),
-      }),
-    ]);
-    expect(semanticSearch.upsertDishes).toHaveBeenCalledWith([
-      expect.objectContaining({
-        menuItemId: 1,
-        text: "Laksa Noodles spicy",
-      }),
-    ]);
+    expect(d1.batch).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          args: expect.arrayContaining([1, "restaurant-1", "Laksa"]),
+        }),
+        expect.objectContaining({
+          args: expect.arrayContaining([2, "restaurant-2", "Hidden Tea"]),
+        }),
+      ]),
+    );
+    expect(semanticSearch.upsertDishes).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          menuItemId: 1,
+          text: "Laksa Noodles spicy",
+        }),
+        expect.objectContaining({
+          menuItemId: 2,
+          text: "Hidden Tea",
+        }),
+      ]),
+    );
     expect(JSON.parse(values.get("search:tags:index") ?? "{}")).toMatchObject({
       spicy: [{ menuItemId: 1, price: 9 }],
     });
