@@ -177,10 +177,11 @@ export const useShopCartStore = defineStore("shopCart", () => {
   };
 
   const clearCart = () => {
+    const storageKey = getCartStorageKey();
     items.value = [];
     restaurantId.value = null;
     phoneLastDigits.value = "";
-    localStorage.removeItem(getCartStorageKey());
+    localStorage.removeItem(storageKey);
   };
 
   const updateItemNotes = (id: string, notes: string) => {
