@@ -13,6 +13,7 @@ function createEnv(input?: {
   durableFetch?: (request: Request) => Response | Promise<Response>;
   rateLimitValue?: string | null;
   rateLimitEnabled?: boolean;
+  rateLimitGet?: () => Promise<string | null>;
 }): Env {
   const durableObject = {
     fetch: vi.fn(
@@ -31,7 +32,9 @@ function createEnv(input?: {
       get: vi.fn(() => durableObject),
     } as unknown as DurableObjectNamespace,
     RATE_LIMIT_KV: {
-      get: vi.fn(async () => input?.rateLimitValue ?? null),
+      get: vi.fn(
+        input?.rateLimitGet ?? (async () => input?.rateLimitValue ?? null),
+      ),
       put: vi.fn(async () => undefined),
     } as unknown as KVNamespace,
     CACHE_KV: {} as KVNamespace,
@@ -71,6 +74,30 @@ describe("realtime worker routes", () => {
     expect(durable.fetch).toHaveBeenCalledWith(expect.any(Request));
   });
 
+  it("forwards admin and kitchen websocket requests to matching Durable Objects", async () => {
+    const adminEnv = createEnv();
+    const adminResponse = await worker.fetch(
+      new Request("https://realtime.test/admin/restaurant-1"),
+      adminEnv,
+    );
+
+    expect(adminResponse.status).toBe(200);
+    expect(adminEnv.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "admin:restaurant-1",
+    );
+
+    const kitchenEnv = createEnv();
+    const kitchenResponse = await worker.fetch(
+      new Request("https://realtime.test/kitchen/restaurant-1"),
+      kitchenEnv,
+    );
+
+    expect(kitchenResponse.status).toBe(200);
+    expect(kitchenEnv.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "kitchen:restaurant-1",
+    );
+  });
+
   it("enforces websocket rate limits before opening a Durable Object", async () => {
     const env = createEnv({
       rateLimitEnabled: true,
@@ -92,6 +119,32 @@ describe("realtime worker routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       code: "REALTIME_RATE_LIMITED",
       limit: 30,
+    });
+  });
+
+  it("returns a 503 when websocket rate-limit storage is unavailable", async () => {
+    const env = createEnv({
+      rateLimitEnabled: true,
+      rateLimitGet: async () => {
+        throw new Error("kv unavailable");
+      },
+    });
+
+    const response = await worker.fetch(
+      new Request("https://realtime.test/kitchen/restaurant-1", {
+        headers: {
+          Upgrade: "websocket",
+          "CF-Connecting-IP": "203.0.113.10",
+        },
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(503);
+    expect(env.REALTIME_SESSION.get).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      error: "Realtime rate limit unavailable",
+      code: "REALTIME_RATE_LIMIT_UNAVAILABLE",
     });
   });
 
@@ -120,6 +173,76 @@ describe("realtime worker routes", () => {
     await expect(response.json()).resolves.toEqual({
       success: true,
       recipientCount: 2,
+    });
+  });
+
+  it("returns broadcast errors when request JSON or Durable Object forwarding fails", async () => {
+    const malformedResponse = await worker.fetch(
+      new Request("https://realtime.test/broadcast/admin/restaurant-1", {
+        method: "POST",
+        body: "{bad-json",
+      }),
+      createEnv(),
+    );
+
+    expect(malformedResponse.status).toBe(500);
+    await expect(malformedResponse.json()).resolves.toEqual({
+      error: "Failed to broadcast message",
+    });
+
+    const env = createEnv({
+      durableFetch: async () => {
+        throw new Error("do unavailable");
+      },
+    });
+    const durableFailure = await worker.fetch(
+      new Request("https://realtime.test/broadcast/admin/restaurant-1", {
+        method: "POST",
+        body: JSON.stringify({ type: "NEW_ORDER" }),
+      }),
+      env,
+    );
+
+    expect(durableFailure.status).toBe(500);
+    await expect(durableFailure.json()).resolves.toEqual({
+      error: "Failed to broadcast message",
+    });
+  });
+
+  it("proxies stats requests and reports Durable Object stats failures", async () => {
+    const env = createEnv({
+      durableFetch: async (request) => {
+        expect(request.url).toBe("http://localhost/stats");
+        expect(request.method).toBe("GET");
+        return jsonResponse({ connectionCount: 3 });
+      },
+    });
+
+    const response = await worker.fetch(
+      new Request("https://realtime.test/stats/kitchen/restaurant-1"),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "kitchen:restaurant-1",
+    );
+    await expect(response.json()).resolves.toEqual({ connectionCount: 3 });
+
+    const failingEnv = createEnv({
+      durableFetch: async () => {
+        throw new Error("stats unavailable");
+      },
+    });
+
+    const failure = await worker.fetch(
+      new Request("https://realtime.test/stats/kitchen/restaurant-1"),
+      failingEnv,
+    );
+
+    expect(failure.status).toBe(500);
+    await expect(failure.json()).resolves.toEqual({
+      error: "Failed to get statistics",
     });
   });
 
