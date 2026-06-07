@@ -869,4 +869,195 @@ describe("OrdersService workflows", () => {
       { expirationTtl: 300 },
     );
   });
+
+  it("updates status and payment branches through updateOrder", async () => {
+    const env = createEnv();
+    const existing = createOrder({ id: 42, status: "confirmed" });
+    const statusUpdated = createOrder({ id: 42, status: "preparing" });
+    const paymentUpdated = createOrder({
+      id: 42,
+      status: "preparing",
+      paymentStatus: "paid",
+    });
+    getBaseOrder
+      .mockResolvedValueOnce(existing)
+      .mockResolvedValueOnce(paymentUpdated);
+    updateBaseOrderStatus.mockResolvedValue(statusUpdated);
+    const service = new OrdersService(env as never);
+
+    const result = await service.updateOrder(
+      42,
+      {
+        status: "preparing",
+        paymentStatus: "paid",
+        paymentMethod: "cash",
+        notes: "started",
+      } as never,
+      10,
+    );
+
+    expect(result).toBe(paymentUpdated);
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith(42, {
+      status: "preparing",
+      notes: "started",
+    });
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
+  });
+
+  it("covers status update null, mismatch, version conflict, and failed update branches", async () => {
+    const service = new OrdersService(createEnv() as never);
+
+    getBaseOrder.mockResolvedValueOnce(null);
+    await expect(
+      service.updateOrderStatus(404, { status: "preparing" }, 20, 2),
+    ).resolves.toBeNull();
+
+    await expect(
+      service.updateOrderStatus(
+        42,
+        { status: "preparing" },
+        20,
+        2,
+        undefined,
+        createOrder({ id: 99, status: "confirmed" }) as never,
+      ),
+    ).rejects.toMatchObject({ code: "ORDER_ID_MISMATCH" });
+
+    updateBaseOrderStatus.mockRejectedValueOnce(
+      new Error("Order version conflict: stale version"),
+    );
+    await expect(
+      service.updateOrderStatus(
+        42,
+        { status: "preparing" },
+        20,
+        2,
+        undefined,
+        createOrder({ status: "confirmed", version: 7 }) as never,
+      ),
+    ).rejects.toMatchObject({ code: "ORDER_VERSION_CONFLICT" });
+
+    updateBaseOrderStatus.mockResolvedValueOnce(null);
+    await expect(
+      service.updateOrderStatus(
+        42,
+        { status: "preparing" },
+        20,
+        2,
+        undefined,
+        createOrder({ status: "confirmed", version: 7 }) as never,
+      ),
+    ).rejects.toThrow("Failed to update order status");
+  });
+
+  it("checks caller restaurant access when cancelling orders", async () => {
+    const env = createEnv();
+    const service = new OrdersService(env as never);
+    const order = createOrder({ status: "confirmed" });
+    cancelBaseOrder
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(createOrder({ status: "cancelled" }));
+
+    await expect(
+      service.cancelOrder(
+        42,
+        "guest changed mind",
+        20,
+        { userId: 20, userRole: 2, userRestaurantId: "restaurant-1" },
+        order as never,
+      ),
+    ).resolves.toBeNull();
+
+    await expect(
+      service.cancelOrder(
+        42,
+        "guest changed mind",
+        20,
+        { userId: 20, userRole: 2, userRestaurantId: "restaurant-1" },
+        order as never,
+      ),
+    ).resolves.toMatchObject({ status: "cancelled" });
+    expect(broadcastOrderCancelled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: RealtimeEventType.ORDER_CANCELLED,
+        restaurantId: "restaurant-1",
+        data: expect.objectContaining({
+          orderId: 42,
+          reason: "guest changed mind",
+          cancelledBy: { userId: 20, userName: "System", role: "admin" },
+        }),
+      }),
+    );
+
+    await expect(
+      service.cancelOrder(
+        42,
+        "wrong shop",
+        20,
+        { userId: 20, userRole: 2, userRestaurantId: "restaurant-2" },
+        order as never,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("covers convenience list, popular item cache, receipt miss, and export branches", async () => {
+    const cachedPopular = [
+      { menuItemId: 101, name: "Milk Tea", quantity: 4, revenue: 400 },
+    ];
+    const env = createEnv({
+      cacheGet: async (key) =>
+        key === "popular-items:restaurant-1:month" ? cachedPopular : null,
+    });
+    const service = new OrdersService(env as never);
+    getBaseOrders.mockResolvedValue({
+      orders: [createOrder({ id: 1 })],
+      pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+    });
+    getDailyOrderStats.mockResolvedValue({
+      totalOrders: 3,
+      totalRevenue: 600,
+      avgOrderValue: 200,
+    });
+
+    await expect(
+      service.getOrderStatistics("restaurant-1"),
+    ).resolves.toMatchObject({
+      totalOrders: 3,
+      averageOrderValue: 200,
+    });
+    await expect(service.getActiveOrders("restaurant-1")).resolves.toHaveLength(
+      1,
+    );
+    expect(getBaseOrders).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurantId: "restaurant-1",
+        status: ["confirmed", "preparing", "ready"],
+      }),
+      1,
+      100,
+    );
+    await expect(service.getPopularItems("restaurant-1")).resolves.toBe(
+      cachedPopular,
+    );
+    await expect(
+      service.searchOrders({ query: "ORD" }, { restaurantId: "restaurant-1" }),
+    ).resolves.toHaveLength(1);
+    getBaseOrder.mockResolvedValueOnce(null);
+    await expect(service.generateReceipt(404)).rejects.toMatchObject({
+      code: "ORDER_NOT_FOUND",
+    });
+    await expect(service.exportOrders({}, "csv")).resolves.toEqual(
+      Buffer.from(""),
+    );
+  });
+
+  it("rethrows non-conflict item status errors", async () => {
+    const service = new OrdersService(createEnv() as never);
+    updateBaseOrderItemStatus.mockRejectedValueOnce(new Error("db down"));
+
+    await expect(service.updateItemStatus(501, "ready")).rejects.toThrow(
+      "db down",
+    );
+  });
 });
