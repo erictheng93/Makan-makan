@@ -1,0 +1,387 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import app from "./index";
+
+const currentUser = vi.hoisted(() => ({
+  value: { id: 10, role: 1, restaurantId: "restaurant-1" },
+}));
+const createReservation = vi.hoisted(() => vi.fn());
+const getReservationByCode = vi.hoisted(() => vi.fn());
+const getAvailableSlots = vi.hoisted(() => vi.fn());
+const getReservationById = vi.hoisted(() => vi.fn());
+const cancelReservation = vi.hoisted(() => vi.fn());
+const listReservations = vi.hoisted(() => vi.fn());
+const updateReservation = vi.hoisted(() => vi.fn());
+const confirmReservation = vi.hoisted(() => vi.fn());
+const markArrived = vi.hoisted(() => vi.fn());
+const markSeated = vi.hoisted(() => vi.fn());
+const completeReservation = vi.hoisted(() => vi.fn());
+const markNoShow = vi.hoisted(() => vi.fn());
+const getReservationStats = vi.hoisted(() => vi.fn());
+const createSlot = vi.hoisted(() => vi.fn());
+const batchCreateSlots = vi.hoisted(() => vi.fn());
+
+vi.mock("../../../middleware/auth", () => ({
+  authMiddleware: vi.fn(async (c, next) => {
+    c.set("user", currentUser.value);
+    await next();
+  }),
+  requireRole: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
+    await next();
+  }),
+}));
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
+    await next();
+  }),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  ReservationService: class {
+    createReservation = createReservation;
+    getReservationByCode = getReservationByCode;
+    getAvailableSlots = getAvailableSlots;
+    getReservationById = getReservationById;
+    cancelReservation = cancelReservation;
+    listReservations = listReservations;
+    updateReservation = updateReservation;
+    confirmReservation = confirmReservation;
+    markArrived = markArrived;
+    markSeated = markSeated;
+    completeReservation = completeReservation;
+    markNoShow = markNoShow;
+    getReservationStats = getReservationStats;
+    createSlot = createSlot;
+    batchCreateSlots = batchCreateSlots;
+  },
+}));
+
+function createEnv() {
+  return {
+    DB: {},
+    CACHE_KV: {},
+  };
+}
+
+function reservation(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "reservation-1",
+    restaurantId: "restaurant-1",
+    customerName: "Ada",
+    customerPhone: "0912345678",
+    partySize: 4,
+    reservationDate: "2026-06-08",
+    reservationTime: "18:30",
+    confirmationCode: "ABC123",
+    status: "pending",
+    ...overrides,
+  };
+}
+
+async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
+  try {
+    return await action();
+  } finally {
+    consoleError.mockRestore();
+  }
+}
+
+describe("reservations routes", () => {
+  beforeEach(() => {
+    currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+    createReservation.mockReset();
+    getReservationByCode.mockReset();
+    getAvailableSlots.mockReset();
+    getReservationById.mockReset();
+    cancelReservation.mockReset();
+    listReservations.mockReset();
+    updateReservation.mockReset();
+    confirmReservation.mockReset();
+    markArrived.mockReset();
+    markSeated.mockReset();
+    completeReservation.mockReset();
+    markNoShow.mockReset();
+    getReservationStats.mockReset();
+    createSlot.mockReset();
+    batchCreateSlots.mockReset();
+  });
+
+  it("creates public reservations and validates required fields", async () => {
+    createReservation.mockResolvedValue(reservation());
+    const env = createEnv();
+
+    const response = await app.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        body: JSON.stringify({
+          restaurantId: "restaurant-1",
+          customerName: "Ada",
+          customerPhone: "0912345678",
+          partySize: 4,
+          reservationDate: "2026-06-08",
+          reservationTime: "18:30",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { id: "reservation-1", confirmationCode: "ABC123" },
+    });
+    expect(createReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurantId: "restaurant-1",
+        customerName: "Ada",
+      }),
+    );
+
+    const invalid = await withSilencedRouteError(() =>
+      app.fetch(
+        new Request("https://test/", {
+          method: "POST",
+          body: JSON.stringify({ restaurantId: "restaurant-1" }),
+        }),
+        env as never,
+      ),
+    );
+    expect(invalid.status).toBe(500);
+    await expect(invalid.text()).resolves.toBe("Internal Server Error");
+  });
+
+  it("verifies reservation codes and returns availability slots", async () => {
+    getReservationByCode.mockResolvedValue(reservation());
+    getAvailableSlots.mockResolvedValue([
+      { time: "18:00", available: true },
+      { time: "18:30", available: false },
+    ]);
+    const env = createEnv();
+
+    const verifyResponse = await app.fetch(
+      new Request("https://test/verify/ABC123"),
+      env as never,
+    );
+    expect(verifyResponse.status).toBe(200);
+    await expect(verifyResponse.json()).resolves.toMatchObject({
+      data: { id: "reservation-1", confirmationCode: "ABC123" },
+    });
+
+    const availabilityResponse = await app.fetch(
+      new Request(
+        "https://test/availability?restaurantId=restaurant-1&date=2026-06-08&partySize=4&duration=120",
+      ),
+      env as never,
+    );
+    expect(availabilityResponse.status).toBe(200);
+    await expect(availabilityResponse.json()).resolves.toMatchObject({
+      data: [
+        { time: "18:00", available: true },
+        { time: "18:30", available: false },
+      ],
+    });
+    expect(getAvailableSlots).toHaveBeenCalledWith({
+      restaurantId: "restaurant-1",
+      date: "2026-06-08",
+      partySize: 4,
+      duration: 120,
+    });
+  });
+
+  it("cancels public reservations only with the matching confirmation code", async () => {
+    getReservationById.mockResolvedValue(reservation());
+    cancelReservation.mockResolvedValue(
+      reservation({ status: "cancelled", cancellationReason: "changed plans" }),
+    );
+    const env = createEnv();
+
+    const response = await app.fetch(
+      new Request("https://test/reservation-1/cancel", {
+        method: "DELETE",
+        body: JSON.stringify({
+          confirmationCode: "ABC123",
+          reason: "changed plans",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      data: { id: "reservation-1", status: "cancelled" },
+    });
+    expect(cancelReservation).toHaveBeenCalledWith(
+      "reservation-1",
+      "changed plans",
+    );
+
+    getReservationById.mockResolvedValueOnce(reservation());
+    const forbiddenResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        new Request("https://test/reservation-1/cancel", {
+          method: "DELETE",
+          body: JSON.stringify({ confirmationCode: "WRONG" }),
+        }),
+        env as never,
+      ),
+    );
+    expect(forbiddenResponse.status).toBe(500);
+    await expect(forbiddenResponse.text()).resolves.toBe(
+      "Internal Server Error",
+    );
+  });
+
+  it("lists protected reservations with role-scoped filters", async () => {
+    listReservations.mockResolvedValue({
+      data: [reservation({ status: "confirmed" })],
+      total: 1,
+    });
+
+    const response = await app.fetch(
+      new Request("https://test/?restaurantId=other&status=confirmed&page=2"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      data: [{ id: "reservation-1", status: "confirmed" }],
+      pagination: { page: 2, limit: 20, total: 1, totalPages: 1 },
+    });
+    expect(listReservations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurantId: "restaurant-1",
+        status: "confirmed",
+        page: 2,
+        limit: 20,
+      }),
+    );
+  });
+
+  it("reads and updates protected reservation details with restaurant scoping", async () => {
+    getReservationById.mockResolvedValue(reservation());
+    updateReservation.mockResolvedValue(reservation({ customerName: "Grace" }));
+    const env = createEnv();
+
+    const detailResponse = await app.fetch(
+      new Request("https://test/reservation-1"),
+      env as never,
+    );
+    expect(detailResponse.status).toBe(200);
+    await expect(detailResponse.json()).resolves.toMatchObject({
+      data: { id: "reservation-1", restaurantId: "restaurant-1" },
+    });
+
+    const updateResponse = await app.fetch(
+      new Request("https://test/reservation-1", {
+        method: "PUT",
+        body: JSON.stringify({ customerName: "Grace" }),
+      }),
+      env as never,
+    );
+    expect(updateResponse.status).toBe(200);
+    await expect(updateResponse.json()).resolves.toMatchObject({
+      data: { id: "reservation-1", customerName: "Grace" },
+    });
+    expect(updateReservation).toHaveBeenCalledWith("reservation-1", {
+      customerName: "Grace",
+    });
+
+    getReservationById.mockResolvedValueOnce(
+      reservation({ restaurantId: "restaurant-2" }),
+    );
+    const scopedResponse = await withSilencedRouteError(() =>
+      app.fetch(new Request("https://test/reservation-2"), env as never),
+    );
+    expect(scopedResponse.status).toBe(500);
+    await expect(scopedResponse.text()).resolves.toBe("Internal Server Error");
+  });
+
+  it("runs status actions for protected reservations", async () => {
+    confirmReservation.mockResolvedValue(reservation({ status: "confirmed" }));
+    markArrived.mockResolvedValue(reservation({ status: "arrived" }));
+    markSeated.mockResolvedValue(reservation({ status: "seated" }));
+    completeReservation.mockResolvedValue(reservation({ status: "completed" }));
+    markNoShow.mockResolvedValue(reservation({ status: "no_show" }));
+    const env = createEnv();
+
+    const cases: Array<[string, typeof confirmReservation, string]> = [
+      ["confirm", confirmReservation, "confirmed"],
+      ["arrive", markArrived, "arrived"],
+      ["seat", markSeated, "seated"],
+      ["complete", completeReservation, "completed"],
+      ["no-show", markNoShow, "no_show"],
+    ];
+
+    for (const [action, fn, status] of cases) {
+      const response = await app.fetch(
+        new Request(`https://test/reservation-1/${action}`, {
+          method: "POST",
+        }),
+        env as never,
+      );
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        data: { status },
+      });
+      expect(fn).toHaveBeenCalledWith("reservation-1");
+    }
+  });
+
+  it("returns scoped stats and manages slots", async () => {
+    getReservationStats.mockResolvedValue({ total: 8, confirmed: 5 });
+    createSlot.mockResolvedValue({
+      id: "slot-1",
+      restaurantId: "restaurant-1",
+    });
+    batchCreateSlots.mockResolvedValue(7);
+    const env = createEnv();
+
+    const statsResponse = await app.fetch(
+      new Request("https://test/stats/restaurant-1?date=2026-06-08"),
+      env as never,
+    );
+    expect(statsResponse.status).toBe(200);
+    await expect(statsResponse.json()).resolves.toMatchObject({
+      data: { total: 8, confirmed: 5 },
+    });
+    expect(getReservationStats).toHaveBeenCalledWith(
+      "restaurant-1",
+      "2026-06-08",
+    );
+
+    const slotResponse = await app.fetch(
+      new Request("https://test/slots", {
+        method: "POST",
+        body: JSON.stringify({
+          restaurantId: "restaurant-1",
+          date: "2026-06-08",
+          time: "18:00",
+        }),
+      }),
+      env as never,
+    );
+    expect(slotResponse.status).toBe(200);
+    await expect(slotResponse.json()).resolves.toMatchObject({
+      data: { id: "slot-1", restaurantId: "restaurant-1" },
+    });
+
+    const batchResponse = await app.fetch(
+      new Request("https://test/slots/batch", {
+        method: "POST",
+        body: JSON.stringify({
+          restaurantId: "restaurant-1",
+          date: "2026-06-08",
+          times: ["18:00", "18:30"],
+        }),
+      }),
+      env as never,
+    );
+    expect(batchResponse.status).toBe(200);
+    await expect(batchResponse.json()).resolves.toMatchObject({
+      data: { created: 7 },
+    });
+  });
+});
