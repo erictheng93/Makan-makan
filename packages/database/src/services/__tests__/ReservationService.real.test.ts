@@ -12,7 +12,15 @@
  *   - getReservationStats (Drizzle sql template + schema column refs)
  */
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  vi,
+} from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
@@ -163,9 +171,18 @@ describe("ReservationService.updateReservation — real D1", () => {
   });
 
   it("throws when the reservation does not exist", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
     await expect(
       service.updateReservation("does-not-exist", { partySize: 4 }),
     ).rejects.toThrow("訂位不存在");
+    expect(consoleError).toHaveBeenCalledWith(
+      "Error updating reservation:",
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
   });
 });
 

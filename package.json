@@ -31,7 +31,7 @@
     "test:kitchen": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/kitchen-display",
     "test:admin": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/admin-dashboard",
     "test:api": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/api",
-    "test:packages": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run packages",
+    "test:packages": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --project=@makanmakan/auth-client --project=@makanmakan/database --project=@makanmakan/queue-core --project=@makanmakan/queue-service --project=@makanmakan/utils --project=shared --passWithNoTests",
     "test:batch1": "pnpm test:kitchen && pnpm test:admin",
     "test:batch2": "pnpm test:api && pnpm test:packages",
     "test:all": "pnpm test:batch1 && pnpm test:batch2",

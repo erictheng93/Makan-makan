@@ -67,9 +67,11 @@ export default defineConfig({
       "apps/onboarding-app",
       "apps/print-agent",
       // Packages - each uses its own vitest.config.ts
+      "packages/auth-client",
       "packages/database",
       "packages/queue-core",
       "packages/queue-service",
+      "packages/shared",
       "packages/utils",
     ],
 
