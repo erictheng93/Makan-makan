@@ -65,7 +65,8 @@ describe("CouponsService", () => {
     const service = createService();
     const validateCoupon = vi
       .spyOn(service, "validateCoupon")
-      .mockResolvedValue({ valid: true, discountAmount: 5 });
+      .mockResolvedValueOnce({ valid: true, discountAmount: 5 })
+      .mockResolvedValueOnce({ valid: false, reason: "expired" });
     vi.spyOn(service, "getCoupons").mockResolvedValue({
       coupons: [
         {
@@ -98,6 +99,9 @@ describe("CouponsService", () => {
       42,
       [{ menuItemId: 1, quantity: 2 }],
     );
+    await expect(
+      service.validateCouponWithBusinessRules("OLD", "restaurant-1", 100),
+    ).resolves.toEqual({ valid: false, reason: "expired" });
 
     await expect(
       service.getCouponsWithEnhancedFilters(
@@ -259,6 +263,21 @@ describe("CouponsService", () => {
       { couponId: 1, saving: 15 },
       { couponId: 2, saving: 100 },
     ]);
+
+    await expect(
+      service.calculatePotentialSavings(
+        [
+          {
+            id: 3,
+            discountType: "percentage",
+            discountValue: 10,
+            maxDiscountAmount: null,
+            minOrderAmount: null,
+          },
+        ],
+        80,
+      ),
+    ).resolves.toEqual([{ couponId: 3, saving: 8 }]);
   });
 
   it("aggregates coupon usage trends from db rows", async () => {
@@ -290,6 +309,29 @@ describe("CouponsService", () => {
       totalUsage: 7,
       totalSavings: 35.5,
       usageByPeriod,
+    });
+    expect(select).toHaveBeenCalledTimes(3);
+  });
+
+  it("aggregates usage trends with only an end date filter", async () => {
+    const service = createService();
+    const select = vi
+      .fn()
+      .mockReturnValueOnce(createSelectChain([]))
+      .mockReturnValueOnce(createSelectChain([]))
+      .mockReturnValueOnce(createSelectChain([]));
+    Object.assign(service as unknown as { db: unknown }, {
+      db: { select },
+    });
+
+    await expect(
+      service.getCouponUsageTrends(undefined, undefined, "2026-06-30"),
+    ).resolves.toEqual({
+      totalCoupons: 0,
+      activeCoupons: 0,
+      totalUsage: 0,
+      totalSavings: 0,
+      usageByPeriod: [],
     });
     expect(select).toHaveBeenCalledTimes(3);
   });
