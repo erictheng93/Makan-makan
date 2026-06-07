@@ -148,6 +148,105 @@ describe("CacheService", () => {
     });
   });
 
+  it("persists sampled hit counters once the threshold is reached", async () => {
+    const { kv, values } = createKV();
+    const service = new CacheService(kv);
+
+    await service.set(
+      "session:2",
+      { token: "sampled" },
+      CACHE_STRATEGIES.SESSION,
+    );
+    for (let i = 0; i < 10; i++) {
+      await service.get("session:2");
+    }
+
+    expect(JSON.parse(values.get("_meta:session:2") ?? "{}")).toMatchObject({
+      hitCount: 10,
+    });
+    await expect(service.flushHitCounters()).resolves.toBe(0);
+  });
+
+  it("cleans expired keys and ignores metadata-only entries", async () => {
+    const { kv, values } = createKV();
+    const service = new CacheService(kv);
+
+    await service.set("custom:expired", { stale: false }, { ttl: 1 });
+    await service.set(
+      "custom:fresh",
+      { stale: false },
+      { ttl: 600, tags: ["custom"] },
+    );
+    values.set("_meta:orphan", JSON.stringify({ key: "orphan" }));
+    vi.advanceTimersByTime(2_000);
+
+    await expect(service.cleanup()).resolves.toBe(1);
+    expect(kv.delete).toHaveBeenCalledWith("custom:expired");
+    expect(kv.delete).toHaveBeenCalledWith("_meta:custom:expired");
+    expect(kv.delete).not.toHaveBeenCalledWith("_meta:orphan");
+    await expect(service.get("custom:fresh")).resolves.toEqual({
+      stale: false,
+    });
+  });
+
+  it("returns safe fallbacks for malformed values and KV failures", async () => {
+    const { kv, values } = createKV();
+    const service = new CacheService(kv);
+    const future = Date.now() + 60_000;
+
+    values.set("bad-json", "{bad");
+    values.set(
+      "_meta:bad-json",
+      JSON.stringify({
+        key: "bad-json",
+        createdAt: Date.now(),
+        expiresAt: future,
+        tags: [],
+        hitCount: 0,
+        size: 4,
+        priority: "normal",
+      }),
+    );
+    values.set("_cache_stats", "{bad");
+
+    await expect(service.get("bad-json")).resolves.toBeNull();
+    await expect(service.getStats()).resolves.toMatchObject({
+      totalKeys: 0,
+      missCount: 1,
+    });
+
+    kv.put.mockRejectedValueOnce(new Error("put unavailable"));
+    await expect(
+      service.set("write-fail", { ok: true }, { ttl: 30 }),
+    ).rejects.toThrow("put unavailable");
+
+    kv.delete.mockRejectedValueOnce(new Error("delete unavailable"));
+    await expect(service.delete("bad-json")).resolves.toBe(false);
+
+    kv.list.mockRejectedValueOnce(new Error("list unavailable"));
+    await expect(service.invalidateByTags(["missing"])).resolves.toBe(0);
+  });
+
+  it("counts successful warmup entries when other entries fail", async () => {
+    const { kv, values } = createKV();
+    const service = new CacheService(kv);
+    kv.put.mockImplementationOnce(async () => {
+      throw new Error("warmup put failed");
+    });
+
+    await expect(
+      service.warmup([
+        { key: "warmup:fail", value: { ok: false }, config: { ttl: 30 } },
+        { key: "warmup:ok", value: { ok: true }, config: { ttl: 30 } },
+      ]),
+    ).resolves.toBe(1);
+    expect(values.get("warmup:ok")).toBe(JSON.stringify({ ok: true }));
+    expect(console.error).toHaveBeenCalledWith(
+      "Warmup failed for key warmup:fail:",
+      expect.any(Error),
+    );
+  });
+
   it("reports expiring keys, warms caches, resets stats, and exposes key helpers", async () => {
     const { kv } = createKV();
     const service = new CacheService(kv);
