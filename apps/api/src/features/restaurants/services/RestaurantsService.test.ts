@@ -80,9 +80,65 @@ import { RestaurantsService } from "./RestaurantsService";
 function createService() {
   return new RestaurantsService(
     {} as D1Database,
-    { DB: {} as D1Database, CACHE_KV: {} as KVNamespace } as any,
+    {
+      DB: {} as D1Database,
+      CACHE_KV: {
+        get: vi.fn(async () => "1"),
+        put: vi.fn(async () => undefined),
+      },
+    } as any,
     {} as KVNamespace,
   );
+}
+
+function queryChain(rows: unknown[]) {
+  const promise = Promise.resolve(rows);
+  const chain = {
+    from: vi.fn(() => chain),
+    where: vi.fn(() => chain),
+    orderBy: vi.fn(() => chain),
+    limit: vi.fn(() => promise),
+    all: vi.fn(async () => rows),
+    then: promise.then.bind(promise),
+    catch: promise.catch.bind(promise),
+    finally: promise.finally.bind(promise),
+  };
+  return chain;
+}
+
+function mockSelectRows(rows: unknown[]) {
+  mocks.db.select.mockReturnValueOnce(queryChain(rows));
+}
+
+function mockInsertReturning(rows: unknown[] = []) {
+  const promise = Promise.resolve(rows);
+  const chain = {
+    values: vi.fn(() => chain),
+    returning: vi.fn(async () => rows),
+    then: promise.then.bind(promise),
+    catch: promise.catch.bind(promise),
+    finally: promise.finally.bind(promise),
+  };
+  mocks.db.insert.mockReturnValueOnce(chain);
+  return chain;
+}
+
+function mockUpdateReturning(rows: unknown[] = []) {
+  const chain = {
+    set: vi.fn(() => chain),
+    where: vi.fn(() => chain),
+    returning: vi.fn(async () => rows),
+  };
+  mocks.db.update.mockReturnValueOnce(chain);
+  return chain;
+}
+
+function mockDeleteChain() {
+  const chain = {
+    where: vi.fn(async () => undefined),
+  };
+  mocks.db.delete.mockReturnValueOnce(chain);
+  return chain;
 }
 
 const restaurant = {
@@ -177,6 +233,227 @@ describe("RestaurantsService", () => {
     );
   });
 
+  it("creates restaurants, provisions subscriptions, auto-attaches nearby markets, and invalidates list caches", async () => {
+    const created = {
+      ...restaurant,
+      latitude: 25.033,
+      longitude: 121.565,
+    };
+    mocks.dbService.createRestaurant.mockResolvedValue(created);
+    mocks.subscriptionService.provisionDefaultForRestaurant.mockResolvedValue({
+      planTier: "trial",
+      trialEndsAt: "2026-07-07T00:00:00.000Z",
+    });
+    mockSelectRows([
+      {
+        id: "market-1",
+        latitude: 25.034,
+        longitude: 121.565,
+        boundaryGeojson: null,
+      },
+    ]);
+    mockSelectRows([]);
+    mockInsertReturning();
+
+    await expect(
+      createService().createRestaurant({
+        name: "Makan",
+        type: "malaysian",
+        category: "casual",
+        address: "Main Street",
+        district: "Central",
+        city: "Taipei",
+        phone: "0912345678",
+      }),
+    ).resolves.toBe(created);
+
+    expect(
+      mocks.subscriptionService.provisionDefaultForRestaurant,
+    ).toHaveBeenCalledWith({ restaurantId: "restaurant-1" });
+    expect(mocks.db.insert).toHaveBeenCalled();
+    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:list:*");
+    expect(mocks.logger.debug).toHaveBeenCalledWith(
+      "Emitting restaurant event",
+      expect.objectContaining({ type: "RESTAURANT_CREATED" }),
+    );
+  });
+
+  it("returns null for missing contact profiles and updates contact profile FAQs", async () => {
+    mockSelectRows([]);
+    await expect(
+      createService().getContactProfile("missing"),
+    ).resolves.toBeNull();
+
+    mockSelectRows([
+      {
+        id: "restaurant-1",
+        messagingChannels: {
+          line: "https://line.example",
+          telegram: "",
+        },
+      },
+    ]);
+    mockSelectRows([
+      {
+        id: 1,
+        question: "Hours?",
+        answer: "10-9",
+        keywords: ["hours"],
+        displayOrder: 2,
+        isActive: false,
+      },
+    ]);
+    await expect(
+      createService().getContactProfile("restaurant-1", {
+        includeInactiveFaqs: true,
+      }),
+    ).resolves.toEqual({
+      restaurantId: "restaurant-1",
+      messagingChannels: {
+        line: "https://line.example",
+        telegram: "",
+      },
+      faqs: [
+        {
+          id: 1,
+          question: "Hours?",
+          answer: "10-9",
+          keywords: ["hours"],
+          displayOrder: 2,
+          isActive: false,
+        },
+      ],
+    });
+
+    mockSelectRows([{ id: "restaurant-1" }]);
+    mockUpdateReturning();
+    mockDeleteChain();
+    const insertChain = mockInsertReturning();
+    mockSelectRows([
+      {
+        id: "restaurant-1",
+        messagingChannels: { line: "https://line.example" },
+      },
+    ]);
+    mockSelectRows([]);
+
+    await expect(
+      createService().updateContactProfile("restaurant-1", {
+        messagingChannels: {
+          line: "https://line.example",
+          whatsapp: "",
+        },
+        faqs: [{ question: "Q", answer: "A" }],
+      }),
+    ).resolves.toMatchObject({
+      restaurantId: "restaurant-1",
+      messagingChannels: { line: "https://line.example" },
+    });
+    expect(mocks.db.update).toHaveBeenCalled();
+    expect(insertChain.values).toHaveBeenCalledWith([
+      expect.objectContaining({
+        restaurantId: "restaurant-1",
+        question: "Q",
+        answer: "A",
+        displayOrder: 0,
+        isActive: true,
+      }),
+    ]);
+    expect(mocks.cache.delete).toHaveBeenCalledWith(
+      "restaurant:restaurant-1:contact-profile",
+    );
+  });
+
+  it("lists public and manageable service items only for active restaurants", async () => {
+    const serviceItem = {
+      id: 1,
+      restaurantId: "restaurant-1",
+      name: "Private table",
+      description: null,
+      serviceType: "booking",
+      priceCents: 5000,
+      priceLabel: null,
+      durationMinutes: null,
+      requiresBooking: true,
+      bookingUrl: null,
+      availableHours: { start: "10:00" },
+      tags: ["private"],
+      keywords: "private",
+      sortOrder: 1,
+      isActive: true,
+      isPublic: true,
+    };
+
+    mockSelectRows([]);
+    await expect(
+      createService().listPublicServiceItems("missing"),
+    ).resolves.toBeNull();
+
+    mockSelectRows([{ id: "restaurant-1" }]);
+    mockSelectRows([serviceItem]);
+    await expect(
+      createService().listPublicServiceItems("restaurant-1"),
+    ).resolves.toEqual([expect.objectContaining({ name: "Private table" })]);
+
+    mockSelectRows([{ id: "restaurant-1" }]);
+    mockSelectRows([serviceItem]);
+    await expect(
+      createService().listManageableServiceItems("restaurant-1"),
+    ).resolves.toEqual([expect.objectContaining({ tags: ["private"] })]);
+  });
+
+  it("creates, updates, and soft-deletes service items with cache version bumps", async () => {
+    const row = {
+      id: 1,
+      restaurantId: "restaurant-1",
+      name: "Private table",
+      description: null,
+      serviceType: "booking",
+      priceCents: 5000,
+      priceLabel: null,
+      durationMinutes: null,
+      requiresBooking: true,
+      bookingUrl: null,
+      availableHours: null,
+      tags: [],
+      keywords: null,
+      sortOrder: 0,
+      isActive: true,
+      isPublic: true,
+    };
+
+    mockSelectRows([{ id: "restaurant-1" }]);
+    mockInsertReturning([row]);
+    await expect(
+      createService().createServiceItem("restaurant-1", {
+        name: "Private table",
+        serviceType: "booking",
+        requiresBooking: true,
+      }),
+    ).resolves.toMatchObject({ id: 1, name: "Private table" });
+
+    mockUpdateReturning([{ ...row, name: "Updated table" }]);
+    await expect(
+      createService().updateServiceItem("restaurant-1", 1, {
+        name: "Updated table",
+      }),
+    ).resolves.toMatchObject({ name: "Updated table" });
+
+    mockUpdateReturning([{ id: 1 }]);
+    await expect(
+      createService().deleteServiceItem("restaurant-1", 1),
+    ).resolves.toBe(true);
+
+    mockUpdateReturning([]);
+    await expect(
+      createService().deleteServiceItem("restaurant-1", 404),
+    ).resolves.toBe(false);
+
+    expect(mocks.cache.delete).toHaveBeenCalledWith(
+      "restaurant:restaurant-1:service-items",
+    );
+  });
+
   it("transforms and caches basic restaurant statistics", async () => {
     mocks.cache.get.mockResolvedValue(null);
     mocks.dbService.getRestaurantStats.mockResolvedValue({
@@ -206,6 +483,38 @@ describe("RestaurantsService", () => {
     expect(mocks.cache.set).toHaveBeenCalledWith(
       "restaurant:restaurant-1:stats",
       expect.objectContaining({ activeMenuItems: 12, totalTables: 4 }),
+      expect.any(Number),
+    );
+  });
+
+  it("deactivates restaurants and wraps nearby/popular cache miss paths", async () => {
+    mocks.dbService.deactivateRestaurant.mockResolvedValue(undefined);
+    mocks.cache.get.mockResolvedValue(null);
+    mocks.dbService.searchNearbyRestaurants.mockResolvedValue([restaurant]);
+    mocks.dbService.getPopularRestaurants.mockResolvedValue([restaurant]);
+
+    await expect(
+      createService().deactivateRestaurant("restaurant-1"),
+    ).resolves.toBe(true);
+    await expect(
+      createService().searchNearbyRestaurants("Central", 3),
+    ).resolves.toEqual([restaurant]);
+    await expect(createService().getPopularRestaurants(5)).resolves.toEqual([
+      restaurant,
+    ]);
+
+    expect(mocks.cache.delete).toHaveBeenCalledWith("restaurant:restaurant-1");
+    expect(mocks.cache.delete).toHaveBeenCalledWith(
+      "restaurant:restaurant-1:stats",
+    );
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "restaurants:nearby:Central:3",
+      [restaurant],
+      expect.any(Number),
+    );
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "restaurants:popular:5",
+      [restaurant],
       expect.any(Number),
     );
   });
@@ -256,6 +565,11 @@ describe("RestaurantsService", () => {
       qrCodeImageUrl: null,
       version: 1,
     });
+    mocks.dbService.regenerateShopQrCode.mockResolvedValue({
+      qrCode: "shop-qr-v2",
+      qrCodeImageUrl: null,
+      version: 2,
+    });
     mocks.dbService.getShopQrCodeInfo.mockResolvedValue({
       qrCode: "shop-qr",
       qrCodeImageUrl: "https://cdn.example/qr.png",
@@ -277,8 +591,19 @@ describe("RestaurantsService", () => {
       version: 1,
     });
     await expect(
+      createService().regenerateShopQrCode("restaurant-1"),
+    ).resolves.toEqual({
+      qrCode: "shop-qr-v2",
+      qrCodeImageUrl: null,
+      version: 2,
+    });
+    await expect(
       createService().getShopQrCodeInfo("restaurant-1"),
     ).resolves.toMatchObject({ enabled: true, settings: { mode: "pickup" } });
+    await createService().updateShopQrCodeImage(
+      "restaurant-1",
+      "https://cdn.example/qr.png",
+    );
     await createService().updateShopMode("restaurant-1", true, {
       mode: "pickup",
     });
@@ -301,6 +626,10 @@ describe("RestaurantsService", () => {
       "restaurant-1",
       true,
       { mode: "pickup" },
+    );
+    expect(mocks.dbService.updateShopQrCodeImage).toHaveBeenCalledWith(
+      "restaurant-1",
+      "https://cdn.example/qr.png",
     );
   });
 });
