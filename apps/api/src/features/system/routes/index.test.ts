@@ -217,6 +217,37 @@ describe("system routes", () => {
     );
   });
 
+  it("submits strict error reports without a restaurant scope", async () => {
+    auth.user = { id: 43, role: 0, restaurantId: null };
+
+    const { res } = request("/error-report", "POST", {
+      errors: [
+        {
+          type: "permission",
+          severity: "low",
+          message: "Denied",
+          timestamp: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect((await res).status).toBe(200);
+    expect(serviceFns.createErrorReport).toHaveBeenCalledWith(
+      {
+        errors: [
+          expect.objectContaining({
+            type: "permission",
+            severity: "low",
+            message: "Denied",
+          }),
+        ],
+      },
+      43,
+      null,
+      "vitest",
+    );
+  });
+
   it("normalizes loose browser error telemetry", async () => {
     auth.user = { id: 9, role: 2, restaurantId: null };
 
@@ -253,6 +284,81 @@ describe("system routes", () => {
     );
   });
 
+  it("normalizes mixed loose browser error arrays", async () => {
+    auth.user = { id: 10, role: 5, restaurantId: 77 };
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-03T04:05:06.000Z"));
+
+    const { res } = request("/errors", "POST", {
+      errors: [
+        {
+          type: "network",
+          severity: "medium",
+          message: "offline",
+          code: 1001,
+          timestamp: "not-a-date",
+          userAgent: "browser-agent",
+          url: "https://app.example.test/offline",
+          userId: 55,
+          restaurantId: "S-20250124-009",
+        },
+        {
+          category: "validation",
+          severity: "invalid",
+          message: "Bad quantity",
+          timestamp: "2026-02-01T00:00:00.000Z",
+        },
+        {
+          type: "sse",
+          name: "StreamError",
+        },
+        "plain failure",
+      ],
+    });
+
+    expect((await res).status).toBe(200);
+    expect(serviceFns.createErrorReport).toHaveBeenCalledWith(
+      {
+        errors: [
+          expect.objectContaining({
+            type: "network",
+            severity: "medium",
+            code: 1001,
+            message: "offline",
+            timestamp: "2026-02-03T04:05:06.000Z",
+            userAgent: "browser-agent",
+            url: "https://app.example.test/offline",
+            userId: 55,
+            restaurantId: "S-20250124-009",
+          }),
+          expect.objectContaining({
+            type: "validation",
+            severity: "low",
+            message: "Bad quantity",
+            timestamp: "2026-02-01T00:00:00.000Z",
+            userAgent: "vitest",
+          }),
+          expect.objectContaining({
+            type: "sse",
+            severity: "low",
+            message: "StreamError",
+          }),
+          expect.objectContaining({
+            type: "unknown",
+            severity: "low",
+            message: "Unknown client error",
+            originalError: {},
+          }),
+        ],
+      },
+      10,
+      "77",
+      "vitest",
+    );
+
+    vi.useRealTimers();
+  });
+
   it("stores performance telemetry in scoped KV records", async () => {
     auth.user = { id: 5, role: 1, restaurantId: "S-20250124-002" };
 
@@ -282,6 +388,35 @@ describe("system routes", () => {
     );
   });
 
+  it("stores global performance telemetry using alternate report ids", async () => {
+    auth.user = { id: 6, role: 0, restaurantId: null };
+
+    const { res, kv } = request("/performance", "POST", {
+      sync_id: "sync/42",
+      duration: 42,
+    });
+    const body = await (await res).json();
+
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        reportId: "sync%2F42",
+        stored: true,
+        restaurantId: null,
+      },
+    });
+    expect(kv.put).toHaveBeenCalledWith(
+      "system:performance:global:6:sync%2F42",
+      expect.stringContaining('"duration":42'),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+    expect(kv.put).toHaveBeenCalledWith(
+      "system:performance:global:6:latest",
+      expect.any(String),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    );
+  });
+
   it("reports basic health and liveness probes", async () => {
     database.results.push([{ test: 1 }]);
 
@@ -303,6 +438,105 @@ describe("system routes", () => {
     });
   });
 
+  it("reports degraded health when database checks return unexpected data", async () => {
+    database.results.push([{ test: 0 }]);
+
+    const response = await request("/health").res;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      success: true,
+      status: "degraded",
+      checks: { database: false, cache: true },
+      services: [
+        expect.objectContaining({ name: "database", status: "degraded" }),
+        expect.objectContaining({ name: "kv_storage", status: "healthy" }),
+      ],
+    });
+  });
+
+  it("reports unhealthy health when KV checks fail", async () => {
+    database.results.push([{ test: 1 }]);
+    const failingKv = {
+      get: vi.fn(),
+      put: vi.fn(async () => {
+        throw new Error("kv unavailable");
+      }),
+      delete: vi.fn(),
+    };
+
+    const response = await request("/health", "GET", undefined, {
+      CACHE_KV: failingKv,
+      API_VERSION: "",
+      NODE_ENV: "",
+    }).res;
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body).toMatchObject({
+      success: false,
+      status: "unhealthy",
+      version: "v1",
+      environment: "development",
+      checks: { database: true, cache: false },
+      services: [
+        expect.objectContaining({ name: "database", status: "healthy" }),
+        expect.objectContaining({
+          name: "kv_storage",
+          status: "unhealthy",
+          error: "kv unavailable",
+        }),
+      ],
+    });
+  });
+
+  it("reports degraded health when KV checks return unexpected data", async () => {
+    database.results.push([{ test: 1 }]);
+    const kv = createKv();
+    kv.get.mockResolvedValueOnce("stale");
+
+    const response = await request("/health", "GET", undefined, {
+      CACHE_KV: kv,
+    }).res;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      success: true,
+      status: "degraded",
+      checks: { database: true, cache: false },
+      services: [
+        expect.objectContaining({ name: "database", status: "healthy" }),
+        expect.objectContaining({ name: "kv_storage", status: "degraded" }),
+      ],
+    });
+  });
+
+  it("reports database health check errors", async () => {
+    database.createDatabase.mockImplementationOnce(() => {
+      throw "database unavailable";
+    });
+
+    const response = await request("/health").res;
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body).toMatchObject({
+      success: false,
+      status: "unhealthy",
+      checks: { database: false, cache: true },
+      services: [
+        expect.objectContaining({
+          name: "database",
+          status: "unhealthy",
+          error: "Unknown error",
+        }),
+        expect.objectContaining({ name: "kv_storage", status: "healthy" }),
+      ],
+    });
+  });
+
   it("returns not_ready when readiness dependencies fail", async () => {
     database.results.push([{ test: 0 }]);
 
@@ -312,6 +546,62 @@ describe("system routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       success: false,
       status: "not_ready",
+    });
+  });
+
+  it("returns ready when readiness dependencies pass", async () => {
+    database.results.push([{ test: 1 }]);
+
+    const response = await request("/health/ready").res;
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      status: "ready",
+    });
+  });
+
+  it("returns not_ready when readiness checks throw", async () => {
+    database.results.push([{ test: 1 }]);
+    const failingKv = {
+      get: vi.fn(async () => {
+        throw new Error("readiness kv unavailable");
+      }),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+
+    const response = await request("/health/ready", "GET", undefined, {
+      CACHE_KV: failingKv,
+    }).res;
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      status: "not_ready",
+      error: "readiness kv unavailable",
+    });
+  });
+
+  it("returns not_ready when readiness KV fallback fails", async () => {
+    database.results.push([{ test: 1 }]);
+    const kv = {
+      get: vi.fn(async () => undefined),
+      put: vi.fn(async () => undefined),
+      delete: vi.fn(),
+    };
+
+    const response = await request("/health/ready", "GET", undefined, {
+      CACHE_KV: kv,
+    }).res;
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      status: "not_ready",
+    });
+    expect(kv.put).toHaveBeenCalledWith("ready-test", "ok", {
+      expirationTtl: 60,
     });
   });
 
@@ -332,6 +622,24 @@ describe("system routes", () => {
     response = await request("/error-reports/cleanup?daysOld=45", "DELETE").res;
     expect(response.status).toBe(200);
     expect(serviceFns.cleanupOldErrorReports).toHaveBeenCalledWith(45);
+  });
+
+  it("passes undefined restaurant scope for owners without a restaurant", async () => {
+    auth.user = { id: 8, role: 1, restaurantId: null };
+
+    const response = await request("/error-stats").res;
+
+    expect(response.status).toBe(200);
+    expect(serviceFns.getErrorStats).toHaveBeenCalledWith(undefined);
+  });
+
+  it("uses default cleanup age when query is omitted", async () => {
+    auth.user = { id: 1, role: 0 };
+
+    const response = await request("/error-reports/cleanup", "DELETE").res;
+
+    expect(response.status).toBe(200);
+    expect(serviceFns.cleanupOldErrorReports).toHaveBeenCalledWith(30);
   });
 
   it("returns detailed health with endpoint checks and recommendations", async () => {
@@ -393,6 +701,102 @@ describe("system routes", () => {
     vi.stubGlobal("fetch", originalFetch);
   });
 
+  it("returns detailed health recommendations for degraded dependencies", async () => {
+    const originalFetch = globalThis.fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockRejectedValueOnce("orders api down")
+        .mockRejectedValueOnce(new Error("menu api down"))
+        .mockRejectedValueOnce(new Error("orders api down")),
+    );
+    database.results.push([{ test: 0 }], [], [], [], [], [{}]);
+
+    const response = await request("/health/detailed").res;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      success: true,
+      overview: { status: "degraded" },
+      performance: {
+        table_statistics: [
+          { table_name: "orders", row_count: 0 },
+          { table_name: "users", row_count: 0 },
+          { table_name: "restaurants", row_count: 0 },
+        ],
+      },
+      health_score: 50,
+    });
+    expect(body.performance.endpoint_health).toEqual([
+      expect.objectContaining({
+        name: "restaurants",
+        status: "unhealthy",
+        error: "Unknown error",
+      }),
+      expect.objectContaining({
+        name: "menu",
+        status: "unhealthy",
+        error: "menu api down",
+      }),
+      expect.objectContaining({
+        name: "orders",
+        status: "unhealthy",
+        error: "orders api down",
+      }),
+    ]);
+    expect(body.recommendations).toEqual(
+      expect.arrayContaining([
+        "System health score is below optimal. Consider investigating issues.",
+        "Unhealthy endpoints detected: restaurants, menu, orders",
+      ]),
+    );
+
+    vi.stubGlobal("fetch", originalFetch);
+  });
+
+  it("returns detailed health recommendations for synthetic high load", async () => {
+    const originalFetch = globalThis.fetch;
+    const randomSpy = vi
+      .spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(2)
+      .mockReturnValueOnce(2)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(3);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+    );
+    database.results.push(
+      [{ test: 1 }],
+      [{ count: 1 }],
+      [{ count: 1 }],
+      [{ count: 1 }],
+      [],
+      [{ total_requests: 1 }],
+    );
+
+    const response = await request("/health/detailed").res;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.health_score).toBe(50);
+    expect(body.recommendations).toEqual(
+      expect.arrayContaining([
+        "System health score is below optimal. Consider investigating issues.",
+        "Memory usage is high. Consider scaling up or optimizing memory usage.",
+        "CPU usage is elevated. Monitor for sustained high usage.",
+        "Error rate is above acceptable threshold. Check application logs.",
+      ]),
+    );
+
+    randomSpy.mockRestore();
+    vi.stubGlobal("fetch", originalFetch);
+  });
+
   it("returns health metrics as JSON and Prometheus text", async () => {
     database.results.push([
       {
@@ -417,5 +821,17 @@ describe("system routes", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toContain("text/plain");
     expect(await response.text()).toContain("makanmakan_orders_total 21");
+  });
+
+  it("returns zeroed Prometheus business metrics when aggregates are empty", async () => {
+    database.results.push([{}]);
+
+    const response = await request("/health/metrics?format=prometheus").res;
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("makanmakan_orders_total 0");
+    expect(body).toContain("makanmakan_orders_pending 0");
+    expect(body).toContain("makanmakan_orders_preparing 0");
   });
 });
