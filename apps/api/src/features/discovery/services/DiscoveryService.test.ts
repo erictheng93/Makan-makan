@@ -94,6 +94,30 @@ function createD1() {
   return d1 as any;
 }
 
+function openAllWeek() {
+  return {
+    sunday: { open: "00:00", close: "23:59", closed: false },
+    monday: { open: "00:00", close: "23:59", closed: false },
+    tuesday: { open: "00:00", close: "23:59", closed: false },
+    wednesday: { open: "00:00", close: "23:59", closed: false },
+    thursday: { open: "00:00", close: "23:59", closed: false },
+    friday: { open: "00:00", close: "23:59", closed: false },
+    saturday: { open: "00:00", close: "23:59", closed: false },
+  };
+}
+
+function closedAllWeek() {
+  return {
+    sunday: { open: "00:00", close: "23:59", closed: true },
+    monday: { open: "00:00", close: "23:59", closed: true },
+    tuesday: { open: "00:00", close: "23:59", closed: true },
+    wednesday: { open: "00:00", close: "23:59", closed: true },
+    thursday: { open: "00:00", close: "23:59", closed: true },
+    friday: { open: "00:00", close: "23:59", closed: true },
+    saturday: { open: "00:00", close: "23:59", closed: true },
+  };
+}
+
 describe("DiscoveryService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -205,6 +229,54 @@ describe("DiscoveryService", () => {
     expect(mocks.db.select).not.toHaveBeenCalled();
   });
 
+  it("filters cached district restaurants by delivery and price range", async () => {
+    const restaurant = {
+      restaurantId: "restaurant-1",
+      name: "Makan",
+      type: "malaysian",
+      category: "casual",
+      district: "Central",
+      city: "Taipei",
+      priceRange: 2,
+      rating: 4.5,
+      isOpen: true,
+      supportsTakeaway: true,
+      supportsDelivery: true,
+      imageUrl: null,
+      detailUrl: "/api/v1/restaurants/restaurant-1",
+      menuUrl: "/api/v1/menu/restaurant-1",
+      serviceItemsUrl: "/api/v1/restaurants/restaurant-1/service-items",
+      availableMenuItemCount: 3,
+      publicServiceItemCount: 1,
+    };
+    const { service } = createService({
+      "search:restaurants:district:Central": [
+        restaurant,
+        {
+          ...restaurant,
+          restaurantId: "restaurant-2",
+          supportsDelivery: false,
+        },
+        {
+          ...restaurant,
+          restaurantId: "restaurant-3",
+          priceRange: 3,
+        },
+      ],
+    });
+
+    await expect(
+      service.browseRestaurants({
+        district: "Central",
+        delivery: true,
+        priceRange: 2,
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      results: [{ restaurantId: "restaurant-1" }],
+    });
+  });
+
   it("builds stable helper values for URLs, cache keys, geo, and sorting", () => {
     const { service } = createService();
     const helpers = service as any;
@@ -259,6 +331,25 @@ describe("DiscoveryService", () => {
     expect(helpers.getServiceTypeIntent("booking")).toBe("booking");
     expect(helpers.getServiceQueryAliases("massage")).toEqual(["massage"]);
     expect(helpers.getCatalogQueryAliases("dessert")).toEqual(["dessert"]);
+    expect(helpers.ftsMatchCondition("ab")).toBeUndefined();
+    expect(helpers.ftsMatchCondition('hot "pot"')).toBeTruthy();
+    expect(
+      helpers.getDishSearchOrderBy({ sortBy: "popular" }, {}, null),
+    ).toHaveLength(2);
+    expect(
+      helpers.getDishSearchOrderBy({ sortBy: "price_desc" }, {}, null),
+    ).toHaveLength(1);
+    expect(
+      helpers.getDishSearchOrderBy({ q: "Laksa" }, {}, "laksa", [1]),
+    ).toHaveLength(2);
+    expect(
+      helpers.getServiceSearchOrderBy({ sortBy: "price_desc" }),
+    ).toHaveLength(4);
+    expect(
+      helpers.getServiceSearchOrderBy({ sortBy: "price_asc" }),
+    ).toHaveLength(4);
+    expect(helpers.getServiceSearchOrderBy({})).toHaveLength(2);
+    expect(helpers.getServiceSearchOrderBy({ q: "booking" })).toHaveLength(3);
 
     const geo = helpers.getGeoFilter({ lat: 25, lng: 121, radiusKm: 50 });
     expect(geo).toMatchObject({ lat: 25, lng: 121, radiusKm: 10 });
@@ -532,6 +623,360 @@ describe("DiscoveryService", () => {
           serviceItemsUrl: "/api/v1/restaurants/restaurant-1/service-items",
         },
       ],
+    });
+  });
+
+  it("applies category filters and resolves market slug before querying categories", async () => {
+    const { service } = createService({ "search:query:version": "8" });
+    mockSelectResults([
+      [{ id: "market-1" }],
+      [{ categoryName: "Noodles" }, { categoryName: null }],
+    ]);
+
+    await expect(
+      service.listDishCategories({
+        marketSlug: "night",
+        district: "Central",
+        city: "Taipei",
+        catalogType: "product",
+        takeaway: true,
+        delivery: true,
+      }),
+    ).resolves.toEqual({ categories: ["Noodles"] });
+  });
+
+  it("post-filters dish searches by geo distance, open state, and sort order", async () => {
+    const { service } = createService({ "search:query:version": "20" });
+    const nearOpen = {
+      menuItemId: 1,
+      dishName: "Tea",
+      price: 20,
+      priceCents: null,
+      catalogType: "menu_item",
+      categoryName: "Drinks",
+      restaurantId: "restaurant-1",
+      restaurantName: "Open Near",
+      district: "Central",
+      businessHours: openAllWeek(),
+      supportsTakeaway: true,
+      supportsDelivery: true,
+      tags: [],
+      latitude: 25,
+      longitude: 121,
+      marketVendorMarketId: null,
+      marketVendorStallNumber: null,
+      marketVendorLocationLabel: null,
+      marketVendorIsPrimary: null,
+      marketVendorMarketSlug: null,
+      marketVendorMarketName: null,
+    };
+    mockSelectResults([
+      [
+        nearOpen,
+        {
+          ...nearOpen,
+          menuItemId: 2,
+          restaurantId: "restaurant-2",
+          restaurantName: "Closed Near",
+          businessHours: closedAllWeek(),
+        },
+        {
+          ...nearOpen,
+          menuItemId: 3,
+          restaurantId: "restaurant-3",
+          restaurantName: "Missing Geo",
+          latitude: null,
+          longitude: null,
+        },
+      ],
+      [{ count: 3 }],
+    ]);
+
+    await expect(
+      service.searchDishes({
+        lat: 25,
+        lng: 121,
+        radiusKm: 1,
+        openNow: true,
+        sortBy: "distance",
+        page: 1,
+        limit: 10,
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      results: [
+        {
+          menuItemId: 1,
+          restaurantName: "Open Near",
+          distanceKm: 0,
+        },
+      ],
+    });
+  });
+
+  it("post-filters restaurant browsing by geo distance and open state", async () => {
+    const { service } = createService();
+    const row = {
+      id: "restaurant-1",
+      name: "Open Near",
+      type: "malaysian",
+      category: "casual",
+      district: "Central",
+      city: "Taipei",
+      priceRange: 2,
+      rating: 4.5,
+      businessHours: openAllWeek(),
+      supportsTakeaway: true,
+      supportsDelivery: true,
+      logoUrl: null,
+      latitude: 25,
+      longitude: 121,
+    };
+    mockSelectResults([
+      [
+        row,
+        {
+          ...row,
+          id: "restaurant-2",
+          name: "Closed Near",
+          businessHours: closedAllWeek(),
+        },
+        {
+          ...row,
+          id: "restaurant-3",
+          name: "Missing Geo",
+          latitude: null,
+          longitude: null,
+        },
+      ],
+      [{ count: 3 }],
+      [],
+      [],
+      [],
+    ]);
+
+    await expect(
+      service.browseRestaurants({
+        q: "near",
+        city: "Taipei",
+        district: "Central",
+        cuisineType: "malaysian",
+        priceRange: 2,
+        takeaway: true,
+        delivery: true,
+        marketId: "market-1",
+        lat: 25,
+        lng: 121,
+        radiusKm: 1,
+        openNow: true,
+        sortBy: "open_now",
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      results: [{ restaurantId: "restaurant-1", distanceKm: 0 }],
+    });
+  });
+
+  it("post-filters service searches by geo distance and open state", async () => {
+    const { service } = createService();
+    const serviceRow = {
+      serviceItemId: 10,
+      name: "Booking",
+      description: "Reserve",
+      serviceType: "booking",
+      priceCents: 1000,
+      priceLabel: null,
+      durationMinutes: 30,
+      requiresBooking: true,
+      bookingUrl: "/book",
+      tags: ["reservation"],
+      restaurantId: "restaurant-1",
+      restaurantName: "Open Near",
+      district: "Central",
+      city: "Taipei",
+      latitude: 25,
+      longitude: 121,
+      businessHours: openAllWeek(),
+      marketVendorMarketId: "market-1",
+      marketVendorStallNumber: "A1",
+      marketVendorLocationLabel: "East",
+      marketVendorIsPrimary: true,
+      marketVendorMarketSlug: "night",
+      marketVendorMarketName: "Night Market",
+    };
+    mockSelectResults([
+      [
+        serviceRow,
+        {
+          ...serviceRow,
+          serviceItemId: 11,
+          restaurantId: "restaurant-2",
+          restaurantName: "Closed Near",
+          businessHours: closedAllWeek(),
+        },
+        {
+          ...serviceRow,
+          serviceItemId: 12,
+          restaurantId: "restaurant-3",
+          restaurantName: "Missing Geo",
+          latitude: null,
+          longitude: null,
+        },
+      ],
+      [{ count: 3 }],
+      [{ count: 1 }],
+      [{ count: 1 }],
+    ]);
+
+    await expect(
+      service.searchServices({
+        q: "booking",
+        city: "Taipei",
+        district: "Central",
+        marketId: "market-1",
+        serviceType: "booking",
+        takeaway: true,
+        delivery: true,
+        lat: 25,
+        lng: 121,
+        radiusKm: 1,
+        openNow: true,
+        sortBy: "distance",
+        page: 1,
+        limit: 10,
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      results: [
+        {
+          serviceItemId: 10,
+          distanceKm: 0,
+          marketVendor: { marketId: "market-1", stallNumber: "A1" },
+        },
+      ],
+      scope: {
+        market: {
+          marketId: "market-1",
+          hasSearchableCatalog: true,
+        },
+      },
+    });
+  });
+
+  it("counts only currently open service types and sorts ties by name", async () => {
+    const { service } = createService();
+    mockSelectResults([
+      [
+        { serviceType: "delivery", businessHours: openAllWeek() },
+        { serviceType: "booking", businessHours: openAllWeek() },
+        { serviceType: "booking", businessHours: openAllWeek() },
+        { serviceType: "tour", businessHours: closedAllWeek() },
+      ],
+    ]);
+
+    await expect(
+      service.listServiceTypes({
+        district: "Central",
+        marketId: "market-1",
+        takeaway: true,
+        delivery: true,
+        openNow: true,
+      }),
+    ).resolves.toEqual({
+      serviceTypes: [
+        { serviceType: "booking", count: 2 },
+        { serviceType: "delivery", count: 1 },
+      ],
+    });
+  });
+
+  it("returns negative takeaway eligibility reasons", async () => {
+    const { service } = createService();
+    mockSelectResults([
+      [],
+      [
+        {
+          isActive: true,
+          deletedAt: null,
+          supportsTakeaway: false,
+          enableShopMode: true,
+          shopQrCode: "SHOPQR",
+          businessHours: openAllWeek(),
+        },
+      ],
+      [
+        {
+          isActive: true,
+          deletedAt: null,
+          supportsTakeaway: true,
+          enableShopMode: true,
+          shopQrCode: "SHOPQR",
+          businessHours: closedAllWeek(),
+        },
+      ],
+    ]);
+
+    await expect(
+      service.getTakeawayEligibility("missing-restaurant"),
+    ).resolves.toEqual({ eligible: false, reason: "restaurant_disabled" });
+    await expect(
+      service.getTakeawayEligibility("disabled-takeaway"),
+    ).resolves.toEqual({ eligible: false, reason: "takeaway_disabled" });
+    await expect(service.getTakeawayEligibility("closed")).resolves.toEqual({
+      eligible: false,
+      reason: "closed_now",
+    });
+  });
+
+  it("handles missing market slugs and duplicate restaurant market vendors", async () => {
+    const { service } = createService({ "search:query:version": "30" });
+    mockSelectResults([
+      [],
+      [],
+      [{ count: 0 }],
+      [{ count: 0 }],
+      [{ count: 0 }],
+      [
+        {
+          restaurantId: "restaurant-1",
+          marketVendorMarketId: "market-1",
+          marketVendorStallNumber: "A1",
+          marketVendorLocationLabel: "East",
+          marketVendorIsPrimary: true,
+          marketVendorMarketSlug: "night",
+          marketVendorMarketName: "Night Market",
+        },
+        {
+          restaurantId: "restaurant-1",
+          marketVendorMarketId: "market-2",
+          marketVendorStallNumber: "B2",
+          marketVendorLocationLabel: "West",
+          marketVendorIsPrimary: false,
+          marketVendorMarketSlug: "day",
+          marketVendorMarketName: "Day Market",
+        },
+      ],
+    ]);
+
+    await expect(
+      service.searchServices({ marketSlug: "missing" }),
+    ).resolves.toMatchObject({
+      total: 0,
+      scope: {
+        market: {
+          marketId: "__missing_market__",
+          hasSearchableCatalog: false,
+        },
+      },
+    });
+
+    const vendors = await (service as any).restaurantBrowseMarketVendors(
+      ["restaurant-1"],
+      undefined,
+    );
+    expect(vendors.get("restaurant-1")).toMatchObject({
+      marketId: "market-1",
+      stallNumber: "A1",
     });
   });
 
