@@ -425,6 +425,181 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     }
   });
 
+  it("sets guest websocket room metadata and preserves existing room info", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const pairs = [
+      [
+        createSocket(),
+        createSocket({ accept: vi.fn(), addEventListener: vi.fn() }),
+      ],
+      [
+        createSocket(),
+        createSocket({ accept: vi.fn(), addEventListener: vi.fn() }),
+      ],
+    ];
+    vi.stubGlobal("WebSocketPair", function WebSocketPair() {
+      const [client, server] = pairs.shift()!;
+      return { 0: client, 1: server };
+    });
+    try {
+      const db = createDb([
+        { id: 7, restaurant_id: "restaurant-1" },
+        { id: 7, restaurant_id: "restaurant-1" },
+      ]);
+      const session = new RealtimeSession(
+        createAuthEnv({
+          DB: db.DB,
+          REALTIME_JWT_SECRET: jwtSecret,
+        }),
+      );
+      const guestToken = tokenFor({
+        roomType: "customer",
+        roomId: "customer:7",
+        role: "customer",
+        guestFlag: true,
+        tableId: 7,
+      });
+
+      await expect(
+        session.fetch(
+          new Request(`https://do.test/customer/7?token=${guestToken}`, {
+            headers: { Upgrade: "websocket" },
+          }),
+        ),
+      ).rejects.toThrow('init["status"] must be in the range');
+      await expect(
+        session.fetch(
+          new Request(`https://do.test/customer/7?token=${guestToken}`, {
+            headers: { Upgrade: "websocket" },
+          }),
+        ),
+      ).rejects.toThrow('init["status"] must be in the range');
+
+      expect((session as any).roomInfo).toEqual({
+        type: "customer",
+        id: "7",
+      });
+      expect((session as any).connections.size).toBe(2);
+      expect((session as any).connections.get(pairs[0]?.[1])).toBeUndefined();
+    } finally {
+      warn.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("covers event routing decisions for roles and event families", () => {
+    const session = new RealtimeSession(createEnv());
+    const customer = connection();
+    const staff = connection({
+      auth: {
+        role: "staff",
+        restaurantId: "restaurant-1",
+        roomType: "kitchen",
+        roomId: "restaurant-1",
+      },
+    });
+    const admin = connection({
+      auth: {
+        role: "admin",
+        restaurantId: "restaurant-1",
+        roomType: "admin",
+        roomId: "restaurant-1",
+      },
+    });
+    const unauthenticated = connection({ auth: undefined });
+    const statusEvent = event("status") as any;
+    statusEvent.type = RealtimeEventType.ORDER_STATUS_UPDATE;
+    const itemStatusEvent = event("item-status") as any;
+    itemStatusEvent.type = RealtimeEventType.ORDER_ITEM_STATUS_UPDATE;
+    const kitchenItemEvent = event("kitchen-item") as any;
+    kitchenItemEvent.type = RealtimeEventType.KITCHEN_ITEM_STATUS;
+    const tableStatusEvent = event("table-status") as any;
+    tableStatusEvent.type = RealtimeEventType.TABLE_STATUS_UPDATE;
+    const tableServiceEvent = event("table-service") as any;
+    tableServiceEvent.type = RealtimeEventType.TABLE_CALL_SERVICE;
+    const menuEvent = event("menu") as any;
+    menuEvent.type = RealtimeEventType.MENU_ITEM_UPDATE;
+    const menuAvailabilityEvent = event("menu-availability") as any;
+    menuAvailabilityEvent.type = RealtimeEventType.MENU_AVAILABILITY_UPDATE;
+    const systemEvent = event("system") as any;
+    systemEvent.type = RealtimeEventType.SYSTEM_NOTIFICATION;
+    const restaurantEvent = event("restaurant") as any;
+    restaurantEvent.type = RealtimeEventType.RESTAURANT_STATUS_UPDATE;
+    const unknownEvent = event("unknown") as any;
+    unknownEvent.type = "unknown-event";
+
+    expect(
+      (session as any).shouldSendEventToConnection(statusEvent, customer),
+    ).toBe(true);
+    expect(
+      (session as any).shouldSendEventToConnection(itemStatusEvent, staff),
+    ).toBe(true);
+    expect(
+      (session as any).shouldSendEventToConnection(itemStatusEvent, admin),
+    ).toBe(true);
+    expect(
+      (session as any).shouldSendEventToConnection(kitchenItemEvent, customer),
+    ).toBe(false);
+    for (const candidate of [
+      tableStatusEvent,
+      tableServiceEvent,
+      menuEvent,
+      menuAvailabilityEvent,
+      systemEvent,
+      restaurantEvent,
+    ]) {
+      expect(
+        (session as any).shouldSendEventToConnection(candidate, customer),
+      ).toBe(true);
+    }
+    expect(
+      (session as any).shouldSendEventToConnection(unknownEvent, admin),
+    ).toBe(true);
+    expect(
+      (session as any).shouldSendEventToConnection(unknownEvent, customer),
+    ).toBe(false);
+    expect(
+      (session as any).shouldSendEventToConnection(
+        statusEvent,
+        unauthenticated,
+      ),
+    ).toBe(false);
+  });
+
+  it("handles send failures and unauthenticated error responses", () => {
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      const session = new RealtimeSession(createEnv());
+      const failingSocket = createSocket({
+        send: vi.fn(() => {
+          throw new Error("send failed");
+        }),
+      });
+
+      (session as any).sendEvent(failingSocket, event("send-failed"));
+      expect(console.error).toHaveBeenCalledWith(
+        "Failed to send event:",
+        expect.any(Error),
+      );
+
+      const socket = createSocket();
+      (session as any).sendErrorEvent(
+        socket,
+        connection({ auth: undefined }),
+        "NO_AUTH",
+        "Missing auth",
+      );
+      expect(JSON.parse(socket.send.mock.calls[0][0])).toMatchObject({
+        restaurantId: "",
+        data: { code: "NO_AUTH", message: "Missing auth" },
+      });
+    } finally {
+      error.mockRestore();
+    }
+  });
+
   it("routes broadcast events by restaurant, role, event type, and socket readiness", async () => {
     const session = new RealtimeSession(createEnv());
     const customer = createSocket();
@@ -595,6 +770,12 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     expect(
       (session as any).validateRoleRoomAccess("admin", "restaurant"),
     ).toEqual({ valid: true });
+    expect(
+      (session as any).validateRoleRoomAccess("manager", "customer"),
+    ).toEqual({
+      valid: false,
+      error: 'Role "manager" is not authorized to access "customer" rooms',
+    });
   });
 
   it("validates restaurant access for active users, platform admins, and failures", async () => {
@@ -650,9 +831,77 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       valid: false,
       error: "User ID is required for staff/admin access",
     });
+
+    const inactiveDb = createDb([]);
+    const inactiveSession = new RealtimeSession({
+      ...createEnv(),
+      DB: inactiveDb.DB,
+    });
+    await expect(
+      (inactiveSession as any).validateRestaurantAccess({
+        userId: "11",
+        restaurantId: "restaurant-1",
+        role: "staff",
+      }),
+    ).resolves.toEqual({
+      valid: false,
+      error: "User not found or inactive",
+    });
   });
 
   it("validates table and seat access including mismatch and DB error paths", async () => {
+    const noTableSession = new RealtimeSession(createEnv());
+    await expect(
+      (noTableSession as any).validateTableAccess({
+        restaurantId: "restaurant-1",
+      }),
+    ).resolves.toEqual({ valid: true });
+
+    const tableMissingDb = createDb([]);
+    const tableMissingSession = new RealtimeSession({
+      ...createEnv(),
+      DB: tableMissingDb.DB,
+    });
+    await expect(
+      (tableMissingSession as any).validateTableAccess({
+        restaurantId: "restaurant-1",
+        tableId: 7,
+      }),
+    ).resolves.toEqual({
+      valid: false,
+      error: "Table not found or inactive",
+    });
+
+    const validTableOnlyDb = createDb([
+      { id: 7, restaurant_id: "restaurant-1" },
+    ]);
+    const validTableOnlySession = new RealtimeSession({
+      ...createEnv(),
+      DB: validTableOnlyDb.DB,
+    });
+    await expect(
+      (validTableOnlySession as any).validateTableAccess({
+        restaurantId: "restaurant-1",
+        tableId: 7,
+      }),
+    ).resolves.toEqual({ valid: true });
+
+    const seatMissingDb = createDb([{ id: 7, restaurant_id: "restaurant-1" }]);
+    const seatMissingSession = new RealtimeSession({
+      ...createEnv(),
+      DB: seatMissingDb.DB,
+    });
+    await expect(
+      (seatMissingSession as any).validateTableAccess({
+        restaurantId: "restaurant-1",
+        tableId: 7,
+        seatId: 3,
+      }),
+    ).resolves.toEqual({
+      valid: false,
+      error: "Seat not found or inactive",
+    });
+
     const okDb = createDb([
       { id: 7, restaurant_id: "restaurant-1" },
       { id: 3, table_id: 7 },
@@ -746,5 +995,14 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     expect(
       (session as any).eventHistory.map((item: any) => item.eventId),
     ).toEqual(["fresh"]);
+
+    const freshOnlySession = new RealtimeSession(createEnv());
+    (freshOnlySession as any).eventHistory = [event("still-fresh", now)];
+
+    await freshOnlySession.alarm();
+
+    expect(
+      (freshOnlySession as any).eventHistory.map((item: any) => item.eventId),
+    ).toEqual(["still-fresh"]);
   });
 });
