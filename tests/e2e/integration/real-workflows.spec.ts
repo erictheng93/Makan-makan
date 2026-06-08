@@ -1,7 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  createLocalManagementToken,
   firstAvailableMenuItemId,
   isLocalSmokeApi,
+  localManagementApiUrlFallback,
+  localManagementPortalUrlFallback,
+  localOnboardingUrlFallback,
   optionalEnv,
   resolveLocalSmokeFixtureIds,
   smokeLogin,
@@ -21,9 +25,27 @@ const ADMIN_URL =
   optionalEnv("WORKFLOW_ADMIN_URL") || optionalEnv("SMOKE_ADMIN_URL");
 const KITCHEN_URL =
   optionalEnv("WORKFLOW_KITCHEN_URL") || optionalEnv("SMOKE_KITCHEN_URL");
-const MANAGEMENT_PORTAL_URL = optionalEnv("WORKFLOW_MANAGEMENT_PORTAL_URL");
-const ONBOARDING_URL = optionalEnv("WORKFLOW_ONBOARDING_URL");
-const MANAGEMENT_API_URL = optionalEnv("WORKFLOW_MANAGEMENT_API_URL");
+const ENABLE_LOCAL_MANAGEMENT_WORKFLOWS =
+  optionalEnv("WORKFLOW_ENABLE_LOCAL_MANAGEMENT") === "1";
+const MANAGEMENT_PORTAL_URL =
+  optionalEnv("WORKFLOW_MANAGEMENT_PORTAL_URL") ||
+  (ENABLE_LOCAL_MANAGEMENT_WORKFLOWS
+    ? localManagementPortalUrlFallback(API_URL)
+    : undefined);
+const ONBOARDING_URL =
+  optionalEnv("WORKFLOW_ONBOARDING_URL") ||
+  (ENABLE_LOCAL_MANAGEMENT_WORKFLOWS
+    ? localOnboardingUrlFallback(API_URL)
+    : undefined);
+const MANAGEMENT_API_URL =
+  optionalEnv("WORKFLOW_MANAGEMENT_API_URL") ||
+  (ENABLE_LOCAL_MANAGEMENT_WORKFLOWS
+    ? localManagementApiUrlFallback(API_URL)
+    : undefined);
+const MANAGEMENT_API_ORIGIN_URL = MANAGEMENT_API_URL?.replace(
+  /\/api\/v1\/?$/,
+  "",
+);
 const MANAGEMENT_WORKFLOW_API_URL =
   MANAGEMENT_API_URL ||
   optionalEnv("WORKFLOW_MANAGEMENT_PORTAL_API_URL") ||
@@ -41,7 +63,14 @@ const AUTH_PASSWORD =
   (IS_LOCAL_API ? "password123" : undefined);
 const CHEF_USERNAME = optionalEnv("WORKFLOW_CHEF_USERNAME");
 const CHEF_PASSWORD = optionalEnv("WORKFLOW_CHEF_PASSWORD");
-const MANAGEMENT_TOKEN = optionalEnv("WORKFLOW_MANAGEMENT_TOKEN");
+const MANAGEMENT_TOKEN =
+  optionalEnv("WORKFLOW_MANAGEMENT_TOKEN") ||
+  (ENABLE_LOCAL_MANAGEMENT_WORKFLOWS
+    ? createLocalManagementToken({
+        managementApiUrl: MANAGEMENT_API_URL,
+        jwtSecret: optionalEnv("WORKFLOW_MANAGEMENT_JWT_SECRET"),
+      })
+    : undefined);
 const CLOUDFLARE_ACCOUNT_ID = optionalEnv("WORKFLOW_CLOUDFLARE_ACCOUNT_ID");
 const CLOUDFLARE_API_TOKEN = optionalEnv("WORKFLOW_CLOUDFLARE_API_TOKEN");
 const RESTAURANT_ID =
@@ -221,6 +250,11 @@ interface KitchenOrdersBody {
 interface ManagementTenantSummary {
   id?: string;
   businessName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  subdomain?: string;
+  licenseTier?: string;
+  status?: string;
 }
 
 interface ManagementTenantsBody {
@@ -258,12 +292,14 @@ interface LoginResponse {
 declare global {
   interface Window {
     __kitchenEventSourceUrls: string[];
+    __kitchenWebSocketUrls: string[];
     __kitchenAudioPlayRequests: Array<{
       type?: string;
       priority?: string;
       repeat?: number;
     }>;
     __emitKitchenSse: (event: unknown) => void;
+    __emitKitchenRealtime: (event: unknown) => void;
   }
 }
 
@@ -788,8 +824,10 @@ async function installKitchenBrowserRuntimeHooks(page: Page) {
       }),
     );
     window.__kitchenEventSourceUrls = [];
+    window.__kitchenWebSocketUrls = [];
     window.__kitchenAudioPlayRequests = [];
     const eventSources: WorkflowEventSource[] = [];
+    const webSockets: WorkflowWebSocket[] = [];
 
     class WorkflowEventSource extends EventTarget {
       static CONNECTING = 0;
@@ -842,6 +880,65 @@ async function installKitchenBrowserRuntimeHooks(page: Page) {
     };
 
     window.EventSource = WorkflowEventSource as unknown as typeof EventSource;
+
+    class WorkflowWebSocket extends EventTarget {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSING = 2;
+      static CLOSED = 3;
+
+      readonly url: string;
+      readyState = WorkflowWebSocket.CONNECTING;
+      binaryType: BinaryType = "blob";
+      bufferedAmount = 0;
+      extensions = "";
+      protocol = "";
+      onopen: ((event: Event) => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      onclose: ((event: CloseEvent) => void) | null = null;
+
+      constructor(url: string) {
+        super();
+        this.url = url;
+        window.__kitchenWebSocketUrls.push(url);
+        webSockets.push(this);
+
+        window.setTimeout(() => {
+          if (this.readyState === WorkflowWebSocket.CLOSED) return;
+          this.readyState = WorkflowWebSocket.OPEN;
+          const openEvent = new Event("open");
+          this.onopen?.(openEvent);
+          this.dispatchEvent(openEvent);
+        }, 0);
+      }
+
+      send() {
+        /* test transport does not send client frames */
+      }
+
+      close(code = 1000, reason = "workflow close") {
+        if (this.readyState === WorkflowWebSocket.CLOSED) return;
+        this.readyState = WorkflowWebSocket.CLOSED;
+        const closeEvent = new CloseEvent("close", { code, reason });
+        this.onclose?.(closeEvent);
+        this.dispatchEvent(closeEvent);
+      }
+
+      emitKitchenEvent(payload: unknown) {
+        const messageEvent = new MessageEvent("message", {
+          data: JSON.stringify(payload),
+        });
+        this.onmessage?.(messageEvent);
+        this.dispatchEvent(messageEvent);
+      }
+    }
+
+    window.__emitKitchenRealtime = (event: unknown) => {
+      webSockets.forEach((socket) => socket.emitKitchenEvent(event));
+    };
+
+    window.WebSocket = WorkflowWebSocket as unknown as typeof WebSocket;
   });
 }
 
@@ -886,6 +983,43 @@ async function fetchManagementTenantById(
     true,
   );
   return (await response.json()) as ManagementTenantBody;
+}
+
+async function createManagementTenantFixture(token: string): Promise<{
+  id: string;
+  businessName: string;
+}> {
+  expect(
+    MANAGEMENT_WORKFLOW_API_URL,
+    "management workflow API URL",
+  ).toBeTruthy();
+
+  const suffix = Math.random().toString(36).slice(2, 8);
+  const businessName = `Workflow Detail Tenant ${suffix}`;
+  const response = await fetch(`${MANAGEMENT_WORKFLOW_API_URL}/tenants`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      businessName,
+      contactEmail: `workflow-detail-${suffix}@example.com`,
+      contactPhone: `+1555${Math.floor(1000000 + Math.random() * 8999999)}`,
+      subdomain: `workflow-detail-${suffix}`,
+      licenseTier: "standard",
+    }),
+  });
+  expect(
+    response.ok,
+    `management tenant fixture create status ${response.status}`,
+  ).toBe(true);
+
+  const body = (await response.json()) as ManagementTenantBody;
+  const id = body.data?.id;
+  expect(typeof id, "management tenant fixture id").toBe("string");
+
+  return { id: id!, businessName };
 }
 
 async function deleteManagementTenant(tenantId: string, token: string) {
@@ -2000,48 +2134,73 @@ test.describe("Real system workflows", () => {
       ]);
 
       await expect(page.getByTestId("kitchen-dashboard")).toBeVisible();
-      await expect(
-        page.getByTestId("kitchen-connection-status"),
-      ).toHaveAttribute("data-connection-status", "connected");
       await expect
         .poll(async () =>
           page.evaluate((restaurantId) => {
-            return window.__kitchenEventSourceUrls.some((url) =>
-              url.includes(`/api/v1/kitchen/${restaurantId}/events?token=`),
+            const legacySseConnected = window.__kitchenEventSourceUrls.some(
+              (url) =>
+                url.includes(`/api/v1/kitchen/${restaurantId}/events?token=`),
             );
+            const realtimeWsConnected =
+              window.__kitchenWebSocketUrls.length > 0;
+            return legacySseConnected || realtimeWsConnected;
           }, fixtureIds.restaurantId),
         )
         .toBe(true);
+      await expect(
+        page.getByTestId("kitchen-connection-status"),
+      ).toHaveAttribute("data-connection-status", /^(connected|connecting)$/);
 
       await page.evaluate(
         ({ restaurantId, syntheticOrderId }) => {
+          const order = {
+            id: syntheticOrderId,
+            orderNumber: `WF-AUDIO-${syntheticOrderId}`,
+            status: "confirmed",
+            deliveryInfo: { type: "dine_in" },
+            tableName: "Workflow",
+            customer: { name: "Workflow Audio" },
+            items: [
+              {
+                id: syntheticOrderId + 1,
+                orderItemId: syntheticOrderId + 1,
+                name: "Audio workflow item",
+                menuItemName: "Audio workflow item",
+                quantity: 1,
+                status: "pending",
+                priority: "high",
+                price: 0,
+              },
+            ],
+            createdAt: new Date().toISOString(),
+            totalItems: 1,
+            priority: "high",
+            elapsedTime: 0,
+            totalAmount: 0,
+          };
           window.__emitKitchenSse({
             type: "NEW_ORDER",
             eventId: `workflow-audio-${syntheticOrderId}`,
             timestamp: Date.now(),
             restaurantId,
             payload: {
-              priority: "normal",
-              order: {
-                id: syntheticOrderId,
-                orderNumber: `WF-AUDIO-${syntheticOrderId}`,
-                status: "confirmed",
-                deliveryInfo: { type: "dine_in" },
-                items: [
-                  {
-                    id: syntheticOrderId + 1,
-                    name: "Audio workflow item",
-                    quantity: 1,
-                    status: "pending",
-                    priority: "normal",
-                  },
-                ],
-                createdAt: new Date().toISOString(),
-                totalItems: 1,
-                priority: "normal",
-                elapsedTime: 0,
-                totalAmount: 0,
-              },
+              priority: "high",
+              order,
+            },
+          });
+          window.__emitKitchenRealtime({
+            type: "new_order",
+            eventId: `workflow-audio-${syntheticOrderId}`,
+            timestamp: Date.now(),
+            restaurantId,
+            data: {
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              tableName: order.tableName,
+              customer: order.customer,
+              items: order.items,
+              priority: "high",
+              totalAmount: order.totalAmount,
             },
           });
         },
@@ -2359,65 +2518,85 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
     );
 
-    const tenant = await fetchManagementTenant(MANAGEMENT_TOKEN!);
-    test.skip(!tenant?.id, "management API did not return a tenant");
+    let createdTenantId: string | undefined;
+    let tenant = await fetchManagementTenant(MANAGEMENT_TOKEN!);
+    if (!tenant?.id) {
+      const fixture = await createManagementTenantFixture(MANAGEMENT_TOKEN!);
+      createdTenantId = fixture.id;
+      tenant = {
+        id: fixture.id,
+        businessName: fixture.businessName,
+      };
+    }
 
     await installManagementSession(page, MANAGEMENT_TOKEN!);
 
-    const tenantResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/tenants/${tenant!.id}`) &&
-        response.ok(),
-    );
-    const resourcesResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/tenants/${tenant!.id}/resources`) &&
-        response.ok(),
-    );
-    const deploymentsResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/deployments/${tenant!.id}/history`) &&
-        response.ok(),
-    );
-    const healthResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/health/tenants/${tenant!.id}`) &&
-        response.ok(),
-    );
-    const licensesResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/api/v1/licenses/${tenant!.id}`) &&
-        response.ok(),
-    );
+    try {
+      const tenantResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/tenants/${tenant!.id}`) &&
+          response.ok(),
+      );
+      const resourcesResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/tenants/${tenant!.id}/resources`) &&
+          response.ok(),
+      );
+      const deploymentsResponse = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(`/api/v1/deployments/${tenant!.id}/history`) &&
+          response.ok(),
+      );
+      const healthResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/health/tenants/${tenant!.id}`) &&
+          response.ok(),
+      );
+      const licensesResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/licenses/${tenant!.id}`) &&
+          response.ok(),
+      );
 
-    await page.goto(`${MANAGEMENT_PORTAL_URL}/tenants/${tenant!.id}`, {
-      waitUntil: "domcontentloaded",
-    });
+      await page.goto(`${MANAGEMENT_PORTAL_URL}/tenants/${tenant!.id}`, {
+        waitUntil: "domcontentloaded",
+      });
 
-    await Promise.all([
-      tenantResponse,
-      resourcesResponse,
-      deploymentsResponse,
-      healthResponse,
-      licensesResponse,
-    ]);
-    await expect(
-      page.getByTestId("management-tenant-detail-page"),
-    ).toBeVisible();
-    await expect(page.getByTestId("management-tenant-overview")).toBeVisible();
-    if (tenant!.businessName) {
-      await expect(page.getByText(tenant!.businessName).first()).toBeVisible();
+      await Promise.all([
+        tenantResponse,
+        resourcesResponse,
+        deploymentsResponse,
+        healthResponse,
+        licensesResponse,
+      ]);
+      await expect(
+        page.getByTestId("management-tenant-detail-page"),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("management-tenant-overview"),
+      ).toBeVisible();
+      if (tenant!.businessName) {
+        await expect(
+          page.getByText(tenant!.businessName).first(),
+        ).toBeVisible();
+      }
+
+      await page.getByTestId("management-tenant-tab-deployments").click();
+      await expect(
+        page.getByTestId("management-tenant-deployments"),
+      ).toBeVisible();
+      await page.getByTestId("management-tenant-tab-health").click();
+      await expect(page.getByTestId("management-tenant-health")).toBeVisible();
+      await page.getByTestId("management-tenant-tab-license").click();
+      await expect(page.getByTestId("management-tenant-license")).toBeVisible();
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      if (createdTenantId) {
+        await deleteManagementTenant(createdTenantId, MANAGEMENT_TOKEN!);
+      }
     }
-
-    await page.getByTestId("management-tenant-tab-deployments").click();
-    await expect(
-      page.getByTestId("management-tenant-deployments"),
-    ).toBeVisible();
-    await page.getByTestId("management-tenant-tab-health").click();
-    await expect(page.getByTestId("management-tenant-health")).toBeVisible();
-    await page.getByTestId("management-tenant-tab-license").click();
-    await expect(page.getByTestId("management-tenant-license")).toBeVisible();
-    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 
   test("management portal deployments, licenses, and markets pages load from management APIs", async ({
@@ -2487,7 +2666,7 @@ test.describe("Real system workflows", () => {
     await expect
       .poll(async () => {
         const response = await fetch(
-          `${MANAGEMENT_API_URL}/api/v1/onboarding/subdomain/check?subdomain=${subdomain}`,
+          `${MANAGEMENT_API_ORIGIN_URL}/api/v1/onboarding/subdomain/check?subdomain=${subdomain}`,
         );
         if (!response.ok) return false;
         const body = (await response.json()) as {

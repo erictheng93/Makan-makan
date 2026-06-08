@@ -22,6 +22,68 @@ import type {
   TenantStatus,
 } from "@/types";
 
+type TenantHealthSummaryPayload = {
+  recentChecks?: Array<{
+    id?: string;
+    tenantId?: string;
+    status?: HealthCheck["status"];
+    responseTimeMs?: number | null;
+    checkedAt?: string;
+    details?: HealthCheck["details"];
+  }>;
+};
+
+type TenantLicenseSummaryPayload = {
+  id?: string;
+  tenantId?: string;
+  licenseKey?: string;
+  tier?: License["tier"];
+  expiresAt?: string;
+  revokedAt?: string;
+  revokeReason?: string;
+  createdAt?: string;
+};
+
+function normalizeTenantHealthChecks(
+  tenantId: string,
+  payload: HealthCheck[] | TenantHealthSummaryPayload,
+): HealthCheck[] {
+  if (Array.isArray(payload)) return payload;
+
+  return (payload.recentChecks ?? [])
+    .filter((check) => check.status && check.checkedAt)
+    .map((check, index) => ({
+      id: check.id ?? `${tenantId}-health-${index}`,
+      tenantId: check.tenantId ?? tenantId,
+      status: check.status!,
+      responseTimeMs: check.responseTimeMs ?? undefined,
+      checkedAt: check.checkedAt!,
+      details: check.details,
+    }));
+}
+
+function normalizeTenantLicenses(
+  tenantId: string,
+  payload: License[] | TenantLicenseSummaryPayload,
+): License[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload.licenseKey || !payload.tier) return [];
+
+  return [
+    {
+      id: payload.id ?? `${tenantId}-license`,
+      tenantId: payload.tenantId ?? tenantId,
+      licenseKey: payload.licenseKey,
+      tier: payload.tier,
+      expiresAt: payload.expiresAt,
+      revokedAt: payload.revokedAt,
+      revokeReason: payload.revokeReason,
+      createdAt:
+        payload.createdAt ?? payload.expiresAt ?? new Date(0).toISOString(),
+    },
+  ];
+}
+
 export const useTenantsStore = defineStore("tenants", () => {
   // 狀態
   const tenants = ref<Tenant[]>([]);
@@ -158,7 +220,10 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function fetchTenantHealthChecks(id: string) {
     try {
-      currentHealthChecks.value = await healthApi.getTenantStatus(id);
+      currentHealthChecks.value = normalizeTenantHealthChecks(
+        id,
+        await healthApi.getTenantStatus(id),
+      );
     } catch (e) {
       console.error("獲取健康狀態失敗:", e);
       throw e;
@@ -167,7 +232,10 @@ export const useTenantsStore = defineStore("tenants", () => {
 
   async function fetchTenantLicenses(id: string) {
     try {
-      currentLicenses.value = await licensesApi.getTenantLicense(id);
+      currentLicenses.value = normalizeTenantLicenses(
+        id,
+        await licensesApi.getTenantLicense(id),
+      );
     } catch (e) {
       console.error("獲取授權失敗:", e);
       throw e;

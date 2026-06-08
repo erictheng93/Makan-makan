@@ -21,6 +21,7 @@ import healthRouter from "./routes/health";
 import monitoringRouter from "./routes/monitoring";
 import updatesRouter from "./routes/updates";
 import onboardingRouter from "./routes/onboarding";
+import { adminMarketsRouter, marketsRouter } from "./routes/markets";
 
 // Create main application
 const app = new Hono<{ Bindings: ManagementEnv }>();
@@ -173,6 +174,8 @@ protectedApi.route("/deployments", deploymentsRouter);
 protectedApi.route("/licenses", licensesRouter);
 protectedApi.route("/monitoring", monitoringRouter);
 protectedApi.route("/updates", updatesRouter);
+protectedApi.route("/markets", marketsRouter);
+protectedApi.route("/admin/markets", adminMarketsRouter);
 
 // Mount API versions
 app.route("/api/v1", publicApi);

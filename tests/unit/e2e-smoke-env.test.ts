@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createLocalManagementToken,
   firstAvailableMenuItemId,
   isLocalSmokeApi,
   localAdminUrlFallback,
+  localManagementApiUrlFallback,
+  localManagementPortalUrlFallback,
+  localOnboardingUrlFallback,
   resolveLocalSmokeFixtureIds,
   smokeLogin,
 } from "../e2e/smoke/smoke-env";
@@ -23,6 +27,48 @@ describe("smoke env helpers", () => {
       "http://localhost:3001",
     );
     expect(localAdminUrlFallback("https://api.makanmasak.com")).toBeUndefined();
+    expect(localManagementApiUrlFallback("http://localhost:8787")).toBe(
+      "http://localhost:8789/api/v1",
+    );
+    expect(localManagementPortalUrlFallback("http://localhost:8787")).toBe(
+      "http://localhost:3010",
+    );
+    expect(localOnboardingUrlFallback("http://localhost:8787")).toBe(
+      "http://localhost:3011",
+    );
+    expect(
+      localManagementApiUrlFallback("https://api.makanmasak.com"),
+    ).toBeUndefined();
+    expect(
+      localManagementPortalUrlFallback("https://api.makanmasak.com"),
+    ).toBeUndefined();
+    expect(
+      localOnboardingUrlFallback("https://api.makanmasak.com"),
+    ).toBeUndefined();
+  });
+
+  it("creates a local management JWT only for local management API URLs", () => {
+    const token = createLocalManagementToken({
+      managementApiUrl: "http://localhost:8789/api/v1",
+      jwtSecret: "test-secret",
+      now: 1780920000,
+    });
+
+    expect(token).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+    const payload = JSON.parse(
+      Buffer.from(token!.split(".")[1], "base64url").toString("utf8"),
+    );
+    expect(payload).toMatchObject({
+      id: "workflow-admin",
+      email: "workflow-admin@example.test",
+      exp: 1781006400,
+    });
+    expect(
+      createLocalManagementToken({
+        managementApiUrl: "https://manage-api.makanmasak.com/api/v1",
+        jwtSecret: "test-secret",
+      }),
+    ).toBeUndefined();
   });
 
   it("picks the first available menu item from supported menu shapes", () => {

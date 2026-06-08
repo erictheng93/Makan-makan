@@ -181,6 +181,54 @@ describe("useTenantsStore", () => {
     expect(store.currentLicenses).toEqual([license()]);
   });
 
+  it("normalizes tenant health API summary payloads into health checks", async () => {
+    vi.mocked(healthApi.getTenantStatus).mockResolvedValue({
+      recentChecks: [
+        {
+          status: "degraded",
+          responseTimeMs: 850,
+          checkedAt: "2026-06-07T01:00:00.000Z",
+        },
+      ],
+    } as never);
+    const store = useTenantsStore();
+
+    await store.fetchTenantHealthChecks("tenant-1");
+
+    expect(store.currentHealthChecks).toEqual([
+      {
+        id: "tenant-1-health-0",
+        tenantId: "tenant-1",
+        status: "degraded",
+        responseTimeMs: 850,
+        checkedAt: "2026-06-07T01:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("normalizes tenant license API summary payloads into license rows", async () => {
+    vi.mocked(licensesApi.getTenantLicense).mockResolvedValue({
+      tenantId: "tenant-1",
+      licenseKey: "MKM-STD-TENANT-1234",
+      tier: "standard",
+      expiresAt: "2027-06-07T00:00:00.000Z",
+    } as never);
+    const store = useTenantsStore();
+
+    await store.fetchTenantLicenses("tenant-1");
+
+    expect(store.currentLicenses).toEqual([
+      {
+        id: "tenant-1-license",
+        tenantId: "tenant-1",
+        licenseKey: "MKM-STD-TENANT-1234",
+        tier: "standard",
+        expiresAt: "2027-06-07T00:00:00.000Z",
+        createdAt: "2027-06-07T00:00:00.000Z",
+      },
+    ]);
+  });
+
   it("updates provisioning resources and prepends new deployments", async () => {
     vi.mocked(deploymentsApi.provision).mockResolvedValue([resource()]);
     vi.mocked(deploymentsApi.deploy).mockResolvedValue(deployment("new"));

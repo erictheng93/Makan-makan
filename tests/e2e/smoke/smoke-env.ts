@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 export interface SmokeUser {
   restaurantId?: string | null;
   role?: number;
@@ -78,6 +80,52 @@ export function isLocalSmokeApi(apiUrl: string): boolean {
 
 export function localAdminUrlFallback(apiUrl: string): string | undefined {
   return isLocalSmokeApi(apiUrl) ? "http://localhost:3001" : undefined;
+}
+
+export function localManagementApiUrlFallback(
+  apiUrl: string,
+): string | undefined {
+  return isLocalSmokeApi(apiUrl) ? "http://localhost:8789/api/v1" : undefined;
+}
+
+export function localManagementPortalUrlFallback(
+  apiUrl: string,
+): string | undefined {
+  return isLocalSmokeApi(apiUrl) ? "http://localhost:3010" : undefined;
+}
+
+export function localOnboardingUrlFallback(apiUrl: string): string | undefined {
+  return isLocalSmokeApi(apiUrl) ? "http://localhost:3011" : undefined;
+}
+
+function base64UrlEncode(value: string | Buffer): string {
+  return Buffer.from(value).toString("base64url");
+}
+
+export function createLocalManagementToken(params: {
+  managementApiUrl?: string;
+  jwtSecret?: string;
+  now?: number;
+}): string | undefined {
+  if (!params.managementApiUrl || !isLocalSmokeApi(params.managementApiUrl)) {
+    return undefined;
+  }
+
+  const jwtSecret = params.jwtSecret || "test-secret";
+  const now = params.now ?? Math.floor(Date.now() / 1000);
+  const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = base64UrlEncode(
+    JSON.stringify({
+      id: "workflow-admin",
+      email: "workflow-admin@example.test",
+      exp: now + 24 * 60 * 60,
+    }),
+  );
+  const signature = createHmac("sha256", jwtSecret)
+    .update(`${header}.${payload}`)
+    .digest("base64url");
+
+  return `${header}.${payload}.${signature}`;
 }
 
 export async function smokeLogin(
