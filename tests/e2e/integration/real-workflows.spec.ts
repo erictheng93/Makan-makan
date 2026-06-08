@@ -57,7 +57,21 @@ interface MenuBody {
   data?: {
     menuItems?: MenuItemCandidate[];
     items?: MenuItemCandidate[];
-    categories?: Array<{ items?: MenuItemCandidate[] }>;
+    categories?: Array<{
+      id?: number | string;
+      name?: string;
+      items?: MenuItemCandidate[];
+    }>;
+  };
+}
+
+interface MenuMutationBody {
+  success: boolean;
+  data?: {
+    id?: number;
+    name?: string;
+    price?: number;
+    isAvailable?: boolean | number;
   };
 }
 
@@ -222,6 +236,12 @@ function firstAvailableNamedMenuItem(menu: MenuBody) {
   );
 }
 
+function firstMenuCategory(menu: MenuBody) {
+  return menu.data?.categories?.find((category) =>
+    Number.isFinite(Number(category.id)),
+  );
+}
+
 async function addMenuItemThroughUi(page: Page, id: number) {
   const quickAdd = page.getByTestId(`menu-item-add-${id}`).first();
   const customize = page.getByTestId(`menu-item-customize-${id}`).first();
@@ -364,6 +384,29 @@ async function fetchOrder(orderId: number, token: string): Promise<OrderBody> {
   });
   expect(response.ok, `fetch order status ${response.status}`).toBe(true);
   return (await response.json()) as OrderBody;
+}
+
+async function fetchMenuItem(
+  itemId: number,
+  token: string,
+): Promise<MenuMutationBody> {
+  const response = await fetch(`${API_URL}/api/v1/menu/items/${itemId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(response.ok, `fetch menu item status ${response.status}`).toBe(true);
+  return (await response.json()) as MenuMutationBody;
+}
+
+async function deleteMenuItemAsOwner(itemId: number, token: string) {
+  await fetch(`${API_URL}/api/v1/menu/items/${itemId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...csrfHeaders(),
+    },
+  }).catch(() => {
+    /* best-effort cleanup */
+  });
 }
 
 async function cancelOrderAsOwner(orderId: number, token: string) {
@@ -719,6 +762,111 @@ test.describe("Real system workflows", () => {
       }).catch(() => {
         /* best-effort cleanup */
       });
+    }
+  });
+
+  test("owner dashboard creates and updates a real menu item from the browser", async ({
+    page,
+  }) => {
+    test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+
+    const loginData = await getLoginData();
+    test.skip(
+      !loginData?.token || !loginData.user,
+      "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
+    );
+
+    const fixtureIds = await resolveFixtureIds();
+    test.skip(
+      !fixtureIds.restaurantId,
+      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
+    );
+
+    const menu = await fetchMenu(fixtureIds.restaurantId!);
+    const category = firstMenuCategory(menu);
+    const categoryId = Number(category?.id);
+    test.skip(
+      !Number.isFinite(categoryId),
+      "real API did not return a menu category",
+    );
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const itemName = `Workflow Menu ${suffix}`;
+    const updatedName = `Workflow Menu Updated ${suffix}`;
+    let createdItemId: number | undefined;
+
+    await installAdminSession(page, loginData);
+
+    try {
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response
+              .url()
+              .includes(`/api/v1/menu/${fixtureIds.restaurantId}`) &&
+            response.ok(),
+        ),
+        page.goto(`${ADMIN_URL}/dashboard/menu`, {
+          waitUntil: "domcontentloaded",
+        }),
+      ]);
+
+      await page.getByTestId("admin-menu-add-item").click();
+      await expect(page.getByTestId("item-modal")).toBeVisible();
+      await page.getByTestId("menu-item-name-input").fill(itemName);
+      await page.getByTestId("menu-item-price-input").fill("12.34");
+      await page
+        .getByTestId("menu-item-category-select")
+        .selectOption(String(categoryId));
+
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(`/api/v1/menu/${fixtureIds.restaurantId}/items`) &&
+          response.request().method() === "POST",
+      );
+      await page.getByTestId("menu-item-submit").click();
+      const createResponse = await createResponsePromise;
+      expect(
+        createResponse.ok(),
+        `admin menu item create ${createResponse.status()}`,
+      ).toBe(true);
+      const createBody = (await createResponse.json()) as MenuMutationBody;
+      createdItemId = createBody.data?.id;
+      expect(typeof createdItemId, "created menu item id").toBe("number");
+
+      await page.getByTestId("admin-menu-search").fill(itemName);
+      await expect(
+        page.getByTestId(`admin-menu-item-${createdItemId}`),
+      ).toBeVisible();
+
+      await page.getByTestId(`admin-menu-item-${createdItemId}`).hover();
+      await page.getByTestId(`admin-menu-item-edit-${createdItemId}`).click();
+      await expect(page.getByTestId("item-modal")).toBeVisible();
+      await page.getByTestId("menu-item-name-input").fill(updatedName);
+      await page.getByTestId("menu-item-price-input").fill("13.45");
+
+      const updateResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/menu/items/${createdItemId}`) &&
+          response.request().method() === "PUT",
+      );
+      await page.getByTestId("menu-item-submit").click();
+      const updateResponse = await updateResponsePromise;
+      expect(
+        updateResponse.ok(),
+        `admin menu item update ${updateResponse.status()}`,
+      ).toBe(true);
+
+      const updatedItem = await fetchMenuItem(createdItemId!, loginData.token!);
+      expect(updatedItem.data?.name).toBe(updatedName);
+      expect(updatedItem.data?.price).toBe(13.45);
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      if (createdItemId) {
+        await deleteMenuItemAsOwner(createdItemId, loginData.token!);
+      }
     }
   });
 

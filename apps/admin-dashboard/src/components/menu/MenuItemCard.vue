@@ -1,5 +1,6 @@
 <template>
   <div
+    :data-testid="`admin-menu-item-${item.id}`"
     :class="[
       'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-all duration-[280ms] cursor-pointer group',
       highlighted &&
@@ -92,6 +93,7 @@
           class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         >
           <button
+            :data-testid="`admin-menu-item-edit-${item.id}`"
             class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
             :title="t('common.edit')"
             @click.stop="$emit('edit', item)"
@@ -99,6 +101,7 @@
             <PencilIcon class="h-[15px] w-[15px]" />
           </button>
           <button
+            :data-testid="`admin-menu-item-toggle-${item.id}`"
             class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
             :title="
               item.isAvailable
@@ -113,6 +116,7 @@
             />
           </button>
           <button
+            :data-testid="`admin-menu-item-delete-${item.id}`"
             class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-[#FFEBEE] hover:text-ios-error transition-colors"
             :title="t('common.delete')"
             @click.stop="$emit('delete', item)"

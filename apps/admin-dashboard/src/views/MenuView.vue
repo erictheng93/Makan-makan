@@ -87,6 +87,7 @@
               />
               <input
                 v-model="searchQuery"
+                data-testid="admin-menu-search"
                 type="text"
                 :placeholder="t('menu.searchPlaceholder')"
                 class="pl-9 pr-4 py-2 bg-[#F2F2F7] rounded-full text-[13px] text-[#1C1C1E] placeholder-[#AEAEB2] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 w-44 transition-all"
@@ -112,6 +113,7 @@
 
             <!-- Add item button -->
             <button
+              data-testid="admin-menu-add-item"
               class="flex items-center gap-1.5 px-[18px] py-[9px] bg-[#0066D6] text-white rounded-full text-[13px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
               @click="openAddItemModal"
             >
@@ -261,6 +263,7 @@
             {{ t("menu.empty.subtitle") }}
           </p>
           <button
+            data-testid="admin-menu-add-item-empty"
             class="flex items-center gap-1.5 px-5 py-2.5 bg-[#0066D6] text-white rounded-full text-[14px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
             @click="openAddItemModal"
           >
@@ -520,6 +523,7 @@
                 </button>
                 <button
                   type="submit"
+                  data-testid="menu-item-submit"
                   class="px-5 py-2.5 text-[14px] font-semibold text-white bg-ios-primary rounded-full hover:bg-ios-primary/90 transition-colors shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
                 >
                   {{

@@ -14,7 +14,7 @@ The real browser workflow suite is run through `test:e2e:integration`.
 | Module | Smoke | Unit / Component | Real Integration | Real Browser Workflow | Current Risk |
 | --- | --- | --- | --- | --- | --- |
 | `customer-app` | `tests/e2e/smoke/smoke.spec.ts` | stores, API clients, views, i18n | `apps/customer-app/src/__tests__/integration/customer-app.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` covers menu load, UI cart quantity/notes/checkout payload submission, and guest order tracking against a real API | Medium-low: market checkout and service booking still need real browser workflows |
-| `admin-dashboard` | owner smoke specs under `tests/e2e/smoke` | services, stores, owner/menu/POS/settings views | `apps/admin-dashboard/src/__tests__/integration/admin-dashboard.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes owner order-list visibility and browser-triggered order status update for a real API-created order when `WORKFLOW_ADMIN_URL` and owner credentials are set | Medium: menu item/category mutation still needs real browser + real API workflow coverage |
+| `admin-dashboard` | owner smoke specs under `tests/e2e/smoke` | services, stores, owner/menu/POS/settings views | `apps/admin-dashboard/src/__tests__/integration/admin-dashboard.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes owner order-list visibility, browser-triggered order status update, and browser-created/updated menu item cleanup against the real API when `WORKFLOW_ADMIN_URL` and owner credentials are set | Medium-low: category mutation and broader menu bulk actions still need real browser + real API workflow coverage |
 | `kitchen-display` | indirect smoke through admin/kitchen API checks | order stores, order card, settings, service-worker helpers | `apps/kitchen-display/src/__tests__/integration/kitchen-display.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes confirmed-order queue visibility, browser-triggered item transition to preparing, SSE EventSource construction, offline banner behavior, and audio toggle persistence when `WORKFLOW_KITCHEN_URL` and chef credentials are set | Medium-high: true cross-worker realtime broadcast binding and deeper offline queue replay still need integration coverage |
 | `management-portal` | none dedicated | health, tenants, markets, i18n, router | Management API tests are partial; portal service uses `/tenants`, `/deployments`, `/health`, `/licenses`, `/markets` | `tests/e2e/integration/real-workflows.spec.ts` includes management health, tenant list, tenant detail resources/deployments/health/licenses, and deployments/licenses/markets page API loading when `WORKFLOW_MANAGEMENT_PORTAL_URL` and `WORKFLOW_MANAGEMENT_TOKEN` are set | Medium-low: destructive mutation flows and permission/error paths still need controlled workflow coverage |
 | `onboarding-app` | none dedicated | API location, onboarding store, i18n | `apps/management-api/src/__tests__/onboarding-workflow.real.integration.test.ts` covers onboarding public API flow | `tests/e2e/integration/real-workflows.spec.ts` includes application form submission and, when Cloudflare workflow credentials are set, browser-driven Cloudflare verification plus completion | Medium-low: Cloudflare verification and completion are covered only in environments with real workflow credentials |
@@ -25,8 +25,9 @@ The real browser workflow suite is run through `test:e2e:integration`.
   workflow against a real API, including menu rendering and guest order
   tracking. The suite now also includes customer UI cart quantity/notes and
   checkout request payload verification,
-  admin-dashboard order list/status update, kitchen-display confirmed queue
-  visibility/item transition plus SSE/offline/audio browser runtime checks,
+  admin-dashboard order list/status update and menu item create/update,
+  kitchen-display confirmed queue visibility/item transition plus
+  SSE/offline/audio browser runtime checks,
   management-portal health, tenant list/detail, deployments, licenses, and
   markets API-backed browser loading,
   onboarding-app application form submission, and Cloudflare verify/complete
@@ -42,7 +43,7 @@ The real browser workflow suite is run through `test:e2e:integration`.
 ## Required Next Workflow Tests
 
 1. Admin owner workflow:
-   menu item/category mutation against the real API.
+   category mutation and menu bulk actions against the real API.
 2. Kitchen workflow:
    true realtime worker binding broadcast, offline queue replay after reconnect,
    and audible notification playback with a browser audio stub.
