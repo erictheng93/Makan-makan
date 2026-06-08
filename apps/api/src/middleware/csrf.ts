@@ -1,6 +1,7 @@
 import { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Env } from "../types/env";
+import { buildAllowedOrigins } from "./cors";
 
 /**
  * CSRF Protection Middleware
@@ -83,11 +84,9 @@ function validateOrigin(c: Context<{ Bindings: Env }>): boolean {
   const referer = c.req.header("Referer");
   const host = c.req.header("Host");
 
-  // Allow configured CORS origins (covers Vite dev proxy and deployment)
-  const corsOrigin = (c.env as unknown as Record<string, string>).CORS_ORIGIN;
-  const allowedOrigins = corsOrigin
-    ? corsOrigin.split(",").map((o) => o.trim())
-    : [];
+  // Match CORS origin policy so CSRF does not reject browser requests that
+  // the API explicitly allows in the same environment.
+  const allowedOrigins = buildAllowedOrigins(c.env);
 
   // If Origin header exists, validate it
   if (origin) {

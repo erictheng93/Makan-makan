@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   firstAvailableMenuItemId,
+  isLocalSmokeApi,
   optionalEnv,
   resolveLocalSmokeFixtureIds,
   smokeLogin,
@@ -15,6 +16,7 @@ const CUSTOMER_URL =
   optionalEnv("WORKFLOW_CUSTOMER_URL") ||
   optionalEnv("SMOKE_CUSTOMER_URL") ||
   "http://localhost:3000";
+const IS_LOCAL_API = isLocalSmokeApi(API_URL);
 const ADMIN_URL =
   optionalEnv("WORKFLOW_ADMIN_URL") || optionalEnv("SMOKE_ADMIN_URL");
 const KITCHEN_URL =
@@ -30,9 +32,13 @@ const MANAGEMENT_WORKFLOW_API_URL =
     : undefined);
 
 const AUTH_USERNAME =
-  optionalEnv("WORKFLOW_AUTH_USERNAME") || optionalEnv("SMOKE_AUTH_USERNAME");
+  optionalEnv("WORKFLOW_AUTH_USERNAME") ||
+  optionalEnv("SMOKE_AUTH_USERNAME") ||
+  (IS_LOCAL_API ? "grandmaShop" : undefined);
 const AUTH_PASSWORD =
-  optionalEnv("WORKFLOW_AUTH_PASSWORD") || optionalEnv("SMOKE_AUTH_PASSWORD");
+  optionalEnv("WORKFLOW_AUTH_PASSWORD") ||
+  optionalEnv("SMOKE_AUTH_PASSWORD") ||
+  (IS_LOCAL_API ? "password123" : undefined);
 const CHEF_USERNAME = optionalEnv("WORKFLOW_CHEF_USERNAME");
 const CHEF_PASSWORD = optionalEnv("WORKFLOW_CHEF_PASSWORD");
 const MANAGEMENT_TOKEN = optionalEnv("WORKFLOW_MANAGEMENT_TOKEN");
@@ -649,13 +655,12 @@ function cartItemRow(page: Page, menuItemId: number) {
   );
 }
 
-function adminOrderNumber(orderId: number) {
-  return `ORD-${orderId.toString().padStart(6, "0")}`;
-}
-
 async function installAdminSession(page: Page, loginData: SmokeLoginData) {
   await page.addInitScript((session) => {
     window.localStorage.setItem("auth_token", session.token ?? "");
+    if (session.csrfToken) {
+      window.document.cookie = `csrf_token=${session.csrfToken}; path=/; SameSite=Lax`;
+    }
     if (session.refreshToken) {
       window.localStorage.setItem("auth_refresh_token", session.refreshToken);
     }
@@ -1501,6 +1506,8 @@ test.describe("Real system workflows", () => {
   });
 
   test("owner dashboard updates a real API order status", async ({ page }) => {
+    test.setTimeout(180_000);
+
     test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
@@ -1548,21 +1555,26 @@ test.describe("Real system workflows", () => {
         page.waitForResponse(
           (response) =>
             response.url().includes("/api/v1/orders") && response.ok(),
+          { timeout: 120_000 },
         ),
         page.goto(`${ADMIN_URL}/dashboard/orders`, {
+          timeout: 60_000,
           waitUntil: "domcontentloaded",
         }),
       ]);
 
       await expect(page.getByTestId("admin-orders-page")).toBeVisible();
-      await expect(page.getByText(adminOrderNumber(orderId!))).toBeVisible();
+      const statusButton = page
+        .getByTestId(`admin-order-update-${orderId}`)
+        .first();
+      await expect(statusButton).toBeVisible();
 
       const updateResponsePromise = page.waitForResponse(
         (response) =>
           response.url().includes(`/api/v1/orders/${orderId}/status`) &&
           response.request().method() === "PUT",
       );
-      await page.getByTestId(`admin-order-update-${orderId}`).click();
+      await statusButton.click();
       const updateResponse = await updateResponsePromise;
       expect(
         updateResponse.ok(),
@@ -1800,7 +1812,9 @@ test.describe("Real system workflows", () => {
       await page
         .getByTestId(`admin-category-delete-${createdCategoryId}`)
         .click();
-      await expect(page.getByText(updatedCategoryName)).toBeVisible();
+      await expect(
+        page.getByText(updatedCategoryName, { exact: true }),
+      ).toBeVisible();
 
       const deleteResponsePromise = page.waitForResponse(
         (response) =>

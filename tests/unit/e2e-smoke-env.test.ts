@@ -4,6 +4,7 @@ import {
   isLocalSmokeApi,
   localAdminUrlFallback,
   resolveLocalSmokeFixtureIds,
+  smokeLogin,
 } from "../e2e/smoke/smoke-env";
 
 describe("smoke env helpers", () => {
@@ -16,6 +17,9 @@ describe("smoke env helpers", () => {
     expect(isLocalSmokeApi("http://127.0.0.1:8787")).toBe(true);
     expect(isLocalSmokeApi("https://api-staging.makanmasak.com")).toBe(false);
     expect(localAdminUrlFallback("http://localhost:8787")).toBe(
+      "http://localhost:3001",
+    );
+    expect(localAdminUrlFallback("http://127.0.0.1:8787")).toBe(
       "http://localhost:3001",
     );
     expect(localAdminUrlFallback("https://api.makanmasak.com")).toBeUndefined();
@@ -42,6 +46,34 @@ describe("smoke env helpers", () => {
         },
       }),
     ).toBe(3);
+  });
+
+  it("keeps the CSRF token returned by smoke login", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json(
+          {
+            success: true,
+            data: {
+              token: "token",
+              refreshToken: "refresh",
+              user: { restaurantId: "restaurant-1" },
+            },
+          },
+          { headers: { "X-CSRF-Token": "a".repeat(64) } },
+        ),
+      ),
+    );
+
+    await expect(
+      smokeLogin("http://localhost:8787", "owner", "password"),
+    ).resolves.toEqual({
+      token: "token",
+      refreshToken: "refresh",
+      user: { restaurantId: "restaurant-1" },
+      csrfToken: "a".repeat(64),
+    });
   });
 
   it("does not derive fixture ids for non-local smoke targets", async () => {

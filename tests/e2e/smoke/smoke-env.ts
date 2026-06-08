@@ -6,6 +6,7 @@ export interface SmokeLoginData {
   token?: string;
   refreshToken?: string;
   user?: SmokeUser;
+  csrfToken?: string;
 }
 
 interface SmokeLoginBody {
@@ -98,7 +99,10 @@ export async function smokeLogin(
     throw new Error("smoke login response did not include token and user");
   }
 
-  return body.data;
+  return {
+    ...body.data,
+    csrfToken: response.headers.get("X-CSRF-Token") ?? undefined,
+  };
 }
 
 export function firstAvailableMenuItemId(

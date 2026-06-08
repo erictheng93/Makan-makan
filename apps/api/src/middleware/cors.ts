@@ -6,7 +6,7 @@ import type { Env } from "../types/env";
  * - Production: Uses CORS_ORIGIN from env (single origin or comma-separated)
  * - Development: Allows localhost on common dev ports
  */
-const buildAllowedOrigins = (env: Env): string[] => {
+export const buildAllowedOrigins = (env: Env): string[] => {
   const isProduction = env.NODE_ENV === "production";
   const isStaging = env.NODE_ENV === "staging";
 
