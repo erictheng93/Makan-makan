@@ -46,10 +46,12 @@ const MENU_ITEM_ID = Number(
     NaN,
 );
 const SERVICE_ITEM_ID = Number(optionalEnv("WORKFLOW_SERVICE_ITEM_ID") || NaN);
+const MARKET_SLUG = optionalEnv("WORKFLOW_MARKET_SLUG");
 
 interface MenuItemCandidate {
   id?: number | string;
   name?: string;
+  price?: number | string;
   isAvailable?: boolean | number;
 }
 
@@ -124,6 +126,56 @@ interface ServiceBookingBody {
       confirmationCode?: string;
       specialRequests?: string | null;
     };
+  };
+}
+
+interface MarketListBody {
+  success: boolean;
+  data?: {
+    markets?: Array<{
+      slug?: string;
+      name?: string;
+    }>;
+  };
+}
+
+interface MarketVendorsBody {
+  success: boolean;
+  data?: {
+    vendors?: Array<{
+      restaurantId?: string;
+      name?: string;
+      availableMenuItemCount?: number;
+    }>;
+  };
+}
+
+interface MarketCheckoutBody {
+  success: boolean;
+  data?: {
+    checkout?: {
+      id?: string;
+      market?: {
+        slug?: string;
+        name?: string;
+      };
+      status?: string;
+      childOrders?: Array<{
+        restaurantId?: string;
+        restaurantName?: string;
+        orderId?: number;
+        orderNumber?: string;
+        totalAmount?: number;
+      }>;
+      subtotal?: number;
+    };
+    childOrders?: Array<{
+      restaurantId?: string;
+      order?: {
+        id?: number;
+      };
+      guestToken?: string;
+    }>;
   };
 }
 
@@ -369,6 +421,139 @@ async function findBookableServiceFixture(restaurantId: string) {
   }
 
   return undefined;
+}
+
+async function fetchPublicMarkets() {
+  if (MARKET_SLUG) return [{ slug: MARKET_SLUG, name: MARKET_SLUG }];
+
+  const response = await fetch(`${API_URL}/api/v1/markets?limit=25`);
+  expect(response.ok, `markets list status ${response.status}`).toBe(true);
+  const body = (await response.json()) as MarketListBody;
+  return (body.data?.markets ?? []).filter((market) => market.slug);
+}
+
+async function fetchMarketVendors(marketSlug: string) {
+  const response = await fetch(
+    `${API_URL}/api/v1/markets/${encodeURIComponent(marketSlug)}/vendors?limit=25`,
+  );
+  expect(
+    response.ok,
+    `market vendors status ${response.status} for ${marketSlug}`,
+  ).toBe(true);
+  const body = (await response.json()) as MarketVendorsBody;
+  return body.data?.vendors ?? [];
+}
+
+async function findMarketCheckoutFixture() {
+  const markets = await fetchPublicMarkets();
+
+  for (const market of markets) {
+    if (!market.slug) continue;
+    const vendors = await fetchMarketVendors(market.slug);
+    const vendorFixtures: Array<{
+      restaurantId: string;
+      restaurantName: string;
+      menuItemId: number;
+      menuItemName: string;
+      price: number;
+    }> = [];
+
+    for (const vendor of vendors) {
+      if (!vendor.restaurantId) continue;
+      if (vendor.availableMenuItemCount !== undefined) {
+        if (vendor.availableMenuItemCount <= 0) continue;
+      }
+
+      const menu = await fetchMenu(vendor.restaurantId);
+      const item = firstAvailableNamedMenuItem(menu);
+      const menuItemId = Number(item?.id);
+      if (!item?.name || !Number.isFinite(menuItemId)) continue;
+
+      vendorFixtures.push({
+        restaurantId: vendor.restaurantId,
+        restaurantName: vendor.name ?? vendor.restaurantId,
+        menuItemId,
+        menuItemName: item.name,
+        price: Number(item.price ?? 0),
+      });
+
+      if (vendorFixtures.length >= 2) {
+        return {
+          marketSlug: market.slug,
+          marketName: market.name ?? market.slug,
+          vendors: vendorFixtures,
+        };
+      }
+    }
+  }
+
+  return undefined;
+}
+
+async function installMarketCartFixture(
+  page: Page,
+  fixture: NonNullable<Awaited<ReturnType<typeof findMarketCheckoutFixture>>>,
+) {
+  await page.addInitScript((marketFixture) => {
+    const now = Date.now();
+    window.localStorage.setItem(
+      "makanmakan_market_carts_v1",
+      JSON.stringify({
+        [marketFixture.marketSlug]: {
+          marketSlug: marketFixture.marketSlug,
+          marketName: marketFixture.marketName,
+          vendors: marketFixture.vendors.map((vendor, index) => ({
+            restaurantId: vendor.restaurantId,
+            name: vendor.restaurantName,
+            items: [
+              {
+                id: `workflow-${vendor.menuItemId}-${index}`,
+                menuItem: {
+                  id: vendor.menuItemId,
+                  name: vendor.menuItemName,
+                  price: vendor.price,
+                },
+                quantity: index === 0 ? 2 : 1,
+                price: vendor.price,
+                totalPrice: vendor.price * (index === 0 ? 2 : 1),
+              },
+            ],
+          })),
+          updatedAt: now,
+        },
+      }),
+    );
+  }, fixture);
+}
+
+async function fetchMarketCheckout(checkoutId: string) {
+  const response = await fetch(
+    `${API_URL}/api/v1/market-checkouts/${encodeURIComponent(checkoutId)}`,
+  );
+  expect(
+    response.ok,
+    `market checkout readback status ${response.status}`,
+  ).toBe(true);
+  return (await response.json()) as MarketCheckoutBody;
+}
+
+async function cancelMarketCheckoutChildOrders(
+  childOrders: NonNullable<MarketCheckoutBody["data"]>["childOrders"],
+) {
+  await Promise.all(
+    (childOrders ?? []).map(async (childOrder) => {
+      const orderId = childOrder.order?.id;
+      const token = childOrder.guestToken;
+      if (!orderId || !token) return;
+
+      await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {
+        /* best-effort cleanup */
+      });
+    }),
+  );
 }
 
 async function fetchServiceBookingByCode(
@@ -1040,6 +1225,122 @@ test.describe("Real system workflows", () => {
       if (confirmationCode) {
         await cancelServiceBookingByCode(confirmationCode, customerEmail);
       }
+    }
+  });
+
+  test("customer can submit a real multi-vendor market checkout and open tracking from the browser", async ({
+    page,
+  }) => {
+    const checkoutFixture = await findMarketCheckoutFixture();
+    test.skip(
+      !checkoutFixture,
+      "real API did not return a public market with two vendors and available menu items; set WORKFLOW_MARKET_SLUG for this workflow",
+    );
+
+    const phoneLastDigits = String(
+      100 + Math.floor(Math.random() * 900),
+    ).padStart(3, "0");
+    let checkoutId: string | undefined;
+    let createBody: MarketCheckoutBody | undefined;
+
+    await installMarketCartFixture(page, checkoutFixture!);
+
+    try {
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response
+              .url()
+              .includes(
+                `/api/v1/markets/${encodeURIComponent(checkoutFixture!.marketSlug)}`,
+              ) && response.ok(),
+        ),
+        page.goto(`${CUSTOMER_URL}/markets/${checkoutFixture!.marketSlug}`, {
+          waitUntil: "domcontentloaded",
+        }),
+      ]);
+
+      await expect(page.getByTestId("market-cart-summary")).toBeVisible();
+      await expect(page.getByTestId("market-cart-summary")).toContainText(
+        "2 個攤位",
+      );
+      await page.getByTestId("market-checkout-phone").fill(phoneLastDigits);
+
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/market-checkouts") &&
+          response.request().method() === "POST",
+      );
+      await page.getByTestId("market-checkout-submit").click();
+      const createResponse = await createResponsePromise;
+      expect(
+        createResponse.ok(),
+        `market checkout create status ${createResponse.status()}`,
+      ).toBe(true);
+
+      const createRequestBody = createResponse.request().postDataJSON() as {
+        marketSlug?: string;
+        guestName?: string;
+        phoneLastDigits?: string;
+        vendors?: Array<{
+          restaurantId?: string;
+          items?: Array<{
+            menuItemId?: number;
+            quantity?: number;
+          }>;
+        }>;
+      };
+      expect(createRequestBody).toMatchObject({
+        marketSlug: checkoutFixture!.marketSlug,
+        guestName: "Guest",
+        phoneLastDigits,
+        vendors: checkoutFixture!.vendors.map((vendor, index) => ({
+          restaurantId: vendor.restaurantId,
+          items: [
+            {
+              menuItemId: vendor.menuItemId,
+              quantity: index === 0 ? 2 : 1,
+            },
+          ],
+        })),
+      });
+
+      createBody = (await createResponse.json()) as MarketCheckoutBody;
+      checkoutId = createBody.data?.checkout?.id;
+      expect(typeof checkoutId, "market checkout id").toBe("string");
+      expect(createBody.data?.checkout?.childOrders).toHaveLength(2);
+
+      await page.waitForURL(
+        `**/markets/${checkoutFixture!.marketSlug}/checkout/${checkoutId}`,
+      );
+      await expect(page.getByTestId("market-checkout-summary")).toBeVisible();
+      await expect(page.getByTestId("market-checkout-child-order")).toHaveCount(
+        2,
+      );
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+
+      const checkout = await fetchMarketCheckout(checkoutId!);
+      expect(checkout.data?.checkout).toMatchObject({
+        id: checkoutId,
+        status: "submitted",
+        market: {
+          slug: checkoutFixture!.marketSlug,
+        },
+      });
+      expect(checkout.data?.checkout?.childOrders).toHaveLength(2);
+
+      const storedCheckout = await page.evaluate((id) => {
+        const raw = window.localStorage.getItem(
+          "makanmakan_recent_market_checkouts",
+        );
+        const checkouts = raw
+          ? (JSON.parse(raw) as Array<{ id?: string }>)
+          : [];
+        return checkouts.find((checkout) => checkout.id === id) ?? null;
+      }, checkoutId);
+      expect(storedCheckout).toBeTruthy();
+    } finally {
+      await cancelMarketCheckoutChildOrders(createBody?.data?.childOrders);
     }
   });
 
