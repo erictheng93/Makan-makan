@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { setLocale, setLocaleMessages, t } from "./index";
+import {
+  isLocaleLoaded,
+  loadLocaleMessages,
+  setLocale,
+  setLocaleMessages,
+  t,
+} from "./index";
 import type { Messages } from "./types";
 
 describe("kitchen i18n runtime", () => {
@@ -21,5 +27,11 @@ describe("kitchen i18n runtime", () => {
       "constructor.prototype.polluted",
     );
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it("loads locale messages dynamically for non-default locales", async () => {
+    await loadLocaleMessages("en-US");
+
+    expect(isLocaleLoaded("en-US")).toBe(true);
   });
 });

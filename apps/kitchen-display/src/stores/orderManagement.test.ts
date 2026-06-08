@@ -214,4 +214,167 @@ describe("useOrderManagementStore", () => {
     expect(store.autoRefreshEnabled).toBe(true);
     expect(store.focusedOrderId).toBeNull();
   });
+
+  it("covers quick filters, sorting toggles, elapsed time, and drag helpers", () => {
+    vi.setSystemTime(new Date("2026-06-07T01:20:00.000Z"));
+    const settings = useSettingsStore();
+    const store = useOrderManagementStore();
+    settings.setUrgentThreshold(15);
+
+    store.quickFilters.showUrgentOnly();
+    expect(store.filters.priority).toEqual(["urgent"]);
+    store.quickFilters.showPendingOnly();
+    expect(store.filters.status).toEqual(["confirmed"]);
+    store.quickFilters.showPreparingOnly();
+    expect(store.filters.status).toEqual(["preparing"]);
+    store.quickFilters.showWithNotes();
+    expect(store.filters.hasNotes).toBe(true);
+    store.quickFilters.showOverdue();
+    expect(store.filters.minElapsedTime).toBe(15);
+
+    store.setSorting("elapsedTime");
+    expect(store.sortBy).toEqual({ field: "elapsedTime", direction: "asc" });
+    store.setSorting("elapsedTime");
+    expect(store.sortBy).toEqual({ field: "elapsedTime", direction: "desc" });
+    store.setSorting("tableId", "asc");
+    expect(
+      store
+        .sortOrders([
+          order({ id: 1, tableId: 9, totalItems: 3 }),
+          order({ id: 2, tableId: 2, totalItems: 1 }),
+        ])
+        .map((entry) => entry.id),
+    ).toEqual([2, 1]);
+    store.setSorting("totalItems", "desc");
+    expect(
+      store
+        .sortOrders([
+          order({ id: 1, totalItems: 3 }),
+          order({ id: 2, totalItems: 1 }),
+        ])
+        .map((entry) => entry.id),
+    ).toEqual([1, 2]);
+
+    expect(
+      store.calculateElapsedTime(
+        order({ createdAt: "2026-06-07T01:00:00.000Z" }),
+      ),
+    ).toBe(20);
+    expect(
+      store.updateElapsedTimes([
+        order({ id: 1, createdAt: "2026-06-07T01:10:00.000Z" }),
+      ]),
+    ).toMatchObject([{ id: 1, elapsedTime: 10 }]);
+    expect(store.moveOrderToStatus(1001, "ready")).toEqual({
+      orderId: 1001,
+      newStatus: "ready",
+    });
+    expect(store.batchStartAllItems(1001)).toEqual({
+      orderId: 1001,
+      action: "start_all",
+    });
+    expect(store.batchCompleteAllItems(1001)).toEqual({
+      orderId: 1001,
+      action: "complete_all",
+    });
+  });
+
+  it("covers selection data and navigation no-op edges", () => {
+    const store = useOrderManagementStore();
+    const visible = [order({ id: 1 }), order({ id: 2 })];
+
+    expect(store.focusedOrder).toBeNull();
+    store.selectAllVisibleOrders(visible);
+    expect(store.selectedOrdersCount).toBe(2);
+    expect(
+      store.getSelectedOrdersData(visible).map((entry) => entry.id),
+    ).toEqual([1, 2]);
+
+    store.selectNextOrder([]);
+    store.selectPreviousOrder([]);
+    store.selectFirstOrder([]);
+    store.selectLastOrder([]);
+    expect(store.focusedOrderId).toBeNull();
+
+    store.selectNextOrder(visible);
+    expect(store.focusedOrder).toEqual({ id: 1 });
+    store.selectPreviousOrder(visible);
+    expect(store.focusedOrderId).toBe(2);
+  });
+
+  it("runs order operations, refreshes, and handles missing context", async () => {
+    const ordersStore = useOrdersStore();
+    const store = useOrderManagementStore();
+    const startAllItems = vi
+      .spyOn(ordersStore, "startAllItems")
+      .mockResolvedValue(undefined);
+    const markAllReady = vi
+      .spyOn(ordersStore, "markAllReady")
+      .mockResolvedValue(undefined);
+    const fetchOrders = vi
+      .spyOn(ordersStore, "fetchOrders")
+      .mockResolvedValue(undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await store.startCooking(1001);
+    await store.completeOrder(1001);
+    await store.refreshOrders();
+    expect(console.error).toHaveBeenCalledWith(
+      "No restaurant ID available for starting cooking",
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "No restaurant ID available for completing order",
+    );
+    expect(console.warn).toHaveBeenCalledWith(
+      "No restaurant ID available for refreshing orders",
+    );
+
+    ordersStore.orders = [
+      order({
+        id: 1001,
+        items: [item(501, "pending"), item(502, "preparing")],
+      }),
+    ];
+
+    await store.startCooking(1001, 42);
+    await store.completeOrder(1001, 42);
+    await store.refreshOrders(42);
+
+    expect(startAllItems).toHaveBeenCalledWith(42, 1001);
+    expect(markAllReady).toHaveBeenCalledWith(42, 1001);
+    expect(fetchOrders).toHaveBeenCalledWith(42);
+  });
+
+  it("handles batch no-op, failed, and complete operations", async () => {
+    const ordersStore = useOrdersStore();
+    const store = useOrderManagementStore();
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    ordersStore.orders = [
+      order({
+        id: 1,
+        items: [item(11, "ready"), item(12, "completed")],
+      }),
+    ];
+
+    await store.batchOperation("start_cooking", [1], 42);
+    expect(console.log).toHaveBeenCalledWith(
+      "No items to update for operation: start_cooking",
+    );
+
+    vi.mocked(kitchenApi.batchUpdateItemStatus).mockResolvedValueOnce({
+      success: false,
+      error: "batch failed",
+      timestamp: "2026-06-07T01:00:00.000Z",
+    });
+    await store.batchOperation("complete", [1], 42);
+    expect(kitchenApi.batchUpdateItemStatus).toHaveBeenCalledWith(42, [
+      { orderId: 1, itemId: 11, status: "completed" },
+    ]);
+    expect(console.error).toHaveBeenCalledWith(
+      "Batch operation complete failed:",
+      "batch failed",
+    );
+  });
 });

@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { RouteLocationNormalized } from "vue-router";
 import type { useAuthStore } from "@/stores/auth";
-import { getKitchenRouteRedirect } from "./guards";
+import { getKitchenRouteRedirect, installKitchenRouterGuards } from "./guards";
 
 type AuthStore = ReturnType<typeof useAuthStore>;
 
@@ -52,5 +52,21 @@ describe("kitchen route guards", () => {
     expect(
       getKitchenRouteRedirect(route(), auth({ restaurantId: 99 })),
     ).toEqual({ path: "/unauthorized" });
+  });
+
+  it("installs an async router guard that waits for auth readiness", async () => {
+    let installedGuard:
+      | ((to: RouteLocationNormalized) => Promise<true | object>)
+      | undefined;
+    const router = {
+      beforeEach: vi.fn((guard) => {
+        installedGuard = guard;
+      }),
+    };
+
+    installKitchenRouterGuards(router as any, auth(), Promise.resolve());
+
+    expect(router.beforeEach).toHaveBeenCalledTimes(1);
+    await expect(installedGuard!(route())).resolves.toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "@/services/authApi";
 import { offlineService } from "./offlineService";
+import type { KitchenOrder } from "@/types";
 
 vi.mock("@/services/authApi", () => ({
   apiClient: {
@@ -68,5 +69,164 @@ describe("offlineService kitchen action replay", () => {
       retryCount: 1,
       error: "server unavailable",
     });
+  });
+
+  it("applies queued item actions to cached orders locally", () => {
+    const cachedOrder: KitchenOrder = {
+      id: 1001,
+      orderNumber: "A001",
+      status: "confirmed",
+      deliveryInfo: { type: "dine_in" },
+      items: [
+        {
+          id: 501,
+          name: "Noodles",
+          quantity: 1,
+          status: "pending",
+          priority: "normal",
+        },
+      ],
+      createdAt: "2026-06-08T01:00:00.000Z",
+      totalItems: 1,
+      priority: "normal",
+      elapsedTime: 0,
+    };
+    offlineService.cacheOrders([cachedOrder]);
+
+    offlineService.applyActionLocally({
+      id: "action-1",
+      type: "start_cooking",
+      orderId: 1001,
+      itemId: 501,
+      payload: { restaurantId: "restaurant-1", status: "preparing" },
+      timestamp: Date.now(),
+      synced: false,
+      retryCount: 0,
+    });
+
+    expect(offlineService.getCachedOrders()[0]).toMatchObject({
+      status: "preparing",
+      items: [{ id: 501, status: "preparing" }],
+    });
+  });
+
+  it("applies cached batch operations and repairs derived order fields", () => {
+    offlineService.cacheOrders([
+      {
+        id: 1001,
+        orderNumber: "A001",
+        status: "confirmed",
+        deliveryInfo: { type: "dine_in" },
+        items: [
+          {
+            id: 501,
+            name: "Noodles",
+            quantity: 1,
+            status: "pending",
+            priority: "normal",
+          },
+          {
+            id: 502,
+            name: "Soup",
+            quantity: 1,
+            status: "pending",
+            priority: "normal",
+          },
+        ],
+        createdAt: "2026-06-08T01:00:00.000Z",
+        totalItems: 2,
+        priority: "" as KitchenOrder["priority"],
+        elapsedTime: 0,
+      },
+    ]);
+
+    offlineService.applyActionLocally({
+      id: "action-2",
+      type: "batch_operation",
+      orderId: 1001,
+      payload: { operation: "start_all" },
+      timestamp: Date.now(),
+      synced: false,
+      retryCount: 0,
+    });
+
+    expect(offlineService.getCachedOrders()[0]).toMatchObject({
+      status: "preparing",
+      items: [
+        { id: 501, status: "preparing" },
+        { id: 502, status: "preparing" },
+      ],
+    });
+    expect(offlineService.repairData()).toBe(true);
+    expect(offlineService.getCachedOrders()[0].priority).toBe("normal");
+  });
+
+  it("validates cached data and clears offline state", () => {
+    offlineService.cacheOrders([
+      {
+        id: 1001,
+        orderNumber: "A001",
+        status: "confirmed",
+        items: [],
+        createdAt: "2026-06-08T01:00:00.000Z",
+        totalItems: 0,
+        priority: "normal",
+        elapsedTime: 0,
+      },
+    ]);
+
+    expect(offlineService.validateCachedData()).toBe(true);
+    expect(offlineService.getOfflineStats()).toMatchObject({
+      pendingActions: 0,
+      failedActions: 0,
+      isOnline: false,
+      conflicts: 0,
+    });
+
+    offlineService.clearOfflineData();
+
+    expect(offlineService.getCachedOrders()).toEqual([]);
+    expect(offlineService.pendingActions.value).toEqual([]);
+  });
+
+  it("tracks browser online and offline events", () => {
+    window.dispatchEvent(new Event("offline"));
+
+    expect(offlineService.isOnline.value).toBe(false);
+    expect(offlineService.isOfflineMode.value).toBe(true);
+
+    window.dispatchEvent(new Event("online"));
+
+    expect(offlineService.isOnline.value).toBe(true);
+    expect(offlineService.isOfflineMode.value).toBe(false);
+  });
+
+  it("tracks and resolves sync conflicts", async () => {
+    vi.mocked(apiClient.put).mockResolvedValue({
+      data: {
+        success: false,
+        conflict: {
+          type: "status_conflict",
+          serverData: { status: "ready" },
+        },
+      },
+    } as never);
+
+    offlineService.queueAction(
+      "mark_ready",
+      1001,
+      { restaurantId: "restaurant-1", status: "ready" },
+      501,
+    );
+
+    offlineService.isOnline.value = true;
+    await offlineService.syncPendingActions();
+
+    expect(offlineService.syncConflicts.value).toHaveLength(1);
+    offlineService.resolveConflict(
+      offlineService.syncConflicts.value[0].id,
+      "server",
+    );
+    expect(offlineService.syncConflicts.value).toHaveLength(0);
   });
 });
