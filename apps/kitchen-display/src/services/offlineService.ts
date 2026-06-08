@@ -339,30 +339,34 @@ class OfflineService {
   private async sendActionToServer(action: OfflineAction): Promise<any> {
     const endpoint = this.getActionEndpoint(action);
     const payload = this.formatActionPayload(action);
+    const method = this.getActionMethod(action);
 
     try {
-      const response = await apiClient.post(endpoint, payload, {
+      const response = await apiClient[method](endpoint, payload, {
         validateStatus: () => true,
       });
 
       return typeof response.data === "object" && response.data !== null
         ? response.data
         : { success: true };
-    } catch {
-      // Simulate network error handling
-      console.log(`Simulating API call for action ${action.type}`);
-
-      // Simulate success for demonstration
-      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.message || "Offline action replay failed",
+      };
     }
   }
 
   private getActionEndpoint(action: OfflineAction): string {
+    const restaurantId = action.payload?.restaurantId;
+
     switch (action.type) {
       case "start_cooking":
-        return `/kitchen/${action.orderId}/items/${action.itemId}/start`;
       case "mark_ready":
-        return `/kitchen/${action.orderId}/items/${action.itemId}/ready`;
+        if (!restaurantId) {
+          throw new Error("Missing restaurantId for offline kitchen action");
+        }
+        return `/kitchen/${restaurantId}/orders/${action.orderId}/items/${action.itemId}`;
       case "update_status":
         return `/kitchen/${action.orderId}/status`;
       case "priority_change":
@@ -374,7 +378,21 @@ class OfflineService {
     }
   }
 
+  private getActionMethod(action: OfflineAction): "post" | "put" {
+    switch (action.type) {
+      case "start_cooking":
+      case "mark_ready":
+        return "put";
+      default:
+        return "post";
+    }
+  }
+
   private formatActionPayload(action: OfflineAction): any {
+    if (action.type === "start_cooking" || action.type === "mark_ready") {
+      return { status: action.payload.status };
+    }
+
     return {
       action: action.type,
       timestamp: action.timestamp,

@@ -1134,29 +1134,48 @@ test.describe("Real system workflows", () => {
         )
         .toBe(false);
 
-      await page.context().setOffline(true);
-      await page.evaluate(() => window.dispatchEvent(new Event("offline")));
-      await expect(page.getByTestId("kitchen-offline-status")).toBeVisible();
-      await page.context().setOffline(false);
-      await page.evaluate(() => window.dispatchEvent(new Event("online")));
-      await expect(page.getByTestId("kitchen-offline-status")).toHaveCount(0);
-
       await expect(
         page.getByTestId(`kitchen-order-card-${orderId}`),
       ).toBeVisible();
 
-      const updateResponsePromise = page.waitForResponse(
+      await page.context().setOffline(true);
+      await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+      await expect(page.getByTestId("kitchen-offline-status")).toBeVisible();
+
+      await page.getByTestId(`kitchen-order-start-${orderId}`).click();
+      await expect
+        .poll(async () =>
+          page.evaluate((targetOrderId) => {
+            const offlineData = window.localStorage.getItem(
+              "kitchen-offline-data",
+            );
+            if (!offlineData) return false;
+            const actions = JSON.parse(offlineData).actions ?? [];
+            return actions.some(
+              (action: { type?: string; orderId?: number; synced?: boolean }) =>
+                action.type === "start_cooking" &&
+                action.orderId === targetOrderId &&
+                action.synced === false,
+            );
+          }, orderId),
+        )
+        .toBe(true);
+
+      const replayResponsePromise = page.waitForResponse(
         (response) =>
           response
             .url()
-            .includes(`/api/v1/kitchen/${fixtureIds.restaurantId}/orders/`) &&
-          response.request().method() === "PUT",
+            .includes(
+              `/api/v1/kitchen/${fixtureIds.restaurantId}/orders/${orderId}/items/`,
+            ) && response.request().method() === "PUT",
       );
-      await page.getByTestId(`kitchen-order-start-${orderId}`).click();
-      const updateResponse = await updateResponsePromise;
+      await page.context().setOffline(false);
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await expect(page.getByTestId("kitchen-offline-status")).toHaveCount(0);
+      const updateResponse = await replayResponsePromise;
       expect(
         updateResponse.ok(),
-        `kitchen item status update ${updateResponse.status()}`,
+        `kitchen offline replay status update ${updateResponse.status()}`,
       ).toBe(true);
 
       await expect
@@ -1169,6 +1188,17 @@ test.describe("Real system workflows", () => {
           return order?.items?.some((item) => item.status === "preparing");
         })
         .toBe(true);
+      await expect
+        .poll(async () =>
+          page.evaluate(() => {
+            const offlineData = window.localStorage.getItem(
+              "kitchen-offline-data",
+            );
+            if (!offlineData) return 0;
+            return JSON.parse(offlineData).actions?.length ?? 0;
+          }),
+        )
+        .toBe(0);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     } finally {
       await cancelOrderAsOwner(orderId!, ownerLoginData!.token!);

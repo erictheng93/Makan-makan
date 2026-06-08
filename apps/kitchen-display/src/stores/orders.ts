@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { kitchenApi } from "@/services/kitchenApi";
+import { offlineService } from "@/services/offlineService";
 import type {
   KitchenOrder,
   KitchenStats,
@@ -420,6 +421,35 @@ export const useOrdersStore = defineStore("orders", () => {
     return Math.round(totalWaitingTime / waitingOrders.length);
   };
 
+  const applyLocalItemStatus = (
+    orderId: number,
+    itemId: number,
+    status: ItemStatus,
+  ) => {
+    const orderIndex = orders.value.findIndex((o) => o.id === orderId);
+    if (orderIndex === -1) return;
+
+    const order = orders.value[orderIndex];
+    const itemIndex = order.items.findIndex((i) => i.id === itemId);
+    if (itemIndex === -1) return;
+
+    order.items[itemIndex].status = status;
+
+    const now = new Date().toISOString();
+    if (status === "preparing" && !order.items[itemIndex].startedAt) {
+      order.items[itemIndex].startedAt = now;
+    } else if (status === "ready" && !order.items[itemIndex].completedAt) {
+      order.items[itemIndex].completedAt = now;
+    }
+
+    updateOrderStatusFromOrder(order);
+    orders.value[orderIndex] = { ...order };
+    updateStats();
+  };
+
+  const shouldQueueOfflineAction = () =>
+    !offlineService.isOnline.value || !navigator.onLine;
+
   /**
    * 開始製作訂單項目
    */
@@ -429,6 +459,17 @@ export const useOrdersStore = defineStore("orders", () => {
     itemId: number,
   ) => {
     try {
+      if (shouldQueueOfflineAction()) {
+        offlineService.queueAction(
+          "start_cooking",
+          orderId,
+          { restaurantId, status: "preparing" },
+          itemId,
+        );
+        applyLocalItemStatus(orderId, itemId, "preparing");
+        return;
+      }
+
       const response = await kitchenApi.startCooking(
         restaurantId,
         orderId,
@@ -436,20 +477,7 @@ export const useOrdersStore = defineStore("orders", () => {
       );
 
       if (response.success) {
-        // 樂觀更新本地狀態
-        const orderIndex = orders.value.findIndex((o) => o.id === orderId);
-        if (orderIndex !== -1) {
-          const itemIndex = orders.value[orderIndex].items.findIndex(
-            (i) => i.id === itemId,
-          );
-          if (itemIndex !== -1) {
-            orders.value[orderIndex].items[itemIndex].status = "preparing";
-            orders.value[orderIndex].items[itemIndex].startedAt =
-              new Date().toISOString();
-            updateOrderStatusFromOrder(orders.value[orderIndex]);
-            updateStats();
-          }
-        }
+        applyLocalItemStatus(orderId, itemId, "preparing");
       } else {
         throw new Error(response.error || "開始製作失敗");
       }
@@ -468,6 +496,17 @@ export const useOrdersStore = defineStore("orders", () => {
     itemId: number,
   ) => {
     try {
+      if (shouldQueueOfflineAction()) {
+        offlineService.queueAction(
+          "mark_ready",
+          orderId,
+          { restaurantId, status: "ready" },
+          itemId,
+        );
+        applyLocalItemStatus(orderId, itemId, "ready");
+        return;
+      }
+
       const response = await kitchenApi.markItemReady(
         restaurantId,
         orderId,
@@ -475,20 +514,7 @@ export const useOrdersStore = defineStore("orders", () => {
       );
 
       if (response.success) {
-        // 樂觀更新本地狀態
-        const orderIndex = orders.value.findIndex((o) => o.id === orderId);
-        if (orderIndex !== -1) {
-          const itemIndex = orders.value[orderIndex].items.findIndex(
-            (i) => i.id === itemId,
-          );
-          if (itemIndex !== -1) {
-            orders.value[orderIndex].items[itemIndex].status = "ready";
-            orders.value[orderIndex].items[itemIndex].completedAt =
-              new Date().toISOString();
-            updateOrderStatusFromOrder(orders.value[orderIndex]);
-            updateStats();
-          }
-        }
+        applyLocalItemStatus(orderId, itemId, "ready");
       } else {
         throw new Error(response.error || "標記完成失敗");
       }
