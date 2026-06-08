@@ -9,6 +9,7 @@
 
 import { expect, test, type Page } from "@playwright/test";
 import {
+  isLocalSmokeApi,
   localAdminUrlFallback,
   optionalEnv,
   resolveLocalSmokeFixtureIds,
@@ -108,6 +109,26 @@ function realtimeHttpBaseFrom(wsUrl: string): string {
   return `${protocol}//${parsed.host}`;
 }
 
+function isLocalRealtimeBase(realtimeHttpBase: string): boolean {
+  return isLocalSmokeApi(realtimeHttpBase);
+}
+
+async function isRealtimeHttpAvailable(realtimeHttpBase: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2_000);
+
+  try {
+    const response = await fetch(`${realtimeHttpBase}/health`, {
+      signal: controller.signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function installWebSocketProbe(page: Page) {
   await page.addInitScript(() => {
     type Probe = {
@@ -193,6 +214,11 @@ test.describe("Smoke: admin realtime WebSocket", () => {
     const restaurantId = fixtureIds.restaurantId!;
     const wsUrl = await requestAdminRealtimeToken(token, restaurantId);
     const realtimeHttpBase = realtimeHttpBaseFrom(wsUrl);
+    test.skip(
+      isLocalRealtimeBase(realtimeHttpBase) &&
+        !(await isRealtimeHttpAvailable(realtimeHttpBase)),
+      `local realtime worker is not available at ${realtimeHttpBase}`,
+    );
 
     await installWebSocketProbe(page);
     await page.addInitScript(
