@@ -136,6 +136,7 @@ import { useI18n } from "@/i18n";
 import { useOrdersStore } from "@/stores/orders";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useKitchenSSE } from "@/composables/useKitchenSSE";
+import { useAudioNotifications } from "@/composables/useAudioNotifications";
 import { useKitchenRealtimeService } from "@/services/realtimeService";
 import type { KitchenOrder, KitchenSSEEvent, OrderStatus } from "@/types";
 
@@ -167,6 +168,12 @@ const { t } = useI18n();
 const ordersStore = useOrdersStore();
 const orderManagementStore = useOrderManagementStore();
 const kitchenRealtime = useKitchenRealtimeService();
+const audioNotifications = useAudioNotifications();
+
+const handleRealtimeOrderEvent = (event: KitchenSSEEvent) => {
+  ordersStore.handleSSEEvent(event);
+  void audioNotifications.handleSSEEvent(event);
+};
 
 // SSE connection
 const {
@@ -180,16 +187,16 @@ const {
 } = useKitchenSSE({
   restaurantId: restaurantIdNum.value,
   onNewOrder: (event) => {
-    ordersStore.handleSSEEvent(event);
+    handleRealtimeOrderEvent(event);
   },
   onOrderUpdate: (event) => {
-    ordersStore.handleSSEEvent(event);
+    handleRealtimeOrderEvent(event);
   },
   onOrderCancelled: (event) => {
-    ordersStore.handleSSEEvent(event);
+    handleRealtimeOrderEvent(event);
   },
   onPriorityUpdate: (event) => {
-    ordersStore.handleSSEEvent(event);
+    handleRealtimeOrderEvent(event);
   },
   autoConnect: true,
 });
@@ -263,6 +270,7 @@ const fetchOrders = async () => {
 const handleStartCooking = async (orderId: number, itemId: number) => {
   try {
     await ordersStore.startCooking(restaurantIdNum.value, orderId, itemId);
+    await audioNotifications.handleOrderStartCooking();
     toast.success(t("kitchen.startedPreparing"));
   } catch (error: any) {
     toast.error(t("kitchen.operationFailed") + error.message);
@@ -272,6 +280,7 @@ const handleStartCooking = async (orderId: number, itemId: number) => {
 const handleMarkReady = async (orderId: number, itemId: number) => {
   try {
     await ordersStore.markReady(restaurantIdNum.value, orderId, itemId);
+    await audioNotifications.handleOrderMarkReady();
     toast.success(t("kitchen.orderCompleted"));
   } catch (error: any) {
     toast.error(t("kitchen.operationFailed") + error.message);
@@ -427,7 +436,7 @@ onMounted(async () => {
       RealtimeEventType.ORDER_CANCELLED,
     ],
     (event) => {
-      ordersStore.handleSSEEvent(toKitchenSSEEvent(event));
+      handleRealtimeOrderEvent(toKitchenSSEEvent(event));
     },
   );
   await kitchenRealtime.connect(restaurantIdNum.value);

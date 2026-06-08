@@ -209,6 +209,8 @@ class AudioService {
         ...options,
       };
 
+      this.notifyPlayRequested(type, notification);
+
       if (this.settings.notificationQueue && this.isPlaying) {
         this.addToQueue(notification);
         resolve();
@@ -219,6 +221,29 @@ class AudioService {
         .then(() => resolve())
         .catch(reject);
     });
+  }
+
+  private notifyPlayRequested(
+    type: SoundType,
+    options: Partial<AudioNotification>,
+  ) {
+    if (typeof window === "undefined") return;
+
+    const detail = {
+      type,
+      priority: options.priority,
+      repeat: options.repeat,
+      timestamp: Date.now(),
+    };
+
+    window.dispatchEvent(
+      new CustomEvent("kitchen-audio-play-requested", { detail }),
+    );
+
+    const testWindow = window as Window & {
+      __kitchenAudioPlayRequests?: (typeof detail)[];
+    };
+    testWindow.__kitchenAudioPlayRequests?.push(detail);
   }
 
   private async playNotification(

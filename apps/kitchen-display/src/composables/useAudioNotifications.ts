@@ -125,22 +125,27 @@ export function useAudioNotifications() {
 
   // SSE Event Handlers
   const handleSSEEvent = async (event: KitchenSSEEvent) => {
+    const eventData = event.payload ?? event.data ?? {};
+
     switch (event.type) {
       case "NEW_ORDER":
-        await playNewOrderSound(event.payload?.priority === "urgent");
+      case "new_order":
+        await playNewOrderSound(eventData.priority === "urgent");
         break;
       case "ORDER_STATUS_UPDATE":
-        if (event.payload?.status === "ready") {
+      case "order_status_update":
+        if (eventData.status === "ready") {
           await playOrderReadySound();
-        } else if (event.payload?.status === "completed") {
+        } else if (eventData.status === "completed") {
           await playOrderCompleteSound();
         }
         break;
       case "ORDER_CANCELLED":
+      case "order_cancelled":
         await playWarningSound();
         break;
       case "PRIORITY_UPDATE":
-        if (event.payload?.priority === "urgent") {
+        if (eventData.priority === "urgent") {
           await playNewOrderSound(true);
         }
         break;

@@ -143,6 +143,12 @@ interface LoginResponse {
 declare global {
   interface Window {
     __kitchenEventSourceUrls: string[];
+    __kitchenAudioPlayRequests: Array<{
+      type?: string;
+      priority?: string;
+      repeat?: number;
+    }>;
+    __emitKitchenSse: (event: unknown) => void;
   }
 }
 
@@ -311,7 +317,23 @@ async function installKitchenBrowserRuntimeHooks(page: Page) {
   await page.addInitScript(() => {
     window.localStorage.removeItem("kitchen_settings");
     window.localStorage.setItem("kitchen-view-mode", "kanban");
+    window.localStorage.setItem(
+      "kitchen-audio-notifications",
+      JSON.stringify({
+        newOrderSound: true,
+        urgentOrderSound: true,
+        orderReadySound: true,
+        orderCompleteSound: true,
+        warningSound: true,
+        successSound: true,
+        errorSound: true,
+        volume: 0.7,
+        enabled: true,
+      }),
+    );
     window.__kitchenEventSourceUrls = [];
+    window.__kitchenAudioPlayRequests = [];
+    const eventSources: WorkflowEventSource[] = [];
 
     class WorkflowEventSource extends EventTarget {
       static CONNECTING = 0;
@@ -328,6 +350,7 @@ async function installKitchenBrowserRuntimeHooks(page: Page) {
         super();
         this.url = url;
         window.__kitchenEventSourceUrls.push(url);
+        eventSources.push(this);
 
         window.setTimeout(() => {
           if (this.readyState === WorkflowEventSource.CLOSED) return;
@@ -348,7 +371,19 @@ async function installKitchenBrowserRuntimeHooks(page: Page) {
       close() {
         this.readyState = WorkflowEventSource.CLOSED;
       }
+
+      emitKitchenEvent(payload: unknown) {
+        const messageEvent = new MessageEvent("message", {
+          data: JSON.stringify(payload),
+        });
+        this.onmessage?.(messageEvent);
+        this.dispatchEvent(messageEvent);
+      }
     }
+
+    window.__emitKitchenSse = (event: unknown) => {
+      eventSources.forEach((source) => source.emitKitchenEvent(event));
+    };
 
     window.EventSource = WorkflowEventSource as unknown as typeof EventSource;
   });
@@ -1113,6 +1148,54 @@ test.describe("Real system workflows", () => {
               url.includes(`/api/v1/kitchen/${restaurantId}/events?token=`),
             );
           }, fixtureIds.restaurantId),
+        )
+        .toBe(true);
+
+      await page.evaluate(
+        ({ restaurantId, syntheticOrderId }) => {
+          window.__emitKitchenSse({
+            type: "NEW_ORDER",
+            eventId: `workflow-audio-${syntheticOrderId}`,
+            timestamp: Date.now(),
+            restaurantId,
+            payload: {
+              priority: "normal",
+              order: {
+                id: syntheticOrderId,
+                orderNumber: `WF-AUDIO-${syntheticOrderId}`,
+                status: "confirmed",
+                deliveryInfo: { type: "dine_in" },
+                items: [
+                  {
+                    id: syntheticOrderId + 1,
+                    name: "Audio workflow item",
+                    quantity: 1,
+                    status: "pending",
+                    priority: "normal",
+                  },
+                ],
+                createdAt: new Date().toISOString(),
+                totalItems: 1,
+                priority: "normal",
+                elapsedTime: 0,
+                totalAmount: 0,
+              },
+            },
+          });
+        },
+        {
+          restaurantId: fixtureIds.restaurantId!,
+          syntheticOrderId: orderId! + 100000,
+        },
+      );
+      await expect
+        .poll(async () =>
+          page.evaluate(() =>
+            window.__kitchenAudioPlayRequests.some(
+              (request) =>
+                request.type === "newOrder" && request.priority === "high",
+            ),
+          ),
         )
         .toBe(true);
 
