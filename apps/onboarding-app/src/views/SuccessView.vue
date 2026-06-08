@@ -46,7 +46,7 @@ const handleStartNew = () => {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto text-center">
+  <div class="max-w-2xl mx-auto text-center" data-testid="onboarding-success">
     <!-- Progress -->
     <div class="flex items-center justify-center mb-8">
       <div class="flex items-center">

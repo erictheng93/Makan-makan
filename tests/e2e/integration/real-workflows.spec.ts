@@ -30,6 +30,8 @@ const AUTH_PASSWORD =
 const CHEF_USERNAME = optionalEnv("WORKFLOW_CHEF_USERNAME");
 const CHEF_PASSWORD = optionalEnv("WORKFLOW_CHEF_PASSWORD");
 const MANAGEMENT_TOKEN = optionalEnv("WORKFLOW_MANAGEMENT_TOKEN");
+const CLOUDFLARE_ACCOUNT_ID = optionalEnv("WORKFLOW_CLOUDFLARE_ACCOUNT_ID");
+const CLOUDFLARE_API_TOKEN = optionalEnv("WORKFLOW_CLOUDFLARE_API_TOKEN");
 const RESTAURANT_ID =
   optionalEnv("WORKFLOW_RESTAURANT_ID") || optionalEnv("SMOKE_RESTAURANT_ID");
 const MENU_ITEM_ID = Number(
@@ -400,6 +402,22 @@ test.describe("Real system workflows", () => {
       page.getByText(item!.name!, { exact: false }).first(),
     ).toBeVisible();
 
+    const increaseButton = page.locator('[data-testid^="qty-increase-"]');
+    await expect(increaseButton).toHaveCount(1);
+    const quantityTestId = (await increaseButton.getAttribute("data-testid"))!;
+    const cartItemId = quantityTestId.replace("qty-increase-", "");
+
+    await increaseButton.click();
+    await expect(
+      page.getByTestId(`cart-item-quantity-${cartItemId}`),
+    ).toHaveText("2");
+
+    await page.getByTestId(`cart-item-notes-toggle-${cartItemId}`).click();
+    await page
+      .getByTestId(`cart-item-notes-${cartItemId}`)
+      .fill("less spicy workflow note");
+    await page.getByTestId("order-notes").fill("workflow table note");
+
     await page.locator("#customer-name").fill("Workflow UI");
     await page.locator("#customer-phone").fill("0912345678");
 
@@ -422,6 +440,26 @@ test.describe("Real system workflows", () => {
         createResponse.ok(),
         `guest checkout status ${createResponse.status()}`,
       ).toBe(true);
+      const createRequestBody = createResponse.request().postDataJSON() as {
+        guestName?: string;
+        phoneLastDigits?: string;
+        notes?: string;
+        items?: Array<{
+          menuItemId?: number;
+          quantity?: number;
+          notes?: string;
+        }>;
+      };
+      expect(createRequestBody.guestName).toBe("Workflow UI");
+      expect(createRequestBody.phoneLastDigits).toBe("678");
+      expect(createRequestBody.notes).toBe("workflow table note");
+      expect(createRequestBody.items).toEqual([
+        expect.objectContaining({
+          menuItemId,
+          quantity: 2,
+          notes: "less spicy workflow note",
+        }),
+      ]);
       const createBody = (await createResponse.json()) as GuestOrderResponse;
       orderId = createBody.data?.order?.id;
       guestToken = createBody.data?.guestToken;
@@ -811,6 +849,117 @@ test.describe("Real system workflows", () => {
     expect(createBody.data?.assignedSubdomain).toBe(subdomain);
 
     await expect(page).toHaveURL(/\/connect$/);
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("onboarding app verifies Cloudflare credentials and completes from the browser", async ({
+    page,
+  }) => {
+    test.skip(
+      !ONBOARDING_URL ||
+        !MANAGEMENT_API_URL ||
+        !CLOUDFLARE_ACCOUNT_ID ||
+        !CLOUDFLARE_API_TOKEN,
+      "WORKFLOW_ONBOARDING_URL, WORKFLOW_MANAGEMENT_API_URL, WORKFLOW_CLOUDFLARE_ACCOUNT_ID, and WORKFLOW_CLOUDFLARE_API_TOKEN are required",
+    );
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const subdomain = `workflow-cf-${suffix}`;
+
+    await page.goto(`${ONBOARDING_URL}/apply`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await page
+      .getByTestId("onboarding-business-name")
+      .fill("Workflow Cloudflare");
+    await page.getByTestId("onboarding-contact-name").fill("Tan Mei");
+    await page
+      .getByTestId("onboarding-contact-email")
+      .fill(`workflow-cf-${suffix}@example.com`);
+    await page.getByTestId("onboarding-contact-phone").fill("0912345678");
+    await page.getByTestId("onboarding-latitude").fill("24.147736");
+    await page.getByTestId("onboarding-longitude").fill("120.673648");
+    await page.getByTestId("onboarding-subdomain").fill(subdomain);
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/onboarding/applications") &&
+        response.request().method() === "POST",
+    );
+
+    await page.getByTestId("onboarding-submit").click();
+
+    const createResponse = await createResponsePromise;
+    expect(
+      createResponse.ok(),
+      `onboarding create status ${createResponse.status()}`,
+    ).toBe(true);
+    const createBody = (await createResponse.json()) as {
+      success: boolean;
+      data?: { applicationId?: string; assignedSubdomain?: string };
+    };
+    const applicationId = createBody.data?.applicationId;
+    expect(typeof applicationId, "created application id").toBe("string");
+    expect(createBody.data?.assignedSubdomain).toBe(subdomain);
+
+    await expect(page).toHaveURL(/\/connect$/);
+    await page
+      .getByTestId("onboarding-cf-account-id")
+      .fill(CLOUDFLARE_ACCOUNT_ID!);
+    await page
+      .getByTestId("onboarding-cf-api-token")
+      .fill(CLOUDFLARE_API_TOKEN!);
+
+    const verifyResponsePromise = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/api/v1/onboarding/applications/${applicationId}/verify-cloudflare`,
+          ) && response.request().method() === "POST",
+    );
+
+    await page.getByTestId("onboarding-cf-verify").click();
+    const verifyResponse = await verifyResponsePromise;
+    expect(
+      verifyResponse.ok(),
+      `onboarding verify status ${verifyResponse.status()}`,
+    ).toBe(true);
+    const verifyBody = (await verifyResponse.json()) as {
+      success: boolean;
+      data?: { verified?: boolean };
+    };
+    expect(verifyBody.success).toBe(true);
+    expect(verifyBody.data?.verified).toBe(true);
+    await expect(page.getByTestId("onboarding-cf-verified")).toBeVisible();
+
+    const completeResponsePromise = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/api/v1/onboarding/applications/${applicationId}/complete`,
+          ) && response.request().method() === "POST",
+    );
+
+    await page.getByTestId("onboarding-complete").click();
+    const completeResponse = await completeResponsePromise;
+    expect(
+      completeResponse.ok(),
+      `onboarding complete status ${completeResponse.status()}`,
+    ).toBe(true);
+    const completeBody = (await completeResponse.json()) as {
+      success: boolean;
+      data?: { tenantId?: string; subdomain?: string; status?: string };
+    };
+    expect(completeBody.success).toBe(true);
+    expect(typeof completeBody.data?.tenantId).toBe("string");
+    expect(completeBody.data?.subdomain).toBe(subdomain);
+    expect(completeBody.data?.status).toBe("completed");
+
+    await expect(page).toHaveURL(/\/success$/);
+    await expect(page.getByTestId("onboarding-success")).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 });

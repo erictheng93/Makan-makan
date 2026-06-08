@@ -218,6 +218,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
           <label class="label">{{ t("connect.form.accountId.label") }} *</label>
           <input
             v-model="form.accountId"
+            data-testid="onboarding-cf-account-id"
             type="text"
             class="input font-mono"
             :class="{ 'input-error': errors.accountId }"
@@ -234,6 +235,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
           <label class="label">{{ t("connect.form.apiToken.label") }} *</label>
           <input
             v-model="form.apiToken"
+            data-testid="onboarding-cf-api-token"
             type="password"
             class="input font-mono"
             :class="{ 'input-error': errors.apiToken }"
@@ -347,6 +349,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
         <!-- 驗證成功提示 -->
         <div
           v-if="isVerified()"
+          data-testid="onboarding-cf-verified"
           class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg"
         >
           <CheckCircleIcon class="h-5 w-5 text-green-500" />
@@ -367,6 +370,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
           <button
             v-if="!isVerified()"
             type="submit"
+            data-testid="onboarding-cf-verify"
             class="btn btn-primary"
             :disabled="store.isVerifyingCf"
           >
@@ -383,6 +387,7 @@ const isVerified = () => store.cloudflareInfo?.verified === true;
           <button
             v-else
             type="button"
+            data-testid="onboarding-complete"
             class="btn btn-primary"
             :disabled="completing || store.isCompleting"
             @click="handleComplete"

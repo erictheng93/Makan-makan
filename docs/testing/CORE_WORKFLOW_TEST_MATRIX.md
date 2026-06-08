@@ -13,20 +13,22 @@ The real browser workflow suite is run through `test:e2e:integration`.
 
 | Module | Smoke | Unit / Component | Real Integration | Real Browser Workflow | Current Risk |
 | --- | --- | --- | --- | --- | --- |
-| `customer-app` | `tests/e2e/smoke/smoke.spec.ts` | stores, API clients, views, i18n | `apps/customer-app/src/__tests__/integration/customer-app.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` covers menu load, UI cart/checkout submission, and guest order tracking against a real API | Medium-low: market checkout and service booking still need real browser workflows |
+| `customer-app` | `tests/e2e/smoke/smoke.spec.ts` | stores, API clients, views, i18n | `apps/customer-app/src/__tests__/integration/customer-app.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` covers menu load, UI cart quantity/notes/checkout payload submission, and guest order tracking against a real API | Medium-low: market checkout and service booking still need real browser workflows |
 | `admin-dashboard` | owner smoke specs under `tests/e2e/smoke` | services, stores, owner/menu/POS/settings views | `apps/admin-dashboard/src/__tests__/integration/admin-dashboard.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes owner order-list visibility and browser-triggered order status update for a real API-created order when `WORKFLOW_ADMIN_URL` and owner credentials are set | Medium: menu item/category mutation still needs real browser + real API workflow coverage |
 | `kitchen-display` | indirect smoke through admin/kitchen API checks | order stores, order card, settings, service-worker helpers | `apps/kitchen-display/src/__tests__/integration/kitchen-display.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes confirmed-order queue visibility and browser-triggered item transition to preparing when `WORKFLOW_KITCHEN_URL` and chef credentials are set | High: SSE/realtime binding, offline recovery, and audio notifications still need browser-level workflow coverage |
 | `management-portal` | none dedicated | health, tenants, markets, i18n, router | Management API tests are partial; portal service uses `/tenants`, `/deployments`, `/health`, `/licenses`, `/markets` | `tests/e2e/integration/real-workflows.spec.ts` includes management health and tenants page API loading when `WORKFLOW_MANAGEMENT_PORTAL_URL` and `WORKFLOW_MANAGEMENT_TOKEN` are set | Medium: tenant detail, deployments, licenses, and market workflows still need real browser coverage |
-| `onboarding-app` | none dedicated | API location, onboarding store, i18n | `apps/management-api/src/__tests__/onboarding-workflow.real.integration.test.ts` covers onboarding public API flow | `tests/e2e/integration/real-workflows.spec.ts` includes the application form submission path when `WORKFLOW_ONBOARDING_URL` and `WORKFLOW_MANAGEMENT_API_URL` are set | Medium-low: Cloudflare verification and completion still need controlled integration coverage |
+| `onboarding-app` | none dedicated | API location, onboarding store, i18n | `apps/management-api/src/__tests__/onboarding-workflow.real.integration.test.ts` covers onboarding public API flow | `tests/e2e/integration/real-workflows.spec.ts` includes application form submission and, when Cloudflare workflow credentials are set, browser-driven Cloudflare verification plus completion | Medium-low: Cloudflare verification and completion are covered only in environments with real workflow credentials |
 
 ## What Was Added From The E2E Finding
 
 - `tests/e2e/integration/real-workflows.spec.ts`: true customer browser
   workflow against a real API, including menu rendering and guest order
-  tracking. The suite now also includes customer UI cart/checkout,
+  tracking. The suite now also includes customer UI cart quantity/notes and
+  checkout request payload verification,
   admin-dashboard order list/status update, kitchen-display confirmed queue
   visibility/item transition, management-portal health and tenant list loading,
-  and onboarding-app application form submission.
+  onboarding-app application form submission, and Cloudflare verify/complete
+  browser flow when workflow credentials are available.
 - `apps/api/src/middleware/cors.test.ts`: locks the custom request headers
   used by the customer frontend during browser preflight.
 - `apps/api/src/middleware/analytics.test.ts`: prevents local workflow runs
@@ -45,8 +47,8 @@ The real browser workflow suite is run through `test:e2e:integration`.
    authenticated portal loads tenant detail, deployments, licenses, and markets
    from management-api without mocked responses.
 4. Onboarding browser workflow:
-   Cloudflare verification and completion need controlled integration coverage;
-   the application form submission path is now covered.
+   keep a credentialed environment running the Cloudflare verification and
+   completion browser path; add negative verification and retry paths.
 5. Realtime integration:
    run API plus realtime worker bindings together so order broadcasts do not
    degrade to local binding warnings during full workflow tests.

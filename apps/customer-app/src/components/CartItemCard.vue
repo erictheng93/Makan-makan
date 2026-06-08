@@ -90,6 +90,7 @@
           <!-- 數量控制 -->
           <div class="flex items-center space-x-3">
             <button
+              :data-testid="`qty-decrease-${item.id}`"
               :disabled="item.quantity <= 1"
               class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="updateQuantity(item.quantity - 1)"
@@ -110,6 +111,7 @@
             </button>
 
             <span
+              :data-testid="`cart-item-quantity-${item.id}`"
               class="text-base font-medium text-ios-text min-w-[2rem] text-center"
             >
               {{ item.quantity }}
@@ -117,7 +119,7 @@
 
             <button
               :disabled="item.quantity >= 99"
-              data-testid="qty-increase"
+              :data-testid="`qty-increase-${item.id}`"
               class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-ios-text active:bg-gray-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="updateQuantity(item.quantity + 1)"
             >
@@ -141,6 +143,7 @@
         <!-- 備註 -->
         <div v-if="showNotesInput" class="mt-3">
           <textarea
+            :data-testid="`cart-item-notes-${item.id}`"
             :value="item.notes || ''"
             :placeholder="t('cart.notes')"
             rows="2"
@@ -151,6 +154,7 @@
 
         <!-- 備註切換按鈕 -->
         <button
+          :data-testid="`cart-item-notes-toggle-${item.id}`"
           class="mt-2 text-sm text-ios-blue active:opacity-70 transition-opacity duration-200 flex items-center space-x-1"
           @click="showNotesInput = !showNotesInput"
         >

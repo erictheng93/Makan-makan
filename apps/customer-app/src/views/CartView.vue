@@ -212,6 +212,7 @@
             </h3>
             <button
               v-if="!showAvailableCoupons"
+              data-testid="cart-view-coupons"
               class="text-sm text-ios-blue font-medium"
               @click="toggleAvailableCoupons"
             >
@@ -364,6 +365,7 @@
               <input
                 id="coupon-code"
                 v-model="couponCode"
+                data-testid="coupon-code"
                 type="text"
                 :placeholder="t('cart.couponPlaceholder')"
                 :disabled="isValidatingCoupon"
@@ -372,6 +374,7 @@
                 @keyup.enter="validateCoupon"
               />
               <button
+                data-testid="coupon-apply"
                 :disabled="!couponCode.trim() || isValidatingCoupon"
                 class="px-5 py-2.5 bg-ios-blue text-white text-sm font-semibold rounded-full active:scale-95 transition-transform duration-150 disabled:bg-ios-separator disabled:text-ios-tertiary"
                 @click="validateCoupon"
@@ -484,6 +487,7 @@
           <textarea
             id="order-notes"
             v-model="orderNotes"
+            data-testid="order-notes"
             rows="3"
             :placeholder="t('menuItem.notesPlaceholder')"
             class="w-full px-4 py-3 bg-ios-bg rounded-xl border-0 focus:ring-2 focus:ring-ios-blue/30 focus:bg-white text-ios-text placeholder:text-ios-tertiary resize-none transition-all duration-200"
