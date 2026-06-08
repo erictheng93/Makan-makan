@@ -123,4 +123,81 @@ describe("smoke env helpers", () => {
       menuItemId: undefined,
     });
   });
+
+  it("discovers a local public restaurant fixture when no env or login fixture is available", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url.endsWith("/api/v1/restaurants")) {
+          return Response.json({
+            success: true,
+            data: [
+              { id: "restaurant-disabled" },
+              { id: "restaurant-empty" },
+              { id: "019469a0-0001-7000-8000-000000000001" },
+            ],
+          });
+        }
+
+        if (url.endsWith("/api/v1/restaurants/restaurant-disabled")) {
+          return Response.json({
+            success: true,
+            data: {
+              settings: { allowGuestOrders: false },
+            },
+          });
+        }
+
+        if (url.endsWith("/api/v1/restaurants/restaurant-empty")) {
+          return Response.json({
+            success: true,
+            data: {
+              settings: { allowGuestOrders: true },
+            },
+          });
+        }
+
+        if (url.endsWith("/api/v1/menu/restaurant-empty")) {
+          return Response.json({
+            success: true,
+            data: { menuItems: [{ id: 1, isAvailable: false }] },
+          });
+        }
+
+        if (
+          url.endsWith(
+            "/api/v1/restaurants/019469a0-0001-7000-8000-000000000001",
+          )
+        ) {
+          return Response.json({
+            success: true,
+            data: {
+              settings: { allowGuestOrders: true },
+            },
+          });
+        }
+
+        if (url.endsWith("/api/v1/menu/019469a0-0001-7000-8000-000000000001")) {
+          return Response.json({
+            success: true,
+            data: { menuItems: [{ id: "42", isAvailable: true }] },
+          });
+        }
+
+        return new Response("not found", { status: 404 });
+      }),
+    );
+
+    await expect(
+      resolveLocalSmokeFixtureIds({
+        apiUrl: "http://localhost:8787",
+      }),
+    ).resolves.toEqual({
+      restaurantId: "019469a0-0001-7000-8000-000000000001",
+      menuItemId: 42,
+      tableId: 1,
+    });
+  });
 });

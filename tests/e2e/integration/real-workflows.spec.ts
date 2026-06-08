@@ -47,6 +47,9 @@ const MENU_ITEM_ID = Number(
 );
 const SERVICE_ITEM_ID = Number(optionalEnv("WORKFLOW_SERVICE_ITEM_ID") || NaN);
 const MARKET_SLUG = optionalEnv("WORKFLOW_MARKET_SLUG");
+const TABLE_ID = Number(
+  optionalEnv("WORKFLOW_TABLE_ID") || optionalEnv("SMOKE_TABLE_ID") || NaN,
+);
 
 interface MenuItemCandidate {
   id?: number | string;
@@ -289,6 +292,7 @@ async function resolveFixtureIds() {
     authPassword: AUTH_PASSWORD,
     restaurantId: RESTAURANT_ID,
     menuItemId: Number.isFinite(MENU_ITEM_ID) ? MENU_ITEM_ID : undefined,
+    tableId: Number.isFinite(TABLE_ID) ? TABLE_ID : undefined,
     loginData: await getLoginData(),
   });
 }
@@ -344,6 +348,25 @@ function firstAvailableNamedMenuItem(menu: MenuBody) {
       item.isAvailable !== 0 &&
       Number.isFinite(Number(item.id)),
   );
+}
+
+function availableNamedMenuItems(menu: MenuBody) {
+  const itemsById = new Map<number, MenuItemCandidate>();
+
+  for (const item of allMenuItems(menu)) {
+    const id = Number(item.id);
+    if (
+      item.name &&
+      item.isAvailable !== false &&
+      item.isAvailable !== 0 &&
+      Number.isFinite(id) &&
+      !itemsById.has(id)
+    ) {
+      itemsById.set(id, item);
+    }
+  }
+
+  return [...itemsById.values()];
 }
 
 function firstMenuCategory(menu: MenuBody) {
@@ -603,6 +626,10 @@ function adminCategoryRow(page: Page, categoryId: number) {
 }
 
 async function addMenuItemThroughUi(page: Page, id: number) {
+  await expect(page.getByTestId(`menu-item-card-${id}`).first()).toBeVisible({
+    timeout: 15_000,
+  });
+
   const quickAdd = page.getByTestId(`menu-item-add-${id}`).first();
   const customize = page.getByTestId(`menu-item-customize-${id}`).first();
 
@@ -614,6 +641,12 @@ async function addMenuItemThroughUi(page: Page, id: number) {
   await customize.click();
   await expect(page.getByTestId("menu-item-modal")).toBeVisible();
   await page.getByTestId("menu-item-modal-add").click();
+}
+
+function cartItemRow(page: Page, menuItemId: number) {
+  return page.locator(
+    `[data-testid="cart-item"][data-menu-item-id="${menuItemId}"]`,
+  );
 }
 
 function adminOrderNumber(orderId: number) {
@@ -900,8 +933,8 @@ test.describe("Real system workflows", () => {
   }) => {
     const fixtureIds = await resolveFixtureIds();
     test.skip(
-      !fixtureIds.restaurantId,
-      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
+      !fixtureIds.restaurantId || !fixtureIds.tableId,
+      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID and WORKFLOW_TABLE_ID/SMOKE_TABLE_ID not set and local discovery failed",
     );
 
     const menu = await fetchMenu(fixtureIds.restaurantId!);
@@ -915,7 +948,7 @@ test.describe("Real system workflows", () => {
           response.ok(),
       ),
       page.goto(
-        `${CUSTOMER_URL}/restaurant/${fixtureIds.restaurantId}/table/1`,
+        `${CUSTOMER_URL}/restaurant/${fixtureIds.restaurantId}/table/${fixtureIds.tableId}`,
         { waitUntil: "domcontentloaded" },
       ),
     ]);
@@ -930,58 +963,109 @@ test.describe("Real system workflows", () => {
   test("customer can add a real menu item to cart and submit through checkout UI", async ({
     page,
   }) => {
+    test.setTimeout(90_000);
+
     const fixtureIds = await resolveFixtureIds();
     test.skip(
-      !fixtureIds.restaurantId,
-      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
+      !fixtureIds.restaurantId || !fixtureIds.tableId,
+      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID and WORKFLOW_TABLE_ID/SMOKE_TABLE_ID not set and local discovery failed",
     );
 
     const menu = await fetchMenu(fixtureIds.restaurantId!);
+    const availableItems = availableNamedMenuItems(menu);
     const item =
-      allMenuItems(menu).find(
+      availableItems.find(
         (candidate) =>
-          Number(candidate.id) === fixtureIds.menuItemId &&
-          candidate.name &&
-          candidate.isAvailable !== false &&
-          candidate.isAvailable !== 0,
+          Number(candidate.id) === fixtureIds.menuItemId && candidate.name,
       ) ?? firstAvailableNamedMenuItem(menu);
+    const secondItem = availableItems.find(
+      (candidate) => Number(candidate.id) !== Number(item?.id),
+    );
     const menuItemId = Number(item?.id);
+    const secondMenuItemId = Number(secondItem?.id);
 
     test.skip(
-      !item?.name || !Number.isFinite(menuItemId),
-      "real API did not return an available named item",
+      !item?.name ||
+        !secondItem?.name ||
+        !Number.isFinite(menuItemId) ||
+        !Number.isFinite(secondMenuItemId),
+      "real API did not return two available named items",
     );
 
-    await page.goto(
-      `${CUSTOMER_URL}/restaurant/${fixtureIds.restaurantId}/table/1`,
-      { waitUntil: "domcontentloaded" },
-    );
+    const menuUrl = `${CUSTOMER_URL}/restaurant/${fixtureIds.restaurantId}/table/${fixtureIds.tableId}`;
+    await page.goto(menuUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
 
     await expect(
       page.getByTestId(`menu-item-card-${menuItemId}`).first(),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     await addMenuItemThroughUi(page, menuItemId);
     await expect(page.getByTestId("cart-count")).toHaveText("1");
 
+    await expect(
+      page.getByTestId(`menu-item-card-${secondMenuItemId}`).first(),
+    ).toBeVisible({ timeout: 15_000 });
+    await addMenuItemThroughUi(page, secondMenuItemId);
+    await expect(page.getByTestId("cart-count")).toHaveText("2");
+
     await page.getByTestId("cart-btn").click();
-    await expect(page.getByTestId("cart-page")).toBeVisible();
+    await page.waitForURL("**/cart");
+    await expect(page.getByTestId("cart-item")).toHaveCount(2);
     await expect(
       page.getByText(item!.name!, { exact: false }).first(),
     ).toBeVisible();
-
-    const increaseButton = page.locator('[data-testid^="qty-increase-"]');
-    await expect(increaseButton).toHaveCount(1);
-    const quantityTestId = (await increaseButton.getAttribute("data-testid"))!;
-    const cartItemId = quantityTestId.replace("qty-increase-", "");
-
-    await increaseButton.click();
     await expect(
-      page.getByTestId(`cart-item-quantity-${cartItemId}`),
+      page.getByText(secondItem!.name!, { exact: false }).first(),
+    ).toBeVisible();
+
+    const firstCartRow = cartItemRow(page, menuItemId);
+    const secondCartRow = cartItemRow(page, secondMenuItemId);
+    await expect(firstCartRow).toBeVisible();
+    await expect(secondCartRow).toBeVisible();
+
+    const firstIncrease = firstCartRow.locator(
+      `[data-testid^="qty-increase-"]`,
+    );
+    const firstDecrease = firstCartRow.locator(
+      `[data-testid^="qty-decrease-"]`,
+    );
+    const firstQuantityTestId =
+      (await firstIncrease.getAttribute("data-testid"))!;
+    const firstCartItemId = firstQuantityTestId.replace("qty-increase-", "");
+
+    await firstIncrease.click();
+    await expect(
+      page.getByTestId(`cart-item-quantity-${firstCartItemId}`),
+    ).toHaveText("2");
+    await firstDecrease.click();
+    await expect(
+      page.getByTestId(`cart-item-quantity-${firstCartItemId}`),
+    ).toHaveText("1");
+    await firstIncrease.click();
+    await expect(
+      page.getByTestId(`cart-item-quantity-${firstCartItemId}`),
     ).toHaveText("2");
 
-    await page.getByTestId(`cart-item-notes-toggle-${cartItemId}`).click();
+    await secondCartRow.getByTestId("remove-item").click();
+    await expect(cartItemRow(page, secondMenuItemId)).toHaveCount(0);
+    await expect(page.getByTestId("cart-item")).toHaveCount(1);
+
+    await page.goto(menuUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId("cart-count")).toHaveText("2");
+    await addMenuItemThroughUi(page, secondMenuItemId);
+    await expect(page.getByTestId("cart-count")).toHaveText("3");
+    await page.getByTestId("cart-btn").click();
+    await page.waitForURL("**/cart");
+    await expect(page.getByTestId("cart-item")).toHaveCount(2);
+
+    await page.getByTestId(`cart-item-notes-toggle-${firstCartItemId}`).click();
     await page
-      .getByTestId(`cart-item-notes-${cartItemId}`)
+      .getByTestId(`cart-item-notes-${firstCartItemId}`)
       .fill("less spicy workflow note");
     await page.getByTestId("order-notes").fill("workflow table note");
 
@@ -1026,6 +1110,10 @@ test.describe("Real system workflows", () => {
           quantity: 2,
           notes: "less spicy workflow note",
         }),
+        expect.objectContaining({
+          menuItemId: secondMenuItemId,
+          quantity: 1,
+        }),
       ]);
       const createBody = (await createResponse.json()) as GuestOrderResponse;
       orderId = createBody.data?.order?.id;
@@ -1034,7 +1122,10 @@ test.describe("Real system workflows", () => {
       expect(typeof orderId, "created order id").toBe("number");
       expect(typeof guestToken, "created guest token").toBe("string");
 
-      await expect(page.getByTestId("order-timeline")).toBeVisible();
+      await page.waitForURL(`**/order/${orderId}`, { timeout: 45_000 });
+      await expect(page.getByTestId("order-timeline")).toBeVisible({
+        timeout: 15_000,
+      });
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     } finally {
       if (orderId && guestToken) {
@@ -1420,8 +1511,10 @@ test.describe("Real system workflows", () => {
 
     const fixtureIds = await resolveFixtureIds();
     test.skip(
-      !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
-      "WORKFLOW_RESTAURANT_ID and WORKFLOW_MENU_ITEM_ID are required for admin workflow",
+      !fixtureIds.restaurantId ||
+        fixtureIds.menuItemId === undefined ||
+        !fixtureIds.tableId,
+      "WORKFLOW_RESTAURANT_ID, WORKFLOW_MENU_ITEM_ID, and WORKFLOW_TABLE_ID are required for admin workflow",
     );
 
     const createResponse = await fetch(`${API_URL}/api/v1/guest-orders`, {
@@ -1430,7 +1523,7 @@ test.describe("Real system workflows", () => {
       body: JSON.stringify({
         restaurantId: fixtureIds.restaurantId,
         orderType: "table",
-        tableId: 1,
+        tableId: fixtureIds.tableId,
         items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
         guestName: "workflow-admin",
         phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),
@@ -1761,8 +1854,10 @@ test.describe("Real system workflows", () => {
 
     const fixtureIds = await resolveFixtureIds();
     test.skip(
-      !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
-      "WORKFLOW_RESTAURANT_ID and WORKFLOW_MENU_ITEM_ID are required for kitchen workflow",
+      !fixtureIds.restaurantId ||
+        fixtureIds.menuItemId === undefined ||
+        !fixtureIds.tableId,
+      "WORKFLOW_RESTAURANT_ID, WORKFLOW_MENU_ITEM_ID, and WORKFLOW_TABLE_ID are required for kitchen workflow",
     );
 
     const createResponse = await fetch(`${API_URL}/api/v1/guest-orders`, {
@@ -1771,7 +1866,7 @@ test.describe("Real system workflows", () => {
       body: JSON.stringify({
         restaurantId: fixtureIds.restaurantId,
         orderType: "table",
-        tableId: 1,
+        tableId: fixtureIds.tableId,
         items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
         guestName: "workflow-kitchen",
         phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),

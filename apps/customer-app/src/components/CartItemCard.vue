@@ -1,5 +1,9 @@
 <template>
-  <div class="bg-white rounded-2xl p-4 shadow-card">
+  <div
+    class="bg-white rounded-2xl p-4 shadow-card"
+    data-testid="cart-item"
+    :data-menu-item-id="item.menuItem.id"
+  >
     <div class="flex space-x-4">
       <!-- 商品圖片 -->
       <div class="flex-shrink-0">

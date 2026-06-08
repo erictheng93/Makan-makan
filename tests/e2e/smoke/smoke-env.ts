@@ -36,10 +36,24 @@ interface SmokeRestaurantBody {
   };
 }
 
+interface SmokeRestaurantListBody {
+  success: boolean;
+  data?: Array<{
+    id?: string;
+  }>;
+}
+
 export interface SmokeFixtureIds {
   restaurantId?: string;
   menuItemId?: number;
+  tableId?: number;
 }
+
+const localSeedTableIdsByRestaurantId: Record<string, number> = {
+  "019469a0-0001-7000-8000-000000000001": 1,
+  "019469a0-0002-7000-8000-000000000002": 7,
+  "019469a0-0003-7000-8000-000000000003": 13,
+};
 
 export function optionalEnv(name: string): string | undefined {
   const value = process.env[name]?.trim();
@@ -114,6 +128,35 @@ async function discoverMenuItemId(
   return firstAvailableMenuItemId((await response.json()) as SmokeMenuBody);
 }
 
+async function discoverPublicRestaurantFixture(
+  apiUrl: string,
+): Promise<SmokeFixtureIds> {
+  const response = await fetch(`${apiUrl}/api/v1/restaurants`);
+  if (!response.ok) return {};
+
+  const body = (await response.json()) as SmokeRestaurantListBody;
+  const restaurants = body.success ? (body.data ?? []) : [];
+
+  for (const restaurant of restaurants) {
+    if (!restaurant.id) continue;
+    if (!(await guestOrdersEnabled(apiUrl, restaurant.id))) continue;
+
+    const menuItemId = await discoverMenuItemId(apiUrl, restaurant.id);
+    if (menuItemId !== undefined) {
+      const tableId = localSeedTableIdsByRestaurantId[restaurant.id];
+      if (tableId === undefined) continue;
+
+      return {
+        restaurantId: restaurant.id,
+        menuItemId,
+        tableId,
+      };
+    }
+  }
+
+  return {};
+}
+
 async function guestOrdersEnabled(
   apiUrl: string,
   restaurantId: string,
@@ -131,12 +174,14 @@ export async function resolveLocalSmokeFixtureIds(params: {
   authPassword?: string;
   restaurantId?: string;
   menuItemId?: number;
+  tableId?: number;
   loginData?: SmokeLoginData;
 }): Promise<SmokeFixtureIds> {
   const fixtureIds: SmokeFixtureIds = {
     restaurantId: params.restaurantId,
     menuItemId: params.menuItemId,
   };
+  if (params.tableId !== undefined) fixtureIds.tableId = params.tableId;
 
   if (!isLocalSmokeApi(params.apiUrl)) {
     return fixtureIds;
@@ -144,7 +189,7 @@ export async function resolveLocalSmokeFixtureIds(params: {
 
   if (!fixtureIds.restaurantId) {
     if (!params.authUsername || !params.authPassword) {
-      return fixtureIds;
+      return discoverPublicRestaurantFixture(params.apiUrl);
     }
 
     let loginData = params.loginData;
@@ -156,11 +201,20 @@ export async function resolveLocalSmokeFixtureIds(params: {
           params.authPassword,
         );
       } catch {
-        return fixtureIds;
+        return discoverPublicRestaurantFixture(params.apiUrl);
       }
     }
 
     fixtureIds.restaurantId = loginData.user?.restaurantId ?? undefined;
+  }
+
+  if (!fixtureIds.restaurantId) {
+    return discoverPublicRestaurantFixture(params.apiUrl);
+  }
+
+  if (!fixtureIds.tableId) {
+    fixtureIds.tableId =
+      localSeedTableIdsByRestaurantId[fixtureIds.restaurantId];
   }
 
   if (
