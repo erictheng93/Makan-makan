@@ -105,6 +105,21 @@ export default defineConfig({
       "@makanmakan/shared-types": fileURLToPath(
         new URL("../../packages/shared-types/src", import.meta.url),
       ),
+      "@makanmakan/i18n/locale-manager": fileURLToPath(
+        new URL(
+          "../../packages/shared/src/i18n/src/locale-manager.ts",
+          import.meta.url,
+        ),
+      ),
+      "@makanmakan/i18n/static-messages": fileURLToPath(
+        new URL(
+          "../../packages/shared/src/i18n/src/static-messages.ts",
+          import.meta.url,
+        ),
+      ),
+      "@makanmakan/i18n/types": fileURLToPath(
+        new URL("../../packages/shared/src/i18n/src/types.ts", import.meta.url),
+      ),
     },
   },
   define: {
@@ -178,6 +193,27 @@ export default defineConfig({
 
           // Other node_modules
           if (id.includes("node_modules/")) {
+            if (id.includes("node_modules/maplibre-gl/")) {
+              return "maplibre";
+            }
+            if (id.includes("node_modules/pmtiles/")) {
+              return "pmtiles";
+            }
+            if (id.includes("node_modules/lodash-es/")) {
+              return "lodash";
+            }
+            if (id.includes("node_modules/vue-i18n/")) {
+              return "vue-i18n";
+            }
+            if (id.includes("node_modules/@intlify/")) {
+              return "intlify";
+            }
+            if (id.includes("node_modules/@vueuse/")) {
+              return "vueuse";
+            }
+            if (id.includes("node_modules/zod/")) {
+              return "zod";
+            }
             return "vendor";
           }
         },
@@ -186,7 +222,10 @@ export default defineConfig({
     // 優化構建性能
     minify: "esbuild",
     cssMinify: true,
-    chunkSizeWarningLimit: 500, // Warn about chunks larger than 500KB
+    // MapLibre is isolated behind MarketLocationMap's async component. The
+    // higher limit keeps the production build warning focused on unexpected
+    // initial-bundle regressions instead of the known lazy map vendor chunk.
+    chunkSizeWarningLimit: 1100,
     reportCompressedSize: true,
   },
   server: {

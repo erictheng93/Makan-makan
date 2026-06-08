@@ -376,11 +376,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
-import MarketLocationMap from "@/components/markets/MarketLocationMap.vue";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import StallMapInMarket from "@/components/markets/StallMapInMarket.vue";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";
@@ -420,6 +425,9 @@ const toast = useToast();
 const store = useMarketsStore();
 const marketCartStore = useMarketCartStore();
 const { formatPrice } = useCurrency();
+const MarketLocationMap = defineAsyncComponent(
+  () => import("@/components/markets/MarketLocationMap.vue"),
+);
 const vendorQuery = ref(firstQueryString(route.query.vendorQ));
 const takeawayOnly = ref(queryBoolean(route.query.vendorTakeaway));
 const deliveryOnly = ref(queryBoolean(route.query.vendorDelivery));

@@ -13,6 +13,14 @@
       "import": "./dist/static-messages.js",
       "types": "./dist/static-messages.d.ts"
     },
+    "./locale-manager": {
+      "import": "./dist/locale-manager.js",
+      "types": "./dist/locale-manager.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types.js",
+      "types": "./dist/types.d.ts"
+    },
     "./locales/*": "./src/locales/*"
   },
   "scripts": {
