@@ -1,11 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  getSmokeOwnerSession,
+  hasSmokeOwnerCredentials,
+  setSmokeOwnerSession,
+  type SmokeOwnerSession,
+} from "./owner-auth";
 
-const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const ADMIN_URL = process.env.SMOKE_ADMIN_URL || "http://localhost:3001";
-const AUTH_USERNAME = process.env.SMOKE_AUTH_USERNAME?.trim();
-const AUTH_PASSWORD = process.env.SMOKE_AUTH_PASSWORD?.trim();
-
-const REQ_ROLE = 1; // Owner
 
 const LABELS = {
   quickActions: /Quick Actions/i,
@@ -23,28 +24,7 @@ const LABELS = {
   retry: /Retry/i,
 };
 
-interface LoginBody {
-  success: boolean;
-  data?: {
-    token?: string;
-    refreshToken?: string;
-    user?: {
-      id: number;
-      username: string;
-      role: number;
-      restaurantId?: string | null;
-      fullName?: string;
-      email?: string;
-      phone?: string | null;
-    };
-  };
-}
-
-interface OwnerContext {
-  token: string;
-  refreshToken: string | undefined;
-  user: LoginBody["data"]["user"];
-}
+type OwnerContext = SmokeOwnerSession;
 
 interface MockRouteResult {
   status: number;
@@ -174,28 +154,6 @@ function failureResponse(message = "mocked API failure"): MockRouteResult {
   };
 }
 
-async function loginOwnerSession(): Promise<OwnerContext> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: AUTH_USERNAME,
-      password: AUTH_PASSWORD,
-    }),
-  });
-
-  expect(response.ok, `owner login status ${response.status}`).toBe(true);
-  const body = (await response.json()) as LoginBody;
-  expect(body.success, "login should succeed").toBe(true);
-  expect(body.data?.user?.role, "user role should be owner").toBe(REQ_ROLE);
-
-  return {
-    token: body.data!.token!,
-    refreshToken: body.data?.refreshToken,
-    user: body.data!.user!,
-  };
-}
-
 function mockBuild({ status, body }: MockRouteResult) {
   return {
     status,
@@ -268,21 +226,8 @@ function installOwnerOverviewMocks(page: Page, handlers: HandlerConfig = {}) {
   };
 }
 
-function setOwnerSession(page: Page, ctx: OwnerContext) {
-  return page.addInitScript((payload) => {
-    localStorage.setItem("auth_token", payload.token);
-    if (payload.refreshToken) {
-      localStorage.setItem("auth_refresh_token", payload.refreshToken);
-    }
-    localStorage.setItem("auth_user", JSON.stringify(payload.user));
-    localStorage.setItem("makanmakan_locale", "en-US");
-    localStorage.setItem("locale", "en-US");
-    sessionStorage.clear();
-  }, ctx);
-}
-
 async function openOwnerOverview(page: Page, ctx: OwnerContext) {
-  await setOwnerSession(page, ctx);
+  await setSmokeOwnerSession(page, ctx);
   await page.goto(`${ADMIN_URL}/dashboard/owner-overview`, {
     waitUntil: "networkidle",
   });
@@ -347,7 +292,7 @@ function firstText(page: Page, text: string | RegExp) {
 test.describe("Smoke: owner overview workflows (owner role)", () => {
   test.beforeEach(async () => {
     test.skip(
-      !AUTH_USERNAME || !AUTH_PASSWORD || !ADMIN_URL,
+      !hasSmokeOwnerCredentials || !ADMIN_URL,
       "Owner credentials or admin URL is not configured",
     );
   });
@@ -355,7 +300,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("1) Owner can enter overview and see the baseline structure", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -371,7 +316,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   });
 
   test("2) KPI cards show expected dashboard metrics", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -383,7 +328,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("3) Trend direction is rendered from dashboard growth rates", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -394,7 +339,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("4) Quick action Add Staff navigates to staff management", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -403,7 +348,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   });
 
   test("5) Quick action Update Menu navigates to menu", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -414,7 +359,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("6) Quick action View Reports navigates to analytics", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -425,7 +370,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("7) Quick action System Settings navigates to settings", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -436,7 +381,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("8) Realtime orders section shows active orders and mapped status chips", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -450,7 +395,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("9) Realtime section shows no-data state when active orders are empty", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page, {
       activeOrders: () => successResponse([]),
     });
@@ -464,7 +409,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("10) Staff activity shows staff names, role labels and online status", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -479,7 +424,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("11) Today's finance block computes avg order value and est. monthly revenue", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -499,7 +444,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("12) Revenue trend selector can switch across ranges", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -515,7 +460,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("13) Popular items list renders ranking and metrics", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -533,7 +478,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("14) System health cards show healthy status for healthy APIs", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -547,7 +492,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("15) No emergency alerts are rendered when payload is empty", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -558,7 +503,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("16) Single API failure degrades gracefully (realtime orders unavailable)", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page, {
       activeOrders: () => failureResponse("orders temporarily unavailable"),
     });
@@ -575,7 +520,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("17) Single API failure degrades to warning health while keeping ownership surface", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page, {
       health: () => failureResponse("health unavailable"),
     });
@@ -595,7 +540,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("18) All APIs fail: owner overview degrades without blocking navigation", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page, {
       dashboard: () => failureResponse("offline"),
       activeOrders: () => failureResponse("offline"),
@@ -622,7 +567,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("19) Polling refresh is attached to a 30-second interval", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocked = installOwnerOverviewMocks(page, {
       dashboard: () => {
@@ -652,7 +597,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("20) Navigate away via quick action and return by browser back keeps context", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -667,7 +612,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("21) Navigate to another route and return through sidebar to owner overview", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);
@@ -692,7 +637,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
   test("22) Returning to owner overview after direct deep-link keeps owner permissions", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOverviewMocks(page);
     await openOwnerOverview(page, session);
     await waitForOverviewReady(page);

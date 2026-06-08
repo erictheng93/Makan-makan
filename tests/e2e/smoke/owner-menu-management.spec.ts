@@ -5,27 +5,28 @@ import {
   test,
   type Route,
 } from "@playwright/test";
+import {
+  getSmokeOwnerSession,
+  hasSmokeOwnerCredentials,
+  setSmokeOwnerSession,
+  type SmokeOwnerSession,
+} from "./owner-auth";
 
-const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const ADMIN_URL = process.env.SMOKE_ADMIN_URL || "http://localhost:3001";
-const AUTH_USERNAME = process.env.SMOKE_AUTH_USERNAME?.trim();
-const AUTH_PASSWORD = process.env.SMOKE_AUTH_PASSWORD?.trim();
-const REQ_ROLE = 1;
 
 const LABELS = {
   pageTitle: /Menu Management/i,
   searchPlaceholder: /Search menu items/i,
-  addCategoryBtn: /Add Category/i,
-  addItemBtn: /Add Item/i,
-  editButton: /Edit/i,
-  saveButton: /Add/i,
-  updateButton: /Update/i,
-  deleteButton: /Delete/i,
-  confirmButton: /Delete/i,
-  cancelButton: /Cancel/i,
-  allFilter: /All$/i,
-  availableFilter: /Available/i,
-  unavailableFilter: /Unavailable/i,
+  addItemBtn: /^Add Item$/i,
+  editButton: /^Edit$/i,
+  saveButton: /^Add$/i,
+  updateButton: /^Update$/i,
+  deleteButton: /^Delete$/i,
+  confirmButton: /^Delete$/i,
+  cancelButton: /^Cancel$/i,
+  allFilter: /^All$/i,
+  availableFilter: /^Available$/i,
+  unavailableFilter: /^Unavailable$/i,
   filterAllItems: /All Items/i,
   menuItemHeading: "h3",
   noDataTitle: /No Menu Items/i,
@@ -33,28 +34,7 @@ const LABELS = {
   available: /Available/i,
 };
 
-interface LoginBody {
-  success: boolean;
-  data?: {
-    token?: string;
-    refreshToken?: string;
-    user?: {
-      id: number;
-      username: string;
-      role: number;
-      restaurantId?: string | null;
-      fullName?: string;
-      email?: string;
-      phone?: string | null;
-    };
-  };
-}
-
-interface OwnerContext {
-  token: string;
-  refreshToken: string | undefined;
-  user: LoginBody["data"]["user"];
-}
+type OwnerContext = SmokeOwnerSession;
 
 interface MockRouteResult {
   status: number;
@@ -215,7 +195,7 @@ function toNumber(value: unknown): number | undefined {
 }
 
 async function readJsonBody(route: Route) {
-  const raw = route.request().postDataText();
+  const raw = route.request().postData();
   if (!raw) return {};
   try {
     return JSON.parse(raw);
@@ -224,43 +204,8 @@ async function readJsonBody(route: Route) {
   }
 }
 
-async function loginOwnerSession(): Promise<OwnerContext> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: AUTH_USERNAME,
-      password: AUTH_PASSWORD,
-    }),
-  });
-
-  expect(response.ok, `owner login status ${response.status}`).toBe(true);
-  const body = (await response.json()) as LoginBody;
-  expect(body.success, "login should succeed").toBe(true);
-  expect(body.data?.user?.role, "user role should be owner").toBe(REQ_ROLE);
-
-  return {
-    token: body.data!.token!,
-    refreshToken: body.data?.refreshToken,
-    user: body.data!.user!,
-  };
-}
-
-function setOwnerSession(page: Page, ctx: OwnerContext) {
-  return page.addInitScript((payload) => {
-    localStorage.setItem("auth_token", payload.token);
-    if (payload.refreshToken) {
-      localStorage.setItem("auth_refresh_token", payload.refreshToken);
-    }
-    localStorage.setItem("auth_user", JSON.stringify(payload.user));
-    localStorage.setItem("makanmakan_locale", "en-US");
-    localStorage.setItem("locale", "en-US");
-    sessionStorage.clear();
-  }, ctx);
-}
-
 async function openOwnerMenu(page: Page, ctx: OwnerContext) {
-  await setOwnerSession(page, ctx);
+  await setSmokeOwnerSession(page, ctx);
   await page.goto(`${ADMIN_URL}/dashboard/menu`, {
     waitUntil: "networkidle",
   });
@@ -284,7 +229,7 @@ function installOwnerMenuMocks(
     itemDelete: 0,
   };
 
-  page.route("**/api/v1/menu/*", async (route) => {
+  page.route("**/api/v1/menu/**", async (route) => {
     const req = route.request();
     const method = req.method().toUpperCase();
     const url = new URL(req.url());
@@ -553,7 +498,7 @@ function installOwnerMenuMocks(
   return {
     stats,
     restore: () => {
-      page.unroute("**/api/v1/menu/*");
+      page.unroute("**/api/v1/menu/**");
     },
   };
 }
@@ -563,12 +508,16 @@ async function waitForMenuPageReady(page: Page) {
     page.getByRole("heading", { name: LABELS.pageTitle }),
   ).toBeVisible();
   await expect(page.getByPlaceholder(LABELS.searchPlaceholder)).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: LABELS.addCategoryBtn }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: LABELS.addItemBtn }),
-  ).toBeVisible();
+  await expect(addCategoryButton(page)).toBeVisible();
+  await expect(addItemButton(page)).toBeVisible();
+}
+
+function addCategoryButton(page: Page): Locator {
+  return page.getByTestId("add-category-btn");
+}
+
+function addItemButton(page: Page): Locator {
+  return page.getByRole("button", { name: LABELS.addItemBtn }).first();
 }
 
 function menuCategoryRows(page: Page): Locator {
@@ -598,18 +547,22 @@ function itemActionButton(
 }
 
 async function fillNewCategory(page: Page, name: string) {
-  await page.getByRole("button", { name: LABELS.addCategoryBtn }).click();
-  await expect(page.locator("[data-category-form]")).toBeVisible();
-  await page.getByRole("textbox", { name: /Category Name/i }).fill(name);
-  await page
-    .getByRole("textbox", { name: /Description/i })
+  await addCategoryButton(page).click();
+  const form = page.locator("[data-category-form]");
+  await expect(form).toBeVisible();
+  await form.getByRole("textbox", { name: /Category Name/i }).fill(name);
+  await form
+    .getByRole("textbox", { name: /Description|Optional description/i })
     .fill(`QA created ${name}`);
-  await page.getByRole("spinbutton", { name: /Sort Order/i }).fill("10");
+  await form.locator('input[type="number"]').fill("10");
 }
 
 async function saveCategory(page: Page, isUpdate = false) {
   const label = isUpdate ? LABELS.updateButton : LABELS.saveButton;
-  await page.getByRole("button", { name: label }).click();
+  await page
+    .locator("[data-category-form]")
+    .getByRole("button", { name: label })
+    .click();
   await expect(page.locator("[data-category-form]")).not.toBeVisible();
 }
 
@@ -636,26 +589,29 @@ async function fillNewItem(
     available?: boolean;
   },
 ) {
-  await page.getByRole("button", { name: LABELS.addItemBtn }).click();
-  await expect(page.locator('[data-testid="item-modal"]')).toBeVisible();
-  await page.getByRole("textbox", { name: /Item Name/i }).fill(payload.name);
+  await addItemButton(page).click();
+  const modal = page.locator('[data-testid="item-modal"]');
+  await expect(modal).toBeVisible();
+  await modal.getByTestId("menu-item-name-input").fill(payload.name);
   if (payload.description) {
-    await page
-      .getByRole("textbox", { name: /Description/i })
-      .fill(payload.description);
+    await modal.locator("textarea").fill(payload.description);
   }
-  await page.getByRole("spinbutton", { name: /Price/i }).fill(payload.price);
-  await page.getByRole("combobox", { name: /Category/i }).selectOption({
+  await modal.getByTestId("menu-item-price-input").fill(payload.price);
+  await modal.getByTestId("menu-item-category-select").selectOption({
     label: payload.category,
   });
   if (payload.available === false) {
-    const checkbox = page.getByRole("checkbox", { name: /Available/i });
+    const checkbox = modal.getByRole("checkbox", { name: /Available/i });
     await checkbox.uncheck();
   }
 }
 
 async function confirmDelete(page: Page, name = LABELS.confirmButton) {
-  await page.getByRole("button", { name }).click();
+  await page
+    .locator(".fixed.inset-0.z-50")
+    .getByRole("button", { name })
+    .last()
+    .click();
 }
 
 function dragFirstCategoryToSecond(page: Page): Promise<void> {
@@ -668,13 +624,13 @@ function dragFirstCategoryToSecond(page: Page): Promise<void> {
 test.describe("Smoke: owner menu management usage state", () => {
   test.beforeEach(async () => {
     test.skip(
-      !AUTH_USERNAME || !AUTH_PASSWORD,
+      !hasSmokeOwnerCredentials,
       "Owner credentials or admin URL is not configured",
     );
   });
 
   test("1) Menu Management renders categories and items", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -689,7 +645,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("2) Search filter by item name", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -703,7 +659,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("3) Status filter shows unavailable items", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -717,7 +673,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("4) Category filter by All/Mains works", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -732,7 +688,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("5) Add category using modal form", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -745,13 +701,14 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("6) Edit category", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
 
     await openCategoryForEdit(page, "Desserts");
     await page
+      .locator("[data-category-form]")
       .getByRole("textbox", { name: /Category Name/i })
       .fill("Desserts Club");
     await saveCategory(page, true);
@@ -762,7 +719,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   test("7) Delete category uses confirm modal and removes items", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -770,7 +727,7 @@ test.describe("Smoke: owner menu management usage state", () => {
     const targetRow = menuCategoryByName(page, "Appetizers");
     await targetRow.hover();
     await targetRow.getByRole("button", { name: LABELS.deleteButton }).click();
-    await page.getByRole("button", { name: LABELS.confirmButton }).click();
+    await confirmDelete(page);
 
     await expect(mocks.stats.categoryDelete).toBeGreaterThan(0);
     await expect(targetRow).toBeHidden();
@@ -779,7 +736,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("8) Create menu item and verify in card list", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -790,7 +747,10 @@ test.describe("Smoke: owner menu management usage state", () => {
       price: "38",
       description: "Chef special",
     });
-    await page.getByRole("button", { name: LABELS.saveButton }).click();
+    await page
+      .locator('[data-testid="item-modal"]')
+      .getByRole("button", { name: LABELS.saveButton })
+      .click();
     await expect(page.locator('[data-testid="item-modal"]')).not.toBeVisible();
 
     await expect(mocks.stats.itemCreate).toBeGreaterThan(0);
@@ -800,18 +760,17 @@ test.describe("Smoke: owner menu management usage state", () => {
   test("9) Edit menu item updates existing item name and price", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
 
     const card = menuItemCardByName(page, "Mango Pudding");
     await card.getByRole("button", { name: LABELS.editButton }).click();
-    await page
-      .getByRole("textbox", { name: /Item Name/i })
-      .fill("Mango Cheesecake");
-    await page.getByRole("spinbutton", { name: /Price/i }).fill("22");
-    await page.getByRole("button", { name: LABELS.updateButton }).click();
+    const modal = page.locator('[data-testid="item-modal"]');
+    await modal.getByTestId("menu-item-name-input").fill("Mango Cheesecake");
+    await modal.getByTestId("menu-item-price-input").fill("22");
+    await modal.getByRole("button", { name: LABELS.updateButton }).click();
     await expect(page.locator('[data-testid="item-modal"]')).not.toBeVisible();
 
     await expect(mocks.stats.itemUpdate).toBeGreaterThan(0);
@@ -820,7 +779,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("10) Toggle menu item availability in card action", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -834,21 +793,21 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("11) Delete menu item after confirmation", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
 
     const target = menuItemCardByName(page, "Seaweed Salad");
     await target.getByRole("button").nth(2).click();
-    await page.getByRole("button", { name: LABELS.confirmButton }).click();
+    await confirmDelete(page);
 
     await expect(mocks.stats.itemDelete).toBeGreaterThan(0);
     await expect(menuItemByName(page, "Seaweed Salad")).toBeHidden();
   });
 
   test("12) CSV import preview and create two menu items", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -856,22 +815,22 @@ test.describe("Smoke: owner menu management usage state", () => {
     const csvText = [
       "name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,catalogType,tags,keywords",
       '"Imported Wonton","Appetizers",16,"Crisp","",false,true,5,menu_item,"soup","fresh soft"',
-      '"Imported Curry","Mains",29,"Spicy","",false,true,6,menu_item,"main","hot curry"',
+      '"Imported Curry","Appetizers",29,"Spicy","",false,true,6,menu_item,"main","hot curry"',
     ].join("\n");
 
     await page.locator('[data-testid="menu-item-import-csv"]').fill(csvText);
-    await page.getByRole("button", { name: /Import/i }).click();
+    await page.getByTestId("menu-item-import-submit").click();
     await expect(
       page.locator('[data-testid="menu-item-import-csv"]'),
     ).toHaveValue(csvText);
 
-    await expect(mocks.stats.itemCreate).toBeGreaterThanOrEqual(2);
+    await expect.poll(() => mocks.stats.itemCreate).toBeGreaterThanOrEqual(2);
     await expect(menuItemByName(page, "Imported Wonton")).toBeVisible();
     await expect(menuItemByName(page, "Imported Curry")).toBeVisible();
   });
 
   test("13) Category drag reorder triggers reorder API", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);
@@ -886,7 +845,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   test("14) Single create-item failure keeps UI functional (graceful)", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerMenuMocks(page, {
       itemCreate: () => failureResponse("forced failure"),
     });
@@ -899,7 +858,10 @@ test.describe("Smoke: owner menu management usage state", () => {
       price: "18",
       description: "Should fail",
     });
-    await page.getByRole("button", { name: LABELS.saveButton }).click();
+    await page
+      .locator('[data-testid="item-modal"]')
+      .getByRole("button", { name: LABELS.saveButton })
+      .click();
     await page
       .locator('[data-testid="item-modal"]')
       .waitFor({ state: "hidden" });
@@ -912,7 +874,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   test("15) Single menu fetch failure still keeps action controls", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page, {
       menu: () => failureResponse("fetch failed"),
     });
@@ -921,18 +883,14 @@ test.describe("Smoke: owner menu management usage state", () => {
     await expect(
       page.getByRole("heading", { name: LABELS.pageTitle }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: LABELS.addItemBtn }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: LABELS.addCategoryBtn }),
-    ).toBeVisible();
+    await expect(addItemButton(page)).toBeVisible();
+    await expect(addCategoryButton(page)).toBeVisible();
     await expect(page.getByText(LABELS.noDataTitle)).toBeVisible();
     await expect(page.getByPlaceholder(LABELS.searchPlaceholder)).toBeVisible();
   });
 
   test("16) 全 API 失敗後，重新載入可恢復", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocks = installOwnerMenuMocks(page, {
       menu: () => {
@@ -966,7 +924,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("17) 30 秒輪詢模擬刷新可見新資料", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocks = installOwnerMenuMocks(page, {
       menu: () => {
@@ -1003,7 +961,7 @@ test.describe("Smoke: owner menu management usage state", () => {
   });
 
   test("18) 導航回流可回到菜單頁且保留可操作性", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerMenuMocks(page);
     await openOwnerMenu(page, session);
     await waitForMenuPageReady(page);

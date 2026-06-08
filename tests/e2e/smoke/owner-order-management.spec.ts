@@ -1,10 +1,12 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import {
+  getSmokeOwnerSession,
+  hasSmokeOwnerCredentials,
+  setSmokeOwnerSession,
+  type SmokeOwnerSession,
+} from "./owner-auth";
 
-const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const ADMIN_URL = process.env.SMOKE_ADMIN_URL || "http://localhost:3001";
-const AUTH_USERNAME = process.env.SMOKE_AUTH_USERNAME?.trim();
-const AUTH_PASSWORD = process.env.SMOKE_AUTH_PASSWORD?.trim();
-const REQ_ROLE = 1;
 
 const LABELS = {
   heading: /Order List/i,
@@ -21,28 +23,7 @@ const LABELS = {
   totalAmount: /Total Amount/i,
 };
 
-interface LoginBody {
-  success: boolean;
-  data?: {
-    token?: string;
-    refreshToken?: string;
-    user?: {
-      id: number;
-      username: string;
-      role: number;
-      restaurantId?: string | null;
-      fullName?: string;
-      email?: string;
-      phone?: string | null;
-    };
-  };
-}
-
-interface OwnerContext {
-  token: string;
-  refreshToken: string | undefined;
-  user: LoginBody["data"]["user"];
-}
+type OwnerContext = SmokeOwnerSession;
 
 interface MockRouteResult {
   status: number;
@@ -306,41 +287,6 @@ function formatOrderNumber(id: number) {
   return `ORD-${id.toString().padStart(6, "0")}`;
 }
 
-async function loginOwnerSession(): Promise<OwnerContext> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: AUTH_USERNAME,
-      password: AUTH_PASSWORD,
-    }),
-  });
-
-  expect(response.ok, `owner login status ${response.status}`).toBe(true);
-  const body = (await response.json()) as LoginBody;
-  expect(body.success, "login should succeed").toBe(true);
-  expect(body.data?.user?.role, "user role should be owner").toBe(REQ_ROLE);
-
-  return {
-    token: body.data!.token!,
-    refreshToken: body.data?.refreshToken,
-    user: body.data!.user!,
-  };
-}
-
-function setOwnerSession(page: Page, ctx: OwnerContext) {
-  return page.addInitScript((payload) => {
-    localStorage.setItem("auth_token", payload.token);
-    if (payload.refreshToken) {
-      localStorage.setItem("auth_refresh_token", payload.refreshToken);
-    }
-    localStorage.setItem("auth_user", JSON.stringify(payload.user));
-    localStorage.setItem("makanmakan_locale", "en-US");
-    localStorage.setItem("locale", "en-US");
-    sessionStorage.clear();
-  }, ctx);
-}
-
 function installOwnerOrderMocks(
   page: Page,
   handlers: Partial<OrderMockHandlers> = {},
@@ -391,7 +337,7 @@ function installOwnerOrderMocks(
 }
 
 async function openOwnerOrders(page: Page, ctx: OwnerContext) {
-  await setOwnerSession(page, ctx);
+  await setSmokeOwnerSession(page, ctx);
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`${ADMIN_URL}/dashboard/orders`, {
     waitUntil: "networkidle",
@@ -489,7 +435,7 @@ async function openOrderDetail(page: Page, orderNumber: string) {
 test.describe("Smoke: owner order management workflows (owner role)", () => {
   test.beforeEach(async () => {
     test.skip(
-      !AUTH_USERNAME || !AUTH_PASSWORD,
+      !hasSmokeOwnerCredentials,
       "Owner credentials or admin URL is not configured",
     );
   });
@@ -497,7 +443,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("1) Owner can enter orders page and see baseline UI", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -513,7 +459,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("2) KPI cards render from mocked status distribution", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -540,7 +486,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("3) Owner can search by exact order number", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -556,7 +502,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("4) Owner can search by customer name", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -572,7 +518,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("5) Owner can filter by order status", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -589,7 +535,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("6) Owner can filter by order type", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -603,7 +549,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("7) Owner can filter by order source", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -625,7 +571,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("8) Owner can combine filters to narrow to a single order", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -645,7 +591,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("9) Owner can clear filter state back to full order list", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -669,7 +615,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("10) Owner can view order detail and close modal", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -687,7 +633,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("11) Owner sees delivery info in detail for delivery orders", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -708,7 +654,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("12) Owner can jump from order item to menu with highlightItem query", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -723,7 +669,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("13) Owner can update a pending order to confirmed", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const sharedOrders = cloneOrders(defaultOrders);
     const mocks = installOwnerOrderMocks(page, {
       orders: () => successResponse(sharedOrders),
@@ -747,7 +693,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("14) Update action failure keeps order status stable", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page, {
       orderStatus: () => failureResponse("status update failed"),
     });
@@ -763,7 +709,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("15) Owner can cancel a pending order with confirmation", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const sharedOrders = cloneOrders(defaultOrders);
     const mocks = installOwnerOrderMocks(page, {
       orders: () => successResponse(sharedOrders),
@@ -790,7 +736,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   });
 
   test("16) Cancel flow can be aborted via confirm modal", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const sharedOrders = cloneOrders(defaultOrders);
     const mocks = installOwnerOrderMocks(page, {
       orders: () => successResponse(sharedOrders),
@@ -816,7 +762,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("17) Completed and cancelled orders should hide unavailable actions", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -841,7 +787,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("18) Single order-list API failure keeps UI controls usable", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page, {
       orders: () => failureResponse("orders failed"),
     });
@@ -862,7 +808,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("19) Empty result returns empty state with placeholder", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page, { orders: () => successResponse([]) });
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -876,7 +822,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("20) All order APIs fail, then manual refresh recovers in place", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocks = installOwnerOrderMocks(page, {
       orders: () => {
@@ -902,7 +848,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("21) All order APIs fail, then reload recovers page state", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocks = installOwnerOrderMocks(page, {
       orders: () => {
@@ -930,7 +876,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("22) 30-second refresh cadence can be simulated and updates orders", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocks = installOwnerOrderMocks(page, {
       orders: () => {
@@ -977,7 +923,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("23) Navigate away to POS and back preserves order page availability", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);
@@ -997,7 +943,7 @@ test.describe("Smoke: owner order management workflows (owner role)", () => {
   test("24) Navigate away to settings and come back by browser back", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerOrderMocks(page);
     await openOwnerOrders(page, session);
     await waitForOrdersReady(page);

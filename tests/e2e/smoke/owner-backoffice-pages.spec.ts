@@ -1,77 +1,30 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  getSmokeOwnerSession,
+  hasSmokeOwnerCredentials,
+  setSmokeOwnerSession,
+  type SmokeOwnerSession,
+} from "./owner-auth";
 
-const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const ADMIN_URL = process.env.SMOKE_ADMIN_URL || "http://localhost:3001";
-const AUTH_USERNAME = process.env.SMOKE_AUTH_USERNAME?.trim();
-const AUTH_PASSWORD = process.env.SMOKE_AUTH_PASSWORD?.trim();
-const OWNER_ROLE = 1;
-
-interface LoginBody {
-  success: boolean;
-  data?: {
-    token?: string;
-    refreshToken?: string;
-    user?: {
-      id: number;
-      username: string;
-      role: number;
-      restaurantId?: string | null;
-      fullName?: string;
-      email?: string;
-    };
-  };
-}
-
-interface OwnerSession {
-  token: string;
-  refreshToken: string | undefined;
-  user: NonNullable<LoginBody["data"]>["user"];
-}
 
 const restaurantId = "smoke-restaurant-1";
 const nowIso = "2026-06-08T08:00:00.000Z";
 
-async function loginOwnerSession(): Promise<OwnerSession> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: AUTH_USERNAME,
-      password: AUTH_PASSWORD,
-    }),
-  });
-
-  expect(response.ok, `owner login status ${response.status}`).toBe(true);
-  const body = (await response.json()) as LoginBody;
-  expect(body.success, "login should succeed").toBe(true);
-  expect(body.data?.user?.role, "user role should be owner").toBe(OWNER_ROLE);
-
-  return {
-    token: body.data!.token!,
-    refreshToken: body.data?.refreshToken,
-    user: {
-      ...body.data!.user!,
-      restaurantId: body.data!.user!.restaurantId ?? restaurantId,
-    },
-  };
-}
+type OwnerSession = SmokeOwnerSession;
 
 async function setOwnerSession(page: Page, session: OwnerSession) {
-  await page.addInitScript((payload) => {
-    localStorage.setItem("auth_token", payload.token);
-    if (payload.refreshToken) {
-      localStorage.setItem("auth_refresh_token", payload.refreshToken);
-    }
-    localStorage.setItem("auth_user", JSON.stringify(payload.user));
-    localStorage.setItem("makanmakan_locale", "en-US");
-    localStorage.setItem("locale", "en-US");
-    sessionStorage.clear();
-    sessionStorage.setItem(
-      "admin_selected_restaurant_id",
-      payload.user.restaurantId ?? "",
-    );
-    sessionStorage.setItem("admin_selected_restaurant_name", "Smoke Bistro");
-  }, session);
+  await setSmokeOwnerSession(
+    page,
+    {
+      ...session,
+      user: {
+        ...session.user,
+        restaurantId: session.user.restaurantId ?? restaurantId,
+      },
+    },
+    { selectedRestaurantName: "Smoke Bistro" },
+  );
 }
 
 function envelope(data: unknown) {
@@ -571,7 +524,7 @@ async function openBackofficePage(
 test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test.beforeEach(async () => {
     test.skip(
-      !AUTH_USERNAME || !AUTH_PASSWORD,
+      !hasSmokeOwnerCredentials,
       "Owner credentials are not configured",
     );
   });
@@ -579,7 +532,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("1) Seating management renders table setup with mocked table data", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/seating/table-setup");
 
@@ -595,7 +548,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("2) Employee management renders staff list and status filters", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/employees");
 
@@ -611,7 +564,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("3) Group orders renders active group order and quick actions", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/group-orders");
 
@@ -627,7 +580,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("4) Service bookings renders booking table and refresh control", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/service-bookings");
 
@@ -650,7 +603,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("5) Feedback renders owner feedback list and submit entry point", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/feedback");
 
@@ -666,7 +619,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("6) Monitoring renders health, metrics, and alert rule surfaces", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/monitoring");
 
@@ -682,7 +635,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
   test("7) System settings renders persisted restaurant and contact settings", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const stats = installBackofficeMocks(page);
     await openBackofficePage(page, session, "/dashboard/settings");
 

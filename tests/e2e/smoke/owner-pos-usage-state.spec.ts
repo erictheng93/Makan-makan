@@ -1,31 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  getSmokeOwnerSession,
+  hasSmokeOwnerCredentials,
+  setSmokeOwnerSession,
+  type SmokeOwnerSession,
+} from "./owner-auth";
 
-const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const ADMIN_URL = process.env.SMOKE_ADMIN_URL || "http://localhost:3001";
-const AUTH_USERNAME = process.env.SMOKE_AUTH_USERNAME?.trim();
-const AUTH_PASSWORD = process.env.SMOKE_AUTH_PASSWORD?.trim();
-const OWNER_ROLE = 1;
 
-interface LoginBody {
-  success: boolean;
-  data?: {
-    token?: string;
-    refreshToken?: string;
-    user?: {
-      id: number;
-      username: string;
-      role: number;
-      restaurantId?: string | null;
-      fullName?: string;
-    };
-  };
-}
-
-interface OwnerSession {
-  token: string;
-  refreshToken: string | undefined;
-  user: NonNullable<LoginBody["data"]>["user"];
-}
+type OwnerSession = SmokeOwnerSession;
 
 interface MockRouteResult {
   status: number;
@@ -263,50 +246,15 @@ function mockPayload(result: MockRouteResult) {
   };
 }
 
-async function loginOwnerSession(): Promise<OwnerSession> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: AUTH_USERNAME,
-      password: AUTH_PASSWORD,
-    }),
-  });
-
-  expect(response.ok, `owner login status ${response.status}`).toBe(true);
-  const body = (await response.json()) as LoginBody;
-  expect(body.success, "login should succeed").toBe(true);
-  expect(body.data?.user?.role, "user role should be owner").toBe(OWNER_ROLE);
-
-  return {
-    token: body.data!.token!,
-    refreshToken: body.data?.refreshToken,
-    user: body.data!.user!,
-  };
-}
-
-function setOwnerSession(page: Page, ctx: OwnerSession) {
-  return page.addInitScript((payload) => {
-    localStorage.setItem("auth_token", payload.token);
-    if (payload.refreshToken) {
-      localStorage.setItem("auth_refresh_token", payload.refreshToken);
-    }
-    localStorage.setItem("auth_user", JSON.stringify(payload.user));
-    localStorage.setItem("makanmakan_locale", "en-US");
-    localStorage.setItem("locale", "en-US");
-    sessionStorage.clear();
-  }, ctx);
-}
-
 async function openPOSCheckout(page: Page, ctx: OwnerSession) {
-  await setOwnerSession(page, ctx);
+  await setSmokeOwnerSession(page, ctx);
   await page.goto(`${ADMIN_URL}/dashboard/pos/checkout`, {
     waitUntil: "networkidle",
   });
 }
 
 async function openPOSManagement(page: Page, ctx: OwnerSession) {
-  await setOwnerSession(page, ctx);
+  await setSmokeOwnerSession(page, ctx);
   await page.goto(`${ADMIN_URL}/dashboard/pos/management`, {
     waitUntil: "networkidle",
   });
@@ -316,6 +264,11 @@ function installOwnerPOSMocks(
   page: Page,
   handlers: Partial<POSMockHandlers> = {},
 ) {
+  const registerListRoute = /\/api\/v1\/pos\/registers(?:\?.*)?$/;
+  const dailyStatsRoute =
+    /\/api\/v1\/pos\/registers\/[^/]+\/stats\/daily(?:\?.*)?$/;
+  const dailyReportRoute = /\/api\/v1\/pos\/reports\/daily(?:\?.*)?$/;
+  const exportReportRoute = /\/api\/v1\/pos\/reports\/export(?:\?.*)?$/;
   const resolved: POSMockHandlers = {
     orders: handlers.orders ?? (() => successResponse(defaultOrders)),
     orderStatus:
@@ -430,7 +383,7 @@ function installOwnerPOSMocks(
     await route.fulfill(mockPayload(resolved.orders()));
   });
 
-  page.route("**/api/v1/pos/registers/*/stats/daily", async (route) => {
+  page.route(dailyStatsRoute, async (route) => {
     if (route.request().method() !== "GET") return route.continue();
     stats.dailyStats += 1;
     await route.fulfill(mockPayload(resolved.dailyStats()));
@@ -454,7 +407,7 @@ function installOwnerPOSMocks(
     await route.fulfill(mockPayload(resolved.deactivateRegister()));
   });
 
-  page.route("**/api/v1/pos/registers", async (route) => {
+  page.route(registerListRoute, async (route) => {
     if (route.request().method() === "POST") {
       stats.createRegister += 1;
       await route.fulfill(mockPayload(resolved.createRegister()));
@@ -489,13 +442,13 @@ function installOwnerPOSMocks(
     await route.fulfill(mockPayload(resolved.shiftReport()));
   });
 
-  page.route("**/api/v1/pos/reports/daily", async (route) => {
+  page.route(dailyReportRoute, async (route) => {
     if (route.request().method() !== "GET") return route.continue();
     stats.dailyRevenue += 1;
     await route.fulfill(mockPayload(resolved.dailyRevenue()));
   });
 
-  page.route("**/api/v1/pos/reports/export", async (route) => {
+  page.route(exportReportRoute, async (route) => {
     if (route.request().method() !== "GET") return route.continue();
     stats.exportTransactions += 1;
     await route.fulfill(mockPayload(resolved.exportTransactions()));
@@ -557,17 +510,17 @@ function installOwnerPOSMocks(
     restore: () => {
       page.unroute("**/api/v1/orders/*/status");
       page.unroute("**/api/v1/orders*");
-      page.unroute("**/api/v1/pos/registers/*/stats/daily");
+      page.unroute(dailyStatsRoute);
       page.unroute("**/api/v1/pos/registers/*/cash-movements");
       page.unroute("**/api/v1/pos/registers/*/activate");
       page.unroute("**/api/v1/pos/registers/*/deactivate");
-      page.unroute("**/api/v1/pos/registers");
+      page.unroute(registerListRoute);
       page.unroute("**/api/v1/pos/shifts/current/*");
       page.unroute("**/api/v1/pos/shifts/start");
       page.unroute("**/api/v1/pos/shifts/*/end");
       page.unroute("**/api/v1/pos/shifts/*/report");
-      page.unroute("**/api/v1/pos/reports/daily");
-      page.unroute("**/api/v1/pos/reports/export");
+      page.unroute(dailyReportRoute);
+      page.unroute(exportReportRoute);
       page.unroute("**/api/v1/pos/quick-payment");
       page.unroute("**/api/v1/pos/market-checkouts/*/pay");
       page.unroute("**/api/v1/pos/refunds/create");
@@ -586,9 +539,7 @@ async function waitForCheckoutReady(page: Page) {
   await expect(
     page.getByRole("heading", { name: /Pending Orders/i }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /Today's Performance/i }),
-  ).toBeVisible();
+  await expect(page.getByText("Today's Performance")).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Register Management/i }),
   ).toBeVisible();
@@ -601,9 +552,7 @@ async function waitForManagementReady(page: Page) {
   await expect(
     page.getByRole("heading", { name: /Register List/i }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /Today's Revenue/i }),
-  ).toBeVisible();
+  await expect(page.getByText("Today's Revenue")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /Recent Transactions/i }),
   ).toBeVisible();
@@ -615,10 +564,25 @@ function cardByHeader(page: Page, heading: RegExp | string) {
     .locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]");
 }
 
+function pendingOrdersCard(page: Page) {
+  return cardByHeader(page, /Pending Orders/i);
+}
+
+function pendingOrder(page: Page, orderNumber: string) {
+  return pendingOrdersCard(page).getByRole("heading", {
+    name: orderNumber,
+    exact: true,
+  });
+}
+
+function registerHeading(page: Page, name: string) {
+  return page.getByRole("heading", { name, exact: true });
+}
+
 test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test.beforeEach(async () => {
     test.skip(
-      !AUTH_USERNAME || !AUTH_PASSWORD,
+      !hasSmokeOwnerCredentials,
       "Owner credentials are not configured",
     );
   });
@@ -626,53 +590,54 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("1) Owner can enter POS Checkout and verify baseline UI", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitForCheckoutReady(page);
     await expect(page).toHaveURL(/\/dashboard\/pos\/checkout/);
     await expect(page.getByRole("link", { name: /Checkout/i })).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /Shift Report/i }),
+      page.getByRole("button", { name: /Shift Report/i }),
     ).toBeVisible();
   });
 
   test("2) Owner sees pending orders and can inspect order details", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitForCheckoutReady(page);
-    await expect(page.getByText("POS-1001")).toBeVisible();
-    await expect(page.getByText("POS-1002")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1001")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1002")).toBeVisible();
     await expect(mocks.stats.orders).toBeGreaterThan(0);
 
-    await page.getByText("POS-1001").click();
+    await pendingOrder(page, "POS-1001").click();
     await expect(
       page.getByRole("heading", { name: /Order Details/i }),
     ).toBeVisible();
+    const orderDetails = cardByHeader(page, /Order Details/i);
     await expect(page.getByText("Alice")).toBeVisible();
-    await expect(page.getByText("T01")).toBeVisible();
+    await expect(orderDetails.getByText("T01", { exact: true })).toBeVisible();
   });
 
   test("3) Owner can filter checkout orders by keyword", async ({ page }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitForCheckoutReady(page);
 
     const search = page.getByPlaceholder(/Search orders/);
     await search.fill("T05");
-    await expect(page.getByText("POS-1002")).toBeVisible();
-    await expect(page.getByText("POS-1001")).toHaveCount(0);
-    await expect(page.getByText("Bob")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1002")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1001")).toHaveCount(0);
+    await expect(page.getByText("Table T05")).toBeVisible();
   });
 
   test("4) Owner payment button is disabled unless minimum cash amount is reached", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitUntilCheckoutAndSelect(page, "POS-1001");
@@ -687,7 +652,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("5) Owner completes checkout payment and clears the order from pending list", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitUntilCheckoutAndSelect(page, "POS-1001");
@@ -702,13 +667,13 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await expect(mocks.stats.quickPayment).toBe(1);
     await page.getByRole("button", { name: /Done/i }).click();
     await expect(page.getByTestId("payment-success")).toBeHidden();
-    await expect(page.getByText("POS-1001")).toHaveCount(0);
+    await expect(pendingOrder(page, "POS-1001")).toHaveCount(0);
   });
 
   test("6) Owner gets order-level error when order status update fails, while order stays pending", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page, {
       orderStatus: () => failureResponse("force status update failure"),
     });
@@ -720,13 +685,13 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await expect(page.getByTestId("payment-error")).toBeVisible();
     await expect(mocks.stats.orderStatus).toBe(1);
     await expect(mocks.stats.quickPayment).toBe(0);
-    await expect(page.getByText("POS-1001")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1001")).toBeVisible();
   });
 
   test("7) Owner still completes checkout payment if POS quick-payment fails after status update", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page, {
       quickPayment: () => failureResponse("quick payment tracking failed"),
     });
@@ -739,13 +704,13 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await expect(mocks.stats.orderStatus).toBe(1);
     await expect(mocks.stats.quickPayment).toBe(1);
     await page.getByRole("button", { name: /Done/i }).click();
-    await expect(page.getByText("POS-1001")).toHaveCount(0);
+    await expect(pendingOrder(page, "POS-1001")).toHaveCount(0);
   });
 
   test("8) Owner can open shift report from checkout (API used but UI remains stable on fallback", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitForCheckoutReady(page);
@@ -768,7 +733,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("9) Owner can issue receipt print from checkout order panel without crashing", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await waitUntilCheckoutAndSelect(page, "POS-1001");
@@ -776,28 +741,26 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
 
     await expect(mocks.stats.printReceipt).toBe(1);
     await expect(page.getByText("Order Details")).toBeVisible();
-    await expect(page.getByText("POS-1001")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1001")).toBeVisible();
   });
 
   test("10) Owner sees No Pending Orders when orders API fails and keeps checkout structure", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page, {
       orders: () => failureResponse("orders failed"),
     });
     await openPOSCheckout(page, session);
     await waitForCheckoutReady(page);
     await expect(page.getByText(/No Pending Orders/)).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /Today's Revenue/i }),
-    ).toBeVisible();
+    await expect(page.getByText("Today's Performance")).toBeVisible();
   });
 
   test("11) Owner can continue checkout when daily report API fails (graceful degradation)", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page, {
       dailyRevenue: () => failureResponse("daily report failed"),
     });
@@ -809,7 +772,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("12) Owner can manually refresh checkout order list", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let refreshRound = 0;
     const mocks = installOwnerPOSMocks(page, {
       orders: () => {
@@ -821,16 +784,16 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     });
     await openPOSCheckout(page, session);
     await waitUntilCheckoutAndSelect(page, "POS-1001");
-    const listCard = cardByHeader(page, /Pending Orders/i);
+    const listCard = pendingOrdersCard(page);
     await listCard.getByRole("button").nth(0).click();
     await expect(mocks.stats.orders).toBeGreaterThanOrEqual(2);
-    await expect(page.getByText("POS-1001")).toHaveCount(0);
+    await expect(pendingOrder(page, "POS-1001")).toHaveCount(0);
   });
 
   test("13) Owner confirms /dashboard/pos navigates to Checkout by default", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await page.goto(`${ADMIN_URL}/dashboard/pos`, { waitUntil: "networkidle" });
@@ -841,7 +804,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("14) Owner switches between checkout and management tabs and returns with state intact", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page);
     await openPOSCheckout(page, session);
     await page.getByRole("link", { name: /Register Management/i }).click();
@@ -854,15 +817,13 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("15) Management page loads registers, current shift and daily KPI", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
-    await expect(page.getByText("Front Counter")).toBeVisible();
-    await expect(page.getByText("Takeout Desk")).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /Today's Revenue/i }),
-    ).toBeVisible();
+    await expect(registerHeading(page, "Front Counter")).toBeVisible();
+    await expect(registerHeading(page, "Takeout Desk")).toBeVisible();
+    await expect(page.getByText("Today's Revenue")).toBeVisible();
     await expect(page.getByText("POS-1001", { exact: false })).toHaveCount(0);
     await expect(mocks.stats.currentShift).toBeGreaterThanOrEqual(1);
   });
@@ -870,7 +831,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("16) Management can activate an inactive register and keep action recoverable", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
@@ -885,7 +846,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("17) Management start shift flow from no-shift state", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page, {
       currentShift: () => successResponse(null),
       shiftStart: () =>
@@ -920,7 +881,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("18) Management can end an active shift and return to no-shift mode", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
@@ -936,7 +897,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("19) Management quick payment records a transaction and refreshes recent list", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let txnRound = 0;
     const mocks = installOwnerPOSMocks(page, {
       quickPayment: () => successResponse({ id: "qp-1" }),
@@ -982,7 +943,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("20) Management quick payment failure preserves input for retry", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page, {
       quickPayment: () => failureResponse("quick payment fail"),
     });
@@ -1007,7 +968,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("21) Management market checkout success clears id and updates transactions", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
@@ -1025,7 +986,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("22) Management market checkout failure keeps market checkout ID for retry", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page, {
       marketCheckoutPay: () => failureResponse("market checkout failed"),
     });
@@ -1047,7 +1008,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("23) Management cash movement posts movement and refreshes transaction list", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let movementCall = 0;
     const mocks = installOwnerPOSMocks(page, {
       transactions: () => {
@@ -1103,7 +1064,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("24) Management can open promotions management and toggle promotion state", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
@@ -1122,7 +1083,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("25) Management export API is triggered via export transactions action", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
@@ -1133,20 +1094,20 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("26) Management single promotions API failure keeps page core controls usable", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page, {
       promotions: () => failureResponse("promotion failed"),
     });
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
-    await expect(page.getByText("Front Counter")).toBeVisible();
+    await expect(registerHeading(page, "Front Counter")).toBeVisible();
     await expect(page.getByText(/No active promotions/i)).toBeVisible();
   });
 
   test("27) All POS APIs fail in one state, then recover after reload+re-mock", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const broken = installOwnerPOSMocks(page, {
       orders: () => failureResponse("all fail"),
       registers: () => failureResponse("all fail"),
@@ -1171,13 +1132,13 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await page.reload();
     await waitForManagementReady(page);
     await expect(recovered.stats.orders).toBeGreaterThan(0);
-    await expect(page.getByText("Front Counter")).toBeVisible();
+    await expect(registerHeading(page, "Front Counter")).toBeVisible();
   });
 
   test("28) Management supports 30-second polling cadence for recent transactions", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let round = 0;
     const mocks = installOwnerPOSMocks(page, {
       transactions: () => {
@@ -1197,31 +1158,26 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
       },
     });
 
-    await page.clock().install();
-    await page.addInitScript(() => {
-      window.setInterval(() => {
-        const refreshBtn = document.querySelector(
-          '[data-testid="refresh-btn"]',
-        ) as HTMLButtonElement | null;
-        if (refreshBtn) {
-          refreshBtn.click();
-        }
-      }, 30_000);
-    });
-
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
     await expect(mocks.stats.transactions).toBeGreaterThanOrEqual(1);
-    await page.clock().fastForward(90_000);
+
+    const refreshButton = page.getByTestId("refresh-btn").first();
+    await refreshButton.click();
+    await expect.poll(() => mocks.stats.transactions).toBeGreaterThanOrEqual(2);
+    await refreshButton.click();
+    await expect.poll(() => mocks.stats.transactions).toBeGreaterThanOrEqual(3);
+    await refreshButton.click();
     await expect
       .poll(() => mocks.stats.transactions, { timeout: 5_000 })
       .toBeGreaterThanOrEqual(4);
+    await expect(page.getByText(/Poll 4/)).toBeVisible();
   });
 
   test("29) Management to checkout tab and browser back keeps owner session/role", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
@@ -1230,13 +1186,13 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await page.goBack();
     await waitForManagementReady(page);
     await expect(page).toHaveURL(/\/dashboard\/pos\/management/);
-    await expect(page.getByText("Front Counter")).toBeVisible();
+    await expect(registerHeading(page, "Front Counter")).toBeVisible();
   });
 
   test("30) Management single transaction-list API failure is recoverable via manual refresh", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     let transactionsTry = 0;
     const mocks = installOwnerPOSMocks(page, {
       transactions: () => {
@@ -1274,7 +1230,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
   test("31) All POS APIs fail once, then retry in-place recovers without full page reload", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const broken = installOwnerPOSMocks(page, {
       orders: () => failureResponse("all fail"),
       registers: () => failureResponse("all fail"),
@@ -1292,26 +1248,26 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
     await expect(page.getByText(/Register List/i)).toBeVisible();
-    await expect(page.getByText("Front Counter")).toHaveCount(0);
+    await expect(registerHeading(page, "Front Counter")).toHaveCount(0);
 
     broken.restore();
     const recovered = installOwnerPOSMocks(page);
     await page.getByTestId("refresh-btn").first().click();
     await expect(recovered.stats.currentShift).toBeGreaterThanOrEqual(1);
-    await expect(page.getByText("Front Counter")).toBeVisible();
-    await expect(page.getByText("Takeout Desk")).toBeVisible();
+    await expect(registerHeading(page, "Front Counter")).toBeVisible();
+    await expect(registerHeading(page, "Takeout Desk")).toBeVisible();
   });
 
   test("32) Quick navigation sequence preserves owner session while switching routes", async ({
     page,
   }) => {
-    const session = await loginOwnerSession();
+    const session = await getSmokeOwnerSession();
     const mocks = installOwnerPOSMocks(page);
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
     await page.getByRole("link", { name: /Checkout/i }).click();
     await waitForCheckoutReady(page);
-    await page.getByText("POS-1001").click();
+    await pendingOrder(page, "POS-1001").click();
     await expect(
       page.getByRole("heading", { name: /Order Details/i }),
     ).toBeVisible();
@@ -1323,20 +1279,20 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
 
     await page.goBack();
     await waitForCheckoutReady(page);
-    await expect(page.getByText("POS-1001")).toBeVisible();
+    await expect(pendingOrder(page, "POS-1001")).toBeVisible();
 
     await page.goBack();
     await waitForManagementReady(page);
     await expect(page).toHaveURL(/\/dashboard\/pos\/management/);
-    await expect(page.getByText("Front Counter")).toBeVisible();
+    await expect(registerHeading(page, "Front Counter")).toBeVisible();
     await expect(mocks.stats.currentShift).toBeGreaterThanOrEqual(1);
   });
 });
 
 async function waitUntilCheckoutAndSelect(page: Page, orderNumber: string) {
   await waitForCheckoutReady(page);
-  await expect(page.getByText(orderNumber)).toBeVisible();
-  await page.getByText(orderNumber).click();
+  await expect(pendingOrder(page, orderNumber)).toBeVisible();
+  await pendingOrder(page, orderNumber).click();
   await expect(
     page.getByRole("heading", { name: /Order Details/i }),
   ).toBeVisible();
