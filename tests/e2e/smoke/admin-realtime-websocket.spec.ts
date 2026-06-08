@@ -8,16 +8,16 @@
  */
 
 import { expect, test, type Page } from "@playwright/test";
+import {
+  localAdminUrlFallback,
+  optionalEnv,
+  resolveLocalSmokeFixtureIds,
+} from "./smoke-env";
 
 const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 
-function optionalEnv(name: string): string | undefined {
-  const value = process.env[name]?.trim();
-  if (!value || value === "undefined" || value === "null") return undefined;
-  return value;
-}
-
-const ADMIN_URL = optionalEnv("SMOKE_ADMIN_URL");
+const ADMIN_URL =
+  optionalEnv("SMOKE_ADMIN_URL") ?? localAdminUrlFallback(API_URL);
 const AUTH_USERNAME = optionalEnv("SMOKE_AUTH_USERNAME");
 const AUTH_PASSWORD = optionalEnv("SMOKE_AUTH_PASSWORD");
 const RESTAURANT_ID = optionalEnv("SMOKE_RESTAURANT_ID");
@@ -172,13 +172,25 @@ async function installWebSocketProbe(page: Page) {
 test.describe("Smoke: admin realtime WebSocket", () => {
   test("admin dashboard receives a Realtime DO broadcast", async ({ page }) => {
     test.skip(
-      !ADMIN_URL || !AUTH_USERNAME || !AUTH_PASSWORD || !RESTAURANT_ID,
-      "SMOKE_ADMIN_URL / auth credentials / restaurant id not set",
+      !ADMIN_URL || !AUTH_USERNAME || !AUTH_PASSWORD,
+      "SMOKE_ADMIN_URL / auth credentials not set",
     );
 
     const adminUrl = ADMIN_URL!;
-    const restaurantId = RESTAURANT_ID!;
     const { token, refreshToken, user } = await login();
+    const fixtureIds = await resolveLocalSmokeFixtureIds({
+      apiUrl: API_URL,
+      authUsername: AUTH_USERNAME,
+      authPassword: AUTH_PASSWORD,
+      restaurantId: RESTAURANT_ID,
+      loginData: { token, refreshToken, user },
+    });
+    test.skip(
+      !fixtureIds.restaurantId,
+      "SMOKE_RESTAURANT_ID not set and local login did not provide one",
+    );
+
+    const restaurantId = fixtureIds.restaurantId!;
     const wsUrl = await requestAdminRealtimeToken(token, restaurantId);
     const realtimeHttpBase = realtimeHttpBaseFrom(wsUrl);
 

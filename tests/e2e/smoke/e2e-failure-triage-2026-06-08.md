@@ -73,3 +73,5 @@ Two smoke tests were skipped:
 - Layer 3 guest happy path round-trip
 
 They require additional environment variables such as `SMOKE_ADMIN_URL`, `SMOKE_RESTAURANT_ID`, and `SMOKE_MENU_ITEM_ID`.
+
+Follow-up change: local smoke runs now discover the Layer 3 fixture IDs when `SMOKE_API_URL` points at localhost and `SMOKE_AUTH_USERNAME` / `SMOKE_AUTH_PASSWORD` are set. The discovery logs in, reads the user's `restaurantId`, and selects the first available item from `/api/v1/menu/:id`. For staging/production URLs, `SMOKE_RESTAURANT_ID` and `SMOKE_MENU_ITEM_ID` remain explicit requirements. `SMOKE_ADMIN_URL` defaults to `http://localhost:3001` only for localhost; deployed runs still need an intentional admin URL.

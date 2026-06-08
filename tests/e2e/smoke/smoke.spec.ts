@@ -13,12 +13,16 @@
  *     - Auth login returns token
  *     - Authenticated read against /api/v1/orders succeeds
  *
- *   Layer 3 (skipped unless SMOKE_RESTAURANT_ID + SMOKE_MENU_ITEM_ID set)
+ *   Layer 3 (skipped unless SMOKE_RESTAURANT_ID + SMOKE_MENU_ITEM_ID set,
+ *   or local API + Layer 2 credentials can discover the owner's seeded
+ *   restaurant and first available menu item)
  *     - Guest order create + guest-token read round-trip + cancel cleanup
  *
  *   Admin realtime WebSocket coverage lives in
  *     tests/e2e/smoke/admin-realtime-websocket.spec.ts and is skipped unless
- *     SMOKE_ADMIN_URL + Layer 2 credentials + SMOKE_RESTAURANT_ID are set.
+ *     SMOKE_ADMIN_URL + Layer 2 credentials + SMOKE_RESTAURANT_ID are set;
+ *     for localhost, SMOKE_ADMIN_URL defaults to http://localhost:3001 and
+ *     SMOKE_RESTAURANT_ID can be discovered from the login response.
  *
  * Production smoke (deploy-production.yml) runs Layer 1 only — no
  * credentials configured, no test data created in prod. Staging smoke runs
@@ -29,23 +33,21 @@
  *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://staging.makanmakan.app
  *   SMOKE_AUTH_USERNAME    — seeded user for Layer 2 (e.g. admin in staging)
  *   SMOKE_AUTH_PASSWORD    — password for SMOKE_AUTH_USERNAME
- *   SMOKE_RESTAURANT_ID    — seeded restaurant UUID for Layer 3
- *   SMOKE_MENU_ITEM_ID     — seeded menu item id for Layer 3
- *   SMOKE_ADMIN_URL        — admin dashboard base for admin realtime smoke
+ *   SMOKE_RESTAURANT_ID    — seeded restaurant UUID for Layer 3; required
+ *                            outside localhost
+ *   SMOKE_MENU_ITEM_ID     — seeded menu item id for Layer 3; required outside
+ *                            localhost
+ *   SMOKE_ADMIN_URL        — admin dashboard base for admin realtime smoke;
+ *                            defaults to http://localhost:3001 on localhost
  *   SMOKE_REALTIME_URL     — optional realtime HTTP base; derived from wsUrl
  *                            by the realtime smoke when omitted
  */
 
 import { test, expect } from "@playwright/test";
+import { optionalEnv, resolveLocalSmokeFixtureIds } from "./smoke-env";
 
 const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const CUSTOMER_URL = process.env.SMOKE_CUSTOMER_URL || "http://localhost:3000";
-
-function optionalEnv(name: string): string | undefined {
-  const value = process.env[name]?.trim();
-  if (!value || value === "undefined" || value === "null") return undefined;
-  return value;
-}
 
 const AUTH_USERNAME = optionalEnv("SMOKE_AUTH_USERNAME");
 const AUTH_PASSWORD = optionalEnv("SMOKE_AUTH_PASSWORD");
@@ -131,7 +133,8 @@ test.describe("Smoke: Layer 2 (authenticated read)", () => {
 // ─── Layer 3: guest happy path ──────────────────────────────────────────────
 
 const layer3Reason =
-  "SMOKE_RESTAURANT_ID / SMOKE_MENU_ITEM_ID not set — skipping Layer 3";
+  "SMOKE_RESTAURANT_ID / SMOKE_MENU_ITEM_ID not set and local discovery " +
+  "did not find them — skipping Layer 3";
 
 interface GuestOrderResponse {
   success: boolean;
@@ -143,7 +146,18 @@ interface GuestOrderResponse {
 
 test.describe("Smoke: Layer 3 (guest happy path round-trip)", () => {
   test("create guest order, read with guest token, then cancel", async () => {
-    test.skip(!RESTAURANT_ID || MENU_ITEM_ID === undefined, layer3Reason);
+    const fixtureIds = await resolveLocalSmokeFixtureIds({
+      apiUrl: API_URL,
+      authUsername: AUTH_USERNAME,
+      authPassword: AUTH_PASSWORD,
+      restaurantId: RESTAURANT_ID,
+      menuItemId: MENU_ITEM_ID,
+    });
+
+    test.skip(
+      !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
+      layer3Reason,
+    );
 
     // Use a randomized 3-digit phone to avoid the active-order-per-phone
     // dedup KV key biting the smoke test on consecutive runs.
@@ -153,9 +167,9 @@ test.describe("Smoke: Layer 3 (guest happy path round-trip)", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        restaurantId: RESTAURANT_ID,
+        restaurantId: fixtureIds.restaurantId,
         orderType: "shop",
-        items: [{ menuItemId: MENU_ITEM_ID, quantity: 1 }],
+        items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
         guestName: "smoke-test",
         phoneLastDigits,
       }),
