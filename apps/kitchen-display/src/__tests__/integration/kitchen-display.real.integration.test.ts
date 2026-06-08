@@ -18,6 +18,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { eq, orderItems } from "@makanmakan/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -50,13 +51,34 @@ const CSRF_HEADERS = {
   "content-type": "application/json",
 };
 
+async function activateKitchenSubscription(restaurantId: string | number) {
+  const id = String(restaurantId);
+  const now = Date.now();
+
+  await testApp.env.DB.prepare(
+    `INSERT INTO shop_subscriptions
+      (id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+       is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+     VALUES (?, ?, 'trial', ?, 'managed', 1, ?, ?, ?)`,
+  )
+    .bind(
+      `kitchen-sub-${id}`,
+      id,
+      JSON.stringify({ kitchen_display: true, online_ordering: true }),
+      now + 24 * 60 * 60 * 1000,
+      now,
+      now,
+    )
+    .run();
+}
+
 // ─── Helper: create and confirm an order so it appears in the kitchen list ──
 // Kitchen only surfaces orders with status "confirmed" | "preparing" | "ready".
 async function createConfirmedOrder(
   restaurantId: string,
   menuItemId: number,
   token: string,
-): Promise<{ orderId: number; orderItems: any[] }> {
+): Promise<{ orderId: number; itemId: number }> {
   const postRes = await testApp.app.fetch(
     new Request("https://test/api/v1/orders", {
       method: "POST",
@@ -79,9 +101,19 @@ async function createConfirmedOrder(
     }),
   );
 
+  const [createdItem] = await testApp.testDb.drizzle
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, created.id))
+    .limit(1);
+
+  expect(createdItem?.id, "created order must include a kitchen item").toEqual(
+    expect.any(Number),
+  );
+
   return {
     orderId: created.id,
-    orderItems: created.orderItems ?? created.items ?? [],
+    itemId: createdItem.id,
   };
 }
 
@@ -92,6 +124,7 @@ async function createConfirmedOrder(
 describe("Kitchen Display GET orders — real integration", () => {
   it("chef (role=2) can fetch kitchen orders for their restaurant", async () => {
     const restaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
     const chef = await seed.user({ id: 10, role: 2, username: "chef-user" });
     const token = await testApp.authHelper.staffToken(
       chef.id,
@@ -118,6 +151,8 @@ describe("Kitchen Display GET orders — real integration", () => {
   it("chef from a different restaurant gets 403", async () => {
     const restaurant = await seed.restaurant();
     const otherRestaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
+    await activateKitchenSubscription(otherRestaurant.id);
     const chef = await seed.user({ id: 11, role: 2, username: "chef-other" });
     // Token carries otherRestaurant.id but request targets restaurant.id
     const token = await testApp.authHelper.staffToken(
@@ -153,6 +188,7 @@ describe("Kitchen Display GET orders — real integration", () => {
 
   it("service-crew (role=3) is also permitted to fetch kitchen orders", async () => {
     const restaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
     const crew = await seed.user({ id: 20, role: 3, username: "service-crew" });
     const token = await testApp.authHelper.staffToken(
       crew.id,
@@ -178,8 +214,9 @@ describe("Kitchen Display GET orders — real integration", () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Kitchen Display PUT item status — real integration", () => {
-  it("chef can update an order item status to preparing", async () => {
+  it("chef can move an order item from pending to preparing to ready", async () => {
     const restaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const chef = await seed.user({ id: 10, role: 2, username: "chef-user" });
     const menuItem = await seed.menuItem(restaurant.id, {
@@ -196,28 +233,11 @@ describe("Kitchen Display PUT item status — real integration", () => {
       String(restaurant.id),
     );
 
-    const { orderId, orderItems } = await createConfirmedOrder(
+    const { orderId, itemId } = await createConfirmedOrder(
       String(restaurant.id),
       menuItem.id,
       adminToken,
     );
-    const itemId = orderItems[0]?.id;
-
-    if (!itemId) {
-      // Response doesn't include orderItems — verify auth/access is correct (not 401/403)
-      const putRes = await testApp.app.fetch(
-        new Request(
-          `https://test/api/v1/kitchen/${restaurant.id}/orders/${orderId}/items/1`,
-          {
-            method: "PUT",
-            headers: { authorization: `Bearer ${chefToken}`, ...CSRF_HEADERS },
-            body: JSON.stringify({ status: "preparing" }),
-          },
-        ),
-      );
-      expect([200, 400, 404]).toContain(putRes.status);
-      return;
-    }
 
     const putRes = await testApp.app.fetch(
       new Request(
@@ -230,16 +250,45 @@ describe("Kitchen Display PUT item status — real integration", () => {
       ),
     );
 
-    expect([200, 400]).toContain(putRes.status);
-    if (putRes.status === 200) {
-      const json: any = await putRes.json();
-      expect(json.success).toBe(true);
-    }
+    expect(putRes.status).toBe(200);
+    const preparingJson: any = await putRes.json();
+    expect(preparingJson.success).toBe(true);
+
+    const [preparingItem] = await testApp.testDb.drizzle
+      .select({ status: orderItems.status })
+      .from(orderItems)
+      .where(eq(orderItems.id, itemId))
+      .limit(1);
+    expect(preparingItem?.status).toBe("preparing");
+
+    const readyRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/kitchen/${restaurant.id}/orders/${orderId}/items/${itemId}`,
+        {
+          method: "PUT",
+          headers: { authorization: `Bearer ${chefToken}`, ...CSRF_HEADERS },
+          body: JSON.stringify({ status: "ready" }),
+        },
+      ),
+    );
+
+    expect(readyRes.status).toBe(200);
+    const readyJson: any = await readyRes.json();
+    expect(readyJson.success).toBe(true);
+
+    const [readyItem] = await testApp.testDb.drizzle
+      .select({ status: orderItems.status })
+      .from(orderItems)
+      .where(eq(orderItems.id, itemId))
+      .limit(1);
+    expect(readyItem?.status).toBe("ready");
   });
 
   it("chef from wrong restaurant gets 403 on PUT", async () => {
     const restaurant = await seed.restaurant();
     const otherRestaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
+    await activateKitchenSubscription(otherRestaurant.id);
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const chef = await seed.user({ id: 11, role: 2, username: "chef-other" });
 
@@ -256,22 +305,15 @@ describe("Kitchen Display PUT item status — real integration", () => {
       String(otherRestaurant.id),
     );
 
-    const postRes = await testApp.app.fetch(
-      new Request("https://test/api/v1/orders", {
-        method: "POST",
-        headers: { authorization: `Bearer ${adminToken}`, ...CSRF_HEADERS },
-        body: JSON.stringify({
-          restaurantId: String(restaurant.id),
-          items: [{ menuItemId: item.id, quantity: 1 }],
-        }),
-      }),
+    const { orderId, itemId } = await createConfirmedOrder(
+      String(restaurant.id),
+      item.id,
+      adminToken,
     );
-    expect(postRes.status).toBe(201);
-    const created: any = (await postRes.json()).data;
 
     const putRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/kitchen/${restaurant.id}/orders/${created.id}/items/1`,
+        `https://test/api/v1/kitchen/${restaurant.id}/orders/${orderId}/items/${itemId}`,
         {
           method: "PUT",
           headers: { authorization: `Bearer ${wrongToken}`, ...CSRF_HEADERS },
@@ -293,6 +335,7 @@ describe("Kitchen Display PUT item status — real integration", () => {
 describe("Kitchen Display round-trip — real integration", () => {
   it("admin creates + confirms an order and chef sees it in the kitchen queue", async () => {
     const restaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const chef = await seed.user({ id: 10, role: 2, username: "chef-user" });
     const menuItem = await seed.menuItem(restaurant.id, {
@@ -339,6 +382,7 @@ describe("Kitchen Display round-trip — real integration", () => {
 
   it("kitchen queue is empty before any confirmed orders exist", async () => {
     const restaurant = await seed.restaurant();
+    await activateKitchenSubscription(restaurant.id);
     const chef = await seed.user({ id: 10, role: 2, username: "chef-user" });
     const token = await testApp.authHelper.staffToken(
       chef.id,
