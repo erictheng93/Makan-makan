@@ -22,7 +22,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.5.0",
     "@makanmakan/utils": "workspace:*",
-    "hono": "^4.12.15",
+    "hono": "^4.12.24",
     "zod": "^3.25.76"
   },
   "devDependencies": {

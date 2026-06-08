@@ -27,7 +27,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.makanmakan\.app\//,
+            urlPattern: /^https:\/\/api\.makanmasak\.com\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
@@ -38,7 +38,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/images\.makanmakan\.app\//,
+            urlPattern: /^https:\/\/images\.makanmasak\.com\//,
             handler: "CacheFirst",
             options: {
               cacheName: "image-cache",

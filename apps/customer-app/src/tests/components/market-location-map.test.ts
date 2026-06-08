@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MarketLocationMap from "@/components/markets/MarketLocationMap.vue";
 import { loadMarketMapRuntime } from "@/components/markets/mapRuntime";
 import type { MarketDetail, MarketVendor } from "@/services/marketsApi";
@@ -89,6 +89,10 @@ function vendor(overrides: Partial<MarketVendor> = {}): MarketVendor {
 }
 
 describe("MarketLocationMap", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     maplibreMock.Map.mockImplementation(() => ({
@@ -202,6 +206,34 @@ describe("MarketLocationMap", () => {
     expect(markerSetLngLat).toHaveBeenCalledWith([120.6466, 24.1764]);
     expect(markerSetLngLat).toHaveBeenCalledWith([120.6467, 24.1765]);
     expect(markerSetLngLat).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the production PMTiles style when production map env is not injected", async () => {
+    vi.stubEnv("PROD", true);
+    vi.stubEnv("VITE_MAP_STYLE_URL", "");
+    vi.stubEnv("VITE_MAP_PM_TILES_URL", "");
+    vi.stubEnv("VITE_MAP_GLYPHS_URL", "");
+
+    mount(MarketLocationMap, {
+      props: {
+        market: market(),
+        vendors: [vendor()],
+      },
+    });
+    await vi.dynamicImportSettled();
+
+    expect(maplibreMock.Map).toHaveBeenCalledWith(
+      expect.objectContaining({
+        style: expect.objectContaining({
+          glyphs: "https://maps.makanmasak.com/fonts/{fontstack}/{range}.pbf",
+          sources: expect.objectContaining({
+            protomaps: expect.objectContaining({
+              url: "pmtiles://https://maps.makanmasak.com/taiwan.pmtiles",
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   it("removes the map instance on unmount", async () => {

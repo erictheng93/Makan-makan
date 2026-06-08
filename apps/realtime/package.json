@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@makanmakan/shared-types": "workspace:*",
-    "hono": "^4.12.15",
+    "hono": "^4.12.24",
     "jsonwebtoken": "^9.0.2",
     "zod": "^3.25.76"
   },

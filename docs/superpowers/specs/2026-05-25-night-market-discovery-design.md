@@ -342,9 +342,9 @@ New components:
 
 Map architecture decision (2026-06-08):
 - Use a two-layer map model instead of replacing stall maps with a geospatial map.
-- **External market/shop positioning**: `MarketLocationMap` uses MapLibre GL JS. It supports `VITE_MAP_PM_TILES_URL` for Protomaps/PMTiles hosted on Cloudflare R2 and `VITE_MAP_STYLE_URL` for a full style override. When neither is set, it falls back to MapLibre's demo style so local development still renders.
+- **External market/shop positioning**: `MarketLocationMap` uses MapLibre GL JS. It supports `VITE_MAP_PM_TILES_URL` for Protomaps/PMTiles hosted on Cloudflare R2, `VITE_MAP_GLYPHS_URL` for hosted glyph PBF files, and `VITE_MAP_STYLE_URL` for a full style override. In production, missing tile/glyph env falls back to the production `maps.makanmasak.com` assets; local development without map env falls back to MapLibre's demo style so it still renders.
 - **Internal stall navigation**: `StallMapInMarket` remains the source of truth for curated stall positions, because night-market stalls often lack reliable GPS and need human-readable lane/stall labels.
-- Production deployments should provide either `VITE_MAP_PM_TILES_URL` or `VITE_MAP_STYLE_URL`; otherwise the map still works in development mode but depends on the public demo style.
+- Production deployments should provide either `VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`, or `VITE_MAP_STYLE_URL`. The customer app also has production defaults for `https://maps.makanmasak.com/taiwan.pmtiles` and `https://maps.makanmasak.com/fonts/{fontstack}/{range}.pbf`.
 
 Extended:
 - `DiscoveryView.vue` adds an optional "Filter by market" pill row above existing filters.

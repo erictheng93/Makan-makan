@@ -460,7 +460,7 @@ wrangler pages deploy dist --project-name makanmakan-kitchen-staging
 - [ ] Database IDs 已更新為 production
 - [ ] KV Namespace IDs 已更新為 production
 - [ ] R2 Bucket 名稱已更新為 production
-- [ ] Customer App map variables 已設定：`VITE_MAP_PM_TILES_URL` 或 `VITE_MAP_STYLE_URL`
+- [ ] Customer App map variables 已設定：`VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`，或 `VITE_MAP_STYLE_URL`
 - [ ] 若使用 Protomaps PMTiles，R2 map tile bucket/object 已上傳並允許 browser Range requests
 - [ ] CORS 設定為正確的 production 域名
 - [ ] Rate limiting 設定為生產級別

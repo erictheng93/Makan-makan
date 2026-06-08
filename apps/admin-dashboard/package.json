@@ -28,7 +28,7 @@
     "@stripe/stripe-js": "^4.0.0",
     "@tailwindcss/forms": "^0.5.0",
     "@vueuse/core": "^10.7.0",
-    "axios": "^1.15.2",
+    "axios": "^1.17.0",
     "chart.js": "^4.5.0",
     "date-fns": "^3.0.0",
     "jspdf": "^4.2.1",

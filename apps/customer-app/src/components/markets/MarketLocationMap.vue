@@ -62,6 +62,13 @@ import type {
 } from "@/services/marketsApi";
 import { loadMarketMapRuntime } from "./mapRuntime";
 
+const PRODUCTION_PM_TILES_URL = "https://maps.makanmasak.com/taiwan.pmtiles";
+const PRODUCTION_MAP_GLYPHS_URL =
+  "https://maps.makanmasak.com/fonts/{fontstack}/{range}.pbf";
+const DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json";
+const DEMO_GLYPHS_URL =
+  "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf";
+
 const props = defineProps<{
   market: MarketDetail;
   vendors: MarketVendor[];
@@ -143,12 +150,18 @@ function mapStyle(): string | StyleSpecification {
   const configuredStyle = import.meta.env.VITE_MAP_STYLE_URL;
   if (configuredStyle) return configuredStyle;
 
-  const pmTilesUrl = import.meta.env.VITE_MAP_PM_TILES_URL;
-  if (!pmTilesUrl) return "https://demotiles.maplibre.org/style.json";
+  const pmTilesUrl =
+    import.meta.env.VITE_MAP_PM_TILES_URL ||
+    (import.meta.env.PROD ? PRODUCTION_PM_TILES_URL : "");
+  if (!pmTilesUrl) return DEMO_STYLE_URL;
+
+  const glyphsUrl =
+    import.meta.env.VITE_MAP_GLYPHS_URL ||
+    (import.meta.env.PROD ? PRODUCTION_MAP_GLYPHS_URL : DEMO_GLYPHS_URL);
 
   return {
     version: 8,
-    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+    glyphs: glyphsUrl,
     sources: {
       protomaps: {
         type: "vector",

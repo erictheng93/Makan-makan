@@ -93,7 +93,7 @@ const TRUSTED_ASNS = new Set([
 export class GeoIntelligentRateLimiter {
   constructor(
     private rateLimitKV: KVNamespace,
-    private analyticsEngine: AnalyticsEngine,
+    private analyticsEngine: AnalyticsEngine | undefined,
     private context: ExecutionContext,
     private env: Env,
   ) {}

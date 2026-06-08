@@ -30,7 +30,7 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.4.1",
     "fflate": "^0.8.2",
-    "hono": "^4.12.15",
+    "hono": "^4.12.24",
     "jsonwebtoken": "^9.0.2",
     "qrcode": "^1.5.4",
     "zod": "^3.25.76"

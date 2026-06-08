@@ -24,7 +24,7 @@
     "@tanstack/vue-query": "^5.17.0",
     "@vueuse/core": "^10.7.0",
     "@vueuse/integrations": "^10.7.0",
-    "axios": "^1.15.2",
+    "axios": "^1.17.0",
     "date-fns": "^3.0.0",
     "howler": "^2.2.4",
     "lucide-vue-next": "^0.344.0",
