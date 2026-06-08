@@ -3,7 +3,8 @@
 **Date**: 2026-05-25
 **Status**: Approved for Phase 1 backend core
 **Author**: Eric
-**Phase 1 scope**: Markets entity, GPS-based search, Discovery → takeaway order bridge
+**Phase 1 scope**: Markets entity, GPS-based search, customer-facing market maps, Discovery → takeaway order bridge
+**Implementation update (2026-06-08)**: Customer market detail pages now use a two-layer map model: MapLibre GL JS for external market/shop positioning and the existing stall-layout map for in-market navigation.
 **Future phases**: Operator portal, vendor contact via deep-link + FAQ (Phase 3), follow/broadcast (see §10)
 **Companion spec**: [`2026-05-25-customer-identity-and-profile-design.md`](./2026-05-25-customer-identity-and-profile-design.md) — hard prerequisite for Phase 4
 
@@ -38,7 +39,7 @@ This spec promotes "market" to a first-class entity, activates the dormant `rest
 - Customer ↔ vendor direct messaging (DM). See §10.
 - Market operator role + dedicated portal. See §10.
 - Vendor → follower broadcast / push promotions. See §10.
-- Polygon / GeoJSON boundary editing for markets. MVP uses a single centroid point.
+- Polygon / GeoJSON boundary editing for markets. Phase 1 can display imported `boundaryGeojson`, but operator/admin editing is deferred.
 - Cross-market analytics dashboards.
 - Multi-language market metadata (will ship zh-TW only, schema is i18n-ready).
 
@@ -75,7 +76,9 @@ A curated commercial district / night market / food court / event venue.
 | address | TEXT NOT NULL | Human-readable address of centroid |
 | latitude | REAL NOT NULL | Centroid GPS |
 | longitude | REAL NOT NULL | Centroid GPS |
+| boundaryGeojson | TEXT (JSON) | Optional Polygon/MultiPolygon footprint used by customer external maps; editing remains platform-admin/import driven in Phase 1. |
 | openingHours | TEXT (JSON) | Same shape as `restaurants.business_hours`; nullable (some markets are 24/7 or per-vendor) |
+| mapLayout | TEXT (JSON) | Optional stall-layout metadata for in-market navigation: `{ title?, description?, imageUrl?, width?, height? }`. This is separate from real GPS maps. |
 | bannerUrl | TEXT | Hero image (R2 / Cloudflare Images) |
 | logoUrl | TEXT | Optional emblem |
 | imageUrls | TEXT (JSON) | Gallery, `string[]` |
@@ -333,7 +336,15 @@ New components:
 - `components/markets/MarketCard.vue`
 - `components/markets/MarketDetailHero.vue`
 - `components/markets/VendorListInMarket.vue` (filters: openNow, takeaway, search)
-- `components/markets/NearbyMarketMap.vue` (optional, Phase 1.5; MVP can ship list-only with distance label)
+- `components/markets/MarketLocationMap.vue` — implemented customer-facing external location map. It lazy-loads MapLibre GL JS and PMTiles runtime, centers on `MarketDetail.latitude/longitude`, renders optional `boundaryGeojson`, plots vendors that have `latitude/longitude`, and exposes a Google Maps navigation link.
+- `components/markets/StallMapInMarket.vue` — implemented in-market stall-layout map. It keeps using `mapLayout.imageUrl` plus `mapPosition: { x, y }` percentage coordinates so night-market/floor-plan navigation can remain independent from GPS accuracy.
+- `components/markets/NearbyMarketMap.vue` (optional, Phase 1.5; market list MVP can ship list-only with distance label)
+
+Map architecture decision (2026-06-08):
+- Use a two-layer map model instead of replacing stall maps with a geospatial map.
+- **External market/shop positioning**: `MarketLocationMap` uses MapLibre GL JS. It supports `VITE_MAP_PM_TILES_URL` for Protomaps/PMTiles hosted on Cloudflare R2 and `VITE_MAP_STYLE_URL` for a full style override. When neither is set, it falls back to MapLibre's demo style so local development still renders.
+- **Internal stall navigation**: `StallMapInMarket` remains the source of truth for curated stall positions, because night-market stalls often lack reliable GPS and need human-readable lane/stall labels.
+- Production deployments should provide either `VITE_MAP_PM_TILES_URL` or `VITE_MAP_STYLE_URL`; otherwise the map still works in development mode but depends on the public demo style.
 
 Extended:
 - `DiscoveryView.vue` adds an optional "Filter by market" pill row above existing filters.
@@ -402,9 +413,10 @@ Decision rationale: small vendors won't staff a real-time inbox. Forcing them on
 - Market → all vendors announcement broadcast.
 - **Prerequisite**: Customer Identity spec must land first so that "follow" and "push to followers" have a real customer entity to attach to.
 
-### Phase 5: Polygon boundaries & map editing
-- Replace centroid point with optional GeoJSON polygon for market footprint.
-- In-app map editor for operators.
+### Phase 5: Map editing and tile operations
+- Operator/admin UI for editing optional GeoJSON market footprints instead of importing them manually.
+- Optional in-app editor for stall-layout background images and `mapPosition` percentages.
+- Production PMTiles operations: generate Taiwan/city-bounded PMTiles archives, upload them to Cloudflare R2, configure CORS for browser Range requests, and wire `VITE_MAP_PM_TILES_URL` per environment.
 
 ---
 

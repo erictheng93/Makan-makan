@@ -50,7 +50,8 @@ MakanMakan is a fully serverless, multi-tenant restaurant management SaaS platfo
 - **Group Orders & Split Billing** - Shared carts, split bills, share codes
 - **Coupon & Promotions** - Coupon templates, usage tracking, distributions
 - **Customer Profiles** - Registration, order history, phone verification
-- **Discovery System** - Restaurant/dish search with full-text indexing
+- **Discovery System** - Restaurant/dish/market search with full-text indexing
+- **Market Location Maps** - MapLibre GL JS external market maps with optional Protomaps PMTiles/R2 tiles, plus separate stall-layout maps for in-market navigation
 - **Reservations & Waiting List** - Table reservations and walk-in queue
 
 ### Employee Management
@@ -136,6 +137,8 @@ pnpm deploy:prod      # Deploy to production
 | **D1**              | Primary database (SQLite)      | Global distribution, auto-replication |
 | **KV**              | Session cache, hot data        | Ultra-low latency reads               |
 | **R2**              | Images, static assets, backups | Zero egress fees                      |
+| **MapLibre GL JS**  | Customer market maps           | Open-source WebGL map renderer        |
+| **Protomaps PMTiles** | Optional hosted map tiles     | Single-file vector tiles on R2/CDN    |
 | **Pages**           | Frontend hosting               | Auto CDN, Git integration             |
 | **Durable Objects** | WebSocket real-time            | Stateful connections, low latency     |
 | **Images**          | Image optimization             | Auto resize, WebP conversion          |

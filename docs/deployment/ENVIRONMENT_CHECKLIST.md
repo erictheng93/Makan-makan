@@ -264,6 +264,27 @@
   - [ ] `apps/api/wrangler.toml`
   - [ ] `apps/backup-scheduler/wrangler.toml`
 
+- [ ] 🔸 Map Tiles Bucket / Object 已準備（若使用 Protomaps PMTiles）
+
+  ```bash
+  wrangler r2 bucket create makanmakan-map-tiles-staging  □
+  # Upload a bounded PMTiles archive, e.g. taiwan.pmtiles, through the
+  # Cloudflare dashboard, S3-compatible API, or wrangler-supported upload flow.
+  ```
+
+- [ ] 🔸 Map Tiles CORS 已允許 browser PMTiles Range requests
+  - [ ] `GET`, `HEAD`
+  - [ ] request header: `range`
+  - [ ] exposed headers: `etag`, `content-length`, `content-range`
+
+### Customer App Map Variables (Staging)
+
+- [ ] 🔸 若使用 R2/PMTiles，Cloudflare Pages 已設定：
+  - [ ] `VITE_MAP_PM_TILES_URL=https://<public-r2-or-custom-domain>/taiwan.pmtiles`
+- [ ] 🔸 若使用完整 MapLibre style，Cloudflare Pages 已設定：
+  - [ ] `VITE_MAP_STYLE_URL=https://<cdn>/style.json`
+- [ ] ✅ 未設定上述變數時已接受 fallback 行為：customer app 會使用 MapLibre demo style；適合 local/dev，不建議作為 production 依賴。
+
 ### Secrets (Staging)
 
 - [ ] ⚠️ JWT_SECRET 已設置
@@ -452,6 +473,18 @@
   - [ ] `apps/api/wrangler.toml`
   - [ ] `apps/backup-scheduler/wrangler.toml`
   - [ ] `apps/image-processor/wrangler.toml`
+
+- [ ] 🚀 Map Tiles Bucket / Object 已準備（若使用 Protomaps PMTiles）
+  - [ ] `makanmakan-map-tiles-prod` 或等效 production bucket 已建立
+  - [ ] production PMTiles archive 已上傳
+  - [ ] public/custom domain URL 可被瀏覽器讀取
+  - [ ] CORS 已允許 PMTiles Range requests
+
+### Customer App Map Variables (Production)
+
+- [ ] 🚀 `VITE_MAP_PM_TILES_URL` 或 `VITE_MAP_STYLE_URL` 已在 Customer App Pages production 環境設定
+- [ ] 🚀 若使用 `VITE_MAP_PM_TILES_URL`，URL 指向 production R2/custom-domain PMTiles object，而不是 staging object
+- [ ] 🚀 手機瀏覽 `/markets/:slug` 時外部市場地圖可載入，且攤位示意圖仍保留
 
 ### Secrets (Production)
 
