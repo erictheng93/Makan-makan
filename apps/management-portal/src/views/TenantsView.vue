@@ -87,7 +87,7 @@ const getStatusClass = (status: TenantStatus) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" data-testid="management-tenants-page">
     <!-- 頁面標題 -->
     <div class="flex items-center justify-between">
       <div>

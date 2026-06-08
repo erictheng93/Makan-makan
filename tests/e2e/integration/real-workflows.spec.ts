@@ -64,6 +64,36 @@ interface GuestOrderResponse {
   };
 }
 
+interface OrderBody {
+  success: boolean;
+  data?: {
+    id?: number;
+    status?: string;
+    items?: Array<{
+      id?: number;
+      status?: string;
+    }>;
+  };
+}
+
+interface KitchenOrdersBody {
+  success: boolean;
+  data?: {
+    pending?: Array<{
+      id?: number;
+      items?: Array<{ id?: number; status?: string }>;
+    }>;
+    preparing?: Array<{
+      id?: number;
+      items?: Array<{ id?: number; status?: string }>;
+    }>;
+    ready?: Array<{
+      id?: number;
+      items?: Array<{ id?: number; status?: string }>;
+    }>;
+  };
+}
+
 interface LoginResponse {
   success: boolean;
   data?: {
@@ -80,6 +110,17 @@ interface LoginResponse {
 
 let loginDataPromise: Promise<SmokeLoginData> | undefined;
 let chefLoginDataPromise: Promise<LoginResponse["data"]> | undefined;
+
+function csrfHeaders() {
+  const token = "a".repeat(64);
+  const api = new URL(API_URL);
+  return {
+    "X-CSRF-Token": token,
+    cookie: `csrf_token=${token}`,
+    origin: api.origin,
+    host: api.host,
+  };
+}
 
 function getLoginData(): Promise<SmokeLoginData> | undefined {
   if (!AUTH_USERNAME || !AUTH_PASSWORD) return undefined;
@@ -211,21 +252,61 @@ async function installKitchenSession(
 }
 
 async function confirmOrder(orderId: number, token: string) {
-  const csrfToken = "a".repeat(64);
   const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/status`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      "X-CSRF-Token": csrfToken,
-      cookie: `csrf_token=${csrfToken}`,
-      origin: new URL(API_URL).origin,
-      host: new URL(API_URL).host,
+      ...csrfHeaders(),
     },
     body: JSON.stringify({ status: "confirmed" }),
   });
 
   expect(response.ok, `confirm order status ${response.status}`).toBe(true);
+}
+
+async function fetchOrder(orderId: number, token: string): Promise<OrderBody> {
+  const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(response.ok, `fetch order status ${response.status}`).toBe(true);
+  return (await response.json()) as OrderBody;
+}
+
+async function cancelOrderAsOwner(orderId: number, token: string) {
+  await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...csrfHeaders(),
+    },
+    body: JSON.stringify({ reason: "workflow cleanup" }),
+  }).catch(() => {
+    /* best-effort cleanup */
+  });
+}
+
+async function fetchKitchenOrders(
+  restaurantId: string,
+  token: string,
+): Promise<KitchenOrdersBody> {
+  const response = await fetch(
+    `${API_URL}/api/v1/kitchen/${restaurantId}/orders`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  expect(response.ok, `fetch kitchen orders status ${response.status}`).toBe(
+    true,
+  );
+  return (await response.json()) as KitchenOrdersBody;
+}
+
+function findKitchenOrder(body: KitchenOrdersBody, orderId: number) {
+  return [
+    ...(body.data?.pending ?? []),
+    ...(body.data?.preparing ?? []),
+    ...(body.data?.ready ?? []),
+  ].find((order) => order.id === orderId);
 }
 
 test.describe.configure({ mode: "serial" });
@@ -427,9 +508,7 @@ test.describe("Real system workflows", () => {
     }
   });
 
-  test("owner dashboard lists an order created through the real API", async ({
-    page,
-  }) => {
+  test("owner dashboard updates a real API order status", async ({ page }) => {
     test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
@@ -483,8 +562,28 @@ test.describe("Real system workflows", () => {
 
       await expect(page.getByTestId("admin-orders-page")).toBeVisible();
       await expect(page.getByText(adminOrderNumber(orderId!))).toBeVisible();
+
+      const updateResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/orders/${orderId}/status`) &&
+          response.request().method() === "PUT",
+      );
+      await page.getByTestId(`admin-order-update-${orderId}`).click();
+      const updateResponse = await updateResponsePromise;
+      expect(
+        updateResponse.ok(),
+        `admin order status update ${updateResponse.status()}`,
+      ).toBe(true);
+
+      await expect
+        .poll(async () => {
+          const body = await fetchOrder(orderId!, loginData.token!);
+          return body.data?.status;
+        })
+        .toBe("confirmed");
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     } finally {
+      await cancelOrderAsOwner(orderId!, loginData.token!);
       await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
         method: "POST",
         headers: { Authorization: `Bearer ${guestToken}` },
@@ -565,8 +664,34 @@ test.describe("Real system workflows", () => {
       await expect(
         page.getByTestId(`kitchen-order-card-${orderId}`),
       ).toBeVisible();
+
+      const updateResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(`/api/v1/kitchen/${fixtureIds.restaurantId}/orders/`) &&
+          response.request().method() === "PUT",
+      );
+      await page.getByTestId(`kitchen-order-start-${orderId}`).click();
+      const updateResponse = await updateResponsePromise;
+      expect(
+        updateResponse.ok(),
+        `kitchen item status update ${updateResponse.status()}`,
+      ).toBe(true);
+
+      await expect
+        .poll(async () => {
+          const body = await fetchKitchenOrders(
+            fixtureIds.restaurantId!,
+            chefLoginData.token!,
+          );
+          const order = findKitchenOrder(body, orderId!);
+          return order?.items?.some((item) => item.status === "preparing");
+        })
+        .toBe(true);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     } finally {
+      await cancelOrderAsOwner(orderId!, ownerLoginData!.token!);
       await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
         method: "POST",
         headers: { Authorization: `Bearer ${guestToken}` },
@@ -598,6 +723,31 @@ test.describe("Real system workflows", () => {
 
     await healthResponse;
     await expect(page.getByTestId("management-health-page")).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("management portal tenants page loads tenant data from the management API", async ({
+    page,
+  }) => {
+    test.skip(
+      !MANAGEMENT_PORTAL_URL || !MANAGEMENT_TOKEN,
+      "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
+    );
+
+    await page.addInitScript((token) => {
+      window.localStorage.setItem("management_token", token);
+    }, MANAGEMENT_TOKEN);
+
+    const tenantsResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/v1/tenants") && response.ok(),
+    );
+
+    await page.goto(`${MANAGEMENT_PORTAL_URL}/tenants`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await tenantsResponse;
+    await expect(page.getByTestId("management-tenants-page")).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 

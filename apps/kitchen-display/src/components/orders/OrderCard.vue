@@ -118,6 +118,7 @@
               <button
                 v-if="item.status === 'pending'"
                 class="min-h-[44px] px-3 py-1 rounded-full bg-ios-blue text-white text-sm font-semibold"
+                :data-testid="`kitchen-item-start-${order.id}-${item.id}`"
                 :title="t('orders.startPreparing')"
                 @click.stop="handleStartCooking(item.id)"
               >
@@ -126,6 +127,7 @@
               <button
                 v-else-if="item.status === 'preparing'"
                 class="min-h-[44px] px-3 py-1 rounded-full bg-ios-green text-white text-sm font-semibold"
+                :data-testid="`kitchen-item-ready-${order.id}-${item.id}`"
                 :title="t('orders.markComplete')"
                 @click.stop="handleMarkReady(item.id)"
               >
@@ -215,6 +217,7 @@
         <button
           v-if="statusType === 'pending'"
           class="flex-1 min-h-[44px] rounded-full py-3 font-bold text-white bg-ios-blue flex items-center justify-center gap-2"
+          :data-testid="`kitchen-order-start-${order.id}`"
           @click="handleStartAll"
         >
           <PlayIcon class="w-4 h-4" />
@@ -223,6 +226,7 @@
         <button
           v-else-if="statusType === 'preparing'"
           class="flex-1 min-h-[44px] rounded-full py-3 font-bold text-white bg-ios-green flex items-center justify-center gap-2"
+          :data-testid="`kitchen-order-ready-${order.id}`"
           @click="handleMarkAllReady"
         >
           <CheckIcon class="w-4 h-4" />

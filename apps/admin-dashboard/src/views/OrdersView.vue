@@ -241,6 +241,7 @@
                   <div class="flex items-center justify-end gap-1">
                     <button
                       class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      :data-testid="`admin-order-view-${order.id}`"
                       :title="t('orders.actions.view')"
                       @click="viewOrderDetails(order)"
                     >
@@ -249,6 +250,7 @@
                     <button
                       v-if="canUpdateStatus(order.status)"
                       class="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                      :data-testid="`admin-order-update-${order.id}`"
                       :title="t('orders.actions.update')"
                       @click="updateOrderStatus(order)"
                     >
@@ -257,6 +259,7 @@
                     <button
                       v-if="canCancel(order.status)"
                       class="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      :data-testid="`admin-order-cancel-${order.id}`"
                       :title="t('orders.actions.cancel')"
                       @click="cancelOrder(order)"
                     >
@@ -335,6 +338,7 @@
               >
                 <button
                   class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  :data-testid="`admin-order-view-${order.id}`"
                   @click="viewOrderDetails(order)"
                 >
                   <EyeIcon class="h-4 w-4" />
@@ -343,6 +347,7 @@
                 <button
                   v-if="canUpdateStatus(order.status)"
                   class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                  :data-testid="`admin-order-update-${order.id}`"
                   @click="updateOrderStatus(order)"
                 >
                   <ArrowPathIcon class="h-4 w-4" />
@@ -351,6 +356,7 @@
                 <button
                   v-if="canCancel(order.status)"
                   class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  :data-testid="`admin-order-cancel-${order.id}`"
                   @click="cancelOrder(order)"
                 >
                   <XCircleIcon class="h-4 w-4" />
