@@ -34,6 +34,9 @@
   "exclude": [
     "node_modules",
     "dist",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__/**",
     "src/shared/templates",
     "../../packages/database/src/**/__tests__/**",
     "../../packages/database/src/**/*.test.ts",

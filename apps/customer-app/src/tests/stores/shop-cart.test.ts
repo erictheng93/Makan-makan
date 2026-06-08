@@ -28,23 +28,26 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
 
 const customizations = (): SelectedCustomizations => ({
   size: {
-    id: 1,
+    id: "size-large",
     name: "Large",
     priceAdjustment: 20,
   },
   options: [
     {
-      id: 2,
-      name: "Extra spicy",
+      id: "spice-level",
+      optionName: "Spice level",
+      choiceId: "extra-spicy",
+      choiceName: "Extra spicy",
       priceAdjustment: 5,
     },
   ],
   addOns: [
     {
-      id: 3,
+      id: "egg",
       name: "Egg",
       unitPrice: 15,
       quantity: 1,
+      totalPrice: 15,
     },
   ],
 });

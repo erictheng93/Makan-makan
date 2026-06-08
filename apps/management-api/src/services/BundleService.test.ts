@@ -2,13 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { BundleService } from "./BundleService";
 import type { ManagementEnv } from "../types";
 
-type StoredObject = {
-  text: () => Promise<string>;
-};
-
-const object = (value: string): StoredObject => ({
-  text: async () => value,
-});
+const object = (value: string): R2ObjectBody =>
+  ({
+    text: async () => value,
+  }) as unknown as R2ObjectBody;
 
 const envWithStorage = (storage: Partial<R2Bucket>) =>
   ({

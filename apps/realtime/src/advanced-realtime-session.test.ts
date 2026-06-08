@@ -34,6 +34,8 @@ function createEnv(): Env {
         fetch: vi.fn(async () => new Response("OK")),
       })),
     } as unknown as DurableObjectNamespace,
+    DB: {} as D1Database,
+    JWT_SECRET: "test-jwt-secret",
   };
 }
 
@@ -356,7 +358,9 @@ describe("AdvancedRealtimeSession group order behavior", () => {
       unitPrice: 120,
     });
 
-    const [itemId, item] = Array.from(groupOrder.cart.entries())[0];
+    const cartEntry = Array.from(groupOrder.cart.entries())[0];
+    expect(cartEntry).toBeDefined();
+    const [itemId, item] = cartEntry as [string, unknown];
     expect(item).toMatchObject({ totalPrice: 240, version: 1 });
     expect(groupOrder.totalAmount).toBe(240);
 
@@ -1365,9 +1369,10 @@ describe("AdvancedRealtimeSession advanced coverage paths", () => {
   it("attempts websocket upgrades and stores connection metadata", async () => {
     const client = createFakeSocket();
     const server = createFakeSocket();
+    const analytics = { writeDataPoint: vi.fn() };
     const env = {
       ...createEnv(),
-      ANALYTICS_ENGINE: { writeDataPoint: vi.fn() },
+      ANALYTICS_ENGINE: analytics,
     } as Env;
     vi.stubGlobal("WebSocketPair", function WebSocketPair() {
       return { 0: client.socket, 1: server.socket };
@@ -1409,7 +1414,7 @@ describe("AdvancedRealtimeSession advanced coverage paths", () => {
         sessionId: "session-7",
       },
     });
-    expect(env.ANALYTICS_ENGINE.writeDataPoint).toHaveBeenCalledWith(
+    expect(analytics.writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
         blobs: expect.arrayContaining(["connect", "7", "10"]),
       }),

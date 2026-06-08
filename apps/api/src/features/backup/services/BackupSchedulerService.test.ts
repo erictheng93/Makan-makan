@@ -93,9 +93,13 @@ function createService(options?: {
   return { service, db, backupService, analytics };
 }
 
+function currentIso() {
+  return new Date().toISOString();
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-06-07T02:00:00.000Z"));
+  vi.setSystemTime(new Date(2026, 5, 7, 10, 0, 0));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -122,7 +126,7 @@ describe("BackupSchedulerService", () => {
             configurationId: "config-1",
             restaurantId: "restaurant-1",
             lastRunAt: undefined,
-            nextRunAt: "2026-06-07T02:00:00.000Z",
+            nextRunAt: currentIso(),
             consecutiveFailures: 0,
             enabled: true,
           },
@@ -141,9 +145,8 @@ describe("BackupSchedulerService", () => {
       {
         restaurant_id: "restaurant-1",
         configuration_id: "config-1",
-        name: "Scheduled_Daily_2026-06-07",
-        description:
-          "Automated backup created by scheduler at 2026-06-07T02:00:00.000Z",
+        name: `Scheduled_Daily_${currentIso().split("T")[0]}`,
+        description: `Automated backup created by scheduler at ${currentIso()}`,
         backup_type: "full",
         include_tables: ["orders"],
         exclude_tables: ["audit_logs"],
@@ -152,7 +155,7 @@ describe("BackupSchedulerService", () => {
       "system",
     );
     expect(db.updates[0]).toMatchObject({
-      lastRunAt: "2026-06-07T02:00:00.000Z",
+      lastRunAt: currentIso(),
       consecutiveFailures: 0,
     });
     expect(db.updates).toHaveLength(1);
@@ -164,6 +167,7 @@ describe("BackupSchedulerService", () => {
   });
 
   it("skips disabled, invalid, recently-run, and failure-throttled schedules", async () => {
+    const recentRun = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const { service } = createService({
       db: createDb({
         selectResults: [
@@ -172,7 +176,7 @@ describe("BackupSchedulerService", () => {
               id: "schedule-1",
               configurationId: "config-1",
               restaurantId: "restaurant-1",
-              lastRunAt: "2026-06-07T01:45:00.000Z",
+              lastRunAt: recentRun,
               consecutiveFailures: 0,
               enabled: true,
             },
@@ -190,7 +194,7 @@ describe("BackupSchedulerService", () => {
         ],
       }),
     });
-    const now = new Date("2026-06-07T02:00:00.000Z");
+    const now = new Date();
 
     await expect(
       service.shouldRunBackup(config({ schedule_enabled: false }), now),
