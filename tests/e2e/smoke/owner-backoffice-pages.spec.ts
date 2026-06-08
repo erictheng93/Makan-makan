@@ -47,7 +47,11 @@ function pathFor(route: Route) {
   return new URL(route.request().url()).pathname.replace(/^\/api\/v1/, "");
 }
 
-function installBackofficeMocks(page: Page) {
+function installBackofficeMocks(page: Page, session: OwnerSession) {
+  const ownerUser = {
+    ...session.user,
+    restaurantId: session.user.restaurantId ?? restaurantId,
+  };
   const stats = {
     users: 0,
     tables: 0,
@@ -62,11 +66,27 @@ function installBackofficeMocks(page: Page) {
     const path = pathFor(route);
     const method = route.request().method();
 
-    if (
-      path === "/auth/me" ||
-      path === "/me/modules" ||
-      path.startsWith("/realtime/")
-    ) {
+    if (method === "GET" && path === "/auth/me") {
+      await fulfill(route, envelope(ownerUser));
+      return;
+    }
+
+    if (method === "GET" && path === "/me/modules") {
+      await fulfill(
+        route,
+        envelope({
+          restaurantId: ownerUser.restaurantId,
+          planTier: "enterprise",
+          isActive: true,
+          trialEndsAt: null,
+          deploymentMode: "managed",
+          effectiveModules: {},
+        }),
+      );
+      return;
+    }
+
+    if (path.startsWith("/realtime/")) {
       await route.continue();
       return;
     }
@@ -533,7 +553,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/seating/table-setup");
 
     await expect(page).toHaveURL(/\/dashboard\/seating\/table-setup/);
@@ -549,7 +569,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/employees");
 
     await expect(page).toHaveURL(/\/dashboard\/employees/);
@@ -565,7 +585,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/group-orders");
 
     await expect(page).toHaveURL(/\/dashboard\/group-orders/);
@@ -581,7 +601,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/service-bookings");
 
     await expect(page).toHaveURL(/\/dashboard\/service-bookings/);
@@ -604,7 +624,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/feedback");
 
     await expect(page).toHaveURL(/\/dashboard\/feedback/);
@@ -620,7 +640,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/monitoring");
 
     await expect(page).toHaveURL(/\/dashboard\/monitoring/);
@@ -636,7 +656,7 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
     page,
   }) => {
     const session = await getSmokeOwnerSession();
-    const stats = installBackofficeMocks(page);
+    const stats = installBackofficeMocks(page, session);
     await openBackofficePage(page, session, "/dashboard/settings");
 
     await expect(page).toHaveURL(/\/dashboard\/settings/);
