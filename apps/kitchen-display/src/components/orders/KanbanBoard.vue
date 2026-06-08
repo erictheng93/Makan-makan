@@ -12,7 +12,7 @@ interface Props {
 
 defineProps<Props>();
 
-defineEmits<{
+const emit = defineEmits<{
   "start-cooking": [orderId: number, itemId: number];
   "mark-ready": [orderId: number, itemId: number];
   "view-details": [order: KitchenOrder];
@@ -33,6 +33,17 @@ defineEmits<{
       :pending-orders="pendingOrders"
       :preparing-orders="preparingOrders"
       :ready-orders="readyOrders"
+      @start-cooking="
+        (orderId, itemId) => emit('start-cooking', orderId, itemId)
+      "
+      @mark-ready="(orderId, itemId) => emit('mark-ready', orderId, itemId)"
+      @view-details="(order) => emit('view-details', order)"
+      @order-status-changed="
+        (orderId, newStatus) => emit('order-status-changed', orderId, newStatus)
+      "
+      @batch-start-order="(orderId) => emit('batch-start-order', orderId)"
+      @batch-complete-order="(orderId) => emit('batch-complete-order', orderId)"
+      @toggle-selection="(orderId) => emit('toggle-selection', orderId)"
     />
   </div>
 </template>

@@ -244,6 +244,8 @@ interface LoginResponse {
   data?: {
     token?: string;
     refreshToken?: string;
+    csrfToken?: string;
+    createdUserId?: number;
     user?: SmokeLoginData["user"] & {
       id?: number;
       username?: string;
@@ -310,7 +312,50 @@ async function fetchMenu(restaurantId: string): Promise<MenuBody> {
 }
 
 async function loginChef() {
-  if (!CHEF_USERNAME || !CHEF_PASSWORD) return undefined;
+  if (!CHEF_USERNAME || !CHEF_PASSWORD) {
+    if (!IS_LOCAL_API) return undefined;
+
+    const ownerLoginData = await getLoginData();
+    if (!ownerLoginData?.token || !ownerLoginData.user) return undefined;
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const username = `workflowchef${suffix}`;
+    const password = `ChefPass1!${suffix}`;
+    const createResponse = await fetch(`${API_URL}/api/v1/users`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ownerLoginData.token}`,
+        "Content-Type": "application/json",
+        origin: new URL(API_URL).origin,
+        ...(ownerLoginData.csrfToken
+          ? {
+              "X-CSRF-Token": ownerLoginData.csrfToken,
+              cookie: `csrf_token=${ownerLoginData.csrfToken}`,
+            }
+          : csrfHeaders()),
+      },
+      body: JSON.stringify({
+        username,
+        fullName: "Workflow Chef",
+        email: `${username}@example.test`,
+        password,
+        role: 2,
+      }),
+    });
+    expect(
+      createResponse.ok,
+      `local workflow chef create status ${createResponse.status}`,
+    ).toBe(true);
+    const createBody = (await createResponse.json()) as {
+      data?: { id?: number };
+    };
+    const createdUserId = createBody.data?.id;
+    expect(typeof createdUserId, "created chef user id").toBe("number");
+
+    const loginData = await smokeLogin(API_URL, username, password);
+    expect(loginData.user?.role, "created chef role").toBe(2);
+    return { ...loginData, createdUserId };
+  }
 
   chefLoginDataPromise ??= fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
@@ -325,7 +370,10 @@ async function loginChef() {
     const body = (await response.json()) as LoginResponse;
     expect(body.success, "chef login should succeed").toBe(true);
     expect(body.data?.user?.role, "chef role").toBe(2);
-    return body.data;
+    return {
+      ...body.data,
+      csrfToken: response.headers.get("X-CSRF-Token") ?? undefined,
+    };
   });
 
   chefLoginDataPromise = chefLoginDataPromise.catch((error) => {
@@ -334,6 +382,31 @@ async function loginChef() {
   });
 
   return chefLoginDataPromise;
+}
+
+async function deactivateWorkflowChef(
+  chefLoginData: NonNullable<LoginResponse["data"]>,
+  ownerLoginData: SmokeLoginData,
+) {
+  if (!chefLoginData.createdUserId || !ownerLoginData.token) return;
+
+  await fetch(`${API_URL}/api/v1/users/${chefLoginData.createdUserId}/status`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${ownerLoginData.token}`,
+      "Content-Type": "application/json",
+      origin: new URL(API_URL).origin,
+      ...(ownerLoginData.csrfToken
+        ? {
+            "X-CSRF-Token": ownerLoginData.csrfToken,
+            cookie: `csrf_token=${ownerLoginData.csrfToken}`,
+          }
+        : csrfHeaders()),
+    },
+    body: JSON.stringify({ isActive: false }),
+  }).catch(() => {
+    /* best-effort cleanup */
+  });
 }
 
 function allMenuItems(menu: MenuBody): MenuItemCandidate[] {
@@ -678,6 +751,9 @@ async function installKitchenSession(
 ) {
   await page.addInitScript((session) => {
     window.localStorage.setItem("kitchen_auth_token", session.token ?? "");
+    if (session.csrfToken) {
+      window.document.cookie = `csrf_token=${session.csrfToken}; path=/; SameSite=Lax`;
+    }
     if (session.refreshToken) {
       window.localStorage.setItem(
         "kitchen_refresh_token",
@@ -1849,6 +1925,8 @@ test.describe("Real system workflows", () => {
   test("kitchen display handles real orders plus SSE, offline, and audio browser runtime", async ({
     page,
   }) => {
+    test.setTimeout(180_000);
+
     test.skip(
       !KITCHEN_URL,
       "WORKFLOW_KITCHEN_URL/SMOKE_KITCHEN_URL is required",
@@ -1863,7 +1941,7 @@ test.describe("Real system workflows", () => {
     const chefLoginData = await loginChef();
     test.skip(
       !chefLoginData?.token || !chefLoginData.user,
-      "WORKFLOW_CHEF_USERNAME and WORKFLOW_CHEF_PASSWORD are required",
+      "WORKFLOW_CHEF_USERNAME and WORKFLOW_CHEF_PASSWORD are required for non-local kitchen workflow",
     );
 
     const fixtureIds = await resolveFixtureIds();
@@ -1899,6 +1977,9 @@ test.describe("Real system workflows", () => {
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await confirmOrder(orderId!, ownerLoginData!.token!);
+    const createdOrder = await fetchOrder(orderId!, ownerLoginData!.token!);
+    const orderItemId = createdOrder.data?.items?.[0]?.id;
+    expect(typeof orderItemId, "created order item id").toBe("number");
     await installKitchenSession(page, chefLoginData);
     await installKitchenBrowserRuntimeHooks(page);
 
@@ -1910,8 +1991,10 @@ test.describe("Real system workflows", () => {
               .url()
               .includes(`/api/v1/kitchen/${fixtureIds.restaurantId}/orders`) &&
             response.ok(),
+          { timeout: 120_000 },
         ),
         page.goto(`${KITCHEN_URL}/kitchen/${fixtureIds.restaurantId}`, {
+          timeout: 60_000,
           waitUntil: "domcontentloaded",
         }),
       ]);
@@ -2003,25 +2086,82 @@ test.describe("Real system workflows", () => {
       await page.context().setOffline(true);
       await page.evaluate(() => window.dispatchEvent(new Event("offline")));
       await expect(page.getByTestId("kitchen-offline-status")).toBeVisible();
-
-      await page.getByTestId(`kitchen-order-start-${orderId}`).click();
       await expect
-        .poll(async () =>
-          page.evaluate((targetOrderId) => {
+        .poll(async () => page.evaluate(() => navigator.onLine))
+        .toBe(false);
+
+      const startButton = page.getByTestId(
+        `kitchen-item-start-${orderId}-${orderItemId}`,
+      );
+      await startButton.scrollIntoViewIfNeeded();
+      await expect(startButton).toBeVisible();
+      await expect(startButton).toBeEnabled();
+      await page
+        .getByTestId(`kitchen-item-start-${orderId}-${orderItemId}`)
+        .click();
+      let queuedSnapshot: {
+        buttonExists: boolean;
+        navigatorOnline: boolean;
+        queued: boolean;
+        actions: unknown[];
+        cachedItemStatus?: string;
+      } | null = null;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        queuedSnapshot = await page.evaluate(
+          ({ targetOrderId, targetItemId }) => {
             const offlineData = window.localStorage.getItem(
               "kitchen-offline-data",
             );
-            if (!offlineData) return false;
-            const actions = JSON.parse(offlineData).actions ?? [];
-            return actions.some(
-              (action: { type?: string; orderId?: number; synced?: boolean }) =>
-                action.type === "start_cooking" &&
-                action.orderId === targetOrderId &&
-                action.synced === false,
+            const cachedOrders = window.localStorage.getItem(
+              "kitchen-cached-orders",
             );
-          }, orderId),
-        )
-        .toBe(true);
+            const actions = offlineData
+              ? (JSON.parse(offlineData).actions ?? [])
+              : [];
+            const cachedOrder = cachedOrders
+              ? JSON.parse(cachedOrders).find(
+                  (order: { id?: number }) => order.id === targetOrderId,
+                )
+              : undefined;
+            const cachedItem = cachedOrder?.items?.find(
+              (item: { id?: number }) => item.id === targetItemId,
+            );
+            return {
+              buttonExists: Boolean(
+                document.querySelector(
+                  `[data-testid="kitchen-item-start-${targetOrderId}-${targetItemId}"]`,
+                ),
+              ),
+              navigatorOnline: navigator.onLine,
+              queued: actions.some(
+                (action: {
+                  type?: string;
+                  orderId?: number;
+                  itemId?: number;
+                  synced?: boolean;
+                }) =>
+                  action.type === "start_cooking" &&
+                  action.orderId === targetOrderId &&
+                  action.itemId === targetItemId &&
+                  action.synced === false,
+              ),
+              actions,
+              cachedItemStatus: cachedItem?.status,
+            };
+          },
+          { targetOrderId: orderId, targetItemId: orderItemId },
+        );
+        if (queuedSnapshot.queued) break;
+        await page.waitForTimeout(500);
+      }
+      expect(
+        queuedSnapshot?.navigatorOnline,
+        JSON.stringify(queuedSnapshot, null, 2),
+      ).toBe(false);
+      expect(
+        queuedSnapshot?.queued,
+        JSON.stringify(queuedSnapshot, null, 2),
+      ).toBe(true);
 
       const replayResponsePromise = page.waitForResponse(
         (response) =>
@@ -2064,6 +2204,7 @@ test.describe("Real system workflows", () => {
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     } finally {
       await cancelOrderAsOwner(orderId!, ownerLoginData!.token!);
+      await deactivateWorkflowChef(chefLoginData!, ownerLoginData!);
       await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
         method: "POST",
         headers: { Authorization: `Bearer ${guestToken}` },

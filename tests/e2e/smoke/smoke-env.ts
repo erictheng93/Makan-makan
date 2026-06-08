@@ -1,5 +1,6 @@
 export interface SmokeUser {
   restaurantId?: string | null;
+  role?: number;
 }
 
 export interface SmokeLoginData {
