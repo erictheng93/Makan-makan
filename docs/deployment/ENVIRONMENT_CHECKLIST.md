@@ -281,10 +281,10 @@
 
 - [ ] 🔸 若使用 R2/PMTiles，Cloudflare Pages 已設定：
   - [ ] `VITE_MAP_PM_TILES_URL=https://<public-r2-or-custom-domain>/taiwan.pmtiles`
-  - [ ] `VITE_MAP_GLYPHS_URL=https://<public-r2-or-custom-domain>/fonts/{fontstack}/{range}.pbf`
+  - [ ] `VITE_MAP_GLYPHS_URL=https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf` 或等效自管 glyph PBF path
 - [ ] 🔸 若使用完整 MapLibre style，Cloudflare Pages 已設定：
   - [ ] `VITE_MAP_STYLE_URL=https://<cdn>/style.json`
-- [ ] ✅ 未設定上述變數時已接受 fallback 行為：local/dev 會使用 MapLibre demo style；production 會使用 `maps.makanmasak.com` 預設 PMTiles/glyph assets。
+- [ ] ✅ 未設定上述變數時已接受 fallback 行為：local/dev 會使用 MapLibre demo style；production 會使用已驗證的 R2 PMTiles object 與 Protomaps hosted glyph assets。
 
 ### Secrets (Staging)
 
@@ -486,6 +486,7 @@
 - [ ] 🚀 `VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`，或 `VITE_MAP_STYLE_URL`，已在 Customer App Pages production 環境設定
 - [ ] 🚀 若使用 `VITE_MAP_PM_TILES_URL`，URL 指向 production R2/custom-domain PMTiles object，而不是 staging object
 - [ ] 🚀 若使用 `VITE_MAP_GLYPHS_URL`，URL 指向 production glyph PBF path，而不是 staging path
+- [ ] 🚀 PMTiles object 支援 browser Range requests（`HEAD` 回 `Accept-Ranges: bytes`，`Range: bytes=0-16383` 回 `206 Partial Content`）
 - [ ] 🚀 手機瀏覽 `/markets/:slug` 時外部市場地圖可載入，且攤位示意圖仍保留
 
 ### Secrets (Production)

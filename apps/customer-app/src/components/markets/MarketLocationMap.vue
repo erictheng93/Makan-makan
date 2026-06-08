@@ -62,9 +62,10 @@ import type {
 } from "@/services/marketsApi";
 import { loadMarketMapRuntime } from "./mapRuntime";
 
-const PRODUCTION_PM_TILES_URL = "https://maps.makanmasak.com/taiwan.pmtiles";
+const PRODUCTION_PM_TILES_URL =
+  "https://pub-2c3683e1158d4d579317f24fc66a34b3.r2.dev/taiwan.pmtiles";
 const PRODUCTION_MAP_GLYPHS_URL =
-  "https://maps.makanmasak.com/fonts/{fontstack}/{range}.pbf";
+  "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
 const DEMO_STYLE_URL = "https://demotiles.maplibre.org/style.json";
 const DEMO_GLYPHS_URL =
   "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf";

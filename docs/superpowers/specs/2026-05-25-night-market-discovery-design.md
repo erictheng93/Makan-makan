@@ -342,9 +342,9 @@ New components:
 
 Map architecture decision (2026-06-08):
 - Use a two-layer map model instead of replacing stall maps with a geospatial map.
-- **External market/shop positioning**: `MarketLocationMap` uses MapLibre GL JS. It supports `VITE_MAP_PM_TILES_URL` for Protomaps/PMTiles hosted on Cloudflare R2, `VITE_MAP_GLYPHS_URL` for hosted glyph PBF files, and `VITE_MAP_STYLE_URL` for a full style override. In production, missing tile/glyph env falls back to the production `maps.makanmasak.com` assets; local development without map env falls back to MapLibre's demo style so it still renders.
+- **External market/shop positioning**: `MarketLocationMap` uses MapLibre GL JS. It supports `VITE_MAP_PM_TILES_URL` for Protomaps/PMTiles hosted on Cloudflare R2, `VITE_MAP_GLYPHS_URL` for hosted glyph PBF files, and `VITE_MAP_STYLE_URL` for a full style override. In production, missing tile/glyph env falls back to the verified R2 `taiwan.pmtiles` object and Protomaps' hosted glyph assets; local development without map env falls back to MapLibre's demo style so it still renders.
 - **Internal stall navigation**: `StallMapInMarket` remains the source of truth for curated stall positions, because night-market stalls often lack reliable GPS and need human-readable lane/stall labels.
-- Production deployments should provide either `VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`, or `VITE_MAP_STYLE_URL`. The customer app also has production defaults for `https://maps.makanmasak.com/taiwan.pmtiles` and `https://maps.makanmasak.com/fonts/{fontstack}/{range}.pbf`.
+- Production deployments should provide either `VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`, or `VITE_MAP_STYLE_URL`. The customer app also has production defaults for `https://pub-2c3683e1158d4d579317f24fc66a34b3.r2.dev/taiwan.pmtiles` and `https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf`.
 
 Extended:
 - `DiscoveryView.vue` adds an optional "Filter by market" pill row above existing filters.
@@ -416,7 +416,7 @@ Decision rationale: small vendors won't staff a real-time inbox. Forcing them on
 ### Phase 5: Map editing and tile operations
 - Operator/admin UI for editing optional GeoJSON market footprints instead of importing them manually.
 - Optional in-app editor for stall-layout background images and `mapPosition` percentages.
-- Production PMTiles operations: generate Taiwan/city-bounded PMTiles archives, upload them to Cloudflare R2, configure CORS for browser Range requests, and wire `VITE_MAP_PM_TILES_URL` per environment.
+- Production PMTiles operations: generated a Taiwan-bounded PMTiles archive from Protomaps build `20260608`, uploaded it to Cloudflare R2 bucket `makanmasak-map-tiles-prod` as `taiwan.pmtiles`, enabled public R2 access, configured CORS for browser Range requests, and wired `VITE_MAP_PM_TILES_URL` per environment.
 
 ---
 

@@ -225,10 +225,11 @@ describe("MarketLocationMap", () => {
     expect(maplibreMock.Map).toHaveBeenCalledWith(
       expect.objectContaining({
         style: expect.objectContaining({
-          glyphs: "https://maps.makanmasak.com/fonts/{fontstack}/{range}.pbf",
+          glyphs:
+            "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
           sources: expect.objectContaining({
             protomaps: expect.objectContaining({
-              url: "pmtiles://https://maps.makanmasak.com/taiwan.pmtiles",
+              url: "pmtiles://https://pub-2c3683e1158d4d579317f24fc66a34b3.r2.dev/taiwan.pmtiles",
             }),
           }),
         }),
