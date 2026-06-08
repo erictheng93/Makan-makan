@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="show"
+    data-testid="confirmation-modal"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30"
     @click.self="$emit('cancel')"
   >
@@ -43,6 +44,7 @@
       <div class="p-6 pt-0 space-y-3">
         <button
           :disabled="loading"
+          data-testid="confirmation-confirm"
           class="w-full bg-ios-blue disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-full active:scale-[0.98] transition-transform duration-150 flex items-center justify-center"
           @click="$emit('confirm')"
         >
@@ -55,6 +57,7 @@
 
         <button
           :disabled="loading"
+          data-testid="confirmation-cancel"
           class="w-full bg-gray-100 disabled:bg-gray-100 text-ios-text font-semibold py-3 px-4 rounded-full transition-transform duration-150"
           @click="$emit('cancel')"
         >

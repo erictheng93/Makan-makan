@@ -213,6 +213,7 @@
       >
         <button
           :disabled="!item.isAvailable || isOutOfStock"
+          data-testid="menu-item-modal-add"
           class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400"
           @click="handleAddToCart"
         >

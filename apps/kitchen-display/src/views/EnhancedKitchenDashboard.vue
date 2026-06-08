@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-ios-bg min-h-screen">
+  <div class="bg-ios-bg min-h-screen" data-testid="kitchen-dashboard">
     <!-- Kitchen Header (fixed top) -->
     <KitchenHeader
       :restaurant-name="restaurantName"

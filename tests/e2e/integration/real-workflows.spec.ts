@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   firstAvailableMenuItemId,
   optionalEnv,
@@ -15,11 +15,21 @@ const CUSTOMER_URL =
   optionalEnv("WORKFLOW_CUSTOMER_URL") ||
   optionalEnv("SMOKE_CUSTOMER_URL") ||
   "http://localhost:3000";
+const ADMIN_URL =
+  optionalEnv("WORKFLOW_ADMIN_URL") || optionalEnv("SMOKE_ADMIN_URL");
+const KITCHEN_URL =
+  optionalEnv("WORKFLOW_KITCHEN_URL") || optionalEnv("SMOKE_KITCHEN_URL");
+const MANAGEMENT_PORTAL_URL = optionalEnv("WORKFLOW_MANAGEMENT_PORTAL_URL");
+const ONBOARDING_URL = optionalEnv("WORKFLOW_ONBOARDING_URL");
+const MANAGEMENT_API_URL = optionalEnv("WORKFLOW_MANAGEMENT_API_URL");
 
 const AUTH_USERNAME =
   optionalEnv("WORKFLOW_AUTH_USERNAME") || optionalEnv("SMOKE_AUTH_USERNAME");
 const AUTH_PASSWORD =
   optionalEnv("WORKFLOW_AUTH_PASSWORD") || optionalEnv("SMOKE_AUTH_PASSWORD");
+const CHEF_USERNAME = optionalEnv("WORKFLOW_CHEF_USERNAME");
+const CHEF_PASSWORD = optionalEnv("WORKFLOW_CHEF_PASSWORD");
+const MANAGEMENT_TOKEN = optionalEnv("WORKFLOW_MANAGEMENT_TOKEN");
 const RESTAURANT_ID =
   optionalEnv("WORKFLOW_RESTAURANT_ID") || optionalEnv("SMOKE_RESTAURANT_ID");
 const MENU_ITEM_ID = Number(
@@ -54,7 +64,22 @@ interface GuestOrderResponse {
   };
 }
 
+interface LoginResponse {
+  success: boolean;
+  data?: {
+    token?: string;
+    refreshToken?: string;
+    user?: SmokeLoginData["user"] & {
+      id?: number;
+      username?: string;
+      role?: number;
+      permissions?: string[];
+    };
+  };
+}
+
 let loginDataPromise: Promise<SmokeLoginData> | undefined;
+let chefLoginDataPromise: Promise<LoginResponse["data"]> | undefined;
 
 function getLoginData(): Promise<SmokeLoginData> | undefined {
   if (!AUTH_USERNAME || !AUTH_PASSWORD) return undefined;
@@ -85,6 +110,33 @@ async function fetchMenu(restaurantId: string): Promise<MenuBody> {
   return (await response.json()) as MenuBody;
 }
 
+async function loginChef() {
+  if (!CHEF_USERNAME || !CHEF_PASSWORD) return undefined;
+
+  chefLoginDataPromise ??= fetch(`${API_URL}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: CHEF_USERNAME,
+      password: CHEF_PASSWORD,
+      system: "kitchen",
+    }),
+  }).then(async (response) => {
+    expect(response.ok, `chef login status ${response.status}`).toBe(true);
+    const body = (await response.json()) as LoginResponse;
+    expect(body.success, "chef login should succeed").toBe(true);
+    expect(body.data?.user?.role, "chef role").toBe(2);
+    return body.data;
+  });
+
+  chefLoginDataPromise = chefLoginDataPromise.catch((error) => {
+    chefLoginDataPromise = undefined;
+    throw error;
+  });
+
+  return chefLoginDataPromise;
+}
+
 function allMenuItems(menu: MenuBody): MenuItemCandidate[] {
   return [
     ...(menu.data?.menuItems ?? []),
@@ -103,6 +155,77 @@ function firstAvailableNamedMenuItem(menu: MenuBody) {
       item.isAvailable !== 0 &&
       Number.isFinite(Number(item.id)),
   );
+}
+
+async function addMenuItemThroughUi(page: Page, id: number) {
+  const quickAdd = page.getByTestId(`menu-item-add-${id}`).first();
+  const customize = page.getByTestId(`menu-item-customize-${id}`).first();
+
+  if ((await quickAdd.count()) > 0) {
+    await quickAdd.click();
+    return;
+  }
+
+  await customize.click();
+  await expect(page.getByTestId("menu-item-modal")).toBeVisible();
+  await page.getByTestId("menu-item-modal-add").click();
+}
+
+function adminOrderNumber(orderId: number) {
+  return `ORD-${orderId.toString().padStart(6, "0")}`;
+}
+
+async function installAdminSession(page: Page, loginData: SmokeLoginData) {
+  await page.addInitScript((session) => {
+    window.localStorage.setItem("auth_token", session.token ?? "");
+    if (session.refreshToken) {
+      window.localStorage.setItem("auth_refresh_token", session.refreshToken);
+    }
+    if (session.user) {
+      window.localStorage.setItem("auth_user", JSON.stringify(session.user));
+    }
+    window.localStorage.setItem("makanmakan_locale", "en-US");
+    window.localStorage.setItem("locale", "en-US");
+  }, loginData);
+}
+
+async function installKitchenSession(
+  page: Page,
+  loginData: NonNullable<LoginResponse["data"]>,
+) {
+  await page.addInitScript((session) => {
+    window.localStorage.setItem("kitchen_auth_token", session.token ?? "");
+    if (session.refreshToken) {
+      window.localStorage.setItem(
+        "kitchen_refresh_token",
+        session.refreshToken,
+      );
+    }
+    if (session.user) {
+      window.localStorage.setItem("kitchen_user", JSON.stringify(session.user));
+    }
+    window.localStorage.setItem("makanmakan_locale", "en-US");
+    window.localStorage.setItem("locale", "en-US");
+    window.localStorage.setItem("kitchen-view-mode", "kanban");
+  }, loginData);
+}
+
+async function confirmOrder(orderId: number, token: string) {
+  const csrfToken = "a".repeat(64);
+  const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/status`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+      cookie: `csrf_token=${csrfToken}`,
+      origin: new URL(API_URL).origin,
+      host: new URL(API_URL).host,
+    },
+    body: JSON.stringify({ status: "confirmed" }),
+  });
+
+  expect(response.ok, `confirm order status ${response.status}`).toBe(true);
 }
 
 test.describe.configure({ mode: "serial" });
@@ -152,6 +275,91 @@ test.describe("Real system workflows", () => {
       page.getByText(item!.name!, { exact: false }).first(),
     ).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("customer can add a real menu item to cart and submit through checkout UI", async ({
+    page,
+  }) => {
+    const fixtureIds = await resolveFixtureIds();
+    test.skip(
+      !fixtureIds.restaurantId,
+      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
+    );
+
+    const menu = await fetchMenu(fixtureIds.restaurantId!);
+    const item =
+      allMenuItems(menu).find(
+        (candidate) =>
+          Number(candidate.id) === fixtureIds.menuItemId &&
+          candidate.name &&
+          candidate.isAvailable !== false &&
+          candidate.isAvailable !== 0,
+      ) ?? firstAvailableNamedMenuItem(menu);
+    const menuItemId = Number(item?.id);
+
+    test.skip(
+      !item?.name || !Number.isFinite(menuItemId),
+      "real API did not return an available named item",
+    );
+
+    await page.goto(
+      `${CUSTOMER_URL}/restaurant/${fixtureIds.restaurantId}/table/1`,
+      { waitUntil: "domcontentloaded" },
+    );
+
+    await expect(
+      page.getByTestId(`menu-item-card-${menuItemId}`).first(),
+    ).toBeVisible();
+    await addMenuItemThroughUi(page, menuItemId);
+    await expect(page.getByTestId("cart-count")).toHaveText("1");
+
+    await page.getByTestId("cart-btn").click();
+    await expect(page.getByTestId("cart-page")).toBeVisible();
+    await expect(
+      page.getByText(item!.name!, { exact: false }).first(),
+    ).toBeVisible();
+
+    await page.locator("#customer-name").fill("Workflow UI");
+    await page.locator("#customer-phone").fill("0912345678");
+
+    let orderId: number | undefined;
+    let guestToken: string | undefined;
+
+    try {
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/guest-orders") &&
+          response.request().method() === "POST",
+      );
+
+      await page.getByTestId("submit-order-btn").click();
+      await expect(page.getByTestId("confirmation-modal")).toBeVisible();
+      await page.getByTestId("confirmation-confirm").click();
+
+      const createResponse = await createResponsePromise;
+      expect(
+        createResponse.ok(),
+        `guest checkout status ${createResponse.status()}`,
+      ).toBe(true);
+      const createBody = (await createResponse.json()) as GuestOrderResponse;
+      orderId = createBody.data?.order?.id;
+      guestToken = createBody.data?.guestToken;
+
+      expect(typeof orderId, "created order id").toBe("number");
+      expect(typeof guestToken, "created guest token").toBe("string");
+
+      await expect(page.getByTestId("order-timeline")).toBeVisible();
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      if (orderId && guestToken) {
+        await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${guestToken}` },
+        }).catch(() => {
+          /* best-effort cleanup */
+        });
+      }
+    }
   });
 
   test("guest order created by the real API is readable in customer tracking UI", async ({
@@ -217,5 +425,242 @@ test.describe("Real system workflows", () => {
         /* best-effort cleanup */
       });
     }
+  });
+
+  test("owner dashboard lists an order created through the real API", async ({
+    page,
+  }) => {
+    test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+
+    const loginData = await getLoginData();
+    test.skip(
+      !loginData?.token || !loginData.user,
+      "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
+    );
+
+    const fixtureIds = await resolveFixtureIds();
+    test.skip(
+      !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
+      "WORKFLOW_RESTAURANT_ID and WORKFLOW_MENU_ITEM_ID are required for admin workflow",
+    );
+
+    const createResponse = await fetch(`${API_URL}/api/v1/guest-orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurantId: fixtureIds.restaurantId,
+        orderType: "table",
+        tableId: 1,
+        items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
+        guestName: "workflow-admin",
+        phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),
+      }),
+    });
+    expect(
+      createResponse.ok,
+      `guest order create status ${createResponse.status}`,
+    ).toBe(true);
+
+    const createBody = (await createResponse.json()) as GuestOrderResponse;
+    const orderId = createBody.data?.order?.id;
+    const guestToken = createBody.data?.guestToken;
+
+    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof guestToken, "created guest token").toBe("string");
+
+    await installAdminSession(page, loginData);
+
+    try {
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/api/v1/orders") && response.ok(),
+        ),
+        page.goto(`${ADMIN_URL}/dashboard/orders`, {
+          waitUntil: "domcontentloaded",
+        }),
+      ]);
+
+      await expect(page.getByTestId("admin-orders-page")).toBeVisible();
+      await expect(page.getByText(adminOrderNumber(orderId!))).toBeVisible();
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${guestToken}` },
+      }).catch(() => {
+        /* best-effort cleanup */
+      });
+    }
+  });
+
+  test("kitchen display shows a confirmed order from the real API", async ({
+    page,
+  }) => {
+    test.skip(
+      !KITCHEN_URL,
+      "WORKFLOW_KITCHEN_URL/SMOKE_KITCHEN_URL is required",
+    );
+
+    const ownerLoginData = await getLoginData();
+    test.skip(
+      !ownerLoginData?.token,
+      "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
+    );
+
+    const chefLoginData = await loginChef();
+    test.skip(
+      !chefLoginData?.token || !chefLoginData.user,
+      "WORKFLOW_CHEF_USERNAME and WORKFLOW_CHEF_PASSWORD are required",
+    );
+
+    const fixtureIds = await resolveFixtureIds();
+    test.skip(
+      !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
+      "WORKFLOW_RESTAURANT_ID and WORKFLOW_MENU_ITEM_ID are required for kitchen workflow",
+    );
+
+    const createResponse = await fetch(`${API_URL}/api/v1/guest-orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurantId: fixtureIds.restaurantId,
+        orderType: "table",
+        tableId: 1,
+        items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
+        guestName: "workflow-kitchen",
+        phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),
+      }),
+    });
+    expect(
+      createResponse.ok,
+      `guest order create status ${createResponse.status}`,
+    ).toBe(true);
+
+    const createBody = (await createResponse.json()) as GuestOrderResponse;
+    const orderId = createBody.data?.order?.id;
+    const guestToken = createBody.data?.guestToken;
+
+    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof guestToken, "created guest token").toBe("string");
+
+    await confirmOrder(orderId!, ownerLoginData!.token!);
+    await installKitchenSession(page, chefLoginData);
+
+    try {
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response
+              .url()
+              .includes(`/api/v1/kitchen/${fixtureIds.restaurantId}/orders`) &&
+            response.ok(),
+        ),
+        page.goto(`${KITCHEN_URL}/kitchen/${fixtureIds.restaurantId}`, {
+          waitUntil: "domcontentloaded",
+        }),
+      ]);
+
+      await expect(page.getByTestId("kitchen-dashboard")).toBeVisible();
+      await expect(
+        page.getByTestId(`kitchen-order-card-${orderId}`),
+      ).toBeVisible();
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${guestToken}` },
+      }).catch(() => {
+        /* best-effort cleanup */
+      });
+    }
+  });
+
+  test("management portal health page loads data from the management API", async ({
+    page,
+  }) => {
+    test.skip(
+      !MANAGEMENT_PORTAL_URL || !MANAGEMENT_TOKEN,
+      "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
+    );
+
+    await page.addInitScript((token) => {
+      window.localStorage.setItem("management_token", token);
+    }, MANAGEMENT_TOKEN);
+
+    const healthResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/v1/health") && response.ok(),
+    );
+
+    await page.goto(`${MANAGEMENT_PORTAL_URL}/health`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await healthResponse;
+    await expect(page.getByTestId("management-health-page")).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("onboarding app submits the application form to the management API", async ({
+    page,
+  }) => {
+    test.skip(
+      !ONBOARDING_URL || !MANAGEMENT_API_URL,
+      "WORKFLOW_ONBOARDING_URL and WORKFLOW_MANAGEMENT_API_URL are required",
+    );
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const subdomain = `workflow-${suffix}`;
+
+    await page.goto(`${ONBOARDING_URL}/apply`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await page.getByTestId("onboarding-business-name").fill("Workflow Laksa");
+    await page.getByTestId("onboarding-contact-name").fill("Tan Mei");
+    await page
+      .getByTestId("onboarding-contact-email")
+      .fill(`workflow-${suffix}@example.com`);
+    await page.getByTestId("onboarding-contact-phone").fill("0912345678");
+    await page.getByTestId("onboarding-latitude").fill("24.147736");
+    await page.getByTestId("onboarding-longitude").fill("120.673648");
+    await page.getByTestId("onboarding-subdomain").fill(subdomain);
+
+    await expect
+      .poll(async () => {
+        const response = await fetch(
+          `${MANAGEMENT_API_URL}/api/v1/onboarding/subdomain/check?subdomain=${subdomain}`,
+        );
+        if (!response.ok) return false;
+        const body = (await response.json()) as {
+          success: boolean;
+          data?: { available?: boolean };
+        };
+        return body.success && body.data?.available === true;
+      })
+      .toBe(true);
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/onboarding/applications") &&
+        response.request().method() === "POST",
+    );
+
+    await page.getByTestId("onboarding-submit").click();
+
+    const createResponse = await createResponsePromise;
+    expect(
+      createResponse.ok(),
+      `onboarding create status ${createResponse.status()}`,
+    ).toBe(true);
+    const createBody = (await createResponse.json()) as {
+      success: boolean;
+      data?: { applicationId?: string; assignedSubdomain?: string };
+    };
+    expect(createBody.success).toBe(true);
+    expect(createBody.data?.assignedSubdomain).toBe(subdomain);
+
+    await expect(page).toHaveURL(/\/connect$/);
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 });

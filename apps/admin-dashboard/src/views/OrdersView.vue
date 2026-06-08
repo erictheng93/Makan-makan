@@ -1,5 +1,5 @@
 <template>
-  <div class="orders-view">
+  <div class="orders-view" data-testid="admin-orders-page">
     <!-- 訂單統計卡片 -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="bg-white rounded-lg shadow p-4 lg:p-6">

@@ -1,5 +1,6 @@
 <template>
   <div
+    :data-testid="`kitchen-order-card-${order.id}`"
     :class="[
       'relative overflow-hidden rounded-2xl transition-transform duration-150 ease-spring active:scale-[0.97]',
       isUrgent

@@ -227,6 +227,7 @@ const useCurrentLocation = () => {
           >
           <input
             v-model="form.businessName"
+            data-testid="onboarding-business-name"
             type="text"
             class="input"
             :class="{ 'input-error': errors.businessName }"
@@ -242,6 +243,7 @@ const useCurrentLocation = () => {
           <label class="label">{{ t("apply.form.contactName.label") }} *</label>
           <input
             v-model="form.contactName"
+            data-testid="onboarding-contact-name"
             type="text"
             class="input"
             :class="{ 'input-error': errors.contactName }"
@@ -259,6 +261,7 @@ const useCurrentLocation = () => {
           >
           <input
             v-model="form.contactEmail"
+            data-testid="onboarding-contact-email"
             type="email"
             class="input"
             :class="{ 'input-error': errors.contactEmail }"
@@ -276,6 +279,7 @@ const useCurrentLocation = () => {
           >
           <input
             v-model="form.contactPhone"
+            data-testid="onboarding-contact-phone"
             type="tel"
             class="input"
             :class="{ 'input-error': errors.contactPhone }"
@@ -322,6 +326,7 @@ const useCurrentLocation = () => {
             <div>
               <input
                 v-model.number="form.latitude"
+                data-testid="onboarding-latitude"
                 type="number"
                 step="0.000001"
                 min="-90"
@@ -337,6 +342,7 @@ const useCurrentLocation = () => {
             <div>
               <input
                 v-model.number="form.longitude"
+                data-testid="onboarding-longitude"
                 type="number"
                 step="0.000001"
                 min="-180"
@@ -359,6 +365,7 @@ const useCurrentLocation = () => {
             <div class="relative flex-1">
               <input
                 v-model="form.subdomain"
+                data-testid="onboarding-subdomain"
                 type="text"
                 class="input rounded-r-none pr-10"
                 :class="{
@@ -459,6 +466,7 @@ const useCurrentLocation = () => {
           </button>
           <button
             type="submit"
+            data-testid="onboarding-submit"
             class="btn btn-primary"
             :disabled="store.isLoading || store.isCheckingSubdomain"
           >

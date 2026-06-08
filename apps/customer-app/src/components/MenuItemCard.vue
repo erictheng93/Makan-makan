@@ -1,6 +1,7 @@
 <template>
   <div
     :id="resolvedAnchorId"
+    :data-testid="`menu-item-card-${item.id}`"
     class="bg-white rounded-2xl shadow-card overflow-hidden transition-transform duration-150 active:scale-[0.98]"
     :class="{ 'shadow-card-lg': isFeatured }"
   >
@@ -126,6 +127,7 @@
           <button
             v-else-if="!hasCustomizations"
             :disabled="isOutOfStock"
+            :data-testid="`menu-item-add-${item.id}`"
             class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400 flex items-center space-x-1"
             @click="handleQuickAdd"
           >
@@ -149,6 +151,7 @@
           <button
             v-else
             :disabled="isOutOfStock"
+            :data-testid="`menu-item-customize-${item.id}`"
             class="bg-ios-blue/10 text-ios-blue px-4 py-2 rounded-full text-sm font-medium active:bg-ios-blue/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-ios-tertiary"
             @click="handleCustomize"
           >
@@ -304,6 +307,7 @@
               <button
                 v-else-if="!hasCustomizations"
                 :disabled="isOutOfStock"
+                :data-testid="`menu-item-add-${item.id}`"
                 class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400 flex items-center space-x-1"
                 @click="handleQuickAdd"
               >
@@ -327,6 +331,7 @@
               <button
                 v-else
                 :disabled="isOutOfStock"
+                :data-testid="`menu-item-customize-${item.id}`"
                 class="bg-ios-blue/10 text-ios-blue px-4 py-2 rounded-full text-sm font-medium active:bg-ios-blue/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-ios-tertiary"
                 @click="handleCustomize"
               >

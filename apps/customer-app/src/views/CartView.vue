@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-ios-bg">
+  <div class="min-h-screen bg-ios-bg" data-testid="cart-page">
     <!-- 頂部導航 -->
     <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl shadow-card-sm">
       <div class="max-w-md mx-auto px-5 py-4">
