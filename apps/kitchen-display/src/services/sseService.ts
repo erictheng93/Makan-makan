@@ -1,5 +1,6 @@
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
 import { isTokenExpired } from "@makanmakan/utils";
+import { getKitchenApiBaseUrl } from "./authApi";
 
 export interface SSEOptions {
   restaurantId: string | number;
@@ -60,7 +61,8 @@ export class KitchenSSEService {
         return;
       }
 
-      const url = `/api/v1/kitchen/${this.options.restaurantId}/events?token=${encodeURIComponent(token)}`;
+      const baseUrl = getKitchenApiBaseUrl().replace(/\/$/, "");
+      const url = `${baseUrl}/kitchen/${this.options.restaurantId}/events?token=${encodeURIComponent(token)}`;
       console.log(`Connecting to SSE endpoint: ${url}`);
 
       this.eventSource = new EventSource(url);

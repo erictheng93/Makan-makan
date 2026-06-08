@@ -38,16 +38,20 @@ function mountKanbanBoard() {
             "start-cooking",
             "mark-ready",
             "view-details",
+            "order-status-changed",
             "batch-start-order",
             "batch-complete-order",
+            "toggle-selection",
           ],
           template: `
             <div>
               <button data-testid="start" @click="$emit('start-cooking', 1001, 501)" />
               <button data-testid="ready" @click="$emit('mark-ready', 1001, 501)" />
               <button data-testid="details" @click="$emit('view-details', pendingOrders[0])" />
+              <button data-testid="status" @click="$emit('order-status-changed', 1001, 'preparing')" />
               <button data-testid="batch-start" @click="$emit('batch-start-order', 1001)" />
               <button data-testid="batch-complete" @click="$emit('batch-complete-order', 1001)" />
+              <button data-testid="toggle" @click="$emit('toggle-selection', 1001)" />
             </div>
           `,
           props: ["pendingOrders", "preparingOrders", "readyOrders"],
@@ -64,13 +68,19 @@ describe("KanbanBoard", () => {
     await wrapper.get('[data-testid="start"]').trigger("click");
     await wrapper.get('[data-testid="ready"]').trigger("click");
     await wrapper.get('[data-testid="details"]').trigger("click");
+    await wrapper.get('[data-testid="status"]').trigger("click");
     await wrapper.get('[data-testid="batch-start"]').trigger("click");
     await wrapper.get('[data-testid="batch-complete"]').trigger("click");
+    await wrapper.get('[data-testid="toggle"]').trigger("click");
 
     expect(wrapper.emitted("start-cooking")).toEqual([[1001, 501]]);
     expect(wrapper.emitted("mark-ready")).toEqual([[1001, 501]]);
     expect(wrapper.emitted("view-details")).toEqual([[order]]);
+    expect(wrapper.emitted("order-status-changed")).toEqual([
+      [1001, "preparing"],
+    ]);
     expect(wrapper.emitted("batch-start-order")).toEqual([[1001]]);
     expect(wrapper.emitted("batch-complete-order")).toEqual([[1001]]);
+    expect(wrapper.emitted("toggle-selection")).toEqual([[1001]]);
   });
 });

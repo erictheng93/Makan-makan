@@ -203,6 +203,10 @@ describe("KitchenService", () => {
   });
 
   it("updates item status and returns a timestamped response", async () => {
+    serviceMocks.getOrders.mockResolvedValue({
+      orders: [order()],
+    });
+
     const result = await createService().updateOrderItemStatus(
       "restaurant-1",
       101,
@@ -222,6 +226,26 @@ describe("KitchenService", () => {
       status: "ready",
       updatedAt: "2026-06-07T12:00:00.000Z",
     });
+  });
+
+  it("rejects item status updates outside the scoped restaurant order", async () => {
+    serviceMocks.getOrders.mockResolvedValue({
+      orders: [order({ id: 202 })],
+    });
+
+    await expect(
+      createService().updateOrderItemStatus(
+        "restaurant-1",
+        101,
+        501,
+        { status: "ready" },
+        22,
+      ),
+    ).rejects.toMatchObject({
+      code: "KITCHEN_ITEM_SCOPE_DENIED",
+    });
+
+    expect(serviceMocks.updateItemStatus).not.toHaveBeenCalled();
   });
 
   it("validates kitchen role access", () => {
@@ -245,6 +269,9 @@ describe("KitchenService", () => {
     serviceMocks.updateItemStatus.mockRejectedValueOnce(
       new Error("item update down"),
     );
+    serviceMocks.getOrders.mockResolvedValueOnce({
+      orders: [order()],
+    });
     await expect(
       createService().updateOrderItemStatus(
         "restaurant-1",

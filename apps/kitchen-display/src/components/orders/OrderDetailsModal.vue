@@ -145,7 +145,9 @@
             class="w-full rounded-full py-4 font-bold text-white bg-ios-blue text-base"
             @click="markAllComplete"
           >
-            {{ t("orders.startAll") }}
+            {{
+              hasPendingItems ? t("orders.startAll") : t("orders.completeAll")
+            }}
           </button>
           <button
             v-else
@@ -186,6 +188,10 @@ const hasUncompletedItems = computed(() => {
     (item) => item.status !== "ready" && item.status !== "completed",
   );
 });
+
+const hasPendingItems = computed(() =>
+  props.order.items.some((item) => item.status === "pending"),
+);
 
 // Methods
 const formatTime = (dateString: string) => {
@@ -266,7 +272,12 @@ const markAllComplete = () => {
   props.order.items
     .filter((item) => item.status !== "ready" && item.status !== "completed")
     .forEach((item) => {
-      emit("update-status", props.order.id, item.id, "ready");
+      emit(
+        "update-status",
+        props.order.id,
+        item.id,
+        item.status === "pending" ? "preparing" : "ready",
+      );
     });
 };
 </script>

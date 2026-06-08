@@ -1,8 +1,21 @@
 import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
 import type { ApiResponse, User } from "@/types";
 
+export function getKitchenApiBaseUrl(env = import.meta.env): string {
+  const baseUrl = env.VITE_API_BASE_URL;
+
+  if (!baseUrl && env.PROD) {
+    throw new Error(
+      "[Config Error] VITE_API_BASE_URL is required for kitchen-display production builds",
+    );
+  }
+
+  return baseUrl || "/api/v1";
+}
+
 // Create the shared API client with kitchen-specific config
 export const apiClient = createAuthenticatedApiClient({
+  baseURL: getKitchenApiBaseUrl(),
   storageKeyPrefix: "kitchen",
   csrf: true,
   onAuthFailure: () => {

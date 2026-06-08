@@ -5,12 +5,12 @@
       :restaurant-name="restaurantName"
       :current-time="currentTime"
       :stats="stats"
-      :connection-status="connectionStatus"
-      :is-connected="isConnected"
+      :connection-status="realtimeConnectionStatus"
+      :is-connected="isRealtimeConnected"
       :view-mode="viewMode"
       @logout="handleLogout"
       @refresh="handleRefresh"
-      @reconnect="reconnectSSE"
+      @reconnect="reconnectRealtime"
       @toggle-fullscreen="toggleFullscreen"
       @open-settings="handleOpenSettings"
       @update:view-mode="setViewMode"
@@ -112,11 +112,11 @@
 
     <!-- Connection Status Monitor -->
     <ConnectionStatus
-      :connection-status="connectionStatus"
-      :is-connected="isConnected"
-      :reconnect-attempts="reconnectAttempts"
-      :last-heartbeat="lastHeartbeat"
-      @reconnect="reconnectSSE"
+      :connection-status="realtimeConnectionStatus"
+      :is-connected="isRealtimeConnected"
+      :reconnect-attempts="0"
+      :last-heartbeat="null"
+      @reconnect="reconnectRealtime"
       @refresh="handleRefresh"
     />
   </div>
@@ -135,10 +135,14 @@ import { useSettingsStore } from "@/stores/settings";
 import { useI18n } from "@/i18n";
 import { useOrdersStore } from "@/stores/orders";
 import { useOrderManagementStore } from "@/stores/orderManagement";
-import { useKitchenSSE } from "@/composables/useKitchenSSE";
 import { useAudioNotifications } from "@/composables/useAudioNotifications";
 import { useKitchenRealtimeService } from "@/services/realtimeService";
-import type { KitchenOrder, KitchenSSEEvent, OrderStatus } from "@/types";
+import type {
+  ItemStatus,
+  KitchenOrder,
+  KitchenSSEEvent,
+  OrderStatus,
+} from "@/types";
 
 // Components
 import KitchenHeader from "@/components/layout/KitchenHeader.vue";
@@ -174,32 +178,6 @@ const handleRealtimeOrderEvent = (event: KitchenSSEEvent) => {
   ordersStore.handleSSEEvent(event);
   void audioNotifications.handleSSEEvent(event);
 };
-
-// SSE connection
-const {
-  connectionStatus,
-  isConnected,
-  lastHeartbeat,
-  reconnectAttempts,
-  connect: _connectSSE,
-  disconnect: _disconnectSSE,
-  reconnect: reconnectSSE,
-} = useKitchenSSE({
-  restaurantId: restaurantIdNum.value,
-  onNewOrder: (event) => {
-    handleRealtimeOrderEvent(event);
-  },
-  onOrderUpdate: (event) => {
-    handleRealtimeOrderEvent(event);
-  },
-  onOrderCancelled: (event) => {
-    handleRealtimeOrderEvent(event);
-  },
-  onPriorityUpdate: (event) => {
-    handleRealtimeOrderEvent(event);
-  },
-  autoConnect: true,
-});
 
 // State
 const currentTime = ref(new Date());
@@ -239,6 +217,28 @@ const filteredPreparingOrders = computed(() =>
 const filteredReadyOrders = computed(() =>
   filteredOrders.value.filter((order) => order.status === "ready"),
 );
+
+type RealtimeDisplayStatus =
+  | "connected"
+  | "connecting"
+  | "disconnected"
+  | "error";
+
+const realtimeConnectionStatus = computed<RealtimeDisplayStatus>(() => {
+  switch (kitchenRealtime.status.value) {
+    case "connected":
+      return "connected";
+    case "connecting":
+    case "reconnecting":
+      return "connecting";
+    case "error":
+      return "error";
+    default:
+      return "disconnected";
+  }
+});
+
+const isRealtimeConnected = computed(() => kitchenRealtime.isConnected.value);
 
 // Helpers
 const getOrderStatusType = (
@@ -333,10 +333,19 @@ const handleBatchCompleteOrder = async (orderId: number) => {
   }
 };
 
-const handleUpdateOrderStatus = async (_orderId: number, _status: any) => {
+const handleUpdateOrderStatus = async (
+  orderId: number,
+  itemId: number,
+  status: ItemStatus,
+) => {
   try {
+    if (status === "preparing") {
+      await ordersStore.startCooking(restaurantIdNum.value, orderId, itemId);
+    } else if (status === "ready") {
+      await ordersStore.markReady(restaurantIdNum.value, orderId, itemId);
+    }
+
     await fetchOrders();
-    showDetailsModal.value = false;
   } catch (error: any) {
     toast.error(t("kitchen.updateStatusFailed") + error.message);
   }
@@ -354,6 +363,11 @@ const handleLogout = async () => {
 
 const handleRefresh = async () => {
   await fetchOrders();
+};
+
+const reconnectRealtime = async () => {
+  kitchenRealtime.disconnect();
+  await kitchenRealtime.connect(restaurantIdNum.value);
 };
 
 const handleOpenSettings = async () => {

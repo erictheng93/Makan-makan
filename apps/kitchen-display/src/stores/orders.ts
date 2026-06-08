@@ -187,6 +187,7 @@ export const useOrdersStore = defineStore("orders", () => {
         ];
 
         orders.value = allOrders;
+        offlineService.cacheOrders(allOrders);
         stats.value = response.data.stats;
         lastUpdated.value = new Date();
 
@@ -197,6 +198,15 @@ export const useOrdersStore = defineStore("orders", () => {
         throw new Error(response.error || "載入訂單失敗");
       }
     } catch (err: any) {
+      const cachedOrders = offlineService.getCachedOrders();
+      if (shouldQueueOfflineAction() && cachedOrders.length > 0) {
+        orders.value = cachedOrders;
+        updateStats();
+        lastUpdated.value = new Date();
+        error.value = null;
+        return;
+      }
+
       error.value = err.message;
       console.error("Failed to fetch orders:", err);
     } finally {
@@ -527,7 +537,10 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 批量開始製作訂單所有項目
    */
-  const startAllItems = async (restaurantId: number, orderId: number) => {
+  const startAllItems = async (
+    restaurantId: number | string,
+    orderId: number,
+  ) => {
     const order = orders.value.find((o) => o.id === orderId);
     if (!order) return;
 
@@ -538,6 +551,19 @@ export const useOrdersStore = defineStore("orders", () => {
     if (pendingItemIds.length === 0) return;
 
     try {
+      if (shouldQueueOfflineAction()) {
+        pendingItemIds.forEach((itemId) => {
+          offlineService.queueAction(
+            "start_cooking",
+            orderId,
+            { restaurantId, status: "preparing" },
+            itemId,
+          );
+          applyLocalItemStatus(orderId, itemId, "preparing");
+        });
+        return;
+      }
+
       const response = await kitchenApi.startAllItems(
         restaurantId,
         orderId,
@@ -556,7 +582,10 @@ export const useOrdersStore = defineStore("orders", () => {
   /**
    * 批量標記訂單所有項目完成
    */
-  const markAllReady = async (restaurantId: number, orderId: number) => {
+  const markAllReady = async (
+    restaurantId: number | string,
+    orderId: number,
+  ) => {
     const order = orders.value.find((o) => o.id === orderId);
     if (!order) return;
 
@@ -567,6 +596,19 @@ export const useOrdersStore = defineStore("orders", () => {
     if (preparingItemIds.length === 0) return;
 
     try {
+      if (shouldQueueOfflineAction()) {
+        preparingItemIds.forEach((itemId) => {
+          offlineService.queueAction(
+            "mark_ready",
+            orderId,
+            { restaurantId, status: "ready" },
+            itemId,
+          );
+          applyLocalItemStatus(orderId, itemId, "ready");
+        });
+        return;
+      }
+
       const response = await kitchenApi.markAllItemsReady(
         restaurantId,
         orderId,

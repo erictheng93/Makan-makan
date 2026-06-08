@@ -21,6 +21,7 @@ import type {
   OrderItemStatusUpdate,
 } from "../types";
 import { OrdersService } from "../../orders/services/OrdersService";
+import { forbidden } from "../../../shared/utils/api-error";
 
 export class KitchenService implements IKitchenService {
   private logger: ConsoleLogger;
@@ -178,6 +179,21 @@ export class KitchenService implements IKitchenService {
         status: statusUpdate.status,
         userId,
       });
+
+      const scopedOrders = await this.ordersService.getOrders({
+        restaurantId,
+        status: ["confirmed", "preparing", "ready"] as const,
+      });
+      const scopedOrder = scopedOrders.orders.find(
+        (order) => order.id === orderId,
+      );
+      const scopedItem = scopedOrder?.items?.find((item) => item.id === itemId);
+      if (!scopedOrder || !scopedItem) {
+        throw forbidden(
+          "Order item is outside the kitchen scope",
+          "KITCHEN_ITEM_SCOPE_DENIED",
+        );
+      }
 
       await this.ordersService.updateItemStatus(
         itemId,

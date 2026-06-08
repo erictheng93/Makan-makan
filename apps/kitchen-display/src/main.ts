@@ -8,6 +8,7 @@ import routes from "./router";
 import { performanceOptimizationService } from "./services/performanceOptimizationService";
 import { useAuthStore } from "./stores/auth";
 import { initI18n } from "./i18n";
+import { installKitchenRouterGuards } from "./router/guards";
 
 // CSS imports
 import "./assets/css/main.css";
@@ -60,7 +61,6 @@ if (window.__lazyComponentPlugin) {
 }
 
 app.use(pinia);
-app.use(router);
 
 // Rehydrate auth state from localStorage BEFORE mount.
 // Without this, refreshing any protected view (dashboard, settings, history)
@@ -70,6 +70,11 @@ app.use(router);
 // why the visual regression tests for authenticated kitchen pages always
 // captured the login page as their baseline.
 const authStore = useAuthStore();
+const authReady = authStore.initialize().catch((err) => {
+  console.error("[kitchen] auth initialize failed:", err);
+});
+installKitchenRouterGuards(router, authStore, authReady);
+app.use(router);
 
 // Initialize performance optimization services
 performanceOptimizationService.setupImageOptimization();
@@ -79,9 +84,7 @@ performanceOptimizationService.registerServiceWorker();
 // must be gated on auth so protected-route guards see the restored session
 // (see comment above), and on i18n so the first paint uses the correct locale.
 Promise.all([
-  authStore.initialize().catch((err) => {
-    console.error("[kitchen] auth initialize failed:", err);
-  }),
+  authReady,
   initI18n().catch((err) => {
     console.error("[kitchen] i18n initialize failed:", err);
   }),
