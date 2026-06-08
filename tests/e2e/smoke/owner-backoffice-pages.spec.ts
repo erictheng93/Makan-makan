@@ -633,10 +633,17 @@ test.describe("Smoke: owner backoffice management pages (owner role)", () => {
 
     await expect(page).toHaveURL(/\/dashboard\/service-bookings/);
     await expect(page.getByTestId("service-bookings-view")).toBeVisible();
-    await expect(page.getByText("Private Tasting")).toBeVisible();
-    await expect(page.getByText("Booking Smoke")).toBeVisible();
-    await page.getByTestId("service-bookings-refresh").click();
-    await expect(page.getByText("Private Tasting")).toBeVisible();
+    const bookingRow = page
+      .getByTestId("service-booking-row")
+      .filter({ hasText: "Booking Smoke" });
+    await expect(bookingRow).toBeVisible();
+    await expect(bookingRow).toContainText("BKSMOKE");
+    await expect(bookingRow).toContainText("2026-06-08");
+
+    const refreshButton = page.getByTestId("service-bookings-refresh");
+    await expect(refreshButton).toBeVisible();
+    await refreshButton.click();
+    await expect(bookingRow).toBeVisible();
     expect(stats.serviceBookings).toBeGreaterThan(1);
   });
 
