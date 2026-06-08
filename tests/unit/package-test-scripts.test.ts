@@ -42,4 +42,16 @@ describe("package test scripts", () => {
       "No worker integration tests present",
     );
   });
+
+  it("runs local D1 migrations against the API dev server state path", () => {
+    const expectedPersistPath = "--persist-to ./apps/api/.wrangler/state";
+
+    expect(packageJson.scripts["db:migrate:local"]).toContain(
+      expectedPersistPath,
+    );
+    expect(packageJson.scripts["db:seed:local"]).toContain(expectedPersistPath);
+    expect(packageJson.scripts["db:reset:local"]).toContain(
+      "apps/api/.wrangler/state/v3/d1/",
+    );
+  });
 });
