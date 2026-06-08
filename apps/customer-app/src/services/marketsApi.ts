@@ -114,6 +114,8 @@ export interface MarketExplorationSummary {
 }
 
 export interface MarketVendor extends RestaurantListItem {
+  latitude?: number | null;
+  longitude?: number | null;
   stallNumber: string | null;
   locationLabel?: string | null;
   mapPosition?: MarketVendorMapPosition | null;

@@ -40,6 +40,8 @@ export interface RestaurantListItem {
   supportsTakeaway: boolean;
   supportsDelivery: boolean;
   imageUrl: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   detailUrl?: string;
   menuUrl?: string;
   serviceItemsUrl?: string;

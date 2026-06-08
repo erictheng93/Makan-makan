@@ -248,6 +248,11 @@
             @select-vendor="openVendor"
           />
 
+          <MarketLocationMap
+            :market="store.selectedMarket"
+            :vendors="store.vendors"
+          />
+
           <VendorListInMarket
             :vendors="store.vendors"
             :loading="store.vendorsLoading"
@@ -375,6 +380,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
+import MarketLocationMap from "@/components/markets/MarketLocationMap.vue";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
 import StallMapInMarket from "@/components/markets/StallMapInMarket.vue";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";

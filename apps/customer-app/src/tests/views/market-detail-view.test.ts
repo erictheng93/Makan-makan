@@ -149,6 +149,14 @@ function mountView() {
     global: {
       stubs: {
         MarketDetailHero: true,
+        MarketLocationMap: {
+          props: ["market", "vendors"],
+          template: `
+            <section data-testid="market-location-map">
+              {{ market.name }}|{{ vendors.length }}
+            </section>
+          `,
+        },
         StallMapInMarket: {
           props: ["vendors"],
           emits: ["selectVendor"],
@@ -500,6 +508,47 @@ describe("MarketDetailView", () => {
         returnLabel: "逢甲夜市",
       },
     });
+  });
+
+  it("renders external market location map alongside the stall map", () => {
+    vi.mocked(useMarketsStore).mockReturnValue(
+      marketStore({
+        selectedMarket: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          latitude: 24.1764,
+          longitude: 120.6466,
+        },
+        vendors: [
+          {
+            restaurantId: "restaurant-1",
+            name: "雞排攤",
+            type: "market_stall",
+            district: "西屯區",
+            priceRange: null,
+            rating: null,
+            isOpen: true,
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            imageUrl: null,
+            latitude: 24.1765,
+            longitude: 120.6467,
+            stallNumber: "A-01",
+            isPrimary: true,
+            availableMenuItemCount: 3,
+            publicServiceItemCount: 1,
+          },
+        ],
+      }) as never,
+    );
+
+    const wrapper = mountView();
+
+    expect(wrapper.get('[data-testid="market-location-map"]').text()).toContain(
+      "逢甲夜市|1",
+    );
+    expect(wrapper.find('[data-testid="stall-map"]').exists()).toBe(true);
   });
 
   it("shows a grouped market basket summary", () => {
