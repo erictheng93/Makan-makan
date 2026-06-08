@@ -1,5 +1,9 @@
 <template>
-  <div class="flex items-center gap-1.5">
+  <div
+    class="flex items-center gap-1.5"
+    data-testid="kitchen-connection-status"
+    :data-connection-status="connectionStatus"
+  >
     <div
       :class="[
         'w-2 h-2 rounded-full',

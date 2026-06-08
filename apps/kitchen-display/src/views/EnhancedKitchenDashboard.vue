@@ -18,6 +18,8 @@
 
     <!-- Main Content (offset for fixed header) -->
     <main class="pt-20 px-5 pb-6">
+      <OfflineStatus class="mb-4" />
+
       <!-- Stats Bar -->
       <div class="mb-5">
         <OrderStats
@@ -145,6 +147,7 @@ import OrderFilters from "@/components/orders/OrderFilters.vue";
 import KanbanBoard from "@/components/orders/KanbanBoard.vue";
 import OrderDetailsModal from "@/components/orders/OrderDetailsModal.vue";
 import ConnectionStatus from "@/components/common/ConnectionStatus.vue";
+import OfflineStatus from "@/components/offline/OfflineStatus.vue";
 
 // Props
 const props = defineProps<{

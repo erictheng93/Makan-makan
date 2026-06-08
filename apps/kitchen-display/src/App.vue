@@ -7,6 +7,8 @@
 
       <!-- 音效控制 -->
       <button
+        data-testid="kitchen-audio-toggle"
+        :data-audio-enabled="audioEnabled ? 'true' : 'false'"
         class="audio-control"
         :title="
           audioEnabled

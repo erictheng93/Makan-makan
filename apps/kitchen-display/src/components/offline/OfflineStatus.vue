@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="isOffline"
+    data-testid="kitchen-offline-status"
     class="bg-ios-orange/10 rounded-2xl p-3 flex items-center gap-2"
   >
     <WifiOff class="w-5 h-5 text-ios-orange flex-shrink-0" />

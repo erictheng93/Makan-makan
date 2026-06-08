@@ -110,6 +110,12 @@ interface LoginResponse {
   };
 }
 
+declare global {
+  interface Window {
+    __kitchenEventSourceUrls: string[];
+  }
+}
+
 let loginDataPromise: Promise<SmokeLoginData> | undefined;
 let chefLoginDataPromise: Promise<LoginResponse["data"]> | undefined;
 
@@ -251,6 +257,53 @@ async function installKitchenSession(
     window.localStorage.setItem("locale", "en-US");
     window.localStorage.setItem("kitchen-view-mode", "kanban");
   }, loginData);
+}
+
+async function installKitchenBrowserRuntimeHooks(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.removeItem("kitchen_settings");
+    window.localStorage.setItem("kitchen-view-mode", "kanban");
+    window.__kitchenEventSourceUrls = [];
+
+    class WorkflowEventSource extends EventTarget {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSED = 2;
+
+      readonly url: string;
+      readyState = WorkflowEventSource.CONNECTING;
+      onopen: ((event: Event) => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+
+      constructor(url: string) {
+        super();
+        this.url = url;
+        window.__kitchenEventSourceUrls.push(url);
+
+        window.setTimeout(() => {
+          if (this.readyState === WorkflowEventSource.CLOSED) return;
+
+          this.readyState = WorkflowEventSource.OPEN;
+          const openEvent = new Event("open");
+          this.onopen?.(openEvent);
+          this.dispatchEvent(openEvent);
+
+          this.dispatchEvent(
+            new MessageEvent("connected", {
+              data: JSON.stringify({ ok: true }),
+            }),
+          );
+        }, 0);
+      }
+
+      close() {
+        this.readyState = WorkflowEventSource.CLOSED;
+      }
+    }
+
+    window.EventSource = WorkflowEventSource as unknown as typeof EventSource;
+  });
 }
 
 async function confirmOrder(orderId: number, token: string) {
@@ -631,7 +684,7 @@ test.describe("Real system workflows", () => {
     }
   });
 
-  test("kitchen display shows a confirmed order from the real API", async ({
+  test("kitchen display handles real orders plus SSE, offline, and audio browser runtime", async ({
     page,
   }) => {
     test.skip(
@@ -683,6 +736,7 @@ test.describe("Real system workflows", () => {
 
     await confirmOrder(orderId!, ownerLoginData!.token!);
     await installKitchenSession(page, chefLoginData);
+    await installKitchenBrowserRuntimeHooks(page);
 
     try {
       await Promise.all([
@@ -699,6 +753,44 @@ test.describe("Real system workflows", () => {
       ]);
 
       await expect(page.getByTestId("kitchen-dashboard")).toBeVisible();
+      await expect(
+        page.getByTestId("kitchen-connection-status"),
+      ).toHaveAttribute("data-connection-status", "connected");
+      await expect
+        .poll(async () =>
+          page.evaluate((restaurantId) => {
+            return window.__kitchenEventSourceUrls.some((url) =>
+              url.includes(`/api/v1/kitchen/${restaurantId}/events?token=`),
+            );
+          }, fixtureIds.restaurantId),
+        )
+        .toBe(true);
+
+      await expect(page.getByTestId("kitchen-audio-toggle")).toHaveAttribute(
+        "data-audio-enabled",
+        "true",
+      );
+      await page.getByTestId("kitchen-audio-toggle").click();
+      await expect(page.getByTestId("kitchen-audio-toggle")).toHaveAttribute(
+        "data-audio-enabled",
+        "false",
+      );
+      await expect
+        .poll(async () =>
+          page.evaluate(() => {
+            const settings = window.localStorage.getItem("kitchen_settings");
+            return settings ? JSON.parse(settings).audioEnabled : undefined;
+          }),
+        )
+        .toBe(false);
+
+      await page.context().setOffline(true);
+      await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+      await expect(page.getByTestId("kitchen-offline-status")).toBeVisible();
+      await page.context().setOffline(false);
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await expect(page.getByTestId("kitchen-offline-status")).toHaveCount(0);
+
       await expect(
         page.getByTestId(`kitchen-order-card-${orderId}`),
       ).toBeVisible();
