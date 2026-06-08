@@ -98,6 +98,7 @@ const getStatusClass = (status: TenantStatus) => {
       </div>
       <button
         type="button"
+        data-testid="management-tenant-create-open"
         class="btn btn-primary"
         @click="showCreateModal = true"
       >
@@ -178,7 +179,12 @@ const getStatusClass = (status: TenantStatus) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
-          <tr v-for="tenant in filteredTenants" :key="tenant.id">
+          <tr
+            v-for="tenant in filteredTenants"
+            :key="tenant.id"
+            data-testid="management-tenant-row"
+            :data-tenant-id="tenant.id"
+          >
             <td>
               <div class="flex items-center">
                 <div

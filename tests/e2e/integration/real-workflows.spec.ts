@@ -126,6 +126,17 @@ interface ManagementTenantsBody {
   pagination?: unknown;
 }
 
+interface ManagementTenantBody {
+  success?: boolean;
+  data?: ManagementTenantSummary & {
+    contactEmail?: string;
+    contactPhone?: string;
+    subdomain?: string;
+    licenseTier?: string;
+    status?: string;
+  };
+}
+
 interface LoginResponse {
   success: boolean;
   data?: {
@@ -409,6 +420,38 @@ async function fetchManagementTenant(
 
   const body = (await response.json()) as ManagementTenantsBody;
   return body.data?.find((tenant) => tenant.id);
+}
+
+async function fetchManagementTenantById(
+  tenantId: string,
+  token: string,
+): Promise<ManagementTenantBody> {
+  expect(
+    MANAGEMENT_WORKFLOW_API_URL,
+    "management workflow API URL",
+  ).toBeTruthy();
+
+  const response = await fetch(
+    `${MANAGEMENT_WORKFLOW_API_URL}/tenants/${tenantId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  expect(response.ok, `management tenant get status ${response.status}`).toBe(
+    true,
+  );
+  return (await response.json()) as ManagementTenantBody;
+}
+
+async function deleteManagementTenant(tenantId: string, token: string) {
+  if (!MANAGEMENT_WORKFLOW_API_URL) return;
+
+  await fetch(`${MANAGEMENT_WORKFLOW_API_URL}/tenants/${tenantId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => {
+    /* best-effort cleanup */
+  });
 }
 
 async function confirmOrder(orderId: number, token: string) {
@@ -1338,6 +1381,95 @@ test.describe("Real system workflows", () => {
     await tenantsResponse;
     await expect(page.getByTestId("management-tenants-page")).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("management portal creates a real tenant from the browser and reads it back from the management API", async ({
+    page,
+  }) => {
+    test.skip(
+      !MANAGEMENT_PORTAL_URL ||
+        !MANAGEMENT_TOKEN ||
+        !MANAGEMENT_WORKFLOW_API_URL,
+      "WORKFLOW_MANAGEMENT_PORTAL_URL, WORKFLOW_MANAGEMENT_TOKEN, and management API URL are required",
+    );
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const businessName = `Workflow Tenant ${suffix}`;
+    const contactEmail = `workflow-${suffix}@example.com`;
+    const contactPhone = `+1555${Math.floor(1000000 + Math.random() * 8999999)}`;
+    const subdomain = `workflow-${suffix}`;
+    let createdTenantId: string | undefined;
+
+    await installManagementSession(page, MANAGEMENT_TOKEN!);
+
+    try {
+      const tenantsResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/tenants") &&
+          response.request().method() === "GET" &&
+          response.ok(),
+      );
+
+      await page.goto(`${MANAGEMENT_PORTAL_URL}/tenants`, {
+        waitUntil: "domcontentloaded",
+      });
+      await tenantsResponse;
+
+      await page.getByTestId("management-tenant-create-open").click();
+      await expect(
+        page.getByTestId("management-tenant-create-modal"),
+      ).toBeVisible();
+      await page
+        .getByTestId("management-tenant-business-name")
+        .fill(businessName);
+      await page
+        .getByTestId("management-tenant-contact-email")
+        .fill(contactEmail);
+      await page
+        .getByTestId("management-tenant-contact-phone")
+        .fill(contactPhone);
+      await page.getByTestId("management-tenant-subdomain").fill(subdomain);
+      await page.getByTestId("management-tenant-license-professional").check();
+
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/tenants") &&
+          response.request().method() === "POST",
+      );
+      await page.getByTestId("management-tenant-create-submit").click();
+      const createResponse = await createResponsePromise;
+      expect(
+        createResponse.ok(),
+        `management tenant create ${createResponse.status()}`,
+      ).toBe(true);
+      const createBody = (await createResponse.json()) as ManagementTenantBody;
+      createdTenantId = createBody.data?.id;
+      expect(typeof createdTenantId, "created tenant id").toBe("string");
+
+      await expect(
+        page.locator(
+          `[data-testid="management-tenant-row"][data-tenant-id="${createdTenantId}"]`,
+        ),
+      ).toContainText(businessName);
+
+      const createdTenant = await fetchManagementTenantById(
+        createdTenantId!,
+        MANAGEMENT_TOKEN!,
+      );
+      expect(createdTenant.data).toMatchObject({
+        id: createdTenantId,
+        businessName,
+        contactEmail,
+        contactPhone,
+        subdomain,
+        licenseTier: "professional",
+      });
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      if (createdTenantId) {
+        await deleteManagementTenant(createdTenantId, MANAGEMENT_TOKEN!);
+      }
+    }
   });
 
   test("management portal tenant detail loads tenant resources, deployments, health, and licenses from the management API", async ({

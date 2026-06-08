@@ -16,7 +16,7 @@ The real browser workflow suite is run through `test:e2e:integration`.
 | `customer-app` | `tests/e2e/smoke/smoke.spec.ts` | stores, API clients, views, i18n | `apps/customer-app/src/__tests__/integration/customer-app.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` covers menu load, UI cart quantity/notes/checkout payload submission, and guest order tracking against a real API | Medium-low: market checkout and service booking still need real browser workflows |
 | `admin-dashboard` | owner smoke specs under `tests/e2e/smoke` | services, stores, owner/menu/POS/settings views | `apps/admin-dashboard/src/__tests__/integration/admin-dashboard.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes owner order-list visibility, browser-triggered order status update, browser-created/updated menu item cleanup, and browser-created/updated/deleted category cleanup against the real API when `WORKFLOW_ADMIN_URL` and owner credentials are set | Low-medium: broader menu bulk actions still need real browser + real API workflow coverage |
 | `kitchen-display` | indirect smoke through admin/kitchen API checks | order stores, order card, settings, service-worker helpers | `apps/kitchen-display/src/__tests__/integration/kitchen-display.real.integration.test.ts` | `tests/e2e/integration/real-workflows.spec.ts` includes confirmed-order queue visibility, browser-triggered item transition to preparing, SSE EventSource construction, new-order audio playback request via browser audio stub, offline banner behavior, offline queued action replay after reconnect, and audio toggle persistence when `WORKFLOW_KITCHEN_URL` and chef credentials are set | Medium-low: true cross-worker realtime broadcast binding still needs integration coverage |
-| `management-portal` | none dedicated | health, tenants, markets, i18n, router | Management API tests are partial; portal service uses `/tenants`, `/deployments`, `/health`, `/licenses`, `/markets` | `tests/e2e/integration/real-workflows.spec.ts` includes management health, tenant list, tenant detail resources/deployments/health/licenses, and deployments/licenses/markets page API loading when `WORKFLOW_MANAGEMENT_PORTAL_URL` and `WORKFLOW_MANAGEMENT_TOKEN` are set | Medium-low: destructive mutation flows and permission/error paths still need controlled workflow coverage |
+| `management-portal` | none dedicated | health, tenants, markets, i18n, router | Management API tests are partial; portal service uses `/tenants`, `/deployments`, `/health`, `/licenses`, `/markets` | `tests/e2e/integration/real-workflows.spec.ts` includes management health, tenant list, browser-created tenant cleanup/readback, tenant detail resources/deployments/health/licenses, and deployments/licenses/markets page API loading when `WORKFLOW_MANAGEMENT_PORTAL_URL` and `WORKFLOW_MANAGEMENT_TOKEN` are set | Medium-low: deployment/license/market mutations and permission/error paths still need controlled workflow coverage |
 | `onboarding-app` | none dedicated | API location, onboarding store, i18n | `apps/management-api/src/__tests__/onboarding-workflow.real.integration.test.ts` covers onboarding public API flow | `tests/e2e/integration/real-workflows.spec.ts` includes application form submission and, when Cloudflare workflow credentials are set, browser-driven Cloudflare verification plus completion | Medium-low: Cloudflare verification and completion are covered only in environments with real workflow credentials |
 
 ## What Was Added From The E2E Finding
@@ -29,8 +29,8 @@ The real browser workflow suite is run through `test:e2e:integration`.
   menu category create/update/delete,
   kitchen-display confirmed queue visibility/item transition plus
   SSE/offline queued replay/audio playback browser runtime checks,
-  management-portal health, tenant list/detail, deployments, licenses, and
-  markets API-backed browser loading,
+  management-portal health, tenant list/detail, tenant create mutation,
+  deployments, licenses, and markets API-backed browser loading,
   onboarding-app application form submission, and Cloudflare verify/complete
   browser flow when workflow credentials are available.
 - `apps/api/src/middleware/cors.test.ts`: locks the custom request headers
@@ -48,8 +48,8 @@ The real browser workflow suite is run through `test:e2e:integration`.
 2. Kitchen workflow:
    true realtime worker binding broadcast.
 3. Management portal workflow:
-   controlled create/update flows for tenant, deployment, license, and market
-   mutations, plus permission/error-path coverage.
+   controlled deployment, license, and market mutations, plus
+   permission/error-path coverage.
 4. Onboarding browser workflow:
    keep a credentialed environment running the Cloudflare verification and
    completion browser path; add negative verification and retry paths.

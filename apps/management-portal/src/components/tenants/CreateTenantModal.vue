@@ -133,6 +133,7 @@ const handleSubmit = async () => {
         class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0"
       >
         <div
+          data-testid="management-tenant-create-modal"
           class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
         >
           <!-- 標題 -->
@@ -160,6 +161,7 @@ const handleSubmit = async () => {
               </label>
               <input
                 v-model="form.businessName"
+                data-testid="management-tenant-business-name"
                 type="text"
                 class="input"
                 :class="{ 'input-error': errors.businessName }"
@@ -179,6 +181,7 @@ const handleSubmit = async () => {
               </label>
               <input
                 v-model="form.contactEmail"
+                data-testid="management-tenant-contact-email"
                 type="email"
                 class="input"
                 :class="{ 'input-error': errors.contactEmail }"
@@ -198,6 +201,7 @@ const handleSubmit = async () => {
               </label>
               <input
                 v-model="form.contactPhone"
+                data-testid="management-tenant-contact-phone"
                 type="tel"
                 class="input"
                 :placeholder="
@@ -214,6 +218,7 @@ const handleSubmit = async () => {
               <div class="flex items-center">
                 <input
                   v-model="form.subdomain"
+                  data-testid="management-tenant-subdomain"
                   type="text"
                   class="input rounded-r-none"
                   :class="{ 'input-error': errors.subdomain }"
@@ -254,6 +259,7 @@ const handleSubmit = async () => {
                 >
                   <input
                     v-model="form.licenseTier"
+                    :data-testid="`management-tenant-license-${plan.value}`"
                     type="radio"
                     :value="plan.value"
                     class="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500"
@@ -285,6 +291,7 @@ const handleSubmit = async () => {
           >
             <button
               type="button"
+              data-testid="management-tenant-create-cancel"
               class="btn btn-secondary"
               @click="emit('close')"
             >
@@ -292,6 +299,7 @@ const handleSubmit = async () => {
             </button>
             <button
               type="button"
+              data-testid="management-tenant-create-submit"
               class="btn btn-primary"
               :disabled="submitting"
               @click="handleSubmit"
