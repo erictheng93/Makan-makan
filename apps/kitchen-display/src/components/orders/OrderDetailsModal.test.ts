@@ -30,6 +30,14 @@ const order: KitchenOrder = {
   elapsedTime: 5,
 };
 
+const expectedTime = (dateString: string) =>
+  new Date(dateString).toLocaleTimeString("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
 describe("OrderDetailsModal", () => {
   it("renders order metadata, item status labels, notes, and timestamps", () => {
     const wrapper = mount(OrderDetailsModal, {
@@ -88,8 +96,12 @@ describe("OrderDetailsModal", () => {
     expect(wrapper.text()).toContain("Extra spicy");
     expect(wrapper.text()).toContain("less oil");
     expect(wrapper.text()).toContain("No peanuts");
-    expect(wrapper.text()).toContain("開始 09:05:00");
-    expect(wrapper.text()).toContain("完成 09:10:00");
+    expect(wrapper.text()).toContain(
+      `開始 ${expectedTime("2026-06-08T01:05:00.000Z")}`,
+    );
+    expect(wrapper.text()).toContain(
+      `完成 ${expectedTime("2026-06-08T01:10:00.000Z")}`,
+    );
   });
 
   it("emits individual item status updates and close events", async () => {
