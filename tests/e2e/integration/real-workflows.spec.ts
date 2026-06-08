@@ -45,6 +45,7 @@ const MENU_ITEM_ID = Number(
     optionalEnv("SMOKE_MENU_ITEM_ID") ||
     NaN,
 );
+const SERVICE_ITEM_ID = Number(optionalEnv("WORKFLOW_SERVICE_ITEM_ID") || NaN);
 
 interface MenuItemCandidate {
   id?: number | string;
@@ -83,6 +84,46 @@ interface GuestOrderResponse {
       orderNumber?: string;
     };
     guestToken?: string;
+  };
+}
+
+interface RestaurantServiceItemCandidate {
+  id?: number | string;
+  restaurantId?: string;
+  name?: string;
+  requiresBooking?: boolean | number;
+  isActive?: boolean | number;
+  isPublic?: boolean | number;
+}
+
+interface ServiceBookingAvailabilityBody {
+  success: boolean;
+  data?: {
+    slots?: Array<{
+      timeSlot?: string;
+      remaining?: number | null;
+      isAvailable?: boolean;
+    }>;
+  };
+}
+
+interface ServiceBookingBody {
+  success: boolean;
+  data?: {
+    booking?: {
+      id?: string;
+      restaurantId?: string;
+      serviceItemId?: number;
+      customerName?: string;
+      customerPhone?: string;
+      customerEmail?: string | null;
+      bookingDate?: string;
+      bookingTime?: string;
+      partySize?: number;
+      status?: string;
+      confirmationCode?: string;
+      specialRequests?: string | null;
+    };
   };
 }
 
@@ -257,6 +298,111 @@ function firstMenuCategory(menu: MenuBody) {
   return menu.data?.categories?.find((category) =>
     Number.isFinite(Number(category.id)),
   );
+}
+
+function futureIsoDate(daysFromToday: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysFromToday);
+  return date.toISOString().slice(0, 10);
+}
+
+async function fetchPublicServiceItems(restaurantId: string) {
+  const response = await fetch(
+    `${API_URL}/api/v1/restaurants/${restaurantId}/service-items`,
+  );
+  expect(
+    response.ok,
+    `restaurant service items status ${response.status}`,
+  ).toBe(true);
+  const body = (await response.json()) as {
+    success: boolean;
+    data?: RestaurantServiceItemCandidate[];
+  };
+  return body.data ?? [];
+}
+
+async function fetchServiceAvailability(serviceItemId: number, date: string) {
+  const response = await fetch(
+    `${API_URL}/api/v1/service-bookings/availability?serviceItemId=${serviceItemId}&date=${date}`,
+  );
+  expect(
+    response.ok,
+    `service booking availability status ${response.status}`,
+  ).toBe(true);
+  return (await response.json()) as ServiceBookingAvailabilityBody;
+}
+
+async function findBookableServiceFixture(restaurantId: string) {
+  const serviceItems = await fetchPublicServiceItems(restaurantId);
+  const candidates = serviceItems.filter((item) => {
+    const itemId = Number(item.id);
+    if (!Number.isFinite(itemId)) return false;
+    if (Number.isFinite(SERVICE_ITEM_ID)) return itemId === SERVICE_ITEM_ID;
+
+    return (
+      item.requiresBooking !== false &&
+      item.requiresBooking !== 0 &&
+      item.isActive !== false &&
+      item.isActive !== 0 &&
+      item.isPublic !== false &&
+      item.isPublic !== 0
+    );
+  });
+
+  for (const serviceItem of candidates) {
+    const serviceItemId = Number(serviceItem.id);
+    for (let offset = 1; offset <= 14; offset += 1) {
+      const date = futureIsoDate(offset);
+      const availability = await fetchServiceAvailability(serviceItemId, date);
+      const slot = availability.data?.slots?.find(
+        (candidate) => candidate.isAvailable && candidate.timeSlot,
+      );
+      if (slot?.timeSlot) {
+        return {
+          serviceItemId,
+          serviceName: serviceItem.name,
+          date,
+          timeSlot: slot.timeSlot,
+        };
+      }
+    }
+  }
+
+  return undefined;
+}
+
+async function fetchServiceBookingByCode(
+  confirmationCode: string,
+  contactEmail: string,
+): Promise<ServiceBookingBody> {
+  const query = new URLSearchParams({
+    requireContact: "true",
+    customerEmail: contactEmail,
+  });
+  const response = await fetch(
+    `${API_URL}/api/v1/service-bookings/verify/${encodeURIComponent(confirmationCode)}?${query}`,
+  );
+  expect(response.ok, `service booking verify ${response.status}`).toBe(true);
+  return (await response.json()) as ServiceBookingBody;
+}
+
+async function cancelServiceBookingByCode(
+  confirmationCode: string,
+  contactEmail: string,
+) {
+  await fetch(
+    `${API_URL}/api/v1/service-bookings/verify/${encodeURIComponent(confirmationCode)}/cancel`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requireContact: true,
+        customerEmail: contactEmail,
+      }),
+    },
+  ).catch(() => {
+    /* best-effort cleanup */
+  });
 }
 
 function findMenuCategory(menu: MenuBody, categoryId: number) {
@@ -713,6 +859,186 @@ test.describe("Real system workflows", () => {
         }).catch(() => {
           /* best-effort cleanup */
         });
+      }
+    }
+  });
+
+  test("customer can create, verify, and cancel a real service booking from the browser", async ({
+    page,
+  }) => {
+    const fixtureIds = await resolveFixtureIds();
+    test.skip(
+      !fixtureIds.restaurantId,
+      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
+    );
+
+    const serviceFixture = await findBookableServiceFixture(
+      fixtureIds.restaurantId!,
+    );
+    test.skip(
+      !serviceFixture,
+      "real API did not return a bookable service item with an available slot; set WORKFLOW_SERVICE_ITEM_ID for this workflow",
+    );
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const customerName = `Workflow Booking ${suffix}`;
+    const customerPhone = `0912${Math.floor(100000 + Math.random() * 899999)}`;
+    const customerEmail = `workflow-booking-${suffix}@example.com`;
+    const specialRequests = `workflow service booking ${suffix}`;
+    let confirmationCode: string | undefined;
+
+    try {
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response
+              .url()
+              .includes(
+                `/api/v1/restaurants/${fixtureIds.restaurantId}/service-items`,
+              ) && response.ok(),
+        ),
+        page.goto(
+          `${CUSTOMER_URL}/restaurant/${fixtureIds.restaurantId}/services/${serviceFixture!.serviceItemId}/book`,
+          { waitUntil: "domcontentloaded" },
+        ),
+      ]);
+
+      await expect(
+        page.getByTestId("service-booking-service-summary"),
+      ).toBeVisible();
+      if (serviceFixture!.serviceName) {
+        await expect(
+          page.getByText(serviceFixture!.serviceName, { exact: false }).first(),
+        ).toBeVisible();
+      }
+
+      const availabilityResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/service-bookings/availability") &&
+          response.url().includes(`date=${serviceFixture!.date}`) &&
+          response.ok(),
+      );
+      await page.getByTestId("service-booking-date").fill(serviceFixture!.date);
+      await page.getByTestId("service-booking-load-slots").click();
+      await availabilityResponsePromise;
+
+      const slot = page
+        .getByTestId("service-booking-slot")
+        .filter({ hasText: serviceFixture!.timeSlot })
+        .first();
+      await expect(slot).toBeVisible();
+      await slot.click();
+
+      await page.getByTestId("service-booking-name").fill(customerName);
+      await page.getByTestId("service-booking-phone").fill(customerPhone);
+      await page.getByTestId("service-booking-email").fill(customerEmail);
+      await page.getByTestId("service-booking-party-size").fill("2");
+      await page.getByTestId("service-booking-requests").fill(specialRequests);
+
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/service-bookings") &&
+          response.request().method() === "POST" &&
+          !response.url().includes("/cancel"),
+      );
+      await page.getByTestId("service-booking-create").click();
+      const createResponse = await createResponsePromise;
+      expect(
+        createResponse.ok(),
+        `service booking create status ${createResponse.status()}`,
+      ).toBe(true);
+      const createRequestBody = createResponse.request().postDataJSON() as {
+        restaurantId?: string;
+        serviceItemId?: number;
+        customerName?: string;
+        customerPhone?: string;
+        customerEmail?: string;
+        bookingDate?: string;
+        bookingTime?: string;
+        partySize?: number;
+        specialRequests?: string;
+      };
+      expect(createRequestBody).toMatchObject({
+        restaurantId: fixtureIds.restaurantId,
+        serviceItemId: serviceFixture!.serviceItemId,
+        customerName,
+        customerPhone,
+        customerEmail,
+        bookingDate: serviceFixture!.date,
+        bookingTime: serviceFixture!.timeSlot,
+        partySize: 2,
+        specialRequests,
+      });
+
+      const createBody = (await createResponse.json()) as ServiceBookingBody;
+      confirmationCode = createBody.data?.booking?.confirmationCode;
+      expect(typeof confirmationCode, "booking confirmation code").toBe(
+        "string",
+      );
+      await expect(
+        page.getByTestId("service-booking-confirmation"),
+      ).toContainText(confirmationCode!);
+
+      const createdBooking = await fetchServiceBookingByCode(
+        confirmationCode!,
+        customerEmail,
+      );
+      expect(createdBooking.data?.booking).toMatchObject({
+        restaurantId: fixtureIds.restaurantId,
+        serviceItemId: serviceFixture!.serviceItemId,
+        customerName,
+        customerPhone,
+        customerEmail,
+        bookingDate: serviceFixture!.date,
+        bookingTime: serviceFixture!.timeSlot,
+        partySize: 2,
+        status: "pending",
+        specialRequests,
+      });
+
+      const verifyResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              `/api/v1/service-bookings/verify/${encodeURIComponent(confirmationCode!)}`,
+            ) &&
+          response.request().method() === "GET" &&
+          response.ok(),
+      );
+      await page.getByTestId("service-booking-verify").click();
+      await verifyResponsePromise;
+      await expect(page.getByTestId("service-booking-verified")).toContainText(
+        serviceFixture!.date,
+      );
+
+      const cancelResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              `/api/v1/service-bookings/verify/${encodeURIComponent(confirmationCode!)}/cancel`,
+            ) && response.request().method() === "POST",
+      );
+      await page.getByTestId("service-booking-cancel").click();
+      const cancelResponse = await cancelResponsePromise;
+      expect(
+        cancelResponse.ok(),
+        `service booking cancel status ${cancelResponse.status()}`,
+      ).toBe(true);
+      await expect(page.getByTestId("service-booking-verified")).toContainText(
+        "已取消",
+      );
+
+      const cancelledBooking = await fetchServiceBookingByCode(
+        confirmationCode!,
+        customerEmail,
+      );
+      expect(cancelledBooking.data?.booking?.status).toBe("cancelled");
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      if (confirmationCode) {
+        await cancelServiceBookingByCode(confirmationCode, customerEmail);
       }
     }
   });
