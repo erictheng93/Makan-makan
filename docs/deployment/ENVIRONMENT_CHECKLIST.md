@@ -370,6 +370,12 @@
         `STAGING_AUTH_PASSWORD`、`STAGING_RESTAURANT_ID`；測試會登入
         admin dashboard、建立真實 WebSocket，並透過 Realtime DO broadcast
         驗證瀏覽器收到事件。
+  - [ ] Kitchen Display 上線驗收 gate 需包含
+        `STAGING_KITCHEN_URL`、`STAGING_KITCHEN_USERNAME`、
+        `STAGING_KITCHEN_PASSWORD`，可選
+        `STAGING_KITCHEN_RESTAURANT_ID`。CI 會設定
+        `SMOKE_REQUIRE_KITCHEN_AUTH=true`，因此缺少 chef credentials 會讓
+        staging smoke 失敗，而不是跳過。
 
 ---
 
@@ -520,6 +526,10 @@
   wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID --env production □
   ```
 
+- [ ] 🚀 GitHub production environment secrets
+  - [ ] `PRODUCTION_URL`（API `/info` + customer app liveness）
+  - [ ] `PRODUCTION_KITCHEN_URL`（Kitchen Display Pages liveness）
+
 - [ ] ✅ Secrets 驗證
   ```bash
   wrangler secret list --env production  # 確認所有必需 secrets 已設置 □
@@ -650,6 +660,7 @@
   curl https://api.makanmakan.com/api/v1/health        # 應返回 200 □
   curl https://realtime.makanmakan.com/health          # 應返回 200 □
   curl https://makanmakan.com                          # 應返回 200 □
+  curl https://kitchen.makanmakan.com                  # 應返回 HTML / 200 □
   ```
 
 - [ ] ✅ 功能測試（關鍵路徑）

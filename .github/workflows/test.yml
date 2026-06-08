@@ -393,16 +393,25 @@ jobs:
           # STAGING_AUTH_USERNAME + STAGING_AUTH_PASSWORD enable Layer 2.
           # STAGING_RESTAURANT_ID + STAGING_MENU_ITEM_ID enable Layer 3.
           # STAGING_ADMIN_URL enables the admin Realtime DO WebSocket gate.
+          # STAGING_KITCHEN_URL + STAGING_KITCHEN_USERNAME +
+          # STAGING_KITCHEN_PASSWORD are required for the kitchen display
+          # launch gate; SMOKE_REQUIRE_KITCHEN_AUTH=true turns missing kitchen
+          # credentials into a failure instead of a skipped smoke layer.
           # Layers without their secrets get test.skip()'d, so missing
-          # secrets degrade coverage rather than fail the smoke gate.
+          # non-kitchen secrets degrade coverage rather than fail the smoke gate.
           # Keep STAGING_URL for backwards compatibility — config falls back
           # to it for both API and customer when the dedicated vars are unset.
           STAGING_URL: ${{ secrets.STAGING_URL }}
           STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
           STAGING_CUSTOMER_URL: ${{ secrets.STAGING_CUSTOMER_URL }}
           STAGING_ADMIN_URL: ${{ secrets.STAGING_ADMIN_URL }}
+          STAGING_KITCHEN_URL: ${{ secrets.STAGING_KITCHEN_URL }}
           STAGING_REALTIME_URL: ${{ secrets.STAGING_REALTIME_URL }}
           STAGING_AUTH_USERNAME: ${{ secrets.STAGING_AUTH_USERNAME }}
           STAGING_AUTH_PASSWORD: ${{ secrets.STAGING_AUTH_PASSWORD }}
+          STAGING_KITCHEN_USERNAME: ${{ secrets.STAGING_KITCHEN_USERNAME }}
+          STAGING_KITCHEN_PASSWORD: ${{ secrets.STAGING_KITCHEN_PASSWORD }}
+          STAGING_KITCHEN_RESTAURANT_ID: ${{ secrets.STAGING_KITCHEN_RESTAURANT_ID }}
+          STAGING_REQUIRE_KITCHEN_SMOKE_AUTH: "true"
           STAGING_RESTAURANT_ID: ${{ secrets.STAGING_RESTAURANT_ID }}
           STAGING_MENU_ITEM_ID: ${{ secrets.STAGING_MENU_ITEM_ID }}

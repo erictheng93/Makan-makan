@@ -18,6 +18,8 @@ const KITCHEN_URL =
 const KITCHEN_USERNAME = optionalEnv("SMOKE_KITCHEN_USERNAME");
 const KITCHEN_PASSWORD = optionalEnv("SMOKE_KITCHEN_PASSWORD");
 const KITCHEN_RESTAURANT_ID = optionalEnv("SMOKE_KITCHEN_RESTAURANT_ID");
+const REQUIRE_KITCHEN_AUTH =
+  optionalEnv("SMOKE_REQUIRE_KITCHEN_AUTH") === "true";
 
 test.describe("Smoke: Kitchen Display", () => {
   test("GET / returns HTML for the kitchen app", async () => {
@@ -32,8 +34,19 @@ test.describe("Smoke: Kitchen Display", () => {
   });
 
   test("chef login can read the kitchen queue when credentials are configured", async () => {
+    if (REQUIRE_KITCHEN_AUTH) {
+      expect(
+        KITCHEN_USERNAME,
+        "SMOKE_KITCHEN_USERNAME is required when SMOKE_REQUIRE_KITCHEN_AUTH=true",
+      ).toBeTruthy();
+      expect(
+        KITCHEN_PASSWORD,
+        "SMOKE_KITCHEN_PASSWORD is required when SMOKE_REQUIRE_KITCHEN_AUTH=true",
+      ).toBeTruthy();
+    }
+
     test.skip(
-      !KITCHEN_USERNAME || !KITCHEN_PASSWORD,
+      !REQUIRE_KITCHEN_AUTH && (!KITCHEN_USERNAME || !KITCHEN_PASSWORD),
       "SMOKE_KITCHEN_USERNAME / SMOKE_KITCHEN_PASSWORD not set",
     );
 

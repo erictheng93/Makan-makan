@@ -12,8 +12,13 @@ import { defineConfig, devices } from "@playwright/test";
  *   STAGING_API_URL       — staging API base URL
  *   STAGING_CUSTOMER_URL  — staging customer app base URL
  *   STAGING_ADMIN_URL     — staging admin dashboard base URL
+ *   STAGING_KITCHEN_URL   — staging kitchen display app base URL
  *   STAGING_AUTH_USERNAME — seeded smoke user on staging
  *   STAGING_AUTH_PASSWORD — password for STAGING_AUTH_USERNAME
+ *   STAGING_KITCHEN_USERNAME — seeded chef smoke user on staging
+ *   STAGING_KITCHEN_PASSWORD — password for STAGING_KITCHEN_USERNAME
+ *   STAGING_KITCHEN_RESTAURANT_ID — seeded kitchen restaurant UUID; defaults
+ *                                   to the chef login response restaurantId
  *   STAGING_RESTAURANT_ID — seeded restaurant UUID on staging
  *   STAGING_MENU_ITEM_ID  — seeded menu item id on staging
  *   STAGING_REALTIME_URL  — optional realtime HTTP base URL; derived from
@@ -41,11 +46,22 @@ setSmokeEnv(
   process.env.STAGING_CUSTOMER_URL ?? process.env.STAGING_URL,
 );
 setSmokeEnv("SMOKE_ADMIN_URL", process.env.STAGING_ADMIN_URL);
+setSmokeEnv("SMOKE_KITCHEN_URL", process.env.STAGING_KITCHEN_URL);
 setSmokeEnv("SMOKE_AUTH_USERNAME", process.env.STAGING_AUTH_USERNAME);
 setSmokeEnv("SMOKE_AUTH_PASSWORD", process.env.STAGING_AUTH_PASSWORD);
+setSmokeEnv("SMOKE_KITCHEN_USERNAME", process.env.STAGING_KITCHEN_USERNAME);
+setSmokeEnv("SMOKE_KITCHEN_PASSWORD", process.env.STAGING_KITCHEN_PASSWORD);
+setSmokeEnv(
+  "SMOKE_KITCHEN_RESTAURANT_ID",
+  process.env.STAGING_KITCHEN_RESTAURANT_ID,
+);
 setSmokeEnv("SMOKE_RESTAURANT_ID", process.env.STAGING_RESTAURANT_ID);
 setSmokeEnv("SMOKE_MENU_ITEM_ID", process.env.STAGING_MENU_ITEM_ID);
 setSmokeEnv("SMOKE_REALTIME_URL", process.env.STAGING_REALTIME_URL);
+setSmokeEnv(
+  "SMOKE_REQUIRE_KITCHEN_AUTH",
+  process.env.STAGING_REQUIRE_KITCHEN_SMOKE_AUTH,
+);
 
 export default defineConfig({
   testDir: "./tests/e2e/smoke",
