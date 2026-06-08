@@ -138,7 +138,7 @@ const getStatusIcon = (status: DeploymentStatus) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" data-testid="management-deployments-page">
     <!-- 頁面標題 -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">

@@ -109,7 +109,7 @@ const getTierClass = (tier: LicenseTier) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" data-testid="management-licenses-page">
     <!-- 頁面標題 -->
     <div class="flex items-center justify-between">
       <div>

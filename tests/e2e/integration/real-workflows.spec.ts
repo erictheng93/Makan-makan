@@ -22,6 +22,12 @@ const KITCHEN_URL =
 const MANAGEMENT_PORTAL_URL = optionalEnv("WORKFLOW_MANAGEMENT_PORTAL_URL");
 const ONBOARDING_URL = optionalEnv("WORKFLOW_ONBOARDING_URL");
 const MANAGEMENT_API_URL = optionalEnv("WORKFLOW_MANAGEMENT_API_URL");
+const MANAGEMENT_WORKFLOW_API_URL =
+  MANAGEMENT_API_URL ||
+  optionalEnv("WORKFLOW_MANAGEMENT_PORTAL_API_URL") ||
+  (MANAGEMENT_PORTAL_URL
+    ? new URL("/api/v1", MANAGEMENT_PORTAL_URL).toString().replace(/\/$/, "")
+    : undefined);
 
 const AUTH_USERNAME =
   optionalEnv("WORKFLOW_AUTH_USERNAME") || optionalEnv("SMOKE_AUTH_USERNAME");
@@ -94,6 +100,16 @@ interface KitchenOrdersBody {
       items?: Array<{ id?: number; status?: string }>;
     }>;
   };
+}
+
+interface ManagementTenantSummary {
+  id?: string;
+  businessName?: string;
+}
+
+interface ManagementTenantsBody {
+  data?: ManagementTenantSummary[];
+  pagination?: unknown;
 }
 
 interface LoginResponse {
@@ -304,6 +320,28 @@ async function installKitchenBrowserRuntimeHooks(page: Page) {
 
     window.EventSource = WorkflowEventSource as unknown as typeof EventSource;
   });
+}
+
+async function installManagementSession(page: Page, token: string) {
+  await page.addInitScript((managementToken) => {
+    window.localStorage.setItem("management_token", managementToken);
+  }, token);
+}
+
+async function fetchManagementTenant(
+  token: string,
+): Promise<ManagementTenantSummary | undefined> {
+  if (!MANAGEMENT_WORKFLOW_API_URL) return undefined;
+
+  const response = await fetch(`${MANAGEMENT_WORKFLOW_API_URL}/tenants`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(response.ok, `management tenants status ${response.status}`).toBe(
+    true,
+  );
+
+  const body = (await response.json()) as ManagementTenantsBody;
+  return body.data?.find((tenant) => tenant.id);
 }
 
 async function confirmOrder(orderId: number, token: string) {
@@ -839,9 +877,7 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
     );
 
-    await page.addInitScript((token) => {
-      window.localStorage.setItem("management_token", token);
-    }, MANAGEMENT_TOKEN);
+    await installManagementSession(page, MANAGEMENT_TOKEN!);
 
     const healthResponse = page.waitForResponse(
       (response) => response.url().includes("/api/v1/health") && response.ok(),
@@ -864,9 +900,7 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
     );
 
-    await page.addInitScript((token) => {
-      window.localStorage.setItem("management_token", token);
-    }, MANAGEMENT_TOKEN);
+    await installManagementSession(page, MANAGEMENT_TOKEN!);
 
     const tenantsResponse = page.waitForResponse(
       (response) => response.url().includes("/api/v1/tenants") && response.ok(),
@@ -878,6 +912,116 @@ test.describe("Real system workflows", () => {
 
     await tenantsResponse;
     await expect(page.getByTestId("management-tenants-page")).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("management portal tenant detail loads tenant resources, deployments, health, and licenses from the management API", async ({
+    page,
+  }) => {
+    test.skip(
+      !MANAGEMENT_PORTAL_URL ||
+        !MANAGEMENT_TOKEN ||
+        !MANAGEMENT_WORKFLOW_API_URL,
+      "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
+    );
+
+    const tenant = await fetchManagementTenant(MANAGEMENT_TOKEN!);
+    test.skip(!tenant?.id, "management API did not return a tenant");
+
+    await installManagementSession(page, MANAGEMENT_TOKEN!);
+
+    const tenantResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/tenants/${tenant!.id}`) &&
+        response.ok(),
+    );
+    const resourcesResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/tenants/${tenant!.id}/resources`) &&
+        response.ok(),
+    );
+    const deploymentsResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/deployments/${tenant!.id}/history`) &&
+        response.ok(),
+    );
+    const healthResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/health/tenants/${tenant!.id}`) &&
+        response.ok(),
+    );
+    const licensesResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v1/licenses/${tenant!.id}`) &&
+        response.ok(),
+    );
+
+    await page.goto(`${MANAGEMENT_PORTAL_URL}/tenants/${tenant!.id}`, {
+      waitUntil: "domcontentloaded",
+    });
+
+    await Promise.all([
+      tenantResponse,
+      resourcesResponse,
+      deploymentsResponse,
+      healthResponse,
+      licensesResponse,
+    ]);
+    await expect(
+      page.getByTestId("management-tenant-detail-page"),
+    ).toBeVisible();
+    await expect(page.getByTestId("management-tenant-overview")).toBeVisible();
+    if (tenant!.businessName) {
+      await expect(page.getByText(tenant!.businessName).first()).toBeVisible();
+    }
+
+    await page.getByTestId("management-tenant-tab-deployments").click();
+    await expect(
+      page.getByTestId("management-tenant-deployments"),
+    ).toBeVisible();
+    await page.getByTestId("management-tenant-tab-health").click();
+    await expect(page.getByTestId("management-tenant-health")).toBeVisible();
+    await page.getByTestId("management-tenant-tab-license").click();
+    await expect(page.getByTestId("management-tenant-license")).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  });
+
+  test("management portal deployments, licenses, and markets pages load from management APIs", async ({
+    page,
+  }) => {
+    test.skip(
+      !MANAGEMENT_PORTAL_URL || !MANAGEMENT_TOKEN,
+      "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
+    );
+
+    await installManagementSession(page, MANAGEMENT_TOKEN!);
+
+    const deploymentsTenantsResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/v1/tenants") && response.ok(),
+    );
+    await page.goto(`${MANAGEMENT_PORTAL_URL}/deployments`, {
+      waitUntil: "domcontentloaded",
+    });
+    await deploymentsTenantsResponse;
+    await expect(page.getByTestId("management-deployments-page")).toBeVisible();
+
+    const licensesTenantsResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/v1/tenants") && response.ok(),
+    );
+    await page.goto(`${MANAGEMENT_PORTAL_URL}/licenses`, {
+      waitUntil: "domcontentloaded",
+    });
+    await licensesTenantsResponse;
+    await expect(page.getByTestId("management-licenses-page")).toBeVisible();
+
+    const marketsResponse = page.waitForResponse(
+      (response) => response.url().includes("/api/v1/markets") && response.ok(),
+    );
+    await page.goto(`${MANAGEMENT_PORTAL_URL}/markets`, {
+      waitUntil: "domcontentloaded",
+    });
+    await marketsResponse;
+    await expect(page.getByTestId("management-markets-page")).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 

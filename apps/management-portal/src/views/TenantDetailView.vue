@@ -174,7 +174,7 @@ const tabs = computed(() => [
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" data-testid="management-tenant-detail-page">
     <!-- 返回按鈕 -->
     <button
       type="button"
@@ -262,6 +262,7 @@ const tabs = computed(() => [
             v-for="tab in tabs"
             :key="tab.id"
             type="button"
+            :data-testid="`management-tenant-tab-${tab.id}`"
             class="flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors"
             :class="{
               'border-primary-500 text-primary-600': activeTab === tab.id,
@@ -279,6 +280,7 @@ const tabs = computed(() => [
       <!-- 概覽標籤 -->
       <div
         v-if="activeTab === 'overview'"
+        data-testid="management-tenant-overview"
         class="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
         <!-- 基本資訊 -->
@@ -392,7 +394,11 @@ const tabs = computed(() => [
       </div>
 
       <!-- 資源標籤 -->
-      <div v-else-if="activeTab === 'resources'" class="card">
+      <div
+        v-else-if="activeTab === 'resources'"
+        class="card"
+        data-testid="management-tenant-resources"
+      >
         <h3 class="card-header">{{ t("tenantDetail.resources.title") }}</h3>
         <div v-if="resources.length === 0" class="text-center py-8">
           <CloudIcon class="mx-auto h-12 w-12 text-gray-400" />
@@ -442,7 +448,11 @@ const tabs = computed(() => [
       </div>
 
       <!-- 部署標籤 -->
-      <div v-else-if="activeTab === 'deployments'" class="card">
+      <div
+        v-else-if="activeTab === 'deployments'"
+        class="card"
+        data-testid="management-tenant-deployments"
+      >
         <h3 class="card-header">{{ t("tenantDetail.deployments.title") }}</h3>
         <div v-if="deployments.length === 0" class="text-center py-8">
           <PlayIcon class="mx-auto h-12 w-12 text-gray-400" />
@@ -506,7 +516,11 @@ const tabs = computed(() => [
       </div>
 
       <!-- 健康標籤 -->
-      <div v-else-if="activeTab === 'health'" class="card">
+      <div
+        v-else-if="activeTab === 'health'"
+        class="card"
+        data-testid="management-tenant-health"
+      >
         <h3 class="card-header">{{ t("tenantDetail.health.title") }}</h3>
         <div v-if="healthChecks.length === 0" class="text-center py-8">
           <HeartIcon class="mx-auto h-12 w-12 text-gray-400" />
@@ -556,7 +570,11 @@ const tabs = computed(() => [
       </div>
 
       <!-- 授權標籤 -->
-      <div v-else-if="activeTab === 'license'" class="card">
+      <div
+        v-else-if="activeTab === 'license'"
+        class="card"
+        data-testid="management-tenant-license"
+      >
         <h3 class="card-header">{{ t("tenantDetail.license.title") }}</h3>
         <div v-if="licenses.length === 0" class="text-center py-8">
           <KeyIcon class="mx-auto h-12 w-12 text-gray-400" />
