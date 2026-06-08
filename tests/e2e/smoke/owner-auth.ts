@@ -29,6 +29,11 @@ interface LoginBody {
     refreshToken?: string;
     user?: SmokeOwnerUser;
   };
+  error?:
+    | string
+    | {
+        message?: string;
+      };
 }
 
 interface MeBody {
@@ -103,24 +108,43 @@ async function isSessionValid(session: SmokeOwnerSession) {
 }
 
 async function loginOwnerSession() {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: AUTH_USERNAME,
-      password: AUTH_PASSWORD,
-    }),
-  });
+  const maxAttempts = 2;
+  let response: Response | undefined;
+  let body: LoginBody | undefined;
 
-  expect(response.ok, `owner login status ${response.status}`).toBe(true);
-  const body = (await response.json()) as LoginBody;
-  expect(body.success, "login should succeed").toBe(true);
-  expect(body.data?.user?.role, "user role should be owner").toBe(OWNER_ROLE);
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: AUTH_USERNAME,
+        password: AUTH_PASSWORD,
+      }),
+    });
+    body = (await response.json().catch(() => ({}))) as LoginBody;
+
+    const message =
+      typeof body.error === "string" ? body.error : body.error?.message;
+    const retryableInvalidation =
+      response.status === 401 &&
+      /invalidate previous sessions/i.test(message ?? "");
+
+    if (response.ok || !retryableInvalidation || attempt === maxAttempts) {
+      break;
+    }
+
+    await sleep(LOCK_RETRY_MS * attempt);
+  }
+
+  expect(response?.ok, `owner login status ${response?.status}`).toBe(true);
+  expect(body, "login response body").toBeTruthy();
+  expect(body!.success, "login should succeed").toBe(true);
+  expect(body!.data?.user?.role, "user role should be owner").toBe(OWNER_ROLE);
 
   const session: SmokeOwnerSession = {
-    token: body.data!.token!,
-    refreshToken: body.data?.refreshToken,
-    user: body.data!.user!,
+    token: body!.data!.token!,
+    refreshToken: body!.data?.refreshToken,
+    user: body!.data!.user!,
   };
 
   await fs.writeFile(statePath, JSON.stringify(session), "utf8");
@@ -137,16 +161,37 @@ export function getSmokeOwnerSession(): Promise<SmokeOwnerSession> {
     return loginOwnerSession();
   });
 
+  ownerSessionPromise = ownerSessionPromise.catch((error) => {
+    ownerSessionPromise = undefined;
+    throw error;
+  });
+
   return ownerSessionPromise;
 }
 
-export function setSmokeOwnerSession(
+export async function setSmokeOwnerSession(
   page: Page,
   session: SmokeOwnerSession,
   options: {
     selectedRestaurantName?: string;
   } = {},
 ) {
+  await page.route("**/api/v1/auth/me", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        data: session.user,
+      }),
+    });
+  });
+
   return page.addInitScript(
     ({ session: payload, selectedRestaurantName }) => {
       localStorage.setItem("auth_token", payload.token);

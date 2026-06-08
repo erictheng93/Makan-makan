@@ -44,7 +44,13 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { optionalEnv, resolveLocalSmokeFixtureIds } from "./smoke-env";
+import {
+  optionalEnv,
+  resolveLocalSmokeFixtureIds,
+  smokeLogin,
+  type SmokeLoginData,
+} from "./smoke-env";
+import { getSmokeOwnerSession } from "./owner-auth";
 
 const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 const CUSTOMER_URL = process.env.SMOKE_CUSTOMER_URL || "http://localhost:3000";
@@ -55,6 +61,30 @@ const AUTH_PASSWORD = optionalEnv("SMOKE_AUTH_PASSWORD");
 const RESTAURANT_ID = optionalEnv("SMOKE_RESTAURANT_ID");
 const menuItemIdValue = optionalEnv("SMOKE_MENU_ITEM_ID");
 const MENU_ITEM_ID = menuItemIdValue ? Number(menuItemIdValue) : undefined;
+
+let smokeAuthLoginDataPromise: Promise<SmokeLoginData> | undefined;
+
+function getSmokeAuthLoginData(): Promise<SmokeLoginData> {
+  smokeAuthLoginDataPromise ??= (async () => {
+    try {
+      const ownerSession = await getSmokeOwnerSession();
+      return {
+        token: ownerSession.token,
+        refreshToken: ownerSession.refreshToken,
+        user: ownerSession.user,
+      };
+    } catch {
+      return smokeLogin(API_URL, AUTH_USERNAME!, AUTH_PASSWORD!);
+    }
+  })();
+
+  smokeAuthLoginDataPromise = smokeAuthLoginDataPromise.catch((error) => {
+    smokeAuthLoginDataPromise = undefined;
+    throw error;
+  });
+
+  return smokeAuthLoginDataPromise;
+}
 
 // ─── Layer 1: unauthenticated liveness ──────────────────────────────────────
 
@@ -102,21 +132,8 @@ test.describe("Smoke: Layer 2 (authenticated read)", () => {
   test("login returns token then GET /api/v1/orders succeeds", async () => {
     test.skip(!AUTH_USERNAME || !AUTH_PASSWORD, layer2Reason);
 
-    const loginRes = await fetch(`${API_URL}/api/v1/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: AUTH_USERNAME,
-        password: AUTH_PASSWORD,
-      }),
-    });
-    expect(loginRes.ok, `login status ${loginRes.status}`).toBe(true);
-    const loginBody = (await loginRes.json()) as {
-      success: boolean;
-      data?: { token?: string };
-    };
-    expect(loginBody.success).toBe(true);
-    const token = loginBody.data?.token;
+    const loginData = await getSmokeAuthLoginData();
+    const token = loginData.token;
     expect(typeof token, "login response missing token").toBe("string");
 
     const ordersRes = await fetch(`${API_URL}/api/v1/orders?limit=1`, {
@@ -152,6 +169,10 @@ test.describe("Smoke: Layer 3 (guest happy path round-trip)", () => {
       authPassword: AUTH_PASSWORD,
       restaurantId: RESTAURANT_ID,
       menuItemId: MENU_ITEM_ID,
+      loginData:
+        AUTH_USERNAME && AUTH_PASSWORD
+          ? await getSmokeAuthLoginData()
+          : undefined,
     });
 
     test.skip(

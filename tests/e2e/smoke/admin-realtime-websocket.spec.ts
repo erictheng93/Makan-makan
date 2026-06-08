@@ -14,6 +14,7 @@ import {
   optionalEnv,
   resolveLocalSmokeFixtureIds,
 } from "./smoke-env";
+import { getSmokeOwnerSession } from "./owner-auth";
 
 const API_URL = process.env.SMOKE_API_URL || "http://localhost:8787";
 
@@ -54,7 +55,7 @@ interface BroadcastBody {
   recipientCount?: number;
 }
 
-async function login() {
+async function directLogin() {
   const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -75,6 +76,19 @@ async function login() {
     refreshToken: body.data?.refreshToken,
     user: body.data!.user!,
   };
+}
+
+async function login() {
+  try {
+    const ownerSession = await getSmokeOwnerSession();
+    return {
+      token: ownerSession.token,
+      refreshToken: ownerSession.refreshToken,
+      user: ownerSession.user,
+    };
+  } catch {
+    return directLogin();
+  }
 }
 
 async function requestAdminRealtimeToken(token: string, restaurantId: string) {
