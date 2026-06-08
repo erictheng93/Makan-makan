@@ -62,6 +62,7 @@
               : 'hover:bg-ios-primary/[0.03]',
           ]"
           data-testid="category-row"
+          :data-category-id="category.id"
           @click="emit('select', category.id)"
         >
           <!-- Active indicator bar -->
@@ -114,6 +115,7 @@
           >
             <button
               class="w-7 h-7 flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
+              :data-testid="`admin-category-edit-${category.id}`"
               :title="t('common.edit')"
               @click.stop="emit('edit-category', category)"
             >
@@ -121,6 +123,7 @@
             </button>
             <button
               class="w-7 h-7 flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-[#FFEBEE] hover:text-ios-error transition-colors"
+              :data-testid="`admin-category-delete-${category.id}`"
               :title="t('common.delete')"
               @click.stop="emit('delete-category', category)"
             >

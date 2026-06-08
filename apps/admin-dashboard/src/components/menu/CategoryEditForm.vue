@@ -10,6 +10,7 @@
     <!-- Modal card -->
     <div
       data-category-form
+      data-testid="admin-category-form"
       class="relative bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.12)] p-6 w-full max-w-md mx-4"
     >
       <div class="flex items-center gap-2 mb-5">
@@ -31,6 +32,7 @@
             <input
               ref="nameInput"
               v-model="form.name"
+              data-testid="admin-category-name-input"
               type="text"
               required
               :placeholder="t('menu.form.categoryNamePlaceholder')"
@@ -47,6 +49,7 @@
               </label>
               <input
                 v-model="form.nameEn"
+                data-testid="admin-category-name-en-input"
                 type="text"
                 placeholder="English name"
                 class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
@@ -60,6 +63,7 @@
               </label>
               <input
                 v-model.number="form.sortOrder"
+                data-testid="admin-category-sort-order-input"
                 type="number"
                 min="0"
                 class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
@@ -75,6 +79,7 @@
             </label>
             <input
               v-model="form.description"
+              data-testid="admin-category-description-input"
               type="text"
               :placeholder="t('menu.form.descriptionPlaceholder')"
               class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
@@ -85,6 +90,7 @@
         <div class="flex justify-end gap-2 mt-5">
           <button
             type="button"
+            data-testid="admin-category-cancel"
             class="px-4 py-2 rounded-full text-[13px] font-medium text-[#8E8E93] hover:bg-black/[0.04] transition-colors"
             @click="$emit('cancel')"
           >
@@ -92,6 +98,7 @@
           </button>
           <button
             type="submit"
+            data-testid="admin-category-submit"
             class="px-5 py-2 rounded-full text-[13px] font-semibold bg-ios-primary text-white hover:bg-[#0066D6] transition-colors"
           >
             {{ isEditing ? t("menu.form.update") : t("menu.form.add") }}

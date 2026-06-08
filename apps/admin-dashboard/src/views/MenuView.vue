@@ -314,12 +314,14 @@
             </p>
             <div class="flex gap-2.5 justify-center">
               <button
+                data-testid="admin-delete-cancel"
                 class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
                 @click="cancelDelete"
               >
                 {{ t("common.cancel") }}
               </button>
               <button
+                data-testid="admin-delete-confirm"
                 class="px-5 py-2.5 text-[14px] font-semibold text-white bg-ios-error rounded-full hover:bg-ios-error/90 transition-colors shadow-[0_2px_8px_rgba(255,59,48,0.25)]"
                 @click="confirmDelete"
               >

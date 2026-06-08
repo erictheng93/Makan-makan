@@ -242,6 +242,18 @@ function firstMenuCategory(menu: MenuBody) {
   );
 }
 
+function findMenuCategory(menu: MenuBody, categoryId: number) {
+  return menu.data?.categories?.find(
+    (category) => Number(category.id) === categoryId,
+  );
+}
+
+function adminCategoryRow(page: Page, categoryId: number) {
+  return page.locator(
+    `[data-testid="category-row"][data-category-id="${categoryId}"]`,
+  );
+}
+
 async function addMenuItemThroughUi(page: Page, id: number) {
   const quickAdd = page.getByTestId(`menu-item-add-${id}`).first();
   const customize = page.getByTestId(`menu-item-customize-${id}`).first();
@@ -399,6 +411,18 @@ async function fetchMenuItem(
 
 async function deleteMenuItemAsOwner(itemId: number, token: string) {
   await fetch(`${API_URL}/api/v1/menu/items/${itemId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...csrfHeaders(),
+    },
+  }).catch(() => {
+    /* best-effort cleanup */
+  });
+}
+
+async function deleteCategoryAsOwner(categoryId: number, token: string) {
+  await fetch(`${API_URL}/api/v1/menu/categories/${categoryId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -866,6 +890,146 @@ test.describe("Real system workflows", () => {
     } finally {
       if (createdItemId) {
         await deleteMenuItemAsOwner(createdItemId, loginData.token!);
+      }
+    }
+  });
+
+  test("owner dashboard creates, updates, and deletes a real menu category from the browser", async ({
+    page,
+  }) => {
+    test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+
+    const loginData = await getLoginData();
+    test.skip(
+      !loginData?.token || !loginData.user,
+      "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
+    );
+
+    const fixtureIds = await resolveFixtureIds();
+    test.skip(
+      !fixtureIds.restaurantId,
+      "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
+    );
+
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const categoryName = `Workflow Category ${suffix}`;
+    const updatedCategoryName = `Workflow Category Updated ${suffix}`;
+    let createdCategoryId: number | undefined;
+
+    await installAdminSession(page, loginData);
+
+    try {
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response
+              .url()
+              .includes(`/api/v1/menu/${fixtureIds.restaurantId}`) &&
+            response.ok(),
+        ),
+        page.goto(`${ADMIN_URL}/dashboard/menu`, {
+          waitUntil: "domcontentloaded",
+        }),
+      ]);
+
+      await page.getByTestId("add-category-btn").click();
+      await expect(page.getByTestId("admin-category-form")).toBeVisible();
+      await page.getByTestId("admin-category-name-input").fill(categoryName);
+      await page
+        .getByTestId("admin-category-name-en-input")
+        .fill(`Workflow Category EN ${suffix}`);
+      await page
+        .getByTestId("admin-category-description-input")
+        .fill("Real workflow category created by Playwright");
+      await page.getByTestId("admin-category-sort-order-input").fill("999");
+
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(`/api/v1/menu/${fixtureIds.restaurantId}/categories`) &&
+          response.request().method() === "POST",
+      );
+      await page.getByTestId("admin-category-submit").click();
+      const createResponse = await createResponsePromise;
+      expect(
+        createResponse.ok(),
+        `admin category create ${createResponse.status()}`,
+      ).toBe(true);
+      const createBody = (await createResponse.json()) as MenuMutationBody;
+      createdCategoryId = createBody.data?.id;
+      expect(typeof createdCategoryId, "created category id").toBe("number");
+
+      await expect(adminCategoryRow(page, createdCategoryId!)).toBeVisible();
+
+      await adminCategoryRow(page, createdCategoryId!).hover();
+      await page
+        .getByTestId(`admin-category-edit-${createdCategoryId}`)
+        .click();
+      await expect(page.getByTestId("admin-category-form")).toBeVisible();
+      await page
+        .getByTestId("admin-category-name-input")
+        .fill(updatedCategoryName);
+      await page
+        .getByTestId("admin-category-description-input")
+        .fill("Real workflow category updated by Playwright");
+
+      const updateResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(`/api/v1/menu/categories/${createdCategoryId}`) &&
+          response.request().method() === "PUT",
+      );
+      await page.getByTestId("admin-category-submit").click();
+      const updateResponse = await updateResponsePromise;
+      expect(
+        updateResponse.ok(),
+        `admin category update ${updateResponse.status()}`,
+      ).toBe(true);
+
+      await expect(adminCategoryRow(page, createdCategoryId!)).toContainText(
+        updatedCategoryName,
+      );
+      await expect
+        .poll(async () => {
+          const menu = await fetchMenu(fixtureIds.restaurantId!);
+          return findMenuCategory(menu, createdCategoryId!)?.name;
+        })
+        .toBe(updatedCategoryName);
+
+      await adminCategoryRow(page, createdCategoryId!).hover();
+      await page
+        .getByTestId(`admin-category-delete-${createdCategoryId}`)
+        .click();
+      await expect(page.getByText(updatedCategoryName)).toBeVisible();
+
+      const deleteResponsePromise = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(`/api/v1/menu/categories/${createdCategoryId}`) &&
+          response.request().method() === "DELETE",
+      );
+      await page.getByTestId("admin-delete-confirm").click();
+      const deleteResponse = await deleteResponsePromise;
+      expect(
+        deleteResponse.ok(),
+        `admin category delete ${deleteResponse.status()}`,
+      ).toBe(true);
+
+      await expect(adminCategoryRow(page, createdCategoryId!)).toHaveCount(0);
+      await expect
+        .poll(async () => {
+          const menu = await fetchMenu(fixtureIds.restaurantId!);
+          return findMenuCategory(menu, createdCategoryId!);
+        })
+        .toBeUndefined();
+      createdCategoryId = undefined;
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      if (createdCategoryId) {
+        await deleteCategoryAsOwner(createdCategoryId, loginData.token!);
       }
     }
   });
