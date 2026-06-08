@@ -507,27 +507,29 @@ function installOwnerPOSMocks(
 
   return {
     stats,
-    restore: () => {
-      page.unroute("**/api/v1/orders/*/status");
-      page.unroute("**/api/v1/orders*");
-      page.unroute(dailyStatsRoute);
-      page.unroute("**/api/v1/pos/registers/*/cash-movements");
-      page.unroute("**/api/v1/pos/registers/*/activate");
-      page.unroute("**/api/v1/pos/registers/*/deactivate");
-      page.unroute(registerListRoute);
-      page.unroute("**/api/v1/pos/shifts/current/*");
-      page.unroute("**/api/v1/pos/shifts/start");
-      page.unroute("**/api/v1/pos/shifts/*/end");
-      page.unroute("**/api/v1/pos/shifts/*/report");
-      page.unroute(dailyReportRoute);
-      page.unroute(exportReportRoute);
-      page.unroute("**/api/v1/pos/quick-payment");
-      page.unroute("**/api/v1/pos/market-checkouts/*/pay");
-      page.unroute("**/api/v1/pos/refunds/create");
-      page.unroute("**/api/v1/pos/receipts/print");
-      page.unroute("**/api/v1/pos/promotions/*");
-      page.unroute("**/api/v1/pos/promotions");
-      page.unroute("**/api/v1/pos/shifts/*/cash-movements");
+    restore: async () => {
+      await Promise.all([
+        page.unroute("**/api/v1/orders/*/status"),
+        page.unroute("**/api/v1/orders*"),
+        page.unroute(dailyStatsRoute),
+        page.unroute("**/api/v1/pos/registers/*/cash-movements"),
+        page.unroute("**/api/v1/pos/registers/*/activate"),
+        page.unroute("**/api/v1/pos/registers/*/deactivate"),
+        page.unroute(registerListRoute),
+        page.unroute("**/api/v1/pos/shifts/current/*"),
+        page.unroute("**/api/v1/pos/shifts/start"),
+        page.unroute("**/api/v1/pos/shifts/*/end"),
+        page.unroute("**/api/v1/pos/shifts/*/report"),
+        page.unroute(dailyReportRoute),
+        page.unroute(exportReportRoute),
+        page.unroute("**/api/v1/pos/quick-payment"),
+        page.unroute("**/api/v1/pos/market-checkouts/*/pay"),
+        page.unroute("**/api/v1/pos/refunds/create"),
+        page.unroute("**/api/v1/pos/receipts/print"),
+        page.unroute("**/api/v1/pos/promotions/*"),
+        page.unroute("**/api/v1/pos/promotions"),
+        page.unroute("**/api/v1/pos/shifts/*/cash-movements"),
+      ]);
     },
   };
 }
@@ -537,7 +539,7 @@ async function waitForCheckoutReady(page: Page) {
     page.getByRole("heading", { name: /POS System/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /Pending Orders/i }),
+    page.getByRole("heading", { name: "Pending Orders", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Today's Performance")).toBeVisible();
   await expect(
@@ -565,7 +567,7 @@ function cardByHeader(page: Page, heading: RegExp | string) {
 }
 
 function pendingOrdersCard(page: Page) {
-  return cardByHeader(page, /Pending Orders/i);
+  return cardByHeader(page, "Pending Orders");
 }
 
 function pendingOrder(page: Page, orderNumber: string) {
@@ -858,10 +860,11 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     });
     await openPOSManagement(page, session);
     await waitForManagementReady(page);
-    await expect(
-      page.getByRole("button", { name: /Start Shift/i }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: /Start Shift/i }).click();
+    const startShiftButton = page
+      .getByRole("button", { name: "Start Shift", exact: true })
+      .first();
+    await expect(startShiftButton).toBeVisible();
+    await startShiftButton.click();
     const startShiftModal = page.locator("div.fixed.inset-0").filter({
       has: page.getByRole("heading", { name: /Start Shift/i }),
     });
@@ -933,7 +936,7 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
       .click();
 
     await expect(mocks.stats.quickPayment).toBe(1);
-    await expect(mocks.stats.transactions).toBeGreaterThanOrEqual(2);
+    await expect.poll(() => mocks.stats.transactions).toBeGreaterThanOrEqual(2);
     await expect(
       quickPaymentCard.getByRole("textbox", { name: /Order Number/i }),
     ).toHaveValue("");
@@ -1051,13 +1054,15 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await expect(cashMovementDialog).toBeVisible();
     await cashMovementDialog.getByRole("combobox").selectOption("cash_in");
     await cashMovementDialog.getByRole("spinbutton").fill("50");
-    await cashMovementDialog.getByLabel(/Description/).fill("Drawer count");
     await cashMovementDialog
-      .getByRole("button", { name: /Confirm Operation/i })
+      .getByPlaceholder(/Enter description/i)
+      .fill("Drawer count");
+    await cashMovementDialog
+      .getByRole("button", { name: /^Confirm$/i })
       .click();
 
     await expect(mocks.stats.cashMovement).toBe(1);
-    await expect(mocks.stats.transactions).toBeGreaterThanOrEqual(2);
+    await expect.poll(() => mocks.stats.transactions).toBeGreaterThanOrEqual(2);
     await expect(page.getByText("Drawer count")).toBeVisible();
   });
 
@@ -1127,15 +1132,16 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await expect(page).toHaveURL(/\/dashboard\/pos\/management/);
     await expect(page.getByText("Register List")).toBeVisible();
 
-    broken.restore();
+    await broken.restore();
     const recovered = installOwnerPOSMocks(page);
     await page.reload();
     await waitForManagementReady(page);
-    await expect(recovered.stats.orders).toBeGreaterThan(0);
+    await expect(recovered.stats.registers).toBeGreaterThan(0);
+    await expect(recovered.stats.currentShift).toBeGreaterThan(0);
     await expect(registerHeading(page, "Front Counter")).toBeVisible();
   });
 
-  test("28) Management supports 30-second polling cadence for recent transactions", async ({
+  test("28) Management refreshes recent transactions repeatedly with newer server state", async ({
     page,
   }) => {
     const session = await getSmokeOwnerSession();
@@ -1250,9 +1256,11 @@ test.describe("Smoke: owner POS usage-state workflows (owner role)", () => {
     await expect(page.getByText(/Register List/i)).toBeVisible();
     await expect(registerHeading(page, "Front Counter")).toHaveCount(0);
 
-    broken.restore();
+    await broken.restore();
     const recovered = installOwnerPOSMocks(page);
-    await page.getByTestId("refresh-btn").first().click();
+    await page.getByRole("button", { name: /Register Management/i }).click();
+    await expect(recovered.stats.registers).toBeGreaterThanOrEqual(1);
+    await registerHeading(page, "Front Counter").click();
     await expect(recovered.stats.currentShift).toBeGreaterThanOrEqual(1);
     await expect(registerHeading(page, "Front Counter")).toBeVisible();
     await expect(registerHeading(page, "Takeout Desk")).toBeVisible();
