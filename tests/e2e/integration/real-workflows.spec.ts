@@ -118,7 +118,7 @@ test.describe("Real system workflows", () => {
       waitUntil: "domcontentloaded",
     });
     expect(response?.ok(), `${CUSTOMER_URL} should serve the app`).toBe(true);
-    await expect(page.locator("#app")).toBeVisible();
+    await expect(page.locator("#app[data-v-app]")).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 
@@ -148,7 +148,9 @@ test.describe("Real system workflows", () => {
     ]);
 
     await expect(page.getByTestId("cart-btn")).toBeVisible();
-    await expect(page.getByText(item!.name!, { exact: false })).toBeVisible();
+    await expect(
+      page.getByText(item!.name!, { exact: false }).first(),
+    ).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 
@@ -203,7 +205,7 @@ test.describe("Real system workflows", () => {
       await expect(page.getByTestId("order-timeline")).toBeVisible();
       if (orderNumber) {
         await expect(
-          page.getByText(orderNumber, { exact: false }),
+          page.getByText(orderNumber, { exact: true }),
         ).toBeVisible();
       }
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);

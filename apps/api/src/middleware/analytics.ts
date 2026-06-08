@@ -78,7 +78,7 @@ export class AdvancedAnalyticsService {
   ]);
 
   constructor(
-    private analyticsEngine: AnalyticsEngine,
+    private analyticsEngine: AnalyticsEngine | undefined,
     private context: ExecutionContext,
     private env: Env,
   ) {}
@@ -88,6 +88,10 @@ export class AdvancedAnalyticsService {
    */
   async recordEvent(dataPoint: AnalyticsDataPoint): Promise<void> {
     try {
+      if (!this.analyticsEngine) {
+        return;
+      }
+
       // Use waitUntil to ensure zero impact on request performance
       this.context.waitUntil(
         Promise.resolve(
@@ -635,8 +639,9 @@ export function advancedAnalyticsMiddleware() {
     const executionCtx = c.executionCtx || {
       waitUntil: (p: Promise<unknown>) => p,
     };
+    const analyticsEngine = c.env.ANALYTICS_ENGINE ?? c.env.ANALYTICS;
     const analytics = new AdvancedAnalyticsService(
-      c.env.ANALYTICS_ENGINE,
+      analyticsEngine,
       executionCtx as ExecutionContext,
       c.env,
     );

@@ -89,7 +89,8 @@ export interface Env {
   REALTIME_ORDERS: DurableObjectNamespace;
 
   // Advanced Cloudflare bindings for 100/100 optimization
-  ANALYTICS_ENGINE: AnalyticsEngine; // Workers Analytics for custom metrics
+  ANALYTICS_ENGINE?: AnalyticsEngine; // Workers Analytics for custom metrics
+  ANALYTICS?: AnalyticsEngine; // Production binding alias used by wrangler.toml
   RATE_LIMIT_KV: KVNamespace; // Geographic rate limiting storage
   PRELOAD_QUEUE?: Queue; // Cache preloading queue
   REVALIDATION_QUEUE?: Queue; // Cache revalidation queue

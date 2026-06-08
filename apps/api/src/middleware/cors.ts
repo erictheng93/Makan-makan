@@ -79,7 +79,17 @@ export const corsMiddleware = async (
   // 嚴格控制允許的 headers
   c.res.headers.set(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, X-CSRF-Token",
+    [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "X-CSRF-Token",
+      "X-Client-Version",
+      "X-Client-Platform",
+      "X-Request-ID",
+      "X-Restaurant-ID",
+      "X-Table-ID",
+    ].join(", "),
   );
 
   // 暴露自定義 headers 給前端
