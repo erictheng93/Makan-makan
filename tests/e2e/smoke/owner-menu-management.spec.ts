@@ -194,6 +194,10 @@ function toNumber(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function isCategoryCreatePath(path: string) {
+  return /^\/api\/v1\/menu\/[^/]+\/categories\/?$/.test(path);
+}
+
 async function readJsonBody(route: Route) {
   const raw = route.request().postData();
   if (!raw) return {};
@@ -249,10 +253,7 @@ function installOwnerMenuMocks(
       return;
     }
 
-    if (
-      method === "POST" &&
-      /^\/api\/v1\/menu\/[^/]+\/categories$/.test(path)
-    ) {
+    if (method === "POST" && isCategoryCreatePath(path)) {
       stats.categoryCreate += 1;
       if (handlers.categoryCreate) {
         await route.fulfill(responsePayload(handlers.categoryCreate()));
@@ -566,6 +567,24 @@ async function saveCategory(page: Page, isUpdate = false) {
   await expect(page.locator("[data-category-form]")).not.toBeVisible();
 }
 
+async function saveNewCategoryAndWaitForCreate(page: Page) {
+  const categoryCreateResponse = page.waitForResponse((response) => {
+    const request = response.request();
+    const url = new URL(response.url());
+
+    return (
+      request.method().toUpperCase() === "POST" &&
+      isCategoryCreatePath(url.pathname)
+    );
+  });
+
+  await saveCategory(page);
+  const response = await categoryCreateResponse;
+  expect(response.ok(), `category create status ${response.status()}`).toBe(
+    true,
+  );
+}
+
 async function openCategoryForEdit(page: Page, name: string) {
   const row = menuCategoryByName(page, name);
   await row.hover();
@@ -694,7 +713,7 @@ test.describe("Smoke: owner menu management usage state", () => {
     await waitForMenuPageReady(page);
 
     await fillNewCategory(page, "Beverages");
-    await saveCategory(page);
+    await saveNewCategoryAndWaitForCreate(page);
 
     await expect(mocks.stats.categoryCreate).toBeGreaterThan(0);
     await expect(menuCategoryByName(page, "Beverages")).toBeVisible();
