@@ -75,4 +75,52 @@ describe("smoke env helpers", () => {
       menuItemId: undefined,
     });
   });
+
+  it("does not select a local restaurant that has guest orders disabled", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url.endsWith("/api/v1/auth/login")) {
+          return Response.json({
+            success: true,
+            data: {
+              token: "token",
+              user: { restaurantId: "restaurant-disabled" },
+            },
+          });
+        }
+
+        if (url.endsWith("/api/v1/restaurants/restaurant-disabled")) {
+          return Response.json({
+            success: true,
+            data: {
+              settings: { allowGuestOrders: false },
+            },
+          });
+        }
+
+        if (url.endsWith("/api/v1/menu/restaurant-disabled")) {
+          return Response.json({
+            success: true,
+            data: { menuItems: [{ id: 1, isAvailable: true }] },
+          });
+        }
+
+        return new Response("not found", { status: 404 });
+      }),
+    );
+
+    await expect(
+      resolveLocalSmokeFixtureIds({
+        apiUrl: "http://localhost:8787",
+        authUsername: "grandmaShop",
+        authPassword: "password123",
+      }),
+    ).resolves.toEqual({
+      restaurantId: undefined,
+      menuItemId: undefined,
+    });
+  });
 });

@@ -27,6 +27,15 @@ interface SmokeMenuBody {
   };
 }
 
+interface SmokeRestaurantBody {
+  success: boolean;
+  data?: {
+    settings?: {
+      allowGuestOrders?: boolean;
+    } | null;
+  };
+}
+
 export interface SmokeFixtureIds {
   restaurantId?: string;
   menuItemId?: number;
@@ -105,6 +114,17 @@ async function discoverMenuItemId(
   return firstAvailableMenuItemId((await response.json()) as SmokeMenuBody);
 }
 
+async function guestOrdersEnabled(
+  apiUrl: string,
+  restaurantId: string,
+): Promise<boolean> {
+  const response = await fetch(`${apiUrl}/api/v1/restaurants/${restaurantId}`);
+  if (!response.ok) return false;
+
+  const body = (await response.json()) as SmokeRestaurantBody;
+  return body.success && body.data?.settings?.allowGuestOrders === true;
+}
+
 export async function resolveLocalSmokeFixtureIds(params: {
   apiUrl: string;
   authUsername?: string;
@@ -118,28 +138,40 @@ export async function resolveLocalSmokeFixtureIds(params: {
     menuItemId: params.menuItemId,
   };
 
-  if (
-    !isLocalSmokeApi(params.apiUrl) ||
-    !params.authUsername ||
-    !params.authPassword
-  ) {
+  if (!isLocalSmokeApi(params.apiUrl)) {
     return fixtureIds;
   }
 
-  let loginData = params.loginData;
-  if (!loginData) {
-    try {
-      loginData = await smokeLogin(
-        params.apiUrl,
-        params.authUsername,
-        params.authPassword,
-      );
-    } catch {
+  if (!fixtureIds.restaurantId) {
+    if (!params.authUsername || !params.authPassword) {
       return fixtureIds;
     }
+
+    let loginData = params.loginData;
+    if (!loginData) {
+      try {
+        loginData = await smokeLogin(
+          params.apiUrl,
+          params.authUsername,
+          params.authPassword,
+        );
+      } catch {
+        return fixtureIds;
+      }
+    }
+
+    fixtureIds.restaurantId = loginData.user?.restaurantId ?? undefined;
   }
 
-  fixtureIds.restaurantId ??= loginData.user?.restaurantId ?? undefined;
+  if (
+    fixtureIds.restaurantId &&
+    !(await guestOrdersEnabled(params.apiUrl, fixtureIds.restaurantId))
+  ) {
+    return {
+      restaurantId: undefined,
+      menuItemId: undefined,
+    };
+  }
 
   if (fixtureIds.restaurantId && fixtureIds.menuItemId === undefined) {
     fixtureIds.menuItemId = await discoverMenuItemId(
