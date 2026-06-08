@@ -1,0 +1,31 @@
+# Public API soak smoke. Intentionally unauthenticated so it can run before
+# seeded performance fixtures exist.
+config:
+  target: "http://localhost:8787"
+  phases:
+    - duration: 120
+      arrivalRate: 3
+      name: "Short soak"
+
+  http:
+    timeout: 10
+    pool: 10
+
+  ensure:
+    - http.response_time.p95:
+        max: 2500
+    - http.response_time.p99:
+        max: 4000
+
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Public API boot endpoint over time"
+    flow:
+      - get:
+          url: "/info"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: "name"

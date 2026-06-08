@@ -1,0 +1,32 @@
+# Public API stress smoke. Uses the same unauthenticated endpoint as the CI
+# profile, with a steeper ramp for local capacity checks.
+config:
+  target: "http://localhost:8787"
+  phases:
+    - duration: 45
+      arrivalRate: 10
+      rampTo: 40
+      name: "Stress ramp"
+
+  http:
+    timeout: 10
+    pool: 40
+
+  ensure:
+    - http.response_time.p95:
+        max: 3000
+    - http.response_time.p99:
+        max: 5000
+
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Public API boot endpoint under stress ramp"
+    flow:
+      - get:
+          url: "/info"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: "name"

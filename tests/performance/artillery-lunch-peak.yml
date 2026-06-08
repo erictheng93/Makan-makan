@@ -1,0 +1,32 @@
+# Public API peak-load smoke. This keeps the root script executable without
+# requiring seeded auth data.
+config:
+  target: "http://localhost:8787"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      rampTo: 20
+      name: "Lunch peak ramp"
+
+  http:
+    timeout: 10
+    pool: 20
+
+  ensure:
+    - http.response_time.p95:
+        max: 2500
+    - http.response_time.p99:
+        max: 4000
+
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Public API boot endpoint under peak ramp"
+    flow:
+      - get:
+          url: "/info"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: "name"

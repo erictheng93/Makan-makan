@@ -87,7 +87,7 @@ export default defineConfig({
       fullyParallel: false,
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: "http://localhost:3000",
+        baseURL: process.env.WORKFLOW_CUSTOMER_URL || "http://localhost:3000",
       },
     },
 
