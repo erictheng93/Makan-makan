@@ -1,6 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const RESTAURANT_ID = "restaurant-kitchen-e2e";
+const KITCHEN_BASE_URL =
+  process.env.E2E_KITCHEN_URL ?? process.env.E2E_BASE_URL;
+
+if (KITCHEN_BASE_URL) {
+  test.use({ baseURL: KITCHEN_BASE_URL });
+}
+
+test.describe.configure({ timeout: 60_000 });
 
 function unsignedJwt(payload: Record<string, unknown>) {
   const encode = (value: unknown) =>
@@ -258,10 +266,10 @@ test("chef can complete the core kitchen display order flow", async ({
   await expect(page.getByTestId("kitchen-item-ready-7001-8101")).toBeVisible();
 
   await page.getByTestId("kitchen-item-ready-7001-8101").click();
+  await expect.poll(() => api.updates).toEqual(["preparing", "ready"]);
   await expect(page.getByTestId("kitchen-order-card-7001")).toContainText(
     "Completed",
   );
-  expect(api.updates).toEqual(["preparing", "ready"]);
 });
 
 test("non-chef sessions are denied access to protected kitchen routes", async ({

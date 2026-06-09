@@ -211,25 +211,28 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
-      - name: 🏗️ 建置 customer-app + admin-dashboard
+      - name: 🏗️ 建置 customer-app + admin-dashboard + kitchen-display
         env:
           VITE_API_BASE_URL: /api/v1
         run: |
           pnpm build \
             --filter=makanmasak-customer-app \
-            --filter=makanmasak-admin-dashboard
+            --filter=makanmasak-admin-dashboard \
+            --filter=makanmasak-kitchen-display
 
       - name: 🚀 啟動 preview servers
         run: |
           mkdir -p /tmp/preview-logs
-          (cd apps/customer-app    && npx vite preview --port 3000 --host 0.0.0.0 > /tmp/preview-logs/customer.log 2>&1 &)
-          (cd apps/admin-dashboard && npx vite preview --port 3001 --host 0.0.0.0 > /tmp/preview-logs/admin.log    2>&1 &)
+          (cd apps/customer-app    && pnpm exec vite preview --port 3000 --host 0.0.0.0 > /tmp/preview-logs/customer.log 2>&1 &)
+          (cd apps/admin-dashboard && pnpm exec vite preview --port 3001 --host 0.0.0.0 > /tmp/preview-logs/admin.log    2>&1 &)
+          (cd apps/kitchen-display && pnpm exec vite preview --port 3002 --host 0.0.0.0 > /tmp/preview-logs/kitchen.log  2>&1 &)
 
       - name: ⏳ 等待 preview servers 就緒
         run: |
-          npx wait-on \
+          pnpm exec wait-on \
             http://localhost:3000 \
             http://localhost:3001 \
+            http://localhost:3002 \
             --timeout 60000
 
       - name: 🧪 執行 E2E 測試
@@ -238,13 +241,14 @@ jobs:
         # Manual dispatch keeps the full suite available for investigation.
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            npx playwright test --project=chromium --project=admin
+            pnpm exec playwright test --project=chromium --project=admin
           else
-            npx playwright test --config playwright.ci-smoke.config.ts
+            pnpm exec playwright test --config playwright.ci-smoke.config.ts
           fi
         env:
           E2E_BASE_URL: http://localhost:3000
           E2E_ADMIN_URL: http://localhost:3001
+          E2E_KITCHEN_URL: http://localhost:3002
 
       - name: 🛑 停止測試服務器
         if: always()
