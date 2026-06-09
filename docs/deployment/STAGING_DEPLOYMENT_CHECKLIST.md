@@ -78,6 +78,9 @@ id = "<YOUR_ACTUAL_KV_ID>"  # 替換為實際 ID
 
 ### 4. 設置 Secrets
 
+這些是 Cloudflare Worker runtime secrets，會寫入 Cloudflare，不會提供給
+GitHub Actions 的 staging deploy/smoke gate。
+
 ```bash
 # 設置 JWT 密鑰（至少 32 字符）
 npx wrangler secret put JWT_SECRET --env staging
@@ -85,6 +88,79 @@ npx wrangler secret put JWT_SECRET --env staging
 # 設置 Slack Webhook（可選，用於告警通知）
 npx wrangler secret put SLACK_WEBHOOK_URL --env staging
 ```
+
+### 5. 設置 GitHub Actions Staging Secrets
+
+`.github/workflows/test.yml` 的 `deploy-staging` job 會在手動觸發
+`workflow_dispatch` 或 `develop` 分支 push 時執行 staging 部署與部署後煙霧測試。
+這些 secrets 應設在 GitHub `staging` environment（建議），或設為 repository
+secrets。
+
+必要 secrets：
+
+| Secret | 用途 |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | GitHub Actions 使用 Wrangler 部署 Cloudflare 資源 |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| `STAGING_API_URL` | Layer 1/2/3 smoke test 的 API base URL |
+| `STAGING_CUSTOMER_URL` | Customer app smoke test URL |
+| `STAGING_ADMIN_URL` | Admin dashboard smoke test URL 與 realtime gate |
+| `STAGING_KITCHEN_URL` | Kitchen display smoke test URL |
+| `STAGING_AUTH_USERNAME` | Staging owner/admin 測試帳號 |
+| `STAGING_AUTH_PASSWORD` | Staging owner/admin 測試密碼 |
+| `STAGING_KITCHEN_USERNAME` | Kitchen display 測試帳號 |
+| `STAGING_KITCHEN_PASSWORD` | Kitchen display 測試密碼 |
+| `STAGING_RESTAURANT_ID` | 已 seed 的 staging 餐廳 ID |
+| `STAGING_MENU_ITEM_ID` | 已 seed 的 staging 菜品 ID |
+
+可選 secrets：
+
+| Secret | 用途 |
+| --- | --- |
+| `STAGING_URL` | 舊版 fallback；若未設 `STAGING_API_URL` 或 `STAGING_CUSTOMER_URL` 才使用 |
+| `STAGING_REALTIME_URL` | 若無法從 smoke response 推導 realtime HTTP base URL 時使用 |
+| `STAGING_KITCHEN_RESTAURANT_ID` | 若 chef login response 沒有 restaurantId，或需指定 kitchen restaurant 時使用 |
+
+互動式設定範例：
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN --repo erictheng93/Makan-Masak --env staging
+gh secret set CLOUDFLARE_ACCOUNT_ID --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_API_URL --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_CUSTOMER_URL --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_ADMIN_URL --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_KITCHEN_URL --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_AUTH_USERNAME --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_AUTH_PASSWORD --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_KITCHEN_USERNAME --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_KITCHEN_PASSWORD --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_RESTAURANT_ID --repo erictheng93/Makan-Masak --env staging
+gh secret set STAGING_MENU_ITEM_ID --repo erictheng93/Makan-Masak --env staging
+```
+
+從 shell 環境變數非互動式寫入範例：
+
+```bash
+printf '%s' "$CLOUDFLARE_API_TOKEN" |
+  gh secret set CLOUDFLARE_API_TOKEN --repo erictheng93/Makan-Masak --env staging
+```
+
+設定後驗證：
+
+```bash
+gh secret list --repo erictheng93/Makan-Masak --env staging
+gh workflow run test.yml --repo erictheng93/Makan-Masak --ref main
+gh run watch <RUN_ID> --repo erictheng93/Makan-Masak --exit-status
+```
+
+完整上線驗收前，手動 workflow run 必須看到以下 jobs 全部成功：
+
+- `🔍 代碼品質檢查`
+- `🧪 單元測試`
+- `🔗 真實服務整合測試`
+- `🎭 E2E 測試`
+- `🚀 部署到測試環境`
+- `🧪 部署後煙霧測試`
 
 ## 部署步驟
 
@@ -259,6 +335,7 @@ A: 確認 KV namespace ID 正確，且已授權給 Worker
 - [ ] KV 命名空間已創建（包括 TOKEN_BLACKLIST）
 - [ ] R2 存儲桶已創建
 - [ ] JWT_SECRET 已設置
+- [ ] GitHub Actions `staging` environment secrets 已設置
 - [ ] 本地類型檢查通過
 - [ ] 數據庫遷移已執行
 - [ ] API 服務已部署
@@ -266,8 +343,9 @@ A: 確認 KV namespace ID 正確，且已授權給 Worker
 - [ ] 健康檢查通過
 - [ ] WebSocket 連接測試通過
 - [ ] Token 撤銷功能測試通過
+- [ ] 手動 GitHub Actions staging deploy 與部署後煙霧測試通過
 
 ---
 
-**最後更新**: 2024-12-06
+**最後更新**: 2026-06-09
 **相關文檔**: [REALTIME_SERVICES_IMPLEMENTATION.md](../REALTIME_SERVICES_IMPLEMENTATION.md)
