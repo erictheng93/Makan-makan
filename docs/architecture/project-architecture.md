@@ -6,7 +6,7 @@
 makanmakan/
 ├── apps/                          # 應用程式
 │   ├── api/                       # 核心 API (Cloudflare Workers + Hono)
-│   │   └── src/features/          # 功能模組 (41 modules)
+│   │   └── src/features/          # 功能模組 (48 modules)
 │   │       ├── authentication/    # 認證 (login, register, sessions, JWT)
 │   │       ├── users/             # 員工管理
 │   │       ├── customers/         # 顧客資料
@@ -157,7 +157,7 @@ pnpm deploy:prod          # 部署到 production
 
 ---
 
-**最後更新**: 2026-04-30
-**功能模組**: 41
-**API 端點**: 300+
-**前端應用**: 3 (customer, admin, kitchen)
+**最後更新**: 2026-06-09
+**功能模組**: 48
+**API 端點**: 400+
+**前端應用**: 5 (customer, admin, kitchen, management-portal, onboarding)

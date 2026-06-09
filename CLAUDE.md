@@ -51,7 +51,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 pnpm db:generate        # Generate migration from schema changes
 pnpm db:migrate:local   # Apply migrations locally
 pnpm db:reset:local     # Reset local database (clears all data)
-pnpm db:seed:mock       # Seed mock data
+pnpm db:seed:local      # Seed local database (scripts/seed-local.sql)
 ```
 
 **Adding New Tables**: Create schema in `packages/database/src/schema/`, export from `index.ts`, run `pnpm db:generate` then `pnpm db:migrate:local`.
@@ -60,8 +60,8 @@ pnpm db:seed:mock       # Seed mock data
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm 8+ (required — enforced via `package.json` engines and `.npmrc`)
+- Node.js 22+ (`package.json` engines requires `>=22.13.0`)
+- pnpm 10+ (required — repo pins `pnpm@10.24.0` via `packageManager`; engines floor is `>=8.0.0`, enforced via `.npmrc`)
 - Cloudflare Account (paid plan for D1, R2, Images)
 
 ### Quick Start

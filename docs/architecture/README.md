@@ -171,26 +171,27 @@
 - **Testing**: Vitest, Playwright
 - **Print**: Local Node.js agent (Express + WebSocket)
 
-### 功能模組總覽 (41 modules)
+### 功能模組總覽 (48 modules)
 
-| 類別               | 模組                                           |
-| ------------------ | ---------------------------------------------- |
-| **認證與用戶**     | authentication, users, customers, verification |
-| **餐廳與菜單**     | restaurants, menu, discovery                   |
-| **訂單系統**       | orders, guest-orders, group-orders             |
-| **桌位與座位**     | tables, seats, qr-codes                        |
-| **排隊與預約**     | queue, waiting-list, reservations              |
-| **支付與收銀 POS** | payments, pos                                  |
-| **廚房**           | kitchen                                        |
-| **員工與管理**     | manager, scheduling, leaves                    |
-| **優惠與合作**     | coupons, partnerships                          |
-| **食材與預測**     | ingredients, forecast                          |
-| **分析**           | analytics, ai-analytics                        |
-| **顧客互動**       | feedback                                       |
-| **整合平台**       | integrations                                   |
-| **即時通訊與通知** | realtime, sse, notifications, push             |
-| **訂閱與設定**     | subscriptions, admin-settings                  |
-| **稽核與系統運維** | audit, system, monitoring, backup, cache       |
+| 類別               | 模組                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| **認證與用戶**     | authentication, users, customers, customer, verification, me |
+| **餐廳與菜單**     | restaurants, menu, discovery                                 |
+| **市場與攤位**     | markets, market-checkouts                                    |
+| **訂單系統**       | orders, guest-orders, group-orders                           |
+| **桌位與座位**     | tables, seats, qr-codes                                      |
+| **排隊與預約**     | queue, waiting-list, reservations, service-bookings          |
+| **支付與收銀 POS** | payments, pos, credits                                       |
+| **廚房**           | kitchen                                                      |
+| **員工與管理**     | manager, scheduling, leaves                                  |
+| **優惠與合作**     | coupons, partnerships                                        |
+| **食材與預測**     | ingredients, forecast                                        |
+| **分析**           | analytics, ai-analytics                                      |
+| **顧客互動**       | feedback                                                     |
+| **整合平台**       | integrations                                                 |
+| **即時通訊與通知** | realtime, sse, notifications, push                           |
+| **訂閱與計費**     | subscriptions, billing, admin-settings                       |
+| **稽核與系統運維** | audit, system, monitoring, backup, cache                     |
 
 ---
 
@@ -217,7 +218,7 @@
 
 ---
 
-**最後更新**: 2026-04-30
+**最後更新**: 2026-06-09
 **架構版本**: 2.0 (Cloudflare Serverless)
-**功能模組**: 41
-**API 端點**: 300+
+**功能模組**: 48
+**API 端點**: 400+

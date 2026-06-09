@@ -107,7 +107,7 @@ Active feature docs for in-progress or reference-worthy features:
 
 ### User Manuals
 
-Role-based guides in 7 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
+Role-based guides in 6 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
 
 | Manual                                                                                 | Description                                                              |
 | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -149,4 +149,4 @@ Role-based guides in 7 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
 
 ---
 
-**Last Updated**: 2026-05-25
+**Last Updated**: 2026-06-09

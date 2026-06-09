@@ -651,6 +651,230 @@ Authorization: Bearer <your_jwt_token>
 | GET    | `/cache/config`     | 快取設定     | Admin |
 | POST   | `/cache/test`       | 測試快取     | Admin |
 
+### Payments (`/payments`) — 5 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/payments/` | 處理付款 | Protected |
+| POST | `/payments/create` | 建立並處理付款（舊版） | Protected |
+| GET | `/payments/status/:transactionId` | 依交易 ID 查詢付款狀態 | Protected |
+| POST | `/payments/refund` | 退款 | Protected |
+| GET | `/payments/methods/:country` | 依國別取得支援的付款方式 | Protected |
+
+### Credits (`/credits`) — 9 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/credits/cards` | 發行儲值卡 | Admin |
+| POST | `/credits/cards/:publicId/topup` | 儲值（管理端） | Admin |
+| POST | `/credits/cards/:publicId/topup/online` | 線上儲值 | Public |
+| POST | `/credits/topup-webhooks/:provider` | 儲值供應商回呼 | Public (HMAC) |
+| GET | `/credits/cards/:publicId/balance` | 查詢卡片餘額 | Public |
+| POST | `/credits/cards/:publicId/pin` | 設定/重設卡片 PIN | Admin |
+| POST | `/credits/cards/:publicId/freeze` | 凍結/掛失/復用卡片 | Admin |
+| GET | `/credits/cards/:publicId/ledger` | 卡片帳務明細 | Admin |
+| GET | `/credits/accounting/export` | 匯出儲值負債帳本 CSV | Admin |
+
+### Billing (`/billing`) — 1 route
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/billing/webhooks/:provider` | 計費供應商 webhook 回呼 | Public (signature verified) |
+
+### Markets (`/markets`) — 5 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/markets/` | 市場列表（含篩選） | Public |
+| GET | `/markets/nearby` | 依座標搜尋鄰近市場 | Public |
+| GET | `/markets/areas` | 市場區域列表 | Public |
+| GET | `/markets/:slug/vendors` | 市場攤位列表 | Public |
+| GET | `/markets/:slug` | 依 slug 取得市場詳情 | Public |
+
+### Admin Markets (`/admin/markets`) — 13 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/admin/markets/readiness` | 市場上線就緒狀態 | Admin |
+| GET | `/admin/markets/area-readiness` | 區域就緒狀態 | Admin |
+| GET | `/admin/markets/vendor-candidates` | 攤位候選清單 | Admin |
+| GET | `/admin/markets/join-requests` | 市場加入申請列表 | Admin |
+| POST | `/admin/markets/join-requests/:requestId/approve` | 核准加入申請 | Admin |
+| POST | `/admin/markets/join-requests/:requestId/reject` | 駁回加入申請 | Admin |
+| POST | `/admin/markets/` | 建立市場 | Admin |
+| PUT | `/admin/markets/:id` | 更新市場 | Admin |
+| DELETE | `/admin/markets/:id` | 軟刪除市場 | Admin |
+| POST | `/admin/markets/:id/vendors` | 新增攤位至市場 | Admin |
+| PUT | `/admin/markets/:id/vendors/:restaurantId` | 更新市場攤位 | Admin |
+| POST | `/admin/markets/:id/vendor-imports` | 批次匯入攤位 | Admin |
+| DELETE | `/admin/markets/:id/vendors/:restaurantId` | 移除市場攤位 | Admin |
+
+### Market Checkouts (`/market-checkouts`) — 18 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/market-checkouts/payment-webhooks/:provider` | 付款供應商 webhook | Public (HMAC) |
+| POST | `/market-checkouts/` | 建立市場結帳工作階段 | Public |
+| POST | `/market-checkouts/:id/voucher` | 套用優惠券 | Public |
+| DELETE | `/market-checkouts/:id/voucher` | 移除優惠券 | Public |
+| POST | `/market-checkouts/:id/pay` | 結帳付款 | Public |
+| POST | `/market-checkouts/:id/guest-token` | 以手機驗證取回 guest token | Public |
+| POST | `/market-checkouts/:id/refund` | 退款（管理端） | Admin |
+| GET | `/market-checkouts/admin/summary` | 結帳彙總（管理端） | Admin |
+| GET | `/market-checkouts/admin` | 結帳列表（分頁） | Admin |
+| GET | `/market-checkouts/admin/export` | 匯出結帳 CSV | Admin |
+| GET | `/market-checkouts/admin/vendors` | 攤位結算報表 | Admin |
+| GET | `/market-checkouts/admin/vendors/export` | 匯出攤位結算 CSV | Admin |
+| GET | `/market-checkouts/admin/accounting/export` | 匯出會計資料 CSV | Admin |
+| GET | `/market-checkouts/admin/provider-status` | 付款供應商狀態 | Admin |
+| POST | `/market-checkouts/admin/provider-status/check` | 檢查供應商連線 | Admin |
+| POST | `/market-checkouts/admin/:id/reconcile` | 與供應商對帳 | Admin |
+| GET | `/market-checkouts/admin/:id` | 結帳詳情（管理端） | Admin |
+| GET | `/market-checkouts/:id` | 結帳詳情（公開） | Public |
+
+### Service Bookings (`/service-bookings`) — 21 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/service-bookings/availability` | 查詢服務項目可預約時段 | Public |
+| POST | `/service-bookings/` | 建立服務預約 | Public |
+| POST | `/service-bookings/recurring` | 建立週期性預約 | Public |
+| POST | `/service-bookings/waitlist` | 加入預約候補 | Public |
+| POST | `/service-bookings/:id/pay` | 以儲值付款 | Public |
+| GET | `/service-bookings/verify/:code/ics` | 依確認碼產生行事曆邀請（ICS） | Public |
+| GET | `/service-bookings/verify/:code` | 依確認碼查詢預約 | Public |
+| POST | `/service-bookings/verify/:code/cancel` | 依確認碼取消預約 | Public |
+| GET | `/service-bookings/slots` | 時段列表（員工） | Admin/Owner |
+| POST | `/service-bookings/slots` | 建立時段（員工） | Admin/Owner |
+| POST | `/service-bookings/slots/batch` | 批次建立時段（員工） | Admin/Owner |
+| POST | `/service-bookings/slots/block` | 封鎖時段（員工） | Admin/Owner |
+| GET | `/service-bookings/reminders/due` | 待提醒預約列表 | Protected |
+| POST | `/service-bookings/:id/reminder-sent` | 標記提醒已送出 | Protected |
+| GET | `/service-bookings/:id/ics` | 產生預約 ICS | Protected |
+| GET | `/service-bookings/` | 依餐廳列出預約 | Protected |
+| GET | `/service-bookings/:id` | 預約詳情 | Protected |
+| DELETE | `/service-bookings/:id` | 取消預約 | Admin/Owner/Cashier |
+| POST | `/service-bookings/:id/confirm-cash` | 確認現金付款 | Admin/Owner/Cashier |
+| POST | `/service-bookings/:id/complete` | 標記預約完成 | Protected |
+| POST | `/service-bookings/:id/no-show` | 標記未到 | Admin/Owner/Cashier |
+
+### Feedback (`/feedback`) — 11 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/feedback/` | 建立回饋 | Owner |
+| POST | `/feedback/batch-sync` | 批次同步回饋 | Protected |
+| GET | `/feedback/stats` | 回饋統計 | Admin |
+| GET | `/feedback/` | 回饋列表（含篩選） | Admin/Owner |
+| GET | `/feedback/:id` | 回饋詳情 | Admin/Owner |
+| PUT | `/feedback/:id/status` | 更新回饋狀態 | Admin |
+| PATCH | `/feedback/:id` | 更新回饋 | Admin/Owner |
+| DELETE | `/feedback/:id` | 刪除回饋 | Admin/Owner |
+| POST | `/feedback/:id/responses` | 新增回覆 | Admin/Owner |
+| PUT | `/feedback/:id/responses/:responseId` | 更新回覆 | Admin/Owner |
+| DELETE | `/feedback/:id/responses/:responseId` | 刪除回覆 | Admin/Owner |
+
+### Customer (`/customer`) — 19 routes
+
+> 注意：`/customer`（單數，OTP 登入與顧客自助）與 `/customers`（複數，後台顧客查詢）為不同模組。
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/customer/auth/request-otp` | 請求手機 OTP | Public |
+| POST | `/customer/auth/verify-otp` | 驗證 OTP 並取得 token | Public |
+| POST | `/customer/auth/refresh` | 刷新 access token | Public |
+| POST | `/customer/auth/logout` | 登出並撤銷 token | Protected |
+| GET | `/customer/me` | 取得顧客資料 | Protected |
+| PATCH | `/customer/me` | 更新顧客資料 | Protected |
+| DELETE | `/customer/me` | 刪除顧客帳號 | Protected |
+| GET | `/customer/preferences` | 取得顧客偏好 | Protected |
+| PATCH | `/customer/preferences` | 更新顧客偏好 | Protected |
+| GET | `/customer/favorites` | 收藏列表 | Protected |
+| POST | `/customer/favorites` | 新增收藏 | Protected |
+| DELETE | `/customer/favorites/:id` | 移除收藏 | Protected |
+| GET | `/customer/recent-markets` | 最近造訪市場 | Protected |
+| POST | `/customer/recent-markets` | 記錄市場造訪 | Protected |
+| GET | `/customer/push-subscriptions` | 推播訂閱列表 | Protected |
+| POST | `/customer/push-subscriptions` | 註冊推播訂閱 | Protected |
+| DELETE | `/customer/push-subscriptions/:id` | 移除推播訂閱 | Protected |
+| GET | `/customer/consents` | 取得已授權同意項目 | Protected |
+| POST | `/customer/consents` | 記錄同意授權 | Protected |
+
+### Me (`/me`) — 17 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/me/modules` | 取得訂閱模組與方案層級 | Protected |
+| GET | `/me/usage` | 取得當期用量 | Protected |
+| GET | `/me/me` | 取得顧客檔案與偏好 | Protected |
+| PATCH | `/me/me` | 更新顧客檔案 | Protected |
+| DELETE | `/me/me` | 刪除顧客帳號 | Protected |
+| GET | `/me/preferences` | 取得偏好 | Protected |
+| PATCH | `/me/preferences` | 更新偏好 | Protected |
+| GET | `/me/favorites` | 收藏列表（市場/餐廳/菜品） | Protected |
+| POST | `/me/favorites` | 新增收藏 | Protected |
+| DELETE | `/me/favorites/:id` | 移除收藏 | Protected |
+| GET | `/me/recent-markets` | 最近造訪市場 | Protected |
+| POST | `/me/recent-markets` | 記錄市場造訪 | Protected |
+| GET | `/me/push-subscriptions` | 推播訂閱列表 | Protected |
+| POST | `/me/push-subscriptions` | 註冊推播訂閱 | Protected |
+| DELETE | `/me/push-subscriptions/:id` | 移除推播訂閱 | Protected |
+| GET | `/me/consents` | 取得已授權同意項目 | Protected |
+| POST | `/me/consents` | 記錄同意授權 | Protected |
+
+### Push (`/push`) — 2 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/push/subscribe` | 訂閱推播通知 | Protected |
+| POST | `/push/unsubscribe` | 取消訂閱推播通知 | Protected |
+
+### Manager (`/manager`) — 1 route
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/manager/actions` | 執行具委派授權與稽核軌跡的管理動作 | Admin/Owner |
+
+### Manager Audit Logs (`/audit-logs`) — 1 route
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/audit-logs` | 稽核日誌唯讀查詢（含篩選） | Admin |
+
+### Audit (`/audit`) — 1 route
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| POST | `/audit/actions` | 同步離線稽核動作至資料庫 | Protected |
+
+### Admin Settings (`/admin`) — 3 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/admin/notification-settings` | 取得使用者通知設定 | Protected |
+| PUT | `/admin/notification-settings` | 更新使用者通知設定 | Protected |
+| POST | `/admin/settings/sync` | 同步設定（含 TTL 過期） | Protected |
+
+### Subscriptions (`/admin/subscriptions`) — 8 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/admin/subscriptions/:restaurantId/usage` | 取得餐廳當期與週期用量 | Admin |
+| GET | `/admin/subscriptions/:restaurantId/usage/events` | 用量事件列表（分頁/篩選） | Admin |
+| GET | `/admin/subscriptions` | 訂閱列表（含生效模組） | Admin |
+| GET | `/admin/subscriptions/:restaurantId` | 單一訂閱（含生效模組） | Admin |
+| POST | `/admin/subscriptions` | 建立訂閱（客戶導入） | Admin |
+| PATCH | `/admin/subscriptions/:restaurantId/modules` | 更新模組覆寫（含快取失效） | Admin |
+| PATCH | `/admin/subscriptions/:restaurantId/plan` | 變更方案層級 | Admin |
+| PATCH | `/admin/subscriptions/:restaurantId/status` | 啟用/停用訂閱（kill switch） | Admin |
+
+### SEO (mounted at `/`) — 2 routes
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/sitemap.xml` | 市場 XML sitemap | Public |
+| GET | `/robots.txt` | 搜尋引擎 robots.txt | Public |
+
 ---
 
 ## 回應格式
@@ -744,7 +968,7 @@ curl -X POST http://localhost:8787/api/v1/orders \
 
 ---
 
-**最後更新**: 2026-04-30
+**最後更新**: 2026-06-09
 **API 版本**: v1
-**功能模組**: 41
-**端點總數**: 300+
+**功能模組**: 48
+**端點總數**: 400+

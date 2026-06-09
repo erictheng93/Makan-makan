@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
 ![PWA](https://img.shields.io/badge/PWA-95%2F100-green)
 [![codecov](https://codecov.io/gh/makanmakan/makanmakan/graph/badge.svg)](https://codecov.io/gh/makanmakan/makanmakan)
@@ -80,8 +80,8 @@ MakanMakan is a fully serverless, multi-tenant restaurant management SaaS platfo
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm 8+ (required - do not use npm or yarn)
+- Node.js 22+ (engines requires `>=22.13.0`)
+- pnpm 10+ (required - repo pins `pnpm@10.24.0` via `packageManager`; do not use npm or yarn)
 - Cloudflare Account (paid plan for D1, R2, Images)
 - Wrangler CLI: `pnpm add -g wrangler`
 
@@ -106,9 +106,11 @@ pnpm dev
 ### Development URLs
 
 ```
-Customer App:       http://localhost:5173
-Admin Dashboard:    http://localhost:5174
-Kitchen Display:    http://localhost:5175
+Customer App:       http://localhost:3000
+Admin Dashboard:    http://localhost:3001
+Kitchen Display:    http://localhost:3002
+Management Portal:  http://localhost:3010
+Onboarding App:     http://localhost:3011
 API (Workers):      http://localhost:8787
 ```
 
@@ -186,7 +188,7 @@ makanmakan/
 | **[CLAUDE.md](./CLAUDE.md)**             | Complete project reference — architecture, API endpoints, conventions, development status |
 | **[docs/](./docs/README.md)**            | Documentation hub — architecture, features, guides, user manuals                          |
 | **[API docs](./docs/api/)**              | REST API endpoint documentation                                                           |
-| **[User manuals](./docs/user-manuals/)** | Role-based guides in 7 languages                                                          |
+| **[User manuals](./docs/user-manuals/)** | Role-based guides in 6 languages                                                          |
 
 ---
 

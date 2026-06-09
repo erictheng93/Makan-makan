@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a `pnpm` workspace monorepo. Application code lives in `apps/`, including `customer-app`, `admin-dashboard`, `kitchen-display`, `api`, and supporting workers such as `realtime`, `backup-scheduler`, `image-processor`, and `print-agent`. Shared code lives in `packages/` (`shared`, `shared-types`, `database`, `utils`, `testing-utils`, queue packages). Cross-project tests and fixtures live in `tests/` with `unit`, `integration`, `e2e`, `visual`, `performance`, and `security` subfolders. Longer design and operational docs belong in `docs/`.
+This repository is a `pnpm` workspace monorepo. Application code lives in `apps/`: the Vue front-ends `customer-app`, `admin-dashboard`, `kitchen-display`, `management-portal`, and `onboarding-app`; the Cloudflare Workers `api`, `management-api`, `realtime`, `image-processor`, and `backup-scheduler`; and the local Node daemon `print-agent`. Shared code lives in `packages/` (`shared`, `shared-types`, `database`, `utils`, `testing-utils`, `auth-client`, `ai-analytics`, `queue-core`, `queue-service`). Cross-project tests and fixtures live in `tests/` with `unit`, `integration`, `e2e`, `visual`, `performance`, and `security` subfolders. Longer design and operational docs belong in `docs/`.
 
 ## Build, Test, and Development Commands
 
