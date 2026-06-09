@@ -3,13 +3,13 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { describe, expect, it } from "vitest";
-import { D1DatabaseAdapter } from "../../../../tests/helpers/d1-adapter";
-import app from "../index";
-import type { ManagementEnv } from "../types";
+import { D1DatabaseAdapter } from "../../../../../tests/helpers/d1-adapter";
+import app from "../../index";
+import type { ManagementEnv } from "../../types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const migrationsDir = path.resolve(__dirname, "../../migrations");
+const migrationsDir = path.resolve(__dirname, "../../../migrations");
 
 function createManagementDb() {
   const sqlite = new Database(":memory:");

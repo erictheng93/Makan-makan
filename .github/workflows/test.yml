@@ -133,13 +133,11 @@ jobs:
 
   # Real integration 測試 (miniflare D1 + 真 drizzle)
   #
-  # Runs API test files that need a real Cloudflare miniflare instance
-  # (real D1, real drizzle) via apps/api/vitest.real-integration.config.ts.
-  # That config serialises files (fileParallelism: false, maxWorkers: 1)
-  # because miniflare's workerd IPC fails under parallel boot pressure —
-  # the default vitest config's 10s timeout + 158-file parallelism is too
-  # tight for miniflare setup, so these tests live in a separate config
-  # with 30s timeouts and serial execution.
+  # Runs app test files that need real API/DB boundaries via each app's
+  # vitest.real-integration.config.ts. These configs serialise files
+  # (fileParallelism: false, maxWorkers: 1) because Miniflare/workerd IPC and
+  # real D1 setup fail under parallel boot pressure. The default vitest config's
+  # shorter timeout and broad parallelism are too tight for these tests.
   #
   # Before this job existed, these tests either flaked in unit-tests
   # (when named *.test.ts) or ran nowhere (when named
@@ -150,7 +148,7 @@ jobs:
     name: 🗄️ Real Integration 測試
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: 📦 Checkout 程式碼

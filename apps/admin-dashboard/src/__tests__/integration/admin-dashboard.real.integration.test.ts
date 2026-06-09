@@ -45,6 +45,29 @@ const CSRF_HEADERS = {
   "content-type": "application/json",
 };
 
+async function activateOnlineOrderingSubscription(
+  restaurantId: string | number,
+) {
+  const id = String(restaurantId);
+  const now = Date.now();
+
+  await testApp.env.DB.prepare(
+    `INSERT INTO shop_subscriptions
+      (id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+       is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+     VALUES (?, ?, 'trial', ?, 'managed', 1, ?, ?, ?)`,
+  )
+    .bind(
+      `admin-sub-${id}`,
+      id,
+      JSON.stringify({ online_ordering: true }),
+      now + 24 * 60 * 60 * 1000,
+      now,
+      now,
+    )
+    .run();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ORDERS — owner perspective
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -52,6 +75,7 @@ const CSRF_HEADERS = {
 describe("Admin Orders API — real integration", () => {
   it("owner token can list orders for their own restaurant", async () => {
     const restaurant = await seed.restaurant();
+    await activateOnlineOrderingSubscription(restaurant.id);
     const owner = await seed.user({ id: 1, role: 1, username: "owner-user" });
     await seed.order(restaurant.id);
 
@@ -66,13 +90,10 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
 
-    // Owner should receive their orders (200) or at minimum not get a 401/403
-    expect([200, 400]).toContain(res.status);
-    if (res.status === 200) {
-      const json: any = await res.json();
-      expect(json.success).toBe(true);
-      expect(Array.isArray(json.data)).toBe(true);
-    }
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.success).toBe(true);
+    expect(Array.isArray(json.data)).toBe(true);
   });
 
   it("returns 401 when listing orders without authorization", async () => {

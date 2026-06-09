@@ -9,7 +9,7 @@ const requiredFiles = [
   "apps/customer-app/src/__tests__/integration/customer-app.real.integration.test.ts",
   "apps/admin-dashboard/src/__tests__/integration/admin-dashboard.real.integration.test.ts",
   "apps/kitchen-display/src/__tests__/integration/kitchen-display.real.integration.test.ts",
-  "apps/management-api/src/__tests__/onboarding-workflow.real.integration.test.ts",
+  "apps/management-api/src/__tests__/integration/onboarding-workflow.real.integration.test.ts",
   "docs/testing/CORE_WORKFLOW_TEST_MATRIX.md",
 ] as const;
 

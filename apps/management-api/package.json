@@ -16,6 +16,7 @@
     "lint": "eslint src",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
