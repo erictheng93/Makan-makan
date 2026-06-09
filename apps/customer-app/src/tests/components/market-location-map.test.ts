@@ -18,7 +18,40 @@ const popupSetText = vi.hoisted(() => vi.fn().mockReturnThis());
 const addProtocol = vi.hoisted(() => vi.fn());
 const protocolTile = vi.hoisted(() => vi.fn());
 const maplibreMock = vi.hoisted(() => ({
-  Map: vi.fn().mockImplementation(() => ({
+  Map: vi.fn().mockImplementation(function () {
+    return {
+      on: mapOn,
+      addSource: mapAddSource,
+      addLayer: mapAddLayer,
+      fitBounds: mapFitBounds,
+      addControl: mapAddControl,
+      resize: mapResize,
+      remove: mapRemove,
+    };
+  }),
+  Marker: vi.fn().mockImplementation(function () {
+    return {
+      setLngLat: markerSetLngLat,
+      setPopup: markerSetPopup,
+      addTo: markerAddTo,
+    };
+  }),
+  Popup: vi.fn().mockImplementation(function () {
+    return {
+      setText: popupSetText,
+    };
+  }),
+  NavigationControl: vi.fn(),
+  LngLatBounds: vi.fn().mockImplementation(function () {
+    return {
+      extend: vi.fn().mockReturnThis(),
+    };
+  }),
+  addProtocol,
+}));
+
+function createMapMock() {
+  return {
     on: mapOn,
     addSource: mapAddSource,
     addLayer: mapAddLayer,
@@ -26,21 +59,8 @@ const maplibreMock = vi.hoisted(() => ({
     addControl: mapAddControl,
     resize: mapResize,
     remove: mapRemove,
-  })),
-  Marker: vi.fn().mockImplementation(() => ({
-    setLngLat: markerSetLngLat,
-    setPopup: markerSetPopup,
-    addTo: markerAddTo,
-  })),
-  Popup: vi.fn().mockImplementation(() => ({
-    setText: popupSetText,
-  })),
-  NavigationControl: vi.fn(),
-  LngLatBounds: vi.fn().mockImplementation(() => ({
-    extend: vi.fn().mockReturnThis(),
-  })),
-  addProtocol,
-}));
+  };
+}
 
 vi.mock("@/components/markets/mapRuntime", () => ({
   loadMarketMapRuntime: vi.fn(),
@@ -95,16 +115,10 @@ describe("MarketLocationMap", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    maplibreMock.Map.mockImplementation(() => ({
-      on: mapOn,
-      addSource: mapAddSource,
-      addLayer: mapAddLayer,
-      fitBounds: mapFitBounds,
-      addControl: mapAddControl,
-      resize: mapResize,
-      remove: mapRemove,
-    }));
-    maplibreMock.Marker.mockImplementation(() => {
+    maplibreMock.Map.mockImplementation(function () {
+      return createMapMock();
+    });
+    maplibreMock.Marker.mockImplementation(function () {
       const marker = {
         setLngLat: (value: [number, number]) => {
           markerSetLngLat(value);
@@ -121,7 +135,7 @@ describe("MarketLocationMap", () => {
       };
       return marker;
     });
-    maplibreMock.Popup.mockImplementation(() => {
+    maplibreMock.Popup.mockImplementation(function () {
       const popup = {
         setText: (value: string) => {
           popupSetText(value);
@@ -130,9 +144,11 @@ describe("MarketLocationMap", () => {
       };
       return popup;
     });
-    maplibreMock.LngLatBounds.mockImplementation(() => ({
-      extend: vi.fn().mockReturnThis(),
-    }));
+    maplibreMock.LngLatBounds.mockImplementation(function () {
+      return {
+        extend: vi.fn().mockReturnThis(),
+      };
+    });
     vi.mocked(loadMarketMapRuntime).mockResolvedValue({
       maplibregl: maplibreMock as never,
       registerPmTilesProtocol: () => addProtocol("pmtiles", protocolTile),
