@@ -1,3 +1,5 @@
+/* eslint-disable vue/one-component-per-file -- Inline harness components keep
+ * composable lifecycle tests colocated with each scenario. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import { mount } from "@vue/test-utils";
