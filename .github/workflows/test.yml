@@ -407,6 +407,59 @@ jobs:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v6
 
+      - name: 🔐 驗證 staging deploy/smoke secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+          STAGING_CUSTOMER_URL: ${{ secrets.STAGING_CUSTOMER_URL }}
+          STAGING_ADMIN_URL: ${{ secrets.STAGING_ADMIN_URL }}
+          STAGING_KITCHEN_URL: ${{ secrets.STAGING_KITCHEN_URL }}
+          STAGING_AUTH_USERNAME: ${{ secrets.STAGING_AUTH_USERNAME }}
+          STAGING_AUTH_PASSWORD: ${{ secrets.STAGING_AUTH_PASSWORD }}
+          STAGING_KITCHEN_USERNAME: ${{ secrets.STAGING_KITCHEN_USERNAME }}
+          STAGING_KITCHEN_PASSWORD: ${{ secrets.STAGING_KITCHEN_PASSWORD }}
+          STAGING_RESTAURANT_ID: ${{ secrets.STAGING_RESTAURANT_ID }}
+          STAGING_MENU_ITEM_ID: ${{ secrets.STAGING_MENU_ITEM_ID }}
+        run: |
+          missing=()
+
+          require_secret() {
+            local name="$1"
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          }
+
+          require_secret CLOUDFLARE_API_TOKEN
+          require_secret CLOUDFLARE_ACCOUNT_ID
+          require_secret STAGING_ADMIN_URL
+          require_secret STAGING_KITCHEN_URL
+          require_secret STAGING_AUTH_USERNAME
+          require_secret STAGING_AUTH_PASSWORD
+          require_secret STAGING_KITCHEN_USERNAME
+          require_secret STAGING_KITCHEN_PASSWORD
+          require_secret STAGING_RESTAURANT_ID
+          require_secret STAGING_MENU_ITEM_ID
+
+          if [ -z "${STAGING_API_URL:-}" ] && [ -z "${STAGING_URL:-}" ]; then
+            missing+=("STAGING_API_URL or STAGING_URL")
+          fi
+
+          if [ -z "${STAGING_CUSTOMER_URL:-}" ] && [ -z "${STAGING_URL:-}" ]; then
+            missing+=("STAGING_CUSTOMER_URL or STAGING_URL")
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing required GitHub staging secrets:"
+            for name in "${missing[@]}"; do
+              echo "::error::  - ${name}"
+            done
+            echo "::error::Configure these as repository or staging environment secrets, then rerun this workflow_dispatch launch gate."
+            exit 1
+          fi
+
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v6
 
