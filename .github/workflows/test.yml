@@ -229,11 +229,51 @@ jobs:
 
       - name: ⏳ 等待 preview servers 就緒
         run: |
-          pnpm exec wait-on \
-            http://localhost:3000 \
-            http://localhost:3001 \
-            http://localhost:3002 \
-            --timeout 60000
+          if ! node <<'NODE'
+          (async () => {
+          const urls = [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+          ];
+          const deadline = Date.now() + 60_000;
+
+          for (;;) {
+            const pending = [];
+
+            for (const url of urls) {
+              try {
+                const response = await fetch(url);
+                if (!response.ok) pending.push(`${url} -> ${response.status}`);
+              } catch (error) {
+                pending.push(`${url} -> ${error.cause?.code ?? error.message}`);
+              }
+            }
+
+            if (pending.length === 0) {
+              console.log(`Preview servers ready: ${urls.join(", ")}`);
+              process.exit(0);
+            }
+
+            if (Date.now() >= deadline) {
+              console.error(`Timed out waiting for preview servers:`);
+              for (const item of pending) console.error(`- ${item}`);
+              process.exit(1);
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          })();
+          NODE
+          then
+            echo "customer preview log:"
+            cat /tmp/preview-logs/customer.log || true
+            echo "admin preview log:"
+            cat /tmp/preview-logs/admin.log || true
+            echo "kitchen preview log:"
+            cat /tmp/preview-logs/kitchen.log || true
+            exit 1
+          fi
 
       - name: 🧪 執行 E2E 測試
         # Pushes run a small preview smoke because the full Chromium/Admin E2E
