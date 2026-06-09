@@ -73,7 +73,7 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - Cloudflare account with Images enabled
 - Wrangler CLI: `npm install -g wrangler`
 

@@ -46,7 +46,7 @@ The project uses `pnpm` as its package manager and `turbo` as its build system. 
   pnpm run dev
   ```
 
-  This command uses `turbo run dev` to start development servers for all workspaces concurrently. The running applications will be accessible at different local ports (e.g., `http://localhost:5173`, `http://localhost:5174`).
+  This command uses `turbo run dev` to start development servers for all workspaces concurrently. The running applications will be accessible at different local ports (e.g., `http://localhost:3000`, `http://localhost:3001`).
 
 - **Building:**
 

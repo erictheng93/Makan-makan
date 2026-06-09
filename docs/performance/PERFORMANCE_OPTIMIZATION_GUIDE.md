@@ -14,7 +14,7 @@ Before starting, ensure you have:
 - [x] Access to staging environment
 - [x] Performance baseline metrics recorded
 - [x] Cloudflare Wrangler CLI installed
-- [x] Node.js 20+ and pnpm installed
+- [x] Node.js 22+ and pnpm installed
 
 ---
 

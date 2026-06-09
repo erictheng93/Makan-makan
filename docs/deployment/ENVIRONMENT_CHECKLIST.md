@@ -151,9 +151,9 @@
 
 - [ ] ✅ Frontend Apps 可以啟動
   ```bash
-  cd apps/customer-app && pnpm run dev      # localhost:5173 □
-  cd apps/admin-dashboard && pnpm run dev   # localhost:5174 □
-  cd apps/kitchen-display && pnpm run dev   # localhost:5175 □
+  cd apps/customer-app && pnpm run dev      # localhost:3000 □
+  cd apps/admin-dashboard && pnpm run dev   # localhost:3001 □
+  cd apps/kitchen-display && pnpm run dev   # localhost:3002 □
   ```
 
 ### 開發工具

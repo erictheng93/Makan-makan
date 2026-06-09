@@ -448,7 +448,7 @@ export default defineConfig({
   reporter: "html",
 
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -474,7 +474,7 @@ export default defineConfig({
 
   webServer: {
     command: "pnpm run dev",
-    url: "http://localhost:5173",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
 });
@@ -949,7 +949,7 @@ jobs:
         run: pnpm run dev &
 
       - name: 等待服務啟動
-        run: npx wait-on http://localhost:5173
+        run: npx wait-on http://localhost:3000
 
       - name: 執行 E2E 測試
         run: pnpm run test:e2e

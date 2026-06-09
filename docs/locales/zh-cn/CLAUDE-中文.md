@@ -100,7 +100,7 @@ npx wrangler d1 execute makanmakan-staging --local --command "SELECT * FROM user
 
 ### 先決條件
 
-- Node.js 20+
+- Node.js 22+
 - Cloudflare 帳戶（付費方案，用於 D1、R2、Images）
 - Wrangler CLI: `npm install -g wrangler`
 

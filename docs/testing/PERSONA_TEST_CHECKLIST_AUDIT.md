@@ -45,7 +45,7 @@ CI integration gate pipeline (`.github/workflows/nightly-integration.yml`):
 - Applies migrations + seed from `apps/api/` working directory so wrangler's
   default local D1 state path (`apps/api/.wrangler/state`) matches what
   `pnpm dev` later reads, not the root `./.wrangler/shared-state` that the
-  repo-level `db:migrate:local` / `db:seed:mock` scripts write to.
+  repo-level `db:migrate:local` / `db:seed:local` scripts write to.
 - Applies `migrations/dev-only/0048_add_test_accounts.sql` and
   `0049_p0_gate_seed.sql` (register + closed shift + uber_eats integration
   row) before the run.
