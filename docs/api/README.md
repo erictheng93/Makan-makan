@@ -34,6 +34,70 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
+## 掛載點總覽 (Mount Index)
+
+<!-- BEGIN GENERATED:api-surface (run: node scripts/check-docs-drift.cjs --write) -->
+> 自動生成，請勿手動編輯。執行 `node scripts/check-docs-drift.cjs --write` 重新生成。
+> Source of truth: `apps/api/src/app-factory.ts` 的 `apiV1.route(...)` 掛載點。
+
+共 **50** 個掛載點（全部相對於 `/api/v1`）。
+
+| Prefix | Router | 說明 |
+| ------ | ------ | ---- |
+| `/auth` | `authFeature.routes` |  |
+| `/auth` | `verificationFeature.routes` | Password reset, email/phone verification |
+| `/qr` | `qrCodesFeature.routes` |  |
+| `/queue` | `queueFeature.routes` | 統一候位系統 (public + protected endpoints) |
+| `/coupons` | `couponsFeature.routes` | 優惠券驗證端點為公開，管理端點需要認證 |
+| `/reservations` | `reservationsFeature` | 訂位系統 (public + protected endpoints) |
+| `/service-bookings` | `serviceBookingsFeature` | 預約服務 (public + protected endpoints) |
+| `/waiting-list` | `waitingListFeature` | 候位系統 (public + protected endpoints) |
+| `/realtime` | `realtimeRoutes` | WebSocket 認證端點為公開 |
+| `/partnerships` | `partnershipsRoutes` | 特約商店體系 (部分公開端點 + 受保護端點) |
+| `/guest-orders` | `guestOrdersRoutes` | 訪客點餐 (KV-based guest token auth) |
+| `/market-checkouts` | `marketCheckoutsFeature.routes` | 市場多攤位訪客結帳 |
+| `/credits` | `creditsFeature.routes` | 代幣儲值卡 (查餘額公開限流, 管理端點 admin) |
+| `/integrations` | `integrationsFeature.routes` | 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證) |
+| `/restaurants` | `restaurantsFeature.routes` |  |
+| `/menu` | `menuFeature.routes` |  |
+| `/kitchen` | `kitchenFeature.routes` |  |
+| `/orders/group` | `groupOrdersFeature.routes` |  |
+| `/orders` | `ordersFeature.routes` |  |
+| `/pos` | `posFeature.routes` |  |
+| `/payments` | `paymentsFeature.routes` |  |
+| `/manager` | `managerFeature.actionsRoutes` |  |
+| `/audit-logs` | `managerFeature.auditLogsRoutes` |  |
+| `/tables` | `tablesFeature.routes` |  |
+| `/seats` | `seatsFeature.routes` |  |
+| `/users` | `usersFeature.routes` |  |
+| `/analytics` | `analyticsFeature.routes` |  |
+| `/ai-analytics` | `aiAnalyticsFeature.routes` |  |
+| `/sse` | `sseFeature.routes` |  |
+| `/system` | `systemFeature.routes` |  |
+| `/cache` | `cacheFeature` |  |
+| `/monitoring` | `monitoringFeature.routes` |  |
+| `/backup` | `BackupRoutes` |  |
+| `/customer` | `customerRouter` |  |
+| `/customers` | `customersRouter` |  |
+| `/leaves` | `leavesFeature.routes` |  |
+| `/scheduling` | `schedulingFeature.routes` |  |
+| `/forecast` | `forecastFeature.routes` |  |
+| `/ingredients` | `ingredientsFeature.routes` |  |
+| `/discovery` | `discoveryFeature.routes` |  |
+| `/markets` | `marketsFeature.routes` |  |
+| `/feedback` | `feedbackFeature.routes` |  |
+| `/billing` | `billingFeature.routes` |  |
+| `/me` | `meFeature.routes` |  |
+| `/notifications` | `notificationsRoutes` |  |
+| `/push` | `pushRoutes` |  |
+| `/audit` | `auditRoutes` |  |
+| `/admin` | `adminSettingsRoutes` |  |
+| `/admin/markets` | `marketsFeature.adminRoutes` |  |
+| `/admin/subscriptions` | `subscriptionsFeature.routes` |  |
+<!-- END GENERATED:api-surface -->
+
+---
+
 ## API 端點總覽
 
 ### Authentication (`/auth`) — 18 routes
@@ -59,17 +123,19 @@ Authorization: Bearer <your_jwt_token>
 | GET    | `/auth/security-events`     | 安全事件          | Admin       |
 | POST   | `/auth/guest-token`         | 產生 Guest Token  | Public      |
 
-### Verification (`/verification`) — 7 routes
+### Verification (`/auth`) — 7 routes
 
-| Method | Path                                  | Description     | Auth   |
-| ------ | ------------------------------------- | --------------- | ------ |
-| POST   | `/verification/forgot-password`       | 請求密碼重設    | Public |
-| GET    | `/verification/reset-password/verify` | 驗證重設 Token  | Public |
-| POST   | `/verification/reset-password`        | 重設密碼        | Public |
-| POST   | `/verification/verify-email/send`     | 發送 Email 驗證 | Public |
-| GET    | `/verification/verify-email`          | 驗證 Email      | Public |
-| POST   | `/verification/verify-phone/send`     | 發送手機 OTP    | Public |
-| POST   | `/verification/verify-phone`          | 驗證手機 OTP    | Public |
+> Verification feature 掛載於 `/auth`（`apiV1.route("/auth", verificationFeature.routes)`），與 Authentication feature 共用 `/auth` 前綴，非 `/verification`。
+
+| Method | Path                          | Description     | Auth   |
+| ------ | ----------------------------- | --------------- | ------ |
+| POST   | `/auth/forgot-password`       | 請求密碼重設    | Public |
+| GET    | `/auth/reset-password/verify` | 驗證重設 Token  | Public |
+| POST   | `/auth/reset-password`        | 重設密碼        | Public |
+| POST   | `/auth/verify-email/send`     | 發送 Email 驗證 | Public |
+| GET    | `/auth/verify-email`          | 驗證 Email      | Public |
+| POST   | `/auth/verify-phone/send`     | 發送手機 OTP    | Public |
+| POST   | `/auth/verify-phone`          | 驗證手機 OTP    | Public |
 
 ### Users (`/users`) — 10 routes
 
@@ -161,25 +227,27 @@ Authorization: Bearer <your_jwt_token>
 | POST   | `/guest-orders/:id/items`  | 加入品項        | Guest  |
 | POST   | `/guest-orders/:id/cancel` | 取消 Guest 訂單 | Guest  |
 
-### Group Orders (`/group-orders`) — 15 routes
+### Group Orders (`/orders/group`) — 15 routes
+
+> 掛載於 `/orders/group`（見 `app-factory.ts`），非 `/group-orders`。
 
 | Method | Path                                            | Description    | Auth      |
 | ------ | ----------------------------------------------- | -------------- | --------- |
-| GET    | `/group-orders`                                 | 團體訂單列表   | Protected |
-| POST   | `/group-orders/generate-code`                   | 產生分享碼     | Protected |
-| GET    | `/group-orders/export`                          | 匯出團體訂單   | Protected |
-| POST   | `/group-orders/create`                          | 建立團體訂單   | Protected |
-| POST   | `/group-orders/join/:shareCode`                 | 加入團體訂單   | Public    |
-| GET    | `/group-orders/statistics`                      | 團體訂單統計   | Protected |
-| GET    | `/group-orders/:groupOrderId`                   | 團體訂單詳情   | Public    |
-| POST   | `/group-orders/:groupOrderId/cart`              | 加入購物車     | Protected |
-| PUT    | `/group-orders/:groupOrderId/cart/:itemId`      | 更新購物車品項 | Protected |
-| DELETE | `/group-orders/:groupOrderId/cart/:itemId`      | 移除購物車品項 | Protected |
-| POST   | `/group-orders/:groupOrderId/split`             | 分帳           | Protected |
-| POST   | `/group-orders/:groupOrderId/payment/:memberId` | 處理付款       | Protected |
-| POST   | `/group-orders/:groupOrderId/leave/:memberId`   | 離開團體       | Protected |
-| GET    | `/group-orders/:groupOrderId/activities`        | 活動紀錄       | Protected |
-| POST   | `/group-orders/cleanup/expired`                 | 清理過期團體   | Admin     |
+| GET    | `/orders/group`                                 | 團體訂單列表   | Protected |
+| POST   | `/orders/group/generate-code`                   | 產生分享碼     | Protected |
+| GET    | `/orders/group/export`                          | 匯出團體訂單   | Protected |
+| POST   | `/orders/group/create`                          | 建立團體訂單   | Protected |
+| POST   | `/orders/group/join/:shareCode`                 | 加入團體訂單   | Public    |
+| GET    | `/orders/group/statistics`                      | 團體訂單統計   | Protected |
+| GET    | `/orders/group/:groupOrderId`                   | 團體訂單詳情   | Public    |
+| POST   | `/orders/group/:groupOrderId/cart`              | 加入購物車     | Protected |
+| PUT    | `/orders/group/:groupOrderId/cart/:itemId`      | 更新購物車品項 | Protected |
+| DELETE | `/orders/group/:groupOrderId/cart/:itemId`      | 移除購物車品項 | Protected |
+| POST   | `/orders/group/:groupOrderId/split`             | 分帳           | Protected |
+| POST   | `/orders/group/:groupOrderId/payment/:memberId` | 處理付款       | Protected |
+| POST   | `/orders/group/:groupOrderId/leave/:memberId`   | 離開團體       | Protected |
+| GET    | `/orders/group/:groupOrderId/activities`        | 活動紀錄       | Protected |
+| POST   | `/orders/group/cleanup/expired`                 | 清理過期團體   | Admin     |
 
 ### Tables (`/tables`) — 13 routes
 

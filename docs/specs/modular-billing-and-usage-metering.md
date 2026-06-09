@@ -11,6 +11,8 @@
 | **依賴** | 既有 `shopSubscriptions` schema、`moduleGate` middleware、`paymentTransactions` table、Slack webhook |
 | **Open Questions** | 3 / 7 待回答（§5），其中 0 個阻擋實作開始 |
 
+> **v2.0 定位註記（Marketplace-first）**：本 spec 描述的訂閱/模組計費（basic/pro/enterprise）在 v2.0 商業模式中**降級為 entitlement / 權限分層基礎設施與 add-on 存取控制，並非主要收入線**。平台主要收入來自交易流與封閉式代幣帳本（不可兌現、不可轉讓、不可換取有價證券的代幣、卷、抽成、破值）；商家管理功能定位為「免費商家 OS」。本文件的 P1–P3 仍為有效的技術實作參考，但「可賣 basic/pro/enterprise」應理解為「具備按權限分層與 add-on 變現的基礎設施能力」，而非「向商家收工具月費」。本 spec 中的外部金流/訂閱 webhook 屬 add-on billing 基礎設施與未來選項，不代表 v2.0 pilot 會接真正金流。詳見 `docs/BUSINESS_PLAN.md` §1.5 / §5.1。
+
 ---
 
 ## 0. TL;DR

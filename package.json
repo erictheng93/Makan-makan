@@ -60,6 +60,8 @@
     "check:prod-config": "node scripts/check-production-config.cjs",
     "check:migration-dual-track": "node scripts/check-migration-dual-track.cjs",
     "check:no-test-doubles": "node scripts/check-no-test-doubles.cjs",
+    "check:docs-drift": "node scripts/check-docs-drift.cjs",
+    "docs:sync": "node scripts/check-docs-drift.cjs --write",
     "check:i18n-locales": "tsx scripts/i18n-locale-coverage.ts",
     "check:i18n-locales:strict": "tsx scripts/i18n-locale-coverage.ts --fail-on-missing",
     "i18n:export-handoff": "tsx scripts/i18n-locale-coverage.ts --export-handoff",

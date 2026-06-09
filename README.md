@@ -22,12 +22,14 @@
 
 ## About
 
-MakanMakan is a fully serverless, multi-tenant restaurant management SaaS platform built on the **Cloudflare ecosystem**. It provides online ordering, menu management, table/seat management, POS, employee scheduling, and multi-role access with real-time functionality.
+MakanMakan is a serverless, multi-tenant **night-market / 商圈 marketplace platform** built on the **Cloudflare ecosystem**. It aggregates line-side small vendors into a searchable, single-checkout digital market, and ships a **free merchant operating system** — online ordering, menu management, table/seat management, POS, employee scheduling, multi-role access, real-time — to onboard vendors onto the platform.
+
+> **Business positioning (v2.0 — Marketplace-first):** revenue comes from platform transaction flow (closed-loop credits/tokens, vouchers, take-rate, breakage), **not** from selling restaurant-management SaaS subscriptions. The pilot does not connect real-money payment rails; tokens are non-redeemable, non-transferable, and cannot be exchanged for securities or cash. The `subscriptions` / `billing` modules are retained as **entitlement / add-on infrastructure (feature gating)**, not the primary revenue line. See `docs/BUSINESS_PLAN.md` §1.5 / §5.1.
 
 ### Highlights
 
-- **Edge Computing** - Global deployment across 300+ Cloudflare nodes, P99 < 300ms
-- **Multi-tenant SaaS** - Each restaurant has isolated data, menus, tables, and staff
+- **Edge Computing** - Global deployment across 300+ Cloudflare nodes, P99 < 300ms (target / staging-measured)
+- **Multi-tenant** - Each restaurant/vendor has isolated data, menus, tables, and staff
 - **Cost-effective** - Serverless pay-per-use, estimated < $10 USD/month for SMBs
 - **Enterprise Security** - Cloudflare WAF + Zero Trust, AES-256 encryption, bcrypt
 - **PWA** - 95/100 performance score with full offline support
@@ -196,7 +198,7 @@ makanmakan/
 
 ### Production-Ready Systems
 
-- Core API (41 feature modules, 29+ endpoint groups)
+- Core API (<!-- gen:moduleCount -->41<!-- /gen --> feature modules, <!-- gen:routeGroups -->50<!-- /gen --> mounted route groups)<!-- counts verified by scripts/check-docs-drift.cjs -->
 - JWT multi-role authentication with bcrypt
 - QR code ordering (table/seat/shop modes)
 - Employee scheduling & leave management
