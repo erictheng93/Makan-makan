@@ -2,6 +2,21 @@
 
 Organized by skill/component, then priority (P0 top → P4 bottom, then Completed).
 
+## database / money schema
+
+### Retire legacy REAL money columns with D1 table rebuild
+
+**Priority:** P2 **Status:** Open 2026-06-12 **Context:** Money cents cutover is guarded by `packages/database/migrations_fresh/0067_money_cents_retirement_rollout_guard.sql` and `packages/database/migrations/0085_money_cents_retirement_rollout_guard.sql`. The guard must pass in staging and production before any destructive table rebuild drops legacy `REAL` money columns. Until then, the system should continue using `*_cents` as authoritative while keeping the legacy columns for compatibility and audit comparison.
+
+**Scope:**
+
+- Confirm production `money_cents_retirement` and `money_cents_retirement_rollout` audit rows have `violation_count = 0`
+- Rehearse the destructive migration on staging or a restored D1 drill database with backup/restore evidence captured
+- Generate a dedicated D1/SQLite table-rebuild migration that omits only the legacy `REAL` money columns listed in `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md`
+- Preserve primary keys, FKs, unique constraints, defaults, generated columns, indexes, non-legacy triggers, timestamp columns, and soft-delete columns
+- Start rebuild phases with `PRAGMA defer_foreign_keys = ON`, run `PRAGMA foreign_key_check`, and include row-count assertions
+- Remove obsolete cents sync triggers and legacy fallback reads only after the rebuild migration is verified
+
 ## database / transaction integrity
 
 ### Migrate remaining safeTransaction callers to D1 batch
