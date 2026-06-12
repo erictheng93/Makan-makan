@@ -20,3 +20,4 @@ name = "makanmasak-onboarding"
 
 [env.production.vars]
 VITE_API_URL = "https://manage-api.makanmasak.com/api/v1"
+VITE_CUSTOMER_APP_URL = "https://makanmasak.com"

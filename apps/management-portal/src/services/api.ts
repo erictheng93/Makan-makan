@@ -30,7 +30,22 @@ import type {
   UpdateMarketRequest,
 } from "@/types";
 
-const API_BASE = import.meta.env.VITE_MANAGEMENT_API_URL || "/api/v1";
+function resolveApiBase(): string {
+  const apiBase = import.meta.env.VITE_MANAGEMENT_API_URL;
+  if (apiBase) {
+    return apiBase;
+  }
+
+  if (import.meta.env.PROD) {
+    throw new Error(
+      "VITE_MANAGEMENT_API_URL is required for production builds",
+    );
+  }
+
+  return "/api/v1";
+}
+
+const API_BASE = resolveApiBase();
 const CSRF_COOKIE_NAME = "csrf_token";
 const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 

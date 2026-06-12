@@ -7,7 +7,17 @@ import {
   it,
   vi,
 } from "vitest";
-import { categories, menuItems, restaurants } from "../schema";
+import { eq } from "drizzle-orm";
+import type { D1Database } from "@cloudflare/workers-types";
+import {
+  categories,
+  coupons,
+  couponUsage,
+  menuItems,
+  orderItems,
+  orders,
+  restaurants,
+} from "../schema";
 import {
   createTestDatabase,
   type TestDatabase,
@@ -140,6 +150,217 @@ describe("OrderService order pricing", () => {
     }
   });
 });
+
+const INJECTED_FAILURE = "injected D1 failure";
+
+/**
+ * Wraps a real D1 binding so that any statement whose SQL matches
+ * `shouldFail` throws — simulating the transient write failures D1 can
+ * surface in production. A failed db.batch() never partially commits
+ * (D1 batches are transactional), so the wrapper also rejects whole
+ * batches containing a matching statement.
+ */
+function withFailureInjection(
+  db: D1Database,
+  shouldFail: (sql: string) => boolean,
+): D1Database {
+  const wrapStatement = (stmt: any, sqlText: string): any => ({
+    __sql: sqlText,
+    __real: stmt,
+    bind: (...args: unknown[]) => wrapStatement(stmt.bind(...args), sqlText),
+    run: async (...args: unknown[]) => {
+      if (shouldFail(sqlText)) throw new Error(INJECTED_FAILURE);
+      return stmt.run(...args);
+    },
+    all: async (...args: unknown[]) => {
+      if (shouldFail(sqlText)) throw new Error(INJECTED_FAILURE);
+      return stmt.all(...args);
+    },
+    first: async (...args: unknown[]) => {
+      if (shouldFail(sqlText)) throw new Error(INJECTED_FAILURE);
+      return stmt.first(...args);
+    },
+    raw: async (...args: unknown[]) => {
+      if (shouldFail(sqlText)) throw new Error(INJECTED_FAILURE);
+      return stmt.raw(...args);
+    },
+  });
+
+  return {
+    prepare: (sqlText: string) => wrapStatement(db.prepare(sqlText), sqlText),
+    batch: async (statements: any[]) => {
+      if (statements.some((s) => s.__sql && shouldFail(s.__sql))) {
+        throw new Error(INJECTED_FAILURE);
+      }
+      return db.batch(statements.map((s) => s.__real ?? s));
+    },
+    exec: (query: string) => (db as any).exec(query),
+    dump: () => (db as any).dump?.(),
+  } as unknown as D1Database;
+}
+
+describe("OrderService createOrder atomicity", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await seedMenuItem(testDb);
+    await seedCoupon(testDb);
+  });
+
+  const couponOrder = {
+    restaurantId,
+    couponCode: "SAVE5",
+    items: [{ menuItemId, quantity: 2 }],
+  };
+
+  it("persists order, items, coupon usage, and counters together on success", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+
+    const order = await service.createOrder(couponOrder);
+
+    expect(order.subtotal).toBe(20);
+    expect(order.discountAmount).toBe(5);
+    expect(order.totalAmount).toBe(15);
+    expect(order.items).toHaveLength(1);
+
+    const [usage] = await testDb.drizzle.select().from(couponUsage);
+    expect(usage).toMatchObject({
+      orderId: order.id,
+      discountAmount: 5,
+      status: "active",
+    });
+
+    const [coupon] = await testDb.drizzle.select().from(coupons);
+    expect(coupon.usedCount).toBe(1);
+
+    const [item] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(item.inventoryCount).toBe(8);
+    expect(item.orderCount).toBe(2);
+
+    const [restaurant] = await testDb.drizzle
+      .select()
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId));
+    expect(restaurant.totalOrders).toBe(1);
+  });
+
+  it("rejects duplicate menu item lines that exceed available inventory together", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      await expect(
+        service.createOrder({
+          restaurantId,
+          items: [
+            { menuItemId, quantity: 6 },
+            { menuItemId, quantity: 6 },
+          ],
+        }),
+      ).rejects.toThrow("Insufficient inventory for Nasi Lemak");
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    await expect(testDb.drizzle.select().from(orders)).resolves.toEqual([]);
+    await expect(testDb.drizzle.select().from(orderItems)).resolves.toEqual([]);
+
+    const [item] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(item.inventoryCount).toBe(10);
+    expect(item.orderCount).toBe(0);
+  });
+
+  it.each([
+    ["order items insert", /insert into\s+"?order_items"?/i],
+    ["inventory update", /update\s+"?menu_items"?/i],
+  ])(
+    "leaves no partial writes when the %s fails",
+    async (_label, failurePattern) => {
+      const service = new OrderService(
+        withFailureInjection(testDb.bindings.DB, (sqlText) =>
+          failurePattern.test(sqlText),
+        ),
+        { JWT_SECRET: "test" },
+      );
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      try {
+        // The surfaced message varies (drizzle wraps injected errors as
+        // "Failed query: ..."), so only the rejection itself is asserted —
+        // the no-partial-write checks below are the actual contract.
+        await expect(service.createOrder(couponOrder)).rejects.toThrow();
+      } finally {
+        consoleError.mockRestore();
+      }
+
+      // Nothing from the failed attempt may remain: no orphan order, no
+      // items, no coupon consumption, no inventory drift.
+      await expect(testDb.drizzle.select().from(orders)).resolves.toEqual([]);
+      await expect(testDb.drizzle.select().from(orderItems)).resolves.toEqual(
+        [],
+      );
+      await expect(testDb.drizzle.select().from(couponUsage)).resolves.toEqual(
+        [],
+      );
+
+      const [coupon] = await testDb.drizzle.select().from(coupons);
+      expect(coupon.usedCount).toBe(0);
+
+      const [item] = await testDb.drizzle
+        .select()
+        .from(menuItems)
+        .where(eq(menuItems.id, menuItemId));
+      expect(item.inventoryCount).toBe(10);
+      expect(item.orderCount).toBe(0);
+
+      const [restaurant] = await testDb.drizzle
+        .select()
+        .from(restaurants)
+        .where(eq(restaurants.id, restaurantId));
+      expect(restaurant.totalOrders ?? 0).toBe(0);
+    },
+  );
+});
+
+async function seedCoupon(testDb: TestDatabase) {
+  await testDb.drizzle.insert(coupons).values({
+    restaurantId,
+    code: "SAVE5",
+    name: "RM5 off",
+    discountType: "fixed",
+    discountValue: 5,
+    discountValueCents: 500,
+    usageLimit: 5,
+    usedCount: 0,
+    validFrom: "2020-01-01",
+    validTo: "2099-12-31",
+    isActive: true,
+    isVisible: true,
+  });
+}
 
 async function seedMenuItem(testDb: TestDatabase) {
   await testDb.drizzle.insert(restaurants).values({

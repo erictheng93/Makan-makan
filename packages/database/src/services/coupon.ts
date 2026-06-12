@@ -280,20 +280,7 @@ export class CouponService extends BaseService {
       throw new Error("Coupon already used for this order");
     }
 
-    const claim = await this.d1
-      .prepare(
-        `UPDATE coupons
-            SET used_count = coalesce(used_count, 0) + 1,
-                updated_at_ms = unixepoch('now') * 1000
-          WHERE id = ?
-            AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)`,
-      )
-      .bind(data.couponId)
-      .run();
-
-    if ((claim.meta?.changes ?? 0) === 0) {
-      throw new Error("Coupon usage limit reached");
-    }
+    await this.claimUsageSlot(data.couponId);
 
     try {
       const usageRecord = await this.db
@@ -315,25 +302,54 @@ export class CouponService extends BaseService {
       return usageRecord[0];
     } catch (error) {
       try {
-        await this.d1
-          .prepare(
-            `UPDATE coupons
-                SET used_count = CASE
-                      WHEN coalesce(used_count, 0) > 0
-                      THEN coalesce(used_count, 0) - 1
-                      ELSE 0
-                    END,
-                    updated_at_ms = unixepoch('now') * 1000
-              WHERE id = ?`,
-          )
-          .bind(data.couponId)
-          .run();
+        await this.releaseUsageSlot(data.couponId);
       } catch (rollbackError) {
         console.error("Coupon usage count rollback failed:", rollbackError);
       }
 
       throw error;
     }
+  }
+
+  /**
+   * 原子地佔用一個使用名額（條件式 UPDATE，內含上限檢查）。
+   * 名額已滿時擲出錯誤。後續消費名額的寫入若失敗，
+   * 呼叫端必須以 releaseUsageSlot() 歸還。
+   */
+  async claimUsageSlot(couponId: number): Promise<void> {
+    const claim = await this.d1
+      .prepare(
+        `UPDATE coupons
+            SET used_count = coalesce(used_count, 0) + 1,
+                updated_at_ms = unixepoch('now') * 1000
+          WHERE id = ?
+            AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)`,
+      )
+      .bind(couponId)
+      .run();
+
+    if ((claim.meta?.changes ?? 0) === 0) {
+      throw new Error("Coupon usage limit reached");
+    }
+  }
+
+  /**
+   * 歸還一個先前佔用的使用名額（claimUsageSlot 的補償操作）。
+   */
+  async releaseUsageSlot(couponId: number): Promise<void> {
+    await this.d1
+      .prepare(
+        `UPDATE coupons
+            SET used_count = CASE
+                  WHEN coalesce(used_count, 0) > 0
+                  THEN coalesce(used_count, 0) - 1
+                  ELSE 0
+                END,
+                updated_at_ms = unixepoch('now') * 1000
+          WHERE id = ?`,
+      )
+      .bind(couponId)
+      .run();
   }
 
   /**

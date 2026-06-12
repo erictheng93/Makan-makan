@@ -56,8 +56,12 @@ routes.onError((err, c) => {
   return c.json({ success: false, error: { message: String(err) } }, 500);
 });
 
-function request(path: string, init: RequestInit = {}) {
-  return routes.request(path, init, { DB: { binding: "db" } } as never);
+function request(
+  path: string,
+  init: RequestInit = {},
+  env: Record<string, unknown> = {},
+) {
+  return routes.request(path, init, { DB: { binding: "db" }, ...env } as never);
 }
 
 async function json(response: Response) {
@@ -136,7 +140,10 @@ describe("POS refund routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(200);
-    expect(mocks.refundServiceCtor).toHaveBeenCalledWith({ binding: "db" });
+    expect(mocks.refundServiceCtor).toHaveBeenCalledWith(
+      { binding: "db" },
+      expect.objectContaining({ alertSink: undefined }),
+    );
     expect(mocks.refundService.processRefund).toHaveBeenCalledWith(
       payload,
       registerId,
@@ -147,6 +154,27 @@ describe("POS refund routes", () => {
       success: true,
       data: { ...refund, refundId, ledgerMutation: true },
     });
+  });
+
+  it("passes a Slack-backed alert sink to the refund service when configured", async () => {
+    const response = await request(
+      "/create",
+      {
+        method: "POST",
+        body: JSON.stringify(refundPayload()),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Register-Id": registerId,
+        },
+      },
+      { SLACK_WEBHOOK_URL: "https://hooks.slack.test/services/refunds" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.refundServiceCtor).toHaveBeenCalledWith(
+      { binding: "db" },
+      expect.objectContaining({ alertSink: expect.any(Function) }),
+    );
   });
 
   it("rejects create requests without a register header and maps service errors", async () => {

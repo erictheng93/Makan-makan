@@ -94,6 +94,56 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
+const LOCAL_APP_BASE_URL = "http://localhost:5173";
+
+function normalizeBaseUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
+function firstConfiguredOrigin(value?: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  return value
+    .split(",")
+    .map((origin) => origin.trim())
+    .find((origin) => origin && origin !== "*");
+}
+
+function stripApiPath(url: string): string {
+  return normalizeBaseUrl(url).replace(/\/api(?:\/v\d+)?$/i, "");
+}
+
+function isProductionEnv(env: CloudflareEnv): boolean {
+  const envName = String(
+    env.NODE_ENV || env["ENVIRONMENT"] || "",
+  ).toLowerCase();
+  return envName === "production";
+}
+
+export function resolveVerificationAppBaseUrl(env: CloudflareEnv): string {
+  const appOrigin =
+    firstConfiguredOrigin(env.CLIENT_BASE_URL) ||
+    firstConfiguredOrigin(env.CORS_ORIGIN);
+
+  if (appOrigin) {
+    return normalizeBaseUrl(appOrigin);
+  }
+
+  if (isProductionEnv(env)) {
+    throw new Error(
+      "CLIENT_BASE_URL or CORS_ORIGIN must be configured for production verification links",
+    );
+  }
+
+  if (env.API_BASE_URL) {
+    return stripApiPath(env.API_BASE_URL);
+  }
+
+  return LOCAL_APP_BASE_URL;
+}
+
 // ============================================
 // Verification Service
 // ============================================
@@ -159,8 +209,7 @@ export class VerificationService extends BaseService {
       await this.db.insert(passwordResetTokens).values(resetToken).run();
 
       // Send notification
-      const appBaseUrl =
-        this.env.API_BASE_URL?.replace("/api", "") || "http://localhost:5173";
+      const appBaseUrl = resolveVerificationAppBaseUrl(this.env);
       const resetLink = `${appBaseUrl}/reset-password?token=${token}`;
 
       if (method === "email" && user.email) {
@@ -417,8 +466,7 @@ export class VerificationService extends BaseService {
         .run();
 
       // Send verification email
-      const appBaseUrl =
-        this.env.API_BASE_URL?.replace("/api", "") || "http://localhost:5173";
+      const appBaseUrl = resolveVerificationAppBaseUrl(this.env);
       const verificationLink = `${appBaseUrl}/verify-email?token=${token}`;
 
       await this.notificationService.sendNotification({
@@ -515,8 +563,7 @@ export class VerificationService extends BaseService {
 
       if (user?.email) {
         // Send success notification
-        const appBaseUrl =
-          this.env.API_BASE_URL?.replace("/api", "") || "http://localhost:5173";
+        const appBaseUrl = resolveVerificationAppBaseUrl(this.env);
         await this.notificationService.sendNotification({
           recipientId: user.id,
           recipientEmail: user.email,

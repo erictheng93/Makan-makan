@@ -10,12 +10,27 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
-import { RefundService } from "../services/RefundService";
+import {
+  RefundService,
+  type RefundServiceOptions,
+} from "../services/RefundService";
 import { processRefundSchema } from "../schemas";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
+import { AlertService } from "../../../services/AlertService";
 
 const app = new Hono<{ Bindings: Env }>();
+
+function createRefundService(env: Env): RefundService {
+  let alertSink: RefundServiceOptions["alertSink"];
+  if (env.SLACK_WEBHOOK_URL || env.ALERT_EMAIL_TO) {
+    const alertService = new AlertService(env);
+    alertSink = (alert: Parameters<AlertService["sendAlert"]>[0]) =>
+      alertService.sendAlert(alert);
+  }
+
+  return new RefundService(env.DB, { alertSink });
+}
 
 /**
  * 處理退款
@@ -36,7 +51,7 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
-    const refundService = new RefundService(c.env.DB);
+    const refundService = createRefundService(c.env);
     const result = await refundService.processRefund(
       data,
       registerId,
@@ -96,7 +111,7 @@ app.get(
     const { startDate, endDate, status, orderId, page, limit } =
       c.get("validatedQuery");
 
-    const refundService = new RefundService(c.env.DB);
+    const refundService = createRefundService(c.env);
     const result = await refundService.getRefunds(registerId, {
       startDate,
       endDate,
@@ -133,7 +148,7 @@ app.get(
   async (c) => {
     const { refundId } = c.get("validatedParams");
 
-    const refundService = new RefundService(c.env.DB);
+    const refundService = createRefundService(c.env);
     const result = await refundService.getRefundDetail(refundId);
 
     if (!result.success) {
@@ -167,7 +182,7 @@ app.post(
     const { refundId } = c.get("validatedParams");
     const user = c.get("user");
 
-    const refundService = new RefundService(c.env.DB);
+    const refundService = createRefundService(c.env);
     const result = await refundService.approveRefund(refundId, user.id);
 
     if (!result.success) {
@@ -204,7 +219,7 @@ app.post(
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
 
-    const refundService = new RefundService(c.env.DB);
+    const refundService = createRefundService(c.env);
     const result = await refundService.rejectRefund(refundId, user.id, reason);
 
     if (!result.success) {
@@ -241,7 +256,7 @@ app.post(
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
 
-    const refundService = new RefundService(c.env.DB);
+    const refundService = createRefundService(c.env);
     const result = await refundService.cancelRefund(refundId, user.id, reason);
 
     if (!result.success) {

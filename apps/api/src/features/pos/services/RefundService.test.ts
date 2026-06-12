@@ -67,8 +67,10 @@ function mockMutations() {
   return { inserted, updated };
 }
 
-function createService() {
-  return new RefundService({} as D1Database);
+function createService(
+  options?: ConstructorParameters<typeof RefundService>[1],
+) {
+  return new RefundService({} as D1Database, options);
 }
 
 function refundRequest(overrides: Record<string, unknown> = {}) {
@@ -192,6 +194,81 @@ describe("RefundService", () => {
     });
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("alerts when async refund completion cannot mark the refund failed", async () => {
+    vi.useFakeTimers();
+    const alertSink = vi.fn();
+    const mutations = mockMutations();
+    const completionError = new Error("completion write failed");
+    const markFailedError = new Error("failed-state write failed");
+    const updateErrors = [completionError, markFailedError];
+
+    mocks.db.update.mockImplementation(() => {
+      const builder = {
+        set: vi.fn((payload: unknown) => {
+          mutations.updated.push(payload);
+          return builder;
+        }),
+        where: vi.fn(() => builder),
+        then: (
+          resolve: (value: unknown) => void,
+          reject?: (reason: unknown) => void,
+        ) =>
+          Promise.reject(updateErrors.shift() ?? completionError).then(
+            resolve,
+            reject,
+          ),
+      };
+      return builder;
+    });
+    mockSelectResults([
+      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
+      [{ totalRefunded: 0 }],
+      [refundRow()],
+    ]);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      const result = await createService({
+        alertSink,
+        completionDelayMs: 5_000,
+      }).processRefund(
+        refundRequest({ refundMethod: "card" }),
+        "register-1",
+        7,
+      );
+
+      expect(result).toMatchObject({
+        success: true,
+        data: { refundId: "refund-1" },
+      });
+
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      expect(mutations.updated).toEqual([
+        expect.objectContaining({ status: "completed" }),
+        expect.objectContaining({ status: "failed" }),
+      ]);
+      const insertedRefund = mutations.inserted[0] as { id: string };
+      expect(alertSink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Refund completion failed",
+          severity: "critical",
+          metadata: expect.objectContaining({
+            refundId: insertedRefund.id,
+            completionError: "completion write failed",
+            markFailedError: "failed-state write failed",
+          }),
+        }),
+      );
+    } finally {
+      consoleError.mockRestore();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
   });
 
   it("rejects invalid refund requests before inserting rows", async () => {

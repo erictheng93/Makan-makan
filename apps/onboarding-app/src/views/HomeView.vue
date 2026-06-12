@@ -12,8 +12,20 @@ import { useI18n } from "@/i18n";
 const { t } = useI18n();
 
 const DEMO_RESTAURANT_ID = "019469a0-0099-7000-8000-000000000099";
-const CUSTOMER_APP_URL =
-  import.meta.env.VITE_CUSTOMER_APP_URL || "http://localhost:3000";
+function resolveCustomerAppUrl(): string {
+  const customerAppUrl = import.meta.env.VITE_CUSTOMER_APP_URL;
+  if (customerAppUrl) {
+    return customerAppUrl.replace(/\/+$/, "");
+  }
+
+  if (import.meta.env.PROD) {
+    throw new Error("VITE_CUSTOMER_APP_URL is required for production builds");
+  }
+
+  return "http://localhost:3000";
+}
+
+const CUSTOMER_APP_URL = resolveCustomerAppUrl();
 const demoUrl = `${CUSTOMER_APP_URL}/restaurant/${DEMO_RESTAURANT_ID}/shop/order-type`;
 
 const features = computed(() => [

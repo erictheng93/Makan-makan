@@ -31,11 +31,27 @@ type LiveRefundResult = Refund & {
 };
 type RefundResult = PostCloseRefundResult | LiveRefundResult;
 
+export interface RefundCompletionAlert {
+  title: string;
+  message: string;
+  severity: "error" | "critical";
+  metadata: Record<string, unknown>;
+}
+
+export interface RefundServiceOptions {
+  alertSink?: (alert: RefundCompletionAlert) => Promise<void> | void;
+  completionDelayMs?: number;
+}
+
 export class RefundService {
   private db;
+  private readonly alertSink?: RefundServiceOptions["alertSink"];
+  private readonly completionDelayMs: number;
 
-  constructor(d1: D1Database) {
+  constructor(d1: D1Database, options: RefundServiceOptions = {}) {
     this.db = drizzle(d1);
+    this.alertSink = options.alertSink;
+    this.completionDelayMs = options.completionDelayMs ?? 5000;
   }
 
   /**
@@ -471,6 +487,7 @@ export class RefundService {
           );
       } catch (error) {
         console.error("更新退款狀態失敗:", error);
+        let markFailedError: unknown;
         try {
           await this.db
             .update(refunds)
@@ -478,10 +495,49 @@ export class RefundService {
             .where(
               and(eq(refunds.id, refundId), eq(refunds.status, "processing")),
             );
+          await this.alertRefundCompletionFailure(refundId, error);
         } catch (updateError) {
+          markFailedError = updateError;
+          await this.alertRefundCompletionFailure(
+            refundId,
+            error,
+            markFailedError,
+          );
           console.error("更新失敗狀態失敗:", updateError);
         }
       }
     }, 5000); // 5秒後完成退款處理
   }
+  private async alertRefundCompletionFailure(
+    refundId: string,
+    completionError: unknown,
+    markFailedError?: unknown,
+  ): Promise<void> {
+    if (!this.alertSink) {
+      return;
+    }
+
+    try {
+      await this.alertSink({
+        title: "Refund completion failed",
+        message: markFailedError
+          ? "Refund completion failed and the refund could not be marked failed."
+          : "Refund completion failed and the refund was marked failed.",
+        severity: markFailedError ? "critical" : "error",
+        metadata: {
+          refundId,
+          completionError: errorMessage(completionError),
+          ...(markFailedError
+            ? { markFailedError: errorMessage(markFailedError) }
+            : {}),
+        },
+      });
+    } catch (alertError) {
+      console.error("Refund failure alert failed:", alertError);
+    }
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

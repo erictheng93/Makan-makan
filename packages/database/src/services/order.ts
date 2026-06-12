@@ -10,6 +10,7 @@ import {
   lte,
   inArray,
 } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
 import {
   orders,
@@ -18,6 +19,7 @@ import {
   restaurants,
   tables,
   waitingList,
+  couponUsage,
   ORDER_STATUS,
 } from "../schema";
 import type { Order, SelectedCustomizations } from "@makanmakan/shared-types";
@@ -400,6 +402,9 @@ export class OrderService extends BaseService {
         fetchedMenuItems.map((item) => [item.id, item]),
       );
 
+      // 同一菜品可能拆成多行（不同客製化），庫存必須以累計需求量檢查
+      const requestedQuantities = new Map<number, number>();
+
       for (const item of data.items) {
         const menuItem = menuItemMap.get(item.menuItemId);
 
@@ -407,10 +412,13 @@ export class OrderService extends BaseService {
           throw new Error(`Menu item ${item.menuItemId} is not available`);
         }
 
-        // 檢查庫存
+        // 檢查庫存（累計同菜品所有行的數量）
+        const requestedTotal =
+          (requestedQuantities.get(item.menuItemId) ?? 0) + item.quantity;
+        requestedQuantities.set(item.menuItemId, requestedTotal);
         if (
           menuItem.inventoryCount !== null &&
-          menuItem.inventoryCount < item.quantity
+          menuItem.inventoryCount < requestedTotal
         ) {
           throw new Error(`Insufficient inventory for ${menuItem.name}`);
         }
@@ -512,84 +520,172 @@ export class OrderService extends BaseService {
       // 生成訂單號碼
       const orderNumber = this.generateOrderNumber(data.restaurantId);
 
-      // 創建訂單
-      const [order] = await this.db
-        .insert(orders)
-        .values({
-          restaurantId: data.restaurantId,
-          tableId: data.tableId,
-          customerId: data.customerId,
-          waitingListId: data.waitingListId,
-          orderNumber,
-          orderType: data.orderType,
-          subtotal,
-          taxAmount,
-          serviceCharge,
-          discountAmount,
-          totalAmount,
-          subtotalCents,
-          taxAmountCents,
-          serviceChargeCents,
-          discountAmountCents,
-          totalAmountCents,
-          customerInfo: data.customerInfo,
-          notes: data.notes,
-          couponCode: data.couponCode,
-          ...(data.clientMutationId
-            ? { clientMutationId: data.clientMutationId }
-            : {}),
-          orderSource: data.orderSource || "direct",
-          deliveryInfo: data.deliveryInfo,
-          estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
-        })
-        .returning();
+      // ---- 原子寫入階段 ----
+      // 生產環境 D1 不支援互動式 BEGIN（db.transaction 必定失敗），
+      // 唯一的原子提交原語是 db.batch：整批語句在單一交易中循序執行，
+      // 任一失敗即全部回滾 — 不會留下孤兒訂單、優惠券消耗或庫存漂移。
+      // orders.id 是 autoincrement，order_items / coupon_usage 透過唯一的
+      // order_number 子查詢在同一批次內回填外鍵。
+      const orderIdRef = sql<number>`(select ${orders.id} from ${orders} where ${orders.orderNumber} = ${orderNumber})`;
 
-      // 創建訂單項目
-      const items = await this.db
-        .insert(orderItems)
-        .values(
-          orderItemsData.map((item) => ({
-            ...item,
-            orderId: order.id,
-          })),
-        )
-        .returning();
+      const writeStatements: BatchItem<"sqlite">[] = [
+        this.db
+          .insert(orders)
+          .values({
+            restaurantId: data.restaurantId,
+            tableId: data.tableId,
+            customerId: data.customerId,
+            waitingListId: data.waitingListId,
+            orderNumber,
+            orderType: data.orderType,
+            subtotal,
+            taxAmount,
+            serviceCharge,
+            discountAmount,
+            totalAmount,
+            subtotalCents,
+            taxAmountCents,
+            serviceChargeCents,
+            discountAmountCents,
+            totalAmountCents,
+            customerInfo: data.customerInfo,
+            notes: data.notes,
+            couponCode: data.couponCode,
+            ...(data.clientMutationId
+              ? { clientMutationId: data.clientMutationId }
+              : {}),
+            orderSource: data.orderSource || "direct",
+            deliveryInfo: data.deliveryInfo,
+            estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
+          })
+          .returning(),
+        this.db
+          .insert(orderItems)
+          .values(
+            orderItemsData.map((item) => ({
+              ...item,
+              orderId: orderIdRef as unknown as number,
+            })),
+          )
+          .returning(),
+      ];
 
-      // 記錄優惠券使用情況
+      // 優惠券：先以條件式 UPDATE 佔用名額（內含上限檢查），
+      // 使用記錄則跟訂單同批寫入；批次失敗時於下方歸還名額。
+      let claimedCouponId: number | null = null;
+      const claimedInventory: Array<{
+        menuItemId: number;
+        quantity: number;
+      }> = [];
+      const releaseClaimedCoupon = async () => {
+        if (claimedCouponId !== null && couponService) {
+          try {
+            await couponService.releaseUsageSlot(claimedCouponId);
+          } catch (releaseError) {
+            console.error("Coupon slot release failed:", releaseError);
+          }
+        }
+      };
+      const restoreClaimedInventory = async () => {
+        for (const claim of [...claimedInventory].reverse()) {
+          try {
+            await this.db
+              .update(menuItems)
+              .set({
+                inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${claim.quantity} END`,
+              })
+              .where(eq(menuItems.id, claim.menuItemId));
+          } catch (restoreError) {
+            console.error("Inventory claim restore failed:", restoreError);
+          }
+        }
+      };
       if (validatedCoupon && discountAmount > 0 && couponService) {
-        await couponService.useCoupon({
-          couponId: validatedCoupon.id,
-          orderId: order.id,
-          userId: undefined,
-          discountAmount,
-          originalAmount: subtotal,
-          finalAmount: totalAmount,
-        });
+        await couponService.claimUsageSlot(validatedCoupon.id);
+        claimedCouponId = validatedCoupon.id;
+        writeStatements.push(
+          this.db.insert(couponUsage).values({
+            couponId: validatedCoupon.id,
+            orderId: orderIdRef as unknown as number,
+            discountAmount,
+            originalAmount: subtotal,
+            finalAmount: totalAmount,
+            discountAmountCents: toRequiredCents(discountAmount),
+            originalAmountCents: toRequiredCents(subtotal),
+            finalAmountCents: toRequiredCents(totalAmount),
+            status: "active",
+          }),
+        );
       }
 
-      // 更新菜品訂購次數和庫存 (batch updates in parallel for better performance)
-      const inventoryUpdates = data.items.map(({ menuItemId, quantity }) =>
-        this.db
-          .update(menuItems)
-          .set({
-            orderCount: sql`${menuItems.orderCount} + ${quantity}`,
-            inventoryCount: menuItems.inventoryCount
-              ? sql`${menuItems.inventoryCount} - ${quantity}`
-              : null,
-          })
-          .where(eq(menuItems.id, menuItemId)),
-      );
+      // 更新菜品訂購次數/庫存與餐廳訂單數（與訂單同批原子提交）
+      try {
+        for (const { menuItemId, quantity } of data.items) {
+          const menuItem = menuItemMap.get(menuItemId);
+          const [claim] = await this.db
+            .update(menuItems)
+            .set({
+              inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${quantity} END`,
+            })
+            .where(
+              and(
+                eq(menuItems.id, menuItemId),
+                sql`(${menuItems.inventoryCount} IS NULL OR ${menuItems.inventoryCount} >= ${quantity})`,
+              ),
+            )
+            .returning({
+              id: menuItems.id,
+              inventoryCount: menuItems.inventoryCount,
+            });
 
-      // Execute all inventory updates and restaurant update in parallel
-      await Promise.all([
-        ...inventoryUpdates,
+          if (!claim) {
+            throw new Error(
+              `Insufficient inventory for ${menuItem?.name ?? menuItemId}`,
+            );
+          }
+
+          if (claim.inventoryCount !== null) {
+            claimedInventory.push({ menuItemId, quantity });
+          }
+        }
+      } catch (error) {
+        await restoreClaimedInventory();
+        await releaseClaimedCoupon();
+        throw error;
+      }
+
+      for (const { menuItemId, quantity } of data.items) {
+        writeStatements.push(
+          this.db
+            .update(menuItems)
+            .set({
+              orderCount: sql`${menuItems.orderCount} + ${quantity}`,
+            })
+            .where(eq(menuItems.id, menuItemId)),
+        );
+      }
+      writeStatements.push(
         this.db
           .update(restaurants)
           .set({
             totalOrders: sql`${restaurants.totalOrders} + 1`,
           })
           .where(eq(restaurants.id, data.restaurantId)),
-      ]);
+      );
+
+      let batchResults: unknown[];
+      try {
+        batchResults = await this.db.batch(
+          writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+        );
+      } catch (error) {
+        await restoreClaimedInventory();
+        await releaseClaimedCoupon();
+        throw error;
+      }
+
+      const [order] = batchResults[0] as (typeof orders.$inferSelect)[];
+      const items = batchResults[1] as (typeof orderItems.$inferSelect)[];
 
       // Re-fetch with full relations (menuItem name/image) so callers
       // and downstream caches get complete data. The insert().returning()
@@ -974,9 +1070,7 @@ export class OrderService extends BaseService {
         this.db
           .update(menuItems)
           .set({
-            inventoryCount: menuItems.inventoryCount
-              ? sql`${menuItems.inventoryCount} + ${item.quantity}`
-              : null,
+            inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${item.quantity} END`,
           })
           .where(eq(menuItems.id, item.menuItemId)),
       );
