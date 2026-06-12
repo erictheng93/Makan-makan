@@ -301,18 +301,10 @@ export class ExportService {
   }
 
   /**
-   * Generate Excel format (using CSV for now, can be enhanced with xlsx library)
+   * Generate Excel-compatible CSV until real XLSX support exists.
    */
   private generateExcel(records: any[], filename: string): ExportResult {
-    // For now, use CSV format which Excel can open
-    // TODO: Integrate with xlsx library for proper .xlsx format
-    const result = this.generateCSV(records, filename);
-    if (result.success) {
-      result.filename = result.filename.replace(".csv", ".xlsx");
-      result.mimeType =
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    }
-    return result;
+    return this.generateCSV(records, filename);
   }
 
   /**

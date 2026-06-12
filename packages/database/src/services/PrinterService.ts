@@ -17,6 +17,11 @@ import type {
   PrintStatistics,
 } from "@makanmakan/shared-types";
 
+type PrintJobMetricsMetadata = NonNullable<PrintJob["metadata"]> & {
+  paperUsage?: unknown;
+  paperUsageMm?: unknown;
+};
+
 // =============================================
 // 抽象打印機驅動類
 // =============================================
@@ -158,15 +163,65 @@ export class PrintJobQueue {
     processing: number;
     completed: number;
     failed: number;
+    averageJobTime: number;
+    paperUsage: number;
+    busyHours: { hour: number; jobCount: number }[];
   } {
     const jobs = Array.from(this.jobs.values());
+    const completedDurations = jobs
+      .map((job) => this.getCompletedDuration(job))
+      .filter((duration): duration is number => duration !== null);
+    const busyHourCounts = new Map<number, number>();
+
+    for (const job of jobs) {
+      const timestamp = job.startedAt ?? job.createdAt;
+      if (Number.isNaN(timestamp.getTime())) {
+        continue;
+      }
+
+      const hour = timestamp.getHours();
+      busyHourCounts.set(hour, (busyHourCounts.get(hour) ?? 0) + 1);
+    }
+
     return {
       total: jobs.length,
       pending: jobs.filter((j) => j.status === "pending").length,
       processing: jobs.filter((j) => j.status === "printing").length,
       completed: jobs.filter((j) => j.status === "completed").length,
       failed: jobs.filter((j) => j.status === "failed").length,
+      averageJobTime:
+        completedDurations.length === 0
+          ? 0
+          : completedDurations.reduce((sum, duration) => sum + duration, 0) /
+            completedDurations.length,
+      paperUsage: jobs.reduce(
+        (total, job) => total + this.getRecordedPaperUsage(job),
+        0,
+      ),
+      busyHours: Array.from(busyHourCounts.entries())
+        .sort(([left], [right]) => left - right)
+        .map(([hour, jobCount]) => ({ hour, jobCount })),
     };
+  }
+
+  private getCompletedDuration(job: PrintJob): number | null {
+    if (job.status !== "completed" || !job.completedAt) {
+      return null;
+    }
+
+    const startedAt = job.startedAt ?? job.createdAt;
+    const duration = job.completedAt.getTime() - startedAt.getTime();
+
+    return Number.isFinite(duration) && duration >= 0 ? duration : null;
+  }
+
+  private getRecordedPaperUsage(job: PrintJob): number {
+    const metadata = job.metadata as PrintJobMetricsMetadata | undefined;
+    const usage = metadata?.paperUsage ?? metadata?.paperUsageMm;
+
+    return typeof usage === "number" && Number.isFinite(usage) && usage > 0
+      ? usage
+      : 0;
   }
 }
 
@@ -652,18 +707,21 @@ export class PrinterService {
   getStatistics(): PrintStatistics {
     const queueStats = this.queue.getStatistics();
     const devices = this.getDevices();
+    const onlineDevices = devices.filter((d) => d.status === "online").length;
 
     return {
       totalJobs: queueStats.total,
       completedJobs: queueStats.completed,
       failedJobs: queueStats.failed,
-      averageJobTime: 8000, // TODO: 從實際數據計算
-      paperUsage: 0, // TODO: 從設備狀態計算
+      averageJobTime: queueStats.averageJobTime,
+      paperUsage: queueStats.paperUsage,
       deviceUptime:
-        (devices.filter((d) => d.status === "online").length / devices.length) *
-        100,
-      errorRate: (queueStats.failed / queueStats.total) * 100,
-      busyHours: [], // TODO: 從歷史數據計算
+        devices.length === 0 ? 0 : (onlineDevices / devices.length) * 100,
+      errorRate:
+        queueStats.total === 0
+          ? 0
+          : (queueStats.failed / queueStats.total) * 100,
+      busyHours: queueStats.busyHours,
     };
   }
 
