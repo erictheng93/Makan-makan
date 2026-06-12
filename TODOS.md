@@ -2,6 +2,22 @@
 
 Organized by skill/component, then priority (P0 top → P4 bottom, then Completed).
 
+## database / transaction integrity
+
+### Migrate remaining safeTransaction callers to D1 batch
+
+**Priority:** P1 **Status:** Open 2026-06-12 **Context:** `BaseService.safeTransaction` (`packages/database/src/services/base.ts`) catches `"Failed query: begin"` and silently re-runs writes non-transactionally. Production D1 does not support interactive `BEGIN`, so every `safeTransaction` call in prod is effectively non-atomic. The order-creation money path was migrated to `db.batch()` on 2026-06-12 (see `OrderService.createOrder` + atomicity tests in `packages/database/src/services/order.test.ts`), but other callers still run through the silent fallback:
+
+- `packages/database/src/services/FeedbackService.ts`
+- `packages/database/src/services/LeaveService.ts`
+- `packages/database/src/services/SchedulingService.ts`
+
+**Scope:**
+
+- Convert each caller's multi-statement write sequence to a single `db.batch()` (pattern: `OrderService.createOrder`; FK backfill via unique-column subquery when the parent id is autoincrement)
+- Then delete `safeTransaction` from `BaseService` so the error-sniffing fallback cannot be reintroduced
+- Environment-compat shims must be gated on explicit environment checks, never on error-message sniffing
+
 ## payments / provider integrations
 
 ### Defer real payment acquirer integration
