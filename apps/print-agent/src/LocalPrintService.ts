@@ -33,6 +33,8 @@ const isWebSocketMessage = (value: unknown): value is WebSocketMessage => {
   );
 };
 
+const LOOPBACK_HOST = "127.0.0.1";
+
 export interface LocalPrintServiceConfig {
   // 網路設定
   port: number;
@@ -508,6 +510,7 @@ export class LocalPrintService {
     }
 
     this.wsServer = new WebSocketServer({
+      host: LOOPBACK_HOST,
       port: this.config.wsPort,
       verifyClient: (info: WebSocketClientInfo) => {
         // 驗證 WebSocket 連線
@@ -556,10 +559,13 @@ export class LocalPrintService {
     });
   }
 
-  private verifyWebSocketClient(_info: WebSocketClientInfo): boolean {
+  private verifyWebSocketClient(info: WebSocketClientInfo): boolean {
     // 實作 WebSocket 客戶端驗證邏輯
     // 可以檢查 API key、來源等
-    return true;
+    const headerValue = info.req.headers["x-api-key"];
+    const apiKey = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+
+    return apiKey === this.config.apiKey;
   }
 
   private handleWebSocketMessage(ws: WebSocket, message: unknown): void {
@@ -651,9 +657,13 @@ export class LocalPrintService {
 
   private async startHttpServer(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const server = this.expressApp.listen(this.config.port, () => {
-        resolve();
-      });
+      const server = this.expressApp.listen(
+        this.config.port,
+        LOOPBACK_HOST,
+        () => {
+          resolve();
+        },
+      );
 
       this.httpServer = server;
       server.on("error", reject);

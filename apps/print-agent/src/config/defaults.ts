@@ -8,6 +8,7 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
   const restaurantId = process.env.RESTAURANT_ID || "default";
   const port = parseInt(process.env.PRINT_AGENT_PORT || "3003");
   const wsPort = parseInt(process.env.PRINT_AGENT_WS_PORT || "3004");
+  const apiKey = readRequiredEnv("PRINT_AGENT_API_KEY");
 
   return {
     // Network settings
@@ -18,8 +19,7 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
       .map((s) => s.trim()),
 
     // Authentication settings
-    apiKey:
-      process.env.PRINT_AGENT_API_KEY || generateDefaultApiKey(restaurantId),
+    apiKey,
     cloudEndpoint:
       process.env.CLOUD_API_ENDPOINT || "http://localhost:8787/api/v1",
 
@@ -39,11 +39,14 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
   };
 }
 
-export function generateDefaultApiKey(restaurantId: string): string {
-  // Generate a basic API key for development
-  const timestamp = Date.now();
-  const random = crypto.randomUUID().replace(/-/g, "").substring(0, 9);
-  return `print_${restaurantId}_${timestamp}_${random}`;
+function readRequiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+
+  return value;
 }
 
 export const defaultPrinterSettings = {

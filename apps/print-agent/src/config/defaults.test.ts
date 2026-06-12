@@ -1,11 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { createDefaultConfig, generateDefaultApiKey } from "./defaults";
+import { afterEach, describe, expect, it } from "vitest";
+import { createDefaultConfig } from "./defaults";
 
 const ORIGINAL_ENV = { ...process.env };
 
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
-  vi.restoreAllMocks();
 });
 
 describe("createDefaultConfig", () => {
@@ -40,14 +39,21 @@ describe("createDefaultConfig", () => {
     });
   });
 
-  it("generates development API keys scoped to the restaurant", () => {
-    vi.spyOn(Date, "now").mockReturnValue(1770000000000);
-    vi.spyOn(crypto, "randomUUID").mockReturnValue(
-      "12345678-1234-1234-1234-123456789abc",
-    );
+  it("refuses to create a config without an explicit API key", () => {
+    process.env.RESTAURANT_ID = "restaurant-42";
+    delete process.env.PRINT_AGENT_API_KEY;
 
-    expect(generateDefaultApiKey("restaurant-42")).toBe(
-      "print_restaurant-42_1770000000000_123456781",
+    expect(() => createDefaultConfig()).toThrow(
+      "PRINT_AGENT_API_KEY is required",
+    );
+  });
+
+  it("refuses blank API keys", () => {
+    process.env.RESTAURANT_ID = "restaurant-42";
+    process.env.PRINT_AGENT_API_KEY = "   ";
+
+    expect(() => createDefaultConfig()).toThrow(
+      "PRINT_AGENT_API_KEY is required",
     );
   });
 });
