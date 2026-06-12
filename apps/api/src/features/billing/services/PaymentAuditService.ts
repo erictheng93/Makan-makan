@@ -27,10 +27,10 @@ function encodePayload(payload: unknown): string | null {
 export class PaymentAuditService {
   constructor(private readonly db: Env["DB"]) {}
 
-  async append(event: PaymentAuditEventInput): Promise<{ inserted: boolean }> {
+  prepareAppend(event: PaymentAuditEventInput) {
     const occurredAtMs = event.occurredAtMs ?? Date.now();
 
-    const result = await this.db
+    return this.db
       .prepare(
         `INSERT OR IGNORE INTO payment_audit_log (
             id, restaurant_id, payment_transaction_id, subscription_id,
@@ -54,8 +54,11 @@ export class PaymentAuditService {
         event.errorCode ?? null,
         event.errorMessage ?? null,
         occurredAtMs,
-      )
-      .run();
+      );
+  }
+
+  async append(event: PaymentAuditEventInput): Promise<{ inserted: boolean }> {
+    const result = await this.prepareAppend(event).run();
 
     return { inserted: (result.meta?.changes ?? 0) > 0 };
   }

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    batch: vi.fn(),
   },
 }));
 
@@ -32,20 +33,32 @@ function mockSelectResults(results: unknown[]) {
   mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
 }
 
-function mockMutations() {
+function mockMutations(options: { failSecondInsert?: boolean } = {}) {
   const inserted: unknown[] = [];
   const updated: unknown[] = [];
+  const insertStatements: Array<{ payload: unknown }> = [];
 
   mocks.db.insert.mockImplementation(() => {
     const builder = {
+      payload: undefined as unknown,
       values: vi.fn((payload: unknown) => {
-        inserted.push(payload);
+        builder.payload = payload;
         return builder;
       }),
       then: (
         resolve: (value: unknown) => void,
         reject?: (reason: unknown) => void,
-      ) => Promise.resolve(undefined).then(resolve, reject),
+      ) => {
+        if (options.failSecondInsert && insertStatements.length === 1) {
+          return Promise.reject(new Error("injected insert failure")).then(
+            resolve,
+            reject,
+          );
+        }
+        insertStatements.push(builder);
+        inserted.push(builder.payload);
+        return Promise.resolve(undefined).then(resolve, reject);
+      },
     };
     return builder;
   });
@@ -62,6 +75,15 @@ function mockMutations() {
       ) => Promise.resolve(undefined).then(resolve, reject),
     };
     return builder;
+  });
+
+  mocks.db.batch = vi.fn(async (statements: Array<{ payload: unknown }>) => {
+    if (options.failSecondInsert && statements.length > 1) {
+      throw new Error("injected insert failure");
+    }
+    insertStatements.push(...statements);
+    inserted.push(...statements.map((statement) => statement.payload));
+    return statements.map(() => undefined);
   });
 
   return { inserted, updated };
@@ -209,6 +231,37 @@ describe("RefundService", () => {
     });
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("does not commit a live cash refund row if its cash movement fails", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const mutations = mockMutations({ failSecondInsert: true });
+    mockSelectResults([
+      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
+      [{ totalRefunded: 0 }],
+      [{ status: "active" }],
+    ]);
+
+    try {
+      await expect(
+        createService().processRefund(
+          refundRequest(),
+          "register-1",
+          7,
+          "shift-1",
+        ),
+      ).resolves.toMatchObject({
+        success: false,
+        error: "injected insert failure",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(mocks.db.batch).toHaveBeenCalledOnce();
+    expect(mutations.inserted).toEqual([]);
   });
 
   it("alerts when async refund completion cannot mark the refund failed", async () => {

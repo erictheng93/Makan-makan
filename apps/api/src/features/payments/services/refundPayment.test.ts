@@ -31,6 +31,7 @@ interface RefundOrderRow {
 
 function createD1(orderRow: RefundOrderRow | null) {
   const statements: PreparedStatement[] = [];
+  const committed: PreparedStatement[] = [];
   const db = {
     prepare: vi.fn((sql: string) => {
       const statement: PreparedStatement = {
@@ -41,14 +42,44 @@ function createD1(orderRow: RefundOrderRow | null) {
           return statement;
         }),
         first: vi.fn(async () => orderRow),
-        run: vi.fn(async () => ({ meta: { changes: 1 }, success: true })),
+        run: vi.fn(async () => {
+          committed.push(statement);
+          return { meta: { changes: 1 }, success: true };
+        }),
       };
       statements.push(statement);
       return statement;
     }),
+    batch: vi.fn(async (batchStatements: PreparedStatement[]) => {
+      committed.push(...batchStatements);
+      return batchStatements.map(() => ({
+        meta: { changes: 1 },
+        success: true,
+      }));
+    }),
   };
 
-  return { db, statements };
+  return { db, statements, committed };
+}
+
+function createD1WithBatchFailure(
+  orderRow: RefundOrderRow,
+  failWhen: (statement: PreparedStatement) => boolean,
+) {
+  const setup = createD1(orderRow);
+  setup.db.batch.mockImplementation(
+    async (batchStatements: PreparedStatement[]) => {
+      if (batchStatements.some(failWhen)) {
+        throw new Error("injected batch failure");
+      }
+      setup.committed.push(...batchStatements);
+      return batchStatements.map(() => ({
+        meta: { changes: 1 },
+        success: true,
+      }));
+    },
+  );
+  return setup;
 }
 
 function env(db: unknown) {
@@ -189,6 +220,24 @@ describe("refundPaymentTransaction", () => {
       null,
       1780833600000,
     ]);
+  });
+
+  it("does not commit partial refund writes when a middle write fails", async () => {
+    const { db, committed } = createD1WithBatchFailure(
+      paidOrder({ refund_amount_cents: 2000 }),
+      (statement) => statement.sql.includes("INSERT INTO refund_transactions"),
+    );
+
+    await expect(
+      refundPaymentTransaction(env(db), {
+        transactionId: "txn-rollback",
+        amount: 30,
+        reason: "customer changed mind",
+      }),
+    ).rejects.toThrow("injected batch failure");
+
+    expect(db.batch).toHaveBeenCalledOnce();
+    expect(committed).toEqual([]);
   });
 
   it("marks full refunds from legacy decimal totals and blocks over-refunds", async () => {

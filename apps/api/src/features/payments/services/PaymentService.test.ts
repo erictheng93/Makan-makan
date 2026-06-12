@@ -63,6 +63,7 @@ function mockOrderUpdate(returningRows: unknown[] = []) {
 
 function createD1() {
   const statements: PreparedStatement[] = [];
+  const committed: PreparedStatement[] = [];
   const db = {
     prepare: vi.fn((sql: string) => {
       const statement: PreparedStatement = {
@@ -72,13 +73,42 @@ function createD1() {
           statement.values = values;
           return statement;
         }),
-        run: vi.fn(async () => ({ meta: { changes: 1 }, success: true })),
+        run: vi.fn(async () => {
+          committed.push(statement);
+          return { meta: { changes: 1 }, success: true };
+        }),
       };
       statements.push(statement);
       return statement;
     }),
+    batch: vi.fn(async (batchStatements: PreparedStatement[]) => {
+      committed.push(...batchStatements);
+      return batchStatements.map(() => ({
+        meta: { changes: 1 },
+        success: true,
+      }));
+    }),
   };
-  return { db, statements };
+  return { db, statements, committed };
+}
+
+function createD1WithBatchFailure(
+  failWhen: (statement: PreparedStatement) => boolean,
+) {
+  const setup = createD1();
+  setup.db.batch.mockImplementation(
+    async (batchStatements: PreparedStatement[]) => {
+      if (batchStatements.some(failWhen)) {
+        throw new Error("injected batch failure");
+      }
+      setup.committed.push(...batchStatements);
+      return batchStatements.map(() => ({
+        meta: { changes: 1 },
+        success: true,
+      }));
+    },
+  );
+  return setup;
 }
 
 function env(db: unknown) {
@@ -112,9 +142,7 @@ describe("PaymentService", () => {
   it("processes full payments from the authoritative order total", async () => {
     const { db, statements } = createD1();
     queueOrderRows([[order()]]);
-    const updates = mockOrderUpdate([
-      { status: "paid", paymentStatus: "paid" },
-    ]);
+    mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
 
     await expect(
       new PaymentService(env(db)).processPayment(
@@ -167,13 +195,16 @@ describe("PaymentService", () => {
       1780833600000,
     ]);
 
-    expect(updates[0]).toMatchObject({
-      status: "paid",
-      paymentStatus: "paid",
-      paymentMethod: "cash",
-      paymentTransactionId: "pay_101_1780833600000",
-    });
-    expect(updates[0]).toHaveProperty("paidAt");
+    expect(statementContaining(statements, "UPDATE orders")?.sql).toContain(
+      "status = 'paid'",
+    );
+    expect(statementContaining(statements, "UPDATE orders")?.values).toEqual([
+      1780833600000,
+      "cash",
+      "pay_101_1780833600000",
+      1780833600000,
+      101,
+    ]);
     expect(
       statementContaining(statements, "UPDATE payment_transactions")?.values,
     ).toEqual([
@@ -194,12 +225,31 @@ describe("PaymentService", () => {
     ).toEqual(["attempt", "success"]);
   });
 
+  it("does not commit partial payment finalization writes when a middle write fails", async () => {
+    const { db, committed } = createD1WithBatchFailure((statement) =>
+      statement.sql.includes("UPDATE payment_transactions"),
+    );
+    queueOrderRows([[order()]]);
+    mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
+
+    await expect(
+      new PaymentService(env(db)).processPayment({
+        orderId: 101,
+        paymentMode: "full",
+        amount: 120,
+        expectedTotal: 120,
+        method: "cash",
+      }),
+    ).rejects.toThrow("injected batch failure");
+
+    expect(db.batch).toHaveBeenCalledOnce();
+    expect(committed).toEqual([]);
+  });
+
   it("processes partial payments without closing the order when requested", async () => {
     const { db, statements } = createD1();
     queueOrderRows([[order({ status: "served" })]]);
-    const updates = mockOrderUpdate([
-      { status: "served", paymentStatus: "paid" },
-    ]);
+    mockOrderUpdate([{ status: "served", paymentStatus: "paid" }]);
 
     await expect(
       new PaymentService(env(db)).processPayment({
@@ -221,12 +271,15 @@ describe("PaymentService", () => {
       },
     });
 
-    expect(updates[0]).not.toHaveProperty("status");
-    expect(updates[0]).not.toHaveProperty("paidAt");
-    expect(updates[0]).toMatchObject({
-      paymentStatus: "paid",
-      paymentMethod: "split",
-    });
+    expect(statementContaining(statements, "UPDATE orders")?.sql).not.toContain(
+      "SET status = 'paid'",
+    );
+    expect(statementContaining(statements, "UPDATE orders")?.values).toEqual([
+      "split",
+      "pay_101_1780833600000",
+      1780833600000,
+      101,
+    ]);
     expect(
       statementContaining(statements, "INSERT INTO payment_transactions")
         ?.values[6],

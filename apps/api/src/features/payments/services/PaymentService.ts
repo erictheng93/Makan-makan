@@ -119,151 +119,161 @@ export class PaymentService {
       input.paymentMode === "partial"
         ? "split"
         : (input.method ?? input.gateway ?? "other");
-
-    await this.recordPaymentTransaction({
-      transactionId: paymentId,
-      orderId: input.orderId,
-      restaurantId: existing.restaurantId,
-      amountCents: cents(serverTotal),
-      currency: options.currency ?? null,
-      countryCode: options.country ?? null,
-      paymentMethod: method,
-      gateway: input.gateway ?? input.method ?? null,
-      idempotencyKey: options.idempotencyKey ?? null,
-      customerInfo: jsonOrNull(options.customerInfo),
-      metadata: jsonOrNull({
-        ...((options.metadata as Record<string, unknown> | undefined) ?? {}),
-        paymentMode: input.paymentMode,
-        closeOrder: input.closeOrder ?? true,
-      }),
-    });
-    await this.paymentAudit.append({
-      restaurantId: existing.restaurantId,
-      paymentTransactionId: paymentId,
-      eventType: PAYMENT_AUDIT_EVENT_TYPES.ATTEMPT,
-      provider: input.gateway ?? input.method ?? "internal",
-      amount: cents(serverTotal),
-      currency: options.currency ?? null,
-      rawPayload: {
-        orderId: input.orderId,
-        paymentMode: input.paymentMode,
-        paymentMethod: method,
-        gateway: input.gateway ?? input.method ?? null,
-        idempotencyKey: options.idempotencyKey ?? null,
-        closeOrder: input.closeOrder ?? true,
-      },
-    });
-
     const shouldCloseOrder = input.closeOrder ?? true;
-    const [updated] = await this.db
-      .update(orders)
-      .set({
-        ...(shouldCloseOrder ? { status: "paid", paidAt: new Date() } : {}),
-        paymentStatus: "paid",
-        paymentMethod: method,
-        paymentTransactionId: paymentId,
-        updatedAt: new Date(),
-      })
-      .where(eq(orders.id, input.orderId))
-      .returning({
-        status: orders.status,
-        paymentStatus: orders.paymentStatus,
-      });
+    const now = Date.now();
 
-    await this.updatePaymentTransactionStatus(paymentId, "paid", {
-      restaurantId: existing.restaurantId,
-      amountCents: cents(serverTotal),
-      currency: options.currency ?? null,
-      provider: input.gateway ?? input.method ?? "internal",
-    });
+    await this.env.DB.batch([
+      this.preparePaymentTransactionInsert(
+        {
+          transactionId: paymentId,
+          orderId: input.orderId,
+          restaurantId: existing.restaurantId,
+          amountCents: cents(serverTotal),
+          currency: options.currency ?? null,
+          countryCode: options.country ?? null,
+          paymentMethod: method,
+          gateway: input.gateway ?? input.method ?? null,
+          idempotencyKey: options.idempotencyKey ?? null,
+          customerInfo: jsonOrNull(options.customerInfo),
+          metadata: jsonOrNull({
+            ...((options.metadata as Record<string, unknown> | undefined) ??
+              {}),
+            paymentMode: input.paymentMode,
+            closeOrder: shouldCloseOrder,
+          }),
+        },
+        now,
+      ),
+      this.paymentAudit.prepareAppend({
+        restaurantId: existing.restaurantId,
+        paymentTransactionId: paymentId,
+        eventType: PAYMENT_AUDIT_EVENT_TYPES.ATTEMPT,
+        provider: input.gateway ?? input.method ?? "internal",
+        amount: cents(serverTotal),
+        currency: options.currency ?? null,
+        rawPayload: {
+          orderId: input.orderId,
+          paymentMode: input.paymentMode,
+          paymentMethod: method,
+          gateway: input.gateway ?? input.method ?? null,
+          idempotencyKey: options.idempotencyKey ?? null,
+          closeOrder: shouldCloseOrder,
+        },
+        occurredAtMs: now,
+      }),
+      this.prepareOrderPaymentUpdate(
+        input.orderId,
+        paymentId,
+        method,
+        shouldCloseOrder,
+        now,
+      ),
+      this.preparePaymentTransactionStatusUpdate(paymentId, "paid", now),
+      this.paymentAudit.prepareAppend({
+        restaurantId: existing.restaurantId,
+        paymentTransactionId: paymentId,
+        eventType: PAYMENT_AUDIT_EVENT_TYPES.SUCCESS,
+        provider: input.gateway ?? input.method ?? "internal",
+        amount: cents(serverTotal),
+        currency: options.currency ?? null,
+        rawPayload: { status: "paid" },
+        occurredAtMs: now,
+      }),
+    ]);
 
     return {
       status: 200,
       data: {
         paymentId,
         orderId: input.orderId,
-        orderStatus:
-          updated?.status ?? (shouldCloseOrder ? "paid" : existing.status),
-        paymentStatus: updated?.paymentStatus ?? "paid",
+        orderStatus: shouldCloseOrder ? "paid" : existing.status,
+        paymentStatus: "paid",
         authorizedTotal: serverTotal,
       },
     };
   }
 
-  private async recordPaymentTransaction(data: {
-    transactionId: string;
-    orderId: number;
-    restaurantId: string;
-    amountCents: number;
-    currency: string | null;
-    countryCode: string | null;
-    paymentMethod: string;
-    gateway: string | null;
-    idempotencyKey: string | null;
-    customerInfo: string | null;
-    metadata: string | null;
-  }) {
-    const now = Date.now();
-
-    await this.env.DB.prepare(
+  private preparePaymentTransactionInsert(
+    data: {
+      transactionId: string;
+      orderId: number;
+      restaurantId: string;
+      amountCents: number;
+      currency: string | null;
+      countryCode: string | null;
+      paymentMethod: string;
+      gateway: string | null;
+      idempotencyKey: string | null;
+      customerInfo: string | null;
+      metadata: string | null;
+    },
+    now: number,
+  ) {
+    return this.env.DB.prepare(
       `INSERT INTO payment_transactions (
           transaction_id, order_id, restaurant_id, amount_cents, currency,
           country_code, payment_method, gateway, status, idempotency_key,
           customer_info, metadata, created_at_ms, updated_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
-    )
-      .bind(
-        data.transactionId,
-        data.orderId,
-        data.restaurantId,
-        data.amountCents,
-        data.currency,
-        data.countryCode,
-        data.paymentMethod,
-        data.gateway,
-        data.idempotencyKey,
-        data.customerInfo,
-        data.metadata,
-        now,
-        now,
-      )
-      .run();
+    ).bind(
+      data.transactionId,
+      data.orderId,
+      data.restaurantId,
+      data.amountCents,
+      data.currency,
+      data.countryCode,
+      data.paymentMethod,
+      data.gateway,
+      data.idempotencyKey,
+      data.customerInfo,
+      data.metadata,
+      now,
+      now,
+    );
   }
 
-  private async updatePaymentTransactionStatus(
+  private prepareOrderPaymentUpdate(
+    orderId: number,
+    paymentId: string,
+    paymentMethod: string,
+    shouldCloseOrder: boolean,
+    now: number,
+  ) {
+    if (shouldCloseOrder) {
+      return this.env.DB.prepare(
+        `UPDATE orders
+            SET status = 'paid',
+                paid_at_ms = ?,
+                payment_status = 'paid',
+                payment_method = ?,
+                payment_transaction_id = ?,
+                updated_at_ms = ?
+          WHERE id = ?`,
+      ).bind(now, paymentMethod, paymentId, now, orderId);
+    }
+
+    return this.env.DB.prepare(
+      `UPDATE orders
+          SET payment_status = 'paid',
+              payment_method = ?,
+              payment_transaction_id = ?,
+              updated_at_ms = ?
+        WHERE id = ?`,
+    ).bind(paymentMethod, paymentId, now, orderId);
+  }
+
+  private preparePaymentTransactionStatusUpdate(
     transactionId: string,
     status: "paid" | "failed" | "cancelled",
-    audit: {
-      restaurantId: string;
-      amountCents: number;
-      currency: string | null;
-      provider: string | null;
-    },
+    now: number,
   ) {
-    const now = Date.now();
-
-    await this.env.DB.prepare(
+    return this.env.DB.prepare(
       `UPDATE payment_transactions
           SET status = ?,
               updated_at_ms = ?,
               completed_at_ms = CASE WHEN ? = 'paid' THEN ? ELSE completed_at_ms END,
               failed_at_ms = CASE WHEN ? = 'failed' THEN ? ELSE failed_at_ms END
         WHERE transaction_id = ?`,
-    )
-      .bind(status, now, status, now, status, now, transactionId)
-      .run();
-
-    await this.paymentAudit.append({
-      restaurantId: audit.restaurantId,
-      paymentTransactionId: transactionId,
-      eventType:
-        status === "paid"
-          ? PAYMENT_AUDIT_EVENT_TYPES.SUCCESS
-          : PAYMENT_AUDIT_EVENT_TYPES.FAILURE,
-      provider: audit.provider ?? "internal",
-      amount: audit.amountCents,
-      currency: audit.currency,
-      rawPayload: { status },
-    });
+    ).bind(status, now, status, now, status, now, transactionId);
   }
 }

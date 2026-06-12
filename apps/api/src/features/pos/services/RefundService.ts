@@ -4,6 +4,7 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, inArray, type SQL } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import {
   refunds,
   orders,
@@ -135,42 +136,50 @@ export class RefundService {
       const refundNumber = businessNumber("RF");
 
       const processedAt = new Date();
-      await this.db.insert(refunds).values({
-        id: refundId,
-        originalOrderId: validatedData.originalOrderId,
-        registerId,
-        shiftId: shiftId || null,
-        refundNumber,
-        refundType: validatedData.refundType,
-        originalAmount: orderTotalAmount,
-        refundAmount: validatedData.refundAmount,
-        originalAmountCents: toRequiredCents(orderTotalAmount),
-        refundAmountCents: toRequiredCents(validatedData.refundAmount),
-        refundMethod: validatedData.refundMethod,
-        reasonCode: validatedData.reasonCode,
-        reasonDescription: validatedData.reasonDescription || null,
-        itemsRefunded: JSON.stringify(validatedData.itemsRefunded || []),
-        processedBy,
-        customerSignature: validatedData.customerSignature || null,
-        status: "processing",
-        metadata: JSON.stringify(
-          isPostClose ? { postCloseAdjustment: true } : {},
-        ),
-        processedAt,
-      });
+      const writeStatements: BatchItem<"sqlite">[] = [
+        this.db.insert(refunds).values({
+          id: refundId,
+          originalOrderId: validatedData.originalOrderId,
+          registerId,
+          shiftId: shiftId || null,
+          refundNumber,
+          refundType: validatedData.refundType,
+          originalAmount: orderTotalAmount,
+          refundAmount: validatedData.refundAmount,
+          originalAmountCents: toRequiredCents(orderTotalAmount),
+          refundAmountCents: toRequiredCents(validatedData.refundAmount),
+          refundMethod: validatedData.refundMethod,
+          reasonCode: validatedData.reasonCode,
+          reasonDescription: validatedData.reasonDescription || null,
+          itemsRefunded: JSON.stringify(validatedData.itemsRefunded || []),
+          processedBy,
+          customerSignature: validatedData.customerSignature || null,
+          status: "processing",
+          metadata: JSON.stringify(
+            isPostClose ? { postCloseAdjustment: true } : {},
+          ),
+          processedAt,
+        }),
+      ];
 
       // 記錄現金流動（如果是現金退款）— closed shifts must not mutate the live
       // ledger. The refund row itself serves as the adjustment record.
       if (!isPostClose && shiftId && validatedData.refundMethod === "cash") {
-        await this.recordCashMovement(shiftId, registerId, {
-          type: "refund",
-          amount: -validatedData.refundAmount, // 負數表示流出
-          description: `退款 - ${refundNumber}`,
-          recordedBy: processedBy,
-          referenceId: validatedData.originalOrderId,
-          referenceType: "refund",
-        });
+        writeStatements.push(
+          this.buildCashMovementInsert(shiftId, registerId, {
+            type: "refund",
+            amount: -validatedData.refundAmount, // 負數表示流出
+            description: `退款 - ${refundNumber}`,
+            recordedBy: processedBy,
+            referenceId: validatedData.originalOrderId,
+            referenceType: "refund",
+          }),
+        );
       }
+
+      await this.db.batch(
+        writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
 
       // 模擬退款處理完成
       this.processRefundCompletion(refundId);
@@ -437,7 +446,7 @@ export class RefundService {
   /**
    * 記錄現金流動
    */
-  private async recordCashMovement(
+  private buildCashMovementInsert(
     shiftId: string,
     registerId: string,
     movement: {
@@ -448,11 +457,11 @@ export class RefundService {
       referenceId?: number;
       referenceType?: string;
     },
-  ): Promise<void> {
+  ): BatchItem<"sqlite"> {
     const movementId = crypto.randomUUID();
     const now = new Date();
 
-    await this.db.insert(cashMovements).values({
+    return this.db.insert(cashMovements).values({
       id: movementId,
       shiftId,
       registerId,

@@ -80,44 +80,38 @@ export async function refundPaymentTransaction(
   const refundId = `ref_${input.transactionId}_${Date.now()}`;
   const now = Date.now();
 
-  await ensurePaymentLedgerForRefund(env.DB, {
-    transactionId: input.transactionId,
-    orderId: row.id,
-    restaurantId: row.restaurant_id,
-    amountCents: cents(paymentTotal),
-    paymentMethod: row.payment_method ?? "unknown",
-    status: toLedgerPaymentStatus(row.payment_status),
-    now,
-  });
-
-  await env.DB.prepare(
-    `UPDATE orders
-        SET payment_status = ?,
-            refund_amount = ?,
-            status = CASE WHEN ? THEN 'refunded' ELSE status END,
-            updated_at_ms = ?
-      WHERE id = ?`,
-  )
-    .bind(paymentStatus, nextRefundTotal, isFullRefund ? 1 : 0, now, row.id)
-    .run();
-
-  await env.DB.prepare(
-    `UPDATE payment_transactions
-        SET status = ?,
-            updated_at_ms = ?
-      WHERE transaction_id = ?`,
-  )
-    .bind(paymentStatus, now, input.transactionId)
-    .run();
-
-  await env.DB.prepare(
-    `INSERT INTO refund_transactions (
-        refund_id, payment_transaction_id, order_id, restaurant_id,
-        amount_cents, reason, status, created_at_ms, updated_at_ms,
-        completed_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
-  )
-    .bind(
+  const paymentAudit = new PaymentAuditService(env.DB);
+  await env.DB.batch([
+    preparePaymentLedgerForRefund(env.DB, {
+      transactionId: input.transactionId,
+      orderId: row.id,
+      restaurantId: row.restaurant_id,
+      amountCents: cents(paymentTotal),
+      paymentMethod: row.payment_method ?? "unknown",
+      status: toLedgerPaymentStatus(row.payment_status),
+      now,
+    }),
+    env.DB.prepare(
+      `UPDATE orders
+          SET payment_status = ?,
+              refund_amount = ?,
+              status = CASE WHEN ? THEN 'refunded' ELSE status END,
+              updated_at_ms = ?
+        WHERE id = ?`,
+    ).bind(paymentStatus, nextRefundTotal, isFullRefund ? 1 : 0, now, row.id),
+    env.DB.prepare(
+      `UPDATE payment_transactions
+          SET status = ?,
+              updated_at_ms = ?
+        WHERE transaction_id = ?`,
+    ).bind(paymentStatus, now, input.transactionId),
+    env.DB.prepare(
+      `INSERT INTO refund_transactions (
+          refund_id, payment_transaction_id, order_id, restaurant_id,
+          amount_cents, reason, status, created_at_ms, updated_at_ms,
+          completed_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+    ).bind(
       refundId,
       input.transactionId,
       row.id,
@@ -127,22 +121,22 @@ export async function refundPaymentTransaction(
       now,
       now,
       now,
-    )
-    .run();
-
-  await new PaymentAuditService(env.DB).append({
-    restaurantId: row.restaurant_id,
-    paymentTransactionId: input.transactionId,
-    eventType: PAYMENT_AUDIT_EVENT_TYPES.REFUND,
-    provider: row.payment_method ?? "internal",
-    amount: cents(refundAmount),
-    rawPayload: {
-      refundId,
-      orderId: row.id,
-      reason: input.reason ?? null,
-      paymentStatus,
-    },
-  });
+    ),
+    paymentAudit.prepareAppend({
+      restaurantId: row.restaurant_id,
+      paymentTransactionId: input.transactionId,
+      eventType: PAYMENT_AUDIT_EVENT_TYPES.REFUND,
+      provider: row.payment_method ?? "internal",
+      amount: cents(refundAmount),
+      rawPayload: {
+        refundId,
+        orderId: row.id,
+        reason: input.reason ?? null,
+        paymentStatus,
+      },
+      occurredAtMs: now,
+    }),
+  ]);
 
   return {
     refundId,
@@ -191,7 +185,7 @@ function toLedgerPaymentStatus(status: string | null | undefined): string {
   }
 }
 
-async function ensurePaymentLedgerForRefund(
+function preparePaymentLedgerForRefund(
   db: Env["DB"],
   data: {
     transactionId: string;
@@ -203,7 +197,7 @@ async function ensurePaymentLedgerForRefund(
     now: number;
   },
 ) {
-  await db
+  return db
     .prepare(
       `INSERT OR IGNORE INTO payment_transactions (
           transaction_id, order_id, restaurant_id, amount_cents,
@@ -222,8 +216,7 @@ async function ensurePaymentLedgerForRefund(
       data.now,
       data.now,
       data.now,
-    )
-    .run();
+    );
 }
 
 function cents(value: number): number {
