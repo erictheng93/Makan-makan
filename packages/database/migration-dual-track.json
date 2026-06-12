@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0066_coupon_usage_refund_release_marker.sql",
-    "legacy": "0084_coupon_usage_refund_release_marker.sql"
+    "fresh": "0067_money_cents_retirement_rollout_guard.sql",
+    "legacy": "0085_money_cents_retirement_rollout_guard.sql"
   },
   "pairs": [
     {
@@ -15,6 +15,11 @@
       "fresh": "0066_coupon_usage_refund_release_marker.sql",
       "legacy": "0084_coupon_usage_refund_release_marker.sql",
       "reason": "Coupon usage refund release marker exists in both tracks; SQL differs only where each track has different timestamp columns available."
+    },
+    {
+      "fresh": "0067_money_cents_retirement_rollout_guard.sql",
+      "legacy": "0085_money_cents_retirement_rollout_guard.sql",
+      "reason": "Money cents retirement rollout guard exists in both tracks; it blocks destructive table rebuild rollout until audit coverage is present and clean."
     }
   ],
   "freshOnly": [
