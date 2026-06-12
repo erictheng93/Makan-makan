@@ -148,102 +148,25 @@ describe("realtime worker routes", () => {
     });
   });
 
-  it("posts broadcast payloads through the room Durable Object", async () => {
-    const env = createEnv({
-      durableFetch: async (request) => {
-        expect(request.url).toBe("http://localhost/broadcast");
-        expect(request.method).toBe("POST");
-        await expect(request.json()).resolves.toEqual({ type: "NEW_ORDER" });
-        return jsonResponse({ success: true, recipientCount: 2 });
-      },
-    });
+  it("does not expose public broadcast or stats Durable Object helpers", async () => {
+    const env = createEnv();
 
-    const response = await worker.fetch(
+    const broadcastResponse = await worker.fetch(
       new Request("https://realtime.test/broadcast/admin/restaurant-1", {
         method: "POST",
         body: JSON.stringify({ type: "NEW_ORDER" }),
       }),
       env,
     );
-
-    expect(response.status).toBe(200);
-    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
-      "admin:restaurant-1",
-    );
-    await expect(response.json()).resolves.toEqual({
-      success: true,
-      recipientCount: 2,
-    });
-  });
-
-  it("returns broadcast errors when request JSON or Durable Object forwarding fails", async () => {
-    const malformedResponse = await worker.fetch(
-      new Request("https://realtime.test/broadcast/admin/restaurant-1", {
-        method: "POST",
-        body: "{bad-json",
-      }),
-      createEnv(),
-    );
-
-    expect(malformedResponse.status).toBe(500);
-    await expect(malformedResponse.json()).resolves.toEqual({
-      error: "Failed to broadcast message",
-    });
-
-    const env = createEnv({
-      durableFetch: async () => {
-        throw new Error("do unavailable");
-      },
-    });
-    const durableFailure = await worker.fetch(
-      new Request("https://realtime.test/broadcast/admin/restaurant-1", {
-        method: "POST",
-        body: JSON.stringify({ type: "NEW_ORDER" }),
-      }),
-      env,
-    );
-
-    expect(durableFailure.status).toBe(500);
-    await expect(durableFailure.json()).resolves.toEqual({
-      error: "Failed to broadcast message",
-    });
-  });
-
-  it("proxies stats requests and reports Durable Object stats failures", async () => {
-    const env = createEnv({
-      durableFetch: async (request) => {
-        expect(request.url).toBe("http://localhost/stats");
-        expect(request.method).toBe("GET");
-        return jsonResponse({ connectionCount: 3 });
-      },
-    });
-
-    const response = await worker.fetch(
+    const statsResponse = await worker.fetch(
       new Request("https://realtime.test/stats/kitchen/restaurant-1"),
       env,
     );
 
-    expect(response.status).toBe(200);
-    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
-      "kitchen:restaurant-1",
-    );
-    await expect(response.json()).resolves.toEqual({ connectionCount: 3 });
-
-    const failingEnv = createEnv({
-      durableFetch: async () => {
-        throw new Error("stats unavailable");
-      },
-    });
-
-    const failure = await worker.fetch(
-      new Request("https://realtime.test/stats/kitchen/restaurant-1"),
-      failingEnv,
-    );
-
-    expect(failure.status).toBe(500);
-    await expect(failure.json()).resolves.toEqual({
-      error: "Failed to get statistics",
-    });
+    expect(broadcastResponse.status).toBe(404);
+    expect(statsResponse.status).toBe(404);
+    expect(env.REALTIME_SESSION.idFromName).not.toHaveBeenCalled();
+    expect(env.REALTIME_SESSION.get).not.toHaveBeenCalled();
   });
 
   it("returns a descriptive JSON 404 for unknown realtime endpoints", async () => {
@@ -256,6 +179,12 @@ describe("realtime worker routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: "Realtime endpoint not found",
       path: "/missing",
+      availableEndpoints: [
+        "/customer/:tableId",
+        "/admin/:restaurantId",
+        "/kitchen/:restaurantId",
+        "/health",
+      ],
     });
   });
 });

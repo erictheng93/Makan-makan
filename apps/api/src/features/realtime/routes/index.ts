@@ -27,6 +27,31 @@ const logger = new ConsoleLogger("realtime-routes");
 // Create router
 const realtimeRoutes = new Hono<{ Bindings: Env }>();
 
+function fetchRealtimeRoomStats(
+  env: Env,
+  roomType: string,
+  roomId: string,
+): Promise<Response> {
+  if (!env.REALTIME_SESSION) {
+    throw new ApiError(
+      "REALTIME_SERVICE_ERROR",
+      "Realtime session binding is unavailable",
+      503,
+    );
+  }
+
+  const durableObjectId = env.REALTIME_SESSION.idFromName(
+    `${roomType}:${roomId}`,
+  );
+  const durableObjectHandle = env.REALTIME_SESSION.get(durableObjectId);
+
+  return durableObjectHandle.fetch(
+    new Request("https://realtime-internal/stats", {
+      method: "GET",
+    }),
+  );
+}
+
 /**
  * 請求 WebSocket 授權 Token
  * POST /auth/token
@@ -301,8 +326,7 @@ realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
   }
 
   // 調用 Realtime 服務獲取統計
-  const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
-  const response = await fetch(`${realtimeUrl}/stats/${roomType}/${roomId}`);
+  const response = await fetchRealtimeRoomStats(c.env, roomType, roomId);
 
   if (!response.ok) {
     logger.warn("Failed to fetch realtime stats", {
@@ -341,14 +365,14 @@ realtimeRoutes.get("/stats/overview", async (c) => {
     throw badRequest("Restaurant ID is required");
   }
 
-  const realtimeUrl = c.env.REALTIME_SERVICE_URL || "http://localhost:8788";
-
   // 並行獲取各房間類型的統計
   const roomTypes = ["kitchen", "admin", "customer"];
   const statsPromises = roomTypes.map(async (roomType) => {
     try {
-      const response = await fetch(
-        `${realtimeUrl}/stats/${roomType}/${restaurantId}`,
+      const response = await fetchRealtimeRoomStats(
+        c.env,
+        roomType,
+        restaurantId,
       );
       if (response.ok) {
         const data = (await response.json()) as Record<string, unknown>;

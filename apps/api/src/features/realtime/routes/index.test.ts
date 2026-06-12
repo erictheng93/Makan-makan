@@ -21,12 +21,32 @@ vi.mock("../services/RealtimeAuthService", () => ({
   RealtimeAuthService: realtimeAuthService,
 }));
 
-function createEnv() {
+function jsonResponse(body: unknown, init?: ResponseInit) {
+  return new Response(JSON.stringify(body), {
+    status: init?.status ?? 200,
+    headers: { "Content-Type": "application/json", ...init?.headers },
+  });
+}
+
+function createEnv(input?: {
+  durableFetch?: (request: Request) => Response | Promise<Response>;
+}) {
+  const durableFetch = vi.fn(
+    input?.durableFetch ?? (() => jsonResponse({ connectionCount: 0 })),
+  );
+  const durableObject = {
+    fetch: durableFetch,
+  };
+
   return {
     DB: {},
     JWT_SECRET: "x".repeat(32),
     REALTIME_JWT_SECRET: "y".repeat(32),
     REALTIME_SERVICE_URL: "https://realtime.test",
+    REALTIME_SESSION: {
+      idFromName: vi.fn((name: string) => ({ name })),
+      get: vi.fn(() => durableObject),
+    },
   };
 }
 
@@ -64,6 +84,7 @@ describe("realtime routes", () => {
       expiresIn: 300,
       wsUrl: "wss://realtime.test/kitchen/restaurant-1?token=ws-token",
     });
+    const env = createEnv();
 
     const response = await routes.fetch(
       jsonRequest("/auth/token", {
@@ -72,7 +93,7 @@ describe("realtime routes", () => {
         restaurantId: "restaurant-1",
         sessionId: "session-token",
       }),
-      createEnv() as never,
+      env as never,
     );
 
     expect(response.status).toBe(200);
@@ -80,7 +101,7 @@ describe("realtime routes", () => {
       success: true,
       data: { token: "ws-token", expiresIn: 300 },
     });
-    expect(realtimeAuthService).toHaveBeenCalledWith(createEnv());
+    expect(realtimeAuthService).toHaveBeenCalledWith(env);
     expect(serviceMethods.generateWebSocketToken).toHaveBeenCalledWith({
       roomType: "kitchen",
       roomId: "restaurant-1",
@@ -295,26 +316,29 @@ describe("realtime routes", () => {
     expect(userResponse.status).toBe(500);
   });
 
-  it("proxies room stats and rejects invalid room types or realtime failures", async () => {
+  it("reads room stats through the realtime Durable Object binding", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ connectionCount: 4 }), {
-        status: 200,
-      }),
-    );
+    const env = createEnv({
+      durableFetch: async (request) => {
+        expect(request.url).toBe("https://realtime-internal/stats");
+        expect(request.method).toBe("GET");
+        return jsonResponse({ connectionCount: 4 });
+      },
+    });
 
     const response = await routes.fetch(
       new Request("https://api.test/stats/kitchen/restaurant-1"),
-      createEnv() as never,
+      env as never,
     );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       data: { connectionCount: 4 },
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://realtime.test/stats/kitchen/restaurant-1",
+    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "kitchen:restaurant-1",
     );
+    expect(fetchMock).not.toHaveBeenCalled();
 
     const invalidResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -324,29 +348,31 @@ describe("realtime routes", () => {
     );
     expect(invalidResponse.status).toBe(500);
 
-    fetchMock.mockResolvedValueOnce(new Response("down", { status: 503 }));
+    const failingEnv = createEnv({
+      durableFetch: async () => new Response("down", { status: 503 }),
+    });
     const failedResponse = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://api.test/stats/admin/restaurant-1"),
-        createEnv() as never,
+        failingEnv as never,
       ),
     );
     expect(failedResponse.status).toBe(500);
   });
 
   it("aggregates overview stats across realtime room types", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ connectionCount: 2 }), {
-          status: 200,
-        }),
-      )
-      .mockResolvedValueOnce(new Response("inactive", { status: 503 }))
-      .mockRejectedValueOnce(new Error("network"));
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const env = createEnv({
+      durableFetch: vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ connectionCount: 2 }))
+        .mockResolvedValueOnce(new Response("inactive", { status: 503 }))
+        .mockRejectedValueOnce(new Error("network")),
+    });
 
     const response = await routes.fetch(
       new Request("https://api.test/stats/overview?restaurantId=restaurant-1"),
-      createEnv() as never,
+      env as never,
     );
 
     expect(response.status).toBe(200);
@@ -364,6 +390,16 @@ describe("realtime routes", () => {
       { roomType: "admin", connectionCount: 0, status: "inactive" },
       { roomType: "customer", connectionCount: 0, status: "error" },
     ]);
+    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "kitchen:restaurant-1",
+    );
+    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "admin:restaurant-1",
+    );
+    expect(env.REALTIME_SESSION.idFromName).toHaveBeenCalledWith(
+      "customer:restaurant-1",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
 
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(

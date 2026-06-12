@@ -132,61 +132,6 @@ app.get("/kitchen/:restaurantId", async (c: Context<{ Bindings: Env }>) => {
   return durableObject.fetch(c.req.raw);
 });
 
-// Broadcast message to specific room (used by API server)
-app.post(
-  "/broadcast/:roomType/:roomId",
-  async (c: Context<{ Bindings: Env }>) => {
-    const roomType = c.req.param("roomType"); // customer, admin, kitchen
-    const roomId = c.req.param("roomId"); // tableId or restaurantId
-
-    try {
-      const body = await c.req.json();
-
-      // Get Durable Object instance
-      const id = c.env.REALTIME_SESSION.idFromName(`${roomType}:${roomId}`);
-      const durableObject = c.env.REALTIME_SESSION.get(id);
-
-      // Send broadcast request to Durable Object
-      const response = await durableObject.fetch(
-        new Request("http://localhost/broadcast", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }),
-      );
-
-      const data = (await response.json()) as Record<string, unknown>;
-      return c.json(data);
-    } catch (error) {
-      console.error("Broadcast error:", error);
-      return c.json({ error: "Failed to broadcast message" }, 500);
-    }
-  },
-);
-
-// Get connection statistics
-app.get("/stats/:roomType/:roomId", async (c: Context<{ Bindings: Env }>) => {
-  const roomType = c.req.param("roomType");
-  const roomId = c.req.param("roomId");
-
-  try {
-    const id = c.env.REALTIME_SESSION.idFromName(`${roomType}:${roomId}`);
-    const durableObject = c.env.REALTIME_SESSION.get(id);
-
-    const response = await durableObject.fetch(
-      new Request("http://localhost/stats", {
-        method: "GET",
-      }),
-    );
-
-    const data = (await response.json()) as Record<string, unknown>;
-    return c.json(data);
-  } catch (error) {
-    console.error("Stats error:", error);
-    return c.json({ error: "Failed to get statistics" }, 500);
-  }
-});
-
 // 404 handler
 app.notFound((c: Context<{ Bindings: Env }>) => {
   return c.json(
@@ -197,8 +142,6 @@ app.notFound((c: Context<{ Bindings: Env }>) => {
         "/customer/:tableId",
         "/admin/:restaurantId",
         "/kitchen/:restaurantId",
-        "/broadcast/:roomType/:roomId",
-        "/stats/:roomType/:roomId",
         "/health",
       ],
     },
