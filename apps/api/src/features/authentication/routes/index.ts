@@ -69,11 +69,8 @@ export interface AuthRouteDependencies {
   AuthService?: AuthServiceFactory;
 }
 
-// Helper function to extract device and location info from request.
-// Generic over Variables so callers from chains with validatedBody/Query/etc.
-// can pass their typed Context without widening to `any`.
-function extractRequestInfo<V extends Record<string, unknown>>(
-  c: Context<{ Bindings: Env; Variables: V }>,
+function extractRequestInfo<E extends { Bindings: Env }>(
+  c: Context<E>,
 ): {
   deviceInfo: DeviceInfo;
   location: LocationInfo;
@@ -95,7 +92,10 @@ function extractRequestInfo<V extends Record<string, unknown>>(
   return { deviceInfo, location };
 }
 
-function setStaffRefreshCookie(c: Context<{ Bindings: Env }>, token: string) {
+function setStaffRefreshCookie<E extends { Bindings: Env }>(
+  c: Context<E>,
+  token: string,
+) {
   setCookie(c, STAFF_REFRESH_COOKIE, token, {
     httpOnly: true,
     secure: true,
@@ -105,7 +105,7 @@ function setStaffRefreshCookie(c: Context<{ Bindings: Env }>, token: string) {
   });
 }
 
-function clearStaffRefreshCookie(c: Context<{ Bindings: Env }>) {
+function clearStaffRefreshCookie<E extends { Bindings: Env }>(c: Context<E>) {
   deleteCookie(c, STAFF_REFRESH_COOKIE, {
     secure: true,
     sameSite: "Lax",

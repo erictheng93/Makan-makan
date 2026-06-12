@@ -104,6 +104,7 @@ export {
   unauthorized,
   forbidden,
   conflict,
+  sanitizeApiErrorDetails,
 } from "./api-error";
 
 // Currency utilities

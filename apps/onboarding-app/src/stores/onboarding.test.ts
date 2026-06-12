@@ -75,6 +75,7 @@ describe("useOnboardingStore", () => {
   it("submits applications, updates state, and persists non-sensitive data", async () => {
     vi.mocked(onboardingApi.createApplication).mockResolvedValue({
       applicationId: "app-123",
+      applicationSecret: "secret-123",
       assignedSubdomain: "demo-noodles",
       status: "submitted",
     });
@@ -110,20 +111,21 @@ describe("useOnboardingStore", () => {
     expect(store.isLoading).toBe(false);
   });
 
-  it("requires an application before Cloudflare verification", async () => {
+  it("requires application credentials before Cloudflare verification", async () => {
     const store = useOnboardingStore();
 
     await expect(
       store.verifyCloudflare("account-123", "token-123"),
     ).resolves.toBe(false);
 
-    expect(store.apiError).toBe("No application ID");
+    expect(store.apiError).toBe("No application credentials");
     expect(onboardingApi.verifyCloudflare).not.toHaveBeenCalled();
   });
 
   it("verifies Cloudflare credentials and never persists the API token", async () => {
     vi.mocked(onboardingApi.createApplication).mockResolvedValue({
       applicationId: "app-123",
+      applicationSecret: "secret-123",
       assignedSubdomain: "demo-noodles",
       status: "submitted",
     });
@@ -165,6 +167,7 @@ describe("useOnboardingStore", () => {
   it("completes applications and resets persisted state", async () => {
     vi.mocked(onboardingApi.createApplication).mockResolvedValue({
       applicationId: "app-123",
+      applicationSecret: "secret-123",
       assignedSubdomain: "demo-noodles",
       status: "submitted",
     });

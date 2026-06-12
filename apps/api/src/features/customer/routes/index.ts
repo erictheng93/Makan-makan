@@ -101,8 +101,8 @@ const recentMarketSchema = z.object({
   visitedAtMs: z.number().int().positive().optional(),
 });
 
-function setCustomerRefreshCookie(
-  c: Context<{ Bindings: Env }>,
+function setCustomerRefreshCookie<E extends { Bindings: Env }>(
+  c: Context<E>,
   refreshToken: string,
 ) {
   setCookie(c, CUSTOMER_REFRESH_COOKIE, refreshToken, {
@@ -114,7 +114,9 @@ function setCustomerRefreshCookie(
   });
 }
 
-function clearCustomerRefreshCookie(c: Context<{ Bindings: Env }>) {
+function clearCustomerRefreshCookie<E extends { Bindings: Env }>(
+  c: Context<E>,
+) {
   deleteCookie(c, CUSTOMER_REFRESH_COOKIE, {
     secure: true,
     sameSite: "Lax",

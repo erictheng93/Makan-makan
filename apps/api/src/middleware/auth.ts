@@ -104,7 +104,10 @@ function isSseAuthTokenPayload(
   decoded: unknown,
 ): decoded is SseAuthTokenPayload {
   if (!isAuthTokenPayload(decoded)) return false;
-  const payload = decoded as Record<string, unknown>;
+  const payload = decoded as AuthTokenPayload & {
+    purpose?: unknown;
+    aud?: unknown;
+  };
   return payload.purpose === "kitchen_sse" && payload.aud === "kitchen_sse";
 }
 
