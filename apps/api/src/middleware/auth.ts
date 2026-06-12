@@ -382,7 +382,7 @@ export const optionalCanonicalCustomerAuthMiddleware = async (
   await next();
 };
 
-// SSE 認證中間件 — 接受 Authorization header 或 ?token= query param。
+// SSE 認證中間件 — 接受 Authorization header 或 ?sseToken= query param。
 // 瀏覽器原生 EventSource 無法帶自訂 header，因此 SSE 客戶端必須走 query param。
 export const sseAuthMiddleware = async (
   c: Context<{ Bindings: Env }>,
