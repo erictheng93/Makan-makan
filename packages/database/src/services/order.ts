@@ -20,11 +20,7 @@ import {
   waitingList,
   ORDER_STATUS,
 } from "../schema";
-import type {
-  Order,
-  OrderItem,
-  SelectedCustomizations,
-} from "@makanmakan/shared-types";
+import type { Order, SelectedCustomizations } from "@makanmakan/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
 
 const cancellableOrderStatuses: readonly string[] = [
@@ -89,6 +85,18 @@ const ORDER_SORT_COLUMNS = {
   updatedAt: orders.updatedAt,
 } as const;
 
+type MenuItemRecord = typeof menuItems.$inferSelect;
+type MenuItemOptions = NonNullable<MenuItemRecord["options"]>;
+type MenuItemCustomizationGroup = NonNullable<
+  MenuItemOptions["customizations"]
+>[number];
+type MenuItemCustomizationChoice =
+  MenuItemCustomizationGroup["choices"][number];
+type SelectedCustomizationOption = NonNullable<
+  SelectedCustomizations["options"]
+>[number];
+type SelectedAddOn = NonNullable<SelectedCustomizations["addOns"]>[number];
+
 function toFiniteNumber(value: number | string): number {
   const amount = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(amount)) {
@@ -109,6 +117,172 @@ function resolveMoneyCents(
   }
 
   return toRequiredCents(toFiniteNumber(amount));
+}
+
+function normalizeMoneyAmount(
+  amount: number | null | undefined,
+  label: string,
+): number {
+  if (amount == null) return 0;
+  if (!Number.isFinite(amount)) {
+    throw new Error(`${label} must be finite`);
+  }
+  return amount;
+}
+
+function findCatalogChoice(
+  groups: MenuItemCustomizationGroup[],
+  selected: SelectedCustomizationOption,
+  menuItemId: number,
+): {
+  group: MenuItemCustomizationGroup;
+  choice: MenuItemCustomizationChoice;
+} {
+  const selectedChoiceId = selected.choiceId || selected.id;
+  const groupCandidates =
+    selected.id && selected.id !== selectedChoiceId
+      ? groups.filter((group) => group.id === selected.id)
+      : groups;
+
+  for (const group of groupCandidates) {
+    const choice = group.choices.find(
+      (choice) => choice.id === selectedChoiceId || choice.id === selected.id,
+    );
+    if (choice) return { group, choice };
+  }
+
+  throw new Error(
+    `Unknown customization choice ${selectedChoiceId} for menu item ${menuItemId}`,
+  );
+}
+
+function resolveCatalogCustomizations(
+  menuItem: MenuItemRecord,
+  selected: SelectedCustomizations | undefined,
+): {
+  customizations: SelectedCustomizations | undefined;
+  additionalUnitPriceCents: number;
+} {
+  if (!selected) {
+    return { customizations: undefined, additionalUnitPriceCents: 0 };
+  }
+
+  const catalogOptions = menuItem.options ?? {};
+  const customizations: SelectedCustomizations = {};
+  let additionalUnitPriceCents = 0;
+
+  if (selected.size) {
+    const size = catalogOptions.sizes?.find(
+      (catalogSize) => catalogSize.id === selected.size?.id,
+    );
+    if (!size) {
+      throw new Error(
+        `Unknown size ${selected.size.id} for menu item ${menuItem.id}`,
+      );
+    }
+
+    const priceAdjustment = normalizeMoneyAmount(
+      size.priceAdjustment,
+      `Size ${size.id} price adjustment`,
+    );
+    additionalUnitPriceCents += toRequiredCents(priceAdjustment);
+    customizations.size = {
+      id: size.id,
+      name: size.name,
+      priceAdjustment,
+    };
+  }
+
+  if (selected.options?.length) {
+    const groups = catalogOptions.customizations ?? [];
+    const seenChoiceIds = new Set<string>();
+    customizations.options = selected.options.map((selectedOption) => {
+      const { group, choice } = findCatalogChoice(
+        groups,
+        selectedOption,
+        menuItem.id,
+      );
+      if (seenChoiceIds.has(choice.id)) {
+        throw new Error(
+          `Duplicate customization choice ${choice.id} for menu item ${menuItem.id}`,
+        );
+      }
+      seenChoiceIds.add(choice.id);
+
+      const priceAdjustment = normalizeMoneyAmount(
+        choice.priceAdjustment,
+        `Customization choice ${choice.id} price adjustment`,
+      );
+      additionalUnitPriceCents += toRequiredCents(priceAdjustment);
+      return {
+        id: group.id,
+        optionName: group.name,
+        choiceId: choice.id,
+        choiceName: choice.name,
+        priceAdjustment,
+      };
+    });
+  }
+
+  if (selected.addOns?.length) {
+    const catalogAddOns = catalogOptions.addOns ?? [];
+    const seenAddOnIds = new Set<string>();
+    customizations.addOns = selected.addOns.map(
+      (selectedAddOn: SelectedAddOn) => {
+        const addOn = catalogAddOns.find(
+          (catalogAddOn) => catalogAddOn.id === selectedAddOn.id,
+        );
+        if (!addOn) {
+          throw new Error(
+            `Unknown add-on ${selectedAddOn.id} for menu item ${menuItem.id}`,
+          );
+        }
+        if (seenAddOnIds.has(addOn.id)) {
+          throw new Error(
+            `Duplicate add-on ${addOn.id} for menu item ${menuItem.id}`,
+          );
+        }
+        seenAddOnIds.add(addOn.id);
+
+        const quantity = selectedAddOn.quantity || 1;
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          throw new Error(
+            `Invalid add-on quantity ${quantity} for menu item ${menuItem.id}`,
+          );
+        }
+        if (addOn.maxQuantity != null && quantity > addOn.maxQuantity) {
+          throw new Error(
+            `Add-on ${addOn.id} quantity exceeds maximum for menu item ${menuItem.id}`,
+          );
+        }
+
+        const unitPrice = normalizeMoneyAmount(
+          addOn.price,
+          `Add-on ${addOn.id} price`,
+        );
+        const unitPriceCents = toRequiredCents(unitPrice);
+        const totalPrice = fromCents(unitPriceCents * quantity);
+        additionalUnitPriceCents += unitPriceCents * quantity;
+        return {
+          id: addOn.id,
+          name: addOn.name,
+          unitPrice,
+          quantity,
+          totalPrice,
+        };
+      },
+    );
+  }
+
+  if (selected.specialInstructions) {
+    customizations.specialInstructions = selected.specialInstructions;
+  }
+
+  return {
+    customizations:
+      Object.keys(customizations).length > 0 ? customizations : undefined,
+    additionalUnitPriceCents,
+  };
 }
 
 // Drizzle's `timestamp_ms` mode returns `Date` objects. The wire contract for
@@ -246,25 +420,9 @@ export class OrderService extends BaseService {
           menuItem.priceCents,
           menuItem.price,
         );
-
-        if (item.customizations?.size?.priceAdjustment) {
-          unitPriceCents += toRequiredCents(
-            item.customizations.size.priceAdjustment,
-          );
-        }
-
-        if (item.customizations?.options) {
-          for (const option of item.customizations.options) {
-            unitPriceCents += toRequiredCents(option.priceAdjustment || 0);
-          }
-        }
-
-        if (item.customizations?.addOns) {
-          for (const addOn of item.customizations.addOns) {
-            unitPriceCents +=
-              toRequiredCents(addOn.unitPrice) * (addOn.quantity || 1);
-          }
-        }
+        const { customizations, additionalUnitPriceCents } =
+          resolveCatalogCustomizations(menuItem, item.customizations);
+        unitPriceCents += additionalUnitPriceCents;
 
         const totalPriceCents = unitPriceCents * item.quantity;
         const unitPrice = fromCents(unitPriceCents);
@@ -278,7 +436,7 @@ export class OrderService extends BaseService {
           totalPrice,
           unitPriceCents,
           totalPriceCents,
-          customizations: item.customizations,
+          customizations,
           notes: item.notes,
           itemSnapshot: {
             name: menuItem.name,
@@ -287,7 +445,7 @@ export class OrderService extends BaseService {
             category: String(menuItem.categoryId),
             price: amountFromCents(menuItem.priceCents, menuItem.price) ?? 0,
             unitPrice,
-            customizations: item.customizations,
+            customizations,
           },
         });
       }
