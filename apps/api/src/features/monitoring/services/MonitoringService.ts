@@ -27,6 +27,15 @@ const PERFORMANCE_THRESHOLDS = {
   MEMORY_USAGE_CRITICAL: 0.9, // 90%
 } as const;
 
+export type UptimeProbeResult = {
+  name: string;
+  url: string;
+  ok: boolean;
+  statusCode?: number;
+  responseTime: number;
+  checkedAt?: number;
+};
+
 /**
  * Enhanced Monitoring Service with modular architecture
  */
@@ -39,14 +48,17 @@ export class MonitoringService {
   private readonly HEALTH_KEY = "_system_health";
   private readonly ALERT_RULES_KEY = "_alert_rules";
   private readonly RECENT_ALERTS_KEY = "_recent_alerts";
+  private readonly UPTIME_PROBE_KEY_PREFIX = "_uptime_probe:";
   private readonly REQUEST_TIMES: number[] = [];
   private readonly MAX_REQUEST_TIMES = 1000;
+  private readonly startTime: number;
 
   constructor(kv: KVNamespace) {
     this.kv = kv;
     this.metrics = this.createEmptyMetrics();
     this.alertRules = [];
     this.logger = new ConsoleLogger("monitoring");
+    this.startTime = Date.now();
   }
 
   /**
@@ -99,6 +111,54 @@ export class MonitoringService {
   /**
    * 記錄數據庫查詢指標
    */
+  async recordUptimeCheck(probe: UptimeProbeResult): Promise<void> {
+    const checkedAt = probe.checkedAt ?? Date.now();
+    const responseTime = Math.max(0, probe.responseTime);
+
+    try {
+      this.REQUEST_TIMES.push(responseTime);
+      if (this.REQUEST_TIMES.length > this.MAX_REQUEST_TIMES) {
+        this.REQUEST_TIMES.shift();
+      }
+
+      this.metrics.apiMetrics.totalRequests++;
+
+      if (responseTime > PERFORMANCE_THRESHOLDS.API_RESPONSE_TIME_WARNING) {
+        this.metrics.apiMetrics.slowRequestCount++;
+      }
+
+      this.metrics.apiMetrics.averageResponseTime =
+        this.calculateAverageResponseTime();
+      this.metrics.apiMetrics.p95ResponseTime = this.calculatePercentile(95);
+      this.metrics.apiMetrics.p99ResponseTime = this.calculatePercentile(99);
+
+      await this.kv.put(
+        `${this.UPTIME_PROBE_KEY_PREFIX}${this.sanitizeProbeName(probe.name)}`,
+        JSON.stringify({
+          ...probe,
+          responseTime,
+          checkedAt,
+        }),
+        { expirationTtl: 60 * 60 * 24 * 30 },
+      );
+
+      if (!probe.ok) {
+        await this.recordError(
+          "uptime_check_failed",
+          `Uptime probe ${probe.name} failed with status ${
+            probe.statusCode ?? "unknown"
+          } for ${probe.url}`,
+          "critical",
+        );
+        return;
+      }
+
+      await this.saveMetrics();
+    } catch (error) {
+      this.logger.error("Record uptime check error", error as Error);
+    }
+  }
+
   async recordDatabaseQuery(
     queryTime: number,
     success: boolean,
@@ -843,9 +903,15 @@ export class MonitoringService {
     return typeof value === "number" ? value : 0;
   }
 
+  private sanitizeProbeName(name: string): string {
+    const sanitized = name.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80);
+    return sanitized || "unnamed";
+  }
+
   private getStartTime(): number {
-    // 簡化實現，實際應該從某處持久化獲取
-    return Date.now() - 24 * 60 * 60 * 1000; // 假設24小時前啟動
+    // Workers isolate 沒有持久化的程序啟動時間 — 回報本實例建立時間。
+    // uptime 因此代表「此 isolate 存活時長」，而非虛構的 24 小時。
+    return this.startTime;
   }
 }
 

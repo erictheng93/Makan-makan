@@ -367,6 +367,50 @@ describe("MonitoringService", () => {
     });
   });
 
+  it("records uptime probe evidence and alerts on failed checks", async () => {
+    const { kv, values } = createKV();
+    const service = new MonitoringService(kv);
+
+    await service.recordUptimeCheck({
+      name: "public_health",
+      url: "https://api.makanmasak.com/api/v1/system/health",
+      ok: false,
+      statusCode: 503,
+      responseTime: 1250,
+    });
+
+    expect(
+      JSON.parse(values.get("_uptime_probe:public_health") ?? "{}"),
+    ).toMatchObject({
+      name: "public_health",
+      url: "https://api.makanmasak.com/api/v1/system/health",
+      ok: false,
+      statusCode: 503,
+      responseTime: 1250,
+      checkedAt: Date.now(),
+    });
+    await expect(service.getMetrics()).resolves.toMatchObject({
+      apiMetrics: {
+        totalRequests: 1,
+        averageResponseTime: 1250,
+        slowRequestCount: 1,
+      },
+      errorMetrics: {
+        totalErrors: 1,
+        criticalErrors: 1,
+        errorsByType: { uptime_check_failed: 1 },
+      },
+    });
+    await expect(service.getRecentAlerts()).resolves.toEqual([
+      expect.objectContaining({
+        title: "CRITICAL: uptime_check_failed",
+        message:
+          "Uptime probe public_health failed with status 503 for https://api.makanmasak.com/api/v1/system/health",
+        severity: "critical",
+      }),
+    ]);
+  });
+
   it("falls back safely when saved metrics and alerts are invalid", async () => {
     const { kv, values } = createKV();
     const service = new MonitoringService(kv);

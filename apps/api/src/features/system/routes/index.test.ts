@@ -438,6 +438,54 @@ describe("system routes", () => {
     });
   });
 
+  it("returns uptime monitor targets and stores evidence snapshots", async () => {
+    database.results.push([{ test: 1 }]);
+
+    const { res, kv } = request("/health/uptime");
+    const response = await res;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      success: true,
+      status: "operational",
+      version: "test-v1",
+      environment: "test",
+      evidence: {
+        kv_key: "system:uptime:last-check",
+        stored: true,
+        retention_seconds: 60 * 60 * 24 * 7,
+      },
+      checks: { database: true, cache: true },
+    });
+    expect(body.targets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "public_liveness",
+          method: "GET",
+          path: "/api/v1/system/health/live",
+          expected_status: 200,
+          interval_seconds: 60,
+        }),
+        expect.objectContaining({
+          name: "dependency_readiness",
+          path: "/api/v1/system/health/ready",
+          expected_status: 200,
+        }),
+        expect.objectContaining({
+          name: "dependency_health",
+          path: "/api/v1/system/health",
+          expected_status: 200,
+        }),
+      ]),
+    );
+    expect(kv.put).toHaveBeenCalledWith(
+      "system:uptime:last-check",
+      expect.stringContaining('"status":"healthy"'),
+      { expirationTtl: 60 * 60 * 24 * 7 },
+    );
+  });
+
   it("reports degraded health when database checks return unexpected data", async () => {
     database.results.push([{ test: 0 }]);
 
@@ -756,16 +804,8 @@ describe("system routes", () => {
     vi.stubGlobal("fetch", originalFetch);
   });
 
-  it("returns detailed health recommendations for synthetic high load", async () => {
+  it("does not fabricate synthetic system metrics in health responses", async () => {
     const originalFetch = globalThis.fetch;
-    const randomSpy = vi
-      .spyOn(Math, "random")
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(2)
-      .mockReturnValueOnce(2)
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(3);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, status: 200 }),
@@ -779,21 +819,32 @@ describe("system routes", () => {
       [{ total_requests: 1 }],
     );
 
-    const response = await request("/health/detailed").res;
-    const body = await response.json();
+    const detailedResponse = await request("/health/detailed").res;
+    const detailedBody = await detailedResponse.json();
 
-    expect(response.status).toBe(200);
-    expect(body.health_score).toBe(50);
-    expect(body.recommendations).toEqual(
-      expect.arrayContaining([
-        "System health score is below optimal. Consider investigating issues.",
-        "Memory usage is high. Consider scaling up or optimizing memory usage.",
-        "CPU usage is elevated. Monitor for sustained high usage.",
-        "Error rate is above acceptable threshold. Check application logs.",
-      ]),
-    );
+    expect(detailedResponse.status).toBe(200);
+    // Workers cannot introspect memory/CPU/RPS — reporting invented numbers
+    // makes monitoring show a healthy system during a real outage.
+    expect(detailedBody).not.toHaveProperty("metrics");
+    expect(JSON.stringify(detailedBody)).not.toContain("Memory usage");
 
-    randomSpy.mockRestore();
+    database.results.push([{ total_orders: 1 }]);
+    const jsonResponse = await request("/health/metrics").res;
+    const jsonBody = await jsonResponse.json();
+    expect(jsonResponse.status).toBe(200);
+    expect(jsonBody).not.toHaveProperty("system_metrics");
+
+    database.results.push([{ total_orders: 1 }]);
+    const prometheusResponse = await request(
+      "/health/metrics?format=prometheus",
+    ).res;
+    const prometheusBody = await prometheusResponse.text();
+    expect(prometheusResponse.status).toBe(200);
+    expect(prometheusBody).not.toContain("makanmakan_memory_usage_percent");
+    expect(prometheusBody).not.toContain("makanmakan_cpu_usage_percent");
+    expect(prometheusBody).not.toContain("makanmakan_requests_per_second");
+    expect(prometheusBody).not.toContain("makanmakan_error_rate_percent");
+
     vi.stubGlobal("fetch", originalFetch);
   });
 
@@ -813,7 +864,7 @@ describe("system routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       business_metrics: { total_orders: 20 },
-      alert_thresholds: { memory_warning: 70 },
+      alert_thresholds: { response_time_warning: 1000 },
     });
 
     database.results.push([{ total_orders: 21, pending_orders: 3 }]);

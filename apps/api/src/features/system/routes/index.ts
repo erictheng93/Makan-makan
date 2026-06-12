@@ -268,22 +268,6 @@ interface ServiceCheck {
   lastCheck: string;
 }
 
-interface SystemMetrics {
-  memory?: {
-    used: number;
-    total: number;
-    percentage: number;
-  };
-  cpu?: {
-    usage: number;
-  };
-  requests?: {
-    total: number;
-    rps: number; // requests per second
-    errorRate: number;
-  };
-}
-
 interface EndpointHealth {
   name: string;
   path: string;
@@ -293,23 +277,88 @@ interface EndpointHealth {
   error?: string;
 }
 
-// 模擬系統指標（在實際環境中會從實際系統獲取）
-function getSystemMetrics(): SystemMetrics {
-  return {
-    memory: {
-      used: Math.floor(Math.random() * 100) + 50, // MB
-      total: 512, // MB
-      percentage: Math.floor(Math.random() * 60) + 20,
-    },
-    cpu: {
-      usage: Math.floor(Math.random() * 50) + 10,
-    },
-    requests: {
-      total: Math.floor(Math.random() * 10000) + 1000,
-      rps: Math.floor(Math.random() * 100) + 10,
-      errorRate: Math.random() * 2, // 0-2%
-    },
-  };
+// Workers 無法取得 memory/CPU/RPS 等執行環境指標 — 健康端點只回報
+// 真實可量測的數據（DB/KV 探測延遲、端點探測、業務指標），絕不憑空捏造。
+const UPTIME_EVIDENCE_KEY = "system:uptime:last-check";
+const UPTIME_EVIDENCE_TTL_SECONDS = 60 * 60 * 24 * 7;
+const UPTIME_MONITOR_TARGETS = [
+  {
+    name: "public_liveness",
+    method: "GET",
+    path: "/api/v1/system/health/live",
+    expected_status: 200,
+    interval_seconds: 60,
+    timeout_seconds: 10,
+    critical: true,
+  },
+  {
+    name: "dependency_readiness",
+    method: "GET",
+    path: "/api/v1/system/health/ready",
+    expected_status: 200,
+    interval_seconds: 60,
+    timeout_seconds: 10,
+    critical: true,
+  },
+  {
+    name: "dependency_health",
+    method: "GET",
+    path: "/api/v1/system/health",
+    expected_status: 200,
+    interval_seconds: 300,
+    timeout_seconds: 15,
+    critical: true,
+  },
+] as const;
+
+function toUptimeStatus(
+  status: HealthStatus["status"],
+): "operational" | "degraded" | "down" {
+  if (status === "unhealthy") return "down";
+  if (status === "degraded") return "degraded";
+  return "operational";
+}
+
+function getRequestOrigin(c: Context<{ Bindings: Env }>): string {
+  try {
+    return new URL(c.req.url).origin;
+  } catch {
+    return c.env.API_BASE_URL ?? "";
+  }
+}
+
+async function storeUptimeEvidence(
+  c: Context<{ Bindings: Env }>,
+  health: {
+    status: HealthStatus["status"];
+    dbStatus: ServiceCheck;
+    kvStatus: ServiceCheck;
+    responseTimeMs: number;
+  },
+): Promise<{ stored: boolean; error?: string }> {
+  try {
+    await c.env.CACHE_KV.put(
+      UPTIME_EVIDENCE_KEY,
+      JSON.stringify({
+        status: health.status,
+        checked_at: new Date().toISOString(),
+        response_time_ms: health.responseTimeMs,
+        services: [health.dbStatus, health.kvStatus],
+        checks: {
+          database: health.dbStatus.status === "healthy",
+          cache: health.kvStatus.status === "healthy",
+        },
+      }),
+      { expirationTtl: UPTIME_EVIDENCE_TTL_SECONDS },
+    );
+
+    return { stored: true };
+  } catch (error) {
+    return {
+      stored: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }
 
 async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
@@ -406,6 +455,12 @@ routes.get("/health", async (c) => {
     version: c.env.API_VERSION || "v1",
     environment: c.env.NODE_ENV || "development",
   };
+  await storeUptimeEvidence(c, {
+    status: baseHealthStatus,
+    dbStatus,
+    kvStatus,
+    responseTimeMs,
+  });
 
   const statusCode =
     baseHealthStatus === "healthy"
@@ -419,6 +474,57 @@ routes.get("/health", async (c) => {
       success: baseHealthStatus !== "unhealthy",
       ...health,
       services,
+      checks: {
+        database: dbStatus.status === "healthy",
+        cache: kvStatus.status === "healthy",
+      },
+    },
+    statusCode,
+  );
+});
+
+/**
+ * GET /api/v1/system/health/uptime
+ *
+ * Public uptime monitor configuration and evidence hook. External monitors
+ * should alert on non-2xx responses from this endpoint and keep the returned
+ * target list in their monitor configuration.
+ */
+routes.get("/health/uptime", async (c) => {
+  const {
+    overallStatus: baseHealthStatus,
+    dbStatus,
+    kvStatus,
+    responseTimeMs,
+  } = await runBasicHealthCheck(c);
+  const evidenceWrite = await storeUptimeEvidence(c, {
+    status: baseHealthStatus,
+    dbStatus,
+    kvStatus,
+    responseTimeMs,
+  });
+  const origin = getRequestOrigin(c);
+  const statusCode = baseHealthStatus === "unhealthy" ? 503 : 200;
+
+  return c.json(
+    {
+      success: baseHealthStatus !== "unhealthy",
+      status: toUptimeStatus(baseHealthStatus),
+      version: c.env.API_VERSION || "v1",
+      environment: c.env.NODE_ENV || "development",
+      checked_at: new Date().toISOString(),
+      response_time_ms: responseTimeMs,
+      evidence: {
+        kv_key: UPTIME_EVIDENCE_KEY,
+        stored: evidenceWrite.stored,
+        error: evidenceWrite.error,
+        retention_seconds: UPTIME_EVIDENCE_TTL_SECONDS,
+      },
+      targets: UPTIME_MONITOR_TARGETS.map((target) => ({
+        ...target,
+        url: `${origin}${target.path}`,
+      })),
+      services: [dbStatus, kvStatus],
       checks: {
         database: dbStatus.status === "healthy",
         cache: kvStatus.status === "healthy",
@@ -502,9 +608,6 @@ routes.get(
     // 執行基本健康檢查
     const basicHealth = await runBasicHealthCheck(c);
     const basicData = { status: basicHealth.overallStatus };
-
-    // 獲取系統指標
-    const metrics = getSystemMetrics();
 
     // 檢查資料庫性能
     const dbPerformanceStart = Date.now();
@@ -621,10 +724,6 @@ routes.get(
     if (basicData.status === "degraded") healthScore -= 20;
     if (basicData.status === "unhealthy") healthScore -= 50;
 
-    if (metrics.memory && metrics.memory.percentage > 80) healthScore -= 15;
-    if (metrics.cpu && metrics.cpu.usage > 80) healthScore -= 15;
-    if (metrics.requests && metrics.requests.errorRate > 5) healthScore -= 20;
-
     if (dbPerformanceTime > 1000) healthScore -= 10; // 資料庫響應超過1秒
 
     const unhealthyEndpoints = endpointHealth.filter(
@@ -637,7 +736,6 @@ routes.get(
     return c.json({
       success: true,
       overview: basicData,
-      metrics,
       performance: {
         database_response_time: dbPerformanceTime,
         table_statistics: tableStats,
@@ -646,11 +744,7 @@ routes.get(
       system_load: systemLoad,
       recent_errors: recentErrors.slice(0, 5),
       health_score: Math.round(healthScore),
-      recommendations: generateRecommendations(
-        healthScore,
-        metrics,
-        endpointHealth,
-      ),
+      recommendations: generateRecommendations(healthScore, endpointHealth),
       timestamp: new Date().toISOString(),
       total_check_time: Date.now() - startTime,
     });
@@ -672,7 +766,6 @@ routes.get(
   ),
   async (c) => {
     const { format } = c.get("validatedQuery");
-    const metrics = getSystemMetrics();
 
     const { createDatabase, count, gte, orders, sql } =
       await import("@makanmakan/database");
@@ -711,22 +804,6 @@ makanmakan_orders_pending ${businessMetrics?.pending_orders || 0}
 # HELP makanmakan_orders_preparing Number of orders being prepared
 # TYPE makanmakan_orders_preparing gauge
 makanmakan_orders_preparing ${businessMetrics?.preparing_orders || 0}
-
-# HELP makanmakan_memory_usage_percent Memory usage percentage
-# TYPE makanmakan_memory_usage_percent gauge
-makanmakan_memory_usage_percent ${metrics.memory?.percentage || 0}
-
-# HELP makanmakan_cpu_usage_percent CPU usage percentage
-# TYPE makanmakan_cpu_usage_percent gauge
-makanmakan_cpu_usage_percent ${metrics.cpu?.usage || 0}
-
-# HELP makanmakan_requests_per_second Current requests per second
-# TYPE makanmakan_requests_per_second gauge
-makanmakan_requests_per_second ${metrics.requests?.rps || 0}
-
-# HELP makanmakan_error_rate_percent Current error rate percentage
-# TYPE makanmakan_error_rate_percent gauge
-makanmakan_error_rate_percent ${metrics.requests?.errorRate || 0}
       `.trim();
 
       c.header("Content-Type", "text/plain; charset=utf-8");
@@ -737,15 +814,8 @@ makanmakan_error_rate_percent ${metrics.requests?.errorRate || 0}
     return c.json({
       success: true,
       timestamp: new Date().toISOString(),
-      system_metrics: metrics,
       business_metrics: businessMetrics,
       alert_thresholds: {
-        memory_warning: 70,
-        memory_critical: 85,
-        cpu_warning: 70,
-        cpu_critical: 90,
-        error_rate_warning: 2,
-        error_rate_critical: 5,
         response_time_warning: 1000,
         response_time_critical: 3000,
       },
@@ -825,7 +895,6 @@ routes.get("/health/live", (c) => {
 // 生成系統建議
 function generateRecommendations(
   healthScore: number,
-  metrics: SystemMetrics,
   endpointHealth: EndpointHealth[],
 ): string[] {
   const recommendations: string[] = [];
@@ -833,24 +902,6 @@ function generateRecommendations(
   if (healthScore < 80) {
     recommendations.push(
       "System health score is below optimal. Consider investigating issues.",
-    );
-  }
-
-  if (metrics.memory && metrics.memory.percentage > 80) {
-    recommendations.push(
-      "Memory usage is high. Consider scaling up or optimizing memory usage.",
-    );
-  }
-
-  if (metrics.cpu && metrics.cpu.usage > 70) {
-    recommendations.push(
-      "CPU usage is elevated. Monitor for sustained high usage.",
-    );
-  }
-
-  if (metrics.requests && metrics.requests.errorRate > 3) {
-    recommendations.push(
-      "Error rate is above acceptable threshold. Check application logs.",
     );
   }
 

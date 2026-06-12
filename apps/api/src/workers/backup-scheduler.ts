@@ -21,6 +21,161 @@ interface Env {
   ANALYTICS: AnalyticsEngineDataset;
 }
 
+type RestoreDrillEnvironment = "development" | "staging" | "production";
+
+export interface RestoreDrillOptions {
+  environment: RestoreDrillEnvironment;
+  backupFile: string;
+  restoreDatabase: string;
+  dryRun?: boolean;
+  validationTables?: string[];
+  remote?: boolean;
+  productionApproval?: string;
+}
+
+export interface RestoreDrillCommand {
+  name: string;
+  command: string;
+}
+
+export interface RestoreDrillPlan {
+  mode: "dry-run" | "ready";
+  environment: RestoreDrillEnvironment;
+  restoreDatabase: string;
+  evidenceKey: string;
+  validationTables: string[];
+  commands: RestoreDrillCommand[];
+}
+
+export interface RestoreDrillExecutionResult extends Omit<
+  RestoreDrillPlan,
+  "mode"
+> {
+  mode: "dry-run" | "executed";
+  commandResults: Array<{
+    name: string;
+    command: string;
+    stdout?: string;
+    stderr?: string;
+  }>;
+}
+
+type RestoreDrillExecutor = (
+  command: string,
+  step: RestoreDrillCommand,
+) => Promise<{ stdout?: string; stderr?: string }>;
+
+const DEFAULT_RESTORE_DRILL_TABLES = [
+  "restaurants",
+  "users",
+  "menu_items",
+  "orders",
+] as const;
+const PRODUCTION_RESTORE_DRILL_APPROVAL = "RESTORE DRILL APPROVED";
+
+function assertSafeIdentifier(identifier: string, label: string): void {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+    throw new Error(`Invalid ${label}: ${identifier}`);
+  }
+}
+
+function assertSafeDatabaseName(databaseName: string): void {
+  if (!/^[A-Za-z0-9_-]+$/.test(databaseName)) {
+    throw new Error(`Invalid restore database name: ${databaseName}`);
+  }
+}
+
+function shellArg(value: string): string {
+  if (/^[A-Za-z0-9_./:-]+$/.test(value)) return value;
+  return JSON.stringify(value);
+}
+
+export function buildRestoreDrillPlan(
+  options: RestoreDrillOptions,
+): RestoreDrillPlan {
+  if (!options.backupFile.trim()) {
+    throw new Error("backupFile is required");
+  }
+  assertSafeDatabaseName(options.restoreDatabase);
+
+  const validationTables =
+    options.validationTables && options.validationTables.length > 0
+      ? options.validationTables
+      : [...DEFAULT_RESTORE_DRILL_TABLES];
+  for (const table of validationTables) {
+    assertSafeIdentifier(table, "validation table");
+  }
+
+  const remote = options.remote ?? options.environment !== "development";
+  const locationFlag = remote ? "--remote" : "--local";
+  const restoreDatabase = shellArg(options.restoreDatabase);
+  const backupFile = shellArg(options.backupFile);
+  const commands: RestoreDrillCommand[] = [
+    {
+      name: "create_restore_database",
+      command: `rtk pnpm exec wrangler d1 create ${restoreDatabase}`,
+    },
+    {
+      name: "import_backup",
+      command: `rtk pnpm exec wrangler d1 execute ${restoreDatabase} ${locationFlag} --file ${backupFile}`,
+    },
+    ...validationTables.map((table) => ({
+      name: `validate_${table}`,
+      command: `rtk pnpm exec wrangler d1 execute ${restoreDatabase} ${locationFlag} --command "SELECT COUNT(*) AS count FROM ${table};"`,
+    })),
+  ];
+
+  return {
+    mode: options.dryRun === false ? "ready" : "dry-run",
+    environment: options.environment,
+    restoreDatabase: options.restoreDatabase,
+    evidenceKey: `restore-drills/${options.environment}/${options.restoreDatabase}`,
+    validationTables,
+    commands,
+  };
+}
+
+export async function executeRestoreDrill(
+  options: RestoreDrillOptions,
+  executor: RestoreDrillExecutor,
+): Promise<RestoreDrillExecutionResult> {
+  if (
+    options.environment === "production" &&
+    options.dryRun === false &&
+    options.productionApproval !== PRODUCTION_RESTORE_DRILL_APPROVAL
+  ) {
+    throw new Error(
+      "Production restore drills require productionApproval before execution",
+    );
+  }
+
+  const plan = buildRestoreDrillPlan(options);
+  if (plan.mode === "dry-run") {
+    return {
+      ...plan,
+      mode: "dry-run",
+      commandResults: [],
+    };
+  }
+
+  const commandResults: RestoreDrillExecutionResult["commandResults"] = [];
+  for (const step of plan.commands) {
+    const result = await executor(step.command, step);
+    commandResults.push({
+      name: step.name,
+      command: step.command,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    });
+  }
+
+  return {
+    ...plan,
+    mode: "executed",
+    commandResults,
+  };
+}
+
 export default {
   async scheduled(
     event: ScheduledEvent,
@@ -50,7 +205,9 @@ export default {
           await handleDailyMaintenance(backupService, env, env.ANALYTICS);
           break;
 
-        case "0 0 * * 0": // Weekly on Sunday - Generate reports and alerts
+        // event.cron is the literal trigger string from wrangler.toml —
+        // this case must match it byte-for-byte ("SUN", not "0").
+        case "0 0 * * SUN": // Weekly on Sunday - Generate reports and alerts
           await handleWeeklyReports(backupService, env, env.ANALYTICS);
           break;
 
@@ -336,7 +493,7 @@ async function getScheduledConfigurations(db: D1Database) {
   return result.results || [];
 }
 
-function shouldRunBackup(
+export function shouldRunBackup(
   config: BackupConfiguration & {
     last_run_at?: string;
     consecutive_failures?: number;
@@ -355,12 +512,13 @@ function shouldRunBackup(
   if (hour === "2" && minute === "0") {
     const lastRun = config.last_run_at ? new Date(config.last_run_at) : null;
 
+    if (now.getHours() !== 2) return false;
     if (!lastRun) return true; // Never run before
 
     // Check if it's been at least 23 hours since last run
     const hoursSinceLastRun =
       (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
-    return hoursSinceLastRun >= 23 && now.getHours() === 2;
+    return hoursSinceLastRun >= 23;
   }
 
   return false;
