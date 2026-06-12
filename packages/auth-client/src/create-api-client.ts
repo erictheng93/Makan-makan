@@ -16,7 +16,7 @@ function normalizeCsrfConfig(raw: AuthClientConfig["csrf"]): CsrfConfig | null {
   if (!raw) return null;
   const defaults: CsrfConfig = {
     headerName: "X-CSRF-Token",
-    cookieName: "csrf_token",
+    cookieName: "__Host-mm_csrf",
     protectedMethods: ["POST", "PUT", "DELETE", "PATCH"],
   };
   if (raw === true) return defaults;
@@ -50,6 +50,7 @@ export function createAuthenticatedApiClient(
   const instance = axios.create({
     baseURL: config.baseURL ?? "/api/v1",
     timeout: config.timeout ?? 10000,
+    withCredentials: true,
     headers: {
       "Content-Type": "application/json",
       ...(config.defaultHeaders ?? {}),
@@ -59,13 +60,10 @@ export function createAuthenticatedApiClient(
   const tokenManager = createTokenManager({
     storage,
     refreshFn: async () => {
-      const rt = storage.getRefreshToken();
-      if (!rt) return null;
-
       try {
         const refreshConfig: AxiosRequestConfig & { _retry?: boolean } = {
-          headers: { "X-Refresh-Token": rt },
           _retry: true, // skip 401 interceptor for the refresh call itself
+          withCredentials: true,
         };
         const response = await instance.post(
           "/auth/refresh",

@@ -40,9 +40,13 @@ app.use(
   "*",
   cors({
     origin: [
-      "https://customer.makanmakan.com",
-      "https://admin.makanmakan.com",
-      "https://kitchen.makanmakan.com",
+      "https://makanmasak.com",
+      "https://customer.makanmasak.com",
+      "https://admin.makanmasak.com",
+      "https://kitchen.makanmasak.com",
+      "https://staging.makanmasak.com",
+      "https://admin-staging.makanmasak.com",
+      "https://kitchen-staging.makanmasak.com",
     ],
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: [

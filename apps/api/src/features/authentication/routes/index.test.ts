@@ -173,10 +173,16 @@ describe("authentication routes", () => {
     }).res;
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const body = await response.json();
+    expect(body).toMatchObject({
       success: true,
-      data: { token: "access-token-2", refreshToken: "refresh-token-2" },
+      data: { token: "access-token-2" },
     });
+    expect(body.data).not.toHaveProperty("refreshToken");
+    expect(response.headers.get("set-cookie")).toContain(
+      "__Host-mm_staff_refresh=refresh-token-2",
+    );
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
     expect(service.login).toHaveBeenCalledWith({
       username: "owner",
       password: "password",
@@ -260,20 +266,23 @@ describe("authentication routes", () => {
     expect(service.register).not.toHaveBeenCalled();
   });
 
-  it("refreshes tokens and rejects invalid refresh tokens", async () => {
+  it("refreshes tokens from the HttpOnly cookie and rejects invalid refresh tokens", async () => {
     let response = await request("/refresh", "POST", undefined, {
-      "x-refresh-token": "refresh-token-1",
+      Cookie: "__Host-mm_staff_refresh=refresh-token-1",
     }).res;
 
     expect(response.status).toBe(200);
     expect(service.refreshToken).toHaveBeenCalledWith("refresh-token-1");
+    expect(response.headers.get("set-cookie")).toContain(
+      "__Host-mm_staff_refresh=refresh-token-2",
+    );
 
     service.refreshToken.mockResolvedValueOnce({
       success: false,
       error: "Invalid refresh token",
     });
     response = await request("/refresh", "POST", undefined, {
-      "x-refresh-token": "refresh-token-1",
+      Cookie: "__Host-mm_staff_refresh=refresh-token-1",
     }).res;
 
     expect(response.status).toBe(401);

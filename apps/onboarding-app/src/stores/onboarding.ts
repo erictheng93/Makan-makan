@@ -48,6 +48,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
 
   const application = ref<ApplicationData | null>(null);
   const applicationId = ref<string | null>(null);
+  const applicationSecret = ref<string | null>(null);
   const assignedSubdomain = ref<string | null>(null);
   const cloudflareInfo = ref<CloudflareInfo | null>(null);
   const completionResult = ref<CompletionResult | null>(null);
@@ -135,6 +136,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
       const result = await onboardingApi.createApplication(data);
 
       applicationId.value = result.applicationId;
+      applicationSecret.value = result.applicationSecret;
       assignedSubdomain.value = result.assignedSubdomain;
       application.value = {
         ...data,
@@ -164,8 +166,8 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     accountId: string,
     apiToken: string,
   ): Promise<boolean> {
-    if (!applicationId.value) {
-      apiError.value = "No application ID";
+    if (!applicationId.value || !applicationSecret.value) {
+      apiError.value = "No application credentials";
       return false;
     }
 
@@ -177,6 +179,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
         applicationId.value,
         accountId,
         apiToken,
+        applicationSecret.value,
       );
 
       cloudflareInfo.value = {
@@ -208,8 +211,8 @@ export const useOnboardingStore = defineStore("onboarding", () => {
    * Complete the application
    */
   async function completeApplication(): Promise<boolean> {
-    if (!applicationId.value) {
-      apiError.value = "No application ID";
+    if (!applicationId.value || !applicationSecret.value) {
+      apiError.value = "No application credentials";
       return false;
     }
 
@@ -219,6 +222,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     try {
       const result = await onboardingApi.completeApplication(
         applicationId.value,
+        applicationSecret.value,
       );
 
       completionResult.value = {
@@ -270,6 +274,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
         const data = JSON.parse(stored);
         application.value = data.application || null;
         applicationId.value = data.applicationId || null;
+        applicationSecret.value = data.applicationSecret || null;
         assignedSubdomain.value = data.assignedSubdomain || null;
         completionResult.value = data.completionResult || null;
       } catch {
@@ -285,6 +290,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     const data = {
       application: application.value,
       applicationId: applicationId.value,
+      applicationSecret: applicationSecret.value,
       assignedSubdomain: assignedSubdomain.value,
       completionResult: completionResult.value,
     };
@@ -297,6 +303,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   function reset() {
     application.value = null;
     applicationId.value = null;
+    applicationSecret.value = null;
     assignedSubdomain.value = null;
     cloudflareInfo.value = null;
     completionResult.value = null;
@@ -320,6 +327,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     // State
     application,
     applicationId,
+    applicationSecret,
     assignedSubdomain,
     cloudflareInfo,
     completionResult,

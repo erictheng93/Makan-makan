@@ -9,9 +9,6 @@ export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const token = ref<string | null>(null);
   const loading = ref(false);
-  const refreshTokenVal = ref<string | null>(
-    localStorage.getItem("kitchen_refresh_token"),
-  );
 
   // Getters
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -39,12 +36,8 @@ export const useAuthStore = defineStore("auth", () => {
         token.value = authToken;
 
         // 保存到 localStorage (via shared auth-client)
-        apiClient.tokens.setTokens(authToken, response.data?.refreshToken);
+        apiClient.tokens.setTokens(authToken);
         apiClient.tokens.setUser(userData);
-
-        if (response.data?.refreshToken) {
-          refreshTokenVal.value = response.data.refreshToken;
-        }
         apiClient.tokens.scheduleProactiveRefresh(authToken);
 
         return { success: true };
@@ -70,7 +63,6 @@ export const useAuthStore = defineStore("auth", () => {
       // 清除本地狀態
       user.value = null;
       token.value = null;
-      refreshTokenVal.value = null;
       apiClient.tokens.clearAll();
     }
   };
@@ -86,12 +78,8 @@ export const useAuthStore = defineStore("auth", () => {
         token.value = newToken;
         user.value = userData;
 
-        apiClient.tokens.setTokens(newToken, response.data.refreshToken);
+        apiClient.tokens.setTokens(newToken);
         apiClient.tokens.setUser(userData);
-
-        if (response.data.refreshToken) {
-          refreshTokenVal.value = response.data.refreshToken;
-        }
 
         apiClient.tokens.scheduleProactiveRefresh(newToken);
         return true;

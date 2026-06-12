@@ -11,24 +11,19 @@ import { buildAllowedOrigins } from "./cors";
  */
 
 const CSRF_HEADER_NAME = "X-CSRF-Token";
-const CSRF_COOKIE_NAME = "csrf_token";
+const CSRF_COOKIE_NAME = "__Host-mm_csrf";
+const LEGACY_CSRF_COOKIE_NAME = "csrf_token";
 const CSRF_TOKEN_LENGTH = 32;
 const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
 
 /**
  * Build CSRF cookie options string.
- * Omits `Secure` flag in development (HTTP on localhost).
  */
-function buildCookieOptions(
-  token: string,
-  env: Record<string, unknown>,
-): string {
-  const isDev =
-    (env.NODE_ENV as string) === "development" ||
-    ((env.API_BASE_URL as string) || "").includes("localhost");
+function buildCookieOptions(token: string): string {
   const parts = [
     `${CSRF_COOKIE_NAME}=${token}`,
-    ...(isDev ? [] : ["Secure"]),
+    "Secure",
+    "HttpOnly",
     "SameSite=Lax",
     `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
     "Path=/",
@@ -57,13 +52,29 @@ interface CSRFOptions {
 
 const defaultOptions: Required<CSRFOptions> = {
   protectedMethods: ["POST", "PUT", "DELETE", "PATCH"],
-  excludePaths: [
-    "/api/v1/auth/login",
-    "/api/v1/auth/register",
-    "/api/v1/health",
-  ],
+  excludePaths: ["/api/v1/auth/login", "/api/v1/auth/register"],
   useDoubleSubmit: true,
 };
+
+function getCookieValue(cookieHeader: string | undefined, name: string) {
+  return cookieHeader
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
+function isExcludedPath(path: string, excludePath: string): boolean {
+  if (excludePath.includes("*")) {
+    const escaped = excludePath
+      .split("*")
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("[^/]+");
+    return new RegExp(`^${escaped}(?:/.*)?$`).test(path);
+  }
+
+  return path === excludePath || path.startsWith(`${excludePath}/`);
+}
 
 /**
  * Generate a cryptographically secure random token
@@ -142,15 +153,9 @@ export function csrfProtection(options: CSRFOptions = {}) {
 
       // Skip CSRF check for excluded paths (supports * wildcard for path segments)
       if (
-        opts.excludePaths.some((excludePath) => {
-          // Support simple wildcard pattern matching
-          if (excludePath.includes("*")) {
-            const pattern = excludePath.replace(/\*/g, "[^/]+");
-            const regex = new RegExp(`^${pattern}(/.*)?$`);
-            return regex.test(path);
-          }
-          return path.startsWith(excludePath);
-        })
+        opts.excludePaths.some((excludePath) =>
+          isExcludedPath(path, excludePath),
+        )
       ) {
         return next();
       }
@@ -201,9 +206,10 @@ export function csrfProtection(options: CSRFOptions = {}) {
 
       if (opts.useDoubleSubmit) {
         // Double-submit cookie pattern: validate token from cookie matches header
-        const tokenFromCookie = c.req
-          .header("Cookie")
-          ?.match(new RegExp(`${CSRF_COOKIE_NAME}=([^;]+)`))?.[1];
+        const cookieHeader = c.req.header("Cookie");
+        const tokenFromCookie =
+          getCookieValue(cookieHeader, CSRF_COOKIE_NAME) ??
+          getCookieValue(cookieHeader, LEGACY_CSRF_COOKIE_NAME);
 
         if (!tokenFromCookie || tokenFromCookie !== tokenFromHeader) {
           return c.json(
@@ -257,10 +263,7 @@ export async function generateCSRFTokenHandler(c: Context<{ Bindings: Env }>) {
   }
 
   // Set cookie for double-submit pattern
-  const cookieOptions = buildCookieOptions(
-    token,
-    c.env as unknown as Record<string, unknown>,
-  );
+  const cookieOptions = buildCookieOptions(token);
 
   return c.json(
     {
@@ -304,10 +307,7 @@ export function attachCSRFToken() {
         c.res.headers.set("X-CSRF-Token", token);
 
         // Set cookie (NOT HttpOnly for double-submit pattern)
-        const cookieOptions = buildCookieOptions(
-          token,
-          c.env as unknown as Record<string, unknown>,
-        );
+        const cookieOptions = buildCookieOptions(token);
         c.res.headers.append("Set-Cookie", cookieOptions);
       }
     },

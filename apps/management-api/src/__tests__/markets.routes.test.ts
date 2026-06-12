@@ -26,6 +26,19 @@ async function managementToken() {
     {
       id: "workflow-admin",
       email: "workflow-admin@example.test",
+      role: "admin",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    },
+    "test-secret",
+    "HS256",
+  );
+}
+
+async function managementTokenWithoutRole() {
+  return sign(
+    {
+      id: "workflow-admin",
+      email: "workflow-admin@example.test",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     "test-secret",
@@ -83,5 +96,30 @@ describe("management market routes", () => {
     );
 
     expect(response.status).toBe(401);
+  });
+
+  it("rejects management tokens without explicit platform admin claims", async () => {
+    const token = await managementTokenWithoutRole();
+
+    const response = await app.fetch(
+      new Request("https://management.test/api/v1/markets", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      createEnv(),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("does not reflect arbitrary origins when credentialed CORS is enabled", async () => {
+    const response = await app.fetch(
+      new Request("https://management.test/health", {
+        headers: { Origin: "https://evil.example" },
+      }),
+      createEnv(),
+    );
+
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect(response.headers.get("access-control-allow-credentials")).toBeNull();
   });
 });

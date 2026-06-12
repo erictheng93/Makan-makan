@@ -60,6 +60,18 @@ app.post(
 
       const cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
+      const uploadRestaurantId =
+        user.role === 0 ? query.restaurantId : user.restaurantId;
+
+      if (!uploadRestaurantId) {
+        return c.json(
+          {
+            success: false,
+            error: "Restaurant access is required for image uploads",
+          },
+          403,
+        );
+      }
 
       // Generate unique filename
       const uniqueFilename = ImageUtils.generateUniqueFilename(file.name);
@@ -75,7 +87,7 @@ app.post(
         metadata: {
           originalName: file.name,
           uploadedBy: user.id.toString(),
-          restaurantId: query.restaurantId?.toString() || "",
+          restaurantId: uploadRestaurantId.toString(),
           category: query.category || "general",
         },
       });
@@ -111,7 +123,7 @@ app.post(
         variants,
         uploadedAt: new Date().toISOString(),
         uploadedBy: user.id,
-        restaurantId: query.restaurantId,
+        restaurantId: uploadRestaurantId,
         category: query.category,
         tags,
         altText: query.altText,

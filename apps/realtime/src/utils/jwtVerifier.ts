@@ -24,11 +24,23 @@ export interface TokenVerificationResult {
 /**
  * 生成 token 的唯一標識（與 TokenBlacklistService 保持一致）
  */
-function generateTokenId(token: string): string {
-  if (token.length <= 40) {
-    return token;
+function base64UrlEncode(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
   }
-  return `${token.substring(0, 32)}...${token.substring(token.length - 8)}`;
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+async function generateTokenId(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(token),
+  );
+  return `sha256:${base64UrlEncode(new Uint8Array(digest))}`;
 }
 
 /**
@@ -43,7 +55,7 @@ export async function isTokenRevoked(
   }
 
   try {
-    const tokenId = generateTokenId(token);
+    const tokenId = await generateTokenId(token);
     const key = `${TOKEN_BLACKLIST_PREFIX}${tokenId}`;
     const record = await kv.get(key);
     return record !== null;
@@ -92,7 +104,9 @@ export async function verifyWebSocketToken(
     }
 
     // 驗證 JWT token
-    const payload = verify(token, jwtSecret) as RealtimeAuthPayload;
+    const payload = verify(token, jwtSecret, {
+      algorithms: ["HS256"],
+    }) as RealtimeAuthPayload;
 
     // 檢查必要欄位
     if (!payload.roomType || !payload.roomId || !payload.restaurantId) {

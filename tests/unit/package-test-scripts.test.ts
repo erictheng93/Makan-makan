@@ -7,6 +7,12 @@ const packageJson = JSON.parse(
   readFileSync(join(repoRoot, "package.json"), "utf8"),
 ) as { scripts: Record<string, string> };
 
+function workspacePackageJson(path: string) {
+  return JSON.parse(readFileSync(join(repoRoot, path), "utf8")) as {
+    scripts: Record<string, string>;
+  };
+}
+
 const expectedExistingPaths = [
   ["test:smoke:staging", "playwright.staging.config.ts"],
   ["test:performance", "tests/performance/artillery-api-ci.yml"],
@@ -53,5 +59,19 @@ describe("package test scripts", () => {
     expect(packageJson.scripts["db:reset:local"]).toContain(
       "apps/api/.wrangler/state/v3/d1/",
     );
+  });
+
+  it("prevents unqualified worker deploy scripts from publishing dev config", () => {
+    for (const packagePath of [
+      "apps/api/package.json",
+      "apps/management-api/package.json",
+    ]) {
+      const pkg = workspacePackageJson(packagePath);
+
+      expect(pkg.scripts.deploy).toMatch(/Refusing unqualified deploy/);
+      expect(pkg.scripts.deploy).not.toContain("wrangler deploy");
+      expect(pkg.scripts["deploy:staging"]).toContain("--env staging");
+      expect(pkg.scripts["deploy:prod"]).toContain("--env production");
+    }
   });
 });

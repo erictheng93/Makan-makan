@@ -5,7 +5,20 @@
 
 import axios, { AxiosError } from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api/v1";
+function resolveApiBase(): string {
+  const apiBase = import.meta.env.VITE_API_URL;
+  if (apiBase) {
+    return apiBase;
+  }
+
+  if (import.meta.env.PROD) {
+    throw new Error("VITE_API_URL is required for production builds");
+  }
+
+  return "/api/v1";
+}
+
+const API_BASE = resolveApiBase();
 
 // Create axios instance with defaults
 const apiClient = axios.create({
@@ -41,6 +54,7 @@ export interface CreateApplicationData {
 
 export interface ApplicationResponse {
   applicationId: string;
+  applicationSecret: string;
   assignedSubdomain: string;
   status: string;
 }
@@ -193,10 +207,16 @@ export const onboardingApi = {
   /**
    * Get application details
    */
-  async getApplication(applicationId: string): Promise<ApplicationDetails> {
+  async getApplication(
+    applicationId: string,
+    applicationSecret: string,
+  ): Promise<ApplicationDetails> {
     try {
       const response = await apiClient.get<ApiResponse<ApplicationDetails>>(
         `/onboarding/applications/${applicationId}`,
+        {
+          headers: { "X-Onboarding-Secret": applicationSecret },
+        },
       );
 
       if (!response.data.success || !response.data.data) {
@@ -220,14 +240,21 @@ export const onboardingApi = {
     applicationId: string,
     accountId: string,
     apiToken: string,
+    applicationSecret: string,
   ): Promise<VerifyCloudflareResponse> {
     try {
       const response = await apiClient.post<
         ApiResponse<VerifyCloudflareResponse>
-      >(`/onboarding/applications/${applicationId}/verify-cloudflare`, {
-        accountId,
-        apiToken,
-      });
+      >(
+        `/onboarding/applications/${applicationId}/verify-cloudflare`,
+        {
+          accountId,
+          apiToken,
+        },
+        {
+          headers: { "X-Onboarding-Secret": applicationSecret },
+        },
+      );
 
       if (!response.data.success || !response.data.data) {
         throw new ApiError(
@@ -248,11 +275,18 @@ export const onboardingApi = {
    */
   async completeApplication(
     applicationId: string,
+    applicationSecret: string,
   ): Promise<CompleteApplicationResponse> {
     try {
       const response = await apiClient.post<
         ApiResponse<CompleteApplicationResponse>
-      >(`/onboarding/applications/${applicationId}/complete`);
+      >(
+        `/onboarding/applications/${applicationId}/complete`,
+        {},
+        {
+          headers: { "X-Onboarding-Secret": applicationSecret },
+        },
+      );
 
       if (!response.data.success || !response.data.data) {
         throw new ApiError(

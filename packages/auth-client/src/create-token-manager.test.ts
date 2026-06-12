@@ -42,7 +42,7 @@ describe("createTokenManager", () => {
     vi.useRealTimers();
   });
 
-  it("deduplicates concurrent refreshes and persists refreshed tokens", async () => {
+  it("deduplicates concurrent refreshes without persisting refreshed refresh tokens", async () => {
     const storage = createMemoryStorage();
     const onTokenRefreshed = vi.fn();
     const refreshFn = vi.fn(async () => ({
@@ -61,7 +61,7 @@ describe("createTokenManager", () => {
 
     expect(refreshFn).toHaveBeenCalledTimes(1);
     expect(manager.getToken()).toBe("next-token");
-    expect(manager.getRefreshToken()).toBe("next-refresh");
+    expect(manager.getRefreshToken()).toBeNull();
     expect(onTokenRefreshed).toHaveBeenCalledWith({
       token: "next-token",
       refreshToken: "next-refresh",
@@ -79,6 +79,7 @@ describe("createTokenManager", () => {
     });
 
     manager.setTokens("old-token", "old-refresh");
+    expect(manager.getRefreshToken()).toBeNull();
     await expect(manager.refreshToken()).resolves.toBe(false);
     expect(onRefreshFailure).toHaveBeenCalledTimes(1);
 

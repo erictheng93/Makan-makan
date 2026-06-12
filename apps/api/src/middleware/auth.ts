@@ -49,6 +49,11 @@ interface CustomerAuthTokenPayload {
   nbf?: number;
 }
 
+interface SseAuthTokenPayload extends AuthTokenPayload {
+  purpose: "kitchen_sse";
+  aud: "kitchen_sse";
+}
+
 const MAX_ACCESS_TOKEN_AGE_SECONDS = 72 * 60 * 60;
 
 declare module "hono" {
@@ -93,6 +98,14 @@ function isCustomerAuthTokenPayload(
     (payload.iat === undefined || typeof payload.iat === "number") &&
     (payload.nbf === undefined || typeof payload.nbf === "number")
   );
+}
+
+function isSseAuthTokenPayload(
+  decoded: unknown,
+): decoded is SseAuthTokenPayload {
+  if (!isAuthTokenPayload(decoded)) return false;
+  const payload = decoded as Record<string, unknown>;
+  return payload.purpose === "kitchen_sse" && payload.aud === "kitchen_sse";
 }
 
 // JWT 認證中間件工廠。`maxRole` 界定最大可接受的角色值：
@@ -378,11 +391,13 @@ export const sseAuthMiddleware = async (
   try {
     const authHeader = c.req.header("Authorization");
     let token: string | undefined;
+    let requiresScopedSseToken = false;
 
     if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
     } else {
-      token = c.req.query("token");
+      token = c.req.query("sseToken");
+      requiresScopedSseToken = true;
     }
 
     if (!token) {
@@ -409,7 +424,11 @@ export const sseAuthMiddleware = async (
 
     const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
 
-    if (!isAuthTokenPayload(decoded)) {
+    if (requiresScopedSseToken) {
+      if (!isSseAuthTokenPayload(decoded)) {
+        throw unauthorized("Invalid SSE token claims", "TOKEN_INVALID");
+      }
+    } else if (!isAuthTokenPayload(decoded)) {
       throw unauthorized("Invalid token claims", "TOKEN_INVALID");
     }
 

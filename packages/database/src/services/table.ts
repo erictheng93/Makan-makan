@@ -526,7 +526,11 @@ export class TableService extends BaseService {
     version: number = 1,
   ): Promise<string> {
     const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
-    const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
+    const signingKey = this.env.QR_SIGNING_KEY;
+    if (!signingKey || signingKey.length < 32) {
+      throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");
+    }
+
     return buildSignedQRUrl(
       baseUrl,
       {

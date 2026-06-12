@@ -1,6 +1,6 @@
 import type { KitchenSSEEvent, ConnectionStatus } from "@/types";
 import { isTokenExpired } from "@makanmakan/utils";
-import { getKitchenApiBaseUrl } from "./authApi";
+import { apiClient, getKitchenApiBaseUrl } from "./authApi";
 
 export interface SSEOptions {
   restaurantId: string | number;
@@ -34,7 +34,7 @@ export class KitchenSSEService {
   /**
    * 建立 SSE 連接
    */
-  connect(): void {
+  async connect(): Promise<void> {
     if (
       this.eventSource &&
       this.eventSource.readyState !== EventSource.CLOSED
@@ -62,8 +62,25 @@ export class KitchenSSEService {
       }
 
       const baseUrl = getKitchenApiBaseUrl().replace(/\/$/, "");
-      const url = `${baseUrl}/kitchen/${this.options.restaurantId}/events?token=${encodeURIComponent(token)}`;
-      console.log(`Connecting to SSE endpoint: ${url}`);
+      const response = await apiClient.instance.post(
+        `/kitchen/${this.options.restaurantId}/events/token`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        },
+      );
+      const sseToken = response.data?.data?.sseToken;
+      if (!sseToken) {
+        throw new Error("Failed to obtain SSE token");
+      }
+
+      const url =
+        `${baseUrl}/kitchen/${this.options.restaurantId}/events` +
+        `?sseToken=${encodeURIComponent(sseToken)}`;
+      console.log(
+        `Connecting to kitchen SSE for restaurant ${this.options.restaurantId}`,
+      );
 
       this.eventSource = new EventSource(url);
 
@@ -238,7 +255,7 @@ export class KitchenSSEService {
     this.options.onConnectionChange("connecting");
 
     this.reconnectTimer = setTimeout(() => {
-      this.connect();
+      void this.connect();
     }, delay);
   }
 

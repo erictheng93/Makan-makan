@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { csrfProtection } from "./csrf";
+import { csrfProtection, generateCSRFTokenHandler } from "./csrf";
 
 const CSRF_TOKEN = "a".repeat(64);
 
@@ -65,5 +65,19 @@ describe("csrfProtection", () => {
       orderId: "42",
     });
     expect(response.status).toBe(200);
+  });
+
+  it("sets CSRF cookies with host-only HttpOnly attributes", async () => {
+    const app = new Hono();
+    app.get("/csrf", generateCSRFTokenHandler);
+
+    const response = await app.fetch(new Request("https://api.test/csrf"), {
+      NODE_ENV: "production",
+    });
+
+    expect(response.headers.get("set-cookie")).toContain("__Host-mm_csrf=");
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+    expect(response.headers.get("set-cookie")).toContain("Secure");
+    expect(response.headers.get("set-cookie")).toContain("Path=/");
   });
 });

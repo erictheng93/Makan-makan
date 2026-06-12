@@ -52,9 +52,6 @@ export const useAuthStore = defineStore("auth", () => {
   // 狀態
   const user = ref<CustomerUser | null>(hydrateUser());
   const token = ref<string | null>(localStorage.getItem("customer_auth_token"));
-  const refreshToken = ref<string | null>(
-    localStorage.getItem("customer_refresh_token"),
-  );
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -110,13 +107,10 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (data.accessToken && data.customer) {
         token.value = data.accessToken;
-        refreshToken.value = data.refreshToken ?? null;
         user.value = toCustomerUser(data.customer);
 
         localStorage.setItem("customer_auth_token", token.value!);
-        if (refreshToken.value) {
-          localStorage.setItem("customer_refresh_token", refreshToken.value);
-        }
+        localStorage.removeItem("customer_refresh_token");
         persistUser(user.value);
 
         if (token.value) scheduleProactiveRefresh(token.value);
@@ -156,7 +150,7 @@ export const useAuthStore = defineStore("auth", () => {
   const logout = async () => {
     try {
       if (token.value) {
-        await customerIdentityApi.logout(refreshToken.value ?? undefined);
+        await customerIdentityApi.logout();
       }
     } catch (err) {
       console.warn("Logout request failed:", err);
@@ -164,7 +158,6 @@ export const useAuthStore = defineStore("auth", () => {
       // 清除本地狀態
       user.value = null;
       token.value = null;
-      refreshToken.value = null;
       error.value = null;
 
       localStorage.removeItem("customer_auth_token");
@@ -176,19 +169,13 @@ export const useAuthStore = defineStore("auth", () => {
 
   // 刷新 token
   const refresh = async () => {
-    if (!refreshToken.value) return false;
-
     try {
-      const data = await customerIdentityApi.refresh(refreshToken.value);
+      const data = await customerIdentityApi.refresh();
 
       if ("accessToken" in data && data.accessToken) {
         token.value = data.accessToken;
-        refreshToken.value = data.refreshToken ?? null;
-
         localStorage.setItem("customer_auth_token", token.value!);
-        if (refreshToken.value) {
-          localStorage.setItem("customer_refresh_token", refreshToken.value);
-        }
+        localStorage.removeItem("customer_refresh_token");
 
         if (token.value) scheduleProactiveRefresh(token.value);
         return true;
@@ -219,10 +206,8 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     // Attempt refresh before giving up
-    if (refreshToken.value) {
-      const refreshed = await refresh();
-      if (refreshed) return true;
-    }
+    const refreshed = await refresh();
+    if (refreshed) return true;
 
     await logout();
     return false;

@@ -27,7 +27,7 @@ export interface CustomerPreferences {
 
 export interface CustomerSession {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   expiresIn: number;
   customer: CustomerSummary;
 }
@@ -67,15 +67,20 @@ export const customerIdentityApi = {
     });
   },
 
-  refresh(refreshToken: string) {
+  refresh() {
     return apiClient.post<Omit<CustomerSession, "customer">>(
       "/customer/auth/refresh",
-      { refreshToken },
+      {},
+      { withCredentials: true },
     );
   },
 
-  logout(refreshToken?: string) {
-    return apiClient.post("/customer/auth/logout", { refreshToken });
+  logout() {
+    return apiClient.post(
+      "/customer/auth/logout",
+      {},
+      { withCredentials: true },
+    );
   },
 
   getMe() {

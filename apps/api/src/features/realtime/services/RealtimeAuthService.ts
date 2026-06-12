@@ -656,15 +656,7 @@ export class RealtimeAuthService {
   }
 
   private resolveRealtimeJwtSecret(): string {
-    if (this.env.REALTIME_JWT_SECRET) {
-      return this.env.REALTIME_JWT_SECRET;
-    }
-
-    if (this.env.NODE_ENV === "test" || this.env.NODE_ENV === "development") {
-      return this.env.JWT_SECRET;
-    }
-
-    return "";
+    return this.env.REALTIME_JWT_SECRET || "";
   }
 
   private async validateGuestRealtimeRequest(
@@ -709,7 +701,13 @@ export class RealtimeAuthService {
       return { error: "A valid signed table QR code is required" };
     }
 
-    const signingKey = this.env.QR_SIGNING_KEY || this.env.JWT_SECRET;
+    const signingKey = this.env.QR_SIGNING_KEY;
+    if (!signingKey || signingKey.length < 32) {
+      return {
+        error: "QR_SIGNING_KEY must be set and at least 32 characters",
+      };
+    }
+
     const qrValid = await verifyQRSignature(
       {
         type: qrPayload.type,

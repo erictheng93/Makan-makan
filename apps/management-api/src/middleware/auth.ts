@@ -21,6 +21,10 @@ type Env = {
   Variables: { managementUser: ManagementUser };
 };
 
+function hasPlatformAdminClaim(payload: Record<string, unknown>): boolean {
+  return payload.role === "admin" || payload.role === 0;
+}
+
 /**
  * JWT authentication middleware for management API.
  * Validates Bearer token, checks expiry, and sets managementUser on context.
@@ -40,7 +44,11 @@ export const managementAuthMiddleware = async (c: Context<Env>, next: Next) => {
     const payload = await verify(token, c.env.JWT_SECRET, "HS256");
 
     // Validate required claims
-    if (!payload.id || !payload.email) {
+    if (
+      typeof payload.id !== "string" ||
+      typeof payload.email !== "string" ||
+      !hasPlatformAdminClaim(payload)
+    ) {
       throw unauthorized("Invalid token claims");
     }
 
@@ -50,8 +58,8 @@ export const managementAuthMiddleware = async (c: Context<Env>, next: Next) => {
     }
 
     const user: ManagementUser = {
-      id: payload.id as string,
-      email: payload.email as string,
+      id: payload.id,
+      email: payload.email,
       role: "admin",
     };
 

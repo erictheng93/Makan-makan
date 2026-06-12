@@ -6,7 +6,7 @@
  */
 
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Context, Next } from "hono";
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS } from "../../../shared/constants";
@@ -37,6 +37,8 @@ import type {
 
 // Create feature logger
 const _logger = new ConsoleLogger("auth-routes");
+const STAFF_REFRESH_COOKIE = "__Host-mm_staff_refresh";
+const STAFF_REFRESH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 /**
  * Middleware type definitions for dependency injection
@@ -93,6 +95,24 @@ function extractRequestInfo<V extends Record<string, unknown>>(
   return { deviceInfo, location };
 }
 
+function setStaffRefreshCookie(c: Context<{ Bindings: Env }>, token: string) {
+  setCookie(c, STAFF_REFRESH_COOKIE, token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Lax",
+    path: "/",
+    maxAge: STAFF_REFRESH_COOKIE_MAX_AGE_SECONDS,
+  });
+}
+
+function clearStaffRefreshCookie(c: Context<{ Bindings: Env }>) {
+  deleteCookie(c, STAFF_REFRESH_COOKIE, {
+    secure: true,
+    sameSite: "Lax",
+    path: "/",
+  });
+}
+
 /**
  * Factory function to create auth routes with injectable dependencies.
  * This allows tests to inject middleware and services.
@@ -138,12 +158,15 @@ export function createAuthRoutes(
       throw unauthorized(message, code);
     }
 
+    if (result.tokens?.refreshToken) {
+      setStaffRefreshCookie(c, result.tokens.refreshToken);
+    }
+
     return c.json(
       {
         success: true,
         data: {
           token: result.tokens?.accessToken,
-          refreshToken: result.tokens?.refreshToken,
           expiresAt: result.tokens?.expiresAt,
           user: result.user,
         },
@@ -244,51 +267,51 @@ export function createAuthRoutes(
   );
 
   // Refresh Token - POST /refresh
-  authRoutes.post(
-    "/refresh",
-    zValidator("header", authSchemas.refreshTokenHeader),
-    async (c) => {
-      const headers = c.req.valid("header");
-      const refreshToken = headers["x-refresh-token"];
+  authRoutes.post("/refresh", async (c) => {
+    const refreshToken =
+      getCookie(c, STAFF_REFRESH_COOKIE) ?? c.req.header("X-Refresh-Token");
 
-      if (!refreshToken) {
-        return c.json(
-          {
-            success: false,
-            error: "Refresh token is required",
-          },
-          HTTP_STATUS.BAD_REQUEST,
-        );
-      }
-
-      // Initialize auth service
-      const authService = AuthService(c.env);
-      const result = await authService.refreshToken(refreshToken);
-
-      if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          HTTP_STATUS.UNAUTHORIZED,
-        );
-      }
-
+    if (!refreshToken) {
       return c.json(
         {
-          success: true,
-          data: {
-            token: result.tokens?.accessToken,
-            refreshToken: result.tokens?.refreshToken,
-            expiresAt: result.tokens?.expiresAt,
-            user: result.user,
-          },
+          success: false,
+          error: "Refresh token is required",
         },
-        HTTP_STATUS.OK,
+        HTTP_STATUS.BAD_REQUEST,
       );
-    },
-  );
+    }
+
+    // Initialize auth service
+    const authService = AuthService(c.env);
+    const result = await authService.refreshToken(refreshToken);
+
+    if (!result.success) {
+      clearStaffRefreshCookie(c);
+      return c.json(
+        {
+          success: false,
+          error: result.error,
+        },
+        HTTP_STATUS.UNAUTHORIZED,
+      );
+    }
+
+    if (result.tokens?.refreshToken) {
+      setStaffRefreshCookie(c, result.tokens.refreshToken);
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          token: result.tokens?.accessToken,
+          expiresAt: result.tokens?.expiresAt,
+          user: result.user,
+        },
+      },
+      HTTP_STATUS.OK,
+    );
+  });
 
   // User Logout - POST /logout
   authRoutes.post("/logout", authMiddleware, async (c) => {
@@ -310,6 +333,7 @@ export function createAuthRoutes(
     // Initialize auth service
     const authService = AuthService(c.env);
     const success = await authService.logout(user.id, token);
+    clearStaffRefreshCookie(c);
 
     if (success) {
       return c.json(

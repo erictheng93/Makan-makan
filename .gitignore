@@ -141,6 +141,9 @@ security-reports/
 
 # Test output files (temporary debugging and verification files)
 *.png
+*.backup
+**/.backup/
+**/.backup/**
 test-*.txt
 *-test.txt
 *-test-*.txt

@@ -79,6 +79,9 @@ export class OnboardingService {
   ): Promise<OnboardingApplication> {
     const id = this.generateApplicationId();
     const now = new Date().toISOString();
+    const applicationSecret = this.generateApplicationSecret();
+    const applicationSecretHash =
+      await this.hashApplicationSecret(applicationSecret);
 
     // Determine subdomain
     let assignedSubdomain = data.subdomain?.toLowerCase().trim();
@@ -110,8 +113,9 @@ export class OnboardingService {
       `INSERT INTO onboarding_applications (
         id, business_name, contact_name, contact_email, contact_phone,
         plan_id, latitude, longitude, requested_subdomain, assigned_subdomain, status,
-        ip_address, user_agent, created_at, submitted_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        application_secret_hash, ip_address, user_agent, created_at, submitted_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(
         id,
@@ -125,6 +129,7 @@ export class OnboardingService {
         data.subdomain || null,
         assignedSubdomain,
         "submitted",
+        applicationSecretHash,
         metadata?.ipAddress || null,
         metadata?.userAgent || null,
         now,
@@ -133,7 +138,10 @@ export class OnboardingService {
       )
       .run();
 
-    return (await this.getApplication(id))!;
+    return {
+      ...(await this.getApplication(id))!,
+      applicationSecret,
+    };
   }
 
   /**
@@ -168,6 +176,27 @@ export class OnboardingService {
     if (!result) return null;
 
     return this.mapRowToApplication(result as Record<string, unknown>);
+  }
+
+  /**
+   * Verify the one-time secret returned when an application is created.
+   */
+  async verifyApplicationSecret(
+    applicationId: string,
+    applicationSecret: string,
+  ): Promise<boolean> {
+    if (!applicationId || !applicationSecret) return false;
+
+    const result = await this.env.MANAGEMENT_DB.prepare(
+      "SELECT application_secret_hash FROM onboarding_applications WHERE id = ?",
+    )
+      .bind(applicationId)
+      .first<{ application_secret_hash?: string | null }>();
+
+    if (!result?.application_secret_hash) return false;
+
+    const providedHash = await this.hashApplicationSecret(applicationSecret);
+    return this.constantTimeEqual(result.application_secret_hash, providedHash);
   }
 
   /**
@@ -348,6 +377,41 @@ export class OnboardingService {
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
     const random = Math.random().toString(36).substring(2, 5).toUpperCase();
     return `APP-${dateStr}-${random}`;
+  }
+
+  private generateApplicationSecret(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return `onb_${this.base64UrlEncode(bytes)}`;
+  }
+
+  private async hashApplicationSecret(secret: string): Promise<string> {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(secret),
+    );
+    return `sha256:${this.base64UrlEncode(new Uint8Array(digest))}`;
+  }
+
+  private base64UrlEncode(bytes: Uint8Array): string {
+    let binary = "";
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+    return btoa(binary)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  private constantTimeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+
+    let result = 0;
+    for (let index = 0; index < a.length; index++) {
+      result |= a.charCodeAt(index) ^ b.charCodeAt(index);
+    }
+    return result === 0;
   }
 
   private generateSubdomain(businessName: string): string {

@@ -59,7 +59,18 @@ function createKv(initial: Record<string, string> = {}) {
 }
 
 const longToken = `${"a".repeat(32)}${"b".repeat(12)}${"z".repeat(8)}`;
-const longTokenId = `${"a".repeat(32)}...${"z".repeat(8)}`;
+
+async function tokenHashId(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(token),
+  );
+  const hash = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+  return `sha256:${hash}`;
+}
 
 describe("TokenBlacklistService", () => {
   beforeEach(() => {
@@ -75,6 +86,8 @@ describe("TokenBlacklistService", () => {
   it("revokes short and long tokens with TTLs and records metadata", async () => {
     const { kv, calls } = createKv();
     const service = new TokenBlacklistService(kv as never);
+    const shortTokenId = await tokenHashId("short-token");
+    const longTokenId = await tokenHashId(longToken);
 
     await expect(
       service.revokeToken("short-token", "logout", {
@@ -82,15 +95,15 @@ describe("TokenBlacklistService", () => {
         ttlSeconds: 60,
         metadata: { ip: "203.0.113.10" },
       }),
-    ).resolves.toEqual({ success: true, tokenId: "short-token" });
+    ).resolves.toEqual({ success: true, tokenId: shortTokenId });
     await expect(
       service.revokeToken(longToken, "security_breach"),
     ).resolves.toEqual({ success: true, tokenId: longTokenId });
 
     expect(calls.put[0]).toEqual({
-      key: "token:revoked:short-token",
+      key: `token:revoked:${shortTokenId}`,
       value: JSON.stringify({
-        tokenId: "short-token",
+        tokenId: shortTokenId,
         revokedAt: Date.parse("2026-06-07T05:06:07.000Z"),
         reason: "logout",
         revokedBy: "user-1",
@@ -103,21 +116,23 @@ describe("TokenBlacklistService", () => {
       options: { expirationTtl: 5 * 60 },
     });
     expect(loggerFns.info).toHaveBeenCalledWith("Token revoked", {
-      tokenId: "short-token",
+      tokenId: shortTokenId,
       reason: "logout",
       revokedBy: "user-1",
     });
   });
 
   it("checks and reads revoke records, failing closed on revocation lookups", async () => {
+    const tokenOneId = await tokenHashId("token-1");
+    const badJsonId = await tokenHashId("bad-json");
     const record = {
-      tokenId: "token-1",
+      tokenId: tokenOneId,
       revokedAt: Date.now(),
       reason: "manual",
     };
     const { kv } = createKv({
-      "token:revoked:token-1": JSON.stringify(record),
-      "token:revoked:bad-json": "{",
+      [`token:revoked:${tokenOneId}`]: JSON.stringify(record),
+      [`token:revoked:${badJsonId}`]: "{",
     });
     const service = new TokenBlacklistService(kv as never);
 
@@ -136,8 +151,10 @@ describe("TokenBlacklistService", () => {
   });
 
   it("revokes all tracked user tokens and clears the user token index", async () => {
+    const tokenOneId = await tokenHashId("token-1");
+    const tokenTwoId = await tokenHashId("token-2");
     const { kv, calls } = createKv({
-      "user:tokens:user-1": JSON.stringify(["token-1", "token-2"]),
+      "user:tokens:user-1": JSON.stringify([tokenOneId, tokenTwoId]),
     });
     const service = new TokenBlacklistService(kv as never);
 
@@ -148,16 +165,16 @@ describe("TokenBlacklistService", () => {
     expect(calls.put).toHaveLength(2);
     expect(calls.put).toEqual([
       expect.objectContaining({
-        key: "token:revoked:token-1",
+        key: `token:revoked:${tokenOneId}`,
         options: { expirationTtl: 5 * 60 },
       }),
       expect.objectContaining({
-        key: "token:revoked:token-2",
+        key: `token:revoked:${tokenTwoId}`,
         options: { expirationTtl: 5 * 60 },
       }),
     ]);
     expect(JSON.parse(calls.put[0].value)).toMatchObject({
-      tokenId: "token-1",
+      tokenId: tokenOneId,
       reason: "permission_change",
       revokedBy: "admin-1",
     });
@@ -196,6 +213,7 @@ describe("TokenBlacklistService", () => {
       "user:tokens:user-1": JSON.stringify(existing),
     });
     const service = new TokenBlacklistService(kv as never);
+    const longTokenId = await tokenHashId(longToken);
 
     await service.trackUserToken("user-1", longToken);
 

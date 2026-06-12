@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
+import { sign } from "hono/jwt";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, sseAuthMiddleware } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
@@ -16,6 +17,7 @@ import { createSuccessResponse } from "../../../shared/utils/response";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
+const KITCHEN_SSE_TOKEN_SECONDS = 60;
 const notificationSettingsSchema = z.object({}).passthrough();
 type NotificationSettings = Record<string, unknown>;
 interface NotificationSettingsRecord {
@@ -162,6 +164,57 @@ app.put(
         updatedAt: now,
       },
     });
+  },
+);
+
+/**
+ * POST /api/v1/kitchen/{restaurantId}/events/token
+ *
+ * Issues a short-lived token scoped only to the kitchen SSE endpoint. EventSource
+ * cannot send Authorization headers, so the stream URL gets this narrow token
+ * instead of the user's primary access token.
+ */
+app.post(
+  "/:restaurantId/events/token",
+  authMiddleware,
+  moduleGate("kitchen_display"),
+  async (c) => {
+    const restaurantId = c.req.param("restaurantId");
+    if (!restaurantId)
+      throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+
+    const user = c.get("user");
+    const kitchenService = new KitchenService(c.env);
+
+    if (
+      !kitchenService.validateChefAccess(user.id, user.role, restaurantId) ||
+      String(user.restaurantId) !== restaurantId
+    ) {
+      throw forbidden("Access denied", "ACCESS_DENIED");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const sseToken = await sign(
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        restaurantId,
+        purpose: "kitchen_sse",
+        aud: "kitchen_sse",
+        iat: now,
+        exp: now + KITCHEN_SSE_TOKEN_SECONDS,
+      },
+      c.env.JWT_SECRET,
+      "HS256",
+    );
+
+    return c.json(
+      createSuccessResponse(
+        { sseToken, expiresIn: KITCHEN_SSE_TOKEN_SECONDS },
+        "Kitchen SSE token issued successfully",
+      ),
+    );
   },
 );
 

@@ -382,6 +382,7 @@ export type OnboardingStatus =
  */
 export interface OnboardingApplication {
   id: string;
+  applicationSecret?: string;
   businessName: string;
   contactName: string;
   contactEmail: string;

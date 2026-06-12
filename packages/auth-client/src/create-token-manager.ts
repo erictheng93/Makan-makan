@@ -36,9 +36,7 @@ export function createTokenManager(config: TokenManagerConfig): TokenManager {
 
         // Persist new tokens
         storage.setToken(result.token);
-        if (result.refreshToken) {
-          storage.setRefreshToken(result.refreshToken);
-        }
+        storage.removeRefreshToken();
 
         if (onTokenRefreshed) onTokenRefreshed(result);
         return true;
@@ -67,9 +65,9 @@ export function createTokenManager(config: TokenManagerConfig): TokenManager {
   return {
     getToken: () => storage.getToken(),
     getRefreshToken: () => storage.getRefreshToken(),
-    setTokens: (token, rt) => {
+    setTokens: (token) => {
       storage.setToken(token);
-      if (rt) storage.setRefreshToken(rt);
+      storage.removeRefreshToken();
     },
     setUser: (user) => storage.setUser(user),
     getUser: <T = unknown>() => storage.getUser<T>(),

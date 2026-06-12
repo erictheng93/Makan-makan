@@ -90,27 +90,18 @@ export const authApi = {
 
   // 刷新 token
   async refreshToken(): Promise<ApiResponse<LoginResponse>> {
-    const rt = localStorage.getItem("kitchen_refresh_token");
-    if (!rt) {
-      return {
-        success: false,
-        error: "No refresh token available",
-        timestamp: new Date().toISOString(),
-      };
-    }
-
     try {
       const response = await api.post(
         "/auth/refresh",
         {},
         {
-          headers: { "X-Refresh-Token": rt },
+          withCredentials: true,
         },
       );
 
       const data = response.data?.data;
       if (data?.token) {
-        apiClient.tokens.setTokens(data.token, data.refreshToken);
+        apiClient.tokens.setTokens(data.token);
       }
 
       return {

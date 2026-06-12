@@ -117,7 +117,7 @@ import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
 import meFeature from "./features/me";
 import { ErrorSanitizer } from "./utils/errorSanitizer";
-import { ApiError } from "./shared/utils/api-error";
+import { ApiError, sanitizeApiErrorDetails } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
 
 export interface AppRuntimeOptions {
@@ -320,7 +320,9 @@ export function createApp(
           error: {
             code: err.code,
             message: ErrorSanitizer.sanitizeMessage(err.message),
-            ...(err.details !== undefined && { details: err.details }),
+            ...(err.details !== undefined && {
+              details: sanitizeApiErrorDetails(err.details),
+            }),
           },
         },
         toErrorResponseStatusCode(err.status),
@@ -542,7 +544,6 @@ export function createApp(
         "/api/v1/auth/login",
         "/api/v1/auth/register",
         "/api/v1/customer/auth",
-        "/api/v1/health",
         "/api/v1/monitoring/health",
         "/api/v1/sse", // SSE connections should not be CSRF protected
         "/api/v1/queue/public", // Public queue endpoints

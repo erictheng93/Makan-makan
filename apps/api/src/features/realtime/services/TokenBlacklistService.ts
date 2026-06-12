@@ -67,11 +67,23 @@ export class TokenBlacklistService {
    * 生成 token 的唯一標識
    * 使用 token 的前 32 字符 + 後 8 字符作為標識符
    */
-  private generateTokenId(token: string): string {
-    if (token.length <= 40) {
-      return token;
+  private base64UrlEncode(bytes: Uint8Array): string {
+    let binary = "";
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
     }
-    return `${token.substring(0, 32)}...${token.substring(token.length - 8)}`;
+    return btoa(binary)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  private async generateTokenId(token: string): Promise<string> {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(token),
+    );
+    return `sha256:${this.base64UrlEncode(new Uint8Array(digest))}`;
   }
 
   /**
@@ -94,7 +106,7 @@ export class TokenBlacklistService {
     },
   ): Promise<{ success: boolean; tokenId: string }> {
     try {
-      const tokenId = this.generateTokenId(token);
+      const tokenId = await this.generateTokenId(token);
       const key = this.getTokenKey(tokenId);
 
       const record: RevokeRecord = {
@@ -129,7 +141,7 @@ export class TokenBlacklistService {
    */
   async isTokenRevoked(token: string): Promise<boolean> {
     try {
-      const tokenId = this.generateTokenId(token);
+      const tokenId = await this.generateTokenId(token);
       const key = this.getTokenKey(tokenId);
 
       const record = await this.kv.get(key);
@@ -146,7 +158,7 @@ export class TokenBlacklistService {
    */
   async getRevokeRecord(token: string): Promise<RevokeRecord | null> {
     try {
-      const tokenId = this.generateTokenId(token);
+      const tokenId = await this.generateTokenId(token);
       const key = this.getTokenKey(tokenId);
 
       const record = await this.kv.get(key);
@@ -223,7 +235,7 @@ export class TokenBlacklistService {
    */
   async trackUserToken(userId: string, token: string): Promise<void> {
     try {
-      const tokenId = this.generateTokenId(token);
+      const tokenId = await this.generateTokenId(token);
       const userTokensKey = `${USER_TOKENS_PREFIX}${userId}`;
 
       // 獲取現有的 token 列表

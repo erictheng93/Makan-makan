@@ -21,6 +21,18 @@ const tokenFor = (payload: Record<string, unknown>) =>
     { expiresIn: "1h" },
   );
 
+async function tokenHashId(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(token),
+  );
+  const hash = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+  return `sha256:${hash}`;
+}
+
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -31,7 +43,7 @@ describe("isTokenRevoked", () => {
     await expect(isTokenRevoked("token", undefined)).resolves.toBe(false);
   });
 
-  it("checks long token IDs using the blacklist key prefix", async () => {
+  it("checks token revocation by SHA-256 token hash", async () => {
     const kv = {
       get: vi.fn().mockResolvedValue("revoked"),
     } as Partial<KVNamespace> as KVNamespace;
@@ -39,7 +51,7 @@ describe("isTokenRevoked", () => {
 
     await expect(isTokenRevoked(token, kv)).resolves.toBe(true);
     expect(kv.get).toHaveBeenCalledWith(
-      `token:revoked:${"a".repeat(32)}...${"z".repeat(8)}`,
+      `token:revoked:${await tokenHashId(token)}`,
     );
   });
 
@@ -144,6 +156,24 @@ describe("verifyWebSocketToken", () => {
     await expect(verifyWebSocketToken(expired, secret)).resolves.toEqual({
       valid: false,
       error: "Token has expired",
+    });
+  });
+
+  it("rejects tokens signed with algorithms outside the pinned allowlist", async () => {
+    const token = sign(
+      {
+        roomType: "admin",
+        roomId: "restaurant-42",
+        restaurantId: "restaurant-42",
+        role: "admin",
+      },
+      secret,
+      { algorithm: "HS384", expiresIn: "1h" },
+    );
+
+    await expect(verifyWebSocketToken(token, secret)).resolves.toEqual({
+      valid: false,
+      error: "Invalid token format",
     });
   });
 });

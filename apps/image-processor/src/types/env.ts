@@ -13,6 +13,7 @@ export interface Env {
   // Environment variables
   NODE_ENV: "development" | "staging" | "production";
   API_VERSION: string;
+  CORS_ORIGIN?: string;
 
   // Image processing configuration
   IMAGE_API_BASE_URL: string;

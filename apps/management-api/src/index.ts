@@ -10,7 +10,7 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
 import { timing } from "hono/timing";
-import { ApiError } from "@makanmakan/utils";
+import { ApiError, sanitizeApiErrorDetails } from "@makanmakan/utils";
 
 import type { ManagementEnv } from "./types";
 import { managementAuthMiddleware } from "./middleware/auth";
@@ -26,6 +26,21 @@ import { adminMarketsRouter, marketsRouter } from "./routes/markets";
 // Create main application
 const app = new Hono<{ Bindings: ManagementEnv }>();
 
+function resolveCorsOrigin(
+  origin: string,
+  allowedOrigins: string,
+): string | null {
+  if (!origin) return null;
+  if (!allowedOrigins || allowedOrigins.trim() === "*") return null;
+
+  const allowlist = allowedOrigins
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return allowlist.includes(origin) ? origin : null;
+}
+
 // ============================================================
 // Global Middleware
 // ============================================================
@@ -35,18 +50,27 @@ app.use(
   "*",
   cors({
     origin: (origin, c) => {
-      const allowedOrigin = c.env.CORS_ORIGIN;
-      if (allowedOrigin === "*") return origin;
-      if (origin && allowedOrigin.split(",").includes(origin)) return origin;
-      return null;
+      return resolveCorsOrigin(origin, c.env.CORS_ORIGIN);
     },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Request-ID",
+      "X-Onboarding-Secret",
+    ],
     exposeHeaders: ["X-Request-ID", "X-Response-Time"],
     credentials: true,
     maxAge: 86400,
   }),
 );
+
+app.use("*", async (c, next) => {
+  await next();
+  if (!c.res.headers.get("Access-Control-Allow-Origin")) {
+    c.res.headers.delete("Access-Control-Allow-Credentials");
+  }
+});
 
 // Logging and timing
 app.use("*", logger());
@@ -72,7 +96,10 @@ app.onError((err, c) => {
         error: {
           code: err.code,
           message: err.message,
-          details: err.details,
+          details:
+            err.details === undefined
+              ? undefined
+              : sanitizeApiErrorDetails(err.details),
         },
       },
       err.status as 400 | 401 | 403 | 404 | 409 | 500,

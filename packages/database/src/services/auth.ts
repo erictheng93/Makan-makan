@@ -56,7 +56,7 @@ function normalizeTokenVersion(value: unknown): number {
 }
 
 const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
-  const decoded = verify(token, secret);
+  const decoded = verify(token, secret, { algorithms: ["HS256"] });
   if (typeof decoded === "string") {
     throw new Error("Invalid token payload");
   }
@@ -208,7 +208,7 @@ export class AuthService extends BaseService {
       );
 
       const refreshToken = sign(
-        { userId: user.id, type: "refresh" },
+        { userId: user.id, type: "refresh", jti: crypto.randomUUID() },
         jwtSecret,
         { expiresIn: "7d" },
       );
@@ -436,12 +436,18 @@ export class AuthService extends BaseService {
         jwtSecret,
         { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
+      const nextRefreshToken = sign(
+        { userId: user.id, type: "refresh", jti: crypto.randomUUID() },
+        jwtSecret,
+        { expiresIn: "7d" },
+      );
 
       // 更新 session
       await this.db
         .update(sessions)
         .set({
           token: accessToken,
+          refreshToken: nextRefreshToken,
           lastAccessedAt: new Date(),
           expiresAt: accessTokenExpiry,
           updatedAt: new Date(),
@@ -453,7 +459,7 @@ export class AuthService extends BaseService {
         user,
         tokens: {
           accessToken,
-          refreshToken,
+          refreshToken: nextRefreshToken,
           expiresAt: accessTokenExpiry,
         },
       };

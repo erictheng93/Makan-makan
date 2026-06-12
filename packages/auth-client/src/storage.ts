@@ -26,8 +26,8 @@ export function createPrefixedStorage(
     setToken: (v) => localStorage.setItem(tokenKey, v),
     removeToken: () => localStorage.removeItem(tokenKey),
 
-    getRefreshToken: () => localStorage.getItem(refreshKey),
-    setRefreshToken: (v) => localStorage.setItem(refreshKey, v),
+    getRefreshToken: () => null,
+    setRefreshToken: () => localStorage.removeItem(refreshKey),
     removeRefreshToken: () => localStorage.removeItem(refreshKey),
 
     getUser: <T = unknown>(): T | null => {

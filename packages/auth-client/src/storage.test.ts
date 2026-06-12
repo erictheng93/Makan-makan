@@ -20,7 +20,7 @@ describe("createPrefixedStorage", () => {
     installLocalStorage();
   });
 
-  it("stores auth values using the default prefixed keys", () => {
+  it("stores access tokens and users but never persists refresh tokens", () => {
     const storage = createPrefixedStorage("customer");
 
     storage.setToken("token-1");
@@ -28,7 +28,8 @@ describe("createPrefixedStorage", () => {
     storage.setUser({ id: "user-1" });
 
     expect(localStorage.getItem("customer_auth_token")).toBe("token-1");
-    expect(localStorage.getItem("customer_refresh_token")).toBe("refresh-1");
+    expect(localStorage.getItem("customer_refresh_token")).toBeNull();
+    expect(storage.getRefreshToken()).toBeNull();
     expect(storage.getUser<{ id: string }>()).toEqual({ id: "user-1" });
 
     storage.clearAll();
@@ -46,8 +47,10 @@ describe("createPrefixedStorage", () => {
 
     localStorage.setItem("auth_user", "{bad json");
     storage.setToken("token-2");
+    storage.setRefreshToken("refresh-2");
 
     expect(storage.getToken()).toBe("token-2");
+    expect(localStorage.getItem("auth_refresh_token")).toBeNull();
     expect(storage.getUser()).toBeNull();
   });
 });

@@ -15,6 +15,45 @@ export class ApiError extends Error {
   }
 }
 
+const SENSITIVE_DETAIL_KEY =
+  /password|passcode|token|secret|authorization|cookie|api[-_]?key|key/i;
+
+export function sanitizeApiErrorDetails(details: unknown): unknown {
+  const seen = new WeakSet<object>();
+
+  const sanitize = (value: unknown, depth: number): unknown => {
+    if (value == null || typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return value;
+    if (typeof value === "bigint") return value.toString();
+    if (value instanceof Date) return value.toISOString();
+    if (value instanceof Error) return { name: value.name };
+    if (depth >= 5) return "[MaxDepth]";
+
+    if (Array.isArray(value)) {
+      return value.slice(0, 50).map((item) => sanitize(item, depth + 1));
+    }
+
+    if (typeof value === "object") {
+      if (seen.has(value)) return "[Circular]";
+      seen.add(value);
+
+      const sanitized: Record<string, unknown> = {};
+      for (const [key, child] of Object.entries(
+        value as Record<string, unknown>,
+      )) {
+        sanitized[key] = SENSITIVE_DETAIL_KEY.test(key)
+          ? "[REDACTED]"
+          : sanitize(child, depth + 1);
+      }
+      return sanitized;
+    }
+
+    return String(value);
+  };
+
+  return sanitize(details, 0);
+}
+
 export function notFound(
   message = "Resource not found",
   code = "NOT_FOUND",

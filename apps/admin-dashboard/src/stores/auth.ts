@@ -33,9 +33,6 @@ let sharedRefreshPromise: Promise<boolean> | null = null;
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(hydrateUser());
   const token = ref<string | null>(localStorage.getItem("auth_token"));
-  const refreshTokenRef = ref<string | null>(
-    localStorage.getItem("auth_refresh_token"),
-  );
 
   const isLoading = ref(false);
 
@@ -213,16 +210,9 @@ export const useAuthStore = defineStore("auth", () => {
         token.value = response.data.data.token;
         user.value = response.data.data.user;
 
-        authClient.tokens.setTokens(
-          token.value!,
-          response.data.data.refreshToken,
-        );
+        authClient.tokens.setTokens(token.value!);
         authClient.tokens.setUser(user.value);
         api.setAuthToken(token.value!);
-
-        if (response.data.data.refreshToken) {
-          refreshTokenRef.value = response.data.data.refreshToken;
-        }
         authClient.tokens.scheduleProactiveRefresh(token.value!);
 
         return { success: true };
@@ -252,7 +242,6 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = null;
       clearRestaurant();
       api.setAuthToken(null);
-      refreshTokenRef.value = null;
       authClient.tokens.clearAll();
     }
   };
@@ -301,20 +290,11 @@ export const useAuthStore = defineStore("auth", () => {
     if (sharedRefreshPromise) return sharedRefreshPromise;
 
     sharedRefreshPromise = (async () => {
-      const rt =
-        refreshTokenRef.value || localStorage.getItem("auth_refresh_token");
-      if (!rt) {
-        await logout();
-        return false;
-      }
-
       try {
         // Use the shared axios instance but skip the 401 refresh interceptor
         // for the refresh call itself.
         const refreshConfig: RetryableAxiosRequestConfig = {
-          headers: {
-            "X-Refresh-Token": rt,
-          },
+          withCredentials: true,
           _retry: true,
         };
         const response = await authClient.instance.post(
@@ -326,12 +306,8 @@ export const useAuthStore = defineStore("auth", () => {
 
         if (data.success && data.data) {
           token.value = data.data.token;
-          authClient.tokens.setTokens(data.data.token, data.data.refreshToken);
+          authClient.tokens.setTokens(data.data.token);
           api.setAuthToken(token.value!);
-
-          if (data.data.refreshToken) {
-            refreshTokenRef.value = data.data.refreshToken;
-          }
 
           if (data.data.user) {
             user.value = data.data.user;

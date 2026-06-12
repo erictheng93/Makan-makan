@@ -92,10 +92,9 @@ describe("customer auth store", () => {
     expect(store.isLoading).toBe(false);
   });
 
-  it("verifies OTP sessions, persists tokens, and maps customer summary to app user", async () => {
+  it("verifies OTP sessions, persists only the access token, and maps customer summary to app user", async () => {
     vi.mocked(customerIdentityApi.verifyOtp).mockResolvedValue({
       accessToken: "access-token",
-      refreshToken: "refresh-token",
       expiresIn: 3600,
       customer: customer(),
     });
@@ -115,9 +114,7 @@ describe("customer auth store", () => {
       role: 5,
     });
     expect(localStorage.getItem("customer_auth_token")).toBe("access-token");
-    expect(localStorage.getItem("customer_refresh_token")).toBe(
-      "refresh-token",
-    );
+    expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(JSON.parse(localStorage.getItem("customer_user")!)).toMatchObject({
       id: "customer-1",
       fullName: "Lin Mei",
@@ -126,29 +123,26 @@ describe("customer auth store", () => {
 
   it("falls back to refresh during checkAuth and does not logout on refresh success", async () => {
     localStorage.setItem("customer_auth_token", "old-access");
-    localStorage.setItem("customer_refresh_token", "old-refresh");
     vi.mocked(customerIdentityApi.getMe).mockRejectedValue(
       new Error("access expired"),
     );
     vi.mocked(customerIdentityApi.refresh).mockResolvedValue({
       accessToken: "new-access",
-      refreshToken: "new-refresh",
       expiresIn: 3600,
     });
     const store = useAuthStore();
 
     await expect(store.checkAuth()).resolves.toBe(true);
 
-    expect(customerIdentityApi.refresh).toHaveBeenCalledWith("old-refresh");
+    expect(customerIdentityApi.refresh).toHaveBeenCalledWith();
     expect(store.token).toBe("new-access");
     expect(localStorage.getItem("customer_auth_token")).toBe("new-access");
-    expect(localStorage.getItem("customer_refresh_token")).toBe("new-refresh");
+    expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(customerIdentityApi.logout).not.toHaveBeenCalled();
   });
 
   it("logs out locally even when logout API fails", async () => {
     localStorage.setItem("customer_auth_token", "access-token");
-    localStorage.setItem("customer_refresh_token", "refresh-token");
     localStorage.setItem(
       "customer_user",
       JSON.stringify({

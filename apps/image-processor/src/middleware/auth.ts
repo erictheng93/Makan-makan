@@ -291,7 +291,15 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
 
     // 在實際應用中，應該從數據庫或配置中驗證API key
     // 這裡使用環境變量作為示例
-    const validApiKey = c.env.API_KEY || "default-api-key";
+    if (!c.env.API_KEY || c.env.API_KEY.length < 32) {
+      console.error("API_KEY is not set or too short");
+      return c.json(
+        { success: false, error: "Server configuration error" },
+        500,
+      );
+    }
+
+    const validApiKey = c.env.API_KEY;
 
     if (apiKey !== validApiKey) {
       return c.json(
@@ -458,10 +466,37 @@ export const transformRateLimit = (env: Env) => {
   return rateLimiter(maxTransforms, 60 * 1000); // 1 minute window
 };
 
+function imageProcessorAllowedOrigins(env: Env): string[] {
+  if (env.CORS_ORIGIN) {
+    return env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+      .filter((origin) => origin !== "*");
+  }
+
+  if (env.NODE_ENV === "development") {
+    return [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://localhost:3010",
+      "http://localhost:3011",
+    ];
+  }
+
+  return [];
+}
+
 // CORS 中間件
-export const corsMiddleware = async (c: Context, next: Next) => {
-  // 設置 CORS headers
-  c.header("Access-Control-Allow-Origin", "*");
+export const corsMiddleware = async (
+  c: Context<{ Bindings: Env }>,
+  next: Next,
+) => {
+  const origin = c.req.header("Origin");
+  if (origin && imageProcessorAllowedOrigins(c.env).includes(origin)) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Vary", "Origin");
+  }
   c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   c.header(
     "Access-Control-Allow-Headers",

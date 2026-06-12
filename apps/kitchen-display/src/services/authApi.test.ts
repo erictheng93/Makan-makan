@@ -131,17 +131,7 @@ describe("kitchen auth API", () => {
     expect(result).toMatchObject({ success: true });
   });
 
-  it("does not call refresh when no kitchen refresh token is available", async () => {
-    const result = await authApi.refreshToken();
-
-    expect(mockApi.post).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      success: false,
-      error: "No refresh token available",
-    });
-  });
-
-  it("refreshes with the kitchen refresh token and stores returned tokens", async () => {
+  it("refreshes through the HttpOnly refresh cookie and stores only returned access tokens", async () => {
     const refreshData = {
       user: {
         id: "chef-1",
@@ -150,10 +140,8 @@ describe("kitchen auth API", () => {
         restaurantId: 7,
       },
       token: "new-access-token",
-      refreshToken: "new-refresh-token",
       expiresIn: 3600,
     };
-    localStorage.setItem("kitchen_refresh_token", "old-refresh-token");
     mockApi.post.mockResolvedValueOnce({ data: { data: refreshData } });
 
     const result = await authApi.refreshToken();
@@ -161,12 +149,9 @@ describe("kitchen auth API", () => {
     expect(mockApi.post).toHaveBeenCalledWith(
       "/auth/refresh",
       {},
-      { headers: { "X-Refresh-Token": "old-refresh-token" } },
+      { withCredentials: true },
     );
-    expect(mockTokens.setTokens).toHaveBeenCalledWith(
-      "new-access-token",
-      "new-refresh-token",
-    );
+    expect(mockTokens.setTokens).toHaveBeenCalledWith("new-access-token");
     expect(result).toMatchObject({
       success: true,
       data: refreshData,
@@ -175,7 +160,6 @@ describe("kitchen auth API", () => {
 
   it("returns the API error message when refresh fails", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    localStorage.setItem("kitchen_refresh_token", "old-refresh-token");
     mockApi.post.mockRejectedValueOnce({
       response: { data: { message: "Refresh denied" } },
     });

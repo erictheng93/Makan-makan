@@ -5,6 +5,7 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import type { ManagementEnv } from "../types";
 import { OnboardingService } from "../services/OnboardingService";
@@ -41,6 +42,31 @@ const verifyCloudflareSchema = z.object({
   accountId: z.string().length(32, "Account ID must be 32 characters"),
   apiToken: z.string().min(40, "API Token must be at least 40 characters"),
 });
+
+async function requireApplicationSecret(
+  c: Context<{ Bindings: ManagementEnv }>,
+  onboardingService: OnboardingService,
+  applicationId: string,
+): Promise<Response | null> {
+  const applicationSecret = c.req.header("X-Onboarding-Secret");
+  const isValid =
+    typeof applicationSecret === "string" &&
+    (await onboardingService.verifyApplicationSecret(
+      applicationId,
+      applicationSecret,
+    ));
+
+  if (isValid) return null;
+
+  return c.json(
+    {
+      success: false,
+      error: "Application secret is required",
+      code: "APPLICATION_SECRET_REQUIRED",
+    },
+    401,
+  );
+}
 
 // ============================================================
 // Routes
@@ -134,6 +160,7 @@ router.post("/applications", async (c) => {
         success: true,
         data: {
           applicationId: application.id,
+          applicationSecret: application.applicationSecret,
           assignedSubdomain: application.assignedSubdomain,
           status: application.status,
         },
@@ -174,6 +201,13 @@ router.get("/applications/:id", async (c) => {
   const applicationId = c.req.param("id");
 
   try {
+    const secretError = await requireApplicationSecret(
+      c,
+      onboardingService,
+      applicationId,
+    );
+    if (secretError) return secretError;
+
     const application = await onboardingService.getApplication(applicationId);
 
     if (!application) {
@@ -228,6 +262,13 @@ router.post("/applications/:id/verify-cloudflare", async (c) => {
   const applicationId = c.req.param("id");
 
   try {
+    const secretError = await requireApplicationSecret(
+      c,
+      onboardingService,
+      applicationId,
+    );
+    if (secretError) return secretError;
+
     const body = await c.req.json();
     const validated = verifyCloudflareSchema.parse(body);
 
@@ -318,6 +359,13 @@ router.post("/applications/:id/complete", async (c) => {
   const applicationId = c.req.param("id");
 
   try {
+    const secretError = await requireApplicationSecret(
+      c,
+      onboardingService,
+      applicationId,
+    );
+    if (secretError) return secretError;
+
     // Check application exists
     const application = await onboardingService.getApplication(applicationId);
     if (!application) {

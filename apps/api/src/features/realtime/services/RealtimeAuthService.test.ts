@@ -79,6 +79,7 @@ import { RealtimeAuthService } from "./RealtimeAuthService";
 
 const realtimeSecret = "realtime-secret-with-at-least-32-chars";
 const jwtSecret = "session-secret-with-at-least-32-chars";
+const qrSigningKey = "qr-signing-key-with-at-least-32-chars";
 
 function createKV(values: Record<string, unknown> = {}) {
   return {
@@ -99,6 +100,7 @@ function createService(env: Record<string, unknown> = {}) {
     CACHE_KV: createKV(),
     JWT_SECRET: jwtSecret,
     REALTIME_JWT_SECRET: realtimeSecret,
+    QR_SIGNING_KEY: qrSigningKey,
     REALTIME_WS_URL: "wss://realtime.example.test",
     NODE_ENV: "test",
     ...env,
@@ -675,7 +677,7 @@ describe("RealtimeAuthService", () => {
         version: 1,
       },
       "signature",
-      jwtSecret,
+      qrSigningKey,
     );
   });
 

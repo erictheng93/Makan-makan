@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign, verify } from "hono/jwt";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -15,6 +16,7 @@ import { badRequest, unauthorized } from "../../../shared/utils/api-error";
 
 const ACCESS_TOKEN_SECONDS = 15 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
+const CUSTOMER_REFRESH_COOKIE = "__Host-mm_customer_refresh";
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_CODE_SPACE = 1_000_000;
@@ -36,10 +38,6 @@ const requestOtpSchema = z.object({
 const verifyOtpSchema = z.object({
   phone: phoneSchema,
   otp: z.string().regex(/^\d{6}$/),
-});
-
-const refreshSchema = z.object({
-  refreshToken: z.string().min(20),
 });
 
 const profilePatchSchema = z.object({
@@ -102,6 +100,27 @@ const recentMarketSchema = z.object({
   marketId: z.string().trim().min(1).max(128),
   visitedAtMs: z.number().int().positive().optional(),
 });
+
+function setCustomerRefreshCookie(
+  c: Context<{ Bindings: Env }>,
+  refreshToken: string,
+) {
+  setCookie(c, CUSTOMER_REFRESH_COOKIE, refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Lax",
+    path: "/",
+    maxAge: REFRESH_TOKEN_SECONDS,
+  });
+}
+
+function clearCustomerRefreshCookie(c: Context<{ Bindings: Env }>) {
+  deleteCookie(c, CUSTOMER_REFRESH_COOKIE, {
+    secure: true,
+    sameSite: "Lax",
+    path: "/",
+  });
+}
 
 const consentSchema = z
   .object({
@@ -205,18 +224,29 @@ routes.post("/auth/verify-otp", validateBody(verifyOtpSchema), async (c) => {
     .run();
 
   const tokens = await issueCustomerTokens(c.env, customer.id);
+  setCustomerRefreshCookie(c, tokens.refreshToken);
 
   return c.json({
     success: true,
     data: {
-      ...tokens,
+      accessToken: tokens.accessToken,
+      expiresIn: tokens.expiresIn,
       customer: toCustomerSummary(customer),
     },
   });
 });
 
-routes.post("/auth/refresh", validateBody(refreshSchema), async (c) => {
-  const { refreshToken } = c.get("validatedBody");
+routes.post("/auth/refresh", async (c) => {
+  const body = await readOptionalJson(c);
+  const refreshToken =
+    typeof body?.refreshToken === "string"
+      ? body.refreshToken
+      : getCookie(c, CUSTOMER_REFRESH_COOKIE);
+
+  if (!refreshToken) {
+    throw unauthorized("Refresh token is required", "TOKEN_INVALID");
+  }
+
   const decoded = await verify(refreshToken, c.env.JWT_SECRET, "HS256");
   if (!isRefreshPayload(decoded)) {
     throw unauthorized("Invalid refresh token", "TOKEN_INVALID");
@@ -235,7 +265,15 @@ routes.post("/auth/refresh", validateBody(refreshSchema), async (c) => {
   }
 
   const tokens = await issueCustomerTokens(c.env, customer.id);
-  return c.json({ success: true, data: tokens });
+  setCustomerRefreshCookie(c, tokens.refreshToken);
+
+  return c.json({
+    success: true,
+    data: {
+      accessToken: tokens.accessToken,
+      expiresIn: tokens.expiresIn,
+    },
+  });
 });
 
 routes.post("/auth/logout", canonicalCustomerAuthMiddleware, async (c) => {
@@ -245,7 +283,9 @@ routes.post("/auth/logout", canonicalCustomerAuthMiddleware, async (c) => {
     : undefined;
   const body = await readOptionalJson(c);
   const refreshToken =
-    typeof body?.refreshToken === "string" ? body.refreshToken : undefined;
+    typeof body?.refreshToken === "string"
+      ? body.refreshToken
+      : getCookie(c, CUSTOMER_REFRESH_COOKIE);
 
   if (token) {
     await c.env.TOKEN_BLACKLIST.put(`token:${token}`, "blacklisted", {
@@ -256,6 +296,8 @@ routes.post("/auth/logout", canonicalCustomerAuthMiddleware, async (c) => {
   if (refreshToken) {
     await revokeCustomerRefreshToken(c.env, refreshToken);
   }
+
+  clearCustomerRefreshCookie(c);
 
   return c.json({ success: true, data: { loggedOut: true } });
 });

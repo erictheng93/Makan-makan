@@ -165,6 +165,7 @@ function request(
   method = "GET",
   body?: unknown,
   envOverrides: Record<string, unknown> = {},
+  headers: Record<string, string> = {},
 ) {
   const db = (envOverrides.DB as ReturnType<typeof createDb>) ?? createDb();
   const rateLimitKv =
@@ -190,6 +191,7 @@ function request(
         Authorization: "Bearer access-token",
         "User-Agent": "vitest",
         "CF-Connecting-IP": "203.0.113.10",
+        ...headers,
       },
     },
     env as never,
@@ -289,18 +291,23 @@ describe("customer identity routes", () => {
       { phone: "+886912345678", otp: "123456" },
       { DB: db, TOKEN_BLACKLIST: tokenKv },
     );
-    const body = await (await response).json();
+    const rawResponse = await response;
+    const body = await rawResponse.json();
 
     expect(body).toMatchObject({
       success: true,
       data: {
         accessToken: "signed:customer:customer-new:access",
-        refreshToken: expect.stringMatching(
-          /^signed:customer_refresh:customer-new:/,
-        ),
         customer: { id: "customer-new" },
       },
     });
+    expect(body.data).not.toHaveProperty("refreshToken");
+    expect(
+      decodeURIComponent(rawResponse.headers.get("set-cookie") ?? ""),
+    ).toContain(
+      "__Host-mm_customer_refresh=signed:customer_refresh:customer-new:",
+    );
+    expect(rawResponse.headers.get("set-cookie")).toContain("HttpOnly");
     expect(bcryptMocks.compare).toHaveBeenCalledWith("123456", "hash:123456");
     expect(tokenKv.put).toHaveBeenCalledWith(
       expect.stringMatching(/^customer_refresh:/),
@@ -338,8 +345,9 @@ describe("customer identity routes", () => {
     let response = await request(
       "/auth/refresh",
       "POST",
-      { refreshToken: "refresh-token-value-12345" },
+      undefined,
       { DB: db, TOKEN_BLACKLIST: tokenKv },
+      { Cookie: "__Host-mm_customer_refresh=refresh-token-value-12345" },
     ).response;
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -351,8 +359,9 @@ describe("customer identity routes", () => {
     response = await request(
       "/auth/logout",
       "POST",
-      { refreshToken: "refresh-token-value-12345" },
+      undefined,
       { TOKEN_BLACKLIST: tokenKv },
+      { Cookie: "__Host-mm_customer_refresh=refresh-token-value-12345" },
     ).response;
     expect(response.status).toBe(200);
     expect(tokenKv.put).toHaveBeenCalledWith(
