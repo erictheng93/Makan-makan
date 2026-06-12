@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, type SQL } from "drizzle-orm";
 import {
   amountFromCents,
+  businessNumber,
   receipts,
   orders,
   orderItems,
@@ -76,7 +77,7 @@ export class ReceiptService {
       }
 
       const receiptId = crypto.randomUUID();
-      const receiptNumber = `R${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+      const receiptNumber = businessNumber("R");
 
       // 生成收據內容
       const receiptContent = await this.generateReceiptContent(

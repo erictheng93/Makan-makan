@@ -10,6 +10,7 @@ import {
   cashMovements,
   cashShifts,
   amountFromCents,
+  businessNumber,
   sumMoneyAmount,
 } from "@makanmakan/database";
 import type { Refund, ProcessRefundRequest } from "../types";
@@ -131,7 +132,7 @@ export class RefundService {
       }
 
       const refundId = crypto.randomUUID();
-      const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+      const refundNumber = businessNumber("RF");
 
       const processedAt = new Date();
       await this.db.insert(refunds).values({

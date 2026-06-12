@@ -2,6 +2,7 @@
 import type { Env } from "../types/env";
 import {
   QRCodeService as DatabaseQRCodeService,
+  prefixedUuid,
   type CreateQRCodeData,
   type QRStyleData,
 } from "@makanmakan/database";
@@ -602,15 +603,15 @@ export class QRCodeService {
   // 已移除 - 現在使用 DatabaseQRCodeService.generateBulkQRCodes()
 
   private generateQRId(): string {
-    return `qr_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    return prefixedUuid("qr");
   }
 
   private generateBatchId(): string {
-    return `batch_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    return prefixedUuid("batch");
   }
 
   private generateTemplateId(): string {
-    return `tpl_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    return prefixedUuid("tpl");
   }
 
   private getBaseUrl(): string {

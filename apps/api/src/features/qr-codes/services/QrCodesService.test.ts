@@ -157,8 +157,31 @@ describe("QrCodesService", () => {
     });
   });
 
+  it("fails deterministic QR entity ID mapping without Math.random fallbacks", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Math.random should not be used for QR entity IDs");
+    });
+    mocks.qrService.generateQRCode.mockResolvedValue({
+      url: "https://cdn.example.test/qr/missing.png",
+      createdAt: "2026-06-07T00:00:00.000Z",
+    });
+
+    await expect(
+      createService().generateQR(
+        { content: "table-1", format: "png" },
+        7,
+        "restaurant-1",
+      ),
+    ).rejects.toThrow("QR code generation did not return an ID");
+    expect(randomSpy).not.toHaveBeenCalled();
+  });
+
   it("generates bulk QR batches and rejects missing owner context", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Math.random should not be used for QR batch IDs");
+    });
     mocks.qrService.generateBulkQRCodes.mockResolvedValue({
+      id: 314,
       batchId: "batch-1",
     });
 
@@ -173,11 +196,13 @@ describe("QrCodesService", () => {
         "restaurant-1",
       ),
     ).resolves.toMatchObject({
+      id: 314,
       batchId: "batch-1",
       itemCount: 1,
       status: "completed",
       progress: 100,
     });
+    expect(randomSpy).not.toHaveBeenCalled();
     expect(mocks.qrService.generateBulkQRCodes).toHaveBeenCalledWith(
       "restaurant-1",
       [1],

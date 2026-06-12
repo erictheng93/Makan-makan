@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReceiptService } from "./ReceiptService";
 
 const mocks = vi.hoisted(() => ({
@@ -146,11 +146,19 @@ describe("ReceiptService", () => {
     vi.useRealTimers();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("prints a receipt with generated content and queued print status", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("receipt-1");
-    vi.spyOn(Math, "random").mockReturnValue(0.125);
+    vi.spyOn(crypto, "randomUUID")
+      .mockReturnValueOnce("receipt-1")
+      .mockReturnValueOnce("12345678-abcd-4000-8000-123456789abc");
+    const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Math.random should not be used for receipt numbers");
+    });
     const mutations = mockMutations();
     mockSelectResults([[orderRow()], [itemRow()], [receiptRow()]]);
 
@@ -183,8 +191,10 @@ describe("ReceiptService", () => {
       printStatus: "pending",
       printAttempts: 0,
       reprintedCount: 0,
+      receiptNumber: "R1780790400000-12345678",
       createdAt: new Date("2026-06-07T00:00:00.000Z"),
     });
+    expect(randomSpy).not.toHaveBeenCalled();
     expect(
       JSON.parse((mutations.inserted[0] as { content: string }).content),
     ).toMatchObject({

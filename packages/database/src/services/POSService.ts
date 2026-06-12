@@ -24,6 +24,7 @@ import {
   avgMoneyAmount,
   sumMoneyAmount,
 } from "../utils/money-sql";
+import { businessNumber } from "./id-generation";
 
 // ==========================================
 // 類型定義
@@ -676,7 +677,7 @@ export class POSService extends BaseService {
       }
 
       const receiptId = crypto.randomUUID();
-      const receiptNumber = `R${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+      const receiptNumber = businessNumber("R");
 
       // 生成收據內容
       const receiptContent = this.generateReceiptContent(
@@ -802,7 +803,7 @@ export class POSService extends BaseService {
       }
 
       const refundId = crypto.randomUUID();
-      const refundNumber = `RF${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+      const refundNumber = businessNumber("RF");
       const refundProcessedAt = new Date();
 
       // 插入退款記錄和現金流動在同一個事務中

@@ -96,12 +96,14 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         restaurantId,
         createdBy: userId,
       });
+      const qrEntityId = this.toNumericEntityId(
+        result.id,
+        "QR code generation",
+      );
 
       // Transform result to match our entity interface
       const qrEntity: QRCodeEntity = {
-        id: result.id
-          ? parseInt(result.id.toString())
-          : Math.floor(Math.random() * 1000000),
+        id: qrEntityId,
         content: data.content,
         format: data.format || "png",
         style: data.style,
@@ -173,10 +175,14 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         tableIds,
         userId,
       );
+      const batchEntityId = this.toNumericEntityId(
+        result.id,
+        "QR batch generation",
+      );
 
       // Transform result to match our entity interface
       const batchEntity: QRBatchEntity = {
-        id: Math.floor(Math.random() * 1000000), // We'll use the batchId as string identifier
+        id: batchEntityId,
         name: `Batch-${Date.now()}`,
         format: data.format || "zip",
         itemCount: data.tables.length,
@@ -790,5 +796,21 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         "ms",
       );
     }
+  }
+
+  private toNumericEntityId(
+    id: string | number | null | undefined,
+    context: string,
+  ): number {
+    if (id === null || id === undefined || id === "") {
+      throw new Error(`${context} did not return an ID`);
+    }
+
+    const numericId = Number.parseInt(String(id), 10);
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      throw new Error(`${context} returned a non-numeric ID`);
+    }
+
+    return numericId;
   }
 }

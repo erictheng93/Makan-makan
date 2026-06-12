@@ -42,6 +42,7 @@ export { LeaveAnalyticsService } from "./LeaveAnalyticsService";
 export { PartnershipService } from "./PartnershipService";
 export { VerificationService } from "./VerificationService";
 export { FeedbackService } from "./FeedbackService";
+export { businessNumber, prefixedUuid } from "./id-generation";
 
 // Realtime broadcast: bridge to apps/realtime Durable Object
 export {

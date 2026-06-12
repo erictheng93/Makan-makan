@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RefundService } from "./RefundService";
 
 const mocks = vi.hoisted(() => ({
@@ -113,9 +113,20 @@ describe("RefundService", () => {
     vi.useRealTimers();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("processes live cash refunds and records a cash movement", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    vi.spyOn(crypto, "randomUUID")
+      .mockReturnValueOnce("refund-1")
+      .mockReturnValueOnce("abcdef12-3456-4000-8000-abcdef123456")
+      .mockReturnValueOnce("movement-1");
+    const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Math.random should not be used for refund numbers");
+    });
     const mutations = mockMutations();
     mockSelectResults([
       [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
@@ -147,17 +158,21 @@ describe("RefundService", () => {
       shiftId: "shift-1",
       refundAmount: 25,
       refundAmountCents: 2500,
+      refundNumber: "RF1780790400000-ABCDEF12",
       metadata: "{}",
     });
     expect(mutations.inserted[1]).toMatchObject({
+      id: "movement-1",
       shiftId: "shift-1",
       registerId: "register-1",
       type: "refund",
       amount: -25,
       amountCents: -2500,
+      description: "退款 - RF1780790400000-ABCDEF12",
       referenceId: 101,
       referenceType: "refund",
     });
+    expect(randomSpy).not.toHaveBeenCalled();
     vi.clearAllTimers();
     vi.useRealTimers();
   });

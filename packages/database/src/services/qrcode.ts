@@ -1,5 +1,6 @@
 import { eq, desc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
+import { prefixedUuid } from "./id-generation";
 import {
   qrCodes,
   qrTemplates,
@@ -103,8 +104,8 @@ export class QRCodeService extends BaseService {
     restaurantId: string,
     tableIds: number[],
     userId: number,
-  ): Promise<{ batchId: string; totalCodes: number }> {
-    const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  ): Promise<{ id: number; batchId: string; totalCodes: number }> {
+    const batchId = prefixedUuid("batch");
 
     // 創建批次記錄
     const batchData: NewQRBatch = {
@@ -115,7 +116,15 @@ export class QRCodeService extends BaseService {
       status: "processing",
     };
 
-    await this.db.insert(qrBatches).values(batchData);
+    const result = await this.db
+      .insert(qrBatches)
+      .values(batchData)
+      .returning({ id: qrBatches.id });
+    const batch = result[0];
+
+    if (!batch?.id) {
+      throw new Error("QR batch creation did not return an ID");
+    }
 
     // 記錄審計日誌
     await this.createAuditLog({
@@ -129,7 +138,7 @@ export class QRCodeService extends BaseService {
       }),
     });
 
-    return { batchId, totalCodes: tableIds.length };
+    return { id: batch.id, batchId, totalCodes: tableIds.length };
   }
 
   /**

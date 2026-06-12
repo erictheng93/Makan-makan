@@ -16,6 +16,7 @@ import type {
   ReceiptSummary,
   ReceiptFooter,
 } from "@makanmakan/shared-types";
+import { businessNumber } from "../id-generation";
 
 // =============================================
 // 地區特定格式化器
@@ -221,14 +222,8 @@ export class TaiwanReceiptFormatter extends RegionReceiptFormatter {
     };
   }
 
-  private generateReceiptNumber(orderId: string): string {
-    // 台灣發票號碼格式: 英文字母2碼 + 數字8碼
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const prefix =
-      letters[Math.floor(Math.random() * 26)] +
-      letters[Math.floor(Math.random() * 26)];
-    const suffix = orderId.slice(-6).padStart(8, "0");
-    return `${prefix}-${suffix}`;
+  private generateReceiptNumber(_orderId: string): string {
+    return businessNumber("TW");
   }
 
   private translatePaymentMethod(method: string): string {
