@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type PreparedResult = {
   first?: unknown;
@@ -120,10 +120,18 @@ describe("QrCodesService", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("generates QR codes with creator metadata and audit logging", async () => {
+    const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Math.random should not be used for QR entity IDs");
+    });
+    const qrId = "019469a0-0001-7000-8000-000000000001";
     mocks.qrService.generateQRCode.mockResolvedValue({
-      id: "42",
-      url: "https://cdn.example.test/qr/42.png",
+      id: qrId,
+      url: `https://cdn.example.test/qr/${qrId}.png`,
       createdAt: "2026-06-07T00:00:00.000Z",
     });
 
@@ -148,13 +156,14 @@ describe("QrCodesService", () => {
       }),
     );
     expect(result).toMatchObject({
-      id: 42,
+      id: qrId,
       content: "table-1",
       format: "png",
-      downloadUrl: "https://cdn.example.test/qr/42.png",
+      downloadUrl: `https://cdn.example.test/qr/${qrId}.png`,
       restaurantId: "restaurant-1",
       userId: 7,
     });
+    expect(randomSpy).not.toHaveBeenCalled();
   });
 
   it("fails deterministic QR entity ID mapping without Math.random fallbacks", async () => {
@@ -217,40 +226,43 @@ describe("QrCodesService", () => {
   });
 
   it("downloads single QR artifacts and records download counts", async () => {
+    const qrId = "019469a0-0001-7000-8000-000000000001";
     mocks.qrService.getQRCode.mockResolvedValue({
-      id: "42",
+      id: qrId,
       content: "table-1",
       format: "png",
       restaurantId: "restaurant-1",
       styleJson: JSON.stringify({ size: 256, foregroundColor: "#111111" }),
     });
 
-    const result = await createService().downloadQR(42, {
+    const result = await createService().downloadQR(qrId, {
       userRole: 1,
       userRestaurantId: "restaurant-1",
     } as any);
 
-    expect(mocks.qrService.recordDownload).toHaveBeenCalledWith("42", "png");
+    expect(mocks.qrService.getQRCode).toHaveBeenCalledWith(qrId);
+    expect(mocks.qrService.recordDownload).toHaveBeenCalledWith(qrId, "png");
     expect(result).toMatchObject({
       data: Buffer.from("png"),
       contentType: "image/png",
-      filename: "qr-code-42.png",
+      filename: `qr-code-${qrId}.png`,
     });
 
     mocks.qrService.getQRCode.mockResolvedValueOnce(null);
-    await expect(createService().downloadQR(404)).resolves.toBeNull();
+    await expect(createService().downloadQR("missing")).resolves.toBeNull();
   });
 
   it("rejects cross-tenant QR downloads before recording the download", async () => {
+    const qrId = "019469a0-0001-7000-8000-000000000001";
     mocks.qrService.getQRCode.mockResolvedValue({
-      id: "42",
+      id: qrId,
       content: "table-1",
       format: "png",
       restaurantId: "restaurant-2",
     });
 
     await expect(
-      (createService() as any).downloadQR(42, {
+      (createService() as any).downloadQR(qrId, {
         userRole: 1,
         userRestaurantId: "restaurant-1",
       }),

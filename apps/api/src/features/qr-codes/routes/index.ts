@@ -26,6 +26,7 @@ import type {
   QRCodeBatchParamInput,
   QRCodeIdParamInput,
   QRStatsInput,
+  QRTemplateIdParamInput,
   ShopQrCodeParamInput,
   UpdateTemplateInput,
 } from "../schemas/validation";
@@ -112,7 +113,7 @@ app.get(
     USER_ROLES.SERVICE,
     USER_ROLES.CASHIER,
   ]),
-  validateParams(qrCodeSchemas.params),
+  validateParams(qrCodeSchemas.qrCodeParams),
   async (c) => {
     const { id } = c.get("validatedParams") as QRCodeIdParamInput;
     const user = c.get("user");
@@ -220,7 +221,7 @@ app.get(
   authMiddleware,
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
+    const { id } = c.get("validatedParams") as QRTemplateIdParamInput;
     const service = new QrCodesService(c.env);
 
     const template = await service.getTemplate(id);
@@ -265,7 +266,7 @@ app.put(
   validateParams(qrCodeSchemas.params),
   validateBody(qrCodeSchemas.updateTemplate),
   async (c) => {
-    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
+    const { id } = c.get("validatedParams") as QRTemplateIdParamInput;
     const data = c.get("validatedBody") as UpdateTemplateInput;
     const service = new QrCodesService(c.env);
 
@@ -289,7 +290,7 @@ app.delete(
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(qrCodeSchemas.params),
   async (c) => {
-    const { id } = c.get("validatedParams") as QRCodeIdParamInput;
+    const { id } = c.get("validatedParams") as QRTemplateIdParamInput;
     const service = new QrCodesService(c.env);
 
     const deleted = await service.deleteTemplate(id);

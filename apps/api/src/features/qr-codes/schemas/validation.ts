@@ -64,6 +64,10 @@ const idParam = z.object({
     }),
 });
 
+const qrCodeIdParam = z.object({
+  id: z.string().min(1, "QR code ID is required"),
+});
+
 const batchIdParam = z.object({
   batchId: z.string().min(1, "Batch ID is required"),
 });
@@ -197,6 +201,7 @@ const statsQuery = z.object({
 export const qrCodeSchemas = {
   // Parameters
   params: idParam,
+  qrCodeParams: qrCodeIdParam,
   batchParams: batchIdParam,
   shopQrCode: shopQrCodeParam,
 
@@ -216,7 +221,8 @@ export const qrCodeSchemas = {
   style: qrStyleSchema,
 } as const;
 
-export type QRCodeIdParamInput = z.infer<typeof idParam>;
+export type QRCodeIdParamInput = z.infer<typeof qrCodeIdParam>;
+export type QRTemplateIdParamInput = z.infer<typeof idParam>;
 export type QRCodeBatchParamInput = z.infer<typeof batchIdParam>;
 export type ShopQrCodeParamInput = z.infer<typeof shopQrCodeParam>;
 export type GenerateQRInput = z.infer<typeof generateQRSchema>;

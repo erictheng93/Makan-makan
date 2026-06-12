@@ -112,8 +112,9 @@ describe("QR code routes", () => {
   });
 
   it("generates single and bulk QR codes with authenticated user context", async () => {
+    const qrId = "019469a0-0001-7000-8000-000000000001";
     qrServiceFns.generateQR.mockResolvedValue({
-      id: 1,
+      id: qrId,
       url: "https://cdn.example.test/qr-1.png",
     });
     qrServiceFns.generateBulkQR.mockResolvedValue({
@@ -135,7 +136,7 @@ describe("QR code routes", () => {
     expect(generateResponse.status).toBe(201);
     await expect(generateResponse.json()).resolves.toMatchObject({
       success: true,
-      data: { id: 1 },
+      data: { id: qrId },
       message: "QR code generated successfully",
     });
     expect(qrServiceFns.generateQR).toHaveBeenCalledWith(
@@ -157,10 +158,11 @@ describe("QR code routes", () => {
   });
 
   it("downloads single and batch QR assets and reports missing assets", async () => {
+    const qrId = "019469a0-0001-7000-8000-000000000001";
     qrServiceFns.downloadQR.mockResolvedValueOnce({
       data: "png-bytes",
       contentType: "image/png",
-      filename: "qr-1.png",
+      filename: `${qrId}.png`,
       restaurantId: "42",
     });
     qrServiceFns.downloadBatch.mockResolvedValueOnce({
@@ -170,23 +172,23 @@ describe("QR code routes", () => {
       restaurantId: "42",
     });
 
-    const downloadResponse = await request("/1/download");
+    const downloadResponse = await request(`/${qrId}/download`);
     const batchResponse = await request("/batch/batch-1/download");
     qrServiceFns.downloadQR.mockResolvedValueOnce(null);
     qrServiceFns.downloadBatch.mockResolvedValueOnce(null);
-    const missingDownload = await request("/404/download");
+    const missingDownload = await request("/missing/download");
     const missingBatch = await request("/batch/missing/download");
 
     expect(downloadResponse.status).toBe(200);
     expect(downloadResponse.headers.get("Content-Type")).toBe("image/png");
     expect(downloadResponse.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="qr-1.png"',
+      `attachment; filename="${qrId}.png"`,
     );
     await expect(downloadResponse.text()).resolves.toBe("png-bytes");
     expect(batchResponse.status).toBe(200);
     expect(batchResponse.headers.get("Content-Type")).toBe("application/zip");
     await expect(batchResponse.text()).resolves.toBe("zip-bytes");
-    expect(qrServiceFns.downloadQR).toHaveBeenCalledWith(1, {
+    expect(qrServiceFns.downloadQR).toHaveBeenCalledWith(qrId, {
       userRestaurantId: "42",
       userRole: 1,
     });

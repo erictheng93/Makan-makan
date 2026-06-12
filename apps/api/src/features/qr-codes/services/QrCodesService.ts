@@ -96,7 +96,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         restaurantId,
         createdBy: userId,
       });
-      const qrEntityId = this.toNumericEntityId(
+      const qrEntityId = this.toStringEntityId(
         result.id,
         "QR code generation",
       );
@@ -226,14 +226,14 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
   }
 
   async downloadQR(
-    id: number,
+    id: string,
     caller?: QRDownloadCaller,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null> {
     const timer = this.performance.startTimer("qr-codes.download");
 
     try {
       // Get QR code details first
-      const qrCode = await this.qrService.getQRCode(id.toString());
+      const qrCode = await this.qrService.getQRCode(id);
 
       if (!qrCode) {
         return null;
@@ -242,10 +242,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
       this.assertRestaurantAccess(qrCode, caller);
 
       // Record the download
-      await this.qrService.recordDownload(
-        id.toString(),
-        qrCode.format || "png",
-      );
+      await this.qrService.recordDownload(id, qrCode.format || "png");
 
       const rendered = await this.renderQRCodeArtifact(
         qrCode.content,
@@ -812,5 +809,16 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
     }
 
     return numericId;
+  }
+
+  private toStringEntityId(
+    id: string | number | null | undefined,
+    context: string,
+  ): string {
+    if (id === null || id === undefined || id === "") {
+      throw new Error(`${context} did not return an ID`);
+    }
+
+    return String(id);
   }
 }

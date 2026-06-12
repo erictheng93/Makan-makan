@@ -103,7 +103,8 @@ export interface UpdateQRTemplateData {
 }
 
 // QR Code Entity
-export interface QRCodeEntity extends BaseEntity {
+export interface QRCodeEntity {
+  id: string;
   content: string;
   format: string;
   style?: QRStyle;
@@ -114,6 +115,8 @@ export interface QRCodeEntity extends BaseEntity {
   restaurantId?: string;
   userId?: number;
   batchId?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // QR Code Batch
@@ -168,7 +171,7 @@ export interface IQRCodeService {
     restaurantId?: string,
   ): Promise<QRBatchEntity>;
   downloadQR(
-    id: number,
+    id: string,
     caller?: QRDownloadCaller,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null>;
   downloadBatch(
@@ -192,7 +195,7 @@ export interface IQRTemplateService {
 // Event types
 export type QRCodeEvent =
   | { type: "QR_GENERATED"; payload: QRCodeEntity }
-  | { type: "QR_DOWNLOADED"; payload: { id: number; downloadCount: number } }
+  | { type: "QR_DOWNLOADED"; payload: { id: string; downloadCount: number } }
   | { type: "BATCH_CREATED"; payload: QRBatchEntity }
   | { type: "BATCH_COMPLETED"; payload: QRBatchEntity }
   | { type: "TEMPLATE_CREATED"; payload: QRTemplate }
