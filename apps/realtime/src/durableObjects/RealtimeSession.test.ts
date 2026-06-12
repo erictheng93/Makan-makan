@@ -11,6 +11,7 @@ function createEnv(): Env {
     ENVIRONMENT: "test",
     API_VERSION: "1",
     JWT_SECRET: "secret",
+    REALTIME_JWT_SECRET: jwtSecret,
     RATE_LIMIT_ENABLED: "false",
     REALTIME_SESSION: {} as DurableObjectNamespace,
     RATE_LIMIT_KV: {} as KVNamespace,
@@ -24,6 +25,7 @@ function createAuthEnv(overrides: Partial<Env> = {}): Env {
   return {
     ...createEnv(),
     JWT_SECRET: jwtSecret,
+    REALTIME_JWT_SECRET: jwtSecret,
     TOKEN_BLACKLIST: undefined as unknown as KVNamespace,
     ...overrides,
   };

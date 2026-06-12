@@ -306,7 +306,7 @@ export function attachCSRFToken() {
         // Add to response headers
         c.res.headers.set("X-CSRF-Token", token);
 
-        // Set cookie (NOT HttpOnly for double-submit pattern)
+        // Set an HttpOnly cookie while returning the readable token in a header.
         const cookieOptions = buildCookieOptions(token);
         c.res.headers.append("Set-Cookie", cookieOptions);
       }

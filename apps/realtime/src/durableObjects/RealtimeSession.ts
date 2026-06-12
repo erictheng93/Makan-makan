@@ -81,9 +81,12 @@ export class RealtimeSession implements DurableObject {
     }
 
     // 驗證 token（包含黑名單檢查 - 使用專用 TOKEN_BLACKLIST 命名空間）
-    const jwtSecret =
-      this.env.REALTIME_JWT_SECRET ||
-      (this.env.ENVIRONMENT === "test" ? this.env.JWT_SECRET : "");
+    const jwtSecret = this.env.REALTIME_JWT_SECRET || "";
+    if (!jwtSecret) {
+      console.error("REALTIME_JWT_SECRET is not configured");
+      return new Response("Server configuration error", { status: 500 });
+    }
+
     const verification = await verifyWebSocketToken(
       token,
       jwtSecret,
