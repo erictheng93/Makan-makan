@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { verify } from "hono/jwt";
 import routes from "./index";
 
 const mocks = vi.hoisted(() => ({
@@ -38,6 +39,7 @@ vi.mock("../services/KitchenService", () => ({
 function createEnv() {
   const store = new Map<string, string>();
   return {
+    JWT_SECRET: "test-jwt-secret-for-kitchen-routes-32",
     CACHE_KV: {
       get: vi.fn(async (key: string, type?: string) => {
         const value = store.get(key) ?? null;
@@ -189,6 +191,37 @@ describe("kitchen routes", () => {
       "restaurant-1",
     );
     expect(mocks.getKitchenOrders).toHaveBeenCalledWith("restaurant-1", 22);
+  });
+
+  it("issues short-lived scoped tokens for kitchen SSE connections", async () => {
+    const env = createEnv();
+    const response = await routes.fetch(
+      new Request("https://kitchen.test/restaurant-1/events/token", {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      data: { sseToken: string; expiresIn: number };
+    };
+
+    expect(body.data.expiresIn).toBe(60);
+    const payload = await verify(body.data.sseToken, env.JWT_SECRET, "HS256");
+    expect(payload).toMatchObject({
+      id: 22,
+      role: 2,
+      restaurantId: "restaurant-1",
+      purpose: "kitchen_sse",
+      aud: "kitchen_sse",
+    });
+    expect(payload.exp).toBe(payload.iat + 60);
+    expect(mocks.validateChefAccess).toHaveBeenCalledWith(
+      22,
+      2,
+      "restaurant-1",
+    );
   });
 
   it("updates an order item through the canonical route", async () => {
