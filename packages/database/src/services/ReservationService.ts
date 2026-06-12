@@ -1,8 +1,14 @@
 import { eq, sql, type SQL } from "drizzle-orm";
-import { BaseService } from "./base";
+import type { D1Database } from "@cloudflare/workers-types";
+import { BaseService, type CloudflareEnv } from "./base";
 import { reservations } from "../schema/reservations";
 import type { NewReservation } from "../schema/reservations";
 import { tables } from "../schema/tables";
+import {
+  ReservationNotificationService,
+  type ReservationNotificationType,
+  type ReservationNotifier,
+} from "./ReservationNotificationService";
 import type {
   Reservation,
   ReservationStatus,
@@ -54,11 +60,24 @@ interface ReservationDbRow {
 const nullToUndefined = <T>(value: T | null | undefined): T | undefined =>
   value ?? undefined;
 
+export type ReservationServiceOptions = CloudflareEnv & {
+  reservationNotifier?: ReservationNotifier;
+};
+
 /**
  * 訂位系統服務
  * 負責訂位管理、時段容量管理、智能桌位分配
  */
 export class ReservationService extends BaseService {
+  private reservationNotifier: ReservationNotifier;
+
+  constructor(d1: D1Database, options: ReservationServiceOptions) {
+    super(d1, options);
+    this.reservationNotifier =
+      options.reservationNotifier ??
+      new ReservationNotificationService(d1, options);
+  }
+
   // ==========================================
   // 訂位管理 (Reservation Management)
   // ==========================================
@@ -388,9 +407,12 @@ export class ReservationService extends BaseService {
         WHERE id = ${id}
       `);
 
-      // TODO: 發送確認通知
+      const updated = await this.getReservationById(id);
+      if (updated) {
+        await this.dispatchReservationNotification("confirmed", updated);
+      }
 
-      return this.getReservationById(id) as Promise<ReservationResponse>;
+      return updated as ReservationResponse;
     } catch (error) {
       console.error("Error confirming reservation:", error);
       throw error;
@@ -521,9 +543,16 @@ export class ReservationService extends BaseService {
         await this.updateTableStatus(reservation.tableId, "available");
       }
 
-      // TODO: 發送取消通知
+      const updated = await this.getReservationById(id);
+      if (updated) {
+        await this.dispatchReservationNotification(
+          "cancelled",
+          updated,
+          reason,
+        );
+      }
 
-      return this.getReservationById(id) as Promise<ReservationResponse>;
+      return updated as ReservationResponse;
     } catch (error) {
       console.error("Error cancelling reservation:", error);
       throw error;
@@ -563,9 +592,12 @@ export class ReservationService extends BaseService {
         await this.updateTableStatus(reservation.tableId, "available");
       }
 
-      // TODO: 更新顧客 No Show 記錄
+      const updated = await this.getReservationById(id);
+      if (updated) {
+        await this.dispatchReservationNotification("no_show", updated);
+      }
 
-      return this.getReservationById(id) as Promise<ReservationResponse>;
+      return updated as ReservationResponse;
     } catch (error) {
       console.error("Error marking no show:", error);
       throw error;
@@ -863,6 +895,23 @@ export class ReservationService extends BaseService {
   // ==========================================
   // 輔助方法 (Helper Methods)
   // ==========================================
+
+  private async dispatchReservationNotification(
+    type: ReservationNotificationType,
+    reservation: ReservationResponse,
+    reason?: string,
+  ): Promise<void> {
+    try {
+      await this.reservationNotifier.send({
+        type,
+        reservationId: reservation.id,
+        reservation,
+        reason,
+      });
+    } catch (error) {
+      console.error("Reservation notification dispatch failed:", error);
+    }
+  }
 
   /**
    * 驗證訂位資料

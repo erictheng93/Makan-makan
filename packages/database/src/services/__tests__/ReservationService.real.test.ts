@@ -186,6 +186,114 @@ describe("ReservationService.updateReservation — real D1", () => {
   });
 });
 
+describe("ReservationService status notifications — real D1", () => {
+  it("dispatches a confirmation notification after confirming a reservation", async () => {
+    const sent: unknown[] = [];
+    const serviceWithNotifier = new ReservationService(
+      testDb.db as D1Database,
+      {
+        JWT_SECRET: "test",
+        NODE_ENV: "test",
+        reservationNotifier: {
+          send: async (event: unknown) => {
+            sent.push(event);
+          },
+        },
+      } as CloudflareEnv,
+    );
+    await seedReservation(testDb, "rsv-confirm-notify", {
+      reservationDate: "2026-07-01",
+      reservationTime: "18:30",
+    });
+
+    await serviceWithNotifier.confirmReservation("rsv-confirm-notify");
+
+    expect(sent).toEqual([
+      expect.objectContaining({
+        type: "confirmed",
+        reservationId: "rsv-confirm-notify",
+        reservation: expect.objectContaining({
+          id: "rsv-confirm-notify",
+          status: "confirmed",
+        }),
+      }),
+    ]);
+  });
+
+  it("does not roll back cancellation when notification dispatch fails", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const serviceWithNotifier = new ReservationService(
+      testDb.db as D1Database,
+      {
+        JWT_SECRET: "test",
+        NODE_ENV: "test",
+        reservationNotifier: {
+          send: async () => {
+            throw new Error("provider down");
+          },
+        },
+      } as CloudflareEnv,
+    );
+    await seedReservation(testDb, "rsv-cancel-notify");
+
+    await expect(
+      serviceWithNotifier.cancelReservation(
+        "rsv-cancel-notify",
+        "guest request",
+      ),
+    ).resolves.toMatchObject({
+      id: "rsv-cancel-notify",
+      status: "cancelled",
+    });
+
+    const row = await testDb.db
+      .prepare(`SELECT status FROM reservations WHERE id = ?`)
+      .bind("rsv-cancel-notify")
+      .first<{ status: string }>();
+    expect(row?.status).toBe("cancelled");
+    expect(consoleError).toHaveBeenCalledWith(
+      "Reservation notification dispatch failed:",
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
+  });
+
+  it("dispatches a no-show notification after marking a reservation no-show", async () => {
+    const sent: unknown[] = [];
+    const serviceWithNotifier = new ReservationService(
+      testDb.db as D1Database,
+      {
+        JWT_SECRET: "test",
+        NODE_ENV: "test",
+        reservationNotifier: {
+          send: async (event: unknown) => {
+            sent.push(event);
+          },
+        },
+      } as CloudflareEnv,
+    );
+    await seedReservation(testDb, "rsv-no-show-notify", {
+      reservationDate: "2026-07-02",
+      reservationTime: "19:00",
+    });
+
+    await serviceWithNotifier.markNoShow("rsv-no-show-notify");
+
+    expect(sent).toEqual([
+      expect.objectContaining({
+        type: "no_show",
+        reservationId: "rsv-no-show-notify",
+        reservation: expect.objectContaining({
+          id: "rsv-no-show-notify",
+          status: "no_show",
+        }),
+      }),
+    ]);
+  });
+});
+
 describe("ReservationService.listReservations — real D1", () => {
   it("filters by restaurantId and returns matching rows + total", async () => {
     await seedRestaurant(testDb, OTHER_RESTAURANT_ID);

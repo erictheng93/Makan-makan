@@ -36,6 +36,9 @@ export type NotificationCategory =
   | "swap_request_approved"
   | "swap_request_rejected"
   | "shift_reminder"
+  | "reservation_confirmed"
+  | "reservation_cancelled"
+  | "reservation_no_show"
   // Waiting list notifications
   | "waiting_list_confirmed"
   | "waiting_list_called"
@@ -498,6 +501,72 @@ export const notificationTemplates: Record<
       "shiftName",
       "startTime",
       "endTime",
+    ],
+  },
+
+  reservation_confirmed: {
+    subject: "Reservation Confirmed - {{reservationDate}} {{reservationTime}}",
+    body: `
+      <h2>Reservation Confirmed</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your reservation has been confirmed.</p>
+      <ul>
+        <li><strong>Date:</strong> {{reservationDate}}</li>
+        <li><strong>Time:</strong> {{reservationTime}}</li>
+        <li><strong>Party size:</strong> {{partySize}}</li>
+        <li><strong>Confirmation code:</strong> {{confirmationCode}}</li>
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "reservationDate",
+      "reservationTime",
+      "partySize",
+      "confirmationCode",
+    ],
+  },
+  reservation_cancelled: {
+    subject: "Reservation Cancelled - {{reservationDate}} {{reservationTime}}",
+    body: `
+      <h2>Reservation Cancelled</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your reservation has been cancelled.</p>
+      <ul>
+        <li><strong>Date:</strong> {{reservationDate}}</li>
+        <li><strong>Time:</strong> {{reservationTime}}</li>
+        <li><strong>Party size:</strong> {{partySize}}</li>
+        {{#if reason}}
+        <li><strong>Reason:</strong> {{reason}}</li>
+        {{/if}}
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "reservationDate",
+      "reservationTime",
+      "partySize",
+      "reason",
+    ],
+  },
+  reservation_no_show: {
+    subject: "Reservation No-Show - {{reservationDate}} {{reservationTime}}",
+    body: `
+      <h2>Reservation No-Show</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your reservation was marked as no-show.</p>
+      <ul>
+        <li><strong>Date:</strong> {{reservationDate}}</li>
+        <li><strong>Time:</strong> {{reservationTime}}</li>
+        <li><strong>Party size:</strong> {{partySize}}</li>
+        <li><strong>Confirmation code:</strong> {{confirmationCode}}</li>
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "reservationDate",
+      "reservationTime",
+      "partySize",
+      "confirmationCode",
     ],
   },
 
