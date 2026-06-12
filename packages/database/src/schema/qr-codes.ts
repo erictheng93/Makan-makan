@@ -11,6 +11,8 @@ export const qrCodes = sqliteTable("qr_codes", {
   format: text("format").notNull().default("png"),
   url: text("url"),
   metadataJson: text("metadata_json"),
+  restaurantId: text("restaurant_id"),
+  createdBy: integer("created_by"),
 
   // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
   createdAt: integer("created_at_ms", { mode: "timestamp_ms" })

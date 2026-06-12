@@ -161,11 +161,13 @@ describe("QR code routes", () => {
       data: "png-bytes",
       contentType: "image/png",
       filename: "qr-1.png",
+      restaurantId: "42",
     });
     qrServiceFns.downloadBatch.mockResolvedValueOnce({
       data: "zip-bytes",
       contentType: "application/zip",
       filename: "batch-1.zip",
+      restaurantId: "42",
     });
 
     const downloadResponse = await request("/1/download");
@@ -184,6 +186,14 @@ describe("QR code routes", () => {
     expect(batchResponse.status).toBe(200);
     expect(batchResponse.headers.get("Content-Type")).toBe("application/zip");
     await expect(batchResponse.text()).resolves.toBe("zip-bytes");
+    expect(qrServiceFns.downloadQR).toHaveBeenCalledWith(1, {
+      userRestaurantId: "42",
+      userRole: 1,
+    });
+    expect(qrServiceFns.downloadBatch).toHaveBeenCalledWith("batch-1", {
+      userRestaurantId: "42",
+      userRole: 1,
+    });
     expect(missingDownload.status).toBe(404);
     await expect(missingDownload.json()).resolves.toMatchObject({
       error: { code: "QR_CODE_NOT_FOUND" },
@@ -206,13 +216,36 @@ describe("QR code routes", () => {
       success: true,
       data: { total: 5 },
     });
-    expect(qrServiceFns.getStatistics).toHaveBeenCalledWith("99");
+    expect(qrServiceFns.getStatistics).toHaveBeenCalledWith("42");
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toMatchObject({
       success: true,
       data: [{ id: 1, name: "Modern" }],
     });
     expect(qrServiceFns.listTemplates).toHaveBeenCalledWith("modern");
+  });
+
+  it("allows admins to request QR statistics for any restaurant or globally", async () => {
+    auth.user = { id: 1, role: 0, restaurantId: null };
+    qrServiceFns.getStatistics
+      .mockResolvedValueOnce({ total: 9 })
+      .mockResolvedValueOnce({ total: 20 });
+
+    const scopedResponse = await request("/stats?restaurantId=99");
+    const globalResponse = await request("/stats");
+
+    expect(scopedResponse.status).toBe(200);
+    await expect(scopedResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: { total: 9 },
+    });
+    expect(globalResponse.status).toBe(200);
+    await expect(globalResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: { total: 20 },
+    });
+    expect(qrServiceFns.getStatistics).toHaveBeenNthCalledWith(1, "99");
+    expect(qrServiceFns.getStatistics).toHaveBeenNthCalledWith(2, undefined);
   });
 
   it("creates, reads, updates, and deletes templates", async () => {

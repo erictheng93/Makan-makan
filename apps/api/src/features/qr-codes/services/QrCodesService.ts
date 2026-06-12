@@ -11,6 +11,7 @@ import {
   SimplePerformanceTracker,
 } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
+import { forbidden } from "../../../shared/utils/api-error";
 import { QRCodeService } from "@makanmakan/database";
 import * as QRCode from "qrcode";
 import { strToU8, zipSync } from "fflate";
@@ -25,6 +26,7 @@ import type {
   CreateQRTemplateData,
   UpdateQRTemplateData,
   QRStatistics,
+  QRDownloadCaller,
   IQRCodeService,
   IQRTemplateService,
 } from "../types";
@@ -34,6 +36,22 @@ interface QRBatchStatus {
   total_codes?: number | null;
   restaurantId?: string | number | null;
   restaurant_id?: string | number | null;
+}
+
+interface QROwnedResource {
+  restaurantId?: string | number | null;
+  restaurant_id?: string | number | null;
+}
+
+interface CountRow {
+  count?: number | string | bigint | null;
+}
+
+interface PopularTemplateRow {
+  id?: number | string | null;
+  name?: string | null;
+  usage_count?: number | string | bigint | null;
+  usageCount?: number | string | bigint | null;
 }
 
 export class QrCodesService implements IQRCodeService, IQRTemplateService {
@@ -75,6 +93,8 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         format: data.format || "png",
         style: data.style,
         metadata: data.metadata,
+        restaurantId,
+        createdBy: userId,
       });
 
       // Transform result to match our entity interface
@@ -201,6 +221,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
   async downloadQR(
     id: number,
+    caller?: QRDownloadCaller,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null> {
     const timer = this.performance.startTimer("qr-codes.download");
 
@@ -211,6 +232,8 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
       if (!qrCode) {
         return null;
       }
+
+      this.assertRestaurantAccess(qrCode, caller);
 
       // Record the download
       await this.qrService.recordDownload(
@@ -248,6 +271,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
   async downloadBatch(
     batchId: string,
+    caller?: QRDownloadCaller,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null> {
     const timer = this.performance.startTimer("qr-codes.downloadBatch");
 
@@ -258,6 +282,8 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
       if (!batch) {
         return null;
       }
+
+      this.assertRestaurantAccess(batch, caller);
 
       const archive = await this.renderBatchArchive(batchId, batch);
 
@@ -298,22 +324,9 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         return cached;
       }
 
-      // Get statistics from the existing QRCodeService
-      const stats = await this.qrService.getQRCodeStats();
-
-      // Transform to match our interface
-      const qrStats: QRStatistics = {
-        totalQRCodes: stats.totalCodes || 0,
-        totalDownloads: stats.totalDownloads || 0,
-        totalTemplates: 0, // Will be calculated separately
-        popularTemplates: (stats.popularTemplates || []).map((template) => ({
-          id: template.id,
-          name: template.name,
-          usage_count: template.usageCount || 0,
-        })),
-        formatDistribution: {},
-        recentActivity: [],
-      };
+      const qrStats = restaurantId
+        ? await this.getRestaurantStatistics(restaurantId)
+        : await this.getGlobalStatistics();
 
       // Cache the result
       await this.cache.set(cacheKey, qrStats, CACHE_TTL.MEDIUM);
@@ -334,6 +347,108 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         "ms",
       );
     }
+  }
+
+  private assertRestaurantAccess(
+    resource: QROwnedResource,
+    caller?: QRDownloadCaller,
+  ): void {
+    if (caller?.userRole === 0) {
+      return;
+    }
+
+    const resourceRestaurantId = String(
+      resource.restaurantId ?? resource.restaurant_id ?? "",
+    );
+
+    if (
+      !caller?.userRestaurantId ||
+      !resourceRestaurantId ||
+      caller.userRestaurantId !== resourceRestaurantId
+    ) {
+      throw forbidden("Access denied");
+    }
+  }
+
+  private async getGlobalStatistics(): Promise<QRStatistics> {
+    const stats = await this.qrService.getQRCodeStats();
+
+    return {
+      totalQRCodes: stats.totalCodes || 0,
+      totalDownloads: stats.totalDownloads || 0,
+      totalTemplates: 0,
+      popularTemplates: (stats.popularTemplates || []).map((template) => ({
+        id: template.id,
+        name: template.name,
+        usage_count: template.usageCount || 0,
+      })),
+      formatDistribution: {},
+      recentActivity: [],
+    };
+  }
+
+  private async getRestaurantStatistics(
+    restaurantId: string,
+  ): Promise<QRStatistics> {
+    const [totalQRCodes, totalDownloads, totalTemplates, popularTemplates] =
+      await Promise.all([
+        this.countByRestaurant(
+          "SELECT COUNT(*) AS count FROM qr_codes WHERE restaurant_id = ?",
+          restaurantId,
+        ),
+        this.countByRestaurant(
+          `SELECT COUNT(*) AS count
+           FROM qr_downloads downloads
+           INNER JOIN qr_codes codes ON codes.id = downloads.qr_code_id
+          WHERE codes.restaurant_id = ?`,
+          restaurantId,
+        ),
+        this.countByRestaurant(
+          "SELECT COUNT(*) AS count FROM qr_templates WHERE restaurant_id = ?",
+          restaurantId,
+        ),
+        this.getPopularTemplatesByRestaurant(restaurantId),
+      ]);
+
+    return {
+      totalQRCodes,
+      totalDownloads,
+      totalTemplates,
+      popularTemplates,
+      formatDistribution: {},
+      recentActivity: [],
+    };
+  }
+
+  private async countByRestaurant(
+    sql: string,
+    restaurantId: string,
+  ): Promise<number> {
+    const row = await this.env.DB.prepare(sql)
+      .bind(restaurantId)
+      .first<CountRow>();
+
+    return Number(row?.count ?? 0);
+  }
+
+  private async getPopularTemplatesByRestaurant(
+    restaurantId: string,
+  ): Promise<QRStatistics["popularTemplates"]> {
+    const result = await this.env.DB.prepare(
+      `SELECT id, name, COALESCE(usage_count, 0) AS usage_count
+         FROM qr_templates
+        WHERE restaurant_id = ?
+        ORDER BY usage_count DESC
+        LIMIT 5`,
+    )
+      .bind(restaurantId)
+      .all<PopularTemplateRow>();
+
+    return (result.results || []).map((template) => ({
+      id: Number(template.id ?? 0),
+      name: String(template.name ?? ""),
+      usage_count: Number(template.usage_count ?? template.usageCount ?? 0),
+    }));
   }
 
   private parseQRStyle(styleJson: string | null | undefined) {

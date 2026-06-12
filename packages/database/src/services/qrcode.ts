@@ -11,6 +11,7 @@ import {
   type NewQRDownload,
   type NewQRBatch,
   type QRCode,
+  type QRBatch,
   type QRTemplate,
 } from "../schema";
 
@@ -50,12 +51,10 @@ export interface QRStyleData {
 export interface CreateQRCodeData {
   content: string;
   format?: "png" | "svg" | "pdf" | "jpeg";
+  restaurantId?: string | number | null;
+  createdBy?: number | null;
   style?: QRStyleData;
-  metadata?: {
-    title?: string;
-    description?: string;
-    [key: string]: any;
-  };
+  metadata?: unknown;
 }
 
 export interface CreateQRTemplateData {
@@ -87,6 +86,9 @@ export class QRCodeService extends BaseService {
       format: data.format || "png",
       styleJson: data.style ? JSON.stringify(data.style) : null,
       metadataJson: data.metadata ? JSON.stringify(data.metadata) : null,
+      restaurantId:
+        data.restaurantId == null ? null : String(data.restaurantId),
+      createdBy: data.createdBy ?? null,
       url: null, // Will be set after actual QR generation
     };
 
@@ -279,7 +281,7 @@ export class QRCodeService extends BaseService {
   /**
    * 獲取批次狀態
    */
-  async getBatchStatus(batchId: string): Promise<any> {
+  async getBatchStatus(batchId: string): Promise<QRBatch | null> {
     const result = await this.db
       .select()
       .from(qrBatches)

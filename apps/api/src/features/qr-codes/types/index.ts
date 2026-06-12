@@ -150,6 +150,11 @@ export interface QRStatistics {
   }>;
 }
 
+export interface QRDownloadCaller {
+  userRole: number;
+  userRestaurantId?: string;
+}
+
 // Service interfaces
 export interface IQRCodeService {
   generateQR(
@@ -164,9 +169,11 @@ export interface IQRCodeService {
   ): Promise<QRBatchEntity>;
   downloadQR(
     id: number,
+    caller?: QRDownloadCaller,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null>;
   downloadBatch(
     batchId: string,
+    caller?: QRDownloadCaller,
   ): Promise<{ data: Buffer; contentType: string; filename: string } | null>;
   getStatistics(restaurantId?: string): Promise<QRStatistics>;
 }

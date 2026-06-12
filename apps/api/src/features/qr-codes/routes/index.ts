@@ -13,7 +13,7 @@ import {
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
 import { createSuccessResponse } from "../../../shared/utils";
-import { notFound } from "../../../shared/utils/api-error";
+import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { marketSlugParamSchema } from "../../markets/schemas/validation";
 
 // Import schemas
@@ -29,11 +29,23 @@ import type {
   ShopQrCodeParamInput,
   UpdateTemplateInput,
 } from "../schemas/validation";
+import type { QRDownloadCaller } from "../types";
 
 // Import services
 import { QrCodesService } from "../services/QrCodesService";
 
 const app = new Hono<{ Bindings: Env }>();
+
+function qrDownloadCaller(user: {
+  role: number;
+  restaurantId?: string | number | null;
+}): QRDownloadCaller {
+  return {
+    userRole: user.role,
+    userRestaurantId:
+      user.restaurantId == null ? undefined : String(user.restaurantId),
+  };
+}
 
 // POST /generate - Generate single QR code
 app.post(
@@ -93,12 +105,20 @@ app.post(
 app.get(
   "/:id/download",
   authMiddleware,
+  requireRole([
+    USER_ROLES.ADMIN,
+    USER_ROLES.OWNER,
+    USER_ROLES.CHEF,
+    USER_ROLES.SERVICE,
+    USER_ROLES.CASHIER,
+  ]),
   validateParams(qrCodeSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams") as QRCodeIdParamInput;
+    const user = c.get("user");
     const service = new QrCodesService(c.env);
 
-    const result = await service.downloadQR(id);
+    const result = await service.downloadQR(id, qrDownloadCaller(user));
 
     if (!result) {
       throw notFound("QR code not found", "QR_CODE_NOT_FOUND");
@@ -117,12 +137,20 @@ app.get(
 app.get(
   "/batch/:batchId/download",
   authMiddleware,
+  requireRole([
+    USER_ROLES.ADMIN,
+    USER_ROLES.OWNER,
+    USER_ROLES.CHEF,
+    USER_ROLES.SERVICE,
+    USER_ROLES.CASHIER,
+  ]),
   validateParams(qrCodeSchemas.batchParams),
   async (c) => {
     const { batchId } = c.get("validatedParams") as QRCodeBatchParamInput;
+    const user = c.get("user");
     const service = new QrCodesService(c.env);
 
-    const result = await service.downloadBatch(batchId);
+    const result = await service.downloadBatch(batchId, qrDownloadCaller(user));
 
     if (!result) {
       throw notFound("Batch not found", "BATCH_NOT_FOUND");
@@ -148,13 +176,20 @@ app.get(
     const user = c.get("user");
     const service = new QrCodesService(c.env);
 
-    // Use restaurant ID from query or user context
     const restaurantId =
-      query.restaurantId !== undefined
-        ? String(query.restaurantId)
-        : user?.restaurantId !== undefined
-          ? String(user.restaurantId)
-          : undefined;
+      user?.role === USER_ROLES.ADMIN
+        ? query.restaurantId !== undefined
+          ? String(query.restaurantId)
+          : user.restaurantId == null
+            ? undefined
+            : String(user.restaurantId)
+        : user?.restaurantId == null
+          ? undefined
+          : String(user.restaurantId);
+
+    if (user?.role !== USER_ROLES.ADMIN && !restaurantId) {
+      throw badRequest("Restaurant ID is required");
+    }
 
     const stats = await service.getStatistics(restaurantId);
 
