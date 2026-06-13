@@ -1220,10 +1220,14 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
       >
   > = [];
   for (const payment of refundablePayments) {
-    const refund = await refundPaymentTransaction(c.env, {
-      transactionId: payment.paymentId!,
-      reason: parsed.data.reason,
-    });
+    const refund = await refundPaymentTransaction(
+      c.env,
+      {
+        transactionId: payment.paymentId!,
+        reason: parsed.data.reason,
+      },
+      { user: c.get("user") },
+    );
     refunds.push({
       ...refund,
       restaurantId: payment.restaurantId,

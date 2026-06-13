@@ -24,9 +24,18 @@ const validateVoucherAndPrice = vi.hoisted(() => vi.fn());
 const redeemVoucher = vi.hoisted(() => vi.fn());
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
 const originalFetch = globalThis.fetch;
+const adminUser = vi.hoisted(() => ({
+  id: 1,
+  username: "admin",
+  role: 0,
+  restaurantId: "platform",
+}));
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (_c, next) => next()),
+  authMiddleware: vi.fn(async (c, next) => {
+    c.set("user", adminUser);
+    await next();
+  }),
   requireRole: vi.fn(
     () => async (_c: unknown, next: () => Promise<void>) => next(),
   ),
