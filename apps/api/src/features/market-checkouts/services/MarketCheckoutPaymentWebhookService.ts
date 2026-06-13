@@ -1,4 +1,10 @@
-import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
+import { drizzle } from "drizzle-orm/d1";
+import { desc, eq, or, sql } from "drizzle-orm";
+import {
+  PAYMENT_AUDIT_EVENT_TYPES,
+  marketCheckoutPayments,
+  marketCheckoutSessions,
+} from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import { PaymentAuditService } from "../../billing/services/PaymentAuditService";
@@ -49,9 +55,9 @@ interface MarketCheckoutPaymentRow {
   refunded_amount_cents: number;
   currency: string | null;
   country_code: string | null;
-  child_payment_ids: string | null;
+  child_payment_ids: string | string[] | null;
   provider_transaction_id: string | null;
-  provider_payload: string | null;
+  provider_payload: string | Record<string, unknown> | null;
   created_at_ms: number;
   updated_at_ms: number;
   session_payment_summary: string | Record<string, unknown> | null;
@@ -69,7 +75,11 @@ export interface MarketCheckoutPaymentWebhookResult {
 }
 
 export class MarketCheckoutPaymentWebhookService {
-  constructor(private readonly env: Env) {}
+  private readonly db: ReturnType<typeof drizzle>;
+
+  constructor(private readonly env: Env) {
+    this.db = drizzle(env.DB);
+  }
 
   async handle(
     provider: string,
@@ -135,34 +145,33 @@ export class MarketCheckoutPaymentWebhookService {
       },
     });
 
-    await this.env.DB.prepare(
-      `UPDATE market_checkout_payments
-          SET status = ?,
-              paid_amount_cents = ?,
-              refunded_amount_cents = ?,
-              provider_transaction_id = COALESCE(?, provider_transaction_id),
-              provider_payload = ?,
-              updated_at_ms = ?,
-              completed_at_ms = CASE WHEN ? = 'paid' THEN COALESCE(completed_at_ms, ?) ELSE completed_at_ms END,
-              refunded_at_ms = CASE WHEN ? IN ('refunded', 'partial_refunded') THEN ? ELSE refunded_at_ms END,
-              failed_at_ms = CASE WHEN ? = 'failed' THEN COALESCE(failed_at_ms, ?) ELSE failed_at_ms END
-        WHERE payment_id = ?`,
-    )
-      .bind(
+    const nowDate = new Date(now);
+    await this.db
+      .update(marketCheckoutPayments)
+      .set({
         status,
-        amounts.paidAmountCents,
-        amounts.refundedAmountCents,
-        providerTransactionId,
-        JSON.stringify(providerPayload),
-        now,
-        status,
-        now,
-        status,
-        now,
-        status,
-        now,
-        row.payment_id,
-      )
+        paidAmountCents: amounts.paidAmountCents,
+        refundedAmountCents: amounts.refundedAmountCents,
+        providerTransactionId:
+          providerTransactionId == null
+            ? sql`${marketCheckoutPayments.providerTransactionId}`
+            : providerTransactionId,
+        providerPayload,
+        updatedAt: nowDate,
+        completedAt:
+          status === "paid"
+            ? sql`COALESCE(${marketCheckoutPayments.completedAt}, ${nowDate})`
+            : sql`${marketCheckoutPayments.completedAt}`,
+        refundedAt:
+          status === "refunded" || status === "partial_refunded"
+            ? nowDate
+            : sql`${marketCheckoutPayments.refundedAt}`,
+        failedAt:
+          status === "failed"
+            ? sql`COALESCE(${marketCheckoutPayments.failedAt}, ${nowDate})`
+            : sql`${marketCheckoutPayments.failedAt}`,
+      })
+      .where(eq(marketCheckoutPayments.paymentId, row.payment_id))
       .run();
 
     const paymentSummary = updatePaymentSummary(row, {
@@ -174,14 +183,14 @@ export class MarketCheckoutPaymentWebhookService {
       updatedAtMs: now,
     });
 
-    await this.env.DB.prepare(
-      `UPDATE market_checkout_sessions
-          SET payment_status = ?,
-              payment_summary = ?,
-              updated_at_ms = ?
-        WHERE id = ?`,
-    )
-      .bind(status, JSON.stringify(paymentSummary), now, row.checkout_id)
+    await this.db
+      .update(marketCheckoutSessions)
+      .set({
+        paymentStatus: status,
+        paymentSummary,
+        updatedAt: nowDate,
+      })
+      .where(eq(marketCheckoutSessions.id, row.checkout_id))
       .run();
 
     await Promise.all([
@@ -221,30 +230,32 @@ export class MarketCheckoutPaymentWebhookService {
       );
     }
 
-    return this.env.DB.prepare(
-      `SELECT p.payment_id, p.checkout_id, p.market_id, p.provider,
-              p.split_mode, p.idempotency_key, p.status, p.amount_cents,
-              p.paid_amount_cents, p.refunded_amount_cents, p.currency,
-              p.country_code, p.child_payment_ids, p.provider_transaction_id,
-              p.provider_payload, p.created_at_ms, p.updated_at_ms,
-              s.payment_summary AS session_payment_summary
-         FROM market_checkout_payments p
-         JOIN market_checkout_sessions s ON s.id = p.checkout_id
-        WHERE (? IS NOT NULL AND p.payment_id = ?)
-           OR (? IS NOT NULL AND p.checkout_id = ?)
-           OR (? IS NOT NULL AND p.provider_transaction_id = ?)
-        ORDER BY p.updated_at_ms DESC
-        LIMIT 1`,
-    )
-      .bind(
-        identifiers.paymentId ?? null,
-        identifiers.paymentId ?? null,
-        identifiers.checkoutId ?? null,
-        identifiers.checkoutId ?? null,
-        identifiers.providerTransactionId ?? null,
-        identifiers.providerTransactionId ?? null,
+    return this.db
+      .select(marketCheckoutPaymentRowSelection)
+      .from(marketCheckoutPayments)
+      .innerJoin(
+        marketCheckoutSessions,
+        eq(marketCheckoutSessions.id, marketCheckoutPayments.checkoutId),
       )
-      .first<MarketCheckoutPaymentRow>();
+      .where(
+        or(
+          identifiers.paymentId == null
+            ? undefined
+            : eq(marketCheckoutPayments.paymentId, identifiers.paymentId),
+          identifiers.checkoutId == null
+            ? undefined
+            : eq(marketCheckoutPayments.checkoutId, identifiers.checkoutId),
+          identifiers.providerTransactionId == null
+            ? undefined
+            : eq(
+                marketCheckoutPayments.providerTransactionId,
+                identifiers.providerTransactionId,
+              ),
+        ),
+      )
+      .orderBy(desc(marketCheckoutPayments.updatedAt))
+      .limit(1)
+      .get();
   }
 
   private async updateCachedSession(
@@ -355,6 +366,33 @@ export class MarketCheckoutPaymentWebhookService {
     }
   }
 }
+
+const marketCheckoutPaymentRowSelection = {
+  payment_id: marketCheckoutPayments.paymentId,
+  checkout_id: marketCheckoutPayments.checkoutId,
+  market_id: marketCheckoutPayments.marketId,
+  provider: marketCheckoutPayments.provider,
+  split_mode: marketCheckoutPayments.splitMode,
+  idempotency_key: marketCheckoutPayments.idempotencyKey,
+  status: marketCheckoutPayments.status,
+  amount_cents: marketCheckoutPayments.amountCents,
+  paid_amount_cents: marketCheckoutPayments.paidAmountCents,
+  refunded_amount_cents: marketCheckoutPayments.refundedAmountCents,
+  currency: marketCheckoutPayments.currency,
+  country_code: marketCheckoutPayments.countryCode,
+  child_payment_ids: sql<
+    string | null
+  >`${marketCheckoutPayments.childPaymentIds}`,
+  provider_transaction_id: marketCheckoutPayments.providerTransactionId,
+  provider_payload: sql<
+    string | null
+  >`${marketCheckoutPayments.providerPayload}`,
+  created_at_ms: marketCheckoutPayments.createdAt,
+  updated_at_ms: marketCheckoutPayments.updatedAt,
+  session_payment_summary: sql<
+    string | null
+  >`${marketCheckoutSessions.paymentSummary}`,
+};
 
 /**
  * Length-checked, constant-time string comparison. A plain `!==` returns as
@@ -587,10 +625,11 @@ function parsePaymentSummary(
 }
 
 function mergeProviderPayload(
-  rawPayload: string | null,
+  rawPayload: string | Record<string, unknown> | null,
   patch: Record<string, unknown>,
 ) {
   if (!rawPayload) return patch;
+  if (typeof rawPayload === "object") return { ...rawPayload, ...patch };
 
   try {
     const parsed = JSON.parse(rawPayload) as unknown;
@@ -602,8 +641,13 @@ function mergeProviderPayload(
   }
 }
 
-function parseJsonStringArray(value: string | null | undefined): string[] {
+function parseJsonStringArray(
+  value: string | string[] | null | undefined,
+): string[] {
   if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed)) return [];

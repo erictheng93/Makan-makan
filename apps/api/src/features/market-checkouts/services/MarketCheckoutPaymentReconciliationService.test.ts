@@ -23,6 +23,15 @@ function createEnv(options: {
   const db = {
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...params: unknown[]) => ({
+        raw: vi.fn(async () => {
+          if (!sql.includes("market_checkout_payments")) return [];
+          if (sql.includes('where "market_checkout_payments"."checkout_id"')) {
+            return options.paymentRow == null
+              ? []
+              : [paymentRowToRaw(options.paymentRow)];
+          }
+          return (options.pendingRows ?? []).map(paymentRowToRaw);
+        }),
         first: vi.fn(async () => {
           if (sql.includes("FROM market_checkout_payments")) {
             return options.paymentRow ?? null;
@@ -56,6 +65,29 @@ function createEnv(options: {
       }),
     },
   } as unknown as Env;
+}
+
+function paymentRowToRaw(row: Record<string, unknown>): unknown[] {
+  return [
+    row.payment_id,
+    row.checkout_id,
+    row.market_id,
+    row.provider,
+    row.split_mode,
+    row.idempotency_key,
+    row.status,
+    row.amount_cents,
+    row.paid_amount_cents,
+    row.refunded_amount_cents,
+    row.currency,
+    row.country_code,
+    row.child_payment_ids,
+    row.provider_transaction_id,
+    row.provider_payload,
+    row.created_at_ms,
+    row.updated_at_ms,
+    row.session_payment_summary,
+  ];
 }
 
 function paymentRow(overrides: Record<string, unknown> = {}) {
@@ -93,13 +125,20 @@ function paymentRow(overrides: Record<string, unknown> = {}) {
 }
 
 function bindParamsFor(env: Env, sqlFragment: string) {
+  const normalizedFragment = sqlFragment.toLowerCase();
   const callIndex = vi
     .mocked(env.DB.prepare)
-    .mock.calls.findIndex(([sql]) => sql.includes(sqlFragment));
+    .mock.calls.findIndex(([sql]) =>
+      normalizeSql(sql).includes(normalizedFragment),
+    );
   expect(callIndex).toBeGreaterThanOrEqual(0);
 
   const prepared = vi.mocked(env.DB.prepare).mock.results[callIndex]?.value;
   return vi.mocked(prepared.bind).mock.calls[0] ?? [];
+}
+
+function normalizeSql(sql: string): string {
+  return sql.toLowerCase().replaceAll('"', "");
 }
 
 describe("MarketCheckoutPaymentReconciliationService", () => {
@@ -198,9 +237,9 @@ describe("MarketCheckoutPaymentReconciliationService", () => {
         country: "MY",
       },
     ]);
-    expect(bindParamsFor(env, "p.updated_at_ms <= ?")).toEqual([
-      1780308000000, 2,
-    ]);
+    expect(bindParamsFor(env, "updated_at_ms")).toEqual(
+      expect.arrayContaining([1780308000000, 2]),
+    );
 
     const result = await service.reconcile("checkout-2", {
       provider: "mock_market_provider",
@@ -303,21 +342,16 @@ describe("MarketCheckoutPaymentReconciliationService", () => {
       eventId: "evt_reconcile_paid",
       eventType: "market_checkout.payment_paid",
     });
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "paid",
-      12500,
-      0,
-      "pi_1",
-      expect.stringContaining('"eventId":"evt_reconcile_paid"'),
-      expect.any(Number),
-      "paid",
-      expect.any(Number),
-      "paid",
-      expect.any(Number),
-      "paid",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "paid",
+        12500,
+        0,
+        "pi_1",
+        expect.stringContaining('"eventId":"evt_reconcile_paid"'),
+        "market_pay_checkout-1",
+      ]),
+    );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:checkout-1",
       expect.stringContaining('"paidAt"'),
@@ -366,21 +400,16 @@ describe("MarketCheckoutPaymentReconciliationService", () => {
       },
     );
 
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "failed",
-      2500,
-      300,
-      "txn_failed",
-      expect.stringContaining('"eventType":"provider.failed"'),
-      expect.any(Number),
-      "failed",
-      expect.any(Number),
-      "failed",
-      expect.any(Number),
-      "failed",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "failed",
+        2500,
+        300,
+        "txn_failed",
+        expect.stringContaining('"eventType":"provider.failed"'),
+        "market_pay_checkout-1",
+      ]),
+    );
 
     const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
     const paymentSummary = JSON.parse(String(sessionParams[1])) as {
@@ -435,21 +464,16 @@ describe("MarketCheckoutPaymentReconciliationService", () => {
       providerTransactionId: "refund-txn",
       eventType: "market_checkout.payment_refunded",
     });
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "refunded",
-      12500,
-      8400,
-      "refund-txn",
-      expect.stringContaining('"refundId":"refund-1"'),
-      expect.any(Number),
-      "refunded",
-      expect.any(Number),
-      "refunded",
-      expect.any(Number),
-      "refunded",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "refunded",
+        12500,
+        8400,
+        "refund-txn",
+        expect.stringContaining('"refundId":"refund-1"'),
+        "market_pay_checkout-1",
+      ]),
+    );
 
     const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
     const paymentSummary = JSON.parse(String(sessionParams[1])) as {
@@ -494,21 +518,16 @@ describe("MarketCheckoutPaymentReconciliationService", () => {
       },
     );
 
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "partial_refunded",
-      12500,
-      0,
-      "pi_1",
-      expect.stringContaining('"status":"partial_refunded"'),
-      expect.any(Number),
-      "partial_refunded",
-      expect.any(Number),
-      "partial_refunded",
-      expect.any(Number),
-      "partial_refunded",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "partial_refunded",
+        12500,
+        0,
+        "pi_1",
+        expect.stringContaining('"status":"partial_refunded"'),
+        "market_pay_checkout-1",
+      ]),
+    );
 
     const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
     const paymentSummary = JSON.parse(String(sessionParams[1])) as {

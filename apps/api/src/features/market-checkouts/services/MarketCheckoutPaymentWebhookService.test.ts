@@ -27,6 +27,12 @@ function createEnv(options: {
   const db = {
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...params: unknown[]) => ({
+        raw: vi.fn(async () => {
+          if (!sql.includes("market_checkout_payments")) return [];
+          return options.paymentRow == null
+            ? []
+            : [paymentRowToRaw(options.paymentRow)];
+        }),
         first: vi.fn(async () => {
           if (sql.includes("FROM market_checkout_payments")) {
             return options.paymentRow ?? null;
@@ -64,6 +70,29 @@ function createEnv(options: {
       }),
     },
   } as unknown as Env;
+}
+
+function paymentRowToRaw(row: Record<string, unknown>): unknown[] {
+  return [
+    row.payment_id,
+    row.checkout_id,
+    row.market_id,
+    row.provider,
+    row.split_mode,
+    row.idempotency_key,
+    row.status,
+    row.amount_cents,
+    row.paid_amount_cents,
+    row.refunded_amount_cents,
+    row.currency,
+    row.country_code,
+    row.child_payment_ids,
+    row.provider_transaction_id,
+    row.provider_payload,
+    row.created_at_ms,
+    row.updated_at_ms,
+    row.session_payment_summary,
+  ];
 }
 
 function paymentRow(overrides: Record<string, unknown> = {}) {
@@ -116,13 +145,20 @@ async function linePaySignature(secret: string, rawBody: string) {
 }
 
 function bindParamsFor(env: Env, sqlFragment: string) {
+  const normalizedFragment = sqlFragment.toLowerCase();
   const callIndex = vi
     .mocked(env.DB.prepare)
-    .mock.calls.findIndex(([sql]) => sql.includes(sqlFragment));
+    .mock.calls.findIndex(([sql]) =>
+      normalizeSql(sql).includes(normalizedFragment),
+    );
   expect(callIndex).toBeGreaterThanOrEqual(0);
 
   const prepared = vi.mocked(env.DB.prepare).mock.results[callIndex]?.value;
   return vi.mocked(prepared.bind).mock.calls[0] ?? [];
+}
+
+function normalizeSql(sql: string): string {
+  return sql.toLowerCase().replaceAll('"', "");
 }
 
 describe("MarketCheckoutPaymentWebhookService", () => {
@@ -187,10 +223,10 @@ describe("MarketCheckoutPaymentWebhookService", () => {
 
     const prepareCalls = vi.mocked(env.DB.prepare).mock.calls;
     const paymentUpdateIndex = prepareCalls.findIndex(([sql]) =>
-      sql.includes("UPDATE market_checkout_payments"),
+      normalizeSql(sql).includes("update market_checkout_payments"),
     );
     const sessionUpdateIndex = prepareCalls.findIndex(([sql]) =>
-      sql.includes("UPDATE market_checkout_sessions"),
+      normalizeSql(sql).includes("update market_checkout_sessions"),
     );
     expect(paymentUpdateIndex).toBeGreaterThanOrEqual(0);
     expect(sessionUpdateIndex).toBeGreaterThanOrEqual(0);
@@ -198,20 +234,15 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     const paymentUpdate = vi.mocked(env.DB.prepare).mock.results[
       paymentUpdateIndex
     ]?.value;
-    expect(paymentUpdate.bind).toHaveBeenCalledWith(
-      "paid",
-      12500,
-      0,
-      "pi_1",
-      expect.stringContaining('"eventId":"evt_1"'),
-      expect.any(Number),
-      "paid",
-      expect.any(Number),
-      "paid",
-      expect.any(Number),
-      "paid",
-      expect.any(Number),
-      "market_pay_checkout-1",
+    expect(vi.mocked(paymentUpdate.bind).mock.calls[0]).toEqual(
+      expect.arrayContaining([
+        "paid",
+        12500,
+        0,
+        "pi_1",
+        expect.stringContaining('"eventId":"evt_1"'),
+        "market_pay_checkout-1",
+      ]),
     );
 
     const sessionUpdate = vi.mocked(env.DB.prepare).mock.results[
@@ -287,7 +318,7 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       vi
         .mocked(env.DB.prepare)
         .mock.calls.some(([sql]) =>
-          sql.includes("UPDATE market_checkout_payments"),
+          normalizeSql(sql).includes("update market_checkout_payments"),
         ),
     ).toBe(false);
   });
@@ -327,7 +358,7 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     ).toBe(false);
     expect(
       prepareCalls.some(([sql]) =>
-        sql.includes("UPDATE market_checkout_payments"),
+        normalizeSql(sql).includes("update market_checkout_payments"),
       ),
     ).toBe(false);
   });
@@ -360,7 +391,7 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     ).toBe(true);
     expect(
       prepareCalls.some(([sql]) =>
-        sql.includes("UPDATE market_checkout_payments"),
+        normalizeSql(sql).includes("update market_checkout_payments"),
       ),
     ).toBe(false);
   });
@@ -399,7 +430,7 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       vi
         .mocked(env.DB.prepare)
         .mock.calls.some(([sql]) =>
-          sql.includes("UPDATE market_checkout_payments"),
+          normalizeSql(sql).includes("update market_checkout_payments"),
         ),
     ).toBe(false);
   });
@@ -496,7 +527,7 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       vi
         .mocked(env.DB.prepare)
         .mock.calls.some(([sql]) =>
-          sql.includes("UPDATE market_checkout_payments"),
+          normalizeSql(sql).includes("update market_checkout_payments"),
         ),
     ).toBe(true);
   });
@@ -542,21 +573,16 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       status: "failed",
       reconciled: true,
     });
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "failed",
-      2500,
-      300,
-      "txn_failed_1",
-      expect.stringContaining('"status":"failed"'),
-      expect.any(Number),
-      "failed",
-      expect.any(Number),
-      "failed",
-      expect.any(Number),
-      "failed",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "failed",
+        2500,
+        300,
+        "txn_failed_1",
+        expect.stringContaining('"status":"failed"'),
+        "market_pay_checkout-1",
+      ]),
+    );
 
     const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
     const paymentSummary = JSON.parse(String(sessionParams[1])) as {
@@ -626,21 +652,16 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       status: "refunded",
       reconciled: true,
     });
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "refunded",
-      12500,
-      8400,
-      "pi_refunded",
-      expect.stringContaining('"eventType":"charge.refunded"'),
-      expect.any(Number),
-      "refunded",
-      expect.any(Number),
-      "refunded",
-      expect.any(Number),
-      "refunded",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "refunded",
+        12500,
+        8400,
+        "pi_refunded",
+        expect.stringContaining('"eventType":"charge.refunded"'),
+        "market_pay_checkout-1",
+      ]),
+    );
 
     const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
     const paymentSummary = JSON.parse(String(sessionParams[1])) as {
@@ -706,21 +727,16 @@ describe("MarketCheckoutPaymentWebhookService", () => {
       status: "partial_refunded",
       reconciled: true,
     });
-    expect(bindParamsFor(env, "UPDATE market_checkout_payments")).toEqual([
-      "partial_refunded",
-      12500,
-      0,
-      "existing-provider-txn",
-      expect.stringContaining('"status":"partial_refunded"'),
-      expect.any(Number),
-      "partial_refunded",
-      expect.any(Number),
-      "partial_refunded",
-      expect.any(Number),
-      "partial_refunded",
-      expect.any(Number),
-      "market_pay_checkout-1",
-    ]);
+    expect(bindParamsFor(env, "update market_checkout_payments")).toEqual(
+      expect.arrayContaining([
+        "partial_refunded",
+        12500,
+        0,
+        "existing-provider-txn",
+        expect.stringContaining('"status":"partial_refunded"'),
+        "market_pay_checkout-1",
+      ]),
+    );
 
     const sessionParams = bindParamsFor(env, "UPDATE market_checkout_sessions");
     const paymentSummary = JSON.parse(String(sessionParams[1])) as {
@@ -814,7 +830,7 @@ describe("MarketCheckoutPaymentWebhookService", () => {
     ).toBe(false);
     expect(
       prepareCalls.some(([sql]) =>
-        sql.includes("UPDATE market_checkout_payments"),
+        normalizeSql(sql).includes("update market_checkout_payments"),
       ),
     ).toBe(false);
     expect(env.CACHE_KV.put).not.toHaveBeenCalled();

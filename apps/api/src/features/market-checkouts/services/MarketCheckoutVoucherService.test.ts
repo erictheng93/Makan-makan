@@ -266,6 +266,7 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
       DB: {
         prepare: vi.fn(() => ({
           bind: vi.fn(() => ({
+            raw: vi.fn(async () => [[JSON.stringify(appliedVoucher)]]),
             first: vi.fn(async () => ({
               applied_voucher: JSON.stringify(appliedVoucher),
             })),
@@ -276,9 +277,15 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
 
     await redeemCachedMarketCheckoutVoucher(env as never, "checkout-1");
 
-    expect(env.DB.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("SELECT applied_voucher"),
-    );
+    expect(
+      vi
+        .mocked(env.DB.prepare)
+        .mock.calls.some(
+          ([sql]) =>
+            sql.toLowerCase().includes("select") &&
+            sql.includes("applied_voucher"),
+        ),
+    ).toBe(true);
     expect(redeemSpy).toHaveBeenCalledWith({
       ...appliedVoucher,
       fundedBy: "platform",
@@ -298,6 +305,7 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
       DB: {
         prepare: vi.fn(() => ({
           bind: vi.fn(() => ({
+            raw: vi.fn(async () => [["{invalid json"]]),
             first: vi.fn(async () => ({ applied_voucher: "{invalid json" })),
           })),
         })),
@@ -528,6 +536,21 @@ describe("MarketCheckoutVoucherService.redeem", () => {
     expect(couponUpdateRun).toHaveBeenCalledTimes(1);
   });
 
+  it("does not increment used_count again for apply-time reserved vouchers", async () => {
+    const insertRun = vi.fn(async () => undefined);
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+    await service.redeem({
+      ...appliedVoucherForRedeemRace(),
+      reservationStatus: "reserved",
+      reservedAt: "2026-06-13T00:00:00.000Z",
+    });
+
+    expect(insertRun).toHaveBeenCalledTimes(2);
+    expect(couponUpdateRun).not.toHaveBeenCalled();
+  });
+
   it("returns without writes when redemption is fully recorded or empty", async () => {
     const insertRun = vi.fn(async () => undefined);
     const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
@@ -550,7 +573,7 @@ describe("MarketCheckoutVoucherService.redeem", () => {
     expect(couponUpdateRun).not.toHaveBeenCalled();
   });
 
-  it("does not increment used_count when a concurrent duplicate insert loses the race", async () => {
+  it("releases the claimed used_count when a concurrent duplicate insert loses the race", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const insertRun = vi.fn(async () => {
@@ -562,13 +585,13 @@ describe("MarketCheckoutVoucherService.redeem", () => {
       await service.redeem(appliedVoucherForRedeemRace());
 
       expect(insertRun).toHaveBeenCalledTimes(2);
-      expect(couponUpdateRun).not.toHaveBeenCalled();
+      expect(couponUpdateRun).toHaveBeenCalledTimes(2);
     } finally {
       warnSpy.mockRestore();
     }
   });
 
-  it("does not increment used_count when only a non-claim usage row wins the race", async () => {
+  it("releases the claimed used_count when only a non-claim usage row wins the race", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const insertRun = vi
@@ -583,10 +606,76 @@ describe("MarketCheckoutVoucherService.redeem", () => {
       await service.redeem(appliedVoucherForRedeemRace());
 
       expect(insertRun).toHaveBeenCalledTimes(2);
-      expect(couponUpdateRun).not.toHaveBeenCalled();
+      expect(couponUpdateRun).toHaveBeenCalledTimes(2);
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  it("rejects exhausted vouchers before writing usage rows", async () => {
+    const insertRun = vi.fn(async () => undefined);
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 0 } }));
+    const service = makeRedeemUnitService(insertRun, couponUpdateRun);
+
+    await expect(service.redeem(appliedVoucherForRedeemRace())).rejects.toThrow(
+      "This voucher has been fully redeemed",
+    );
+
+    expect(insertRun).not.toHaveBeenCalled();
+    expect(couponUpdateRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("MarketCheckoutVoucherService reservations", () => {
+  it("claims a usage slot when reserving an unreserved voucher", async () => {
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const service = makeReservationUnitService(couponUpdateRun);
+
+    const reserved = await service.reserveUsage(appliedVoucherForRedeemRace());
+
+    expect(couponUpdateRun).toHaveBeenCalledTimes(1);
+    expect(reserved).toMatchObject({
+      couponId: 42,
+      code: "ASYNC10",
+      reservationStatus: "reserved",
+    });
+    expect(reserved.reservedAt).toEqual(expect.any(String));
+    expect(reserved.releasedAt).toBeUndefined();
+  });
+
+  it("does not claim another slot for an already reserved voucher", async () => {
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const service = makeReservationUnitService(couponUpdateRun);
+    const voucher = {
+      ...appliedVoucherForRedeemRace(),
+      reservationStatus: "reserved" as const,
+      reservedAt: "2026-06-13T00:00:00.000Z",
+    };
+
+    await expect(service.reserveUsage(voucher)).resolves.toBe(voucher);
+
+    expect(couponUpdateRun).not.toHaveBeenCalled();
+  });
+
+  it("releases only reserved voucher slots", async () => {
+    const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const service = makeReservationUnitService(couponUpdateRun);
+    const reserved = {
+      ...appliedVoucherForRedeemRace(),
+      reservationStatus: "reserved" as const,
+      reservedAt: "2026-06-13T00:00:00.000Z",
+    };
+
+    const released = await service.releaseReservation(reserved);
+    await expect(service.releaseReservation(released)).resolves.toBe(released);
+
+    expect(couponUpdateRun).toHaveBeenCalledTimes(1);
+    expect(released).toMatchObject({
+      couponId: 42,
+      code: "ASYNC10",
+      reservationStatus: "released",
+    });
+    expect(released.releasedAt).toEqual(expect.any(String));
   });
 });
 
@@ -686,9 +775,7 @@ function makeRedeemUnitService(
     db: {
       select: ReturnType<typeof vi.fn>;
       insert: ReturnType<typeof vi.fn>;
-    };
-    d1: {
-      prepare: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
     };
     redeem: MarketCheckoutVoucherService["redeem"];
   };
@@ -705,11 +792,31 @@ function makeRedeemUnitService(
         run: insertRun,
       })),
     })),
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: vi.fn(() => ({
+          run: couponUpdateRun,
+        })),
+      })),
+    })),
   };
-  service.d1 = {
-    prepare: vi.fn(() => ({
-      bind: vi.fn(() => ({
-        run: couponUpdateRun,
+  return service;
+}
+
+function makeReservationUnitService(couponUpdateRun: ReturnType<typeof vi.fn>) {
+  const service = Object.create(MarketCheckoutVoucherService.prototype) as {
+    db: {
+      update: ReturnType<typeof vi.fn>;
+    };
+    reserveUsage: MarketCheckoutVoucherService["reserveUsage"];
+    releaseReservation: MarketCheckoutVoucherService["releaseReservation"];
+  };
+  service.db = {
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: vi.fn(() => ({
+          run: couponUpdateRun,
+        })),
       })),
     })),
   };
@@ -735,9 +842,6 @@ function makeRefundUnitService(options: {
       select: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
-    d1: {
-      prepare: ReturnType<typeof vi.fn>;
-    };
     markRefunded: MarketCheckoutVoucherService["markRefunded"];
   };
   service.db = {
@@ -762,21 +866,23 @@ function makeRefundUnitService(options: {
           })),
         };
       }
+      if (updateCall === 2) {
+        return {
+          set: vi.fn(() => ({
+            where: vi.fn(() => ({
+              returning: vi.fn(async () => options.releaseRows),
+            })),
+          })),
+        };
+      }
       return {
         set: vi.fn(() => ({
           where: vi.fn(() => ({
-            returning: vi.fn(async () => options.releaseRows),
+            run: options.decrementRun,
           })),
         })),
       };
     }),
-  };
-  service.d1 = {
-    prepare: vi.fn(() => ({
-      bind: vi.fn(() => ({
-        run: options.decrementRun,
-      })),
-    })),
   };
   return service;
 }

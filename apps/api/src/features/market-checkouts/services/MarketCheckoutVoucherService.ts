@@ -18,6 +18,7 @@ import {
   couponUsage,
   getBusinessDate,
   marketCheckoutChildOrders,
+  marketCheckoutSessions,
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
@@ -46,6 +47,9 @@ export interface AppliedVoucher {
   /** Total discount, clamped to the subtotal. */
   discountCents: number;
   allocations: VoucherAllocation[];
+  reservationStatus?: "reserved" | "released" | "redeemed";
+  reservedAt?: string;
+  releasedAt?: string;
 }
 
 export interface AppliedVoucherBundle {
@@ -68,11 +72,9 @@ interface NormalizedCoupon {
 
 export class MarketCheckoutVoucherService {
   private readonly db: ReturnType<typeof drizzle>;
-  private readonly d1: D1Database;
 
   constructor(env: Env) {
     this.db = drizzle(env.DB);
-    this.d1 = env.DB;
   }
 
   /**
@@ -281,6 +283,12 @@ export class MarketCheckoutVoucherService {
       return;
     }
 
+    const claimedDuringRedeem =
+      existingOrderIds.size === 0 && applied.reservationStatus !== "reserved";
+    if (claimedDuringRedeem) {
+      await this.claimUsageSlot(applied.couponId);
+    }
+
     const claimOrderId = Math.min(...orderIds);
     let insertedClaimUsage = false;
     for (const alloc of applied.allocations) {
@@ -314,20 +322,36 @@ export class MarketCheckoutVoucherService {
       }
     }
 
-    if (existingOrderIds.size === 0 && insertedClaimUsage) {
-      // First successful redemption of this checkout: claim one use after at
-      // least the deterministic claim row won the unique-index race.
-      await this.d1
-        .prepare(
-          `UPDATE coupons
-              SET used_count = coalesce(used_count, 0) + 1,
-                  updated_at_ms = unixepoch('now') * 1000
-            WHERE id = ?
-              AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)`,
-        )
-        .bind(applied.couponId)
-        .run();
+    if (claimedDuringRedeem && !insertedClaimUsage) {
+      await this.releaseUsageSlot(applied.couponId);
     }
+  }
+
+  async reserveUsage(applied: AppliedVoucher): Promise<AppliedVoucher> {
+    if (applied.reservationStatus === "reserved") {
+      return applied;
+    }
+
+    await this.claimUsageSlot(applied.couponId);
+    return {
+      ...applied,
+      reservationStatus: "reserved",
+      reservedAt: new Date().toISOString(),
+      releasedAt: undefined,
+    };
+  }
+
+  async releaseReservation(applied: AppliedVoucher): Promise<AppliedVoucher> {
+    if (applied.reservationStatus !== "reserved") {
+      return applied;
+    }
+
+    await this.releaseUsageSlot(applied.couponId);
+    return {
+      ...applied,
+      reservationStatus: "released",
+      releasedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -365,16 +389,15 @@ export class MarketCheckoutVoucherService {
       ) {
         continue;
       }
-      await this.d1
-        .prepare(
-          `UPDATE coupons
-              SET used_count = CASE
-                    WHEN coalesce(used_count, 0) > 0
-                    THEN coalesce(used_count, 0) - 1 ELSE 0 END,
-                  updated_at_ms = unixepoch('now') * 1000
-            WHERE id = ?`,
-        )
-        .bind(input.couponId)
+      await this.db
+        .update(coupons)
+        .set({
+          usedCount: sql`CASE
+            WHEN coalesce(${coupons.usedCount}, 0) > 0
+            THEN coalesce(${coupons.usedCount}, 0) - 1 ELSE 0 END`,
+          updatedAt: new Date(),
+        })
+        .where(eq(coupons.id, input.couponId))
         .run();
     }
   }
@@ -474,6 +497,42 @@ export class MarketCheckoutVoucherService {
       .returning({ id: couponUsage.id });
 
     return releasedRows.length > 0;
+  }
+
+  private async claimUsageSlot(couponId: number): Promise<void> {
+    const claim = await this.db
+      .update(coupons)
+      .set({
+        usedCount: sql`coalesce(${coupons.usedCount}, 0) + 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(coupons.id, couponId),
+          sql`(${coupons.usageLimit} IS NULL OR coalesce(${coupons.usedCount}, 0) < ${coupons.usageLimit})`,
+        ),
+      )
+      .run();
+
+    if ((claim.meta?.changes ?? 0) === 0) {
+      throw badRequest(
+        "This voucher has been fully redeemed",
+        "VOUCHER_EXHAUSTED",
+      );
+    }
+  }
+
+  private async releaseUsageSlot(couponId: number): Promise<void> {
+    await this.db
+      .update(coupons)
+      .set({
+        usedCount: sql`CASE
+          WHEN coalesce(${coupons.usedCount}, 0) > 0
+          THEN coalesce(${coupons.usedCount}, 0) - 1 ELSE 0 END`,
+        updatedAt: new Date(),
+      })
+      .where(eq(coupons.id, couponId))
+      .run();
   }
 }
 
@@ -585,14 +644,17 @@ async function readPersistedAppliedMarketCheckoutVoucher(
   env: Env,
   checkoutId: string,
 ): Promise<AppliedMarketCheckoutVoucher | null> {
-  const row = await env.DB.prepare(
-    `SELECT applied_voucher
-       FROM market_checkout_sessions
-      WHERE id = ?
-      LIMIT 1`,
-  )
-    .bind(checkoutId)
-    .first<{ applied_voucher: string | Record<string, unknown> | null }>();
+  const db = drizzle(env.DB);
+  const row = await db
+    .select({
+      applied_voucher: sql<
+        string | null
+      >`${marketCheckoutSessions.appliedVoucher}`,
+    })
+    .from(marketCheckoutSessions)
+    .where(eq(marketCheckoutSessions.id, checkoutId))
+    .limit(1)
+    .get();
   if (!row?.applied_voucher) return null;
 
   const rawAppliedVoucher = row.applied_voucher;
@@ -666,5 +728,19 @@ function readAppliedVoucherObject(value: unknown): AppliedVoucher | null {
           : "vendor",
     discountCents: candidate.discountCents,
     allocations,
+    reservationStatus:
+      candidate.reservationStatus === "reserved" ||
+      candidate.reservationStatus === "released" ||
+      candidate.reservationStatus === "redeemed"
+        ? candidate.reservationStatus
+        : undefined,
+    reservedAt:
+      typeof candidate.reservedAt === "string"
+        ? candidate.reservedAt
+        : undefined,
+    releasedAt:
+      typeof candidate.releasedAt === "string"
+        ? candidate.releasedAt
+        : undefined,
   };
 }
