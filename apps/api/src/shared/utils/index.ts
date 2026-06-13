@@ -27,7 +27,3 @@ export const createErrorResponse = (message: string, code?: string) => ({
 export const isValidId = (id: unknown): id is number => {
   return typeof id === "number" && Number.isInteger(id) && id > 0;
 };
-
-export const sanitizeString = (str: string): string => {
-  return str.trim().replace(/\s+/g, " ");
-};

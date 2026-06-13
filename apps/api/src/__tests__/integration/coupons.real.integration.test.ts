@@ -344,6 +344,47 @@ describe("Coupons API — real integration", () => {
     ]);
   });
 
+  it("rejects role-5 customer tokens on POST /coupons/use", async () => {
+    const coupon = await seed.coupon(restaurantId, {
+      code: "CUSTOMERNO",
+      discountValueCents: 1000,
+      isVisible: true,
+    });
+    const order = await seed.order(restaurantId, {
+      subtotal: 100,
+      subtotalCents: 10000,
+      discountAmount: 0,
+      discountAmountCents: 0,
+      totalAmount: 100,
+      totalAmountCents: 10000,
+    });
+    const customer = await seed.user({
+      username: "coupon-customer",
+      role: 5,
+      restaurantId,
+    });
+    const customerToken = await testApp.authHelper.customerToken(customer.id);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons/use", {
+        method: "POST",
+        headers: csrfHeaders(customerToken),
+        body: JSON.stringify({
+          couponId: coupon.id,
+          orderId: order.id,
+          discountAmount: 10,
+          originalAmount: 100,
+          finalAmount: 90,
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(401);
+    const body: any = await res.json();
+    expect(body.success).toBe(false);
+    expect(body.error?.code).toBe("TOKEN_INVALID");
+  });
+
   it("enforces coupons owner access and cross-restaurant scope on analytics trends", async () => {
     const restaurantA = await seed.restaurant({ name: "Coupon Owner A" });
     const restaurantB = await seed.restaurant({ name: "Coupon Owner B" });

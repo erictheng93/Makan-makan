@@ -6,7 +6,16 @@
  * cancellation restoring capacity, lifecycle transitions.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
@@ -25,6 +34,7 @@ import {
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { ServiceBookingService } from "../../features/service-bookings/services/ServiceBookingService";
+import { ServiceBookingNotificationService } from "../../features/service-bookings/services/ServiceBookingNotificationService";
 import serviceBookingRoutes from "../../features/service-bookings/routes";
 import { CreditService } from "../../features/credits/services/CreditService";
 
@@ -208,6 +218,10 @@ afterAll(async () => {
 beforeEach(async () => {
   await testDb.truncateAll();
   await seedRestaurant();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("ServiceBookingService — create", () => {
@@ -518,6 +532,70 @@ describe("ServiceBookingService — payment & lifecycle", () => {
     expect(cancelled.status).toBe("cancelled");
     expect(await slotBookings(serviceId)).toBe(0);
     expect(await usedCount(couponId)).toBe(0);
+  });
+
+  it("only releases capacity and voucher usage once when the same booking is cancelled concurrently", async () => {
+    vi.spyOn(
+      ServiceBookingNotificationService.prototype,
+      "send",
+    ).mockResolvedValue();
+    const serviceId = await seedService({ priceCents: 15000 });
+    const couponId = await seedPlatformCoupon("SVC20", 20);
+    await seedSlot(serviceId, "2026-06-05", "14:00", 2);
+    const firstPublicId = await issueCard(100000);
+    const secondPublicId = await issueCard(100000);
+
+    const firstBooking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "First Guest",
+      customerPhone: "0911222333",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      voucherCode: "SVC20",
+    });
+    const secondBooking = await service().createBooking({
+      restaurantId: RESTAURANT_ID,
+      serviceItemId: serviceId,
+      customerName: "Second Guest",
+      customerPhone: "0911222444",
+      bookingDate: "2026-06-05",
+      bookingTime: "14:00",
+      voucherCode: "SVC20",
+    });
+    await service().payWithCredits({
+      bookingId: firstBooking.id,
+      creditCardPublicId: firstPublicId,
+    });
+    await service().payWithCredits({
+      bookingId: secondBooking.id,
+      creditCardPublicId: secondPublicId,
+    });
+    expect(await slotBookings(serviceId)).toBe(2);
+    expect(await usedCount(couponId)).toBe(2);
+
+    const results = await Promise.allSettled([
+      service().cancelBooking(firstBooking.id),
+      service().cancelBooking(firstBooking.id),
+    ]);
+
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    expect(await service().getById(firstBooking.id)).toMatchObject({
+      status: "cancelled",
+    });
+    expect(await service().getById(secondBooking.id)).toMatchObject({
+      status: "confirmed",
+    });
+    expect(await slotBookings(serviceId)).toBe(1);
+    expect(await usedCount(couponId)).toBe(1);
+    expect(
+      ServiceBookingNotificationService.prototype.send,
+    ).toHaveBeenCalledWith(expect.objectContaining({ type: "cancelled" }));
   });
 
   it("completes a confirmed booking", async () => {
