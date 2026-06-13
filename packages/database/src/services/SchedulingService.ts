@@ -387,30 +387,17 @@ export class SchedulingService extends BaseService {
       endTime: string;
       scheduledHours: number;
     },
-    existingTx?: any,
   ): Promise<EmployeeSchedule> {
     // Check for conflicts (read operation — outside transaction)
     const conflicts = await this.checkScheduleConflicts(data);
+    if (conflicts.conflicts.length > 0) {
+      throw new Error(
+        conflicts.conflicts.map((conflict) => conflict.message).join("; "),
+      );
+    }
 
-    // Wrap conflict inserts + schedule insert in a transaction
-    const executeWrites = async (tx: any) => {
-      if (conflicts.conflicts.length > 0) {
-        // Store conflicts but allow creation with warnings
-        for (const conflict of conflicts.conflicts) {
-          await tx.insert(schedulingConflicts).values({
-            ...conflict,
-            restaurantId: data.restaurantId,
-            scheduleIds: conflict.scheduleIds || "[]",
-            employeeIds: conflict.employeeIds || "[]",
-            status: "unresolved",
-            detectedAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-      }
-
-      const [newSchedule] = await tx
+    const [scheduleRows] = await this.db.batch([
+      this.db
         .insert(employeeSchedules)
         .values({
           ...data,
@@ -419,51 +406,11 @@ export class SchedulingService extends BaseService {
           overtimeHours: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
-        })
-        .returning();
-
-      return newSchedule;
-    };
-
-    let newSchedule: unknown;
-    if (existingTx) {
-      newSchedule = await executeWrites(existingTx);
-    } else {
-      const writes: BatchItem<"sqlite">[] = conflicts.conflicts.map(
-        (conflict) =>
-          this.db.insert(schedulingConflicts).values({
-            ...conflict,
-            restaurantId: data.restaurantId,
-            scheduleIds: conflict.scheduleIds || "[]",
-            employeeIds: conflict.employeeIds || "[]",
-            status: "unresolved",
-            detectedAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }) as BatchItem<"sqlite">,
-      );
-      writes.push(
-        this.db
-          .insert(employeeSchedules)
-          .values({
-            ...data,
-            status: "scheduled",
-            actualHours: 0,
-            overtimeHours: 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          } as any)
-          .returning() as BatchItem<"sqlite">,
-      );
-
-      const batchResults = await this.db.batch(
-        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
-      );
-      const scheduleRows = batchResults.at(
-        -1,
-      ) as (typeof employeeSchedules.$inferSelect)[];
-      [newSchedule] = scheduleRows;
-    }
+        } as any)
+        .returning() as BatchItem<"sqlite">,
+    ]);
+    const [newSchedule] =
+      scheduleRows as (typeof employeeSchedules.$inferSelect)[];
 
     // Non-critical notification — fire and forget
     this.sendScheduleNotification(data.employeeId, data.shiftTemplateId, {

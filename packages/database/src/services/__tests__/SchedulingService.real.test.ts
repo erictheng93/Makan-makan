@@ -142,3 +142,55 @@ describe("SchedulingService.cancelSchedulesByDateRange", () => {
     ]);
   });
 });
+
+describe("SchedulingService.createSchedule", () => {
+  it("rejects overlapping schedules instead of inserting with a warning conflict", async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO employee_schedules
+           (id, restaurant_id, employee_id, work_date, start_time, end_time,
+            break_duration_minutes, scheduled_hours, status, created_by,
+            created_at_ms, updated_at_ms)
+         VALUES
+           (20, 'sched-rest', 2, '2026-06-15', '09:00', '13:00',
+            0, 4, 'scheduled', 1, 1735689600000, 1735689600000)`,
+      )
+      .run();
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+
+    await expect(
+      service.createSchedule({
+        restaurantId: "sched-rest",
+        employeeId: 2,
+        workDate: "2026-06-15",
+        startTime: "12:00",
+        endTime: "16:00",
+        scheduledHours: 4,
+        createdBy: 1,
+      }),
+    ).rejects.toThrow("Overlapping shift detected");
+
+    const schedules = await testDb.db
+      .prepare(
+        `SELECT id, start_time, end_time
+           FROM employee_schedules
+          WHERE employee_id = 2 AND work_date = '2026-06-15'
+          ORDER BY id`,
+      )
+      .all<{ id: number; start_time: string; end_time: string }>();
+    expect(schedules.results).toEqual([
+      { id: 20, start_time: "09:00", end_time: "13:00" },
+    ]);
+
+    const conflicts = await testDb.db
+      .prepare(
+        `SELECT conflict_type, severity
+           FROM scheduling_conflicts
+          WHERE restaurant_id = 'sched-rest'`,
+      )
+      .all<{ conflict_type: string; severity: string }>();
+    expect(conflicts.results).toEqual([]);
+  });
+});
