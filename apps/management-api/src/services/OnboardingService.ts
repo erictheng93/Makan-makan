@@ -17,6 +17,11 @@ import { encrypt, decrypt } from "@makanmakan/utils";
 import { TenantService } from "./TenantService";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 import {
+  generateLicenseKey,
+  randomBase36,
+  randomBase36Upper,
+} from "../utils/random";
+import {
   DEFAULT_BILLING_CYCLE_MS,
   planIdToTier,
   TRIAL_DURATION_MS,
@@ -375,7 +380,7 @@ export class OnboardingService {
   private generateApplicationId(): string {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const random = randomBase36Upper(8);
     return `APP-${dateStr}-${random}`;
   }
 
@@ -427,17 +432,13 @@ export class OnboardingService {
       .slice(0, 20); // Limit length
 
     // Add random suffix for uniqueness
-    const suffix = Math.random().toString(36).substring(2, 5);
+    const suffix = randomBase36(6);
     return `${base}-${suffix}`;
   }
 
   private generateSubdomainSuggestions(base: string): string[] {
     const suggestions: string[] = [];
-    const suffixes = [
-      Math.random().toString(36).substring(2, 5),
-      Math.random().toString(36).substring(2, 5),
-      Math.random().toString(36).substring(2, 5),
-    ];
+    const suffixes = [randomBase36(6), randomBase36(6), randomBase36(6)];
 
     for (const suffix of suffixes) {
       suggestions.push(`${base}-${suffix}`);
@@ -460,7 +461,7 @@ export class OnboardingService {
   ) {
     const tenantId = this.generateTenantId();
     const tenantLicenseTier = this.toTenantLicenseTier(application.planId);
-    const licenseKey = this.generateLicenseKey(tenantLicenseTier, tenantId);
+    const licenseKey = generateLicenseKey(tenantLicenseTier);
     const planTier = planIdToTier(application.planId);
     const nowMs = Date.now();
     const isTrial = planTier === "trial";
@@ -531,23 +532,12 @@ export class OnboardingService {
   private generateTenantId(): string {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const random = randomBase36Upper(8);
     return `T-${dateStr}-${random}`;
   }
 
   private generateSubscriptionId(): string {
     return crypto.randomUUID();
-  }
-
-  private generateLicenseKey(tier: LicenseTier, tenantId: string): string {
-    const tierCode =
-      tier === "standard" ? "STD" : tier === "professional" ? "PRO" : "ENT";
-    const code = tenantId
-      .replace(/[^A-Za-z0-9]/g, "")
-      .slice(-6)
-      .toUpperCase();
-    const check = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `MKM-${tierCode}-${code}-${check}`;
   }
 
   private mapRowToApplication(

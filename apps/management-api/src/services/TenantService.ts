@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import { encrypt } from "@makanmakan/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
+import { generateLicenseKey, randomBase36Upper } from "../utils/random";
 
 export class TenantService {
   private env: ManagementEnv;
@@ -132,7 +133,7 @@ export class TenantService {
   async createTenant(data: CreateTenantRequest): Promise<Tenant> {
     const id = this.generateTenantId();
     const now = new Date().toISOString();
-    const licenseKey = this.generateLicenseKey(data.licenseTier, id);
+    const licenseKey = generateLicenseKey(data.licenseTier);
 
     await this.env.MANAGEMENT_DB.prepare(
       `
@@ -320,22 +321,8 @@ export class TenantService {
   private generateTenantId(): string {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const random = randomBase36Upper(8);
     return `T-${dateStr}-${random}`;
-  }
-
-  private generateLicenseKey(
-    tier: "standard" | "professional" | "enterprise",
-    tenantId: string,
-  ): string {
-    const tierCode =
-      tier === "standard" ? "STD" : tier === "professional" ? "PRO" : "ENT";
-    const code = tenantId
-      .replace(/[^A-Za-z0-9]/g, "")
-      .slice(-6)
-      .toUpperCase();
-    const check = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `MKM-${tierCode}-${code}-${check}`;
   }
 
   private async encryptToken(token: string): Promise<string> {

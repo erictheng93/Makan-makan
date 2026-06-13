@@ -7,6 +7,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { ManagementEnv, LicenseTier, LicenseFeatures } from "../types";
+import { generateLicenseKey } from "../utils/random";
 
 const router = new Hono<{ Bindings: ManagementEnv }>();
 
@@ -69,18 +70,6 @@ const verifyLicenseSchema = z.object({
 // ============================================================
 
 /**
- * Generate a license key
- * Format: MKM-{TIER}-{CODE}-{CHECK}
- */
-function generateLicenseKey(tier: LicenseTier, tenantCode: string): string {
-  const tierCode =
-    tier === "standard" ? "STD" : tier === "professional" ? "PRO" : "ENT";
-  const code = tenantCode.toUpperCase().slice(0, 6).padEnd(6, "0");
-  const check = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `MKM-${tierCode}-${code}-${check}`;
-}
-
-/**
  * Calculate expiration date
  */
 function calculateExpirationDate(validityMonths: number): string {
@@ -103,10 +92,7 @@ router.post("/generate", async (c) => {
     const validated = generateLicenseSchema.parse(body);
 
     // Generate unique code from tenant ID
-    const tenantCode = validated.tenantId
-      .replace(/[^A-Za-z0-9]/g, "")
-      .slice(-6);
-    const licenseKey = generateLicenseKey(validated.tier, tenantCode);
+    const licenseKey = generateLicenseKey(validated.tier);
     const expiresAt = calculateExpirationDate(validated.validityMonths);
 
     // Store license in database
@@ -444,8 +430,7 @@ router.post("/:tenantId/upgrade", async (c) => {
     }
 
     // Generate new license key for new tier
-    const tenantCode = tenantId.replace(/[^A-Za-z0-9]/g, "").slice(-6);
-    const newLicenseKey = generateLicenseKey(newTier, tenantCode);
+    const newLicenseKey = generateLicenseKey(newTier);
 
     // Update tenant
     await c.env.MANAGEMENT_DB.prepare(
