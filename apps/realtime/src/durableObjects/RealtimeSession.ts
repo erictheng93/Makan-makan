@@ -39,7 +39,7 @@ export class RealtimeSession implements DurableObject {
   private readonly MAX_EVENT_HISTORY = 100; // 最多保留 100 個事件
   private readonly MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000; // 最多保留 24 小時的事件
 
-  constructor(env: Env) {
+  constructor(_state: DurableObjectState, env: Env) {
     this.env = env;
   }
 

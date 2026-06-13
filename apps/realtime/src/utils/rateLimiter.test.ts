@@ -4,13 +4,24 @@ import type { Env } from "../types/env";
 
 class MemoryKV {
   values = new Map<string, string>();
+  ttls = new Map<string, number>();
 
   async get(key: string): Promise<string | null> {
     return this.values.get(key) ?? null;
   }
 
-  async put(key: string, value: string): Promise<void> {
+  async put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void> {
+    if (options?.expirationTtl !== undefined && options.expirationTtl < 60) {
+      throw new Error("KV expirationTtl must be at least 60 seconds");
+    }
     this.values.set(key, value);
+    if (options?.expirationTtl !== undefined) {
+      this.ttls.set(key, options.expirationTtl);
+    }
   }
 }
 
@@ -45,6 +56,24 @@ describe("checkRealtimeRateLimit", () => {
     expect(decision.allowed).toBe(true);
     expect(decision.count).toBe(1);
     expect(kv.values.get(decision.key)).toBe("1");
+  });
+
+  it("uses a Cloudflare KV-compatible minimum expiration TTL", async () => {
+    const kv = new MemoryKV();
+    const request = new Request("https://realtime.example/customer/t1", {
+      headers: { "CF-Connecting-IP": "203.0.113.10" },
+    });
+
+    const decision = await checkRealtimeRateLimit(
+      request,
+      createEnv(kv),
+      { roomType: "customer", roomId: "t1" },
+      59_000,
+    );
+
+    expect(decision.allowed).toBe(true);
+    expect(decision.retryAfterSeconds).toBe(1);
+    expect(kv.ttls.get(decision.key)).toBe(60);
   });
 
   it("rejects customer websocket upgrades after the per-minute limit", async () => {

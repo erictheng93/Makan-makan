@@ -70,7 +70,7 @@ export async function checkRealtimeRateLimit(
   }
 
   await env.RATE_LIMIT_KV.put(key, String(count), {
-    expirationTtl: retryAfterSeconds,
+    expirationTtl: Math.max(60, retryAfterSeconds),
   });
 
   return {

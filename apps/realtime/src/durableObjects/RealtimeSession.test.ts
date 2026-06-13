@@ -21,6 +21,14 @@ function createEnv(): Env {
   };
 }
 
+function createState(): DurableObjectState {
+  return {} as DurableObjectState;
+}
+
+function createSession(env: Env = createEnv()): RealtimeSession {
+  return new RealtimeSession(createState(), env);
+}
+
 function createAuthEnv(overrides: Partial<Env> = {}): Env {
   return {
     ...createEnv(),
@@ -102,7 +110,7 @@ function tokenFor(payload: Record<string, unknown>) {
 
 describe("RealtimeSession HTTP endpoints", () => {
   it("returns 404 for unknown HTTP endpoints", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
 
     const response = await session.fetch(new Request("https://do.test/nope"));
 
@@ -111,7 +119,7 @@ describe("RealtimeSession HTTP endpoints", () => {
   });
 
   it("rejects malformed broadcast events", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const response = await session.fetch(
       new Request("https://do.test/broadcast", {
         method: "POST",
@@ -127,7 +135,7 @@ describe("RealtimeSession HTTP endpoints", () => {
   });
 
   it("records valid broadcast events and exposes history", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
 
     const broadcast = await session.fetch(
       new Request("https://do.test/broadcast", {
@@ -152,7 +160,7 @@ describe("RealtimeSession HTTP endpoints", () => {
   });
 
   it("returns only missed events when a history cursor is known", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     for (const id of ["evt-1", "evt-2", "evt-3"]) {
       await session.fetch(
         new Request("https://do.test/broadcast", {
@@ -174,7 +182,7 @@ describe("RealtimeSession HTTP endpoints", () => {
   });
 
   it("reports stats for rooms without active websocket connections", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     await session.fetch(
       new Request("https://do.test/broadcast", {
         method: "POST",
@@ -196,7 +204,7 @@ describe("RealtimeSession HTTP endpoints", () => {
 
 describe("RealtimeSession message, routing, and validation behavior", () => {
   it("responds to ping messages and reports invalid or malformed client messages", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const socket = createSocket();
     const info = connection();
 
@@ -248,7 +256,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   it("rejects websocket upgrades with missing room parameters or tokens", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
-      const session = new RealtimeSession(createAuthEnv());
+      const session = createSession(createAuthEnv());
 
       const missingRoom = await session.fetch(
         new Request("https://do.test/admin", {
@@ -278,7 +286,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
     try {
-      const invalidToken = await new RealtimeSession(createAuthEnv()).fetch(
+      const invalidToken = await createSession(createAuthEnv()).fetch(
         new Request("https://do.test/admin/restaurant-1?token=not-a-jwt", {
           headers: { Upgrade: "websocket" },
         }),
@@ -288,7 +296,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         "Unauthorized: Invalid token format",
       );
 
-      const roomMismatch = await new RealtimeSession(createAuthEnv()).fetch(
+      const roomMismatch = await createSession(createAuthEnv()).fetch(
         new Request(
           `https://do.test/admin/restaurant-1?token=${tokenFor({
             roomId: "restaurant-2",
@@ -301,7 +309,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         "Forbidden: Room ID does not match token",
       );
 
-      const typeMismatch = await new RealtimeSession(createAuthEnv()).fetch(
+      const typeMismatch = await createSession(createAuthEnv()).fetch(
         new Request(
           `https://do.test/admin/restaurant-1?token=${tokenFor({
             roomType: "kitchen",
@@ -314,7 +322,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         "Forbidden: Room type does not match token",
       );
 
-      const roleRoomMismatch = await new RealtimeSession(createAuthEnv()).fetch(
+      const roleRoomMismatch = await createSession(createAuthEnv()).fetch(
         new Request(
           `https://do.test/admin/restaurant-1?token=${tokenFor({
             role: "staff",
@@ -336,7 +344,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
       const staffDb = createDb([{ restaurant_id: "restaurant-2", role: 2 }]);
-      const staffDenied = await new RealtimeSession(
+      const staffDenied = await createSession(
         createAuthEnv({ DB: staffDb.DB }),
       ).fetch(
         new Request(
@@ -354,7 +362,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       );
 
       const tableDb = createDb([{ id: 7, restaurant_id: "restaurant-2" }]);
-      const tableDenied = await new RealtimeSession(
+      const tableDenied = await createSession(
         createAuthEnv({ DB: tableDb.DB }),
       ).fetch(
         new Request(
@@ -388,7 +396,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     });
     try {
       const db = createDb([{ restaurant_id: null, role: 0 }]);
-      const session = new RealtimeSession(createAuthEnv({ DB: db.DB }));
+      const session = createSession(createAuthEnv({ DB: db.DB }));
 
       await expect(
         session.fetch(
@@ -448,7 +456,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         { id: 7, restaurant_id: "restaurant-1" },
         { id: 7, restaurant_id: "restaurant-1" },
       ]);
-      const session = new RealtimeSession(
+      const session = createSession(
         createAuthEnv({
           DB: db.DB,
           REALTIME_JWT_SECRET: jwtSecret,
@@ -490,7 +498,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("covers event routing decisions for roles and event families", () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const customer = connection();
     const staff = connection({
       auth: {
@@ -573,7 +581,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
     try {
-      const session = new RealtimeSession(createEnv());
+      const session = createSession(createEnv());
       const failingSocket = createSocket({
         send: vi.fn(() => {
           throw new Error("send failed");
@@ -603,7 +611,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("routes broadcast events by restaurant, role, event type, and socket readiness", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const customer = createSocket();
     const staff = createSocket();
     const admin = createSocket();
@@ -666,7 +674,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("keeps event history bounded and returns all events when a cursor is unknown", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const now = Date.now();
 
     for (let index = 0; index < 105; index++) {
@@ -694,7 +702,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("handles malformed broadcast request bodies as failed broadcasts", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const response = await session.fetch(
       new Request("https://do.test/broadcast", {
         method: "POST",
@@ -710,7 +718,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("reports active connection stats with ISO timestamps and last event IDs", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const socket = createSocket();
     (session as any).roomInfo = { type: "kitchen", id: "restaurant-1" };
     (session as any).connections.set(
@@ -760,7 +768,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("validates role-room access rules", () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
 
     expect(
       (session as any).validateRoleRoomAccess("customer", "customer"),
@@ -782,7 +790,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
   it("validates restaurant access for active users, platform admins, and failures", async () => {
     const regularDb = createDb([{ restaurant_id: "restaurant-1", role: 2 }]);
-    const regularSession = new RealtimeSession({
+    const regularSession = createSession({
       ...createEnv(),
       DB: regularDb.DB,
     });
@@ -795,7 +803,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     ).resolves.toEqual({ valid: true });
 
     const mismatchDb = createDb([{ restaurant_id: "restaurant-2", role: 2 }]);
-    const mismatchSession = new RealtimeSession({
+    const mismatchSession = createSession({
       ...createEnv(),
       DB: mismatchDb.DB,
     });
@@ -811,7 +819,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     });
 
     const adminDb = createDb([{ restaurant_id: null, role: 0 }]);
-    const adminSession = new RealtimeSession({
+    const adminSession = createSession({
       ...createEnv(),
       DB: adminDb.DB,
     });
@@ -823,7 +831,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       }),
     ).resolves.toEqual({ valid: true });
 
-    const missingSession = new RealtimeSession(createEnv());
+    const missingSession = createSession(createEnv());
     await expect(
       (missingSession as any).validateRestaurantAccess({
         restaurantId: "restaurant-1",
@@ -835,7 +843,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     });
 
     const inactiveDb = createDb([]);
-    const inactiveSession = new RealtimeSession({
+    const inactiveSession = createSession({
       ...createEnv(),
       DB: inactiveDb.DB,
     });
@@ -852,7 +860,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("validates table and seat access including mismatch and DB error paths", async () => {
-    const noTableSession = new RealtimeSession(createEnv());
+    const noTableSession = createSession(createEnv());
     await expect(
       (noTableSession as any).validateTableAccess({
         restaurantId: "restaurant-1",
@@ -860,7 +868,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     ).resolves.toEqual({ valid: true });
 
     const tableMissingDb = createDb([]);
-    const tableMissingSession = new RealtimeSession({
+    const tableMissingSession = createSession({
       ...createEnv(),
       DB: tableMissingDb.DB,
     });
@@ -877,7 +885,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const validTableOnlyDb = createDb([
       { id: 7, restaurant_id: "restaurant-1" },
     ]);
-    const validTableOnlySession = new RealtimeSession({
+    const validTableOnlySession = createSession({
       ...createEnv(),
       DB: validTableOnlyDb.DB,
     });
@@ -889,7 +897,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     ).resolves.toEqual({ valid: true });
 
     const seatMissingDb = createDb([{ id: 7, restaurant_id: "restaurant-1" }]);
-    const seatMissingSession = new RealtimeSession({
+    const seatMissingSession = createSession({
       ...createEnv(),
       DB: seatMissingDb.DB,
     });
@@ -908,7 +916,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       { id: 7, restaurant_id: "restaurant-1" },
       { id: 3, table_id: 7 },
     ]);
-    const okSession = new RealtimeSession({ ...createEnv(), DB: okDb.DB });
+    const okSession = createSession({ ...createEnv(), DB: okDb.DB });
     await expect(
       (okSession as any).validateTableAccess({
         restaurantId: "restaurant-1",
@@ -918,7 +926,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     ).resolves.toEqual({ valid: true });
 
     const mismatchDb = createDb([{ id: 7, restaurant_id: "restaurant-2" }]);
-    const mismatchSession = new RealtimeSession({
+    const mismatchSession = createSession({
       ...createEnv(),
       DB: mismatchDb.DB,
     });
@@ -936,7 +944,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       { id: 7, restaurant_id: "restaurant-1" },
       { id: 3, table_id: 8 },
     ]);
-    const seatMismatchSession = new RealtimeSession({
+    const seatMismatchSession = createSession({
       ...createEnv(),
       DB: seatMismatchDb.DB,
     });
@@ -956,7 +964,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         throw new Error("d1 offline");
       }),
     };
-    const errorSession = new RealtimeSession({
+    const errorSession = createSession({
       ...createEnv(),
       DB: errorDb as unknown as D1Database,
     });
@@ -972,7 +980,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("cleans up inactive connections and expired history through alarm", async () => {
-    const session = new RealtimeSession(createEnv());
+    const session = createSession(createEnv());
     const staleSocket = createSocket();
     const activeSocket = createSocket();
     const now = Date.now();
@@ -998,7 +1006,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       (session as any).eventHistory.map((item: any) => item.eventId),
     ).toEqual(["fresh"]);
 
-    const freshOnlySession = new RealtimeSession(createEnv());
+    const freshOnlySession = createSession(createEnv());
     (freshOnlySession as any).eventHistory = [event("still-fresh", now)];
 
     await freshOnlySession.alarm();
