@@ -336,6 +336,7 @@ describe("queue routes", () => {
     let response = await request("/queue-1/seat", "POST");
 
     expect(response.status).toBe(200);
+    expect(serviceFns.getQueueEntry).toHaveBeenCalledWith("queue-1");
     expect(serviceFns.seatCustomer).toHaveBeenCalledWith("queue-1");
     await expect(response.json()).resolves.toMatchObject({
       data: { message: "Customer seated successfully" },
@@ -348,7 +349,9 @@ describe("queue routes", () => {
     response = await request("/queue-1/seat", "POST");
     expect(response.status).toBe(400);
 
-    response = await request("/queue-1/cancel", "POST");
+    response = await request("/queue-1/cancel", "POST", {
+      customerPhone: "0912345678",
+    });
 
     expect(response.status).toBe(200);
     expect(serviceFns.cancelQueue).toHaveBeenCalledWith("queue-1");
@@ -360,7 +363,30 @@ describe("queue routes", () => {
       success: false,
       error: "already seated",
     });
+    response = await request("/queue-1/cancel", "POST", {
+      customerPhone: "0912345678",
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects cross-tenant seating and cancel requests without phone proof", async () => {
+    serviceFns.getQueueEntry.mockResolvedValueOnce({
+      success: true,
+      data: { ...queueEntry, restaurantId: "other" },
+    });
+
+    let response = await request("/queue-1/seat", "POST");
+    expect(response.status).toBe(403);
+    expect(serviceFns.seatCustomer).not.toHaveBeenCalled();
+
     response = await request("/queue-1/cancel", "POST");
     expect(response.status).toBe(400);
+    expect(serviceFns.cancelQueue).not.toHaveBeenCalled();
+
+    response = await request("/queue-1/cancel", "POST", {
+      customerPhone: "0999999999",
+    });
+    expect(response.status).toBe(403);
+    expect(serviceFns.cancelQueue).not.toHaveBeenCalled();
   });
 });

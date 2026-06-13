@@ -823,11 +823,10 @@ export class OrderService extends BaseService {
       if (!existingOrder) {
         throw new Error("Order not found");
       }
-      if (
-        ![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(
-          existingOrder.status,
-        )
-      ) {
+      const canAddItems = [ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].some(
+        (status) => status === existingOrder.status,
+      );
+      if (!canAddItems) {
         throw new Error(
           `Cannot add items to an order with status: ${existingOrder.status}`,
         );

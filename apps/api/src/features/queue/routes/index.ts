@@ -195,6 +195,16 @@ app.post("/:queueId/seat", authMiddleware, async (c) => {
   if (!queueId) throw badRequest("Invalid queue ID");
 
   const queueService = new UnifiedQueueService(c.env);
+  const entry = await queueService.getQueueEntry(queueId);
+  if (!entry.success || !entry.data) {
+    throw badRequest(entry.error || "Queue entry not found");
+  }
+
+  const user = c.get("user");
+  if (!canAccessRestaurant(user, String(entry.data.restaurantId))) {
+    throw forbidden("Access denied");
+  }
+
   const result = await queueService.seatCustomer(queueId);
 
   if (!result.success) {
@@ -208,13 +218,29 @@ app.post("/:queueId/seat", authMiddleware, async (c) => {
 
 /**
  * POST /api/v1/queue/:queueId/cancel
- * Public — customer cancels their own entry.
+ * Public — customer cancels their own entry with phone verification.
  */
 app.post("/:queueId/cancel", async (c) => {
   const queueId = c.req.param("queueId");
   if (!queueId) throw badRequest("Invalid queue ID");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    customerPhone?: string;
+    customer_phone?: string;
+  };
+  const customerPhone = body.customerPhone ?? body.customer_phone;
+  if (!customerPhone) {
+    throw badRequest("customerPhone is required");
+  }
 
   const queueService = new UnifiedQueueService(c.env);
+  const entry = await queueService.getQueueEntry(queueId);
+  if (!entry.success || !entry.data) {
+    throw badRequest(entry.error || "Queue entry not found");
+  }
+  if (entry.data.customerPhone !== customerPhone) {
+    throw forbidden("Phone number does not match queue entry");
+  }
+
   const result = await queueService.cancelQueue(queueId);
 
   if (!result.success) {

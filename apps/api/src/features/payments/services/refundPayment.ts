@@ -1,4 +1,5 @@
 import type { Env } from "../../../types/env";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 import { amountFromCents } from "@makanmakan/database";
 import {
@@ -21,9 +22,14 @@ export interface RefundPaymentResult {
   paymentStatus: "refunded" | "partial_refunded";
 }
 
+export interface RefundPaymentOptions {
+  user?: AuthUser;
+}
+
 export async function refundPaymentTransaction(
   env: Env,
   input: RefundPaymentInput,
+  options: RefundPaymentOptions = {},
 ): Promise<RefundPaymentResult> {
   const row = await env.DB.prepare(
     `SELECT id, restaurant_id, total_amount, total_amount_cents,
@@ -47,6 +53,8 @@ export async function refundPaymentTransaction(
   if (!row) {
     throw new ApiError("TRANSACTION_NOT_FOUND", "Transaction not found", 404);
   }
+
+  assertRefundAccess(options.user, row.restaurant_id);
 
   if (
     ["pending", "failed", "cancelled", "refunded"].includes(
@@ -79,6 +87,40 @@ export async function refundPaymentTransaction(
   const paymentStatus = isFullRefund ? "refunded" : "partial_refunded";
   const refundId = `ref_${input.transactionId}_${Date.now()}`;
   const now = Date.now();
+  const refundAmountCents = cents(refundAmount);
+
+  const updateResult = await env.DB.prepare(
+    `UPDATE orders
+        SET payment_status = ?,
+            refund_amount_cents = COALESCE(refund_amount_cents, ROUND(COALESCE(refund_amount, 0) * 100)) + ?,
+            refund_amount = (COALESCE(refund_amount_cents, ROUND(COALESCE(refund_amount, 0) * 100)) + ?) / 100.0,
+            status = CASE WHEN ? THEN 'refunded' ELSE status END,
+            updated_at_ms = ?
+      WHERE id = ?
+        AND payment_transaction_id = ?
+        AND COALESCE(payment_status, '') NOT IN ('pending', 'failed', 'cancelled', 'refunded')
+        AND COALESCE(refund_amount_cents, ROUND(COALESCE(refund_amount, 0) * 100)) + ?
+            <= COALESCE(total_amount_cents, ROUND(total_amount * 100))`,
+  )
+    .bind(
+      paymentStatus,
+      refundAmountCents,
+      refundAmountCents,
+      isFullRefund ? 1 : 0,
+      now,
+      row.id,
+      input.transactionId,
+      refundAmountCents,
+    )
+    .run();
+
+  if (mutationChanges(updateResult) === 0) {
+    throw new ApiError(
+      "REFUND_AMOUNT_EXCEEDS_PAYMENT",
+      "Refund amount exceeds payment total",
+      409,
+    );
+  }
 
   const paymentAudit = new PaymentAuditService(env.DB);
   await env.DB.batch([
@@ -91,14 +133,6 @@ export async function refundPaymentTransaction(
       status: toLedgerPaymentStatus(row.payment_status),
       now,
     }),
-    env.DB.prepare(
-      `UPDATE orders
-          SET payment_status = ?,
-              refund_amount = ?,
-              status = CASE WHEN ? THEN 'refunded' ELSE status END,
-              updated_at_ms = ?
-        WHERE id = ?`,
-    ).bind(paymentStatus, nextRefundTotal, isFullRefund ? 1 : 0, now, row.id),
     env.DB.prepare(
       `UPDATE payment_transactions
           SET status = ?,
@@ -116,7 +150,7 @@ export async function refundPaymentTransaction(
       input.transactionId,
       row.id,
       row.restaurant_id,
-      cents(refundAmount),
+      refundAmountCents,
       input.reason ?? null,
       now,
       now,
@@ -146,6 +180,18 @@ export async function refundPaymentTransaction(
     status: "completed",
     paymentStatus,
   };
+}
+
+function assertRefundAccess(user: AuthUser | undefined, restaurantId: string) {
+  if (!user) return;
+
+  if (![0, 1, 4].includes(user.role)) {
+    throw new ApiError("INSUFFICIENT_ROLE", "Insufficient permissions", 403);
+  }
+
+  if (user.role !== 0 && String(user.restaurantId ?? "") !== restaurantId) {
+    throw new ApiError("FORBIDDEN", "Access denied", 403);
+  }
 }
 
 export function toExternalPaymentStatus(
@@ -221,4 +267,9 @@ function preparePaymentLedgerForRefund(
 
 function cents(value: number): number {
   return Math.round(value * 100);
+}
+
+function mutationChanges(result: unknown): number {
+  const meta = (result as { meta?: { changes?: unknown } } | null)?.meta;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
 }

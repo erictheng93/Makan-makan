@@ -5,6 +5,7 @@ import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { validateBody } from "../../../shared/middleware";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
+import { requireRole } from "../../../middleware/auth";
 import { PaymentService } from "../services/PaymentService";
 import { ApiError } from "../../../shared/utils/api-error";
 import {
@@ -269,21 +270,27 @@ app.get("/status/:transactionId", async (c) => {
   });
 });
 
-app.post("/refund", validateBody(refundSchema), async (c) => {
-  const input = c.get("validatedBody");
-  const refund = await refundPaymentTransaction(c.env, input);
+app.post(
+  "/refund",
+  requireRole([0, 1, 4]),
+  validateBody(refundSchema),
+  async (c) => {
+    const input = c.get("validatedBody");
+    const user = c.get("user");
+    const refund = await refundPaymentTransaction(c.env, input, { user });
 
-  return c.json({
-    success: true,
-    data: {
-      refundId: refund.refundId,
-      transactionId: refund.transactionId,
-      amount: refund.amount,
-      status: refund.status,
-      paymentStatus: refund.paymentStatus,
-    },
-  });
-});
+    return c.json({
+      success: true,
+      data: {
+        refundId: refund.refundId,
+        transactionId: refund.transactionId,
+        amount: refund.amount,
+        status: refund.status,
+        paymentStatus: refund.paymentStatus,
+      },
+    });
+  },
+);
 
 app.get("/methods/:country", async (c) => {
   const country = c.req.param("country").toUpperCase();

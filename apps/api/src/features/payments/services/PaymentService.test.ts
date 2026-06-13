@@ -61,7 +61,7 @@ function mockOrderUpdate(returningRows: unknown[] = []) {
   return updates;
 }
 
-function createD1() {
+function createD1(orderUpdateChanges = 1) {
   const statements: PreparedStatement[] = [];
   const committed: PreparedStatement[] = [];
   const db = {
@@ -75,7 +75,14 @@ function createD1() {
         }),
         run: vi.fn(async () => {
           committed.push(statement);
-          return { meta: { changes: 1 }, success: true };
+          return {
+            meta: {
+              changes: statement.sql.includes("UPDATE orders")
+                ? orderUpdateChanges
+                : 1,
+            },
+            success: true,
+          };
         }),
       };
       statements.push(statement);
@@ -123,6 +130,8 @@ function order(overrides: Record<string, unknown> = {}) {
     id: 101,
     restaurantId: "restaurant-1",
     status: "confirmed",
+    paymentStatus: "pending",
+    tableId: null,
     totalAmount: 120,
     totalAmountCents: 12000,
     ...overrides,
@@ -225,7 +234,7 @@ describe("PaymentService", () => {
     ).toEqual(["attempt", "success"]);
   });
 
-  it("does not commit partial payment finalization writes when a middle write fails", async () => {
+  it("does not commit payment ledger writes when a middle write fails", async () => {
     const { db, committed } = createD1WithBatchFailure((statement) =>
       statement.sql.includes("UPDATE payment_transactions"),
     );
@@ -243,7 +252,30 @@ describe("PaymentService", () => {
     ).rejects.toThrow("injected batch failure");
 
     expect(db.batch).toHaveBeenCalledOnce();
-    expect(committed).toEqual([]);
+    expect(committed.map((statement) => statement.sql)).toEqual([
+      expect.stringContaining("UPDATE orders"),
+    ]);
+  });
+
+  it("rejects payment finalization when the payable-state guard loses the race", async () => {
+    const { db } = createD1(0);
+    queueOrderRows([[order()]]);
+    mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
+
+    await expect(
+      new PaymentService(env(db)).processPayment({
+        orderId: 101,
+        paymentMode: "full",
+        amount: 120,
+        expectedTotal: 120,
+        method: "cash",
+      }),
+    ).rejects.toMatchObject({
+      code: "ORDER_NOT_PAYABLE",
+      status: 409,
+    });
+
+    expect(db.batch).not.toHaveBeenCalled();
   });
 
   it("processes partial payments without closing the order when requested", async () => {
@@ -288,6 +320,78 @@ describe("PaymentService", () => {
       statementContaining(statements, "INSERT INTO payment_transactions")
         ?.values[10],
     ).toBe(JSON.stringify({ paymentMode: "partial", closeOrder: false }));
+  });
+
+  it("releases occupied tables when a payment closes the order", async () => {
+    const { db, statements } = createD1();
+    queueOrderRows([[order({ tableId: 9 })]]);
+    mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
+
+    await new PaymentService(env(db)).processPayment({
+      orderId: 101,
+      paymentMode: "full",
+      amount: 120,
+      expectedTotal: 120,
+      method: "cash",
+    });
+
+    expect(statementContaining(statements, "UPDATE tables")?.values).toEqual([
+      1780833600000, 9,
+    ]);
+  });
+
+  it("rejects finalized orders and staff roles without payment authority", async () => {
+    const { db } = createD1();
+    queueOrderRows([
+      [order({ paymentStatus: "paid" })],
+      [order({ status: "cancelled", paymentStatus: "pending" })],
+      [order()],
+    ]);
+    mockOrderUpdate();
+    const service = new PaymentService(env(db));
+
+    await expect(
+      service.processPayment({
+        orderId: 101,
+        paymentMode: "full",
+        amount: 120,
+      }),
+    ).rejects.toMatchObject({
+      code: "ORDER_NOT_PAYABLE",
+      status: 409,
+    });
+
+    await expect(
+      service.processPayment({
+        orderId: 101,
+        paymentMode: "full",
+        amount: 120,
+      }),
+    ).rejects.toMatchObject({
+      code: "ORDER_NOT_PAYABLE",
+      status: 409,
+    });
+
+    await expect(
+      service.processPayment(
+        {
+          orderId: 101,
+          paymentMode: "full",
+          amount: 120,
+        },
+        {
+          user: {
+            id: 2,
+            role: 2,
+            restaurantId: "restaurant-1",
+          } as never,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "INSUFFICIENT_ROLE",
+      status: 403,
+    });
+    expect(db.prepare).not.toHaveBeenCalled();
   });
 
   it("rejects missing orders, restaurant mismatches, and stale totals", async () => {

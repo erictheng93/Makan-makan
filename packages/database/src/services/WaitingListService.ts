@@ -607,6 +607,7 @@ export class WaitingListService extends BaseService {
         WHERE id = ${request.tableId}
           AND restaurant_id = ${entry.restaurantId}
           AND is_occupied = 0
+          AND waiting_list_id IS NULL
       `);
 
       if (!table) {

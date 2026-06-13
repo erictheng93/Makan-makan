@@ -98,6 +98,26 @@ describe("management market routes", () => {
     expect(response.status).toBe(401);
   });
 
+  it("keeps tenant health reads and reports protected", async () => {
+    let response = await app.fetch(
+      new Request("https://management.test/api/v1/health/tenants"),
+      createEnv(),
+    );
+
+    expect(response.status).toBe(401);
+
+    response = await app.fetch(
+      new Request("https://management.test/api/v1/health/report", {
+        method: "POST",
+        body: JSON.stringify({ tenantId: "tenant-1", status: "healthy" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+      createEnv(),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
   it("rejects management tokens without explicit platform admin claims", async () => {
     const token = await managementTokenWithoutRole();
 

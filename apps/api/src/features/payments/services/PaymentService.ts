@@ -78,9 +78,21 @@ export class PaymentService {
     if (
       options.user?.restaurantId &&
       options.user.role !== 0 &&
-      options.user.restaurantId !== existing.restaurantId
+      String(options.user.restaurantId) !== String(existing.restaurantId)
     ) {
       throw new ApiError("FORBIDDEN", "Access denied", 403);
+    }
+
+    if (options.user && !canProcessPayment(options.user.role)) {
+      throw new ApiError("INSUFFICIENT_ROLE", "Insufficient permissions", 403);
+    }
+
+    if (isAlreadyFinalized(existing.status, existing.paymentStatus)) {
+      throw new ApiError(
+        "ORDER_NOT_PAYABLE",
+        "Order is not in a payable state",
+        409,
+      );
     }
 
     const serverTotal =
@@ -122,6 +134,22 @@ export class PaymentService {
     const shouldCloseOrder = input.closeOrder ?? true;
     const now = Date.now();
 
+    const orderUpdate = this.prepareOrderPaymentUpdate(
+      input.orderId,
+      paymentId,
+      method,
+      shouldCloseOrder,
+      now,
+    );
+    const orderUpdateResult = await orderUpdate.run();
+    if (mutationChanges(orderUpdateResult) === 0) {
+      throw new ApiError(
+        "ORDER_NOT_PAYABLE",
+        "Order is not in a payable state",
+        409,
+      );
+    }
+
     await this.env.DB.batch([
       this.preparePaymentTransactionInsert(
         {
@@ -161,10 +189,8 @@ export class PaymentService {
         },
         occurredAtMs: now,
       }),
-      this.prepareOrderPaymentUpdate(
-        input.orderId,
-        paymentId,
-        method,
+      ...this.prepareCloseOrderSideEffects(
+        existing.tableId,
         shouldCloseOrder,
         now,
       ),
@@ -248,7 +274,9 @@ export class PaymentService {
                 payment_method = ?,
                 payment_transaction_id = ?,
                 updated_at_ms = ?
-          WHERE id = ?`,
+          WHERE id = ?
+            AND COALESCE(payment_status, 'pending') NOT IN ('paid', 'completed', 'refunded', 'partial_refunded')
+            AND status NOT IN ('paid', 'cancelled', 'refunded')`,
       ).bind(now, paymentMethod, paymentId, now, orderId);
     }
 
@@ -258,8 +286,30 @@ export class PaymentService {
               payment_method = ?,
               payment_transaction_id = ?,
               updated_at_ms = ?
-        WHERE id = ?`,
+        WHERE id = ?
+          AND COALESCE(payment_status, 'pending') NOT IN ('paid', 'completed', 'refunded', 'partial_refunded')
+          AND status NOT IN ('paid', 'cancelled', 'refunded')`,
     ).bind(paymentMethod, paymentId, now, orderId);
+  }
+
+  private prepareCloseOrderSideEffects(
+    tableId: number | null | undefined,
+    shouldCloseOrder: boolean,
+    now: number,
+  ) {
+    if (!shouldCloseOrder || !tableId) return [];
+
+    return [
+      this.env.DB.prepare(
+        `UPDATE tables
+            SET is_occupied = 0,
+                current_order_id = NULL,
+                occupied_at_ms = NULL,
+                occupied_by = NULL,
+                updated_at_ms = ?
+          WHERE id = ?`,
+      ).bind(now, tableId),
+    ];
   }
 
   private preparePaymentTransactionStatusUpdate(
@@ -276,4 +326,25 @@ export class PaymentService {
         WHERE transaction_id = ?`,
     ).bind(status, now, status, now, status, now, transactionId);
   }
+}
+
+function canProcessPayment(role: number): boolean {
+  return [0, 1, 4].includes(role);
+}
+
+function isAlreadyFinalized(
+  orderStatus: string | null | undefined,
+  paymentStatus: string | null | undefined,
+): boolean {
+  return (
+    ["cancelled", "paid", "refunded"].includes(orderStatus ?? "") ||
+    ["paid", "completed", "refunded", "partial_refunded"].includes(
+      paymentStatus ?? "",
+    )
+  );
+}
+
+function mutationChanges(result: unknown): number {
+  const meta = (result as { meta?: { changes?: unknown } } | null)?.meta;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
 }

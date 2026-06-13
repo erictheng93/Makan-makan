@@ -191,11 +191,11 @@ app.get("/", (c) => c.redirect("/info"));
 // Public routes (no auth required)
 const publicApi = new Hono<{ Bindings: ManagementEnv }>();
 publicApi.route("/onboarding", onboardingRouter);
-publicApi.route("/health", healthRouter);
 
 // Protected routes (auth required)
 const protectedApi = new Hono<{ Bindings: ManagementEnv }>();
 protectedApi.use("*", managementAuthMiddleware);
+protectedApi.route("/health", healthRouter);
 protectedApi.route("/tenants", tenantsRouter);
 protectedApi.route("/deployments", deploymentsRouter);
 protectedApi.route("/licenses", licensesRouter);

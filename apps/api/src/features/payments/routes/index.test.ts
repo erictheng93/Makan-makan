@@ -9,11 +9,35 @@ const mocks = vi.hoisted(() => ({
   refundPaymentTransaction: vi.fn(),
 }));
 
+const authState = vi.hoisted(() => ({
+  user: { id: 7, username: "cashier", role: 4, restaurantId: "restaurant-1" },
+}));
+
 vi.mock("../../../middleware/idempotency", () => ({
   idempotencyMiddleware: vi.fn(
     () => async (_c: unknown, next: () => Promise<void>) => next(),
   ),
 }));
+
+vi.mock("../../../middleware/auth", async () => {
+  const { ApiError } = await vi.importActual<
+    typeof import("../../../shared/utils/api-error")
+  >("../../../shared/utils/api-error");
+
+  return {
+    requireRole: vi.fn((allowedRoles: number[]) => async (c, next) => {
+      c.set("user", authState.user);
+      if (!allowedRoles.includes(authState.user.role)) {
+        throw new ApiError(
+          "INSUFFICIENT_ROLE",
+          "Insufficient permissions",
+          403,
+        );
+      }
+      await next();
+    }),
+  };
+});
 
 vi.mock("../services/PaymentService", () => ({
   PaymentService: vi.fn(function PaymentService(...args: unknown[]) {
@@ -115,6 +139,12 @@ function postJson(path: string, body: unknown, db = createDb()) {
 describe("payments routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.user = {
+      id: 7,
+      username: "cashier",
+      role: 4,
+      restaurantId: "restaurant-1",
+    };
     mocks.paymentService.processPayment.mockResolvedValue({
       status: 200,
       data: {
@@ -357,6 +387,9 @@ describe("payments routes", () => {
         amount: 25,
         reason: "guest changed order",
       },
+      {
+        user: authState.user,
+      },
     );
     expect(body).toEqual({
       success: true,
@@ -368,6 +401,25 @@ describe("payments routes", () => {
         paymentStatus: "partially_refunded",
       },
     });
+  });
+
+  it("rejects refund requests from staff roles without refund authority", async () => {
+    authState.user = {
+      id: 8,
+      username: "chef",
+      role: 2,
+      restaurantId: "restaurant-1",
+    };
+
+    const response = await postJson("/refund", {
+      transactionId: "pay-1",
+      amount: 25,
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(403);
+    expect(body.error?.code).toBe("INSUFFICIENT_ROLE");
+    expect(mocks.refundPaymentTransaction).not.toHaveBeenCalled();
   });
 
   it("lists supported payment methods by country", async () => {

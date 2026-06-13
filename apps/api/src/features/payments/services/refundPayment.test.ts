@@ -29,7 +29,7 @@ interface RefundOrderRow {
   payment_status: string | null;
 }
 
-function createD1(orderRow: RefundOrderRow | null) {
+function createD1(orderRow: RefundOrderRow | null, updateChanges = 1) {
   const statements: PreparedStatement[] = [];
   const committed: PreparedStatement[] = [];
   const db = {
@@ -44,7 +44,14 @@ function createD1(orderRow: RefundOrderRow | null) {
         first: vi.fn(async () => orderRow),
         run: vi.fn(async () => {
           committed.push(statement);
-          return { meta: { changes: 1 }, success: true };
+          return {
+            meta: {
+              changes: statement.sql.includes("UPDATE orders")
+                ? updateChanges
+                : 1,
+            },
+            success: true,
+          };
         }),
       };
       statements.push(statement);
@@ -174,10 +181,13 @@ describe("refundPaymentTransaction", () => {
     ]);
     expect(statementContaining(statements, "UPDATE orders")?.values).toEqual([
       "partial_refunded",
-      50,
+      3000,
+      3000,
       0,
       1780833600000,
       42,
+      "txn-1",
+      3000,
     ]);
     expect(
       statementContaining(statements, "UPDATE payment_transactions")?.values,
@@ -222,7 +232,7 @@ describe("refundPaymentTransaction", () => {
     ]);
   });
 
-  it("does not commit partial refund writes when a middle write fails", async () => {
+  it("does not commit refund ledger writes when a middle write fails", async () => {
     const { db, committed } = createD1WithBatchFailure(
       paidOrder({ refund_amount_cents: 2000 }),
       (statement) => statement.sql.includes("INSERT INTO refund_transactions"),
@@ -237,7 +247,9 @@ describe("refundPaymentTransaction", () => {
     ).rejects.toThrow("injected batch failure");
 
     expect(db.batch).toHaveBeenCalledOnce();
-    expect(committed).toEqual([]);
+    expect(committed.map((statement) => statement.sql)).toEqual([
+      expect.stringContaining("UPDATE orders"),
+    ]);
   });
 
   it("marks full refunds from legacy decimal totals and blocks over-refunds", async () => {
@@ -270,7 +282,7 @@ describe("refundPaymentTransaction", () => {
     ).toEqual(["txn-2", 42, "restaurant-1", 4567, "card", "paid"]);
     expect(
       statementContaining(fullRefund.statements, "UPDATE orders")?.values,
-    ).toEqual(["refunded", 45.67, 1, 1780833600000, 42]);
+    ).toEqual(["refunded", 3000, 3000, 1, 1780833600000, 42, "txn-2", 3000]);
     expect(
       statementContaining(
         fullRefund.statements,
@@ -294,6 +306,56 @@ describe("refundPaymentTransaction", () => {
       code: "REFUND_AMOUNT_EXCEEDS_PAYMENT",
       status: 409,
     });
+  });
+
+  it("enforces role, tenant, and conditional refund caps", async () => {
+    await expect(
+      refundPaymentTransaction(
+        env(createD1(paidOrder()).db),
+        { transactionId: "txn-role", amount: 10 },
+        {
+          user: {
+            id: 1,
+            username: "chef",
+            role: 2,
+            restaurantId: "restaurant-1",
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "INSUFFICIENT_ROLE",
+      status: 403,
+    });
+
+    await expect(
+      refundPaymentTransaction(
+        env(createD1(paidOrder()).db),
+        { transactionId: "txn-tenant", amount: 10 },
+        {
+          user: {
+            id: 2,
+            username: "cashier",
+            role: 4,
+            restaurantId: "restaurant-2",
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+
+    const setup = createD1(paidOrder({ refund_amount_cents: 2000 }), 0);
+    await expect(
+      refundPaymentTransaction(env(setup.db), {
+        transactionId: "txn-race",
+        amount: 30,
+      }),
+    ).rejects.toMatchObject({
+      code: "REFUND_AMOUNT_EXCEEDS_PAYMENT",
+      status: 409,
+    });
+    expect(setup.db.batch).not.toHaveBeenCalled();
   });
 });
 
