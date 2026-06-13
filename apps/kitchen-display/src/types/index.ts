@@ -75,6 +75,8 @@ export interface KitchenSSEEvent {
     | "new_order"
     | "ORDER_STATUS_UPDATE"
     | "order_status_update"
+    | "ORDER_ITEM_STATUS_UPDATE"
+    | "order_item_status_update"
     | "ORDER_CANCELLED"
     | "order_cancelled"
     | "PRIORITY_UPDATE"

@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth";
 import {
   RealtimeEventType,
   type NewOrderEvent,
+  type OrderItemStatusUpdateEvent,
   type OrderStatusUpdateEvent,
   type KitchenQueueUpdateEvent,
   type KitchenItemStatusEvent,
@@ -158,6 +159,24 @@ export function useAdminRealtime() {
     );
 
     // 更新現有通知的狀態
+    const existingNotification = orderNotifications.value.find(
+      (n) => n.orderId === orderId,
+    );
+    if (existingNotification) {
+      existingNotification.isNew = false;
+    }
+  };
+
+  /**
+   * 處理訂單項目狀態更新
+   */
+  const handleOrderItemStatusUpdate = (event: OrderItemStatusUpdateEvent) => {
+    const { orderId, orderItemId, status, previousStatus } = event.data;
+
+    console.log(
+      `📦 Order ${orderId} item ${orderItemId} status changed: ${previousStatus} → ${status}`,
+    );
+
     const existingNotification = orderNotifications.value.find(
       (n) => n.orderId === orderId,
     );
@@ -342,6 +361,8 @@ export function useAdminRealtime() {
           handleNewOrder(event as NewOrderEvent);
         } else if (event.type === RealtimeEventType.ORDER_STATUS_UPDATE) {
           handleOrderStatusUpdate(event as OrderStatusUpdateEvent);
+        } else if (event.type === RealtimeEventType.ORDER_ITEM_STATUS_UPDATE) {
+          handleOrderItemStatusUpdate(event as OrderItemStatusUpdateEvent);
         }
       },
     );

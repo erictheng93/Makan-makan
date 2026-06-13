@@ -27,6 +27,8 @@ const normalizeEventType = (type: KitchenSSEEvent["type"]) => {
       return "NEW_ORDER";
     case "order_status_update":
       return "ORDER_STATUS_UPDATE";
+    case "order_item_status_update":
+      return "ORDER_ITEM_STATUS_UPDATE";
     case "order_cancelled":
       return "ORDER_CANCELLED";
     default:
@@ -225,6 +227,9 @@ export const useOrdersStore = defineStore("orders", () => {
       case "ORDER_STATUS_UPDATE":
         handleOrderStatusUpdate(event);
         break;
+      case "ORDER_ITEM_STATUS_UPDATE":
+        handleOrderStatusUpdate(event);
+        break;
       case "ORDER_CANCELLED":
         handleOrderCancelled(event);
         break;
@@ -274,7 +279,8 @@ export const useOrdersStore = defineStore("orders", () => {
     const payload = eventData(event);
     const orderId = event.orderId ?? Number(payload?.orderId);
     if (Number.isFinite(orderId) && payload) {
-      const { itemId, status, updatedAt, notes } = payload;
+      const { status, updatedAt, notes } = payload;
+      const itemId = payload.itemId ?? payload.orderItemId;
 
       const orderIndex = orders.value.findIndex((o) => o.id === orderId);
       if (orderIndex !== -1) {

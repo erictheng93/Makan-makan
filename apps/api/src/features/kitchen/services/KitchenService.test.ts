@@ -6,6 +6,23 @@ const serviceMocks = vi.hoisted(() => ({
   getDailyStats: vi.fn(),
   updateItemStatus: vi.fn(),
   ctor: vi.fn(),
+  prepare: vi.fn(),
+  bind: vi.fn(),
+  first: vi.fn(),
+  broadcastOrderItemStatusUpdate: vi.fn(),
+  broadcastKitchenItemStatus: vi.fn(),
+  generateEventId: vi.fn(),
+}));
+
+vi.mock("@makanmakan/database", () => ({
+  RealtimeBroadcastService: vi.fn(function RealtimeBroadcastService() {
+    return {
+      broadcastOrderItemStatusUpdate:
+        serviceMocks.broadcastOrderItemStatusUpdate,
+      broadcastKitchenItemStatus: serviceMocks.broadcastKitchenItemStatus,
+      generateEventId: serviceMocks.generateEventId,
+    };
+  }),
 }));
 
 vi.mock("../../orders/services/OrdersService", () => ({
@@ -20,7 +37,25 @@ vi.mock("../../orders/services/OrdersService", () => ({
 }));
 
 function createService() {
-  return new KitchenService({ DB: { binding: "db" } } as never);
+  return new KitchenService({
+    DB: {
+      prepare: serviceMocks.prepare,
+    },
+  } as never);
+}
+
+function scopedKitchenItem(overrides: Record<string, unknown> = {}) {
+  return {
+    order_id: 101,
+    order_number: "A001",
+    order_created_at: "2026-06-07T11:40:00.000Z",
+    table_id: 7,
+    item_id: 501,
+    menu_item_id: 91,
+    menu_item_name: "Laksa",
+    previous_status: "pending",
+    ...overrides,
+  };
 }
 
 function order(overrides: Record<string, unknown> = {}) {
@@ -58,6 +93,22 @@ describe("KitchenService", () => {
       averagePreparationTime: 0,
     });
     serviceMocks.updateItemStatus.mockResolvedValue(undefined);
+    serviceMocks.first.mockResolvedValue(scopedKitchenItem());
+    serviceMocks.bind.mockReturnValue({ first: serviceMocks.first });
+    serviceMocks.prepare.mockReturnValue({ bind: serviceMocks.bind });
+    serviceMocks.broadcastOrderItemStatusUpdate.mockResolvedValue({
+      success: true,
+      eventId: "evt-item-status",
+      recipientCount: 2,
+    });
+    serviceMocks.broadcastKitchenItemStatus.mockResolvedValue({
+      success: true,
+      eventId: "evt-kitchen-status",
+      recipientCount: 2,
+    });
+    serviceMocks.generateEventId
+      .mockReturnValueOnce("evt-item-status")
+      .mockReturnValueOnce("evt-kitchen-status");
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -116,11 +167,14 @@ describe("KitchenService", () => {
     const result = await createService().getKitchenOrders("restaurant-1", 22);
 
     expect(serviceMocks.ctor).toHaveBeenCalledWith({
-      DB: { binding: "db" },
+      DB: {
+        prepare: serviceMocks.prepare,
+      },
     });
     expect(serviceMocks.getOrders).toHaveBeenCalledWith({
       restaurantId: "restaurant-1",
       status: ["confirmed", "preparing", "ready"],
+      limit: 100,
     });
     expect(serviceMocks.getDailyStats).toHaveBeenCalledWith("restaurant-1");
     expect(result.pending).toEqual([
@@ -203,10 +257,6 @@ describe("KitchenService", () => {
   });
 
   it("updates item status and returns a timestamped response", async () => {
-    serviceMocks.getOrders.mockResolvedValue({
-      orders: [order()],
-    });
-
     const result = await createService().updateOrderItemStatus(
       "restaurant-1",
       101,
@@ -220,6 +270,41 @@ describe("KitchenService", () => {
       "ready",
       "plated",
     );
+    expect(serviceMocks.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("JOIN orders o ON o.id = oi.order_id"),
+    );
+    expect(serviceMocks.bind).toHaveBeenCalledWith(501, 101, "restaurant-1");
+    expect(serviceMocks.getOrders).not.toHaveBeenCalled();
+    expect(serviceMocks.broadcastOrderItemStatusUpdate).toHaveBeenCalledWith({
+      type: "order_item_status_update",
+      eventId: "evt-item-status",
+      timestamp: new Date("2026-06-07T12:00:00.000Z").getTime(),
+      restaurantId: "restaurant-1",
+      data: {
+        orderId: 101,
+        orderItemId: 501,
+        menuItemId: 91,
+        menuItemName: "Laksa",
+        status: "ready",
+        previousStatus: "pending",
+        updatedAt: new Date("2026-06-07T12:00:00.000Z").getTime(),
+      },
+    });
+    expect(serviceMocks.broadcastKitchenItemStatus).toHaveBeenCalledWith({
+      type: "kitchen_item_status",
+      eventId: "evt-kitchen-status",
+      timestamp: new Date("2026-06-07T12:00:00.000Z").getTime(),
+      restaurantId: "restaurant-1",
+      data: {
+        orderId: 101,
+        orderItemId: 501,
+        menuItemName: "Laksa",
+        status: "ready",
+        tableName: "Table 7",
+        priority: "high",
+        waitingTime: 20,
+      },
+    });
     expect(result).toEqual({
       orderId: 101,
       itemId: 501,
@@ -229,9 +314,7 @@ describe("KitchenService", () => {
   });
 
   it("rejects item status updates outside the scoped restaurant order", async () => {
-    serviceMocks.getOrders.mockResolvedValue({
-      orders: [order({ id: 202 })],
-    });
+    serviceMocks.first.mockResolvedValueOnce(null);
 
     await expect(
       createService().updateOrderItemStatus(
@@ -246,6 +329,7 @@ describe("KitchenService", () => {
     });
 
     expect(serviceMocks.updateItemStatus).not.toHaveBeenCalled();
+    expect(serviceMocks.broadcastOrderItemStatusUpdate).not.toHaveBeenCalled();
   });
 
   it("validates kitchen role access", () => {
@@ -269,9 +353,6 @@ describe("KitchenService", () => {
     serviceMocks.updateItemStatus.mockRejectedValueOnce(
       new Error("item update down"),
     );
-    serviceMocks.getOrders.mockResolvedValueOnce({
-      orders: [order()],
-    });
     await expect(
       createService().updateOrderItemStatus(
         "restaurant-1",

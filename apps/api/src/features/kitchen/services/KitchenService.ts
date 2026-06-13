@@ -22,22 +22,44 @@ import type {
 } from "../types";
 import { OrdersService } from "../../orders/services/OrdersService";
 import { forbidden } from "../../../shared/utils/api-error";
+import { RealtimeBroadcastService } from "@makanmakan/database";
+import {
+  RealtimeEventType,
+  type KitchenItemStatusEvent,
+  type OrderItemStatusUpdateEvent,
+} from "@makanmakan/shared-types";
+
+type KitchenOrderItemStatus = OrderItemStatusUpdate["status"];
+
+type KitchenScopedItemRow = {
+  order_id: number;
+  order_number: string | null;
+  order_created_at: string | number | null;
+  table_id: number | null;
+  item_id: number;
+  menu_item_id: number;
+  menu_item_name: string | null;
+  previous_status: KitchenOrderItemStatus;
+};
 
 export class KitchenService implements IKitchenService {
   private logger: ConsoleLogger;
   private env: Env;
   private ordersService: OrdersService;
+  private realtimeBroadcastService: RealtimeBroadcastService;
 
   constructor(env: Env) {
     this.env = env;
     this.logger = new ConsoleLogger("KitchenService");
     this.ordersService = new OrdersService(env);
+    this.realtimeBroadcastService = new RealtimeBroadcastService(env);
   }
 
   // Kitchen Operations
   async getKitchenOrders(
     restaurantId: string,
     userId?: number,
+    limit = 100,
   ): Promise<KitchenOrdersResponse> {
     try {
       this.logger.info("Fetching kitchen orders", { restaurantId, userId });
@@ -53,6 +75,7 @@ export class KitchenService implements IKitchenService {
       const result = await ordersService.getOrders({
         restaurantId,
         status: ["confirmed", "preparing", "ready"] as const,
+        limit,
       });
 
       // Transform orders to KitchenOrder format
@@ -180,15 +203,12 @@ export class KitchenService implements IKitchenService {
         userId,
       });
 
-      const scopedOrders = await this.ordersService.getOrders({
+      const scopedItem = await this.getScopedKitchenItem(
         restaurantId,
-        status: ["confirmed", "preparing", "ready"] as const,
-      });
-      const scopedOrder = scopedOrders.orders.find(
-        (order) => order.id === orderId,
+        orderId,
+        itemId,
       );
-      const scopedItem = scopedOrder?.items?.find((item) => item.id === itemId);
-      if (!scopedOrder || !scopedItem) {
+      if (!scopedItem) {
         throw forbidden(
           "Order item is outside the kitchen scope",
           "KITCHEN_ITEM_SCOPE_DENIED",
@@ -199,6 +219,12 @@ export class KitchenService implements IKitchenService {
         itemId,
         statusUpdate.status,
         statusUpdate.notes,
+      );
+
+      await this.broadcastItemStatusUpdate(
+        restaurantId,
+        scopedItem,
+        statusUpdate.status,
       );
 
       return {
@@ -239,5 +265,126 @@ export class KitchenService implements IKitchenService {
     }
 
     return true;
+  }
+
+  private async getScopedKitchenItem(
+    restaurantId: string,
+    orderId: number,
+    itemId: number,
+  ): Promise<KitchenScopedItemRow | null> {
+    const row = await this.env.DB.prepare(
+      `
+        SELECT
+          o.id AS order_id,
+          o.order_number,
+          o.created_at AS order_created_at,
+          o.table_id,
+          oi.id AS item_id,
+          oi.menu_item_id,
+          oi.status AS previous_status,
+          COALESCE(mi.name, json_extract(oi.item_snapshot, '$.name')) AS menu_item_name
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+        WHERE oi.id = ?
+          AND o.id = ?
+          AND o.restaurant_id = ?
+          AND o.status IN ('confirmed', 'preparing', 'ready')
+        LIMIT 1
+      `,
+    )
+      .bind(itemId, orderId, restaurantId)
+      .first<KitchenScopedItemRow>();
+
+    return row ?? null;
+  }
+
+  private async broadcastItemStatusUpdate(
+    restaurantId: string,
+    item: KitchenScopedItemRow,
+    status: KitchenOrderItemStatus,
+  ): Promise<void> {
+    try {
+      const updatedAt = Date.now();
+      const menuItemName = item.menu_item_name || "Unknown Item";
+
+      const orderItemEvent: OrderItemStatusUpdateEvent = {
+        type: RealtimeEventType.ORDER_ITEM_STATUS_UPDATE,
+        eventId: this.realtimeBroadcastService.generateEventId(),
+        timestamp: updatedAt,
+        restaurantId,
+        data: {
+          orderId: item.order_id,
+          orderItemId: item.item_id,
+          menuItemId: item.menu_item_id,
+          menuItemName,
+          status:
+            status as unknown as OrderItemStatusUpdateEvent["data"]["status"],
+          previousStatus:
+            item.previous_status as unknown as OrderItemStatusUpdateEvent["data"]["previousStatus"],
+          updatedAt,
+        },
+      };
+
+      const kitchenEvent: KitchenItemStatusEvent = {
+        type: RealtimeEventType.KITCHEN_ITEM_STATUS,
+        eventId: this.realtimeBroadcastService.generateEventId(),
+        timestamp: updatedAt,
+        restaurantId,
+        data: {
+          orderId: item.order_id,
+          orderItemId: item.item_id,
+          menuItemName,
+          status: this.toKitchenItemStatus(status),
+          tableName: item.table_id ? `Table ${item.table_id}` : "No Table",
+          priority: this.getKitchenPriority(item.order_created_at),
+          waitingTime: this.getWaitingMinutes(item.order_created_at),
+        },
+      };
+
+      await Promise.all([
+        this.realtimeBroadcastService.broadcastOrderItemStatusUpdate(
+          orderItemEvent,
+        ),
+        this.realtimeBroadcastService.broadcastKitchenItemStatus(kitchenEvent),
+      ]);
+    } catch (error) {
+      this.logger.error(
+        "Failed to broadcast order item status update",
+        error instanceof Error ? error : undefined,
+        {
+          restaurantId,
+          orderId: item.order_id,
+          itemId: item.item_id,
+          status,
+        },
+      );
+    }
+  }
+
+  private toKitchenItemStatus(
+    status: KitchenOrderItemStatus,
+  ): KitchenItemStatusEvent["data"]["status"] {
+    if (status === "preparing") return "cooking";
+    if (status === "completed") return "served";
+    if (status === "ready") return "ready";
+    return "pending";
+  }
+
+  private getWaitingMinutes(createdAt: string | number | null): number {
+    if (createdAt == null) return 0;
+    const createdAtMs =
+      typeof createdAt === "number" ? createdAt : new Date(createdAt).getTime();
+    if (!Number.isFinite(createdAtMs)) return 0;
+    return Math.max(0, Math.floor((Date.now() - createdAtMs) / 60000));
+  }
+
+  private getKitchenPriority(
+    createdAt: string | number | null,
+  ): KitchenItemStatusEvent["data"]["priority"] {
+    const waitingTime = this.getWaitingMinutes(createdAt);
+    if (waitingTime >= 30) return "urgent";
+    if (waitingTime >= 15) return "high";
+    return "normal";
   }
 }

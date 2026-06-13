@@ -381,48 +381,90 @@ async function handleDailyMaintenance(
   env: Env,
   analytics?: AnalyticsEngineDataset,
 ): Promise<void> {
-  try {
-    console.log("Running daily maintenance...");
+  console.log("Running daily maintenance...");
 
-    let cleanupCount = 0;
+  let cleanupCount = 0;
+  let auditCleanupCount = 0;
+  let alertCleanupCount = 0;
+  let errorCount = 0;
 
-    // Clean up expired backups
-    const expiredBackups = await getExpiredBackups(env.DB);
-
-    for (const backup of expiredBackups) {
-      try {
-        await backupService.deleteBackup(backup.id, "system");
-        cleanupCount++;
-
-        console.log(`Cleaned up expired backup: ${backup.name} (${backup.id})`);
-      } catch (error: unknown) {
-        console.error(`Failed to cleanup backup ${backup.id}:`, error);
-      }
+  const runStep = async <T>(
+    step: string,
+    action: () => Promise<T>,
+    fallback: T,
+  ): Promise<T> => {
+    try {
+      return await action();
+    } catch (error: unknown) {
+      errorCount++;
+      console.error(`Daily maintenance step failed: ${step}`, error);
+      return fallback;
     }
+  };
 
-    // Aggregate daily metrics for all restaurants
-    await aggregateDailyMetrics(env.DB);
+  await runStep(
+    "expired_backup_cleanup",
+    async () => {
+      // Clean up expired backups
+      const expiredBackups = await getExpiredBackups(env.DB);
 
-    // Clean up old audit logs (older than 90 days)
-    const auditCleanupCount = await cleanupOldAuditLogs(env.DB);
+      for (const backup of expiredBackups) {
+        try {
+          await backupService.deleteBackup(backup.id, "system");
+          cleanupCount++;
 
-    // Clean up resolved alerts (older than 30 days)
-    const alertCleanupCount = await cleanupOldAlerts(env.DB);
+          console.log(
+            `Cleaned up expired backup: ${backup.name} (${backup.id})`,
+          );
+        } catch (error: unknown) {
+          errorCount++;
+          console.error(`Failed to cleanup backup ${backup.id}:`, error);
+        }
+      }
 
-    // Track maintenance metrics
-    analytics?.writeDataPoint({
-      blobs: ["daily_maintenance_completed"],
-      doubles: [Date.now(), cleanupCount, auditCleanupCount, alertCleanupCount],
-      indexes: ["maintenance"],
-    });
+      return cleanupCount;
+    },
+    0,
+  );
 
-    console.log(
-      `Daily maintenance completed: ${cleanupCount} backups cleaned, ${auditCleanupCount} audit logs cleaned, ${alertCleanupCount} alerts cleaned`,
-    );
-  } catch (error: unknown) {
-    console.error("Daily maintenance failed:", error);
-    throw error;
-  }
+  await runStep(
+    "aggregate_daily_metrics",
+    async () => {
+      // Aggregate daily metrics for all restaurants
+      await aggregateDailyMetrics(env.DB, analytics);
+      return undefined;
+    },
+    undefined,
+  );
+
+  auditCleanupCount = await runStep(
+    "audit_log_cleanup",
+    () => cleanupOldAuditLogs(env.DB),
+    0,
+  );
+
+  alertCleanupCount = await runStep(
+    "alert_cleanup",
+    () => cleanupOldAlerts(env.DB),
+    0,
+  );
+
+  // Track maintenance metrics
+  analytics?.writeDataPoint({
+    blobs: ["daily_maintenance_completed"],
+    doubles: [
+      Date.now(),
+      cleanupCount,
+      auditCleanupCount,
+      alertCleanupCount,
+      errorCount,
+    ],
+    indexes: ["maintenance"],
+  });
+
+  console.log(
+    `Daily maintenance completed: ${cleanupCount} backups cleaned, ${auditCleanupCount} audit logs cleaned, ${alertCleanupCount} alerts cleaned, ${errorCount} errors`,
+  );
 }
 
 /**
@@ -558,9 +600,15 @@ async function getExpiredBackups(db: D1Database) {
   const result = await db
     .prepare(
       `
-    SELECT id, name FROM backup_records
-    WHERE expires_at IS NOT NULL AND expires_at < datetime('now')
-    AND status = 'completed'
+    SELECT br.id, br.name
+    FROM backup_records br
+    LEFT JOIN backup_configurations bc ON bc.id = br.configuration_id
+    WHERE br.started_at IS NOT NULL
+      AND datetime(
+        br.started_at,
+        '+' || COALESCE(bc.retention_days, 30) || ' days'
+      ) < datetime('now')
+      AND br.status = 'completed'
   `,
     )
     .all<{ id: string; name: string }>();
@@ -568,37 +616,55 @@ async function getExpiredBackups(db: D1Database) {
   return result.results || [];
 }
 
-async function aggregateDailyMetrics(db: D1Database) {
+async function aggregateDailyMetrics(
+  db: D1Database,
+  analytics?: AnalyticsEngineDataset,
+) {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const dateStr = yesterday.toISOString().split("T")[0];
 
-  await db
+  const result = await db
     .prepare(
       `
-    INSERT OR REPLACE INTO backup_metrics_daily (
-      id, restaurant_id, date, total_backups, successful_backups, failed_backups,
-      total_size_bytes, average_duration_seconds, computed_at
-    )
     SELECT
-      restaurant_id || '-' || ? as id,
       restaurant_id,
-      ? as date,
       COUNT(*) as total_backups,
       COUNT(CASE WHEN status = 'completed' THEN 1 END) as successful_backups,
       COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_backups,
       SUM(COALESCE(file_size, 0)) as total_size_bytes,
       AVG(CASE WHEN completed_at IS NOT NULL THEN
         (julianday(completed_at) - julianday(started_at)) * 24 * 3600
-      END) as average_duration_seconds,
-      datetime('now') as computed_at
+      END) as average_duration_seconds
     FROM backup_records
     WHERE date(started_at) = ?
     GROUP BY restaurant_id
   `,
     )
-    .bind(dateStr, dateStr, dateStr)
-    .run();
+    .bind(dateStr)
+    .all<{
+      restaurant_id: string;
+      total_backups: number;
+      successful_backups: number;
+      failed_backups: number;
+      total_size_bytes: number | null;
+      average_duration_seconds: number | null;
+    }>();
+
+  for (const metric of result.results || []) {
+    analytics?.writeDataPoint({
+      blobs: ["backup_daily_metrics", metric.restaurant_id, dateStr],
+      doubles: [
+        Date.now(),
+        metric.total_backups,
+        metric.successful_backups,
+        metric.failed_backups,
+        metric.total_size_bytes ?? 0,
+        metric.average_duration_seconds ?? 0,
+      ],
+      indexes: ["backup_daily_metrics", metric.restaurant_id],
+    });
+  }
 }
 
 async function cleanupOldAuditLogs(db: D1Database): Promise<number> {

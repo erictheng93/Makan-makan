@@ -1193,22 +1193,60 @@ export class OrderService extends BaseService {
         throw new Error("Order cannot be cancelled");
       }
 
-      // 恢復庫存 (batch updates in parallel)
-      const inventoryRestores = (order.items || []).map((item) =>
-        this.db
-          .update(menuItems)
-          .set({
-            inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${item.quantity} END`,
-          })
-          .where(eq(menuItems.id, item.menuItemId)),
+      const now = new Date();
+      const writeStatements: BatchItem<"sqlite">[] = (order.items || []).map(
+        (item) =>
+          this.db
+            .update(menuItems)
+            .set({
+              inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${item.quantity} END`,
+            })
+            .where(
+              and(
+                eq(menuItems.id, item.menuItemId),
+                sql`EXISTS (
+                  SELECT 1 FROM ${orders}
+                  WHERE ${orders.id} = ${id}
+                    AND ${orders.status} IN (${sql.join(
+                      cancellableOrderStatuses.map((status) => sql`${status}`),
+                      sql`, `,
+                    )})
+                )`,
+              ),
+            ),
       );
 
-      await Promise.all(inventoryRestores);
+      writeStatements.push(
+        this.db
+          .update(orders)
+          .set({
+            status: ORDER_STATUS.CANCELLED,
+            notes: reason,
+            updatedAt: now,
+            version: sql`${orders.version} + 1`,
+          })
+          .where(
+            and(
+              eq(orders.id, id),
+              inArray(orders.status, [...cancellableOrderStatuses]),
+            ),
+          )
+          .returning({ id: orders.id }),
+      );
 
-      return await this.updateOrderStatus(id, {
-        status: ORDER_STATUS.CANCELLED,
-        notes: reason,
-      });
+      const batchResults = await this.db.batch(
+        writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      const cancelledRows = batchResults.at(-1) as Array<{ id: number }>;
+      if (cancelledRows.length === 0) {
+        throw new Error("Order cannot be cancelled");
+      }
+
+      const cancelledOrder = await this.getOrder(id);
+      if (!cancelledOrder) {
+        throw new Error("Order not found");
+      }
+      return cancelledOrder;
     } catch (error) {
       this.handleError(error, "cancelOrder");
     }

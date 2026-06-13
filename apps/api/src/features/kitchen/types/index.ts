@@ -63,6 +63,7 @@ export interface IKitchenService {
   getKitchenOrders(
     restaurantId: string,
     userId?: number,
+    limit?: number,
   ): Promise<KitchenOrdersResponse>;
   updateOrderItemStatus(
     restaurantId: string,

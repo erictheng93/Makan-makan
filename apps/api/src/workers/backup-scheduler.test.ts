@@ -34,16 +34,39 @@ import worker, {
   shouldRunBackup,
 } from "./backup-scheduler";
 
-function createDb(results: Record<string, unknown>[] = []) {
+function createDb(
+  results: Record<string, unknown>[] = [],
+  shouldFail?: (sql: string) => boolean,
+) {
   return {
-    prepare: vi.fn(() => ({
-      bind: vi.fn(() => ({
-        run: vi.fn(async () => ({ meta: { changes: 1 } })),
-        all: vi.fn(async () => ({ results })),
-      })),
-      run: vi.fn(async () => ({ meta: { changes: 1 } })),
-      all: vi.fn(async () => ({ results })),
-    })),
+    prepare: vi.fn((sql: string) => {
+      const maybeThrow = async () => {
+        if (shouldFail?.(sql)) {
+          throw new Error(`query failed: ${sql}`);
+        }
+      };
+
+      return {
+        bind: vi.fn(() => ({
+          run: vi.fn(async () => {
+            await maybeThrow();
+            return { meta: { changes: 1 } };
+          }),
+          all: vi.fn(async () => {
+            await maybeThrow();
+            return { results };
+          }),
+        })),
+        run: vi.fn(async () => {
+          await maybeThrow();
+          return { meta: { changes: 1 } };
+        }),
+        all: vi.fn(async () => {
+          await maybeThrow();
+          return { results };
+        }),
+      };
+    }),
   };
 }
 
@@ -143,6 +166,39 @@ describe("backup scheduler", () => {
         new Date(2026, 5, 12, 2, 0, 0),
       ),
     ).toBe(true);
+  });
+
+  it("keeps daily maintenance running when one step fails", async () => {
+    const db = createDb([], (sql) =>
+      sql.includes("LEFT JOIN backup_configurations"),
+    );
+    const env = createEnv(db);
+
+    await expect(
+      worker.scheduled(
+        { cron: "0 2 * * *" } as ScheduledEvent,
+        env as never,
+        {} as ExecutionContext,
+      ),
+    ).resolves.toBeUndefined();
+
+    const preparedSql = db.prepare.mock.calls.map(([sql]) => sql);
+    expect(preparedSql.some((sql) => sql.includes("expires_at"))).toBe(false);
+    expect(
+      preparedSql.some((sql) => sql.includes("backup_metrics_daily")),
+    ).toBe(false);
+    expect(
+      preparedSql.some((sql) => sql.includes("DELETE FROM backup_audit_logs")),
+    ).toBe(true);
+    expect(
+      preparedSql.some((sql) => sql.includes("DELETE FROM backup_alerts")),
+    ).toBe(true);
+    expect(env.ANALYTICS.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: ["daily_maintenance_completed"],
+        indexes: ["maintenance"],
+      }),
+    );
   });
 
   it("builds a safe dry-run restore drill command plan", () => {

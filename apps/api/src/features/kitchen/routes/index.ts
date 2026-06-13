@@ -47,6 +47,17 @@ function parseRouteNumber(value: string | undefined, name: string): number {
   return parsed;
 }
 
+function parseKitchenOrdersLimit(value: string | undefined): number {
+  if (!value) return 100;
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 500) {
+    throw badRequest("Invalid limit query parameter", "INVALID_LIMIT");
+  }
+
+  return parsed;
+}
+
 function extractLegacyNotes(payload: unknown): string | undefined {
   if (!payload || typeof payload !== "object") return undefined;
 
@@ -354,7 +365,11 @@ app.get(
       throw forbidden("Access denied", "ACCESS_DENIED");
     }
 
-    const data = await kitchenService.getKitchenOrders(restaurantId, user.id);
+    const data = await kitchenService.getKitchenOrders(
+      restaurantId,
+      user.id,
+      parseKitchenOrdersLimit(c.req.query("limit")),
+    );
 
     return c.json(
       createSuccessResponse(data, "Kitchen orders retrieved successfully"),

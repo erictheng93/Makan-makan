@@ -397,6 +397,52 @@ describe("OrderService createOrder atomicity", () => {
   );
 });
 
+describe("OrderService cancelOrder atomicity", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await seedMenuItem(testDb);
+  });
+
+  it("restores inventory only for the cancellation that changes order status", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+
+    const [afterCreate] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(afterCreate.inventoryCount).toBe(8);
+
+    await expect(service.cancelOrder(order.id, "customer")).resolves.toEqual(
+      expect.objectContaining({ status: "cancelled" }),
+    );
+    await expect(service.cancelOrder(order.id, "duplicate")).rejects.toThrow(
+      "Order cannot be cancelled",
+    );
+
+    const [afterDuplicateCancel] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(afterDuplicateCancel.inventoryCount).toBe(10);
+  });
+});
+
 async function seedCoupon(testDb: TestDatabase) {
   await testDb.drizzle.insert(coupons).values({
     restaurantId,

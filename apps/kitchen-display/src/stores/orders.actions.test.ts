@@ -148,4 +148,32 @@ describe("orders store actions", () => {
     expect(store.stats.pendingCount).toBe(0);
     expect(store.lastUpdated).toBeNull();
   });
+
+  it("applies realtime order item status updates", () => {
+    const store = useOrdersStore();
+    store.orders = [order("pending")];
+
+    store.handleSSEEvent({
+      type: "order_item_status_update",
+      eventId: "evt-item-status",
+      timestamp: "2026-06-08T01:02:00.000Z",
+      restaurantId: "restaurant-1",
+      data: {
+        orderId: 1001,
+        orderItemId: 501,
+        menuItemId: 91,
+        menuItemName: "Noodles",
+        status: "preparing",
+        previousStatus: "pending",
+        updatedAt: "2026-06-08T01:02:00.000Z",
+      },
+    });
+
+    expect(store.orders[0].status).toBe("preparing");
+    expect(store.orders[0].items[0]).toMatchObject({
+      id: 501,
+      status: "preparing",
+      startedAt: "2026-06-08T01:02:00.000Z",
+    });
+  });
 });

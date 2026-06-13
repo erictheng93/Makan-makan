@@ -190,7 +190,25 @@ describe("kitchen routes", () => {
       2,
       "restaurant-1",
     );
-    expect(mocks.getKitchenOrders).toHaveBeenCalledWith("restaurant-1", 22);
+    expect(mocks.getKitchenOrders).toHaveBeenCalledWith(
+      "restaurant-1",
+      22,
+      100,
+    );
+  });
+
+  it("passes an explicit kitchen order limit from the query string", async () => {
+    const response = await routes.fetch(
+      new Request("https://kitchen.test/restaurant-1/orders?limit=250"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.getKitchenOrders).toHaveBeenCalledWith(
+      "restaurant-1",
+      22,
+      250,
+    );
   });
 
   it("issues short-lived scoped tokens for kitchen SSE connections", async () => {

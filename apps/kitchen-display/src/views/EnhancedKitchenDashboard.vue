@@ -447,6 +447,7 @@ onMounted(async () => {
     [
       RealtimeEventType.NEW_ORDER,
       RealtimeEventType.ORDER_STATUS_UPDATE,
+      RealtimeEventType.ORDER_ITEM_STATUS_UPDATE,
       RealtimeEventType.ORDER_CANCELLED,
     ],
     (event) => {
