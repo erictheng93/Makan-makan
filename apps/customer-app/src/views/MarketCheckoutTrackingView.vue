@@ -322,6 +322,7 @@ import {
   getRecentMarketCheckoutPhoneLastDigits,
   recordRecentMarketCheckout,
 } from "@/utils/marketCheckouts";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 
 const props = defineProps<{
   slug: string;
@@ -499,8 +500,13 @@ function handleProviderNextAction(
   if (!nextAction) return;
 
   if (nextAction.type === "redirect" && nextAction.redirectUrl) {
+    const redirectUrl = safeExternalHref(nextAction.redirectUrl);
+    if (!redirectUrl) {
+      paymentActionMessage.value = "付款連結無效，請稍後再試。";
+      return;
+    }
     paymentActionMessage.value = "正在前往付款頁，請完成付款後回到此頁追蹤。";
-    window.open(nextAction.redirectUrl, "_self");
+    window.open(redirectUrl, "_self");
     return;
   }
 

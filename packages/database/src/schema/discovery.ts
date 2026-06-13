@@ -4,6 +4,7 @@ import {
   integer,
   real,
   index,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
@@ -67,6 +68,9 @@ export const dishSearchIndex = sqliteTable(
     catalogAvailableIdx: index("dish_search_catalog_available_idx").on(
       table.catalogType,
       table.isAvailable,
+    ),
+    menuItemUnique: uniqueIndex("dish_search_menu_item_unique").on(
+      table.menuItemId,
     ),
   }),
 );

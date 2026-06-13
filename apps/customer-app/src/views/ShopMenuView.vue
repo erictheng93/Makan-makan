@@ -345,8 +345,8 @@
                   站內預約
                 </button>
                 <a
-                  v-else-if="service.bookingUrl"
-                  :href="service.bookingUrl"
+                  v-else-if="safeExternalHref(service.bookingUrl)"
+                  :href="safeExternalHref(service.bookingUrl)!"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="mt-3 inline-flex text-sm font-medium text-ios-blue"
@@ -639,6 +639,7 @@ import {
   shouldOpenServicesSection,
 } from "@/utils/shopMenuDeepLink";
 import { marketTypeLabel } from "@/utils/marketTypes";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 
 // Props
 const props = defineProps<{

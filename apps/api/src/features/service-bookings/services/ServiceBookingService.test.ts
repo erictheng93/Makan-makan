@@ -85,14 +85,20 @@ describe("ServiceBookingService orchestration helpers", () => {
     const calls: Array<{ sql: string; params: unknown[] }> = [];
     const d1 = {
       prepare: vi.fn((sql: string) => ({
-        bind: vi.fn((...params: unknown[]) => ({
-          run: vi.fn(async () => {
-            calls.push({ sql, params });
-            const result = results.shift() ?? { changes: 1 };
-            return { meta: { changes: result.changes ?? 1 } };
-          }),
-        })),
+        bind: vi.fn((...params: unknown[]) => {
+          const statement = {
+            run: vi.fn(async () => {
+              calls.push({ sql, params });
+              const result = results.shift() ?? { changes: 1 };
+              return { meta: { changes: result.changes ?? 1 } };
+            }),
+          };
+          return statement;
+        }),
       })),
+      batch: vi.fn(async (statements: Array<{ run: () => Promise<unknown> }>) =>
+        Promise.all(statements.map((statement) => statement.run())),
+      ),
     };
     return { d1, calls };
   }
@@ -1241,10 +1247,13 @@ describe("ServiceBookingService orchestration helpers", () => {
       customerEmail: null,
     };
     const cancelled = { ...booking, status: SERVICE_BOOKING_STATUS.CANCELLED };
-    const { d1, calls } = createD1Mock([{ changes: 1 }, { changes: 1 }]);
-    const { db, updateSets } = createDbMock({
-      selectGet: [booking],
-      updateReturning: [cancelled],
+    const { d1, calls } = createD1Mock([
+      { changes: 1 },
+      { changes: 1 },
+      { changes: 1 },
+    ]);
+    const { db } = createDbMock({
+      selectGet: [booking, cancelled],
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1253,16 +1262,30 @@ describe("ServiceBookingService orchestration helpers", () => {
         customerPhone: "+886900000000",
       }),
     ).resolves.toBe(cancelled);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
     expect(calls[0]).toMatchObject({
-      params: [10, "2026-06-10", "10:00"],
+      params: [
+        SERVICE_BOOKING_STATUS.CANCELLED,
+        Date.parse("2026-06-07T00:00:00.000Z"),
+        Date.parse("2026-06-07T00:00:00.000Z"),
+        "booking-1",
+        SERVICE_BOOKING_STATUS.CONFIRMED,
+      ],
     });
-    expect(calls[1]).toMatchObject({ params: [99] });
-    expect(updateSets[0]).toMatchObject({
-      status: SERVICE_BOOKING_STATUS.CANCELLED,
-      cancelledAt: new Date("2026-06-07T00:00:00.000Z"),
-      updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+    expect(calls[1]).toMatchObject({
+      params: [
+        Date.parse("2026-06-07T00:00:00.000Z"),
+        10,
+        "2026-06-10",
+        "10:00",
+        "booking-1",
+        SERVICE_BOOKING_STATUS.CANCELLED,
+        Date.parse("2026-06-07T00:00:00.000Z"),
+      ],
     });
+    expect(calls[2]).toMatchObject(
+      expect.objectContaining({ params: expect.arrayContaining([99]) }),
+    );
   });
 
   it("cancels pending bookings without decrementing voucher usage", async () => {
@@ -1276,8 +1299,8 @@ describe("ServiceBookingService orchestration helpers", () => {
     };
     const { d1, calls } = createD1Mock([{ changes: 1 }]);
     const { db } = createDbMock({
-      selectGet: [booking],
-      updateReturning: [
+      selectGet: [
+        booking,
         { ...booking, status: SERVICE_BOOKING_STATUS.CANCELLED },
       ],
     });
@@ -1285,9 +1308,9 @@ describe("ServiceBookingService orchestration helpers", () => {
 
     await service.cancelBooking("booking-1");
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatchObject({
-      params: [10, "2026-06-10", "10:00"],
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toMatchObject({
+      params: expect.arrayContaining([10, "2026-06-10", "10:00"]),
     });
   });
 
@@ -1373,10 +1396,9 @@ describe("ServiceBookingService orchestration helpers", () => {
       status: SERVICE_BOOKING_STATUS.CONFIRMED,
       paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.PAID,
     };
-    const { d1, calls } = createD1Mock([{ changes: 1 }]);
-    const { db, updateSets } = createDbMock({
-      selectGet: [booking],
-      updateReturning: [confirmed],
+    const { d1, calls } = createD1Mock([{ changes: 1 }, { changes: 1 }]);
+    const { db } = createDbMock({
+      selectGet: [booking, confirmed],
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1397,14 +1419,22 @@ describe("ServiceBookingService orchestration helpers", () => {
       sourceId: "booking-1",
       pin: "1234",
     });
-    expect(calls[0]).toMatchObject({ params: [99] });
-    expect(updateSets[0]).toMatchObject({
-      status: SERVICE_BOOKING_STATUS.CONFIRMED,
-      paymentStatus: SERVICE_BOOKING_PAYMENT_STATUS.PAID,
-      paymentMethod: SERVICE_BOOKING_PAYMENT_METHOD.CREDITS,
-      amountPaidCents: 2500,
-      paymentRef: "ledger-1",
+    expect(calls[0]).toMatchObject({
+      params: [
+        SERVICE_BOOKING_STATUS.CONFIRMED,
+        SERVICE_BOOKING_PAYMENT_STATUS.PAID,
+        SERVICE_BOOKING_PAYMENT_METHOD.CREDITS,
+        2500,
+        "ledger-1",
+        Date.parse("2026-06-07T00:00:00.000Z"),
+        Date.parse("2026-06-07T00:00:00.000Z"),
+        "booking-1",
+        SERVICE_BOOKING_STATUS.PENDING,
+      ],
     });
+    expect(calls[1]).toMatchObject(
+      expect.objectContaining({ params: expect.arrayContaining([99]) }),
+    );
   });
 
   it("confirms zero-amount credit bookings without spending credits", async () => {
@@ -1416,13 +1446,12 @@ describe("ServiceBookingService orchestration helpers", () => {
       paymentRequirement: SERVICE_BOOKING_PAYMENT_REQUIREMENT.PREPAY,
       amountDueCents: 0,
     };
-    const { db, updateSets } = createDbMock({
-      selectGet: [booking],
-      updateReturning: [
-        { ...booking, status: SERVICE_BOOKING_STATUS.CONFIRMED },
-      ],
+    const confirmed = { ...booking, status: SERVICE_BOOKING_STATUS.CONFIRMED };
+    const { d1, calls } = createD1Mock([{ changes: 1 }]);
+    const { db } = createDbMock({
+      selectGet: [booking, confirmed],
     });
-    const service = createService({ db });
+    const service = createService({ d1: d1 as never, db });
 
     await service.payWithCredits({
       bookingId: "booking-1",
@@ -1430,11 +1459,9 @@ describe("ServiceBookingService orchestration helpers", () => {
     });
 
     expect(spend).not.toHaveBeenCalled();
-    expect(updateSets[0]).toMatchObject({
-      paymentMethod: SERVICE_BOOKING_PAYMENT_METHOD.CREDITS,
-      amountPaidCents: 0,
-      paymentRef: null,
-    });
+    expect(calls[0].params).toEqual(
+      expect.arrayContaining([SERVICE_BOOKING_PAYMENT_METHOD.CREDITS, 0, null]),
+    );
   });
 
   it("rejects payment for non-pending bookings", async () => {

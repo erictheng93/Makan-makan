@@ -78,6 +78,24 @@ describe("restaurant validation schemas", () => {
     );
   });
 
+  it("rejects non-http service booking URLs", () => {
+    expect(() =>
+      restaurantSchemas.createServiceItem.parse({
+        name: "Private dining",
+        bookingUrl: "javascript:alert(1)",
+      }),
+    ).toThrow("URL must use http or https");
+
+    expect(
+      restaurantSchemas.createServiceItem.parse({
+        name: "Private dining",
+        bookingUrl: "https://booking.example.test/private",
+      }),
+    ).toMatchObject({
+      bookingUrl: "https://booking.example.test/private",
+    });
+  });
+
   it("transforms list and shop QR params", () => {
     expect(
       restaurantSchemas.list.parse({

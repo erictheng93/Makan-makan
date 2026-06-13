@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { RESTAURANT_SERVICE_TYPES } from "@makanmakan/database";
 import { VALIDATION_LIMITS } from "../../../shared/constants";
+import { httpUrlSchema } from "../../../shared/utils/url";
 
 const decodeHtmlEntities = (value: string): string =>
   value
@@ -26,7 +27,7 @@ const sanitizeFreeText = (value: string): string =>
 const contactUrlSchema = z
   .string()
   .transform(decodeHtmlEntities)
-  .pipe(z.string().url());
+  .pipe(httpUrlSchema);
 
 // Business hours validation schema
 const businessHoursSchema = z
@@ -127,7 +128,7 @@ const restaurantServiceItemInputSchema = z.object({
     .optional(),
   durationMinutes: z.number().int().min(1).max(1440).nullable().optional(),
   requiresBooking: z.boolean().optional().default(false),
-  bookingUrl: z.string().url().nullable().optional(),
+  bookingUrl: httpUrlSchema.nullable().optional(),
   availableHours: z
     .object({
       start: z.string().optional(),

@@ -38,6 +38,7 @@ import {
 } from "../../../shared/utils/api-error";
 import { toCents } from "../../../shared/utils/money";
 import { CreditService } from "../../credits/services/CreditService";
+import { ServiceBookingNotificationService } from "./ServiceBookingNotificationService";
 
 type ServiceBookingRow = typeof serviceBookings.$inferSelect;
 type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;
@@ -49,6 +50,14 @@ type ServiceBookingPaymentRequirement =
 
 const MAX_RECURRING_BOOKING_COUNT = 12;
 export const MAX_BATCH_SLOT_CREATION_COUNT = 1000;
+
+const getMutationChanges = (result: unknown): number => {
+  if (typeof result !== "object" || result === null || !("meta" in result)) {
+    return 0;
+  }
+  const meta = (result as { meta?: { changes?: unknown } }).meta;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
+};
 
 export interface CreateServiceBookingInput {
   restaurantId: string;
@@ -625,28 +634,87 @@ export class ServiceBookingService {
       throw conflict("Booking cannot be cancelled", "BOOKING_NOT_CANCELLABLE");
     }
 
-    await this.releaseSlotCapacity(
-      booking.serviceItemId,
-      booking.bookingDate,
-      booking.bookingTime,
-    );
-    // Release a redeemed voucher only if it was counted (confirmed bookings).
+    const now = new Date();
+    const batch = [
+      this.d1
+        .prepare(
+          `UPDATE service_bookings
+              SET status = ?,
+                  cancelled_at_ms = ?,
+                  updated_at_ms = ?
+            WHERE id = ? AND status = ?`,
+        )
+        .bind(
+          SERVICE_BOOKING_STATUS.CANCELLED,
+          now.getTime(),
+          now.getTime(),
+          booking.id,
+          booking.status,
+        ),
+      this.d1
+        .prepare(
+          `UPDATE service_booking_slots
+              SET current_bookings = CASE
+                    WHEN current_bookings > 0 THEN current_bookings - 1 ELSE 0 END,
+                  updated_at_ms = ?
+            WHERE service_item_id = ?
+              AND date = ?
+              AND time_slot = ?
+              AND EXISTS (
+                SELECT 1 FROM service_bookings
+                WHERE id = ?
+                  AND status = ?
+                  AND cancelled_at_ms = ?
+              )`,
+        )
+        .bind(
+          now.getTime(),
+          booking.serviceItemId,
+          booking.bookingDate,
+          booking.bookingTime,
+          booking.id,
+          SERVICE_BOOKING_STATUS.CANCELLED,
+          now.getTime(),
+        ),
+    ];
+
     if (
       booking.couponId &&
       booking.status === SERVICE_BOOKING_STATUS.CONFIRMED
     ) {
-      await this.decrementCouponUse(booking.couponId);
+      batch.push(
+        this.d1
+          .prepare(
+            `UPDATE coupons
+                SET used_count = CASE
+                      WHEN coalesce(used_count, 0) > 0
+                      THEN coalesce(used_count, 0) - 1 ELSE 0 END,
+                    updated_at_ms = ?
+              WHERE id = ?
+                AND EXISTS (
+                  SELECT 1 FROM service_bookings
+                  WHERE id = ?
+                    AND status = ?
+                    AND cancelled_at_ms = ?
+                )`,
+          )
+          .bind(
+            now.getTime(),
+            booking.couponId,
+            booking.id,
+            SERVICE_BOOKING_STATUS.CANCELLED,
+            now.getTime(),
+          ),
+      );
     }
 
-    const [row] = await this.db
-      .update(serviceBookings)
-      .set({
-        status: SERVICE_BOOKING_STATUS.CANCELLED,
-        cancelledAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(serviceBookings.id, booking.id))
-      .returning();
+    const [updateResult] = await this.d1.batch(batch);
+    if (getMutationChanges(updateResult) === 0) {
+      throw conflict("Booking cannot be cancelled", "BOOKING_NOT_CANCELLABLE");
+    }
+
+    const row = await this.requireBooking(booking.id);
+    await this.dispatchNotification("cancelled", row);
     return row;
   }
 
@@ -676,8 +744,20 @@ export class ServiceBookingService {
     const [row] = await this.db
       .update(serviceBookings)
       .set({ ...patch, updatedAt: now })
-      .where(eq(serviceBookings.id, bookingId))
+      .where(
+        and(
+          eq(serviceBookings.id, bookingId),
+          eq(serviceBookings.status, SERVICE_BOOKING_STATUS.CONFIRMED),
+        ),
+      )
       .returning();
+    if (!row) {
+      throw conflict(
+        "Only confirmed bookings can be completed or marked no-show",
+        "BOOKING_INVALID_TRANSITION",
+      );
+    }
+    await this.dispatchNotification(to, row);
     return row;
   }
 
@@ -960,28 +1040,88 @@ export class ServiceBookingService {
       paymentRef: string | null;
     },
   ): Promise<ServiceBookingRow> {
-    if (booking.couponId) {
-      await this.claimCouponUse(booking.couponId);
-    }
     const now = new Date();
-    const [row] = await this.db
-      .update(serviceBookings)
-      .set({
-        status: SERVICE_BOOKING_STATUS.CONFIRMED,
-        paymentStatus:
-          booking.paymentRequirement ===
-          SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT
-            ? SERVICE_BOOKING_PAYMENT_STATUS.DEPOSIT_PAID
-            : SERVICE_BOOKING_PAYMENT_STATUS.PAID,
-        paymentMethod: payment.method,
-        amountPaidCents: payment.amountPaidCents,
-        paymentRef: payment.paymentRef,
-        confirmedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(serviceBookings.id, booking.id))
-      .returning();
+    const paymentStatus =
+      booking.paymentRequirement === SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT
+        ? SERVICE_BOOKING_PAYMENT_STATUS.DEPOSIT_PAID
+        : SERVICE_BOOKING_PAYMENT_STATUS.PAID;
+    const batch = [
+      this.d1
+        .prepare(
+          `UPDATE service_bookings
+              SET status = ?,
+                  payment_status = ?,
+                  payment_method = ?,
+                  amount_paid_cents = ?,
+                  payment_ref = ?,
+                  confirmed_at_ms = ?,
+                  updated_at_ms = ?
+            WHERE id = ? AND status = ?`,
+        )
+        .bind(
+          SERVICE_BOOKING_STATUS.CONFIRMED,
+          paymentStatus,
+          payment.method,
+          payment.amountPaidCents,
+          payment.paymentRef,
+          now.getTime(),
+          now.getTime(),
+          booking.id,
+          SERVICE_BOOKING_STATUS.PENDING,
+        ),
+    ];
+    if (booking.couponId) {
+      batch.push(
+        this.d1
+          .prepare(
+            `UPDATE coupons
+                SET used_count = coalesce(used_count, 0) + 1,
+                    updated_at_ms = ?
+              WHERE id = ?
+                AND (usage_limit IS NULL OR coalesce(used_count, 0) < usage_limit)
+                AND EXISTS (
+                  SELECT 1 FROM service_bookings
+                  WHERE id = ?
+                    AND status = ?
+                    AND confirmed_at_ms = ?
+                )`,
+          )
+          .bind(
+            now.getTime(),
+            booking.couponId,
+            booking.id,
+            SERVICE_BOOKING_STATUS.CONFIRMED,
+            now.getTime(),
+          ),
+      );
+    }
+
+    const [updateResult] = await this.d1.batch(batch);
+    if (getMutationChanges(updateResult) === 0) {
+      throw conflict("Booking is not awaiting payment", "BOOKING_NOT_PAYABLE");
+    }
+
+    const row = await this.requireBooking(booking.id);
+    await this.dispatchNotification("confirmed", row);
     return row;
+  }
+
+  private async dispatchNotification(
+    type: "confirmed" | "cancelled" | "completed" | "no_show",
+    booking: ServiceBookingRow,
+  ): Promise<void> {
+    try {
+      await new ServiceBookingNotificationService(this.d1, this.env).send({
+        type,
+        booking,
+      });
+    } catch (error) {
+      console.error("serviceBooking.notification.failed", {
+        type,
+        bookingId: booking.id,
+        error,
+      });
+    }
   }
 
   private async priceVoucher(

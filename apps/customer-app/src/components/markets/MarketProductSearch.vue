@@ -405,8 +405,8 @@
               直接預約
             </button>
             <a
-              v-else-if="service.bookingUrl"
-              :href="service.bookingUrl"
+              v-else-if="safeExternalHref(service.bookingUrl)"
+              :href="safeExternalHref(service.bookingUrl)!"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="service-result-booking-url"
@@ -458,6 +458,7 @@ import {
   type ServiceTypeFacet,
   type ServiceSearchResult,
 } from "@/services/discoveryApi";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 
 const props = withDefaults(
   defineProps<{

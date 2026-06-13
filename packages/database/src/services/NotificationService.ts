@@ -39,6 +39,10 @@ export type NotificationCategory =
   | "reservation_confirmed"
   | "reservation_cancelled"
   | "reservation_no_show"
+  | "service_booking_confirmed"
+  | "service_booking_cancelled"
+  | "service_booking_completed"
+  | "service_booking_no_show"
   // Waiting list notifications
   | "waiting_list_confirmed"
   | "waiting_list_called"
@@ -566,6 +570,86 @@ export const notificationTemplates: Record<
       "reservationDate",
       "reservationTime",
       "partySize",
+      "confirmationCode",
+    ],
+  },
+  service_booking_confirmed: {
+    subject: "Service Booking Confirmed - {{bookingDate}} {{bookingTime}}",
+    body: `
+      <h2>Service Booking Confirmed</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your service booking has been confirmed.</p>
+      <ul>
+        <li><strong>Date:</strong> {{bookingDate}}</li>
+        <li><strong>Time:</strong> {{bookingTime}}</li>
+        <li><strong>Party size:</strong> {{partySize}}</li>
+        <li><strong>Confirmation code:</strong> {{confirmationCode}}</li>
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "bookingDate",
+      "bookingTime",
+      "partySize",
+      "confirmationCode",
+    ],
+  },
+  service_booking_cancelled: {
+    subject: "Service Booking Cancelled - {{bookingDate}} {{bookingTime}}",
+    body: `
+      <h2>Service Booking Cancelled</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your service booking has been cancelled.</p>
+      <ul>
+        <li><strong>Date:</strong> {{bookingDate}}</li>
+        <li><strong>Time:</strong> {{bookingTime}}</li>
+        <li><strong>Party size:</strong> {{partySize}}</li>
+        <li><strong>Confirmation code:</strong> {{confirmationCode}}</li>
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "bookingDate",
+      "bookingTime",
+      "partySize",
+      "confirmationCode",
+    ],
+  },
+  service_booking_completed: {
+    subject: "Service Booking Completed - {{bookingDate}} {{bookingTime}}",
+    body: `
+      <h2>Service Booking Completed</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your service booking has been completed.</p>
+      <ul>
+        <li><strong>Date:</strong> {{bookingDate}}</li>
+        <li><strong>Time:</strong> {{bookingTime}}</li>
+        <li><strong>Confirmation code:</strong> {{confirmationCode}}</li>
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "bookingDate",
+      "bookingTime",
+      "confirmationCode",
+    ],
+  },
+  service_booking_no_show: {
+    subject: "Service Booking No-Show - {{bookingDate}} {{bookingTime}}",
+    body: `
+      <h2>Service Booking No-Show</h2>
+      <p>Dear {{customerName}},</p>
+      <p>Your service booking was marked as no-show.</p>
+      <ul>
+        <li><strong>Date:</strong> {{bookingDate}}</li>
+        <li><strong>Time:</strong> {{bookingTime}}</li>
+        <li><strong>Confirmation code:</strong> {{confirmationCode}}</li>
+      </ul>
+    `,
+    variables: [
+      "customerName",
+      "bookingDate",
+      "bookingTime",
       "confirmationCode",
     ],
   },

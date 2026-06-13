@@ -16,6 +16,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   coupons,
   couponUsage,
+  getBusinessDate,
   marketCheckoutChildOrders,
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
@@ -195,7 +196,7 @@ export class MarketCheckoutVoucherService {
       );
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getBusinessDate();
     if (coupon.validFrom > today || coupon.validTo < today) {
       throw badRequest("This voucher has expired", "VOUCHER_EXPIRED");
     }

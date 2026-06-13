@@ -42,6 +42,15 @@ async function requireEntryAccess(
   return entry;
 }
 
+function waitUntilBackgroundTasks(
+  c: { executionCtx?: { waitUntil?(promise: Promise<unknown>): void } },
+  service: WaitingListService,
+) {
+  const tasks = service.drainBackgroundTasks();
+  if (tasks.length === 0) return;
+  c.executionCtx?.waitUntil?.(Promise.allSettled(tasks).then(() => undefined));
+}
+
 /**
  * POST /waiting-list
  * 加入候位列表
@@ -65,6 +74,7 @@ app.post("/", optionalCanonicalCustomerAuthMiddleware, async (c) => {
     ...body,
     customerId: customer?.id,
   });
+  waitUntilBackgroundTasks(c, service);
 
   return c.json(
     {
@@ -228,6 +238,7 @@ app.delete("/:id", async (c) => {
   }
 
   const cancelled = await service.cancelWaiting(id);
+  waitUntilBackgroundTasks(c, service);
 
   return c.json({
     success: true,
@@ -263,6 +274,7 @@ app.post("/:id/confirm", async (c) => {
   }
 
   const confirmed = await service.confirmWaiting(id);
+  waitUntilBackgroundTasks(c, service);
 
   return c.json({
     success: true,
@@ -327,6 +339,7 @@ app.post("/:id/call", requireRole([0, 1, 3, 4]), async (c) => {
   await requireEntryAccess(service, id, user);
 
   const called = await service.callWaiting(id, body);
+  waitUntilBackgroundTasks(c, service);
 
   return c.json({
     success: true,
@@ -347,6 +360,7 @@ app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
   await requireEntryAccess(service, id, user);
 
   const seated = await service.markSeated(id);
+  waitUntilBackgroundTasks(c, service);
 
   return c.json({
     success: true,
@@ -367,6 +381,7 @@ app.post("/:id/expire", requireRole([0, 1, 3, 4]), async (c) => {
   await requireEntryAccess(service, id, user);
 
   const expired = await service.expireWaiting(id);
+  waitUntilBackgroundTasks(c, service);
 
   return c.json({
     success: true,
@@ -416,6 +431,7 @@ app.post("/batch-call", requireRole([0, 1, 3, 4]), async (c) => {
 
   const service = new WaitingListService(c.env.DB, c.env);
   const results = await service.batchCallNext(targetRestaurantId, count);
+  waitUntilBackgroundTasks(c, service);
 
   return c.json({
     success: true,

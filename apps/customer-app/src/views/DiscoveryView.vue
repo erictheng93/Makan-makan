@@ -198,8 +198,8 @@
                   直接預約
                 </button>
                 <a
-                  v-else-if="service.bookingUrl"
-                  :href="service.bookingUrl"
+                  v-else-if="safeExternalHref(service.bookingUrl)"
+                  :href="safeExternalHref(service.bookingUrl)!"
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="discovery-service-booking-url"
@@ -314,6 +314,7 @@ import {
   shopMenuServiceQuery,
 } from "@/utils/shopMenuDeepLink";
 import { useCurrency } from "@/composables/useCurrency";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 
 const { t, tWithParams } = useI18n();
 const router = useRouter();

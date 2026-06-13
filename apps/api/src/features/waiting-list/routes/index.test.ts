@@ -44,6 +44,7 @@ const serviceFns = vi.hoisted(() => ({
   expireWaiting: vi.fn(),
   getWaitingStats: vi.fn(),
   batchCallNext: vi.fn(),
+  drainBackgroundTasks: vi.fn(),
 }));
 
 vi.mock("@makanmakan/database", () => ({
@@ -62,6 +63,7 @@ vi.mock("@makanmakan/database", () => ({
     expireWaiting = serviceFns.expireWaiting;
     getWaitingStats = serviceFns.getWaitingStats;
     batchCallNext = serviceFns.batchCallNext;
+    drainBackgroundTasks = serviceFns.drainBackgroundTasks;
   },
 }));
 
@@ -124,6 +126,7 @@ beforeEach(() => {
   serviceFns.batchCallNext.mockResolvedValue([
     { success: true, id: "ticket-1" },
   ]);
+  serviceFns.drainBackgroundTasks.mockReturnValue([]);
 });
 
 describe("waiting list routes", () => {

@@ -116,32 +116,52 @@ export class SearchIndexSyncService {
     const normalized = item.name.trim().toLowerCase().replace(/\s+/g, "");
     const tags = normalizeSearchTags(item.tags, item.keywords);
 
-    // Delete existing + insert (replaces INSERT OR REPLACE without needing unique constraint)
     await this.db
-      .delete(dishSearchIndex)
-      .where(eq(dishSearchIndex.menuItemId, menuItemId));
-
-    await this.db.insert(dishSearchIndex).values({
-      menuItemId: item.id,
-      restaurantId: item.restaurantId,
-      dishName: item.name,
-      dishNameNormalized: normalized,
-      categoryName: item.categoryName,
-      price: item.price,
-      priceCents: item.priceCents ?? toCents(item.price),
-      catalogType: item.catalogType ?? "menu_item",
-      isAvailable,
-      tags,
-      district: item.district,
-      restaurantType: item.restaurantType,
-      supportsTakeaway: item.supportsTakeaway,
-      supportsDelivery: item.supportsDelivery,
-      primaryMarketId: item.primaryMarketId,
-      marketIds: item.marketIds ? JSON.parse(item.marketIds) : [],
-      latitude: item.latitude,
-      longitude: item.longitude,
-      updatedAt: new Date(),
-    });
+      .insert(dishSearchIndex)
+      .values({
+        menuItemId: item.id,
+        restaurantId: item.restaurantId,
+        dishName: item.name,
+        dishNameNormalized: normalized,
+        categoryName: item.categoryName,
+        price: item.price,
+        priceCents: item.priceCents ?? toCents(item.price),
+        catalogType: item.catalogType ?? "menu_item",
+        isAvailable,
+        tags,
+        district: item.district,
+        restaurantType: item.restaurantType,
+        supportsTakeaway: item.supportsTakeaway,
+        supportsDelivery: item.supportsDelivery,
+        primaryMarketId: item.primaryMarketId,
+        marketIds: item.marketIds ? JSON.parse(item.marketIds) : [],
+        latitude: item.latitude,
+        longitude: item.longitude,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: dishSearchIndex.menuItemId,
+        set: {
+          restaurantId: item.restaurantId,
+          dishName: item.name,
+          dishNameNormalized: normalized,
+          categoryName: item.categoryName,
+          price: item.price,
+          priceCents: item.priceCents ?? toCents(item.price),
+          catalogType: item.catalogType ?? "menu_item",
+          isAvailable,
+          tags,
+          district: item.district,
+          restaurantType: item.restaurantType,
+          supportsTakeaway: item.supportsTakeaway,
+          supportsDelivery: item.supportsDelivery,
+          primaryMarketId: item.primaryMarketId,
+          marketIds: item.marketIds ? JSON.parse(item.marketIds) : [],
+          latitude: item.latitude,
+          longitude: item.longitude,
+          updatedAt: new Date(),
+        },
+      });
     await this.bumpSearchVersion();
   }
 

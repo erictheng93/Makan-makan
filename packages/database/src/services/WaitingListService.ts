@@ -24,6 +24,10 @@ import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import { OrderService } from "./order";
 import { CustomerWebPushService } from "./CustomerWebPushService";
 import { assertWaitingTransition } from "./ticket-primitives";
+import {
+  businessDateFromUnixMsSql,
+  businessDateSql,
+} from "../utils/business-day";
 
 /** Call timeout: 5 minutes */
 const CALL_TIMEOUT_MS = 5 * 60 * 1000;
@@ -112,10 +116,17 @@ const getMutationChanges = (result: unknown): number => {
 
 export class WaitingListService extends BaseService {
   private reservationService: ReservationService;
+  private backgroundTasks: Promise<void>[] = [];
 
   constructor(d1: any, env: any) {
     super(d1, env);
     this.reservationService = new ReservationService(d1, env);
+  }
+
+  drainBackgroundTasks(): Promise<void>[] {
+    const tasks = this.backgroundTasks;
+    this.backgroundTasks = [];
+    return tasks;
   }
 
   /**
@@ -255,7 +266,7 @@ export class WaitingListService extends BaseService {
         WHERE restaurant_id = ${data.restaurantId}
           AND customer_phone = ${data.customerPhone}
           AND status IN ('waiting', 'called', 'confirmed')
-          AND queue_date = DATE('now', 'localtime')
+          AND queue_date = ${businessDateSql()}
       `);
 
       if (existingEntry) {
@@ -313,7 +324,7 @@ export class WaitingListService extends BaseService {
           ${entry.id}, ${entry.restaurantId}, ${entry.customerId ?? null}, ${entry.customerName},
           ${entry.customerPhone}, ${entry.partySize}, ${entry.preferredTableType ?? null},
           ${entry.queueNumber}, ${entry.queueLetter},
-          DATE(${entry.createdAt} / 1000, 'unixepoch', 'localtime'),
+          ${businessDateFromUnixMsSql(entry.createdAt!)},
           ${entry.priority},
           ${entry.estimatedWaitMinutes}, ${entry.status}, ${entry.notes ?? null},
           ${entry.createdAt}, ${entry.updatedAt}
@@ -321,16 +332,18 @@ export class WaitingListService extends BaseService {
       `);
 
       // 發送候位確認通知（非阻塞）
-      this.sendWaitingNotification(
-        data.customerPhone,
-        "waiting_list_confirmed",
-        {
-          customerName: data.customerName,
-          queueNumber: `${entry.queueLetter}${entry.queueNumber}`,
-          estimatedWait: String(
-            entry.estimatedWaitMinutes || DEFAULT_WAIT_MINUTES,
-          ),
-        },
+      this.queueBackgroundTask(
+        this.sendWaitingNotification(
+          data.customerPhone,
+          "waiting_list_confirmed",
+          {
+            customerName: data.customerName,
+            queueNumber: `${entry.queueLetter}${entry.queueNumber}`,
+            estimatedWait: String(
+              entry.estimatedWaitMinutes || DEFAULT_WAIT_MINUTES,
+            ),
+          },
+        ),
       );
 
       // Construct response from local data to avoid a redundant DB round-trip
@@ -390,7 +403,7 @@ export class WaitingListService extends BaseService {
         WHERE w.restaurant_id = ${restaurantId}
           AND w.customer_phone = ${customerPhone}
           AND w.status IN ('waiting', 'called', 'confirmed')
-          AND w.queue_date = DATE('now', 'localtime')
+          AND w.queue_date = ${businessDateSql()}
         LIMIT 1
       `);
 
@@ -524,9 +537,7 @@ export class WaitingListService extends BaseService {
         conditions.push(sql`${waitingList.queueDate} = ${filters.date}`);
       } else {
         // 默認只顯示今天的
-        conditions.push(
-          sql`${waitingList.queueDate} = DATE('now', 'localtime')`,
-        );
+        conditions.push(sql`${waitingList.queueDate} = ${businessDateSql()}`);
       }
 
       // 分頁
@@ -639,13 +650,15 @@ export class WaitingListService extends BaseService {
 
       // 發送叫號通知（非阻塞）
       if (entry.customerPhone) {
-        this.sendWaitingNotification(
-          entry.customerPhone,
-          "waiting_list_called",
-          {
-            customerName: entry.customerName,
-            tableNumber: table.table_number || `桌${request.tableId}`,
-          },
+        this.queueBackgroundTask(
+          this.sendWaitingNotification(
+            entry.customerPhone,
+            "waiting_list_called",
+            {
+              customerName: entry.customerName,
+              tableNumber: table.table_number || `桌${request.tableId}`,
+            },
+          ),
         );
       }
 
@@ -859,15 +872,17 @@ export class WaitingListService extends BaseService {
 
       // 發送過號通知（非阻塞）
       if (entry.customerPhone) {
-        this.sendWaitingNotification(
-          entry.customerPhone,
-          "waiting_list_expired",
-          {
-            customerName: entry.customerName,
-            queueNumber: entry.queueLetter
-              ? `${entry.queueLetter}${entry.queueNumber}`
-              : String(entry.queueNumber),
-          },
+        this.queueBackgroundTask(
+          this.sendWaitingNotification(
+            entry.customerPhone,
+            "waiting_list_expired",
+            {
+              customerName: entry.customerName,
+              queueNumber: entry.queueLetter
+                ? `${entry.queueLetter}${entry.queueNumber}`
+                : String(entry.queueNumber),
+            },
+          ),
         );
       }
 
@@ -1024,7 +1039,7 @@ export class WaitingListService extends BaseService {
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
               AND party_size <= ${partySize + 2}
-              AND queue_date = DATE('now', 'localtime')
+              AND queue_date = ${businessDateSql()}
           `) as Promise<any>,
         this.db.get(sql`
             SELECT
@@ -1130,7 +1145,7 @@ export class WaitingListService extends BaseService {
             FROM waiting_list
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
-              AND queue_date = DATE('now', 'localtime')
+              AND queue_date = ${businessDateSql()}
           `) as Promise<any>,
         this.db.get(sql`
             SELECT COUNT(*) as count
@@ -1188,9 +1203,7 @@ export class WaitingListService extends BaseService {
       if (date) {
         conditions.push(sql`${waitingList.queueDate} = ${date}`);
       } else {
-        conditions.push(
-          sql`${waitingList.queueDate} = DATE('now', 'localtime')`,
-        );
+        conditions.push(sql`${waitingList.queueDate} = ${businessDateSql()}`);
       }
 
       const whereExpr = sql.join(conditions, sql` AND `);
@@ -1269,7 +1282,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND queue_letter = ${letter}
-          AND queue_date = DATE('now', 'localtime')
+          AND queue_date = ${businessDateSql()}
       `);
 
       const maxNumber = result?.max_number || 0;
@@ -1298,7 +1311,7 @@ export class WaitingListService extends BaseService {
           AND status = 'waiting'
           AND queue_number < ${queueNumber}
           AND party_size <= ${partySize + 2}
-          AND queue_date = DATE('now', 'localtime')
+          AND queue_date = ${businessDateSql()}
       `);
 
       return result?.count || 0;
@@ -1319,7 +1332,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND status = 'waiting'
-          AND queue_date = DATE('now', 'localtime')
+          AND queue_date = ${businessDateSql()}
         ORDER BY queue_number ASC
       `);
 
@@ -1474,6 +1487,10 @@ export class WaitingListService extends BaseService {
    */
   private generateUUID(): string {
     return `wait_${crypto.randomUUID()}`;
+  }
+
+  private queueBackgroundTask(task: Promise<void>): void {
+    this.backgroundTasks.push(task);
   }
 
   /**

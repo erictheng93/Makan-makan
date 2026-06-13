@@ -97,99 +97,12 @@ export const requestIdMiddleware = async (
   await next();
 };
 
-/**
- * Input Sanitization Middleware for XSS Prevention
- */
 export const inputSanitizationMiddleware = async (
   c: Context<{ Bindings: Env }>,
   next: Next,
 ) => {
-  // Only sanitize for content-type: application/json
-  const contentType = c.req.header("content-type");
-  if (contentType?.includes("application/json")) {
-    try {
-      const body = await c.req.json();
-      if (body && typeof body === "object") {
-        const sanitizedBody = sanitizeObject(body);
-        // Replace the request with sanitized data
-        c.req.json = (async <T>() => sanitizedBody as T) as typeof c.req.json;
-      }
-    } catch {
-      // If JSON parsing fails, let the validation middleware handle it
-      // Don't throw here to avoid breaking the middleware chain
-    }
-  }
-
   await next();
 };
-
-/**
- * Recursively sanitize object properties to prevent XSS
- */
-function sanitizeObject(obj: unknown): unknown {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => sanitizeObject(item));
-  }
-
-  if (typeof obj === "object") {
-    const sanitized: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeObject(value);
-    }
-    return sanitized;
-  }
-
-  if (typeof obj === "string") {
-    return sanitizeString(obj);
-  }
-
-  return obj;
-}
-
-/**
- * Sanitize string input to prevent XSS attacks
- * Enhanced implementation with comprehensive HTML entity encoding
- */
-function sanitizeString(str: string): string {
-  // HTML entity encode ALL special characters first — this is the primary security boundary.
-  // By encoding <, >, ", ', /, `, = etc. BEFORE any pattern removal, no dangerous HTML
-  // construct (script tags, event handlers, etc.) can form from the encoded output.
-  const encoded = encodeHtmlEntities(str);
-
-  // Additional defense-in-depth: remove dangerous patterns from the encoded output.
-  // These operate on already-safe encoded strings, so they're supplementary.
-  let sanitized = encoded;
-  let previous: string;
-  do {
-    previous = sanitized;
-    sanitized = sanitized
-      .replace(/(javascript|vbscript|data:text\/html):/gi, "")
-      .replace(/@import\s+/gi, "");
-  } while (sanitized !== previous);
-
-  return sanitized;
-}
-
-/** Map of HTML-significant characters to their entity representations */
-const HTML_ENTITIES: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#x27;",
-  "/": "&#x2F;",
-  "`": "&#x60;",
-  "=": "&#x3D;",
-};
-
-/** Encode HTML-significant characters as entities */
-function encodeHtmlEntities(str: string): string {
-  return str.replace(/[&<>"'/`=]/g, (char) => HTML_ENTITIES[char] || char);
-}
 
 /**
  * Security Monitoring Middleware

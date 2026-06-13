@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
   MarketCheckoutVoucherService,
   combineAppliedMarketCheckoutVouchers,
@@ -6,6 +6,10 @@ import {
   redeemCachedMarketCheckoutVoucher,
   totalAppliedVoucherDiscountCents,
 } from "./MarketCheckoutVoucherService";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
   it("computes a percentage discount", () => {
@@ -344,6 +348,44 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
 });
 
 describe("MarketCheckoutVoucherService.validateAndPrice", () => {
+  it("uses the +8 business date when checking voucher validity", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T16:30:00.000Z"));
+    const service = makeValidateUnitService({
+      id: 7,
+      code: "TODAY",
+      name: "Today",
+      restaurantId: null,
+      deletedAt: null,
+      isActive: true,
+      isVisible: true,
+      validFrom: "2026-06-08",
+      validTo: "2026-06-08",
+      usageLimit: null,
+      usedCount: null,
+      minOrderAmountCents: null,
+      minOrderAmount: null,
+      discountType: "fixed",
+      discountValue: 5,
+      discountValueCents: 500,
+      maxDiscountAmountCents: null,
+      maxDiscountAmount: null,
+    });
+
+    await expect(
+      service.validateAndPrice({
+        code: "today",
+        subtotalCents: 1000,
+        childOrders: [
+          { orderId: 1, restaurantId: "rest-1", amountCents: 1000 },
+        ],
+      }),
+    ).resolves.toMatchObject({
+      code: "TODAY",
+      discountCents: 500,
+    });
+  });
+
   it("prices platform vouchers across all child orders", async () => {
     const service = makeValidateUnitService({
       id: 7,

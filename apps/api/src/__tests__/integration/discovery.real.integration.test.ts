@@ -3698,6 +3698,31 @@ describe("Discovery API — real integration", () => {
     expect(indexed).toEqual({ isAvailable: false });
   });
 
+  it("keeps one search-index row when menu item sync is redelivered", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Redelivered Search Sync Vendor",
+    });
+    const item = await seed.menuItem(String(restaurant.id), {
+      name: "Redelivered Search Sync Bao",
+      price: 60,
+      isAvailable: true,
+    });
+    const sync = new SearchIndexSyncService(
+      testApp.testDb.bindings.DB,
+      testApp.testDb.bindings.CACHE_KV,
+    );
+
+    await sync.onMenuItemChanged(item.id);
+    await sync.onMenuItemChanged(item.id);
+
+    const indexedRows = await testApp.testDb.drizzle
+      .select({ id: dishSearchIndex.id })
+      .from(dishSearchIndex)
+      .where(eq(dishSearchIndex.menuItemId, item.id));
+
+    expect(indexedRows).toHaveLength(1);
+  });
+
   it("indexes menu item changes under inactive restaurants as unavailable", async () => {
     const restaurant = await seed.restaurant({
       name: "Inactive Menu Sync Vendor",
