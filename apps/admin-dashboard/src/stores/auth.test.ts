@@ -92,10 +92,7 @@ describe("useAuthStore", () => {
     expect(store.canManageMenu).toBe(true);
     expect(store.canAccessRoute("PlatformOverview")).toBe(false);
     expect(store.getDefaultRoute()).toBe("/dashboard/owner-overview");
-    expect(authClient.tokens.setTokens).toHaveBeenCalledWith(
-      "access-token",
-      "refresh-token",
-    );
+    expect(authClient.tokens.setTokens).toHaveBeenCalledWith("access-token");
     expect(authClient.tokens.setUser).toHaveBeenCalledWith(user());
     expect(api.setAuthToken).toHaveBeenCalledWith("access-token");
   });
@@ -152,7 +149,7 @@ describe("useAuthStore", () => {
     expect(authClient.tokens.clearAll).toHaveBeenCalled();
   });
 
-  it("refreshes tokens with a refresh token header and updates user when returned", async () => {
+  it("refreshes tokens with cookie credentials and updates user when returned", async () => {
     localStorage.setItem("auth_user", JSON.stringify(user()));
     localStorage.setItem("auth_token", "old-token");
     localStorage.setItem("auth_refresh_token", "old-refresh");
@@ -174,18 +171,13 @@ describe("useAuthStore", () => {
       "/auth/refresh",
       {},
       {
-        headers: {
-          "X-Refresh-Token": "old-refresh",
-        },
+        withCredentials: true,
         _retry: true,
       },
     );
     expect(store.token).toBe("new-token");
     expect(store.user?.username).toBe("updated-owner");
-    expect(authClient.tokens.setTokens).toHaveBeenCalledWith(
-      "new-token",
-      "new-refresh",
-    );
+    expect(authClient.tokens.setTokens).toHaveBeenCalledWith("new-token");
     expect(api.setAuthToken).toHaveBeenCalledWith("new-token");
   });
 });

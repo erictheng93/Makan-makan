@@ -121,6 +121,14 @@ function createEnv(dbFirstRows: unknown[] = []) {
           run: vi.fn(async () => ({ meta: { changes: 1 } })),
         })),
       })),
+      batch: vi.fn(
+        async (statements: Array<{ run?: () => Promise<unknown> }>) =>
+          Promise.all(
+            statements.map((statement) =>
+              statement.run ? statement.run() : undefined,
+            ),
+          ),
+      ),
     },
     CACHE_KV: {
       get: vi.fn(async (key: string) => kv.get(key) ?? null),

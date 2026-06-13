@@ -277,7 +277,7 @@ export class KitchenService implements IKitchenService {
         SELECT
           o.id AS order_id,
           o.order_number,
-          o.created_at AS order_created_at,
+          o.created_at_ms AS order_created_at,
           o.table_id,
           oi.id AS item_id,
           oi.menu_item_id,

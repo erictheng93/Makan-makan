@@ -315,14 +315,14 @@ export class ImageService extends BaseService {
     // Peak usage hours
     const hourlyUsage = await this.db
       .select({
-        hour: sql<string>`strftime('%H', ${imageViews.viewedAt})`,
+        hour: strftimeFromUnixMs("%H", imageViews.viewedAt),
         view_count: count(),
         avg_hourly_views: sql<number>`AVG(COUNT(*)) OVER()`,
       })
       .from(imageViews)
       .where(whereClause)
-      .groupBy(sql`strftime('%H', ${imageViews.viewedAt})`)
-      .orderBy(sql`strftime('%H', ${imageViews.viewedAt})`);
+      .groupBy(strftimeFromUnixMs("%H", imageViews.viewedAt))
+      .orderBy(sql`${strftimeFromUnixMs("%H", imageViews.viewedAt)}`);
 
     return {
       most_viewed_images: mostViewedImages,
@@ -753,7 +753,10 @@ export class ImageService extends BaseService {
           AVG(
             CASE 
               WHEN ${imageProcessingJobs.completedAt} IS NOT NULL AND ${imageProcessingJobs.startedAt} IS NOT NULL
-              THEN (julianday(${imageProcessingJobs.completedAt}) - julianday(${imageProcessingJobs.startedAt})) * 24 * 60 * 60
+              THEN ${unixMsDiffSeconds(
+                imageProcessingJobs.completedAt,
+                imageProcessingJobs.startedAt,
+              )}
               ELSE 0
             END
           )

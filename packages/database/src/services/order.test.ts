@@ -441,6 +441,52 @@ describe("OrderService cancelOrder atomicity", () => {
       .where(eq(menuItems.id, menuItemId));
     expect(afterDuplicateCancel.inventoryCount).toBe(10);
   });
+
+  it("does not double-restore inventory for concurrent duplicate cancellations", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      const results = await Promise.allSettled([
+        service.cancelOrder(order.id, "customer"),
+        service.cancelOrder(order.id, "duplicate"),
+      ]);
+
+      expect(
+        results.filter((result) => result.status === "fulfilled"),
+      ).toHaveLength(1);
+      const rejected = results.filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      );
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason).toEqual(
+        expect.objectContaining({ message: "Order cannot be cancelled" }),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    const [afterConcurrentCancel] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(afterConcurrentCancel.inventoryCount).toBe(10);
+
+    const [persistedOrder] = await testDb.drizzle
+      .select()
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    expect(persistedOrder.status).toBe("cancelled");
+  });
 });
 
 async function seedCoupon(testDb: TestDatabase) {
