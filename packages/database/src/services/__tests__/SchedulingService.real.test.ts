@@ -3,6 +3,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "../../testing/create-test-database";
+import { SchedulingService } from "../SchedulingService";
 
 let testDb: TestDatabase;
 
@@ -63,5 +64,81 @@ describe("employee_schedules active slot uniqueness", () => {
     await insertSchedule("cancelled");
 
     await expect(insertSchedule("scheduled")).resolves.toBeUndefined();
+  });
+});
+
+describe("SchedulingService.cancelSchedulesByDateRange", () => {
+  it("cancels matching schedules without interactive D1 transactions", async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO employee_schedules
+           (id, restaurant_id, employee_id, work_date, start_time, end_time,
+            break_duration_minutes, scheduled_hours, status, created_by,
+            created_at_ms, updated_at_ms)
+         VALUES
+           (10, 'sched-rest', 2, '2026-06-10', '09:00', '13:00',
+            0, 4, 'scheduled', 1, 1735689600000, 1735689600000),
+           (11, 'sched-rest', 2, '2026-06-11', '09:00', '13:00',
+            0, 4, 'confirmed', 1, 1735689600000, 1735689600000),
+           (12, 'sched-rest', 2, '2026-06-12', '09:00', '13:00',
+            0, 4, 'cancelled', 1, 1735689600000, 1735689600000),
+           (13, 'sched-rest', 1, '2026-06-10', '09:00', '13:00',
+            0, 4, 'scheduled', 1, 1735689600000, 1735689600000)`,
+      )
+      .run();
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+
+    await expect(
+      service.cancelSchedulesByDateRange({
+        employeeId: 2,
+        startDate: "2026-06-10",
+        endDate: "2026-06-12",
+        reason: "leave approved",
+        cancelledBy: 1,
+      }),
+    ).resolves.toEqual({ cancelledCount: 2, scheduleIds: [10, 11] });
+
+    const rows = await testDb.db
+      .prepare(
+        `SELECT id, status, manager_notes, updated_by
+           FROM employee_schedules
+          WHERE id IN (10, 11, 12, 13)
+          ORDER BY id`,
+      )
+      .all<{
+        id: number;
+        status: string;
+        manager_notes: string | null;
+        updated_by: number | null;
+      }>();
+
+    expect(rows.results).toEqual([
+      {
+        id: 10,
+        status: "cancelled",
+        manager_notes: "leave approved",
+        updated_by: 1,
+      },
+      {
+        id: 11,
+        status: "cancelled",
+        manager_notes: "leave approved",
+        updated_by: 1,
+      },
+      {
+        id: 12,
+        status: "cancelled",
+        manager_notes: null,
+        updated_by: null,
+      },
+      {
+        id: 13,
+        status: "scheduled",
+        manager_notes: null,
+        updated_by: null,
+      },
+    ]);
   });
 });

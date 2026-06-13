@@ -1693,32 +1693,8 @@ export class SchedulingService extends BaseService {
     cancelledBy: number;
   }): Promise<{ cancelledCount: number; scheduleIds: number[] }> {
     try {
-      // Wrap query + batch update in a transaction to prevent race conditions
-      const result = await this.db.transaction(async (tx) => {
-        // Find all non-cancelled schedules in the date range
-        const schedulesToCancel = await tx
-          .select()
-          .from(employeeSchedules)
-          .where(
-            and(
-              eq(employeeSchedules.employeeId, params.employeeId),
-              between(
-                employeeSchedules.workDate,
-                params.startDate,
-                params.endDate,
-              ),
-              sql`${employeeSchedules.status} != 'cancelled'`,
-            ),
-          );
-
-        if (schedulesToCancel.length === 0) {
-          return { cancelledCount: 0, scheduleIds: [] as number[] };
-        }
-
-        const scheduleIds = schedulesToCancel.map((s) => s.id);
-
-        // Cancel all schedules
-        await tx
+      const [cancelledRows] = await this.db.batch([
+        this.db
           .update(employeeSchedules)
           .set({
             status: "cancelled",
@@ -1736,15 +1712,17 @@ export class SchedulingService extends BaseService {
               ),
               sql`${employeeSchedules.status} != 'cancelled'`,
             ),
-          );
+          )
+          .returning({ id: employeeSchedules.id }) as BatchItem<"sqlite">,
+      ]);
+      const scheduleIds = (cancelledRows as Array<{ id: number }>)
+        .map((row) => row.id)
+        .sort((a, b) => a - b);
 
-        return {
-          cancelledCount: schedulesToCancel.length,
-          scheduleIds,
-        };
-      });
-
-      return result;
+      return {
+        cancelledCount: scheduleIds.length,
+        scheduleIds,
+      };
     } catch (error) {
       console.error("Error cancelling schedules by date range:", error);
       throw error;
