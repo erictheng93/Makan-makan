@@ -390,6 +390,11 @@ export interface IOrdersService {
     data: UpdateOrderData,
     userId?: number,
   ): Promise<Order | null>;
+  addItemsToOrder(
+    id: number,
+    items: CreateOrderData["items"],
+    userId?: number,
+  ): Promise<Order>;
   deleteOrder(id: number, userId?: number): Promise<boolean>;
 
   // Status Management

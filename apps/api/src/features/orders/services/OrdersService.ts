@@ -390,6 +390,49 @@ export class OrdersService implements IOrdersService {
     }
   }
 
+  async addItemsToOrder(
+    id: number,
+    items: CreateOrderData["items"],
+    userId?: number,
+  ): Promise<Order> {
+    try {
+      this.logger.info("Adding items to order", {
+        orderId: id,
+        itemCount: items.length,
+        userId,
+      });
+
+      const updatedOrder = await this.baseOrderService.addItemsToOrder(
+        id,
+        items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          customizations: item.customizations as
+            | SelectedCustomizations
+            | undefined,
+          notes: item.notes,
+        })),
+      );
+
+      await Promise.all([
+        this.invalidateOrderCache(id),
+        this.logOrderActivity(id, "ORDER_ITEMS_ADDED", userId, {
+          itemCount: items.length,
+        }),
+        this.broadcastNewOrder(updatedOrder),
+      ]);
+
+      return updatedOrder;
+    } catch (error) {
+      this.logger.error(
+        "Failed to add items to order",
+        error instanceof Error ? error : undefined,
+        { orderId: id, itemCount: items.length },
+      );
+      throw error;
+    }
+  }
+
   async deleteOrder(id: number, userId?: number): Promise<boolean> {
     try {
       const order = await this.getOrder(id);

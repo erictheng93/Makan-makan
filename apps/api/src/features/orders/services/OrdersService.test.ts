@@ -6,6 +6,7 @@ const createBaseOrder = vi.hoisted(() => vi.fn());
 const getBaseOrder = vi.hoisted(() => vi.fn());
 const getBaseOrders = vi.hoisted(() => vi.fn());
 const updateBaseOrderStatus = vi.hoisted(() => vi.fn());
+const addBaseOrderItems = vi.hoisted(() => vi.fn());
 const cancelBaseOrder = vi.hoisted(() => vi.fn());
 const updateBaseOrderItemStatus = vi.hoisted(() => vi.fn());
 const getDailyOrderStats = vi.hoisted(() => vi.fn());
@@ -22,6 +23,7 @@ vi.mock("@makanmakan/database", () => ({
       getOrder: getBaseOrder,
       getOrders: getBaseOrders,
       updateOrderStatus: updateBaseOrderStatus,
+      addItemsToOrder: addBaseOrderItems,
       cancelOrder: cancelBaseOrder,
       updateOrderItemStatus: updateBaseOrderItemStatus,
       getDailyOrderStats,
@@ -95,6 +97,7 @@ describe("OrdersService realtime broadcasts", () => {
     getBaseOrder.mockReset();
     getBaseOrders.mockReset();
     updateBaseOrderStatus.mockReset();
+    addBaseOrderItems.mockReset();
     cancelBaseOrder.mockReset();
     updateBaseOrderItemStatus.mockReset();
     getDailyOrderStats.mockReset();
@@ -304,6 +307,7 @@ describe("OrdersService workflows", () => {
     getBaseOrder.mockReset();
     getBaseOrders.mockReset();
     updateBaseOrderStatus.mockReset();
+    addBaseOrderItems.mockReset();
     cancelBaseOrder.mockReset();
     updateBaseOrderItemStatus.mockReset();
     getDailyOrderStats.mockReset();
@@ -313,6 +317,11 @@ describe("OrdersService workflows", () => {
     broadcastOrderCancelled.mockReset();
     generateEventId.mockReset();
     generateEventId.mockReturnValue("evt-orders");
+    broadcastNewOrder.mockResolvedValue({
+      success: true,
+      eventId: "evt-orders",
+      recipientCount: 2,
+    });
     broadcastOrderStatusUpdate.mockResolvedValue({
       success: true,
       eventId: "evt-status",
@@ -1089,6 +1098,34 @@ describe("OrdersService workflows", () => {
     await expect(
       service.updatePaymentStatus(404, "paid" as never),
     ).resolves.toBeNull();
+  });
+
+  it("adds order items through the base service and invalidates caches", async () => {
+    const env = createEnv();
+    const updated = createOrder({
+      id: 42,
+      status: "confirmed",
+      items: [
+        { id: 1, menuItemId: 100, quantity: 1 },
+        { id: 2, menuItemId: 101, quantity: 2 },
+      ],
+    });
+    addBaseOrderItems.mockResolvedValue(updated);
+    const service = new OrdersService(env as never);
+    const items = [{ menuItemId: 101, quantity: 2, notes: "extra" }];
+
+    const result = await service.addItemsToOrder(42, items as never);
+
+    expect(result).toBe(updated);
+    expect(addBaseOrderItems).toHaveBeenCalledWith(42, items);
+    expect(broadcastNewOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: RealtimeEventType.NEW_ORDER,
+        data: expect.objectContaining({ orderId: 42 }),
+      }),
+    );
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
   });
 
   it("covers status update null, mismatch, version conflict, and failed update branches", async () => {

@@ -302,18 +302,14 @@ app.post("/:id/items", guestTokenAuth, async (c) => {
     throw badRequest("Guest orders cannot exceed 20 items total");
   }
 
-  // Use the order modification / addItems approach via the base service
-  const updatedOrder = await ordersService.updateOrder(Number(orderId), {
-    notes: order.notes, // preserve existing notes
-  });
-
-  // For now, create supplementary items through the service
-  // The actual item addition depends on base service support
-  // This broadcasts the update via realtime
+  const updatedOrder = await ordersService.addItemsToOrder(
+    Number(orderId),
+    parsed.data.items,
+  );
 
   return c.json({
     success: true,
-    data: { order: updatedOrder || order },
+    data: { order: updatedOrder },
     message: "Items added successfully",
   });
 });

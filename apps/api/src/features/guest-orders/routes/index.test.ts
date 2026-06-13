@@ -8,6 +8,7 @@ const databaseMocks = vi.hoisted(() => ({
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
 const updateOrder = vi.hoisted(() => vi.fn());
+const addItemsToOrder = vi.hoisted(() => vi.fn());
 const cancelOrder = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
@@ -51,7 +52,13 @@ vi.mock("../../../middleware/guestAuth", async (importOriginal) => ({
 
 vi.mock("../../orders/services/OrdersService", () => ({
   OrdersService: function OrdersService() {
-    return { createOrder, getOrder, updateOrder, cancelOrder };
+    return {
+      createOrder,
+      getOrder,
+      updateOrder,
+      addItemsToOrder,
+      cancelOrder,
+    };
   },
 }));
 
@@ -114,6 +121,7 @@ describe("guest order routes", () => {
     createOrder.mockReset();
     getOrder.mockReset();
     updateOrder.mockReset();
+    addItemsToOrder.mockReset();
     cancelOrder.mockReset();
     enforceQuota.mockReset();
     meterEmit.mockReset();
@@ -401,16 +409,18 @@ describe("guest order routes", () => {
       notes: "existing",
       items: [{ id: 1 }],
     });
-    updateOrder.mockResolvedValue({
+    addItemsToOrder.mockResolvedValue({
       id: 501,
       status: "confirmed",
       notes: "existing",
+      items: [{ id: 1 }, { id: 2, menuItemId: 101, quantity: 1 }],
     });
+    const addedItems = [{ menuItemId: 101, quantity: 1, notes: "extra" }];
 
     const response = await routes.fetch(
       new Request("https://test/501/items", {
         method: "POST",
-        body: JSON.stringify({ items: [{ menuItemId: 101, quantity: 1 }] }),
+        body: JSON.stringify({ items: addedItems }),
       }),
       createEnv() as never,
     );
@@ -421,7 +431,8 @@ describe("guest order routes", () => {
       message: "Items added successfully",
       data: { order: { id: 501 } },
     });
-    expect(updateOrder).toHaveBeenCalledWith(501, { notes: "existing" });
+    expect(addItemsToOrder).toHaveBeenCalledWith(501, addedItems);
+    expect(updateOrder).not.toHaveBeenCalled();
   });
 
   it("cancels pending guest orders and clears guest access keys", async () => {

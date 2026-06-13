@@ -62,6 +62,8 @@ export interface CreateOrderData {
   };
 }
 
+export type AddOrderItemsData = CreateOrderData["items"];
+
 export interface UpdateOrderStatusData {
   status: string;
   notes?: string;
@@ -98,6 +100,26 @@ type SelectedCustomizationOption = NonNullable<
   SelectedCustomizations["options"]
 >[number];
 type SelectedAddOn = NonNullable<SelectedCustomizations["addOns"]>[number];
+
+type PreparedOrderItem = {
+  menuItemId: number;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  unitPriceCents: number;
+  totalPriceCents: number;
+  customizations: SelectedCustomizations | undefined;
+  notes: string | undefined;
+  itemSnapshot: {
+    name: string;
+    description?: string;
+    imageUrl?: string;
+    category: string;
+    price: number;
+    unitPrice: number;
+    customizations: SelectedCustomizations | undefined;
+  };
+};
 
 function toFiniteNumber(value: number | string): number {
   const amount = typeof value === "string" ? Number(value) : value;
@@ -387,76 +409,8 @@ export class OrderService extends BaseService {
         );
       }
 
-      // 計算訂單總金額
-      let subtotalCents = 0;
-      const orderItemsData = [];
-
-      // Fetch all menu items in one query to avoid N+1 problem
-      const menuItemIds = data.items.map((item) => item.menuItemId);
-      const fetchedMenuItems = await this.db.query.menuItems.findMany({
-        where: inArray(menuItems.id, menuItemIds),
-      });
-
-      // Create a map for quick lookup
-      const menuItemMap = new Map(
-        fetchedMenuItems.map((item) => [item.id, item]),
-      );
-
-      // 同一菜品可能拆成多行（不同客製化），庫存必須以累計需求量檢查
-      const requestedQuantities = new Map<number, number>();
-
-      for (const item of data.items) {
-        const menuItem = menuItemMap.get(item.menuItemId);
-
-        if (!menuItem || !menuItem.isAvailable) {
-          throw new Error(`Menu item ${item.menuItemId} is not available`);
-        }
-
-        // 檢查庫存（累計同菜品所有行的數量）
-        const requestedTotal =
-          (requestedQuantities.get(item.menuItemId) ?? 0) + item.quantity;
-        requestedQuantities.set(item.menuItemId, requestedTotal);
-        if (
-          menuItem.inventoryCount !== null &&
-          menuItem.inventoryCount < requestedTotal
-        ) {
-          throw new Error(`Insufficient inventory for ${menuItem.name}`);
-        }
-
-        // 計算單價（含客製化選項）
-        let unitPriceCents = resolveMoneyCents(
-          menuItem.priceCents,
-          menuItem.price,
-        );
-        const { customizations, additionalUnitPriceCents } =
-          resolveCatalogCustomizations(menuItem, item.customizations);
-        unitPriceCents += additionalUnitPriceCents;
-
-        const totalPriceCents = unitPriceCents * item.quantity;
-        const unitPrice = fromCents(unitPriceCents);
-        const totalPrice = fromCents(totalPriceCents);
-        subtotalCents += totalPriceCents;
-
-        orderItemsData.push({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          unitPrice,
-          totalPrice,
-          unitPriceCents,
-          totalPriceCents,
-          customizations,
-          notes: item.notes,
-          itemSnapshot: {
-            name: menuItem.name,
-            description: menuItem.description || undefined,
-            imageUrl: menuItem.imageUrl || undefined,
-            category: String(menuItem.categoryId),
-            price: amountFromCents(menuItem.priceCents, menuItem.price) ?? 0,
-            unitPrice,
-            customizations,
-          },
-        });
-      }
+      const { subtotalCents, orderItemsData, menuItemMap } =
+        await this.prepareOrderItems(data.items);
 
       const subtotal = fromCents(subtotalCents);
 
@@ -857,6 +811,181 @@ export class OrderService extends BaseService {
     }
   }
 
+  async addItemsToOrder(id: number, items: AddOrderItemsData): Promise<Order> {
+    try {
+      if (!items.length) {
+        throw new Error("Order must contain at least one item");
+      }
+
+      const existingOrder = await this.db.query.orders.findFirst({
+        where: eq(orders.id, id),
+      });
+      if (!existingOrder) {
+        throw new Error("Order not found");
+      }
+      if (
+        ![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(
+          existingOrder.status,
+        )
+      ) {
+        throw new Error(
+          `Cannot add items to an order with status: ${existingOrder.status}`,
+        );
+      }
+
+      const { subtotalCents: addedSubtotalCents, orderItemsData } =
+        await this.prepareOrderItems(items);
+
+      const currentSubtotalCents = resolveMoneyCents(
+        existingOrder.subtotalCents,
+        existingOrder.subtotal,
+      );
+      const currentTaxCents = resolveMoneyCents(
+        existingOrder.taxAmountCents,
+        existingOrder.taxAmount,
+      );
+      const currentServiceChargeCents = resolveMoneyCents(
+        existingOrder.serviceChargeCents,
+        existingOrder.serviceCharge,
+      );
+      const currentDiscountCents = resolveMoneyCents(
+        existingOrder.discountAmountCents,
+        existingOrder.discountAmount,
+      );
+      const taxRate =
+        currentSubtotalCents > 0 ? currentTaxCents / currentSubtotalCents : 0;
+      const serviceChargeRate =
+        currentSubtotalCents > 0
+          ? currentServiceChargeCents / currentSubtotalCents
+          : 0;
+      const nextSubtotal = fromCents(currentSubtotalCents + addedSubtotalCents);
+      const {
+        subtotal,
+        taxAmount,
+        serviceCharge,
+        totalAmount,
+        subtotalCents,
+        taxAmountCents,
+        serviceChargeCents,
+        totalAmountCents,
+      } = this.calculateOrderTotal(
+        nextSubtotal,
+        taxRate,
+        serviceChargeRate,
+        fromCents(currentDiscountCents),
+      );
+
+      const claimedInventory: Array<{
+        menuItemId: number;
+        quantity: number;
+      }> = [];
+      const restoreClaimedInventory = async () => {
+        for (const claim of [...claimedInventory].reverse()) {
+          try {
+            await this.db
+              .update(menuItems)
+              .set({
+                inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${claim.quantity} END`,
+              })
+              .where(eq(menuItems.id, claim.menuItemId));
+          } catch (restoreError) {
+            console.error("Inventory claim restore failed:", restoreError);
+          }
+        }
+      };
+
+      try {
+        for (const { menuItemId, quantity } of items) {
+          const [claim] = await this.db
+            .update(menuItems)
+            .set({
+              inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${quantity} END`,
+            })
+            .where(
+              and(
+                eq(menuItems.id, menuItemId),
+                sql`(${menuItems.inventoryCount} IS NULL OR ${menuItems.inventoryCount} >= ${quantity})`,
+              ),
+            )
+            .returning({
+              id: menuItems.id,
+              inventoryCount: menuItems.inventoryCount,
+            });
+
+          if (!claim) {
+            throw new Error(`Insufficient inventory for ${menuItemId}`);
+          }
+
+          if (claim.inventoryCount !== null) {
+            claimedInventory.push({ menuItemId, quantity });
+          }
+        }
+      } catch (error) {
+        await restoreClaimedInventory();
+        throw error;
+      }
+
+      const writeStatements: BatchItem<"sqlite">[] = [
+        this.db
+          .insert(orderItems)
+          .values(
+            orderItemsData.map((item) => ({
+              ...item,
+              orderId: id,
+            })),
+          )
+          .returning(),
+        this.db
+          .update(orders)
+          .set({
+            subtotal,
+            taxAmount,
+            serviceCharge,
+            totalAmount,
+            subtotalCents,
+            taxAmountCents,
+            serviceChargeCents,
+            totalAmountCents,
+            version: sql`${orders.version} + 1`,
+            estimatedPrepTime: Math.max(
+              existingOrder.estimatedPrepTime ?? 0,
+              this.calculateEstimatedPrepTime(orderItemsData),
+            ),
+            updatedAt: new Date(),
+          })
+          .where(eq(orders.id, id)),
+      ];
+
+      for (const { menuItemId, quantity } of items) {
+        writeStatements.push(
+          this.db
+            .update(menuItems)
+            .set({
+              orderCount: sql`${menuItems.orderCount} + ${quantity}`,
+            })
+            .where(eq(menuItems.id, menuItemId)),
+        );
+      }
+
+      try {
+        await this.db.batch(
+          writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+        );
+      } catch (error) {
+        await restoreClaimedInventory();
+        throw error;
+      }
+
+      const updatedOrder = await this.getOrder(id);
+      if (!updatedOrder) {
+        throw new Error("Order not found");
+      }
+      return updatedOrder;
+    } catch (error) {
+      this.handleError(error, "addItemsToOrder");
+    }
+  }
+
   // 根據訂單號獲取訂單
   async getOrderByNumber(orderNumber: string): Promise<Order | null> {
     try {
@@ -1169,6 +1298,77 @@ export class OrderService extends BaseService {
     } catch (error) {
       this.handleError(error, "updateOrderItemStatus");
     }
+  }
+
+  private async prepareOrderItems(items: CreateOrderData["items"]): Promise<{
+    subtotalCents: number;
+    orderItemsData: PreparedOrderItem[];
+    menuItemMap: Map<number, MenuItemRecord>;
+  }> {
+    let subtotalCents = 0;
+    const orderItemsData: PreparedOrderItem[] = [];
+
+    const menuItemIds = items.map((item) => item.menuItemId);
+    const fetchedMenuItems = await this.db.query.menuItems.findMany({
+      where: inArray(menuItems.id, menuItemIds),
+    });
+    const menuItemMap = new Map(
+      fetchedMenuItems.map((item) => [item.id, item]),
+    );
+    const requestedQuantities = new Map<number, number>();
+
+    for (const item of items) {
+      const menuItem = menuItemMap.get(item.menuItemId);
+
+      if (!menuItem || !menuItem.isAvailable) {
+        throw new Error(`Menu item ${item.menuItemId} is not available`);
+      }
+
+      const requestedTotal =
+        (requestedQuantities.get(item.menuItemId) ?? 0) + item.quantity;
+      requestedQuantities.set(item.menuItemId, requestedTotal);
+      if (
+        menuItem.inventoryCount !== null &&
+        menuItem.inventoryCount < requestedTotal
+      ) {
+        throw new Error(`Insufficient inventory for ${menuItem.name}`);
+      }
+
+      let unitPriceCents = resolveMoneyCents(
+        menuItem.priceCents,
+        menuItem.price,
+      );
+      const { customizations, additionalUnitPriceCents } =
+        resolveCatalogCustomizations(menuItem, item.customizations);
+      unitPriceCents += additionalUnitPriceCents;
+
+      const totalPriceCents = unitPriceCents * item.quantity;
+      const unitPrice = fromCents(unitPriceCents);
+      const totalPrice = fromCents(totalPriceCents);
+      subtotalCents += totalPriceCents;
+
+      orderItemsData.push({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice,
+        unitPriceCents,
+        totalPriceCents,
+        customizations,
+        notes: item.notes,
+        itemSnapshot: {
+          name: menuItem.name,
+          description: menuItem.description || undefined,
+          imageUrl: menuItem.imageUrl || undefined,
+          category: String(menuItem.categoryId),
+          price: amountFromCents(menuItem.priceCents, menuItem.price) ?? 0,
+          unitPrice,
+          customizations,
+        },
+      });
+    }
+
+    return { subtotalCents, orderItemsData, menuItemMap };
   }
 
   // 計算預估準備時間

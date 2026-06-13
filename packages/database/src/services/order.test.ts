@@ -258,6 +258,58 @@ describe("OrderService createOrder atomicity", () => {
     expect(restaurant.totalOrders).toBe(1);
   });
 
+  it("adds items to an existing order and updates totals and inventory", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    const updated = await service.addItemsToOrder(order.id, [
+      { menuItemId, quantity: 2, notes: "extra sambal" },
+    ]);
+
+    expect(updated.items).toHaveLength(2);
+    expect(updated.subtotal).toBe(30);
+    expect(updated.totalAmount).toBe(30);
+    expect(updated.items?.[1]).toMatchObject({
+      menuItemId,
+      quantity: 2,
+      totalPrice: 20,
+      notes: "extra sambal",
+    });
+
+    const persistedItems = await testDb.drizzle.select().from(orderItems);
+    expect(persistedItems).toHaveLength(2);
+
+    const [item] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(item.inventoryCount).toBe(7);
+    expect(item.orderCount).toBe(3);
+  });
+
+  it("rejects adding items to non-open orders", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    await service.updateOrderStatus(order.id, { status: "ready" });
+
+    await expect(
+      service.addItemsToOrder(order.id, [{ menuItemId, quantity: 1 }]),
+    ).rejects.toThrow("Cannot add items to an order with status: ready");
+
+    const persistedItems = await testDb.drizzle.select().from(orderItems);
+    expect(persistedItems).toHaveLength(1);
+  });
+
   it("rejects duplicate menu item lines that exceed available inventory together", async () => {
     const service = new OrderService(testDb.bindings.DB, {
       JWT_SECRET: "test",
