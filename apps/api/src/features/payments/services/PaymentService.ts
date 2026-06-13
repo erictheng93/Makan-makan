@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import { amountFromCents, orders } from "@makanmakan/database";
+import type { OrderStatus } from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
@@ -9,6 +10,10 @@ import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PaymentAuditService,
 } from "../../billing/services/PaymentAuditService";
+import {
+  finalizeOrderStatusSideEffects,
+  invalidateOrderCache,
+} from "../../orders/services/order-finalization";
 
 export interface ProcessPaymentOptions {
   user?: AuthUser;
@@ -207,6 +212,23 @@ export class PaymentService {
       }),
     ]);
 
+    if (shouldCloseOrder) {
+      await finalizeOrderStatusSideEffects({
+        env: this.env,
+        order: {
+          id: existing.id,
+          restaurantId: existing.restaurantId,
+          orderNumber: existing.orderNumber,
+        },
+        previousStatus: existing.status as OrderStatus,
+        newStatus: "paid",
+        updatedBy: options.user?.id,
+        updatedByRole: roleName(options.user?.role),
+      });
+    } else {
+      await invalidateOrderCache(this.env.CACHE_KV, input.orderId);
+    }
+
     return {
       status: 200,
       data: {
@@ -347,4 +369,17 @@ function isAlreadyFinalized(
 function mutationChanges(result: unknown): number {
   const meta = (result as { meta?: { changes?: unknown } } | null)?.meta;
   return typeof meta?.changes === "number" ? meta.changes : 0;
+}
+
+function roleName(role: number | undefined): string {
+  switch (role) {
+    case 0:
+      return "admin";
+    case 1:
+      return "owner";
+    case 4:
+      return "cashier";
+    default:
+      return "system";
+  }
 }

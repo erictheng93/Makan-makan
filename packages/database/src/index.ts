@@ -9,6 +9,7 @@ export * from "./utils/timestamp";
 export * from "./utils/soft-delete";
 export * from "./utils/money";
 export * from "./utils/money-sql";
+export * from "./utils/sql-time";
 export * from "./utils/plan-mapping";
 export * from "./utils/plan-quotas";
 export * from "./customer-identity-preflight";

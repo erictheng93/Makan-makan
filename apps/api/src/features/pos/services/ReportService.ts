@@ -17,6 +17,8 @@ import {
   amountFromCents,
   avgAbsMoneyAmount,
   avgMoneyAmount,
+  dateFromUnixMs,
+  strftimeFromUnixMs,
   sumMoneyAmount,
 } from "@makanmakan/database";
 
@@ -284,7 +286,7 @@ export class ReportService {
         .where(
           and(
             eq(cashRegisters.restaurantId, restaurantId),
-            sql`DATE(${cashShifts.startedAt}) = ${date}`,
+            sql`${dateFromUnixMs(cashShifts.startedAt)} = ${date}`,
           ),
         )
         .orderBy(cashShifts.startedAt);
@@ -314,7 +316,7 @@ export class ReportService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            sql`DATE(${orders.createdAt}) = ${date}`,
+            sql`${dateFromUnixMs(orders.createdAt)} = ${date}`,
           ),
         );
 
@@ -332,7 +334,7 @@ export class ReportService {
         .where(
           and(
             eq(cashRegisters.restaurantId, restaurantId),
-            sql`DATE(${refunds.processedAt}) = ${date}`,
+            sql`${dateFromUnixMs(refunds.processedAt)} = ${date}`,
             eq(refunds.status, "completed"),
           ),
         );
@@ -353,7 +355,7 @@ export class ReportService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            sql`DATE(${orders.createdAt}) = ${date}`,
+            sql`${dateFromUnixMs(orders.createdAt)} = ${date}`,
           ),
         )
         .groupBy(menuItems.id, menuItems.name)
@@ -413,16 +415,16 @@ export class ReportService {
 
       switch (period) {
         case "day":
-          dateFilter = sql`${cashShifts.startedAt} >= datetime('now', '-7 days')`;
-          groupByExpr = sql`DATE(${cashShifts.startedAt})`;
+          dateFilter = sql`${cashShifts.startedAt} >= (unixepoch('now', '-7 days') * 1000)`;
+          groupByExpr = dateFromUnixMs(cashShifts.startedAt);
           break;
         case "week":
-          dateFilter = sql`${cashShifts.startedAt} >= datetime('now', '-4 weeks')`;
-          groupByExpr = sql`strftime('%Y-%W', ${cashShifts.startedAt})`;
+          dateFilter = sql`${cashShifts.startedAt} >= (unixepoch('now', '-4 weeks') * 1000)`;
+          groupByExpr = strftimeFromUnixMs("%Y-%W", cashShifts.startedAt);
           break;
         case "month":
-          dateFilter = sql`${cashShifts.startedAt} >= datetime('now', '-12 months')`;
-          groupByExpr = sql`strftime('%Y-%m', ${cashShifts.startedAt})`;
+          dateFilter = sql`${cashShifts.startedAt} >= (unixepoch('now', '-12 months') * 1000)`;
+          groupByExpr = strftimeFromUnixMs("%Y-%m", cashShifts.startedAt);
           break;
       }
 

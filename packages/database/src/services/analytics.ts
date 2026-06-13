@@ -27,6 +27,7 @@ import {
   moneyAmountExpression,
   sumMoneyAmount,
 } from "../utils/money-sql";
+import { unixMsDiffMinutes } from "../utils/sql-time";
 
 /**
  * Status values that represent a "successfully completed" order for analytics.
@@ -981,7 +982,7 @@ export class AnalyticsService extends BaseService {
             sql<number>`
               CASE 
                 WHEN ${orders.readyAt} IS NOT NULL AND ${orders.createdAt} IS NOT NULL 
-                THEN (julianday(${orders.readyAt}) - julianday(${orders.createdAt})) * 24 * 60
+                THEN ${unixMsDiffMinutes(orders.readyAt, orders.createdAt)}
                 ELSE NULL 
               END
             `,
@@ -992,7 +993,7 @@ export class AnalyticsService extends BaseService {
           and(
             eq(orders.restaurantId, restaurantId),
             inArray(orders.status, FULFILLED_ORDER_STATUSES),
-            gte(orders.createdAt, sql`datetime('now', '-2 hours')`),
+            gte(orders.createdAt, sql`(unixepoch('now', '-2 hours') * 1000)`),
           ),
         );
 
@@ -1277,7 +1278,7 @@ export class AnalyticsService extends BaseService {
             sql<number>`
               CASE 
                 WHEN ${orders.readyAt} IS NOT NULL AND ${orders.createdAt} IS NOT NULL 
-                THEN (julianday(${orders.readyAt}) - julianday(${orders.createdAt})) * 24 * 60
+                THEN ${unixMsDiffMinutes(orders.readyAt, orders.createdAt)}
                 ELSE NULL 
               END
             `,

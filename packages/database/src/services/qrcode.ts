@@ -1,6 +1,7 @@
 import { eq, desc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { prefixedUuid } from "./id-generation";
+import { dateFromUnixMs } from "../utils/sql-time";
 import {
   qrCodes,
   qrTemplates,
@@ -313,7 +314,9 @@ export class QRCodeService extends BaseService {
     const todayCodesResult = await this.db
       .select({ count: count() })
       .from(qrCodes)
-      .where(sql`DATE(${qrCodes.createdAt}) = DATE('now')`);
+      .where(
+        sql`${dateFromUnixMs(qrCodes.createdAt)} = DATE('now', 'localtime')`,
+      );
     const todayCodes = todayCodesResult[0]?.count || 0;
 
     // 總下載數

@@ -7,6 +7,7 @@ import { eq, and, desc, sql, type SQL } from "drizzle-orm";
 import {
   amountFromCents,
   businessNumber,
+  dateFromUnixMs,
   receipts,
   orders,
   orderItems,
@@ -203,11 +204,15 @@ export class ReceiptService {
       const conditions: SQL[] = [eq(receipts.registerId, registerId)];
 
       if (startDate) {
-        conditions.push(sql`DATE(${receipts.createdAt}) >= ${startDate}`);
+        conditions.push(
+          sql`${dateFromUnixMs(receipts.createdAt)} >= ${startDate}`,
+        );
       }
 
       if (endDate) {
-        conditions.push(sql`DATE(${receipts.createdAt}) <= ${endDate}`);
+        conditions.push(
+          sql`${dateFromUnixMs(receipts.createdAt)} <= ${endDate}`,
+        );
       }
 
       if (receiptType) {

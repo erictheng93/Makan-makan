@@ -26,11 +26,14 @@ import { ConsoleLogger } from "../../../core/monitoring";
 import { RealtimeBroadcastService } from "@makanmakan/database";
 import type {
   OrderCancelledEvent,
-  OrderStatusUpdateEvent,
   NewOrderEvent,
 } from "@makanmakan/shared-types";
 import { RestaurantOrderPushService } from "../../push/services/RestaurantOrderPushService";
 import { ORDER_STATUS_TRANSITIONS, ROLE_STATUS_PERMISSIONS } from "../types";
+import {
+  finalizeOrderStatusSideEffects,
+  invalidateOrderCache as invalidateOrderCacheKeys,
+} from "./order-finalization";
 import type {
   CreateOrderData,
   UpdateOrderData,
@@ -535,17 +538,16 @@ export class OrdersService implements IOrdersService {
         throw new Error("Failed to update order status");
       }
 
-      await Promise.all([
-        this.invalidateOrderCache(id),
-        this.broadcastOrderStatusUpdate(
-          updatedOrder,
-          order.status,
-          statusData.status,
-          userId || 0,
-          statusData.notes,
-          statusData.estimatedReadyTime,
-        ),
-      ]);
+      await finalizeOrderStatusSideEffects({
+        env: this.env,
+        order: updatedOrder,
+        previousStatus: order.status,
+        newStatus: statusData.status,
+        updatedBy: userId,
+        updatedByRole: userId ? "admin" : "system",
+        notes: statusData.notes,
+        estimatedReadyTime: statusData.estimatedReadyTime,
+      });
 
       return updatedOrder;
     } catch (error) {
@@ -1157,46 +1159,16 @@ export class OrdersService implements IOrdersService {
     estimatedReadyTime?: Date,
   ): Promise<void> {
     try {
-      const realtimeEvent: OrderStatusUpdateEvent = {
-        type: RealtimeEventType.ORDER_STATUS_UPDATE,
-        eventId: this.realtimeBroadcastService.generateEventId(),
-        timestamp: Date.now(),
-        restaurantId: String(order.restaurantId),
-        data: {
-          orderId: order.id,
-          orderNumber: order.orderNumber || `#${order.id}`,
-          status: newStatus,
-          previousStatus: previousStatus,
-          estimatedTime: estimatedReadyTime
-            ? Math.floor(
-                (new Date(estimatedReadyTime).getTime() - Date.now()) / 60000,
-              )
-            : undefined,
-          message: notes,
-          updatedBy: updatedBy
-            ? { userId: updatedBy, userName: "System", role: "admin" }
-            : undefined,
-        },
-      };
-
-      const result =
-        await this.realtimeBroadcastService.broadcastOrderStatusUpdate(
-          realtimeEvent,
-        );
-
-      if (result.success) {
-        this.logger.info("Order update broadcasted successfully", {
-          orderId: order.id,
-          eventId: result.eventId,
-          recipientCount: result.recipientCount,
-        });
-      } else {
-        this.logger.error(
-          "Failed to broadcast order update",
-          new Error(result.error),
-          { orderId: order.id },
-        );
-      }
+      await finalizeOrderStatusSideEffects({
+        env: this.env,
+        order,
+        previousStatus,
+        newStatus,
+        updatedBy,
+        updatedByRole: updatedBy ? "admin" : "system",
+        notes,
+        estimatedReadyTime,
+      });
     } catch (error) {
       this.logger.error(
         "Failed to broadcast order update",
@@ -1308,10 +1280,7 @@ export class OrdersService implements IOrdersService {
   }
 
   private async invalidateOrderCache(orderId: number): Promise<void> {
-    await Promise.all([
-      this.cacheKV.delete(`order:${orderId}:full`),
-      this.cacheKV.delete(`order:${orderId}:basic`),
-    ]);
+    await invalidateOrderCacheKeys(this.cacheKV, orderId);
   }
 
   private async logOrderActivity(

@@ -89,13 +89,15 @@ class ApiClient {
           }
         }
 
-        console.log(
-          `🚀 API請求: ${config.method?.toUpperCase()} ${config.url}`,
-          {
-            params: config.params,
-            data: config.data,
-          },
-        );
+        if (import.meta.env.DEV) {
+          console.log(
+            `🚀 API請求: ${config.method?.toUpperCase()} ${config.url}`,
+            {
+              params: config.params,
+              data: config.data,
+            },
+          );
+        }
 
         return config;
       },
@@ -108,7 +110,9 @@ class ApiClient {
     // 響應攔截器
     this.responseInterceptorId = this.instance.interceptors.response.use(
       (response: AxiosResponse<ApiResponse>) => {
-        console.log(`✅ API響應: ${response.status}`, response.data);
+        if (import.meta.env.DEV) {
+          console.log(`✅ API響應: ${response.status}`, response.data);
+        }
 
         // 檢查業務邏輯錯誤
         if (!response.data.success && response.data.error) {

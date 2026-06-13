@@ -12,6 +12,7 @@ import {
   cashShifts,
   amountFromCents,
   businessNumber,
+  dateFromUnixMs,
   sumMoneyAmount,
 } from "@makanmakan/database";
 import type { Refund, ProcessRefundRequest } from "../types";
@@ -257,11 +258,15 @@ export class RefundService {
       const conditions: SQL[] = [eq(refunds.registerId, registerId)];
 
       if (startDate) {
-        conditions.push(sql`DATE(${refunds.processedAt}) >= ${startDate}`);
+        conditions.push(
+          sql`${dateFromUnixMs(refunds.processedAt)} >= ${startDate}`,
+        );
       }
 
       if (endDate) {
-        conditions.push(sql`DATE(${refunds.processedAt}) <= ${endDate}`);
+        conditions.push(
+          sql`${dateFromUnixMs(refunds.processedAt)} <= ${endDate}`,
+        );
       }
 
       if (status) {

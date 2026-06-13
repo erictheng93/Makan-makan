@@ -121,8 +121,35 @@ function createD1WithBatchFailure(
 function env(db: unknown) {
   return {
     DB: db,
-    CACHE_KV: {},
+    CACHE_KV: {
+      delete: vi.fn(async () => undefined),
+    },
   } as Env;
+}
+
+function envWithRealtime(db: unknown) {
+  const fetch = vi.fn(async (_request: string, init?: RequestInit) => ({
+    json: async () => ({
+      success: true,
+      eventId: JSON.parse(String(init?.body)).eventId,
+      recipientCount: 2,
+    }),
+  }));
+  const cacheKV = {
+    delete: vi.fn(async () => undefined),
+  };
+  return {
+    env: {
+      DB: db,
+      CACHE_KV: cacheKV,
+      REALTIME_SESSION: {
+        idFromName: vi.fn((name: string) => name),
+        get: vi.fn(() => ({ fetch })),
+      },
+    } as unknown as Env,
+    cacheKV,
+    fetch,
+  };
 }
 
 function order(overrides: Record<string, unknown> = {}) {
@@ -338,6 +365,60 @@ describe("PaymentService", () => {
     expect(statementContaining(statements, "UPDATE tables")?.values).toEqual([
       1780833600000, 9,
     ]);
+  });
+
+  it("invalidates order cache and broadcasts paid status when payment closes the order", async () => {
+    const { db } = createD1();
+    const setup = envWithRealtime(db);
+    queueOrderRows([
+      [
+        order({
+          orderNumber: "A001",
+          status: "served",
+        }),
+      ],
+    ]);
+    mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
+
+    await new PaymentService(setup.env).processPayment(
+      {
+        orderId: 101,
+        paymentMode: "full",
+        amount: 120,
+        expectedTotal: 120,
+        method: "cash",
+      },
+      {
+        user: {
+          id: 4,
+          role: 4,
+          restaurantId: "restaurant-1",
+          username: "cashier",
+        },
+      },
+    );
+
+    expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:101:full");
+    expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:101:basic");
+    expect(setup.fetch).toHaveBeenCalledTimes(2);
+
+    const event = JSON.parse(
+      String(setup.fetch.mock.calls[0]?.[1]?.body),
+    ) as Record<string, any>;
+    expect(event).toMatchObject({
+      type: "order_status_update",
+      restaurantId: "restaurant-1",
+      data: {
+        orderId: 101,
+        orderNumber: "A001",
+        previousStatus: "served",
+        status: "paid",
+        updatedBy: {
+          userId: 4,
+          role: "cashier",
+        },
+      },
+    });
   });
 
   it("rejects finalized orders and staff roles without payment authority", async () => {

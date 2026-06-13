@@ -11,6 +11,11 @@ import {
   type ImageView,
   type ImageProcessingJob,
 } from "../schema";
+import {
+  dateFromUnixMs,
+  strftimeFromUnixMs,
+  unixMsDiffSeconds,
+} from "../utils/sql-time";
 
 export interface ImageAnalyticsOptions {
   restaurantId?: string;
@@ -196,15 +201,15 @@ export class ImageService extends BaseService {
     // Monthly upload trends
     const monthlyTrends = await this.db
       .select({
-        month: sql<string>`strftime('%Y-%m', ${images.uploadedAt})`,
+        month: strftimeFromUnixMs("%Y-%m", images.uploadedAt),
         images_uploaded: count(),
         storage_used: sql<number>`SUM(${images.size})`,
         avg_file_size: sql<number>`AVG(${images.size})`,
       })
       .from(images)
       .where(whereClause)
-      .groupBy(sql`strftime('%Y-%m', ${images.uploadedAt})`)
-      .orderBy(sql`strftime('%Y-%m', ${images.uploadedAt}) DESC`)
+      .groupBy(strftimeFromUnixMs("%Y-%m", images.uploadedAt))
+      .orderBy(sql`${strftimeFromUnixMs("%Y-%m", images.uploadedAt)} DESC`)
       .limit(12);
 
     // Total storage statistics
@@ -263,7 +268,7 @@ export class ImageService extends BaseService {
         original_filename: images.originalFilename,
         category: images.category,
         view_count: count(imageViews.id),
-        days_viewed: sql<number>`COUNT(DISTINCT DATE(${imageViews.viewedAt}))`,
+        days_viewed: sql<number>`COUNT(DISTINCT ${dateFromUnixMs(imageViews.viewedAt)})`,
       })
       .from(images)
       .leftJoin(imageViews, eq(images.id, imageViews.imageId))
@@ -297,14 +302,14 @@ export class ImageService extends BaseService {
     // Daily usage trends
     const dailyUsage = await this.db
       .select({
-        date: sql<string>`DATE(${imageViews.viewedAt})`,
+        date: dateFromUnixMs(imageViews.viewedAt),
         total_views: count(),
         unique_images_viewed: sql<number>`COUNT(DISTINCT ${imageViews.imageId})`,
       })
       .from(imageViews)
       .where(whereClause)
-      .groupBy(sql`DATE(${imageViews.viewedAt})`)
-      .orderBy(sql`DATE(${imageViews.viewedAt}) DESC`)
+      .groupBy(dateFromUnixMs(imageViews.viewedAt))
+      .orderBy(sql`${dateFromUnixMs(imageViews.viewedAt)} DESC`)
       .limit(30);
 
     // Peak usage hours
@@ -370,7 +375,7 @@ export class ImageService extends BaseService {
           AVG(
             CASE 
               WHEN ${imageProcessingJobs.completedAt} IS NOT NULL AND ${imageProcessingJobs.createdAt} IS NOT NULL 
-              THEN (julianday(${imageProcessingJobs.completedAt}) - julianday(${imageProcessingJobs.createdAt})) * 24 * 60 * 60
+              THEN ${unixMsDiffSeconds(imageProcessingJobs.completedAt, imageProcessingJobs.createdAt)}
               ELSE NULL 
             END
           )
@@ -379,7 +384,7 @@ export class ImageService extends BaseService {
           MIN(
             CASE 
               WHEN ${imageProcessingJobs.completedAt} IS NOT NULL AND ${imageProcessingJobs.createdAt} IS NOT NULL 
-              THEN (julianday(${imageProcessingJobs.completedAt}) - julianday(${imageProcessingJobs.createdAt})) * 24 * 60 * 60
+              THEN ${unixMsDiffSeconds(imageProcessingJobs.completedAt, imageProcessingJobs.createdAt)}
               ELSE NULL 
             END
           )
@@ -388,7 +393,7 @@ export class ImageService extends BaseService {
           MAX(
             CASE 
               WHEN ${imageProcessingJobs.completedAt} IS NOT NULL AND ${imageProcessingJobs.createdAt} IS NOT NULL 
-              THEN (julianday(${imageProcessingJobs.completedAt}) - julianday(${imageProcessingJobs.createdAt})) * 24 * 60 * 60
+              THEN ${unixMsDiffSeconds(imageProcessingJobs.completedAt, imageProcessingJobs.createdAt)}
               ELSE NULL 
             END
           )
@@ -402,7 +407,7 @@ export class ImageService extends BaseService {
     // Processing trends over time
     const processingTrends = await this.db
       .select({
-        date: sql<string>`DATE(${imageProcessingJobs.createdAt})`,
+        date: dateFromUnixMs(imageProcessingJobs.createdAt),
         jobs_created: count(),
         jobs_completed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'completed' THEN 1 ELSE 0 END)`,
         jobs_failed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'failed' THEN 1 ELSE 0 END)`,
@@ -410,7 +415,7 @@ export class ImageService extends BaseService {
           AVG(
             CASE 
               WHEN ${imageProcessingJobs.completedAt} IS NOT NULL AND ${imageProcessingJobs.createdAt} IS NOT NULL 
-              THEN (julianday(${imageProcessingJobs.completedAt}) - julianday(${imageProcessingJobs.createdAt})) * 24 * 60 * 60
+              THEN ${unixMsDiffSeconds(imageProcessingJobs.completedAt, imageProcessingJobs.createdAt)}
               ELSE NULL 
             END
           )
@@ -418,8 +423,8 @@ export class ImageService extends BaseService {
       })
       .from(imageProcessingJobs)
       .where(whereClause)
-      .groupBy(sql`DATE(${imageProcessingJobs.createdAt})`)
-      .orderBy(sql`DATE(${imageProcessingJobs.createdAt}) DESC`)
+      .groupBy(dateFromUnixMs(imageProcessingJobs.createdAt))
+      .orderBy(sql`${dateFromUnixMs(imageProcessingJobs.createdAt)} DESC`)
       .limit(30);
 
     // Error analysis

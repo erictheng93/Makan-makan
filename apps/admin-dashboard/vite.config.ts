@@ -54,7 +54,21 @@ export default defineConfig({
     target: "esnext",
     outDir: "dist",
     sourcemap: process.env.NODE_ENV !== "production", // SECURITY FIX: Disable sourcemaps in production
-    minify: "esbuild",
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ["console.log", "console.info", "console.debug"],
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
+      },
+      format: {
+        comments: false,
+      },
+    },
     cssMinify: true,
     chunkSizeWarningLimit: 500,
     reportCompressedSize: true,

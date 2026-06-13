@@ -220,7 +220,21 @@ export default defineConfig({
       },
     },
     // 優化構建性能
-    minify: "esbuild",
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ["console.log", "console.info", "console.debug"],
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
+      },
+      format: {
+        comments: false,
+      },
+    },
     cssMinify: true,
     // MapLibre is isolated behind MarketLocationMap's async component. The
     // higher limit keeps the production build warning focused on unexpected

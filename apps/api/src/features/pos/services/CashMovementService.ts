@@ -4,7 +4,11 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, type SQL } from "drizzle-orm";
-import { cashMovements, cashShifts } from "@makanmakan/database";
+import {
+  cashMovements,
+  cashShifts,
+  dateFromUnixMs,
+} from "@makanmakan/database";
 import type {
   CashMovement as _CashMovement,
   CashMovementRequest,
@@ -154,7 +158,9 @@ export class CashMovementService {
       ];
 
       if (date) {
-        conditions.push(sql`DATE(${cashMovements.createdAt}) = ${date}`);
+        conditions.push(
+          sql`${dateFromUnixMs(cashMovements.createdAt)} = ${date}`,
+        );
       }
 
       const counts = await this.db
