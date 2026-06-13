@@ -16,13 +16,22 @@ export interface ManagementUser {
   role: "admin";
 }
 
+export const MANAGEMENT_JWT_AUDIENCE = "management";
+export const MANAGEMENT_JWT_ISSUER = "makanmakan-management";
+
 type Env = {
   Bindings: ManagementEnv;
   Variables: { managementUser: ManagementUser };
 };
 
-function hasPlatformAdminClaim(payload: Record<string, unknown>): boolean {
+export function hasPlatformAdminClaim(
+  payload: Record<string, unknown>,
+): boolean {
   return payload.role === "admin" || payload.role === 0;
+}
+
+export function managementJwtSecret(env: ManagementEnv): string {
+  return env.MANAGEMENT_JWT_SECRET || env.JWT_SECRET;
 }
 
 /**
@@ -41,13 +50,15 @@ export const managementAuthMiddleware = async (c: Context<Env>, next: Next) => {
   }
 
   try {
-    const payload = await verify(token, c.env.JWT_SECRET, "HS256");
+    const payload = await verify(token, managementJwtSecret(c.env), "HS256");
 
     // Validate required claims
     if (
       typeof payload.id !== "string" ||
       typeof payload.email !== "string" ||
-      !hasPlatformAdminClaim(payload)
+      !hasPlatformAdminClaim(payload) ||
+      payload.aud !== MANAGEMENT_JWT_AUDIENCE ||
+      payload.iss !== MANAGEMENT_JWT_ISSUER
     ) {
       throw unauthorized("Invalid token claims");
     }

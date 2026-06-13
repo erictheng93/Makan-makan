@@ -6,6 +6,7 @@ import { managementAuthMiddleware, type ManagementUser } from "./auth";
 import type { ManagementEnv } from "../types";
 
 const JWT_SECRET = "test-jwt-secret-with-at-least-32-chars";
+const MANAGEMENT_JWT_SECRET = "management-jwt-secret-with-at-least-32-chars";
 
 type TestEnv = {
   Bindings: ManagementEnv;
@@ -33,6 +34,8 @@ async function token(payload: Record<string, unknown>) {
     {
       id: "admin-1",
       email: "admin@example.com",
+      aud: "management",
+      iss: "makanmakan-management",
       exp: Math.floor(Date.now() / 1000) + 3600,
       ...payload,
     },
@@ -55,6 +58,56 @@ describe("managementAuthMiddleware", () => {
       user: { id: "admin-1", email: "admin@example.com", role: "admin" },
     });
     expect(response.status).toBe(200);
+  });
+
+  it("accepts management JWTs signed with the dedicated management secret", async () => {
+    const app = createApp();
+
+    const signed = await sign(
+      {
+        id: "admin-1",
+        email: "admin@example.com",
+        role: "admin",
+        aud: "management",
+        iss: "makanmakan-management",
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      },
+      MANAGEMENT_JWT_SECRET,
+    );
+
+    const response = await app.fetch(
+      new Request("https://management.test/admin", {
+        headers: { Authorization: `Bearer ${signed}` },
+      }),
+      { JWT_SECRET, MANAGEMENT_JWT_SECRET } as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects API admin JWTs without management audience and issuer", async () => {
+    const app = createApp();
+    const apiAdminToken = await sign(
+      {
+        id: "admin-1",
+        email: "admin@example.com",
+        role: "admin",
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      },
+      JWT_SECRET,
+    );
+
+    const response = await app.fetch(
+      new Request("https://management.test/admin", {
+        headers: { Authorization: `Bearer ${apiAdminToken}` },
+      }),
+      { JWT_SECRET } as never,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      message: "Invalid token claims",
+    });
+    expect(response.status).toBe(401);
   });
 
   it("rejects non-admin JWTs", async () => {

@@ -21,6 +21,7 @@ import healthRouter from "./routes/health";
 import monitoringRouter from "./routes/monitoring";
 import updatesRouter from "./routes/updates";
 import onboardingRouter from "./routes/onboarding";
+import authRouter from "./routes/auth";
 import { adminMarketsRouter, marketsRouter } from "./routes/markets";
 
 // Create main application
@@ -190,6 +191,7 @@ app.get("/", (c) => c.redirect("/info"));
 
 // Public routes (no auth required)
 const publicApi = new Hono<{ Bindings: ManagementEnv }>();
+publicApi.route("/auth", authRouter);
 publicApi.route("/onboarding", onboardingRouter);
 
 // Protected routes (auth required)

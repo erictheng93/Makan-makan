@@ -24,6 +24,7 @@ export interface ManagementEnv {
 
   // Secrets (set via wrangler secret put)
   JWT_SECRET: string;
+  MANAGEMENT_JWT_SECRET?: string;
   ENCRYPTION_KEY: string;
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
