@@ -70,16 +70,29 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   },
 ];
 
+const localeLoaders: Record<
+  Exclude<Locale, "zh-TW">,
+  () => Promise<Messages>
+> = {
+  "zh-CN": async () => (await import("./locales/zh-CN")).default,
+  "en-US": async () => (await import("./locales/en-US")).default,
+  "ja-JP": async () => (await import("./locales/ja-JP")).default,
+  "vi-VN": async () => (await import("./locales/vi-VN")).default,
+  "id-ID": async () => (await import("./locales/id-ID")).default,
+};
+
 const runtime = createI18n<Locale, Messages>({
   defaultLocale: "zh-TW",
   fallbackLocale: "zh-TW",
   supportedLocales: SUPPORTED_LOCALES,
   initialMessages: { "zh-TW": zhTWMessages },
-  loadMessages: async (locale) =>
-    mergeLocaleMessages(
-      zhTWMessages,
-      (await import(`./locales/${locale}.ts`)).default,
-    ),
+  loadMessages: async (locale) => {
+    if (locale === "zh-TW") {
+      return zhTWMessages;
+    }
+
+    return mergeLocaleMessages(zhTWMessages, await localeLoaders[locale]());
+  },
 });
 
 export const getCurrentLocaleConfig = runtime.getCurrentLocaleConfig;

@@ -3,6 +3,14 @@ import { apiPath } from "@/services/api-url";
 
 const toast = useToast();
 
+type AuthRefreshHandler = () => Promise<boolean>;
+
+let authRefreshHandler: AuthRefreshHandler | undefined;
+
+export function setAuthRefreshHandler(handler: AuthRefreshHandler): void {
+  authRefreshHandler = handler;
+}
+
 // 錯誤類型定義
 export enum ErrorType {
   NETWORK = "network",
@@ -480,11 +488,7 @@ export class KitchenErrorHandler extends ErrorHandler {
     _context?: Record<string, any>,
   ): Promise<any> {
     try {
-      // 嘗試刷新 token
-      const authStore = await import("@/stores/auth").then((m) =>
-        m.useAuthStore(),
-      );
-      const success = await authStore.refreshToken();
+      const success = authRefreshHandler ? await authRefreshHandler() : false;
 
       if (success) {
         const toast = useToast();

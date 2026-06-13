@@ -173,6 +173,8 @@
       "brace-expansion@^1": "^1.1.13",
       "brace-expansion@^2": "^2.0.3",
       "brace-expansion@^4 || ^5": "^5.0.5",
+      "baseline-browser-mapping": "2.10.37",
+      "caniuse-lite": "1.0.30001799",
       "dompurify": "^3.4.0",
       "fast-xml-parser": "^5.7.0",
       "flatted": "^3.4.2",
@@ -197,7 +199,8 @@
       "yaml@^2": "^2.8.3"
     },
     "onlyBuiltDependencies": [
-      "better-sqlite3"
+      "better-sqlite3",
+      "workerd"
     ]
   }
 }

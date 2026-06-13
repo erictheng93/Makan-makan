@@ -5,6 +5,7 @@ import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { api, authClient } from "@/services/api";
 import { t } from "@/i18n";
+import { setAuthRefreshHandler } from "@/utils/errorHandler";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
@@ -334,6 +335,8 @@ export const useAuthStore = defineStore("auth", () => {
       sharedRefreshPromise = null;
     }
   };
+
+  setAuthRefreshHandler(refreshToken);
 
   return {
     user: readonly(user),

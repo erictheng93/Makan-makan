@@ -115,10 +115,16 @@ export default defineConfig({
           if (id.includes("node_modules/vue-i18n")) {
             return "i18n";
           }
+          if (id.includes("node_modules/@intlify")) {
+            return "intlify";
+          }
 
           // Utils
           if (id.includes("node_modules/axios")) {
             return "axios";
+          }
+          if (id.includes("node_modules/zod")) {
+            return "zod";
           }
           if (id.includes("node_modules/lodash-es")) {
             return "lodash";
@@ -128,6 +134,21 @@ export default defineConfig({
           }
           if (id.includes("node_modules/@vueuse/core")) {
             return "vueuse";
+          }
+          if (id.includes("node_modules/xlsx")) {
+            return "xlsx";
+          }
+          if (id.includes("node_modules/jspdf")) {
+            return "jspdf";
+          }
+          if (id.includes("node_modules/@stripe/stripe-js")) {
+            return "stripe";
+          }
+          if (id.includes("node_modules/qrcode")) {
+            return "qrcode";
+          }
+          if (id.includes("node_modules/papaparse")) {
+            return "papaparse";
           }
 
           // Other node_modules
