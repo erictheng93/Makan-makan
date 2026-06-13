@@ -15,6 +15,7 @@ import {
   isNull,
   isNotNull,
 } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { D1Database } from "@cloudflare/workers-types";
 import { BaseService, type CloudflareEnv } from "./base";
 import {
@@ -424,10 +425,45 @@ export class SchedulingService extends BaseService {
       return newSchedule;
     };
 
-    // Use the passed-in transaction (from bulkCreateSchedules) or create a new one
-    const newSchedule = existingTx
-      ? await executeWrites(existingTx)
-      : await this.safeTransaction(executeWrites);
+    let newSchedule: unknown;
+    if (existingTx) {
+      newSchedule = await executeWrites(existingTx);
+    } else {
+      const writes: BatchItem<"sqlite">[] = conflicts.conflicts.map(
+        (conflict) =>
+          this.db.insert(schedulingConflicts).values({
+            ...conflict,
+            restaurantId: data.restaurantId,
+            scheduleIds: conflict.scheduleIds || "[]",
+            employeeIds: conflict.employeeIds || "[]",
+            status: "unresolved",
+            detectedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }) as BatchItem<"sqlite">,
+      );
+      writes.push(
+        this.db
+          .insert(employeeSchedules)
+          .values({
+            ...data,
+            status: "scheduled",
+            actualHours: 0,
+            overtimeHours: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any)
+          .returning() as BatchItem<"sqlite">,
+      );
+
+      const batchResults = await this.db.batch(
+        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      const scheduleRows = batchResults.at(
+        -1,
+      ) as (typeof employeeSchedules.$inferSelect)[];
+      [newSchedule] = scheduleRows;
+    }
 
     // Non-critical notification — fire and forget
     this.sendScheduleNotification(data.employeeId, data.shiftTemplateId, {
@@ -616,31 +652,34 @@ export class SchedulingService extends BaseService {
       }
     }
 
-    // Single transaction: store conflicts + insert all schedules
-    await this.safeTransaction(async (tx) => {
-      for (const conflict of bulkConflicts) {
-        await tx.insert(schedulingConflicts).values({
-          ...conflict,
-          scheduleIds: conflict.scheduleIds || "[]",
-          employeeIds: conflict.employeeIds || "[]",
-          status: "unresolved",
-          detectedAt: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-
-      for (const sched of schedulesToCreate) {
-        await tx.insert(employeeSchedules).values({
-          ...sched,
-          status: "scheduled",
-          actualHours: 0,
-          overtimeHours: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    });
+    const writes: BatchItem<"sqlite">[] = [
+      ...bulkConflicts.map(
+        (conflict) =>
+          this.db.insert(schedulingConflicts).values({
+            ...conflict,
+            scheduleIds: conflict.scheduleIds || "[]",
+            employeeIds: conflict.employeeIds || "[]",
+            status: "unresolved",
+            detectedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }) as BatchItem<"sqlite">,
+      ),
+      ...schedulesToCreate.map(
+        (sched) =>
+          this.db.insert(employeeSchedules).values({
+            ...sched,
+            status: "scheduled",
+            actualHours: 0,
+            overtimeHours: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any) as BatchItem<"sqlite">,
+      ),
+    ];
+    await this.db.batch(
+      writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+    );
 
     return schedulesToCreate.length;
   }

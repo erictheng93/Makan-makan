@@ -111,6 +111,13 @@ function statementContaining(statements: PreparedStatement[], text: string) {
   return statements.find((statement) => statement.sql.includes(text));
 }
 
+const cashierUser = {
+  id: 4,
+  username: "cashier",
+  role: 4,
+  restaurantId: "restaurant-1",
+};
+
 describe("refundPaymentTransaction", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -121,7 +128,11 @@ describe("refundPaymentTransaction", () => {
     let setup = createD1(null);
 
     await expect(
-      refundPaymentTransaction(env(setup.db), { transactionId: "missing" }),
+      refundPaymentTransaction(
+        env(setup.db),
+        { transactionId: "missing" },
+        { user: cashierUser },
+      ),
     ).rejects.toMatchObject({
       code: "TRANSACTION_NOT_FOUND",
       status: 404,
@@ -131,12 +142,29 @@ describe("refundPaymentTransaction", () => {
     setup = createD1(paidOrder({ payment_status: "pending" }));
 
     await expect(
-      refundPaymentTransaction(env(setup.db), { transactionId: "pending" }),
+      refundPaymentTransaction(
+        env(setup.db),
+        { transactionId: "pending" },
+        { user: cashierUser },
+      ),
     ).rejects.toMatchObject({
       code: "PAYMENT_NOT_REFUNDABLE",
       status: 409,
     });
     expect(setup.statements).toHaveLength(1);
+  });
+
+  it("fails closed when refund access is missing a user", async () => {
+    const setup = createD1(paidOrder());
+
+    await expect(
+      refundPaymentTransaction(env(setup.db), { transactionId: "txn-1" }),
+    ).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+      status: 403,
+    });
+    expect(setup.db.batch).not.toHaveBeenCalled();
+    expect(setup.statements).toHaveLength(0);
   });
 
   it("records partial refunds with existing refunded cents and fallback providers", async () => {
@@ -148,11 +176,15 @@ describe("refundPaymentTransaction", () => {
     );
 
     await expect(
-      refundPaymentTransaction(env(db), {
-        transactionId: "txn-1",
-        amount: 30,
-        reason: "customer changed mind",
-      }),
+      refundPaymentTransaction(
+        env(db),
+        {
+          transactionId: "txn-1",
+          amount: 30,
+          reason: "customer changed mind",
+        },
+        { user: cashierUser },
+      ),
     ).resolves.toEqual({
       refundId: "ref_txn-1_1780833600000",
       transactionId: "txn-1",
@@ -239,11 +271,15 @@ describe("refundPaymentTransaction", () => {
     );
 
     await expect(
-      refundPaymentTransaction(env(db), {
-        transactionId: "txn-rollback",
-        amount: 30,
-        reason: "customer changed mind",
-      }),
+      refundPaymentTransaction(
+        env(db),
+        {
+          transactionId: "txn-rollback",
+          amount: 30,
+          reason: "customer changed mind",
+        },
+        { user: cashierUser },
+      ),
     ).rejects.toThrow("injected batch failure");
 
     expect(db.batch).toHaveBeenCalledOnce();
@@ -265,10 +301,14 @@ describe("refundPaymentTransaction", () => {
     );
 
     await expect(
-      refundPaymentTransaction(env(fullRefund.db), {
-        transactionId: "txn-2",
-        amount: 30,
-      }),
+      refundPaymentTransaction(
+        env(fullRefund.db),
+        {
+          transactionId: "txn-2",
+          amount: 30,
+        },
+        { user: cashierUser },
+      ),
     ).resolves.toMatchObject({
       refundId: "ref_txn-2_1780833600000",
       amount: 30,
@@ -301,6 +341,7 @@ describe("refundPaymentTransaction", () => {
           ).db,
         ),
         { transactionId: "txn-3", amount: 21 },
+        { user: cashierUser },
       ),
     ).rejects.toMatchObject({
       code: "REFUND_AMOUNT_EXCEEDS_PAYMENT",
@@ -347,10 +388,14 @@ describe("refundPaymentTransaction", () => {
 
     const setup = createD1(paidOrder({ refund_amount_cents: 2000 }), 0);
     await expect(
-      refundPaymentTransaction(env(setup.db), {
-        transactionId: "txn-race",
-        amount: 30,
-      }),
+      refundPaymentTransaction(
+        env(setup.db),
+        {
+          transactionId: "txn-race",
+          amount: 30,
+        },
+        { user: cashierUser },
+      ),
     ).rejects.toMatchObject({
       code: "REFUND_AMOUNT_EXCEEDS_PAYMENT",
       status: 409,

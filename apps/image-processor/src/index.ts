@@ -10,6 +10,7 @@ import {
   createDatabase,
   sql,
   count,
+  dateFromUnixMs,
   images,
   imageViews,
   imageProcessingJobs,
@@ -342,11 +343,10 @@ async function cleanupExpiredJobs(env: Env) {
   try {
     // Use Drizzle ORM for cleanup
     const db = createDatabase(env.DB);
+    const cutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const _result = await db
       .delete(imageProcessingJobs)
-      .where(
-        sql`${imageProcessingJobs.createdAt} < datetime('now', '-7 days')`,
-      );
+      .where(sql`${imageProcessingJobs.createdAt} < ${cutoffMs}`);
 
     console.log(`Cleaned up expired processing jobs`);
   } catch (error) {
@@ -359,9 +359,10 @@ async function cleanupOldViews(_env: Env) {
   try {
     // Use Drizzle ORM for cleanup
     const db = createDatabase(_env.DB);
+    const cutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const _viewsResult = await db
       .delete(imageViews)
-      .where(sql`${imageViews.viewedAt} < datetime('now', '-30 days')`);
+      .where(sql`${imageViews.viewedAt} < ${cutoffMs}`);
 
     console.log(`Cleaned up old view records`);
   } catch (error) {
@@ -404,7 +405,7 @@ async function sendDailyStats(env: Env) {
         active_restaurants: sql<number>`COUNT(DISTINCT ${images.restaurantId})`,
       })
       .from(images)
-      .where(sql`DATE(${images.uploadedAt}) = ${dateStr}`);
+      .where(sql`${dateFromUnixMs(images.uploadedAt)} = ${dateStr}`);
 
     const stats = statsResult[0];
 
@@ -416,7 +417,9 @@ async function sendDailyStats(env: Env) {
         jobs_failed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'failed' THEN 1 ELSE 0 END)`,
       })
       .from(imageProcessingJobs)
-      .where(sql`DATE(${imageProcessingJobs.createdAt}) = ${dateStr}`);
+      .where(
+        sql`${dateFromUnixMs(imageProcessingJobs.createdAt)} = ${dateStr}`,
+      );
 
     const processingStats = processingStatsResult[0];
 

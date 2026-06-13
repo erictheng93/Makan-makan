@@ -31,6 +31,21 @@ database_name = "makanmakan-local"
 database_id = "local"
 migrations_dir = "../../packages/database/migrations_fresh"
 
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "makanmasak-cache-dev"
+preview_id = "makanmasak-cache-preview"
+
+[[kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmasak-token-blacklist-dev"
+preview_id = "makanmasak-token-blacklist-preview"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "makanmasak-ratelimit-dev"
+preview_id = "makanmasak-ratelimit-preview"
+
 # === STAGING ENVIRONMENT ===
 [env.staging]
 name = "makanmasak-realtime-staging"

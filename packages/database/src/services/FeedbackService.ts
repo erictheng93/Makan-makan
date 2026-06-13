@@ -1,5 +1,6 @@
 import { eq, and, desc, gte, lte, count, sql, like, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
 import { shopFeedback, feedbackResponses, users, restaurants } from "../schema";
 import type {
@@ -277,35 +278,29 @@ export class FeedbackService extends BaseService {
     isAdmin: boolean = false,
   ): Promise<boolean> {
     try {
-      return await this.safeTransaction(async (tx) => {
-        const [existing] = await tx
-          .select({
-            id: shopFeedback.id,
-            status: shopFeedback.status,
-            userId: shopFeedback.userId,
-          })
-          .from(shopFeedback)
-          .where(eq(shopFeedback.id, id));
+      const whereClause = isAdmin
+        ? eq(shopFeedback.id, id)
+        : and(
+            eq(shopFeedback.id, id),
+            eq(shopFeedback.userId, userId),
+            eq(shopFeedback.status, "open"),
+          );
+      const authorizedFeedbackFilter = isAdmin
+        ? sql`id = ${id}`
+        : sql`id = ${id} AND user_id = ${userId} AND status = 'open'`;
 
-        if (!existing) return false;
-
-        if (!isAdmin) {
-          if (existing.userId !== userId || existing.status !== "open") {
-            return false;
-          }
-        }
-
-        await tx
-          .delete(feedbackResponses)
-          .where(eq(feedbackResponses.feedbackId, id));
-
-        const result = await tx
+      const [, deletedRows] = await this.db.batch([
+        this.db.delete(feedbackResponses).where(
+          sql`${feedbackResponses.feedbackId} IN (
+              SELECT id FROM shop_feedback WHERE ${authorizedFeedbackFilter}
+            )`,
+        ) as BatchItem<"sqlite">,
+        this.db
           .delete(shopFeedback)
-          .where(eq(shopFeedback.id, id))
-          .returning({ id: shopFeedback.id });
-
-        return result.length > 0;
-      });
+          .where(whereClause)
+          .returning({ id: shopFeedback.id }) as BatchItem<"sqlite">,
+      ]);
+      return (deletedRows as Array<{ id: number }>).length > 0;
     } catch (error) {
       this.handleError(error, "deleteFeedback");
     }

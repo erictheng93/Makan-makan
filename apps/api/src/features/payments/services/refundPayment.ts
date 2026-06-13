@@ -31,6 +31,8 @@ export async function refundPaymentTransaction(
   input: RefundPaymentInput,
   options: RefundPaymentOptions = {},
 ): Promise<RefundPaymentResult> {
+  assertAuthenticatedRefundUser(options.user);
+
   const row = await env.DB.prepare(
     `SELECT id, restaurant_id, total_amount, total_amount_cents,
             refund_amount, refund_amount_cents, payment_method, payment_status
@@ -182,9 +184,15 @@ export async function refundPaymentTransaction(
   };
 }
 
-function assertRefundAccess(user: AuthUser | undefined, restaurantId: string) {
-  if (!user) return;
+function assertAuthenticatedRefundUser(
+  user: AuthUser | undefined,
+): asserts user is AuthUser {
+  if (!user) {
+    throw new ApiError("UNAUTHENTICATED", "Authentication required", 403);
+  }
+}
 
+function assertRefundAccess(user: AuthUser, restaurantId: string) {
   if (![0, 1, 4].includes(user.role)) {
     throw new ApiError("INSUFFICIENT_ROLE", "Insufficient permissions", 403);
   }

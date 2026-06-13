@@ -421,6 +421,37 @@ describe("PaymentService", () => {
     });
   });
 
+  it("does not fail a committed payment when close-order side effects fail", async () => {
+    const { db } = createD1();
+    const setup = envWithRealtime(db);
+    setup.cacheKV.delete.mockRejectedValueOnce(new Error("kv unavailable"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    queueOrderRows([[order()]]);
+    mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
+
+    await expect(
+      new PaymentService(setup.env).processPayment({
+        orderId: 101,
+        paymentMode: "full",
+        amount: 120,
+        expectedTotal: 120,
+        method: "cash",
+      }),
+    ).resolves.toMatchObject({
+      status: 200,
+      data: {
+        paymentId: "pay_101_1780833600000",
+        orderStatus: "paid",
+      },
+    });
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Payment succeeded but order side effects failed",
+      expect.objectContaining({ orderId: 101 }),
+    );
+    errorSpy.mockRestore();
+  });
+
   it("rejects finalized orders and staff roles without payment authority", async () => {
     const { db } = createD1();
     queueOrderRows([

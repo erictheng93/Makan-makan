@@ -4,6 +4,7 @@
  */
 
 import { eq, and, gte, lte, between, sql, desc, asc, or } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { D1Database } from "@cloudflare/workers-types";
 import { BaseService, type CloudflareEnv } from "./base";
 import {
@@ -491,11 +492,8 @@ export class LeaveService extends BaseService {
         restaurantId = user.restaurantId;
       }
 
-      // Wrap all writes in a transaction
-      balance = await this.safeTransaction(async (tx) => {
-        if (!balance) {
-          // Create new balance record
-          const [newBalance] = await tx
+      const write = !balance
+        ? this.db
             .insert(employeeLeaveBalances)
             .values({
               employeeId: adjustment.employeeId,
@@ -515,26 +513,13 @@ export class LeaveService extends BaseService {
               updatedAt: now,
               lastUpdatedBy: adjustment.adjustedBy,
             })
-            .returning();
-
-          return {
-            ...newBalance,
-            remainingDays:
-              newBalance.totalDays -
-              newBalance.usedDays -
-              newBalance.pendingDays,
-          } as LeaveBalance;
-        } else {
-          // Update existing balance
-          const newTotalDays = balance.totalDays + adjustment.adjustment;
-          const newAdjustment =
-            balance.manualAdjustment + adjustment.adjustment;
-
-          const [updated] = await tx
+            .returning()
+        : this.db
             .update(employeeLeaveBalances)
             .set({
-              totalDays: newTotalDays,
-              manualAdjustment: newAdjustment,
+              totalDays: balance.totalDays + adjustment.adjustment,
+              manualAdjustment:
+                balance.manualAdjustment + adjustment.adjustment,
               adjustmentReason: adjustment.reason,
               adjustedBy: adjustment.adjustedBy,
               adjustedAt: now,
@@ -544,13 +529,18 @@ export class LeaveService extends BaseService {
             .where(eq(employeeLeaveBalances.id, balance.id))
             .returning();
 
-          return {
-            ...updated,
-            remainingDays:
-              updated.totalDays - updated.usedDays - updated.pendingDays,
-          } as LeaveBalance;
-        }
-      });
+      const [rows] = await this.db.batch([write as BatchItem<"sqlite">] as [
+        BatchItem<"sqlite">,
+      ]);
+      const [updatedBalance] =
+        rows as (typeof employeeLeaveBalances.$inferSelect)[];
+      balance = {
+        ...updatedBalance,
+        remainingDays:
+          updatedBalance.totalDays -
+          updatedBalance.usedDays -
+          updatedBalance.pendingDays,
+      } as LeaveBalance;
 
       return balance;
     } catch (error) {
@@ -615,11 +605,9 @@ export class LeaveService extends BaseService {
         return 0;
       }
 
-      // Wrap all inserts in a single transaction (all-or-nothing)
-      const count = await this.safeTransaction(async (tx) => {
-        let inserted = 0;
-        for (const item of balancesToCreate) {
-          await tx.insert(employeeLeaveBalances).values({
+      const writes = balancesToCreate.map(
+        (item) =>
+          this.db.insert(employeeLeaveBalances).values({
             employeeId: item.employeeId,
             leaveTypeId: item.leaveTypeId,
             restaurantId,
@@ -632,11 +620,12 @@ export class LeaveService extends BaseService {
             manualAdjustment: 0,
             createdAt: new Date(),
             updatedAt: new Date(),
-          });
-          inserted++;
-        }
-        return inserted;
-      });
+          }) as BatchItem<"sqlite">,
+      );
+      await this.db.batch(
+        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      const count = balancesToCreate.length;
 
       return count;
     } catch (error) {
@@ -794,9 +783,8 @@ export class LeaveService extends BaseService {
         year,
       );
 
-      // Wrap insert + balance update in a transaction
-      const executeWrites = async (db: any) => {
-        const [request] = await db
+      const writes: BatchItem<"sqlite">[] = [
+        this.db
           .insert(leaveRequests)
           .values({
             ...data,
@@ -808,24 +796,26 @@ export class LeaveService extends BaseService {
             updatedAt: new Date(),
             submittedAt: new Date(),
           })
-          .returning();
+          .returning() as BatchItem<"sqlite">,
+      ];
 
-        // Update leave balance pending days
-        if (balance) {
-          const newPending = balance.pendingDays + data.totalDays;
-          await db
+      if (balance) {
+        const newPending = balance.pendingDays + data.totalDays;
+        writes.push(
+          this.db
             .update(employeeLeaveBalances)
             .set({
               pendingDays: Math.max(0, newPending),
               updatedAt: new Date(),
             })
-            .where(eq(employeeLeaveBalances.id, balance.id));
-        }
+            .where(eq(employeeLeaveBalances.id, balance.id)),
+        );
+      }
 
-        return request;
-      };
-
-      const newRequest = await this.safeTransaction(executeWrites);
+      const [requestRows] = await this.db.batch(
+        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      const [newRequest] = requestRows as (typeof leaveRequests.$inferSelect)[];
 
       // Send notification to employee (outside transaction)
       try {
@@ -900,9 +890,8 @@ export class LeaveService extends BaseService {
         );
         const usedBalance = pendingBalance; // Same record
 
-        // Final approval — wrap DB writes in a transaction
-        const updated = await this.safeTransaction(async (tx) => {
-          const [updatedRequest] = await tx
+        const writes: BatchItem<"sqlite">[] = [
+          this.db
             .update(leaveRequests)
             .set({
               status: "approved",
@@ -912,24 +901,28 @@ export class LeaveService extends BaseService {
               updatedAt: now,
             })
             .where(eq(leaveRequests.id, requestId))
-            .returning();
+            .returning() as BatchItem<"sqlite">,
+        ];
 
-          // Update leave balance: move from pending to used
-          if (pendingBalance) {
-            const newPending = pendingBalance.pendingDays - request.totalDays;
-            const newUsed = (usedBalance?.usedDays ?? 0) + request.totalDays;
-            await tx
+        if (pendingBalance) {
+          const newPending = pendingBalance.pendingDays - request.totalDays;
+          const newUsed = (usedBalance?.usedDays ?? 0) + request.totalDays;
+          writes.push(
+            this.db
               .update(employeeLeaveBalances)
               .set({
                 pendingDays: Math.max(0, newPending),
                 usedDays: Math.max(0, newUsed),
                 updatedAt: new Date(),
               })
-              .where(eq(employeeLeaveBalances.id, pendingBalance.id));
-          }
+              .where(eq(employeeLeaveBalances.id, pendingBalance.id)),
+          );
+        }
 
-          return updatedRequest;
-        });
+        const [updatedRows] = await this.db.batch(
+          writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+        );
+        const [updated] = updatedRows as (typeof leaveRequests.$inferSelect)[];
 
         // SchedulingService calls OUTSIDE the transaction (separate service, separate DB connection)
         // If schedule cancellation fails, leave is still approved.
@@ -1064,9 +1057,8 @@ export class LeaveService extends BaseService {
 
       const now = new Date();
 
-      // Wrap status update + balance update in a transaction
-      const updated = await this.safeTransaction(async (tx) => {
-        const [updatedRequest] = await tx
+      const writes: BatchItem<"sqlite">[] = [
+        this.db
           .update(leaveRequests)
           .set({
             status: "rejected",
@@ -1076,22 +1068,26 @@ export class LeaveService extends BaseService {
             updatedAt: now,
           })
           .where(eq(leaveRequests.id, requestId))
-          .returning();
+          .returning() as BatchItem<"sqlite">,
+      ];
 
-        // Update leave balance: remove from pending
-        if (balance) {
-          const newPending = balance.pendingDays - request.totalDays;
-          await tx
+      if (balance) {
+        const newPending = balance.pendingDays - request.totalDays;
+        writes.push(
+          this.db
             .update(employeeLeaveBalances)
             .set({
               pendingDays: Math.max(0, newPending),
               updatedAt: new Date(),
             })
-            .where(eq(employeeLeaveBalances.id, balance.id));
-        }
+            .where(eq(employeeLeaveBalances.id, balance.id)),
+        );
+      }
 
-        return updatedRequest;
-      });
+      const [updatedRows] = await this.db.batch(
+        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      const [updated] = updatedRows as (typeof leaveRequests.$inferSelect)[];
 
       // Send rejection notification to employee (outside transaction)
       try {
@@ -1162,9 +1158,8 @@ export class LeaveService extends BaseService {
 
       const now = new Date();
 
-      // Wrap status update + conditional balance update in a transaction
-      const updated = await this.safeTransaction(async (tx) => {
-        const [updatedRequest] = await tx
+      const writes: BatchItem<"sqlite">[] = [
+        this.db
           .update(leaveRequests)
           .set({
             status: "cancelled",
@@ -1174,33 +1169,39 @@ export class LeaveService extends BaseService {
             updatedAt: now,
           })
           .where(eq(leaveRequests.id, requestId))
-          .returning();
+          .returning() as BatchItem<"sqlite">,
+      ];
 
-        // Update leave balance
-        if (balance) {
-          if (request.status === "pending") {
-            const newPending = balance.pendingDays - request.totalDays;
-            await tx
+      if (balance) {
+        if (request.status === "pending") {
+          const newPending = balance.pendingDays - request.totalDays;
+          writes.push(
+            this.db
               .update(employeeLeaveBalances)
               .set({
                 pendingDays: Math.max(0, newPending),
                 updatedAt: new Date(),
               })
-              .where(eq(employeeLeaveBalances.id, balance.id));
-          } else if (request.status === "approved") {
-            const newUsed = balance.usedDays - request.totalDays;
-            await tx
+              .where(eq(employeeLeaveBalances.id, balance.id)),
+          );
+        } else if (request.status === "approved") {
+          const newUsed = balance.usedDays - request.totalDays;
+          writes.push(
+            this.db
               .update(employeeLeaveBalances)
               .set({
                 usedDays: Math.max(0, newUsed),
                 updatedAt: new Date(),
               })
-              .where(eq(employeeLeaveBalances.id, balance.id));
-          }
+              .where(eq(employeeLeaveBalances.id, balance.id)),
+          );
         }
+      }
 
-        return updatedRequest;
-      });
+      const [updatedRows] = await this.db.batch(
+        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      const [updated] = updatedRows as (typeof leaveRequests.$inferSelect)[];
 
       // Send cancellation notification to employee (outside transaction)
       try {

@@ -1473,11 +1473,7 @@ export class WaitingListService extends BaseService {
    * 生成 UUID
    */
   private generateUUID(): string {
-    return (
-      "wait_" +
-      Date.now().toString(36) +
-      Math.random().toString(36).substr(2, 9)
-    );
+    return `wait_${crypto.randomUUID()}`;
   }
 
   /**

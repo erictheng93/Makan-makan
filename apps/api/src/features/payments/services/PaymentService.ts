@@ -213,20 +213,36 @@ export class PaymentService {
     ]);
 
     if (shouldCloseOrder) {
-      await finalizeOrderStatusSideEffects({
-        env: this.env,
-        order: {
-          id: existing.id,
-          restaurantId: existing.restaurantId,
-          orderNumber: existing.orderNumber,
-        },
-        previousStatus: existing.status as OrderStatus,
-        newStatus: "paid",
-        updatedBy: options.user?.id,
-        updatedByRole: roleName(options.user?.role),
-      });
+      try {
+        await finalizeOrderStatusSideEffects({
+          env: this.env,
+          order: {
+            id: existing.id,
+            restaurantId: existing.restaurantId,
+            orderNumber: existing.orderNumber,
+          },
+          previousStatus: existing.status as OrderStatus,
+          newStatus: "paid",
+          updatedBy: options.user?.id,
+          updatedByRole: roleName(options.user?.role),
+        });
+      } catch (error) {
+        console.error("Payment succeeded but order side effects failed", {
+          orderId: existing.id,
+          paymentId,
+          error,
+        });
+      }
     } else {
-      await invalidateOrderCache(this.env.CACHE_KV, input.orderId);
+      try {
+        await invalidateOrderCache(this.env.CACHE_KV, input.orderId);
+      } catch (error) {
+        console.error("Payment succeeded but order cache invalidation failed", {
+          orderId: input.orderId,
+          paymentId,
+          error,
+        });
+      }
     }
 
     return {

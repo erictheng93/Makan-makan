@@ -12,6 +12,7 @@ import { moduleGate } from "../../../middleware/moduleGate";
 import { validateBody } from "../../../middleware/validation";
 import type { Env } from "../../../types/env";
 import { KitchenService } from "../services/KitchenService";
+import { orderItemStatusUpdateSchema } from "../schemas/validation";
 import type { OrderItemStatusUpdate } from "../types";
 import { createSuccessResponse } from "../../../shared/utils/response";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
@@ -385,6 +386,7 @@ app.put(
   "/:restaurantId/orders/:orderId/items/:itemId",
   authMiddleware,
   moduleGate("kitchen_display"),
+  validateBody(orderItemStatusUpdateSchema),
   async (c) => {
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
@@ -397,7 +399,7 @@ app.put(
       throw badRequest("Missing itemId parameter", "MISSING_PARAM");
     const orderId = parseInt(orderIdParam);
     const itemId = parseInt(itemIdParam);
-    const statusUpdate = await c.req.json();
+    const statusUpdate = c.get("validatedBody");
     const user = c.get("user");
     const kitchenService = new KitchenService(c.env);
 

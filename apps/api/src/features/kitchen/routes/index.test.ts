@@ -270,6 +270,19 @@ describe("kitchen routes", () => {
     );
   });
 
+  it("rejects invalid canonical item status bodies before service calls", async () => {
+    await expectIsolatedRouteError(() =>
+      routes.fetch(
+        jsonRequest("/restaurant-1/orders/44/items/9", "PUT", {
+          status: "anything",
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(mocks.updateOrderItemStatus).not.toHaveBeenCalled();
+  });
+
   it("maps legacy start and ready routes to status updates with notes", async () => {
     mocks.updateOrderItemStatus
       .mockResolvedValueOnce({
