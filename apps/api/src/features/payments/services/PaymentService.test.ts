@@ -7,8 +7,12 @@ const mocks = vi.hoisted(() => ({
   db: {
     select: vi.fn(),
     update: vi.fn(),
+    insert: vi.fn(),
+    batch: vi.fn(),
   },
 }));
+
+let currentOrderUpdateChanges = 1;
 
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
@@ -22,6 +26,7 @@ vi.mock("@makanmakan/utils", async (importOriginal) => ({
 interface PreparedStatement {
   sql: string;
   values: unknown[];
+  payload?: unknown;
   bind: ReturnType<typeof vi.fn>;
   run: ReturnType<typeof vi.fn>;
 }
@@ -45,25 +50,91 @@ function queueOrderRows(rows: unknown[][]) {
   );
 }
 
-function mockOrderUpdate(returningRows: unknown[] = []) {
-  const updates: unknown[] = [];
-  mocks.db.update.mockImplementation(() => {
-    const builder = {
-      set: vi.fn((payload: unknown) => {
-        updates.push(payload);
-        return builder;
-      }),
-      where: vi.fn(() => builder),
-      returning: vi.fn(() => Promise.resolve(returningRows)),
-    };
-    return builder;
-  });
-  return updates;
+function mockOrderUpdate(_returningRows: unknown[] = []) {
+  return [];
 }
 
 function createD1(orderUpdateChanges = 1) {
   const statements: PreparedStatement[] = [];
   const committed: PreparedStatement[] = [];
+  currentOrderUpdateChanges = orderUpdateChanges;
+  mocks.db.insert.mockImplementation(() => {
+    const statement: PreparedStatement = {
+      sql: "INSERT",
+      values: [],
+      bind: vi.fn(() => statement),
+      run: vi.fn(async () => ({ meta: { changes: 1 }, success: true })),
+    };
+    const builder = {
+      values: vi.fn((payload: Record<string, unknown>) => {
+        statement.payload = payload;
+        statement.values = Object.values(payload);
+        statement.sql =
+          "refundId" in payload
+            ? "INSERT INTO refund_transactions"
+            : "eventType" in payload
+              ? "INSERT OR IGNORE INTO payment_audit_log"
+              : "INSERT INTO payment_transactions";
+        statements.push(statement);
+        return {
+          ...statement,
+          onConflictDoNothing: vi.fn(() => {
+            statement.sql = statement.sql.replace(
+              "INSERT INTO",
+              "INSERT OR IGNORE INTO",
+            );
+            return statement;
+          }),
+        };
+      }),
+    };
+    return builder;
+  });
+  mocks.db.batch.mockImplementation(
+    async (batchStatements: PreparedStatement[]) => {
+      committed.push(...batchStatements);
+      return batchStatements.map(() => ({
+        meta: { changes: 1 },
+        success: true,
+      }));
+    },
+  );
+  mocks.db.update.mockImplementation(() => {
+    const statement: PreparedStatement = {
+      sql: "UPDATE",
+      values: [],
+      bind: vi.fn(() => statement),
+      run: vi.fn(async () => ({
+        meta: { changes: currentOrderUpdateChanges },
+        success: true,
+      })),
+    };
+    const builder = {
+      set: vi.fn((payload: Record<string, unknown>) => {
+        statement.payload = payload;
+        statement.values = Object.values(payload);
+        statement.sql =
+          "paymentStatus" in payload && "paymentTransactionId" in payload
+            ? "UPDATE orders"
+            : "isOccupied" in payload
+              ? "UPDATE tables"
+              : "UPDATE payment_transactions";
+        statements.push(statement);
+        return builder;
+      }),
+      where: vi.fn(() => {
+        statement.run.mockImplementation(async () => {
+          committed.push(statement);
+          return {
+            meta: { changes: currentOrderUpdateChanges },
+            success: true,
+          };
+        });
+        return statement;
+      }),
+    };
+    return builder;
+  });
   const db = {
     prepare: vi.fn((sql: string) => {
       const statement: PreparedStatement = {
@@ -88,13 +159,7 @@ function createD1(orderUpdateChanges = 1) {
       statements.push(statement);
       return statement;
     }),
-    batch: vi.fn(async (batchStatements: PreparedStatement[]) => {
-      committed.push(...batchStatements);
-      return batchStatements.map(() => ({
-        meta: { changes: 1 },
-        success: true,
-      }));
-    }),
+    batch: mocks.db.batch,
   };
   return { db, statements, committed };
 }
@@ -103,7 +168,7 @@ function createD1WithBatchFailure(
   failWhen: (statement: PreparedStatement) => boolean,
 ) {
   const setup = createD1();
-  setup.db.batch.mockImplementation(
+  mocks.db.batch.mockImplementation(
     async (batchStatements: PreparedStatement[]) => {
       if (batchStatements.some(failWhen)) {
         throw new Error("injected batch failure");
@@ -210,54 +275,51 @@ describe("PaymentService", () => {
 
     expect(
       statementContaining(statements, "INSERT INTO payment_transactions")
-        ?.values,
-    ).toEqual([
-      "pay_101_1780833600000",
-      101,
-      "restaurant-1",
-      12000,
-      "TWD",
-      "TW",
-      "cash",
-      "cash",
-      "idem-1",
-      JSON.stringify({ phone: "0912345678" }),
-      JSON.stringify({
+        ?.payload,
+    ).toMatchObject({
+      transactionId: "pay_101_1780833600000",
+      orderId: 101,
+      restaurantId: "restaurant-1",
+      amountCents: 12000,
+      currency: "TWD",
+      countryCode: "TW",
+      paymentMethod: "cash",
+      gateway: "cash",
+      status: "pending",
+      idempotencyKey: "idem-1",
+      customerInfo: { phone: "0912345678" },
+      metadata: {
         terminal: "front",
         paymentMode: "full",
         closeOrder: true,
-      }),
-      1780833600000,
-      1780833600000,
-    ]);
+      },
+      createdAt: new Date(1780833600000),
+      updatedAt: new Date(1780833600000),
+    });
 
-    expect(statementContaining(statements, "UPDATE orders")?.sql).toContain(
-      "status = 'paid'",
-    );
-    expect(statementContaining(statements, "UPDATE orders")?.values).toEqual([
-      1780833600000,
-      "cash",
-      "pay_101_1780833600000",
-      1780833600000,
-      101,
-    ]);
+    expect(statementContaining(statements, "UPDATE orders")?.payload).toEqual({
+      status: "paid",
+      paidAt: new Date(1780833600000),
+      paymentStatus: "paid",
+      paymentMethod: "cash",
+      paymentTransactionId: "pay_101_1780833600000",
+      updatedAt: new Date(1780833600000),
+    });
     expect(
-      statementContaining(statements, "UPDATE payment_transactions")?.values,
-    ).toEqual([
-      "paid",
-      1780833600000,
-      "paid",
-      1780833600000,
-      "paid",
-      1780833600000,
-      "pay_101_1780833600000",
-    ]);
+      statementContaining(statements, "UPDATE payment_transactions")?.payload,
+    ).toMatchObject({
+      status: "paid",
+      updatedAt: new Date(1780833600000),
+      completedAt: new Date(1780833600000),
+    });
     expect(
       statements
         .filter((statement) =>
           statement.sql.includes("INSERT OR IGNORE INTO payment_audit_log"),
         )
-        .map((statement) => statement.values[4]),
+        .map(
+          (statement) => (statement.payload as { eventType: string }).eventType,
+        ),
     ).toEqual(["attempt", "success"]);
   });
 
@@ -330,23 +392,24 @@ describe("PaymentService", () => {
       },
     });
 
-    expect(statementContaining(statements, "UPDATE orders")?.sql).not.toContain(
-      "SET status = 'paid'",
-    );
-    expect(statementContaining(statements, "UPDATE orders")?.values).toEqual([
-      "split",
-      "pay_101_1780833600000",
-      1780833600000,
-      101,
-    ]);
+    expect(statementContaining(statements, "UPDATE orders")?.payload).toEqual({
+      paymentStatus: "paid",
+      paymentMethod: "split",
+      paymentTransactionId: "pay_101_1780833600000",
+      updatedAt: new Date(1780833600000),
+    });
     expect(
-      statementContaining(statements, "INSERT INTO payment_transactions")
-        ?.values[6],
+      (
+        statementContaining(statements, "INSERT INTO payment_transactions")
+          ?.payload as { paymentMethod: string }
+      ).paymentMethod,
     ).toBe("split");
     expect(
       statementContaining(statements, "INSERT INTO payment_transactions")
-        ?.values[10],
-    ).toBe(JSON.stringify({ paymentMode: "partial", closeOrder: false }));
+        ?.payload,
+    ).toMatchObject({
+      metadata: { paymentMode: "partial", closeOrder: false },
+    });
   });
 
   it("releases occupied tables when a payment closes the order", async () => {
@@ -362,9 +425,13 @@ describe("PaymentService", () => {
       method: "cash",
     });
 
-    expect(statementContaining(statements, "UPDATE tables")?.values).toEqual([
-      1780833600000, 9,
-    ]);
+    expect(statementContaining(statements, "UPDATE tables")?.payload).toEqual({
+      isOccupied: false,
+      currentOrderId: null,
+      occupiedAt: null,
+      occupiedBy: null,
+      updatedAt: new Date(1780833600000),
+    });
   });
 
   it("invalidates order cache and broadcasts paid status when payment closes the order", async () => {

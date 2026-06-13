@@ -88,23 +88,38 @@ interface D1MockRows {
 function createDb(rows: D1MockRows = {}) {
   return {
     prepare: vi.fn((sql: string) => ({
-      bind: vi.fn(() => ({
-        first: vi.fn(async () => {
-          if (sql.includes("FROM payment_transactions")) {
+      bind: vi.fn(() => {
+        const takeRow = () => {
+          const normalizedSql = sql.toLowerCase();
+          if (normalizedSql.includes('from "payment_transactions"')) {
             return rows.transaction?.shift() ?? null;
           }
 
-          if (sql.includes("payment_transaction_id")) {
+          if (normalizedSql.includes("payment_transaction_id")) {
             return rows.orderStatus?.shift() ?? null;
           }
 
-          if (sql.includes("order_number")) {
+          if (
+            normalizedSql.includes("order_number") ||
+            normalizedSql.includes("client_mutation_id")
+          ) {
             return rows.orderLookup?.shift() ?? null;
           }
 
           return null;
-        }),
-      })),
+        };
+        return {
+          first: vi.fn(async () => takeRow()),
+          raw: vi.fn(async () => {
+            const row = takeRow();
+            return row ? [Object.values(row)] : [];
+          }),
+          all: vi.fn(async () => {
+            const row = takeRow();
+            return { results: row ? [row] : [] };
+          }),
+        };
+      }),
     })),
   };
 }

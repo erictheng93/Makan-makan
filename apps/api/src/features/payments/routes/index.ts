@@ -1,6 +1,9 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
+import { drizzle } from "drizzle-orm/d1";
+import { and, eq, or } from "drizzle-orm";
+import { orders, paymentTransactions } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { validateBody } from "../../../shared/middleware";
@@ -221,39 +224,37 @@ app.post(
 
 app.get("/status/:transactionId", async (c) => {
   const transactionId = c.req.param("transactionId");
-  const transaction = await c.env.DB.prepare(
-    `SELECT transaction_id, order_id, status
-       FROM payment_transactions
-      WHERE transaction_id = ?
-      LIMIT 1`,
-  )
-    .bind(transactionId)
-    .first<{
-      transaction_id: string;
-      order_id: number;
-      status: string;
-    }>();
+  const db = drizzle(c.env.DB);
+  const [transaction] = await db
+    .select({
+      transactionId: paymentTransactions.transactionId,
+      orderId: paymentTransactions.orderId,
+      status: paymentTransactions.status,
+    })
+    .from(paymentTransactions)
+    .where(eq(paymentTransactions.transactionId, transactionId))
+    .limit(1);
 
   if (transaction) {
     return c.json({
       success: true,
       data: {
-        transactionId: transaction.transaction_id,
-        orderId: transaction.order_id,
+        transactionId: transaction.transactionId,
+        orderId: transaction.orderId,
         paymentStatus: transaction.status,
         status: toExternalPaymentStatus(transaction.status),
       },
     });
   }
 
-  const row = await c.env.DB.prepare(
-    `SELECT id, payment_status
-       FROM orders
-      WHERE payment_transaction_id = ?
-      LIMIT 1`,
-  )
-    .bind(transactionId)
-    .first<{ id: number; payment_status: string | null }>();
+  const [row] = await db
+    .select({
+      id: orders.id,
+      paymentStatus: orders.paymentStatus,
+    })
+    .from(orders)
+    .where(eq(orders.paymentTransactionId, transactionId))
+    .limit(1);
 
   if (!row) {
     throw new ApiError("TRANSACTION_NOT_FOUND", "Transaction not found", 404);
@@ -264,8 +265,8 @@ app.get("/status/:transactionId", async (c) => {
     data: {
       transactionId,
       orderId: row.id,
-      paymentStatus: row.payment_status,
-      status: toExternalPaymentStatus(row.payment_status),
+      paymentStatus: row.paymentStatus,
+      status: toExternalPaymentStatus(row.paymentStatus),
     },
   });
 });
@@ -319,16 +320,19 @@ async function resolveOrderId(
   if (numericOrderId !== null) return numericOrderId;
 
   const lookupKey = String(orderId).trim();
-  const row = await db
-    .prepare(
-      `SELECT id
-         FROM orders
-        WHERE restaurant_id = ?
-          AND (order_number = ? OR client_mutation_id = ?)
-        LIMIT 1`,
+  const [row] = await drizzle(db)
+    .select({ id: orders.id })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.restaurantId, restaurantId),
+        or(
+          eq(orders.orderNumber, lookupKey),
+          eq(orders.clientMutationId, lookupKey),
+        ),
+      ),
     )
-    .bind(restaurantId, lookupKey, lookupKey)
-    .first<{ id: number }>();
+    .limit(1);
 
   if (!row) {
     throw new ApiError("ORDER_NOT_FOUND", "Order not found", 404);

@@ -1,3 +1,16 @@
+import { drizzle } from "drizzle-orm/d1";
+import { and, eq, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
+import {
+  cashMovements,
+  cashRegisters,
+  cashShifts,
+  marketCheckoutChildOrders,
+  marketCheckoutPayments,
+  marketCheckoutSessions,
+  orders,
+  paymentTransactions,
+} from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import {
   badRequest,
@@ -57,7 +70,11 @@ export interface ProcessMarketCheckoutPOSPaymentInput {
 }
 
 export class MarketCheckoutPOSPaymentService {
-  constructor(private readonly env: Env) {}
+  private readonly db;
+
+  constructor(private readonly env: Env) {
+    this.db = drizzle(env.DB);
+  }
 
   async process(input: ProcessMarketCheckoutPOSPaymentInput) {
     const session = await this.readSession(input.checkoutId);
@@ -186,50 +203,62 @@ export class MarketCheckoutPOSPaymentService {
   }
 
   private readSession(checkoutId: string) {
-    return this.env.DB.prepare(
-      `SELECT id, market_id, market_slug, market_name, platform_fee_rate_bps,
-              payment_status, payment_summary, subtotal_cents,
-              child_order_count, created_at_ms
-         FROM market_checkout_sessions
-        WHERE id = ?
-        LIMIT 1`,
-    )
-      .bind(checkoutId)
-      .first<MarketCheckoutSessionRow>();
+    return this.db
+      .select({
+        id: marketCheckoutSessions.id,
+        market_id: marketCheckoutSessions.marketId,
+        market_slug: marketCheckoutSessions.marketSlug,
+        market_name: marketCheckoutSessions.marketName,
+        platform_fee_rate_bps: marketCheckoutSessions.platformFeeRateBps,
+        payment_status: marketCheckoutSessions.paymentStatus,
+        payment_summary: marketCheckoutSessions.paymentSummary,
+        subtotal_cents: marketCheckoutSessions.subtotalCents,
+        child_order_count: marketCheckoutSessions.childOrderCount,
+        created_at_ms: marketCheckoutSessions.createdAt,
+      })
+      .from(marketCheckoutSessions)
+      .where(eq(marketCheckoutSessions.id, checkoutId))
+      .limit(1)
+      .then((rows) => rows[0] as MarketCheckoutSessionRow | undefined);
   }
 
   private readChildren(checkoutId: string) {
-    return this.env.DB.prepare(
-      `SELECT restaurant_id, restaurant_name, order_id, order_number,
-              total_amount, total_amount_cents
-         FROM market_checkout_child_orders
-        WHERE checkout_id = ?
-        ORDER BY order_id ASC`,
-    )
-      .bind(checkoutId)
-      .all<MarketCheckoutChildOrderRow>()
-      .then((result) => result.results ?? []);
+    return this.db
+      .select({
+        restaurant_id: marketCheckoutChildOrders.restaurantId,
+        restaurant_name: marketCheckoutChildOrders.restaurantName,
+        order_id: marketCheckoutChildOrders.orderId,
+        order_number: marketCheckoutChildOrders.orderNumber,
+        total_amount: marketCheckoutChildOrders.totalAmount,
+        total_amount_cents: marketCheckoutChildOrders.totalAmountCents,
+      })
+      .from(marketCheckoutChildOrders)
+      .where(eq(marketCheckoutChildOrders.checkoutId, checkoutId))
+      .orderBy(marketCheckoutChildOrders.orderId)
+      .then((rows) => rows as MarketCheckoutChildOrderRow[]);
   }
 
   private readActiveShift(input: ProcessMarketCheckoutPOSPaymentInput) {
-    const shiftFilter = input.shiftId
-      ? "s.id = ? AND s.register_id = ?"
-      : "s.register_id = ?";
-    const bindings = input.shiftId
-      ? [input.shiftId, input.registerId]
-      : [input.registerId];
+    const filters = [
+      eq(cashShifts.registerId, input.registerId),
+      eq(cashShifts.status, "active"),
+      eq(cashRegisters.isActive, true),
+    ];
+    if (input.shiftId) {
+      filters.push(eq(cashShifts.id, input.shiftId));
+    }
 
-    return this.env.DB.prepare(
-      `SELECT s.id AS shift_id, s.register_id, r.restaurant_id
-         FROM cash_shifts s
-         JOIN cash_registers r ON r.id = s.register_id
-        WHERE ${shiftFilter}
-          AND s.status = 'active'
-          AND r.is_active = 1
-        LIMIT 1`,
-    )
-      .bind(...bindings)
-      .first<ActiveShiftRow>();
+    return this.db
+      .select({
+        shift_id: cashShifts.id,
+        register_id: cashShifts.registerId,
+        restaurant_id: cashRegisters.restaurantId,
+      })
+      .from(cashShifts)
+      .innerJoin(cashRegisters, eq(cashRegisters.id, cashShifts.registerId))
+      .where(and(...filters))
+      .limit(1)
+      .then((rows) => rows[0] as ActiveShiftRow | undefined);
   }
 
   private assertCanUseRegister(
@@ -269,48 +298,43 @@ export class MarketCheckoutPOSPaymentService {
     idempotencyKey: string;
     nowMs: number;
   }) {
-    await this.env.DB.batch([
-      this.env.DB.prepare(
-        `INSERT OR IGNORE INTO payment_transactions (
-            transaction_id, order_id, restaurant_id, amount_cents, currency,
-            country_code, payment_method, gateway, status, idempotency_key,
-            metadata, created_at_ms, updated_at_ms, completed_at_ms
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pos', 'paid', ?, ?, ?, ?, ?)`,
-      ).bind(
-        input.paymentId,
-        input.child.order_id,
-        input.child.restaurant_id,
-        input.amountCents,
-        input.currency,
-        input.country,
-        input.paymentMethod,
-        input.idempotencyKey,
-        JSON.stringify({
-          source: "pos_market_checkout",
-          marketCheckoutId: input.checkoutId,
-          registerId: input.registerId,
-          shiftId: input.shiftId,
-        }),
-        input.nowMs,
-        input.nowMs,
-        input.nowMs,
-      ),
-      this.env.DB.prepare(
-        `UPDATE orders
-            SET payment_status = 'paid',
-                payment_method = ?,
-                payment_transaction_id = ?,
-                paid_at_ms = COALESCE(paid_at_ms, ?),
-                updated_at_ms = ?
-          WHERE id = ?`,
-      ).bind(
-        input.paymentMethod,
-        input.paymentId,
-        input.nowMs,
-        input.nowMs,
-        input.child.order_id,
-      ),
-    ]);
+    const timestamp = new Date(input.nowMs);
+    await this.db.batch([
+      this.db
+        .insert(paymentTransactions)
+        .values({
+          transactionId: input.paymentId,
+          orderId: input.child.order_id,
+          restaurantId: input.child.restaurant_id,
+          amountCents: input.amountCents,
+          currency: input.currency,
+          countryCode: input.country,
+          paymentMethod: input.paymentMethod,
+          gateway: "pos",
+          status: "paid",
+          idempotencyKey: input.idempotencyKey,
+          metadata: {
+            source: "pos_market_checkout",
+            marketCheckoutId: input.checkoutId,
+            registerId: input.registerId,
+            shiftId: input.shiftId,
+          },
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          completedAt: timestamp,
+        })
+        .onConflictDoNothing(),
+      this.db
+        .update(orders)
+        .set({
+          paymentStatus: "paid",
+          paymentMethod: input.paymentMethod,
+          paymentTransactionId: input.paymentId,
+          paidAt: sql`COALESCE(${orders.paidAt}, ${timestamp})`,
+          updatedAt: timestamp,
+        })
+        .where(eq(orders.id, input.child.order_id)),
+    ] as [BatchItem<"sqlite">, BatchItem<"sqlite">]);
   }
 
   private async updateSessionPayment(
@@ -318,14 +342,14 @@ export class MarketCheckoutPOSPaymentService {
     payment: Record<string, unknown>,
     nowMs: number,
   ) {
-    await this.env.DB.prepare(
-      `UPDATE market_checkout_sessions
-          SET payment_status = 'paid',
-              payment_summary = ?,
-              updated_at_ms = ?
-        WHERE id = ?`,
-    )
-      .bind(JSON.stringify(payment), nowMs, checkoutId)
+    await this.db
+      .update(marketCheckoutSessions)
+      .set({
+        paymentStatus: "paid",
+        paymentSummary: payment,
+        updatedAt: new Date(nowMs),
+      })
+      .where(eq(marketCheckoutSessions.id, checkoutId))
       .run();
   }
 
@@ -354,52 +378,58 @@ export class MarketCheckoutPOSPaymentService {
     const parentPayment = input.payment.parentPayment;
     if (!parentPayment) return;
 
-    await this.env.DB.prepare(
-      `INSERT INTO market_checkout_payments (
-          payment_id, checkout_id, market_id, provider, split_mode,
-          idempotency_key, status, amount_cents, paid_amount_cents,
-          refunded_amount_cents, currency, country_code, child_payment_ids,
-          provider_payload, created_at_ms, updated_at_ms, completed_at_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(payment_id) DO UPDATE SET
-          provider = excluded.provider,
-          split_mode = excluded.split_mode,
-          idempotency_key = excluded.idempotency_key,
-          status = excluded.status,
-          amount_cents = excluded.amount_cents,
-          paid_amount_cents = excluded.paid_amount_cents,
-          refunded_amount_cents = excluded.refunded_amount_cents,
-          currency = excluded.currency,
-          country_code = excluded.country_code,
-          child_payment_ids = excluded.child_payment_ids,
-          provider_payload = excluded.provider_payload,
-          updated_at_ms = excluded.updated_at_ms,
-          completed_at_ms = COALESCE(market_checkout_payments.completed_at_ms, excluded.completed_at_ms)`,
-    )
-      .bind(
-        parentPayment.paymentId,
-        input.session.id,
-        input.session.market_id,
-        parentPayment.provider,
-        parentPayment.splitMode,
-        parentPayment.idempotencyKey,
-        input.payment.totalAmountCents ?? 0,
-        input.payment.paidAmountCents ?? 0,
-        input.payment.refundedAmountCents ?? 0,
-        input.payment.currency ?? null,
-        input.payment.country ?? null,
-        JSON.stringify(parentPayment.childPaymentIds),
-        JSON.stringify({
+    const timestamp = new Date(input.nowMs);
+    await this.db
+      .insert(marketCheckoutPayments)
+      .values({
+        paymentId: parentPayment.paymentId,
+        checkoutId: input.session.id,
+        marketId: input.session.market_id,
+        provider: parentPayment.provider,
+        splitMode: parentPayment.splitMode,
+        idempotencyKey: parentPayment.idempotencyKey,
+        status: "paid",
+        amountCents: input.payment.totalAmountCents ?? 0,
+        paidAmountCents: input.payment.paidAmountCents ?? 0,
+        refundedAmountCents: input.payment.refundedAmountCents ?? 0,
+        currency: input.payment.currency ?? null,
+        countryCode: input.payment.country ?? null,
+        childPaymentIds: parentPayment.childPaymentIds,
+        providerPayload: {
           source: "pos_market_checkout",
           paymentMethod: input.paymentMethod,
           registerId: input.registerId,
           shiftId: input.shiftId,
           settlement: input.payment.settlement ?? null,
-        }),
-        input.nowMs,
-        input.nowMs,
-        input.nowMs,
-      )
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        completedAt: timestamp,
+      })
+      .onConflictDoUpdate({
+        target: marketCheckoutPayments.paymentId,
+        set: {
+          provider: parentPayment.provider,
+          splitMode: parentPayment.splitMode,
+          idempotencyKey: parentPayment.idempotencyKey,
+          status: "paid",
+          amountCents: input.payment.totalAmountCents ?? 0,
+          paidAmountCents: input.payment.paidAmountCents ?? 0,
+          refundedAmountCents: input.payment.refundedAmountCents ?? 0,
+          currency: input.payment.currency ?? null,
+          countryCode: input.payment.country ?? null,
+          childPaymentIds: parentPayment.childPaymentIds,
+          providerPayload: {
+            source: "pos_market_checkout",
+            paymentMethod: input.paymentMethod,
+            registerId: input.registerId,
+            shiftId: input.shiftId,
+            settlement: input.payment.settlement ?? null,
+          },
+          updatedAt: timestamp,
+          completedAt: sql`COALESCE(${marketCheckoutPayments.completedAt}, ${timestamp})`,
+        },
+      })
       .run();
   }
 
@@ -414,42 +444,35 @@ export class MarketCheckoutPOSPaymentService {
   }) {
     const amount = input.amountCents / 100;
     const methodColumn = posShiftMethodColumn(input.paymentMethod);
-    await this.env.DB.batch([
-      this.env.DB.prepare(
-        `UPDATE cash_shifts
-            SET total_sales = total_sales + ?,
-                total_sales_cents = COALESCE(total_sales_cents, 0) + ?,
-                ${methodColumn.amountColumn} = ${methodColumn.amountColumn} + ?,
-                ${methodColumn.centsColumn} = COALESCE(${methodColumn.centsColumn}, 0) + ?,
-                total_transactions = total_transactions + 1
-          WHERE id = ?`,
-      ).bind(
+    await this.db.batch([
+      this.db
+        .update(cashShifts)
+        .set({
+          totalSales: sql`${cashShifts.totalSales} + ${amount}`,
+          totalSalesCents: sql`COALESCE(${cashShifts.totalSalesCents}, 0) + ${input.amountCents}`,
+          [methodColumn.amountKey]: sql`${methodColumn.amountColumn} + ${amount}`,
+          [methodColumn.centsKey]: sql`COALESCE(${methodColumn.centsColumn}, 0) + ${input.amountCents}`,
+          totalTransactions: sql`${cashShifts.totalTransactions} + 1`,
+        })
+        .where(eq(cashShifts.id, input.shiftId)),
+      this.db.insert(cashMovements).values({
+        id: crypto.randomUUID(),
+        shiftId: input.shiftId,
+        registerId: input.registerId,
+        type: "sale",
         amount,
-        input.amountCents,
-        amount,
-        input.amountCents,
-        input.shiftId,
-      ),
-      this.env.DB.prepare(
-        `INSERT INTO cash_movements (
-            id, shift_id, register_id, type, amount, amount_cents,
-            description, reference_id, reference_type, payment_method,
-            denomination_breakdown, recorded_by, approval_status, metadata,
-            created_at_ms
-          ) VALUES (?, ?, ?, 'sale', ?, ?, ?, NULL, 'market_checkout', ?, '{}', ?, 'approved', ?, ?)`,
-      ).bind(
-        crypto.randomUUID(),
-        input.shiftId,
-        input.registerId,
-        amount,
-        input.amountCents,
-        `Market checkout ${input.checkoutId} POS payment`,
-        input.paymentMethod,
-        input.operatorId,
-        JSON.stringify({ marketCheckoutId: input.checkoutId }),
-        input.nowMs,
-      ),
-    ]);
+        amountCents: input.amountCents,
+        description: `Market checkout ${input.checkoutId} POS payment`,
+        referenceId: null,
+        referenceType: "market_checkout",
+        paymentMethod: input.paymentMethod,
+        denominationBreakdown: "{}",
+        recordedBy: input.operatorId,
+        approvalStatus: "approved",
+        metadata: JSON.stringify({ marketCheckoutId: input.checkoutId }),
+        createdAt: new Date(input.nowMs),
+      }),
+    ] as [BatchItem<"sqlite">, BatchItem<"sqlite">]);
   }
 
   private buildResponseCheckout(
@@ -595,13 +618,25 @@ function parseJsonObject(value: unknown): Record<string, unknown> | undefined {
 
 function posShiftMethodColumn(paymentMethod: MarketCheckoutPaymentMethod) {
   if (paymentMethod === "cash") {
-    return { amountColumn: "cash_sales", centsColumn: "cash_sales_cents" };
+    return {
+      amountKey: "cashSales",
+      amountColumn: cashShifts.cashSales,
+      centsKey: "cashSalesCents",
+      centsColumn: cashShifts.cashSalesCents,
+    } as const;
   }
   if (paymentMethod === "card") {
-    return { amountColumn: "card_sales", centsColumn: "card_sales_cents" };
+    return {
+      amountKey: "cardSales",
+      amountColumn: cashShifts.cardSales,
+      centsKey: "cardSalesCents",
+      centsColumn: cashShifts.cardSalesCents,
+    } as const;
   }
   return {
-    amountColumn: "digital_sales",
-    centsColumn: "digital_sales_cents",
-  };
+    amountKey: "digitalSales",
+    amountColumn: cashShifts.digitalSales,
+    centsKey: "digitalSalesCents",
+    centsColumn: cashShifts.digitalSalesCents,
+  } as const;
 }

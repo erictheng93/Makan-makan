@@ -1,6 +1,8 @@
 import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
+import { paymentAuditLog } from "@makanmakan/database";
 import type { PaymentAuditEventType } from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { Env } from "../../../types/env";
 
 export interface PaymentAuditEventInput {
@@ -26,6 +28,39 @@ function encodePayload(payload: unknown): string | null {
 
 export class PaymentAuditService {
   constructor(private readonly db: Env["DB"]) {}
+
+  buildAppendQuery(
+    drizzleDb: {
+      insert: (table: typeof paymentAuditLog) => {
+        values: (value: typeof paymentAuditLog.$inferInsert) => {
+          onConflictDoNothing: () => BatchItem<"sqlite">;
+        };
+      };
+    },
+    event: PaymentAuditEventInput,
+  ): BatchItem<"sqlite"> {
+    const occurredAtMs = event.occurredAtMs ?? Date.now();
+
+    return drizzleDb
+      .insert(paymentAuditLog)
+      .values({
+        id: generateUUID(),
+        restaurantId: event.restaurantId ?? null,
+        paymentTransactionId: event.paymentTransactionId ?? null,
+        subscriptionId: event.subscriptionId ?? null,
+        eventType: event.eventType,
+        provider: event.provider ?? null,
+        providerEventId: event.providerEventId ?? null,
+        providerEventType: event.providerEventType ?? null,
+        amount: event.amount ?? null,
+        currency: event.currency ?? null,
+        rawPayload: event.rawPayload ?? null,
+        errorCode: event.errorCode ?? null,
+        errorMessage: event.errorMessage ?? null,
+        occurredAt: new Date(occurredAtMs),
+      })
+      .onConflictDoNothing();
+  }
 
   prepareAppend(event: PaymentAuditEventInput) {
     const occurredAtMs = event.occurredAtMs ?? Date.now();

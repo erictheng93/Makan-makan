@@ -25,6 +25,12 @@ function createEnv() {
         bind: vi.fn((...params: unknown[]) => ({
           first: vi.fn(async () => firstRowFor(sql)),
           all: vi.fn(async () => ({ results: allRowsFor(sql) })),
+          raw: vi.fn(async () => {
+            const rows = allRowsFor(sql);
+            if (rows.length > 0) return rows.map((row) => Object.values(row));
+            const row = firstRowFor(sql);
+            return row ? [Object.values(row)] : [];
+          }),
           run: vi.fn(async () => ({ meta: { changes: 1 }, params })),
         })),
       };
@@ -50,7 +56,8 @@ function createEnv() {
 }
 
 function firstRowFor(sql: string) {
-  if (sql.includes("FROM market_checkout_sessions")) {
+  const normalizedSql = sql.toLowerCase();
+  if (normalizedSql.includes('from "market_checkout_sessions"')) {
     return {
       id: "checkout-1",
       market_id: "market-1",
@@ -64,7 +71,7 @@ function firstRowFor(sql: string) {
       created_at_ms: Date.parse("2026-06-01T10:00:00.000Z"),
     };
   }
-  if (sql.includes("FROM cash_shifts")) {
+  if (normalizedSql.includes('from "cash_shifts"')) {
     return {
       shift_id: "11111111-1111-4111-8111-111111111111",
       register_id: "22222222-2222-4222-8222-222222222222",
@@ -75,7 +82,8 @@ function firstRowFor(sql: string) {
 }
 
 function allRowsFor(sql: string) {
-  if (sql.includes("FROM market_checkout_child_orders")) {
+  const normalizedSql = sql.toLowerCase();
+  if (normalizedSql.includes('from "market_checkout_child_orders"')) {
     return [
       {
         restaurant_id: "restaurant-1",
@@ -133,13 +141,17 @@ describe("MarketCheckoutPOSPaymentService", () => {
     expect(
       preparedSql.some((sql) => sql.includes("payment_transactions")),
     ).toBe(true);
-    expect(preparedSql.some((sql) => sql.includes("UPDATE orders"))).toBe(true);
+    expect(
+      preparedSql.some((sql) => sql.toLowerCase().includes('update "orders"')),
+    ).toBe(true);
     expect(
       preparedSql.some((sql) => sql.includes("market_checkout_payments")),
     ).toBe(true);
-    expect(preparedSql.some((sql) => sql.includes("UPDATE cash_shifts"))).toBe(
-      true,
-    );
+    expect(
+      preparedSql.some((sql) =>
+        sql.toLowerCase().includes('update "cash_shifts"'),
+      ),
+    ).toBe(true);
     expect(preparedSql.some((sql) => sql.includes("cash_movements"))).toBe(
       true,
     );

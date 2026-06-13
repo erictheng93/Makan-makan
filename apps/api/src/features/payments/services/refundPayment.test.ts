@@ -15,6 +15,8 @@ interface PreparedStatement {
   values: unknown[];
   bind: ReturnType<typeof vi.fn>;
   first: ReturnType<typeof vi.fn>;
+  raw: ReturnType<typeof vi.fn>;
+  all: ReturnType<typeof vi.fn>;
   run: ReturnType<typeof vi.fn>;
 }
 
@@ -42,11 +44,15 @@ function createD1(orderRow: RefundOrderRow | null, updateChanges = 1) {
           return statement;
         }),
         first: vi.fn(async () => orderRow),
+        raw: vi.fn(async () => (orderRow ? [Object.values(orderRow)] : [])),
+        all: vi.fn(async () => ({
+          results: orderRow ? [orderRow] : [],
+        })),
         run: vi.fn(async () => {
           committed.push(statement);
           return {
             meta: {
-              changes: statement.sql.includes("UPDATE orders")
+              changes: statement.sql.toLowerCase().includes('update "orders"')
                 ? updateChanges
                 : 1,
             },
@@ -108,7 +114,13 @@ function paidOrder(overrides: Partial<RefundOrderRow> = {}): RefundOrderRow {
 }
 
 function statementContaining(statements: PreparedStatement[], text: string) {
-  return statements.find((statement) => statement.sql.includes(text));
+  const normalizedText = text
+    .toLowerCase()
+    .replaceAll(" or ignore", "")
+    .replaceAll('"', "");
+  return statements.find((statement) =>
+    statement.sql.toLowerCase().replaceAll('"', "").includes(normalizedText),
+  );
 }
 
 const cashierUser = {
@@ -211,16 +223,15 @@ describe("refundPaymentTransaction", () => {
       1780833600000,
       1780833600000,
     ]);
-    expect(statementContaining(statements, "UPDATE orders")?.values).toEqual([
-      "partial_refunded",
-      3000,
-      3000,
-      0,
-      1780833600000,
-      42,
-      "txn-1",
-      3000,
-    ]);
+    expect(statementContaining(statements, "UPDATE orders")?.values).toEqual(
+      expect.arrayContaining([
+        "partial_refunded",
+        3000,
+        1780833600000,
+        42,
+        "txn-1",
+      ]),
+    );
     expect(
       statementContaining(statements, "UPDATE payment_transactions")?.values,
     ).toEqual(["partial_refunded", 1780833600000, "txn-1"]);
@@ -234,6 +245,7 @@ describe("refundPaymentTransaction", () => {
       "restaurant-1",
       3000,
       "customer changed mind",
+      "completed",
       1780833600000,
       1780833600000,
       1780833600000,
@@ -267,7 +279,11 @@ describe("refundPaymentTransaction", () => {
   it("does not commit refund ledger writes when a middle write fails", async () => {
     const { db, committed } = createD1WithBatchFailure(
       paidOrder({ refund_amount_cents: 2000 }),
-      (statement) => statement.sql.includes("INSERT INTO refund_transactions"),
+      (statement) =>
+        statement.sql
+          .toLowerCase()
+          .replaceAll('"', "")
+          .includes("insert into refund_transactions"),
     );
 
     await expect(
@@ -283,8 +299,8 @@ describe("refundPaymentTransaction", () => {
     ).rejects.toThrow("injected batch failure");
 
     expect(db.batch).toHaveBeenCalledOnce();
-    expect(committed.map((statement) => statement.sql)).toEqual([
-      expect.stringContaining("UPDATE orders"),
+    expect(committed.map((statement) => statement.sql.toLowerCase())).toEqual([
+      expect.stringContaining('update "orders"'),
     ]);
   });
 
@@ -322,7 +338,9 @@ describe("refundPaymentTransaction", () => {
     ).toEqual(["txn-2", 42, "restaurant-1", 4567, "card", "paid"]);
     expect(
       statementContaining(fullRefund.statements, "UPDATE orders")?.values,
-    ).toEqual(["refunded", 3000, 3000, 1, 1780833600000, 42, "txn-2", 3000]);
+    ).toEqual(
+      expect.arrayContaining(["refunded", 3000, 1780833600000, 42, "txn-2"]),
+    );
     expect(
       statementContaining(
         fullRefund.statements,

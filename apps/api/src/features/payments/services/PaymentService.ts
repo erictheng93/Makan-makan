@@ -1,6 +1,12 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
-import { amountFromCents, orders } from "@makanmakan/database";
+import { and, eq, notInArray, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
+import {
+  amountFromCents,
+  orders,
+  paymentTransactions,
+  tables,
+} from "@makanmakan/database";
 import type { OrderStatus } from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
@@ -39,8 +45,8 @@ function cents(value: number): number {
   return Math.round(value * 100);
 }
 
-function jsonOrNull(value: unknown): string | null {
-  return value === undefined ? null : JSON.stringify(value);
+function jsonOrNull(value: unknown): unknown | null {
+  return value === undefined ? null : value;
 }
 
 function assertSameAmount(
@@ -155,7 +161,7 @@ export class PaymentService {
       );
     }
 
-    await this.env.DB.batch([
+    await this.db.batch([
       this.preparePaymentTransactionInsert(
         {
           transactionId: paymentId,
@@ -177,7 +183,7 @@ export class PaymentService {
         },
         now,
       ),
-      this.paymentAudit.prepareAppend({
+      this.paymentAudit.buildAppendQuery(this.db, {
         restaurantId: existing.restaurantId,
         paymentTransactionId: paymentId,
         eventType: PAYMENT_AUDIT_EVENT_TYPES.ATTEMPT,
@@ -200,7 +206,7 @@ export class PaymentService {
         now,
       ),
       this.preparePaymentTransactionStatusUpdate(paymentId, "paid", now),
-      this.paymentAudit.prepareAppend({
+      this.paymentAudit.buildAppendQuery(this.db, {
         restaurantId: existing.restaurantId,
         paymentTransactionId: paymentId,
         eventType: PAYMENT_AUDIT_EVENT_TYPES.SUCCESS,
@@ -210,7 +216,7 @@ export class PaymentService {
         rawPayload: { status: "paid" },
         occurredAtMs: now,
       }),
-    ]);
+    ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
     if (shouldCloseOrder) {
       try {
@@ -268,32 +274,29 @@ export class PaymentService {
       paymentMethod: string;
       gateway: string | null;
       idempotencyKey: string | null;
-      customerInfo: string | null;
-      metadata: string | null;
+      customerInfo: unknown | null;
+      metadata: unknown | null;
     },
     now: number,
   ) {
-    return this.env.DB.prepare(
-      `INSERT INTO payment_transactions (
-          transaction_id, order_id, restaurant_id, amount_cents, currency,
-          country_code, payment_method, gateway, status, idempotency_key,
-          customer_info, metadata, created_at_ms, updated_at_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
-    ).bind(
-      data.transactionId,
-      data.orderId,
-      data.restaurantId,
-      data.amountCents,
-      data.currency,
-      data.countryCode,
-      data.paymentMethod,
-      data.gateway,
-      data.idempotencyKey,
-      data.customerInfo,
-      data.metadata,
-      now,
-      now,
-    );
+    const timestamp = new Date(now);
+
+    return this.db.insert(paymentTransactions).values({
+      transactionId: data.transactionId,
+      orderId: data.orderId,
+      restaurantId: data.restaurantId,
+      amountCents: data.amountCents,
+      currency: data.currency,
+      countryCode: data.countryCode,
+      paymentMethod: data.paymentMethod,
+      gateway: data.gateway,
+      status: "pending",
+      idempotencyKey: data.idempotencyKey,
+      customerInfo: data.customerInfo,
+      metadata: data.metadata,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
   }
 
   private prepareOrderPaymentUpdate(
@@ -303,31 +306,37 @@ export class PaymentService {
     shouldCloseOrder: boolean,
     now: number,
   ) {
+    const paidAt = new Date(now);
+    const updatedAt = new Date(now);
+    const payableGuard = and(
+      eq(orders.id, orderId),
+      sql`COALESCE(${orders.paymentStatus}, 'pending') NOT IN ('paid', 'completed', 'refunded', 'partial_refunded')`,
+      notInArray(orders.status, ["paid", "cancelled", "refunded"]),
+    );
+
     if (shouldCloseOrder) {
-      return this.env.DB.prepare(
-        `UPDATE orders
-            SET status = 'paid',
-                paid_at_ms = ?,
-                payment_status = 'paid',
-                payment_method = ?,
-                payment_transaction_id = ?,
-                updated_at_ms = ?
-          WHERE id = ?
-            AND COALESCE(payment_status, 'pending') NOT IN ('paid', 'completed', 'refunded', 'partial_refunded')
-            AND status NOT IN ('paid', 'cancelled', 'refunded')`,
-      ).bind(now, paymentMethod, paymentId, now, orderId);
+      return this.db
+        .update(orders)
+        .set({
+          status: "paid",
+          paidAt,
+          paymentStatus: "paid",
+          paymentMethod,
+          paymentTransactionId: paymentId,
+          updatedAt,
+        })
+        .where(payableGuard);
     }
 
-    return this.env.DB.prepare(
-      `UPDATE orders
-          SET payment_status = 'paid',
-              payment_method = ?,
-              payment_transaction_id = ?,
-              updated_at_ms = ?
-        WHERE id = ?
-          AND COALESCE(payment_status, 'pending') NOT IN ('paid', 'completed', 'refunded', 'partial_refunded')
-          AND status NOT IN ('paid', 'cancelled', 'refunded')`,
-    ).bind(paymentMethod, paymentId, now, orderId);
+    return this.db
+      .update(orders)
+      .set({
+        paymentStatus: "paid",
+        paymentMethod,
+        paymentTransactionId: paymentId,
+        updatedAt,
+      })
+      .where(payableGuard);
   }
 
   private prepareCloseOrderSideEffects(
@@ -338,15 +347,16 @@ export class PaymentService {
     if (!shouldCloseOrder || !tableId) return [];
 
     return [
-      this.env.DB.prepare(
-        `UPDATE tables
-            SET is_occupied = 0,
-                current_order_id = NULL,
-                occupied_at_ms = NULL,
-                occupied_by = NULL,
-                updated_at_ms = ?
-          WHERE id = ?`,
-      ).bind(now, tableId),
+      this.db
+        .update(tables)
+        .set({
+          isOccupied: false,
+          currentOrderId: null,
+          occupiedAt: null,
+          occupiedBy: null,
+          updatedAt: new Date(now),
+        })
+        .where(eq(tables.id, tableId)),
     ];
   }
 
@@ -355,14 +365,23 @@ export class PaymentService {
     status: "paid" | "failed" | "cancelled",
     now: number,
   ) {
-    return this.env.DB.prepare(
-      `UPDATE payment_transactions
-          SET status = ?,
-              updated_at_ms = ?,
-              completed_at_ms = CASE WHEN ? = 'paid' THEN ? ELSE completed_at_ms END,
-              failed_at_ms = CASE WHEN ? = 'failed' THEN ? ELSE failed_at_ms END
-        WHERE transaction_id = ?`,
-    ).bind(status, now, status, now, status, now, transactionId);
+    const timestamp = new Date(now);
+
+    return this.db
+      .update(paymentTransactions)
+      .set({
+        status,
+        updatedAt: timestamp,
+        completedAt:
+          status === "paid"
+            ? timestamp
+            : sql`${paymentTransactions.completedAt}`,
+        failedAt:
+          status === "failed"
+            ? timestamp
+            : sql`${paymentTransactions.failedAt}`,
+      })
+      .where(eq(paymentTransactions.transactionId, transactionId));
   }
 }
 

@@ -1,7 +1,15 @@
+import { drizzle } from "drizzle-orm/d1";
+import { and, eq, notInArray, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
-import { amountFromCents } from "@makanmakan/database";
+import {
+  amountFromCents,
+  orders,
+  paymentTransactions,
+  refundTransactions,
+} from "@makanmakan/database";
 import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PaymentAuditService,
@@ -32,35 +40,32 @@ export async function refundPaymentTransaction(
   options: RefundPaymentOptions = {},
 ): Promise<RefundPaymentResult> {
   assertAuthenticatedRefundUser(options.user);
+  const db = drizzle(env.DB);
 
-  const row = await env.DB.prepare(
-    `SELECT id, restaurant_id, total_amount, total_amount_cents,
-            refund_amount, refund_amount_cents, payment_method, payment_status
-       FROM orders
-      WHERE payment_transaction_id = ?
-      LIMIT 1`,
-  )
-    .bind(input.transactionId)
-    .first<{
-      id: number;
-      restaurant_id: string;
-      total_amount: number;
-      total_amount_cents: number | null;
-      refund_amount: number | null;
-      refund_amount_cents: number | null;
-      payment_method: string | null;
-      payment_status: string | null;
-    }>();
+  const [row] = await db
+    .select({
+      id: orders.id,
+      restaurantId: orders.restaurantId,
+      totalAmount: orders.totalAmount,
+      totalAmountCents: orders.totalAmountCents,
+      refundAmount: orders.refundAmount,
+      refundAmountCents: orders.refundAmountCents,
+      paymentMethod: orders.paymentMethod,
+      paymentStatus: orders.paymentStatus,
+    })
+    .from(orders)
+    .where(eq(orders.paymentTransactionId, input.transactionId))
+    .limit(1);
 
   if (!row) {
     throw new ApiError("TRANSACTION_NOT_FOUND", "Transaction not found", 404);
   }
 
-  assertRefundAccess(options.user, row.restaurant_id);
+  assertRefundAccess(options.user, row.restaurantId);
 
   if (
     ["pending", "failed", "cancelled", "refunded"].includes(
-      row.payment_status ?? "",
+      row.paymentStatus ?? "",
     )
   ) {
     throw new ApiError(
@@ -71,10 +76,10 @@ export async function refundPaymentTransaction(
   }
 
   const paymentTotal =
-    amountFromCents(row.total_amount_cents, row.total_amount) ?? 0;
+    amountFromCents(row.totalAmountCents, row.totalAmount) ?? 0;
   const refundAmount = input.amount ?? paymentTotal;
   const currentRefundTotal =
-    amountFromCents(row.refund_amount_cents, row.refund_amount) ?? 0;
+    amountFromCents(row.refundAmountCents, row.refundAmount) ?? 0;
   const nextRefundTotal = currentRefundTotal + refundAmount;
 
   if (cents(nextRefundTotal) > cents(paymentTotal)) {
@@ -89,30 +94,32 @@ export async function refundPaymentTransaction(
   const paymentStatus = isFullRefund ? "refunded" : "partial_refunded";
   const refundId = `ref_${input.transactionId}_${Date.now()}`;
   const now = Date.now();
+  const timestamp = new Date(now);
   const refundAmountCents = cents(refundAmount);
 
-  const updateResult = await env.DB.prepare(
-    `UPDATE orders
-        SET payment_status = ?,
-            refund_amount_cents = COALESCE(refund_amount_cents, ROUND(COALESCE(refund_amount, 0) * 100)) + ?,
-            refund_amount = (COALESCE(refund_amount_cents, ROUND(COALESCE(refund_amount, 0) * 100)) + ?) / 100.0,
-            status = CASE WHEN ? THEN 'refunded' ELSE status END,
-            updated_at_ms = ?
-      WHERE id = ?
-        AND payment_transaction_id = ?
-        AND COALESCE(payment_status, '') NOT IN ('pending', 'failed', 'cancelled', 'refunded')
-        AND COALESCE(refund_amount_cents, ROUND(COALESCE(refund_amount, 0) * 100)) + ?
-            <= COALESCE(total_amount_cents, ROUND(total_amount * 100))`,
-  )
-    .bind(
+  const currentRefundCentsSql = sql<number>`COALESCE(${orders.refundAmountCents}, ROUND(COALESCE(${orders.refundAmount}, 0) * 100))`;
+  const totalAmountCentsSql = sql<number>`COALESCE(${orders.totalAmountCents}, ROUND(${orders.totalAmount} * 100))`;
+  const updateResult = await db
+    .update(orders)
+    .set({
       paymentStatus,
-      refundAmountCents,
-      refundAmountCents,
-      isFullRefund ? 1 : 0,
-      now,
-      row.id,
-      input.transactionId,
-      refundAmountCents,
+      refundAmountCents: sql`${currentRefundCentsSql} + ${refundAmountCents}`,
+      refundAmount: sql`(${currentRefundCentsSql} + ${refundAmountCents}) / 100.0`,
+      status: isFullRefund ? "refunded" : sql`${orders.status}`,
+      updatedAt: timestamp,
+    })
+    .where(
+      and(
+        eq(orders.id, row.id),
+        eq(orders.paymentTransactionId, input.transactionId),
+        notInArray(sql`COALESCE(${orders.paymentStatus}, '')`, [
+          "pending",
+          "failed",
+          "cancelled",
+          "refunded",
+        ]),
+        sql`${currentRefundCentsSql} + ${refundAmountCents} <= ${totalAmountCentsSql}`,
+      ),
     )
     .run();
 
@@ -125,44 +132,37 @@ export async function refundPaymentTransaction(
   }
 
   const paymentAudit = new PaymentAuditService(env.DB);
-  await env.DB.batch([
-    preparePaymentLedgerForRefund(env.DB, {
+  await db.batch([
+    preparePaymentLedgerForRefund(db, {
       transactionId: input.transactionId,
       orderId: row.id,
-      restaurantId: row.restaurant_id,
+      restaurantId: row.restaurantId,
       amountCents: cents(paymentTotal),
-      paymentMethod: row.payment_method ?? "unknown",
-      status: toLedgerPaymentStatus(row.payment_status),
+      paymentMethod: row.paymentMethod ?? "unknown",
+      status: toLedgerPaymentStatus(row.paymentStatus),
       now,
     }),
-    env.DB.prepare(
-      `UPDATE payment_transactions
-          SET status = ?,
-              updated_at_ms = ?
-        WHERE transaction_id = ?`,
-    ).bind(paymentStatus, now, input.transactionId),
-    env.DB.prepare(
-      `INSERT INTO refund_transactions (
-          refund_id, payment_transaction_id, order_id, restaurant_id,
-          amount_cents, reason, status, created_at_ms, updated_at_ms,
-          completed_at_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
-    ).bind(
+    db
+      .update(paymentTransactions)
+      .set({ status: paymentStatus, updatedAt: timestamp })
+      .where(eq(paymentTransactions.transactionId, input.transactionId)),
+    db.insert(refundTransactions).values({
       refundId,
-      input.transactionId,
-      row.id,
-      row.restaurant_id,
-      refundAmountCents,
-      input.reason ?? null,
-      now,
-      now,
-      now,
-    ),
-    paymentAudit.prepareAppend({
-      restaurantId: row.restaurant_id,
+      paymentTransactionId: input.transactionId,
+      orderId: row.id,
+      restaurantId: row.restaurantId,
+      amountCents: refundAmountCents,
+      reason: input.reason ?? null,
+      status: "completed",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      completedAt: timestamp,
+    }),
+    paymentAudit.buildAppendQuery(db, {
+      restaurantId: row.restaurantId,
       paymentTransactionId: input.transactionId,
       eventType: PAYMENT_AUDIT_EVENT_TYPES.REFUND,
-      provider: row.payment_method ?? "internal",
+      provider: row.paymentMethod ?? "internal",
       amount: cents(refundAmount),
       rawPayload: {
         refundId,
@@ -172,7 +172,7 @@ export async function refundPaymentTransaction(
       },
       occurredAtMs: now,
     }),
-  ]);
+  ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
   return {
     refundId,
@@ -240,7 +240,7 @@ function toLedgerPaymentStatus(status: string | null | undefined): string {
 }
 
 function preparePaymentLedgerForRefund(
-  db: Env["DB"],
+  db: ReturnType<typeof drizzle>,
   data: {
     transactionId: string;
     orderId: number;
@@ -252,25 +252,20 @@ function preparePaymentLedgerForRefund(
   },
 ) {
   return db
-    .prepare(
-      `INSERT OR IGNORE INTO payment_transactions (
-          transaction_id, order_id, restaurant_id, amount_cents,
-          payment_method, status, metadata, created_at_ms, updated_at_ms,
-          completed_at_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      data.transactionId,
-      data.orderId,
-      data.restaurantId,
-      data.amountCents,
-      data.paymentMethod,
-      data.status,
-      JSON.stringify({ source: "refund_legacy_backfill" }),
-      data.now,
-      data.now,
-      data.now,
-    );
+    .insert(paymentTransactions)
+    .values({
+      transactionId: data.transactionId,
+      orderId: data.orderId,
+      restaurantId: data.restaurantId,
+      amountCents: data.amountCents,
+      paymentMethod: data.paymentMethod,
+      status: data.status as typeof paymentTransactions.$inferInsert.status,
+      metadata: { source: "refund_legacy_backfill" },
+      createdAt: new Date(data.now),
+      updatedAt: new Date(data.now),
+      completedAt: new Date(data.now),
+    })
+    .onConflictDoNothing();
 }
 
 function cents(value: number): number {
