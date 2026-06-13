@@ -313,23 +313,23 @@ export class FeedbackService extends BaseService {
     isInternal: boolean = false,
   ): Promise<FeedbackResponse> {
     try {
-      // Update feedback updatedAt
-      await this.db
-        .update(shopFeedback)
-        .set({ updatedAt: new Date() })
-        .where(eq(shopFeedback.id, feedbackId));
+      const [, responseRows] = await this.db.batch([
+        this.db
+          .update(shopFeedback)
+          .set({ updatedAt: new Date() })
+          .where(eq(shopFeedback.id, feedbackId)) as BatchItem<"sqlite">,
+        this.db
+          .insert(feedbackResponses)
+          .values({
+            feedbackId,
+            userId,
+            message,
+            isInternal,
+          })
+          .returning() as BatchItem<"sqlite">,
+      ]);
 
-      const [response] = await this.db
-        .insert(feedbackResponses)
-        .values({
-          feedbackId,
-          userId,
-          message,
-          isInternal,
-        })
-        .returning();
-
-      return response;
+      return (responseRows as FeedbackResponse[])[0];
     } catch (error) {
       this.handleError(error, "addResponse");
     }

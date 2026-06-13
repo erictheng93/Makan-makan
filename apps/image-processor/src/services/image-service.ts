@@ -200,43 +200,19 @@ export class ImageService {
     updates: Partial<Omit<ImageMetadata, "id" | "filename" | "uploadedAt">>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const updateFields: string[] = [];
-      const params: unknown[] = [];
+      const hasUpdates =
+        updates.altText !== undefined ||
+        updates.caption !== undefined ||
+        updates.category !== undefined ||
+        updates.tags !== undefined ||
+        updates.variants !== undefined;
 
-      if (updates.altText !== undefined) {
-        updateFields.push("alt_text = ?");
-        params.push(updates.altText);
-      }
-
-      if (updates.caption !== undefined) {
-        updateFields.push("caption = ?");
-        params.push(updates.caption);
-      }
-
-      if (updates.category !== undefined) {
-        updateFields.push("category = ?");
-        params.push(updates.category);
-      }
-
-      if (updates.tags !== undefined) {
-        updateFields.push("tags = ?");
-        params.push(updates.tags ? JSON.stringify(updates.tags) : null);
-      }
-
-      if (updates.variants !== undefined) {
-        updateFields.push("variants = ?");
-        params.push(JSON.stringify(updates.variants));
-      }
-
-      if (updateFields.length === 0) {
+      if (!hasUpdates) {
         return {
           success: false,
           error: "No fields to update",
         };
       }
-
-      updateFields.push("updated_at = datetime('now')");
-      params.push(imageId);
 
       // Use database service for update - cast updates to compatible type
       await this.dbImageService.updateImage(

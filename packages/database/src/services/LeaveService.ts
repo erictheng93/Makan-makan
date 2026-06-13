@@ -517,9 +517,8 @@ export class LeaveService extends BaseService {
         : this.db
             .update(employeeLeaveBalances)
             .set({
-              totalDays: balance.totalDays + adjustment.adjustment,
-              manualAdjustment:
-                balance.manualAdjustment + adjustment.adjustment,
+              totalDays: sql`${employeeLeaveBalances.totalDays} + ${adjustment.adjustment}`,
+              manualAdjustment: sql`COALESCE(${employeeLeaveBalances.manualAdjustment}, 0) + ${adjustment.adjustment}`,
               adjustmentReason: adjustment.reason,
               adjustedBy: adjustment.adjustedBy,
               adjustedAt: now,
@@ -800,12 +799,11 @@ export class LeaveService extends BaseService {
       ];
 
       if (balance) {
-        const newPending = balance.pendingDays + data.totalDays;
         writes.push(
           this.db
             .update(employeeLeaveBalances)
             .set({
-              pendingDays: Math.max(0, newPending),
+              pendingDays: sql`MAX(0, ${employeeLeaveBalances.pendingDays} + ${data.totalDays})`,
               updatedAt: new Date(),
             })
             .where(eq(employeeLeaveBalances.id, balance.id)),
@@ -888,9 +886,32 @@ export class LeaveService extends BaseService {
           request.leaveTypeId,
           year,
         );
-        const usedBalance = pendingBalance; // Same record
 
-        const writes: BatchItem<"sqlite">[] = [
+        const writes: BatchItem<"sqlite">[] = [];
+
+        if (pendingBalance) {
+          writes.push(
+            this.db
+              .update(employeeLeaveBalances)
+              .set({
+                pendingDays: sql`MAX(0, ${employeeLeaveBalances.pendingDays} - ${request.totalDays})`,
+                usedDays: sql`MAX(0, ${employeeLeaveBalances.usedDays} + ${request.totalDays})`,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(employeeLeaveBalances.id, pendingBalance.id),
+                  sql`EXISTS (
+                    SELECT 1 FROM ${leaveRequests}
+                    WHERE ${leaveRequests.id} = ${requestId}
+                      AND ${leaveRequests.status} = 'pending'
+                  )`,
+                ),
+              ),
+          );
+        }
+
+        writes.push(
           this.db
             .update(leaveRequests)
             .set({
@@ -900,29 +921,25 @@ export class LeaveService extends BaseService {
               finalApprovedAt: now,
               updatedAt: now,
             })
-            .where(eq(leaveRequests.id, requestId))
+            .where(
+              and(
+                eq(leaveRequests.id, requestId),
+                eq(leaveRequests.status, "pending"),
+              ),
+            )
             .returning() as BatchItem<"sqlite">,
-        ];
+        );
 
-        if (pendingBalance) {
-          const newPending = pendingBalance.pendingDays - request.totalDays;
-          const newUsed = (usedBalance?.usedDays ?? 0) + request.totalDays;
-          writes.push(
-            this.db
-              .update(employeeLeaveBalances)
-              .set({
-                pendingDays: Math.max(0, newPending),
-                usedDays: Math.max(0, newUsed),
-                updatedAt: new Date(),
-              })
-              .where(eq(employeeLeaveBalances.id, pendingBalance.id)),
-          );
-        }
-
-        const [updatedRows] = await this.db.batch(
+        const batchResults = await this.db.batch(
           writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
         );
+        const updatedRows = batchResults.at(
+          -1,
+        ) as (typeof leaveRequests.$inferSelect)[];
         const [updated] = updatedRows as (typeof leaveRequests.$inferSelect)[];
+        if (!updated) {
+          throw new Error("Leave request is not in pending status");
+        }
 
         // SchedulingService calls OUTSIDE the transaction (separate service, separate DB connection)
         // If schedule cancellation fails, leave is still approved.
@@ -1057,7 +1074,30 @@ export class LeaveService extends BaseService {
 
       const now = new Date();
 
-      const writes: BatchItem<"sqlite">[] = [
+      const writes: BatchItem<"sqlite">[] = [];
+
+      if (balance) {
+        writes.push(
+          this.db
+            .update(employeeLeaveBalances)
+            .set({
+              pendingDays: sql`MAX(0, ${employeeLeaveBalances.pendingDays} - ${request.totalDays})`,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(employeeLeaveBalances.id, balance.id),
+                sql`EXISTS (
+                  SELECT 1 FROM ${leaveRequests}
+                  WHERE ${leaveRequests.id} = ${requestId}
+                    AND ${leaveRequests.status} = 'pending'
+                )`,
+              ),
+            ),
+        );
+      }
+
+      writes.push(
         this.db
           .update(leaveRequests)
           .set({
@@ -1067,27 +1107,25 @@ export class LeaveService extends BaseService {
             rejectionReason: reason,
             updatedAt: now,
           })
-          .where(eq(leaveRequests.id, requestId))
+          .where(
+            and(
+              eq(leaveRequests.id, requestId),
+              eq(leaveRequests.status, "pending"),
+            ),
+          )
           .returning() as BatchItem<"sqlite">,
-      ];
+      );
 
-      if (balance) {
-        const newPending = balance.pendingDays - request.totalDays;
-        writes.push(
-          this.db
-            .update(employeeLeaveBalances)
-            .set({
-              pendingDays: Math.max(0, newPending),
-              updatedAt: new Date(),
-            })
-            .where(eq(employeeLeaveBalances.id, balance.id)),
-        );
-      }
-
-      const [updatedRows] = await this.db.batch(
+      const batchResults = await this.db.batch(
         writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
       );
+      const updatedRows = batchResults.at(
+        -1,
+      ) as (typeof leaveRequests.$inferSelect)[];
       const [updated] = updatedRows as (typeof leaveRequests.$inferSelect)[];
+      if (!updated) {
+        throw new Error("Leave request is not in pending status");
+      }
 
       // Send rejection notification to employee (outside transaction)
       try {
@@ -1158,7 +1196,51 @@ export class LeaveService extends BaseService {
 
       const now = new Date();
 
-      const writes: BatchItem<"sqlite">[] = [
+      const writes: BatchItem<"sqlite">[] = [];
+
+      if (balance) {
+        if (request.status === "pending") {
+          writes.push(
+            this.db
+              .update(employeeLeaveBalances)
+              .set({
+                pendingDays: sql`MAX(0, ${employeeLeaveBalances.pendingDays} - ${request.totalDays})`,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(employeeLeaveBalances.id, balance.id),
+                  sql`EXISTS (
+                    SELECT 1 FROM ${leaveRequests}
+                    WHERE ${leaveRequests.id} = ${requestId}
+                      AND ${leaveRequests.status} = 'pending'
+                  )`,
+                ),
+              ),
+          );
+        } else if (request.status === "approved") {
+          writes.push(
+            this.db
+              .update(employeeLeaveBalances)
+              .set({
+                usedDays: sql`MAX(0, ${employeeLeaveBalances.usedDays} - ${request.totalDays})`,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(employeeLeaveBalances.id, balance.id),
+                  sql`EXISTS (
+                    SELECT 1 FROM ${leaveRequests}
+                    WHERE ${leaveRequests.id} = ${requestId}
+                      AND ${leaveRequests.status} = 'approved'
+                  )`,
+                ),
+              ),
+          );
+        }
+      }
+
+      writes.push(
         this.db
           .update(leaveRequests)
           .set({
@@ -1168,40 +1250,25 @@ export class LeaveService extends BaseService {
             cancellationReason: reason,
             updatedAt: now,
           })
-          .where(eq(leaveRequests.id, requestId))
+          .where(
+            and(
+              eq(leaveRequests.id, requestId),
+              sql`${leaveRequests.status} IN ('pending', 'approved')`,
+            ),
+          )
           .returning() as BatchItem<"sqlite">,
-      ];
+      );
 
-      if (balance) {
-        if (request.status === "pending") {
-          const newPending = balance.pendingDays - request.totalDays;
-          writes.push(
-            this.db
-              .update(employeeLeaveBalances)
-              .set({
-                pendingDays: Math.max(0, newPending),
-                updatedAt: new Date(),
-              })
-              .where(eq(employeeLeaveBalances.id, balance.id)),
-          );
-        } else if (request.status === "approved") {
-          const newUsed = balance.usedDays - request.totalDays;
-          writes.push(
-            this.db
-              .update(employeeLeaveBalances)
-              .set({
-                usedDays: Math.max(0, newUsed),
-                updatedAt: new Date(),
-              })
-              .where(eq(employeeLeaveBalances.id, balance.id)),
-          );
-        }
-      }
-
-      const [updatedRows] = await this.db.batch(
+      const batchResults = await this.db.batch(
         writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
       );
+      const updatedRows = batchResults.at(
+        -1,
+      ) as (typeof leaveRequests.$inferSelect)[];
       const [updated] = updatedRows as (typeof leaveRequests.$inferSelect)[];
+      if (!updated) {
+        throw new Error("Leave request cannot be cancelled");
+      }
 
       // Send cancellation notification to employee (outside transaction)
       try {
@@ -1261,54 +1328,6 @@ export class LeaveService extends BaseService {
       });
     }
     return chain;
-  }
-
-  private async updateBalancePendingDays(
-    employeeId: number,
-    leaveTypeId: number,
-    days: number,
-    operation: "add" | "remove",
-  ): Promise<void> {
-    const year = new Date().getFullYear();
-    const balance = await this.getLeaveBalance(employeeId, leaveTypeId, year);
-
-    if (balance) {
-      const newPending =
-        operation === "add"
-          ? balance.pendingDays + days
-          : balance.pendingDays - days;
-
-      await this.db
-        .update(employeeLeaveBalances)
-        .set({
-          pendingDays: Math.max(0, newPending),
-          updatedAt: new Date(),
-        })
-        .where(eq(employeeLeaveBalances.id, balance.id));
-    }
-  }
-
-  private async updateBalanceUsedDays(
-    employeeId: number,
-    leaveTypeId: number,
-    days: number,
-    operation: "add" | "remove",
-  ): Promise<void> {
-    const year = new Date().getFullYear();
-    const balance = await this.getLeaveBalance(employeeId, leaveTypeId, year);
-
-    if (balance) {
-      const newUsed =
-        operation === "add" ? balance.usedDays + days : balance.usedDays - days;
-
-      await this.db
-        .update(employeeLeaveBalances)
-        .set({
-          usedDays: Math.max(0, newUsed),
-          updatedAt: new Date(),
-        })
-        .where(eq(employeeLeaveBalances.id, balance.id));
-    }
   }
 
   // ========================================
