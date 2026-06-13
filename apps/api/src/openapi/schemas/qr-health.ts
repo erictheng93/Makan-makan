@@ -356,7 +356,7 @@ export const createQRTemplateRoute = createRoute({
 // Get System Health
 export const getSystemHealthRoute = createRoute({
   method: "get",
-  path: "/api/v1/health",
+  path: "/api/v1/system/health",
   tags: ["system-health"],
   summary: "獲取系統健康狀態",
   description: "獲取系統各服務的健康狀態和運行指標",

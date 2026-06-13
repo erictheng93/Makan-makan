@@ -157,7 +157,6 @@ export function createApp(
     geoIntelligentRateLimitMiddleware({
       skipPaths: [
         "/health",
-        "/api/v1/health",
         "/info",
         "/api/v1/sse/events",
         // Kitchen SSE — long-lived stream, rate limiting would reject reconnects

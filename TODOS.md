@@ -21,7 +21,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Migrate remaining safeTransaction callers to D1 batch
 
-**Priority:** P1 **Status:** Open 2026-06-12 **Context:** `BaseService.safeTransaction` (`packages/database/src/services/base.ts`) catches `"Failed query: begin"` and silently re-runs writes non-transactionally. Production D1 does not support interactive `BEGIN`, so every `safeTransaction` call in prod is effectively non-atomic. The order-creation money path was migrated to `db.batch()` on 2026-06-12 (see `OrderService.createOrder` + atomicity tests in `packages/database/src/services/order.test.ts`), but other callers still run through the silent fallback:
+**Priority:** P1 **Status:** Open 2026-06-13 **Context:** `BaseService.safeTransaction` (`packages/database/src/services/base.ts`) now fails closed when D1 rejects interactive `BEGIN`, so it no longer silently re-runs writes non-transactionally. Production D1 still does not support interactive `BEGIN`, so every remaining `safeTransaction` write path must be converted before those features can rely on D1-compatible atomicity. The order-creation money path was migrated to `db.batch()` on 2026-06-12 (see `OrderService.createOrder` + atomicity tests in `packages/database/src/services/order.test.ts`), but these callers still need the same batch migration:
 
 - `packages/database/src/services/FeedbackService.ts`
 - `packages/database/src/services/LeaveService.ts`
@@ -30,7 +30,7 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 **Scope:**
 
 - Convert each caller's multi-statement write sequence to a single `db.batch()` (pattern: `OrderService.createOrder`; FK backfill via unique-column subquery when the parent id is autoincrement)
-- Then delete `safeTransaction` from `BaseService` so the error-sniffing fallback cannot be reintroduced
+- Then delete `safeTransaction` from `BaseService` so interactive transaction usage cannot be reintroduced
 - Environment-compat shims must be gated on explicit environment checks, never on error-message sniffing
 
 ## payments / provider integrations

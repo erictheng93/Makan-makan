@@ -144,8 +144,12 @@ export class BaseService {
   }
 
   /**
-   * Execute writes in a transaction with fallback for D1 local dev.
-   * D1's local miniflare may not support explicit BEGIN transactions.
+   * Execute writes in a transaction.
+   *
+   * D1 production does not support interactive BEGIN transactions. Falling
+   * back to unwrapped writes would make multi-statement mutations silently
+   * non-atomic, so callers must use D1 `db.batch()` for D1-compatible atomic
+   * writes instead of relying on this helper.
    */
   protected async safeTransaction<T>(
     writeFn: (db: any) => Promise<T>,
@@ -153,8 +157,14 @@ export class BaseService {
     try {
       return await this.db.transaction(async (tx) => writeFn(tx));
     } catch (txError: any) {
-      if (txError?.message?.includes("Failed query: begin")) {
-        return await writeFn(this.db);
+      const message = String(txError?.message ?? "");
+      if (
+        message.includes("Failed query: begin") ||
+        message.includes("Failed to run the query 'begin'")
+      ) {
+        throw new Error(
+          "D1 interactive transactions are unsupported; convert this write path to db.batch() for atomicity.",
+        );
       }
       throw txError;
     }

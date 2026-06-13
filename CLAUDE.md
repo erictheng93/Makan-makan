@@ -294,26 +294,17 @@ const result = await db
 
 All new tests MUST follow these conventions. Existing tests are being migrated progressively.
 
-**1. Use factories from `@makanmakan/testing-utils`:**
+**1. Prefer local test builders/helpers when present:**
 
 ```typescript
-import {
-  userFactory,
-  orderFactory,
-  envFactory,
-  resetAllFactories,
-} from "@makanmakan/testing-utils";
-
-beforeEach(() => {
-  resetAllFactories();
-});
-
-// Use factory with overrides for test-specific values
-const user = userFactory.buildShopOwner(1, { overrides: { id: 1 } });
-const env = envFactory.build();
+function buildUser(overrides = {}) {
+  return { id: 1, role: 1, restaurantId: "rest-1", ...overrides };
+}
 ```
 
-Available factories: `userFactory`, `restaurantFactory`, `menuItemFactory`, `categoryFactory`, `orderFactory`, `orderItemFactory`, `envFactory`, `printJobFactory`, `printerDeviceFactory`, `printRequestFactory`, `realtimeAuthFactory`. See `packages/testing-utils/src/` for full API.
+Keep builders close to the owning test file or shared in an existing local
+test helper. Do not import `@makanmakan/testing-utils`; that workspace package
+does not currently exist.
 
 **2. Verify mock calls (not just return values):**
 
@@ -342,7 +333,8 @@ expect(wrapper.vm.statusClass).toBe("active");
 
 Use `data-testid`, `data-status`, `aria-*` attributes, text content, or Vue computed state instead.
 
-**4. Pre-commit check:** `scripts/check-factory-usage.cjs` runs on all `*.test.ts` files via lint-staged. It warns on missing factory usage, CSS class assertions, and mocks without verification.
+**4. Pre-commit check:** lint-staged currently runs ESLint and Prettier only.
+There is no `scripts/check-factory-usage.cjs` gate in this repository.
 
 ## Error Handling
 
@@ -361,7 +353,7 @@ Use `data-testid`, `data-status`, `aria-*` attributes, text content, or Vue comp
 - **Authenticated health endpoints** (require bearer token):
   - `/api/v1/monitoring/health` — aggregated monitoring view (this is also where `/health` redirects to)
   - `/api/v1/system/health`, `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes under the System feature
-- Note: there is **no** unauthenticated `/api/v1/health` route anymore (the old router was replaced by the System/Monitoring features; a stale reference in `app-factory.ts` CSRF exclusion list remains as dead config).
+- Note: there is **no** unauthenticated `/api/v1/health` route anymore. The old router was replaced by the System/Monitoring features; public smoke checks should use `/info`.
 - Error tracking: Automatic Slack notifications
 
 ## Documentation

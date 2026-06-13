@@ -14,7 +14,6 @@ const EXCLUDED_PATHS = new Set([
   "/",
   "/health",
   "/info",
-  "/api/v1/health",
   "/api/v1/me/modules",
   "/api/v1/monitoring/health",
 ]);
