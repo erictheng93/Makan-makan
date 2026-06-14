@@ -69,11 +69,9 @@ export interface CouponFilters {
 export class CouponService extends BaseService {
   private mapCouponMoneyFields<T extends Record<string, any>>(coupon: T): T {
     const hasDiscountValue =
-      "discountValue" in coupon || "discountValueCents" in coupon;
-    const hasMaxDiscountAmount =
-      "maxDiscountAmount" in coupon || "maxDiscountAmountCents" in coupon;
-    const hasMinOrderAmount =
-      "minOrderAmount" in coupon || "minOrderAmountCents" in coupon;
+      "discountPercentageBps" in coupon || "discountValueCents" in coupon;
+    const hasMaxDiscountAmount = "maxDiscountAmountCents" in coupon;
+    const hasMinOrderAmount = "minOrderAmountCents" in coupon;
 
     const normalized: Record<string, any> = {
       ...coupon,
@@ -82,29 +80,34 @@ export class CouponService extends BaseService {
     if (hasDiscountValue) {
       normalized.discountValue =
         coupon.discountType === "percentage"
-          ? (percentageFromBps(
-              coupon.discountPercentageBps,
-              coupon.discountValue,
-            ) ?? coupon.discountValue)
-          : (amountFromCents(coupon.discountValueCents, coupon.discountValue) ??
-            coupon.discountValue);
+          ? percentageFromBps(coupon.discountPercentageBps)
+          : amountFromCents(coupon.discountValueCents);
     }
 
     if (hasMaxDiscountAmount) {
       normalized.maxDiscountAmount = amountFromCents(
         coupon.maxDiscountAmountCents,
-        coupon.maxDiscountAmount,
       );
     }
 
     if (hasMinOrderAmount) {
-      normalized.minOrderAmount = amountFromCents(
-        coupon.minOrderAmountCents,
-        coupon.minOrderAmount,
-      );
+      normalized.minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
     }
 
     return normalized as T;
+  }
+
+  private toCouponUpdate(updates: Partial<CreateCouponData>) {
+    const {
+      discountValue,
+      maxDiscountAmount,
+      minOrderAmount,
+      ...nonMoneyUpdates
+    } = updates;
+    void discountValue;
+    void maxDiscountAmount;
+    void minOrderAmount;
+    return nonMoneyUpdates;
   }
 
   /**
@@ -153,10 +156,7 @@ export class CouponService extends BaseService {
       }
 
       const orderAmountCents = toRequiredCents(orderAmount);
-      const minOrderAmount = amountFromCents(
-        coupon.minOrderAmountCents,
-        coupon.minOrderAmount,
-      );
+      const minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
 
       // 檢查最低訂單金額
       if (minOrderAmount && orderAmount < minOrderAmount) {
@@ -223,21 +223,13 @@ export class CouponService extends BaseService {
       let discountAmountCents = 0;
       if (coupon.discountType === "percentage") {
         const discountPercentage =
-          percentageFromBps(
-            coupon.discountPercentageBps,
-            coupon.discountValue,
-          ) ?? coupon.discountValue;
+          percentageFromBps(coupon.discountPercentageBps) ?? 0;
         discountAmountCents = Math.round(
           orderAmountCents * (discountPercentage / 100),
         );
 
         // 應用最大折扣金額限制
-        const maxDiscountAmountCents = toCents(
-          amountFromCents(
-            coupon.maxDiscountAmountCents,
-            coupon.maxDiscountAmount,
-          ),
-        );
+        const maxDiscountAmountCents = coupon.maxDiscountAmountCents;
         if (
           maxDiscountAmountCents &&
           discountAmountCents > maxDiscountAmountCents
@@ -245,8 +237,7 @@ export class CouponService extends BaseService {
           discountAmountCents = maxDiscountAmountCents;
         }
       } else {
-        discountAmountCents =
-          coupon.discountValueCents ?? toRequiredCents(coupon.discountValue);
+        discountAmountCents = coupon.discountValueCents ?? 0;
       }
 
       // 確保折扣金額不超過訂單金額
@@ -299,9 +290,6 @@ export class CouponService extends BaseService {
           couponId: data.couponId,
           orderId: data.orderId,
           userId: data.userId,
-          discountAmount: data.discountAmount,
-          originalAmount: data.originalAmount,
-          finalAmount: data.finalAmount,
           discountAmountCents: toRequiredCents(data.discountAmount),
           originalAmountCents: toRequiredCents(data.originalAmount),
           finalAmountCents: toRequiredCents(data.finalAmount),
@@ -383,9 +371,6 @@ export class CouponService extends BaseService {
         name: data.name,
         description: data.description,
         discountType: data.discountType,
-        discountValue: data.discountValue,
-        maxDiscountAmount: data.maxDiscountAmount,
-        minOrderAmount: data.minOrderAmount || 0,
         discountPercentageBps:
           data.discountType === "percentage"
             ? toRequiredPercentageBps(data.discountValue)
@@ -522,7 +507,6 @@ export class CouponService extends BaseService {
               columns: {
                 id: true,
                 orderNumber: true,
-                totalAmount: true,
                 totalAmountCents: true,
               },
             },
@@ -548,10 +532,7 @@ export class CouponService extends BaseService {
         order: usage.order
           ? {
               ...usage.order,
-              totalAmount: amountFromCents(
-                usage.order.totalAmountCents,
-                usage.order.totalAmount,
-              ),
+              totalAmount: amountFromCents(usage.order.totalAmountCents),
             }
           : usage.order,
       })),
@@ -578,15 +559,19 @@ export class CouponService extends BaseService {
             })
           : undefined;
       const discountType = updates.discountType ?? current?.discountType;
-      const discountValue = updates.discountValue ?? current?.discountValue;
+      const discountValue =
+        updates.discountValue ??
+        (current?.discountType === "percentage"
+          ? percentageFromBps(current?.discountPercentageBps)
+          : amountFromCents(current?.discountValueCents));
       centsUpdates.discountValueCents =
         discountType === "percentage"
           ? null
-          : discountValue === undefined
+          : discountValue == null
             ? undefined
             : toRequiredCents(discountValue);
       centsUpdates.discountPercentageBps =
-        discountType === "percentage" && discountValue !== undefined
+        discountType === "percentage" && discountValue != null
           ? toRequiredPercentageBps(discountValue)
           : discountType === undefined
             ? undefined
@@ -604,7 +589,7 @@ export class CouponService extends BaseService {
     const coupon = await this.db
       .update(coupons)
       .set({
-        ...updates,
+        ...this.toCouponUpdate(updates),
         ...centsUpdates,
         updatedAt: new Date(),
       })
@@ -635,8 +620,8 @@ export class CouponService extends BaseService {
     const stats = await this.db
       .select({
         totalUsed: sql<number>`count(*)`,
-        totalDiscount: sql<number>`sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))) / 100.0`,
-        avgDiscount: sql<number>`avg(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))) / 100.0`,
+        totalDiscount: sql<number>`sum(COALESCE(${couponUsage.discountAmountCents}, 0)) / 100.0`,
+        avgDiscount: sql<number>`avg(COALESCE(${couponUsage.discountAmountCents}, 0)) / 100.0`,
         lastUsed: sql<string>`max(${couponUsage.usedAt})`,
       })
       .from(couponUsage)
@@ -684,7 +669,7 @@ export class CouponService extends BaseService {
     const savingsResult = restaurantId
       ? await this.db
           .select({
-            totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
+            totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, 0)), 0) / 100.0`,
           })
           .from(couponUsage)
           .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
@@ -696,7 +681,7 @@ export class CouponService extends BaseService {
           )
       : await this.db
           .select({
-            totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
+            totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, 0)), 0) / 100.0`,
           })
           .from(couponUsage)
           .where(eq(couponUsage.status, "active"));
@@ -727,7 +712,11 @@ export class CouponService extends BaseService {
         gte(coupons.validTo, now),
         sql`(${coupons.usageLimit} IS NULL OR ${coupons.usedCount} < ${coupons.usageLimit})`,
       ),
-      orderBy: [asc(coupons.minOrderAmount), desc(coupons.discountValue)],
+      orderBy: [
+        asc(coupons.minOrderAmountCents),
+        desc(coupons.discountPercentageBps),
+        desc(coupons.discountValueCents),
+      ],
     });
 
     return couponList.map((coupon) => this.mapCouponMoneyFields(coupon));

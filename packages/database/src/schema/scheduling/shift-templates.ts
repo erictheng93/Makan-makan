@@ -54,7 +54,6 @@ export const shiftTemplates = sqliteTable(
     maxEmployees: integer("max_employees").default(10),
 
     // Compensation
-    hourlyRate: real("hourly_rate"),
     hourlyRateCents: integer("hourly_rate_cents"),
     overtimeMultiplier: real("overtime_multiplier").default(1.5),
 

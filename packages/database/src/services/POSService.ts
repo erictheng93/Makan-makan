@@ -400,21 +400,13 @@ export class POSService extends BaseService {
           id: shiftId,
           registerId: validatedData.registerId,
           operatorId: validatedData.operatorId,
-          startAmount: validatedData.startAmount,
           startAmountCents: toRequiredCents(validatedData.startAmount),
-          expectedAmount: validatedData.startAmount,
           expectedAmountCents: toRequiredCents(validatedData.startAmount),
-          differenceAmount: 0,
           differenceAmountCents: 0,
-          totalSales: 0,
           totalSalesCents: 0,
-          totalRefunds: 0,
           totalRefundsCents: 0,
-          cashSales: 0,
           cashSalesCents: 0,
-          cardSales: 0,
           cardSalesCents: 0,
-          digitalSales: 0,
           digitalSalesCents: 0,
           totalTransactions: 0,
           startedAt: shiftStartTime,
@@ -444,9 +436,13 @@ export class POSService extends BaseService {
         .where(eq(cashShifts.id, shiftId))
         .get();
 
+      if (!shift) {
+        throw new Error("創建後無法找到班次");
+      }
+
       return {
         success: true,
-        data: shift as CashShift,
+        data: this.mapCashShift(shift),
       };
     } catch (error) {
       console.error("開班失敗:", error);
@@ -480,12 +476,9 @@ export class POSService extends BaseService {
       }
 
       // 計算預期金額
-      const startAmount =
-        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0;
-      const totalSales =
-        amountFromCents(shift.totalSalesCents, shift.totalSales) ?? 0;
-      const totalRefunds =
-        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0;
+      const startAmount = amountFromCents(shift.startAmountCents) ?? 0;
+      const totalSales = amountFromCents(shift.totalSalesCents) ?? 0;
+      const totalRefunds = amountFromCents(shift.totalRefundsCents) ?? 0;
       const expectedAmount = startAmount + totalSales - totalRefunds;
       const differenceAmount = validatedData.actualAmount - expectedAmount;
       const shiftEndTime = new Date();
@@ -500,13 +493,9 @@ export class POSService extends BaseService {
         await tx
           .update(cashShifts)
           .set({
-            endAmount: validatedData.actualAmount,
             endAmountCents: toRequiredCents(validatedData.actualAmount),
-            actualAmount: validatedData.actualAmount,
             actualAmountCents: toRequiredCents(validatedData.actualAmount),
-            expectedAmount,
             expectedAmountCents: toRequiredCents(expectedAmount),
-            differenceAmount,
             differenceAmountCents: toRequiredCents(differenceAmount),
             endedAt: shiftEndTime,
             status: "closed" as const,
@@ -600,7 +589,6 @@ export class POSService extends BaseService {
       shiftId,
       registerId: shift.registerId,
       type: movement.type,
-      amount: movement.amount,
       amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId ?? null,
@@ -746,9 +734,9 @@ export class POSService extends BaseService {
       orderNumber: order.orderNumber,
       customerName: order.customerName,
       items: [],
-      subtotal: amountFromCents(order.subtotalCents, order.subtotal) ?? 0,
-      tax: amountFromCents(order.taxAmountCents, order.taxAmount) ?? 0,
-      total: amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0,
+      subtotal: amountFromCents(order.subtotalCents) ?? 0,
+      tax: amountFromCents(order.taxAmountCents) ?? 0,
+      total: amountFromCents(order.totalAmountCents) ?? 0,
       paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
       footer: "謝謝光臨 MakanMakan",
@@ -800,13 +788,11 @@ export class POSService extends BaseService {
       }
 
       // 檢查退款金額
-      const originalAmount =
-        amountFromCents(
-          originalOrder.totalAmountCents,
-          originalOrder.totalAmount,
-        ) ?? 0;
-      const originalAmountCents =
-        originalOrder.totalAmountCents ?? toRequiredCents(originalAmount);
+      if (originalOrder.totalAmountCents == null) {
+        throw new Error("原訂單缺少 total_amount_cents");
+      }
+      const originalAmountCents = originalOrder.totalAmountCents;
+      const originalAmount = amountFromCents(originalAmountCents) ?? 0;
       if (validatedData.refundAmount > originalAmount) {
         return {
           success: false,
@@ -827,8 +813,6 @@ export class POSService extends BaseService {
           shiftId: shiftId ?? null,
           refundNumber,
           refundType: validatedData.refundType,
-          originalAmount,
-          refundAmount: validatedData.refundAmount,
           originalAmountCents,
           refundAmountCents: toRequiredCents(validatedData.refundAmount),
           refundMethod: validatedData.refundMethod,
@@ -892,6 +876,8 @@ export class POSService extends BaseService {
         success: true,
         data: {
           ...refund,
+          originalAmount: amountFromCents(refund.originalAmountCents) ?? 0,
+          refundAmount: amountFromCents(refund.refundAmountCents) ?? 0,
           itemsRefunded: JSON.parse(refund.itemsRefunded || "[]"),
           metadata: JSON.parse(refund.metadata || "{}"),
         } as Refund,
@@ -963,45 +949,18 @@ export class POSService extends BaseService {
           )
         : null;
 
-      const startAmount =
-        amountFromCents(
-          shift.shift.startAmountCents,
-          shift.shift.startAmount,
-        ) ?? 0;
-      const endAmount =
-        amountFromCents(shift.shift.endAmountCents, shift.shift.endAmount) ?? 0;
+      const startAmount = amountFromCents(shift.shift.startAmountCents) ?? 0;
+      const endAmount = amountFromCents(shift.shift.endAmountCents) ?? 0;
       const expectedAmount =
-        amountFromCents(
-          shift.shift.expectedAmountCents,
-          shift.shift.expectedAmount,
-        ) ?? 0;
-      const actualAmount =
-        amountFromCents(
-          shift.shift.actualAmountCents,
-          shift.shift.actualAmount,
-        ) ?? 0;
+        amountFromCents(shift.shift.expectedAmountCents) ?? 0;
+      const actualAmount = amountFromCents(shift.shift.actualAmountCents) ?? 0;
       const differenceAmount =
-        amountFromCents(
-          shift.shift.differenceAmountCents,
-          shift.shift.differenceAmount,
-        ) ?? 0;
-      const totalSales =
-        amountFromCents(shift.shift.totalSalesCents, shift.shift.totalSales) ??
-        0;
-      const totalRefunds =
-        amountFromCents(
-          shift.shift.totalRefundsCents,
-          shift.shift.totalRefunds,
-        ) ?? 0;
-      const cashSales =
-        amountFromCents(shift.shift.cashSalesCents, shift.shift.cashSales) ?? 0;
-      const cardSales =
-        amountFromCents(shift.shift.cardSalesCents, shift.shift.cardSales) ?? 0;
-      const digitalSales =
-        amountFromCents(
-          shift.shift.digitalSalesCents,
-          shift.shift.digitalSales,
-        ) ?? 0;
+        amountFromCents(shift.shift.differenceAmountCents) ?? 0;
+      const totalSales = amountFromCents(shift.shift.totalSalesCents) ?? 0;
+      const totalRefunds = amountFromCents(shift.shift.totalRefundsCents) ?? 0;
+      const cashSales = amountFromCents(shift.shift.cashSalesCents) ?? 0;
+      const cardSales = amountFromCents(shift.shift.cardSalesCents) ?? 0;
+      const digitalSales = amountFromCents(shift.shift.digitalSalesCents) ?? 0;
 
       // 生成報表數據
       const reportData = {
@@ -1068,6 +1027,26 @@ export class POSService extends BaseService {
     }
   }
 
+  private mapCashShift(shift: typeof cashShifts.$inferSelect): CashShift {
+    return {
+      ...shift,
+      startAmount: amountFromCents(shift.startAmountCents) ?? 0,
+      endAmount: amountFromCents(shift.endAmountCents) ?? undefined,
+      expectedAmount: amountFromCents(shift.expectedAmountCents) ?? 0,
+      actualAmount: amountFromCents(shift.actualAmountCents) ?? undefined,
+      differenceAmount: amountFromCents(shift.differenceAmountCents) ?? 0,
+      totalSales: amountFromCents(shift.totalSalesCents) ?? 0,
+      totalRefunds: amountFromCents(shift.totalRefundsCents) ?? 0,
+      cashSales: amountFromCents(shift.cashSalesCents) ?? 0,
+      cardSales: amountFromCents(shift.cardSalesCents) ?? 0,
+      digitalSales: amountFromCents(shift.digitalSalesCents) ?? 0,
+      status: shift.status as CashShift["status"],
+      endedAt: shift.endedAt ?? undefined,
+      notes: shift.notes ?? undefined,
+      closingNotes: shift.closingNotes ?? undefined,
+    };
+  }
+
   // ==========================================
   // 獲取班次統計
   // ==========================================
@@ -1088,34 +1067,15 @@ export class POSService extends BaseService {
       const stats = await this.db
         .select({
           totalShifts: count(),
-          totalSales: sumMoneyAmount(
-            cashShifts.totalSalesCents,
-            cashShifts.totalSales,
-          ),
-          totalRefunds: sumMoneyAmount(
-            cashShifts.totalRefundsCents,
-            cashShifts.totalRefunds,
-          ),
-          avgSalesPerShift: avgMoneyAmount(
-            cashShifts.totalSalesCents,
-            cashShifts.totalSales,
-          ),
-          totalCashSales: sumMoneyAmount(
-            cashShifts.cashSalesCents,
-            cashShifts.cashSales,
-          ),
-          totalCardSales: sumMoneyAmount(
-            cashShifts.cardSalesCents,
-            cashShifts.cardSales,
-          ),
-          totalDigitalSales: sumMoneyAmount(
-            cashShifts.digitalSalesCents,
-            cashShifts.digitalSales,
-          ),
+          totalSales: sumMoneyAmount(cashShifts.totalSalesCents),
+          totalRefunds: sumMoneyAmount(cashShifts.totalRefundsCents),
+          avgSalesPerShift: avgMoneyAmount(cashShifts.totalSalesCents),
+          totalCashSales: sumMoneyAmount(cashShifts.cashSalesCents),
+          totalCardSales: sumMoneyAmount(cashShifts.cardSalesCents),
+          totalDigitalSales: sumMoneyAmount(cashShifts.digitalSalesCents),
           closedShifts: sql<number>`COUNT(CASE WHEN ${cashShifts.status} = 'closed' THEN 1 END)`,
           avgCashDifference: avgAbsMoneyAmount(
             cashShifts.differenceAmountCents,
-            cashShifts.differenceAmount,
           ),
         })
         .from(cashShifts)

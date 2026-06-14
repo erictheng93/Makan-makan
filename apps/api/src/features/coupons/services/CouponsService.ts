@@ -59,22 +59,12 @@ interface CouponUsageTrendPoint {
 
 export class CouponsService extends BaseCouponService {
   formatCouponMoneyFields<T extends AvailableCoupon>(coupon: T): T {
-    const minOrderAmount = amountFromCents(
-      coupon.minOrderAmountCents,
-      coupon.minOrderAmount,
-    );
-    const maxDiscountAmount = amountFromCents(
-      coupon.maxDiscountAmountCents,
-      coupon.maxDiscountAmount,
-    );
+    const minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
+    const maxDiscountAmount = amountFromCents(coupon.maxDiscountAmountCents);
     const discountValue =
       coupon.discountType === "percentage"
-        ? (percentageFromBps(
-            coupon.discountPercentageBps,
-            coupon.discountValue,
-          ) ?? coupon.discountValue)
-        : (amountFromCents(coupon.discountValueCents, coupon.discountValue) ??
-          coupon.discountValue);
+        ? (percentageFromBps(coupon.discountPercentageBps) ?? 0)
+        : (amountFromCents(coupon.discountValueCents) ?? 0);
 
     return {
       ...coupon,
@@ -263,10 +253,7 @@ export class CouponsService extends BaseCouponService {
 
     // Filter by minimum order amount
     return availableCoupons.filter((coupon) => {
-      const minOrderAmount = amountFromCents(
-        coupon.minOrderAmountCents,
-        coupon.minOrderAmount,
-      );
+      const minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
 
       return !minOrderAmount || orderAmount >= minOrderAmount;
     });
@@ -317,7 +304,6 @@ export class CouponsService extends BaseCouponService {
       .select({
         id: orders.id,
         restaurantId: orders.restaurantId,
-        subtotal: orders.subtotal,
         subtotalCents: orders.subtotalCents,
       })
       .from(orders)
@@ -349,19 +335,16 @@ export class CouponsService extends BaseCouponService {
       throw forbidden("Coupon does not belong to this order", "FORBIDDEN");
     }
 
-    const originalAmountCents =
-      order.subtotalCents ?? toRequiredCents(order.subtotal);
+    const originalAmountCents = order.subtotalCents ?? 0;
     let discountAmountCents = 0;
 
     if (coupon.discountType === "percentage") {
       const discountPercentage =
-        percentageFromBps(coupon.discountPercentageBps, coupon.discountValue) ??
-        coupon.discountValue;
+        percentageFromBps(coupon.discountPercentageBps) ?? 0;
       discountAmountCents = Math.round(
         originalAmountCents * (discountPercentage / 100),
       );
-      const maxDiscountAmountCents =
-        coupon.maxDiscountAmountCents ?? toCents(coupon.maxDiscountAmount);
+      const maxDiscountAmountCents = coupon.maxDiscountAmountCents;
       if (
         maxDiscountAmountCents != null &&
         discountAmountCents > maxDiscountAmountCents
@@ -369,8 +352,7 @@ export class CouponsService extends BaseCouponService {
         discountAmountCents = maxDiscountAmountCents;
       }
     } else {
-      discountAmountCents =
-        coupon.discountValueCents ?? toRequiredCents(coupon.discountValue);
+      discountAmountCents = coupon.discountValueCents ?? 0;
     }
 
     discountAmountCents = Math.max(
@@ -430,7 +412,7 @@ export class CouponsService extends BaseCouponService {
       this.db
         .select({
           totalUsage: sql<number>`count(${couponUsage.id})`,
-          totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
+          totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, 0)), 0) / 100.0`,
         })
         .from(couponUsage)
         .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
@@ -439,7 +421,7 @@ export class CouponsService extends BaseCouponService {
         .select({
           period: sql<string>`date(${couponUsage.usedAt} / 1000, 'unixepoch')`,
           totalUsage: sql<number>`count(${couponUsage.id})`,
-          totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, CAST(round(${couponUsage.discountAmount} * 100) AS integer))), 0) / 100.0`,
+          totalSavings: sql<number>`coalesce(sum(COALESCE(${couponUsage.discountAmountCents}, 0)), 0) / 100.0`,
         })
         .from(couponUsage)
         .innerJoin(coupons, eq(couponUsage.couponId, coupons.id))
@@ -496,7 +478,7 @@ function parseDateFilter(value: string | undefined): Date | undefined {
 
 function amountFromCents(
   cents: number | null | undefined,
-  fallback: number | null | undefined,
+  fallback?: number | null | undefined,
 ): number | null {
   return cents == null ? (fallback ?? null) : fromCents(cents);
 }

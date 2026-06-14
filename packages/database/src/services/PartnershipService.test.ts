@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { D1Database } from "@cloudflare/workers-types";
 import { PartnershipService } from "./PartnershipService";
-import type { NewPartnershipPlan } from "../schema";
 
 function createServiceWithDb<TDb extends object>(db: TDb): PartnershipService {
   const service = new PartnershipService({} as D1Database, {
@@ -17,7 +16,7 @@ describe("PartnershipService percentage discounts", () => {
     const values = vi.fn(() => ({ returning }));
     const insert = vi.fn(() => ({ values }));
     const service = createServiceWithDb({ insert });
-    const planData: NewPartnershipPlan = {
+    const planData: Parameters<PartnershipService["createPlan"]>[0] = {
       id: "plan-1",
       partnershipId: "partner-1",
       restaurantId: "restaurant-1",
@@ -37,6 +36,41 @@ describe("PartnershipService percentage discounts", () => {
       expect.objectContaining({
         discountPercentageBps: 1250,
         discountValueCents: null,
+      }),
+    );
+  });
+
+  it("preserves direct cents and bps plan values when legacy values are omitted", async () => {
+    const returning = vi.fn(async () => [{ id: "plan-1" }]);
+    const values = vi.fn(() => ({ returning }));
+    const insert = vi.fn(() => ({ values }));
+    const service = createServiceWithDb({ insert });
+    const planData: Parameters<PartnershipService["createPlan"]>[0] = {
+      id: "plan-1",
+      partnershipId: "partner-1",
+      restaurantId: "restaurant-1",
+      planName: "Student 12.5",
+      planCode: "STUDENT125",
+      discountType: "percentage",
+      discountPercentageBps: 1250,
+      discountValueCents: null,
+      maxDiscountAmountCents: 500,
+      minOrderAmountCents: 1000,
+      maxOrderAmountCents: 30000,
+      validFrom: new Date("2026-01-01T00:00:00Z"),
+      validTo: new Date("2026-12-31T23:59:59Z"),
+      isActive: true,
+    };
+
+    await service.createPlan(planData);
+
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        discountPercentageBps: 1250,
+        discountValueCents: null,
+        maxDiscountAmountCents: 500,
+        minOrderAmountCents: 1000,
+        maxOrderAmountCents: 30000,
       }),
     );
   });

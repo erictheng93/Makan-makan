@@ -85,10 +85,7 @@ export class RefundService {
 
       // 檢查退款金額是否合理
       const orderTotalAmount =
-        amountFromCents(
-          originalOrder.totalAmountCents,
-          originalOrder.totalAmount,
-        ) ?? 0;
+        amountFromCents(originalOrder.totalAmountCents) ?? 0;
       if (validatedData.refundAmount > orderTotalAmount) {
         return {
           success: false,
@@ -99,10 +96,7 @@ export class RefundService {
       // 檢查是否已有退款記錄
       const [existingRefund] = await this.db
         .select({
-          totalRefunded: sumMoneyAmount(
-            refunds.refundAmountCents,
-            refunds.refundAmount,
-          ),
+          totalRefunded: sumMoneyAmount(refunds.refundAmountCents),
         })
         .from(refunds)
         .where(
@@ -145,8 +139,6 @@ export class RefundService {
           shiftId: shiftId || null,
           refundNumber,
           refundType: validatedData.refundType,
-          originalAmount: orderTotalAmount,
-          refundAmount: validatedData.refundAmount,
           originalAmountCents: toRequiredCents(orderTotalAmount),
           refundAmountCents: toRequiredCents(validatedData.refundAmount),
           refundMethod: validatedData.refundMethod,
@@ -193,6 +185,8 @@ export class RefundService {
 
       const base = {
         ...refund,
+        originalAmount: amountFromCents(refund.originalAmountCents) ?? 0,
+        refundAmount: amountFromCents(refund.refundAmountCents) ?? 0,
         itemsRefunded: JSON.parse((refund.itemsRefunded as string) || "[]"),
         metadata: JSON.parse((refund.metadata as string) || "{}"),
         refundId: refund.id,
@@ -471,7 +465,6 @@ export class RefundService {
       shiftId,
       registerId,
       type: movement.type,
-      amount: movement.amount,
       amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId || null,

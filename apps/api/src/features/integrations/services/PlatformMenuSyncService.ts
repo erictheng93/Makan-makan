@@ -65,7 +65,7 @@ export class PlatformMenuSyncService {
               id: item.id,
               name: item.name,
               description: item.description ?? "",
-              price: item.price,
+              price: item.priceCents == null ? 0 : item.priceCents / 100,
               imageUrl: item.imageUrl ?? undefined,
               available: item.isAvailable ?? true,
             })),

@@ -138,6 +138,16 @@ function findRolloutMigration(dir: string): string {
   return path.join(dir, matches[0]);
 }
 
+function findCutoverMigration(dir: string): string {
+  const matches = fs
+    .readdirSync(dir)
+    .filter((file) => /^\d+_money_cents_cutover\.sql$/.test(file))
+    .sort();
+
+  expect(matches).toHaveLength(1);
+  return path.join(dir, matches[0]);
+}
+
 function readSql(filePath: string): string {
   return fs.readFileSync(filePath, "utf8");
 }
@@ -196,14 +206,24 @@ function createAuditDb(options?: {
 }
 
 describe("money cents retirement rollout migration", () => {
-  it("pairs the dedicated rollout guard across fresh and legacy tracks", () => {
-    const fresh = path.basename(findRolloutMigration(freshMigrationsDir));
-    const legacy = path.basename(findRolloutMigration(legacyMigrationsDir));
-    const latestFresh = path.basename(
+  it("pairs rollout, percentage, and cutover migrations across tracks", () => {
+    const rolloutFresh = path.basename(
+      findRolloutMigration(freshMigrationsDir),
+    );
+    const rolloutLegacy = path.basename(
+      findRolloutMigration(legacyMigrationsDir),
+    );
+    const percentageFresh = path.basename(
       findPercentageMigration(freshMigrationsDir),
     );
-    const latestLegacy = path.basename(
+    const percentageLegacy = path.basename(
       findPercentageMigration(legacyMigrationsDir),
+    );
+    const cutoverFresh = path.basename(
+      findCutoverMigration(freshMigrationsDir),
+    );
+    const cutoverLegacy = path.basename(
+      findCutoverMigration(legacyMigrationsDir),
     );
     const dualTrack = JSON.parse(fs.readFileSync(dualTrackPath, "utf8")) as {
       pairs?: Array<{ fresh: string; legacy: string; reason: string }>;
@@ -211,20 +231,25 @@ describe("money cents retirement rollout migration", () => {
     };
 
     expect(dualTrack.reviewedThrough).toEqual({
-      fresh: latestFresh,
-      legacy: latestLegacy,
+      fresh: cutoverFresh,
+      legacy: cutoverLegacy,
     });
     expect(dualTrack.pairs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          fresh,
-          legacy,
+          fresh: rolloutFresh,
+          legacy: rolloutLegacy,
           reason: expect.stringContaining("Money cents retirement"),
         }),
         expect.objectContaining({
-          fresh: latestFresh,
-          legacy: latestLegacy,
+          fresh: percentageFresh,
+          legacy: percentageLegacy,
           reason: expect.stringContaining("Percentage discount"),
+        }),
+        expect.objectContaining({
+          fresh: cutoverFresh,
+          legacy: cutoverLegacy,
+          reason: expect.stringContaining("Money cents cutover"),
         }),
       ]),
     );
@@ -312,12 +337,24 @@ describe("money cents retirement rollout migration", () => {
   });
 
   it("documents the executable D1 rollout phases", () => {
-    const fresh = path.basename(findRolloutMigration(freshMigrationsDir));
-    const legacy = path.basename(findRolloutMigration(legacyMigrationsDir));
+    const rolloutFresh = path.basename(
+      findRolloutMigration(freshMigrationsDir),
+    );
+    const rolloutLegacy = path.basename(
+      findRolloutMigration(legacyMigrationsDir),
+    );
+    const cutoverFresh = path.basename(
+      findCutoverMigration(freshMigrationsDir),
+    );
+    const cutoverLegacy = path.basename(
+      findCutoverMigration(legacyMigrationsDir),
+    );
     const doc = fs.readFileSync(retirementDocPath, "utf8");
 
-    expect(doc).toContain(fresh);
-    expect(doc).toContain(legacy);
+    expect(doc).toContain(rolloutFresh);
+    expect(doc).toContain(rolloutLegacy);
+    expect(doc).toContain(cutoverFresh);
+    expect(doc).toContain(cutoverLegacy);
     expect(doc).toContain("rtk pnpm db:migrate:staging");
     expect(doc).toContain("rtk pnpm db:migrate:prod");
     expect(doc).toContain("PRAGMA defer_foreign_keys = ON");
@@ -339,4 +376,41 @@ describe("money cents retirement rollout migration", () => {
     expect(doc).toContain("default_discount_percentage_bps");
     expect(doc).toContain("percentage_bps_missing_or_mismatch");
   });
+
+  it.each([
+    ["fresh", () => findCutoverMigration(freshMigrationsDir)],
+    ["legacy", () => findCutoverMigration(legacyMigrationsDir)],
+  ])(
+    "%s cutover drops only after guards and removes legacy sync surfaces",
+    (_label, pathFor) => {
+      const sql = readSql(pathFor());
+
+      expect(sql).toContain("_migration_assert_money_cents_cutover");
+      expect(sql).toContain(
+        "money_cents_retirement_rollout.preflight_zero_errors",
+      );
+      expect(sql).toContain(
+        "money_cents_retirement.percentage_bps_zero_errors",
+      );
+      expect(sql).toContain("money_cents_cutover.row_counts_unchanged");
+      expect(sql).toContain("money_cents_cutover.foreign_key_check");
+      expect(sql).toContain("DROP TRIGGER IF EXISTS `orders_cents_sync_ai`");
+      expect(sql).toContain(
+        "DROP TRIGGER IF EXISTS `trg_partnership_usage_update_member_stats`",
+      );
+      expect(sql).toContain(
+        "CREATE TRIGGER IF NOT EXISTS `trg_partnership_usage_update_member_stats`",
+      );
+      expect(sql).toContain(
+        "ALTER TABLE `coupons` DROP COLUMN `discount_value`",
+      );
+      expect(sql).toContain(
+        "ALTER TABLE `partnership_plans` DROP COLUMN `discount_value`",
+      );
+      expect(sql).toContain("CREATE INDEX `menu_items_price_range_idx`");
+      expect(sql).toContain("CREATE INDEX `dish_search_price_available_idx`");
+      expect(sql).not.toContain("DROP COLUMN `discount_percentage_bps`");
+      expect(sql).not.toContain("DROP COLUMN `discount_value_cents`");
+    },
+  );
 });

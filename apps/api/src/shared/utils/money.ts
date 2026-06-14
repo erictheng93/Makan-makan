@@ -20,7 +20,7 @@ export function fromCents(cents: number): number {
 
 export function percentageFromBps(
   bps: number | null | undefined,
-  fallback: number | null | undefined,
+  fallback?: number | null | undefined,
 ): number | null {
   if (bps == null) return fallback ?? null;
   return bps / 100;

@@ -10,13 +10,7 @@
  * - group_activity_logs: 群組活動日誌
  */
 
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { users } from "./users";
@@ -52,10 +46,6 @@ export const groupOrders = sqliteTable(
     splitType: text("split_type").notNull().default("individual"), // equal, proportional, individual, custom
 
     // 金額資訊
-    totalAmount: real("total_amount").notNull().default(0),
-    taxAmount: real("tax_amount").notNull().default(0),
-    serviceCharge: real("service_charge").notNull().default(0),
-    finalAmount: real("final_amount").notNull().default(0),
     totalAmountCents: integer("total_amount_cents"),
     taxAmountCents: integer("tax_amount_cents"),
     serviceChargeCents: integer("service_charge_cents"),
@@ -159,8 +149,6 @@ export const groupCartItems = sqliteTable(
 
     // 數量與價格
     quantity: integer("quantity").notNull(),
-    unitPrice: real("unit_price").notNull(),
-    totalPrice: real("total_price").notNull(),
     unitPriceCents: integer("unit_price_cents"),
     totalPriceCents: integer("total_price_cents"),
 
@@ -206,12 +194,6 @@ export const splitBills = sqliteTable(
       .references(() => groupMembers.id),
 
     // 金額細分
-    subtotal: real("subtotal").notNull(),
-    taxAmount: real("tax_amount").notNull().default(0),
-    serviceCharge: real("service_charge").notNull().default(0),
-    discountAmount: real("discount_amount").notNull().default(0),
-    tipAmount: real("tip_amount").notNull().default(0),
-    totalAmount: real("total_amount").notNull(),
     subtotalCents: integer("subtotal_cents"),
     taxAmountCents: integer("tax_amount_cents"),
     serviceChargeCents: integer("service_charge_cents"),

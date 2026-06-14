@@ -96,7 +96,6 @@ export class IngredientService {
         name: data.name,
         unit: data.unit,
         category: data.category ?? null,
-        costPerUnit: data.costPerUnit ?? null,
         costPerUnitCents: toCents(data.costPerUnit),
         supplier: data.supplier ?? null,
         minStockLevel: data.minStockLevel ?? null,
@@ -124,7 +123,6 @@ export class IngredientService {
     if (data.unit !== undefined) updates.unit = data.unit;
     if (data.category !== undefined) updates.category = data.category ?? null;
     if (data.costPerUnit !== undefined) {
-      updates.costPerUnit = data.costPerUnit ?? null;
       updates.costPerUnitCents = toCents(data.costPerUnit);
     }
     if (data.supplier !== undefined) updates.supplier = data.supplier ?? null;
@@ -177,7 +175,6 @@ export class IngredientService {
         name: data.name,
         unit: data.unit,
         category: data.category ?? null,
-        costPerUnit: data.costPerUnit ?? null,
         costPerUnitCents: toCents(data.costPerUnit),
         supplier: data.supplier ?? null,
         minStockLevel: data.minStockLevel ?? null,
@@ -236,9 +233,7 @@ function rowToResponse(
     unit: row.unit,
     category: row.category,
     costPerUnit:
-      row.costPerUnitCents == null
-        ? row.costPerUnit
-        : fromCents(row.costPerUnitCents),
+      row.costPerUnitCents == null ? null : fromCents(row.costPerUnitCents),
     supplier: row.supplier,
     minStockLevel: row.minStockLevel,
     currentStock: row.currentStock,

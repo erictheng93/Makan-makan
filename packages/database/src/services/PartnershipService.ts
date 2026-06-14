@@ -115,6 +115,33 @@ export interface UsageStatistics {
   averageOrderValue: number;
 }
 
+type PartnershipMoneyInput = {
+  defaultDiscountValue?: number | null;
+  totalDiscountGiven?: number | null;
+  totalRevenue?: number | null;
+};
+
+type PartnershipPlanMoneyInput = {
+  discountValue?: number | null;
+  maxDiscountAmount?: number | null;
+  minOrderAmount?: number | null;
+  maxOrderAmount?: number | null;
+  totalDiscountGiven?: number | null;
+  totalRevenue?: number | null;
+};
+
+type VerifiedMemberMoneyInput = {
+  totalDiscountReceived?: number | null;
+  totalSpending?: number | null;
+};
+
+type UsageLogMoneyInput = {
+  discountValue: number;
+  discountAmount: number;
+  originalAmount: number;
+  finalAmount: number;
+};
+
 // ================================================
 // SERVICE CLASS
 // ================================================
@@ -140,6 +167,80 @@ export class PartnershipService extends BaseService {
       : null;
   }
 
+  private resolveDiscountValue(
+    discountType: string | null | undefined,
+    percentageBps: number | null | undefined,
+    valueCents: number | null | undefined,
+  ): number | null {
+    return discountType === "percentage"
+      ? percentageFromBps(percentageBps)
+      : valueCents == null
+        ? null
+        : fromCents(valueCents);
+  }
+
+  private toPartnershipInsert(
+    data: Partial<NewPartnership> & PartnershipMoneyInput,
+  ): Partial<NewPartnership> {
+    const {
+      defaultDiscountValue,
+      totalDiscountGiven,
+      totalRevenue,
+      ...insert
+    } = data;
+    void defaultDiscountValue;
+    void totalDiscountGiven;
+    void totalRevenue;
+    return insert;
+  }
+
+  private toPlanInsert(
+    data: Partial<NewPartnershipPlan> & PartnershipPlanMoneyInput,
+  ): Partial<NewPartnershipPlan> {
+    const {
+      discountValue,
+      maxDiscountAmount,
+      minOrderAmount,
+      maxOrderAmount,
+      totalDiscountGiven,
+      totalRevenue,
+      ...insert
+    } = data;
+    void discountValue;
+    void maxDiscountAmount;
+    void minOrderAmount;
+    void maxOrderAmount;
+    void totalDiscountGiven;
+    void totalRevenue;
+    return insert;
+  }
+
+  private toVerifiedMemberInsert(
+    data: Partial<NewVerifiedMember> & VerifiedMemberMoneyInput,
+  ): Partial<NewVerifiedMember> {
+    const { totalDiscountReceived, totalSpending, ...insert } = data;
+    void totalDiscountReceived;
+    void totalSpending;
+    return insert;
+  }
+
+  private toUsageLogInsert(
+    data: Partial<NewPartnershipUsageLog> & UsageLogMoneyInput,
+  ): Partial<NewPartnershipUsageLog> {
+    const {
+      discountValue,
+      discountAmount,
+      originalAmount,
+      finalAmount,
+      ...insert
+    } = data;
+    void discountValue;
+    void discountAmount;
+    void originalAmount;
+    void finalAmount;
+    return insert;
+  }
+
   // ================================================
   // PARTNERSHIP MANAGEMENT (合作夥伴管理)
   // ================================================
@@ -147,21 +248,37 @@ export class PartnershipService extends BaseService {
   /**
    * 創建新合作夥伴
    */
-  async createPartnership(data: NewPartnership): Promise<Partnership> {
+  async createPartnership(
+    data: NewPartnership & PartnershipMoneyInput,
+  ): Promise<Partnership> {
+    const defaultDiscountValueCents =
+      data.defaultDiscountValue !== undefined
+        ? this.discountValueCents(
+            data.defaultDiscountType,
+            data.defaultDiscountValue,
+          )
+        : (data.defaultDiscountValueCents ?? null);
+    const defaultDiscountPercentageBps =
+      data.defaultDiscountValue !== undefined
+        ? this.discountPercentageBps(
+            data.defaultDiscountType,
+            data.defaultDiscountValue,
+          )
+        : data.defaultDiscountType === "percentage"
+          ? (data.defaultDiscountPercentageBps ?? null)
+          : null;
+
     const [result] = await this.db
       .insert(partnerships)
       .values({
-        ...data,
-        defaultDiscountValueCents: this.discountValueCents(
-          data.defaultDiscountType,
-          data.defaultDiscountValue,
-        ),
-        defaultDiscountPercentageBps: this.discountPercentageBps(
-          data.defaultDiscountType,
-          data.defaultDiscountValue,
-        ),
-        totalDiscountGivenCents: toRequiredCents(data.totalDiscountGiven ?? 0),
-        totalRevenueCents: toRequiredCents(data.totalRevenue ?? 0),
+        ...(this.toPartnershipInsert(data) as NewPartnership),
+        defaultDiscountValueCents,
+        defaultDiscountPercentageBps,
+        totalDiscountGivenCents:
+          data.totalDiscountGivenCents ??
+          toRequiredCents(data.totalDiscountGiven ?? 0),
+        totalRevenueCents:
+          data.totalRevenueCents ?? toRequiredCents(data.totalRevenue ?? 0),
       })
       .returning();
     return result;
@@ -259,9 +376,12 @@ export class PartnershipService extends BaseService {
    */
   async updatePartnership(
     id: string,
-    data: Partial<NewPartnership>,
+    data: Partial<NewPartnership> & PartnershipMoneyInput,
   ): Promise<Partnership> {
-    const updates: Partial<NewPartnership> = { ...data, updatedAt: new Date() };
+    const updates: Partial<NewPartnership> = {
+      ...this.toPartnershipInsert(data),
+      updatedAt: new Date(),
+    };
 
     if (
       data.defaultDiscountType !== undefined ||
@@ -274,11 +394,21 @@ export class PartnershipService extends BaseService {
           : undefined;
       updates.defaultDiscountValueCents = this.discountValueCents(
         data.defaultDiscountType ?? current?.defaultDiscountType,
-        data.defaultDiscountValue ?? current?.defaultDiscountValue,
+        data.defaultDiscountValue ??
+          this.resolveDiscountValue(
+            current?.defaultDiscountType,
+            current?.defaultDiscountPercentageBps,
+            current?.defaultDiscountValueCents,
+          ),
       );
       updates.defaultDiscountPercentageBps = this.discountPercentageBps(
         data.defaultDiscountType ?? current?.defaultDiscountType,
-        data.defaultDiscountValue ?? current?.defaultDiscountValue,
+        data.defaultDiscountValue ??
+          this.resolveDiscountValue(
+            current?.defaultDiscountType,
+            current?.defaultDiscountPercentageBps,
+            current?.defaultDiscountValueCents,
+          ),
       );
     }
 
@@ -315,8 +445,8 @@ export class PartnershipService extends BaseService {
     const stats = await this.db
       .select({
         totalUsageCount: sql<number>`COUNT(${partnershipUsageLogs.id})`,
-        totalDiscountGiven: sql<number>`COALESCE(SUM(COALESCE(${partnershipUsageLogs.discountAmountCents}, CAST(round(${partnershipUsageLogs.discountAmount} * 100) AS integer))), 0) / 100.0`,
-        totalRevenue: sql<number>`COALESCE(SUM(COALESCE(${partnershipUsageLogs.finalAmountCents}, CAST(round(${partnershipUsageLogs.finalAmount} * 100) AS integer))), 0) / 100.0`,
+        totalDiscountGiven: sql<number>`COALESCE(SUM(COALESCE(${partnershipUsageLogs.discountAmountCents}, 0)), 0) / 100.0`,
+        totalRevenue: sql<number>`COALESCE(SUM(COALESCE(${partnershipUsageLogs.finalAmountCents}, 0)), 0) / 100.0`,
         uniqueMembers: sql<number>`COUNT(DISTINCT ${partnershipUsageLogs.memberId})`,
       })
       .from(partnershipUsageLogs)
@@ -354,24 +484,43 @@ export class PartnershipService extends BaseService {
   /**
    * 創建特約方案
    */
-  async createPlan(data: NewPartnershipPlan): Promise<PartnershipPlan> {
+  async createPlan(
+    data: NewPartnershipPlan & PartnershipPlanMoneyInput,
+  ): Promise<PartnershipPlan> {
+    const discountValueCents =
+      data.discountValue !== undefined
+        ? this.discountValueCents(data.discountType, data.discountValue)
+        : (data.discountValueCents ?? null);
+    const discountPercentageBps =
+      data.discountValue !== undefined
+        ? this.discountPercentageBps(data.discountType, data.discountValue)
+        : data.discountType === "percentage"
+          ? (data.discountPercentageBps ?? null)
+          : null;
+
     const [result] = await this.db
       .insert(partnershipPlans)
       .values({
-        ...data,
-        discountValueCents: this.discountValueCents(
-          data.discountType,
-          data.discountValue,
-        ),
-        discountPercentageBps: this.discountPercentageBps(
-          data.discountType,
-          data.discountValue,
-        ),
-        maxDiscountAmountCents: toCents(data.maxDiscountAmount),
-        minOrderAmountCents: toRequiredCents(data.minOrderAmount ?? 0),
-        maxOrderAmountCents: toCents(data.maxOrderAmount),
-        totalDiscountGivenCents: toRequiredCents(data.totalDiscountGiven ?? 0),
-        totalRevenueCents: toRequiredCents(data.totalRevenue ?? 0),
+        ...(this.toPlanInsert(data) as NewPartnershipPlan),
+        discountValueCents,
+        discountPercentageBps,
+        maxDiscountAmountCents:
+          data.maxDiscountAmount !== undefined
+            ? toCents(data.maxDiscountAmount)
+            : data.maxDiscountAmountCents,
+        minOrderAmountCents:
+          data.minOrderAmount !== undefined
+            ? toRequiredCents(data.minOrderAmount)
+            : (data.minOrderAmountCents ?? 0),
+        maxOrderAmountCents:
+          data.maxOrderAmount !== undefined
+            ? toCents(data.maxOrderAmount)
+            : data.maxOrderAmountCents,
+        totalDiscountGivenCents:
+          data.totalDiscountGivenCents ??
+          toRequiredCents(data.totalDiscountGiven ?? 0),
+        totalRevenueCents:
+          data.totalRevenueCents ?? toRequiredCents(data.totalRevenue ?? 0),
       })
       .returning();
     return result;
@@ -460,10 +609,10 @@ export class PartnershipService extends BaseService {
    */
   async updatePlan(
     id: string,
-    data: Partial<NewPartnershipPlan>,
+    data: Partial<NewPartnershipPlan> & PartnershipPlanMoneyInput,
   ): Promise<PartnershipPlan> {
     const updates: Partial<NewPartnershipPlan> = {
-      ...data,
+      ...this.toPlanInsert(data),
       updatedAt: new Date(),
     };
 
@@ -476,11 +625,21 @@ export class PartnershipService extends BaseService {
           : undefined;
       updates.discountValueCents = this.discountValueCents(
         data.discountType ?? current?.discountType,
-        data.discountValue ?? current?.discountValue,
+        data.discountValue ??
+          this.resolveDiscountValue(
+            current?.discountType,
+            current?.discountPercentageBps,
+            current?.discountValueCents,
+          ),
       );
       updates.discountPercentageBps = this.discountPercentageBps(
         data.discountType ?? current?.discountType,
-        data.discountValue ?? current?.discountValue,
+        data.discountValue ??
+          this.resolveDiscountValue(
+            current?.discountType,
+            current?.discountPercentageBps,
+            current?.discountValueCents,
+          ),
       );
     }
 
@@ -586,10 +745,8 @@ export class PartnershipService extends BaseService {
       }
 
       const orderAmountCents = toRequiredCents(orderAmount);
-      const minOrderAmountCents =
-        plan.minOrderAmountCents ?? toRequiredCents(plan.minOrderAmount ?? 0);
-      const maxOrderAmountCents =
-        plan.maxOrderAmountCents ?? toCents(plan.maxOrderAmount);
+      const minOrderAmountCents = plan.minOrderAmountCents ?? 0;
+      const maxOrderAmountCents = plan.maxOrderAmountCents;
 
       // 檢查最低消費金額
       if (minOrderAmountCents > 0 && orderAmountCents < minOrderAmountCents) {
@@ -636,32 +793,27 @@ export class PartnershipService extends BaseService {
       switch (plan.discountType) {
         case "percentage": {
           const discountPercentage =
-            percentageFromBps(plan.discountPercentageBps, plan.discountValue) ??
-            plan.discountValue;
+            percentageFromBps(plan.discountPercentageBps) ?? 0;
           discountAmountCents = Math.round(
             orderAmountCents * (discountPercentage / 100),
           );
-          if (plan.maxDiscountAmount || plan.maxDiscountAmountCents != null) {
-            const maxDiscountAmountCents =
-              plan.maxDiscountAmountCents ??
-              toRequiredCents(plan.maxDiscountAmount ?? 0);
-            if (discountAmountCents > maxDiscountAmountCents) {
-              discountAmountCents = maxDiscountAmountCents;
-            }
+          if (
+            plan.maxDiscountAmountCents != null &&
+            discountAmountCents > plan.maxDiscountAmountCents
+          ) {
+            discountAmountCents = plan.maxDiscountAmountCents;
           }
           break;
         }
 
         case "fixed":
-          discountAmountCents =
-            plan.discountValueCents ?? toRequiredCents(plan.discountValue);
+          discountAmountCents = plan.discountValueCents ?? 0;
           break;
 
         case "special_price":
           // 特價模式：折扣金額 = 原價 - 特價
           discountAmountCents =
-            orderAmountCents -
-            (plan.discountValueCents ?? toRequiredCents(plan.discountValue));
+            orderAmountCents - (plan.discountValueCents ?? 0);
           if (discountAmountCents < 0) discountAmountCents = 0;
           break;
       }
@@ -859,10 +1011,10 @@ export class PartnershipService extends BaseService {
    */
   async updateMember(
     id: string,
-    data: Partial<NewVerifiedMember>,
+    data: Partial<NewVerifiedMember> & VerifiedMemberMoneyInput,
   ): Promise<VerifiedMember> {
     const updates: Partial<NewVerifiedMember> = {
-      ...data,
+      ...this.toVerifiedMemberInsert(data),
       updatedAt: new Date(),
     };
 
@@ -897,11 +1049,13 @@ export class PartnershipService extends BaseService {
   /**
    * 記錄特約優惠使用
    */
-  async logUsage(data: NewPartnershipUsageLog): Promise<PartnershipUsageLog> {
+  async logUsage(
+    data: NewPartnershipUsageLog & UsageLogMoneyInput,
+  ): Promise<PartnershipUsageLog> {
     const [result] = await this.db
       .insert(partnershipUsageLogs)
       .values({
-        ...data,
+        ...(this.toUsageLogInsert(data) as NewPartnershipUsageLog),
         discountValueCents: this.discountValueCents(
           data.discountType,
           data.discountValue,

@@ -10,13 +10,7 @@
  * - shift_reports: 班次報表
  */
 
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { users } from "./users";
@@ -77,11 +71,6 @@ export const cashShifts = sqliteTable(
       .references(() => users.id),
 
     // 金額資訊
-    startAmount: real("start_amount").notNull(), // 開班現金
-    endAmount: real("end_amount"), // 結班現金（結班後填寫）
-    expectedAmount: real("expected_amount").notNull(), // 預期金額
-    actualAmount: real("actual_amount"), // 實際金額（結班後填寫）
-    differenceAmount: real("difference_amount").notNull().default(0), // 差額
     startAmountCents: integer("start_amount_cents"),
     endAmountCents: integer("end_amount_cents"),
     expectedAmountCents: integer("expected_amount_cents"),
@@ -89,11 +78,6 @@ export const cashShifts = sqliteTable(
     differenceAmountCents: integer("difference_amount_cents"),
 
     // 銷售統計
-    totalSales: real("total_sales").notNull().default(0),
-    totalRefunds: real("total_refunds").notNull().default(0),
-    cashSales: real("cash_sales").notNull().default(0),
-    cardSales: real("card_sales").notNull().default(0),
-    digitalSales: real("digital_sales").notNull().default(0),
     totalSalesCents: integer("total_sales_cents"),
     totalRefundsCents: integer("total_refunds_cents"),
     cashSalesCents: integer("cash_sales_cents"),
@@ -140,7 +124,6 @@ export const cashMovements = sqliteTable(
 
     // 操作類型
     type: text("type").notNull(), // sale, refund, cash_in, cash_out, count, opening, closing, adjustment, payout, deposit
-    amount: real("amount").notNull(),
     amountCents: integer("amount_cents"),
     description: text("description"),
 
@@ -244,8 +227,6 @@ export const refunds = sqliteTable(
     // 退款資訊
     refundNumber: text("refund_number").notNull().unique(),
     refundType: text("refund_type").notNull(), // full, partial, item, service
-    originalAmount: real("original_amount").notNull(),
-    refundAmount: real("refund_amount").notNull(),
     originalAmountCents: integer("original_amount_cents"),
     refundAmountCents: integer("refund_amount_cents"),
     refundMethod: text("refund_method").notNull(), // cash, card, original_method, etc.

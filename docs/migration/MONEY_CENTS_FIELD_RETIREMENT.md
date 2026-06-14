@@ -137,6 +137,26 @@ rtk pnpm exec wrangler d1 execute makanmasak-staging \
 Production must show the same zero-violation rollout rows before a destructive
 cutover migration is generated.
 
+## Final Cutover Migration
+
+The destructive cutover artifact is paired across both migration tracks:
+
+- Fresh track:
+  `packages/database/migrations_fresh/0070_money_cents_cutover.sql`
+- Legacy track:
+  `packages/database/migrations/0087_money_cents_cutover.sql`
+
+It repeats the rollout and percentage-bps assertions, drops legacy cents-sync
+triggers and legacy price indexes, removes only the retired legacy `REAL`
+money / polymorphic discount columns with `ALTER TABLE ... DROP COLUMN`, then
+recreates the price indexes on cents columns. It also keeps the partnership
+usage aggregate triggers, but rewrites them to update `*_cents` totals instead
+of retired legacy amount columns.
+
+The migration records row counts before and after the destructive step and
+asserts both unchanged row counts and an empty `pragma_foreign_key_check`
+result through `_migration_assert_money_cents_cutover`.
+
 ## Automated Guard Coverage
 
 `packages/database/src/testing/money-cents-retirement-rollout.test.ts` tracks

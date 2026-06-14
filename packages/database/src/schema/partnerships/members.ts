@@ -4,13 +4,7 @@
  */
 
 import { sql } from "drizzle-orm";
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { customers } from "../customers";
 import { users } from "../users";
@@ -88,8 +82,6 @@ export const verifiedMembers = sqliteTable(
 
     // 使用統計
     totalUsageCount: integer("total_usage_count").default(0),
-    totalDiscountReceived: real("total_discount_received").default(0),
-    totalSpending: real("total_spending").default(0),
     totalDiscountReceivedCents: integer("total_discount_received_cents"),
     totalSpendingCents: integer("total_spending_cents"),
     lastUsedAt: integer("last_used_at_ms", { mode: "timestamp_ms" }),

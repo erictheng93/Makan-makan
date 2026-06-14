@@ -106,8 +106,7 @@ export class PaymentService {
       );
     }
 
-    const serverTotal =
-      amountFromCents(existing.totalAmountCents, existing.totalAmount) ?? 0;
+    const serverTotal = amountFromCents(existing.totalAmountCents) ?? 0;
     if (input.expectedTotal !== undefined) {
       assertSameAmount(
         input.expectedTotal,

@@ -125,7 +125,7 @@ export class DiscoveryService {
       ? POST_FILTER_SCAN_LIMIT
       : limit;
     const queryOffset = requiresPostFilterPagination ? 0 : offset;
-    const effectivePrice = sql<number>`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer))`;
+    const effectivePrice = sql<number>`COALESCE(${dishSearchIndex.priceCents}, 0)`;
 
     const baseConditions: SQL[] = [
       eq(dishSearchIndex.isAvailable, true),
@@ -149,12 +149,12 @@ export class DiscoveryService {
     }
     if (filters.priceMin !== undefined) {
       baseConditions.push(
-        sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) >= ${toRequiredCents(filters.priceMin)}`,
+        sql`COALESCE(${dishSearchIndex.priceCents}, 0) >= ${toRequiredCents(filters.priceMin)}`,
       );
     }
     if (filters.priceMax !== undefined) {
       baseConditions.push(
-        sql`COALESCE(${dishSearchIndex.priceCents}, CAST(round(${dishSearchIndex.price} * 100) AS integer)) <= ${toRequiredCents(filters.priceMax)}`,
+        sql`COALESCE(${dishSearchIndex.priceCents}, 0) <= ${toRequiredCents(filters.priceMax)}`,
       );
     }
     if (filters.takeaway || serviceIntent === "takeaway") {
@@ -230,7 +230,6 @@ export class DiscoveryService {
         .select({
           menuItemId: dishSearchIndex.menuItemId,
           dishName: dishSearchIndex.dishName,
-          price: dishSearchIndex.price,
           priceCents: dishSearchIndex.priceCents,
           catalogType: dishSearchIndex.catalogType,
           categoryName: dishSearchIndex.categoryName,
@@ -313,7 +312,6 @@ export class DiscoveryService {
           .select({
             menuItemId: dishSearchIndex.menuItemId,
             dishName: dishSearchIndex.dishName,
-            price: dishSearchIndex.price,
             priceCents: dishSearchIndex.priceCents,
             catalogType: dishSearchIndex.catalogType,
             categoryName: dishSearchIndex.categoryName,
@@ -371,8 +369,7 @@ export class DiscoveryService {
       resultType: catalogResultTypeFromTags(row.tags, row.catalogType),
       menuItemId: row.menuItemId,
       dishName: row.dishName,
-      price:
-        row.priceCents != null ? fromCents(row.priceCents) : (row.price ?? 0),
+      price: row.priceCents != null ? fromCents(row.priceCents) : 0,
       priceCents: row.priceCents,
       priceLabel: null,
       categoryName: row.categoryName,
@@ -1069,7 +1066,6 @@ export class DiscoveryService {
       .select({
         menuItemId: dishSearchIndex.menuItemId,
         dishName: dishSearchIndex.dishName,
-        price: dishSearchIndex.price,
         priceCents: dishSearchIndex.priceCents,
         catalogType: dishSearchIndex.catalogType,
         categoryName: dishSearchIndex.categoryName,
@@ -1099,8 +1095,7 @@ export class DiscoveryService {
       resultType: catalogResultTypeFromTags(row.tags, row.catalogType),
       menuItemId: row.menuItemId,
       dishName: row.dishName,
-      price:
-        row.priceCents != null ? fromCents(row.priceCents) : (row.price ?? 0),
+      price: row.priceCents != null ? fromCents(row.priceCents) : 0,
       priceCents: row.priceCents,
       priceLabel: null,
       categoryName: row.categoryName,
@@ -1132,7 +1127,7 @@ export class DiscoveryService {
         name: menuItems.name,
         description: menuItems.description,
         catalogType: menuItems.catalogType,
-        price: sql<number>`COALESCE(${menuItems.priceCents}, CAST(round(${menuItems.price} * 100) AS integer)) / 100.0`,
+        price: sql<number>`COALESCE(${menuItems.priceCents}, 0) / 100.0`,
         is_available: menuItems.isAvailable,
         image_url: menuItems.imageUrl,
         category_name: categories.name,
@@ -1319,7 +1314,6 @@ export class DiscoveryService {
       .select({
         menuItemId: menuItems.id,
         name: menuItems.name,
-        price: menuItems.price,
         priceCents: menuItems.priceCents,
         catalogType: menuItems.catalogType,
         isAvailable: menuItems.isAvailable,
@@ -1394,7 +1388,7 @@ export class DiscoveryService {
             item.name,
             normalized,
             item.categoryName,
-            item.priceCents ?? toCents(item.price),
+            item.priceCents,
             item.catalogType ?? "menu_item",
             isAvailable ? 1 : 0,
             JSON.stringify(itemTags),
@@ -1433,7 +1427,6 @@ export class DiscoveryService {
         restaurantId: dishSearchIndex.restaurantId,
         dishName: dishSearchIndex.dishName,
         categoryName: dishSearchIndex.categoryName,
-        price: dishSearchIndex.price,
         priceCents: dishSearchIndex.priceCents,
         catalogType: dishSearchIndex.catalogType,
         tags: dishSearchIndex.tags,
@@ -1461,10 +1454,7 @@ export class DiscoveryService {
           menuItemId: row.menuItemId,
           restaurantId: row.restaurantId,
           dishName: row.dishName,
-          price:
-            row.priceCents != null
-              ? fromCents(row.priceCents)
-              : (row.price ?? 0),
+          price: row.priceCents != null ? fromCents(row.priceCents) : 0,
         });
       }
     }

@@ -122,17 +122,9 @@ type PreparedOrderItem = {
   };
 };
 
-function toFiniteNumber(value: number | string): number {
-  const amount = typeof value === "string" ? Number(value) : value;
-  if (!Number.isFinite(amount)) {
-    throw new Error("Money amount must be finite");
-  }
-  return amount;
-}
-
 function resolveMoneyCents(
   cents: number | string | null | undefined,
-  amount: number | string,
+  label: string,
 ): number {
   if (cents != null) {
     const normalizedCents = typeof cents === "string" ? Number(cents) : cents;
@@ -141,7 +133,7 @@ function resolveMoneyCents(
     }
   }
 
-  return toRequiredCents(toFiniteNumber(amount));
+  throw new Error(`${label} cents are required`);
 }
 
 function normalizeMoneyAmount(
@@ -458,9 +450,6 @@ export class OrderService extends BaseService {
       const taxRate = settings.taxRate || 0;
       const serviceChargeRate = settings.serviceChargeRate || 0;
       const {
-        taxAmount,
-        serviceCharge,
-        totalAmount,
         taxAmountCents,
         serviceChargeCents,
         discountAmountCents,
@@ -493,11 +482,6 @@ export class OrderService extends BaseService {
             waitingListId: data.waitingListId,
             orderNumber,
             orderType: data.orderType,
-            subtotal,
-            taxAmount,
-            serviceCharge,
-            discountAmount,
-            totalAmount,
             subtotalCents,
             taxAmountCents,
             serviceChargeCents,
@@ -518,7 +502,7 @@ export class OrderService extends BaseService {
           .insert(orderItems)
           .values(
             orderItemsData.map((item) => ({
-              ...item,
+              ...this.toOrderItemInsert(item),
               orderId: orderIdRef as unknown as number,
             })),
           )
@@ -563,12 +547,9 @@ export class OrderService extends BaseService {
             couponId: validatedCoupon.id,
             orderId: orderIdRef as unknown as number,
             userId: data.couponUserId,
-            discountAmount,
-            originalAmount: subtotal,
-            finalAmount: totalAmount,
             discountAmountCents: toRequiredCents(discountAmount),
             originalAmountCents: toRequiredCents(subtotal),
-            finalAmountCents: toRequiredCents(totalAmount),
+            finalAmountCents: totalAmountCents,
             status: "active",
           }),
         );
@@ -839,19 +820,19 @@ export class OrderService extends BaseService {
 
       const currentSubtotalCents = resolveMoneyCents(
         existingOrder.subtotalCents,
-        existingOrder.subtotal,
+        "Order subtotal",
       );
       const currentTaxCents = resolveMoneyCents(
         existingOrder.taxAmountCents,
-        existingOrder.taxAmount,
+        "Order tax amount",
       );
       const currentServiceChargeCents = resolveMoneyCents(
         existingOrder.serviceChargeCents,
-        existingOrder.serviceCharge,
+        "Order service charge",
       );
       const currentDiscountCents = resolveMoneyCents(
         existingOrder.discountAmountCents,
-        existingOrder.discountAmount,
+        "Order discount amount",
       );
       const taxRate =
         currentSubtotalCents > 0 ? currentTaxCents / currentSubtotalCents : 0;
@@ -861,10 +842,6 @@ export class OrderService extends BaseService {
           : 0;
       const nextSubtotal = fromCents(currentSubtotalCents + addedSubtotalCents);
       const {
-        subtotal,
-        taxAmount,
-        serviceCharge,
-        totalAmount,
         subtotalCents,
         taxAmountCents,
         serviceChargeCents,
@@ -931,7 +908,7 @@ export class OrderService extends BaseService {
           .insert(orderItems)
           .values(
             orderItemsData.map((item) => ({
-              ...item,
+              ...this.toOrderItemInsert(item),
               orderId: id,
             })),
           )
@@ -939,10 +916,6 @@ export class OrderService extends BaseService {
         this.db
           .update(orders)
           .set({
-            subtotal,
-            taxAmount,
-            serviceCharge,
-            totalAmount,
             subtotalCents,
             taxAmountCents,
             serviceChargeCents,
@@ -1266,8 +1239,8 @@ export class OrderService extends BaseService {
       const stats = await this.db
         .select({
           totalOrders: count(),
-          totalRevenue: sql<number>`SUM(COALESCE(${orders.totalAmountCents}, CAST(round(${orders.totalAmount} * 100) AS integer))) / 100.0`,
-          avgOrderValue: sql<number>`AVG(COALESCE(${orders.totalAmountCents}, CAST(round(${orders.totalAmount} * 100) AS integer))) / 100.0`,
+          totalRevenue: sql<number>`SUM(COALESCE(${orders.totalAmountCents}, 0)) / 100.0`,
+          avgOrderValue: sql<number>`AVG(COALESCE(${orders.totalAmountCents}, 0)) / 100.0`,
           pendingOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'pending' THEN 1 ELSE 0 END)`,
           confirmedOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'confirmed' THEN 1 ELSE 0 END)`,
           completedOrders: sql<number>`SUM(CASE WHEN ${orders.status} IN ('delivered', 'paid') THEN 1 ELSE 0 END)`,
@@ -1375,7 +1348,7 @@ export class OrderService extends BaseService {
 
       let unitPriceCents = resolveMoneyCents(
         menuItem.priceCents,
-        menuItem.price,
+        `Menu item ${menuItem.id} price`,
       );
       const { customizations, additionalUnitPriceCents } =
         resolveCatalogCustomizations(menuItem, item.customizations);
@@ -1400,7 +1373,7 @@ export class OrderService extends BaseService {
           description: menuItem.description || undefined,
           imageUrl: menuItem.imageUrl || undefined,
           category: String(menuItem.categoryId),
-          price: amountFromCents(menuItem.priceCents, menuItem.price) ?? 0,
+          price: amountFromCents(menuItem.priceCents) ?? 0,
           unitPrice,
           customizations,
         },
@@ -1437,6 +1410,13 @@ export class OrderService extends BaseService {
     return Math.ceil(Math.max(maxPrepTime, totalComplexity * 10));
   }
 
+  private toOrderItemInsert(item: PreparedOrderItem) {
+    const { unitPrice, totalPrice, ...insertItem } = item;
+    void unitPrice;
+    void totalPrice;
+    return insertItem;
+  }
+
   // 資料轉換
   private mapToOrder(order: any): Order {
     const mapOrderItem = (item: any) => {
@@ -1447,9 +1427,7 @@ export class OrderService extends BaseService {
             name: snapshot.name,
             description: snapshot.description,
             imageUrl: snapshot.imageUrl,
-            price:
-              snapshot.price ??
-              amountFromCents(item.unitPriceCents, item.unitPrice),
+            price: snapshot.price ?? amountFromCents(item.unitPriceCents),
           }
         : item.menuItem;
 
@@ -1461,8 +1439,8 @@ export class OrderService extends BaseService {
         description: snapshot?.description ?? item.menuItem?.description,
         imageUrl: snapshot?.imageUrl ?? item.menuItem?.imageUrl,
         quantity: item.quantity,
-        unitPrice: amountFromCents(item.unitPriceCents, item.unitPrice),
-        totalPrice: amountFromCents(item.totalPriceCents, item.totalPrice),
+        unitPrice: amountFromCents(item.unitPriceCents),
+        totalPrice: amountFromCents(item.totalPriceCents),
         customizations: item.customizations,
         itemSnapshot: snapshot,
         notes: item.notes,
@@ -1484,17 +1462,11 @@ export class OrderService extends BaseService {
       status: order.status,
       version: order.version,
       orderSource: order.orderSource,
-      subtotal: amountFromCents(order.subtotalCents, order.subtotal),
-      taxAmount: amountFromCents(order.taxAmountCents, order.taxAmount),
-      serviceCharge: amountFromCents(
-        order.serviceChargeCents,
-        order.serviceCharge,
-      ),
-      discountAmount: amountFromCents(
-        order.discountAmountCents,
-        order.discountAmount,
-      ),
-      totalAmount: amountFromCents(order.totalAmountCents, order.totalAmount),
+      subtotal: amountFromCents(order.subtotalCents),
+      taxAmount: amountFromCents(order.taxAmountCents),
+      serviceCharge: amountFromCents(order.serviceChargeCents),
+      discountAmount: amountFromCents(order.discountAmountCents),
+      totalAmount: amountFromCents(order.totalAmountCents),
       customerInfo: order.customerInfo,
       estimatedPrepTime: order.estimatedPrepTime,
       actualPrepTime: order.actualPrepTime,

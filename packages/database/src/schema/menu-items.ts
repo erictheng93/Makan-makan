@@ -25,9 +25,6 @@ export const menuItems = sqliteTable(
     ingredients: text("ingredients"), // 食材列表
 
     // 價格資訊
-    price: real("price").notNull(),
-    originalPrice: real("original_price"), // 原價（用於促銷）
-    costPrice: real("cost_price"), // 成本價
     priceCents: integer("price_cents"),
     originalPriceCents: integer("original_price_cents"),
     costPriceCents: integer("cost_price_cents"),
@@ -166,7 +163,7 @@ export const menuItems = sqliteTable(
     ),
     priceRangeIdx: index("menu_items_price_range_idx").on(
       table.restaurantId,
-      table.price,
+      table.priceCents,
     ),
     availabilityIdx: index("menu_items_availability_idx").on(
       table.isAvailable,

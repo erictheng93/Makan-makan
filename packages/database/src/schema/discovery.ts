@@ -19,7 +19,6 @@ export const dishSearchIndex = sqliteTable(
     dishName: text("dish_name").notNull(),
     dishNameNormalized: text("dish_name_normalized").notNull(),
     categoryName: text("category_name"),
-    price: real("price"),
     priceCents: integer("price_cents"),
     catalogType: text("catalog_type")
       .$type<"menu_item" | "product">()
@@ -55,7 +54,7 @@ export const dishSearchIndex = sqliteTable(
       table.isAvailable,
     ),
     priceAvailableIdx: index("dish_search_price_available_idx").on(
-      table.price,
+      table.priceCents,
       table.isAvailable,
     ),
     districtAvailableIdx: index("dish_search_district_available_idx").on(

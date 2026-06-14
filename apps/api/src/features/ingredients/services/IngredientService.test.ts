@@ -226,7 +226,6 @@ describe("IngredientService", () => {
         name: "Noodles",
         unit: "pack",
         category: "Dry goods",
-        costPerUnit: 12.5,
         costPerUnitCents: 1250,
         supplier: "Vendor",
         minStockLevel: 3,
@@ -239,13 +238,11 @@ describe("IngredientService", () => {
         expect.objectContaining({
           restaurantId: "restaurant-1",
           name: "Salt",
-          costPerUnit: 0.25,
           costPerUnitCents: 25,
         }),
         expect.objectContaining({
           restaurantId: "restaurant-1",
           name: "Water",
-          costPerUnit: null,
           costPerUnitCents: null,
         }),
       ],
@@ -297,7 +294,6 @@ describe("IngredientService", () => {
       expect.objectContaining({
         name: "Brown Rice",
         category: null,
-        costPerUnit: null,
         costPerUnitCents: null,
         supplier: null,
         minStockLevel: null,

@@ -929,10 +929,7 @@ export class TableService extends BaseService {
           id: orders.id,
           orderNumber: orders.orderNumber,
           status: orders.status,
-          totalAmount: moneyAmountExpression(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
+          totalAmount: moneyAmountExpression(orders.totalAmountCents),
           customerInfo: orders.customerInfo,
           createdAt: orders.createdAt,
           confirmedAt: orders.confirmedAt,

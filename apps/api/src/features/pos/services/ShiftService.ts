@@ -11,7 +11,7 @@ import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 
 function amountFromCents(
   cents: number | null | undefined,
-  fallback: number | null | undefined,
+  fallback?: number | null | undefined,
 ): number | null {
   return cents == null ? (fallback ?? null) : fromCents(cents);
 }
@@ -34,25 +34,16 @@ export class ShiftService {
       id: shift.id,
       registerId: shift.registerId,
       operatorId: shift.operatorId,
-      startAmount:
-        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0,
-      endAmount:
-        amountFromCents(shift.endAmountCents, shift.endAmount) ?? undefined,
-      expectedAmount:
-        amountFromCents(shift.expectedAmountCents, shift.expectedAmount) ?? 0,
-      actualAmount:
-        amountFromCents(shift.actualAmountCents, shift.actualAmount) ??
-        undefined,
-      differenceAmount:
-        amountFromCents(shift.differenceAmountCents, shift.differenceAmount) ??
-        0,
-      totalSales: amountFromCents(shift.totalSalesCents, shift.totalSales) ?? 0,
-      totalRefunds:
-        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0,
-      cashSales: amountFromCents(shift.cashSalesCents, shift.cashSales) ?? 0,
-      cardSales: amountFromCents(shift.cardSalesCents, shift.cardSales) ?? 0,
-      digitalSales:
-        amountFromCents(shift.digitalSalesCents, shift.digitalSales) ?? 0,
+      startAmount: amountFromCents(shift.startAmountCents) ?? 0,
+      endAmount: amountFromCents(shift.endAmountCents) ?? undefined,
+      expectedAmount: amountFromCents(shift.expectedAmountCents) ?? 0,
+      actualAmount: amountFromCents(shift.actualAmountCents) ?? undefined,
+      differenceAmount: amountFromCents(shift.differenceAmountCents) ?? 0,
+      totalSales: amountFromCents(shift.totalSalesCents) ?? 0,
+      totalRefunds: amountFromCents(shift.totalRefundsCents) ?? 0,
+      cashSales: amountFromCents(shift.cashSalesCents) ?? 0,
+      cardSales: amountFromCents(shift.cardSalesCents) ?? 0,
+      digitalSales: amountFromCents(shift.digitalSalesCents) ?? 0,
       totalTransactions: shift.totalTransactions,
       startedAt: shift.startedAt,
       endedAt: shift.endedAt ?? undefined,
@@ -97,20 +88,13 @@ export class ShiftService {
         id: shiftId,
         registerId: validatedData.registerId,
         operatorId: validatedData.operatorId,
-        startAmount: validatedData.startAmount,
         startAmountCents: toRequiredCents(validatedData.startAmount),
-        expectedAmount: validatedData.startAmount,
         expectedAmountCents: toRequiredCents(validatedData.startAmount),
         differenceAmountCents: 0,
-        totalSales: 0,
         totalSalesCents: 0,
-        totalRefunds: 0,
         totalRefundsCents: 0,
-        cashSales: 0,
         cashSalesCents: 0,
-        cardSales: 0,
         cardSalesCents: 0,
-        digitalSales: 0,
         digitalSalesCents: 0,
         totalTransactions: 0,
         startedAt,
@@ -181,12 +165,9 @@ export class ShiftService {
       }
 
       // 計算預期金額
-      const startAmount =
-        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0;
-      const totalSales =
-        amountFromCents(shift.totalSalesCents, shift.totalSales) ?? 0;
-      const totalRefunds =
-        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0;
+      const startAmount = amountFromCents(shift.startAmountCents) ?? 0;
+      const totalSales = amountFromCents(shift.totalSalesCents) ?? 0;
+      const totalRefunds = amountFromCents(shift.totalRefundsCents) ?? 0;
       const expectedAmount = startAmount + totalSales - totalRefunds;
       const differenceAmount = validatedData.actualAmount - expectedAmount;
 
@@ -195,13 +176,9 @@ export class ShiftService {
       await this.db
         .update(cashShifts)
         .set({
-          endAmount: validatedData.actualAmount,
           endAmountCents: toRequiredCents(validatedData.actualAmount),
-          actualAmount: validatedData.actualAmount,
           actualAmountCents: toRequiredCents(validatedData.actualAmount),
-          expectedAmount,
           expectedAmountCents: toRequiredCents(expectedAmount),
-          differenceAmount,
           differenceAmountCents: toRequiredCents(differenceAmount),
           endedAt,
           status: "closed",
@@ -358,7 +335,6 @@ export class ShiftService {
       shiftId,
       registerId: shift.registerId,
       type: movement.type,
-      amount: movement.amount,
       amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId || null,

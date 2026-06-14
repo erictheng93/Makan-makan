@@ -22,11 +22,7 @@ import {
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
-import {
-  fromCents,
-  percentageFromBps,
-  toCents,
-} from "../../../shared/utils/money";
+import { fromCents, percentageFromBps } from "../../../shared/utils/money";
 
 export interface VoucherChildOrder {
   orderId: number;
@@ -96,8 +92,7 @@ export class MarketCheckoutVoucherService {
     let discountCents: number;
     if (coupon.discountType === "percentage") {
       const discountPercentage =
-        percentageFromBps(coupon.discountPercentageBps, coupon.discountValue) ??
-        coupon.discountValue;
+        percentageFromBps(coupon.discountPercentageBps) ?? 0;
       discountCents = Math.round(subtotalCents * (discountPercentage / 100));
       if (
         coupon.maxDiscountAmountCents != null &&
@@ -221,8 +216,7 @@ export class MarketCheckoutVoucherService {
       );
     }
 
-    const minOrderCents =
-      coupon.minOrderAmountCents ?? toCents(coupon.minOrderAmount) ?? 0;
+    const minOrderCents = coupon.minOrderAmountCents ?? 0;
     if (applicableSubtotalCents < minOrderCents) {
       throw badRequest(
         `This voucher requires a minimum order of ${fromCents(minOrderCents)}`,
@@ -233,12 +227,10 @@ export class MarketCheckoutVoucherService {
     const discountCents = MarketCheckoutVoucherService.computeDiscountCents(
       {
         discountType: coupon.discountType,
-        discountValue: coupon.discountValue,
+        discountValue: 0,
         discountPercentageBps: coupon.discountPercentageBps,
-        discountValueCents:
-          coupon.discountValueCents ?? toCents(coupon.discountValue),
-        maxDiscountAmountCents:
-          coupon.maxDiscountAmountCents ?? toCents(coupon.maxDiscountAmount),
+        discountValueCents: coupon.discountValueCents,
+        maxDiscountAmountCents: coupon.maxDiscountAmountCents,
       },
       applicableSubtotalCents,
     );
@@ -309,9 +301,6 @@ export class MarketCheckoutVoucherService {
           .values({
             couponId: applied.couponId,
             orderId: alloc.orderId,
-            discountAmount: fromCents(alloc.discountCents),
-            originalAmount: fromCents(alloc.amountCents),
-            finalAmount: fromCents(finalCents),
             discountAmountCents: alloc.discountCents,
             originalAmountCents: alloc.amountCents,
             finalAmountCents: finalCents,

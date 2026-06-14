@@ -4,13 +4,7 @@
  */
 
 import { sql } from "drizzle-orm";
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { users } from "../users";
 import { partnershipPlans } from "./plans";
@@ -106,15 +100,12 @@ export const partnerships = sqliteTable(
     defaultDiscountType: text("default_discount_type").$type<
       "percentage" | "fixed"
     >(),
-    defaultDiscountValue: real("default_discount_value"),
     defaultDiscountPercentageBps: integer("default_discount_percentage_bps"),
     defaultDiscountValueCents: integer("default_discount_value_cents"),
 
     // 統計資料
     totalVerifiedMembers: integer("total_verified_members").default(0),
     totalUsageCount: integer("total_usage_count").default(0),
-    totalDiscountGiven: real("total_discount_given").default(0),
-    totalRevenue: real("total_revenue").default(0),
     totalDiscountGivenCents: integer("total_discount_given_cents"),
     totalRevenueCents: integer("total_revenue_cents"),
 

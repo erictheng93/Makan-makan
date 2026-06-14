@@ -9,7 +9,6 @@ import {
   restaurantMarketMemberships,
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
-import { toCents } from "../../../shared/utils/money";
 import { normalizeSearchTags } from "../utils/search-normalization";
 
 const KV_SEARCH_VERSION_KEY = "search:query:version";
@@ -50,7 +49,6 @@ export class SearchIndexSyncService {
       .select({
         id: menuItems.id,
         name: menuItems.name,
-        price: menuItems.price,
         priceCents: menuItems.priceCents,
         catalogType: menuItems.catalogType,
         isAvailable: menuItems.isAvailable,
@@ -124,8 +122,7 @@ export class SearchIndexSyncService {
         dishName: item.name,
         dishNameNormalized: normalized,
         categoryName: item.categoryName,
-        price: item.price,
-        priceCents: item.priceCents ?? toCents(item.price),
+        priceCents: item.priceCents,
         catalogType: item.catalogType ?? "menu_item",
         isAvailable,
         tags,
@@ -146,8 +143,7 @@ export class SearchIndexSyncService {
           dishName: item.name,
           dishNameNormalized: normalized,
           categoryName: item.categoryName,
-          price: item.price,
-          priceCents: item.priceCents ?? toCents(item.price),
+          priceCents: item.priceCents,
           catalogType: item.catalogType ?? "menu_item",
           isAvailable,
           tags,

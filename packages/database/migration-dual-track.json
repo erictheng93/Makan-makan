@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0069_discount_percentage_bps.sql",
-    "legacy": "0086_discount_percentage_bps.sql"
+    "fresh": "0070_money_cents_cutover.sql",
+    "legacy": "0087_money_cents_cutover.sql"
   },
   "pairs": [
     {
@@ -25,6 +25,11 @@
       "fresh": "0069_discount_percentage_bps.sql",
       "legacy": "0086_discount_percentage_bps.sql",
       "reason": "Percentage discount values are preserved in explicit basis-point columns before polymorphic discount_value REAL columns are retired."
+    },
+    {
+      "fresh": "0070_money_cents_cutover.sql",
+      "legacy": "0087_money_cents_cutover.sql",
+      "reason": "Money cents cutover removes legacy REAL money columns after clean rollout and percentage-bps audit gates, retaining cents and basis-point columns only."
     }
   ],
   "freshOnly": [

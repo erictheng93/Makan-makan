@@ -2,7 +2,6 @@ import {
   sqliteTable,
   text,
   integer,
-  real,
   index,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
@@ -73,11 +72,6 @@ export const orders = sqliteTable(
       .default("direct"),
 
     // 金額資訊
-    subtotal: real("subtotal").notNull(), // 小計
-    taxAmount: real("tax_amount").notNull().default(0), // 稅額
-    serviceCharge: real("service_charge").notNull().default(0), // 服務費
-    discountAmount: real("discount_amount").notNull().default(0), // 折扣金額
-    totalAmount: real("total_amount").notNull(), // 總金額
     subtotalCents: integer("subtotal_cents"),
     taxAmountCents: integer("tax_amount_cents"),
     serviceChargeCents: integer("service_charge_cents"),
@@ -127,7 +121,6 @@ export const orders = sqliteTable(
 
     // 取消資訊
     cancellationReason: text("cancellation_reason"),
-    refundAmount: real("refund_amount"),
     refundAmountCents: integer("refund_amount_cents"),
 
     // 配送資訊（外送使用）

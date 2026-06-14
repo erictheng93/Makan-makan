@@ -665,7 +665,6 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(updateDb.updates[0].payload).toMatchObject({
       quantity: 3,
       totalPriceCents: 3750,
-      totalPrice: 37.5,
       specialInstructions: "Extra soup",
     });
   });
@@ -738,7 +737,15 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     const fallbackDb = createDb([
       [baseGroupOrder],
       [hostMember],
-      [{ id: 10, restaurantId: "restaurant-1", name: "Laksa", price: 9 }],
+      [
+        {
+          id: 10,
+          restaurantId: "restaurant-1",
+          name: "Laksa",
+          price: 999,
+          priceCents: 900,
+        },
+      ],
       [{ total: 9 }],
       [],
       [{ total: 9 }],
@@ -955,8 +962,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           memberId: "member-1",
           menuItemId: 10,
           quantity: 2,
-          unitPrice: 9,
-          totalPrice: 18,
+          unitPrice: 999,
+          unitPriceCents: 900,
+          totalPrice: 999,
+          totalPriceCents: 1800,
           status: "active",
         },
       ],

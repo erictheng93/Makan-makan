@@ -184,12 +184,9 @@ export class AnalyticsService extends BaseService {
       const revenueData = await this.db
         .select({
           date: sql<string>`${dateGroupSql}`,
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(orders.id),
-          averageOrderValue: avgMoneyAmount(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
+          averageOrderValue: avgMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -233,14 +230,8 @@ export class AnalyticsService extends BaseService {
       const [orderStats] = await this.db
         .select({
           totalOrders: count(),
-          totalRevenue: sumMoneyAmount(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
-          averageOrderValue: avgMoneyAmount(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
+          totalRevenue: sumMoneyAmount(orders.totalAmountCents),
+          averageOrderValue: avgMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
@@ -333,10 +324,7 @@ export class AnalyticsService extends BaseService {
           itemName: menuItems.name,
           categoryName: categories.name,
           quantity: sum(orderItems.quantity),
-          revenue: sumMoneyAmount(
-            orderItems.totalPriceCents,
-            orderItems.totalPrice,
-          ),
+          revenue: sumMoneyAmount(orderItems.totalPriceCents),
         })
         .from(orderItems)
         .innerJoin(orders, eq(orderItems.orderId, orders.id))
@@ -353,10 +341,7 @@ export class AnalyticsService extends BaseService {
           categoryId: categories.id,
           categoryName: categories.name,
           quantity: sum(orderItems.quantity),
-          revenue: sumMoneyAmount(
-            orderItems.totalPriceCents,
-            orderItems.totalPrice,
-          ),
+          revenue: sumMoneyAmount(orderItems.totalPriceCents),
           itemCount: count(sql`DISTINCT ${menuItems.id}`),
         })
         .from(orderItems)
@@ -365,11 +350,7 @@ export class AnalyticsService extends BaseService {
         .innerJoin(categories, eq(menuItems.categoryId, categories.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .groupBy(categories.id, categories.name)
-        .orderBy(
-          desc(
-            sumMoneyAmount(orderItems.totalPriceCents, orderItems.totalPrice),
-          ),
-        );
+        .orderBy(desc(sumMoneyAmount(orderItems.totalPriceCents)));
 
       // 表現差的菜品（近期很少被點）
       const lowPerformingItems = await this.db
@@ -482,7 +463,7 @@ export class AnalyticsService extends BaseService {
         })
         .from(
           sql`(
-            SELECT customer_id, SUM(COALESCE(total_amount_cents, CAST(round(total_amount * 100) AS integer))) / 100.0 as total_spent
+            SELECT customer_id, SUM(COALESCE(total_amount_cents, 0)) / 100.0 as total_spent
             FROM orders 
             WHERE customer_id IS NOT NULL AND status IN ('paid', 'delivered', 'served')
             GROUP BY customer_id
@@ -495,10 +476,7 @@ export class AnalyticsService extends BaseService {
           customerId: orders.customerId,
           customerName: customers.displayName,
           totalOrders: count(),
-          totalSpent: sumMoneyAmount(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
+          totalSpent: sumMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
         .innerJoin(customers, eq(orders.customerId, customers.id))
@@ -506,9 +484,7 @@ export class AnalyticsService extends BaseService {
           and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
         )
         .groupBy(orders.customerId, customers.displayName)
-        .orderBy(
-          desc(sumMoneyAmount(orders.totalAmountCents, orders.totalAmount)),
-        )
+        .orderBy(desc(sumMoneyAmount(orders.totalAmountCents)))
         .limit(limit);
 
       return {
@@ -558,10 +534,7 @@ export class AnalyticsService extends BaseService {
             END
           `,
           averageOccupancyTime: tables.averageOccupancyMinutes,
-          totalRevenue: sumMoneyAmount(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
+          totalRevenue: sumMoneyAmount(orders.totalAmountCents),
         })
         .from(tables)
         .leftJoin(orders, eq(tables.id, orders.tableId))
@@ -572,9 +545,7 @@ export class AnalyticsService extends BaseService {
           tables.averageOccupancyMinutes,
           tables.totalUsage,
         )
-        .orderBy(
-          desc(sumMoneyAmount(orders.totalAmountCents, orders.totalAmount)),
-        );
+        .orderBy(desc(sumMoneyAmount(orders.totalAmountCents)));
 
       // 高峰時段 (createdAt is Unix ms, divide by 1000 for strftime)
       const peakHours = await this.db
@@ -674,7 +645,7 @@ export class AnalyticsService extends BaseService {
       // 今日營收和訂單數
       const [todayStats] = await this.db
         .select({
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(),
         })
         .from(orders)
@@ -688,7 +659,7 @@ export class AnalyticsService extends BaseService {
 
       const [todayRevenueRow] = await this.db
         .select({
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
         .where(
@@ -702,7 +673,7 @@ export class AnalyticsService extends BaseService {
       // 本月營收和訂單數
       const [monthStats] = await this.db
         .select({
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(),
         })
         .from(orders)
@@ -716,7 +687,7 @@ export class AnalyticsService extends BaseService {
 
       const [monthRevenueRow] = await this.db
         .select({
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
         .where(
@@ -730,7 +701,7 @@ export class AnalyticsService extends BaseService {
       // 上月資料（用於計算成長率）
       const [lastMonthStats] = await this.db
         .select({
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(),
         })
         .from(orders)
@@ -744,7 +715,7 @@ export class AnalyticsService extends BaseService {
 
       const [lastMonthRevenueRow] = await this.db
         .select({
-          revenue: sumMoneyAmount(orders.totalAmountCents, orders.totalAmount),
+          revenue: sumMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
         .where(
@@ -771,10 +742,7 @@ export class AnalyticsService extends BaseService {
           id: orders.id,
           orderNumber: orders.orderNumber,
           status: orders.status,
-          totalAmount: moneyAmountExpression(
-            orders.totalAmountCents,
-            orders.totalAmount,
-          ),
+          totalAmount: moneyAmountExpression(orders.totalAmountCents),
           customerInfo: orders.customerInfo,
           tableNumber: tables.number,
           createdAt: orders.createdAt,
@@ -791,10 +759,7 @@ export class AnalyticsService extends BaseService {
           itemId: menuItems.id,
           itemName: menuItems.name,
           quantity: sum(orderItems.quantity),
-          revenue: sumMoneyAmount(
-            orderItems.totalPriceCents,
-            orderItems.totalPrice,
-          ),
+          revenue: sumMoneyAmount(orderItems.totalPriceCents),
         })
         .from(orderItems)
         .innerJoin(orders, eq(orderItems.orderId, orders.id))

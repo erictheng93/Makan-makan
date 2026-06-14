@@ -212,7 +212,6 @@ export class CashMovementService {
       shiftId,
       registerId,
       type: movement.type,
-      amount: movement.amount,
       amountCents: toRequiredCents(movement.amount),
       description: movement.description,
       referenceId: movement.referenceId || null,

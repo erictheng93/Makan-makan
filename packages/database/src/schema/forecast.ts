@@ -57,7 +57,6 @@ export const ingredientDefinitions = sqliteTable(
     name: text("name").notNull(),
     unit: text("unit").notNull(), // 'kg', '份', 'ml', etc.
     category: text("category"), // '肉類', '蔬菜', '調味料'
-    costPerUnit: real("cost_per_unit"),
     costPerUnitCents: integer("cost_per_unit_cents"),
     supplier: text("supplier"),
     minStockLevel: real("min_stock_level"),

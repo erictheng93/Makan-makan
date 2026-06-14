@@ -13,7 +13,7 @@ import type {
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
-import { fromCents, toRequiredCents } from "../../../shared/utils/money";
+import { toRequiredCents } from "../../../shared/utils/money";
 
 export class PlatformOrderService {
   private db;
@@ -72,11 +72,6 @@ export class PlatformOrderService {
           type: "delivery" as const,
           address: parsedOrder.deliveryAddress,
         },
-        totalAmount: parsedOrder.totalAmount,
-        subtotal: parsedOrder.subtotal,
-        taxAmount: parsedOrder.taxAmount,
-        serviceCharge: fromCents(serviceChargeCents),
-        discountAmount: fromCents(discountAmountCents),
         totalAmountCents,
         subtotalCents,
         taxAmountCents,
@@ -100,8 +95,6 @@ export class PlatformOrderService {
         orderId,
         menuItemId,
         quantity: item.quantity,
-        unitPrice: fromCents(unitPriceCents),
-        totalPrice: fromCents(totalPriceCents),
         unitPriceCents,
         totalPriceCents,
         itemSnapshot: { name: item.name },

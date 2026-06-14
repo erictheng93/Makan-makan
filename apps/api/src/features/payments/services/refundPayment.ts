@@ -46,9 +46,7 @@ export async function refundPaymentTransaction(
     .select({
       id: orders.id,
       restaurantId: orders.restaurantId,
-      totalAmount: orders.totalAmount,
       totalAmountCents: orders.totalAmountCents,
-      refundAmount: orders.refundAmount,
       refundAmountCents: orders.refundAmountCents,
       paymentMethod: orders.paymentMethod,
       paymentStatus: orders.paymentStatus,
@@ -75,11 +73,9 @@ export async function refundPaymentTransaction(
     );
   }
 
-  const paymentTotal =
-    amountFromCents(row.totalAmountCents, row.totalAmount) ?? 0;
+  const paymentTotal = amountFromCents(row.totalAmountCents) ?? 0;
   const refundAmount = input.amount ?? paymentTotal;
-  const currentRefundTotal =
-    amountFromCents(row.refundAmountCents, row.refundAmount) ?? 0;
+  const currentRefundTotal = amountFromCents(row.refundAmountCents) ?? 0;
   const nextRefundTotal = currentRefundTotal + refundAmount;
 
   if (cents(nextRefundTotal) > cents(paymentTotal)) {
@@ -97,14 +93,13 @@ export async function refundPaymentTransaction(
   const timestamp = new Date(now);
   const refundAmountCents = cents(refundAmount);
 
-  const currentRefundCentsSql = sql<number>`COALESCE(${orders.refundAmountCents}, ROUND(COALESCE(${orders.refundAmount}, 0) * 100))`;
-  const totalAmountCentsSql = sql<number>`COALESCE(${orders.totalAmountCents}, ROUND(${orders.totalAmount} * 100))`;
+  const currentRefundCentsSql = sql<number>`COALESCE(${orders.refundAmountCents}, 0)`;
+  const totalAmountCentsSql = sql<number>`COALESCE(${orders.totalAmountCents}, 0)`;
   const updateResult = await db
     .update(orders)
     .set({
       paymentStatus,
       refundAmountCents: sql`${currentRefundCentsSql} + ${refundAmountCents}`,
-      refundAmount: sql`(${currentRefundCentsSql} + ${refundAmountCents}) / 100.0`,
       status: isFullRefund ? "refunded" : sql`${orders.status}`,
       updatedAt: timestamp,
     })

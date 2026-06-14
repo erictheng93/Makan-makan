@@ -4,13 +4,7 @@
  */
 
 import { sql } from "drizzle-orm";
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "../restaurants";
 import { users } from "../users";
@@ -59,15 +53,11 @@ export const partnershipPlans = sqliteTable(
 
     // 折扣設定
     discountType: text("discount_type").notNull().$type<PlanDiscountType>(),
-    discountValue: real("discount_value").notNull(),
-    maxDiscountAmount: real("max_discount_amount"),
     discountPercentageBps: integer("discount_percentage_bps"),
     discountValueCents: integer("discount_value_cents"),
     maxDiscountAmountCents: integer("max_discount_amount_cents"),
 
     // 使用條件
-    minOrderAmount: real("min_order_amount").default(0),
-    maxOrderAmount: real("max_order_amount"),
     minOrderAmountCents: integer("min_order_amount_cents"),
     maxOrderAmountCents: integer("max_order_amount_cents"),
     applicableMenuItems: text("applicable_menu_items", { mode: "json" })
@@ -119,8 +109,6 @@ export const partnershipPlans = sqliteTable(
     showOnMenu: integer("show_on_menu", { mode: "boolean" }).default(true),
 
     // 統計資料
-    totalDiscountGiven: real("total_discount_given").default(0),
-    totalRevenue: real("total_revenue").default(0),
     totalDiscountGivenCents: integer("total_discount_given_cents"),
     totalRevenueCents: integer("total_revenue_cents"),
 

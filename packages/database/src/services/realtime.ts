@@ -253,7 +253,7 @@ export class RealtimeService extends BaseService {
   }): Promise<boolean> {
     try {
       const totalAmount =
-        amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0;
+        amountFromCents(order.totalAmountCents) ?? order.totalAmount;
 
       // Notify admin about new order
       await this.notifyAdmin(order.restaurantId, {

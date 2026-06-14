@@ -308,19 +308,17 @@ export class ReceiptService {
       items: items.map((item: OrderItemRow) => ({
         name: item.itemSnapshot?.name ?? null,
         quantity: item.quantity,
-        price: amountFromCents(item.unitPriceCents, item.unitPrice) ?? 0,
-        subtotal: amountFromCents(item.totalPriceCents, item.totalPrice) ?? 0,
+        price: amountFromCents(item.unitPriceCents) ?? 0,
+        subtotal: amountFromCents(item.totalPriceCents) ?? 0,
         customizations:
           typeof item.customizations === "string"
             ? JSON.parse(item.customizations || "[]")
             : (item.customizations ?? []),
       })),
-      subtotal: amountFromCents(order.subtotalCents, order.subtotal) ?? 0,
-      taxAmount: amountFromCents(order.taxAmountCents, order.taxAmount) ?? 0,
-      discountAmount:
-        amountFromCents(order.discountAmountCents, order.discountAmount) ?? 0,
-      totalAmount:
-        amountFromCents(order.totalAmountCents, order.totalAmount) ?? 0,
+      subtotal: amountFromCents(order.subtotalCents) ?? 0,
+      taxAmount: amountFromCents(order.taxAmountCents) ?? 0,
+      discountAmount: amountFromCents(order.discountAmountCents) ?? 0,
+      totalAmount: amountFromCents(order.totalAmountCents) ?? 0,
       paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
       footer: "謝謝光臨 MakanMakan",

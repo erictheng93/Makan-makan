@@ -30,7 +30,7 @@ import {
   NotificationService,
   type NotificationCategory,
 } from "./NotificationService";
-import { toCents } from "../utils/money";
+import { amountFromCents, toCents } from "../utils/money";
 
 // ========================================
 // Types
@@ -187,6 +187,10 @@ export interface ClockOutData {
   notes?: string;
 }
 
+type ShiftTemplateInput = typeof shiftTemplates.$inferInsert & {
+  hourlyRate?: number | null;
+};
+
 // ========================================
 // Scheduling Service
 // ========================================
@@ -210,7 +214,7 @@ export class SchedulingService extends BaseService {
       .where(eq(shiftTemplates.restaurantId, restaurantId))
       .orderBy(asc(shiftTemplates.sortOrder), asc(shiftTemplates.name));
 
-    return templates as ShiftTemplate[];
+    return templates.map((template) => this.mapShiftTemplate(template));
   }
 
   async getShiftTemplate(id: number): Promise<ShiftTemplate | null> {
@@ -220,33 +224,36 @@ export class SchedulingService extends BaseService {
       .where(eq(shiftTemplates.id, id))
       .limit(1);
 
-    return (template as ShiftTemplate) || null;
+    return template ? this.mapShiftTemplate(template) : null;
   }
 
-  async createShiftTemplate(
-    data: typeof shiftTemplates.$inferInsert,
-  ): Promise<ShiftTemplate> {
+  async createShiftTemplate(data: ShiftTemplateInput): Promise<ShiftTemplate> {
+    const { hourlyRate, ...insertData } = data;
     const [newTemplate] = await this.db
       .insert(shiftTemplates)
       .values({
-        ...data,
-        hourlyRateCents: toCents(data.hourlyRate),
+        ...insertData,
+        hourlyRateCents:
+          hourlyRate !== undefined
+            ? toCents(hourlyRate)
+            : insertData.hourlyRateCents,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
 
-    return newTemplate as ShiftTemplate;
+    return this.mapShiftTemplate(newTemplate);
   }
 
   async updateShiftTemplate(
     id: number,
-    data: Partial<ShiftTemplate>,
+    data: Partial<ShiftTemplateInput>,
   ): Promise<ShiftTemplate> {
+    const { hourlyRate, ...updateData } = data;
     const updates = {
-      ...data,
-      ...(data.hourlyRate !== undefined && {
-        hourlyRateCents: toCents(data.hourlyRate),
+      ...updateData,
+      ...(hourlyRate !== undefined && {
+        hourlyRateCents: toCents(hourlyRate),
       }),
       updatedAt: new Date(),
     };
@@ -261,7 +268,7 @@ export class SchedulingService extends BaseService {
       throw new Error("Shift template not found");
     }
 
-    return updated as ShiftTemplate;
+    return this.mapShiftTemplate(updated);
   }
 
   async deleteShiftTemplate(id: number): Promise<boolean> {
@@ -272,6 +279,15 @@ export class SchedulingService extends BaseService {
       .returning();
 
     return !!deleted;
+  }
+
+  private mapShiftTemplate(
+    template: typeof shiftTemplates.$inferSelect,
+  ): ShiftTemplate {
+    return {
+      ...template,
+      hourlyRate: amountFromCents(template.hourlyRateCents),
+    } as ShiftTemplate;
   }
 
   // ========================================

@@ -238,7 +238,7 @@ describe("OrderService createOrder atomicity", () => {
     const [usage] = await testDb.drizzle.select().from(couponUsage);
     expect(usage).toMatchObject({
       orderId: order.id,
-      discountAmount: 5,
+      discountAmountCents: 500,
       status: "active",
     });
 
@@ -537,7 +537,6 @@ async function seedCoupon(testDb: TestDatabase) {
     code: "SAVE5",
     name: "RM5 off",
     discountType: "fixed",
-    discountValue: 5,
     discountValueCents: 500,
     usageLimit: 5,
     usedCount: 0,
@@ -580,7 +579,6 @@ async function seedMenuItem(testDb: TestDatabase) {
     restaurantId,
     categoryId: category.id,
     name: "Nasi Lemak",
-    price: 10,
     priceCents: 1000,
     isAvailable: true,
     inventoryCount: 10,

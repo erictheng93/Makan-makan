@@ -1,10 +1,4 @@
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { orders } from "./orders";
@@ -27,8 +21,6 @@ export const orderItems = sqliteTable(
     quantity: integer("quantity").notNull(),
 
     // 價格資訊
-    unitPrice: real("unit_price").notNull(), // 單價（快照，避免菜單價格變動影響）
-    totalPrice: real("total_price").notNull(), // 總價
     unitPriceCents: integer("unit_price_cents"),
     totalPriceCents: integer("total_price_cents"),
 

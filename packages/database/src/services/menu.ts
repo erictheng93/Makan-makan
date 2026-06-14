@@ -61,9 +61,7 @@ const menuItemSelectColumns = {
   name: menuItems.name,
   description: menuItems.description,
   ingredients: menuItems.ingredients,
-  price: menuItems.price,
   priceCents: menuItems.priceCents,
-  originalPrice: menuItems.originalPrice,
   originalPriceCents: menuItems.originalPriceCents,
   imageUrl: menuItems.imageUrl,
   isAvailable: menuItems.isAvailable,
@@ -324,12 +322,13 @@ export class MenuService extends BaseService {
   // 創建菜單項目
   async createMenuItem(data: CreateMenuItemData): Promise<MenuItem> {
     try {
+      const { price, originalPrice, ...insertData } = data;
       const [item] = await this.db
         .insert(menuItems)
         .values({
-          ...data,
-          priceCents: toRequiredCents(data.price),
-          originalPriceCents: toCents(data.originalPrice),
+          ...insertData,
+          priceCents: toRequiredCents(price),
+          originalPriceCents: toCents(originalPrice),
           isAvailable: data.isAvailable !== undefined ? data.isAvailable : true, // Default: available
           isFeatured: data.isFeatured !== undefined ? data.isFeatured : false,
           isPopular: data.isPopular !== undefined ? data.isPopular : false,
@@ -357,15 +356,16 @@ export class MenuService extends BaseService {
     data: UpdateMenuItemData,
   ): Promise<MenuItem> {
     try {
+      const { price, originalPrice, ...updateData } = data;
       const [item] = await this.db
         .update(menuItems)
         .set({
-          ...data,
-          ...(data.price !== undefined
-            ? { priceCents: toRequiredCents(data.price) }
+          ...updateData,
+          ...(price !== undefined
+            ? { priceCents: toRequiredCents(price) }
             : {}),
-          ...(data.originalPrice !== undefined
-            ? { originalPriceCents: toCents(data.originalPrice) }
+          ...(originalPrice !== undefined
+            ? { originalPriceCents: toCents(originalPrice) }
             : {}),
           updatedAt: new Date(),
         })
@@ -620,11 +620,8 @@ export class MenuService extends BaseService {
       name: item.name,
       description: item.description,
       ingredients: item.ingredients,
-      price: amountFromCents(item.priceCents, item.price),
-      originalPrice: amountFromCents(
-        item.originalPriceCents,
-        item.originalPrice,
-      ),
+      price: amountFromCents(item.priceCents),
+      originalPrice: amountFromCents(item.originalPriceCents),
       imageUrl: item.imageUrl,
       imageVariants: item.imageVariants,
       isAvailable: item.isAvailable,

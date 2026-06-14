@@ -453,15 +453,12 @@ export class MarketCheckoutPOSPaymentService {
     amountCents: number;
     nowMs: number;
   }) {
-    const amount = input.amountCents / 100;
     const methodColumn = posShiftMethodColumn(input.paymentMethod);
     await this.db.batch([
       this.db
         .update(cashShifts)
         .set({
-          totalSales: sql`${cashShifts.totalSales} + ${amount}`,
           totalSalesCents: sql`COALESCE(${cashShifts.totalSalesCents}, 0) + ${input.amountCents}`,
-          [methodColumn.amountKey]: sql`${methodColumn.amountColumn} + ${amount}`,
           [methodColumn.centsKey]: sql`COALESCE(${methodColumn.centsColumn}, 0) + ${input.amountCents}`,
           totalTransactions: sql`${cashShifts.totalTransactions} + 1`,
         })
@@ -471,7 +468,6 @@ export class MarketCheckoutPOSPaymentService {
         shiftId: input.shiftId,
         registerId: input.registerId,
         type: "sale",
-        amount,
         amountCents: input.amountCents,
         description: `Market checkout ${input.checkoutId} POS payment`,
         referenceId: null,
@@ -630,23 +626,17 @@ function parseJsonObject(value: unknown): Record<string, unknown> | undefined {
 function posShiftMethodColumn(paymentMethod: MarketCheckoutPaymentMethod) {
   if (paymentMethod === "cash") {
     return {
-      amountKey: "cashSales",
-      amountColumn: cashShifts.cashSales,
       centsKey: "cashSalesCents",
       centsColumn: cashShifts.cashSalesCents,
     } as const;
   }
   if (paymentMethod === "card") {
     return {
-      amountKey: "cardSales",
-      amountColumn: cashShifts.cardSales,
       centsKey: "cardSalesCents",
       centsColumn: cashShifts.cardSalesCents,
     } as const;
   }
   return {
-    amountKey: "digitalSales",
-    amountColumn: cashShifts.digitalSales,
     centsKey: "digitalSalesCents",
     centsColumn: cashShifts.digitalSalesCents,
   } as const;
