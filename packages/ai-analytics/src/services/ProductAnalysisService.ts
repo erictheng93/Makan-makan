@@ -237,10 +237,13 @@ export class ProductAnalysisService {
         menu_item_id: menuItems.id,
         menu_item_name: menuItems.name,
         category: sql<string>`COALESCE(${categories.name}, '')`,
-        unit_price: menuItems.price,
-        unit_cost: menuItems.costPrice,
+        unit_price: sql<number>`${menuItems.priceCents} / 100.0`,
+        unit_cost: sql<number | null>`CASE
+          WHEN ${menuItems.costPriceCents} IS NULL THEN NULL
+          ELSE ${menuItems.costPriceCents} / 100.0
+        END`,
         total_orders: sql<number>`COALESCE(COUNT(DISTINCT ${orders.id}), 0)`,
-        total_revenue: sql<number>`COALESCE(SUM(${orderItems.totalPrice}), 0)`,
+        total_revenue: sql<number>`COALESCE(SUM(${orderItems.totalPriceCents}), 0) / 100.0`,
         first_item_count: sql<number>`0`,
         view_count: sql<number>`COALESCE(${menuItems.viewCount}, 0)`,
         cart_addition_count: sql<number>`0`,
@@ -284,7 +287,7 @@ export class ProductAnalysisService {
       .select({
         date: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
         orders: sql<number>`COUNT(*)`,
-        revenue: sql<number>`SUM(${orderItems.totalPrice})`,
+        revenue: sql<number>`COALESCE(SUM(${orderItems.totalPriceCents}), 0) / 100.0`,
       })
       .from(orders)
       .innerJoin(orderItems, eq(orders.id, orderItems.orderId))

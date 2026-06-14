@@ -238,6 +238,7 @@ export class GroupOrdersService implements IGroupOrderService {
         const memberRows = membersByOrder.get(row.id) || [];
         const cartItemRows = cartItemsByOrder.get(row.id) || [];
         const settings = row.settings;
+        const totalAmount = moneyAmount(row.totalAmountCents, row.totalAmount);
         return {
           id: row.id,
           shareCode: row.shareCode,
@@ -248,8 +249,8 @@ export class GroupOrdersService implements IGroupOrderService {
           hostName:
             memberRows.find((m) => m.role === "creator")?.name || "Host",
           memberCount: memberRows.length,
-          totalAmount: Number(row.totalAmount) || 0,
-          subtotal: Number(row.totalAmount) || 0,
+          totalAmount,
+          subtotal: totalAmount,
           serviceCharge: 0,
           taxAmount: 0,
           itemCount: cartItemRows.length,

@@ -1385,8 +1385,8 @@ export class DiscoveryService {
         this.d1
           .prepare(
             `INSERT OR REPLACE INTO dish_search_index
-             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price, price_cents, catalog_type, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, primary_market_id, market_ids, latitude, longitude, updated_at_ms)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (menu_item_id, restaurant_id, dish_name, dish_name_normalized, category_name, price_cents, catalog_type, is_available, tags, district, restaurant_type, supports_takeaway, supports_delivery, primary_market_id, market_ids, latitude, longitude, updated_at_ms)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             item.menuItemId,
@@ -1394,7 +1394,6 @@ export class DiscoveryService {
             item.name,
             normalized,
             item.categoryName,
-            item.price,
             item.priceCents ?? toCents(item.price),
             item.catalogType ?? "menu_item",
             isAvailable ? 1 : 0,

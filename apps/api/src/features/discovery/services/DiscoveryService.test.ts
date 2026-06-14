@@ -1425,6 +1425,20 @@ describe("DiscoveryService", () => {
         }),
       ]),
     );
+    const [firstInsert] = d1.boundStatements as Array<{
+      sql: string;
+      args: unknown[];
+    }>;
+    expect(firstInsert.sql).not.toContain("category_name, price, price_cents");
+    expect(firstInsert.args.slice(0, 7)).toEqual([
+      1,
+      "restaurant-1",
+      "Laksa",
+      "laksa",
+      "Noodles",
+      900,
+      "menu_item",
+    ]);
     expect(semanticSearch.upsertDishes).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({

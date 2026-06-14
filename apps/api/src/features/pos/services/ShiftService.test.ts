@@ -210,9 +210,12 @@ describe("ShiftService", () => {
       [
         shiftRow({
           registerId,
-          startAmount: 100,
-          totalSales: 500,
-          totalRefunds: 50,
+          startAmount: 999,
+          startAmountCents: 10000,
+          totalSales: 999,
+          totalSalesCents: 50000,
+          totalRefunds: 999,
+          totalRefundsCents: 5000,
         }),
       ],
       [{ registerId }],
@@ -295,6 +298,22 @@ describe("ShiftService", () => {
     mockSelectResults([
       [
         shiftRow({
+          startAmount: 999,
+          startAmountCents: 25050,
+          expectedAmount: 999,
+          expectedAmountCents: 25050,
+          differenceAmount: 999,
+          differenceAmountCents: 0,
+          totalSales: 999,
+          totalSalesCents: 12345,
+          totalRefunds: 999,
+          totalRefundsCents: 500,
+          cashSales: 999,
+          cashSalesCents: 10000,
+          cardSales: 999,
+          cardSalesCents: 2000,
+          digitalSales: 999,
+          digitalSalesCents: 345,
           endAmount: null,
           actualAmount: null,
           endedAt: null,
@@ -313,6 +332,14 @@ describe("ShiftService", () => {
         id: "shift-1",
         registerId,
         status: "active",
+        startAmount: 250.5,
+        expectedAmount: 250.5,
+        differenceAmount: 0,
+        totalSales: 123.45,
+        totalRefunds: 5,
+        cashSales: 100,
+        cardSales: 20,
+        digitalSales: 3.45,
       },
     });
     expect(result.data).toHaveProperty("endAmount", undefined);

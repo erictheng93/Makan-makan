@@ -6,7 +6,7 @@ import type {
   CreateIngredientRequest,
   UpdateIngredientRequest,
 } from "../types";
-import { toCents } from "../../../shared/utils/money";
+import { fromCents, toCents } from "../../../shared/utils/money";
 
 export class IngredientService {
   private db;
@@ -235,7 +235,10 @@ function rowToResponse(
     name: row.name,
     unit: row.unit,
     category: row.category,
-    costPerUnit: row.costPerUnit,
+    costPerUnit:
+      row.costPerUnitCents == null
+        ? row.costPerUnit
+        : fromCents(row.costPerUnitCents),
     supplier: row.supplier,
     minStockLevel: row.minStockLevel,
     currentStock: row.currentStock,

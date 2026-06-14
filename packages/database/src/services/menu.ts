@@ -245,8 +245,8 @@ export class MenuService extends BaseService {
         const [minPrice, maxPrice] = filters.priceRange;
         conditions.push(
           and(
-            sql`${menuItems.price} >= ${minPrice}`,
-            sql`${menuItems.price} <= ${maxPrice}`,
+            sql`${menuItems.priceCents} >= ${toRequiredCents(minPrice)}`,
+            sql`${menuItems.priceCents} <= ${toRequiredCents(maxPrice)}`,
           )!,
         );
       }

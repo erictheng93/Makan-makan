@@ -7,7 +7,14 @@ import { eq, and, sql } from "drizzle-orm";
 import { cashShifts, cashRegisters, cashMovements } from "@makanmakan/database";
 import type { CashShift, StartShiftRequest, EndShiftRequest } from "../types";
 import { startShiftSchema, endShiftSchema } from "../schemas";
-import { toRequiredCents } from "../../../shared/utils/money";
+import { fromCents, toRequiredCents } from "../../../shared/utils/money";
+
+function amountFromCents(
+  cents: number | null | undefined,
+  fallback: number | null | undefined,
+): number | null {
+  return cents == null ? (fallback ?? null) : fromCents(cents);
+}
 
 export class ShiftService {
   private db;
@@ -27,16 +34,25 @@ export class ShiftService {
       id: shift.id,
       registerId: shift.registerId,
       operatorId: shift.operatorId,
-      startAmount: shift.startAmount,
-      endAmount: shift.endAmount ?? undefined,
-      expectedAmount: shift.expectedAmount,
-      actualAmount: shift.actualAmount ?? undefined,
-      differenceAmount: shift.differenceAmount,
-      totalSales: shift.totalSales,
-      totalRefunds: shift.totalRefunds,
-      cashSales: shift.cashSales,
-      cardSales: shift.cardSales,
-      digitalSales: shift.digitalSales,
+      startAmount:
+        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0,
+      endAmount:
+        amountFromCents(shift.endAmountCents, shift.endAmount) ?? undefined,
+      expectedAmount:
+        amountFromCents(shift.expectedAmountCents, shift.expectedAmount) ?? 0,
+      actualAmount:
+        amountFromCents(shift.actualAmountCents, shift.actualAmount) ??
+        undefined,
+      differenceAmount:
+        amountFromCents(shift.differenceAmountCents, shift.differenceAmount) ??
+        0,
+      totalSales: amountFromCents(shift.totalSalesCents, shift.totalSales) ?? 0,
+      totalRefunds:
+        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0,
+      cashSales: amountFromCents(shift.cashSalesCents, shift.cashSales) ?? 0,
+      cardSales: amountFromCents(shift.cardSalesCents, shift.cardSales) ?? 0,
+      digitalSales:
+        amountFromCents(shift.digitalSalesCents, shift.digitalSales) ?? 0,
       totalTransactions: shift.totalTransactions,
       startedAt: shift.startedAt,
       endedAt: shift.endedAt ?? undefined,
@@ -165,10 +181,13 @@ export class ShiftService {
       }
 
       // 計算預期金額
-      const expectedAmount =
-        (shift.startAmount || 0) +
-        (shift.totalSales || 0) -
-        (shift.totalRefunds || 0);
+      const startAmount =
+        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0;
+      const totalSales =
+        amountFromCents(shift.totalSalesCents, shift.totalSales) ?? 0;
+      const totalRefunds =
+        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0;
+      const expectedAmount = startAmount + totalSales - totalRefunds;
       const differenceAmount = validatedData.actualAmount - expectedAmount;
 
       // 更新班次狀態

@@ -254,6 +254,25 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  it("lists group orders with cents-first totals", async () => {
+    const service = createService();
+    (service as any).db = createDb([
+      [{ ...baseGroupOrder, totalAmount: 99, totalAmountCents: 12345 }],
+      [hostMember],
+      [],
+    ]);
+
+    await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([
+      expect.objectContaining({
+        id: "group-1",
+        hostName: "Host",
+        memberCount: 1,
+        totalAmount: 123.45,
+        subtotal: 123.45,
+      }),
+    ]);
+  });
+
   it("returns cached group order summaries before querying the database", async () => {
     const { kv, values } = createKV();
     const cached = {
@@ -397,6 +416,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           tableId: 12,
           settings: { tableNumber: "A5" },
           totalAmount: 45,
+          totalAmountCents: 4500,
         },
       ],
       [hostMember, { ...hostMember, id: "member-2", role: "member" }],

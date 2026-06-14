@@ -480,8 +480,13 @@ export class POSService extends BaseService {
       }
 
       // 計算預期金額
-      const expectedAmount =
-        shift.startAmount + shift.totalSales - shift.totalRefunds;
+      const startAmount =
+        amountFromCents(shift.startAmountCents, shift.startAmount) ?? 0;
+      const totalSales =
+        amountFromCents(shift.totalSalesCents, shift.totalSales) ?? 0;
+      const totalRefunds =
+        amountFromCents(shift.totalRefundsCents, shift.totalRefunds) ?? 0;
+      const expectedAmount = startAmount + totalSales - totalRefunds;
       const differenceAmount = validatedData.actualAmount - expectedAmount;
       const shiftEndTime = new Date();
 
@@ -795,7 +800,14 @@ export class POSService extends BaseService {
       }
 
       // 檢查退款金額
-      if (validatedData.refundAmount > originalOrder.totalAmount) {
+      const originalAmount =
+        amountFromCents(
+          originalOrder.totalAmountCents,
+          originalOrder.totalAmount,
+        ) ?? 0;
+      const originalAmountCents =
+        originalOrder.totalAmountCents ?? toRequiredCents(originalAmount);
+      if (validatedData.refundAmount > originalAmount) {
         return {
           success: false,
           error: "退款金額不能超過原訂單金額",
@@ -815,9 +827,9 @@ export class POSService extends BaseService {
           shiftId: shiftId ?? null,
           refundNumber,
           refundType: validatedData.refundType,
-          originalAmount: originalOrder.totalAmount,
+          originalAmount,
           refundAmount: validatedData.refundAmount,
-          originalAmountCents: toRequiredCents(originalOrder.totalAmount),
+          originalAmountCents,
           refundAmountCents: toRequiredCents(validatedData.refundAmount),
           refundMethod: validatedData.refundMethod,
           reasonCode: validatedData.reasonCode,

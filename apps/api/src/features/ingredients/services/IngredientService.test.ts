@@ -120,12 +120,13 @@ describe("IngredientService", () => {
     mockSelectResults([
       [{ total: 2 }],
       [
-        ingredientRow(),
+        ingredientRow({ costPerUnit: 999, costPerUnitCents: 1250 }),
         ingredientRow({
           id: 102,
           name: "Sambal",
           category: null,
           costPerUnit: null,
+          costPerUnitCents: null,
           supplier: null,
           minStockLevel: null,
           currentStock: null,
@@ -150,7 +151,7 @@ describe("IngredientService", () => {
           name: "Rice",
           unit: "kg",
           category: "Dry goods",
-          costPerUnit: 50,
+          costPerUnit: 12.5,
           supplier: "Local supplier",
           minStockLevel: 5,
           currentStock: 20,
@@ -172,14 +173,17 @@ describe("IngredientService", () => {
   });
 
   it("gets ingredients by restaurant scope and returns null for misses", async () => {
-    mockSelectResults([[ingredientRow()], []]);
+    mockSelectResults([
+      [ingredientRow({ costPerUnit: 999, costPerUnitCents: 1250 })],
+      [],
+    ]);
 
     await expect(createService().get("restaurant-1", 101)).resolves.toEqual({
       id: 101,
       name: "Rice",
       unit: "kg",
       category: "Dry goods",
-      costPerUnit: 50,
+      costPerUnit: 12.5,
       supplier: "Local supplier",
       minStockLevel: 5,
       currentStock: 20,
@@ -262,6 +266,7 @@ describe("IngredientService", () => {
           name: "Brown Rice",
           category: null,
           costPerUnit: null,
+          costPerUnitCents: null,
           supplier: null,
           minStockLevel: null,
           currentStock: null,
