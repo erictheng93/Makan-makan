@@ -169,6 +169,13 @@ DROP TRIGGER IF EXISTS `trg_partnership_usage_update_partnership_stats`;
 DROP TRIGGER IF EXISTS `trg_reset_daily_usage_count`;
 --> statement-breakpoint
 
+DROP VIEW IF EXISTS `vw_active_partnership_plans`;
+--> statement-breakpoint
+DROP VIEW IF EXISTS `vw_member_usage_summary`;
+--> statement-breakpoint
+DROP VIEW IF EXISTS `vw_partnership_statistics`;
+--> statement-breakpoint
+
 ALTER TABLE `orders` DROP COLUMN `subtotal`;
 --> statement-breakpoint
 ALTER TABLE `orders` DROP COLUMN `tax_amount`;
