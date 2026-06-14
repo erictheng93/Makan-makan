@@ -260,6 +260,52 @@ describe("PartnershipService percentage discounts with real D1", () => {
       finalAmount: 210,
     });
   });
+
+  it("rejects real percentage plans below persisted min-order cents", async () => {
+    db = createPartnershipServiceTestDb();
+    await seedPartnershipPlanRelations(db);
+    const now = new Date();
+    const validFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const validTo = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const service = new PartnershipService(db as unknown as D1Database, {
+      JWT_SECRET: "test",
+      NODE_ENV: "test",
+    });
+    const plan = await service.createPlan({
+      id: "plan-min-real",
+      partnershipId: "partnership-real",
+      restaurantId: "restaurant-partnership-real",
+      planName: "Student 12.5 Min 500",
+      planCode: "STUDENT125MIN500",
+      discountType: "percentage",
+      discountValue: 12.5,
+      minOrderAmount: 500,
+      validFrom,
+      validTo,
+      isActive: true,
+      canCombineWithCoupons: true,
+      canCombineWithPromotions: false,
+    });
+
+    const persisted = await db
+      .prepare(
+        `
+          SELECT min_order_amount_cents AS minOrderAmountCents
+          FROM partnership_plans
+          WHERE id = ?
+        `,
+      )
+      .bind(plan.id)
+      .first();
+
+    expect(persisted).toEqual({ minOrderAmountCents: 50000 });
+
+    const validation = await service.validatePlan(plan.id, "member-real", 240);
+    expect(validation).toMatchObject({
+      valid: false,
+      error: "最低消費金額為 500",
+    });
+  });
 });
 
 function createPartnershipServiceTestDb(): D1DatabaseAdapter {
