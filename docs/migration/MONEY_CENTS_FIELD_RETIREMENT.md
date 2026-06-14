@@ -184,40 +184,50 @@ authoritative source while preserving decimal API responses:
 - platform integration order ingestion,
 - order item/menu snapshot fallbacks and legacy realtime new-order payloads.
 
-Remaining work should keep reducing direct legacy `REAL` reads before any table
-rebuild removes those columns.
+Future money-field work should not reintroduce legacy `REAL` writes or
+fallback reads after this cutover. Any later FK, timestamp, or table-layout
+rebuild work should be planned separately from money-field retirement.
 
-## Table Rebuild Migration Requirements
+## Drop-Column Cutover Migration Requirements
 
-SQLite/D1 table rebuilds must be deliberate because columns, constraints,
-indexes, triggers, and foreign key behavior are easy to lose. Cloudflare D1
-enforces foreign keys during migrations, so any component rebuild that
-temporarily violates FK order must begin the relevant migration phase with:
+The approved cutover method for this retirement is `ALTER TABLE ... DROP
+COLUMN`, not create-copy-rename table rebuilds. D1/SQLite supports dropping
+these non-key legacy columns in place, and the paired cutover migration has
+been verified through fresh D1 migration replay.
+
+Because `DROP COLUMN` does not copy table rows, it cannot accidentally skip or
+duplicate rows the way a rebuild `INSERT SELECT` can. A before/after row-count
+inventory over every touched table is still kept as a belt-and-suspenders
+guard, including `split_bills`, but per-table rebuild row-copy assertions are
+not required for this cutover.
+
+Cloudflare D1 enforces foreign keys during migrations, so the destructive
+cutover still begins with:
 
 ```sql
 PRAGMA defer_foreign_keys = ON;
 ```
 
-For each table:
+For the cutover:
 
-- create a new table without the retired `REAL` money columns,
-- copy data from the old table using the cents columns as source of truth,
-- preserve primary keys, foreign keys, unique constraints, defaults, generated
-  columns, timestamp columns, soft-delete columns, and indexes,
-- re-create only the triggers still needed after legacy columns are gone,
-- drop old cents sync triggers that depended on legacy `REAL` writes,
-- rename the rebuilt table into place,
-- re-run `PRAGMA foreign_key_check` and targeted row-count checks,
-- add a migration test that applies all migrations against SQLite/D1-compatible
-  test storage and verifies table shape.
+- repeat the rollout and percentage-bps audit assertions before any destructive
+  operation,
+- record row counts for every touched table before dropping columns,
+- drop legacy cents-sync triggers and legacy price indexes that reference
+  retired columns,
+- drop only the retired legacy `REAL` money / polymorphic discount columns with
+  `ALTER TABLE ... DROP COLUMN`,
+- recreate the needed indexes and triggers against cents / bps columns,
+- assert row counts are unchanged and `PRAGMA foreign_key_check` is clean,
+- keep schema-shape tests that verify retired columns are absent and cents / bps
+  columns are retained.
 
-The rebuild migration should not be bundled with unrelated FK cleanup,
-timestamp cleanup, or product behavior changes.
+The cutover migration must not be bundled with unrelated FK cleanup, timestamp
+cleanup, or product behavior changes.
 
 ## Destructive Cutover Runbook
 
-Do not generate or apply the destructive table-rebuild migration until all of
-these are true:
+Do not apply the destructive drop-column migration until all of these are true:
 
 - `0067_money_cents_retirement_rollout_guard.sql` has passed in staging and
   production.
@@ -232,25 +242,20 @@ these are true:
 - Drizzle schema and application write paths no longer require the legacy
   `REAL` columns.
 
-When those gates are met, create one dedicated cutover migration, with no FK,
-timestamp, or product behavior changes, using this component order:
+When those gates are met, use one dedicated cutover migration, with no FK,
+timestamp, or product behavior changes. Drop legacy columns in this component
+order:
 
 1. Leaf/search/inventory surfaces: `dish_search_index`,
    `ingredient_definitions`.
-2. Scheduling component: stage `employee_schedules`, rebuild
-   `shift_templates` without `hourly_rate`, then rebuild `employee_schedules`
-   unchanged if D1 FK ordering requires it.
-3. Partnership component: stage and rebuild `partnership_usage_logs`,
-   `partnership_plans`, `verified_members`, and `partnerships`, retiring only
-   the legacy partnership money columns.
-4. Group-order component: stage and rebuild `group_cart_items`, `split_bills`,
-   and `group_orders`, retiring only legacy group-order money columns.
-5. Coupon/order component: stage and rebuild `coupon_usage`, `order_items`,
-   `coupons`, and `orders`, plus unchanged direct dependents only if needed for
-   D1 FK ordering.
-6. POS component: stage and rebuild `cash_movements`, `refunds`, and
-   `cash_shifts`, plus unchanged direct dependents only if needed for D1 FK
-   ordering.
+2. Scheduling component: `shift_templates`.
+3. Partnership component: `partnership_usage_logs`, `partnership_plans`,
+   `verified_members`, and `partnerships`.
+4. Group-order component: `group_cart_items`, `split_bills`, and
+   `group_orders`.
+5. Coupon/order component: `coupon_usage`, `order_items`, `coupons`, and
+   `orders`.
+6. POS component: `cash_movements`, `refunds`, and `cash_shifts`.
 
 The final migration must omit only these legacy `REAL` money / polymorphic
 discount columns and must retain the paired cents columns plus explicit
@@ -329,18 +334,13 @@ WHERE `scope` = 'money_cents_retirement'
   AND `violation_count` != 0;
 ```
 
-Then each table rebuild block must use literal, generated column lists from the
-current production schema:
+Then each table block must drop only the listed legacy columns:
 
-1. `DROP TABLE IF EXISTS <table>__money_cents_cutover`.
-2. `CREATE TABLE <table>__money_cents_cutover (...)` with all non-money columns,
-   constraints, defaults, and foreign keys preserved, the legacy columns above
-   omitted, and the paired cents columns retained.
-3. `INSERT INTO <table>__money_cents_cutover (...) SELECT ... FROM <table>`
-   with the same retained column list.
-4. Insert a row-count assertion into `_migration_assert_money_cents_cutover`.
-5. Drop the old table, rename the cutover table into place, and recreate
-   indexes plus only non-legacy triggers.
+1. Drop indexes and triggers that reference retired columns.
+2. `ALTER TABLE <table> DROP COLUMN <legacy_column>` for each retired column.
+3. Recreate indexes plus only non-legacy triggers against cents / bps columns.
+4. After all drops, update `_migration_money_cents_cutover_counts` and insert a
+   row-count assertion into `_migration_assert_money_cents_cutover`.
 
 Before marking the destructive migration complete, run:
 

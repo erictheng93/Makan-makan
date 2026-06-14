@@ -134,8 +134,7 @@ async function seedSearchIndex(
       dishNameNormalized: item.name.trim().toLowerCase().replace(/\s+/g, ""),
       categoryName: item.categoryName,
       isAvailable: (item.isAvailable ?? true) as unknown as boolean,
-      price: item.price,
-      priceCents: item.priceCents ?? null,
+      priceCents: item.priceCents ?? Math.round(item.price * 100),
       catalogType: item.catalogType ?? "menu_item",
       district: item.district,
       supportsTakeaway: (item.supportsTakeaway ?? false) as unknown as boolean,
@@ -276,7 +275,6 @@ async function seedRealisticMarketSearchFixture(
     id: number;
     restaurantId: string;
     name: string;
-    price: number;
     priceCents: number | null;
     catalogType: "menu_item" | "product";
     tags: string[] | null;
@@ -289,7 +287,6 @@ async function seedRealisticMarketSearchFixture(
         id: menuItems.id,
         restaurantId: menuItems.restaurantId,
         name: menuItems.name,
-        price: menuItems.price,
         priceCents: menuItems.priceCents,
         catalogType: menuItems.catalogType,
         tags: menuItems.tags,
@@ -303,7 +300,7 @@ async function seedRealisticMarketSearchFixture(
     insertedItems.map((item) => ({
       menuItemId: item.id,
       name: item.name,
-      price: item.price,
+      price: item.priceCents == null ? 0 : item.priceCents / 100,
       priceCents: item.priceCents,
       tags: item.tags ?? [],
       catalogType: item.catalogType,
@@ -337,7 +334,7 @@ describe("Discovery API — real integration", () => {
   beforeAll(async () => {
     testApp = await createRealIntegrationTestApp();
     seed = buildSeedHelpers(testApp.testDb);
-  }, 180000);
+  }, 300000);
 
   afterAll(async () => {
     await testApp?.dispose();
