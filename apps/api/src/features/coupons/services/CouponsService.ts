@@ -5,9 +5,13 @@
  */
 
 import { CouponService as BaseCouponService } from "@makanmakan/database";
-import { coupons, couponUsage } from "@makanmakan/database";
+import { coupons, couponUsage, orders } from "@makanmakan/database";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
-import { badRequest } from "../../../shared/utils/api-error";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from "../../../shared/utils/api-error";
 import {
   fromCents,
   toCents,
@@ -296,6 +300,85 @@ export class CouponsService extends BaseCouponService {
     }
 
     return savings;
+  }
+
+  async useCouponForOrder(input: {
+    couponId: number;
+    orderId: number;
+    userId?: number;
+    allowedRestaurantId?: string;
+  }) {
+    const [order] = await this.db
+      .select({
+        id: orders.id,
+        restaurantId: orders.restaurantId,
+        subtotal: orders.subtotal,
+        subtotalCents: orders.subtotalCents,
+      })
+      .from(orders)
+      .where(eq(orders.id, input.orderId))
+      .limit(1);
+
+    if (!order) {
+      throw notFound("Order not found", "ORDER_NOT_FOUND");
+    }
+
+    if (
+      input.allowedRestaurantId &&
+      order.restaurantId !== input.allowedRestaurantId
+    ) {
+      throw forbidden("Access denied", "FORBIDDEN");
+    }
+
+    const [coupon] = await this.db
+      .select()
+      .from(coupons)
+      .where(eq(coupons.id, input.couponId))
+      .limit(1);
+
+    if (!coupon || coupon.deletedAt) {
+      throw notFound("Coupon not found", "COUPON_NOT_FOUND");
+    }
+
+    if (coupon.restaurantId && coupon.restaurantId !== order.restaurantId) {
+      throw forbidden("Coupon does not belong to this order", "FORBIDDEN");
+    }
+
+    const originalAmountCents =
+      order.subtotalCents ?? toRequiredCents(order.subtotal);
+    let discountAmountCents = 0;
+
+    if (coupon.discountType === "percentage") {
+      discountAmountCents = Math.round(
+        originalAmountCents * (coupon.discountValue / 100),
+      );
+      const maxDiscountAmountCents =
+        coupon.maxDiscountAmountCents ?? toCents(coupon.maxDiscountAmount);
+      if (
+        maxDiscountAmountCents != null &&
+        discountAmountCents > maxDiscountAmountCents
+      ) {
+        discountAmountCents = maxDiscountAmountCents;
+      }
+    } else {
+      discountAmountCents =
+        coupon.discountValueCents ?? toRequiredCents(coupon.discountValue);
+    }
+
+    discountAmountCents = Math.max(
+      0,
+      Math.min(discountAmountCents, originalAmountCents),
+    );
+    const finalAmountCents = originalAmountCents - discountAmountCents;
+
+    return this.useCoupon({
+      couponId: input.couponId,
+      orderId: input.orderId,
+      userId: input.userId,
+      discountAmount: fromCents(discountAmountCents),
+      originalAmount: fromCents(originalAmountCents),
+      finalAmount: fromCents(finalAmountCents),
+    });
   }
 
   /**

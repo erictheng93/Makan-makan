@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   bulkDeactivateCoupons: vi.fn(),
   bulkDeleteCoupons: vi.fn(),
   useCoupon: vi.fn(),
+  useCouponForOrder: vi.fn(),
   getCouponUsageTrends: vi.fn(),
   formatCouponMoneyFields: vi.fn((coupon: unknown) => coupon),
 }));
@@ -58,6 +59,7 @@ vi.mock("../services/CouponsService", () => ({
       bulkDeactivateCoupons: mocks.bulkDeactivateCoupons,
       bulkDeleteCoupons: mocks.bulkDeleteCoupons,
       useCoupon: mocks.useCoupon,
+      useCouponForOrder: mocks.useCouponForOrder,
       getCouponUsageTrends: mocks.getCouponUsageTrends,
       formatCouponMoneyFields: mocks.formatCouponMoneyFields,
     };
@@ -339,7 +341,7 @@ describe("coupons routes", () => {
   });
 
   it("uses coupons, maps usage-limit conflicts, and returns usage trends", async () => {
-    mocks.useCoupon.mockResolvedValue({ id: "usage-1" });
+    mocks.useCouponForOrder.mockResolvedValue({ id: "usage-1" });
     mocks.getCouponUsageTrends.mockResolvedValue([{ date: "2026-06-01" }]);
     const env = createEnv();
 
@@ -355,16 +357,14 @@ describe("coupons routes", () => {
       env as never,
     );
     expect(useResponse.status).toBe(200);
-    expect(mocks.useCoupon).toHaveBeenCalledWith({
+    expect(mocks.useCouponForOrder).toHaveBeenCalledWith({
       couponId: 10,
       orderId: 99,
       userId: 5,
-      discountAmount: 30,
-      originalAmount: 300,
-      finalAmount: 270,
+      allowedRestaurantId: "restaurant-1",
     });
 
-    mocks.useCoupon.mockRejectedValueOnce(
+    mocks.useCouponForOrder.mockRejectedValueOnce(
       new Error("Coupon usage limit reached"),
     );
     const conflictResponse = await withSilencedRouteError(() =>

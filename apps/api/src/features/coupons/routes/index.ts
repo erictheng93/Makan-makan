@@ -461,14 +461,22 @@ routes.post(
   "/use",
   authMiddleware,
   moduleGate("coupons"),
+  requireRole([0, 1, 4]),
   validateBody(useCouponSchema),
   async (c) => {
     const data = c.get("validatedBody") as UseCouponInput;
+    const user = c.get("user");
     const couponsService = createCouponsService(c.env);
 
     let usageRecord;
     try {
-      usageRecord = await couponsService.useCoupon(data);
+      usageRecord = await couponsService.useCouponForOrder({
+        couponId: data.couponId,
+        orderId: data.orderId,
+        userId: data.userId ?? user.id,
+        allowedRestaurantId:
+          user.role === 0 ? undefined : userRestaurantId(user),
+      });
     } catch (error) {
       if (
         error instanceof Error &&
