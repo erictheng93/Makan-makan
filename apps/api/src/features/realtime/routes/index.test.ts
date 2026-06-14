@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sign } from "hono/jwt";
 import routes from "./index";
 
 const serviceMethods = vi.hoisted(() => ({
@@ -56,6 +57,26 @@ function jsonRequest(path: string, body: unknown): Request {
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
   });
+}
+
+async function authHeaders(
+  role: number = 0,
+  restaurantId: string = "restaurant-1",
+) {
+  const now = Math.floor(Date.now() / 1000);
+  const token = await sign(
+    {
+      id: role === 0 ? 1 : 2,
+      username: role === 0 ? "admin" : "staff",
+      role,
+      restaurantId,
+      iat: now,
+      exp: now + 3600,
+    },
+    "x".repeat(32),
+  );
+
+  return { Authorization: `Bearer ${token}` };
 }
 
 async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
@@ -240,7 +261,7 @@ describe("realtime routes", () => {
     expect(deniedResponse.status).toBe(500);
   });
 
-  it("revokes individual and user tokens and reports blacklist stats", async () => {
+  it("allows admins to revoke tokens and read blacklist stats", async () => {
     serviceMethods.revokeToken.mockResolvedValue({ success: true });
     serviceMethods.revokeUserTokens.mockResolvedValue({
       success: true,
@@ -252,23 +273,39 @@ describe("realtime routes", () => {
     });
 
     const revokeResponse = await routes.fetch(
-      jsonRequest("/auth/revoke", {
-        token: "token",
-        reason: "logout",
-        revokedBy: "user-1",
+      new Request("https://api.test/auth/revoke", {
+        method: "POST",
+        body: JSON.stringify({
+          token: "token",
+          reason: "logout",
+          revokedBy: "spoofed-user",
+        }),
+        headers: {
+          "content-type": "application/json",
+          ...(await authHeaders(0)),
+        },
       }),
       createEnv() as never,
     );
     const userResponse = await routes.fetch(
-      jsonRequest("/auth/revoke-user", {
-        userId: "user-1",
-        reason: "admin_action",
-        revokedBy: "admin-1",
+      new Request("https://api.test/auth/revoke-user", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user-1",
+          reason: "admin_action",
+          revokedBy: "spoofed-admin",
+        }),
+        headers: {
+          "content-type": "application/json",
+          ...(await authHeaders(0)),
+        },
       }),
       createEnv() as never,
     );
     const statsResponse = await routes.fetch(
-      new Request("https://api.test/auth/blacklist/stats"),
+      new Request("https://api.test/auth/blacklist/stats", {
+        headers: await authHeaders(0),
+      }),
       createEnv() as never,
     );
 
@@ -286,8 +323,42 @@ describe("realtime routes", () => {
     expect(serviceMethods.revokeToken).toHaveBeenCalledWith(
       "token",
       "logout",
-      "user-1",
+      "1",
     );
+    expect(serviceMethods.revokeUserTokens).toHaveBeenCalledWith(
+      "user-1",
+      "admin_action",
+      "1",
+    );
+  });
+
+  it("blocks non-admin realtime token revocation and blacklist stats", async () => {
+    const revokeResponse = await withSilencedRouteError(async () =>
+      routes.fetch(
+        new Request("https://api.test/auth/revoke", {
+          method: "POST",
+          body: JSON.stringify({ token: "token", reason: "manual" }),
+          headers: {
+            "content-type": "application/json",
+            ...(await authHeaders(1)),
+          },
+        }),
+        createEnv() as never,
+      ),
+    );
+    const statsResponse = await withSilencedRouteError(async () =>
+      routes.fetch(
+        new Request("https://api.test/auth/blacklist/stats", {
+          headers: await authHeaders(1),
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(revokeResponse.status).toBe(500);
+    expect(statsResponse.status).toBe(500);
+    expect(serviceMethods.revokeToken).not.toHaveBeenCalled();
+    expect(serviceMethods.getBlacklistStats).not.toHaveBeenCalled();
   });
 
   it("returns route errors when revocation service operations fail", async () => {
@@ -327,7 +398,9 @@ describe("realtime routes", () => {
     });
 
     const response = await routes.fetch(
-      new Request("https://api.test/stats/kitchen/restaurant-1"),
+      new Request("https://api.test/stats/kitchen/restaurant-1", {
+        headers: await authHeaders(1, "restaurant-1"),
+      }),
       env as never,
     );
     expect(response.status).toBe(200);
@@ -340,9 +413,11 @@ describe("realtime routes", () => {
     );
     expect(fetchMock).not.toHaveBeenCalled();
 
-    const invalidResponse = await withSilencedRouteError(() =>
+    const invalidResponse = await withSilencedRouteError(async () =>
       routes.fetch(
-        new Request("https://api.test/stats/unknown/restaurant-1"),
+        new Request("https://api.test/stats/unknown/restaurant-1", {
+          headers: await authHeaders(1, "restaurant-1"),
+        }),
         createEnv() as never,
       ),
     );
@@ -351,13 +426,31 @@ describe("realtime routes", () => {
     const failingEnv = createEnv({
       durableFetch: async () => new Response("down", { status: 503 }),
     });
-    const failedResponse = await withSilencedRouteError(() =>
+    const failedResponse = await withSilencedRouteError(async () =>
       routes.fetch(
-        new Request("https://api.test/stats/admin/restaurant-1"),
+        new Request("https://api.test/stats/admin/restaurant-1", {
+          headers: await authHeaders(0),
+        }),
         failingEnv as never,
       ),
     );
     expect(failedResponse.status).toBe(500);
+  });
+
+  it("blocks cross-restaurant realtime room stats", async () => {
+    const env = createEnv();
+
+    const response = await withSilencedRouteError(async () =>
+      routes.fetch(
+        new Request("https://api.test/stats/kitchen/restaurant-2", {
+          headers: await authHeaders(1, "restaurant-1"),
+        }),
+        env as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(env.REALTIME_SESSION.idFromName).not.toHaveBeenCalled();
   });
 
   it("aggregates overview stats across realtime room types", async () => {
@@ -371,7 +464,9 @@ describe("realtime routes", () => {
     });
 
     const response = await routes.fetch(
-      new Request("https://api.test/stats/overview?restaurantId=restaurant-1"),
+      new Request("https://api.test/stats/overview?restaurantId=restaurant-1", {
+        headers: await authHeaders(1, "restaurant-1"),
+      }),
       env as never,
     );
 
@@ -401,9 +496,11 @@ describe("realtime routes", () => {
     );
     expect(fetchMock).not.toHaveBeenCalled();
 
-    const missingResponse = await withSilencedRouteError(() =>
+    const missingResponse = await withSilencedRouteError(async () =>
       routes.fetch(
-        new Request("https://api.test/stats/overview"),
+        new Request("https://api.test/stats/overview", {
+          headers: await authHeaders(1, "restaurant-1"),
+        }),
         createEnv() as never,
       ),
     );

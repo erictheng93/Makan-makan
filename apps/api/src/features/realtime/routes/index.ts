@@ -9,11 +9,13 @@ import type { Env } from "../../../shared/types";
 import { HTTP_STATUS } from "../../../shared/constants";
 
 import { ConsoleLogger } from "../../../core/monitoring";
+import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { validateBody } from "../../../middleware/validation";
 import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import {
   ApiError,
   badRequest,
+  forbidden,
   unauthorized,
 } from "../../../shared/utils/api-error";
 
@@ -26,6 +28,17 @@ const logger = new ConsoleLogger("realtime-routes");
 
 // Create router
 const realtimeRoutes = new Hono<{ Bindings: Env }>();
+
+function assertRealtimeStatsAccess(
+  user: { role: number; restaurantId?: string | number },
+  roomId: string,
+) {
+  if (user.role === 0) return;
+
+  if (!user.restaurantId || String(user.restaurantId) !== roomId) {
+    throw forbidden("Access denied to this realtime room", "FORBIDDEN");
+  }
+}
 
 function fetchRealtimeRoomStats(
   env: Env,
@@ -183,6 +196,8 @@ realtimeRoutes.post(
  */
 realtimeRoutes.post(
   "/auth/revoke",
+  authMiddleware,
+  requireRole([0]),
   validateBody(
     z.object({
       token: z.string().min(1, "Token is required"),
@@ -201,7 +216,9 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    const { token, reason, revokedBy } = c.get("validatedBody");
+    const { token, reason } = c.get("validatedBody");
+    const user = c.get("user");
+    const revokedBy = String(user.id);
 
     const authService = new RealtimeAuthService(c.env);
     const result = await authService.revokeToken(token, reason, revokedBy);
@@ -237,6 +254,8 @@ realtimeRoutes.post(
  */
 realtimeRoutes.post(
   "/auth/revoke-user",
+  authMiddleware,
+  requireRole([0]),
   validateBody(
     z.object({
       userId: z.string().min(1, "User ID is required"),
@@ -255,7 +274,9 @@ realtimeRoutes.post(
     }),
   ),
   async (c) => {
-    const { userId, reason, revokedBy } = c.get("validatedBody");
+    const { userId, reason } = c.get("validatedBody");
+    const user = c.get("user");
+    const revokedBy = String(user.id);
 
     const authService = new RealtimeAuthService(c.env);
     const result = await authService.revokeUserTokens(
@@ -296,26 +317,38 @@ realtimeRoutes.post(
  * 獲取 Token 黑名單統計
  * GET /auth/blacklist/stats
  */
-realtimeRoutes.get("/auth/blacklist/stats", async (c) => {
-  const authService = new RealtimeAuthService(c.env);
-  const stats = await authService.getBlacklistStats();
+realtimeRoutes.get(
+  "/auth/blacklist/stats",
+  authMiddleware,
+  requireRole([0]),
+  async (c) => {
+    const authService = new RealtimeAuthService(c.env);
+    const stats = await authService.getBlacklistStats();
 
-  return c.json(
-    {
-      success: true,
-      data: stats,
-    },
-    HTTP_STATUS.OK,
-  );
-});
+    return c.json(
+      {
+        success: true,
+        data: stats,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
 
 /**
  * 獲取特定房間的 WebSocket 連接統計
  * GET /stats/:roomType/:roomId
  */
-realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
+realtimeRoutes.get("/stats/:roomType/:roomId", authMiddleware, async (c) => {
   const roomType = c.req.param("roomType");
   const roomId = c.req.param("roomId");
+  const user = c.get("user");
+
+  if (!roomType || !roomId) {
+    throw badRequest("Room type and room ID are required");
+  }
+
+  assertRealtimeStatsAccess(user, roomId);
 
   // 驗證 roomType
   const validRoomTypes = ["customer", "kitchen", "admin", "restaurant"];
@@ -358,12 +391,15 @@ realtimeRoutes.get("/stats/:roomType/:roomId", async (c) => {
  *
  * 返回所有活躍房間的聚合統計信息
  */
-realtimeRoutes.get("/stats/overview", async (c) => {
+realtimeRoutes.get("/stats/overview", authMiddleware, async (c) => {
   const restaurantId = c.req.query("restaurantId");
+  const user = c.get("user");
 
   if (!restaurantId) {
     throw badRequest("Restaurant ID is required");
   }
+
+  assertRealtimeStatsAccess(user, restaurantId);
 
   // 並行獲取各房間類型的統計
   const roomTypes = ["kitchen", "admin", "customer"];
