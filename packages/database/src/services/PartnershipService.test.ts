@@ -209,6 +209,7 @@ describe("PartnershipService percentage discounts with real D1", () => {
 
   it("persists percentage plans as bps and zero min-order cents", async () => {
     db = createPartnershipServiceTestDb();
+    await seedPartnershipPlanRelations(db);
     const now = new Date();
     const validFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const validTo = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -250,6 +251,13 @@ describe("PartnershipService percentage discounts with real D1", () => {
       discountPercentageBps: 1250,
       discountValueCents: null,
       minOrderAmountCents: 0,
+    });
+
+    const validation = await service.validatePlan(plan.id, "member-real", 240);
+    expect(validation).toMatchObject({
+      valid: true,
+      discountAmount: 30,
+      finalAmount: 210,
     });
   });
 });
@@ -300,6 +308,216 @@ function createPartnershipServiceTestDb(): D1DatabaseAdapter {
       deleted_at_ms INTEGER,
       created_by INTEGER
     );
+
+    CREATE TABLE partnerships (
+      id TEXT PRIMARY KEY NOT NULL,
+      partner_code TEXT NOT NULL UNIQUE,
+      partner_name TEXT NOT NULL,
+      partner_name_en TEXT,
+      partner_type TEXT NOT NULL,
+      contact_person TEXT NOT NULL,
+      contact_title TEXT,
+      contact_phone TEXT NOT NULL,
+      contact_email TEXT NOT NULL,
+      address TEXT,
+      contract_number TEXT UNIQUE,
+      contract_start_date_ms INTEGER NOT NULL,
+      contract_end_date_ms INTEGER NOT NULL,
+      contract_document_url TEXT,
+      verification_method TEXT NOT NULL DEFAULT 'manual',
+      verification_config TEXT DEFAULT '{}',
+      allowed_email_domains TEXT DEFAULT '[]',
+      default_discount_type TEXT,
+      default_discount_percentage_bps INTEGER,
+      default_discount_value_cents INTEGER,
+      total_verified_members INTEGER DEFAULT 0,
+      total_usage_count INTEGER DEFAULT 0,
+      total_discount_given_cents INTEGER,
+      total_revenue_cents INTEGER,
+      status TEXT NOT NULL DEFAULT 'draft',
+      is_active INTEGER DEFAULT 1,
+      logo_url TEXT,
+      description TEXT,
+      notes TEXT,
+      tags TEXT DEFAULT '[]',
+      metadata TEXT DEFAULT '{}',
+      created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      updated_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      deleted_at_ms INTEGER,
+      created_by INTEGER
+    );
+
+    CREATE TABLE restaurants (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      category TEXT NOT NULL,
+      description TEXT,
+      address TEXT NOT NULL,
+      district TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT '台中市',
+      phone TEXT NOT NULL,
+      email TEXT,
+      website TEXT,
+      messaging_channels TEXT,
+      business_hours TEXT,
+      is_available INTEGER NOT NULL DEFAULT 1,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      logo_url TEXT,
+      banner_url TEXT,
+      image_urls TEXT,
+      shop_qr_code TEXT UNIQUE,
+      shop_qr_code_image_url TEXT,
+      enable_shop_mode INTEGER NOT NULL DEFAULT 0,
+      shop_qr_settings TEXT,
+      shop_qr_version INTEGER NOT NULL DEFAULT 1,
+      settings TEXT,
+      rating REAL DEFAULT 0,
+      review_count INTEGER NOT NULL DEFAULT 0,
+      total_orders INTEGER NOT NULL DEFAULT 0,
+      created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      updated_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      deleted_at_ms INTEGER,
+      latitude REAL,
+      longitude REAL,
+      cuisine_tags TEXT,
+      price_range INTEGER,
+      supports_takeaway INTEGER NOT NULL DEFAULT 0,
+      supports_delivery INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE verified_members (
+      id TEXT PRIMARY KEY NOT NULL,
+      partnership_id TEXT NOT NULL,
+      customer_id TEXT,
+      member_id TEXT NOT NULL,
+      member_type TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      verification_method TEXT NOT NULL,
+      verification_document_url TEXT,
+      verified_at_ms INTEGER,
+      verified_by INTEGER,
+      verification_expiry_ms INTEGER,
+      status TEXT NOT NULL DEFAULT 'pending',
+      rejection_reason TEXT,
+      total_usage_count INTEGER DEFAULT 0,
+      total_discount_received_cents INTEGER,
+      total_spending_cents INTEGER,
+      last_used_at_ms INTEGER,
+      department TEXT,
+      grade_or_position TEXT,
+      student_id_photo_url TEXT,
+      notes TEXT,
+      metadata TEXT DEFAULT '{}',
+      created_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      updated_at_ms INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+      deleted_at_ms INTEGER
+    );
   `);
   return new D1DatabaseAdapter(sqlite);
+}
+
+async function seedPartnershipPlanRelations(db: D1DatabaseAdapter) {
+  const nowMs = Date.now();
+  await db
+    .prepare(
+      `
+        INSERT INTO partnerships (
+          id,
+          partner_code,
+          partner_name,
+          partner_type,
+          contact_person,
+          contact_phone,
+          contact_email,
+          contract_start_date_ms,
+          contract_end_date_ms,
+          status,
+          is_active,
+          created_at_ms,
+          updated_at_ms
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      "partnership-real",
+      "PARTNER_REAL",
+      "Test University",
+      "university",
+      "Test Owner",
+      "0912345678",
+      "owner@example.test",
+      nowMs - 24 * 60 * 60 * 1000,
+      nowMs + 24 * 60 * 60 * 1000,
+      "active",
+      1,
+      nowMs,
+      nowMs,
+    )
+    .run();
+  await db
+    .prepare(
+      `
+        INSERT INTO restaurants (
+          id,
+          name,
+          type,
+          category,
+          address,
+          district,
+          city,
+          phone,
+          created_at_ms,
+          updated_at_ms
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      "restaurant-partnership-real",
+      "Partner Restaurant",
+      "restaurant",
+      "casual",
+      "1 Test Road",
+      "West",
+      "Taichung",
+      "0412345678",
+      nowMs,
+      nowMs,
+    )
+    .run();
+  await db
+    .prepare(
+      `
+        INSERT INTO verified_members (
+          id,
+          partnership_id,
+          member_id,
+          member_type,
+          full_name,
+          verification_method,
+          verified_at_ms,
+          status,
+          created_at_ms,
+          updated_at_ms
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      "member-real",
+      "partnership-real",
+      "S123456",
+      "student",
+      "Verified Student",
+      "manual",
+      nowMs,
+      "verified",
+      nowMs,
+      nowMs,
+    )
+    .run();
 }
