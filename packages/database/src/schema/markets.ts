@@ -233,7 +233,9 @@ export const marketCheckoutPayments = sqliteTable(
       .notNull()
       .references(() => markets.id, { onDelete: "restrict" }),
     provider: text("provider").notNull(),
-    splitMode: text("split_mode").notNull(),
+    splitMode: text("split_mode")
+      .$type<"child_transactions" | "provider_split">()
+      .notNull(),
     idempotencyKey: text("idempotency_key"),
     status: text("status").notNull().default("pending"),
     amountCents: integer("amount_cents").notNull(),

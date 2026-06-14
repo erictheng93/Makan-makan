@@ -58,8 +58,8 @@ interface MarketCheckoutPaymentRow {
   child_payment_ids: string | string[] | null;
   provider_transaction_id: string | null;
   provider_payload: string | Record<string, unknown> | null;
-  created_at_ms: number;
-  updated_at_ms: number;
+  created_at_ms: number | Date;
+  updated_at_ms: number | Date;
   session_payment_summary: string | Record<string, unknown> | null;
 }
 

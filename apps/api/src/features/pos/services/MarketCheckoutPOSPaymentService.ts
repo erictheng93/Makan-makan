@@ -27,6 +27,7 @@ type MarketCheckoutPaymentStatus =
   | "partial_refunded";
 
 type MarketCheckoutPaymentMethod = "cash" | "card" | "digital_wallet";
+type MarketCheckoutSplitMode = "child_transactions" | "provider_split";
 
 interface MarketCheckoutSessionRow {
   id: string;
@@ -219,7 +220,17 @@ export class MarketCheckoutPOSPaymentService {
       .from(marketCheckoutSessions)
       .where(eq(marketCheckoutSessions.id, checkoutId))
       .limit(1)
-      .then((rows) => rows[0] as MarketCheckoutSessionRow | undefined);
+      .then((rows) => {
+        const row = rows[0];
+        if (!row) return undefined;
+        return {
+          ...row,
+          created_at_ms:
+            row.created_at_ms instanceof Date
+              ? row.created_at_ms.getTime()
+              : row.created_at_ms,
+        } as MarketCheckoutSessionRow;
+      });
   }
 
   private readChildren(checkoutId: string) {
@@ -359,7 +370,7 @@ export class MarketCheckoutPOSPaymentService {
       parentPayment?: {
         paymentId: string;
         provider: string;
-        splitMode: string;
+        splitMode: MarketCheckoutSplitMode;
         idempotencyKey: string;
         childPaymentIds: string[];
       };

@@ -35,7 +35,11 @@ export {
   CustomerWebPushService,
   type CustomerPushDispatchResult,
 } from "./CustomerWebPushService";
-export { NotificationService } from "./NotificationService";
+export {
+  NotificationService,
+  type NotificationCategory,
+  type NotificationPayload,
+} from "./NotificationService";
 export { ExportService } from "./ExportService";
 export { LeaveAnalyticsService } from "./LeaveAnalyticsService";
 // export { QueueService } from '@makanmakan/queue-service' // Temporarily disabled - using UnifiedQueueService
