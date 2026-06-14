@@ -57,7 +57,13 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 }
 
 function shouldReuseTestDatabase(): boolean {
-  return process.env.MAKANMAKAN_REAL_D1_REUSE_DB === "1";
+  return isTestDatabaseReuseEnabled(process.env);
+}
+
+export function isTestDatabaseReuseEnabled(
+  env: Pick<NodeJS.ProcessEnv, "MAKANMAKAN_REAL_D1_REUSE_DB">,
+): boolean {
+  return env.MAKANMAKAN_REAL_D1_REUSE_DB !== "0";
 }
 
 async function createFreshTestDatabase(input: {
