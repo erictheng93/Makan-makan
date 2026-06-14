@@ -12,7 +12,9 @@ import {
   XMarkIcon,
   LanguageIcon,
   CheckIcon,
+  ArrowLeftOnRectangleIcon,
 } from "@heroicons/vue/24/outline";
+import { clearManagementSession } from "@/services/auth";
 import { useI18n, type Locale } from "@/i18n";
 
 const { t, locale, localeConfig, switchLocale, supportedLocales } = useI18n();
@@ -23,6 +25,11 @@ const showLanguageMenu = ref(false);
 const handleLocaleChange = async (code: string) => {
   await switchLocale(code as Locale);
   showLanguageMenu.value = false;
+};
+
+const logout = () => {
+  clearManagementSession();
+  window.location.assign("/login");
 };
 
 const navigation = computed(() => [
@@ -89,6 +96,19 @@ const isCurrentRoute = (href: string) => {
             {{ item.name }}
           </RouterLink>
         </nav>
+
+        <div class="px-2 pb-4">
+          <button
+            type="button"
+            class="group flex w-full items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            @click="logout"
+          >
+            <ArrowLeftOnRectangleIcon
+              class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
+            />
+            登出
+          </button>
+        </div>
       </div>
     </div>
 
@@ -128,6 +148,19 @@ const isCurrentRoute = (href: string) => {
             {{ item.name }}
           </RouterLink>
         </nav>
+
+        <div class="px-3 pb-4">
+          <button
+            type="button"
+            class="group flex w-full items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            @click="logout"
+          >
+            <ArrowLeftOnRectangleIcon
+              class="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
+            />
+            登出
+          </button>
+        </div>
 
         <!-- Language Switcher + Version info -->
         <div class="px-4 py-4 border-t border-gray-200 space-y-3">

@@ -5,6 +5,7 @@
 
 import axios, { type AxiosInstance, type AxiosError } from "axios";
 import { useToast } from "vue-toastification";
+import { clearManagementSession, getManagementToken } from "./auth";
 import type {
   Tenant,
   TenantResource,
@@ -49,6 +50,12 @@ const API_BASE = resolveApiBase();
 const CSRF_COOKIE_NAME = "csrf_token";
 const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 
+export interface ManagementAuthExchangeResult {
+  token: string;
+  tokenType: "Bearer";
+  expiresAt: number;
+}
+
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") {
     return null;
@@ -79,8 +86,7 @@ const apiClient: AxiosInstance = axios.create({
 // 請求攔截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 可以在這裡添加認證 token
-    const token = localStorage.getItem("management_token");
+    const token = getManagementToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -104,9 +110,27 @@ apiClient.interceptors.response.use(
     const toast = useToast();
     const message = error.response?.data?.error || error.message || "請求失敗";
     toast.error(message);
+    if (
+      error.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/login"
+    ) {
+      clearManagementSession();
+      const redirect = `${window.location.pathname}${window.location.search}`;
+      window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+    }
     return Promise.reject(error);
   },
 );
+
+export const authApi = {
+  async exchange(apiToken: string): Promise<ManagementAuthExchangeResult> {
+    const { data } = await apiClient.post<
+      ApiResponse<ManagementAuthExchangeResult>
+    >("/auth/exchange", { token: apiToken });
+    return data.data!;
+  },
+};
 
 /**
  * 租戶 API
@@ -425,6 +449,7 @@ export const marketsApi = {
 };
 
 export default {
+  auth: authApi,
   tenants: tenantsApi,
   deployments: deploymentsApi,
   health: healthApi,

@@ -3,8 +3,15 @@ import {
   createWebHistory,
   type RouteRecordRaw,
 } from "vue-router";
+import { isManagementAuthenticated } from "@/services/auth";
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("@/views/LoginView.vue"),
+    meta: { title: "登入", public: true },
+  },
   {
     path: "/",
     name: "Dashboard",
@@ -60,12 +67,39 @@ export const router = createRouter({
   routes,
 });
 
+function safeRedirectTarget(value: unknown): string {
+  return typeof value === "string" &&
+    value.startsWith("/") &&
+    !value.startsWith("//")
+    ? value
+    : "/";
+}
+
 // 設置頁面標題
 router.beforeEach((to, _from, next) => {
   const title = to.meta.title as string;
   document.title = title
     ? `${title} - MakanMakan 管理平台`
     : "MakanMakan 管理平台";
+
+  const authenticated = isManagementAuthenticated();
+  if (to.meta.public) {
+    if (to.name === "Login" && authenticated) {
+      next(safeRedirectTarget(to.query.redirect));
+      return;
+    }
+    next();
+    return;
+  }
+
+  if (!authenticated) {
+    next({
+      name: "Login",
+      query: { redirect: to.fullPath },
+    });
+    return;
+  }
+
   next();
 });
 
