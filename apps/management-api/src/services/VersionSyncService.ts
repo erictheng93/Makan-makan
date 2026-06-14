@@ -10,6 +10,7 @@ import type {
   TenantStatus,
 } from "../types";
 import { ProvisioningService } from "./ProvisioningService";
+import { randomId } from "../utils/random";
 
 export interface VersionRelease {
   version: string;
@@ -95,7 +96,7 @@ export class VersionSyncService {
     options?: { batchSize?: number; canaryPercentage?: number },
   ): Promise<BatchUpdatePlan> {
     const plan: BatchUpdatePlan = {
-      id: `plan-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      id: randomId("plan"),
       targetVersion,
       strategy,
       tenantIds,

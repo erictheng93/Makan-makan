@@ -13,6 +13,7 @@ import type {
   UpdateTenantRequest,
 } from "../types";
 import { TenantService } from "../services/TenantService";
+import { randomBase36 } from "../utils/random";
 
 const router = new Hono<{ Bindings: ManagementEnv }>();
 
@@ -158,7 +159,7 @@ router.post("/", async (c) => {
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "")
         .slice(0, 20);
-      const suffix = Math.random().toString(36).substring(2, 5);
+      const suffix = randomBase36(6);
       subdomain = base ? `${base}-${suffix}` : `tenant-${suffix}`;
     }
 

@@ -27,6 +27,8 @@ async function managementToken() {
       id: "workflow-admin",
       email: "workflow-admin@example.test",
       role: "admin",
+      aud: "management",
+      iss: "makanmakan-management",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     "test-secret",

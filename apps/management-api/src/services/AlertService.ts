@@ -4,6 +4,7 @@
  */
 
 import type { ManagementEnv, HealthCheck, Tenant } from "../types";
+import { randomId } from "../utils/random";
 
 export interface AlertRule {
   id: string;
@@ -58,7 +59,7 @@ export class AlertService {
         : `${tenant.businessName} 服務降級`;
 
     const alert: Alert = {
-      id: `alert-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      id: randomId("alert"),
       ruleId: `health_${healthCheck.status}`,
       tenantId: tenant.id,
       severity,
@@ -83,7 +84,7 @@ export class AlertService {
     error: string,
   ): Promise<Alert> {
     const alert: Alert = {
-      id: `alert-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      id: randomId("alert"),
       ruleId: "deployment_failed",
       tenantId: tenant.id,
       severity: "critical",
