@@ -60,9 +60,7 @@ function shouldReuseTestDatabase(): boolean {
   return isTestDatabaseReuseEnabled(process.env);
 }
 
-export function isTestDatabaseReuseEnabled(env: {
-  MAKANMAKAN_REAL_D1_REUSE_DB?: string;
-}): boolean {
+export function isTestDatabaseReuseEnabled(env: NodeJS.ProcessEnv): boolean {
   return env.MAKANMAKAN_REAL_D1_REUSE_DB !== "0";
 }
 
