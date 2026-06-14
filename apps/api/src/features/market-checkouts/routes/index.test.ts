@@ -187,8 +187,10 @@ function createEnv(dbFirstRows: unknown[] = []) {
       return refundOrderRow({
         id: 1001,
         restaurant_id: "restaurant-1",
+        restaurantId: "restaurant-1",
         total_amount: 120,
         total_amount_cents: 12000,
+        totalAmountCents: 12000,
         payment_transaction_id: "pay-1001",
       });
     }
@@ -196,8 +198,10 @@ function createEnv(dbFirstRows: unknown[] = []) {
       return refundOrderRow({
         id: 1002,
         restaurant_id: "restaurant-2",
+        restaurantId: "restaurant-2",
         total_amount: 80,
         total_amount_cents: 8000,
+        totalAmountCents: 8000,
         payment_transaction_id: "pay-1002",
       });
     }
@@ -208,6 +212,11 @@ function createEnv(dbFirstRows: unknown[] = []) {
 function refundOrderRow(overrides: Record<string, unknown>) {
   return {
     id: 1001,
+    restaurantId: "restaurant-1",
+    totalAmountCents: 12000,
+    refundAmountCents: null,
+    paymentMethod: "line_pay",
+    paymentStatus: "paid",
     restaurant_id: "restaurant-1",
     total_amount: 120,
     total_amount_cents: 12000,
@@ -366,7 +375,6 @@ function persistedSessionRows(
         restaurantName: child.restaurantName,
         orderId: child.orderId,
         orderNumber: child.orderNumber,
-        totalAmount: child.totalAmount,
         totalAmountCents: child.totalAmountCents ?? null,
         tokenExpiresAt: new Date(child.tokenExpiresAt),
       })),

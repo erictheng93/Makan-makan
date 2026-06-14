@@ -90,7 +90,6 @@ function allRowsFor(sql: string) {
         restaurant_name: "雞排攤",
         order_id: 1001,
         order_number: "A001",
-        total_amount: 120,
         total_amount_cents: 12000,
       },
       {
@@ -98,7 +97,6 @@ function allRowsFor(sql: string) {
         restaurant_name: "甜點攤",
         order_id: 1002,
         order_number: "A002",
-        total_amount: 80,
         total_amount_cents: 8000,
       },
     ];
@@ -108,7 +106,7 @@ function allRowsFor(sql: string) {
 
 describe("MarketCheckoutPOSPaymentService", () => {
   it("records a POS payment for the checkout, child orders, and active shift", async () => {
-    const { env } = createEnv();
+    const { env, preparedStatements } = createEnv();
 
     const result = await new MarketCheckoutPOSPaymentService(env).process({
       checkoutId: "checkout-1",
@@ -134,6 +132,18 @@ describe("MarketCheckoutPOSPaymentService", () => {
         idempotencyKey: "pos-checkout-1",
       },
     });
+    expect(result.checkout.childOrders).toEqual([
+      expect.objectContaining({
+        orderId: 1001,
+        totalAmount: 120,
+        totalAmountCents: 12000,
+      }),
+      expect.objectContaining({
+        orderId: 1002,
+        totalAmount: 80,
+        totalAmountCents: 8000,
+      }),
+    ]);
 
     const preparedSql = vi
       .mocked(env.DB.prepare)
@@ -155,6 +165,10 @@ describe("MarketCheckoutPOSPaymentService", () => {
     expect(preparedSql.some((sql) => sql.includes("cash_movements"))).toBe(
       true,
     );
+    const boundParams = preparedStatements.flatMap((statement) =>
+      statement.bind.mock.calls.flat(),
+    );
+    expect(boundParams.filter((param) => param instanceof Date)).toEqual([]);
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:index",
       expect.stringContaining('"paymentStatus":"paid"'),

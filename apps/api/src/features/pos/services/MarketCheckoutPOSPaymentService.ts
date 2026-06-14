@@ -17,6 +17,7 @@ import {
   forbidden,
   notFound,
 } from "../../../shared/utils/api-error";
+import { fromCents } from "../../../shared/utils/money";
 
 type MarketCheckoutPaymentStatus =
   | "pending"
@@ -47,8 +48,7 @@ interface MarketCheckoutChildOrderRow {
   restaurant_name: string;
   order_id: number;
   order_number: string;
-  total_amount: number;
-  total_amount_cents: number | null;
+  total_amount_cents: number;
 }
 
 interface ActiveShiftRow {
@@ -240,7 +240,6 @@ export class MarketCheckoutPOSPaymentService {
         restaurant_name: marketCheckoutChildOrders.restaurantName,
         order_id: marketCheckoutChildOrders.orderId,
         order_number: marketCheckoutChildOrders.orderNumber,
-        total_amount: marketCheckoutChildOrders.totalAmount,
         total_amount_cents: marketCheckoutChildOrders.totalAmountCents,
       })
       .from(marketCheckoutChildOrders)
@@ -309,7 +308,7 @@ export class MarketCheckoutPOSPaymentService {
     idempotencyKey: string;
     nowMs: number;
   }) {
-    const timestamp = new Date(input.nowMs);
+    const timestamp = sql`${input.nowMs}`;
     await this.db.batch([
       this.db
         .insert(paymentTransactions)
@@ -341,7 +340,7 @@ export class MarketCheckoutPOSPaymentService {
           paymentStatus: "paid",
           paymentMethod: input.paymentMethod,
           paymentTransactionId: input.paymentId,
-          paidAt: sql`COALESCE(${orders.paidAt}, ${timestamp})`,
+          paidAt: sql`COALESCE(${orders.paidAt}, ${input.nowMs})`,
           updatedAt: timestamp,
         })
         .where(eq(orders.id, input.child.order_id)),
@@ -358,7 +357,7 @@ export class MarketCheckoutPOSPaymentService {
       .set({
         paymentStatus: "paid",
         paymentSummary: payment,
-        updatedAt: new Date(nowMs),
+        updatedAt: sql`${nowMs}`,
       })
       .where(eq(marketCheckoutSessions.id, checkoutId))
       .run();
@@ -389,7 +388,7 @@ export class MarketCheckoutPOSPaymentService {
     const parentPayment = input.payment.parentPayment;
     if (!parentPayment) return;
 
-    const timestamp = new Date(input.nowMs);
+    const timestamp = sql`${input.nowMs}`;
     await this.db
       .insert(marketCheckoutPayments)
       .values({
@@ -438,7 +437,7 @@ export class MarketCheckoutPOSPaymentService {
             settlement: input.payment.settlement ?? null,
           },
           updatedAt: timestamp,
-          completedAt: sql`COALESCE(${marketCheckoutPayments.completedAt}, ${timestamp})`,
+          completedAt: sql`COALESCE(${marketCheckoutPayments.completedAt}, ${input.nowMs})`,
         },
       })
       .run();
@@ -477,7 +476,7 @@ export class MarketCheckoutPOSPaymentService {
         recordedBy: input.operatorId,
         approvalStatus: "approved",
         metadata: JSON.stringify({ marketCheckoutId: input.checkoutId }),
-        createdAt: new Date(input.nowMs),
+        createdAt: sql`${input.nowMs}`,
       }),
     ] as [BatchItem<"sqlite">, BatchItem<"sqlite">]);
   }
@@ -501,7 +500,7 @@ export class MarketCheckoutPOSPaymentService {
         restaurantName: child.restaurant_name,
         orderId: child.order_id,
         orderNumber: child.order_number,
-        totalAmount: child.total_amount,
+        totalAmount: fromCents(orderChildTotalCents(child)),
         totalAmountCents: orderChildTotalCents(child),
       })),
       payment: parseJsonObject(payment),
@@ -550,14 +549,8 @@ export class MarketCheckoutPOSPaymentService {
   }
 }
 
-function orderChildTotalCents(child: {
-  total_amount: number;
-  total_amount_cents?: number | null;
-}) {
-  return Number(
-    child.total_amount_cents ??
-      Math.round(Number(child.total_amount ?? 0) * 100),
-  );
+function orderChildTotalCents(child: { total_amount_cents?: number | null }) {
+  return Number(child.total_amount_cents ?? 0);
 }
 
 function buildSettlement(

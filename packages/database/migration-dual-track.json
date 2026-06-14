@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0070_money_cents_cutover.sql",
-    "legacy": "0087_money_cents_cutover.sql"
+    "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
+    "legacy": "0088_market_checkout_child_order_cents_cutover.sql"
   },
   "pairs": [
     {
@@ -30,6 +30,11 @@
       "fresh": "0070_money_cents_cutover.sql",
       "legacy": "0087_money_cents_cutover.sql",
       "reason": "Money cents cutover removes legacy REAL money columns after clean rollout and percentage-bps audit gates, retaining cents and basis-point columns only."
+    },
+    {
+      "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
+      "legacy": "0088_market_checkout_child_order_cents_cutover.sql",
+      "reason": "Market checkout child orders now retain total_amount_cents only; API responses derive decimal totals from cents."
     }
   ],
   "freshOnly": [

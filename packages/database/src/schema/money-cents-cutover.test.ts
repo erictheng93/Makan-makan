@@ -10,6 +10,7 @@ import {
   groupOrders,
   ingredientDefinitions,
   menuItems,
+  marketCheckoutChildOrders,
   orderItems,
   orders,
   partnershipPlans,
@@ -179,6 +180,12 @@ const cutoverSurfaces: CutoverSurface[] = [
     table: dishSearchIndex,
     legacyColumns: ["price"],
     retainedColumns: ["price_cents"],
+  },
+  {
+    tableName: "market_checkout_child_orders",
+    table: marketCheckoutChildOrders,
+    legacyColumns: ["total_amount"],
+    retainedColumns: ["total_amount_cents"],
   },
   {
     tableName: "ingredient_definitions",

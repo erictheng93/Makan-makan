@@ -229,10 +229,12 @@ describe("money cents retirement rollout migration", () => {
       pairs?: Array<{ fresh: string; legacy: string; reason: string }>;
       reviewedThrough?: { fresh: string; legacy: string };
     };
+    const latestPair = dualTrack.pairs?.at(-1);
 
+    expect(latestPair).toBeDefined();
     expect(dualTrack.reviewedThrough).toEqual({
-      fresh: cutoverFresh,
-      legacy: cutoverLegacy,
+      fresh: latestPair?.fresh,
+      legacy: latestPair?.legacy,
     });
     expect(dualTrack.pairs).toEqual(
       expect.arrayContaining([

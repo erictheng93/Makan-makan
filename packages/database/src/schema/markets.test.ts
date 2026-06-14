@@ -146,7 +146,6 @@ describe("market discovery schema", () => {
         "restaurant_name",
         "order_id",
         "order_number",
-        "total_amount",
         "total_amount_cents",
         "token_expires_at_ms",
         "created_at_ms",
