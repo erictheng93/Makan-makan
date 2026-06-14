@@ -185,6 +185,7 @@ export class OrdersService implements IOrdersService {
         })),
         notes: data.notes,
         couponCode: data.couponCode,
+        couponUserId: userId,
         clientMutationId: data.clientMutationId,
         orderSource: data.orderSource,
         deliveryInfo: data.deliveryInfo,

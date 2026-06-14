@@ -46,6 +46,7 @@ export interface CreateOrderData {
   }>;
   notes?: string;
   couponCode?: string;
+  couponUserId?: number;
   clientMutationId?: string;
   orderSource?:
     | "direct"
@@ -429,7 +430,7 @@ export class OrderService extends BaseService {
           data.couponCode,
           data.restaurantId.toString(),
           subtotal,
-          undefined,
+          data.couponUserId,
           data.items,
         );
 
@@ -561,6 +562,7 @@ export class OrderService extends BaseService {
           this.db.insert(couponUsage).values({
             couponId: validatedCoupon.id,
             orderId: orderIdRef as unknown as number,
+            userId: data.couponUserId,
             discountAmount,
             originalAmount: subtotal,
             finalAmount: totalAmount,

@@ -17,6 +17,7 @@ import {
   orderItems,
   orders,
   restaurants,
+  users,
 } from "../schema";
 import {
   createTestDatabase,
@@ -256,6 +257,47 @@ describe("OrderService createOrder atomicity", () => {
       .from(restaurants)
       .where(eq(restaurants.id, restaurantId));
     expect(restaurant.totalOrders).toBe(1);
+  });
+
+  it("enforces per-user coupon limits and records the coupon user", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    await testDb.drizzle
+      .update(coupons)
+      .set({ usageLimitPerUser: 1 })
+      .where(eq(coupons.code, "SAVE5"));
+    await testDb.drizzle.insert(users).values({
+      id: 77,
+      username: "coupon-user-77",
+      fullName: "Coupon User",
+      passwordHash: "hash",
+      role: 5,
+      restaurantId,
+      isActive: true,
+      isVerified: true,
+    });
+
+    const firstOrder = await service.createOrder({
+      ...couponOrder,
+      couponUserId: 77,
+      clientMutationId: "coupon-user-first",
+    });
+
+    const [usage] = await testDb.drizzle.select().from(couponUsage);
+    expect(usage).toMatchObject({
+      orderId: firstOrder.id,
+      userId: 77,
+      status: "active",
+    });
+
+    await expect(
+      service.createOrder({
+        ...couponOrder,
+        couponUserId: 77,
+        clientMutationId: "coupon-user-second",
+      }),
+    ).rejects.toThrow("您已達到此優惠券的使用次數上限");
   });
 
   it("adds items to an existing order and updates totals and inventory", async () => {

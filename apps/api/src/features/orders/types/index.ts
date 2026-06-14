@@ -74,6 +74,7 @@ export interface CreateOrderData {
     | "grabfood";
   scheduledTime?: Date;
   couponCode?: string;
+  couponUserId?: number;
   clientMutationId?: string;
   isGuestOrder?: boolean;
   deliveryInfo?: {
