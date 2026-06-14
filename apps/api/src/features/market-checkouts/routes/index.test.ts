@@ -5359,43 +5359,45 @@ describe("market checkout routes", () => {
   });
 
   it("handles malformed and unsigned market checkout webhooks", async () => {
-    const env = {
-      ...createEnv(),
-      MARKET_CHECKOUT_WEBHOOK_SECRET: "market-secret",
-    };
-    const malformedBody = "{";
-    const malformedResponse = await routes.fetch(
-      new Request("https://test/payment-webhooks/mock_market_provider", {
-        method: "POST",
-        headers: {
-          "x-webhook-signature": await signMockMarketCheckoutWebhook(
-            "market-secret",
-            malformedBody,
-          ),
-        },
-        body: malformedBody,
-      }),
-      env as never,
-    );
-    expect(malformedResponse.status).toBe(500);
-    await expect(malformedResponse.text()).resolves.toBe(
-      "Internal Server Error",
-    );
+    await withSilencedRouteError(async () => {
+      const env = {
+        ...createEnv(),
+        MARKET_CHECKOUT_WEBHOOK_SECRET: "market-secret",
+      };
+      const malformedBody = "{";
+      const malformedResponse = await routes.fetch(
+        new Request("https://test/payment-webhooks/mock_market_provider", {
+          method: "POST",
+          headers: {
+            "x-webhook-signature": await signMockMarketCheckoutWebhook(
+              "market-secret",
+              malformedBody,
+            ),
+          },
+          body: malformedBody,
+        }),
+        env as never,
+      );
+      expect(malformedResponse.status).toBe(500);
+      await expect(malformedResponse.text()).resolves.toBe(
+        "Internal Server Error",
+      );
 
-    const unsignedBody = JSON.stringify({
-      id: "evt-missing-signature",
-      type: "market_checkout.payment_paid",
+      const unsignedBody = JSON.stringify({
+        id: "evt-missing-signature",
+        type: "market_checkout.payment_paid",
+      });
+      const unsignedResponse = await routes.fetch(
+        new Request("https://test/payment-webhooks/mock_market_provider", {
+          method: "POST",
+          body: unsignedBody,
+        }),
+        env as never,
+      );
+      expect(unsignedResponse.status).toBe(500);
+      await expect(unsignedResponse.text()).resolves.toBe(
+        "Internal Server Error",
+      );
     });
-    const unsignedResponse = await routes.fetch(
-      new Request("https://test/payment-webhooks/mock_market_provider", {
-        method: "POST",
-        body: unsignedBody,
-      }),
-      env as never,
-    );
-    expect(unsignedResponse.status).toBe(500);
-    await expect(unsignedResponse.text()).resolves.toBe(
-      "Internal Server Error",
-    );
   });
 });

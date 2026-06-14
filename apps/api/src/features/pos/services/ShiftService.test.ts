@@ -70,6 +70,18 @@ function createService() {
   return new ShiftService({} as D1Database);
 }
 
+async function withSuppressedConsoleError<T>(action: () => Promise<T>) {
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
+
+  try {
+    return await action();
+  } finally {
+    consoleError.mockRestore();
+  }
+}
+
 function shiftRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "shift-1",
@@ -167,11 +179,13 @@ describe("ShiftService", () => {
   it("rejects invalid start payloads and duplicate active shifts", async () => {
     const mutations = mockMutations();
 
-    let result = await createService().startShift({
-      registerId: "not-a-uuid",
-      operatorId: 7,
-      startAmount: 250,
-    });
+    let result = await withSuppressedConsoleError(() =>
+      createService().startShift({
+        registerId: "not-a-uuid",
+        operatorId: 7,
+        startAmount: 250,
+      }),
+    );
 
     expect(result.success).toBe(false);
     expect(mutations.inserted).toHaveLength(0);
@@ -252,10 +266,8 @@ describe("ShiftService", () => {
   it("rejects invalid end payloads and missing active shifts", async () => {
     const mutations = mockMutations();
 
-    let result = await createService().endShift(
-      "shift-1",
-      { actualAmount: -1 },
-      8,
+    let result = await withSuppressedConsoleError(() =>
+      createService().endShift("shift-1", { actualAmount: -1 }, 8),
     );
 
     expect(result.success).toBe(false);

@@ -291,13 +291,21 @@ describe("OrderService createOrder atomicity", () => {
       status: "active",
     });
 
-    await expect(
-      service.createOrder({
-        ...couponOrder,
-        couponUserId: 77,
-        clientMutationId: "coupon-user-second",
-      }),
-    ).rejects.toThrow("您已達到此優惠券的使用次數上限");
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      await expect(
+        service.createOrder({
+          ...couponOrder,
+          couponUserId: 77,
+          clientMutationId: "coupon-user-second",
+        }),
+      ).rejects.toThrow("您已達到此優惠券的使用次數上限");
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("adds items to an existing order and updates totals and inventory", async () => {
@@ -344,9 +352,17 @@ describe("OrderService createOrder atomicity", () => {
     });
     await service.updateOrderStatus(order.id, { status: "ready" });
 
-    await expect(
-      service.addItemsToOrder(order.id, [{ menuItemId, quantity: 1 }]),
-    ).rejects.toThrow("Cannot add items to an order with status: ready");
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      await expect(
+        service.addItemsToOrder(order.id, [{ menuItemId, quantity: 1 }]),
+      ).rejects.toThrow("Cannot add items to an order with status: ready");
+    } finally {
+      consoleError.mockRestore();
+    }
 
     const persistedItems = await testDb.drizzle.select().from(orderItems);
     expect(persistedItems).toHaveLength(1);
@@ -473,9 +489,17 @@ describe("OrderService cancelOrder atomicity", () => {
     await expect(service.cancelOrder(order.id, "customer")).resolves.toEqual(
       expect.objectContaining({ status: "cancelled" }),
     );
-    await expect(service.cancelOrder(order.id, "duplicate")).rejects.toThrow(
-      "Order cannot be cancelled",
-    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      await expect(service.cancelOrder(order.id, "duplicate")).rejects.toThrow(
+        "Order cannot be cancelled",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
 
     const [afterDuplicateCancel] = await testDb.drizzle
       .select()

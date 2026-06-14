@@ -34,11 +34,7 @@ import type {
 import { isOpenNow } from "../utils/isOpenNow";
 import { catalogResultTypeFromTags } from "../utils/catalog-result-type";
 import { normalizeSearchTags } from "../utils/search-normalization";
-import {
-  fromCents,
-  toCents,
-  toRequiredCents,
-} from "../../../shared/utils/money";
+import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 import {
   SemanticDiscoveryService,
   type SemanticDishDocument,

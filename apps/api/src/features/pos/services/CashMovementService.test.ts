@@ -72,6 +72,18 @@ function createService() {
   return new CashMovementService({} as D1Database);
 }
 
+async function withSuppressedConsoleError<T>(action: () => Promise<T>) {
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
+
+  try {
+    return await action();
+  } finally {
+    consoleError.mockRestore();
+  }
+}
+
 function movementRequest(overrides: Record<string, unknown> = {}) {
   return {
     type: "cash_in" as const,
@@ -147,10 +159,12 @@ describe("CashMovementService", () => {
   it("rejects invalid movements and inactive shifts before insert", async () => {
     const mutations = mockMutations();
 
-    let result = await createService().processCashMovement(
-      "shift-1",
-      movementRequest({ type: "sale" }),
-      7,
+    let result = await withSuppressedConsoleError(() =>
+      createService().processCashMovement(
+        "shift-1",
+        movementRequest({ type: "sale" }),
+        7,
+      ),
     );
 
     expect(result.success).toBe(false);
@@ -284,7 +298,9 @@ describe("CashMovementService", () => {
     });
 
     await expect(
-      createService().getCashMovements("shift-1"),
+      withSuppressedConsoleError(() =>
+        createService().getCashMovements("shift-1"),
+      ),
     ).resolves.toMatchObject({
       success: false,
       error: "select down",
@@ -296,7 +312,9 @@ describe("CashMovementService", () => {
     });
 
     await expect(
-      createService().approveCashMovement("movement-1", 8),
+      withSuppressedConsoleError(() =>
+        createService().approveCashMovement("movement-1", 8),
+      ),
     ).resolves.toEqual({
       success: false,
       error: "update down",
