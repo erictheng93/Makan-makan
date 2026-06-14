@@ -22,13 +22,11 @@ interface PreparedStatement {
 
 interface RefundOrderRow {
   id: number;
-  restaurant_id: string;
-  total_amount: number;
-  total_amount_cents: number | null;
-  refund_amount: number | null;
-  refund_amount_cents: number | null;
-  payment_method: string | null;
-  payment_status: string | null;
+  restaurantId: string;
+  totalAmountCents: number | null;
+  refundAmountCents: number | null;
+  paymentMethod: string | null;
+  paymentStatus: string | null;
 }
 
 function createD1(orderRow: RefundOrderRow | null, updateChanges = 1) {
@@ -102,13 +100,11 @@ function env(db: unknown) {
 function paidOrder(overrides: Partial<RefundOrderRow> = {}): RefundOrderRow {
   return {
     id: 42,
-    restaurant_id: "restaurant-1",
-    total_amount: 120,
-    total_amount_cents: 12000,
-    refund_amount: null,
-    refund_amount_cents: null,
-    payment_method: "line_pay",
-    payment_status: "completed",
+    restaurantId: "restaurant-1",
+    totalAmountCents: 12000,
+    refundAmountCents: null,
+    paymentMethod: "line_pay",
+    paymentStatus: "completed",
     ...overrides,
   };
 }
@@ -151,7 +147,7 @@ describe("refundPaymentTransaction", () => {
     });
     expect(setup.statements).toHaveLength(1);
 
-    setup = createD1(paidOrder({ payment_status: "pending" }));
+    setup = createD1(paidOrder({ paymentStatus: "pending" }));
 
     await expect(
       refundPaymentTransaction(
@@ -182,8 +178,8 @@ describe("refundPaymentTransaction", () => {
   it("records partial refunds with existing refunded cents and fallback providers", async () => {
     const { db, statements } = createD1(
       paidOrder({
-        refund_amount_cents: 2000,
-        payment_method: null,
+        refundAmountCents: 2000,
+        paymentMethod: null,
       }),
     );
 
@@ -278,7 +274,7 @@ describe("refundPaymentTransaction", () => {
 
   it("does not commit refund ledger writes when a middle write fails", async () => {
     const { db, committed } = createD1WithBatchFailure(
-      paidOrder({ refund_amount_cents: 2000 }),
+      paidOrder({ refundAmountCents: 2000 }),
       (statement) =>
         statement.sql
           .toLowerCase()
@@ -304,15 +300,13 @@ describe("refundPaymentTransaction", () => {
     ]);
   });
 
-  it("marks full refunds from legacy decimal totals and blocks over-refunds", async () => {
+  it("marks full refunds from cent totals and blocks over-refunds", async () => {
     const fullRefund = createD1(
       paidOrder({
-        total_amount: 45.67,
-        total_amount_cents: null,
-        refund_amount: 15.67,
-        refund_amount_cents: null,
-        payment_method: "card",
-        payment_status: "paid",
+        totalAmountCents: 4567,
+        refundAmountCents: 1567,
+        paymentMethod: "card",
+        paymentStatus: "paid",
       }),
     );
 
@@ -353,8 +347,8 @@ describe("refundPaymentTransaction", () => {
         env(
           createD1(
             paidOrder({
-              total_amount_cents: 12000,
-              refund_amount_cents: 10000,
+              totalAmountCents: 12000,
+              refundAmountCents: 10000,
             }),
           ).db,
         ),
@@ -404,7 +398,7 @@ describe("refundPaymentTransaction", () => {
       status: 403,
     });
 
-    const setup = createD1(paidOrder({ refund_amount_cents: 2000 }), 0);
+    const setup = createD1(paidOrder({ refundAmountCents: 2000 }), 0);
     await expect(
       refundPaymentTransaction(
         env(setup.db),

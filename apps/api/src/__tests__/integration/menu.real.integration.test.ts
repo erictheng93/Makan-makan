@@ -30,7 +30,7 @@ describe("Menu API — real integration", () => {
     const item = await seed.menuItem(restaurant.id, {
       isAvailable: true,
       isFeatured: true,
-      price: 150,
+      priceCents: 15000,
       name: "Nasi Lemak",
     });
 

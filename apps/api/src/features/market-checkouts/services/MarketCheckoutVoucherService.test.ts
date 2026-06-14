@@ -17,7 +17,7 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
       MarketCheckoutVoucherService.computeDiscountCents(
         {
           discountType: "percentage",
-          discountValue: 10,
+          discountPercentageBps: 1000,
           discountValueCents: null,
           maxDiscountAmountCents: null,
         },
@@ -31,7 +31,6 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
       MarketCheckoutVoucherService.computeDiscountCents(
         {
           discountType: "percentage",
-          discountValue: 0,
           discountPercentageBps: 1250,
           discountValueCents: 9999,
           maxDiscountAmountCents: null,
@@ -46,7 +45,7 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
       MarketCheckoutVoucherService.computeDiscountCents(
         {
           discountType: "percentage",
-          discountValue: 50,
+          discountPercentageBps: 5000,
           discountValueCents: null,
           maxDiscountAmountCents: 5000,
         },
@@ -60,7 +59,6 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
       MarketCheckoutVoucherService.computeDiscountCents(
         {
           discountType: "fixed",
-          discountValue: 30,
           discountValueCents: 3000,
           maxDiscountAmountCents: null,
         },
@@ -74,7 +72,6 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
       MarketCheckoutVoucherService.computeDiscountCents(
         {
           discountType: "fixed",
-          discountValue: 300,
           discountValueCents: 30000,
           maxDiscountAmountCents: null,
         },
@@ -88,7 +85,7 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
       MarketCheckoutVoucherService.computeDiscountCents(
         {
           discountType: "percentage",
-          discountValue: 10,
+          discountPercentageBps: 1000,
           discountValueCents: null,
           maxDiscountAmountCents: null,
         },
@@ -387,12 +384,9 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       usageLimit: null,
       usedCount: null,
       minOrderAmountCents: null,
-      minOrderAmount: null,
       discountType: "fixed",
-      discountValue: 5,
       discountValueCents: 500,
       maxDiscountAmountCents: null,
-      maxDiscountAmount: null,
     });
 
     await expect(
@@ -423,12 +417,10 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       usageLimit: 10,
       usedCount: 2,
       minOrderAmountCents: 1000,
-      minOrderAmount: null,
       discountType: "percentage",
-      discountValue: 10,
+      discountPercentageBps: 1000,
       discountValueCents: null,
       maxDiscountAmountCents: 500,
-      maxDiscountAmount: null,
     });
 
     await expect(
@@ -467,13 +459,10 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       validTo: "2099-12-31",
       usageLimit: null,
       usedCount: null,
-      minOrderAmountCents: null,
-      minOrderAmount: 10,
+      minOrderAmountCents: 1000,
       discountType: "fixed",
-      discountValue: 5,
-      discountValueCents: null,
+      discountValueCents: 500,
       maxDiscountAmountCents: null,
-      maxDiscountAmount: null,
     });
 
     await expect(
@@ -524,12 +513,9 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
         usageLimit: null,
         usedCount: null,
         minOrderAmountCents: 0,
-        minOrderAmount: null,
         discountType: "fixed",
-        discountValue: 0,
         discountValueCents: 100,
         maxDiscountAmountCents: null,
-        maxDiscountAmount: null,
       }).validateAndPrice({
         code: "old",
         subtotalCents: 1000,

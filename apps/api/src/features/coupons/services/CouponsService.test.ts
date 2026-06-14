@@ -49,10 +49,12 @@ describe("CouponsService", () => {
       service.formatCouponMoneyFields({
         id: 2,
         discountType: "percentage",
-        discountValue: 15,
+        discountValue: 0,
+        discountPercentageBps: 1500,
         discountValueCents: 9999,
         maxDiscountAmount: null,
-        minOrderAmount: 10,
+        minOrderAmount: null,
+        minOrderAmountCents: 1000,
       }),
     ).toMatchObject({
       discountValue: 15,
@@ -68,7 +70,8 @@ describe("CouponsService", () => {
         discountPercentageBps: 1250,
         discountValueCents: 9999,
         maxDiscountAmount: null,
-        minOrderAmount: 10,
+        minOrderAmount: null,
+        minOrderAmountCents: 1000,
       }),
     ).toMatchObject({
       discountValue: 12.5,
@@ -259,7 +262,8 @@ describe("CouponsService", () => {
           {
             id: 1,
             discountType: "percentage",
-            discountValue: 20,
+            discountValue: 0,
+            discountPercentageBps: 2000,
             maxDiscountAmount: null,
             maxDiscountAmountCents: 1500,
             minOrderAmount: null,
@@ -286,7 +290,8 @@ describe("CouponsService", () => {
           {
             id: 3,
             discountType: "percentage",
-            discountValue: 10,
+            discountValue: 0,
+            discountPercentageBps: 1000,
             maxDiscountAmount: null,
             minOrderAmount: null,
           },

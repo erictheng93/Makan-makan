@@ -105,7 +105,6 @@ async function seedPlatformCoupon(
   code: string,
   discountPercent: number,
 ): Promise<number> {
-  // Dollar columns only — the `_cents` columns are derived by DB triggers.
   const [row] = await testDb.drizzle
     .insert(coupons)
     .values({
@@ -113,7 +112,7 @@ async function seedPlatformCoupon(
       name: code,
       restaurantId: null,
       discountType: "percentage",
-      discountValue: discountPercent,
+      discountPercentageBps: discountPercent * 100,
       validFrom: "2020-01-01",
       validTo: "2099-12-31",
       isActive: true,

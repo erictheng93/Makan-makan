@@ -114,7 +114,7 @@ describe("PlatformMenuSyncService", () => {
           description: null,
           imageUrl: null,
           isAvailable: true,
-          price: 180,
+          priceCents: 18000,
         },
         {
           id: 102,
@@ -123,7 +123,7 @@ describe("PlatformMenuSyncService", () => {
           description: "Cold tea",
           imageUrl: "https://cdn.example.test/tea.jpg",
           isAvailable: true,
-          price: 60,
+          priceCents: 6000,
         },
       ],
       [{ id: 901 }],
@@ -208,7 +208,7 @@ describe("PlatformMenuSyncService", () => {
           description: "Spicy",
           imageUrl: null,
           isAvailable: true,
-          price: 180,
+          priceCents: 18000,
         },
       ],
     ]);

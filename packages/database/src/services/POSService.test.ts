@@ -52,11 +52,8 @@ describe("POSService money reads", () => {
           id: "shift-1",
           registerId: "register-1",
           status: "active",
-          startAmount: 999,
           startAmountCents: 10000,
-          totalSales: 999,
           totalSalesCents: 7500,
-          totalRefunds: 999,
           totalRefundsCents: 2500,
         },
       ]),
@@ -86,11 +83,11 @@ describe("POSService money reads", () => {
       },
     });
     expect(captured.updated[0]).toMatchObject({
-      expectedAmount: 150,
       expectedAmountCents: 15000,
-      differenceAmount: 0,
       differenceAmountCents: 0,
     });
+    expect(captured.updated[0]).not.toHaveProperty("expectedAmount");
+    expect(captured.updated[0]).not.toHaveProperty("differenceAmount");
   });
 
   it("validates and records refunds from authoritative order total cents", async () => {
@@ -101,7 +98,6 @@ describe("POSService money reads", () => {
       select: createSelectQueue([
         {
           id: 123,
-          totalAmount: 1,
           totalAmountCents: 10000,
         },
         {
@@ -134,10 +130,10 @@ describe("POSService money reads", () => {
 
     expect(result.success).toBe(true);
     expect(captured.inserted[0]).toMatchObject({
-      originalAmount: 100,
       originalAmountCents: 10000,
-      refundAmount: 50,
       refundAmountCents: 5000,
     });
+    expect(captured.inserted[0]).not.toHaveProperty("originalAmount");
+    expect(captured.inserted[0]).not.toHaveProperty("refundAmount");
   });
 });

@@ -186,10 +186,7 @@ function createEnv(dbFirstRows: unknown[] = []) {
     if (normalizedSql.includes('"orders"') && values.includes("pay-1001")) {
       return refundOrderRow({
         id: 1001,
-        restaurant_id: "restaurant-1",
         restaurantId: "restaurant-1",
-        total_amount: 120,
-        total_amount_cents: 12000,
         totalAmountCents: 12000,
         payment_transaction_id: "pay-1001",
       });
@@ -197,10 +194,7 @@ function createEnv(dbFirstRows: unknown[] = []) {
     if (normalizedSql.includes('"orders"') && values.includes("pay-1002")) {
       return refundOrderRow({
         id: 1002,
-        restaurant_id: "restaurant-2",
         restaurantId: "restaurant-2",
-        total_amount: 80,
-        total_amount_cents: 8000,
         totalAmountCents: 8000,
         payment_transaction_id: "pay-1002",
       });
@@ -217,11 +211,6 @@ function refundOrderRow(overrides: Record<string, unknown>) {
     refundAmountCents: null,
     paymentMethod: "line_pay",
     paymentStatus: "paid",
-    restaurant_id: "restaurant-1",
-    total_amount: 120,
-    total_amount_cents: 12000,
-    refund_amount: null,
-    refund_amount_cents: null,
     payment_method: "line_pay",
     payment_status: "paid",
     ...overrides,
@@ -2421,20 +2410,16 @@ describe("market checkout routes", () => {
       {
         id: 1001,
         restaurant_id: "restaurant-1",
-        total_amount: 120,
-        total_amount_cents: 12000,
-        refund_amount: null,
-        refund_amount_cents: null,
+        totalAmountCents: 12000,
+        refundAmountCents: null,
         payment_method: "line_pay",
         payment_status: "paid",
       },
       {
         id: 1002,
         restaurant_id: "restaurant-2",
-        total_amount: 80,
-        total_amount_cents: 8000,
-        refund_amount: null,
-        refund_amount_cents: null,
+        totalAmountCents: 8000,
+        refundAmountCents: null,
         payment_method: "line_pay",
         payment_status: "paid",
       },

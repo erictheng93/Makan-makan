@@ -39,11 +39,12 @@ function makeService(): MarketCheckoutVoucherService {
 interface SeedCouponOptions {
   code: string;
   discountType?: "percentage" | "fixed";
-  /** Percent (e.g. 10) for percentage, or dollar amount for fixed. */
-  discountValue?: number;
-  /** Dollar amounts — the `_cents` columns are derived by DB triggers. */
-  maxDiscountAmount?: number | null;
-  minOrderAmount?: number | null;
+  /** Basis points (e.g. 1000 = 10%) for percentage discounts. */
+  discountPercentageBps?: number | null;
+  /** Cent amount for fixed discounts. */
+  discountValueCents?: number | null;
+  maxDiscountAmountCents?: number | null;
+  minOrderAmountCents?: number | null;
   restaurantId?: string | null;
   validFrom?: string;
   validTo?: string;
@@ -53,19 +54,23 @@ interface SeedCouponOptions {
   usedCount?: number;
 }
 
-// NB: the `coupons` table has AFTER INSERT/UPDATE triggers that recompute the
-// `*_cents` columns from the dollar columns, so seeds must set dollar fields.
 async function seedCoupon(options: SeedCouponOptions): Promise<number> {
+  const discountType = options.discountType ?? "percentage";
   const [row] = await testDb.drizzle
     .insert(coupons)
     .values({
       code: options.code,
       name: options.code,
       restaurantId: options.restaurantId ?? null,
-      discountType: options.discountType ?? "percentage",
-      discountValue: options.discountValue ?? 10,
-      maxDiscountAmount: options.maxDiscountAmount ?? null,
-      minOrderAmount: options.minOrderAmount ?? 0,
+      discountType,
+      discountPercentageBps:
+        discountType === "percentage"
+          ? (options.discountPercentageBps ?? 1000)
+          : null,
+      discountValueCents:
+        discountType === "fixed" ? (options.discountValueCents ?? 1000) : null,
+      maxDiscountAmountCents: options.maxDiscountAmountCents ?? null,
+      minOrderAmountCents: options.minOrderAmountCents ?? 0,
       validFrom: options.validFrom ?? "2020-01-01",
       validTo: options.validTo ?? "2099-12-31",
       isActive: options.isActive ?? true,
@@ -128,7 +133,6 @@ async function seedMarketCheckout(
       restaurantName: "Test Stall",
       orderId,
       orderNumber: `ORDER-${orderId}`,
-      totalAmount: 0,
       totalAmountCents: 0,
       tokenExpiresAt: now,
       createdAt: now,
@@ -145,8 +149,7 @@ async function seedOrder(
     id,
     restaurantId,
     orderNumber: `ORDER-${id}`,
-    subtotal: totalCents / 100,
-    totalAmount: totalCents / 100,
+    subtotalCents: totalCents,
     totalAmountCents: totalCents,
     status: "pending",
   });
@@ -183,7 +186,7 @@ beforeEach(async () => {
 
 describe("MarketCheckoutVoucherService — validateAndPrice", () => {
   it("prices a platform-wide percentage voucher and splits proportionally", async () => {
-    await seedCoupon({ code: "MARKET10", discountValue: 10 });
+    await seedCoupon({ code: "MARKET10", discountPercentageBps: 1000 });
 
     const applied = await makeService().validateAndPrice({
       code: "market10", // case-insensitive
@@ -215,7 +218,7 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
   });
 
   it("rejects when the subtotal is below the minimum order", async () => {
-    await seedCoupon({ code: "MIN500", minOrderAmount: 500 });
+    await seedCoupon({ code: "MIN500", minOrderAmountCents: 50000 });
 
     await expect(
       makeService().validateAndPrice({
@@ -263,7 +266,10 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
 
 describe("MarketCheckoutVoucherService — redeem", () => {
   it("writes one coupon_usage per child and increments used_count once", async () => {
-    const couponId = await seedCoupon({ code: "MARKET10", discountValue: 10 });
+    const couponId = await seedCoupon({
+      code: "MARKET10",
+      discountPercentageBps: 1000,
+    });
     await seedRestaurant();
     await seedOrder(101, 16000);
     await seedOrder(102, 8000);
@@ -298,7 +304,10 @@ describe("MarketCheckoutVoucherService — redeem", () => {
   });
 
   it("is idempotent across replays (success path + webhook)", async () => {
-    const couponId = await seedCoupon({ code: "MARKET10", discountValue: 10 });
+    const couponId = await seedCoupon({
+      code: "MARKET10",
+      discountPercentageBps: 1000,
+    });
     await seedRestaurant();
     await seedOrder(101, 16000);
     await seedOrder(102, 8000);
@@ -320,7 +329,10 @@ describe("MarketCheckoutVoucherService — redeem", () => {
   });
 
   it("marks redemption refunded and releases the checkout's voucher use", async () => {
-    const couponId = await seedCoupon({ code: "MARKET10", discountValue: 10 });
+    const couponId = await seedCoupon({
+      code: "MARKET10",
+      discountPercentageBps: 1000,
+    });
     await seedRestaurant();
     await seedOrder(101, 16000);
     await seedOrder(102, 8000);
@@ -345,7 +357,10 @@ describe("MarketCheckoutVoucherService — redeem", () => {
   });
 
   it("keeps the voucher use counted until every usage row in the checkout is refunded", async () => {
-    const couponId = await seedCoupon({ code: "PARTIAL10", discountValue: 10 });
+    const couponId = await seedCoupon({
+      code: "PARTIAL10",
+      discountPercentageBps: 1000,
+    });
     await seedRestaurant();
     await seedOrder(101, 16000);
     await seedOrder(102, 8000);

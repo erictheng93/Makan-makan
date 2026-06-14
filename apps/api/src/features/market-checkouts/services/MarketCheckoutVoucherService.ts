@@ -65,7 +65,6 @@ export type AppliedMarketCheckoutVoucher =
 
 interface NormalizedCoupon {
   discountType: "percentage" | "fixed";
-  discountValue: number;
   discountPercentageBps?: number | null;
   discountValueCents: number | null;
   maxDiscountAmountCents: number | null;
@@ -227,7 +226,6 @@ export class MarketCheckoutVoucherService {
     const discountCents = MarketCheckoutVoucherService.computeDiscountCents(
       {
         discountType: coupon.discountType,
-        discountValue: 0,
         discountPercentageBps: coupon.discountPercentageBps,
         discountValueCents: coupon.discountValueCents,
         maxDiscountAmountCents: coupon.maxDiscountAmountCents,
