@@ -6,6 +6,7 @@
 import type {
   CountryCode,
   PrintContent,
+  PrintRequest,
   RegionConfig,
 } from "@makanmakan/shared-types";
 
@@ -27,6 +28,46 @@ export abstract class BaseReceiptFormatter implements IReceiptFormatter {
   abstract formatReceipt(data: any): PrintContent;
   abstract validateData(data: any): boolean;
   abstract getRequiredFields(): string[];
+
+  protected getReceiptData(input: any): any {
+    if (input?.data?.order) {
+      return {
+        ...input.data,
+        restaurant: input.data.restaurant ?? input.restaurant,
+        cashier: input.data.cashier ?? input.cashier,
+        receiptNumber: input.data.receiptNumber ?? input.receiptNumber,
+        restaurantId: input.restaurantId,
+      };
+    }
+
+    return input ?? {};
+  }
+
+  protected generateBusinessNumber(prefix: string, now = Date.now()): string {
+    const suffix = globalThis.crypto
+      .randomUUID()
+      .replace(/-/g, "")
+      .slice(0, 8)
+      .toUpperCase();
+
+    return `${prefix}${now}-${suffix}`;
+  }
+
+  protected getCashierName(data: any, fallback: string): string {
+    if (typeof data.cashier === "string") {
+      return data.cashier;
+    }
+
+    return data.cashier?.name || fallback;
+  }
+
+  protected getPaymentDetails(payment: any): string | undefined {
+    if (payment?.cardLast4) {
+      return `**** ${payment.cardLast4}`;
+    }
+
+    return payment?.details;
+  }
 
   protected formatCurrency(amount: number): string {
     const { currency } = this.region.numberFormat;
@@ -61,27 +102,44 @@ export abstract class BaseReceiptFormatter implements IReceiptFormatter {
 }
 
 export class TWReceiptFormatter extends BaseReceiptFormatter {
-  formatReceipt(data: any): PrintContent {
+  formatReceipt(input: PrintRequest | any): PrintContent {
+    const data = this.getReceiptData(input);
+    const order = data.order;
+    const restaurant = data.restaurant;
+    const payment = data.payment;
+    const subtotal = order?.subtotal ?? 0;
+    const taxAmount = order?.tax ?? subtotal * 0.05;
+
     return {
       header: {
         restaurantInfo: {
-          name: data.restaurant?.name || "餐廳名稱",
-          nameLocal: data.restaurant?.nameLocal,
-          address: data.restaurant?.address || "餐廳地址",
-          phone: data.restaurant?.phone || "電話號碼",
-          taxNumber: data.restaurant?.taxNumber, // 統一編號
+          name: restaurant?.name || "餐廳名稱",
+          nameLocal: restaurant?.nameLocal,
+          address: restaurant?.address || "餐廳地址",
+          addressLocal: restaurant?.addressLocal,
+          phone: restaurant?.phone || "電話號碼",
+          taxNumber: restaurant?.taxNumber, // 統一編號
+          licenseNumber: restaurant?.licenseNumber,
         },
         transactionInfo: {
-          orderId: data.order?.id || "N/A",
-          tableNumber: data.order?.tableNumber,
+          orderId: order?.id || "N/A",
+          tableNumber: order?.tableNumber,
           customerName: data.customer?.name,
-          cashier: data.cashier?.name || "收銀員",
-          timestamp: new Date(data.order?.createdAt || Date.now()),
-          receiptNumber: data.receiptNumber || `TW${Date.now()}`,
+          cashier: this.getCashierName(data, "System"),
+          timestamp: new Date(order?.createdAt || Date.now()),
+          receiptNumber:
+            data.receiptNumber || this.generateBusinessNumber("TW"),
         },
+        logo: restaurant?.logo
+          ? {
+              type: "text",
+              data: restaurant.logo,
+              alignment: "center",
+            }
+          : undefined,
       },
       items:
-        data.order?.items?.map((item: any) => ({
+        order?.items?.map((item: any) => ({
           name: item.name,
           nameLocal: item.nameLocal,
           quantity: item.quantity,
@@ -92,33 +150,42 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
           taxRate: 0.05, // Taiwan VAT rate
         })) || [],
       summary: {
-        subtotal: data.order?.subtotal || 0,
+        subtotal,
         tax: [
           {
             name: "營業稅",
             rate: 0.05,
-            amount: (data.order?.subtotal || 0) * 0.05,
-            taxableAmount: data.order?.subtotal || 0,
+            amount: taxAmount,
+            taxableAmount: subtotal,
           },
         ],
-        total: data.order?.total || 0,
-        payment: data.payment
+        total: order?.total || 0,
+        payment: payment
           ? [
               {
-                method: data.payment.method || "現金",
-                amount: data.payment.amount || 0,
-                details: data.payment.details,
+                method: this.translatePaymentMethod(payment.method || "cash"),
+                amount: payment.amount || 0,
+                details: this.getPaymentDetails(payment),
               },
             ]
           : [],
+        change:
+          payment?.change && payment.change > 0 ? payment.change : undefined,
       },
       footer: {
-        thankYouMessage: "謝謝光臨",
-        thankYouMessageLocal: "Thank you for your visit",
+        thankYouMessage: "Thank you for your visit!",
+        thankYouMessageLocal: "謝謝光臨！",
+        promotionalMessage: restaurant?.promotionalMessage,
+        qrCode: {
+          data: `https://makanmakan.com/receipt/${order?.id || "unknown"}`,
+          size: "medium",
+          label: "數位收據",
+        },
         legalNotice: "本收據為電子發票證明聯",
         contactInfo: {
-          supportPhone: data.restaurant?.supportPhone,
-          supportEmail: data.restaurant?.supportEmail,
+          supportPhone: restaurant?.supportPhone,
+          supportEmail: restaurant?.supportEmail,
+          website: restaurant?.website || "https://makanmakan.com",
         },
       },
     };
@@ -142,30 +209,52 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
       "cashier.name",
     ];
   }
+
+  private translatePaymentMethod(method: string): string {
+    const translations: Record<string, string> = {
+      cash: "現金",
+      credit_card: "信用卡",
+      debit_card: "金融卡",
+      mobile_payment: "行動支付",
+      e_wallet: "電子錢包",
+    };
+
+    return translations[method] || method;
+  }
 }
 
 export class MYReceiptFormatter extends BaseReceiptFormatter {
-  formatReceipt(data: any): PrintContent {
+  formatReceipt(input: PrintRequest | any): PrintContent {
+    const data = this.getReceiptData(input);
+    const order = data.order;
+    const restaurant = data.restaurant;
+    const payment = data.payment;
+    const subtotal = order?.subtotal ?? 0;
+    const taxAmount = order?.tax ?? subtotal * 0.06;
+
     return {
       header: {
         restaurantInfo: {
-          name: data.restaurant?.name || "Restaurant Name",
-          address: data.restaurant?.address || "Restaurant Address",
-          phone: data.restaurant?.phone || "Phone Number",
-          licenseNumber: data.restaurant?.licenseNumber, // Business license
+          name: restaurant?.name || "Restaurant Name",
+          nameLocal: restaurant?.nameLocal,
+          address: restaurant?.address || "Restaurant Address",
+          addressLocal: restaurant?.addressLocal,
+          phone: restaurant?.phone || "Phone Number",
+          licenseNumber: restaurant?.licenseNumber, // Business license
         },
         transactionInfo: {
-          orderId: data.order?.id || "N/A",
-          tableNumber: data.order?.tableNumber,
+          orderId: order?.id || "N/A",
+          tableNumber: order?.tableNumber,
           customerName: data.customer?.name,
-          cashier: data.cashier?.name || "Cashier",
-          timestamp: new Date(data.order?.createdAt || Date.now()),
+          cashier: this.getCashierName(data, "Cashier"),
+          timestamp: new Date(order?.createdAt || Date.now()),
           receiptNumber: data.receiptNumber || `MY${Date.now()}`,
         },
       },
       items:
-        data.order?.items?.map((item: any) => ({
+        order?.items?.map((item: any) => ({
           name: item.name,
+          nameLocal: item.nameLocal,
           quantity: item.quantity,
           unitPrice: item.price,
           totalPrice: item.quantity * item.price,
@@ -174,33 +263,41 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
           taxRate: 0.06, // Malaysia SST rate
         })) || [],
       summary: {
-        subtotal: data.order?.subtotal || 0,
+        subtotal,
         tax: [
           {
             name: "SST",
             rate: 0.06,
-            amount: (data.order?.subtotal || 0) * 0.06,
-            taxableAmount: data.order?.subtotal || 0,
+            amount: taxAmount,
+            taxableAmount: subtotal,
           },
         ],
-        total: data.order?.total || 0,
-        payment: data.payment
+        total: order?.total || 0,
+        payment: payment
           ? [
               {
-                method: data.payment.method || "Cash",
-                amount: data.payment.amount || 0,
-                details: data.payment.details,
+                method: this.translatePaymentMethod(payment.method || "cash"),
+                amount: payment.amount || 0,
+                details: this.getPaymentDetails(payment),
               },
             ]
           : [],
+        change:
+          payment?.change && payment.change > 0 ? payment.change : undefined,
       },
       footer: {
-        thankYouMessage: "Thank you for your visit",
-        thankYouMessageLocal: "Terima kasih atas lawatan anda",
-        legalNotice: "This is a computer generated receipt",
+        thankYouMessage: "Thank you for dining with us!",
+        thankYouMessageLocal: "Terima kasih kerana makan bersama kami!",
+        qrCode: {
+          data: `https://makanmakan.com/receipt/${order?.id || "unknown"}`,
+          size: "medium",
+          label: "Digital Receipt / Resit Digital",
+        },
+        legalNotice: "GST/SST No: 000123456789 | Company No: 123456-A",
         contactInfo: {
-          supportPhone: data.restaurant?.supportPhone,
-          supportEmail: data.restaurant?.supportEmail,
+          supportPhone: restaurant?.supportPhone,
+          supportEmail: restaurant?.supportEmail,
+          website: restaurant?.website || "https://makanmakan.my",
         },
       },
     };
@@ -224,29 +321,51 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
       "cashier.name",
     ];
   }
+
+  private translatePaymentMethod(method: string): string {
+    const translations: Record<string, string> = {
+      cash: "Tunai / Cash",
+      credit_card: "Kad Kredit / Credit Card",
+      debit_card: "Kad Debit / Debit Card",
+      grabpay: "GrabPay",
+      tng: "Touch 'n Go eWallet",
+    };
+
+    return translations[method] || method;
+  }
 }
 
 export class VNReceiptFormatter extends BaseReceiptFormatter {
-  formatReceipt(data: any): PrintContent {
+  formatReceipt(input: PrintRequest | any): PrintContent {
+    const data = this.getReceiptData(input);
+    const order = data.order;
+    const restaurant = data.restaurant;
+    const payment = data.payment;
+    const total = order?.total ?? 0;
+    const subtotal = order?.subtotal ?? total / 1.1;
+    const taxAmount = order?.tax ?? total - subtotal;
+
     return {
       header: {
         restaurantInfo: {
-          name: data.restaurant?.name || "Tên nhà hàng",
-          address: data.restaurant?.address || "Địa chỉ nhà hàng",
-          phone: data.restaurant?.phone || "Số điện thoại",
-          taxNumber: data.restaurant?.taxNumber, // Mã số thuế
+          name: restaurant?.name || "Tên nhà hàng",
+          nameLocal: restaurant?.nameLocal,
+          address: restaurant?.address || "Địa chỉ nhà hàng",
+          addressLocal: restaurant?.addressLocal,
+          phone: restaurant?.phone || "Số điện thoại",
+          taxNumber: restaurant?.taxNumber, // Mã số thuế
         },
         transactionInfo: {
-          orderId: data.order?.id || "N/A",
-          tableNumber: data.order?.tableNumber,
+          orderId: order?.id || "N/A",
+          tableNumber: order?.tableNumber,
           customerName: data.customer?.name,
-          cashier: data.cashier?.name || "Thu ngân",
-          timestamp: new Date(data.order?.createdAt || Date.now()),
+          cashier: this.getCashierName(data, "Thu ngân"),
+          timestamp: new Date(order?.createdAt || Date.now()),
           receiptNumber: data.receiptNumber || `VN${Date.now()}`,
         },
       },
       items:
-        data.order?.items?.map((item: any) => ({
+        order?.items?.map((item: any) => ({
           name: item.name,
           nameLocal: item.nameLocal,
           quantity: item.quantity,
@@ -257,33 +376,41 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
           taxRate: 0.1, // Vietnam VAT rate
         })) || [],
       summary: {
-        subtotal: data.order?.subtotal || 0,
+        subtotal,
         tax: [
           {
             name: "VAT",
             rate: 0.1,
-            amount: (data.order?.subtotal || 0) * 0.1,
-            taxableAmount: data.order?.subtotal || 0,
+            amount: taxAmount,
+            taxableAmount: subtotal,
           },
         ],
-        total: data.order?.total || 0,
-        payment: data.payment
+        total,
+        payment: payment
           ? [
               {
-                method: data.payment.method || "Tiền mặt",
-                amount: data.payment.amount || 0,
-                details: data.payment.details,
+                method: this.translatePaymentMethod(payment.method || "cash"),
+                amount: payment.amount || 0,
+                details: this.getPaymentDetails(payment),
               },
             ]
           : [],
+        change:
+          payment?.change && payment.change > 0 ? payment.change : undefined,
       },
       footer: {
-        thankYouMessage: "Cảm ơn quý khách",
-        thankYouMessageLocal: "Thank you for your visit",
-        legalNotice: "Hóa đơn được in tự động",
+        thankYouMessage: "Thank you for your visit!",
+        thankYouMessageLocal: "Cảm ơn bạn đã ghé thăm!",
+        qrCode: {
+          data: `https://makanmakan.com/receipt/${order?.id || "unknown"}`,
+          size: "medium",
+          label: "Hóa đơn điện tử / Digital Receipt",
+        },
+        legalNotice: "Mã số thuế: 0123456789",
         contactInfo: {
-          supportPhone: data.restaurant?.supportPhone,
-          supportEmail: data.restaurant?.supportEmail,
+          supportPhone: restaurant?.supportPhone,
+          supportEmail: restaurant?.supportEmail,
+          website: restaurant?.website || "https://makanmakan.vn",
         },
       },
     };
@@ -306,6 +433,19 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
       "order.total",
       "cashier.name",
     ];
+  }
+
+  private translatePaymentMethod(method: string): string {
+    const translations: Record<string, string> = {
+      cash: "Tiền mặt / Cash",
+      credit_card: "Thẻ tín dụng / Credit Card",
+      debit_card: "Thẻ ghi nợ / Debit Card",
+      momo: "Ví MoMo",
+      zalopay: "ZaloPay",
+      vnpay: "VNPay",
+    };
+
+    return translations[method] || method;
   }
 }
 

@@ -7,7 +7,7 @@ import { ESCPOSCommands } from "./ESCPOSCommands";
 import type { PrintContent } from "@makanmakan/shared-types";
 
 export interface PrintCommand {
-  type: "text" | "image" | "barcode" | "qr" | "cut" | "feed";
+  type: "text" | "image" | "barcode" | "qr" | "cut" | "feed" | "raw";
   data: any;
   options?: any;
 }
@@ -106,6 +106,18 @@ export class CommandBuilder {
   }
 
   /**
+   * Add raw ESC/POS command string
+   */
+  addRaw(commands: string): CommandBuilder {
+    this.commands.push({
+      type: "raw",
+      data: commands,
+      options: null,
+    });
+    return this;
+  }
+
+  /**
    * Build ESC/POS command string
    */
   buildESCPOS(): string {
@@ -167,6 +179,10 @@ export class CommandBuilder {
         case "feed":
           commands.push(ESCPOSCommands.feedPaper(command.data));
           break;
+
+        case "raw":
+          commands.push(command.data);
+          break;
       }
     }
 
@@ -178,84 +194,270 @@ export class CommandBuilder {
    */
   static fromPrintContent(content: PrintContent): CommandBuilder {
     const builder = new CommandBuilder();
+    const width = 32;
 
-    // Add restaurant header
-    if (content.header?.restaurantInfo?.name) {
-      builder.addText(content.header.restaurantInfo.name, {
-        bold: true,
-        alignment: "center",
-      });
+    const header = content.header;
+    const restaurant = header.restaurantInfo;
+    const transaction = header.transactionInfo;
+
+    if (header.logo?.type === "text") {
+      builder.addRaw(ESCPOSCommands.printTitle(header.logo.data));
     }
 
-    if (content.header?.restaurantInfo?.address) {
-      builder.addText(content.header.restaurantInfo.address, {
-        alignment: "center",
-      });
+    builder.addRaw(ESCPOSCommands.setAlignment("center"));
+    builder.addRaw(ESCPOSCommands.setBold(true));
+    builder.addRaw(ESCPOSCommands.textLine(restaurant.name));
+
+    if (restaurant.nameLocal) {
+      builder.addRaw(ESCPOSCommands.textLine(restaurant.nameLocal));
     }
 
-    builder.addFeed(1);
+    builder.addRaw(ESCPOSCommands.setBold(false));
+    builder.addRaw(ESCPOSCommands.textLine(restaurant.address));
 
-    // Add transaction info
-    if (content.header?.transactionInfo) {
-      builder.addText(`Order: ${content.header.transactionInfo.orderId}`);
-      builder.addText(`Cashier: ${content.header.transactionInfo.cashier}`);
-      builder.addText(
-        `Time: ${content.header.transactionInfo.timestamp.toLocaleString()}`,
+    if (restaurant.addressLocal) {
+      builder.addRaw(ESCPOSCommands.textLine(restaurant.addressLocal));
+    }
+
+    builder.addRaw(ESCPOSCommands.textLine(`Tel: ${restaurant.phone}`));
+
+    if (restaurant.taxNumber) {
+      builder.addRaw(
+        ESCPOSCommands.textLine(`Tax No: ${restaurant.taxNumber}`),
       );
     }
 
-    builder.addFeed(1);
+    if (restaurant.licenseNumber) {
+      builder.addRaw(
+        ESCPOSCommands.textLine(`License: ${restaurant.licenseNumber}`),
+      );
+    }
 
-    // Add items
+    builder.addRaw(ESCPOSCommands.setAlignment("left"));
+    builder.addRaw(ESCPOSCommands.lineFeed());
+    builder.addRaw(ESCPOSCommands.separator("=", width));
+    builder.addRaw(
+      ESCPOSCommands.textColumns(
+        "Receipt No:",
+        transaction.receiptNumber,
+        width,
+      ),
+    );
+    builder.addRaw(
+      ESCPOSCommands.textColumns("Order ID:", transaction.orderId, width),
+    );
+
+    if (transaction.tableNumber) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns("Table:", transaction.tableNumber, width),
+      );
+    }
+
+    if (transaction.customerName) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          "Customer:",
+          transaction.customerName,
+          width,
+        ),
+      );
+    }
+
+    builder.addRaw(
+      ESCPOSCommands.textColumns("Cashier:", transaction.cashier, width),
+    );
+    builder.addRaw(
+      ESCPOSCommands.textLine(transaction.timestamp.toLocaleString()),
+    );
+    builder.addRaw(ESCPOSCommands.separator("=", width));
+
     for (const item of content.items) {
-      builder.addText(`${item.quantity}x ${item.name}`);
-      builder.addText(`  $${item.totalPrice.toFixed(2)}`, {
-        alignment: "right",
-      });
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          `${item.name} x${item.quantity}`,
+          CommandBuilder.formatPrice(item.totalPrice),
+          width,
+        ),
+      );
+
+      if (item.modifiers && item.modifiers.length > 0) {
+        for (const modifier of item.modifiers) {
+          builder.addRaw(
+            ESCPOSCommands.textColumns(
+              `  + ${modifier.name}`,
+              modifier.price > 0
+                ? CommandBuilder.formatPrice(modifier.price)
+                : "",
+              width,
+            ),
+          );
+        }
+      }
     }
 
-    builder.addFeed(1);
+    builder.addRaw(ESCPOSCommands.separator("-", width));
+    builder.addRaw(
+      ESCPOSCommands.textColumns(
+        "Subtotal:",
+        CommandBuilder.formatPrice(content.summary.subtotal),
+        width,
+      ),
+    );
 
-    // Add summary
-    builder.addText(`Subtotal: $${content.summary.subtotal.toFixed(2)}`, {
-      alignment: "right",
-    });
     for (const tax of content.summary.tax) {
-      builder.addText(`${tax.name}: $${tax.amount.toFixed(2)}`, {
-        alignment: "right",
-      });
-    }
-    builder.addText(`Total: $${content.summary.total.toFixed(2)}`, {
-      bold: true,
-      alignment: "right",
-    });
-
-    builder.addFeed(1);
-
-    // Add footer
-    if (content.footer?.thankYouMessage) {
-      builder.addText(content.footer.thankYouMessage, { alignment: "center" });
-    }
-
-    if (content.footer?.qrCode) {
-      const size =
-        content.footer.qrCode.size === "small"
-          ? 2
-          : content.footer.qrCode.size === "medium"
-            ? 3
-            : 4;
-      builder.addQRCode(content.footer.qrCode.data, size);
-    }
-
-    if (content.footer?.barcode) {
-      builder.addBarcode(
-        content.footer.barcode.data,
-        content.footer.barcode.format,
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          `${tax.name}:`,
+          CommandBuilder.formatPrice(tax.amount),
+          width,
+        ),
       );
     }
 
-    // Add cut at the end
-    builder.addCut(true);
+    if (content.summary.serviceCharge) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          `${content.summary.serviceCharge.name}:`,
+          CommandBuilder.formatPrice(content.summary.serviceCharge.amount),
+          width,
+        ),
+      );
+    }
+
+    if (content.summary.tip && content.summary.tip > 0) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          "Tip:",
+          CommandBuilder.formatPrice(content.summary.tip),
+          width,
+        ),
+      );
+    }
+
+    if (content.summary.discount && content.summary.discount.amount > 0) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          `${content.summary.discount.name}:`,
+          `-${CommandBuilder.formatPrice(content.summary.discount.amount)}`,
+          width,
+        ),
+      );
+    }
+
+    builder.addRaw(ESCPOSCommands.separator("-", width));
+    builder.addRaw(
+      ESCPOSCommands.printTotal(
+        "TOTAL:",
+        CommandBuilder.formatPrice(content.summary.total),
+        width,
+      ),
+    );
+
+    builder.addRaw(ESCPOSCommands.lineFeed());
+
+    for (const payment of content.summary.payment) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          `${payment.method}:`,
+          CommandBuilder.formatPrice(payment.amount),
+          width,
+        ),
+      );
+
+      if (payment.details) {
+        builder.addRaw(ESCPOSCommands.textLine(`  ${payment.details}`));
+      }
+    }
+
+    if (content.summary.change && content.summary.change > 0) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          "Change:",
+          CommandBuilder.formatPrice(content.summary.change),
+          width,
+        ),
+      );
+    }
+
+    builder.addRaw(ESCPOSCommands.separator("=", width));
+    builder.addRaw(ESCPOSCommands.setAlignment("center"));
+    builder.addRaw(ESCPOSCommands.lineFeed());
+    builder.addRaw(ESCPOSCommands.textLine(content.footer.thankYouMessage));
+
+    if (content.footer.thankYouMessageLocal) {
+      builder.addRaw(
+        ESCPOSCommands.textLine(content.footer.thankYouMessageLocal),
+      );
+    }
+
+    if (content.footer.qrCode) {
+      const qrSize =
+        content.footer.qrCode.size === "small"
+          ? 3
+          : content.footer.qrCode.size === "large"
+            ? 6
+            : 4;
+      builder.addRaw(ESCPOSCommands.lineFeed());
+      builder.addRaw(ESCPOSCommands.qrCode(content.footer.qrCode.data, qrSize));
+
+      if (content.footer.qrCode.label) {
+        builder.addRaw(ESCPOSCommands.textLine(content.footer.qrCode.label));
+      }
+    }
+
+    if (content.footer.barcode) {
+      builder.addRaw(ESCPOSCommands.lineFeed());
+      builder.addRaw(
+        ESCPOSCommands.printBarcode(
+          content.footer.barcode.data,
+          content.footer.barcode.format,
+        ),
+      );
+
+      if (content.footer.barcode.label) {
+        builder.addRaw(ESCPOSCommands.textLine(content.footer.barcode.label));
+      }
+    }
+
+    if (content.footer.promotionalMessage) {
+      builder.addRaw(ESCPOSCommands.lineFeed());
+      builder.addRaw(
+        ESCPOSCommands.textLine(content.footer.promotionalMessage),
+      );
+    }
+
+    if (content.footer.contactInfo) {
+      builder.addRaw(ESCPOSCommands.lineFeed());
+
+      if (content.footer.contactInfo.supportPhone) {
+        builder.addRaw(
+          ESCPOSCommands.textLine(
+            `Support: ${content.footer.contactInfo.supportPhone}`,
+          ),
+        );
+      }
+
+      if (content.footer.contactInfo.supportEmail) {
+        builder.addRaw(
+          ESCPOSCommands.textLine(content.footer.contactInfo.supportEmail),
+        );
+      }
+
+      if (content.footer.contactInfo.website) {
+        builder.addRaw(
+          ESCPOSCommands.textLine(content.footer.contactInfo.website),
+        );
+      }
+    }
+
+    if (content.footer.legalNotice) {
+      builder.addRaw(ESCPOSCommands.lineFeed());
+      builder.addRaw(ESCPOSCommands.textLine(content.footer.legalNotice));
+    }
+
+    builder.addRaw(ESCPOSCommands.setAlignment("left"));
+    builder.addRaw(ESCPOSCommands.lineFeed(3));
+    builder.addRaw(ESCPOSCommands.cutPaper());
 
     return builder;
   }
@@ -273,5 +475,9 @@ export class CommandBuilder {
    */
   getCommandCount(): number {
     return this.commands.length;
+  }
+
+  private static formatPrice(amount: number): string {
+    return amount.toFixed(2);
   }
 }

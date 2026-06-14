@@ -646,7 +646,7 @@ export class PrinterService {
     request: PrintRequest,
   ): Promise<PrintContent> {
     // 這裡會根據請求數據和地區設定生成收據內容
-    // 實作將在 ReceiptFormatter 中完成
+    // 實作由 @makanmakan/queue-core/print 的 ReceiptFormattingService 提供
     throw new Error("generatePrintContent not implemented yet");
   }
 
@@ -655,7 +655,7 @@ export class PrinterService {
     deviceId: string,
   ): Promise<Buffer> {
     // 這裡會根據打印機品牌生成對應的命令集
-    // 實作將在各品牌的 Driver 中完成
+    // 實作由 @makanmakan/queue-core/print 的品牌 Driver 提供
     throw new Error("generatePrintCommands not implemented yet");
   }
 
