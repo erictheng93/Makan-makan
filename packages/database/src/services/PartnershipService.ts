@@ -509,7 +509,7 @@ export class PartnershipService extends BaseService {
             ? toCents(data.maxDiscountAmount)
             : data.maxDiscountAmountCents,
         minOrderAmountCents:
-          data.minOrderAmount !== undefined
+          data.minOrderAmount != null
             ? toRequiredCents(data.minOrderAmount)
             : (data.minOrderAmountCents ?? 0),
         maxOrderAmountCents:
