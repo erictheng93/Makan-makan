@@ -86,4 +86,51 @@ describe("PartnershipService percentage discounts", () => {
       finalAmount: 210,
     });
   });
+
+  it("validates maximum order amounts from cents first", async () => {
+    const plan = {
+      id: "plan-1",
+      isActive: true,
+      validFrom: new Date("2026-01-01T00:00:00Z"),
+      validTo: new Date("2026-12-31T23:59:59Z"),
+      usageLimitPerDay: null,
+      dailyUsageCount: 0,
+      usageLimitPerMember: null,
+      minOrderAmount: 0,
+      minOrderAmountCents: 0,
+      maxOrderAmount: 1,
+      maxOrderAmountCents: 30000,
+      applicableDays: null,
+      applicableTimeSlots: null,
+      discountType: "percentage",
+      discountValue: 0,
+      discountPercentageBps: 1250,
+      maxDiscountAmount: null,
+      maxDiscountAmountCents: null,
+      canCombineWithCoupons: true,
+      canCombineWithPromotions: false,
+    };
+    const db = {
+      query: {
+        partnershipPlans: {
+          findFirst: vi.fn(async () => plan),
+        },
+        verifiedMembers: {
+          findFirst: vi.fn(async () => ({
+            id: "member-1",
+            status: "verified",
+          })),
+        },
+      },
+    };
+    const service = createServiceWithDb(db);
+
+    const result = await service.validatePlan("plan-1", "member-1", 240);
+
+    expect(result).toMatchObject({
+      valid: true,
+      discountAmount: 30,
+      finalAmount: 210,
+    });
+  });
 });

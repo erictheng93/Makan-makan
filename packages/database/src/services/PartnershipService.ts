@@ -588,7 +588,8 @@ export class PartnershipService extends BaseService {
       const orderAmountCents = toRequiredCents(orderAmount);
       const minOrderAmountCents =
         plan.minOrderAmountCents ?? toRequiredCents(plan.minOrderAmount ?? 0);
-      const maxOrderAmountCents = toCents(plan.maxOrderAmount);
+      const maxOrderAmountCents =
+        plan.maxOrderAmountCents ?? toCents(plan.maxOrderAmount);
 
       // 檢查最低消費金額
       if (minOrderAmountCents > 0 && orderAmountCents < minOrderAmountCents) {

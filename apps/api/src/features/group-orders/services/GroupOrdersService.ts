@@ -571,6 +571,7 @@ export class GroupOrdersService implements IGroupOrderService {
           cartItem: groupCartItems,
           menuItemName: menuItems.name,
           menuItemPrice: menuItems.price,
+          menuItemPriceCents: menuItems.priceCents,
           menuItemImageUrl: menuItems.imageUrl,
         })
         .from(groupCartItems)
@@ -594,7 +595,7 @@ export class GroupOrdersService implements IGroupOrderService {
           menuItem: {
             id: row.cartItem.menuItemId,
             name: row.menuItemName,
-            price: row.menuItemPrice,
+            price: moneyAmount(row.menuItemPriceCents, row.menuItemPrice),
             imageUrl: row.menuItemImageUrl ?? undefined,
           },
         })),
