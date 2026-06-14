@@ -12,7 +12,6 @@ export { SeatService } from "./seat";
 export { AnalyticsService } from "./analytics";
 export { ErrorReportingService } from "./error-reporting";
 export { QRCodeService } from "./qrcode";
-export { GroupOrderService } from "./GroupOrderService";
 export { POSService } from "./POSService";
 export { ImageService } from "./image";
 export { CouponService } from "./coupon";
@@ -88,17 +87,6 @@ export type {
   QRStyleData,
   QRCodeStats,
 } from "./qrcode";
-
-export type {
-  GroupOrder,
-  GroupMember,
-  GroupCartItem,
-  SplitBill,
-  CreateGroupOrderRequest,
-  CreateGroupOrderResponse,
-  JoinGroupRequest,
-  JoinGroupResponse,
-} from "./GroupOrderService";
 
 export type {
   CashRegister,
