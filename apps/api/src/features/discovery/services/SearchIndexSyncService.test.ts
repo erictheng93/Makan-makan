@@ -35,10 +35,16 @@ const fakeDb = {
     }),
   })),
   insert: insertMock.mockImplementation(() => ({
-    values: vi.fn((payload: unknown) => {
-      insertedRows.push(payload);
-      return Promise.resolve();
-    }),
+    values: vi.fn((payload: unknown) => ({
+      onConflictDoUpdate: vi.fn(() => {
+        upsertInsertedRow(payload);
+        return Promise.resolve();
+      }),
+      then: (
+        resolve: (value: void) => void,
+        reject?: (reason: unknown) => void,
+      ) => Promise.resolve(upsertInsertedRow(payload)).then(resolve, reject),
+    })),
   })),
   update: updateMock.mockImplementation(() => {
     const builder = {
@@ -51,6 +57,28 @@ const fakeDb = {
     return builder;
   }),
 };
+
+function upsertInsertedRow(payload: unknown): void {
+  const menuItemId =
+    payload && typeof payload === "object"
+      ? (payload as { menuItemId?: unknown }).menuItemId
+      : undefined;
+  if (menuItemId === undefined) {
+    insertedRows.push(payload);
+    return;
+  }
+  const existingIndex = insertedRows.findIndex(
+    (row) =>
+      row &&
+      typeof row === "object" &&
+      (row as { menuItemId?: unknown }).menuItemId === menuItemId,
+  );
+  if (existingIndex >= 0) {
+    insertedRows[existingIndex] = payload;
+    return;
+  }
+  insertedRows.push(payload);
+}
 
 vi.mock("drizzle-orm/d1", () => ({ drizzle: () => fakeDb }));
 
@@ -69,6 +97,36 @@ function makeQueue() {
   return {
     send: vi.fn((_body: unknown) => Promise.resolve()),
     sendBatch: vi.fn((_batch: QueueBatch) => Promise.resolve()),
+  };
+}
+
+function menuItemSearchRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 42,
+    name: "  Nasi   Lemak ",
+    price: 80.5,
+    priceCents: null,
+    catalogType: null,
+    isAvailable: true,
+    tags: ["rice", " spicy "],
+    keywords: "coconut, breakfast",
+    deletedAt: null,
+    restaurantId: "restaurant-1",
+    categoryName: "Rice",
+    categoryActive: true,
+    categoryVisible: true,
+    categoryDeleted: null,
+    district: "Central",
+    restaurantType: "malaysian",
+    supportsTakeaway: true,
+    supportsDelivery: false,
+    restaurantActive: true,
+    restaurantDeleted: null,
+    latitude: 25.1,
+    longitude: 121.5,
+    marketIds: '["market-1","market-2"]',
+    primaryMarketId: "market-1",
+    ...overrides,
   };
 }
 
@@ -175,41 +233,12 @@ describe("SearchIndexSyncService fan-out queue", () => {
   it("denormalizes menu items into the search index with parsed markets and tags", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    selectRows = [
-      [
-        {
-          id: 42,
-          name: "  Nasi   Lemak ",
-          price: 80.5,
-          priceCents: null,
-          catalogType: null,
-          isAvailable: true,
-          tags: ["rice", " spicy "],
-          keywords: "coconut, breakfast",
-          deletedAt: null,
-          restaurantId: "restaurant-1",
-          categoryName: "Rice",
-          categoryActive: true,
-          categoryVisible: true,
-          categoryDeleted: null,
-          district: "Central",
-          restaurantType: "malaysian",
-          supportsTakeaway: true,
-          supportsDelivery: false,
-          restaurantActive: true,
-          restaurantDeleted: null,
-          latitude: 25.1,
-          longitude: 121.5,
-          marketIds: '["market-1","market-2"]',
-          primaryMarketId: "market-1",
-        },
-      ],
-    ];
+    selectRows = [[menuItemSearchRow()]];
     const svc = new SearchIndexSyncService(d1, makeKv());
 
     await svc.onMenuItemChanged(42);
 
-    expect(deleteMock).toHaveBeenCalledOnce();
+    expect(deleteMock).not.toHaveBeenCalled();
     expect(insertedRows).toEqual([
       expect.objectContaining({
         menuItemId: 42,
@@ -233,6 +262,47 @@ describe("SearchIndexSyncService fan-out queue", () => {
         updatedAt: new Date("2026-06-07T00:00:00.000Z"),
       }),
     ]);
+  });
+
+  it("keeps one search row when the same menu item is synced twice", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    selectRows = [
+      [
+        menuItemSearchRow({
+          name: "Nasi Lemak",
+          tags: [],
+          keywords: "",
+          marketIds: '["market-1"]',
+        }),
+      ],
+      [
+        menuItemSearchRow({
+          name: "Nasi Lemak Special",
+          price: 90,
+          priceCents: 9000,
+          tags: ["special"],
+          keywords: "",
+          marketIds: '["market-1"]',
+        }),
+      ],
+    ];
+    const svc = new SearchIndexSyncService(d1, makeKv());
+
+    await svc.onMenuItemChanged(42);
+    await svc.onMenuItemChanged(42);
+
+    expect(insertedRows).toHaveLength(1);
+    expect(insertedRows[0]).toEqual(
+      expect.objectContaining({
+        menuItemId: 42,
+        dishName: "Nasi Lemak Special",
+        dishNameNormalized: "nasilemakspecial",
+        price: 90,
+        priceCents: 9000,
+        tags: ["special"],
+      }),
+    );
   });
 
   it("marks inactive restaurants unavailable and invalidates affected district caches", async () => {

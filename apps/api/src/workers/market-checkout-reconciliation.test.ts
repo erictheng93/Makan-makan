@@ -7,14 +7,20 @@ function createEnv(rows: unknown[]) {
   const kv = new Map<string, string>();
   const prepare = vi.fn((sql: string) => ({
     bind: vi.fn((..._args: unknown[]) => ({
+      raw: vi.fn(async () => {
+        if (sql.includes("market_checkout_payments")) {
+          return rows.map(paymentRowToRaw);
+        }
+        return [];
+      }),
       all: vi.fn(async () => {
-        if (sql.includes("FROM market_checkout_payments")) {
+        if (sql.includes("market_checkout_payments")) {
           return { results: rows };
         }
         return { results: [] };
       }),
       first: vi.fn(async () => {
-        if (sql.includes("FROM market_checkout_payments")) {
+        if (sql.includes("market_checkout_payments")) {
           return rows[0] ?? null;
         }
         return null;
@@ -36,6 +42,44 @@ function createEnv(rows: unknown[]) {
       "https://payments.example.test/market-split/status",
     MARKET_CHECKOUT_PROVIDER_SPLIT_TOKEN: "provider-token",
   };
+}
+
+function paymentRowToRaw(row: unknown): unknown[] {
+  const payment = row as Record<string, unknown>;
+  return [
+    payment.payment_id,
+    payment.checkout_id,
+    payment.market_id,
+    payment.provider,
+    payment.split_mode,
+    payment.idempotency_key,
+    payment.status,
+    payment.amount_cents,
+    payment.paid_amount_cents,
+    payment.refunded_amount_cents,
+    payment.currency,
+    payment.country_code,
+    payment.child_payment_ids,
+    payment.provider_transaction_id,
+    payment.provider_payload,
+    payment.created_at_ms,
+    payment.updated_at_ms,
+    payment.session_payment_summary,
+  ];
+}
+
+function preparedSqlIncludes(
+  env: ReturnType<typeof createEnv>,
+  fragment: string,
+) {
+  const normalizedFragment = normalizeSql(fragment);
+  return env.DB.prepare.mock.calls.some(([sql]) =>
+    normalizeSql(sql).includes(normalizedFragment),
+  );
+}
+
+function normalizeSql(sql: string): string {
+  return sql.toLowerCase().replaceAll('"', "");
 }
 
 describe("reconcilePendingMarketCheckoutPayments", () => {
@@ -130,8 +174,8 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
       paymentId: "market_pay_checkout-1",
       providerTransactionId: "intent-market-checkout-1",
     });
-    expect(env.DB.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("UPDATE market_checkout_payments"),
+    expect(preparedSqlIncludes(env, "update market_checkout_payments")).toBe(
+      true,
     );
     expect(redeemSpy).toHaveBeenCalledWith({
       couponId: 42,
@@ -249,10 +293,9 @@ describe("reconcilePendingMarketCheckoutPayments", () => {
       paymentId: "market_pay_checkout-1",
       providerTransactionId: "intent-market-checkout-1",
     });
-    const updatePaymentCall = env.DB.prepare.mock.calls.find(([sql]) =>
-      String(sql).includes("UPDATE market_checkout_payments"),
+    expect(preparedSqlIncludes(env, "update market_checkout_payments")).toBe(
+      true,
     );
-    expect(updatePaymentCall?.[0]).toContain("UPDATE market_checkout_payments");
   });
 
   it("skips when provider status lookup is not configured", async () => {
