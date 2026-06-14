@@ -104,8 +104,7 @@ function menuItemSearchRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 42,
     name: "  Nasi   Lemak ",
-    price: 80.5,
-    priceCents: null,
+    priceCents: 8050,
     catalogType: null,
     isAvailable: true,
     tags: ["rice", " spicy "],
@@ -246,7 +245,6 @@ describe("SearchIndexSyncService fan-out queue", () => {
         dishName: "  Nasi   Lemak ",
         dishNameNormalized: "nasilemak",
         categoryName: "Rice",
-        price: 80.5,
         priceCents: 8050,
         catalogType: "menu_item",
         isAvailable: true,
@@ -279,7 +277,6 @@ describe("SearchIndexSyncService fan-out queue", () => {
       [
         menuItemSearchRow({
           name: "Nasi Lemak Special",
-          price: 90,
           priceCents: 9000,
           tags: ["special"],
           keywords: "",
@@ -298,7 +295,6 @@ describe("SearchIndexSyncService fan-out queue", () => {
         menuItemId: 42,
         dishName: "Nasi Lemak Special",
         dishNameNormalized: "nasilemakspecial",
-        price: 90,
         priceCents: 9000,
         tags: ["special"],
       }),

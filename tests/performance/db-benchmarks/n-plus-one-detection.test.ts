@@ -460,11 +460,11 @@ async function setupTestData(db: any): Promise<void> {
     await db
       .prepare(
         `INSERT OR IGNORE INTO menu_items (
-          id, restaurant_id, category_id, name, price, is_available, sort_order,
+          id, restaurant_id, category_id, name, price_cents, is_available, sort_order,
           created_at_ms, updated_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(i, restaurantId, (i % 5) + 1, `Item ${i}`, 100, 1, i, now, now)
+      .bind(i, restaurantId, (i % 5) + 1, `Item ${i}`, 10000, 1, i, now, now)
       .run();
   }
 
@@ -494,7 +494,7 @@ async function setupTestData(db: any): Promise<void> {
     await db
       .prepare(
         `INSERT OR IGNORE INTO orders (
-          id, restaurant_id, table_id, order_number, status, subtotal, total_amount,
+          id, restaurant_id, table_id, order_number, status, subtotal_cents, total_amount_cents,
           created_at_ms, updated_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
@@ -504,8 +504,8 @@ async function setupTestData(db: any): Promise<void> {
         (i % 10) + 1,
         `N1-${i.toString().padStart(6, "0")}`,
         statuses[i % statuses.length],
-        200,
-        200,
+        20000,
+        20000,
         now,
         now,
       )
@@ -515,11 +515,11 @@ async function setupTestData(db: any): Promise<void> {
       await db
         .prepare(
           `INSERT OR IGNORE INTO order_items (
-            order_id, menu_item_id, quantity, unit_price, total_price,
+            order_id, menu_item_id, quantity, unit_price_cents, total_price_cents,
             created_at_ms, updated_at_ms
           ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(i, ((i + j) % 30) + 1, j, 100, j * 100, now, now)
+        .bind(i, ((i + j) % 30) + 1, j, 10000, j * 10000, now, now)
         .run();
     }
   }

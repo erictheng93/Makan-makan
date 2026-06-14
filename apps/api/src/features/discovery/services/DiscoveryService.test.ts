@@ -600,8 +600,7 @@ describe("DiscoveryService", () => {
         {
           menuItemId: 4,
           dishName: "Pickup Tea",
-          price: 40,
-          priceCents: null,
+          priceCents: 4000,
           catalogType: "product",
           categoryName: "Drinks",
           restaurantId: "restaurant-4",
@@ -1328,8 +1327,7 @@ describe("DiscoveryService", () => {
         {
           menuItemId: 1,
           name: "Laksa",
-          price: 9,
-          priceCents: null,
+          priceCents: 900,
           catalogType: null,
           isAvailable: true,
           tags: ["spicy"],
@@ -1353,7 +1351,6 @@ describe("DiscoveryService", () => {
         {
           menuItemId: 2,
           name: "Hidden Tea",
-          price: 5,
           priceCents: 500,
           catalogType: "product",
           isAvailable: true,

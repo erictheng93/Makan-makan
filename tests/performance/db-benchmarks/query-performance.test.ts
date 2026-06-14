@@ -173,7 +173,7 @@ describe("Database Query Performance Benchmarks", () => {
               'id', oi.id,
               'menu_item_id', oi.menu_item_id,
               'quantity', oi.quantity,
-              'unit_price', oi.unit_price,
+              'unit_price_cents', oi.unit_price_cents,
               'item_name', mi.name
             )
           ) as items
@@ -289,7 +289,7 @@ describe("Database Query Performance Benchmarks", () => {
         SELECT
           DATE(created_at_ms / 1000, 'unixepoch') as date,
           COUNT(*) as order_count,
-          SUM(total_amount) as revenue
+          SUM(total_amount_cents) as revenue_cents
         FROM orders
         WHERE restaurant_id = ?
           AND created_at_ms >= (unixepoch('now', '-30 days') * 1000)
@@ -420,8 +420,8 @@ describe("Database Query Performance Benchmarks", () => {
  *   Drizzle schema), not ISO strings in `created_at` columns.
  * - Restaurants now require `address`, `district`, `phone` (NOT NULL).
  * - Tables require a unique `qr_code` text column.
- * - Orders require `order_number` (unique) and `subtotal`.
- * - Order items require `total_price`.
+ * - Orders require `order_number` (unique) and `subtotal_cents`.
+ * - Order items require `total_price_cents`.
  * - `categories.display_order` and `name_en` columns do not exist; use
  *   `sort_order` and skip the English name column.
  * - `menu_items.name_en` does not exist either.
@@ -475,7 +475,7 @@ async function setupTestData(db: {
     await db
       .prepare(
         `INSERT OR IGNORE INTO menu_items (
-          id, restaurant_id, category_id, name, price, is_available, sort_order,
+          id, restaurant_id, category_id, name, price_cents, is_available, sort_order,
           created_at_ms, updated_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
@@ -484,7 +484,7 @@ async function setupTestData(db: {
         restaurantId,
         (i % 10) + 1,
         `菜品 ${i}`,
-        Math.floor(Math.random() * 200) + 50,
+        (Math.floor(Math.random() * 200) + 50) * 100,
         1,
         i,
         now,
@@ -539,17 +539,17 @@ async function setupTestData(db: {
       .run();
   }
 
-  // Create orders (50) — order_number unique per row, subtotal/total_amount
+  // Create orders (50) — order_number unique per row, subtotal_cents/total_amount_cents
   // both NOT NULL. Status uses canonical string values (no numeric).
   const statuses = ["pending", "confirmed", "preparing", "delivered"] as const;
   for (let i = 1; i <= 50; i++) {
-    const subtotal = Math.floor(Math.random() * 500) + 100;
+    const subtotalCents = (Math.floor(Math.random() * 500) + 100) * 100;
     const createdMs =
       now - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000);
     await db
       .prepare(
         `INSERT OR IGNORE INTO orders (
-          id, restaurant_id, table_id, order_number, status, subtotal, total_amount,
+          id, restaurant_id, table_id, order_number, status, subtotal_cents, total_amount_cents,
           created_at_ms, updated_at_ms
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
@@ -559,22 +559,22 @@ async function setupTestData(db: {
         (i % 20) + 1,
         `PERF-${i.toString().padStart(6, "0")}`,
         statuses[i % statuses.length],
-        subtotal,
-        subtotal,
+        subtotalCents,
+        subtotalCents,
         createdMs,
         createdMs,
       )
       .run();
 
-    // Create order items (2-5 per order) — total_price is NOT NULL.
+    // Create order items (2-5 per order) — total_price_cents is NOT NULL.
     const itemCount = Math.floor(Math.random() * 4) + 2;
     for (let j = 1; j <= itemCount; j++) {
       const quantity = Math.floor(Math.random() * 3) + 1;
-      const unitPrice = Math.floor(Math.random() * 200) + 50;
+      const unitPriceCents = (Math.floor(Math.random() * 200) + 50) * 100;
       await db
         .prepare(
           `INSERT OR IGNORE INTO order_items (
-            order_id, menu_item_id, quantity, unit_price, total_price,
+            order_id, menu_item_id, quantity, unit_price_cents, total_price_cents,
             created_at_ms, updated_at_ms
           ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
@@ -582,8 +582,8 @@ async function setupTestData(db: {
           i,
           Math.floor(Math.random() * 100) + 1,
           quantity,
-          unitPrice,
-          quantity * unitPrice,
+          unitPriceCents,
+          quantity * unitPriceCents,
           now,
           now,
         )
@@ -640,7 +640,7 @@ async function setupTestData(db: {
       await db
         .prepare(
           `INSERT OR IGNORE INTO menu_items (
-            id, restaurant_id, category_id, name, price, is_available, sort_order,
+            id, restaurant_id, category_id, name, price_cents, is_available, sort_order,
             created_at_ms, updated_at_ms
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
@@ -649,7 +649,7 @@ async function setupTestData(db: {
           decoyId,
           100 + r * 10 + ((i % 5) + 1),
           `Decoy Item ${r}-${i}`,
-          150,
+          15000,
           1,
           i,
           now,
@@ -663,7 +663,7 @@ async function setupTestData(db: {
       await db
         .prepare(
           `INSERT OR IGNORE INTO orders (
-            id, restaurant_id, table_id, order_number, status, subtotal, total_amount,
+            id, restaurant_id, table_id, order_number, status, subtotal_cents, total_amount_cents,
             created_at_ms, updated_at_ms
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
@@ -673,8 +673,8 @@ async function setupTestData(db: {
           null,
           `DECOY-${r}-${o.toString().padStart(4, "0")}`,
           statuses[o % statuses.length],
-          150,
-          150,
+          15000,
+          15000,
           now,
           now,
         )
