@@ -613,18 +613,24 @@ app.post("/:id/voucher", async (c) => {
     subtotalCents,
     childOrders: voucherChildOrders,
   });
+  const reservedNextVoucher = await voucherService.reserveUsage(nextVoucher);
   const appliedVoucher = combineAppliedMarketCheckoutVouchers([
     ...existingVouchers,
-    nextVoucher,
+    reservedNextVoucher,
   ]);
 
   const updatedSession: MarketCheckoutSession = { ...session, appliedVoucher };
-  await c.env.CACHE_KV.put(
-    `market_checkout:${checkoutId}`,
-    JSON.stringify(updatedSession),
-    { expirationTtl: 4 * 60 * 60 },
-  );
-  await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
+  try {
+    await c.env.CACHE_KV.put(
+      `market_checkout:${checkoutId}`,
+      JSON.stringify(updatedSession),
+      { expirationTtl: 4 * 60 * 60 },
+    );
+    await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
+  } catch (error) {
+    await voucherService.releaseReservation(reservedNextVoucher);
+    throw error;
+  }
 
   return c.json({
     success: true,
@@ -658,6 +664,14 @@ app.delete("/:id/voucher", async (c) => {
       "This checkout is already paid",
       "MARKET_CHECKOUT_ALREADY_PAID",
     );
+  }
+
+  const voucherService = new MarketCheckoutVoucherService(c.env);
+  const appliedVouchers = listAppliedMarketCheckoutVouchers(
+    session.appliedVoucher,
+  );
+  for (const voucher of appliedVouchers) {
+    await voucherService.releaseReservation(voucher);
   }
 
   const { appliedVoucher: _removed, ...rest } = session;
@@ -724,8 +738,32 @@ app.post("/:id/pay", async (c) => {
   // A 卷 (voucher), if applied, is funded proportionally per vendor: the amount
   // sent to the provider for each child order is reduced by its discount share,
   // so allocations still sum to the aggregate charge (provider contract).
-  const appliedVoucher = session.appliedVoucher;
-  const appliedVouchers = listAppliedMarketCheckoutVouchers(appliedVoucher);
+  const voucherService = new MarketCheckoutVoucherService(c.env);
+  let paymentSession = session;
+  let appliedVoucher = session.appliedVoucher;
+  let appliedVouchers = listAppliedMarketCheckoutVouchers(appliedVoucher);
+  if (appliedVouchers.length > 0) {
+    const reservedVouchers: typeof appliedVouchers = [];
+    try {
+      for (const voucher of appliedVouchers) {
+        reservedVouchers.push(await voucherService.reserveUsage(voucher));
+      }
+      appliedVoucher = combineAppliedMarketCheckoutVouchers(reservedVouchers);
+      paymentSession = { ...session, appliedVoucher };
+      appliedVouchers = reservedVouchers;
+      await c.env.CACHE_KV.put(
+        `market_checkout:${checkoutId}`,
+        JSON.stringify(paymentSession),
+        { expirationTtl: 4 * 60 * 60 },
+      );
+      await updatePersistedMarketCheckoutVoucher(c.env, paymentSession);
+    } catch (error) {
+      for (const voucher of reservedVouchers) {
+        await voucherService.releaseReservation(voucher);
+      }
+      throw error;
+    }
+  }
   const voucherDiscountByOrderId = new Map<number, number>(
     appliedVoucher?.allocations.map((alloc) => [
       alloc.orderId,
@@ -733,7 +771,7 @@ app.post("/:id/pay", async (c) => {
     ]) ?? [],
   );
   const payableChildOrders: MarketCheckoutChildOrder[] = appliedVoucher
-    ? session.childOrders.map((child) => {
+    ? paymentSession.childOrders.map((child) => {
         const originalCents = orderChildTotalCents(child);
         const netCents = Math.max(
           0,
@@ -761,9 +799,13 @@ app.post("/:id/pay", async (c) => {
       requestIdempotencyKey: requestIdempotencyKey ?? undefined,
     });
   } catch (error) {
+    const releasedVoucher = await releaseAppliedVoucherReservations(
+      c.env,
+      appliedVoucher,
+    );
     const failedPayment = buildFailedMarketCheckoutPayment({
       checkoutId,
-      session,
+      session: paymentSession,
       method: parsed.data.method,
       country: parsed.data.country,
       currency: parsed.data.currency,
@@ -776,7 +818,8 @@ app.post("/:id/pay", async (c) => {
           : "Market checkout payment failed",
     });
     const failedSession: MarketCheckoutSession = {
-      ...session,
+      ...paymentSession,
+      appliedVoucher: releasedVoucher,
       payment: failedPayment,
     };
 
@@ -857,7 +900,7 @@ app.post("/:id/pay", async (c) => {
   };
 
   const updatedSession: MarketCheckoutSession = {
-    ...session,
+    ...paymentSession,
     payment,
   };
 
@@ -875,7 +918,6 @@ app.post("/:id/pay", async (c) => {
   // replay; a failure here must not fail the payment response (audit-only).
   if (appliedVouchers.length > 0 && updatedSession.payment?.status === "paid") {
     try {
-      const voucherService = new MarketCheckoutVoucherService(c.env);
       for (const voucher of appliedVouchers) {
         await voucherService.redeem(voucher);
       }
@@ -885,6 +927,35 @@ app.post("/:id/pay", async (c) => {
         error,
       );
     }
+  } else if (
+    appliedVouchers.length > 0 &&
+    updatedSession.payment?.status === "failed"
+  ) {
+    const releasedVoucher = await releaseAppliedVoucherReservations(
+      c.env,
+      appliedVoucher,
+    );
+    const failedSession: MarketCheckoutSession = {
+      ...updatedSession,
+      appliedVoucher: releasedVoucher,
+    };
+    await c.env.CACHE_KV.put(
+      `market_checkout:${checkoutId}`,
+      JSON.stringify(failedSession),
+      { expirationTtl: 4 * 60 * 60 },
+    );
+    await updatePersistedMarketCheckoutVoucher(c.env, failedSession);
+    await upsertMarketCheckoutIndex(c.env.CACHE_KV, failedSession);
+    return c.json(
+      {
+        success: true,
+        data: {
+          checkout: failedSession,
+          payment,
+        },
+      },
+      202,
+    );
   }
 
   return c.json(
@@ -1967,6 +2038,21 @@ async function markMarketCheckoutVoucherRefunded(
       error,
     );
   }
+}
+
+async function releaseAppliedVoucherReservations(
+  env: Env,
+  appliedVoucher: AppliedMarketCheckoutVoucher | undefined,
+): Promise<AppliedMarketCheckoutVoucher | undefined> {
+  const appliedVouchers = listAppliedMarketCheckoutVouchers(appliedVoucher);
+  if (appliedVouchers.length === 0) return appliedVoucher;
+
+  const voucherService = new MarketCheckoutVoucherService(env);
+  const releasedVouchers: typeof appliedVouchers = [];
+  for (const voucher of appliedVouchers) {
+    releasedVouchers.push(await voucherService.releaseReservation(voucher));
+  }
+  return combineAppliedMarketCheckoutVouchers(releasedVouchers);
 }
 
 function buildMarketCheckoutParentPayment(input: {

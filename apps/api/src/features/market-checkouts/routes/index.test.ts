@@ -22,6 +22,20 @@ const meterEmit = vi.hoisted(() => vi.fn());
 const markVoucherRefunded = vi.hoisted(() => vi.fn());
 const validateVoucherAndPrice = vi.hoisted(() => vi.fn());
 const redeemVoucher = vi.hoisted(() => vi.fn());
+const reserveVoucherUsage = vi.hoisted(() =>
+  vi.fn(async (voucher) => ({
+    ...voucher,
+    reservationStatus: "reserved",
+    reservedAt: "2026-06-13T00:00:00.000Z",
+  })),
+);
+const releaseVoucherReservation = vi.hoisted(() =>
+  vi.fn(async (voucher) => ({
+    ...voucher,
+    reservationStatus: "released",
+    releasedAt: "2026-06-13T00:01:00.000Z",
+  })),
+);
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
 const originalFetch = globalThis.fetch;
 const adminUser = vi.hoisted(() => ({
@@ -83,6 +97,8 @@ vi.mock("../services/MarketCheckoutVoucherService", async (importOriginal) => {
     ...actual,
     MarketCheckoutVoucherService: class {
       validateAndPrice = validateVoucherAndPrice;
+      reserveUsage = reserveVoucherUsage;
+      releaseReservation = releaseVoucherReservation;
       redeem = redeemVoucher;
       markRefunded = markVoucherRefunded;
     },
@@ -124,12 +140,27 @@ function createEnv(dbFirstRows: unknown[] = []) {
   const kv = new Map<string, string>();
   return {
     DB: {
-      prepare: vi.fn(() => ({
-        bind: vi.fn(() => ({
-          first: vi.fn(async () => dbFirstRows.shift() ?? null),
-          run: vi.fn(async () => ({ meta: { changes: 1 } })),
-        })),
-      })),
+      prepare: vi.fn((sql: string) => {
+        const statement = {
+          sql,
+          values: [] as unknown[],
+          bind: vi.fn((...values: unknown[]) => {
+            statement.values = values;
+            return statement;
+          }),
+          first: vi.fn(async () => readPreparedFirstRow(sql, statement.values)),
+          raw: vi.fn(async () => {
+            const row = readPreparedFirstRow(sql, statement.values);
+            return row ? [Object.values(row)] : [];
+          }),
+          all: vi.fn(async () => {
+            const row = readPreparedFirstRow(sql, statement.values);
+            return { results: row ? [row] : [] };
+          }),
+          run: vi.fn(async () => ({ meta: { changes: 1 }, success: true })),
+        };
+        return statement;
+      }),
       batch: vi.fn(
         async (statements: Array<{ run?: () => Promise<unknown> }>) =>
           Promise.all(
@@ -148,6 +179,43 @@ function createEnv(dbFirstRows: unknown[] = []) {
         kv.delete(key);
       }),
     },
+  };
+
+  function readPreparedFirstRow(sql: string, values: unknown[]) {
+    const normalizedSql = sql.toLowerCase();
+    if (normalizedSql.includes('"orders"') && values.includes("pay-1001")) {
+      return refundOrderRow({
+        id: 1001,
+        restaurant_id: "restaurant-1",
+        total_amount: 120,
+        total_amount_cents: 12000,
+        payment_transaction_id: "pay-1001",
+      });
+    }
+    if (normalizedSql.includes('"orders"') && values.includes("pay-1002")) {
+      return refundOrderRow({
+        id: 1002,
+        restaurant_id: "restaurant-2",
+        total_amount: 80,
+        total_amount_cents: 8000,
+        payment_transaction_id: "pay-1002",
+      });
+    }
+    return dbFirstRows.shift() ?? null;
+  }
+}
+
+function refundOrderRow(overrides: Record<string, unknown>) {
+  return {
+    id: 1001,
+    restaurant_id: "restaurant-1",
+    total_amount: 120,
+    total_amount_cents: 12000,
+    refund_amount: null,
+    refund_amount_cents: null,
+    payment_method: "line_pay",
+    payment_status: "paid",
+    ...overrides,
   };
 }
 
@@ -332,6 +400,8 @@ describe("market checkout routes", () => {
     markVoucherRefunded.mockReset();
     markVoucherRefunded.mockResolvedValue(undefined);
     validateVoucherAndPrice.mockReset();
+    reserveVoucherUsage.mockClear();
+    releaseVoucherReservation.mockClear();
     redeemVoucher.mockReset();
     redeemVoucher.mockResolvedValue(undefined);
     tokenCounter.value = 0;
@@ -1423,9 +1493,13 @@ describe("market checkout routes", () => {
         voucher: {
           couponId: 42,
           code: "MARKET10",
+          reservationStatus: "reserved",
         },
       },
     });
+    expect(reserveVoucherUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ couponId: 42, code: "MARKET10" }),
+    );
     expect(validateVoucherAndPrice).toHaveBeenCalledWith({
       code: " market10 ",
       subtotalCents: 20000,
@@ -1436,8 +1510,50 @@ describe("market checkout routes", () => {
     });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "market_checkout:checkout-1",
-      expect.stringContaining('"appliedVoucher"'),
+      expect.stringContaining('"reservationStatus":"reserved"'),
       { expirationTtl: 14400 },
+    );
+  });
+
+  it("releases the reserved voucher slot when apply persistence fails", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+    validateVoucherAndPrice.mockResolvedValue({
+      couponId: 42,
+      code: "MARKET10",
+      name: "Market 10",
+      fundedBy: "platform",
+      discountCents: 2000,
+      allocations: [
+        { orderId: 1001, amountCents: 12000, discountCents: 1200 },
+        { orderId: 1002, amountCents: 8000, discountCents: 800 },
+      ],
+    });
+    vi.mocked(env.CACHE_KV.put).mockRejectedValueOnce(new Error("kv down"));
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", {
+          method: "POST",
+          body: JSON.stringify({ code: "market10" }),
+        }),
+        env as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(reserveVoucherUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ couponId: 42, code: "MARKET10" }),
+    );
+    expect(releaseVoucherReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        couponId: 42,
+        code: "MARKET10",
+        reservationStatus: "reserved",
+      }),
     );
   });
 
@@ -1568,6 +1684,9 @@ describe("market checkout routes", () => {
       data: { checkout: { appliedVoucher?: unknown } };
     };
     expect(removeJson.data.checkout.appliedVoucher).toBeUndefined();
+    expect(releaseVoucherReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ couponId: 42, code: "MARKET10" }),
+    );
     expect(databaseMocks.updateValues.at(-1)).toMatchObject({
       appliedVoucher: null,
     });
@@ -2068,7 +2187,11 @@ describe("market checkout routes", () => {
         expect.any(Object),
       );
       expect(redeemVoucher).toHaveBeenCalledWith(
-        expect.objectContaining({ code: "MARKET10", discountCents: 2000 }),
+        expect.objectContaining({
+          code: "MARKET10",
+          discountCents: 2000,
+          reservationStatus: "reserved",
+        }),
       );
       expect(consoleError).toHaveBeenCalledWith(
         "Voucher redemption failed for checkout checkout-1:",
@@ -2932,6 +3055,18 @@ describe("market checkout routes", () => {
           },
         ],
         subtotal: 12000,
+        appliedVoucher: {
+          couponId: 42,
+          code: "MARKET10",
+          name: "Market 10",
+          fundedBy: "platform",
+          discountCents: 1000,
+          reservationStatus: "reserved",
+          reservedAt: "2026-06-13T00:00:00.000Z",
+          allocations: [
+            { orderId: 1001, amountCents: 12000, discountCents: 1000 },
+          ],
+        },
         createdAt: "2026-06-01T10:00:00.000Z",
       }),
     );
@@ -2987,7 +3122,26 @@ describe("market checkout routes", () => {
       expect.stringContaining('"status":"failed"'),
       { expirationTtl: 14400 },
     );
-    expect(databaseMocks.updateValues[0]).toMatchObject({
+    expect(releaseVoucherReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        couponId: 42,
+        code: "MARKET10",
+        reservationStatus: "reserved",
+      }),
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+      expect.stringContaining('"reservationStatus":"released"'),
+      { expirationTtl: 14400 },
+    );
+    expect(
+      databaseMocks.updateValues.find(
+        (values) =>
+          typeof values === "object" &&
+          values != null &&
+          "paymentStatus" in values,
+      ),
+    ).toMatchObject({
       paymentStatus: "failed",
       paymentSummary: expect.objectContaining({
         status: "failed",
