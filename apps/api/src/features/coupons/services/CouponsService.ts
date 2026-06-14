@@ -14,6 +14,7 @@ import {
 } from "../../../shared/utils/api-error";
 import {
   fromCents,
+  percentageFromBps,
   toCents,
   toRequiredCents,
 } from "../../../shared/utils/money";
@@ -29,6 +30,7 @@ interface AvailableCoupon {
   id: number;
   discountType: string;
   discountValue: number;
+  discountPercentageBps?: number | null;
   discountValueCents?: number | null;
   maxDiscountAmount?: number | null;
   maxDiscountAmountCents?: number | null;
@@ -67,7 +69,10 @@ export class CouponsService extends BaseCouponService {
     );
     const discountValue =
       coupon.discountType === "percentage"
-        ? coupon.discountValue
+        ? (percentageFromBps(
+            coupon.discountPercentageBps,
+            coupon.discountValue,
+          ) ?? coupon.discountValue)
         : (amountFromCents(coupon.discountValueCents, coupon.discountValue) ??
           coupon.discountValue);
 
@@ -349,8 +354,11 @@ export class CouponsService extends BaseCouponService {
     let discountAmountCents = 0;
 
     if (coupon.discountType === "percentage") {
+      const discountPercentage =
+        percentageFromBps(coupon.discountPercentageBps, coupon.discountValue) ??
+        coupon.discountValue;
       discountAmountCents = Math.round(
-        originalAmountCents * (coupon.discountValue / 100),
+        originalAmountCents * (discountPercentage / 100),
       );
       const maxDiscountAmountCents =
         coupon.maxDiscountAmountCents ?? toCents(coupon.maxDiscountAmount);

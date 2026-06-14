@@ -67,6 +67,7 @@ export const coupons = sqliteTable(
     discountType: text("discount_type").$type<DiscountType>().notNull(), // 折扣類型
     discountValue: real("discount_value").notNull(), // 折扣值
     maxDiscountAmount: real("max_discount_amount"), // 最大折扣金額
+    discountPercentageBps: integer("discount_percentage_bps"),
     discountValueCents: integer("discount_value_cents"),
     maxDiscountAmountCents: integer("max_discount_amount_cents"),
 

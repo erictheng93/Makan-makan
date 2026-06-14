@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0067_money_cents_retirement_rollout_guard.sql",
-    "legacy": "0085_money_cents_retirement_rollout_guard.sql"
+    "fresh": "0069_discount_percentage_bps.sql",
+    "legacy": "0086_discount_percentage_bps.sql"
   },
   "pairs": [
     {
@@ -20,6 +20,11 @@
       "fresh": "0067_money_cents_retirement_rollout_guard.sql",
       "legacy": "0085_money_cents_retirement_rollout_guard.sql",
       "reason": "Money cents retirement rollout guard exists in both tracks; it blocks destructive table rebuild rollout until audit coverage is present and clean."
+    },
+    {
+      "fresh": "0069_discount_percentage_bps.sql",
+      "legacy": "0086_discount_percentage_bps.sql",
+      "reason": "Percentage discount values are preserved in explicit basis-point columns before polymorphic discount_value REAL columns are retired."
     }
   ],
   "freshOnly": [

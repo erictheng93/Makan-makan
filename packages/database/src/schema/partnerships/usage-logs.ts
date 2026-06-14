@@ -75,6 +75,7 @@ export const partnershipUsageLogs = sqliteTable(
     discountType: text("discount_type").notNull(),
     discountValue: real("discount_value").notNull(),
     discountAmount: real("discount_amount").notNull(),
+    discountPercentageBps: integer("discount_percentage_bps"),
     discountValueCents: integer("discount_value_cents"),
     discountAmountCents: integer("discount_amount_cents"),
 

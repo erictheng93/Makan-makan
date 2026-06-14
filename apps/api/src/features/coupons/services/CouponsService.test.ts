@@ -59,6 +59,22 @@ describe("CouponsService", () => {
       maxDiscountAmount: null,
       minOrderAmount: 10,
     });
+
+    expect(
+      service.formatCouponMoneyFields({
+        id: 3,
+        discountType: "percentage",
+        discountValue: 0,
+        discountPercentageBps: 1250,
+        discountValueCents: 9999,
+        maxDiscountAmount: null,
+        minOrderAmount: 10,
+      }),
+    ).toMatchObject({
+      discountValue: 12.5,
+      maxDiscountAmount: null,
+      minOrderAmount: 10,
+    });
   });
 
   it("delegates validation and paginated listing to inherited coupon methods", async () => {

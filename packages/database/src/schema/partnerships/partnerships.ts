@@ -107,6 +107,7 @@ export const partnerships = sqliteTable(
       "percentage" | "fixed"
     >(),
     defaultDiscountValue: real("default_discount_value"),
+    defaultDiscountPercentageBps: integer("default_discount_percentage_bps"),
     defaultDiscountValueCents: integer("default_discount_value_cents"),
 
     // 統計資料

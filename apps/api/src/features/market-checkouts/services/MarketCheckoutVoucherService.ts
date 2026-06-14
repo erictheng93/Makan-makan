@@ -22,7 +22,11 @@ import {
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
-import { fromCents, toCents } from "../../../shared/utils/money";
+import {
+  fromCents,
+  percentageFromBps,
+  toCents,
+} from "../../../shared/utils/money";
 
 export interface VoucherChildOrder {
   orderId: number;
@@ -66,6 +70,7 @@ export type AppliedMarketCheckoutVoucher =
 interface NormalizedCoupon {
   discountType: "percentage" | "fixed";
   discountValue: number;
+  discountPercentageBps?: number | null;
   discountValueCents: number | null;
   maxDiscountAmountCents: number | null;
 }
@@ -90,7 +95,10 @@ export class MarketCheckoutVoucherService {
 
     let discountCents: number;
     if (coupon.discountType === "percentage") {
-      discountCents = Math.round(subtotalCents * (coupon.discountValue / 100));
+      const discountPercentage =
+        percentageFromBps(coupon.discountPercentageBps, coupon.discountValue) ??
+        coupon.discountValue;
+      discountCents = Math.round(subtotalCents * (discountPercentage / 100));
       if (
         coupon.maxDiscountAmountCents != null &&
         discountCents > coupon.maxDiscountAmountCents
@@ -226,6 +234,7 @@ export class MarketCheckoutVoucherService {
       {
         discountType: coupon.discountType,
         discountValue: coupon.discountValue,
+        discountPercentageBps: coupon.discountPercentageBps,
         discountValueCents:
           coupon.discountValueCents ?? toCents(coupon.discountValue),
         maxDiscountAmountCents:

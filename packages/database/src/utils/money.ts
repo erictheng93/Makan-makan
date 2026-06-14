@@ -25,3 +25,29 @@ export function amountFromCents(
   if (cents == null) return fallback ?? null;
   return fromCents(cents);
 }
+
+export function toPercentageBps(
+  percentage: number | null | undefined,
+): number | null {
+  if (percentage == null) return null;
+  if (!Number.isFinite(percentage)) {
+    throw new Error("Percentage discount must be finite");
+  }
+  return Math.round(percentage * 100);
+}
+
+export function toRequiredPercentageBps(percentage: number): number {
+  const bps = toPercentageBps(percentage);
+  if (bps == null) {
+    throw new Error("Percentage discount is required");
+  }
+  return bps;
+}
+
+export function percentageFromBps(
+  bps: number | null | undefined,
+  fallback: number | null | undefined,
+): number | null {
+  if (bps == null) return fallback ?? null;
+  return bps / 100;
+}

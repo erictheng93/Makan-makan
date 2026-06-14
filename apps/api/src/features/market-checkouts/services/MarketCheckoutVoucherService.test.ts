@@ -26,6 +26,21 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
     ).toBe(2400);
   });
 
+  it("computes a percentage discount from basis points when present", () => {
+    expect(
+      MarketCheckoutVoucherService.computeDiscountCents(
+        {
+          discountType: "percentage",
+          discountValue: 0,
+          discountPercentageBps: 1250,
+          discountValueCents: 9999,
+          maxDiscountAmountCents: null,
+        },
+        24000,
+      ),
+    ).toBe(3000);
+  });
+
   it("caps a percentage discount at the max discount amount", () => {
     expect(
       MarketCheckoutVoucherService.computeDiscountCents(

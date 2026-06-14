@@ -201,7 +201,14 @@ these are true:
 
 - `0067_money_cents_retirement_rollout_guard.sql` has passed in staging and
   production.
+- `0069_discount_percentage_bps.sql` / `0086_discount_percentage_bps.sql` have
+  passed in staging and production. These migrations preserve percentage
+  discount values in explicit basis-point columns before polymorphic
+  `discount_value` columns are retired.
 - Production `money_cents_retirement_rollout` rows have `violation_count = 0`.
+- Production `money_cents_retirement` rows with
+  `check_name = 'percentage_bps_missing_or_mismatch'` have
+  `violation_count = 0`.
 - Drizzle schema and application write paths no longer require the legacy
   `REAL` columns.
 
@@ -225,15 +232,16 @@ timestamp, or product behavior changes, using this component order:
    `cash_shifts`, plus unchanged direct dependents only if needed for D1 FK
    ordering.
 
-The final migration must omit only these legacy `REAL` money columns and must
-retain the paired cents columns:
+The final migration must omit only these legacy `REAL` money / polymorphic
+discount columns and must retain the paired cents columns plus explicit
+percentage basis-point columns:
 
-| Table | Legacy columns to omit | Cents columns to retain |
+| Table | Legacy columns to omit | Cents / percentage columns to retain |
 | --- | --- | --- |
 | `orders` | `subtotal`, `tax_amount`, `service_charge`, `discount_amount`, `total_amount`, `refund_amount` | `subtotal_cents`, `tax_amount_cents`, `service_charge_cents`, `discount_amount_cents`, `total_amount_cents`, `refund_amount_cents` |
 | `order_items` | `unit_price`, `total_price` | `unit_price_cents`, `total_price_cents` |
 | `menu_items` | `price`, `original_price`, `cost_price` | `price_cents`, `original_price_cents`, `cost_price_cents` |
-| `coupons` | `discount_value`, `max_discount_amount`, `min_order_amount` | `discount_value_cents`, `max_discount_amount_cents`, `min_order_amount_cents` |
+| `coupons` | `discount_value`, `max_discount_amount`, `min_order_amount` | `discount_percentage_bps`, `discount_value_cents`, `max_discount_amount_cents`, `min_order_amount_cents` |
 | `coupon_usage` | `discount_amount`, `original_amount`, `final_amount` | `discount_amount_cents`, `original_amount_cents`, `final_amount_cents` |
 | `group_orders` | `total_amount`, `tax_amount`, `service_charge`, `final_amount` | `total_amount_cents`, `tax_amount_cents`, `service_charge_cents`, `final_amount_cents` |
 | `group_cart_items` | `unit_price`, `total_price` | `unit_price_cents`, `total_price_cents` |
@@ -244,10 +252,16 @@ retain the paired cents columns:
 | `dish_search_index` | `price` | `price_cents` |
 | `ingredient_definitions` | `cost_per_unit` | `cost_per_unit_cents` |
 | `shift_templates` | `hourly_rate` | `hourly_rate_cents` |
-| `partnerships` | `default_discount_value`, `total_discount_given`, `total_revenue` | `default_discount_value_cents`, `total_discount_given_cents`, `total_revenue_cents` |
-| `partnership_plans` | `discount_value`, `max_discount_amount`, `min_order_amount`, `max_order_amount`, `total_discount_given`, `total_revenue` | `discount_value_cents`, `max_discount_amount_cents`, `min_order_amount_cents`, `max_order_amount_cents`, `total_discount_given_cents`, `total_revenue_cents` |
-| `partnership_usage_logs` | `discount_value`, `discount_amount`, `original_amount`, `final_amount` | `discount_value_cents`, `discount_amount_cents`, `original_amount_cents`, `final_amount_cents` |
+| `partnerships` | `default_discount_value`, `total_discount_given`, `total_revenue` | `default_discount_percentage_bps`, `default_discount_value_cents`, `total_discount_given_cents`, `total_revenue_cents` |
+| `partnership_plans` | `discount_value`, `max_discount_amount`, `min_order_amount`, `max_order_amount`, `total_discount_given`, `total_revenue` | `discount_percentage_bps`, `discount_value_cents`, `max_discount_amount_cents`, `min_order_amount_cents`, `max_order_amount_cents`, `total_discount_given_cents`, `total_revenue_cents` |
+| `partnership_usage_logs` | `discount_value`, `discount_amount`, `original_amount`, `final_amount` | `discount_percentage_bps`, `discount_value_cents`, `discount_amount_cents`, `original_amount_cents`, `final_amount_cents` |
 | `verified_members` | `total_discount_received`, `total_spending` | `total_discount_received_cents`, `total_spending_cents` |
+
+`discount_value` and `default_discount_value` are intentionally listed as
+polymorphic discount columns, not pure money columns. They may be omitted only
+after the matching `*_percentage_bps` audit rows prove that every percentage
+row has been backfilled and every non-percentage row keeps the percentage bps
+column `NULL`.
 
 The destructive migration should repeat the guard at the top:
 
@@ -283,6 +297,16 @@ SELECT
        AND `column_name` = 'audit_rows'
        AND `check_name` = 'audit_coverage_present'
   ), 1);
+
+INSERT INTO `_migration_assert_money_cents_cutover`
+SELECT
+  'money_cents_retirement.percentage_bps_zero_errors',
+  count(*)
+FROM `data_integrity_audit`
+WHERE `scope` = 'money_cents_retirement'
+  AND `severity` = 'error'
+  AND `check_name` = 'percentage_bps_missing_or_mismatch'
+  AND `violation_count` != 0;
 ```
 
 Then each table rebuild block must use literal, generated column lists from the

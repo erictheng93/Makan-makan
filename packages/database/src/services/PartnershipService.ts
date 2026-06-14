@@ -7,7 +7,13 @@ import { eq, and, gte, lte, sql, desc, or, like } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { BaseService } from "./base";
 import { paginateWithCursor } from "../utils/pagination-helpers";
-import { fromCents, toCents, toRequiredCents } from "../utils/money";
+import {
+  fromCents,
+  percentageFromBps,
+  toCents,
+  toPercentageBps,
+  toRequiredCents,
+} from "../utils/money";
 import {
   partnerships,
   partnershipPlans,
@@ -125,6 +131,15 @@ export class PartnershipService extends BaseService {
     return toRequiredCents(discountValue);
   }
 
+  private discountPercentageBps(
+    discountType: string | null | undefined,
+    discountValue: number | null | undefined,
+  ): number | null {
+    return discountType === "percentage"
+      ? toPercentageBps(discountValue)
+      : null;
+  }
+
   // ================================================
   // PARTNERSHIP MANAGEMENT (合作夥伴管理)
   // ================================================
@@ -138,6 +153,10 @@ export class PartnershipService extends BaseService {
       .values({
         ...data,
         defaultDiscountValueCents: this.discountValueCents(
+          data.defaultDiscountType,
+          data.defaultDiscountValue,
+        ),
+        defaultDiscountPercentageBps: this.discountPercentageBps(
           data.defaultDiscountType,
           data.defaultDiscountValue,
         ),
@@ -257,6 +276,10 @@ export class PartnershipService extends BaseService {
         data.defaultDiscountType ?? current?.defaultDiscountType,
         data.defaultDiscountValue ?? current?.defaultDiscountValue,
       );
+      updates.defaultDiscountPercentageBps = this.discountPercentageBps(
+        data.defaultDiscountType ?? current?.defaultDiscountType,
+        data.defaultDiscountValue ?? current?.defaultDiscountValue,
+      );
     }
 
     if (data.totalDiscountGiven !== undefined) {
@@ -337,6 +360,10 @@ export class PartnershipService extends BaseService {
       .values({
         ...data,
         discountValueCents: this.discountValueCents(
+          data.discountType,
+          data.discountValue,
+        ),
+        discountPercentageBps: this.discountPercentageBps(
           data.discountType,
           data.discountValue,
         ),
@@ -448,6 +475,10 @@ export class PartnershipService extends BaseService {
             })
           : undefined;
       updates.discountValueCents = this.discountValueCents(
+        data.discountType ?? current?.discountType,
+        data.discountValue ?? current?.discountValue,
+      );
+      updates.discountPercentageBps = this.discountPercentageBps(
         data.discountType ?? current?.discountType,
         data.discountValue ?? current?.discountValue,
       );
@@ -602,9 +633,12 @@ export class PartnershipService extends BaseService {
       let discountAmountCents = 0;
 
       switch (plan.discountType) {
-        case "percentage":
+        case "percentage": {
+          const discountPercentage =
+            percentageFromBps(plan.discountPercentageBps, plan.discountValue) ??
+            plan.discountValue;
           discountAmountCents = Math.round(
-            orderAmountCents * (plan.discountValue / 100),
+            orderAmountCents * (discountPercentage / 100),
           );
           if (plan.maxDiscountAmount || plan.maxDiscountAmountCents != null) {
             const maxDiscountAmountCents =
@@ -615,6 +649,7 @@ export class PartnershipService extends BaseService {
             }
           }
           break;
+        }
 
         case "fixed":
           discountAmountCents =
@@ -867,6 +902,10 @@ export class PartnershipService extends BaseService {
       .values({
         ...data,
         discountValueCents: this.discountValueCents(
+          data.discountType,
+          data.discountValue,
+        ),
+        discountPercentageBps: this.discountPercentageBps(
           data.discountType,
           data.discountValue,
         ),

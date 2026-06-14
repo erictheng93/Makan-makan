@@ -10,7 +10,9 @@ import type {
 import {
   amountFromCents,
   fromCents,
+  percentageFromBps,
   toCents,
+  toRequiredPercentageBps,
   toRequiredCents,
 } from "../utils/money";
 
@@ -80,7 +82,10 @@ export class CouponService extends BaseService {
     if (hasDiscountValue) {
       normalized.discountValue =
         coupon.discountType === "percentage"
-          ? coupon.discountValue
+          ? (percentageFromBps(
+              coupon.discountPercentageBps,
+              coupon.discountValue,
+            ) ?? coupon.discountValue)
           : (amountFromCents(coupon.discountValueCents, coupon.discountValue) ??
             coupon.discountValue);
     }
@@ -217,8 +222,13 @@ export class CouponService extends BaseService {
       // 計算折扣金額
       let discountAmountCents = 0;
       if (coupon.discountType === "percentage") {
+        const discountPercentage =
+          percentageFromBps(
+            coupon.discountPercentageBps,
+            coupon.discountValue,
+          ) ?? coupon.discountValue;
         discountAmountCents = Math.round(
-          orderAmountCents * (coupon.discountValue / 100),
+          orderAmountCents * (discountPercentage / 100),
         );
 
         // 應用最大折扣金額限制
@@ -376,6 +386,10 @@ export class CouponService extends BaseService {
         discountValue: data.discountValue,
         maxDiscountAmount: data.maxDiscountAmount,
         minOrderAmount: data.minOrderAmount || 0,
+        discountPercentageBps:
+          data.discountType === "percentage"
+            ? toRequiredPercentageBps(data.discountValue)
+            : null,
         discountValueCents:
           data.discountType === "percentage"
             ? null
@@ -556,12 +570,27 @@ export class CouponService extends BaseService {
       updates.discountValue !== undefined ||
       updates.discountType !== undefined
     ) {
+      const current =
+        updates.discountType === undefined ||
+        updates.discountValue === undefined
+          ? await this.db.query.coupons.findFirst({
+              where: eq(coupons.id, id),
+            })
+          : undefined;
+      const discountType = updates.discountType ?? current?.discountType;
+      const discountValue = updates.discountValue ?? current?.discountValue;
       centsUpdates.discountValueCents =
-        updates.discountType === "percentage"
+        discountType === "percentage"
           ? null
-          : updates.discountValue === undefined
+          : discountValue === undefined
             ? undefined
-            : toRequiredCents(updates.discountValue);
+            : toRequiredCents(discountValue);
+      centsUpdates.discountPercentageBps =
+        discountType === "percentage" && discountValue !== undefined
+          ? toRequiredPercentageBps(discountValue)
+          : discountType === undefined
+            ? undefined
+            : null;
     }
     if (updates.maxDiscountAmount !== undefined) {
       centsUpdates.maxDiscountAmountCents = toCents(updates.maxDiscountAmount);

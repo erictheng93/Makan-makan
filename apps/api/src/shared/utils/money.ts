@@ -17,3 +17,11 @@ export function toRequiredCents(amount: number): number {
 export function fromCents(cents: number): number {
   return cents / 100;
 }
+
+export function percentageFromBps(
+  bps: number | null | undefined,
+  fallback: number | null | undefined,
+): number | null {
+  if (bps == null) return fallback ?? null;
+  return bps / 100;
+}

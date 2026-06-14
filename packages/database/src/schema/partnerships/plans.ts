@@ -61,6 +61,7 @@ export const partnershipPlans = sqliteTable(
     discountType: text("discount_type").notNull().$type<PlanDiscountType>(),
     discountValue: real("discount_value").notNull(),
     maxDiscountAmount: real("max_discount_amount"),
+    discountPercentageBps: integer("discount_percentage_bps"),
     discountValueCents: integer("discount_value_cents"),
     maxDiscountAmountCents: integer("max_discount_amount_cents"),
 

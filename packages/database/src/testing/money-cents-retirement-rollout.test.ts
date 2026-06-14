@@ -116,6 +116,16 @@ const retirementDocPath = path.resolve(
   "../../docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md",
 );
 
+function findPercentageMigration(dir: string): string {
+  const matches = fs
+    .readdirSync(dir)
+    .filter((file) => /^\d+_discount_percentage_bps\.sql$/.test(file))
+    .sort();
+
+  expect(matches).toHaveLength(1);
+  return path.join(dir, matches[0]);
+}
+
 function findRolloutMigration(dir: string): string {
   const matches = fs
     .readdirSync(dir)
@@ -189,18 +199,32 @@ describe("money cents retirement rollout migration", () => {
   it("pairs the dedicated rollout guard across fresh and legacy tracks", () => {
     const fresh = path.basename(findRolloutMigration(freshMigrationsDir));
     const legacy = path.basename(findRolloutMigration(legacyMigrationsDir));
+    const latestFresh = path.basename(
+      findPercentageMigration(freshMigrationsDir),
+    );
+    const latestLegacy = path.basename(
+      findPercentageMigration(legacyMigrationsDir),
+    );
     const dualTrack = JSON.parse(fs.readFileSync(dualTrackPath, "utf8")) as {
       pairs?: Array<{ fresh: string; legacy: string; reason: string }>;
       reviewedThrough?: { fresh: string; legacy: string };
     };
 
-    expect(dualTrack.reviewedThrough).toEqual({ fresh, legacy });
+    expect(dualTrack.reviewedThrough).toEqual({
+      fresh: latestFresh,
+      legacy: latestLegacy,
+    });
     expect(dualTrack.pairs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           fresh,
           legacy,
           reason: expect.stringContaining("Money cents retirement"),
+        }),
+        expect.objectContaining({
+          fresh: latestFresh,
+          legacy: latestLegacy,
+          reason: expect.stringContaining("Percentage discount"),
         }),
       ]),
     );
@@ -298,5 +322,21 @@ describe("money cents retirement rollout migration", () => {
     expect(doc).toContain("rtk pnpm db:migrate:prod");
     expect(doc).toContain("PRAGMA defer_foreign_keys = ON");
     expect(doc).toContain("money_cents_retirement_rollout");
+  });
+
+  it("requires percentage basis-point columns before discount value cutover", () => {
+    const fresh = readSql(findPercentageMigration(freshMigrationsDir));
+    const legacy = readSql(findPercentageMigration(legacyMigrationsDir));
+    const doc = fs.readFileSync(retirementDocPath, "utf8");
+
+    for (const sql of [fresh, legacy]) {
+      expect(sql).toContain("discount_percentage_bps");
+      expect(sql).toContain("default_discount_percentage_bps");
+      expect(sql).toContain("percentage_bps_missing_or_mismatch");
+      expect(sql).toContain("discount_type` = 'percentage'");
+    }
+    expect(doc).toContain("discount_percentage_bps");
+    expect(doc).toContain("default_discount_percentage_bps");
+    expect(doc).toContain("percentage_bps_missing_or_mismatch");
   });
 });
