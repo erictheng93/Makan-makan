@@ -96,10 +96,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         restaurantId,
         createdBy: userId,
       });
-      const qrEntityId = this.toStringEntityId(
-        result.id,
-        "QR code generation",
-      );
+      const qrEntityId = this.toStringEntityId(result.id, "QR code generation");
 
       // Transform result to match our entity interface
       const qrEntity: QRCodeEntity = {

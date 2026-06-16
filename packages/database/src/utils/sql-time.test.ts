@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import {
+  businessDateNow,
   dateFromUnixMs,
   juliandayFromUnixMs,
   strftimeFromUnixMs,
@@ -19,14 +20,18 @@ function render(expression: { toQuery: (config: unknown) => { sql: string } }) {
 describe("SQL time helpers", () => {
   it("converts Unix millisecond columns to local business dates", () => {
     expect(render(dateFromUnixMs(sql.raw("created_at_ms")))).toBe(
-      "DATE(created_at_ms / 1000, 'unixepoch', 'localtime')",
+      "DATE(created_at_ms / 1000, 'unixepoch', '+8 hours')",
     );
   });
 
   it("builds strftime buckets from Unix millisecond columns", () => {
     expect(render(strftimeFromUnixMs("%Y-%m", sql.raw("created_at_ms")))).toBe(
-      "strftime(?, created_at_ms / 1000, 'unixepoch', 'localtime')",
+      "strftime(?, created_at_ms / 1000, 'unixepoch', '+8 hours')",
     );
+  });
+
+  it("builds current local business date without host timezone dependence", () => {
+    expect(render(businessDateNow())).toBe("DATE('now', '+8 hours')");
   });
 
   it("builds julianday differences from Unix millisecond columns", () => {
