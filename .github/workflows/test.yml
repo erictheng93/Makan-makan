@@ -70,6 +70,8 @@ jobs:
 
       - name: 🚦 Production config 檢查
         run: pnpm run check:prod-config
+        env:
+          CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS: "false"
 
       - name: 🧭 Migration dual-track guard
         run: pnpm run check:migration-dual-track

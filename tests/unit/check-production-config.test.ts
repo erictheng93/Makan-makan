@@ -7,6 +7,7 @@ const { checkProductionConfig } =
     checkProductionConfig: (options?: {
       root?: string;
       env?: Record<string, string | undefined>;
+      requireDeploymentSecrets?: boolean;
     }) => { violations: Array<{ file: string; text: string }> };
   };
 
@@ -36,5 +37,15 @@ describe("check-production-config", () => {
         ),
       }),
     );
+  });
+
+  it("can skip deployment secret checks for non-deploy CI gates", () => {
+    const result = checkProductionConfig({
+      root: process.cwd(),
+      env: {},
+      requireDeploymentSecrets: false,
+    });
+
+    expect(result.violations).toEqual([]);
   });
 });

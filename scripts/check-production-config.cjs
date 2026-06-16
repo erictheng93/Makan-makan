@@ -32,6 +32,9 @@ const REQUIRED_DEPLOYMENT_SECRETS = new Map([
 function checkProductionConfig(options = {}) {
   const root = path.resolve(options.root || DEFAULT_ROOT);
   const env = options.env || process.env;
+  const requireDeploymentSecrets =
+    options.requireDeploymentSecrets ??
+    env.CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS !== "false";
   const appsDir = path.join(root, "apps");
   const wranglerFiles = [];
   walk(appsDir, wranglerFiles);
@@ -76,7 +79,9 @@ function checkProductionConfig(options = {}) {
     }
 
     validateProductionRuntimeVars(relativeFile, lines, violations);
-    validateDeploymentSecrets(relativeFile, lines, env, violations);
+    if (requireDeploymentSecrets) {
+      validateDeploymentSecrets(relativeFile, lines, env, violations);
+    }
   }
 
   return { violations, checkedFiles: wranglerFiles.length };
