@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const repoRoot = process.cwd();
@@ -37,6 +37,7 @@ function listPackageJsonFiles(root: string): string[] {
 
 function listBoundaryFiles(root: string): string[] {
   const ignoredDirectoryNames = new Set([
+    ".claude",
     ".git",
     ".turbo",
     ".wrangler",
@@ -57,7 +58,11 @@ function listBoundaryFiles(root: string): string[] {
     for (const entry of readdirSync(directory)) {
       const absolutePath = join(directory, entry);
       const relativePath = relative(root, absolutePath);
-      const stats = statSync(absolutePath);
+      const stats = lstatSync(absolutePath);
+
+      if (stats.isSymbolicLink()) {
+        continue;
+      }
 
       if (stats.isDirectory()) {
         const pathParts = relativePath.split("/");
