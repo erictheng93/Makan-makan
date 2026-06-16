@@ -32,7 +32,6 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
-    "@makanmakan/queue-service": "workspace:*",
     "@makanmakan/utils": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "bcryptjs": "^2.4.3",
@@ -56,7 +55,6 @@
   },
   "peerDependencies": {
     "@makanmakan/queue-core": "workspace:*",
-    "@makanmakan/queue-service": "workspace:*",
     "@makanmakan/shared-types": "workspace:*"
   }
 }

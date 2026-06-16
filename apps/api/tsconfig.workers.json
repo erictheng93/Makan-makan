@@ -17,8 +17,7 @@
     "paths": {
       "@makanmakan/database": ["../../packages/database/src"],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/queue-core": ["../../packages/queue-core/src"],
-      "@makanmakan/queue-service": ["../../packages/queue-service/src"]
+      "@makanmakan/queue-core": ["../../packages/queue-core/src"]
     }
   },
   "include": ["src/routes/queue-modular.ts"],

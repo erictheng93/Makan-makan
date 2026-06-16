@@ -138,7 +138,10 @@ features/{module}/
 ## 資料庫策略
 
 - **Schema 定義**: `packages/database/src/schema/` (Drizzle ORM)
-- **ID 策略**: UUID v7 (`TEXT` primary keys)
+- **ID 策略**: 新 durable domain table 使用 UUID v7 (`TEXT` primary keys)；既有
+  integer autoincrement PK 例外由
+  `docs/architecture/database/INTEGER_PRIMARY_KEY_POLICY.md` 與
+  `integer-primary-key-policy.json` 管控
 - **時間戳**: `INTEGER` (Unix ms, `timestamp_ms` mode)
 - **查詢層**: Layer 1 (Drizzle Query Builder) + Layer 2 (Drizzle `sql` template)
 - **禁止**: Raw SQL string (Layer 3)

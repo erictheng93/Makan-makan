@@ -294,9 +294,6 @@ importers:
       '@makanmakan/queue-core':
         specifier: workspace:*
         version: link:../../packages/queue-core
-      '@makanmakan/queue-service':
-        specifier: workspace:*
-        version: link:../../packages/queue-service
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -962,9 +959,6 @@ importers:
       '@makanmakan/queue-core':
         specifier: workspace:*
         version: link:../queue-core
-      '@makanmakan/queue-service':
-        specifier: workspace:*
-        version: link:../queue-service
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../shared-types

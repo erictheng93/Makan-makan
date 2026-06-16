@@ -22,8 +22,7 @@
       "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
       "@makanmakan/utils": ["../../packages/utils/src"],
       "@makanmakan/utils/*": ["../../packages/utils/src/*"],
-      "@makanmakan/queue-core": ["../../packages/queue-core/src"],
-      "@makanmakan/queue-service": ["../../packages/queue-service/src"]
+      "@makanmakan/queue-core": ["../../packages/queue-core/src"]
     }
   },
   "include": [

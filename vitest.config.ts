@@ -135,10 +135,6 @@ export default defineConfig({
         __dirname,
         "./packages/queue-core/src/index.ts",
       ),
-      "@makanmakan/queue-service": path.resolve(
-        __dirname,
-        "./packages/queue-service/src/index.ts",
-      ),
       "@makanmakan/shared": path.resolve(
         __dirname,
         "./packages/shared/src/index.ts",

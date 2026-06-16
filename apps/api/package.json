@@ -24,7 +24,6 @@
     "@makanmakan/ai-analytics": "workspace:*",
     "@makanmakan/database": "workspace:*",
     "@makanmakan/queue-core": "workspace:*",
-    "@makanmakan/queue-service": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
     "@makanmakan/utils": "workspace:*",
     "bcryptjs": "^2.4.3",
