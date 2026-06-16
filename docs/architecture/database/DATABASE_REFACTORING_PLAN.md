@@ -7,6 +7,13 @@
 **預估時間**: 2-3 週
 **風險等級**: 中等 (有完整的備份和回滾計劃)
 
+> Current policy note: this document captures the historical refactoring target.
+> The active ID policy is now UUID v7 `TEXT` primary keys for new durable domain
+> tables, with existing integer autoincrement exceptions tracked in
+> `docs/architecture/database/INTEGER_PRIMARY_KEY_POLICY.md` and
+> `integer-primary-key-policy.json`. Do not use this plan alone to justify a
+> destructive primary-key rebuild.
+
 ---
 
 ## 一、問題分析
@@ -129,6 +136,11 @@ id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))))
 restaurant_id TEXT NOT NULL
 FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
 ```
+
+Current implementation uses UUID v7 for new durable domain rows. Existing
+integer autoincrement primary keys are inventoried and classified in
+`integer-primary-key-policy.json`; rows marked `migrate_to_uuid_v7` need a
+dedicated D1 rebuild plan before schema changes.
 
 ### 3.2 時間戳策略
 
