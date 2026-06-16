@@ -613,13 +613,24 @@ export class WaitingListService extends BaseService {
       assertWaitingTransition(entry.status, WaitingStatus.CALLED);
 
       // 驗證桌位
-      const table = await this.db.get<AvailableTableRow>(sql`
-        SELECT * FROM tables
-        WHERE id = ${request.tableId}
-          AND restaurant_id = ${entry.restaurantId}
-          AND is_occupied = 0
-          AND waiting_list_id IS NULL
-      `);
+      const hasWaitingListColumn = await this.tableHasColumn(
+        "tables",
+        "waiting_list_id",
+      );
+      const table = hasWaitingListColumn
+        ? await this.db.get<AvailableTableRow>(sql`
+            SELECT * FROM tables
+            WHERE id = ${request.tableId}
+              AND restaurant_id = ${entry.restaurantId}
+              AND is_occupied = 0
+              AND waiting_list_id IS NULL
+          `)
+        : await this.db.get<AvailableTableRow>(sql`
+            SELECT * FROM tables
+            WHERE id = ${request.tableId}
+              AND restaurant_id = ${entry.restaurantId}
+              AND is_occupied = 0
+          `);
 
       if (!table) {
         throw new Error("桌位不可用");

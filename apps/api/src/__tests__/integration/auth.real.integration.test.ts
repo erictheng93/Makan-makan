@@ -153,7 +153,11 @@ describe("Auth API — real integration", () => {
       const body: any = await loginRes.json();
       expect(body.success).toBe(true);
       expect(body.data?.token).toBeDefined();
-      expect(body.data?.refreshToken).toBeDefined();
+      expect(body.data).not.toHaveProperty("refreshToken");
+      expect(loginRes.headers.get("set-cookie")).toContain(
+        "__Host-mm_staff_refresh=",
+      );
+      expect(loginRes.headers.get("set-cookie")).toContain("HttpOnly");
       expect(body.data?.user?.username).toBe("logintest");
     });
 

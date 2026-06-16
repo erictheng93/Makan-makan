@@ -17,6 +17,11 @@ function assertNoRawLessThan(value: unknown): void {
   expect(JSON.stringify(value)).not.toContain("<");
 }
 
+function assertEscapedLessThan(value: string): void {
+  expect(value).toContain("&lt;");
+  assertNoRawLessThan(value);
+}
+
 async function loginCustomer(testApp: RealIntegrationTestApp): Promise<string> {
   const otpRes = await testApp.app.fetch(
     new Request("https://test/api/v1/customer/auth/request-otp", {
@@ -97,8 +102,7 @@ describe("XSS entity decoding regression — real integration", () => {
     );
     expect(publicMarketRes.status).toBe(200);
     const publicMarketJson: any = await publicMarketRes.json();
-    expect(publicMarketJson.data.market.bannerUrl).toContain("&amp;lt;");
-    assertNoRawLessThan(publicMarketJson.data.market.bannerUrl);
+    assertEscapedLessThan(publicMarketJson.data.market.bannerUrl);
 
     const restaurant = await seed.restaurant({
       name: "XSS Entity Restaurant",
@@ -135,9 +139,9 @@ describe("XSS entity decoding regression — real integration", () => {
     );
     expect(publicContactRes.status).toBe(200);
     const publicContactJson: any = await publicContactRes.json();
-    expect(publicContactJson.data.faqs[0].question).toContain("&amp;lt;");
-    expect(publicContactJson.data.faqs[0].answer).toContain("&amp;lt;");
-    expect(publicContactJson.data.faqs[0].keywords[0]).toContain("&amp;lt;");
+    assertEscapedLessThan(publicContactJson.data.faqs[0].question);
+    assertEscapedLessThan(publicContactJson.data.faqs[0].answer);
+    assertEscapedLessThan(publicContactJson.data.faqs[0].keywords[0]);
     assertNoRawLessThan(publicContactJson.data.faqs);
 
     const customerToken = await loginCustomer(testApp);
@@ -158,7 +162,6 @@ describe("XSS entity decoding regression — real integration", () => {
     );
     expect(pushRes.status).toBe(201);
     const pushJson: any = await pushRes.json();
-    expect(pushJson.data.endpoint).toContain("&amp;lt;");
-    assertNoRawLessThan(pushJson.data.endpoint);
+    assertEscapedLessThan(pushJson.data.endpoint);
   });
 });

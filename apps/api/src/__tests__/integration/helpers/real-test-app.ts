@@ -76,6 +76,7 @@ function buildTestEnv(testDb: TestDatabase): Env {
   return {
     NODE_ENV: "development",
     JWT_SECRET: "test-jwt-secret-do-not-use-in-prod",
+    QR_SIGNING_KEY: "test-qr-signing-key-32-bytes-minimum",
     API_VERSION: "v1",
     ENCRYPTION_KEY: "test-encryption-key-32-bytes-long!!",
     DB: testDb.bindings.DB,
