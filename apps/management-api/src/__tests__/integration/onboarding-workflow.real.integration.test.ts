@@ -94,10 +94,16 @@ describe("Onboarding public API workflow — real integration", () => {
       status: "submitted",
     });
     expect(typeof createJson.data.applicationId).toBe("string");
+    expect(typeof createJson.data.applicationSecret).toBe("string");
 
     const getResponse = await app.fetch(
       new Request(
         `https://management.test/api/v1/onboarding/applications/${createJson.data.applicationId}`,
+        {
+          headers: {
+            "X-Onboarding-Secret": createJson.data.applicationSecret,
+          },
+        },
       ),
       env,
     );

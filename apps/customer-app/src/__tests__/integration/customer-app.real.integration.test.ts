@@ -78,7 +78,7 @@ describe("Customer Menu API — real integration", () => {
     const restaurant = await seed.restaurant();
     await seed.menuItem(restaurant.id, {
       name: "Nasi Lemak",
-      price: 1200,
+      priceCents: 12000,
       isAvailable: true,
     });
 
@@ -97,7 +97,7 @@ describe("Customer Menu API — real integration", () => {
 
     const item = json.data.menuItems.find((i: any) => i.name === "Nasi Lemak");
     expect(item).toBeTruthy();
-    expect(item.price).toBe(1200);
+    expect(item.price).toBe(120);
   });
 
   it("excludes unavailable items from the public menu", async () => {
