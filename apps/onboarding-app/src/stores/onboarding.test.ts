@@ -95,6 +95,9 @@ describe("useOnboardingStore", () => {
       assignedSubdomain: "demo-noodles",
       application: { businessName: "Demo Noodles", status: "submitted" },
     });
+    expect(sessionStorage.getItem("onboarding_application")).not.toContain(
+      "secret-123",
+    );
   });
 
   it("captures API errors from failed application submission", async () => {
@@ -200,6 +203,7 @@ describe("useOnboardingStore", () => {
       JSON.stringify({
         application: { ...applicationData(), status: "submitted" },
         applicationId: "app-123",
+        applicationSecret: "secret-123",
         assignedSubdomain: "demo-noodles",
         completionResult: null,
       }),
@@ -208,6 +212,7 @@ describe("useOnboardingStore", () => {
     const store = useOnboardingStore();
 
     expect(store.applicationId).toBe("app-123");
+    expect(store.applicationSecret).toBeNull();
     expect(store.application?.businessName).toBe("Demo Noodles");
     expect(store.assignedSubdomain).toBe("demo-noodles");
   });

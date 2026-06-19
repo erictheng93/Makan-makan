@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { randomInt, randomUUID } from "node:crypto";
 import {
   createLocalManagementToken,
   firstAvailableMenuItemId,
@@ -85,6 +86,22 @@ const MARKET_SLUG = optionalEnv("WORKFLOW_MARKET_SLUG");
 const TABLE_ID = Number(
   optionalEnv("WORKFLOW_TABLE_ID") || optionalEnv("SMOKE_TABLE_ID") || NaN,
 );
+
+function randomSuffix() {
+  return randomUUID().replace(/-/g, "").slice(0, 8);
+}
+
+function randomPhoneLastDigits() {
+  return String(randomInt(100, 1000));
+}
+
+function randomTaiwanPhone() {
+  return `0912${randomInt(100000, 1000000)}`;
+}
+
+function randomUsPhone() {
+  return `+1555${randomInt(1000000, 10000000)}`;
+}
 
 interface MenuItemCandidate {
   id?: number | string;
@@ -354,7 +371,7 @@ async function loginChef() {
     const ownerLoginData = await getLoginData();
     if (!ownerLoginData?.token || !ownerLoginData.user) return undefined;
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const username = `workflowchef${suffix}`;
     const password = `ChefPass1!${suffix}`;
     const createResponse = await fetch(`${API_URL}/api/v1/users`, {
@@ -994,7 +1011,7 @@ async function createManagementTenantFixture(token: string): Promise<{
     "management workflow API URL",
   ).toBeTruthy();
 
-  const suffix = Math.random().toString(36).slice(2, 8);
+  const suffix = randomSuffix();
   const businessName = `Workflow Detail Tenant ${suffix}`;
   const response = await fetch(`${MANAGEMENT_WORKFLOW_API_URL}/tenants`, {
     method: "POST",
@@ -1005,7 +1022,7 @@ async function createManagementTenantFixture(token: string): Promise<{
     body: JSON.stringify({
       businessName,
       contactEmail: `workflow-detail-${suffix}@example.com`,
-      contactPhone: `+1555${Math.floor(1000000 + Math.random() * 8999999)}`,
+      contactPhone: randomUsPhone(),
       subdomain: `workflow-detail-${suffix}`,
       licenseTier: "standard",
     }),
@@ -1371,9 +1388,9 @@ test.describe("Real system workflows", () => {
       "real API did not return a bookable service item with an available slot; set WORKFLOW_SERVICE_ITEM_ID for this workflow",
     );
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const customerName = `Workflow Booking ${suffix}`;
-    const customerPhone = `0912${Math.floor(100000 + Math.random() * 899999)}`;
+    const customerPhone = randomTaiwanPhone();
     const customerEmail = `workflow-booking-${suffix}@example.com`;
     const specialRequests = `workflow service booking ${suffix}`;
     let confirmationCode: string | undefined;
@@ -1543,9 +1560,7 @@ test.describe("Real system workflows", () => {
       "real API did not return a public market with two vendors and available menu items; set WORKFLOW_MARKET_SLUG for this workflow",
     );
 
-    const phoneLastDigits = String(
-      100 + Math.floor(Math.random() * 900),
-    ).padStart(3, "0");
+    const phoneLastDigits = randomPhoneLastDigits();
     let checkoutId: string | undefined;
     let createBody: MarketCheckoutBody | undefined;
 
@@ -1672,7 +1687,7 @@ test.describe("Real system workflows", () => {
         orderType: "shop",
         items: [{ menuItemId, quantity: 1 }],
         guestName: "workflow-test",
-        phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),
+        phoneLastDigits: randomPhoneLastDigits(),
       }),
     });
     expect(
@@ -1743,7 +1758,7 @@ test.describe("Real system workflows", () => {
         tableId: fixtureIds.tableId,
         items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
         guestName: "workflow-admin",
-        phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),
+        phoneLastDigits: randomPhoneLastDigits(),
       }),
     });
     expect(
@@ -1834,7 +1849,7 @@ test.describe("Real system workflows", () => {
       "real API did not return a menu category",
     );
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const itemName = `Workflow Menu ${suffix}`;
     const updatedName = `Workflow Menu Updated ${suffix}`;
     let createdItemId: number | undefined;
@@ -1931,7 +1946,7 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
     );
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const categoryName = `Workflow Category ${suffix}`;
     const updatedCategoryName = `Workflow Category Updated ${suffix}`;
     let createdCategoryId: number | undefined;
@@ -2095,7 +2110,7 @@ test.describe("Real system workflows", () => {
         tableId: fixtureIds.tableId,
         items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
         guestName: "workflow-kitchen",
-        phoneLastDigits: String(100 + Math.floor(Math.random() * 900)),
+        phoneLastDigits: randomPhoneLastDigits(),
       }),
     });
     expect(
@@ -2429,10 +2444,10 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_MANAGEMENT_PORTAL_URL, WORKFLOW_MANAGEMENT_TOKEN, and management API URL are required",
     );
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const businessName = `Workflow Tenant ${suffix}`;
     const contactEmail = `workflow-${suffix}@example.com`;
-    const contactPhone = `+1555${Math.floor(1000000 + Math.random() * 8999999)}`;
+    const contactPhone = randomUsPhone();
     const subdomain = `workflow-${suffix}`;
     let createdTenantId: string | undefined;
 
@@ -2646,7 +2661,7 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_ONBOARDING_URL and WORKFLOW_MANAGEMENT_API_URL are required",
     );
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const subdomain = `workflow-${suffix}`;
 
     await page.goto(`${ONBOARDING_URL}/apply`, {
@@ -2712,7 +2727,7 @@ test.describe("Real system workflows", () => {
       "WORKFLOW_ONBOARDING_URL, WORKFLOW_MANAGEMENT_API_URL, WORKFLOW_CLOUDFLARE_ACCOUNT_ID, and WORKFLOW_CLOUDFLARE_API_TOKEN are required",
     );
 
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = randomSuffix();
     const subdomain = `workflow-cf-${suffix}`;
 
     await page.goto(`${ONBOARDING_URL}/apply`, {

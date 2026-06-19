@@ -73,7 +73,7 @@ function routeMounts() {
       /apiV1\.route\(\s*"([^"]+)"\s*,\s*([A-Za-z0-9_.]+)\s*\)/,
     );
     if (!m) continue;
-    const noteMatch = rawLine.match(/\/\/\s*(.+)$/);
+    const noteMatch = rawLine.match(/\/\/\s*([^\r\n]+)\r?$/);
     mounts.push({
       prefix: m[1],
       router: m[2],
@@ -125,7 +125,9 @@ function replaceBlockMarker(text, key, blockBody) {
 function mountIndexTable(mounts) {
   const rows = mounts
     .map((m) => {
-      const note = m.note ? m.note.replace(/\|/g, "\\|") : "";
+      const note = m.note
+        ? m.note.replace(/\\/g, "\\\\").replace(/\|/g, "\\|")
+        : "";
       return `| \`${m.prefix}\` | \`${m.router}\` | ${note} |`;
     })
     .join("\n");

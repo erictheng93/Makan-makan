@@ -274,7 +274,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
         const data = JSON.parse(stored);
         application.value = data.application || null;
         applicationId.value = data.applicationId || null;
-        applicationSecret.value = data.applicationSecret || null;
         assignedSubdomain.value = data.assignedSubdomain || null;
         completionResult.value = data.completionResult || null;
       } catch {
@@ -290,7 +289,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     const data = {
       application: application.value,
       applicationId: applicationId.value,
-      applicationSecret: applicationSecret.value,
       assignedSubdomain: assignedSubdomain.value,
       completionResult: completionResult.value,
     };
