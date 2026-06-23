@@ -2,6 +2,7 @@ import { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 import type { Env } from "../types/env";
 import { ApiError, unauthorized, forbidden } from "../shared/utils/api-error";
+import { resolveStaffPrincipal } from "../shared/services/staff-principal";
 
 export interface AuthUser {
   id: number;
@@ -487,46 +488,28 @@ async function loadTokenUser(
   c: Context<{ Bindings: Env }>,
   userId: number,
 ): Promise<TokenUserRecord | null> {
-  let row: {
-    id: number;
-    username: string;
-    role: number;
-    restaurant_id: string | null;
-    is_active: number | boolean;
-    token_version: number | null;
-  } | null;
-
   try {
-    row = await c.env.DB.prepare(
-      `SELECT id, username, role, restaurant_id, is_active, token_version
-         FROM users
-        WHERE id = ?
-        LIMIT 1`,
-    )
-      .bind(userId)
-      .first<{
-        id: number;
-        username: string;
-        role: number;
-        restaurant_id: string | null;
-        is_active: number | boolean;
-        token_version: number | null;
-      }>();
+    const principal = await resolveStaffPrincipal(c.env.DB, userId, {
+      requireActive: false,
+    });
+    return {
+      id: principal.legacyUserId,
+      username: principal.username,
+      role: principal.role,
+      restaurantId: principal.restaurantId,
+      isActive: principal.isActive,
+      tokenVersion: principal.tokenVersion,
+    };
   } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.code === "STAFF_PRINCIPAL_NOT_FOUND"
+    ) {
+      return null;
+    }
     if (c.env.NODE_ENV !== "production") return null;
     throw error;
   }
-
-  if (!row) return null;
-
-  return {
-    id: Number(row.id),
-    username: String(row.username),
-    role: Number(row.role),
-    restaurantId: row.restaurant_id ?? undefined,
-    isActive: row.is_active === true || Number(row.is_active) === 1,
-    tokenVersion: Number(row.token_version ?? 1),
-  };
 }
 
 async function loadTokenCustomer(

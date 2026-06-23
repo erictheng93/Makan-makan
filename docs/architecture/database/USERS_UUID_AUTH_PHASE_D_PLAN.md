@@ -85,6 +85,21 @@ Acceptance:
 - Scope resolver output to active users and preserve `token_version` checks.
 - Return both `legacyUserId` and `publicUserId` to callers.
 
+Progress:
+
+- 2026-06-23: Added
+  `apps/api/src/shared/services/staff-principal.ts`, a shared API resolver that
+  accepts legacy numeric `users.id` or UUID-v7-shaped `users.public_id`, rejects
+  malformed principal strings before querying, returns `legacyUserId` plus
+  `publicUserId`, and preserves `tokenVersion`.
+- 2026-06-23: Added focused resolver coverage in
+  `apps/api/src/shared/services/staff-principal.test.ts` for numeric ids, UUID
+  public ids, invalid inputs, inactive users, and misses.
+- 2026-06-23: Rewired `apps/api/src/middleware/auth.ts` numeric staff user
+  loading through the resolver with `requireActive: false`, preserving the
+  existing middleware-level inactive-user and token-version behavior. Parsing
+  UUID-principal JWT claims remains D3 work.
+
 Acceptance:
 
 - Numeric legacy JWTs still authenticate.

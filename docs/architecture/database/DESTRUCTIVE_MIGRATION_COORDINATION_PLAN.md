@@ -317,6 +317,12 @@ Progress:
   index; paired migrations `0074` / `0091` add and backfill the column, and
   paired audit guards `0075` / `0092` fail on missing, duplicate, or malformed
   bridge identifiers. Auth/JWT compatibility code is still pending.
+- 2026-06-23: Added the first D2 staff principal resolver at
+  `apps/api/src/shared/services/staff-principal.ts`. It accepts legacy numeric
+  ids or UUID-v7-shaped `users.public_id`, returns both legacy and public
+  identities, and now backs the existing API auth numeric user loader without
+  changing JWT claim parsing. UUID-principal JWT parsing and token issuance
+  remain pending.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 
