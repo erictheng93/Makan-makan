@@ -21,6 +21,8 @@ a production destructive migration.
   `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json`
 - Require representative rehearsal data:
   `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-representative.json`
+- Validate archived rehearsal evidence before migration drafting:
+  `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact /tmp/users-pk-representative.json`
 - Unit test the rehearsal verifier:
   `rtk pnpm exec vitest run tests/unit/phase-e-users-pk-dry-run.test.ts`
 
@@ -114,6 +116,8 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - `users.public_id` has zero missing, duplicate, or malformed values.
 - `uninventoriedUserForeignKeys` is empty.
 - `PRAGMA foreign_key_check` returns zero rows.
+- `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json>`
+  returns `exitCode = 0` for the archived staging/restored-production evidence.
 - The migration draft preserves all listed indexes and triggers.
 - API auth, database auth, realtime auth, management exchange, verification,
   scheduling, leave, POS, partnership, feedback, and audit tests still pass

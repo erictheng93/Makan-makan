@@ -23,6 +23,8 @@ authorize a production destructive migration.
   `rtk pnpm db:orders-pk-dry-run:representative`
 - Require full dependency-surface fixture coverage:
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json`
+- Validate archived rehearsal evidence before migration drafting:
+  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json`
 - Unit test the rehearsal generator:
   `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
@@ -156,6 +158,8 @@ Do not create paired Phase C migrations until all of these are true:
   lookup mismatches, missing shadow public ids, and shadow public-id resolution
   mismatches.
 - `PRAGMA foreign_key_check` returns zero rows.
+- `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json>`
+  returns `exitCode = 0` for the archived staging/restored-production evidence.
 - The migration draft preserves all listed indexes and triggers.
 - API/realtime/POS/payment compatibility tests still pass with UUID bridge
   identifiers.

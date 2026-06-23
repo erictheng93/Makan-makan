@@ -294,6 +294,9 @@ Progress:
   both legacy `orders.id` and `orders.public_id`, and that every shadow-copy
   `order_public_id` resolves back to the source order row before migration
   drafting starts.
+- 2026-06-23: Added `scripts/validate-pk-rehearsal-artifact.cjs` and
+  `rtk pnpm db:pk-rehearsal:validate` so archived Phase C rehearsal evidence is
+  machine-gated before paired migrations are drafted.
 
 Current blocker before paired Phase C migrations:
 
@@ -303,6 +306,9 @@ Current blocker before paired Phase C migrations:
   `dataCoverage.isRepresentative = true`, zero bridge violations, zero
   unmapped refs, zero `appCompatibility` mismatches, and zero `foreignKeyCheck`
   rows.
+- Run
+  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json>`
+  and require validator `exitCode = 0`.
 - Keep the full-surface rollback fixture artifact alongside the staging or
   restored-production artifact so migration reviewers can verify every checked
   dependency surface has copy coverage and schema preservation metadata.
@@ -425,6 +431,9 @@ Progress:
 - 2026-06-23: Added `--require-representative-data` to the users PK verifier so
   conversion rehearsal evidence must prove non-empty user rows and dependent
   references before paired destructive migrations are drafted.
+- 2026-06-23: The shared PK rehearsal artifact validator now supports Phase E
+  users artifacts, including representative data, bridge health, mapping parity,
+  uninventoried FK drift, schema metadata, and `foreign_key_check` gates.
 
 ## Required Tracking Updates
 
