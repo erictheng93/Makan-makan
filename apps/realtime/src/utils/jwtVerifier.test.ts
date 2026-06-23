@@ -135,6 +135,26 @@ describe("verifyWebSocketToken", () => {
       valid: false,
       error: "Invalid guest token payload",
     });
+
+    await expect(
+      verifyWebSocketToken(
+        tokenFor({
+          roomType: "customer",
+          roomId: "order:018f0000-0000-7000-8000-000000000042",
+          role: "customer",
+          guestFlag: true,
+          scope: "guest-realtime",
+          orderId: "018f0000-0000-7000-8000-000000000042",
+        }),
+        secret,
+      ),
+    ).resolves.toMatchObject({
+      valid: true,
+      payload: {
+        roomId: "order:018f0000-0000-7000-8000-000000000042",
+        orderId: "018f0000-0000-7000-8000-000000000042",
+      },
+    });
   });
 
   it("maps invalid and expired JWT failures to stable errors", async () => {

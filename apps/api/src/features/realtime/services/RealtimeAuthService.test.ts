@@ -682,6 +682,7 @@ describe("RealtimeAuthService", () => {
   });
 
   it("validates signed QR guest order ownership", async () => {
+    const publicId = "018f0000-0000-7000-8000-000000000042";
     mocks.utils.parseSignedQRUrl.mockReturnValue({
       type: "table",
       restaurantId: "restaurant-1",
@@ -707,7 +708,24 @@ describe("RealtimeAuthService", () => {
           isActive: true,
         },
       ],
-      [{ id: 42, restaurantId: "restaurant-1", tableId: 10 }],
+      [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
+      [
+        {
+          id: "restaurant-1",
+          settings: { allowGuestOrders: true },
+          isActive: true,
+          isAvailable: true,
+        },
+      ],
+      [
+        {
+          id: 10,
+          restaurantId: "restaurant-1",
+          number: "T1",
+          isActive: true,
+        },
+      ],
+      [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
       [
         {
           id: "restaurant-1",
@@ -738,6 +756,17 @@ describe("RealtimeAuthService", () => {
     ).resolves.toMatchObject({
       expiresAt: "2026-06-07T00:15:00.000Z",
       wsUrl: expect.stringContaining("/customer/order:42?token="),
+    });
+    await expect(
+      service.generateGuestToken({
+        restaurantId: "restaurant-1",
+        tableId: "10",
+        orderId: publicId,
+        qrCode: "signed-qr",
+      }),
+    ).resolves.toMatchObject({
+      expiresAt: "2026-06-07T00:15:00.000Z",
+      wsUrl: expect.stringContaining(`/customer/order:${publicId}?token=`),
     });
     await expect(
       service.generateGuestToken({

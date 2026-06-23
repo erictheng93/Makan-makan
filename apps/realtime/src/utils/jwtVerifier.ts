@@ -117,11 +117,19 @@ export async function verifyWebSocketToken(
     }
 
     if (payload.guestFlag) {
+      const isScopedOrderGuest =
+        payload.scope === "guest-realtime" &&
+        !!payload.orderId &&
+        payload.roomId === `order:${payload.orderId}`;
+      const isLegacyTableGuest =
+        !payload.scope &&
+        !!payload.tableId &&
+        payload.roomId === `customer:${payload.tableId}`;
+
       if (
         payload.roomType !== "customer" ||
         payload.role !== "customer" ||
-        !payload.tableId ||
-        payload.roomId !== `customer:${payload.tableId}`
+        (!isScopedOrderGuest && !isLegacyTableGuest)
       ) {
         return {
           valid: false,

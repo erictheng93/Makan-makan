@@ -17,6 +17,11 @@ interface RealtimeMessage {
   timestamp?: string;
 }
 
+interface RealtimeOrderIdentity {
+  id: number;
+  publicId?: string;
+}
+
 export class RealtimeService extends BaseService {
   private orderService: OrderService;
   private cache?: any; // KV namespace type not available
@@ -70,7 +75,8 @@ export class RealtimeService extends BaseService {
   async notifyCustomer(
     tableId: string,
     orderUpdate: {
-      orderId: string;
+      orderId: string | number;
+      orderPublicId?: string;
       status: string;
       estimatedTime?: number;
       message?: string;
@@ -87,7 +93,7 @@ export class RealtimeService extends BaseService {
     restaurantId: string,
     notification: {
       type: "new_order" | "order_update" | "table_request";
-      orderId?: string;
+      orderId?: string | number;
       tableId?: string;
       data: any;
     },
@@ -106,7 +112,7 @@ export class RealtimeService extends BaseService {
   async notifyKitchen(
     restaurantId: string,
     kitchenUpdate: {
-      orderId: string;
+      orderId: string | number;
       action: "new_order" | "cancel_order" | "priority_change";
       orderData?: any;
       priority?: "low" | "medium" | "high";
@@ -194,13 +200,15 @@ export class RealtimeService extends BaseService {
     estimatedTime?: number,
   ): Promise<boolean> {
     try {
+      const identity = await this.resolveOrderIdentity(orderId, restaurantId);
+
       // Update database using OrderService
-      await this.orderService.updateOrderStatus(parseInt(orderId), {
+      await this.orderService.updateOrderStatus(identity.id, {
         status: newStatus,
       });
 
       // Cache the status
-      await this.cacheOrderStatus(orderId, {
+      await this.cacheOrderStatusAliases(identity, orderId, {
         current: newStatus,
         estimatedTime,
         lastUpdated: new Date().toISOString(),
@@ -208,7 +216,8 @@ export class RealtimeService extends BaseService {
 
       // Notify all relevant parties
       const updateData = {
-        orderId,
+        orderId: identity.id,
+        orderPublicId: identity.publicId,
         status: newStatus,
         estimatedTime,
         timestamp: new Date().toISOString(),
@@ -244,6 +253,7 @@ export class RealtimeService extends BaseService {
   // New order notification workflow
   async processNewOrder(order: {
     id: string;
+    publicId?: string | null;
     restaurantId: string;
     tableId: string;
     customerName?: string;
@@ -262,6 +272,7 @@ export class RealtimeService extends BaseService {
         tableId: order.tableId,
         data: {
           orderId: order.id,
+          orderPublicId: order.publicId ?? undefined,
           tableId: order.tableId,
           customerName: order.customerName,
           items: order.items,
@@ -276,6 +287,7 @@ export class RealtimeService extends BaseService {
         action: "new_order",
         orderData: {
           orderId: order.id,
+          orderPublicId: order.publicId ?? undefined,
           tableId: order.tableId,
           items: order.items,
           timestamp: new Date().toISOString(),
@@ -285,6 +297,7 @@ export class RealtimeService extends BaseService {
       // Confirm to customer
       await this.notifyCustomer(order.tableId, {
         orderId: order.id,
+        orderPublicId: order.publicId ?? undefined,
         status: "confirmed",
         message: "您的訂單已確認，廚房開始準備中",
       });
@@ -312,6 +325,63 @@ export class RealtimeService extends BaseService {
       console.error("Realtime service health check failed:", error);
       return { status: "down" };
     }
+  }
+
+  private async resolveOrderIdentity(
+    orderId: string,
+    restaurantId: string,
+  ): Promise<RealtimeOrderIdentity> {
+    const trimmed = orderId.trim();
+    const numericId = /^\d+$/.test(trimmed) ? Number.parseInt(trimmed, 10) : 0;
+
+    if (!this.d1 || typeof this.d1.prepare !== "function") {
+      if (numericId > 0) return { id: numericId };
+      throw new Error("Order public id lookup unavailable");
+    }
+
+    const row = await this.d1
+      .prepare(
+        `SELECT id, public_id
+           FROM orders
+          WHERE restaurant_id = ?
+            AND (id = ? OR public_id = ?)
+          LIMIT 1`,
+      )
+      .bind(restaurantId, numericId, trimmed)
+      .first<{ id: number; public_id: string | null }>();
+
+    if (row) {
+      return {
+        id: Number(row.id),
+        publicId: row.public_id ?? undefined,
+      };
+    }
+
+    if (numericId > 0) return { id: numericId };
+
+    throw new Error("Order not found");
+  }
+
+  private async cacheOrderStatusAliases(
+    identity: RealtimeOrderIdentity,
+    requestedOrderId: string,
+    status: {
+      current: string;
+      estimatedTime?: number;
+      lastUpdated: string;
+    },
+  ): Promise<void> {
+    const keys = new Set([
+      String(identity.id),
+      requestedOrderId.trim(),
+      identity.publicId,
+    ]);
+
+    await Promise.all(
+      [...keys]
+        .filter((key): key is string => typeof key === "string" && key !== "")
+        .map((key) => this.cacheOrderStatus(key, status)),
+    );
   }
 }
 

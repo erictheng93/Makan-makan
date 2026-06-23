@@ -184,6 +184,8 @@ export interface NewOrderEvent extends BaseRealtimeEvent {
   data: {
     /** 訂單 ID */
     orderId: number;
+    /** 訂單公開 UUID */
+    orderPublicId?: string;
     /** 訂單編號 */
     orderNumber: string;
     /** 桌號 ID */
@@ -223,6 +225,8 @@ export interface OrderStatusUpdateEvent extends BaseRealtimeEvent {
   data: {
     /** 訂單 ID */
     orderId: number;
+    /** 訂單公開 UUID */
+    orderPublicId?: string;
     /** 訂單編號 */
     orderNumber: string;
     /** 新狀態 */
@@ -250,6 +254,8 @@ export interface OrderItemStatusUpdateEvent extends BaseRealtimeEvent {
   data: {
     /** 訂單 ID */
     orderId: number;
+    /** 訂單公開 UUID */
+    orderPublicId?: string;
     /** 訂單項目 ID */
     orderItemId: number;
     /** 菜單項目 ID */
@@ -273,6 +279,8 @@ export interface OrderCancelledEvent extends BaseRealtimeEvent {
   data: {
     /** 訂單 ID */
     orderId: number;
+    /** 訂單公開 UUID */
+    orderPublicId?: string;
     /** 訂單編號 */
     orderNumber: string;
     /** 取消原因 */
@@ -298,6 +306,8 @@ export interface KitchenItemStatusEvent extends BaseRealtimeEvent {
   data: {
     /** 訂單 ID */
     orderId: number;
+    /** 訂單公開 UUID */
+    orderPublicId?: string;
     /** 訂單項目 ID */
     orderItemId: number;
     /** 菜單項目名稱 */

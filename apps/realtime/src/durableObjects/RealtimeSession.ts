@@ -108,10 +108,12 @@ export class RealtimeSession implements DurableObject {
     // ========== ROOM ACCESS VALIDATION ==========
 
     // 1. 驗證 roomId 與 token 是否匹配
-    const expectedGuestRoomId = `customer:${roomId}`;
-    const expectedRoomId = authPayload.guestFlag ? expectedGuestRoomId : roomId;
+    const roomMatchesToken = authPayload.guestFlag
+      ? authPayload.roomId === roomId ||
+        (!authPayload.scope && authPayload.roomId === `customer:${roomId}`)
+      : authPayload.roomId === roomId;
 
-    if (authPayload.roomId !== expectedRoomId) {
+    if (!roomMatchesToken) {
       console.warn("WebSocket connection rejected: Room ID mismatch", {
         tokenRoomId: authPayload.roomId,
         requestedRoomId: roomId,

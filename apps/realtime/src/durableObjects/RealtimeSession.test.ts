@@ -497,6 +497,55 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     }
   });
 
+  it("accepts scoped guest order websocket rooms with public order ids", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const publicId = "018f0000-0000-7000-8000-000000000042";
+    const client = createSocket();
+    const server = createSocket({
+      accept: vi.fn(),
+      addEventListener: vi.fn(),
+    });
+    vi.stubGlobal("WebSocketPair", function WebSocketPair() {
+      return { 0: client, 1: server };
+    });
+    try {
+      const session = createSession(createAuthEnv());
+      const guestToken = tokenFor({
+        roomType: "customer",
+        roomId: `order:${publicId}`,
+        role: "customer",
+        guestFlag: true,
+        scope: "guest-realtime",
+        orderId: publicId,
+      });
+
+      await expect(
+        session.fetch(
+          new Request(
+            `https://do.test/customer/order:${publicId}?token=${guestToken}`,
+            { headers: { Upgrade: "websocket" } },
+          ),
+        ),
+      ).rejects.toThrow('init["status"] must be in the range');
+
+      expect((session as any).roomInfo).toEqual({
+        type: "customer",
+        id: `order:${publicId}`,
+      });
+      expect((session as any).connections.get(server)).toMatchObject({
+        type: "customer",
+        roomId: `order:${publicId}`,
+        auth: expect.objectContaining({
+          scope: "guest-realtime",
+          orderId: publicId,
+        }),
+      });
+    } finally {
+      warn.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("covers event routing decisions for roles and event families", () => {
     const session = createSession(createEnv());
     const customer = connection();

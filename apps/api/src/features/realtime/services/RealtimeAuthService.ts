@@ -775,14 +775,26 @@ export class RealtimeAuthService {
     }
 
     if (request.orderId) {
+      const numericOrderId = /^\d+$/.test(request.orderId.trim())
+        ? Number.parseInt(request.orderId, 10)
+        : 0;
       const orderRows = await this.db
         .select({
           id: orders.id,
+          publicId: orders.publicId,
           restaurantId: orders.restaurantId,
           tableId: orders.tableId,
         })
         .from(orders)
-        .where(eq(orders.id, Number(request.orderId)))
+        .where(
+          and(
+            eq(orders.restaurantId, request.restaurantId),
+            or(
+              eq(orders.id, numericOrderId),
+              eq(orders.publicId, request.orderId),
+            ),
+          ),
+        )
         .limit(1);
       const order = orderRows[0];
 

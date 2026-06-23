@@ -186,6 +186,13 @@ Progress:
   `orders.public_id` missing, duplicate, and malformed values. These write
   `orders_public_id_bridge` rows into `data_integrity_audit` and fail when
   violations are nonzero.
+- 2026-06-23: Updated realtime order paths for UUID compatibility. The
+  database realtime status workflow now resolves numeric `orders.id` or
+  `orders.public_id`, writes both numeric and UUID `order_status:*` cache
+  aliases when available, and emits `orderPublicId` beside the legacy numeric
+  `orderId`. Guest realtime token validation and the realtime Durable Object
+  now accept scoped `order:<public_id>` customer rooms while preserving legacy
+  table-room tokens.
 
 ## Phase C: Orders Primary-Key Rebuild Drill
 
