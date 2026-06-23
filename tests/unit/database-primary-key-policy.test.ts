@@ -25,6 +25,8 @@ interface IntegerPrimaryKeySurface {
 interface IntegerPrimaryKeyPolicyEntry extends IntegerPrimaryKeySurface {
   category: "legacy_domain" | "leaf_local" | "audit_log" | "join_edge";
   migrationPlan: "retain" | "migrate_to_uuid_v7";
+  migrationPhase?: string;
+  phaseOrder?: number;
   rationale: string;
 }
 
@@ -131,5 +133,27 @@ describe("database primary key policy", () => {
         20,
       );
     }
+  });
+
+  it("keeps the highest-risk PK migrations in an explicit phase order", () => {
+    const policy = JSON.parse(
+      readFileSync(policyPath, "utf8"),
+    ) as IntegerPrimaryKeyPolicyEntry[];
+    const policyByTable = new Map(
+      policy.map((entry) => [entry.tableName, entry]),
+    );
+
+    expect(policyByTable.get("orders")).toMatchObject({
+      category: "legacy_domain",
+      migrationPlan: "migrate_to_uuid_v7",
+      migrationPhase: "orders-public-id-bridge",
+      phaseOrder: 1,
+    });
+    expect(policyByTable.get("users")).toMatchObject({
+      category: "legacy_domain",
+      migrationPlan: "migrate_to_uuid_v7",
+      migrationPhase: "staff-principal-id-bridge",
+      phaseOrder: 2,
+    });
   });
 });

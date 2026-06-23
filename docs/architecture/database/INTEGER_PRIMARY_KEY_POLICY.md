@@ -12,6 +12,11 @@ surfaces that declare `integer("id").primaryKey({ autoIncrement: true })` and
 fails when a surface is missing from the inventory or when the inventory keeps a
 stale table.
 
+The highest-risk migrations, `orders` and `users`, are staged in
+`UUID_V7_PK_MIGRATION_DRILL.md`. Their inventory rows must keep explicit
+`migrationPhase` and `phaseOrder` markers so the work advances through bridge
+identifiers before any destructive D1 table rebuild.
+
 Use these categories:
 
 - `legacy_domain`: business/workflow entities that should eventually move to

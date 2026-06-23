@@ -261,6 +261,8 @@
     "line": 44,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
+    "migrationPhase": "orders-public-id-bridge",
+    "phaseOrder": 1,
     "rationale": "Orders are core business entities and need non-enumerable ids."
   },
   {
@@ -421,6 +423,8 @@
     "line": 21,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
+    "migrationPhase": "staff-principal-id-bridge",
+    "phaseOrder": 2,
     "rationale": "Users are security principals and must move away from enumerable local ids."
   },
   {
