@@ -194,9 +194,22 @@ Progress:
   now accept scoped `order:<public_id>` customer rooms while preserving legacy
   table-room tokens.
 
+Completion evidence:
+
+- Production order writers have been audited for the bridge phase; the runtime
+  writers found by repo search use Drizzle `.insert(orders)` and receive the
+  `public_id` default.
+- Critical order lookup routes now have focused numeric and UUID coverage:
+  payments, POS receipt printing, POS refund creation, kitchen item-status
+  updates, table occupation, guest realtime token validation, and realtime
+  status cache/event updates.
+- Verification gates passed for the Phase B implementation: focused Vitest
+  coverage, API/database/realtime typecheck, migration dual-track guard,
+  Prettier check, and `git diff --check`.
+
 ## Phase C: Orders Primary-Key Rebuild Drill
 
-This is destructive and must wait until Phase B is accepted.
+This is destructive and starts only after Phase B is accepted.
 
 Tables known to reference `orders.id` or carry order pointers include:
 
@@ -224,6 +237,19 @@ Drill requirements:
 - Run `PRAGMA foreign_key_check` after each component and at the end.
 - Validate application reads against UUID ids while numeric compatibility is
   still available through the bridge.
+
+Next execution queue:
+
+- Produce a dependency map for every `orders.id` foreign key and order pointer,
+  including row counts, indexes, triggers, and application write paths.
+- Draft a dry-run rebuild script that creates shadow tables, copies data using
+  `orders.public_id` as the target key, checks row counts and foreign keys, and
+  rolls back without modifying production tables.
+- Rehearse the rebuild locally against D1 data after the dry-run script and
+  audit queries are reviewable.
+- Only convert the rehearsal into paired migrations after the dry-run evidence
+  proves row-count parity, `PRAGMA foreign_key_check` success, and application
+  compatibility through the UUID bridge.
 
 ## Phase D: Users UUID Bridge
 
