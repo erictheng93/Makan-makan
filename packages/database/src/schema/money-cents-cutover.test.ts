@@ -1,4 +1,6 @@
 import { getTableConfig } from "drizzle-orm/sqlite-core";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   cashMovements,
@@ -276,4 +278,26 @@ describe("money cents cutover schema", () => {
       }
     },
   );
+
+  it.each([
+    "packages/database/migrations_fresh/0070_money_cents_cutover.sql",
+    "packages/database/migrations/0087_money_cents_cutover.sql",
+  ])("covers every schema cutover surface in %s", (migrationPath) => {
+    const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
+
+    for (const surface of cutoverSurfaces) {
+      expect(sql).toContain(
+        `('${surface.tableName}', (SELECT count(*) FROM \`${surface.tableName}\`))`,
+      );
+      expect(sql).toContain(
+        `WHEN '${surface.tableName}' THEN (SELECT count(*) FROM \`${surface.tableName}\`)`,
+      );
+
+      for (const legacyColumn of surface.legacyColumns) {
+        expect(sql).toContain(
+          `ALTER TABLE \`${surface.tableName}\` DROP COLUMN \`${legacyColumn}\`;`,
+        );
+      }
+    }
+  });
 });

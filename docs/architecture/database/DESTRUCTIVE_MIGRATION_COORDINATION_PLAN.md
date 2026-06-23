@@ -1,7 +1,7 @@
 # Destructive Migration Coordination Plan
 
 **Date:** 2026-06-23
-**Status:** Planning only; no new destructive SQL generated
+**Status:** Phase A repo preparation in progress; no remote D1 migration run
 
 ## Objective
 
@@ -91,7 +91,22 @@ Execution order:
    `verified_members`, `partnerships`.
 4. Group ordering: `group_cart_items`, `split_bills`, `group_orders`.
 5. Coupon/order: `coupon_usage`, `order_items`, `coupons`, `orders`.
-6. POS: `cash_movements`, `refunds`, `cash_shifts`.
+6. POS / market checkout: `market_checkout_child_orders`, `cash_movements`,
+   `refunds`, `cash_shifts`.
+
+Progress:
+
+- 2026-06-23: Added migration-test coverage that requires every schema cutover
+  surface to appear in both paired cutover SQL files with before/after row-count
+  guards and explicit `ALTER TABLE ... DROP COLUMN` statements.
+- 2026-06-23: Added `market_checkout_child_orders.total_amount` to both
+  cutover SQL files. The Drizzle schema already retained
+  `total_amount_cents` and omitted the legacy `total_amount` column, but the
+  paired SQL files were missing the drop and row-count guard.
+- 2026-06-23: Repo-level verification passed for the cutover schema test,
+  migration dual-track guard, and database package typecheck. Local
+  `db:migrate:local` was executable but reported no migrations to apply, so a
+  fresh/restored D1 drill remains required before staging or production cutover.
 
 Verification commands:
 

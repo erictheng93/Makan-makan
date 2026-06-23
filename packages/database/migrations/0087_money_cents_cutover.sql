@@ -75,6 +75,7 @@ VALUES
   ('cash_movements', (SELECT count(*) FROM `cash_movements`)),
   ('refunds', (SELECT count(*) FROM `refunds`)),
   ('dish_search_index', (SELECT count(*) FROM `dish_search_index`)),
+  ('market_checkout_child_orders', (SELECT count(*) FROM `market_checkout_child_orders`)),
   ('ingredient_definitions', (SELECT count(*) FROM `ingredient_definitions`)),
   ('shift_templates', (SELECT count(*) FROM `shift_templates`)),
   ('partnerships', (SELECT count(*) FROM `partnerships`)),
@@ -262,6 +263,8 @@ ALTER TABLE `refunds` DROP COLUMN `refund_amount`;
 --> statement-breakpoint
 ALTER TABLE `dish_search_index` DROP COLUMN `price`;
 --> statement-breakpoint
+ALTER TABLE `market_checkout_child_orders` DROP COLUMN `total_amount`;
+--> statement-breakpoint
 ALTER TABLE `ingredient_definitions` DROP COLUMN `cost_per_unit`;
 --> statement-breakpoint
 ALTER TABLE `shift_templates` DROP COLUMN `hourly_rate`;
@@ -377,6 +380,7 @@ UPDATE `_migration_money_cents_cutover_counts`
      WHEN 'cash_movements' THEN (SELECT count(*) FROM `cash_movements`)
      WHEN 'refunds' THEN (SELECT count(*) FROM `refunds`)
      WHEN 'dish_search_index' THEN (SELECT count(*) FROM `dish_search_index`)
+     WHEN 'market_checkout_child_orders' THEN (SELECT count(*) FROM `market_checkout_child_orders`)
      WHEN 'ingredient_definitions' THEN (SELECT count(*) FROM `ingredient_definitions`)
      WHEN 'shift_templates' THEN (SELECT count(*) FROM `shift_templates`)
      WHEN 'partnerships' THEN (SELECT count(*) FROM `partnerships`)
