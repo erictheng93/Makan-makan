@@ -38,6 +38,10 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: true,
+          requireCompleteSurfaceCoverage: true,
+        },
         dataCoverage: { isRepresentative: true },
         ordersBridge: {
           order_rows: 3,
@@ -69,6 +73,10 @@ describe("PK rehearsal artifact validator", () => {
   it("rejects artifacts with non-empty assessment failures even when exitCode is zero", () => {
     const ordersArtifact = {
       assessment: { exitCode: 0, failures: ["stale failure"] },
+      rehearsalOptions: {
+        requireRepresentativeData: true,
+        requireCompleteSurfaceCoverage: true,
+      },
       dataCoverage: { isRepresentative: true },
       ordersBridge: {
         order_rows: 1,
@@ -96,6 +104,9 @@ describe("PK rehearsal artifact validator", () => {
     };
     const usersArtifact = {
       assessment: { exitCode: 0, failures: ["stale failure"] },
+      rehearsalOptions: {
+        requireRepresentativeData: true,
+      },
       dataCoverage: { isRepresentative: true },
       usersBridge: {
         user_rows: 1,
@@ -131,6 +142,10 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 1, failures: ["representative data required"] },
+        rehearsalOptions: {
+          requireRepresentativeData: false,
+          requireCompleteSurfaceCoverage: false,
+        },
         dataCoverage: { isRepresentative: false },
         ordersBridge: {
           order_rows: 0,
@@ -160,7 +175,9 @@ describe("PK rehearsal artifact validator", () => {
       failures: [
         "artifact assessment exitCode is not 0",
         "artifact assessment failures is not empty",
+        "artifact was not run with --require-representative-data",
         "artifact dataCoverage is not representative",
+        "orders artifact was not run with --require-complete-surface-coverage",
         "orders artifact has no order rows",
         "orders.public_id bridge has missing values",
         "orders.public_id bridge has duplicate values",
@@ -181,6 +198,10 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: false,
+          requireCompleteSurfaceCoverage: false,
+        },
         dataCoverage: { isRepresentative: true },
         ordersBridge: {
           order_rows: 0,
@@ -199,6 +220,8 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({
       exitCode: 1,
       failures: [
+        "artifact was not run with --require-representative-data",
+        "orders artifact was not run with --require-complete-surface-coverage",
         "orders artifact has no order rows",
         "orders artifact has no dependency surfaces",
         "orders artifact has no non-null dependency references",
@@ -211,6 +234,10 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: true,
+          requireCompleteSurfaceCoverage: true,
+        },
         dataCoverage: { isRepresentative: true },
         ordersBridge: {
           order_rows: 0,
@@ -246,6 +273,9 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("users", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: true,
+        },
         dataCoverage: { isRepresentative: true },
         usersBridge: {
           user_rows: 4,
@@ -273,6 +303,9 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("users", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: false,
+        },
         dataCoverage: { isRepresentative: false },
         usersBridge: {
           user_rows: 0,
@@ -295,6 +328,7 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({
       exitCode: 1,
       failures: [
+        "artifact was not run with --require-representative-data",
         "artifact dataCoverage is not representative",
         "users artifact has no user rows",
         "users.public_id bridge has missing values",
@@ -313,6 +347,9 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("users", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: false,
+        },
         dataCoverage: { isRepresentative: true },
         usersBridge: {
           user_rows: 0,
@@ -336,6 +373,7 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({
       exitCode: 1,
       failures: [
+        "artifact was not run with --require-representative-data",
         "users artifact has no user rows",
         "users artifact has no non-null dependency references",
       ],
@@ -346,6 +384,9 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("users", {
         assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: true,
+        },
         dataCoverage: { isRepresentative: true },
         usersBridge: {
           user_rows: 0,

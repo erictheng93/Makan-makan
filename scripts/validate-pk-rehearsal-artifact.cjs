@@ -25,6 +25,9 @@ function validateCommonArtifact(artifact) {
   if (asArray(artifact.assessment?.failures).length > 0) {
     failures.push("artifact assessment failures is not empty");
   }
+  if (artifact.rehearsalOptions?.requireRepresentativeData !== true) {
+    failures.push("artifact was not run with --require-representative-data");
+  }
   if (artifact.dataCoverage?.isRepresentative !== true) {
     failures.push("artifact dataCoverage is not representative");
   }
@@ -34,6 +37,11 @@ function validateCommonArtifact(artifact) {
 function validateOrdersArtifact(artifact) {
   const failures = validateCommonArtifact(artifact);
   const dependencies = asArray(artifact.dependencies);
+  if (artifact.rehearsalOptions?.requireCompleteSurfaceCoverage !== true) {
+    failures.push(
+      "orders artifact was not run with --require-complete-surface-coverage",
+    );
+  }
   if (numberValue(artifact.ordersBridge?.order_rows) === 0) {
     failures.push("orders artifact has no order rows");
   }

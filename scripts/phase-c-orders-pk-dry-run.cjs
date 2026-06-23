@@ -852,6 +852,13 @@ function runLocalRehearsal(options) {
   );
   const result = {
     sqlitePath,
+    rehearsalOptions: {
+      withFixture: Boolean(options.withFixture),
+      requireRepresentativeData: Boolean(options.requireRepresentativeData),
+      requireCompleteSurfaceCoverage: Boolean(
+        options.requireCompleteSurfaceCoverage,
+      ),
+    },
     dependencyCount: dependencies.length,
     skippedDependencies: skipped.map((dependency) => ({
       table: dependency.table,

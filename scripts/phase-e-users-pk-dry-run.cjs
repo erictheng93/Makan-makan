@@ -408,6 +408,9 @@ function runLocalRehearsal(options) {
 
   const result = {
     sqlitePath,
+    rehearsalOptions: {
+      requireRepresentativeData: Boolean(options.requireRepresentativeData),
+    },
     dependencyCount: inventory.length,
     skippedDependencies: skipped.map(({ table, column, kind }) => ({
       table,

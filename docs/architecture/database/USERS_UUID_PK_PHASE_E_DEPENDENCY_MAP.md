@@ -98,6 +98,8 @@ The rehearsal script must remain non-destructive:
 - With `--json-output`, it writes the same rehearsal result printed to stdout
   to a caller-provided file so staging/restored-prod drill evidence can be
   archived.
+- The JSON artifact includes `rehearsalOptions`. Migration-ready evidence must
+  show `requireRepresentativeData = true`.
 - With `--require-representative-data`, the assessment fails unless the
   artifact contains at least one `users` row and at least one non-null mapped
   dependency reference.
@@ -120,7 +122,8 @@ Do not create paired Phase E users PK migrations until all of these are true:
   returns `exitCode = 0` for the archived staging/restored-production evidence.
   The validator recomputes dependency-surface and non-null reference coverage
   from the artifact and requires `usersBridge.user_rows > 0` instead of
-  trusting `dataCoverage` alone.
+  trusting `dataCoverage` alone. It also verifies the archived artifact records
+  the required strict `rehearsalOptions`.
 - The migration draft preserves all listed indexes and triggers.
 - API auth, database auth, realtime auth, management exchange, verification,
   scheduling, leave, POS, partnership, feedback, and audit tests still pass

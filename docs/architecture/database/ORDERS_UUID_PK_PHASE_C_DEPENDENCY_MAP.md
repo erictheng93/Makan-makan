@@ -128,6 +128,9 @@ The rehearsal script must remain non-destructive:
   assessment is the canonical exit-code reason list for bridge violations,
   unmapped references, shadow-copy row-count parity failures,
   `foreign_key_check` rows, and optional representative-data failures.
+- The JSON artifact includes `rehearsalOptions`. Migration-ready evidence must
+  show `requireRepresentativeData = true` and
+  `requireCompleteSurfaceCoverage = true`.
 - The JSON artifact includes `schemaObjects` per checked dependency surface.
   With `--require-complete-surface-coverage`, the assessment fails if any
   checked dependency has zero non-null order references or is missing that
@@ -162,7 +165,8 @@ Do not create paired Phase C migrations until all of these are true:
   returns `exitCode = 0` for the archived staging/restored-production evidence.
   The validator recomputes dependency-surface and non-null reference coverage
   from the artifact and requires `ordersBridge.order_rows > 0` instead of
-  trusting `dataCoverage` alone.
+  trusting `dataCoverage` alone. It also verifies the archived artifact records
+  the required strict `rehearsalOptions`.
 - The migration draft preserves all listed indexes and triggers.
 - API/realtime/POS/payment compatibility tests still pass with UUID bridge
   identifiers.

@@ -301,6 +301,9 @@ Progress:
   root-table row counts, dependency-surface coverage, and non-null reference
   coverage from the artifact instead of trusting `dataCoverage.isRepresentative`
   alone.
+- 2026-06-23: Phase C and Phase E artifacts now record `rehearsalOptions`, and
+  the shared validator rejects archived evidence that was not produced with the
+  required strict gate flags.
 
 Current blocker before paired Phase C migrations:
 
