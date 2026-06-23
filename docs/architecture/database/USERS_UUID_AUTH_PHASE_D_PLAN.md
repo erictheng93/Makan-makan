@@ -199,6 +199,14 @@ Progress:
   UUID-v7-shaped `sub`. Added route coverage for exchanging the new
   UUID-principal API admin token shape and verified the emitted management JWT
   is still accepted by `managementAuthMiddleware`.
+- 2026-06-23: Started the destructive Phase E preparation map without running a
+  destructive migration. Added
+  `docs/architecture/database/USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md`,
+  `scripts/phase-e-users-pk-dry-run.cjs`, and
+  `rtk pnpm db:users-pk-dry-run`. The verifier checks local `users.public_id`
+  bridge health, creates rollback-only shadow copies for 60 existing user
+  dependency surfaces, discovers actual SQLite FKs to `users(id)`, and fails if
+  any actual FK is missing from the explicit inventory.
 
 ## Destructive Migration Gate
 
@@ -215,6 +223,8 @@ Do not begin Phase E users primary-key rebuild until all are true:
 - A users PK dry-run script exists that creates shadow tables, copies through
   `users.public_id`, checks row-count parity, runs `PRAGMA foreign_key_check`,
   and rolls back.
+- The users PK dry-run has passed against restored production or staging data
+  with non-empty representative user rows and dependent references.
 
 ## Out of Scope
 

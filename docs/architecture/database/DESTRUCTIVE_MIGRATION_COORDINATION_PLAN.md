@@ -355,6 +355,15 @@ Progress:
   tokens. Management API token exchange now accepts new UUID-principal API
   admin tokens and still emits management JWTs accepted by the management
   middleware.
+- 2026-06-23: Started Phase E dependency-map tooling while keeping Phase D
+  non-destructive. `scripts/phase-e-users-pk-dry-run.cjs` now inventories 60
+  local `users.id` FK / actor pointer surfaces, auto-discovers the 54 actual
+  SQLite FKs to `users(id)`, fails on inventory drift, checks
+  `users.public_id` bridge health, creates TEMP shadow copies through
+  `users.public_id`, records indexes/triggers, runs `PRAGMA foreign_key_check`,
+  and rolls back. Local empty-data rehearsal passed as schema/inventory
+  coverage only; staging or restored-production representative data is still
+  required before paired Phase E migrations.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 
@@ -382,6 +391,16 @@ Drill requirements:
   audited FK forces a shared migration.
 - Verify auth, management API auth, realtime auth, and session cleanup against
   restored data.
+
+Progress:
+
+- 2026-06-23: Added
+  `docs/architecture/database/USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md` and a
+  rollback-only users PK verifier. The current local artifact checks 60
+  existing user dependency surfaces, detects no missing actual SQLite
+  `users(id)` FKs from the inventory, reports zero bridge/mapping/FK failures,
+  and documents that the local database is empty so it cannot authorize paired
+  destructive migrations.
 
 ## Required Tracking Updates
 
