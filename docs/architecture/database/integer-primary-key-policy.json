@@ -258,7 +258,7 @@
   {
     "tableName": "orders",
     "schemaFile": "packages/database/src/schema/orders.ts",
-    "line": 44,
+    "line": 45,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "migrationPhase": "orders-public-id-bridge",

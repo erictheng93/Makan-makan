@@ -153,6 +153,22 @@ Acceptance:
 - Tests cover both numeric and UUID order identifiers on critical routes.
 - No table rebuild is generated in this phase.
 
+Progress:
+
+- 2026-06-23: Added the first non-destructive `orders.public_id` bridge:
+  Drizzle schema now has a transitional nullable `public_id` with a runtime
+  UUID v7 default and a partial unique index; paired migrations `0072` / `0089`
+  add the column, backfill existing rows with UUID-v7-shaped values derived
+  from `created_at_ms`, and assert no missing or duplicate backfill values.
+- 2026-06-23: Kept the database column nullable during the bridge phase on
+  purpose. This avoids breaking raw SQL insert paths that do not yet pass
+  `public_id`; later convergence work must audit those paths before a not-null
+  rebuild or trigger can be introduced.
+- 2026-06-23: Local D1 apply ran successfully for
+  `0072_orders_public_id_bridge.sql`; schema bridge tests, money cutover
+  regression tests, integer-PK policy tests, migration dual-track guard, and
+  database package typecheck passed.
+
 ## Phase C: Orders Primary-Key Rebuild Drill
 
 This is destructive and must wait until Phase B is accepted.

@@ -6,6 +6,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
+import { v7 as uuidv7 } from "uuid";
 import { restaurants } from "./restaurants";
 import { tables } from "./tables";
 import { customers } from "./customers";
@@ -42,6 +43,7 @@ export const orders = sqliteTable(
   "orders",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
+    publicId: text("public_id").$defaultFn(() => uuidv7()),
 
     // 關聯資訊
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
@@ -154,6 +156,9 @@ export const orders = sqliteTable(
       table.status,
     ),
     orderNumberIdx: index("orders_order_number_idx").on(table.orderNumber),
+    publicIdUniqueIdx: uniqueIndex("orders_public_id_unique")
+      .on(table.publicId)
+      .where(sql`${table.publicId} IS NOT NULL`),
     clientMutationIdx: uniqueIndex("orders_client_mutation_unique").on(
       table.restaurantId,
       table.clientMutationId,
