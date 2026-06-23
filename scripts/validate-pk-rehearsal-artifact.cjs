@@ -17,8 +17,15 @@ function sumDependencyRefs(dependencies, field) {
   }, 0);
 }
 
-function validateCommonArtifact(artifact) {
+function validateCommonArtifact(phase, artifact) {
   const failures = [];
+  if (typeof artifact.artifactPhase !== "string") {
+    failures.push("artifact phase is missing");
+  } else if (artifact.artifactPhase !== phase) {
+    failures.push(
+      `artifact phase ${artifact.artifactPhase} does not match requested phase ${phase}`,
+    );
+  }
   if (numberValue(artifact.assessment?.exitCode) !== 0) {
     failures.push("artifact assessment exitCode is not 0");
   }
@@ -35,7 +42,7 @@ function validateCommonArtifact(artifact) {
 }
 
 function validateOrdersArtifact(artifact) {
-  const failures = validateCommonArtifact(artifact);
+  const failures = validateCommonArtifact("orders", artifact);
   const dependencies = asArray(artifact.dependencies);
   if (artifact.rehearsalOptions?.requireCompleteSurfaceCoverage !== true) {
     failures.push(
@@ -102,7 +109,7 @@ function validateOrdersArtifact(artifact) {
 }
 
 function validateUsersArtifact(artifact) {
-  const failures = validateCommonArtifact(artifact);
+  const failures = validateCommonArtifact("users", artifact);
   const dependencies = asArray(artifact.dependencies);
   if (numberValue(artifact.usersBridge?.user_rows) === 0) {
     failures.push("users artifact has no user rows");

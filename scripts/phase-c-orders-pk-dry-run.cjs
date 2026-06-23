@@ -851,6 +851,7 @@ function runLocalRehearsal(options) {
     (dependency) => !dependencies.includes(dependency),
   );
   const result = {
+    artifactPhase: "orders",
     sqlitePath,
     rehearsalOptions: {
       withFixture: Boolean(options.withFixture),

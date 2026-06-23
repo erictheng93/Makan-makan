@@ -100,6 +100,8 @@ The rehearsal script must remain non-destructive:
   archived.
 - The JSON artifact includes `rehearsalOptions`. Migration-ready evidence must
   show `requireRepresentativeData = true`.
+- The JSON artifact includes `artifactPhase = "users"` so validator runs can
+  reject mismatched archived evidence.
 - With `--require-representative-data`, the assessment fails unless the
   artifact contains at least one `users` row and at least one non-null mapped
   dependency reference.
@@ -123,7 +125,7 @@ Do not create paired Phase E users PK migrations until all of these are true:
   The validator recomputes dependency-surface and non-null reference coverage
   from the artifact and requires `usersBridge.user_rows > 0` instead of
   trusting `dataCoverage` alone. It also verifies the archived artifact records
-  the required strict `rehearsalOptions`.
+  `artifactPhase = "users"` and the required strict `rehearsalOptions`.
 - The migration draft preserves all listed indexes and triggers.
 - API auth, database auth, realtime auth, management exchange, verification,
   scheduling, leave, POS, partnership, feedback, and audit tests still pass

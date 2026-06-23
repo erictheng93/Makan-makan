@@ -407,6 +407,7 @@ function runLocalRehearsal(options) {
   );
 
   const result = {
+    artifactPhase: "users",
     sqlitePath,
     rehearsalOptions: {
       requireRepresentativeData: Boolean(options.requireRepresentativeData),

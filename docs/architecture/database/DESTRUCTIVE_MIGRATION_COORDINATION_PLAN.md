@@ -304,6 +304,8 @@ Progress:
 - 2026-06-23: Phase C and Phase E artifacts now record `rehearsalOptions`, and
   the shared validator rejects archived evidence that was not produced with the
   required strict gate flags.
+- 2026-06-23: Phase C and Phase E artifacts now also record `artifactPhase`, and
+  the shared validator rejects missing or mismatched artifact phases.
 
 Current blocker before paired Phase C migrations:
 

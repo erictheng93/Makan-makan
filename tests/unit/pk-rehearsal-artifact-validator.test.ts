@@ -37,6 +37,7 @@ describe("PK rehearsal artifact validator", () => {
   it("accepts a Phase C orders artifact that satisfies the conversion gate", () => {
     expect(
       validateArtifact("orders", {
+        artifactPhase: "orders",
         assessment: { exitCode: 0, failures: [] },
         rehearsalOptions: {
           requireRepresentativeData: true,
@@ -72,6 +73,7 @@ describe("PK rehearsal artifact validator", () => {
 
   it("rejects artifacts with non-empty assessment failures even when exitCode is zero", () => {
     const ordersArtifact = {
+      artifactPhase: "orders",
       assessment: { exitCode: 0, failures: ["stale failure"] },
       rehearsalOptions: {
         requireRepresentativeData: true,
@@ -103,6 +105,7 @@ describe("PK rehearsal artifact validator", () => {
       foreignKeyCheck: [],
     };
     const usersArtifact = {
+      artifactPhase: "users",
       assessment: { exitCode: 0, failures: ["stale failure"] },
       rehearsalOptions: {
         requireRepresentativeData: true,
@@ -138,10 +141,50 @@ describe("PK rehearsal artifact validator", () => {
     });
   });
 
+  it("rejects artifacts that do not declare their phase", () => {
+    expect(
+      validateArtifact("orders", {
+        assessment: { exitCode: 0, failures: [] },
+        rehearsalOptions: {
+          requireRepresentativeData: true,
+          requireCompleteSurfaceCoverage: true,
+        },
+        dataCoverage: { isRepresentative: true },
+        ordersBridge: {
+          order_rows: 1,
+          missing_public_id: 0,
+          duplicate_public_id: 0,
+        },
+        dependencies: [
+          {
+            table: "order_items",
+            column: "order_id",
+            non_null_order_refs: 1,
+            mapped_order_refs: 1,
+            unmapped_order_refs: 0,
+            schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+          },
+        ],
+        appCompatibility: {
+          public_lookup_rows: 1,
+          shadow_public_id_rows: 1,
+          lookup_mismatches: 0,
+          shadow_public_id_missing: 0,
+          shadow_public_id_mismatches: 0,
+        },
+        foreignKeyCheck: [],
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: ["artifact phase is missing"],
+    });
+  });
+
   it("rejects a Phase C orders artifact that is not migration-ready", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 1, failures: ["representative data required"] },
+        artifactPhase: "users",
         rehearsalOptions: {
           requireRepresentativeData: false,
           requireCompleteSurfaceCoverage: false,
@@ -173,6 +216,7 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({
       exitCode: 1,
       failures: [
+        "artifact phase users does not match requested phase orders",
         "artifact assessment exitCode is not 0",
         "artifact assessment failures is not empty",
         "artifact was not run with --require-representative-data",
@@ -198,6 +242,7 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 0, failures: [] },
+        artifactPhase: "orders",
         rehearsalOptions: {
           requireRepresentativeData: false,
           requireCompleteSurfaceCoverage: false,
@@ -234,6 +279,7 @@ describe("PK rehearsal artifact validator", () => {
     expect(
       validateArtifact("orders", {
         assessment: { exitCode: 0, failures: [] },
+        artifactPhase: "orders",
         rehearsalOptions: {
           requireRepresentativeData: true,
           requireCompleteSurfaceCoverage: true,
@@ -272,6 +318,7 @@ describe("PK rehearsal artifact validator", () => {
   it("accepts a Phase E users artifact that satisfies the conversion gate", () => {
     expect(
       validateArtifact("users", {
+        artifactPhase: "users",
         assessment: { exitCode: 0, failures: [] },
         rehearsalOptions: {
           requireRepresentativeData: true,
@@ -302,6 +349,7 @@ describe("PK rehearsal artifact validator", () => {
   it("rejects a Phase E users artifact that is not migration-ready", () => {
     expect(
       validateArtifact("users", {
+        artifactPhase: "orders",
         assessment: { exitCode: 0, failures: [] },
         rehearsalOptions: {
           requireRepresentativeData: false,
@@ -328,6 +376,7 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({
       exitCode: 1,
       failures: [
+        "artifact phase orders does not match requested phase users",
         "artifact was not run with --require-representative-data",
         "artifact dataCoverage is not representative",
         "users artifact has no user rows",
@@ -346,6 +395,7 @@ describe("PK rehearsal artifact validator", () => {
   it("rejects a Phase E users artifact with forged representative coverage", () => {
     expect(
       validateArtifact("users", {
+        artifactPhase: "users",
         assessment: { exitCode: 0, failures: [] },
         rehearsalOptions: {
           requireRepresentativeData: false,
@@ -383,6 +433,7 @@ describe("PK rehearsal artifact validator", () => {
   it("rejects a Phase E users artifact with dependency refs but no user rows", () => {
     expect(
       validateArtifact("users", {
+        artifactPhase: "users",
         assessment: { exitCode: 0, failures: [] },
         rehearsalOptions: {
           requireRepresentativeData: true,
