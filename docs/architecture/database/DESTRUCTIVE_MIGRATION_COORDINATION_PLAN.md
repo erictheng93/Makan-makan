@@ -284,6 +284,11 @@ Progress:
   baseline still proves safety/schema coverage only; the rollback fixture run
   passes the gate with 1 order, 12 dependency refs, zero unmapped refs, and zero
   foreign-key-check rows.
+- 2026-06-23: Added `--require-complete-surface-coverage` to the Phase C
+  dry-run and upgraded `rtk pnpm db:orders-pk-dry-run:representative` to use it.
+  The rollback fixture now fails unless every existing dependency surface has
+  at least one non-null order reference and emits `schemaObjects` metadata for
+  preserving indexes/triggers in the paired migration draft.
 
 Current blocker before paired Phase C migrations:
 
@@ -292,6 +297,9 @@ Current blocker before paired Phase C migrations:
 - Archive the JSON artifact and confirm `assessment.exitCode = 0`,
   `dataCoverage.isRepresentative = true`, zero bridge violations, zero
   unmapped refs, and zero `foreignKeyCheck` rows.
+- Keep the full-surface rollback fixture artifact alongside the staging or
+  restored-production artifact so migration reviewers can verify every checked
+  dependency surface has copy coverage and schema preservation metadata.
 - Only then draft paired Phase C rebuild migrations from the dry-run plan.
 
 ## Phase D: Users UUID Bridge

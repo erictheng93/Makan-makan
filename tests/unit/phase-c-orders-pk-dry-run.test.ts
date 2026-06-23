@@ -26,10 +26,14 @@ const {
         non_null_order_refs: number;
         mapped_order_refs: number;
         unmapped_order_refs: number;
+        schemaObjects?: unknown[];
       }>;
       foreignKeyCheck: unknown[];
     },
-    options?: { requireRepresentativeData?: boolean },
+    options?: {
+      requireRepresentativeData?: boolean;
+      requireCompleteSurfaceCoverage?: boolean;
+    },
   ) => { exitCode: number; failures: string[] };
   buildDryRunSql: () => string;
   parseArgs: (argv: string[]) => {
@@ -41,6 +45,7 @@ const {
     jsonOutput: string | null;
     withFixture: boolean;
     requireRepresentativeData: boolean;
+    requireCompleteSurfaceCoverage: boolean;
   };
 } = require("../../scripts/phase-c-orders-pk-dry-run.cjs");
 
@@ -98,6 +103,7 @@ describe("Phase C orders PK dry-run script", () => {
         "./state",
         "--with-fixture",
         "--require-representative-data",
+        "--require-complete-surface-coverage",
         "--json-output",
         "./artifacts/orders-pk.json",
       ]),
@@ -108,6 +114,7 @@ describe("Phase C orders PK dry-run script", () => {
       persistTo: "./state",
       withFixture: true,
       requireRepresentativeData: true,
+      requireCompleteSurfaceCoverage: true,
       jsonOutput: "./artifacts/orders-pk.json",
     });
   });
@@ -126,6 +133,7 @@ describe("Phase C orders PK dry-run script", () => {
           non_null_order_refs: 0,
           mapped_order_refs: 0,
           unmapped_order_refs: 0,
+          schemaObjects: [],
         },
       ],
       foreignKeyCheck: [],
@@ -164,6 +172,7 @@ describe("Phase C orders PK dry-run script", () => {
             non_null_order_refs: 2,
             mapped_order_refs: 1,
             unmapped_order_refs: 1,
+            schemaObjects: [],
           },
         ],
         foreignKeyCheck: [{ table: "order_items" }],
@@ -176,6 +185,45 @@ describe("Phase C orders PK dry-run script", () => {
         "payment_transactions.order_id has unmapped order references",
         "payment_transactions.order_id failed shadow-copy row-count parity",
         "PRAGMA foreign_key_check returned rows",
+      ],
+    });
+  });
+
+  it("fails strict assessment when surface coverage or schema metadata is incomplete", () => {
+    expect(
+      assessRehearsalResult(
+        {
+          ordersBridge: {
+            order_rows: 2,
+            missing_public_id: 0,
+            duplicate_public_id: 0,
+          },
+          dependencies: [
+            {
+              table: "order_items",
+              column: "order_id",
+              non_null_order_refs: 1,
+              mapped_order_refs: 1,
+              unmapped_order_refs: 0,
+              schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+            },
+            {
+              table: "payment_transactions",
+              column: "order_id",
+              non_null_order_refs: 0,
+              mapped_order_refs: 0,
+              unmapped_order_refs: 0,
+            },
+          ],
+          foreignKeyCheck: [],
+        },
+        { requireCompleteSurfaceCoverage: true },
+      ),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "payment_transactions.order_id has no representative order references",
+        "payment_transactions.order_id is missing schema object metadata",
       ],
     });
   });

@@ -21,6 +21,8 @@ authorize a production destructive migration.
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json`
 - Require representative rehearsal data:
   `rtk pnpm db:orders-pk-dry-run:representative`
+- Require full dependency-surface fixture coverage:
+  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json`
 - Unit test the rehearsal generator:
   `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
@@ -35,6 +37,7 @@ rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tm
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/orders-pk-baseline-require-representative.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --json-output /tmp/orders-pk-fixture-gated.json
+rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json
 ```
 
 Local database:
@@ -71,6 +74,10 @@ Representative fixture result:
 - With `--require-representative-data`, the fixture run exits 0 and records
   `dataCoverage.isRepresentative = true`, `orderRows = 1`,
   `dependencyRefs = 12`, and `dependenciesWithRefs = 12`.
+- With `--require-complete-surface-coverage`, the fixture run also exits 0 only
+  when every existing dependency surface has at least one non-null order
+  reference and includes `schemaObjects` metadata for the indexes/triggers that
+  the paired migration must preserve.
 
 ## Dependency Map
 
@@ -112,6 +119,10 @@ The rehearsal script must remain non-destructive:
   assessment is the canonical exit-code reason list for bridge violations,
   unmapped references, shadow-copy row-count parity failures,
   `foreign_key_check` rows, and optional representative-data failures.
+- The JSON artifact includes `schemaObjects` per checked dependency surface.
+  With `--require-complete-surface-coverage`, the assessment fails if any
+  checked dependency has zero non-null order references or is missing that
+  schema metadata.
 
 The unit test `tests/unit/phase-c-orders-pk-dry-run.test.ts` guards that the
 generated SQL contains `BEGIN` / `ROLLBACK`, creates temp shadow tables, and
@@ -126,6 +137,9 @@ Do not create paired Phase C migrations until all of these are true:
 - The archived rehearsal was run with `--require-representative-data`, and the
   JSON artifact has `assessment.exitCode = 0` and
   `dataCoverage.isRepresentative = true`.
+- The rollback fixture rehearsal was also run with
+  `--require-complete-surface-coverage`, proving every existing dependency
+  surface can be copied and emits schema metadata for migration preservation.
 - Every dependency has `mapped_order_refs = non_null_order_refs`.
 - `orders.public_id` has zero missing or duplicate values.
 - `PRAGMA foreign_key_check` returns zero rows.

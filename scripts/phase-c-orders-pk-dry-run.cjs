@@ -305,6 +305,7 @@ function parseArgs(argv) {
     withFixture: false,
     jsonOutput: null,
     requireRepresentativeData: false,
+    requireCompleteSurfaceCoverage: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -318,6 +319,8 @@ function parseArgs(argv) {
     else if (arg === "--with-fixture") args.withFixture = true;
     else if (arg === "--require-representative-data") {
       args.requireRepresentativeData = true;
+    } else if (arg === "--require-complete-surface-coverage") {
+      args.requireCompleteSurfaceCoverage = true;
     } else if (arg === "--json-output") args.jsonOutput = argv[++index];
     else if (arg === "--help") {
       args.help = true;
@@ -342,6 +345,8 @@ Options:
   --with-fixture       Insert representative order dependency rows inside the rollback transaction.
   --require-representative-data
                        Fail if the rehearsal has no orders or no non-null order dependency refs.
+  --require-complete-surface-coverage
+                       Fail if any checked dependency has no representative refs or schema metadata.
   --json-output <path> Write local rehearsal JSON evidence to a file.
 `;
 }
@@ -956,6 +961,21 @@ function assessRehearsalResult(result, options = {}) {
     }
   }
 
+  if (options.requireCompleteSurfaceCoverage) {
+    for (const dependency of result.dependencies) {
+      if (Number(dependency.non_null_order_refs ?? 0) === 0) {
+        failures.push(
+          `${dependency.table}.${dependency.column} has no representative order references`,
+        );
+      }
+      if (!Array.isArray(dependency.schemaObjects)) {
+        failures.push(
+          `${dependency.table}.${dependency.column} is missing schema object metadata`,
+        );
+      }
+    }
+  }
+
   return {
     exitCode: failures.length > 0 ? 1 : 0,
     failures,
@@ -966,6 +986,7 @@ function executeLocal(options) {
   const result = runLocalRehearsal(options);
   result.assessment = assessRehearsalResult(result, {
     requireRepresentativeData: options.requireRepresentativeData,
+    requireCompleteSurfaceCoverage: options.requireCompleteSurfaceCoverage,
   });
   const json = `${JSON.stringify(result, null, 2)}\n`;
   if (options.jsonOutput) {
