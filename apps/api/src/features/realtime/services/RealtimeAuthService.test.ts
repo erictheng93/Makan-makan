@@ -358,6 +358,52 @@ describe("RealtimeAuthService", () => {
     expect(prepared.bind).toHaveBeenCalledWith(1);
   });
 
+  it("loads UUID-principal session users from DB and emits public user ids", async () => {
+    const publicUserId = "018f0000-0000-7000-8000-000000000001";
+    const prepared = createPreparedDb({
+      id: 1,
+      public_id: publicUserId,
+      username: "owner",
+      role: 1,
+      restaurant_id: "restaurant-1",
+      is_active: 1,
+      token_version: 2,
+    });
+    const service = createService({ DB: { prepare: prepared.prepare } });
+    const sessionId = createSessionToken({
+      id: undefined,
+      sub: publicUserId,
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+      tv: 2,
+    });
+
+    const response = await service.generateWebSocketToken({
+      roomType: "kitchen",
+      roomId: "restaurant-1",
+      restaurantId: "restaurant-1",
+      sessionId,
+    });
+
+    expect(response).toMatchObject({ expiresIn: 300 });
+    await expect(
+      service.verifyWebSocketToken("token" in response ? response.token : ""),
+    ).resolves.toMatchObject({
+      valid: true,
+      payload: {
+        role: "admin",
+        appRole: 1,
+        userId: 1,
+        publicUserId,
+      },
+    });
+    expect(prepared.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE public_id = ?"),
+    );
+    expect(prepared.bind).toHaveBeenCalledWith(publicUserId);
+  });
+
   it("allows platform admins to access any restaurant room", async () => {
     const prepared = createPreparedDb({
       id: 1,

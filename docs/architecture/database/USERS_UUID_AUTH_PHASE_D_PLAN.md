@@ -182,6 +182,21 @@ Acceptance:
 - Management API auth route tests cover exchange from the new API admin token
   shape.
 
+Progress:
+
+- 2026-06-23: Updated
+  `apps/api/src/features/realtime/services/RealtimeAuthService.ts` to accept
+  session JWTs with either legacy numeric `id` or UUID-v7-shaped `sub`.
+  UUID-principal sessions resolve through `users.public_id`, then emit both
+  legacy numeric `userId` and `publicUserId` in realtime websocket tokens.
+- 2026-06-23: Updated `RealtimeAuthPayload` in shared-types to include optional
+  `publicUserId`.
+- 2026-06-23: Added focused
+  `RealtimeAuthService.test.ts` coverage for UUID-principal session JWTs,
+  `public_id` DB lookup, and `publicUserId` emission.
+- Management API exchange coverage for the new API admin token shape remains
+  pending.
+
 ## Destructive Migration Gate
 
 Do not begin Phase E users primary-key rebuild until all are true:

@@ -57,6 +57,8 @@ export interface RealtimeAuthPayload {
   seatId?: string;
   /** 使用者 ID（已登入使用者） */
   userId?: number;
+  /** UUID public user id during staff identity migration */
+  publicUserId?: string;
   /** Token 過期時間（Unix timestamp） */
   exp: number;
   /** Token 發行時間（Unix timestamp） */

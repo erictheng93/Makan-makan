@@ -333,6 +333,10 @@ Progress:
   exists, while legacy numeric refresh tokens still rotate successfully through
   the existing integer `sessions.user_id` bridge. `validateToken` now accepts
   UUID-principal access tokens.
+- 2026-06-23: Started D5 realtime compatibility. `RealtimeAuthService` now
+  accepts UUID-principal session JWTs, resolves them through `users.public_id`,
+  and emits `publicUserId` beside legacy numeric `userId` in websocket auth
+  tokens. Management API exchange coverage remains pending.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 

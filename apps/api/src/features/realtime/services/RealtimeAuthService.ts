@@ -27,7 +27,8 @@ export interface WebSocketTokenVerification {
 }
 
 interface SessionTokenPayload {
-  id: number;
+  id?: number;
+  sub?: string;
   username: string;
   role: number;
   exp: number;
@@ -39,6 +40,7 @@ interface SessionTokenPayload {
 
 interface AuthenticatedRealtimeUser {
   id: number;
+  publicId?: string;
   username: string;
   role: number;
   restaurantId?: string;
@@ -46,13 +48,19 @@ interface AuthenticatedRealtimeUser {
   tokenVersion: number;
 }
 
+const UUID_V7_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 function isSessionTokenPayload(value: unknown): value is SessionTokenPayload {
   if (!value || typeof value !== "object") return false;
 
   const payload = value as Record<string, unknown>;
+  const hasLegacyId = Number.isInteger(payload.id) && Number(payload.id) > 0;
+  const hasPublicId =
+    typeof payload.sub === "string" && UUID_V7_PATTERN.test(payload.sub);
+
   return (
-    Number.isInteger(payload.id) &&
-    Number(payload.id) > 0 &&
+    (hasLegacyId || hasPublicId) &&
     typeof payload.username === "string" &&
     payload.username.length > 0 &&
     Number.isInteger(payload.role) &&
@@ -157,6 +165,7 @@ export class RealtimeAuthService {
         ...(authenticatedUser
           ? {
               userId: authenticatedUser.id,
+              publicUserId: authenticatedUser.publicId,
               appRole: authenticatedUser.role,
             }
           : {}),
@@ -580,7 +589,8 @@ export class RealtimeAuthService {
     payload: SessionTokenPayload,
   ): Promise<{ user: AuthenticatedRealtimeUser } | { error: string }> {
     const fromToken = (): AuthenticatedRealtimeUser => ({
-      id: payload.id,
+      id: payload.id!,
+      publicId: payload.sub,
       username: payload.username,
       role: payload.role,
       restaurantId:
@@ -590,24 +600,28 @@ export class RealtimeAuthService {
       isActive: true,
       tokenVersion: typeof payload.tv === "number" ? payload.tv : 1,
     });
+    const canFallbackToToken = () =>
+      typeof payload.id === "number" && this.allowTokenOnlySessionValidation();
 
     if (!this.env.DB || typeof this.env.DB.prepare !== "function") {
-      if (this.allowTokenOnlySessionValidation()) {
+      if (canFallbackToToken()) {
         return { user: fromToken() };
       }
       return { error: "User lookup unavailable" };
     }
 
     try {
+      const lookupByPublicId = !!payload.sub;
       const row = await this.env.DB.prepare(
-        `SELECT id, username, role, restaurant_id, is_active, token_version
+        `SELECT id, public_id, username, role, restaurant_id, is_active, token_version
            FROM users
-          WHERE id = ?
+          WHERE ${lookupByPublicId ? "public_id" : "id"} = ?
           LIMIT 1`,
       )
-        .bind(payload.id)
+        .bind(lookupByPublicId ? payload.sub : payload.id)
         .first<{
           id: number;
+          public_id: string | null;
           username: string;
           role: number;
           restaurant_id: string | null;
@@ -616,7 +630,7 @@ export class RealtimeAuthService {
         }>();
 
       if (!row) {
-        if (this.allowTokenOnlySessionValidation()) {
+        if (canFallbackToToken()) {
           return { user: fromToken() };
         }
         return { error: "User not found or inactive" };
@@ -625,6 +639,7 @@ export class RealtimeAuthService {
       return {
         user: {
           id: Number(row.id),
+          publicId: row.public_id ?? undefined,
           username: String(row.username),
           role: Number(row.role),
           restaurantId: row.restaurant_id ?? undefined,
@@ -634,7 +649,7 @@ export class RealtimeAuthService {
       };
     } catch (error) {
       this.logger.error("Failed to load session user", error as Error);
-      if (this.allowTokenOnlySessionValidation()) {
+      if (canFallbackToToken()) {
         return { user: fromToken() };
       }
       return { error: "Failed to validate session user" };
