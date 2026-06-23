@@ -36,6 +36,7 @@ export interface RegisterData {
 interface AuthTokenPayload extends JwtPayload {
   id?: number;
   userId?: number;
+  sub?: string;
   type?: string;
   tv?: number;
 }
@@ -55,6 +56,40 @@ function normalizeTokenVersion(value: unknown): number {
   return 1;
 }
 
+function accessTokenPayload(user: TokenUser, tokenVersion: number) {
+  const principal = user.publicId ? { sub: user.publicId } : { id: user.id };
+  return {
+    ...principal,
+    username: user.username,
+    role: user.role,
+    restaurantId: user.restaurantId,
+    tv: tokenVersion,
+  };
+}
+
+function refreshTokenPayload(user: TokenUser) {
+  const principal = user.publicId
+    ? { sub: user.publicId }
+    : { userId: user.id };
+  return {
+    ...principal,
+    type: "refresh",
+    jti: crypto.randomUUID(),
+  };
+}
+
+function refreshTokenPrincipal(
+  payload: AuthTokenPayload,
+): RefreshTokenPrincipal | null {
+  if (typeof payload.userId === "number" && Number.isInteger(payload.userId)) {
+    return { legacyUserId: payload.userId };
+  }
+  if (typeof payload.sub === "string" && payload.sub.length > 0) {
+    return { publicUserId: payload.sub };
+  }
+  return null;
+}
+
 const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
   const decoded = verify(token, secret, { algorithms: ["HS256"] });
   if (typeof decoded === "string") {
@@ -67,6 +102,21 @@ const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
 const ACCESS_TOKEN_TTL_HOURS = 72;
 const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_HOURS * 60 * 60 * 1000;
 const ACCESS_TOKEN_EXPIRES_IN = `${ACCESS_TOKEN_TTL_HOURS}h`;
+
+type TokenUser = {
+  id: number;
+  publicId?: string | null;
+  username: string;
+  fullName?: string;
+  role: number;
+  restaurantId: string | null;
+  isActive?: boolean;
+  tokenVersion?: unknown;
+};
+
+type RefreshTokenPrincipal =
+  | { legacyUserId: number; publicUserId?: never }
+  | { publicUserId: string; legacyUserId?: never };
 
 export interface SessionData {
   userId: number;
@@ -83,6 +133,7 @@ export interface AuthResult {
   success: boolean;
   user?: {
     id: number;
+    publicId?: string | null;
     username: string;
     fullName: string;
     role: number;
@@ -125,6 +176,7 @@ export class AuthService extends BaseService {
       const user = await this.db
         .select({
           id: users.id,
+          publicId: users.publicId,
           username: users.username,
           fullName: users.fullName,
           passwordHash: users.passwordHash,
@@ -196,22 +248,14 @@ export class AuthService extends BaseService {
       const tokenVersion = normalizeTokenVersion(user.tokenVersion);
 
       const accessToken = sign(
-        {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          restaurantId: user.restaurantId,
-          tv: tokenVersion,
-        },
+        accessTokenPayload(user, tokenVersion),
         jwtSecret,
         { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
 
-      const refreshToken = sign(
-        { userId: user.id, type: "refresh", jti: crypto.randomUUID() },
-        jwtSecret,
-        { expiresIn: "7d" },
-      );
+      const refreshToken = sign(refreshTokenPayload(user), jwtSecret, {
+        expiresIn: "7d",
+      });
 
       // Invalidate any existing sessions to prevent session fixation
       const logoutSuccess = await this.logout(user.id);
@@ -249,6 +293,7 @@ export class AuthService extends BaseService {
         success: true,
         user: {
           id: user.id,
+          publicId: user.publicId,
           username: user.username,
           fullName: user.fullName,
           role: user.role,
@@ -325,6 +370,7 @@ export class AuthService extends BaseService {
         })
         .returning({
           id: users.id,
+          publicId: users.publicId,
           username: users.username,
           fullName: users.fullName,
           role: users.role,
@@ -335,6 +381,7 @@ export class AuthService extends BaseService {
         success: true,
         user: {
           id: newUser.id,
+          publicId: newUser.publicId,
           username: newUser.username,
           fullName: newUser.fullName,
           role: newUser.role,
@@ -366,10 +413,19 @@ export class AuthService extends BaseService {
           error: "Invalid refresh token",
         };
       }
-      if (typeof decoded.userId !== "number") {
+      const refreshPrincipal = refreshTokenPrincipal(decoded);
+      if (!refreshPrincipal) {
         return {
           success: false,
           error: "Invalid refresh token payload",
+        };
+      }
+
+      const user = await this.loadActiveUserForToken(refreshPrincipal);
+      if (!user) {
+        return {
+          success: false,
+          error: "User not found or inactive",
         };
       }
 
@@ -386,7 +442,7 @@ export class AuthService extends BaseService {
         .from(sessions)
         .where(
           and(
-            eq(sessions.userId, decoded.userId),
+            eq(sessions.userId, user.id),
             eq(sessions.refreshToken, refreshToken),
             eq(sessions.isActive, true),
           ),
@@ -400,47 +456,17 @@ export class AuthService extends BaseService {
         };
       }
 
-      // 查詢用戶資訊
-      const user = await this.db
-        .select({
-          id: users.id,
-          username: users.username,
-          fullName: users.fullName,
-          role: users.role,
-          restaurantId: users.restaurantId,
-          isActive: users.isActive,
-          tokenVersion: users.tokenVersion,
-        })
-        .from(users)
-        .where(and(eq(users.id, decoded.userId), eq(users.isActive, true)))
-        .get();
-
-      if (!user) {
-        return {
-          success: false,
-          error: "User not found or inactive",
-        };
-      }
-
       // 生成新的 access token
       const accessTokenExpiry = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
       const tokenVersion = normalizeTokenVersion(user.tokenVersion);
       const accessToken = sign(
-        {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          restaurantId: user.restaurantId,
-          tv: tokenVersion,
-        },
+        accessTokenPayload(user, tokenVersion),
         jwtSecret,
         { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
-      const nextRefreshToken = sign(
-        { userId: user.id, type: "refresh", jti: crypto.randomUUID() },
-        jwtSecret,
-        { expiresIn: "7d" },
-      );
+      const nextRefreshToken = sign(refreshTokenPayload(user), jwtSecret, {
+        expiresIn: "7d",
+      });
 
       // 更新 session
       await this.db
@@ -469,6 +495,30 @@ export class AuthService extends BaseService {
         error: "Invalid refresh token",
       };
     }
+  }
+
+  private async loadActiveUserForToken(
+    principal: RefreshTokenPrincipal,
+  ): Promise<TokenUser | undefined> {
+    const where =
+      "legacyUserId" in principal
+        ? eq(users.id, principal.legacyUserId)
+        : eq(users.publicId, principal.publicUserId);
+
+    return await this.db
+      .select({
+        id: users.id,
+        publicId: users.publicId,
+        username: users.username,
+        fullName: users.fullName,
+        role: users.role,
+        restaurantId: users.restaurantId,
+        isActive: users.isActive,
+        tokenVersion: users.tokenVersion,
+      })
+      .from(users)
+      .where(and(where, eq(users.isActive, true)))
+      .get();
   }
 
   // 創建 session
@@ -534,7 +584,7 @@ export class AuthService extends BaseService {
 
       // 驗證 JWT
       const decoded = verifyAuthToken(token, jwtSecret);
-      if (typeof decoded.id !== "number") {
+      if (typeof decoded.id !== "number" && typeof decoded.sub !== "string") {
         return { valid: false, error: "Invalid token payload" };
       }
 
@@ -566,6 +616,7 @@ export class AuthService extends BaseService {
       const user = await this.db
         .select({
           id: users.id,
+          publicId: users.publicId,
           username: users.username,
           fullName: users.fullName,
           role: users.role,
@@ -574,11 +625,17 @@ export class AuthService extends BaseService {
           tokenVersion: users.tokenVersion,
         })
         .from(users)
-        .where(and(eq(users.id, decoded.id), eq(users.isActive, true)))
+        .where(and(eq(users.id, session.userId), eq(users.isActive, true)))
         .get();
 
       if (!user) {
         return { valid: false, error: "User not found or inactive" };
+      }
+      if (typeof decoded.id === "number" && decoded.id !== user.id) {
+        return { valid: false, error: "Invalid token payload" };
+      }
+      if (typeof decoded.sub === "string" && decoded.sub !== user.publicId) {
+        return { valid: false, error: "Invalid token payload" };
       }
 
       const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;

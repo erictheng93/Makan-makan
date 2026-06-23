@@ -150,6 +150,23 @@ Acceptance:
 - Refresh accepts legacy refresh tokens and emits the new token shape.
 - Logout and password/change verification still invalidate old sessions.
 
+Progress:
+
+- 2026-06-23: Updated `packages/database/src/services/auth.ts` login and
+  refresh-token rotation to emit UUID-principal access and refresh tokens when
+  `users.public_id` is present. New access tokens carry `sub` instead of
+  numeric `id`; new refresh tokens carry `sub` instead of numeric `userId`.
+- 2026-06-23: Kept compatibility for legacy numeric refresh tokens by resolving
+  either `userId` or `sub`, then querying the existing integer `sessions.user_id`
+  during the FK compatibility window.
+- 2026-06-23: Updated `validateToken` to accept UUID-principal access tokens by
+  validating the session row first, then checking the token `sub` against the
+  loaded `users.public_id`.
+- 2026-06-23: Added focused coverage in
+  `packages/database/src/services/auth.test.ts` for UUID token issuance on
+  login, UUID token issuance after legacy refresh-token rotation, replay
+  rejection, and UUID access-token validation.
+
 ### D5: Realtime and Management API Compatibility
 
 - Update `RealtimeAuthService` session validation to resolve numeric or UUID

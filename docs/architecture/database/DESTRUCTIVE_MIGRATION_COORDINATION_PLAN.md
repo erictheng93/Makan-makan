@@ -328,6 +328,11 @@ Progress:
   through `users.public_id` and still attach legacy numeric `AuthUser.id` for
   downstream FK-backed services. Login/refresh token issuance remains legacy
   numeric until D4.
+- 2026-06-23: Started D4 token issuance. `AuthService` login and refresh
+  rotation now emit UUID-principal access/refresh tokens when `users.public_id`
+  exists, while legacy numeric refresh tokens still rotate successfully through
+  the existing integer `sessions.user_id` bridge. `validateToken` now accepts
+  UUID-principal access tokens.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 

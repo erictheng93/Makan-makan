@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { sign } from "jsonwebtoken";
+import { sign, verify } from "jsonwebtoken";
+import * as bcrypt from "bcryptjs";
 import { sessions, users } from "../schema";
 import {
   createTestDatabase,
@@ -9,6 +10,7 @@ import {
 import { AuthService } from "./auth";
 
 const jwtSecret = "0123456789abcdefghijklmnopqrstuvwxyz";
+const publicUserId = "018f0000-0000-7000-8000-000000000101";
 
 describe("AuthService refresh token rotation", () => {
   let testDb: TestDatabase;
@@ -28,6 +30,7 @@ describe("AuthService refresh token rotation", () => {
   it("rotates staff refresh tokens and rejects replay of the previous token", async () => {
     await testDb.drizzle.insert(users).values({
       id: 101,
+      publicId: publicUserId,
       username: "owner-refresh",
       fullName: "Owner Refresh",
       passwordHash: "hash",
@@ -71,6 +74,22 @@ describe("AuthService refresh token rotation", () => {
     expect(firstRefresh.success).toBe(true);
     expect(firstRefresh.tokens?.refreshToken).toBeTruthy();
     expect(firstRefresh.tokens?.refreshToken).not.toBe(refreshToken);
+    expect(verify(firstRefresh.tokens!.accessToken, jwtSecret)).toMatchObject({
+      sub: publicUserId,
+      username: "owner-refresh",
+      role: 1,
+      tv: 1,
+    });
+    expect(
+      verify(firstRefresh.tokens!.accessToken, jwtSecret),
+    ).not.toHaveProperty("id");
+    expect(verify(firstRefresh.tokens!.refreshToken, jwtSecret)).toMatchObject({
+      sub: publicUserId,
+      type: "refresh",
+    });
+    expect(
+      verify(firstRefresh.tokens!.refreshToken, jwtSecret),
+    ).not.toHaveProperty("userId");
 
     const storedSession = await testDb.drizzle
       .select({ refreshToken: sessions.refreshToken })
@@ -82,6 +101,99 @@ describe("AuthService refresh token rotation", () => {
     await expect(service.refreshToken(refreshToken)).resolves.toMatchObject({
       success: false,
       error: "Session not found or expired",
+    });
+  });
+
+  it("issues UUID-principal tokens on login", async () => {
+    await testDb.drizzle.insert(users).values({
+      id: 102,
+      publicId: "018f0000-0000-7000-8000-000000000102",
+      username: "owner-login",
+      fullName: "Owner Login",
+      passwordHash: await bcrypt.hash("CorrectHorse123!", 10),
+      role: 1,
+      isActive: true,
+      tokenVersion: 3,
+    });
+
+    const service = new AuthService(testDb.bindings.DB, {
+      JWT_SECRET: jwtSecret,
+      NODE_ENV: "test",
+    });
+
+    const result = await service.login({
+      username: "owner-login",
+      password: "CorrectHorse123!",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user).toMatchObject({
+      id: 102,
+      publicId: "018f0000-0000-7000-8000-000000000102",
+      username: "owner-login",
+      tokenVersion: 3,
+    });
+
+    const accessPayload = verify(result.tokens!.accessToken, jwtSecret);
+    expect(accessPayload).toMatchObject({
+      sub: "018f0000-0000-7000-8000-000000000102",
+      username: "owner-login",
+      role: 1,
+      tv: 3,
+    });
+    expect(accessPayload).not.toHaveProperty("id");
+
+    const refreshPayload = verify(result.tokens!.refreshToken, jwtSecret);
+    expect(refreshPayload).toMatchObject({
+      sub: "018f0000-0000-7000-8000-000000000102",
+      type: "refresh",
+    });
+    expect(refreshPayload).not.toHaveProperty("userId");
+  });
+
+  it("validates UUID-principal access tokens through the session user id", async () => {
+    await testDb.drizzle.insert(users).values({
+      id: 103,
+      publicId: "018f0000-0000-7000-8000-000000000103",
+      username: "owner-validate",
+      fullName: "Owner Validate",
+      passwordHash: "hash",
+      role: 1,
+      isActive: true,
+      tokenVersion: 4,
+    });
+
+    const accessToken = sign(
+      {
+        sub: "018f0000-0000-7000-8000-000000000103",
+        username: "owner-validate",
+        role: 1,
+        tv: 4,
+      },
+      jwtSecret,
+      { expiresIn: "72h" },
+    );
+
+    await testDb.drizzle.insert(sessions).values({
+      id: "session-validate",
+      userId: 103,
+      token: accessToken,
+      isActive: true,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    const service = new AuthService(testDb.bindings.DB, {
+      JWT_SECRET: jwtSecret,
+      NODE_ENV: "test",
+    });
+
+    await expect(service.validateToken(accessToken)).resolves.toMatchObject({
+      valid: true,
+      user: {
+        id: 103,
+        publicId: "018f0000-0000-7000-8000-000000000103",
+        username: "owner-validate",
+      },
     });
   });
 });
