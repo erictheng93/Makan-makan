@@ -52,6 +52,21 @@ async function createApiToken(payload: Record<string, unknown>) {
   );
 }
 
+async function createUuidApiToken(payload: Record<string, unknown>) {
+  return sign(
+    {
+      sub: "018f0000-0000-7000-8000-000000000001",
+      username: "platform-admin",
+      role: 0,
+      restaurantId: null,
+      tv: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      ...payload,
+    },
+    JWT_SECRET,
+  );
+}
+
 describe("management auth exchange", () => {
   it("exchanges a real API admin token shape for a middleware-accepted management token", async () => {
     const app = createApp();
@@ -85,6 +100,44 @@ describe("management auth exchange", () => {
     await expect(protectedResponse.json()).resolves.toMatchObject({
       user: {
         id: "7",
+        email: "platform-admin",
+        role: "admin",
+      },
+    });
+  });
+
+  it("exchanges UUID-principal API admin tokens", async () => {
+    const app = createApp();
+    const apiToken = await createUuidApiToken({});
+    const env = { JWT_SECRET, MANAGEMENT_JWT_SECRET } as never;
+
+    const exchangeResponse = await app.fetch(
+      new Request("https://management.test/auth/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: apiToken }),
+      }),
+      env,
+    );
+
+    expect(exchangeResponse.status).toBe(200);
+    const exchangeBody = (await exchangeResponse.json()) as {
+      data: { token: string };
+    };
+
+    const protectedResponse = await app.fetch(
+      new Request("https://management.test/admin", {
+        headers: {
+          Authorization: `Bearer ${exchangeBody.data.token}`,
+        },
+      }),
+      env,
+    );
+
+    expect(protectedResponse.status).toBe(200);
+    await expect(protectedResponse.json()).resolves.toMatchObject({
+      user: {
+        id: "018f0000-0000-7000-8000-000000000001",
         email: "platform-admin",
         role: "admin",
       },

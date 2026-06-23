@@ -10,6 +10,8 @@ import {
 } from "../middleware/auth";
 
 const MANAGEMENT_TOKEN_TTL_SECONDS = 60 * 60;
+const UUID_V7_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const authRouter = new Hono<{ Bindings: ManagementEnv }>();
 
@@ -34,7 +36,14 @@ function getManagementSubject(payload: Record<string, unknown>): {
     throw unauthorized("Admin API token required");
   }
 
-  if (typeof payload.id !== "string" && typeof payload.id !== "number") {
+  const subject =
+    typeof payload.id === "string" || typeof payload.id === "number"
+      ? String(payload.id)
+      : typeof payload.sub === "string" && UUID_V7_PATTERN.test(payload.sub)
+        ? payload.sub
+        : null;
+
+  if (!subject) {
     throw unauthorized("Invalid API token subject");
   }
 
@@ -50,7 +59,7 @@ function getManagementSubject(payload: Record<string, unknown>): {
   }
 
   return {
-    id: String(payload.id),
+    id: subject,
     email,
   };
 }

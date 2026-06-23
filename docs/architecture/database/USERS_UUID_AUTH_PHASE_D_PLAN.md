@@ -194,8 +194,11 @@ Progress:
 - 2026-06-23: Added focused
   `RealtimeAuthService.test.ts` coverage for UUID-principal session JWTs,
   `public_id` DB lookup, and `publicUserId` emission.
-- Management API exchange coverage for the new API admin token shape remains
-  pending.
+- 2026-06-23: Updated `apps/management-api/src/routes/auth.ts` so the
+  management token exchange accepts API admin tokens with either legacy `id` or
+  UUID-v7-shaped `sub`. Added route coverage for exchanging the new
+  UUID-principal API admin token shape and verified the emitted management JWT
+  is still accepted by `managementAuthMiddleware`.
 
 ## Destructive Migration Gate
 

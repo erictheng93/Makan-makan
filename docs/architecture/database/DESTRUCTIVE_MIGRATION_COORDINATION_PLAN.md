@@ -336,7 +336,9 @@ Progress:
 - 2026-06-23: Started D5 realtime compatibility. `RealtimeAuthService` now
   accepts UUID-principal session JWTs, resolves them through `users.public_id`,
   and emits `publicUserId` beside legacy numeric `userId` in websocket auth
-  tokens. Management API exchange coverage remains pending.
+  tokens. Management API token exchange now accepts new UUID-principal API
+  admin tokens and still emits management JWTs accepted by the management
+  middleware.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 
