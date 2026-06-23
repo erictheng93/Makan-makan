@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const require = createRequire(import.meta.url);
 const {
   ORDER_DEPENDENCIES,
+  assessRehearsalResult,
   buildDryRunSql,
   parseArgs,
 }: {
@@ -12,6 +13,24 @@ const {
     column: string;
     kind: string;
   }>;
+  assessRehearsalResult: (
+    result: {
+      ordersBridge: {
+        order_rows: number;
+        missing_public_id: number;
+        duplicate_public_id: number;
+      } | null;
+      dependencies: Array<{
+        table: string;
+        column: string;
+        non_null_order_refs: number;
+        mapped_order_refs: number;
+        unmapped_order_refs: number;
+      }>;
+      foreignKeyCheck: unknown[];
+    },
+    options?: { requireRepresentativeData?: boolean },
+  ) => { exitCode: number; failures: string[] };
   buildDryRunSql: () => string;
   parseArgs: (argv: string[]) => {
     executeLocal: boolean;
@@ -21,6 +40,7 @@ const {
     persistTo: string;
     jsonOutput: string | null;
     withFixture: boolean;
+    requireRepresentativeData: boolean;
   };
 } = require("../../scripts/phase-c-orders-pk-dry-run.cjs");
 
@@ -77,6 +97,7 @@ describe("Phase C orders PK dry-run script", () => {
         "--persist-to",
         "./state",
         "--with-fixture",
+        "--require-representative-data",
         "--json-output",
         "./artifacts/orders-pk.json",
       ]),
@@ -86,7 +107,76 @@ describe("Phase C orders PK dry-run script", () => {
       config: "./worker.toml",
       persistTo: "./state",
       withFixture: true,
+      requireRepresentativeData: true,
       jsonOutput: "./artifacts/orders-pk.json",
+    });
+  });
+
+  it("allows empty local rehearsals unless representative data is required", () => {
+    const emptyResult = {
+      ordersBridge: {
+        order_rows: 0,
+        missing_public_id: 0,
+        duplicate_public_id: 0,
+      },
+      dependencies: [
+        {
+          table: "order_items",
+          column: "order_id",
+          non_null_order_refs: 0,
+          mapped_order_refs: 0,
+          unmapped_order_refs: 0,
+        },
+      ],
+      foreignKeyCheck: [],
+    };
+
+    expect(assessRehearsalResult(emptyResult)).toEqual({
+      exitCode: 0,
+      failures: [],
+    });
+
+    expect(
+      assessRehearsalResult(emptyResult, {
+        requireRepresentativeData: true,
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "representative data required: orders table has no rows",
+        "representative data required: no checked dependency has non-null order references",
+      ],
+    });
+  });
+
+  it("fails rehearsal assessment on bridge, mapping, and FK violations", () => {
+    expect(
+      assessRehearsalResult({
+        ordersBridge: {
+          order_rows: 3,
+          missing_public_id: 1,
+          duplicate_public_id: 1,
+        },
+        dependencies: [
+          {
+            table: "payment_transactions",
+            column: "order_id",
+            non_null_order_refs: 2,
+            mapped_order_refs: 1,
+            unmapped_order_refs: 1,
+          },
+        ],
+        foreignKeyCheck: [{ table: "order_items" }],
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "orders.public_id bridge has missing values",
+        "orders.public_id bridge has duplicate values",
+        "payment_transactions.order_id has unmapped order references",
+        "payment_transactions.order_id failed shadow-copy row-count parity",
+        "PRAGMA foreign_key_check returned rows",
+      ],
     });
   });
 });

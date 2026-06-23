@@ -19,6 +19,8 @@ authorize a production destructive migration.
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json`
 - Save representative fixture evidence:
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json`
+- Require representative rehearsal data:
+  `rtk pnpm db:orders-pk-dry-run:representative`
 - Unit test the rehearsal generator:
   `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
@@ -31,6 +33,8 @@ rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json
+rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/orders-pk-baseline-require-representative.json
+rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --json-output /tmp/orders-pk-fixture-gated.json
 ```
 
 Local database:
@@ -47,6 +51,10 @@ Baseline result:
 - Local fixture row counts are currently zero for `orders` and all checked
   dependent surfaces; this proves script safety and schema coverage, not data
   volume behavior.
+- With `--require-representative-data`, this same baseline correctly exits 1
+  because `orders` has zero rows and no checked dependency has non-null order
+  references. This is expected and prevents treating the empty local database
+  as conversion-ready evidence.
 
 Representative fixture result:
 
@@ -60,6 +68,9 @@ Representative fixture result:
 - Rollback verification after the run found zero persisted
   `phase-c-orders-pk-*` rows in `orders`, `restaurants`, `users`,
   `payment_transactions`, `market_checkout_sessions`, and `partnerships`.
+- With `--require-representative-data`, the fixture run exits 0 and records
+  `dataCoverage.isRepresentative = true`, `orderRows = 1`,
+  `dependencyRefs = 12`, and `dependenciesWithRefs = 12`.
 
 ## Dependency Map
 
@@ -97,6 +108,10 @@ The rehearsal script must remain non-destructive:
 - It rolls back at the end.
 - With `--json-output`, it writes the same rehearsal result printed to stdout
   to a caller-provided file so staging/prod drill evidence can be archived.
+- The JSON artifact includes `dataCoverage` and `assessment` sections. The
+  assessment is the canonical exit-code reason list for bridge violations,
+  unmapped references, shadow-copy row-count parity failures,
+  `foreign_key_check` rows, and optional representative-data failures.
 
 The unit test `tests/unit/phase-c-orders-pk-dry-run.test.ts` guards that the
 generated SQL contains `BEGIN` / `ROLLBACK`, creates temp shadow tables, and
@@ -108,6 +123,9 @@ the local execution option parser, including `--json-output`.
 Do not create paired Phase C migrations until all of these are true:
 
 - A local or staging rehearsal contains non-empty representative order data.
+- The archived rehearsal was run with `--require-representative-data`, and the
+  JSON artifact has `assessment.exitCode = 0` and
+  `dataCoverage.isRepresentative = true`.
 - Every dependency has `mapped_order_refs = non_null_order_refs`.
 - `orders.public_id` has zero missing or duplicate values.
 - `PRAGMA foreign_key_check` returns zero rows.

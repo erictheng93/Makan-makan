@@ -304,6 +304,7 @@ function parseArgs(argv) {
     sqlitePath: null,
     withFixture: false,
     jsonOutput: null,
+    requireRepresentativeData: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -315,7 +316,9 @@ function parseArgs(argv) {
     else if (arg === "--persist-to") args.persistTo = argv[++index];
     else if (arg === "--sqlite-path") args.sqlitePath = argv[++index];
     else if (arg === "--with-fixture") args.withFixture = true;
-    else if (arg === "--json-output") args.jsonOutput = argv[++index];
+    else if (arg === "--require-representative-data") {
+      args.requireRepresentativeData = true;
+    } else if (arg === "--json-output") args.jsonOutput = argv[++index];
     else if (arg === "--help") {
       args.help = true;
     } else {
@@ -337,6 +340,8 @@ Options:
   --persist-to <path>  Local D1 state path (default: ${DEFAULT_PERSIST_TO})
   --sqlite-path <path> Local Miniflare SQLite file. Auto-detected by default.
   --with-fixture       Insert representative order dependency rows inside the rollback transaction.
+  --require-representative-data
+                       Fail if the rehearsal has no orders or no non-null order dependency refs.
   --json-output <path> Write local rehearsal JSON evidence to a file.
 `;
 }
@@ -882,6 +887,7 @@ function runLocalRehearsal(options) {
       }
 
       result.foreignKeyCheck = db.prepare("PRAGMA foreign_key_check").all();
+      result.dataCoverage = summarizeDataCoverage(result);
     } finally {
       db.exec("ROLLBACK");
     }
@@ -892,8 +898,75 @@ function runLocalRehearsal(options) {
   return result;
 }
 
+function summarizeDataCoverage(result) {
+  const orderRows = Number(result.ordersBridge?.order_rows ?? 0);
+  const dependenciesWithRefs = result.dependencies.filter(
+    (dependency) => Number(dependency.non_null_order_refs) > 0,
+  );
+  const dependencyRefs = result.dependencies.reduce((total, dependency) => {
+    return total + Number(dependency.non_null_order_refs ?? 0);
+  }, 0);
+  return {
+    orderRows,
+    dependencyRefs,
+    dependenciesWithRefs: dependenciesWithRefs.length,
+    dependencyCount: result.dependencies.length,
+    isRepresentative: orderRows > 0 && dependencyRefs > 0,
+  };
+}
+
+function assessRehearsalResult(result, options = {}) {
+  const failures = [];
+  if (Number(result.ordersBridge?.missing_public_id ?? 0) > 0) {
+    failures.push("orders.public_id bridge has missing values");
+  }
+  if (Number(result.ordersBridge?.duplicate_public_id ?? 0) > 0) {
+    failures.push("orders.public_id bridge has duplicate values");
+  }
+
+  for (const dependency of result.dependencies) {
+    if (Number(dependency.unmapped_order_refs) > 0) {
+      failures.push(
+        `${dependency.table}.${dependency.column} has unmapped order references`,
+      );
+    }
+    if (
+      Number(dependency.mapped_order_refs) !==
+      Number(dependency.non_null_order_refs)
+    ) {
+      failures.push(
+        `${dependency.table}.${dependency.column} failed shadow-copy row-count parity`,
+      );
+    }
+  }
+
+  if (result.foreignKeyCheck.length > 0) {
+    failures.push("PRAGMA foreign_key_check returned rows");
+  }
+
+  if (options.requireRepresentativeData) {
+    const coverage = result.dataCoverage ?? summarizeDataCoverage(result);
+    if (coverage.orderRows === 0) {
+      failures.push("representative data required: orders table has no rows");
+    }
+    if (coverage.dependencyRefs === 0) {
+      failures.push(
+        "representative data required: no checked dependency has non-null order references",
+      );
+    }
+  }
+
+  return {
+    exitCode: failures.length > 0 ? 1 : 0,
+    failures,
+  };
+}
+
 function executeLocal(options) {
   const result = runLocalRehearsal(options);
+  result.assessment = assessRehearsalResult(result, {
+    requireRepresentativeData: options.requireRepresentativeData,
+  });
   const json = `${JSON.stringify(result, null, 2)}\n`;
   if (options.jsonOutput) {
     const outputPath = path.resolve(options.jsonOutput);
@@ -901,17 +974,7 @@ function executeLocal(options) {
     fs.writeFileSync(outputPath, json, "utf8");
   }
   process.stdout.write(json);
-  const hasBridgeViolations =
-    Number(result.ordersBridge?.missing_public_id ?? 0) > 0 ||
-    Number(result.ordersBridge?.duplicate_public_id ?? 0) > 0;
-  const hasUnmappedRefs = result.dependencies.some(
-    (dependency) => Number(dependency.unmapped_order_refs) > 0,
-  );
-  const hasForeignKeyFailures = result.foreignKeyCheck.length > 0;
-
-  return hasBridgeViolations || hasUnmappedRefs || hasForeignKeyFailures
-    ? 1
-    : 0;
+  return result.assessment.exitCode;
 }
 
 if (require.main === module) {
@@ -936,8 +999,10 @@ if (require.main === module) {
 
 module.exports = {
   ORDER_DEPENDENCIES,
+  assessRehearsalResult,
   buildDryRunSql,
   findLocalSqlitePath,
   parseArgs,
   runLocalRehearsal,
+  summarizeDataCoverage,
 };

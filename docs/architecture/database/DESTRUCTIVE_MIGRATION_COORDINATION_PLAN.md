@@ -277,6 +277,22 @@ Progress:
 - 2026-06-23: Added `--json-output` support to
   `scripts/phase-c-orders-pk-dry-run.cjs` so local, staging, and restored-prod
   drill results can be archived as JSON evidence while preserving stdout.
+- 2026-06-23: Added a representative-data gate to the Phase C dry-run. The
+  script now records `dataCoverage` and `assessment` in JSON artifacts, and
+  `--require-representative-data` fails if the rehearsal has no `orders` rows
+  or no non-null checked order dependency references. The current empty local
+  baseline still proves safety/schema coverage only; the rollback fixture run
+  passes the gate with 1 order, 12 dependency refs, zero unmapped refs, and zero
+  foreign-key-check rows.
+
+Current blocker before paired Phase C migrations:
+
+- Run the same gated dry-run against restored production or staging data with
+  non-empty representative order volume.
+- Archive the JSON artifact and confirm `assessment.exitCode = 0`,
+  `dataCoverage.isRepresentative = true`, zero bridge violations, zero
+  unmapped refs, and zero `foreignKeyCheck` rows.
+- Only then draft paired Phase C rebuild migrations from the dry-run plan.
 
 ## Phase D: Users UUID Bridge
 
