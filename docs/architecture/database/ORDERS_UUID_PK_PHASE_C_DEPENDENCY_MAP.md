@@ -78,6 +78,10 @@ Representative fixture result:
   when every existing dependency surface has at least one non-null order
   reference and includes `schemaObjects` metadata for the indexes/triggers that
   the paired migration must preserve.
+- The fixture artifact records `appCompatibility` bridge checks: one legacy
+  `orders.id` lookup row, one matching `orders.public_id` lookup row, zero
+  lookup mismatches, 12 shadow-copy public-id rows, zero missing shadow public
+  ids, and zero shadow public ids that fail to resolve back to the source order.
 
 ## Dependency Map
 
@@ -111,6 +115,9 @@ The rehearsal script must remain non-destructive:
 - It maps legacy integer references to `orders.public_id` through shadow copy
   tables.
 - It checks row-count parity for every non-null order reference.
+- It records bridge compatibility counters proving checked orders resolve by
+  both legacy `orders.id` and `orders.public_id`, and that shadow-copy public
+  ids resolve back to their source legacy order rows.
 - It runs `PRAGMA foreign_key_check`.
 - It rolls back at the end.
 - With `--json-output`, it writes the same rehearsal result printed to stdout
@@ -123,6 +130,9 @@ The rehearsal script must remain non-destructive:
   With `--require-complete-surface-coverage`, the assessment fails if any
   checked dependency has zero non-null order references or is missing that
   schema metadata.
+- Under the same strict gate, the assessment also fails if public-id lookup
+  returns no rows, legacy/public lookup has mismatches, or shadow-copy public
+  ids are missing or cannot resolve back to the source order.
 
 The unit test `tests/unit/phase-c-orders-pk-dry-run.test.ts` guards that the
 generated SQL contains `BEGIN` / `ROLLBACK`, creates temp shadow tables, and
@@ -142,6 +152,9 @@ Do not create paired Phase C migrations until all of these are true:
   surface can be copied and emits schema metadata for migration preservation.
 - Every dependency has `mapped_order_refs = non_null_order_refs`.
 - `orders.public_id` has zero missing or duplicate values.
+- `appCompatibility` has nonzero public lookup coverage and zero legacy/public
+  lookup mismatches, missing shadow public ids, and shadow public-id resolution
+  mismatches.
 - `PRAGMA foreign_key_check` returns zero rows.
 - The migration draft preserves all listed indexes and triggers.
 - API/realtime/POS/payment compatibility tests still pass with UUID bridge

@@ -28,6 +28,14 @@ const {
         unmapped_order_refs: number;
         schemaObjects?: unknown[];
       }>;
+      appCompatibility?: {
+        legacy_lookup_rows: number;
+        public_lookup_rows: number;
+        lookup_mismatches: number;
+        shadow_public_id_rows: number;
+        shadow_public_id_missing: number;
+        shadow_public_id_mismatches: number;
+      };
       foreignKeyCheck: unknown[];
     },
     options?: {
@@ -215,6 +223,14 @@ describe("Phase C orders PK dry-run script", () => {
               unmapped_order_refs: 0,
             },
           ],
+          appCompatibility: {
+            legacy_lookup_rows: 1,
+            public_lookup_rows: 1,
+            lookup_mismatches: 0,
+            shadow_public_id_rows: 1,
+            shadow_public_id_missing: 0,
+            shadow_public_id_mismatches: 0,
+          },
           foreignKeyCheck: [],
         },
         { requireCompleteSurfaceCoverage: true },
@@ -224,6 +240,48 @@ describe("Phase C orders PK dry-run script", () => {
       failures: [
         "payment_transactions.order_id has no representative order references",
         "payment_transactions.order_id is missing schema object metadata",
+      ],
+    });
+  });
+
+  it("fails strict assessment when UUID bridge compatibility checks fail", () => {
+    expect(
+      assessRehearsalResult(
+        {
+          ordersBridge: {
+            order_rows: 2,
+            missing_public_id: 0,
+            duplicate_public_id: 0,
+          },
+          dependencies: [
+            {
+              table: "order_items",
+              column: "order_id",
+              non_null_order_refs: 1,
+              mapped_order_refs: 1,
+              unmapped_order_refs: 0,
+              schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+            },
+          ],
+          appCompatibility: {
+            legacy_lookup_rows: 1,
+            public_lookup_rows: 0,
+            lookup_mismatches: 1,
+            shadow_public_id_rows: 1,
+            shadow_public_id_missing: 1,
+            shadow_public_id_mismatches: 1,
+          },
+          foreignKeyCheck: [],
+        },
+        { requireCompleteSurfaceCoverage: true },
+      ),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "orders UUID bridge public-id lookup returned no rows",
+        "orders UUID bridge legacy/public lookup mismatch",
+        "orders UUID bridge shadow copies contain missing public ids",
+        "orders UUID bridge shadow public ids do not resolve back to source orders",
       ],
     });
   });

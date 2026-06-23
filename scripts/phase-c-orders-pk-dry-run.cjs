@@ -390,6 +390,68 @@ function readIndexesAndTriggers(db, tableName) {
     .all(tableName);
 }
 
+function summarizeAppCompatibility(db, dependencies) {
+  const lookup = db
+    .prepare(
+      `SELECT
+         (SELECT count(*) FROM orders WHERE public_id IS NOT NULL) AS legacy_lookup_rows,
+         (SELECT count(*)
+            FROM orders AS legacy
+            JOIN orders AS by_public
+              ON by_public.public_id = legacy.public_id
+           WHERE legacy.public_id IS NOT NULL) AS public_lookup_rows,
+         (SELECT count(*)
+            FROM orders AS legacy
+           WHERE legacy.public_id IS NOT NULL
+             AND NOT EXISTS (
+               SELECT 1
+                 FROM orders AS by_public
+                WHERE by_public.public_id = legacy.public_id
+                  AND by_public.id = legacy.id
+             )) AS lookup_mismatches`,
+    )
+    .get();
+
+  const shadow = dependencies.reduce(
+    (summary, dependency) => {
+      const shadowTable = quoteIdentifier(shadowTableName(dependency));
+      const row = db
+        .prepare(
+          `SELECT
+             count(*) AS rows,
+             coalesce(sum(CASE WHEN order_public_id IS NULL THEN 1 ELSE 0 END), 0) AS missing,
+             coalesce(sum(CASE
+               WHEN NOT EXISTS (
+                 SELECT 1
+                   FROM orders
+                  WHERE orders.id = ${shadowTable}.legacy_order_id
+                    AND orders.public_id = ${shadowTable}.order_public_id
+               )
+               THEN 1
+               ELSE 0
+             END), 0) AS mismatches
+             FROM ${shadowTable}`,
+        )
+        .get();
+      return {
+        rows: summary.rows + Number(row.rows ?? 0),
+        missing: summary.missing + Number(row.missing ?? 0),
+        mismatches: summary.mismatches + Number(row.mismatches ?? 0),
+      };
+    },
+    { rows: 0, missing: 0, mismatches: 0 },
+  );
+
+  return {
+    legacy_lookup_rows: Number(lookup.legacy_lookup_rows ?? 0),
+    public_lookup_rows: Number(lookup.public_lookup_rows ?? 0),
+    lookup_mismatches: Number(lookup.lookup_mismatches ?? 0),
+    shadow_public_id_rows: shadow.rows,
+    shadow_public_id_missing: shadow.missing,
+    shadow_public_id_mismatches: shadow.mismatches,
+  };
+}
+
 function run(db, sql, params = []) {
   db.prepare(sql).run(...params);
 }
@@ -797,6 +859,7 @@ function runLocalRehearsal(options) {
     })),
     ordersBridge: null,
     dependencies: [],
+    appCompatibility: null,
     foreignKeyCheck: [],
   };
 
@@ -891,6 +954,7 @@ function runLocalRehearsal(options) {
         });
       }
 
+      result.appCompatibility = summarizeAppCompatibility(db, dependencies);
       result.foreignKeyCheck = db.prepare("PRAGMA foreign_key_check").all();
       result.dataCoverage = summarizeDataCoverage(result);
     } finally {
@@ -962,6 +1026,29 @@ function assessRehearsalResult(result, options = {}) {
   }
 
   if (options.requireCompleteSurfaceCoverage) {
+    if (!result.appCompatibility) {
+      failures.push("orders UUID bridge compatibility summary is missing");
+    } else {
+      if (Number(result.appCompatibility.public_lookup_rows ?? 0) === 0) {
+        failures.push("orders UUID bridge public-id lookup returned no rows");
+      }
+      if (Number(result.appCompatibility.lookup_mismatches ?? 0) > 0) {
+        failures.push("orders UUID bridge legacy/public lookup mismatch");
+      }
+      if (Number(result.appCompatibility.shadow_public_id_missing ?? 0) > 0) {
+        failures.push(
+          "orders UUID bridge shadow copies contain missing public ids",
+        );
+      }
+      if (
+        Number(result.appCompatibility.shadow_public_id_mismatches ?? 0) > 0
+      ) {
+        failures.push(
+          "orders UUID bridge shadow public ids do not resolve back to source orders",
+        );
+      }
+    }
+
     for (const dependency of result.dependencies) {
       if (Number(dependency.non_null_order_refs ?? 0) === 0) {
         failures.push(
@@ -1025,5 +1112,6 @@ module.exports = {
   findLocalSqlitePath,
   parseArgs,
   runLocalRehearsal,
+  summarizeAppCompatibility,
   summarizeDataCoverage,
 };

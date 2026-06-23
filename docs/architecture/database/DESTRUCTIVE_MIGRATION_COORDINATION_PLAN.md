@@ -289,6 +289,11 @@ Progress:
   The rollback fixture now fails unless every existing dependency surface has
   at least one non-null order reference and emits `schemaObjects` metadata for
   preserving indexes/triggers in the paired migration draft.
+- 2026-06-23: Extended the Phase C artifact with `appCompatibility` counters.
+  The strict rollback fixture now proves checked orders can be resolved through
+  both legacy `orders.id` and `orders.public_id`, and that every shadow-copy
+  `order_public_id` resolves back to the source order row before migration
+  drafting starts.
 
 Current blocker before paired Phase C migrations:
 
@@ -296,7 +301,8 @@ Current blocker before paired Phase C migrations:
   non-empty representative order volume.
 - Archive the JSON artifact and confirm `assessment.exitCode = 0`,
   `dataCoverage.isRepresentative = true`, zero bridge violations, zero
-  unmapped refs, and zero `foreignKeyCheck` rows.
+  unmapped refs, zero `appCompatibility` mismatches, and zero `foreignKeyCheck`
+  rows.
 - Keep the full-surface rollback fixture artifact alongside the staging or
   restored-production artifact so migration reviewers can verify every checked
   dependency surface has copy coverage and schema preservation metadata.
