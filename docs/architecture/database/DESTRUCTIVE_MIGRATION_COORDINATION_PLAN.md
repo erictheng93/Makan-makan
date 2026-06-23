@@ -314,6 +314,11 @@ Progress:
   staging/restored-production evidence and `--role fixture` for the local
   rollback full-surface artifact, preventing synthetic fixture data from being
   substituted for representative data.
+- 2026-06-24: Added `scripts/verify-phase-c-orders-pk-readiness-manifest.cjs`
+  and `rtk pnpm db:orders-pk-readiness:verify`. The verifier reads one
+  manifest, validates the representative and full-surface fixture artifacts via
+  their role gates, and blocks Phase C migration drafting if dependency
+  surfaces or schema metadata drift between the two evidence files.
 
 Current blocker before paired Phase C migrations:
 
@@ -332,6 +337,9 @@ Current blocker before paired Phase C migrations:
 - Run
   `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
   against that local full-surface fixture artifact.
+- Create the Phase C readiness manifest and run
+  `rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>`;
+  require validator `exitCode = 0`.
 - Only then draft paired Phase C rebuild migrations from the dry-run plan.
 
 ## Phase D: Users UUID Bridge

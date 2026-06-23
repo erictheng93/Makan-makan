@@ -27,6 +27,8 @@ authorize a production destructive migration.
   `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json --role representative`
 - Validate local full-surface fixture evidence before migration drafting:
   `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-fixture-full-surface.json --role fixture`
+- Verify the paired evidence manifest before migration drafting:
+  `rtk pnpm db:orders-pk-readiness:verify -- --manifest artifacts/pk/orders-phase-c-readiness.json`
 - Unit test the rehearsal generator:
   `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
@@ -150,6 +152,47 @@ generated SQL contains `BEGIN` / `ROLLBACK`, creates temp shadow tables, and
 does not contain `ALTER TABLE`, `DROP TABLE`, or `DELETE FROM`. It also guards
 the local execution option parser, including `--json-output`.
 
+## Readiness Manifest
+
+Before paired Phase C migrations are drafted, create a manifest that points to
+both required artifacts:
+
+```json
+{
+  "manifestSchemaVersion": 1,
+  "readinessPhase": "phase-c-orders-pk",
+  "target": {
+    "artifactPhase": "orders",
+    "artifactSchemaVersion": 1
+  },
+  "artifacts": {
+    "representative": {
+      "path": "artifacts/pk/orders-restored-prod-representative.json",
+      "role": "representative",
+      "source": {
+        "kind": "restored-production",
+        "label": "prod-restore-YYYY-MM-DD"
+      }
+    },
+    "rollbackFixture": {
+      "path": "artifacts/pk/orders-local-full-surface-fixture.json",
+      "role": "fixture",
+      "source": {
+        "kind": "local",
+        "label": "miniflare-d1"
+      }
+    }
+  }
+}
+```
+
+`rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>` is the
+single Phase C conversion gate. It imports the single-artifact validator,
+requires the representative artifact to be staging/restored-production evidence
+without fixture data, requires the rollback fixture artifact to use
+`--with-fixture`, and then compares dependency surfaces plus schema metadata
+between both artifacts.
+
 ## Migration Conversion Gate
 
 Do not create paired Phase C migrations until all of these are true:
@@ -178,6 +221,10 @@ Do not create paired Phase C migrations until all of these are true:
   trusting `dataCoverage` alone. It also verifies the archived artifact records
   `artifactPhase = "orders"`, `artifactSchemaVersion = 1`, and the required
   strict `rehearsalOptions`.
+- `rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>`
+  returns `exitCode = 0`, proving the representative and fixture artifacts
+  both pass their role gates and have matching dependency surfaces and schema
+  metadata.
 - The migration draft preserves all listed indexes and triggers.
 - API/realtime/POS/payment compatibility tests still pass with UUID bridge
   identifiers.
