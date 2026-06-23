@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0073_orders_public_id_audit_guard.sql",
-    "legacy": "0090_orders_public_id_audit_guard.sql"
+    "fresh": "0075_users_public_id_audit_guard.sql",
+    "legacy": "0092_users_public_id_audit_guard.sql"
   },
   "pairs": [
     {
@@ -45,6 +45,16 @@
       "fresh": "0073_orders_public_id_audit_guard.sql",
       "legacy": "0090_orders_public_id_audit_guard.sql",
       "reason": "Orders public_id audit guard blocks later not-null or PK rebuild work when bridge ids are missing, duplicated, or malformed."
+    },
+    {
+      "fresh": "0074_users_public_id_bridge.sql",
+      "legacy": "0091_users_public_id_bridge.sql",
+      "reason": "Users gain a UUID v7 public_id bridge before staff JWT principal or dependent FK rebuild work."
+    },
+    {
+      "fresh": "0075_users_public_id_audit_guard.sql",
+      "legacy": "0092_users_public_id_audit_guard.sql",
+      "reason": "Users public_id audit guard blocks auth principal and PK rebuild work when bridge ids are missing, duplicated, or malformed."
     }
   ],
   "freshOnly": [

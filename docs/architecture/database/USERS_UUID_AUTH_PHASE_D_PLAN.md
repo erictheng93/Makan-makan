@@ -57,6 +57,21 @@ binding raw `users.id` directly at API boundaries.
 - Keep the column nullable until raw user insert paths and test factories are
   audited.
 
+Progress:
+
+- 2026-06-23: Added the non-destructive `users.public_id` bridge to the Drizzle
+  schema with a runtime UUID-v7 default and partial unique index.
+- 2026-06-23: Added paired bridge migrations
+  `packages/database/migrations_fresh/0074_users_public_id_bridge.sql` and
+  `packages/database/migrations/0091_users_public_id_bridge.sql`.
+- 2026-06-23: Added paired audit guard migrations
+  `packages/database/migrations_fresh/0075_users_public_id_audit_guard.sql`
+  and `packages/database/migrations/0092_users_public_id_audit_guard.sql`.
+- 2026-06-23: Added
+  `packages/database/src/schema/users-public-id-bridge.test.ts` to guard the
+  schema column, partial unique index, paired migrations, audit guard checks,
+  and dual-track registry entry.
+
 Acceptance:
 
 - Existing user creation paths still work.

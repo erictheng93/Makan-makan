@@ -1,8 +1,8 @@
 # Destructive Migration Coordination Plan
 
 **Date:** 2026-06-23
-**Status:** Phase C orders PK drill tooling complete locally; Phase D users/auth
-bridge planning in progress; no remote D1 destructive migration run
+**Status:** Phase C orders PK drill tooling complete locally; Phase D users
+public-id bridge started; no remote D1 destructive migration run
 
 ## Objective
 
@@ -289,7 +289,7 @@ Detailed plan:
 Scope:
 
 - Add `users.public_id TEXT UNIQUE`.
-- Backfill existing staff users with UUID v7 values.
+- Backfill existing user rows with UUID v7 values.
 - Issue new staff JWTs with string principal identity while accepting legacy
   numeric ids during a bounded compatibility window.
 - Update `AuthUser`, auth middleware, realtime auth, session keys, cache keys,
@@ -312,6 +312,11 @@ Progress:
   slices, and destructive Phase E gates. The plan keeps this phase
   non-destructive and explicitly preserves legacy numeric JWT compatibility
   until tests and token issuance are migrated.
+- 2026-06-23: Started D1 schema bridge implementation. Drizzle now exposes a
+  nullable `users.public_id` with UUID-v7 runtime default and partial unique
+  index; paired migrations `0074` / `0091` add and backfill the column, and
+  paired audit guards `0075` / `0092` fail on missing, duplicate, or malformed
+  bridge identifiers. Auth/JWT compatibility code is still pending.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 

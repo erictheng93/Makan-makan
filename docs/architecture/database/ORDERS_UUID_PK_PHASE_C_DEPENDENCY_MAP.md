@@ -120,7 +120,7 @@ Do not create paired Phase C migrations until all of these are true:
 The next non-destructive prep work for users should mirror the orders bridge:
 
 - Add `users.public_id TEXT UNIQUE` behind a compatibility bridge.
-- Backfill existing staff users with UUID-v7 values.
+- Backfill existing user rows with UUID-v7 values.
 - Add an auth principal resolver that accepts legacy numeric `users.id` and new
   `users.public_id`.
 - Issue new staff JWTs with string principal identity only after auth middleware,
