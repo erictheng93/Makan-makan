@@ -19,6 +19,8 @@ a production destructive migration.
   `rtk pnpm db:users-pk-dry-run`
 - Save local rehearsal evidence:
   `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json`
+- Require representative rehearsal data:
+  `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-representative.json`
 - Unit test the rehearsal verifier:
   `rtk pnpm exec vitest run tests/unit/phase-e-users-pk-dry-run.test.ts`
 
@@ -28,6 +30,7 @@ Command run on 2026-06-23:
 
 ```sh
 rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json
+rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-baseline-require-representative.json
 ```
 
 Local database:
@@ -50,6 +53,10 @@ Baseline result:
 - Local row counts are currently zero for `users` and checked dependent
   surfaces; this proves script safety, schema coverage, and inventory drift
   detection, not production data volume behavior.
+- With `--require-representative-data`, this same empty local baseline
+  correctly exits 1 because `users` has zero rows and no checked dependency has
+  non-null user references. This prevents treating an empty local database as
+  conversion-ready evidence.
 
 ## Dependency Map
 
@@ -89,6 +96,9 @@ The rehearsal script must remain non-destructive:
 - With `--json-output`, it writes the same rehearsal result printed to stdout
   to a caller-provided file so staging/restored-prod drill evidence can be
   archived.
+- With `--require-representative-data`, the assessment fails unless the
+  artifact contains at least one `users` row and at least one non-null mapped
+  dependency reference.
 
 ## Migration Conversion Gate
 
@@ -97,6 +107,9 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - `users.public_id` audit guard has passed against staging or restored
   production data.
 - A gated users PK rehearsal artifact has non-empty representative user data.
+- The archived rehearsal was run with `--require-representative-data`, and the
+  JSON artifact has `assessment.exitCode = 0` and
+  `dataCoverage.isRepresentative = true`.
 - Every dependency has `mapped_user_refs = non_null_user_refs`.
 - `users.public_id` has zero missing, duplicate, or malformed values.
 - `uninventoriedUserForeignKeys` is empty.

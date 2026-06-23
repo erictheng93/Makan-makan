@@ -13,27 +13,40 @@ const {
     column: string;
     kind: string;
   }>;
-  assessRehearsalResult: (result: {
-    usersBridge: {
-      missing_public_id: number;
-      duplicate_public_id: number;
-      malformed_public_id: number;
-    } | null;
-    dependencies: Array<{
-      table: string;
-      column: string;
-      non_null_user_refs: number;
-      mapped_user_refs: number;
-      unmapped_user_refs: number;
-    }>;
-    uninventoriedUserForeignKeys: unknown[];
-    foreignKeyCheck: unknown[];
-  }) => { exitCode: number; failures: string[] };
+  assessRehearsalResult: (
+    result: {
+      usersBridge: {
+        user_rows?: number;
+        missing_public_id: number;
+        duplicate_public_id: number;
+        malformed_public_id: number;
+      } | null;
+      dependencies: Array<{
+        table: string;
+        column: string;
+        non_null_user_refs: number;
+        mapped_user_refs: number;
+        unmapped_user_refs: number;
+      }>;
+      uninventoriedUserForeignKeys: unknown[];
+      foreignKeyCheck: unknown[];
+      dataCoverage?: {
+        userRows: number;
+        dependencyRefs: number;
+        isRepresentative: boolean;
+      };
+    },
+    options?: { requireRepresentativeData?: boolean },
+  ) => {
+    exitCode: number;
+    failures: string[];
+  };
   parseArgs: (argv: string[]) => {
     executeLocal: boolean;
     printInventory: boolean;
     sqlitePath: string | null;
     jsonOutput: string | null;
+    requireRepresentativeData: boolean;
   };
   summarizeDataCoverage: (result: {
     usersBridge: { user_rows: number } | null;
@@ -80,12 +93,14 @@ describe("Phase E users PK dry-run script", () => {
         "--execute-local",
         "--sqlite-path",
         "./local.sqlite",
+        "--require-representative-data",
         "--json-output",
         "./artifacts/users-pk.json",
       ]),
     ).toMatchObject({
       executeLocal: true,
       sqlitePath: "./local.sqlite",
+      requireRepresentativeData: true,
       jsonOutput: "./artifacts/users-pk.json",
     });
 
@@ -143,6 +158,45 @@ describe("Phase E users PK dry-run script", () => {
         "sessions.user_id failed shadow-copy row-count parity",
         "SQLite has users(id) foreign keys missing from inventory",
         "PRAGMA foreign_key_check returned rows",
+      ],
+    });
+  });
+
+  it("allows empty local rehearsals unless representative data is required", () => {
+    const emptyResult = {
+      usersBridge: {
+        user_rows: 0,
+        missing_public_id: 0,
+        duplicate_public_id: 0,
+        malformed_public_id: 0,
+      },
+      dependencies: [
+        {
+          table: "sessions",
+          column: "user_id",
+          non_null_user_refs: 0,
+          mapped_user_refs: 0,
+          unmapped_user_refs: 0,
+        },
+      ],
+      uninventoriedUserForeignKeys: [],
+      foreignKeyCheck: [],
+    };
+
+    expect(assessRehearsalResult(emptyResult)).toEqual({
+      exitCode: 0,
+      failures: [],
+    });
+
+    expect(
+      assessRehearsalResult(emptyResult, {
+        requireRepresentativeData: true,
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "representative data required: users table has no rows",
+        "representative data required: no checked dependency has non-null user references",
       ],
     });
   });

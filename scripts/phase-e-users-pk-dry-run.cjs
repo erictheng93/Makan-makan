@@ -239,13 +239,16 @@ function parseArgs(argv) {
     printInventory: false,
     sqlitePath: null,
     jsonOutput: null,
+    requireRepresentativeData: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--execute-local") args.executeLocal = true;
     else if (arg === "--print-inventory") args.printInventory = true;
     else if (arg === "--sqlite-path") args.sqlitePath = argv[++index];
-    else if (arg === "--json-output") args.jsonOutput = argv[++index];
+    else if (arg === "--require-representative-data") {
+      args.requireRepresentativeData = true;
+    } else if (arg === "--json-output") args.jsonOutput = argv[++index];
     else if (arg === "--help") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -259,6 +262,8 @@ function usage() {
 
 Options:
   --sqlite-path <path> Local Miniflare SQLite file. Auto-detected by default.
+  --require-representative-data
+                       Fail if the rehearsal has no users or no non-null user dependency refs.
   --json-output <path> Write local users PK drill JSON evidence to a file.
 `;
 }
@@ -330,7 +335,7 @@ function summarizeDataCoverage(result) {
   };
 }
 
-function assessRehearsalResult(result) {
+function assessRehearsalResult(result, options = {}) {
   const failures = [];
   if (Number(result.usersBridge?.missing_public_id ?? 0) > 0) {
     failures.push("users.public_id bridge has missing values");
@@ -361,6 +366,17 @@ function assessRehearsalResult(result) {
   }
   if (result.foreignKeyCheck.length > 0) {
     failures.push("PRAGMA foreign_key_check returned rows");
+  }
+  if (options.requireRepresentativeData) {
+    const coverage = result.dataCoverage ?? summarizeDataCoverage(result);
+    if (coverage.userRows === 0) {
+      failures.push("representative data required: users table has no rows");
+    }
+    if (coverage.dependencyRefs === 0) {
+      failures.push(
+        "representative data required: no checked dependency has non-null user references",
+      );
+    }
   }
   return {
     exitCode: failures.length > 0 ? 1 : 0,
@@ -461,7 +477,9 @@ function runLocalRehearsal(options) {
   } finally {
     db.close();
   }
-  result.assessment = assessRehearsalResult(result);
+  result.assessment = assessRehearsalResult(result, {
+    requireRepresentativeData: options.requireRepresentativeData,
+  });
   return result;
 }
 

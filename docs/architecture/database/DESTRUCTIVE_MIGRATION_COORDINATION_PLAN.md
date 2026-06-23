@@ -364,6 +364,13 @@ Progress:
   and rolls back. Local empty-data rehearsal passed as schema/inventory
   coverage only; staging or restored-production representative data is still
   required before paired Phase E migrations.
+- 2026-06-23: Added a users PK representative-data gate matching the Phase C
+  orders gate. `--require-representative-data` now fails if the users rehearsal
+  artifact has no `users` rows or no non-null checked user dependency
+  references. The current empty local baseline correctly fails this gate, so
+  only a restored-production or staging artifact with
+  `assessment.exitCode = 0` and `dataCoverage.isRepresentative = true` can
+  unblock paired Phase E migration drafting.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 
@@ -401,6 +408,9 @@ Progress:
   `users(id)` FKs from the inventory, reports zero bridge/mapping/FK failures,
   and documents that the local database is empty so it cannot authorize paired
   destructive migrations.
+- 2026-06-23: Added `--require-representative-data` to the users PK verifier so
+  conversion rehearsal evidence must prove non-empty user rows and dependent
+  references before paired destructive migrations are drafted.
 
 ## Required Tracking Updates
 
