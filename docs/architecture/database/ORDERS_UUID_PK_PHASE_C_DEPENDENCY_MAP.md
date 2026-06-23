@@ -15,6 +15,10 @@ authorize a production destructive migration.
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --print-sql`
 - Run local rollback rehearsal:
   `rtk pnpm db:orders-pk-dry-run`
+- Save local rehearsal evidence:
+  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json`
+- Save representative fixture evidence:
+  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json`
 - Unit test the rehearsal generator:
   `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
@@ -25,6 +29,8 @@ Commands run on 2026-06-23:
 ```sh
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture
+rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json
+rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json
 ```
 
 Local database:
@@ -89,10 +95,13 @@ The rehearsal script must remain non-destructive:
 - It checks row-count parity for every non-null order reference.
 - It runs `PRAGMA foreign_key_check`.
 - It rolls back at the end.
+- With `--json-output`, it writes the same rehearsal result printed to stdout
+  to a caller-provided file so staging/prod drill evidence can be archived.
 
 The unit test `tests/unit/phase-c-orders-pk-dry-run.test.ts` guards that the
 generated SQL contains `BEGIN` / `ROLLBACK`, creates temp shadow tables, and
-does not contain `ALTER TABLE`, `DROP TABLE`, or `DELETE FROM`.
+does not contain `ALTER TABLE`, `DROP TABLE`, or `DELETE FROM`. It also guards
+the local execution option parser, including `--json-output`.
 
 ## Migration Conversion Gate
 

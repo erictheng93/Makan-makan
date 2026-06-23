@@ -303,6 +303,7 @@ function parseArgs(argv) {
     persistTo: DEFAULT_PERSIST_TO,
     sqlitePath: null,
     withFixture: false,
+    jsonOutput: null,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -314,6 +315,7 @@ function parseArgs(argv) {
     else if (arg === "--persist-to") args.persistTo = argv[++index];
     else if (arg === "--sqlite-path") args.sqlitePath = argv[++index];
     else if (arg === "--with-fixture") args.withFixture = true;
+    else if (arg === "--json-output") args.jsonOutput = argv[++index];
     else if (arg === "--help") {
       args.help = true;
     } else {
@@ -335,6 +337,7 @@ Options:
   --persist-to <path>  Local D1 state path (default: ${DEFAULT_PERSIST_TO})
   --sqlite-path <path> Local Miniflare SQLite file. Auto-detected by default.
   --with-fixture       Insert representative order dependency rows inside the rollback transaction.
+  --json-output <path> Write local rehearsal JSON evidence to a file.
 `;
 }
 
@@ -891,7 +894,13 @@ function runLocalRehearsal(options) {
 
 function executeLocal(options) {
   const result = runLocalRehearsal(options);
-  console.log(JSON.stringify(result, null, 2));
+  const json = `${JSON.stringify(result, null, 2)}\n`;
+  if (options.jsonOutput) {
+    const outputPath = path.resolve(options.jsonOutput);
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, json, "utf8");
+  }
+  process.stdout.write(json);
   const hasBridgeViolations =
     Number(result.ordersBridge?.missing_public_id ?? 0) > 0 ||
     Number(result.ordersBridge?.duplicate_public_id ?? 0) > 0;

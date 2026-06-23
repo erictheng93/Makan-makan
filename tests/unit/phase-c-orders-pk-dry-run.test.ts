@@ -19,6 +19,8 @@ const {
     database: string;
     config: string;
     persistTo: string;
+    jsonOutput: string | null;
+    withFixture: boolean;
   };
 } = require("../../scripts/phase-c-orders-pk-dry-run.cjs");
 
@@ -75,6 +77,8 @@ describe("Phase C orders PK dry-run script", () => {
         "--persist-to",
         "./state",
         "--with-fixture",
+        "--json-output",
+        "./artifacts/orders-pk.json",
       ]),
     ).toMatchObject({
       executeLocal: true,
@@ -82,6 +86,7 @@ describe("Phase C orders PK dry-run script", () => {
       config: "./worker.toml",
       persistTo: "./state",
       withFixture: true,
+      jsonOutput: "./artifacts/orders-pk.json",
     });
   });
 });

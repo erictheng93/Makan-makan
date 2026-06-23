@@ -1,7 +1,8 @@
 # Destructive Migration Coordination Plan
 
 **Date:** 2026-06-23
-**Status:** Phase A repo preparation in progress; no remote D1 migration run
+**Status:** Phase C orders PK drill tooling complete locally; Phase D users/auth
+bridge planning in progress; no remote D1 destructive migration run
 
 ## Objective
 
@@ -273,11 +274,17 @@ Progress:
   empty, and rollback verification found no persisted `phase-c-orders-pk-*`
   rows. A staging or production-like data rehearsal is still required before
   paired migrations are generated.
+- 2026-06-23: Added `--json-output` support to
+  `scripts/phase-c-orders-pk-dry-run.cjs` so local, staging, and restored-prod
+  drill results can be archived as JSON evidence while preserving stdout.
 
 ## Phase D: Users UUID Bridge
 
 This phase is not destructive. It prepares auth and staff identity for a later
 `users` primary-key rebuild.
+
+Detailed plan:
+`docs/architecture/database/USERS_UUID_AUTH_PHASE_D_PLAN.md`.
 
 Scope:
 
@@ -296,6 +303,15 @@ Acceptance:
 - Legacy numeric JWT compatibility is deliberate and covered by tests.
 - New sessions and refresh-token flows no longer require numeric `users.id`.
 - No staff FK table rebuild is generated in this phase.
+
+Progress:
+
+- 2026-06-23: Added
+  `docs/architecture/database/USERS_UUID_AUTH_PHASE_D_PLAN.md` with the
+  current integer-id auth blockers, bridge identity contract, implementation
+  slices, and destructive Phase E gates. The plan keeps this phase
+  non-destructive and explicitly preserves legacy numeric JWT compatibility
+  until tests and token issuance are migrated.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 
