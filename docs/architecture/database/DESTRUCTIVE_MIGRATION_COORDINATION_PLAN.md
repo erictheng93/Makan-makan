@@ -268,8 +268,8 @@ Progress:
 - 2026-06-23: Local rehearsal passed on the current Miniflare D1 state. The
   baseline run checked 12 existing dependency surfaces and returned 0 missing
   or duplicate `orders.public_id` values, 0 unmapped order references, and 0
-  `foreign_key_check` rows. The representative `--with-fixture` run inserted
-  one rollback-only order and one dependent row per existing surface; every
+  `foreign_key_check` rows. The synthetic `--with-fixture` run inserted one
+  rollback-only order and one dependent row per existing surface; every
   checked surface mapped 1 / 1 order references, `foreign_key_check` stayed
   empty, and rollback verification found no persisted `phase-c-orders-pk-*`
   rows. A staging or production-like data rehearsal is still required before

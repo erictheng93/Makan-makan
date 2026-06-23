@@ -17,7 +17,7 @@ authorize a production destructive migration.
   `rtk pnpm db:orders-pk-dry-run`
 - Save local rehearsal evidence:
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json`
-- Save representative fixture evidence:
+- Save synthetic fixture evidence:
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json`
 - Require representative rehearsal data:
   `rtk pnpm db:orders-pk-dry-run:representative`
@@ -69,7 +69,7 @@ Baseline result:
   `--with-fixture`; it is only valid when the selected database already has real
   representative order data.
 
-Representative fixture result:
+Synthetic fixture result:
 
 - The rehearsal inserted one rollback-only `phase-c-orders-pk-*` fixture order
   and one dependent row for each existing order FK/pointer surface.
@@ -123,7 +123,7 @@ shadow copy. Any nonzero unmapped count blocks migration conversion.
 The rehearsal script must remain non-destructive:
 
 - It creates only `TEMP` tables.
-- With `--with-fixture`, it inserts representative rows only inside the rollback
+- With `--with-fixture`, it inserts synthetic rows only inside the rollback
   transaction.
 - It maps legacy integer references to `orders.public_id` through shadow copy
   tables.

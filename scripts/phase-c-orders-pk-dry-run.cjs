@@ -344,7 +344,7 @@ Options:
   --config <path>      Wrangler config path (default: ${DEFAULT_CONFIG})
   --persist-to <path>  Local D1 state path (default: ${DEFAULT_PERSIST_TO})
   --sqlite-path <path> Local Miniflare SQLite file. Auto-detected by default.
-  --with-fixture       Insert representative order dependency rows inside the rollback transaction.
+  --with-fixture       Insert synthetic order dependency rows inside the rollback transaction.
   --require-representative-data
                        Fail if the rehearsal has no orders or no non-null order dependency refs.
   --require-complete-surface-coverage
@@ -1126,4 +1126,5 @@ module.exports = {
   runLocalRehearsal,
   summarizeAppCompatibility,
   summarizeDataCoverage,
+  usage,
 };

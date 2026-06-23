@@ -8,6 +8,7 @@ const {
   assessRehearsalResult,
   buildDryRunSql,
   parseArgs,
+  usage,
 }: {
   ARTIFACT_SCHEMA_VERSION: number;
   ORDER_DEPENDENCIES: Array<{
@@ -57,6 +58,7 @@ const {
     requireRepresentativeData: boolean;
     requireCompleteSurfaceCoverage: boolean;
   };
+  usage: () => string;
 } = require("../../scripts/phase-c-orders-pk-dry-run.cjs");
 
 describe("Phase C orders PK dry-run script", () => {
@@ -132,6 +134,13 @@ describe("Phase C orders PK dry-run script", () => {
       requireCompleteSurfaceCoverage: true,
       jsonOutput: "./artifacts/orders-pk.json",
     });
+  });
+
+  it("labels fixture data as synthetic in CLI help", () => {
+    expect(usage()).toContain("Insert synthetic order dependency rows");
+    expect(usage()).not.toContain(
+      "Insert representative order dependency rows",
+    );
   });
 
   it("allows empty local rehearsals unless representative data is required", () => {
