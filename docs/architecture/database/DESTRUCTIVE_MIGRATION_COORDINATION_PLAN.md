@@ -251,6 +251,25 @@ Next execution queue:
   proves row-count parity, `PRAGMA foreign_key_check` success, and application
   compatibility through the UUID bridge.
 
+Progress:
+
+- 2026-06-23: Added
+  `docs/architecture/database/ORDERS_UUID_PK_PHASE_C_DEPENDENCY_MAP.md` with
+  the current order FK/pointer map, local row-count evidence, indexes, triggers,
+  and write paths. The map covers 12 local dependency surfaces and keeps
+  `order_status_history.order_id` / `customer_reviews.order_id` as legacy
+  migration surfaces to introspect when present.
+- 2026-06-23: Added `scripts/phase-c-orders-pk-dry-run.cjs` and
+  `rtk pnpm db:orders-pk-dry-run`. The script prints review SQL and runs a
+  local SQLite transaction rehearsal using TEMP shadow tables, row-count
+  parity checks, `orders.public_id` bridge checks, `PRAGMA foreign_key_check`,
+  and rollback.
+- 2026-06-23: Local rehearsal passed on the current Miniflare D1 state:
+  12 dependency surfaces checked, 0 missing or duplicate `orders.public_id`
+  values, 0 unmapped order references, and 0 `foreign_key_check` rows. Local
+  data is empty, so a later representative-data rehearsal is still required
+  before paired migrations are generated.
+
 ## Phase D: Users UUID Bridge
 
 This phase is not destructive. It prepares auth and staff identity for a later
