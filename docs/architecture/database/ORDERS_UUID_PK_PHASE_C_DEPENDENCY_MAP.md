@@ -24,7 +24,9 @@ authorize a production destructive migration.
 - Require full dependency-surface fixture coverage:
   `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json`
 - Validate archived rehearsal evidence before migration drafting:
-  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json`
+  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json --role representative`
+- Validate local full-surface fixture evidence before migration drafting:
+  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-fixture-full-surface.json --role fixture`
 - Unit test the rehearsal generator:
   `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
@@ -165,8 +167,12 @@ Do not create paired Phase C migrations until all of these are true:
   lookup mismatches, missing shadow public ids, and shadow public-id resolution
   mismatches.
 - `PRAGMA foreign_key_check` returns zero rows.
-- `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json>`
+- `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
   returns `exitCode = 0` for the archived staging/restored-production evidence.
+  This role gate rejects rollback fixture artifacts so synthetic local data
+  cannot be substituted for real representative data.
+- `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
+  returns `exitCode = 0` for the local full-surface rollback fixture artifact.
   The validator recomputes dependency-surface and non-null reference coverage
   from the artifact and requires `ordersBridge.order_rows > 0` instead of
   trusting `dataCoverage` alone. It also verifies the archived artifact records

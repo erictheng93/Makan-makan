@@ -9,11 +9,13 @@ const {
   parseArgs: (argv: string[]) => {
     phase: string | null;
     artifact: string | null;
+    role: string | null;
     help: boolean;
   };
   validateArtifact: (
     phase: "orders" | "users",
     artifact: Record<string, unknown>,
+    options?: { role?: "representative" | "fixture" },
   ) => { exitCode: number; failures: string[] };
 } = require("../../scripts/validate-pk-rehearsal-artifact.cjs");
 
@@ -26,10 +28,13 @@ describe("PK rehearsal artifact validator", () => {
         "orders",
         "--artifact",
         "/tmp/orders-pk.json",
+        "--role",
+        "representative",
       ]),
     ).toEqual({
       phase: "orders",
       artifact: "/tmp/orders-pk.json",
+      role: "representative",
       help: false,
     });
   });
@@ -70,6 +75,143 @@ describe("PK rehearsal artifact validator", () => {
         foreignKeyCheck: [],
       }),
     ).toEqual({ exitCode: 0, failures: [] });
+  });
+
+  it("rejects a fixture artifact when representative evidence is required", () => {
+    expect(
+      validateArtifact(
+        "orders",
+        {
+          artifactPhase: "orders",
+          artifactSchemaVersion: 1,
+          assessment: { exitCode: 0, failures: [] },
+          rehearsalOptions: {
+            withFixture: true,
+            requireRepresentativeData: true,
+            requireCompleteSurfaceCoverage: true,
+          },
+          dataCoverage: { isRepresentative: true },
+          ordersBridge: {
+            order_rows: 1,
+            missing_public_id: 0,
+            duplicate_public_id: 0,
+          },
+          dependencies: [
+            {
+              table: "order_items",
+              column: "order_id",
+              non_null_order_refs: 1,
+              mapped_order_refs: 1,
+              unmapped_order_refs: 0,
+              schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+            },
+          ],
+          appCompatibility: {
+            public_lookup_rows: 1,
+            shadow_public_id_rows: 1,
+            lookup_mismatches: 0,
+            shadow_public_id_missing: 0,
+            shadow_public_id_mismatches: 0,
+          },
+          foreignKeyCheck: [],
+        },
+        { role: "representative" },
+      ),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "representative artifact must not be generated with fixture data",
+      ],
+    });
+  });
+
+  it("accepts a Phase C fixture artifact only when fixture coverage is declared", () => {
+    expect(
+      validateArtifact(
+        "orders",
+        {
+          artifactPhase: "orders",
+          artifactSchemaVersion: 1,
+          assessment: { exitCode: 0, failures: [] },
+          rehearsalOptions: {
+            withFixture: true,
+            requireRepresentativeData: true,
+            requireCompleteSurfaceCoverage: true,
+          },
+          dataCoverage: { isRepresentative: true },
+          ordersBridge: {
+            order_rows: 1,
+            missing_public_id: 0,
+            duplicate_public_id: 0,
+          },
+          dependencies: [
+            {
+              table: "order_items",
+              column: "order_id",
+              non_null_order_refs: 1,
+              mapped_order_refs: 1,
+              unmapped_order_refs: 0,
+              schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+            },
+          ],
+          appCompatibility: {
+            public_lookup_rows: 1,
+            shadow_public_id_rows: 1,
+            lookup_mismatches: 0,
+            shadow_public_id_missing: 0,
+            shadow_public_id_mismatches: 0,
+          },
+          foreignKeyCheck: [],
+        },
+        { role: "fixture" },
+      ),
+    ).toEqual({ exitCode: 0, failures: [] });
+  });
+
+  it("rejects a Phase C fixture artifact without fixture metadata", () => {
+    expect(
+      validateArtifact(
+        "orders",
+        {
+          artifactPhase: "orders",
+          artifactSchemaVersion: 1,
+          assessment: { exitCode: 0, failures: [] },
+          rehearsalOptions: {
+            withFixture: false,
+            requireRepresentativeData: true,
+            requireCompleteSurfaceCoverage: true,
+          },
+          dataCoverage: { isRepresentative: true },
+          ordersBridge: {
+            order_rows: 1,
+            missing_public_id: 0,
+            duplicate_public_id: 0,
+          },
+          dependencies: [
+            {
+              table: "order_items",
+              column: "order_id",
+              non_null_order_refs: 1,
+              mapped_order_refs: 1,
+              unmapped_order_refs: 0,
+              schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+            },
+          ],
+          appCompatibility: {
+            public_lookup_rows: 1,
+            shadow_public_id_rows: 1,
+            lookup_mismatches: 0,
+            shadow_public_id_missing: 0,
+            shadow_public_id_mismatches: 0,
+          },
+          foreignKeyCheck: [],
+        },
+        { role: "fixture" },
+      ),
+    ).toEqual({
+      exitCode: 1,
+      failures: ["fixture artifact must be generated with --with-fixture"],
+    });
   });
 
   it("rejects artifacts with non-empty assessment failures even when exitCode is zero", () => {

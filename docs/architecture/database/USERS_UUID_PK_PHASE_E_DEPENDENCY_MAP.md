@@ -22,7 +22,7 @@ a production destructive migration.
 - Require representative rehearsal data:
   `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-representative.json`
 - Validate archived rehearsal evidence before migration drafting:
-  `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact /tmp/users-pk-representative.json`
+  `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact /tmp/users-pk-representative.json --role representative`
 - Unit test the rehearsal verifier:
   `rtk pnpm exec vitest run tests/unit/phase-e-users-pk-dry-run.test.ts`
 
@@ -122,8 +122,10 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - `users.public_id` has zero missing, duplicate, or malformed values.
 - `uninventoriedUserForeignKeys` is empty.
 - `PRAGMA foreign_key_check` returns zero rows.
-- `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json>`
+- `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json> --role representative`
   returns `exitCode = 0` for the archived staging/restored-production evidence.
+  This role gate rejects any fixture-generated artifact if a fixture mode is
+  later added to the users drill.
   The validator recomputes dependency-surface and non-null reference coverage
   from the artifact and requires `usersBridge.user_rows > 0` instead of
   trusting `dataCoverage` alone. It also verifies the archived artifact records

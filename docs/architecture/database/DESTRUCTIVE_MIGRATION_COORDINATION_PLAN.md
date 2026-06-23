@@ -309,6 +309,11 @@ Progress:
 - 2026-06-23: Phase C and Phase E artifacts now record
   `artifactSchemaVersion = 1`; the shared validator rejects archived evidence
   with missing or unsupported artifact schema versions.
+- 2026-06-23: Added artifact role validation to the shared validator. Phase C
+  migration reviewers can now require `--role representative` for
+  staging/restored-production evidence and `--role fixture` for the local
+  rollback full-surface artifact, preventing synthetic fixture data from being
+  substituted for representative data.
 
 Current blocker before paired Phase C migrations:
 
@@ -319,11 +324,14 @@ Current blocker before paired Phase C migrations:
   bridge violations, zero unmapped refs, zero `appCompatibility` mismatches,
   and zero `foreignKeyCheck` rows.
 - Run
-  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json>`
+  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
   and require validator `exitCode = 0`.
 - Keep the full-surface rollback fixture artifact alongside the staging or
   restored-production artifact so migration reviewers can verify every checked
   dependency surface has copy coverage and schema preservation metadata.
+- Run
+  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
+  against that local full-surface fixture artifact.
 - Only then draft paired Phase C rebuild migrations from the dry-run plan.
 
 ## Phase D: Users UUID Bridge

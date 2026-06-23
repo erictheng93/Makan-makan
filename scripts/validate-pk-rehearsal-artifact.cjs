@@ -50,8 +50,30 @@ function validateCommonArtifact(phase, artifact) {
   return failures;
 }
 
-function validateOrdersArtifact(artifact) {
+function validateRole(artifact, role) {
+  const failures = [];
+  if (!role) return failures;
+  if (role === "representative") {
+    if (artifact.rehearsalOptions?.withFixture === true) {
+      failures.push(
+        "representative artifact must not be generated with fixture data",
+      );
+    }
+    return failures;
+  }
+  if (role === "fixture") {
+    if (artifact.rehearsalOptions?.withFixture !== true) {
+      failures.push("fixture artifact must be generated with --with-fixture");
+    }
+    return failures;
+  }
+  failures.push(`unsupported artifact role: ${role}`);
+  return failures;
+}
+
+function validateOrdersArtifact(artifact, options = {}) {
   const failures = validateCommonArtifact("orders", artifact);
+  failures.push(...validateRole(artifact, options.role));
   const dependencies = asArray(artifact.dependencies);
   if (artifact.rehearsalOptions?.requireCompleteSurfaceCoverage !== true) {
     failures.push(
@@ -117,8 +139,9 @@ function validateOrdersArtifact(artifact) {
   return { exitCode: failures.length > 0 ? 1 : 0, failures };
 }
 
-function validateUsersArtifact(artifact) {
+function validateUsersArtifact(artifact, options = {}) {
   const failures = validateCommonArtifact("users", artifact);
+  failures.push(...validateRole(artifact, options.role));
   const dependencies = asArray(artifact.dependencies);
   if (numberValue(artifact.usersBridge?.user_rows) === 0) {
     failures.push("users artifact has no user rows");
@@ -166,19 +189,20 @@ function validateUsersArtifact(artifact) {
   return { exitCode: failures.length > 0 ? 1 : 0, failures };
 }
 
-function validateArtifact(phase, artifact) {
-  if (phase === "orders") return validateOrdersArtifact(artifact);
-  if (phase === "users") return validateUsersArtifact(artifact);
+function validateArtifact(phase, artifact, options = {}) {
+  if (phase === "orders") return validateOrdersArtifact(artifact, options);
+  if (phase === "users") return validateUsersArtifact(artifact, options);
   throw new Error(`Unsupported phase: ${phase}`);
 }
 
 function parseArgs(argv) {
-  const args = { phase: null, artifact: null, help: false };
+  const args = { phase: null, artifact: null, role: null, help: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--") continue;
     if (arg === "--phase") args.phase = argv[++index];
     else if (arg === "--artifact") args.artifact = argv[++index];
+    else if (arg === "--role") args.role = argv[++index];
     else if (arg === "--help") args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -188,6 +212,8 @@ function parseArgs(argv) {
 function usage() {
   return `Usage:
   node scripts/validate-pk-rehearsal-artifact.cjs --phase orders --artifact /path/orders-pk.json
+  node scripts/validate-pk-rehearsal-artifact.cjs --phase orders --artifact /path/orders-pk.json --role representative
+  node scripts/validate-pk-rehearsal-artifact.cjs --phase orders --artifact /path/orders-pk-fixture.json --role fixture
   node scripts/validate-pk-rehearsal-artifact.cjs --phase users --artifact /path/users-pk.json
 `;
 }
@@ -203,7 +229,7 @@ function execute(argv) {
   }
   const artifactPath = path.resolve(args.artifact);
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-  const result = validateArtifact(args.phase, artifact);
+  const result = validateArtifact(args.phase, artifact, { role: args.role });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   return result.exitCode;
 }
@@ -224,5 +250,6 @@ module.exports = {
   parseArgs,
   validateArtifact,
   validateOrdersArtifact,
+  validateRole,
   validateUsersArtifact,
 };
