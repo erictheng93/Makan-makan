@@ -74,12 +74,14 @@ describe("Phase C orders PK dry-run script", () => {
         "./worker.toml",
         "--persist-to",
         "./state",
+        "--with-fixture",
       ]),
     ).toMatchObject({
       executeLocal: true,
       database: "local-db",
       config: "./worker.toml",
       persistTo: "./state",
+      withFixture: true,
     });
   });
 });

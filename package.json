@@ -54,6 +54,7 @@
     "db:seed:local": "wrangler d1 execute makanmakan-local --local --persist-to ./apps/api/.wrangler/state --file=./scripts/seed-local.sql --config=./apps/api/wrangler.toml",
     "db:seed:staging": "wrangler d1 execute makanmasak-staging --env staging --file=./scripts/seed-staging.sql --config=./apps/api/wrangler.toml",
     "db:orders-pk-dry-run": "node scripts/phase-c-orders-pk-dry-run.cjs --execute-local",
+    "db:orders-pk-dry-run:fixture": "node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture",
     "db:backup": "npx tsx scripts/backup-database.ts",
     "db:test-migrations": "npx tsx scripts/test-migrations-v2.ts",
     "setup:secrets": "npx tsx scripts/setup-secrets.ts",

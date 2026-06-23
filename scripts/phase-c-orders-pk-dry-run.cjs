@@ -302,6 +302,7 @@ function parseArgs(argv) {
     config: DEFAULT_CONFIG,
     persistTo: DEFAULT_PERSIST_TO,
     sqlitePath: null,
+    withFixture: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -312,6 +313,7 @@ function parseArgs(argv) {
     else if (arg === "--config") args.config = argv[++index];
     else if (arg === "--persist-to") args.persistTo = argv[++index];
     else if (arg === "--sqlite-path") args.sqlitePath = argv[++index];
+    else if (arg === "--with-fixture") args.withFixture = true;
     else if (arg === "--help") {
       args.help = true;
     } else {
@@ -332,6 +334,7 @@ Options:
   --config <path>      Wrangler config path (default: ${DEFAULT_CONFIG})
   --persist-to <path>  Local D1 state path (default: ${DEFAULT_PERSIST_TO})
   --sqlite-path <path> Local Miniflare SQLite file. Auto-detected by default.
+  --with-fixture       Insert representative order dependency rows inside the rollback transaction.
 `;
 }
 
@@ -374,6 +377,394 @@ function readIndexesAndTriggers(db, tableName) {
     .all(tableName);
 }
 
+function run(db, sql, params = []) {
+  db.prepare(sql).run(...params);
+}
+
+function insertRepresentativeFixture(db) {
+  const now = Date.now();
+  const orderId = -910001;
+  const userId = -910001;
+  const tableId = -910001;
+  const seatId = -910001;
+  const categoryId = -910001;
+  const menuItemId = -910001;
+  const couponId = -910001;
+  const prefix = "phase-c-orders-pk";
+  const restaurantId = `${prefix}-restaurant`;
+  const registerId = `${prefix}-register`;
+  const shiftId = `${prefix}-shift`;
+  const marketId = `${prefix}-market`;
+  const checkoutId = `${prefix}-checkout`;
+  const partnershipId = `${prefix}-partnership`;
+  const planId = `${prefix}-plan`;
+  const memberId = `${prefix}-member`;
+  const paymentTransactionId = `${prefix}-payment`;
+
+  run(
+    db,
+    `INSERT INTO restaurants (
+      id, name, type, category, address, district, phone, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      restaurantId,
+      "Phase C Drill Restaurant",
+      "restaurant",
+      "test",
+      "Phase C Address",
+      "Phase C District",
+      "0000000000",
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO users (
+      id, username, full_name, password_hash, role, restaurant_id, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      userId,
+      `${prefix}-owner`,
+      "Phase C Owner",
+      "not-a-real-password-hash",
+      1,
+      restaurantId,
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO tables (
+      id, restaurant_id, number, qr_code, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [tableId, restaurantId, "PC-1", `${prefix}-table-qr`, now, now],
+  );
+  run(
+    db,
+    `INSERT INTO seats (
+      id, table_id, seat_number, qr_code, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [seatId, tableId, "S1", `${prefix}-seat-qr`, now, now],
+  );
+  run(
+    db,
+    `INSERT INTO orders (
+      id, public_id, restaurant_id, table_id, order_number, status,
+      subtotal_cents, tax_amount_cents, service_charge_cents,
+      discount_amount_cents, total_amount_cents, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      orderId,
+      "018f0000-0000-7000-8000-00000000c001",
+      restaurantId,
+      tableId,
+      `${prefix}-order`,
+      "paid",
+      1000,
+      0,
+      0,
+      0,
+      1000,
+      now,
+      now,
+    ],
+  );
+  run(db, "UPDATE tables SET current_order_id = ? WHERE id = ?", [
+    orderId,
+    tableId,
+  ]);
+  run(db, "UPDATE seats SET current_order_id = ? WHERE id = ?", [
+    orderId,
+    seatId,
+  ]);
+  run(
+    db,
+    `INSERT INTO categories (
+      id, restaurant_id, name, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?)`,
+    [categoryId, restaurantId, "Phase C Category", now, now],
+  );
+  run(
+    db,
+    `INSERT INTO menu_items (
+      id, restaurant_id, category_id, name, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [menuItemId, restaurantId, categoryId, "Phase C Item", now, now],
+  );
+  run(
+    db,
+    `INSERT INTO order_items (
+      order_id, menu_item_id, quantity, unit_price_cents, total_price_cents,
+      created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [orderId, menuItemId, 1, 1000, 1000, now, now],
+  );
+  run(
+    db,
+    `INSERT INTO payment_transactions (
+      transaction_id, order_id, restaurant_id, amount_cents, payment_method,
+      status, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      paymentTransactionId,
+      orderId,
+      restaurantId,
+      1000,
+      "cash",
+      "paid",
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO refund_transactions (
+      refund_id, payment_transaction_id, order_id, restaurant_id, amount_cents,
+      status, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `${prefix}-refund-transaction`,
+      paymentTransactionId,
+      orderId,
+      restaurantId,
+      100,
+      "completed",
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO cash_registers (
+      id, name, restaurant_id, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?)`,
+    [registerId, "Phase C Register", restaurantId, now, now],
+  );
+  run(
+    db,
+    `INSERT INTO cash_shifts (
+      id, register_id, operator_id, started_at_ms
+    ) VALUES (?, ?, ?, ?)`,
+    [shiftId, registerId, userId, now],
+  );
+  run(
+    db,
+    `INSERT INTO receipts (
+      id, order_id, register_id, shift_id, receipt_number, receipt_type,
+      content, created_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `${prefix}-receipt`,
+      orderId,
+      registerId,
+      shiftId,
+      `${prefix}-receipt-no`,
+      "customer",
+      "{}",
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO refunds (
+      id, original_order_id, register_id, shift_id, refund_number,
+      refund_type, refund_amount_cents, refund_method, reason_code,
+      processed_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `${prefix}-refund`,
+      orderId,
+      registerId,
+      shiftId,
+      `${prefix}-refund-no`,
+      "partial",
+      100,
+      "cash",
+      "phase_c",
+      userId,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO platform_orders (
+      order_id, platform, platform_order_id, restaurant_id, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [orderId, "uber_eats", `${prefix}-platform-order`, restaurantId, now, now],
+  );
+  run(
+    db,
+    `INSERT INTO coupons (
+      id, code, name, discount_type, valid_from, valid_to,
+      restaurant_id, created_by, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      couponId,
+      `${prefix}-coupon`,
+      "Phase C Coupon",
+      "fixed_amount",
+      "2026-01-01",
+      "2026-12-31",
+      restaurantId,
+      userId,
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO coupon_usage (
+      coupon_id, order_id, user_id, discount_amount_cents,
+      used_at_ms, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [couponId, orderId, userId, 100, now, now, now],
+  );
+  run(
+    db,
+    `INSERT INTO markets (
+      id, slug, name, type, city, district, address, latitude, longitude,
+      created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      marketId,
+      `${prefix}-market`,
+      "Phase C Market",
+      "market",
+      "Taipei",
+      "Phase C District",
+      "Phase C Market Address",
+      0,
+      0,
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO market_checkout_sessions (
+      id, market_id, market_slug, market_name, subtotal_cents,
+      created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      checkoutId,
+      marketId,
+      `${prefix}-market`,
+      "Phase C Market",
+      1000,
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO market_checkout_child_orders (
+      checkout_id, restaurant_id, restaurant_name, order_id, order_number,
+      total_amount_cents, token_expires_at_ms, created_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      checkoutId,
+      restaurantId,
+      "Phase C Drill Restaurant",
+      orderId,
+      `${prefix}-order`,
+      1000,
+      now + 3600000,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO group_orders (
+      id, share_code, master_order_id, created_by, restaurant_id, table_id,
+      expires_at_ms, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `${prefix}-group`,
+      `${prefix}-share`,
+      orderId,
+      userId,
+      restaurantId,
+      tableId,
+      now + 3600000,
+      now,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO partnerships (
+      id, partner_code, partner_name, partner_type, contact_person,
+      contact_phone, contact_email, contract_start_date_ms, contract_end_date_ms,
+      created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      partnershipId,
+      `${prefix}-partner-code`,
+      "Phase C Partner",
+      "corporate",
+      "Phase C Contact",
+      "0000000000",
+      "phase-c@example.test",
+      now,
+      now + 86400000,
+      userId,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO partnership_plans (
+      id, partnership_id, restaurant_id, plan_code, plan_name, discount_type,
+      valid_from_ms, valid_to_ms, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      planId,
+      partnershipId,
+      restaurantId,
+      `${prefix}-plan-code`,
+      "Phase C Plan",
+      "percentage",
+      now,
+      now + 86400000,
+      userId,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO verified_members (
+      id, partnership_id, member_id, member_type, full_name, verification_method,
+      verified_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      memberId,
+      partnershipId,
+      `${prefix}-member-code`,
+      "employee",
+      "Phase C Member",
+      "manual",
+      userId,
+    ],
+  );
+  run(
+    db,
+    `INSERT INTO partnership_usage_logs (
+      id, partnership_id, plan_id, member_id, order_id, restaurant_id,
+      discount_type, status, verified_by_user_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `${prefix}-usage`,
+      partnershipId,
+      planId,
+      memberId,
+      orderId,
+      restaurantId,
+      "percentage",
+      "pending",
+      userId,
+    ],
+  );
+}
+
 function runLocalRehearsal(options) {
   const Database = require("better-sqlite3");
   const sqlitePath = options.sqlitePath
@@ -400,6 +791,13 @@ function runLocalRehearsal(options) {
     db.pragma("foreign_keys = ON");
     db.exec("BEGIN");
     try {
+      if (options.withFixture) {
+        insertRepresentativeFixture(db);
+        result.fixture = { inserted: true };
+      } else {
+        result.fixture = { inserted: false };
+      }
+
       db.exec(`CREATE TEMP TABLE __phase_c_order_dependencies (
         dependency_order INTEGER PRIMARY KEY,
         table_name TEXT NOT NULL,
