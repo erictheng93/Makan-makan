@@ -31,6 +31,9 @@ function validateCommonArtifact(artifact) {
 function validateOrdersArtifact(artifact) {
   const failures = validateCommonArtifact(artifact);
   const dependencies = asArray(artifact.dependencies);
+  if (numberValue(artifact.ordersBridge?.order_rows) === 0) {
+    failures.push("orders artifact has no order rows");
+  }
   if (numberValue(artifact.ordersBridge?.missing_public_id) > 0) {
     failures.push("orders.public_id bridge has missing values");
   }
@@ -90,6 +93,9 @@ function validateOrdersArtifact(artifact) {
 function validateUsersArtifact(artifact) {
   const failures = validateCommonArtifact(artifact);
   const dependencies = asArray(artifact.dependencies);
+  if (numberValue(artifact.usersBridge?.user_rows) === 0) {
+    failures.push("users artifact has no user rows");
+  }
   if (numberValue(artifact.usersBridge?.missing_public_id) > 0) {
     failures.push("users.public_id bridge has missing values");
   }

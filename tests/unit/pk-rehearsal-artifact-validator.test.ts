@@ -40,6 +40,7 @@ describe("PK rehearsal artifact validator", () => {
         assessment: { exitCode: 0, failures: [] },
         dataCoverage: { isRepresentative: true },
         ordersBridge: {
+          order_rows: 3,
           missing_public_id: 0,
           duplicate_public_id: 0,
         },
@@ -71,6 +72,7 @@ describe("PK rehearsal artifact validator", () => {
         assessment: { exitCode: 1, failures: ["representative data required"] },
         dataCoverage: { isRepresentative: false },
         ordersBridge: {
+          order_rows: 0,
           missing_public_id: 1,
           duplicate_public_id: 1,
         },
@@ -97,6 +99,7 @@ describe("PK rehearsal artifact validator", () => {
       failures: [
         "artifact assessment exitCode is not 0",
         "artifact dataCoverage is not representative",
+        "orders artifact has no order rows",
         "orders.public_id bridge has missing values",
         "orders.public_id bridge has duplicate values",
         "payment_transactions.order_id has unmapped order references",
@@ -118,6 +121,7 @@ describe("PK rehearsal artifact validator", () => {
         assessment: { exitCode: 0, failures: [] },
         dataCoverage: { isRepresentative: true },
         ordersBridge: {
+          order_rows: 0,
           missing_public_id: 0,
           duplicate_public_id: 0,
         },
@@ -133,10 +137,46 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({
       exitCode: 1,
       failures: [
+        "orders artifact has no order rows",
         "orders artifact has no dependency surfaces",
         "orders artifact has no non-null dependency references",
         "orders appCompatibility has no shadow public-id coverage",
       ],
+    });
+  });
+
+  it("rejects a Phase C orders artifact with dependency refs but no order rows", () => {
+    expect(
+      validateArtifact("orders", {
+        assessment: { exitCode: 0, failures: [] },
+        dataCoverage: { isRepresentative: true },
+        ordersBridge: {
+          order_rows: 0,
+          missing_public_id: 0,
+          duplicate_public_id: 0,
+        },
+        dependencies: [
+          {
+            table: "order_items",
+            column: "order_id",
+            non_null_order_refs: 1,
+            mapped_order_refs: 1,
+            unmapped_order_refs: 0,
+            schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+          },
+        ],
+        appCompatibility: {
+          public_lookup_rows: 1,
+          shadow_public_id_rows: 1,
+          lookup_mismatches: 0,
+          shadow_public_id_missing: 0,
+          shadow_public_id_mismatches: 0,
+        },
+        foreignKeyCheck: [],
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: ["orders artifact has no order rows"],
     });
   });
 
@@ -146,6 +186,7 @@ describe("PK rehearsal artifact validator", () => {
         assessment: { exitCode: 0, failures: [] },
         dataCoverage: { isRepresentative: true },
         usersBridge: {
+          user_rows: 4,
           missing_public_id: 0,
           duplicate_public_id: 0,
           malformed_public_id: 0,
@@ -172,6 +213,7 @@ describe("PK rehearsal artifact validator", () => {
         assessment: { exitCode: 0, failures: [] },
         dataCoverage: { isRepresentative: false },
         usersBridge: {
+          user_rows: 0,
           missing_public_id: 1,
           duplicate_public_id: 1,
           malformed_public_id: 1,
@@ -192,6 +234,7 @@ describe("PK rehearsal artifact validator", () => {
       exitCode: 1,
       failures: [
         "artifact dataCoverage is not representative",
+        "users artifact has no user rows",
         "users.public_id bridge has missing values",
         "users.public_id bridge has duplicate values",
         "users.public_id bridge has malformed UUID-v7 values",
@@ -210,6 +253,7 @@ describe("PK rehearsal artifact validator", () => {
         assessment: { exitCode: 0, failures: [] },
         dataCoverage: { isRepresentative: true },
         usersBridge: {
+          user_rows: 0,
           missing_public_id: 0,
           duplicate_public_id: 0,
           malformed_public_id: 0,
@@ -229,7 +273,40 @@ describe("PK rehearsal artifact validator", () => {
       }),
     ).toEqual({
       exitCode: 1,
-      failures: ["users artifact has no non-null dependency references"],
+      failures: [
+        "users artifact has no user rows",
+        "users artifact has no non-null dependency references",
+      ],
+    });
+  });
+
+  it("rejects a Phase E users artifact with dependency refs but no user rows", () => {
+    expect(
+      validateArtifact("users", {
+        assessment: { exitCode: 0, failures: [] },
+        dataCoverage: { isRepresentative: true },
+        usersBridge: {
+          user_rows: 0,
+          missing_public_id: 0,
+          duplicate_public_id: 0,
+          malformed_public_id: 0,
+        },
+        dependencies: [
+          {
+            table: "sessions",
+            column: "user_id",
+            non_null_user_refs: 1,
+            mapped_user_refs: 1,
+            unmapped_user_refs: 0,
+            schemaObjects: [{ type: "index", name: "sessions_user_id_idx" }],
+          },
+        ],
+        uninventoriedUserForeignKeys: [],
+        foreignKeyCheck: [],
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: ["users artifact has no user rows"],
     });
   });
 });

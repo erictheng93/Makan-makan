@@ -119,7 +119,8 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json>`
   returns `exitCode = 0` for the archived staging/restored-production evidence.
   The validator recomputes dependency-surface and non-null reference coverage
-  from the artifact instead of trusting `dataCoverage` alone.
+  from the artifact and requires `usersBridge.user_rows > 0` instead of
+  trusting `dataCoverage` alone.
 - The migration draft preserves all listed indexes and triggers.
 - API auth, database auth, realtime auth, management exchange, verification,
   scheduling, leave, POS, partnership, feedback, and audit tests still pass

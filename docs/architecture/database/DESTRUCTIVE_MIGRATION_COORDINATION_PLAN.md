@@ -298,8 +298,9 @@ Progress:
   `rtk pnpm db:pk-rehearsal:validate` so archived Phase C rehearsal evidence is
   machine-gated before paired migrations are drafted.
 - 2026-06-23: Hardened the shared artifact validator so it recomputes
-  dependency-surface and non-null reference coverage from `dependencies`
-  instead of trusting `dataCoverage.isRepresentative` alone.
+  root-table row counts, dependency-surface coverage, and non-null reference
+  coverage from the artifact instead of trusting `dataCoverage.isRepresentative`
+  alone.
 
 Current blocker before paired Phase C migrations:
 
