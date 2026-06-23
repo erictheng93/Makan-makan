@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
     reprintReceipt: vi.fn(),
   },
   receiptServiceCtor: vi.fn(),
+  resolveOrderIdentity: vi.fn(),
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -33,6 +34,12 @@ vi.mock("../services/ReceiptService", () => ({
     mocks.receiptServiceCtor(...args);
     return mocks.receiptService;
   }),
+}));
+
+vi.mock("../../../shared/services/order-identity", () => ({
+  resolveOrderIdentity: vi.fn((...args: unknown[]) =>
+    mocks.resolveOrderIdentity(...args),
+  ),
 }));
 
 import routes from "./receipts";
@@ -114,6 +121,12 @@ describe("POS receipt routes", () => {
       success: true,
       data: receipt,
     });
+    mocks.resolveOrderIdentity.mockResolvedValue({
+      id: 101,
+      publicId: "018f0000-0000-7000-8000-000000000101",
+      orderNumber: "ORD-101",
+      restaurantId: "restaurant-1",
+    });
   });
 
   it("prints receipts with register and shift headers", async () => {
@@ -136,7 +149,44 @@ describe("POS receipt routes", () => {
       registerId,
       shiftId,
     );
-    expect(body).toEqual({ success: true, data: receipt });
+    expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
+      { binding: "db" },
+      101,
+      { restaurantId: "restaurant-1" },
+    );
+    expect(body).toEqual({
+      success: true,
+      data: {
+        ...receipt,
+        orderPublicId: "018f0000-0000-7000-8000-000000000101",
+      },
+    });
+  });
+
+  it("prints receipts for public order ids after route-level resolution", async () => {
+    const response = await request("/print", {
+      method: "POST",
+      body: JSON.stringify({
+        ...printPayload(),
+        orderId: "018f0000-0000-7000-8000-000000000101",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Register-Id": registerId,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
+      { binding: "db" },
+      "018f0000-0000-7000-8000-000000000101",
+      { restaurantId: "restaurant-1" },
+    );
+    expect(mocks.receiptService.printReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: 101 }),
+      registerId,
+      undefined,
+    );
   });
 
   it("rejects print requests without a register header and maps print failures", async () => {

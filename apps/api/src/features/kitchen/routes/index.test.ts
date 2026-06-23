@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   validateChefAccess: vi.fn(),
   getKitchenOrders: vi.fn(),
   updateOrderItemStatus: vi.fn(),
+  resolveOrderIdentity: vi.fn(),
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -36,10 +37,17 @@ vi.mock("../services/KitchenService", () => ({
   }),
 }));
 
+vi.mock("../../../shared/services/order-identity", () => ({
+  resolveOrderIdentity: vi.fn((...args: unknown[]) =>
+    mocks.resolveOrderIdentity(...args),
+  ),
+}));
+
 function createEnv() {
   const store = new Map<string, string>();
   return {
     JWT_SECRET: "test-jwt-secret-for-kitchen-routes-32",
+    DB: { binding: "db" },
     CACHE_KV: {
       get: vi.fn(async (key: string, type?: string) => {
         const value = store.get(key) ?? null;
@@ -88,6 +96,12 @@ describe("kitchen routes", () => {
       itemId: 9,
       status: "ready",
       updatedAt: "2026-06-07T00:00:00.000Z",
+    });
+    mocks.resolveOrderIdentity.mockResolvedValue({
+      id: 44,
+      publicId: "018f0000-0000-7000-8000-000000000044",
+      orderNumber: "ORD-44",
+      restaurantId: "restaurant-1",
     });
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -256,6 +270,7 @@ describe("kitchen routes", () => {
       success: true,
       data: {
         orderId: 44,
+        orderPublicId: "018f0000-0000-7000-8000-000000000044",
         itemId: 9,
         status: "ready",
       },
@@ -266,6 +281,38 @@ describe("kitchen routes", () => {
       44,
       9,
       { status: "ready", notes: "plate now" },
+      22,
+    );
+    expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
+      { binding: "db" },
+      "44",
+      { restaurantId: "restaurant-1" },
+    );
+  });
+
+  it("updates an order item through the canonical route with a public order id", async () => {
+    const response = await routes.fetch(
+      jsonRequest(
+        "/restaurant-1/orders/018f0000-0000-7000-8000-000000000044/items/9",
+        "PUT",
+        {
+          status: "ready",
+        },
+      ),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
+      { binding: "db" },
+      "018f0000-0000-7000-8000-000000000044",
+      { restaurantId: "restaurant-1" },
+    );
+    expect(mocks.updateOrderItemStatus).toHaveBeenCalledWith(
+      "restaurant-1",
+      44,
+      9,
+      { status: "ready", notes: "" },
       22,
     );
   });
@@ -337,7 +384,7 @@ describe("kitchen routes", () => {
   it("rejects malformed legacy route parameters before service calls", async () => {
     await expectIsolatedRouteError(() =>
       routes.fetch(
-        jsonRequest("/bad/items/9/start", "POST", {}),
+        jsonRequest("/44/items/bad/start", "POST", {}),
         createEnv() as never,
       ),
     );

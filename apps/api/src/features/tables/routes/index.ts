@@ -23,6 +23,7 @@ import {
 
 import { TablesService } from "../services/TablesService";
 import { tableSchemas } from "../schemas/validation";
+import { resolveOrderIdentity } from "../../../shared/services/order-identity";
 import type {
   AvailableTablesInput,
   BulkQRInput,
@@ -389,9 +390,12 @@ app.post(
       throw badRequest("Table is already occupied");
     }
 
+    const orderIdentity = await resolveOrderIdentity(c.env.DB, orderId, {
+      restaurantId: table.restaurantId,
+    });
     const success = await tablesService.occupyTable(
       id,
-      orderId,
+      orderIdentity.id,
       occupiedBy,
       estimatedMinutes,
     );

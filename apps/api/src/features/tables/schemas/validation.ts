@@ -71,7 +71,7 @@ export const tableFilterSchema = z.object({
 
 // Table occupation schema
 export const occupyTableSchema = z.object({
-  orderId: z.number().int().positive(),
+  orderId: z.union([z.number().int().positive(), z.string().min(1)]),
   occupiedBy: z.string().max(100).optional(),
   estimatedMinutes: z.number().int().positive().optional(),
 });

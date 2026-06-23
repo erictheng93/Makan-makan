@@ -8,6 +8,10 @@ const bridgeMigrations = [
   "packages/database/migrations_fresh/0072_orders_public_id_bridge.sql",
   "packages/database/migrations/0089_orders_public_id_bridge.sql",
 ];
+const auditGuardMigrations = [
+  "packages/database/migrations_fresh/0073_orders_public_id_audit_guard.sql",
+  "packages/database/migrations/0090_orders_public_id_audit_guard.sql",
+];
 
 describe("orders public id bridge", () => {
   it("adds a transitional public_id column to the orders schema", () => {
@@ -47,8 +51,8 @@ describe("orders public id bridge", () => {
     };
 
     expect(config.reviewedThrough).toEqual({
-      fresh: "0072_orders_public_id_bridge.sql",
-      legacy: "0089_orders_public_id_bridge.sql",
+      fresh: "0073_orders_public_id_audit_guard.sql",
+      legacy: "0090_orders_public_id_audit_guard.sql",
     });
     expect(config.pairs).toContainEqual({
       fresh: "0072_orders_public_id_bridge.sql",
@@ -56,5 +60,29 @@ describe("orders public id bridge", () => {
       reason:
         "Orders gain a UUID v7 public_id bridge before any integer primary-key or dependent FK rebuild.",
     });
+    expect(config.pairs).toContainEqual({
+      fresh: "0073_orders_public_id_audit_guard.sql",
+      legacy: "0090_orders_public_id_audit_guard.sql",
+      reason:
+        "Orders public_id audit guard blocks later not-null or PK rebuild work when bridge ids are missing, duplicated, or malformed.",
+    });
   });
+
+  it.each(auditGuardMigrations)(
+    "audits order public id bridge integrity in %s",
+    (migrationPath) => {
+      const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
+
+      expect(sql).toContain("'orders_public_id_bridge'");
+      expect(sql).toContain("'public_id_missing'");
+      expect(sql).toContain("'public_id_duplicate'");
+      expect(sql).toContain("'public_id_invalid_format'");
+      expect(sql).toContain("`public_id` IS NULL");
+      expect(sql).toContain("GROUP BY `public_id`");
+      expect(sql).toContain(
+        "CREATE TABLE `_migration_assert_orders_public_id_audit_guard`",
+      );
+      expect(sql).toContain("CHECK (`violation_count` = 0)");
+    },
+  );
 });

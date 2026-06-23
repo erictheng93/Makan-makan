@@ -16,6 +16,7 @@ import { orderItemStatusUpdateSchema } from "../schemas/validation";
 import type { OrderItemStatusUpdate } from "../types";
 import { createSuccessResponse } from "../../../shared/utils/response";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
+import { resolveOrderIdentity } from "../../../shared/services/order-identity";
 
 const app = new Hono<{ Bindings: Env }>();
 const KITCHEN_SSE_TOKEN_SECONDS = 60;
@@ -78,7 +79,6 @@ async function updateLegacyItemStatus<E extends { Bindings: Env }>(
   c: Context<E>,
   status: OrderItemStatusUpdate["status"],
 ) {
-  const orderId = parseRouteNumber(c.req.param("orderId"), "orderId");
   const itemId = parseRouteNumber(c.req.param("itemId"), "itemId");
   const user = c.get("user");
   const restaurantId =
@@ -113,9 +113,14 @@ async function updateLegacyItemStatus<E extends { Bindings: Env }>(
   }
 
   const payload = await c.req.json().catch(() => ({}));
+  const orderIdentity = await resolveOrderIdentity(
+    c.env.DB,
+    c.req.param("orderId") ?? "",
+    { restaurantId },
+  );
   const result = await kitchenService.updateOrderItemStatus(
     restaurantId,
-    orderId,
+    orderIdentity.id,
     itemId,
     {
       status,
@@ -125,7 +130,10 @@ async function updateLegacyItemStatus<E extends { Bindings: Env }>(
   );
 
   return c.json(
-    createSuccessResponse(result, "Order item status updated successfully"),
+    createSuccessResponse(
+      { ...result, orderPublicId: orderIdentity.publicId },
+      "Order item status updated successfully",
+    ),
   );
 }
 
@@ -397,7 +405,6 @@ app.put(
     const itemIdParam = c.req.param("itemId");
     if (!itemIdParam)
       throw badRequest("Missing itemId parameter", "MISSING_PARAM");
-    const orderId = parseInt(orderIdParam);
     const itemId = parseInt(itemIdParam);
     const statusUpdate = c.get("validatedBody");
     const user = c.get("user");
@@ -410,16 +417,22 @@ app.put(
       throw forbidden("Access denied", "ACCESS_DENIED");
     }
 
+    const orderIdentity = await resolveOrderIdentity(c.env.DB, orderIdParam, {
+      restaurantId,
+    });
     const result = await kitchenService.updateOrderItemStatus(
       restaurantId,
-      orderId,
+      orderIdentity.id,
       itemId,
       statusUpdate,
       user.id,
     );
 
     return c.json(
-      createSuccessResponse(result, "Order item status updated successfully"),
+      createSuccessResponse(
+        { ...result, orderPublicId: orderIdentity.publicId },
+        "Order item status updated successfully",
+      ),
     );
   },
 );

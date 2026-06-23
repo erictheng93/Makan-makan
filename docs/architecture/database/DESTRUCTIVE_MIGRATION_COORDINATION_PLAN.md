@@ -168,6 +168,24 @@ Progress:
   `0072_orders_public_id_bridge.sql`; schema bridge tests, money cutover
   regression tests, integer-PK policy tests, migration dual-track guard, and
   database package typecheck passed.
+- 2026-06-23: Audited production order insert paths. `OrderService.createOrder`
+  and `PlatformOrderService` are the production writers found by repo search;
+  both use Drizzle `.insert(orders)` and therefore receive the runtime
+  `public_id` default. Direct `INSERT INTO orders` matches are limited to old
+  rebuild migrations and tests/benchmark stubs.
+- 2026-06-23: Added a shared API `resolveOrderIdentity` helper that resolves
+  numeric `orders.id`, `orders.public_id`, `orders.order_number`, and
+  `orders.client_mutation_id` to a canonical numeric row under restaurant
+  scope.
+- 2026-06-23: Wired UUID-compatible order lookup into payments, POS receipt
+  printing, POS refund creation, kitchen item-status updates, and table
+  occupation while preserving numeric compatibility for existing callers.
+  Touched responses now include `orderPublicId` where the route already has a
+  resolved order identity.
+- 2026-06-23: Added paired `0073` / `0090` audit guard migrations for
+  `orders.public_id` missing, duplicate, and malformed values. These write
+  `orders_public_id_bridge` rows into `data_integrity_audit` and fail when
+  violations are nonzero.
 
 ## Phase C: Orders Primary-Key Rebuild Drill
 

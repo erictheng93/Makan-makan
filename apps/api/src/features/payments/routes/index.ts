@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { orders, paymentTransactions } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
@@ -15,6 +15,10 @@ import {
   refundPaymentTransaction,
   toExternalPaymentStatus,
 } from "../services/refundPayment";
+import {
+  resolveOrderIdentity,
+  type OrderIdentity,
+} from "../../../shared/services/order-identity";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -133,17 +137,9 @@ type PaymentContext = Context<{
 
 async function handlePayment(c: PaymentContext) {
   const input = c.get("validatedBody") as PaymentRouteInput;
+  const resolvedOrder = await resolvePaymentOrder(c.env.DB, input);
   const orderId =
-    input.restaurantId !== undefined
-      ? await resolveOrderId(c.env.DB, input.orderId, input.restaurantId)
-      : (toNumericOrderId(input.orderId) ??
-        (() => {
-          throw new ApiError(
-            "RESTAURANT_ID_REQUIRED",
-            "restaurantId is required for non-numeric payment orderId",
-            400,
-          );
-        })());
+    resolvedOrder?.id ?? toRequiredNumericPaymentOrderId(input.orderId);
   const service = new PaymentService(c.env);
   const user: AuthUser | undefined = c.get("user");
   const result = await service.processPayment(
@@ -177,6 +173,7 @@ async function handlePayment(c: PaymentContext) {
         status: toExternalPaymentStatus(result.data.paymentStatus),
         metadata: {
           orderId: result.data.orderId,
+          orderPublicId: resolvedOrder?.publicId ?? undefined,
           orderStatus: result.data.orderStatus,
           paymentStatus: result.data.paymentStatus,
           authorizedTotal: result.data.authorizedTotal,
@@ -250,6 +247,7 @@ app.get("/status/:transactionId", async (c) => {
   const [row] = await db
     .select({
       id: orders.id,
+      publicId: orders.publicId,
       paymentStatus: orders.paymentStatus,
     })
     .from(orders)
@@ -265,6 +263,7 @@ app.get("/status/:transactionId", async (c) => {
     data: {
       transactionId,
       orderId: row.id,
+      orderPublicId: row.publicId,
       paymentStatus: row.paymentStatus,
       status: toExternalPaymentStatus(row.paymentStatus),
     },
@@ -311,34 +310,35 @@ app.get("/methods/:country", async (c) => {
  * the frontend may pass: a numeric id, a string-encoded numeric id,
  * the human-readable `order_number`, or a `client_mutation_id`.
  */
-async function resolveOrderId(
+async function resolvePaymentOrder(
   db: Env["DB"],
-  orderId: string | number,
-  restaurantId: string,
-): Promise<number> {
-  const numericOrderId = toNumericOrderId(orderId);
-  if (numericOrderId !== null) return numericOrderId;
-
-  const lookupKey = String(orderId).trim();
-  const [row] = await drizzle(db)
-    .select({ id: orders.id })
-    .from(orders)
-    .where(
-      and(
-        eq(orders.restaurantId, restaurantId),
-        or(
-          eq(orders.orderNumber, lookupKey),
-          eq(orders.clientMutationId, lookupKey),
-        ),
-      ),
-    )
-    .limit(1);
-
-  if (!row) {
-    throw new ApiError("ORDER_NOT_FOUND", "Order not found", 404);
+  input: Pick<PaymentRouteInput, "orderId" | "restaurantId">,
+): Promise<OrderIdentity | null> {
+  if (input.restaurantId !== undefined) {
+    return resolveOrderIdentity(db, input.orderId, {
+      restaurantId: input.restaurantId,
+    });
   }
 
-  return row.id;
+  if (toNumericOrderId(input.orderId) !== null) return null;
+
+  throw new ApiError(
+    "RESTAURANT_ID_REQUIRED",
+    "restaurantId is required for non-numeric payment orderId",
+    400,
+  );
+}
+
+function toRequiredNumericPaymentOrderId(orderId: string | number): number {
+  const numericOrderId = toNumericOrderId(orderId);
+  if (numericOrderId === null) {
+    throw new ApiError(
+      "RESTAURANT_ID_REQUIRED",
+      "restaurantId is required for non-numeric payment orderId",
+      400,
+    );
+  }
+  return numericOrderId;
 }
 
 function toNumericOrderId(orderId: string | number): number | null {

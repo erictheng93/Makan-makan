@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     rejectRefund: vi.fn(),
   },
   refundServiceCtor: vi.fn(),
+  resolveOrderIdentity: vi.fn(),
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -34,6 +35,12 @@ vi.mock("../services/RefundService", () => ({
     mocks.refundServiceCtor(...args);
     return mocks.refundService;
   }),
+}));
+
+vi.mock("../../../shared/services/order-identity", () => ({
+  resolveOrderIdentity: vi.fn((...args: unknown[]) =>
+    mocks.resolveOrderIdentity(...args),
+  ),
 }));
 
 import routes from "./refunds";
@@ -124,6 +131,12 @@ describe("POS refund routes", () => {
     mocks.refundService.approveRefund.mockResolvedValue({ success: true });
     mocks.refundService.rejectRefund.mockResolvedValue({ success: true });
     mocks.refundService.cancelRefund.mockResolvedValue({ success: true });
+    mocks.resolveOrderIdentity.mockResolvedValue({
+      id: 101,
+      publicId: "018f0000-0000-7000-8000-000000000101",
+      orderNumber: "ORD-101",
+      restaurantId: "restaurant-1",
+    });
   });
 
   it("creates refunds with register and shift headers", async () => {
@@ -150,10 +163,47 @@ describe("POS refund routes", () => {
       10,
       shiftId,
     );
+    expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
+      { binding: "db" },
+      101,
+      { restaurantId: "restaurant-1" },
+    );
     expect(body).toEqual({
       success: true,
-      data: { ...refund, refundId, ledgerMutation: true },
+      data: {
+        ...refund,
+        refundId,
+        ledgerMutation: true,
+        orderPublicId: "018f0000-0000-7000-8000-000000000101",
+      },
     });
+  });
+
+  it("creates refunds for public order ids after route-level resolution", async () => {
+    const response = await request("/create", {
+      method: "POST",
+      body: JSON.stringify({
+        ...refundPayload(),
+        originalOrderId: "018f0000-0000-7000-8000-000000000101",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Register-Id": registerId,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
+      { binding: "db" },
+      "018f0000-0000-7000-8000-000000000101",
+      { restaurantId: "restaurant-1" },
+    );
+    expect(mocks.refundService.processRefund).toHaveBeenCalledWith(
+      expect.objectContaining({ originalOrderId: 101 }),
+      registerId,
+      10,
+      undefined,
+    );
   });
 
   it("passes a Slack-backed alert sink to the refund service when configured", async () => {

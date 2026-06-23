@@ -51,6 +51,7 @@ const serviceFns = vi.hoisted(() => ({
   getTableStats: vi.fn(),
   getTableByQRCode: vi.fn(),
   getPublicTableInfo: vi.fn(),
+  resolveOrderIdentity: vi.fn(),
 }));
 
 vi.mock("../services/TablesService", () => ({
@@ -72,6 +73,12 @@ vi.mock("../services/TablesService", () => ({
     getTableByQRCode = serviceFns.getTableByQRCode;
     getPublicTableInfo = serviceFns.getPublicTableInfo;
   },
+}));
+
+vi.mock("../../../shared/services/order-identity", () => ({
+  resolveOrderIdentity: vi.fn((...args: unknown[]) =>
+    serviceFns.resolveOrderIdentity(...args),
+  ),
 }));
 
 import routes from "./index";
@@ -155,6 +162,12 @@ beforeEach(() => {
     id: 11,
     number: "A1",
     capacity: 4,
+  });
+  serviceFns.resolveOrderIdentity.mockResolvedValue({
+    id: 42,
+    publicId: "018f0000-0000-7000-8000-000000000042",
+    orderNumber: "ORD-42",
+    restaurantId: "rest-1",
   });
 });
 
@@ -245,6 +258,11 @@ describe("tables routes", () => {
 
     expect(response.status).toBe(200);
     expect(serviceFns.occupyTable).toHaveBeenCalledWith(11, 42, "Amy", 45);
+    expect(serviceFns.resolveOrderIdentity).toHaveBeenCalledWith(
+      expect.any(Object),
+      42,
+      { restaurantId: "rest-1" },
+    );
 
     serviceFns.getTableById.mockResolvedValueOnce({
       ...table,
@@ -264,6 +282,26 @@ describe("tables routes", () => {
     serviceFns.releaseTable.mockResolvedValueOnce(false);
     response = await request("/11/release", "POST");
     expect(response.status).toBe(400);
+  });
+
+  it("occupies tables with public order ids", async () => {
+    const response = await request("/11/occupy", "POST", {
+      orderId: "018f0000-0000-7000-8000-000000000042",
+      occupiedBy: "Amy",
+    });
+
+    expect(response.status).toBe(200);
+    expect(serviceFns.resolveOrderIdentity).toHaveBeenCalledWith(
+      expect.any(Object),
+      "018f0000-0000-7000-8000-000000000042",
+      { restaurantId: "rest-1" },
+    );
+    expect(serviceFns.occupyTable).toHaveBeenCalledWith(
+      11,
+      42,
+      "Amy",
+      undefined,
+    );
   });
 
   it("regenerates single and bulk QR codes", async () => {

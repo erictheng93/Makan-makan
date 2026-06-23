@@ -100,6 +100,7 @@ function createDb(rows: D1MockRows = {}) {
           }
 
           if (
+            normalizedSql.includes("public_id") ||
             normalizedSql.includes("order_number") ||
             normalizedSql.includes("client_mutation_id")
           ) {
@@ -248,7 +249,16 @@ describe("payments routes", () => {
   });
 
   it("resolves create-payment order aliases inside a restaurant", async () => {
-    const db = createDb({ orderLookup: [{ id: 202 }] });
+    const db = createDb({
+      orderLookup: [
+        {
+          id: 202,
+          public_id: "018f0000-0000-7000-8000-000000000202",
+          order_number: "ORD-202",
+          restaurant_id: "restaurant-1",
+        },
+      ],
+    });
     mocks.paymentService.processPayment.mockResolvedValueOnce({
       status: 201,
       data: {
@@ -297,8 +307,40 @@ describe("payments routes", () => {
       data: {
         paymentId: "pay-202",
         status: "pending",
+        metadata: {
+          orderPublicId: "018f0000-0000-7000-8000-000000000202",
+        },
       },
     });
+  });
+
+  it("resolves public order ids inside a restaurant", async () => {
+    const db = createDb({
+      orderLookup: [
+        {
+          id: 606,
+          public_id: "018f0000-0000-7000-8000-000000000606",
+          order_number: "ORD-606",
+          restaurant_id: "restaurant-1",
+        },
+      ],
+    });
+
+    await postJson(
+      "/",
+      {
+        orderId: "018f0000-0000-7000-8000-000000000606",
+        restaurantId: "restaurant-1",
+        amount: 88,
+        method: "cash",
+      },
+      db,
+    );
+
+    expect(mocks.paymentService.processPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: 606 }),
+      expect.any(Object),
+    );
   });
 
   it("passes partial payments through without closing the order", async () => {
@@ -361,7 +403,13 @@ describe("payments routes", () => {
   it("falls back to order payment status and reports missing transactions", async () => {
     let db = createDb({
       transaction: [null],
-      orderStatus: [{ id: 505, payment_status: "paid" }],
+      orderStatus: [
+        {
+          id: 505,
+          public_id: "018f0000-0000-7000-8000-000000000505",
+          payment_status: "paid",
+        },
+      ],
     });
 
     let response = await request("/status/order-txn", undefined, db);
@@ -373,6 +421,7 @@ describe("payments routes", () => {
       data: {
         transactionId: "order-txn",
         orderId: 505,
+        orderPublicId: "018f0000-0000-7000-8000-000000000505",
         paymentStatus: "paid",
         status: "completed",
       },

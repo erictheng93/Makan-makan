@@ -14,8 +14,12 @@ import { ReceiptService } from "../services/ReceiptService";
 import { printReceiptSchema, receiptParamsSchema } from "../schemas";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
+import { resolveOrderIdentity } from "../../../shared/services/order-identity";
 
 const app = new Hono<{ Bindings: Env }>();
+const printReceiptRouteSchema = printReceiptSchema.extend({
+  orderId: z.union([z.number().int().positive(), z.string().min(1)]),
+});
 
 /**
  * 打印收據
@@ -25,9 +29,10 @@ app.post(
   "/print",
   authMiddleware,
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
-  validateBody(printReceiptSchema),
+  validateBody(printReceiptRouteSchema),
   async (c) => {
     const data = c.get("validatedBody");
+    const user = c.get("user");
     const registerId = c.req.header("X-Register-Id");
     const shiftId = c.req.header("X-Shift-Id");
 
@@ -35,8 +40,16 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
+    const orderIdentity = await resolveOrderIdentity(c.env.DB, data.orderId, {
+      restaurantId:
+        user.restaurantId !== undefined ? String(user.restaurantId) : undefined,
+    });
     const receiptService = new ReceiptService(c.env.DB);
-    const result = await receiptService.printReceipt(data, registerId, shiftId);
+    const result = await receiptService.printReceipt(
+      { ...data, orderId: orderIdentity.id },
+      registerId,
+      shiftId,
+    );
 
     if (!result.success) {
       throw badRequest(result.error || "打印收據失敗");
@@ -44,7 +57,9 @@ app.post(
 
     return c.json({
       success: true,
-      data: result.data,
+      data: result.data
+        ? { ...result.data, orderPublicId: orderIdentity.publicId }
+        : result.data,
     });
   },
 );

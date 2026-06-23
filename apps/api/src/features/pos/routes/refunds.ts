@@ -18,8 +18,12 @@ import { processRefundSchema } from "../schemas";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { AlertService } from "../../../services/AlertService";
+import { resolveOrderIdentity } from "../../../shared/services/order-identity";
 
 const app = new Hono<{ Bindings: Env }>();
+const processRefundRouteSchema = processRefundSchema.extend({
+  originalOrderId: z.union([z.number().int().positive(), z.string().min(1)]),
+});
 
 function createRefundService(env: Env): RefundService {
   let alertSink: RefundServiceOptions["alertSink"];
@@ -40,7 +44,7 @@ app.post(
   "/create",
   authMiddleware,
   requireRole([0, 1]), // Admin or Owner only
-  validateBody(processRefundSchema),
+  validateBody(processRefundRouteSchema),
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
@@ -51,9 +55,19 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
+    const orderIdentity = await resolveOrderIdentity(
+      c.env.DB,
+      data.originalOrderId,
+      {
+        restaurantId:
+          user.restaurantId !== undefined
+            ? String(user.restaurantId)
+            : undefined,
+      },
+    );
     const refundService = createRefundService(c.env);
     const result = await refundService.processRefund(
-      data,
+      { ...data, originalOrderId: orderIdentity.id },
       registerId,
       user.id,
       shiftId,
@@ -65,7 +79,9 @@ app.post(
 
     return c.json({
       success: true,
-      data: result.data,
+      data: result.data
+        ? { ...result.data, orderPublicId: orderIdentity.publicId }
+        : result.data,
     });
   },
 );
