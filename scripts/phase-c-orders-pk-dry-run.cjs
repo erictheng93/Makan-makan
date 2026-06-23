@@ -8,6 +8,7 @@ const DEFAULT_CONFIG = "./apps/api/wrangler.toml";
 const DEFAULT_PERSIST_TO = "./apps/api/.wrangler/state";
 const DEFAULT_D1_STATE_DIR =
   "apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject";
+const ARTIFACT_SCHEMA_VERSION = 1;
 
 const ORDER_DEPENDENCIES = [
   {
@@ -852,6 +853,7 @@ function runLocalRehearsal(options) {
   );
   const result = {
     artifactPhase: "orders",
+    artifactSchemaVersion: ARTIFACT_SCHEMA_VERSION,
     sqlitePath,
     rehearsalOptions: {
       withFixture: Boolean(options.withFixture),
@@ -1114,6 +1116,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  ARTIFACT_SCHEMA_VERSION,
   ORDER_DEPENDENCIES,
   assessRehearsalResult,
   buildDryRunSql,

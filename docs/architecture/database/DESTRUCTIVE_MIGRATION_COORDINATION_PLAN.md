@@ -306,6 +306,9 @@ Progress:
   required strict gate flags.
 - 2026-06-23: Phase C and Phase E artifacts now also record `artifactPhase`, and
   the shared validator rejects missing or mismatched artifact phases.
+- 2026-06-23: Phase C and Phase E artifacts now record
+  `artifactSchemaVersion = 1`; the shared validator rejects archived evidence
+  with missing or unsupported artifact schema versions.
 
 Current blocker before paired Phase C migrations:
 

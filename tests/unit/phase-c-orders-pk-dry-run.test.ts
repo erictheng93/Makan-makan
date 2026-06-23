@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
 const {
+  ARTIFACT_SCHEMA_VERSION,
   ORDER_DEPENDENCIES,
   assessRehearsalResult,
   buildDryRunSql,
   parseArgs,
 }: {
+  ARTIFACT_SCHEMA_VERSION: number;
   ORDER_DEPENDENCIES: Array<{
     table: string;
     column: string;
@@ -58,6 +60,10 @@ const {
 } = require("../../scripts/phase-c-orders-pk-dry-run.cjs");
 
 describe("Phase C orders PK dry-run script", () => {
+  it("uses the expected artifact schema contract version", () => {
+    expect(ARTIFACT_SCHEMA_VERSION).toBe(1);
+  });
+
   it("tracks the expected order FK and pointer surfaces", () => {
     expect(
       ORDER_DEPENDENCIES.map((dependency) => [

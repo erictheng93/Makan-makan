@@ -3,6 +3,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const ARTIFACT_SCHEMA_VERSION = 1;
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -24,6 +26,13 @@ function validateCommonArtifact(phase, artifact) {
   } else if (artifact.artifactPhase !== phase) {
     failures.push(
       `artifact phase ${artifact.artifactPhase} does not match requested phase ${phase}`,
+    );
+  }
+  if (typeof artifact.artifactSchemaVersion === "undefined") {
+    failures.push("artifact schema version is missing");
+  } else if (artifact.artifactSchemaVersion !== ARTIFACT_SCHEMA_VERSION) {
+    failures.push(
+      `artifact schema version ${artifact.artifactSchemaVersion} is not supported`,
     );
   }
   if (numberValue(artifact.assessment?.exitCode) !== 0) {
@@ -210,6 +219,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  ARTIFACT_SCHEMA_VERSION,
   execute,
   parseArgs,
   validateArtifact,

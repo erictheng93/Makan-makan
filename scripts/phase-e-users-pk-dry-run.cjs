@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const DEFAULT_D1_STATE_DIR =
   "apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject";
+const ARTIFACT_SCHEMA_VERSION = 1;
 
 const USER_DEPENDENCIES = [
   ["sessions", "user_id", "fk", "not_null", "cascade"],
@@ -408,6 +409,7 @@ function runLocalRehearsal(options) {
 
   const result = {
     artifactPhase: "users",
+    artifactSchemaVersion: ARTIFACT_SCHEMA_VERSION,
     sqlitePath,
     rehearsalOptions: {
       requireRepresentativeData: Boolean(options.requireRepresentativeData),
@@ -518,6 +520,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  ARTIFACT_SCHEMA_VERSION,
   USER_DEPENDENCIES,
   assessRehearsalResult,
   discoverUserForeignKeys,

@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
 const {
+  ARTIFACT_SCHEMA_VERSION,
   USER_DEPENDENCIES,
   assessRehearsalResult,
   parseArgs,
   summarizeDataCoverage,
 }: {
+  ARTIFACT_SCHEMA_VERSION: number;
   USER_DEPENDENCIES: Array<{
     table: string;
     column: string;
@@ -61,6 +63,10 @@ const {
 } = require("../../scripts/phase-e-users-pk-dry-run.cjs");
 
 describe("Phase E users PK dry-run script", () => {
+  it("uses the expected artifact schema contract version", () => {
+    expect(ARTIFACT_SCHEMA_VERSION).toBe(1);
+  });
+
   it("tracks critical staff user FK and actor pointer surfaces", () => {
     expect(
       USER_DEPENDENCIES.map((dependency) => [
