@@ -6,6 +6,7 @@ import { resolveStaffPrincipal } from "../shared/services/staff-principal";
 
 export interface AuthUser {
   id: number;
+  publicId?: string;
   username: string;
   role: number;
   restaurantId?: string | number;
@@ -24,6 +25,7 @@ export interface AuthCustomer {
 
 interface TokenUserRecord {
   id: number;
+  publicId?: string;
   username: string;
   role: number;
   restaurantId?: string;
@@ -32,7 +34,8 @@ interface TokenUserRecord {
 }
 
 interface AuthTokenPayload {
-  id: number;
+  id?: number;
+  sub?: string;
   username: string;
   role: number;
   exp: number;
@@ -56,6 +59,8 @@ interface SseAuthTokenPayload extends AuthTokenPayload {
 }
 
 const MAX_ACCESS_TOKEN_AGE_SECONDS = 72 * 60 * 60;
+const UUID_V7_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -68,10 +73,15 @@ function isAuthTokenPayload(decoded: unknown): decoded is AuthTokenPayload {
   if (!decoded || typeof decoded !== "object") return false;
 
   const payload = decoded as Record<string, unknown>;
-  return (
+  const hasLegacyId =
     typeof payload.id === "number" &&
     Number.isInteger(payload.id) &&
-    payload.id > 0 &&
+    payload.id > 0;
+  const hasPublicId =
+    typeof payload.sub === "string" && UUID_V7_PATTERN.test(payload.sub);
+
+  return (
+    (hasLegacyId || hasPublicId) &&
     typeof payload.username === "string" &&
     payload.username.length > 0 &&
     typeof payload.role === "number" &&
@@ -177,8 +187,11 @@ function createAuthMiddleware(maxRole: number) {
         throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
       }
 
-      const userRecord = await loadTokenUser(c, decoded.id);
+      const userRecord = await loadTokenUser(c, tokenPrincipal(decoded));
       if (!userRecord) {
+        if (decoded.sub) {
+          throw unauthorized("User not found or inactive", "USER_INACTIVE");
+        }
         if (c.env.NODE_ENV === "production") {
           throw unauthorized("User not found or inactive", "USER_INACTIVE");
         }
@@ -205,7 +218,8 @@ function createAuthMiddleware(maxRole: number) {
       }
 
       c.set("user", {
-        id: decoded.id,
+        id: userRecord?.id ?? decoded.id!,
+        publicId: userRecord?.publicId ?? decoded.sub,
         username: decoded.username,
         role: decoded.role,
         restaurantId: userRecord?.restaurantId ?? decoded.restaurantId,
@@ -441,8 +455,11 @@ export const sseAuthMiddleware = async (
       throw unauthorized("Token has expired", "TOKEN_EXPIRED");
     }
 
-    const userRecord = await loadTokenUser(c, decoded.id);
+    const userRecord = await loadTokenUser(c, tokenPrincipal(decoded));
     if (!userRecord) {
+      if (decoded.sub) {
+        throw unauthorized("User not found or inactive", "USER_INACTIVE");
+      }
       if (c.env.NODE_ENV === "production") {
         throw unauthorized("User not found or inactive", "USER_INACTIVE");
       }
@@ -463,7 +480,8 @@ export const sseAuthMiddleware = async (
     }
 
     c.set("user", {
-      id: decoded.id,
+      id: userRecord?.id ?? decoded.id!,
+      publicId: userRecord?.publicId ?? decoded.sub,
       username: decoded.username,
       role: decoded.role,
       restaurantId: userRecord?.restaurantId ?? decoded.restaurantId,
@@ -486,14 +504,15 @@ export const sseAuthMiddleware = async (
 
 async function loadTokenUser(
   c: Context<{ Bindings: Env }>,
-  userId: number,
+  principalId: string | number,
 ): Promise<TokenUserRecord | null> {
   try {
-    const principal = await resolveStaffPrincipal(c.env.DB, userId, {
+    const principal = await resolveStaffPrincipal(c.env.DB, principalId, {
       requireActive: false,
     });
     return {
       id: principal.legacyUserId,
+      publicId: principal.publicUserId,
       username: principal.username,
       role: principal.role,
       restaurantId: principal.restaurantId,
@@ -510,6 +529,10 @@ async function loadTokenUser(
     if (c.env.NODE_ENV !== "production") return null;
     throw error;
   }
+}
+
+function tokenPrincipal(decoded: AuthTokenPayload): string | number {
+  return decoded.sub ?? decoded.id!;
 }
 
 async function loadTokenCustomer(

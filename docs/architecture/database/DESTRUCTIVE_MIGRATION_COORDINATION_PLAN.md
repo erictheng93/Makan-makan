@@ -323,6 +323,11 @@ Progress:
   identities, and now backs the existing API auth numeric user loader without
   changing JWT claim parsing. UUID-principal JWT parsing and token issuance
   remain pending.
+- 2026-06-23: Started D3 API auth compatibility. Staff JWT parsing now accepts
+  either legacy numeric `id` or UUID-v7-shaped `sub`; UUID tokens resolve
+  through `users.public_id` and still attach legacy numeric `AuthUser.id` for
+  downstream FK-backed services. Login/refresh token issuance remains legacy
+  numeric until D4.
 
 ## Phase E: Users Primary-Key Rebuild Drill
 

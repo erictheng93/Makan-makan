@@ -124,6 +124,19 @@ Acceptance:
 - Staff routes continue to receive a numeric legacy id until downstream service
   FKs are migrated.
 
+Progress:
+
+- 2026-06-23: Updated `apps/api/src/middleware/auth.ts` so staff tokens may
+  carry either legacy numeric `id` or UUID-v7-shaped `sub`. UUID-principal
+  tokens resolve through `users.public_id`, then attach the legacy numeric
+  `AuthUser.id` plus `AuthUser.publicId` for compatibility.
+- 2026-06-23: Preserved legacy numeric JWT behavior and added
+  `apps/api/src/middleware/auth.test.ts` coverage for UUID-principal staff
+  tokens. UUID tokens must resolve to a DB user because existing route code
+  still needs the legacy numeric id during the FK compatibility window.
+- Token issuance and refresh still emit the legacy numeric shape; moving login
+  and refresh to UUID principal claims remains D4 work.
+
 ### D4: Token Issuance and Refresh
 
 - Update `packages/database/src/services/auth.ts` login and refresh flows to

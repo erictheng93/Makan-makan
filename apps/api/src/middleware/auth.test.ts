@@ -60,6 +60,22 @@ async function staffToken(role: number) {
   );
 }
 
+async function staffPublicIdToken(role: number) {
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    {
+      sub: "018f0000-0000-7000-8000-000000000777",
+      username: `role-${role}`,
+      role,
+      restaurantId: "rest-1",
+      tv: 1,
+      iat: now,
+      exp: now + 3600,
+    },
+    JWT_SECRET,
+  );
+}
+
 async function customerToken(sub = "customer-1") {
   const now = Math.floor(Date.now() / 1000);
   return sign(
@@ -99,6 +115,41 @@ describe("authMiddleware", () => {
 
     await expect(response.json()).resolves.toMatchObject({
       user: { id: 7, role: 1, restaurantId: "rest-db" },
+    });
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts UUID-principal staff tokens and attaches the legacy user id", async () => {
+    const app = new Hono();
+    app.onError(apiErrorHandler);
+    app.use("/protected", authMiddleware);
+    app.get("/protected", (c) => c.json({ user: c.get("user") }));
+
+    const response = await app.fetch(
+      new Request("https://api.test/protected", {
+        headers: { Authorization: `Bearer ${await staffPublicIdToken(1)}` },
+      }),
+      {
+        JWT_SECRET,
+        DB: createStaffDb({
+          id: 7,
+          public_id: "018f0000-0000-7000-8000-000000000777",
+          username: "role-1",
+          role: 1,
+          restaurant_id: "rest-db",
+          is_active: 1,
+          token_version: 1,
+        }),
+      } as never,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      user: {
+        id: 7,
+        publicId: "018f0000-0000-7000-8000-000000000777",
+        role: 1,
+        restaurantId: "rest-db",
+      },
     });
     expect(response.status).toBe(200);
   });
