@@ -160,6 +160,8 @@ Do not create paired Phase C migrations until all of these are true:
 - `PRAGMA foreign_key_check` returns zero rows.
 - `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json>`
   returns `exitCode = 0` for the archived staging/restored-production evidence.
+  The validator recomputes dependency-surface and non-null reference coverage
+  from the artifact instead of trusting `dataCoverage` alone.
 - The migration draft preserves all listed indexes and triggers.
 - API/realtime/POS/payment compatibility tests still pass with UUID bridge
   identifiers.

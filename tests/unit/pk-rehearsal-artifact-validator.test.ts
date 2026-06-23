@@ -55,6 +55,7 @@ describe("PK rehearsal artifact validator", () => {
         ],
         appCompatibility: {
           public_lookup_rows: 3,
+          shadow_public_id_rows: 3,
           lookup_mismatches: 0,
           shadow_public_id_missing: 0,
           shadow_public_id_mismatches: 0,
@@ -84,6 +85,7 @@ describe("PK rehearsal artifact validator", () => {
         ],
         appCompatibility: {
           public_lookup_rows: 0,
+          shadow_public_id_rows: 0,
           lookup_mismatches: 1,
           shadow_public_id_missing: 1,
           shadow_public_id_mismatches: 1,
@@ -101,10 +103,39 @@ describe("PK rehearsal artifact validator", () => {
         "payment_transactions.order_id failed shadow-copy row-count parity",
         "payment_transactions.order_id is missing schema object metadata",
         "orders appCompatibility public lookup has no coverage",
+        "orders appCompatibility has no shadow public-id coverage",
         "orders appCompatibility has legacy/public lookup mismatches",
         "orders appCompatibility has missing shadow public ids",
         "orders appCompatibility has shadow public-id resolution mismatches",
         "PRAGMA foreign_key_check returned rows",
+      ],
+    });
+  });
+
+  it("rejects a Phase C orders artifact with forged representative coverage", () => {
+    expect(
+      validateArtifact("orders", {
+        assessment: { exitCode: 0, failures: [] },
+        dataCoverage: { isRepresentative: true },
+        ordersBridge: {
+          missing_public_id: 0,
+          duplicate_public_id: 0,
+        },
+        dependencies: [],
+        appCompatibility: {
+          public_lookup_rows: 1,
+          lookup_mismatches: 0,
+          shadow_public_id_missing: 0,
+          shadow_public_id_mismatches: 0,
+        },
+        foreignKeyCheck: [],
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: [
+        "orders artifact has no dependency surfaces",
+        "orders artifact has no non-null dependency references",
+        "orders appCompatibility has no shadow public-id coverage",
       ],
     });
   });
@@ -170,6 +201,35 @@ describe("PK rehearsal artifact validator", () => {
         "users artifact has uninventoried users(id) foreign keys",
         "PRAGMA foreign_key_check returned rows",
       ],
+    });
+  });
+
+  it("rejects a Phase E users artifact with forged representative coverage", () => {
+    expect(
+      validateArtifact("users", {
+        assessment: { exitCode: 0, failures: [] },
+        dataCoverage: { isRepresentative: true },
+        usersBridge: {
+          missing_public_id: 0,
+          duplicate_public_id: 0,
+          malformed_public_id: 0,
+        },
+        dependencies: [
+          {
+            table: "sessions",
+            column: "user_id",
+            non_null_user_refs: 0,
+            mapped_user_refs: 0,
+            unmapped_user_refs: 0,
+            schemaObjects: [],
+          },
+        ],
+        uninventoriedUserForeignKeys: [],
+        foreignKeyCheck: [],
+      }),
+    ).toEqual({
+      exitCode: 1,
+      failures: ["users artifact has no non-null dependency references"],
     });
   });
 });

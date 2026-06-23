@@ -11,6 +11,12 @@ function numberValue(value) {
   return Number(value ?? 0);
 }
 
+function sumDependencyRefs(dependencies, field) {
+  return dependencies.reduce((total, dependency) => {
+    return total + numberValue(dependency[field]);
+  }, 0);
+}
+
 function validateCommonArtifact(artifact) {
   const failures = [];
   if (numberValue(artifact.assessment?.exitCode) !== 0) {
@@ -24,6 +30,7 @@ function validateCommonArtifact(artifact) {
 
 function validateOrdersArtifact(artifact) {
   const failures = validateCommonArtifact(artifact);
+  const dependencies = asArray(artifact.dependencies);
   if (numberValue(artifact.ordersBridge?.missing_public_id) > 0) {
     failures.push("orders.public_id bridge has missing values");
   }
@@ -31,7 +38,14 @@ function validateOrdersArtifact(artifact) {
     failures.push("orders.public_id bridge has duplicate values");
   }
 
-  for (const dependency of asArray(artifact.dependencies)) {
+  if (dependencies.length === 0) {
+    failures.push("orders artifact has no dependency surfaces");
+  }
+  if (sumDependencyRefs(dependencies, "non_null_order_refs") === 0) {
+    failures.push("orders artifact has no non-null dependency references");
+  }
+
+  for (const dependency of dependencies) {
     const surface = `${dependency.table}.${dependency.column}`;
     if (numberValue(dependency.unmapped_order_refs) > 0) {
       failures.push(`${surface} has unmapped order references`);
@@ -49,6 +63,9 @@ function validateOrdersArtifact(artifact) {
 
   if (numberValue(artifact.appCompatibility?.public_lookup_rows) === 0) {
     failures.push("orders appCompatibility public lookup has no coverage");
+  }
+  if (numberValue(artifact.appCompatibility?.shadow_public_id_rows) === 0) {
+    failures.push("orders appCompatibility has no shadow public-id coverage");
   }
   if (numberValue(artifact.appCompatibility?.lookup_mismatches) > 0) {
     failures.push(
@@ -72,6 +89,7 @@ function validateOrdersArtifact(artifact) {
 
 function validateUsersArtifact(artifact) {
   const failures = validateCommonArtifact(artifact);
+  const dependencies = asArray(artifact.dependencies);
   if (numberValue(artifact.usersBridge?.missing_public_id) > 0) {
     failures.push("users.public_id bridge has missing values");
   }
@@ -82,7 +100,14 @@ function validateUsersArtifact(artifact) {
     failures.push("users.public_id bridge has malformed UUID-v7 values");
   }
 
-  for (const dependency of asArray(artifact.dependencies)) {
+  if (dependencies.length === 0) {
+    failures.push("users artifact has no dependency surfaces");
+  }
+  if (sumDependencyRefs(dependencies, "non_null_user_refs") === 0) {
+    failures.push("users artifact has no non-null dependency references");
+  }
+
+  for (const dependency of dependencies) {
     const surface = `${dependency.table}.${dependency.column}`;
     if (numberValue(dependency.unmapped_user_refs) > 0) {
       failures.push(`${surface} has unmapped user references`);
