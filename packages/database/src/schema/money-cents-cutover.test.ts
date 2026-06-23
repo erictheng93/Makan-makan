@@ -262,6 +262,14 @@ const cutoverSurfaces: CutoverSurface[] = [
   },
 ];
 
+const mainMoneyCutoverSurfaces = cutoverSurfaces.filter(
+  (surface) => surface.tableName !== "market_checkout_child_orders",
+);
+
+const marketCheckoutChildOrderSurface = cutoverSurfaces.find(
+  (surface) => surface.tableName === "market_checkout_child_orders",
+);
+
 function columnNames(table: Table): string[] {
   return getTableConfig(table).columns.map((column) => column.name);
 }
@@ -285,7 +293,7 @@ describe("money cents cutover schema", () => {
   ])("covers every schema cutover surface in %s", (migrationPath) => {
     const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
 
-    for (const surface of cutoverSurfaces) {
+    for (const surface of mainMoneyCutoverSurfaces) {
       expect(sql).toContain(
         `('${surface.tableName}', (SELECT count(*) FROM \`${surface.tableName}\`))`,
       );
@@ -298,6 +306,27 @@ describe("money cents cutover schema", () => {
           `ALTER TABLE \`${surface.tableName}\` DROP COLUMN \`${legacyColumn}\`;`,
         );
       }
+    }
+  });
+
+  it.each([
+    "packages/database/migrations_fresh/0071_market_checkout_child_order_cents_cutover.sql",
+    "packages/database/migrations/0088_market_checkout_child_order_cents_cutover.sql",
+  ])("covers market checkout child order cutover in %s", (migrationPath) => {
+    const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
+    expect(marketCheckoutChildOrderSurface).toBeDefined();
+
+    expect(sql).toContain(
+      "('market_checkout_child_orders', (SELECT count(*) FROM `market_checkout_child_orders`))",
+    );
+    expect(sql).toContain(
+      "WHEN 'market_checkout_child_orders' THEN (SELECT count(*) FROM `market_checkout_child_orders`)",
+    );
+
+    for (const legacyColumn of marketCheckoutChildOrderSurface!.legacyColumns) {
+      expect(sql).toContain(
+        `ALTER TABLE \`market_checkout_child_orders\` DROP COLUMN \`${legacyColumn}\`;`,
+      );
     }
   });
 });

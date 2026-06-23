@@ -96,13 +96,13 @@ Execution order:
 
 Progress:
 
-- 2026-06-23: Added migration-test coverage that requires every schema cutover
-  surface to appear in both paired cutover SQL files with before/after row-count
+- 2026-06-23: Added migration-test coverage that requires each schema cutover
+  surface to appear in its owning paired SQL files with before/after row-count
   guards and explicit `ALTER TABLE ... DROP COLUMN` statements.
-- 2026-06-23: Added `market_checkout_child_orders.total_amount` to both
-  cutover SQL files. The Drizzle schema already retained
-  `total_amount_cents` and omitted the legacy `total_amount` column, but the
-  paired SQL files were missing the drop and row-count guard.
+- 2026-06-23: Confirmed `market_checkout_child_orders.total_amount` belongs to
+  its dedicated `0071` / `0088` market-checkout cutover migration, not the main
+  `0070` / `0087` money cutover. The test now covers that dedicated pair so a
+  future edit cannot silently drop the table from cutover verification.
 - 2026-06-23: Repo-level verification passed for the cutover schema test,
   migration dual-track guard, and database package typecheck. Local
   `db:migrate:local` was executable but reported no migrations to apply, so a
