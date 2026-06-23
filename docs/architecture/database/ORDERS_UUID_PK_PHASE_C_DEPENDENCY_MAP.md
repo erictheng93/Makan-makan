@@ -22,7 +22,7 @@ authorize a production destructive migration.
 - Require representative rehearsal data:
   `rtk pnpm db:orders-pk-dry-run:representative`
 - Require full dependency-surface fixture coverage:
-  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json`
+  `rtk pnpm db:orders-pk-dry-run:fixture-full-surface`
 - Validate archived rehearsal evidence before migration drafting:
   `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json --role representative`
 - Validate local full-surface fixture evidence before migration drafting:
@@ -42,6 +42,7 @@ rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/orders-pk-baseline-require-representative.json
+rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-representative.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --json-output /tmp/orders-pk-fixture-gated.json
 rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json
 ```
@@ -64,6 +65,9 @@ Baseline result:
   because `orders` has zero rows and no checked dependency has non-null order
   references. This is expected and prevents treating the empty local database
   as conversion-ready evidence.
+- `rtk pnpm db:orders-pk-dry-run:representative` intentionally does not use
+  `--with-fixture`; it is only valid when the selected database already has real
+  representative order data.
 
 Representative fixture result:
 
@@ -84,6 +88,9 @@ Representative fixture result:
   when every existing dependency surface has at least one non-null order
   reference and includes `schemaObjects` metadata for the indexes/triggers that
   the paired migration must preserve.
+- `rtk pnpm db:orders-pk-dry-run:fixture-full-surface` is the local synthetic
+  full-surface coverage command. Its artifact must be validated with
+  `--role fixture`, not `--role representative`.
 - The fixture artifact records `appCompatibility` bridge checks: one legacy
   `orders.id` lookup row, one matching `orders.public_id` lookup row, zero
   lookup mismatches, 12 shadow-copy public-id rows, zero missing shadow public

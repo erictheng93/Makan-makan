@@ -285,10 +285,11 @@ Progress:
   passes the gate with 1 order, 12 dependency refs, zero unmapped refs, and zero
   foreign-key-check rows.
 - 2026-06-23: Added `--require-complete-surface-coverage` to the Phase C
-  dry-run and upgraded `rtk pnpm db:orders-pk-dry-run:representative` to use it.
-  The rollback fixture now fails unless every existing dependency surface has
-  at least one non-null order reference and emits `schemaObjects` metadata for
-  preserving indexes/triggers in the paired migration draft.
+  dry-run and exposed the synthetic full-surface command as
+  `rtk pnpm db:orders-pk-dry-run:fixture-full-surface`. The rollback fixture
+  now fails unless every existing dependency surface has at least one non-null
+  order reference and emits `schemaObjects` metadata for preserving
+  indexes/triggers in the paired migration draft.
 - 2026-06-23: Extended the Phase C artifact with `appCompatibility` counters.
   The strict rollback fixture now proves checked orders can be resolved through
   both legacy `orders.id` and `orders.public_id`, and that every shadow-copy
@@ -319,6 +320,10 @@ Progress:
   manifest, validates the representative and full-surface fixture artifacts via
   their role gates, and blocks Phase C migration drafting if dependency
   surfaces or schema metadata drift between the two evidence files.
+- 2026-06-24: Corrected Phase C package-script naming so
+  `rtk pnpm db:orders-pk-dry-run:representative` no longer generates fixture
+  data. The synthetic local full-surface run is now explicitly named
+  `rtk pnpm db:orders-pk-dry-run:fixture-full-surface`.
 
 Current blocker before paired Phase C migrations:
 

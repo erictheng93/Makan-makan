@@ -311,6 +311,7 @@ function parseArgs(argv) {
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === "--") continue;
     if (arg === "--execute-local") args.executeLocal = true;
     else if (arg === "--print-sql") args.printSql = true;
     else if (arg === "--database") args.database = argv[++index];

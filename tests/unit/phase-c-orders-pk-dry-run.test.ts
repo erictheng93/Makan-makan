@@ -108,6 +108,7 @@ describe("Phase C orders PK dry-run script", () => {
   it("parses local execution options", () => {
     expect(
       parseArgs([
+        "--",
         "--execute-local",
         "--database",
         "local-db",
