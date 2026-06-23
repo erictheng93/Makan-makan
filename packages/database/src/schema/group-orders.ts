@@ -34,8 +34,8 @@ export const groupOrders = sqliteTable(
   {
     id: text("id").primaryKey(), // UUID
     shareCode: text("share_code").notNull().unique(),
-    masterOrderId: integer("master_order_id"), // 關聯到主訂單（最終下單時創建）
-    createdBy: integer("created_by")
+    masterOrderId: text("master_order_id"), // 關聯到主訂單（最終下單時創建）
+    createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
@@ -92,7 +92,7 @@ export const groupMembers = sqliteTable(
     groupOrderId: text("group_order_id")
       .notNull()
       .references(() => groupOrders.id),
-    userId: integer("user_id").references(() => users.id), // 關聯到註冊用戶（可選）
+    userId: text("user_id").references(() => users.id), // 關聯到註冊用戶（可選）
     sessionId: text("session_id").notNull(), // 用於匿名用戶識別
 
     // 成員資訊
@@ -240,7 +240,7 @@ export const shareCodes = sqliteTable(
     resourceId: text("resource_id").notNull(), // 關聯的資源ID
 
     // 創建者與過期時間 (milliseconds)
-    createdBy: integer("created_by")
+    createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
     expiresAt: integer("expires_at_ms", { mode: "timestamp_ms" }).notNull(),

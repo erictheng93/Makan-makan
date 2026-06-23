@@ -52,13 +52,13 @@ export interface LeaveType {
   icon: string | null;
   createdAt: Date;
   updatedAt: Date;
-  createdBy: number | null;
-  updatedBy: number | null;
+  createdBy: string | null;
+  updatedBy: string | null;
 }
 
 export interface LeaveBalance {
   id: number;
-  employeeId: number;
+  employeeId: string;
   leaveTypeId: number;
   restaurantId: string;
   year: number;
@@ -71,17 +71,17 @@ export interface LeaveBalance {
   carryoverExpiresAt: number | null;
   manualAdjustment: number;
   adjustmentReason: string | null;
-  adjustedBy: number | null;
+  adjustedBy: string | null;
   adjustedAt: number | null;
   createdAt: Date;
   updatedAt: Date;
-  lastUpdatedBy: number | null;
+  lastUpdatedBy: string | null;
 }
 
 export interface LeaveRequest {
   id: number;
   restaurantId: string;
-  employeeId: number;
+  employeeId: string;
   leaveTypeId: number;
   startDate: string;
   endDate: string;
@@ -94,12 +94,12 @@ export interface LeaveRequest {
   status: "pending" | "approved" | "rejected" | "cancelled" | "withdrawn";
   approvalChain: string;
   currentApprovalLevel: number;
-  finalApproverId: number | null;
+  finalApproverId: string | null;
   finalApprovedAt: number | null;
-  rejectedBy: number | null;
+  rejectedBy: string | null;
   rejectedAt: number | null;
   rejectionReason: string | null;
-  cancelledBy: number | null;
+  cancelledBy: string | null;
   cancelledAt: number | null;
   cancellationReason: string | null;
   affectedScheduleIds: string | null;
@@ -111,7 +111,7 @@ export interface LeaveRequest {
 
 export interface LeaveRequestWithRelations extends LeaveRequest {
   employee: {
-    id: number;
+    id: string;
     fullName: string;
     email: string | null;
     role: number;
@@ -161,8 +161,8 @@ type NullableKeys = {
 export type CreateLeaveTypeData = Omit<CreateLeaveTypeBase, NullableKeys> & {
   [K in NullableKeys]?: CreateLeaveTypeBase[K];
 } & {
-  createdBy?: number | null;
-  updatedBy?: number | null;
+  createdBy?: string | null;
+  updatedBy?: string | null;
   isSystemDefined?: boolean;
 };
 
@@ -197,7 +197,7 @@ export type CreateLeaveRequestData = Omit<
 };
 
 export interface LeaveRequestFilters {
-  employeeId?: number;
+  employeeId?: string;
   leaveTypeId?: number;
   status?: LeaveRequest["status"];
   startDate?: string;
@@ -207,12 +207,12 @@ export interface LeaveRequestFilters {
 }
 
 export interface LeaveBalanceAdjustment {
-  employeeId: number;
+  employeeId: string;
   leaveTypeId: number;
   year: number;
   adjustment: number;
   reason: string;
-  adjustedBy: number;
+  adjustedBy: string;
 }
 
 // ========================================
@@ -350,7 +350,7 @@ export class LeaveService extends BaseService {
    * Get employee leave balances for a specific year
    */
   async getEmployeeLeaveBalances(
-    employeeId: number,
+    employeeId: string,
     year: number,
   ): Promise<LeaveBalanceWithType[]> {
     const balances = await this.db
@@ -436,7 +436,7 @@ export class LeaveService extends BaseService {
    * Get a specific leave balance
    */
   async getLeaveBalance(
-    employeeId: number,
+    employeeId: string,
     leaveTypeId: number,
     year: number,
   ): Promise<LeaveBalance | null> {
@@ -579,7 +579,7 @@ export class LeaveService extends BaseService {
 
       // Pre-check which balances already exist
       const balancesToCreate: {
-        employeeId: number;
+        employeeId: string;
         leaveTypeId: number;
         accrualAmount: number;
       }[] = [];
@@ -855,7 +855,7 @@ export class LeaveService extends BaseService {
    */
   async approveLeaveRequest(
     requestId: number,
-    approverId: number,
+    approverId: string,
     comments?: string,
   ): Promise<LeaveRequest> {
     try {
@@ -1050,7 +1050,7 @@ export class LeaveService extends BaseService {
    */
   async rejectLeaveRequest(
     requestId: number,
-    approverId: number,
+    approverId: string,
     reason: string,
   ): Promise<LeaveRequest> {
     try {
@@ -1172,7 +1172,7 @@ export class LeaveService extends BaseService {
    */
   async cancelLeaveRequest(
     requestId: number,
-    userId: number,
+    userId: string,
     reason: string,
   ): Promise<LeaveRequest> {
     try {

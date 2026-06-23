@@ -12,7 +12,7 @@ export const qrCodes = sqliteTable("qr_codes", {
   url: text("url"),
   metadataJson: text("metadata_json"),
   restaurantId: text("restaurant_id"),
-  createdBy: integer("created_by"),
+  createdBy: text("created_by"),
 
   // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
   createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
@@ -29,7 +29,7 @@ export const qrTemplates = sqliteTable("qr_templates", {
   isDefault: integer("is_default", { mode: "boolean" })
     .notNull()
     .default(false),
-  createdBy: integer("created_by"),
+  createdBy: text("created_by"),
 
   // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
   createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
@@ -60,7 +60,7 @@ export const qrBatches = sqliteTable("qr_batches", {
   totalCodes: integer("total_codes").notNull(),
   generatedCodes: integer("generated_codes").notNull().default(0),
   status: text("status").notNull().default("pending"),
-  createdBy: integer("created_by").notNull(),
+  createdBy: text("created_by").notNull(),
 
   // 時間戳 - 標準化為 INTEGER (Unix milliseconds)
   createdAt: integer("created_at_ms", { mode: "timestamp_ms" })

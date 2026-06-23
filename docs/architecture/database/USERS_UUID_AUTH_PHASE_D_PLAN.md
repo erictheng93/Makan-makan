@@ -1,6 +1,10 @@
 # Users UUID/Auth Phase D Bridge Plan
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
+
+> Superseded: this bridge-auth compatibility plan was for integer/UUID
+> coexistence. The active direction is the greenfield UUID primary-key reset in
+> `docs/architecture/database/GREENFIELD_UUID_PK_RESET_PLAN.md`.
 
 ## Objective
 

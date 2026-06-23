@@ -10,7 +10,7 @@ ALTER TABLE users ADD COLUMN migration_date DATETIME DEFAULT NULL;
 -- Create password reset tokens table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     token VARCHAR(255) UNIQUE NOT NULL,
     expires_at DATETIME NOT NULL,
     used BOOLEAN DEFAULT 0,
@@ -27,7 +27,7 @@ CREATE INDEX idx_password_reset_tokens_expires ON password_reset_tokens(expires_
 -- Create user sessions table for better session management
 CREATE TABLE IF NOT EXISTS user_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     session_token VARCHAR(255) UNIQUE NOT NULL,
     ip_address VARCHAR(45),
     user_agent TEXT,

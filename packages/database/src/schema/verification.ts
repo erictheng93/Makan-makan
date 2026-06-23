@@ -15,7 +15,7 @@ export const passwordResetTokens = sqliteTable(
   "password_reset_tokens",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: integer("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
@@ -70,7 +70,7 @@ export const emailVerificationTokens = sqliteTable(
   "email_verification_tokens",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: integer("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
@@ -120,7 +120,7 @@ export const phoneVerificationTokens = sqliteTable(
   "phone_verification_tokens",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: integer("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
@@ -176,7 +176,7 @@ export const passwordChangeLogs = sqliteTable(
   "password_change_logs",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: integer("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 

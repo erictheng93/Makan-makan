@@ -43,14 +43,14 @@ export interface CreateCouponData {
   validTo: string;
   isActive?: boolean;
   isVisible?: boolean;
-  createdBy?: number;
+  createdBy?: string;
 }
 
 // 優惠券使用資料接口
 export interface UseCouponData {
   couponId: number;
-  orderId: number;
-  userId?: number;
+  orderId: string;
+  userId?: string;
   discountAmount: number;
   originalAmount: number;
   finalAmount: number;
@@ -122,7 +122,7 @@ export class CouponService extends BaseService {
     code: string,
     restaurantId: string,
     orderAmount: number,
-    userId?: number,
+    userId?: string,
     menuItems?: Array<{ menuItemId: number; quantity: number }>,
   ): Promise<CouponValidationResult> {
     try {
@@ -699,7 +699,7 @@ export class CouponService extends BaseService {
    */
   async getAvailableCoupons(
     restaurantId: string,
-    userId?: number,
+    userId?: string,
   ): Promise<any[]> {
     const now = new Date().toISOString();
 

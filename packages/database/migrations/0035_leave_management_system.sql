@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS leave_types_is_system_type_idx ON leave_types(is_syst
 -- =====================================================
 CREATE TABLE IF NOT EXISTS employee_leave_balances (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id INTEGER NOT NULL,
+    employee_id TEXT NOT NULL,
     leave_type_id INTEGER NOT NULL,
     restaurant_id INTEGER NOT NULL,
 
@@ -88,13 +88,13 @@ CREATE TABLE IF NOT EXISTS employee_leave_balances (
     -- Manual adjustments
     manual_adjustment REAL DEFAULT 0,
     adjustment_reason TEXT,
-    adjusted_by INTEGER,
+    adjusted_by TEXT,
     adjusted_at INTEGER,
 
     -- Audit fields
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    last_updated_by INTEGER,
+    last_updated_by TEXT,
 
     -- Foreign keys
     FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -123,7 +123,7 @@ CREATE INDEX IF NOT EXISTS employee_leave_balances_employee_year_idx ON employee
 -- =====================================================
 CREATE TABLE IF NOT EXISTS leave_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id INTEGER NOT NULL,
+    employee_id TEXT NOT NULL,
     leave_type_id INTEGER NOT NULL,
     restaurant_id INTEGER NOT NULL,
 
@@ -147,12 +147,12 @@ CREATE TABLE IF NOT EXISTS leave_requests (
     required_approval_levels INTEGER NOT NULL DEFAULT 1,
 
     -- Approval results
-    final_approver_id INTEGER,
+    final_approver_id TEXT,
     final_approved_at INTEGER,
     rejection_reason TEXT,
 
     -- Cancellation
-    cancelled_by INTEGER,
+    cancelled_by TEXT,
     cancelled_at INTEGER,
     cancellation_reason TEXT,
 
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS leave_approval_rules (
     -- Approval level settings
     approval_level INTEGER NOT NULL,
     approver_role TEXT,
-    approver_user_id INTEGER,
+    approver_user_id TEXT,
 
     -- Conditions (JSON)
     conditions TEXT DEFAULT '{}',
@@ -231,8 +231,8 @@ CREATE TABLE IF NOT EXISTS leave_approval_rules (
     is_active INTEGER NOT NULL DEFAULT 1,
 
     -- Audit fields
-    created_by INTEGER,
-    updated_by INTEGER,
+    created_by TEXT,
+    updated_by TEXT,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 

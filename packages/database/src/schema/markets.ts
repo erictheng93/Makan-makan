@@ -199,7 +199,7 @@ export const marketCheckoutChildOrders = sqliteTable(
       .notNull()
       .references(() => restaurants.id, { onDelete: "restrict" }),
     restaurantName: text("restaurant_name").notNull(),
-    orderId: integer("order_id").notNull(),
+    orderId: text("order_id").notNull(),
     orderNumber: text("order_number").notNull(),
     totalAmountCents: integer("total_amount_cents").notNull(),
     tokenExpiresAt: integer("token_expires_at_ms", {

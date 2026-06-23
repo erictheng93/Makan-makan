@@ -306,7 +306,7 @@ async function seedLeaveFixtures(
 async function seedLeaveRequest(
   testDb: TestDatabase,
   input: {
-    employeeId: number;
+    employeeId: string;
     leaveTypeId: number;
     totalDays: number;
     status?: "pending" | "approved";

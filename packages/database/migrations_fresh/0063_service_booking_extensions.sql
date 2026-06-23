@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS service_booking_waitlist (
   booking_date TEXT NOT NULL,
   booking_time TEXT NOT NULL,
   party_size INTEGER NOT NULL DEFAULT 1,
-  employee_id INTEGER,
+  employee_id TEXT,
   status TEXT NOT NULL DEFAULT 'waiting',
   special_requests TEXT,
   notes TEXT,

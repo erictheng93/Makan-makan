@@ -69,7 +69,7 @@ export const verifiedMembers = sqliteTable(
     verificationMethod: text("verification_method").notNull(),
     verificationDocumentUrl: text("verification_document_url"),
     verifiedAt: integer("verified_at_ms", { mode: "timestamp_ms" }),
-    verifiedBy: integer("verified_by").references(() => users.id, {
+    verifiedBy: text("verified_by").references(() => users.id, {
       onDelete: "set null",
     }),
     verificationExpiry: integer("verification_expiry_ms", {

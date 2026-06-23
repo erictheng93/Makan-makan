@@ -263,7 +263,7 @@ CREATE TABLE `coupons` (
 	`is_visible` integer DEFAULT true,
 	"created_at_ms" integer NOT NULL,
 	"updated_at_ms" integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	"deleted_at_ms" integer, `discount_value_cents` integer, `max_discount_amount_cents` integer, `min_order_amount_cents` integer,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
@@ -398,8 +398,8 @@ END;
 CREATE TABLE `coupon_usage` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`coupon_id` integer NOT NULL,
-	`order_id` integer NOT NULL,
-	`user_id` integer,
+	`order_id` TEXT NOT NULL,
+	`user_id` TEXT,
 	`discount_amount` real NOT NULL,
 	`original_amount` real NOT NULL,
 	`final_amount` real NOT NULL,
@@ -512,7 +512,7 @@ CREATE TABLE `coupon_distributions` (
 	"distributed_at_ms" integer NOT NULL,
 	"expires_at_ms" integer,
 	"created_at_ms" integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`notes` text,
 	FOREIGN KEY (`coupon_id`) REFERENCES `coupons`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null

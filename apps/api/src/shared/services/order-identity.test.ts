@@ -19,9 +19,10 @@ function createDb(rows: Array<OrderIdentityRow | null>) {
 }
 
 describe("order identity resolver", () => {
-  it("normalizes numeric order identifiers", () => {
-    expect(toOrderLookupInput(42)).toEqual({ numericId: 42 });
-    expect(toOrderLookupInput("42")).toEqual({ numericId: 42 });
+  it("normalizes UUID and alias order identifiers as lookup keys", () => {
+    expect(toOrderLookupInput("018f0000-0000-7000-8000-000000000042")).toEqual({
+      lookupKey: "018f0000-0000-7000-8000-000000000042",
+    });
     expect(toOrderLookupInput(" ORD-42 ")).toEqual({ lookupKey: "ORD-42" });
   });
 
@@ -30,57 +31,57 @@ describe("order identity resolver", () => {
       code: "ORDER_ID_INVALID",
       status: 400,
     });
-    await expect(resolveOrderIdentity(createDb([]), 0)).rejects.toMatchObject({
-      code: "ORDER_ID_INVALID",
-      status: 400,
-    });
+    await expect(resolveOrderIdentity(createDb([]), " ")).rejects.toMatchObject(
+      {
+        code: "ORDER_ID_INVALID",
+        status: 400,
+      },
+    );
   });
 
-  it("resolves numeric ids and keeps restaurant scope when provided", async () => {
+  it("resolves UUID ids and keeps restaurant scope when provided", async () => {
+    const orderId = "018f0000-0000-7000-8000-000000000101";
     const db = createDb([
       {
-        id: 101,
-        public_id: "018f0000-0000-7000-8000-000000000101",
+        id: orderId,
         order_number: "ORD-101",
         restaurant_id: "restaurant-1",
       },
     ]);
 
-    const row = await resolveOrderIdentity(db, "101", {
+    const row = await resolveOrderIdentity(db, orderId, {
       restaurantId: "restaurant-1",
     });
 
     expect(row).toMatchObject({
-      id: 101,
-      publicId: "018f0000-0000-7000-8000-000000000101",
+      id: orderId,
+      publicId: orderId,
       orderNumber: "ORD-101",
       restaurantId: "restaurant-1",
     });
     expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE `id` = ? AND `restaurant_id` = ?"),
+      expect.stringContaining("`id` = ? OR `order_number` = ?"),
     );
   });
 
-  it("resolves public ids, order numbers, and client mutation ids inside a restaurant", async () => {
+  it("resolves UUID ids, order numbers, and client mutation ids inside a restaurant", async () => {
+    const orderId = "018f0000-0000-7000-8000-000000000202";
     const db = createDb([
       {
-        id: 202,
-        public_id: "018f0000-0000-7000-8000-000000000202",
+        id: orderId,
         order_number: "ORD-202",
         restaurant_id: "restaurant-1",
       },
     ]);
 
-    const row = await resolveOrderIdentity(
-      db,
-      "018f0000-0000-7000-8000-000000000202",
-      { restaurantId: "restaurant-1" },
-    );
+    const row = await resolveOrderIdentity(db, orderId, {
+      restaurantId: "restaurant-1",
+    });
 
-    expect(row.id).toBe(202);
+    expect(row.id).toBe(orderId);
     expect(db.prepare).toHaveBeenCalledWith(
       expect.stringContaining(
-        "(`public_id` = ? OR `order_number` = ? OR `client_mutation_id` = ?)",
+        "(`id` = ? OR `order_number` = ? OR `client_mutation_id` = ?)",
       ),
     );
   });

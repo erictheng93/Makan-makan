@@ -34,8 +34,7 @@ export interface RegisterData {
 }
 
 interface AuthTokenPayload extends JwtPayload {
-  id?: number;
-  userId?: number;
+  userId?: string;
   sub?: string;
   type?: string;
   tv?: number;
@@ -57,9 +56,8 @@ function normalizeTokenVersion(value: unknown): number {
 }
 
 function accessTokenPayload(user: TokenUser, tokenVersion: number) {
-  const principal = user.publicId ? { sub: user.publicId } : { id: user.id };
   return {
-    ...principal,
+    sub: user.id,
     username: user.username,
     role: user.role,
     restaurantId: user.restaurantId,
@@ -68,11 +66,8 @@ function accessTokenPayload(user: TokenUser, tokenVersion: number) {
 }
 
 function refreshTokenPayload(user: TokenUser) {
-  const principal = user.publicId
-    ? { sub: user.publicId }
-    : { userId: user.id };
   return {
-    ...principal,
+    sub: user.id,
     type: "refresh",
     jti: crypto.randomUUID(),
   };
@@ -81,11 +76,8 @@ function refreshTokenPayload(user: TokenUser) {
 function refreshTokenPrincipal(
   payload: AuthTokenPayload,
 ): RefreshTokenPrincipal | null {
-  if (typeof payload.userId === "number" && Number.isInteger(payload.userId)) {
-    return { legacyUserId: payload.userId };
-  }
   if (typeof payload.sub === "string" && payload.sub.length > 0) {
-    return { publicUserId: payload.sub };
+    return { userId: payload.sub };
   }
   return null;
 }
@@ -104,22 +96,19 @@ const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_HOURS * 60 * 60 * 1000;
 const ACCESS_TOKEN_EXPIRES_IN = `${ACCESS_TOKEN_TTL_HOURS}h`;
 
 type TokenUser = {
-  id: number;
-  publicId?: string | null;
+  id: string;
   username: string;
-  fullName?: string;
+  fullName: string;
   role: number;
   restaurantId: string | null;
-  isActive?: boolean;
-  tokenVersion?: unknown;
+  isActive: boolean;
+  tokenVersion?: number;
 };
 
-type RefreshTokenPrincipal =
-  | { legacyUserId: number; publicUserId?: never }
-  | { publicUserId: string; legacyUserId?: never };
+type RefreshTokenPrincipal = { userId: string };
 
 export interface SessionData {
-  userId: number;
+  userId: string;
   token: string;
   refreshToken?: string;
   userAgent?: string;
@@ -132,7 +121,7 @@ export interface SessionData {
 export interface AuthResult {
   success: boolean;
   user?: {
-    id: number;
+    id: string;
     publicId?: string | null;
     username: string;
     fullName: string;
@@ -176,7 +165,6 @@ export class AuthService extends BaseService {
       const user = await this.db
         .select({
           id: users.id,
-          publicId: users.publicId,
           username: users.username,
           fullName: users.fullName,
           passwordHash: users.passwordHash,
@@ -293,7 +281,7 @@ export class AuthService extends BaseService {
         success: true,
         user: {
           id: user.id,
-          publicId: user.publicId,
+          publicId: user.id,
           username: user.username,
           fullName: user.fullName,
           role: user.role,
@@ -370,7 +358,6 @@ export class AuthService extends BaseService {
         })
         .returning({
           id: users.id,
-          publicId: users.publicId,
           username: users.username,
           fullName: users.fullName,
           role: users.role,
@@ -381,7 +368,7 @@ export class AuthService extends BaseService {
         success: true,
         user: {
           id: newUser.id,
-          publicId: newUser.publicId,
+          publicId: newUser.id,
           username: newUser.username,
           fullName: newUser.fullName,
           role: newUser.role,
@@ -500,15 +487,12 @@ export class AuthService extends BaseService {
   private async loadActiveUserForToken(
     principal: RefreshTokenPrincipal,
   ): Promise<TokenUser | undefined> {
-    const where =
-      "legacyUserId" in principal
-        ? eq(users.id, principal.legacyUserId)
-        : eq(users.publicId, principal.publicUserId);
+    const where = eq(users.id, principal.userId);
 
     return await this.db
       .select({
         id: users.id,
-        publicId: users.publicId,
+        publicId: users.id,
         username: users.username,
         fullName: users.fullName,
         role: users.role,
@@ -548,7 +532,7 @@ export class AuthService extends BaseService {
   }
 
   // 登出（使 session 失效）
-  async logout(userId: number, token?: string): Promise<boolean> {
+  async logout(userId: string, token?: string): Promise<boolean> {
     try {
       const conditions = [eq(sessions.userId, userId)];
       if (token) {
@@ -584,7 +568,7 @@ export class AuthService extends BaseService {
 
       // 驗證 JWT
       const decoded = verifyAuthToken(token, jwtSecret);
-      if (typeof decoded.id !== "number" && typeof decoded.sub !== "string") {
+      if (typeof decoded.sub !== "string") {
         return { valid: false, error: "Invalid token payload" };
       }
 
@@ -616,7 +600,7 @@ export class AuthService extends BaseService {
       const user = await this.db
         .select({
           id: users.id,
-          publicId: users.publicId,
+          publicId: users.id,
           username: users.username,
           fullName: users.fullName,
           role: users.role,
@@ -631,10 +615,7 @@ export class AuthService extends BaseService {
       if (!user) {
         return { valid: false, error: "User not found or inactive" };
       }
-      if (typeof decoded.id === "number" && decoded.id !== user.id) {
-        return { valid: false, error: "Invalid token payload" };
-      }
-      if (typeof decoded.sub === "string" && decoded.sub !== user.publicId) {
+      if (decoded.sub !== user.id) {
         return { valid: false, error: "Invalid token payload" };
       }
 
@@ -659,7 +640,7 @@ export class AuthService extends BaseService {
   }
 
   // 清理過期的 sessions
-  async cleanupExpiredSessions(userId?: number): Promise<number> {
+  async cleanupExpiredSessions(userId?: string): Promise<number> {
     try {
       const conditions = [lt(sessions.expiresAt, new Date())];
       if (userId) {
@@ -679,7 +660,7 @@ export class AuthService extends BaseService {
   }
 
   // 取得用戶的活躍 sessions
-  async getUserSessions(userId: number): Promise<any[]> {
+  async getUserSessions(userId: string): Promise<any[]> {
     try {
       return await this.db
         .select({
@@ -701,7 +682,7 @@ export class AuthService extends BaseService {
 
   // 更改密碼
   async changePassword(
-    userId: number,
+    userId: string,
     oldPassword: string,
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {

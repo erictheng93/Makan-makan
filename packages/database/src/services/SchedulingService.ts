@@ -59,8 +59,8 @@ export interface ShiftTemplate {
   icon: string | null;
   sortOrder: number;
   isActive: boolean;
-  createdBy: number | null;
-  updatedBy: number | null;
+  createdBy: string | null;
+  updatedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,7 +68,7 @@ export interface ShiftTemplate {
 export interface EmployeeSchedule {
   id: number;
   restaurantId: string;
-  employeeId: number;
+  employeeId: string;
   shiftTemplateId: number | null;
   workDate: string;
   startTime: string;
@@ -82,10 +82,10 @@ export interface EmployeeSchedule {
   status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show";
   notes: string | null;
   managerNotes: string | null;
-  confirmedBy: number | null;
+  confirmedBy: string | null;
   confirmedAt: Date | null;
-  createdBy: number;
-  updatedBy: number | null;
+  createdBy: string;
+  updatedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -108,7 +108,7 @@ export interface SchedulingConflict {
   message: string;
   details: string | null;
   status: "unresolved" | "acknowledged" | "resolved" | "ignored";
-  resolvedBy: number | null;
+  resolvedBy: string | null;
   resolvedAt: Date | null;
   resolutionNotes: string | null;
   detectedAt: Date;
@@ -119,9 +119,9 @@ export interface SchedulingConflict {
 export interface ScheduleSwapRequest {
   id: number;
   restaurantId: string;
-  requesterEmployeeId: number;
+  requesterEmployeeId: string;
   requesterScheduleId: number;
-  targetEmployeeId: number | null;
+  targetEmployeeId: string | null;
   targetScheduleId: number | null;
   requestType: "swap" | "cover" | "drop";
   reason: string;
@@ -134,11 +134,11 @@ export interface ScheduleSwapRequest {
     | "rejected"
     | "cancelled"
     | "expired";
-  acceptedBy: number | null;
+  acceptedBy: string | null;
   acceptedAt: Date | null;
-  approvedBy: number | null;
+  approvedBy: string | null;
   approvedAt: Date | null;
-  rejectedBy: number | null;
+  rejectedBy: string | null;
   rejectedAt: Date | null;
   rejectionReason: string | null;
   expiresAt: Date | null;
@@ -155,7 +155,7 @@ export interface ConflictCheckResult {
 
 export interface ScheduleFilters {
   restaurantId?: string;
-  employeeId?: number;
+  employeeId?: string;
   shiftTemplateId?: number;
   startDate?: string;
   endDate?: string;
@@ -167,22 +167,22 @@ export interface ScheduleFilters {
 export interface BulkScheduleData {
   restaurantId: string;
   shiftTemplateId: number;
-  employeeIds: number[];
+  employeeIds: string[];
   dateRange: { startDate: string; endDate: string };
   daysOfWeek: number[];
-  createdBy: number;
+  createdBy: string;
 }
 
 export interface ClockInData {
   scheduleId: number;
-  employeeId: number;
+  employeeId: string;
   clockInTime: Date;
   notes?: string;
 }
 
 export interface ClockOutData {
   scheduleId: number;
-  employeeId: number;
+  employeeId: string;
   clockOutTime: Date;
   notes?: string;
 }
@@ -397,7 +397,7 @@ export class SchedulingService extends BaseService {
   async createSchedule(
     data: Partial<EmployeeSchedule> & {
       restaurantId: string;
-      employeeId: number;
+      employeeId: string;
       workDate: string;
       startTime: string;
       endTime: string;
@@ -770,7 +770,7 @@ export class SchedulingService extends BaseService {
     options: {
       startDate: string;
       endDate: string;
-      employeeId?: number;
+      employeeId?: string;
     },
   ): Promise<{
     records: EmployeeSchedule[];
@@ -856,7 +856,7 @@ export class SchedulingService extends BaseService {
   // ========================================
 
   async checkScheduleConflicts(scheduleData: {
-    employeeId: number;
+    employeeId: string;
     workDate: string;
     startTime: string;
     endTime: string;
@@ -922,7 +922,7 @@ export class SchedulingService extends BaseService {
   }
 
   private async checkOverlappingShifts(
-    employeeId: number,
+    employeeId: string,
     workDate: string,
     startTime: string,
     endTime: string,
@@ -962,7 +962,7 @@ export class SchedulingService extends BaseService {
   }
 
   private async checkRestPeriod(
-    employeeId: number,
+    employeeId: string,
     workDate: string,
     startTime: string,
   ): Promise<any[]> {
@@ -1002,7 +1002,7 @@ export class SchedulingService extends BaseService {
   }
 
   private async checkDailyHours(
-    employeeId: number,
+    employeeId: string,
     workDate: string,
     additionalHours: number,
   ): Promise<any | null> {
@@ -1035,7 +1035,7 @@ export class SchedulingService extends BaseService {
   }
 
   private async checkWeeklyHours(
-    employeeId: number,
+    employeeId: string,
     workDate: string,
     additionalHours: number,
   ): Promise<any | null> {
@@ -1078,7 +1078,7 @@ export class SchedulingService extends BaseService {
   }
 
   private async checkConsecutiveDays(
-    employeeId: number,
+    employeeId: string,
     workDate: string,
   ): Promise<any | null> {
     const date = new Date(workDate);
@@ -1127,7 +1127,7 @@ export class SchedulingService extends BaseService {
   }
 
   private async checkLeaveConflict(
-    employeeId: number,
+    employeeId: string,
     workDate: string,
   ): Promise<any | null> {
     const [leave] = await this.db
@@ -1200,7 +1200,7 @@ export class SchedulingService extends BaseService {
    * Send a schedule change notification. Non-critical — errors are logged and swallowed.
    */
   private async sendScheduleNotification(
-    employeeId: number,
+    employeeId: string,
     shiftTemplateId: number | null | undefined,
     opts: {
       category: NotificationCategory;
@@ -1315,7 +1315,7 @@ export class SchedulingService extends BaseService {
 
   async approveSwapRequest(
     requestId: number,
-    managerId: number,
+    managerId: string,
   ): Promise<ScheduleSwapRequest> {
     // Wrap swap request update and any related schedule updates in a transaction
     const updated = await this.db.transaction(async (tx) => {
@@ -1416,7 +1416,7 @@ export class SchedulingService extends BaseService {
 
   async acceptSwapRequest(
     requestId: number,
-    employeeId: number,
+    employeeId: string,
   ): Promise<ScheduleSwapRequest> {
     // First check if the request exists and is pending
     const [request] = await this.db
@@ -1454,7 +1454,7 @@ export class SchedulingService extends BaseService {
 
   async rejectSwapRequest(
     requestId: number,
-    managerId: number,
+    managerId: string,
     reason: string,
   ): Promise<ScheduleSwapRequest> {
     // First check if the request exists
@@ -1539,7 +1539,7 @@ export class SchedulingService extends BaseService {
 
   async cancelSwapRequest(
     requestId: number,
-    employeeId: number,
+    employeeId: string,
   ): Promise<ScheduleSwapRequest> {
     // First check if the request exists and belongs to the employee
     const [request] = await this.db
@@ -1649,11 +1649,11 @@ export class SchedulingService extends BaseService {
    * Used when leave is approved to automatically cancel scheduled shifts
    */
   async cancelSchedulesByDateRange(params: {
-    employeeId: number;
+    employeeId: string;
     startDate: string;
     endDate: string;
     reason: string;
-    cancelledBy: number;
+    cancelledBy: string;
   }): Promise<{ cancelledCount: number; scheduleIds: number[] }> {
     try {
       const [cancelledRows] = await this.db.batch([
@@ -1836,7 +1836,7 @@ export class SchedulingService extends BaseService {
    */
   async resolveConflict(
     id: number,
-    userId: number,
+    userId: string,
     resolutionNotes: string,
   ): Promise<SchedulingConflict> {
     try {

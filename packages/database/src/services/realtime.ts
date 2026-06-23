@@ -18,7 +18,7 @@ interface RealtimeMessage {
 }
 
 interface RealtimeOrderIdentity {
-  id: number;
+  id: string;
   publicId?: string;
 }
 
@@ -332,32 +332,28 @@ export class RealtimeService extends BaseService {
     restaurantId: string,
   ): Promise<RealtimeOrderIdentity> {
     const trimmed = orderId.trim();
-    const numericId = /^\d+$/.test(trimmed) ? Number.parseInt(trimmed, 10) : 0;
 
     if (!this.d1 || typeof this.d1.prepare !== "function") {
-      if (numericId > 0) return { id: numericId };
-      throw new Error("Order public id lookup unavailable");
+      return { id: trimmed, publicId: trimmed };
     }
 
     const row = await this.d1
       .prepare(
-        `SELECT id, public_id
+        `SELECT id
            FROM orders
           WHERE restaurant_id = ?
-            AND (id = ? OR public_id = ?)
+            AND id = ?
           LIMIT 1`,
       )
-      .bind(restaurantId, numericId, trimmed)
-      .first<{ id: number; public_id: string | null }>();
+      .bind(restaurantId, trimmed)
+      .first<{ id: string }>();
 
     if (row) {
       return {
-        id: Number(row.id),
-        publicId: row.public_id ?? undefined,
+        id: row.id,
+        publicId: row.id,
       };
     }
-
-    if (numericId > 0) return { id: numericId };
 
     throw new Error("Order not found");
   }

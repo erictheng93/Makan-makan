@@ -80,6 +80,8 @@ import { RealtimeAuthService } from "./RealtimeAuthService";
 const realtimeSecret = "realtime-secret-with-at-least-32-chars";
 const jwtSecret = "session-secret-with-at-least-32-chars";
 const qrSigningKey = "qr-signing-key-with-at-least-32-chars";
+const userId = "018f0000-0000-7000-8000-000000000007";
+const ownerId = "018f0000-0000-7000-8000-000000000001";
 
 function createKV(values: Record<string, unknown> = {}) {
   return {
@@ -119,7 +121,7 @@ function createSessionToken(
 
   return sign(
     {
-      id: 7,
+      sub: userId,
       username: "chef",
       role: 2,
       restaurantId: "restaurant-1",
@@ -282,7 +284,7 @@ describe("RealtimeAuthService", () => {
     const service = createService({ DB: {} });
     const sessionId = sign(
       {
-        id: 7,
+        sub: userId,
         username: "chef",
         role: 2,
         restaurantId: "restaurant-1",
@@ -312,7 +314,7 @@ describe("RealtimeAuthService", () => {
         roomId: "restaurant-1",
         restaurantId: "restaurant-1",
         role: "staff",
-        userId: 7,
+        userId,
         appRole: 2,
       },
     });
@@ -320,7 +322,7 @@ describe("RealtimeAuthService", () => {
 
   it("loads active session users from DB and derives admin staff roles", async () => {
     const prepared = createPreparedDb({
-      id: 1,
+      id: ownerId,
       username: "owner",
       role: 1,
       restaurant_id: "restaurant-1",
@@ -329,7 +331,7 @@ describe("RealtimeAuthService", () => {
     });
     const service = createService({ DB: { prepare: prepared.prepare } });
     const sessionId = createSessionToken({
-      id: 1,
+      sub: ownerId,
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -351,18 +353,17 @@ describe("RealtimeAuthService", () => {
       payload: {
         role: "admin",
         appRole: 1,
-        userId: 1,
+        userId: ownerId,
       },
     });
     expect(prepared.prepare).toHaveBeenCalled();
-    expect(prepared.bind).toHaveBeenCalledWith(1);
+    expect(prepared.bind).toHaveBeenCalledWith(ownerId);
   });
 
   it("loads UUID-principal session users from DB and emits public user ids", async () => {
-    const publicUserId = "018f0000-0000-7000-8000-000000000001";
+    const publicUserId = ownerId;
     const prepared = createPreparedDb({
-      id: 1,
-      public_id: publicUserId,
+      id: publicUserId,
       username: "owner",
       role: 1,
       restaurant_id: "restaurant-1",
@@ -371,7 +372,6 @@ describe("RealtimeAuthService", () => {
     });
     const service = createService({ DB: { prepare: prepared.prepare } });
     const sessionId = createSessionToken({
-      id: undefined,
       sub: publicUserId,
       username: "owner",
       role: 1,
@@ -394,19 +394,19 @@ describe("RealtimeAuthService", () => {
       payload: {
         role: "admin",
         appRole: 1,
-        userId: 1,
+        userId: publicUserId,
         publicUserId,
       },
     });
     expect(prepared.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE public_id = ?"),
+      expect.stringContaining("WHERE id = ?"),
     );
     expect(prepared.bind).toHaveBeenCalledWith(publicUserId);
   });
 
   it("allows platform admins to access any restaurant room", async () => {
     const prepared = createPreparedDb({
-      id: 1,
+      id: ownerId,
       username: "admin",
       role: 0,
       restaurant_id: null,
@@ -415,7 +415,7 @@ describe("RealtimeAuthService", () => {
     });
     const service = createService({ DB: { prepare: prepared.prepare } });
     const sessionId = createSessionToken({
-      id: 1,
+      sub: ownerId,
       username: "admin",
       role: 0,
       restaurantId: "hq",
@@ -486,9 +486,13 @@ describe("RealtimeAuthService", () => {
         roomType: "admin",
         roomId: "restaurant-1",
         restaurantId: "restaurant-1",
-        sessionId: sign({ id: "7", username: "chef", role: 2 }, jwtSecret, {
-          expiresIn: "1h",
-        }),
+        sessionId: sign(
+          { sub: "not-a-uuid", username: "chef", role: 2 },
+          jwtSecret,
+          {
+            expiresIn: "1h",
+          },
+        ),
       }),
     ).resolves.toEqual({ error: "Invalid session token claims" });
     await expect(
@@ -533,7 +537,7 @@ describe("RealtimeAuthService", () => {
     const cases = [
       {
         row: {
-          id: 7,
+          id: userId,
           username: "chef",
           role: 2,
           restaurant_id: "restaurant-1",
@@ -544,7 +548,7 @@ describe("RealtimeAuthService", () => {
       },
       {
         row: {
-          id: 7,
+          id: userId,
           username: "chef",
           role: 2,
           restaurant_id: "restaurant-1",
@@ -555,7 +559,7 @@ describe("RealtimeAuthService", () => {
       },
       {
         row: {
-          id: 7,
+          id: userId,
           username: "other",
           role: 2,
           restaurant_id: "restaurant-1",
@@ -566,7 +570,7 @@ describe("RealtimeAuthService", () => {
       },
       {
         row: {
-          id: 7,
+          id: userId,
           username: "chef",
           role: 2,
           restaurant_id: "restaurant-2",

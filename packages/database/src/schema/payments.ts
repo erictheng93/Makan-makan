@@ -29,7 +29,7 @@ export const paymentTransactions = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     transactionId: text("transaction_id").notNull().unique(),
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     restaurantId: text("restaurant_id")
@@ -85,7 +85,7 @@ export const refundTransactions = sqliteTable(
       .references(() => paymentTransactions.transactionId, {
         onDelete: "cascade",
       }),
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     restaurantId: text("restaurant_id")

@@ -29,8 +29,8 @@ CREATE INDEX IF NOT EXISTS platform_integrations_enabled_idx
 
 -- 4. Create platform_orders table
 CREATE TABLE IF NOT EXISTS platform_orders (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   platform TEXT NOT NULL,
   platform_order_id TEXT NOT NULL,
   platform_store_id TEXT,

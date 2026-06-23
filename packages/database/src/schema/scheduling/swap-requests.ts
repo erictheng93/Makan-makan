@@ -19,7 +19,7 @@ export const scheduleSwapRequests = sqliteTable(
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.id (UUID v7)
 
     // Requester Information
-    requesterEmployeeId: integer("requester_employee_id")
+    requesterEmployeeId: text("requester_employee_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     requesterScheduleId: integer("requester_schedule_id")
@@ -27,7 +27,7 @@ export const scheduleSwapRequests = sqliteTable(
       .references(() => employeeSchedules.id, { onDelete: "cascade" }),
 
     // Target Information
-    targetEmployeeId: integer("target_employee_id").references(() => users.id, {
+    targetEmployeeId: text("target_employee_id").references(() => users.id, {
       onDelete: "cascade",
     }),
     targetScheduleId: integer("target_schedule_id").references(
@@ -69,13 +69,13 @@ export const scheduleSwapRequests = sqliteTable(
       .default("pending"),
 
     // Approval Workflow
-    acceptedBy: integer("accepted_by").references(() => users.id), // Employee who accepts (for open requests)
+    acceptedBy: text("accepted_by").references(() => users.id), // Employee who accepts (for open requests)
     acceptedAt: integer("accepted_at_ms", { mode: "timestamp_ms" }),
 
-    approvedBy: integer("approved_by").references(() => users.id), // Manager approval
+    approvedBy: text("approved_by").references(() => users.id), // Manager approval
     approvedAt: integer("approved_at_ms", { mode: "timestamp_ms" }),
 
-    rejectedBy: integer("rejected_by").references(() => users.id),
+    rejectedBy: text("rejected_by").references(() => users.id),
     rejectedAt: integer("rejected_at_ms", { mode: "timestamp_ms" }),
     rejectionReason: text("rejection_reason"),
 

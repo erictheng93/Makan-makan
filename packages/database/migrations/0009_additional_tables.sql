@@ -5,7 +5,7 @@
 -- 1. Order Status History - 訂單狀態變更歷史
 CREATE TABLE order_status_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
+    order_id TEXT NOT NULL,
     old_status TEXT NOT NULL,
     new_status TEXT NOT NULL,
     changed_by INTEGER NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE blacklisted_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     token_jti TEXT NOT NULL UNIQUE, -- JWT ID claim
     token_hash TEXT NOT NULL, -- Token hash for security
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     expires_at DATETIME NOT NULL,
     reason TEXT, -- 'logout', 'expired', 'revoked', etc.
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -51,7 +51,7 @@ CREATE TABLE menu_item_options (
 -- 4. Customer Reviews - 客戶評價
 CREATE TABLE customer_reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
+    order_id TEXT NOT NULL,
     restaurant_id INTEGER NOT NULL,
     customer_name TEXT,
     customer_email TEXT,
@@ -99,7 +99,7 @@ CREATE TABLE stock_movements (
     reason TEXT,
     reference_id INTEGER, -- 關聯的訂單或其他記錄
     reference_type TEXT, -- 'order', 'adjustment', 'restock'
-    recorded_by INTEGER NOT NULL,
+    recorded_by TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE,
@@ -121,7 +121,7 @@ CREATE TABLE table_reservations (
     status TEXT DEFAULT 'confirmed' CHECK (status IN ('pending', 'confirmed', 'seated', 'completed', 'cancelled', 'no_show')),
     special_requests TEXT,
     notes TEXT,
-    confirmed_by INTEGER,
+    confirmed_by TEXT,
     confirmed_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -134,7 +134,7 @@ CREATE TABLE table_reservations (
 -- 8. Payment Transactions - 支付交易記錄
 CREATE TABLE payment_transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
+    order_id TEXT NOT NULL,
     transaction_id TEXT NOT NULL UNIQUE, -- 外部支付系統的交易ID
     payment_method TEXT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,

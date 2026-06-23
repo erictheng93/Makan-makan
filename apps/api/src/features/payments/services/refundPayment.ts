@@ -24,7 +24,7 @@ export interface RefundPaymentInput {
 export interface RefundPaymentResult {
   refundId: string;
   transactionId: string;
-  orderId: number;
+  orderId: string;
   amount: number;
   status: "completed";
   paymentStatus: "refunded" | "partial_refunded";
@@ -238,7 +238,7 @@ function preparePaymentLedgerForRefund(
   db: ReturnType<typeof drizzle>,
   data: {
     transactionId: string;
-    orderId: number;
+    orderId: string;
     restaurantId: string;
     amountCents: number;
     paymentMethod: string;

@@ -60,7 +60,7 @@ export const tables = sqliteTable(
     }>(),
 
     // 目前使用狀況
-    currentOrderId: integer("current_order_id"),
+    currentOrderId: text("current_order_id"),
     occupiedAt: integer("occupied_at_ms", { mode: "timestamp_ms" }),
     occupiedBy: text("occupied_by"), // 使用者標識
     estimatedFreeAt: integer("estimated_free_at_ms", { mode: "timestamp_ms" }),

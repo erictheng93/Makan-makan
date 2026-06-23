@@ -734,7 +734,7 @@ CREATE TABLE "tables" (
 	`is_active` integer DEFAULT true NOT NULL,
 	`is_reservable` integer DEFAULT true NOT NULL,
 	`features` text,
-	`current_order_id` integer,
+	`current_order_id` TEXT,
 	`occupied_at_ms` integer,
 	`occupied_by` text,
 	`estimated_free_at_ms` integer,
@@ -850,7 +850,7 @@ END;
 --> statement-breakpoint
 
 CREATE TABLE "orders" (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` TEXT PRIMARY KEY NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`table_id` integer,
 	`customer_id` integer,
@@ -1080,8 +1080,8 @@ END;
 CREATE TABLE "group_orders" (
 	`id` text PRIMARY KEY NOT NULL,
 	`share_code` text NOT NULL,
-	`master_order_id` integer,
-	`created_by` integer NOT NULL,
+	`master_order_id` TEXT,
+	`created_by` TEXT NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`table_id` integer,
 	`status` text DEFAULT 'active' NOT NULL,
@@ -1302,7 +1302,7 @@ END;
 CREATE TABLE `payment_transactions` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `transaction_id` text NOT NULL,
-  `order_id` integer NOT NULL,
+  `order_id` TEXT NOT NULL,
   `restaurant_id` text NOT NULL,
   `amount_cents` integer NOT NULL,
   `currency` text,
@@ -1575,7 +1575,7 @@ END;
 CREATE TABLE "group_members" (
 	`id` text PRIMARY KEY NOT NULL,
 	`group_order_id` text NOT NULL,
-	`user_id` integer,
+	`user_id` TEXT,
 	`session_id` text NOT NULL,
 	`name` text NOT NULL,
 	`phone` text,
@@ -1895,7 +1895,7 @@ CREATE TABLE `seats` (
 	`qr_code_version` integer DEFAULT 1 NOT NULL,
 	`is_occupied` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`current_order_id` integer,
+	`current_order_id` TEXT,
 	"occupied_at_ms" integer,
 	`occupied_by` text,
 	`total_usage` integer DEFAULT 0 NOT NULL,
@@ -2092,7 +2092,7 @@ END;
 
 CREATE TABLE `refunds` (
 	`id` text PRIMARY KEY NOT NULL,
-	`original_order_id` integer NOT NULL,
+	`original_order_id` TEXT NOT NULL,
 	`register_id` text NOT NULL,
 	`shift_id` text,
 	`refund_number` text NOT NULL,
@@ -2103,8 +2103,8 @@ CREATE TABLE `refunds` (
 	`reason_code` text NOT NULL,
 	`reason_description` text,
 	`items_refunded` text DEFAULT '[]' NOT NULL,
-	`processed_by` integer NOT NULL,
-	`approved_by` integer,
+	`processed_by` TEXT NOT NULL,
+	`approved_by` TEXT,
 	`customer_signature` text,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`metadata` text DEFAULT '{}' NOT NULL,
@@ -2213,7 +2213,7 @@ CREATE TABLE `refund_transactions` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `refund_id` text NOT NULL,
   `payment_transaction_id` text NOT NULL,
-  `order_id` integer NOT NULL,
+  `order_id` TEXT NOT NULL,
   `restaurant_id` text NOT NULL,
   `amount_cents` integer NOT NULL,
   `reason` text,
@@ -2282,7 +2282,7 @@ CREATE UNIQUE INDEX `refund_transactions_refund_id_unique`
 
 CREATE TABLE "receipts" (
 	`id` text PRIMARY KEY NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`register_id` text NOT NULL,
 	`shift_id` text,
 	`receipt_number` text NOT NULL,
@@ -2364,8 +2364,8 @@ CREATE UNIQUE INDEX `receipts_receipt_number_unique` ON `receipts` (`receipt_num
 --> statement-breakpoint
 
 CREATE TABLE "platform_orders" (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   platform TEXT NOT NULL,
   platform_order_id TEXT NOT NULL,
   platform_store_id TEXT,
@@ -2515,7 +2515,7 @@ CREATE TABLE "partnership_usage_logs" (
 	`partnership_id` text NOT NULL,
 	`plan_id` text NOT NULL,
 	`member_id` text NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`discount_type` text NOT NULL,
 	`discount_value` real NOT NULL,
@@ -2526,7 +2526,7 @@ CREATE TABLE "partnership_usage_logs" (
 	"used_at_ms" integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
 	`channel` text,
 	`verification_method` text,
-	`verified_by_user_id` integer,
+	`verified_by_user_id` TEXT,
 	`status` text DEFAULT 'completed' NOT NULL,
 	"cancelled_at_ms" integer,
 	`cancellation_reason` text,
@@ -2677,7 +2677,7 @@ END;
 
 CREATE TABLE `order_items` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`menu_item_id` integer NOT NULL,
 	`quantity` integer NOT NULL,
 	`unit_price` real NOT NULL,
@@ -2915,8 +2915,8 @@ CREATE INDEX `idx_group_activity_logs_group_order` ON `group_activity_logs` (`gr
 CREATE TABLE `coupon_usage` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`coupon_id` integer NOT NULL,
-	`order_id` integer NOT NULL,
-	`user_id` integer,
+	`order_id` TEXT NOT NULL,
+	`user_id` TEXT,
 	`discount_amount` real NOT NULL,
 	`original_amount` real NOT NULL,
 	`final_amount` real NOT NULL,

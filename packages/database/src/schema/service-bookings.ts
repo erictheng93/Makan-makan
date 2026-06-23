@@ -111,7 +111,7 @@ export const serviceBookings = sqliteTable(
 
     // Reserved for a later staff-assignment phase (see spec). Nullable, unused
     // by MVP availability (service-level capacity only).
-    employeeId: integer("employee_id").references(() => users.id, {
+    employeeId: text("employee_id").references(() => users.id, {
       onDelete: "set null",
     }),
 
@@ -264,7 +264,7 @@ export const serviceBookingWaitlist = sqliteTable(
     bookingDate: text("booking_date").notNull(),
     bookingTime: text("booking_time").notNull(),
     partySize: integer("party_size").notNull().default(1),
-    employeeId: integer("employee_id").references(() => users.id, {
+    employeeId: text("employee_id").references(() => users.id, {
       onDelete: "set null",
     }),
     status: text("status")

@@ -23,7 +23,7 @@ export const employeeSchedules = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.id (UUID v7)
-    employeeId: integer("employee_id")
+    employeeId: text("employee_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     shiftTemplateId: integer("shift_template_id").references(
@@ -58,14 +58,14 @@ export const employeeSchedules = sqliteTable(
     managerNotes: text("manager_notes"),
 
     // Confirmation
-    confirmedBy: integer("confirmed_by").references(() => users.id),
+    confirmedBy: text("confirmed_by").references(() => users.id),
     confirmedAt: integer("confirmed_at_ms", { mode: "timestamp_ms" }),
 
     // Audit
-    createdBy: integer("created_by")
+    createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
-    updatedBy: integer("updated_by").references(() => users.id),
+    updatedBy: text("updated_by").references(() => users.id),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),

@@ -412,7 +412,7 @@ export class TableService extends BaseService {
   // 佔用桌子
   async occupyTable(
     tableId: number,
-    orderId: number,
+    orderId: string,
     occupiedBy?: string,
     estimatedMinutes?: number,
   ): Promise<boolean> {

@@ -307,7 +307,7 @@ END;
 CREATE TABLE "cash_shifts" (
 	`id` text PRIMARY KEY NOT NULL,
 	`register_id` text NOT NULL,
-	`operator_id` integer NOT NULL,
+	`operator_id` TEXT NOT NULL,
 	`start_amount` real NOT NULL,
 	`end_amount` real,
 	`expected_amount` real NOT NULL,
@@ -468,8 +468,8 @@ CREATE TABLE "cash_movements" (
 	`reference_type` text,
 	`payment_method` text,
 	`denomination_breakdown` text DEFAULT '{}' NOT NULL,
-	`recorded_by` integer NOT NULL,
-	`approved_by` integer,
+	`recorded_by` TEXT NOT NULL,
+	`approved_by` TEXT,
 	`approval_status` text DEFAULT 'pending' NOT NULL,
 	`receipt_number` text,
 	`metadata` text DEFAULT '{}' NOT NULL,
@@ -560,7 +560,7 @@ END;
 
 CREATE TABLE "receipts" (
 	`id` text PRIMARY KEY NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`register_id` text NOT NULL,
 	`shift_id` text,
 	`receipt_number` text NOT NULL,
@@ -643,7 +643,7 @@ CREATE UNIQUE INDEX `receipts_receipt_number_unique` ON `receipts` (`receipt_num
 
 CREATE TABLE `refunds` (
 	`id` text PRIMARY KEY NOT NULL,
-	`original_order_id` integer NOT NULL,
+	`original_order_id` TEXT NOT NULL,
 	`register_id` text NOT NULL,
 	`shift_id` text,
 	`refund_number` text NOT NULL,
@@ -654,8 +654,8 @@ CREATE TABLE `refunds` (
 	`reason_code` text NOT NULL,
 	`reason_description` text,
 	`items_refunded` text DEFAULT '[]' NOT NULL,
-	`processed_by` integer NOT NULL,
-	`approved_by` integer,
+	`processed_by` TEXT NOT NULL,
+	`approved_by` TEXT,
 	`customer_signature` text,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`metadata` text DEFAULT '{}' NOT NULL,
@@ -764,7 +764,7 @@ CREATE TABLE "shift_reports" (
 	`id` text PRIMARY KEY NOT NULL,
 	`shift_id` text NOT NULL,
 	`register_id` text NOT NULL,
-	`operator_id` integer NOT NULL,
+	`operator_id` TEXT NOT NULL,
 	`report_data` text NOT NULL,
 	`summary_data` text NOT NULL,
 	`generated_at_ms` integer NOT NULL,

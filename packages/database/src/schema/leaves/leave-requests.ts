@@ -23,7 +23,7 @@ export const leaveRequests = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.id (UUID v7)
-    employeeId: integer("employee_id")
+    employeeId: text("employee_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     leaveTypeId: integer("leave_type_id")
@@ -56,14 +56,14 @@ export const leaveRequests = sqliteTable(
     currentApprovalLevel: integer("current_approval_level")
       .notNull()
       .default(0),
-    finalApproverId: integer("final_approver_id").references(() => users.id),
+    finalApproverId: text("final_approver_id").references(() => users.id),
     finalApprovedAt: integer("final_approved_at_ms", { mode: "timestamp_ms" }),
-    rejectedBy: integer("rejected_by").references(() => users.id),
+    rejectedBy: text("rejected_by").references(() => users.id),
     rejectedAt: integer("rejected_at_ms", { mode: "timestamp_ms" }),
     rejectionReason: text("rejection_reason"),
 
     // Cancellation (取消)
-    cancelledBy: integer("cancelled_by").references(() => users.id),
+    cancelledBy: text("cancelled_by").references(() => users.id),
     cancelledAt: integer("cancelled_at_ms", { mode: "timestamp_ms" }),
     cancellationReason: text("cancellation_reason"),
 

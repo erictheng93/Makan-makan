@@ -133,7 +133,7 @@ DROP TABLE `users`;
 --> statement-breakpoint
 
 CREATE TABLE "users" (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` TEXT PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`email` text,
 	`phone` text,
@@ -271,8 +271,8 @@ CREATE TABLE `shift_templates` (
 	`icon` text,
 	`sort_order` integer DEFAULT 0,
 	`is_active` integer DEFAULT true NOT NULL,
-	`created_by` integer,
-	`updated_by` integer,
+	`created_by` TEXT,
+	`updated_by` TEXT,
 	`created_at_ms` integer NOT NULL,
 	`updated_at_ms` integer NOT NULL,
 	`deleted_at_ms` integer,
@@ -421,7 +421,7 @@ CREATE TABLE "partnerships" (
 	`metadata` text DEFAULT '{}',
 	"created_at_ms" integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
 	"updated_at_ms" integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
-	`created_by` integer, deleted_at_ms INTEGER, `default_discount_value_cents` integer, `total_discount_given_cents` integer, `total_revenue_cents` integer,
+	`created_by` TEXT, deleted_at_ms INTEGER, `default_discount_value_cents` integer, `total_discount_given_cents` integer, `total_revenue_cents` integer,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
@@ -567,7 +567,7 @@ END;
 --> statement-breakpoint
 
 CREATE TABLE "orders" (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` TEXT PRIMARY KEY NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`table_id` integer,
 	`customer_id` integer,
@@ -797,8 +797,8 @@ END;
 CREATE TABLE "group_orders" (
 	`id` text PRIMARY KEY NOT NULL,
 	`share_code` text NOT NULL,
-	`master_order_id` integer,
-	`created_by` integer NOT NULL,
+	`master_order_id` TEXT,
+	`created_by` TEXT NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`table_id` integer,
 	`status` text DEFAULT 'active' NOT NULL,
@@ -947,7 +947,7 @@ CREATE TABLE "verified_members" (
 	`verification_method` text NOT NULL,
 	`verification_document_url` text,
 	"verified_at_ms" integer,
-	`verified_by` integer,
+	`verified_by` TEXT,
 	"verification_expiry_ms" integer,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`rejection_reason` text,
@@ -1090,8 +1090,8 @@ CREATE TABLE "scheduling_rules" (
 	`severity` text DEFAULT 'warning' NOT NULL,
 	`is_system_rule` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`created_by` integer NOT NULL,
-	`updated_by` integer,
+	`created_by` TEXT NOT NULL,
+	`updated_by` TEXT,
 	`created_at_ms` integer NOT NULL,
 	`updated_at_ms` integer NOT NULL,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
@@ -1166,7 +1166,7 @@ END;
 CREATE TABLE `payment_transactions` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `transaction_id` text NOT NULL,
-  `order_id` integer NOT NULL,
+  `order_id` TEXT NOT NULL,
   `restaurant_id` text NOT NULL,
   `amount_cents` integer NOT NULL,
   `currency` text,
@@ -1294,7 +1294,7 @@ CREATE TABLE "partnership_plans" (
 	`metadata` text DEFAULT '{}',
 	"created_at_ms" integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
 	"updated_at_ms" integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`deleted_at_ms` integer,
 	`discount_value_cents` integer,
 	`max_discount_amount_cents` integer,
@@ -1513,8 +1513,8 @@ CREATE TABLE "leave_types" (
 	`icon` text,
 	`created_at_ms` integer NOT NULL,
 	`updated_at_ms` integer NOT NULL,
-	`created_by` integer,
-	`updated_by` integer,
+	`created_by` TEXT,
+	`updated_by` TEXT,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
@@ -1624,7 +1624,7 @@ END;
 CREATE TABLE "group_members" (
 	`id` text PRIMARY KEY NOT NULL,
 	`group_order_id` text NOT NULL,
-	`user_id` integer,
+	`user_id` TEXT,
 	`session_id` text NOT NULL,
 	`name` text NOT NULL,
 	`phone` text,
@@ -1694,7 +1694,7 @@ CREATE INDEX `idx_group_members_user` ON `group_members` (`user_id`);
 CREATE TABLE `employee_schedules` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`restaurant_id` text NOT NULL,
-	`employee_id` integer NOT NULL,
+	`employee_id` TEXT NOT NULL,
 	`shift_template_id` integer,
 	`work_date` text NOT NULL,
 	`start_time` text NOT NULL,
@@ -1708,10 +1708,10 @@ CREATE TABLE `employee_schedules` (
 	`status` text DEFAULT 'scheduled' NOT NULL,
 	`notes` text,
 	`manager_notes` text,
-	`confirmed_by` integer,
+	`confirmed_by` TEXT,
 	`confirmed_at_ms` integer,
-	`created_by` integer NOT NULL,
-	`updated_by` integer,
+	`created_by` TEXT NOT NULL,
+	`updated_by` TEXT,
 	`created_at_ms` integer NOT NULL,
 	`updated_at_ms` integer NOT NULL,
 	`deleted_at_ms` integer,
@@ -1828,7 +1828,7 @@ CREATE TABLE `coupons` (
 	`is_visible` integer DEFAULT true,
 	"created_at_ms" integer NOT NULL,
 	"updated_at_ms" integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	"deleted_at_ms" integer, `discount_value_cents` integer, `max_discount_amount_cents` integer, `min_order_amount_cents` integer,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
@@ -1960,7 +1960,7 @@ END;
 CREATE TABLE "cash_shifts" (
 	`id` text PRIMARY KEY NOT NULL,
 	`register_id` text NOT NULL,
-	`operator_id` integer NOT NULL,
+	`operator_id` TEXT NOT NULL,
 	`start_amount` real NOT NULL,
 	`end_amount` real,
 	`expected_amount` real NOT NULL,

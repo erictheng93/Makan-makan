@@ -24,7 +24,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 const createPaymentRequestSchema = z
   .object({
-    orderId: z.union([z.string().min(1), z.number().int().positive()]),
+    orderId: z.string().min(1),
     restaurantId: z.string().min(1),
     country: z.enum(["TW", "MY", "VN"]),
     currency: z.enum(["TWD", "MYR", "VND"]),
@@ -45,7 +45,7 @@ const createPaymentRequestSchema = z
 
 const rootPaymentRequestSchema = z
   .object({
-    orderId: z.union([z.string().min(1), z.number().int().positive()]),
+    orderId: z.string().min(1),
     restaurantId: z.string().min(1).optional(),
     country: z.enum(["TW", "MY", "VN"]).optional().default("TW"),
     currency: z.enum(["TWD", "MYR", "VND"]).optional().default("TWD"),
@@ -115,7 +115,7 @@ const paymentEffectId = async (_c: unknown, response: Response) => {
 };
 
 interface PaymentRouteInput {
-  orderId: string | number;
+  orderId: string;
   restaurantId?: string;
   country?: "TW" | "MY" | "VN";
   currency?: "TWD" | "MYR" | "VND";
@@ -138,8 +138,7 @@ type PaymentContext = Context<{
 async function handlePayment(c: PaymentContext) {
   const input = c.get("validatedBody") as PaymentRouteInput;
   const resolvedOrder = await resolvePaymentOrder(c.env.DB, input);
-  const orderId =
-    resolvedOrder?.id ?? toRequiredNumericPaymentOrderId(input.orderId);
+  const orderId = resolvedOrder?.id ?? input.orderId;
   const service = new PaymentService(c.env);
   const user: AuthUser | undefined = c.get("user");
   const result = await service.processPayment(
@@ -173,7 +172,7 @@ async function handlePayment(c: PaymentContext) {
         status: toExternalPaymentStatus(result.data.paymentStatus),
         metadata: {
           orderId: result.data.orderId,
-          orderPublicId: resolvedOrder?.publicId ?? undefined,
+          orderPublicId: resolvedOrder?.publicId ?? result.data.orderId,
           orderStatus: result.data.orderStatus,
           paymentStatus: result.data.paymentStatus,
           authorizedTotal: result.data.authorizedTotal,
@@ -247,7 +246,6 @@ app.get("/status/:transactionId", async (c) => {
   const [row] = await db
     .select({
       id: orders.id,
-      publicId: orders.publicId,
       paymentStatus: orders.paymentStatus,
     })
     .from(orders)
@@ -263,7 +261,7 @@ app.get("/status/:transactionId", async (c) => {
     data: {
       transactionId,
       orderId: row.id,
-      orderPublicId: row.publicId,
+      orderPublicId: row.id,
       paymentStatus: row.paymentStatus,
       status: toExternalPaymentStatus(row.paymentStatus),
     },
@@ -306,9 +304,9 @@ app.get("/methods/:country", async (c) => {
 });
 
 /**
- * Resolve the canonical numeric `orders.id` from any of the identifiers
- * the frontend may pass: a numeric id, a string-encoded numeric id,
- * the human-readable `order_number`, or a `client_mutation_id`.
+ * Resolve the canonical UUID `orders.id` from any of the identifiers
+ * the frontend may pass: UUID id, the human-readable `order_number`, or a
+ * `client_mutation_id`.
  */
 async function resolvePaymentOrder(
   db: Env["DB"],
@@ -320,43 +318,18 @@ async function resolvePaymentOrder(
     });
   }
 
-  if (toNumericOrderId(input.orderId) !== null) return null;
+  if (UUID_V7_PATTERN.test(input.orderId)) {
+    return { id: input.orderId, publicId: input.orderId };
+  }
 
   throw new ApiError(
     "RESTAURANT_ID_REQUIRED",
-    "restaurantId is required for non-numeric payment orderId",
+    "restaurantId is required for non-UUID payment orderId",
     400,
   );
 }
 
-function toRequiredNumericPaymentOrderId(orderId: string | number): number {
-  const numericOrderId = toNumericOrderId(orderId);
-  if (numericOrderId === null) {
-    throw new ApiError(
-      "RESTAURANT_ID_REQUIRED",
-      "restaurantId is required for non-numeric payment orderId",
-      400,
-    );
-  }
-  return numericOrderId;
-}
-
-function toNumericOrderId(orderId: string | number): number | null {
-  if (typeof orderId === "number") return orderId;
-  if (!/^\d+$/.test(orderId.trim())) return null;
-
-  const numericOrderId =
-    typeof orderId === "number" ? orderId : Number.parseInt(orderId, 10);
-
-  if (!Number.isInteger(numericOrderId) || numericOrderId <= 0) {
-    throw new ApiError(
-      "ORDER_ID_INVALID",
-      "Payment orderId must be a positive numeric order id",
-      400,
-    );
-  }
-
-  return numericOrderId;
-}
+const UUID_V7_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default app;

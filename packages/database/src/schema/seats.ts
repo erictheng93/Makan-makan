@@ -33,7 +33,7 @@ export const seats = sqliteTable(
       .notNull()
       .default(false),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-    currentOrderId: integer("current_order_id"),
+    currentOrderId: text("current_order_id"),
 
     // 使用追蹤
     occupiedAt: integer("occupied_at_ms", { mode: "timestamp_ms" }),

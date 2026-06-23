@@ -11,6 +11,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
+import { v7 as uuidv7 } from "uuid";
 import { orders } from "./orders";
 import { restaurants } from "./restaurants";
 import type { PlatformType } from "./platform-integrations";
@@ -22,10 +23,12 @@ import type { PlatformType } from "./platform-integrations";
 export const platformOrders = sqliteTable(
   "platform_orders",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
 
     // Internal order reference
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
 

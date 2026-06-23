@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS coupons (
   -- 元數據
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  created_by INTEGER, -- 創建者用戶ID
+  created_by TEXT, -- 創建者用戶ID
   
   -- 外鍵約束
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS coupons (
 CREATE TABLE IF NOT EXISTS coupon_usage (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   coupon_id INTEGER NOT NULL,
-  order_id INTEGER NOT NULL,
-  user_id INTEGER, -- 使用者ID (可為空，支援匿名用戶)
+  order_id TEXT NOT NULL,
+  user_id TEXT, -- 使用者ID (可為空，支援匿名用戶)
   
   -- 使用詳情
   discount_amount REAL NOT NULL, -- 實際折扣金額
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS coupon_distributions (
   
   -- 元數據
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  created_by INTEGER, -- 發放者用戶ID
+  created_by TEXT, -- 發放者用戶ID
   notes TEXT, -- 發放備註
   
   -- 外鍵約束
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS coupon_templates (
   -- 元數據
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  created_by INTEGER, -- 創建者用戶ID
+  created_by TEXT, -- 創建者用戶ID
   
   -- 外鍵約束
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,

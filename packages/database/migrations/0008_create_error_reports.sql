@@ -3,7 +3,7 @@
 
 CREATE TABLE error_reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
   restaurant_id INTEGER,
   error_type TEXT NOT NULL CHECK (error_type IN ('network', 'api', 'sse', 'validation', 'permission', 'unknown')),
   severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
@@ -16,7 +16,7 @@ CREATE TABLE error_reports (
   timestamp DATETIME NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   resolved_at DATETIME,
-  resolved_by INTEGER,
+  resolved_by TEXT,
   resolution_notes TEXT,
   
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -48,7 +48,7 @@ CREATE TABLE system_alerts (
   affected_component TEXT, -- 受影響的系統組件
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   resolved_at DATETIME,
-  resolved_by INTEGER,
+  resolved_by TEXT,
   resolution_notes TEXT,
   auto_resolved BOOLEAN DEFAULT FALSE,
   

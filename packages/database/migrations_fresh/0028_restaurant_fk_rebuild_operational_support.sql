@@ -378,7 +378,7 @@ DROP TABLE IF EXISTS `audit_logs__restaurant_fk_rebuild`;
 
 CREATE TABLE `audit_logs__restaurant_fk_rebuild` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer,
+	`user_id` TEXT,
 	`restaurant_id` text,
 	`action` text NOT NULL,
 	`resource` text NOT NULL,
@@ -390,7 +390,7 @@ CREATE TABLE `audit_logs__restaurant_fk_rebuild` (
 	`success` integer DEFAULT true NOT NULL,
 	`error_message` text,
 	`execution_time_ms` integer,
-	`created_at_ms` integer NOT NULL, on_behalf_of_user_id INTEGER REFERENCES users(id),
+	`created_at_ms` integer NOT NULL, on_behalf_of_user_id TEXT REFERENCES users(id),
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -493,7 +493,7 @@ DROP TABLE IF EXISTS `error_reports__restaurant_fk_rebuild`;
 
 CREATE TABLE `error_reports__restaurant_fk_rebuild` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`restaurant_id` text,
 	`error_type` text NOT NULL,
 	`severity` text NOT NULL,
@@ -506,7 +506,7 @@ CREATE TABLE `error_reports__restaurant_fk_rebuild` (
 	`timestamp_ms` integer NOT NULL,
 	`created_at_ms` integer NOT NULL,
 	`resolved_at_ms` integer,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolution_notes` text,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -627,7 +627,7 @@ CREATE TABLE `system_alerts__restaurant_fk_rebuild` (
 	`affected_component` text,
 	`created_at_ms` integer NOT NULL,
 	`resolved_at_ms` integer,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolution_notes` text,
 	`auto_resolved` integer DEFAULT false,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
@@ -1248,7 +1248,7 @@ DROP TABLE IF EXISTS `platform_orders__restaurant_fk_rebuild`;
 
 CREATE TABLE `platform_orders__restaurant_fk_rebuild` (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   platform TEXT NOT NULL,
   platform_order_id TEXT NOT NULL,
   platform_store_id TEXT,
@@ -1526,7 +1526,7 @@ DROP TABLE IF EXISTS `shop_feedback__restaurant_fk_rebuild`;
 CREATE TABLE `shop_feedback__restaurant_fk_rebuild` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `restaurant_id` text NOT NULL,
-  `user_id` integer NOT NULL,
+  `user_id` TEXT NOT NULL,
   `category` text NOT NULL,
   `priority` text DEFAULT 'medium' NOT NULL,
   `status` text DEFAULT 'open' NOT NULL,
@@ -1537,7 +1537,7 @@ CREATE TABLE `shop_feedback__restaurant_fk_rebuild` (
   `created_at_ms` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
   `updated_at_ms` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
   `resolved_at_ms` integer,
-  `resolved_by` integer,
+  `resolved_by` TEXT,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -1645,7 +1645,7 @@ CREATE TABLE `qr_batches__restaurant_fk_rebuild` (
 	`total_codes` integer NOT NULL,
 	`generated_codes` integer DEFAULT 0 NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
-	`created_by` integer NOT NULL,
+	`created_by` TEXT NOT NULL,
 	"created_at_ms" integer NOT NULL,
 	"completed_at_ms" integer,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
@@ -1731,7 +1731,7 @@ CREATE TABLE `coupon_templates__restaurant_fk_rebuild` (
 	`is_system_template` integer DEFAULT false,
 	"created_at_ms" integer NOT NULL,
 	"updated_at_ms" integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null,
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurants`(`id`) ON UPDATE no action ON DELETE no action
 );

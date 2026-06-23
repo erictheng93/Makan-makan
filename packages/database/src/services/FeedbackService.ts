@@ -14,7 +14,7 @@ import type {
 
 export interface CreateFeedbackData {
   restaurantId: string;
-  userId: number;
+  userId: string;
   category: FeedbackCategory;
   priority?: FeedbackPriority;
   relatedModule?: FeedbackModule;
@@ -34,7 +34,7 @@ export interface UpdateFeedbackData {
 
 export interface FeedbackFilters {
   restaurantId?: string;
-  userId?: number;
+  userId?: string;
   category?: FeedbackCategory;
   status?: FeedbackStatus;
   priority?: FeedbackPriority;
@@ -201,7 +201,7 @@ export class FeedbackService extends BaseService {
   async updateFeedbackStatus(
     id: number,
     status: FeedbackStatus,
-    resolvedBy?: number,
+    resolvedBy?: string,
   ): Promise<ShopFeedback> {
     try {
       const now = new Date();
@@ -234,7 +234,7 @@ export class FeedbackService extends BaseService {
   async updateFeedback(
     id: number,
     data: UpdateFeedbackData,
-    userId: number,
+    userId: string,
     isAdmin: boolean = false,
   ): Promise<ShopFeedback | null> {
     try {
@@ -274,7 +274,7 @@ export class FeedbackService extends BaseService {
 
   async deleteFeedback(
     id: number,
-    userId: number,
+    userId: string,
     isAdmin: boolean = false,
   ): Promise<boolean> {
     try {
@@ -308,7 +308,7 @@ export class FeedbackService extends BaseService {
 
   async addResponse(
     feedbackId: number,
-    userId: number,
+    userId: string,
     message: string,
     isInternal: boolean = false,
   ): Promise<FeedbackResponse> {
@@ -362,7 +362,7 @@ export class FeedbackService extends BaseService {
 
   async updateResponse(
     responseId: number,
-    userId: number,
+    userId: string,
     message: string,
     isAdmin: boolean = false,
   ): Promise<FeedbackResponse | null> {
@@ -388,7 +388,7 @@ export class FeedbackService extends BaseService {
 
   async deleteResponse(
     responseId: number,
-    userId: number,
+    userId: string,
     isAdmin: boolean = false,
   ): Promise<boolean> {
     try {

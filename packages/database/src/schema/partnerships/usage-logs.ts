@@ -60,7 +60,7 @@ export const partnershipUsageLogs = sqliteTable(
     memberId: text("member_id")
       .notNull()
       .references(() => verifiedMembers.id, { onDelete: "cascade" }),
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
@@ -86,12 +86,9 @@ export const partnershipUsageLogs = sqliteTable(
 
     // 驗證資訊
     verificationMethod: text("verification_method"),
-    verifiedByUserId: integer("verified_by_user_id").references(
-      () => users.id,
-      {
-        onDelete: "set null",
-      },
-    ),
+    verifiedByUserId: text("verified_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
 
     // 狀態
     status: text("status")

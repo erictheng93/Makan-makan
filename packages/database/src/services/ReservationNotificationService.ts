@@ -93,8 +93,7 @@ export class ReservationNotificationService implements ReservationNotifier {
     }
   }
 
-  private getRecipientId(reservation: ReservationResponse): number {
-    const parsedId = Number(reservation.customerId);
-    return Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
+  private getRecipientId(reservation: ReservationResponse): string {
+    return reservation.customerId || reservation.id;
   }
 }

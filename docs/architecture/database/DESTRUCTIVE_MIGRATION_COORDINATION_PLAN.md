@@ -1,22 +1,21 @@
 # Destructive Migration Coordination Plan
 
-**Date:** 2026-06-23
-**Status:** Phase C orders PK drill tooling complete locally; Phase D users
-public-id bridge started; no remote D1 destructive migration run
+**Date:** 2026-06-24
+**Status:** UUID primary-key bridge/rehearsal track superseded by greenfield
+UUID-native reset; no remote D1 destructive migration run
 
 ## Objective
 
-Coordinate the in-flight money-cents retirement with the upcoming UUID v7
-primary-key migration so destructive database work is sequenced, rehearsed, and
-auditable.
+Coordinate destructive database work. The previous UUID v7 primary-key bridge
+and rehearsal track is superseded by the greenfield UUID reset plan because
+there is no representative production data to preserve.
 
 There are two different classes of destructive work:
 
 - Money-cents retirement drops legacy non-key `REAL` columns after cents and
   bps fields are authoritative.
-- UUID primary-key migration rebuilds `orders`, `users`, and dependent foreign
-  key tables after bridge identifiers have been shipped and runtime contracts
-  no longer depend on integer ids.
+- UUID primary-key reset makes `orders`, `users`, `platform_orders`, and their
+  dependent foreign keys UUID-native at schema creation time.
 
 These must not be bundled into one migration. Money-cents cutover touches
 business money columns. UUID primary-key work changes identity, foreign keys,
@@ -24,8 +23,9 @@ JWT claims, route parameters, cache keys, and realtime payloads.
 
 ## Current Decision
 
-Run the money-cents destructive cutover before any UUID primary-key table
-rebuild.
+Run the UUID primary-key work as a greenfield reset, not as public-id bridge
+cutover rehearsals. The active UUID plan is
+`docs/architecture/database/GREENFIELD_UUID_PK_RESET_PLAN.md`.
 
 Rationale:
 
@@ -36,8 +36,8 @@ Rationale:
   create-copy-rename table rebuild.
 - Dropping non-key legacy money columns first reduces the surface area that a
   later `orders` rebuild must preserve.
-- The UUID work still needs bridge columns, application compatibility, and
-  table-by-table rebuild rehearsal before integer primary keys can be retired.
+- The UUID work no longer needs bridge columns or table-by-table rebuild
+  rehearsal because resettable environments can start in the final shape.
 
 If a later discovery shows an application path still requires a legacy `REAL`
 money column, stop the money cutover and fix that path. Do not use the UUID
@@ -208,7 +208,11 @@ Completion evidence:
   coverage, API/database/realtime typecheck, migration dual-track guard,
   Prettier check, and `git diff --check`.
 
-## Phase C: Orders Primary-Key Rebuild Drill
+## Phase C: Orders Primary-Key Rebuild Drill (Superseded)
+
+Superseded on 2026-06-24 by the greenfield UUID reset decision. Do not continue
+adding bridge or rehearsal tooling for `orders.public_id`; the target is
+`orders.id TEXT PRIMARY KEY` from creation time.
 
 This is destructive and starts only after Phase B is accepted.
 
@@ -424,8 +428,15 @@ Progress:
   only a restored-production or staging artifact with
   `assessment.exitCode = 0` and `dataCoverage.isRepresentative = true` can
   unblock paired Phase E migration drafting.
+- 2026-06-24: Added `rtk pnpm db:users-pk-dry-run:representative` and taught
+  the users PK parser to ignore pnpm-forwarded `--`, matching the Phase C
+  orders rehearsal CLI behavior.
 
-## Phase E: Users Primary-Key Rebuild Drill
+## Phase E: Users Primary-Key Rebuild Drill (Superseded)
+
+Superseded on 2026-06-24 by the greenfield UUID reset decision. Do not continue
+adding bridge or rehearsal tooling for `users.public_id`; the target is
+`users.id TEXT PRIMARY KEY` from creation time.
 
 This is destructive and must wait until Phase D is accepted.
 

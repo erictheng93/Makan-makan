@@ -1,8 +1,10 @@
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { orders } from "./orders";
+import { platformOrders } from "./platform-orders";
 
 const bridgeMigrations = [
   "packages/database/migrations_fresh/0072_orders_public_id_bridge.sql",
@@ -13,33 +15,37 @@ const auditGuardMigrations = [
   "packages/database/migrations/0090_orders_public_id_audit_guard.sql",
 ];
 
-describe("orders public id bridge", () => {
-  it("adds a transitional public_id column to the orders schema", () => {
+describe("orders UUID-native primary key", () => {
+  it("uses orders.id as the UUID text primary key without a public_id bridge", () => {
     const config = getTableConfig(orders);
+    const idColumn = config.columns.find((column) => column.name === "id");
     const columnNames = config.columns.map((column) => column.name);
     const indexNames = config.indexes.map((index) => index.config.name);
 
-    expect(columnNames).toContain("public_id");
-    expect(indexNames).toContain("orders_public_id_unique");
+    expect(idColumn?.columnType).toBe("SQLiteText");
+    expect(columnNames).not.toContain("public_id");
+    expect(indexNames).not.toContain("orders_public_id_unique");
   });
 
-  it.each(bridgeMigrations)(
-    "backfills and indexes order public ids in %s",
-    (migrationPath) => {
-      const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
+  it("uses UUID text foreign keys for platform order references", () => {
+    const config = getTableConfig(platformOrders);
+    const idColumn = config.columns.find((column) => column.name === "id");
+    const orderIdColumn = config.columns.find(
+      (column) => column.name === "order_id",
+    );
 
-      expect(sql).toContain("ALTER TABLE `orders` ADD COLUMN `public_id` text");
-      expect(sql).toContain("UPDATE `orders`");
-      expect(sql).toContain("WHERE `public_id` IS NULL");
-      expect(sql).toContain(
-        "CREATE UNIQUE INDEX IF NOT EXISTS `orders_public_id_unique`",
-      );
-      expect(sql).toContain("public_id_backfill_missing");
-      expect(sql).toContain("public_id_backfill_duplicates");
-    },
-  );
+    expect(idColumn?.columnType).toBe("SQLiteText");
+    expect(orderIdColumn?.columnType).toBe("SQLiteText");
+  });
 
-  it("tracks the bridge migration in the dual-track registry", () => {
+  it("does not keep orders bridge migrations in either migration track", () => {
+    for (const migrationPath of [
+      ...bridgeMigrations,
+      ...auditGuardMigrations,
+    ]) {
+      expect(existsSync(resolve(process.cwd(), migrationPath))).toBe(false);
+    }
+
     const config = JSON.parse(
       readFileSync(
         resolve(process.cwd(), "packages/database/migration-dual-track.json"),
@@ -49,35 +55,13 @@ describe("orders public id bridge", () => {
       pairs: Array<{ fresh: string; legacy: string }>;
     };
 
-    expect(config.pairs).toContainEqual({
-      fresh: "0072_orders_public_id_bridge.sql",
-      legacy: "0089_orders_public_id_bridge.sql",
-      reason:
-        "Orders gain a UUID v7 public_id bridge before any integer primary-key or dependent FK rebuild.",
-    });
-    expect(config.pairs).toContainEqual({
-      fresh: "0073_orders_public_id_audit_guard.sql",
-      legacy: "0090_orders_public_id_audit_guard.sql",
-      reason:
-        "Orders public_id audit guard blocks later not-null or PK rebuild work when bridge ids are missing, duplicated, or malformed.",
-    });
+    expect(config.pairs).not.toContainEqual(
+      expect.objectContaining({ fresh: "0072_orders_public_id_bridge.sql" }),
+    );
+    expect(config.pairs).not.toContainEqual(
+      expect.objectContaining({
+        fresh: "0073_orders_public_id_audit_guard.sql",
+      }),
+    );
   });
-
-  it.each(auditGuardMigrations)(
-    "audits order public id bridge integrity in %s",
-    (migrationPath) => {
-      const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
-
-      expect(sql).toContain("'orders_public_id_bridge'");
-      expect(sql).toContain("'public_id_missing'");
-      expect(sql).toContain("'public_id_duplicate'");
-      expect(sql).toContain("'public_id_invalid_format'");
-      expect(sql).toContain("`public_id` IS NULL");
-      expect(sql).toContain("GROUP BY `public_id`");
-      expect(sql).toContain(
-        "CREATE TABLE `_migration_assert_orders_public_id_audit_guard`",
-      );
-      expect(sql).toContain("CHECK (`violation_count` = 0)");
-    },
-  );
 });

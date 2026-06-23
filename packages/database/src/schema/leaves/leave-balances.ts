@@ -22,7 +22,7 @@ export const employeeLeaveBalances = sqliteTable(
   "employee_leave_balances",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    employeeId: integer("employee_id")
+    employeeId: text("employee_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     leaveTypeId: integer("leave_type_id")
@@ -47,7 +47,7 @@ export const employeeLeaveBalances = sqliteTable(
     // Manual Adjustments (手動調整)
     manualAdjustment: real("manual_adjustment").default(0),
     adjustmentReason: text("adjustment_reason"),
-    adjustedBy: integer("adjusted_by").references(() => users.id),
+    adjustedBy: text("adjusted_by").references(() => users.id),
     adjustedAt: integer("adjusted_at_ms", { mode: "timestamp_ms" }),
 
     // Metadata
@@ -57,7 +57,7 @@ export const employeeLeaveBalances = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
-    lastUpdatedBy: integer("last_updated_by").references(() => users.id),
+    lastUpdatedBy: text("last_updated_by").references(() => users.id),
   },
   (table) => ({
     employeeYearIdx: index("idx_employee_leave_balances_employee_year").on(

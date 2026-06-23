@@ -1,11 +1,5 @@
-import {
-  sqliteTable,
-  text,
-  integer,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/sqlite-core";
-import { relations, sql } from "drizzle-orm";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { restaurants } from "./restaurants";
 
@@ -25,8 +19,9 @@ export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 export const users = sqliteTable(
   "users",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    publicId: text("public_id").$defaultFn(() => uuidv7()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
 
     // 基本資訊
     username: text("username").notNull().unique(),
@@ -102,9 +97,6 @@ export const users = sqliteTable(
       table.role,
       table.isActive,
     ),
-    publicIdUniqueIdx: uniqueIndex("users_public_id_unique")
-      .on(table.publicId)
-      .where(sql`${table.publicId} IS NOT NULL`),
   }),
 );
 

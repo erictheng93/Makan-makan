@@ -60,7 +60,7 @@ CREATE TABLE print_templates (
     is_active BOOLEAN DEFAULT TRUE,
     is_default BOOLEAN DEFAULT FALSE,
     version INTEGER DEFAULT 1,
-    created_by INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     

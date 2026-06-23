@@ -46,7 +46,7 @@ export interface CreateOrderData {
   }>;
   notes?: string;
   couponCode?: string;
-  couponUserId?: number;
+  couponUserId?: string;
   clientMutationId?: string;
   orderSource?:
     | "direct"
@@ -468,9 +468,9 @@ export class OrderService extends BaseService {
       // 生產環境 D1 不支援互動式 BEGIN（db.transaction 必定失敗），
       // 唯一的原子提交原語是 db.batch：整批語句在單一交易中循序執行，
       // 任一失敗即全部回滾 — 不會留下孤兒訂單、優惠券消耗或庫存漂移。
-      // orders.id 是 autoincrement，order_items / coupon_usage 透過唯一的
+      // orders.id 是 UUID text，order_items / coupon_usage 透過唯一的
       // order_number 子查詢在同一批次內回填外鍵。
-      const orderIdRef = sql<number>`(select ${orders.id} from ${orders} where ${orders.orderNumber} = ${orderNumber})`;
+      const orderIdRef = sql<string>`(select ${orders.id} from ${orders} where ${orders.orderNumber} = ${orderNumber})`;
 
       const writeStatements: BatchItem<"sqlite">[] = [
         this.db
@@ -503,7 +503,7 @@ export class OrderService extends BaseService {
           .values(
             orderItemsData.map((item) => ({
               ...this.toOrderItemInsert(item),
-              orderId: orderIdRef as unknown as number,
+              orderId: orderIdRef as unknown as string,
             })),
           )
           .returning(),
@@ -545,7 +545,7 @@ export class OrderService extends BaseService {
         writeStatements.push(
           this.db.insert(couponUsage).values({
             couponId: validatedCoupon.id,
-            orderId: orderIdRef as unknown as number,
+            orderId: orderIdRef as unknown as string,
             userId: data.couponUserId,
             discountAmountCents: toRequiredCents(discountAmount),
             originalAmountCents: toRequiredCents(subtotal),
@@ -749,7 +749,7 @@ export class OrderService extends BaseService {
   }
 
   // 獲取訂單詳情
-  async getOrder(id: number): Promise<Order | null> {
+  async getOrder(id: string): Promise<Order | null> {
     try {
       const order = await this.db.query.orders.findFirst({
         where: eq(orders.id, id),
@@ -794,7 +794,7 @@ export class OrderService extends BaseService {
     }
   }
 
-  async addItemsToOrder(id: number, items: AddOrderItemsData): Promise<Order> {
+  async addItemsToOrder(id: string, items: AddOrderItemsData): Promise<Order> {
     try {
       if (!items.length) {
         throw new Error("Order must contain at least one item");
@@ -1086,7 +1086,7 @@ export class OrderService extends BaseService {
 
   // 更新訂單狀態
   async updateOrderStatus(
-    id: number,
+    id: string,
     data: UpdateOrderStatusData,
   ): Promise<Order> {
     try {
@@ -1157,7 +1157,7 @@ export class OrderService extends BaseService {
   }
 
   // 取消訂單
-  async cancelOrder(id: number, reason?: string): Promise<Order> {
+  async cancelOrder(id: string, reason?: string): Promise<Order> {
     try {
       const order = await this.getOrder(id);
       if (!order) {
@@ -1212,7 +1212,7 @@ export class OrderService extends BaseService {
       const batchResults = await this.db.batch(
         writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
       );
-      const cancelledRows = batchResults.at(-1) as Array<{ id: number }>;
+      const cancelledRows = batchResults.at(-1) as Array<{ id: string }>;
       if (cancelledRows.length === 0) {
         throw new Error("Order cannot be cancelled");
       }

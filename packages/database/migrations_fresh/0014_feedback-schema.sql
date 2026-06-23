@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS `shop_feedback` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `restaurant_id` text NOT NULL,
-  `user_id` integer NOT NULL,
+  `user_id` TEXT NOT NULL,
   `category` text NOT NULL,
   `priority` text DEFAULT 'medium' NOT NULL,
   `status` text DEFAULT 'open' NOT NULL,
@@ -15,13 +15,13 @@ CREATE TABLE IF NOT EXISTS `shop_feedback` (
   `created_at_ms` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
   `updated_at_ms` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
   `resolved_at_ms` integer,
-  `resolved_by` integer
+  `resolved_by` TEXT
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `feedback_responses` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `feedback_id` integer NOT NULL,
-  `user_id` integer NOT NULL,
+  `user_id` TEXT NOT NULL,
   `message` text NOT NULL,
   `is_internal` integer DEFAULT false NOT NULL,
   `created_at_ms` integer DEFAULT (unixepoch('now') * 1000) NOT NULL

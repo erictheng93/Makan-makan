@@ -4,7 +4,7 @@ import { sessions, users } from "../schema";
 
 export interface SessionCreateData {
   id?: string;
-  userId: number;
+  userId: string;
   token: string;
   refreshToken?: string;
   userAgent?: string;
@@ -31,7 +31,7 @@ export interface SessionUpdateData {
 }
 
 export interface SessionFilters {
-  userId?: number;
+  userId?: string;
   isActive?: boolean;
   platform?: string;
   deviceType?: string;
@@ -238,7 +238,7 @@ export class SessionService extends BaseService {
 
   // 使用戶的所有 sessions 失效
   async invalidateUserSessions(
-    userId: number,
+    userId: string,
     excludeSessionId?: string,
   ): Promise<number> {
     try {
@@ -296,7 +296,7 @@ export class SessionService extends BaseService {
 
   // 取得用戶的活躍 sessions
   async getUserSessions(
-    userId: number,
+    userId: string,
     includeExpired = false,
   ): Promise<any[]> {
     try {

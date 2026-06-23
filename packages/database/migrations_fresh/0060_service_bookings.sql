@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS service_bookings (
   booking_date TEXT NOT NULL,
   booking_time TEXT NOT NULL,
   party_size INTEGER NOT NULL DEFAULT 1,
-  employee_id INTEGER,
+  employee_id TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   confirmation_code TEXT NOT NULL,
   special_requests TEXT,

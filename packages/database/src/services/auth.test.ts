@@ -11,6 +11,8 @@ import { AuthService } from "./auth";
 
 const jwtSecret = "0123456789abcdefghijklmnopqrstuvwxyz";
 const publicUserId = "018f0000-0000-7000-8000-000000000101";
+const loginUserId = "018f0000-0000-7000-8000-000000000102";
+const validateUserId = "018f0000-0000-7000-8000-000000000103";
 
 describe("AuthService refresh token rotation", () => {
   let testDb: TestDatabase;
@@ -29,8 +31,7 @@ describe("AuthService refresh token rotation", () => {
 
   it("rotates staff refresh tokens and rejects replay of the previous token", async () => {
     await testDb.drizzle.insert(users).values({
-      id: 101,
-      publicId: publicUserId,
+      id: publicUserId,
       username: "owner-refresh",
       fullName: "Owner Refresh",
       passwordHash: "hash",
@@ -41,7 +42,7 @@ describe("AuthService refresh token rotation", () => {
 
     const accessToken = sign(
       {
-        id: 101,
+        sub: publicUserId,
         username: "owner-refresh",
         role: 1,
         tv: 1,
@@ -50,14 +51,14 @@ describe("AuthService refresh token rotation", () => {
       { expiresIn: "72h" },
     );
     const refreshToken = sign(
-      { userId: 101, type: "refresh", jti: "refresh-1" },
+      { sub: publicUserId, type: "refresh", jti: "refresh-1" },
       jwtSecret,
       { expiresIn: "7d" },
     );
 
     await testDb.drizzle.insert(sessions).values({
       id: "session-1",
-      userId: 101,
+      userId: publicUserId,
       token: accessToken,
       refreshToken,
       isActive: true,
@@ -106,8 +107,7 @@ describe("AuthService refresh token rotation", () => {
 
   it("issues UUID-principal tokens on login", async () => {
     await testDb.drizzle.insert(users).values({
-      id: 102,
-      publicId: "018f0000-0000-7000-8000-000000000102",
+      id: loginUserId,
       username: "owner-login",
       fullName: "Owner Login",
       passwordHash: await bcrypt.hash("CorrectHorse123!", 10),
@@ -128,15 +128,15 @@ describe("AuthService refresh token rotation", () => {
 
     expect(result.success).toBe(true);
     expect(result.user).toMatchObject({
-      id: 102,
-      publicId: "018f0000-0000-7000-8000-000000000102",
+      id: loginUserId,
+      publicId: loginUserId,
       username: "owner-login",
       tokenVersion: 3,
     });
 
     const accessPayload = verify(result.tokens!.accessToken, jwtSecret);
     expect(accessPayload).toMatchObject({
-      sub: "018f0000-0000-7000-8000-000000000102",
+      sub: loginUserId,
       username: "owner-login",
       role: 1,
       tv: 3,
@@ -145,7 +145,7 @@ describe("AuthService refresh token rotation", () => {
 
     const refreshPayload = verify(result.tokens!.refreshToken, jwtSecret);
     expect(refreshPayload).toMatchObject({
-      sub: "018f0000-0000-7000-8000-000000000102",
+      sub: loginUserId,
       type: "refresh",
     });
     expect(refreshPayload).not.toHaveProperty("userId");
@@ -153,8 +153,7 @@ describe("AuthService refresh token rotation", () => {
 
   it("validates UUID-principal access tokens through the session user id", async () => {
     await testDb.drizzle.insert(users).values({
-      id: 103,
-      publicId: "018f0000-0000-7000-8000-000000000103",
+      id: validateUserId,
       username: "owner-validate",
       fullName: "Owner Validate",
       passwordHash: "hash",
@@ -165,7 +164,7 @@ describe("AuthService refresh token rotation", () => {
 
     const accessToken = sign(
       {
-        sub: "018f0000-0000-7000-8000-000000000103",
+        sub: validateUserId,
         username: "owner-validate",
         role: 1,
         tv: 4,
@@ -176,7 +175,7 @@ describe("AuthService refresh token rotation", () => {
 
     await testDb.drizzle.insert(sessions).values({
       id: "session-validate",
-      userId: 103,
+      userId: validateUserId,
       token: accessToken,
       isActive: true,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
@@ -190,8 +189,8 @@ describe("AuthService refresh token rotation", () => {
     await expect(service.validateToken(accessToken)).resolves.toMatchObject({
       valid: true,
       user: {
-        id: 103,
-        publicId: "018f0000-0000-7000-8000-000000000103",
+        id: validateUserId,
+        publicId: validateUserId,
         username: "owner-validate",
       },
     });

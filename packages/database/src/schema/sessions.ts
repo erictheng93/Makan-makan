@@ -7,7 +7,7 @@ export const sessions = sqliteTable(
   "sessions",
   {
     id: text("id").primaryKey(), // Session ID (UUID)
-    userId: integer("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 

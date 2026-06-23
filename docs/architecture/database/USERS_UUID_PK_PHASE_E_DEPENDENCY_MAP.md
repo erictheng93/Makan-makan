@@ -1,6 +1,12 @@
 # Users UUID Primary-Key Phase E Dependency Map
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
+
+> Superseded: this Phase E bridge/rehearsal plan is no longer the active
+> direction. The repository is being treated as greenfield for staff/order
+> identity data, so `users.id` will become a native UUID-v7 `TEXT` primary key
+> at schema creation time. See
+> `docs/architecture/database/GREENFIELD_UUID_PK_RESET_PLAN.md`.
 
 ## Objective
 
@@ -20,7 +26,7 @@ a production destructive migration.
 - Save local rehearsal evidence:
   `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json`
 - Require representative rehearsal data:
-  `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-representative.json`
+  `rtk pnpm db:users-pk-dry-run:representative -- --json-output /tmp/users-pk-representative.json`
 - Validate archived rehearsal evidence before migration drafting:
   `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact /tmp/users-pk-representative.json --role representative`
 - Unit test the rehearsal verifier:

@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS `ai_usage_logs_created_at_idx`
 CREATE TABLE IF NOT EXISTS `payment_transactions` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `transaction_id` text NOT NULL,
-  `order_id` integer NOT NULL,
+  `order_id` TEXT NOT NULL,
   `restaurant_id` text NOT NULL,
   `amount_cents` integer NOT NULL,
   `currency` text,
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS `refund_transactions` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `refund_id` text NOT NULL,
   `payment_transaction_id` text NOT NULL,
-  `order_id` integer NOT NULL,
+  `order_id` TEXT NOT NULL,
   `restaurant_id` text NOT NULL,
   `amount_cents` integer NOT NULL,
   `reason` text,

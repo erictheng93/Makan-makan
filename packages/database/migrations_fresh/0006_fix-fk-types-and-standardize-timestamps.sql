@@ -51,7 +51,7 @@ CREATE TABLE `__new_partnerships` (
 	`metadata` text DEFAULT '{}',
 	`created_at` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
@@ -118,7 +118,7 @@ CREATE TABLE `__new_partnership_plans` (
 	`metadata` text DEFAULT '{}',
 	`created_at` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	FOREIGN KEY (`partnership_id`) REFERENCES `partnerships`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null
 );
@@ -155,7 +155,7 @@ CREATE TABLE `__new_verified_members` (
 	`verification_method` text NOT NULL,
 	`verification_document_url` text,
 	`verified_at` integer,
-	`verified_by` integer,
+	`verified_by` TEXT,
 	`verification_expiry` integer,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`rejection_reason` text,
@@ -202,7 +202,7 @@ CREATE TABLE `__new_partnership_usage_logs` (
 	`partnership_id` text NOT NULL,
 	`plan_id` text NOT NULL,
 	`member_id` text NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`discount_type` text NOT NULL,
 	`discount_value` real NOT NULL,
@@ -213,7 +213,7 @@ CREATE TABLE `__new_partnership_usage_logs` (
 	`used_at` integer DEFAULT (unixepoch('now') * 1000) NOT NULL,
 	`channel` text,
 	`verification_method` text,
-	`verified_by_user_id` integer,
+	`verified_by_user_id` TEXT,
 	`status` text DEFAULT 'completed' NOT NULL,
 	`cancelled_at` integer,
 	`cancellation_reason` text,
@@ -546,7 +546,7 @@ ALTER TABLE `coupon_templates` DROP COLUMN `updated_at`;
 -- ----------------------------------------------------------------------------
 CREATE TABLE `__new_error_reports` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`restaurant_id` text,
 	`error_type` text NOT NULL,
 	`severity` text NOT NULL,
@@ -559,7 +559,7 @@ CREATE TABLE `__new_error_reports` (
 	`timestamp_ms` integer NOT NULL,
 	`created_at_ms` integer NOT NULL,
 	`resolved_at_ms` integer,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolution_notes` text
 );
 --> statement-breakpoint
@@ -615,7 +615,7 @@ CREATE TABLE `__new_system_alerts` (
 	`affected_component` text,
 	`created_at_ms` integer NOT NULL,
 	`resolved_at_ms` integer,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolution_notes` text,
 	`auto_resolved` integer DEFAULT false
 );

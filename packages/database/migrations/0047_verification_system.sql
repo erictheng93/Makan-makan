@@ -7,7 +7,7 @@
 -- ============================================
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
   token TEXT NOT NULL UNIQUE,
   token_type TEXT NOT NULL DEFAULT 'email' CHECK(token_type IN ('email', 'sms')),
   otp_code TEXT,                            -- 6-digit OTP for SMS (optional)
@@ -30,7 +30,7 @@ CREATE INDEX idx_password_reset_expires ON password_reset_tokens(expires_at);
 -- ============================================
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
   token TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL,                      -- Email to verify
   expires_at INTEGER NOT NULL,              -- Unix timestamp (24 hours)
@@ -51,7 +51,7 @@ CREATE INDEX idx_email_verification_expires ON email_verification_tokens(expires
 -- ============================================
 CREATE TABLE IF NOT EXISTS phone_verification_tokens (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
   phone TEXT NOT NULL,                      -- Phone number in international format (+60xxxxxxxxx)
   otp_code TEXT NOT NULL,                   -- 6-digit OTP
   expires_at INTEGER NOT NULL,              -- Unix timestamp (5 minutes)
@@ -72,7 +72,7 @@ CREATE INDEX idx_phone_verification_otp_expires ON phone_verification_tokens(otp
 -- ============================================
 CREATE TABLE IF NOT EXISTS password_change_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
   change_method TEXT NOT NULL CHECK(change_method IN ('reset_email', 'reset_sms', 'manual', 'admin_reset')),
   ip_address TEXT NOT NULL,
   user_agent TEXT,

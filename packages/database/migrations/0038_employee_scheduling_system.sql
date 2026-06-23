@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS shift_templates (
     is_active INTEGER NOT NULL DEFAULT 1,        -- 是否啟用
 
     -- 審計欄位
-    created_by INTEGER,                          -- 建立者ID
-    updated_by INTEGER,                          -- 更新者ID
+    created_by TEXT,                          -- 建立者ID
+    updated_by TEXT,                          -- 更新者ID
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 
@@ -79,7 +79,7 @@ CREATE INDEX IF NOT EXISTS shift_templates_restaurant_active_idx ON shift_templa
 CREATE TABLE IF NOT EXISTS employee_schedules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     restaurant_id INTEGER NOT NULL,
-    employee_id INTEGER NOT NULL,
+    employee_id TEXT NOT NULL,
     shift_template_id INTEGER,
 
     -- 排班基本資訊
@@ -103,12 +103,12 @@ CREATE TABLE IF NOT EXISTS employee_schedules (
     location TEXT,                               -- 工作地點（若有多個分店）
 
     -- 確認與審批
-    confirmed_by INTEGER,                        -- 確認者ID
+    confirmed_by TEXT,                        -- 確認者ID
     confirmed_at INTEGER,                        -- 確認時間
 
     -- 審計欄位
-    created_by INTEGER,                          -- 建立者ID
-    updated_by INTEGER,                          -- 更新者ID
+    created_by TEXT,                          -- 建立者ID
+    updated_by TEXT,                          -- 更新者ID
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 
@@ -164,8 +164,8 @@ CREATE TABLE IF NOT EXISTS scheduling_rules (
     is_system_rule INTEGER NOT NULL DEFAULT 0,   -- 是否為系統內建規則
 
     -- 審計欄位
-    created_by INTEGER,
-    updated_by INTEGER,
+    created_by TEXT,
+    updated_by TEXT,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS scheduling_conflicts (
 
     -- 解決狀態
     status TEXT NOT NULL DEFAULT 'unresolved',   -- unresolved, acknowledged, resolved, ignored
-    resolved_by INTEGER,                         -- 解決者ID
+    resolved_by TEXT,                         -- 解決者ID
     resolved_at INTEGER,                         -- 解決時間
     resolution_notes TEXT,                       -- 解決備註
 
@@ -249,7 +249,7 @@ CREATE TABLE IF NOT EXISTS schedule_swap_requests (
     requester_schedule_id INTEGER NOT NULL,      -- 申請人排班ID
 
     -- 交換對象
-    target_employee_id INTEGER,                  -- 目標員工ID（可為空，表示徵求）
+    target_employee_id TEXT,                  -- 目標員工ID（可為空，表示徵求）
     target_schedule_id INTEGER,                  -- 目標排班ID（可為空）
 
     -- 申請內容
@@ -262,7 +262,7 @@ CREATE TABLE IF NOT EXISTS schedule_swap_requests (
     target_responded_at INTEGER,                 -- 目標員工回應時間
 
     -- 管理審批
-    approved_by INTEGER,                         -- 審批者ID
+    approved_by TEXT,                         -- 審批者ID
     approved_at INTEGER,                         -- 審批時間
     approval_notes TEXT,                         -- 審批備註
 
@@ -300,7 +300,7 @@ CREATE INDEX IF NOT EXISTS schedule_swap_requests_created_at_idx ON schedule_swa
 CREATE TABLE IF NOT EXISTS employee_availability (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     restaurant_id INTEGER NOT NULL,
-    employee_id INTEGER NOT NULL,
+    employee_id TEXT NOT NULL,
 
     -- 可用性類型
     availability_type TEXT NOT NULL DEFAULT 'preferred',  -- preferred, unavailable, flexible

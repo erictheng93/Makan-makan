@@ -9,8 +9,20 @@ const mocks = vi.hoisted(() => ({
   refundPaymentTransaction: vi.fn(),
 }));
 
+const orderId101 = "018f0000-0000-7000-8000-000000000101";
+const orderId202 = "018f0000-0000-7000-8000-000000000202";
+const orderId303 = "018f0000-0000-7000-8000-000000000303";
+const orderId404 = "018f0000-0000-7000-8000-000000000404";
+const orderId505 = "018f0000-0000-7000-8000-000000000505";
+const orderId606 = "018f0000-0000-7000-8000-000000000606";
+
 const authState = vi.hoisted(() => ({
-  user: { id: 7, username: "cashier", role: 4, restaurantId: "restaurant-1" },
+  user: {
+    id: "018f0000-0000-7000-8000-000000000007",
+    username: "cashier",
+    role: 4,
+    restaurantId: "restaurant-1",
+  },
 }));
 
 vi.mock("../../../middleware/idempotency", () => ({
@@ -100,7 +112,6 @@ function createDb(rows: D1MockRows = {}) {
           }
 
           if (
-            normalizedSql.includes("public_id") ||
             normalizedSql.includes("order_number") ||
             normalizedSql.includes("client_mutation_id")
           ) {
@@ -156,7 +167,7 @@ describe("payments routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.user = {
-      id: 7,
+      id: "018f0000-0000-7000-8000-000000000007",
       username: "cashier",
       role: 4,
       restaurantId: "restaurant-1",
@@ -165,7 +176,7 @@ describe("payments routes", () => {
       status: 200,
       data: {
         paymentId: "pay-1",
-        orderId: 101,
+        orderId: orderId101,
         orderStatus: "paid",
         paymentStatus: "paid",
         authorizedTotal: 120,
@@ -180,9 +191,9 @@ describe("payments routes", () => {
     });
   });
 
-  it("creates full payments for numeric orders with default route mapping", async () => {
+  it("creates full payments for UUID orders with default route mapping", async () => {
     const response = await postJson("/", {
-      orderId: 101,
+      orderId: orderId101,
       amount: 120,
       method: "cash",
       country: "TW",
@@ -197,7 +208,7 @@ describe("payments routes", () => {
     );
     expect(mocks.paymentService.processPayment).toHaveBeenCalledWith(
       {
-        orderId: 101,
+        orderId: orderId101,
         paymentMode: "full",
         amount: 120,
         expectedTotal: 120,
@@ -223,7 +234,8 @@ describe("payments routes", () => {
         transactionId: "pay-1",
         status: "completed",
         metadata: {
-          orderId: 101,
+          orderId: orderId101,
+          orderPublicId: orderId101,
           orderStatus: "paid",
           paymentStatus: "paid",
           authorizedTotal: 120,
@@ -252,8 +264,7 @@ describe("payments routes", () => {
     const db = createDb({
       orderLookup: [
         {
-          id: 202,
-          public_id: "018f0000-0000-7000-8000-000000000202",
+          id: orderId202,
           order_number: "ORD-202",
           restaurant_id: "restaurant-1",
         },
@@ -263,7 +274,7 @@ describe("payments routes", () => {
       status: 201,
       data: {
         paymentId: "pay-202",
-        orderId: 202,
+        orderId: orderId202,
         orderStatus: "processing",
         paymentStatus: "pending",
         authorizedTotal: 42,
@@ -290,7 +301,7 @@ describe("payments routes", () => {
     expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining("orders"));
     expect(mocks.paymentService.processPayment).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderId: 202,
+        orderId: orderId202,
         paymentMode: "full",
         amount: 42,
         gateway: "credit_card",
@@ -308,7 +319,7 @@ describe("payments routes", () => {
         paymentId: "pay-202",
         status: "pending",
         metadata: {
-          orderPublicId: "018f0000-0000-7000-8000-000000000202",
+          orderPublicId: orderId202,
         },
       },
     });
@@ -318,8 +329,7 @@ describe("payments routes", () => {
     const db = createDb({
       orderLookup: [
         {
-          id: 606,
-          public_id: "018f0000-0000-7000-8000-000000000606",
+          id: orderId606,
           order_number: "ORD-606",
           restaurant_id: "restaurant-1",
         },
@@ -329,7 +339,7 @@ describe("payments routes", () => {
     await postJson(
       "/",
       {
-        orderId: "018f0000-0000-7000-8000-000000000606",
+        orderId: orderId606,
         restaurantId: "restaurant-1",
         amount: 88,
         method: "cash",
@@ -338,7 +348,7 @@ describe("payments routes", () => {
     );
 
     expect(mocks.paymentService.processPayment).toHaveBeenCalledWith(
-      expect.objectContaining({ orderId: 606 }),
+      expect.objectContaining({ orderId: orderId606 }),
       expect.any(Object),
     );
   });
@@ -350,7 +360,7 @@ describe("payments routes", () => {
     ];
 
     await postJson("/", {
-      orderId: "303",
+      orderId: orderId303,
       paymentMode: "partial",
       expectedTotal: 100,
       payments,
@@ -360,7 +370,7 @@ describe("payments routes", () => {
 
     expect(mocks.paymentService.processPayment).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderId: 303,
+        orderId: orderId303,
         paymentMode: "partial",
         amount: undefined,
         expectedTotal: 100,
@@ -378,7 +388,7 @@ describe("payments routes", () => {
       transaction: [
         {
           transaction_id: "txn-1",
-          order_id: 404,
+          order_id: orderId404,
           status: "paid",
         },
       ],
@@ -393,7 +403,7 @@ describe("payments routes", () => {
       success: true,
       data: {
         transactionId: "txn-1",
-        orderId: 404,
+        orderId: orderId404,
         paymentStatus: "paid",
         status: "completed",
       },
@@ -405,8 +415,7 @@ describe("payments routes", () => {
       transaction: [null],
       orderStatus: [
         {
-          id: 505,
-          public_id: "018f0000-0000-7000-8000-000000000505",
+          id: orderId505,
           payment_status: "paid",
         },
       ],
@@ -420,8 +429,8 @@ describe("payments routes", () => {
       success: true,
       data: {
         transactionId: "order-txn",
-        orderId: 505,
-        orderPublicId: "018f0000-0000-7000-8000-000000000505",
+        orderId: orderId505,
+        orderPublicId: orderId505,
         paymentStatus: "paid",
         status: "completed",
       },
@@ -517,7 +526,7 @@ describe("payments routes", () => {
 
   it("rejects partial payments without payment splits", async () => {
     const response = await postJson("/", {
-      orderId: 101,
+      orderId: orderId101,
       paymentMode: "partial",
     });
     const body = await json(response);

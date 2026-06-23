@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS qr_codes (
     -- 關聯資訊
     table_id INTEGER REFERENCES tables(id),         -- 關聯桌台ID（可選）
     restaurant_id INTEGER REFERENCES restaurants(id), -- 關聯餐廳ID（可選）
-    created_by INTEGER REFERENCES users(id),        -- 創建者
+    created_by TEXT REFERENCES users(id),        -- 創建者
     
     -- 統計資訊
     download_count INTEGER DEFAULT 0,               -- 下載次數
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS qr_templates (
     
     -- 權限設定
     is_public BOOLEAN DEFAULT 1,                    -- 是否公開
-    created_by INTEGER REFERENCES users(id),        -- 創建者
+    created_by TEXT REFERENCES users(id),        -- 創建者
     restaurant_id INTEGER REFERENCES restaurants(id), -- 所屬餐廳（私有模板）
     
     -- 使用統計
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS qr_batches (
     
     -- 關聯資訊
     restaurant_id INTEGER REFERENCES restaurants(id),
-    created_by INTEGER REFERENCES users(id),
+    created_by TEXT REFERENCES users(id),
     
     -- 下載資訊
     download_url TEXT,                              -- 批次下載URL
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS qr_downloads (
     file_size INTEGER,                              -- 檔案大小（bytes）
     
     -- 用戶資訊
-    user_id INTEGER REFERENCES users(id),           -- 下載用戶（可選）
+    user_id TEXT REFERENCES users(id),           -- 下載用戶（可選）
     ip_address TEXT,                                -- IP地址
     user_agent TEXT,                                -- 用戶代理
     referrer TEXT,                                  -- 來源頁面
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS qr_scans (
     os TEXT,                                        -- 操作系統
     
     -- 用戶資訊
-    user_id INTEGER REFERENCES users(id),           -- 掃描用戶（可選）
+    user_id TEXT REFERENCES users(id),           -- 掃描用戶（可選）
     customer_id TEXT,                               -- 顧客ID（可選）
     ip_address TEXT,                                -- IP地址
     user_agent TEXT,                                -- 用戶代理
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS qr_scans (
     
     -- 後續動作
     action_taken TEXT,                              -- 採取的動作: redirect, order, view_menu, etc.
-    order_id INTEGER REFERENCES orders(id),         -- 產生的訂單ID（如有）
+    order_id TEXT REFERENCES orders(id),         -- 產生的訂單ID（如有）
     
     -- 時間戳
     scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS qr_style_presets (
     
     -- 權限設定
     is_public BOOLEAN DEFAULT 1,                    -- 是否公開
-    created_by INTEGER REFERENCES users(id),
+    created_by TEXT REFERENCES users(id),
     
     -- 時間戳
     created_at TEXT NOT NULL DEFAULT (datetime('now')),

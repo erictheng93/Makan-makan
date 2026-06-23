@@ -41,13 +41,11 @@ export const auditLogs = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
 
     // 關聯資訊
-    userId: integer("user_id").references(() => users.id), // 可為空（系統操作）
+    userId: text("user_id").references(() => users.id), // 可為空（系統操作）
     // Manager-delegation gate (M1): when a proxy actor (e.g. a manager
     // standing in for the owner) performs the action, userId records the
     // actual actor and onBehalfOfUserId records the delegating user.
-    onBehalfOfUserId: integer("on_behalf_of_user_id").references(
-      () => users.id,
-    ),
+    onBehalfOfUserId: text("on_behalf_of_user_id").references(() => users.id),
     restaurantId: text("restaurant_id"), // 引用 restaurants.public_id (TEXT)，可為空（全局操作）
 
     // 操作資訊

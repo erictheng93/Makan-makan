@@ -21,7 +21,7 @@ import type {
 } from "../schema/error-reports";
 
 export interface CreateErrorReportData {
-  userId: number;
+  userId: string;
   restaurantId?: string;
   errorType:
     | "network"
@@ -41,7 +41,7 @@ export interface CreateErrorReportData {
 }
 
 export interface ErrorReportFilters {
-  userId?: number;
+  userId?: string;
   restaurantId?: string;
   errorType?: CreateErrorReportData["errorType"];
   severity?: CreateErrorReportData["severity"];
@@ -246,7 +246,7 @@ export class ErrorReportingService extends BaseService {
   // 解決錯誤報告
   async resolveErrorReport(
     reportId: number,
-    resolvedBy: number,
+    resolvedBy: string,
     resolutionNotes?: string,
   ): Promise<ErrorReport> {
     try {

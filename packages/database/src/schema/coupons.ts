@@ -97,7 +97,7 @@ export const coupons = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    createdBy: integer("created_by").references(() => users.id, {
+    createdBy: text("created_by").references(() => users.id, {
       onDelete: "set null",
     }), // 創建者
 
@@ -124,10 +124,10 @@ export const couponUsage = sqliteTable(
     couponId: integer("coupon_id")
       .notNull()
       .references(() => coupons.id, { onDelete: "cascade" }),
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    userId: integer("user_id").references(() => users.id, {
+    userId: text("user_id").references(() => users.id, {
       onDelete: "set null",
     }), // 使用者ID
 
@@ -201,7 +201,7 @@ export const couponDistributions = sqliteTable(
       .default(sql`(unixepoch('now') * 1000)`),
 
     // 元數據
-    createdBy: integer("created_by").references(() => users.id, {
+    createdBy: text("created_by").references(() => users.id, {
       onDelete: "set null",
     }), // 發放者
     notes: text("notes"), // 發放備註
@@ -245,7 +245,7 @@ export const couponTemplates = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
-    createdBy: integer("created_by").references(() => users.id, {
+    createdBy: text("created_by").references(() => users.id, {
       onDelete: "set null",
     }), // 創建者
   },

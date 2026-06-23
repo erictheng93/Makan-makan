@@ -34,7 +34,7 @@ export interface ProcessPaymentResult {
   status: 200 | 202;
   data: {
     paymentId: string;
-    orderId: number;
+    orderId: string;
     orderStatus: string;
     paymentStatus: string;
     authorizedTotal: number;
@@ -265,7 +265,7 @@ export class PaymentService {
   private preparePaymentTransactionInsert(
     data: {
       transactionId: string;
-      orderId: number;
+      orderId: string;
       restaurantId: string;
       amountCents: number;
       currency: string | null;
@@ -299,7 +299,7 @@ export class PaymentService {
   }
 
   private prepareOrderPaymentUpdate(
-    orderId: number,
+    orderId: string,
     paymentId: string,
     paymentMethod: string,
     shouldCloseOrder: boolean,

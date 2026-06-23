@@ -10,7 +10,7 @@ export const orderItems = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
 
     // 關聯資訊
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     menuItemId: integer("menu_item_id")

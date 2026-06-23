@@ -877,7 +877,7 @@ export class PartnershipService extends BaseService {
    */
   async approveMember(
     memberId: string,
-    verifiedBy: number,
+    verifiedBy: string,
     verificationExpiry?: Date,
   ): Promise<VerifiedMember> {
     const [result] = await this.db

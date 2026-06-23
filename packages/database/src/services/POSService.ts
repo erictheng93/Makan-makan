@@ -48,7 +48,7 @@ export interface CashRegister {
 export interface CashShift {
   id: string;
   registerId: string;
-  operatorId: number;
+  operatorId: string;
   startAmount: number;
   endAmount?: number;
   expectedAmount: number;
@@ -84,12 +84,12 @@ export interface CashMovement {
     | "deposit";
   amount: number;
   description?: string;
-  referenceId?: number;
+  referenceId?: string;
   referenceType?: string;
   paymentMethod?: string;
   denominationBreakdown: Record<string, number>;
-  recordedBy: number;
-  approvedBy?: number;
+  recordedBy: string;
+  approvedBy?: string;
   approvalStatus: "pending" | "approved" | "rejected";
   receiptNumber?: string;
   metadata: Record<string, any>;
@@ -98,7 +98,7 @@ export interface CashMovement {
 
 export interface Receipt {
   id: string;
-  orderId: number;
+  orderId: string;
   registerId: string;
   shiftId?: string;
   receiptNumber: string;
@@ -118,7 +118,7 @@ export interface Receipt {
 
 export interface Refund {
   id: string;
-  originalOrderId: number;
+  originalOrderId: string;
   registerId: string;
   shiftId?: string;
   refundNumber: string;
@@ -129,8 +129,8 @@ export interface Refund {
   reasonCode: string;
   reasonDescription?: string;
   itemsRefunded: any[];
-  processedBy: number;
-  approvedBy?: number;
+  processedBy: string;
+  approvedBy?: string;
   customerSignature?: string;
   status: "pending" | "processing" | "completed" | "failed" | "cancelled";
   processedAt?: Date;
@@ -150,7 +150,7 @@ export interface CreateRegisterRequest {
 
 export interface StartShiftRequest {
   registerId: string;
-  operatorId: number;
+  operatorId: string;
   startAmount: number;
   notes?: string;
 }
@@ -165,19 +165,19 @@ export interface CashMovementRequest {
   amount: number;
   description: string;
   denominationBreakdown?: Record<string, number>;
-  referenceId?: number;
+  referenceId?: string;
   referenceType?: string;
 }
 
 export interface PrintReceiptRequest {
-  orderId: number;
+  orderId: string;
   templateName?: string;
   receiptType?: "customer" | "kitchen" | "merchant";
   copies?: number;
 }
 
 export interface ProcessRefundRequest {
-  originalOrderId: number;
+  originalOrderId: string;
   refundType: "full" | "partial" | "item" | "service";
   refundAmount: number;
   refundMethod: string;
@@ -202,7 +202,7 @@ const createRegisterSchema = z.object({
 
 const startShiftSchema = z.object({
   registerId: z.string().uuid(),
-  operatorId: z.number().int().positive(),
+  operatorId: z.string().uuid(),
   startAmount: z.number().min(0),
   notes: z.string().max(500).optional(),
 });
@@ -224,12 +224,12 @@ const cashMovementSchema = z.object({
   amount: z.number(),
   description: z.string().min(1).max(200),
   denominationBreakdown: z.record(z.number()).optional().default({}),
-  referenceId: z.number().int().positive().optional(),
+  referenceId: z.string().uuid().optional(),
   referenceType: z.string().optional(),
 });
 
 const printReceiptSchema = z.object({
-  orderId: z.number().int().positive(),
+  orderId: z.string().uuid(),
   templateName: z.string().optional().default("standard"),
   receiptType: z
     .enum(["customer", "kitchen", "merchant"])
@@ -239,7 +239,7 @@ const printReceiptSchema = z.object({
 });
 
 const processRefundSchema = z.object({
-  originalOrderId: z.number().int().positive(),
+  originalOrderId: z.string().uuid(),
   refundType: z.enum(["full", "partial", "item", "service"]),
   refundAmount: z.number().positive(),
   refundMethod: z.string().min(1).max(50),
@@ -264,7 +264,7 @@ export class POSService extends BaseService {
 
   async createRegister(
     data: CreateRegisterRequest,
-    createdBy: number,
+    createdBy: string,
   ): Promise<{ success: boolean; data?: CashRegister; error?: string }> {
     try {
       const validatedData = createRegisterSchema.parse(data);
@@ -456,7 +456,7 @@ export class POSService extends BaseService {
   async endShift(
     shiftId: string,
     data: EndShiftRequest,
-    operatorId: number,
+    operatorId: string,
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const validatedData = endShiftSchema.parse(data);
@@ -558,8 +558,8 @@ export class POSService extends BaseService {
       type: string;
       amount: number;
       description: string;
-      recordedBy: number;
-      referenceId?: number;
+      recordedBy: string;
+      referenceId?: string;
       referenceType?: string;
       paymentMethod?: string;
       denominationBreakdown?: Record<string, number>;
@@ -609,7 +609,7 @@ export class POSService extends BaseService {
   async processCashMovement(
     shiftId: string,
     data: CashMovementRequest,
-    operatorId: number,
+    operatorId: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const validatedData = cashMovementSchema.parse(data);
@@ -767,7 +767,7 @@ export class POSService extends BaseService {
   async processRefund(
     data: ProcessRefundRequest,
     registerId: string,
-    processedBy: number,
+    processedBy: string,
     shiftId?: string,
   ): Promise<{ success: boolean; data?: Refund; error?: string }> {
     try {

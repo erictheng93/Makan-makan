@@ -34,7 +34,7 @@ CREATE TABLE `restaurants` (
 CREATE UNIQUE INDEX `restaurants_public_id_unique` ON `restaurants` (`public_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `restaurants_shop_qr_code_unique` ON `restaurants` (`shop_qr_code`);--> statement-breakpoint
 CREATE TABLE `users` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` TEXT PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`email` text,
 	`phone` text,
@@ -150,7 +150,7 @@ CREATE TABLE `tables` (
 	`is_active` integer DEFAULT true NOT NULL,
 	`is_reservable` integer DEFAULT true NOT NULL,
 	`features` text,
-	`current_order_id` integer,
+	`current_order_id` TEXT,
 	`occupied_at` integer,
 	`occupied_by` text,
 	`estimated_free_at` integer,
@@ -178,7 +178,7 @@ CREATE TABLE `seats` (
 	`qr_code_version` integer DEFAULT 1 NOT NULL,
 	`is_occupied` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`current_order_id` integer,
+	`current_order_id` TEXT,
 	`occupied_at` integer,
 	`occupied_by` text,
 	`total_usage` integer DEFAULT 0 NOT NULL,
@@ -195,7 +195,7 @@ CREATE INDEX `seats_table_seat_number_idx` ON `seats` (`table_id`,`seat_number`)
 CREATE INDEX `seats_is_occupied_idx` ON `seats` (`is_occupied`);--> statement-breakpoint
 CREATE INDEX `seats_is_active_idx` ON `seats` (`is_active`);--> statement-breakpoint
 CREATE TABLE `orders` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` TEXT PRIMARY KEY NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`table_id` integer,
 	`customer_id` integer,
@@ -244,7 +244,7 @@ CREATE INDEX `orders_status_time_idx` ON `orders` (`status`,`created_at`);--> st
 CREATE INDEX `orders_payment_status_idx` ON `orders` (`payment_status`,`paid_at`);--> statement-breakpoint
 CREATE TABLE `order_items` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`menu_item_id` integer NOT NULL,
 	`quantity` integer NOT NULL,
 	`unit_price` real NOT NULL,
@@ -268,7 +268,7 @@ CREATE INDEX `order_items_order_status_idx` ON `order_items` (`order_id`,`status
 CREATE INDEX `order_items_menu_item_idx` ON `order_items` (`menu_item_id`,`created_at`);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`token` text NOT NULL,
 	`refresh_token` text,
 	`user_agent` text,
@@ -290,7 +290,7 @@ CREATE INDEX `sessions_token_idx` ON `sessions` (`token`);--> statement-breakpoi
 CREATE INDEX `sessions_expires_idx` ON `sessions` (`expires_at`);--> statement-breakpoint
 CREATE TABLE `audit_logs` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer,
+	`user_id` TEXT,
 	`restaurant_id` text,
 	`action` text NOT NULL,
 	`resource` text NOT NULL,
@@ -312,7 +312,7 @@ CREATE INDEX `audit_logs_resource_idx` ON `audit_logs` (`resource`,`resource_id`
 CREATE INDEX `audit_logs_time_idx` ON `audit_logs` (`created_at`);--> statement-breakpoint
 CREATE TABLE `error_reports` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`restaurant_id` text,
 	`error_type` text NOT NULL,
 	`severity` text NOT NULL,
@@ -325,7 +325,7 @@ CREATE TABLE `error_reports` (
 	`timestamp` text NOT NULL,
 	`created_at` text NOT NULL,
 	`resolved_at` text,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolution_notes` text
 );
 --> statement-breakpoint
@@ -347,7 +347,7 @@ CREATE TABLE `system_alerts` (
 	`affected_component` text,
 	`created_at` text NOT NULL,
 	`resolved_at` text,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolution_notes` text,
 	`auto_resolved` integer DEFAULT false
 );
@@ -362,7 +362,7 @@ CREATE TABLE `qr_batches` (
 	`total_codes` integer NOT NULL,
 	`generated_codes` integer DEFAULT 0 NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
-	`created_by` integer NOT NULL,
+	`created_by` TEXT NOT NULL,
 	`created_at_new` integer NOT NULL,
 	`completed_at_new` integer,
 	`created_at` text,
@@ -398,7 +398,7 @@ CREATE TABLE `qr_templates` (
 	`style_json` text NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
 	`is_default` integer DEFAULT false NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`created_at_new` integer NOT NULL,
 	`updated_at_new` integer NOT NULL,
 	`created_at` text,
@@ -467,7 +467,7 @@ CREATE TABLE `coupon_distributions` (
 	`distributed_at_new` integer NOT NULL,
 	`expires_at_new` integer,
 	`created_at_new` integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`notes` text,
 	`distributed_at` text,
 	`expires_at` text,
@@ -490,7 +490,7 @@ CREATE TABLE `coupon_templates` (
 	`is_system_template` integer DEFAULT false,
 	`created_at_new` integer NOT NULL,
 	`updated_at_new` integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`created_at` text,
 	`updated_at` text,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null
@@ -502,8 +502,8 @@ CREATE INDEX `idx_coupon_templates_system` ON `coupon_templates` (`is_system_tem
 CREATE TABLE `coupon_usage` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`coupon_id` integer NOT NULL,
-	`order_id` integer NOT NULL,
-	`user_id` integer,
+	`order_id` TEXT NOT NULL,
+	`user_id` TEXT,
 	`discount_amount` real NOT NULL,
 	`original_amount` real NOT NULL,
 	`final_amount` real NOT NULL,
@@ -546,7 +546,7 @@ CREATE TABLE `coupons` (
 	`is_visible` integer DEFAULT true,
 	`created_at_new` integer NOT NULL,
 	`updated_at_new` integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`created_at` text,
 	`updated_at` text,
 	`deleted_at` integer,
@@ -561,7 +561,7 @@ CREATE INDEX `idx_coupons_status` ON `coupons` (`is_active`,`is_visible`);--> st
 CREATE INDEX `idx_coupons_discount_type` ON `coupons` (`discount_type`);--> statement-breakpoint
 CREATE TABLE `employee_leave_balances` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`employee_id` integer NOT NULL,
+	`employee_id` TEXT NOT NULL,
 	`leave_type_id` integer NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`year` integer NOT NULL,
@@ -573,11 +573,11 @@ CREATE TABLE `employee_leave_balances` (
 	`carryover_expires_at` integer,
 	`manual_adjustment` real DEFAULT 0,
 	`adjustment_reason` text,
-	`adjusted_by` integer,
+	`adjusted_by` TEXT,
 	`adjusted_at` integer,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	`last_updated_by` integer,
+	`last_updated_by` TEXT,
 	FOREIGN KEY (`employee_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`adjusted_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
@@ -598,13 +598,13 @@ CREATE TABLE `leave_approval_rules` (
 	`auto_approval_conditions` text,
 	`enable_auto_escalation` integer DEFAULT false NOT NULL,
 	`escalation_timeout_hours` integer,
-	`escalation_to_user_id` integer,
+	`escalation_to_user_id` TEXT,
 	`priority` integer DEFAULT 0 NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	`created_by` integer NOT NULL,
-	`updated_by` integer,
+	`created_by` TEXT NOT NULL,
+	`updated_by` TEXT,
 	FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`escalation_to_user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
@@ -624,7 +624,7 @@ CREATE TABLE `leave_calendar_events` (
 	`compensatory_for` text,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	`created_by` integer,
+	`created_by` TEXT,
 	`color` text,
 	`icon` text,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
@@ -633,7 +633,7 @@ CREATE TABLE `leave_calendar_events` (
 CREATE TABLE `leave_requests` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`restaurant_id` text NOT NULL,
-	`employee_id` integer NOT NULL,
+	`employee_id` TEXT NOT NULL,
 	`leave_type_id` integer NOT NULL,
 	`start_date` text NOT NULL,
 	`end_date` text NOT NULL,
@@ -646,12 +646,12 @@ CREATE TABLE `leave_requests` (
 	`status` text DEFAULT 'pending' NOT NULL,
 	`approval_chain` text NOT NULL,
 	`current_approval_level` integer DEFAULT 0 NOT NULL,
-	`final_approver_id` integer,
+	`final_approver_id` TEXT,
 	`final_approved_at` integer,
-	`rejected_by` integer,
+	`rejected_by` TEXT,
 	`rejected_at` integer,
 	`rejection_reason` text,
-	`cancelled_by` integer,
+	`cancelled_by` TEXT,
 	`cancelled_at` integer,
 	`cancellation_reason` text,
 	`affected_schedule_ids` text,
@@ -697,8 +697,8 @@ CREATE TABLE `leave_types` (
 	`icon` text,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	`created_by` integer,
-	`updated_by` integer,
+	`created_by` TEXT,
+	`updated_by` TEXT,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -706,7 +706,7 @@ CREATE TABLE `leave_types` (
 CREATE TABLE `employee_availability` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`restaurant_id` text NOT NULL,
-	`employee_id` integer NOT NULL,
+	`employee_id` TEXT NOT NULL,
 	`availability_type` text NOT NULL,
 	`day_of_week` integer,
 	`start_time` text,
@@ -725,7 +725,7 @@ CREATE TABLE `employee_availability` (
 CREATE TABLE `employee_schedules` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`restaurant_id` text NOT NULL,
-	`employee_id` integer NOT NULL,
+	`employee_id` TEXT NOT NULL,
 	`shift_template_id` integer,
 	`work_date` text NOT NULL,
 	`start_time` text NOT NULL,
@@ -739,10 +739,10 @@ CREATE TABLE `employee_schedules` (
 	`status` text DEFAULT 'scheduled' NOT NULL,
 	`notes` text,
 	`manager_notes` text,
-	`confirmed_by` integer,
+	`confirmed_by` TEXT,
 	`confirmed_at` integer,
-	`created_by` integer NOT NULL,
-	`updated_by` integer,
+	`created_by` TEXT NOT NULL,
+	`updated_by` TEXT,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
 	FOREIGN KEY (`employee_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
@@ -755,20 +755,20 @@ CREATE TABLE `employee_schedules` (
 CREATE TABLE `schedule_swap_requests` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`restaurant_id` text NOT NULL,
-	`requester_employee_id` integer NOT NULL,
+	`requester_employee_id` TEXT NOT NULL,
 	`requester_schedule_id` integer NOT NULL,
-	`target_employee_id` integer,
+	`target_employee_id` TEXT,
 	`target_schedule_id` integer,
 	`request_type` text NOT NULL,
 	`reason` text NOT NULL,
 	`urgency` text DEFAULT 'normal',
 	`is_open_request` integer DEFAULT false,
 	`status` text DEFAULT 'pending' NOT NULL,
-	`accepted_by` integer,
+	`accepted_by` TEXT,
 	`accepted_at` integer,
-	`approved_by` integer,
+	`approved_by` TEXT,
 	`approved_at` integer,
-	`rejected_by` integer,
+	`rejected_by` TEXT,
 	`rejected_at` integer,
 	`rejection_reason` text,
 	`expires_at` integer,
@@ -794,7 +794,7 @@ CREATE TABLE `scheduling_conflicts` (
 	`message` text NOT NULL,
 	`details` text,
 	`status` text DEFAULT 'unresolved' NOT NULL,
-	`resolved_by` integer,
+	`resolved_by` TEXT,
 	`resolved_at` integer,
 	`resolution_notes` text,
 	`detected_at` integer NOT NULL,
@@ -817,8 +817,8 @@ CREATE TABLE `scheduling_rules` (
 	`severity` text DEFAULT 'warning' NOT NULL,
 	`is_system_rule` integer DEFAULT false NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
-	`created_by` integer NOT NULL,
-	`updated_by` integer,
+	`created_by` TEXT NOT NULL,
+	`updated_by` TEXT,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
@@ -847,8 +847,8 @@ CREATE TABLE `shift_templates` (
 	`icon` text,
 	`sort_order` integer DEFAULT 0,
 	`is_active` integer DEFAULT true NOT NULL,
-	`created_by` integer,
-	`updated_by` integer,
+	`created_by` TEXT,
+	`updated_by` TEXT,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
@@ -866,8 +866,8 @@ CREATE TABLE `cash_movements` (
 	`reference_type` text,
 	`payment_method` text,
 	`denomination_breakdown` text DEFAULT '{}' NOT NULL,
-	`recorded_by` integer NOT NULL,
-	`approved_by` integer,
+	`recorded_by` TEXT NOT NULL,
+	`approved_by` TEXT,
 	`approval_status` text DEFAULT 'pending' NOT NULL,
 	`receipt_number` text,
 	`metadata` text DEFAULT '{}' NOT NULL,
@@ -896,7 +896,7 @@ CREATE TABLE `cash_registers` (
 CREATE TABLE `cash_shifts` (
 	`id` text PRIMARY KEY NOT NULL,
 	`register_id` text NOT NULL,
-	`operator_id` integer NOT NULL,
+	`operator_id` TEXT NOT NULL,
 	`start_amount` real NOT NULL,
 	`end_amount` real,
 	`expected_amount` real NOT NULL,
@@ -919,7 +919,7 @@ CREATE TABLE `cash_shifts` (
 --> statement-breakpoint
 CREATE TABLE `receipts` (
 	`id` text PRIMARY KEY NOT NULL,
-	`order_id` integer NOT NULL,
+	`order_id` TEXT NOT NULL,
 	`register_id` text NOT NULL,
 	`shift_id` text,
 	`receipt_number` text NOT NULL,
@@ -943,7 +943,7 @@ CREATE TABLE `receipts` (
 CREATE UNIQUE INDEX `receipts_receipt_number_unique` ON `receipts` (`receipt_number`);--> statement-breakpoint
 CREATE TABLE `refunds` (
 	`id` text PRIMARY KEY NOT NULL,
-	`original_order_id` integer NOT NULL,
+	`original_order_id` TEXT NOT NULL,
 	`register_id` text NOT NULL,
 	`shift_id` text,
 	`refund_number` text NOT NULL,
@@ -954,8 +954,8 @@ CREATE TABLE `refunds` (
 	`reason_code` text NOT NULL,
 	`reason_description` text,
 	`items_refunded` text DEFAULT '[]' NOT NULL,
-	`processed_by` integer NOT NULL,
-	`approved_by` integer,
+	`processed_by` TEXT NOT NULL,
+	`approved_by` TEXT,
 	`customer_signature` text,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`processed_at` integer,
@@ -973,7 +973,7 @@ CREATE TABLE `shift_reports` (
 	`id` text PRIMARY KEY NOT NULL,
 	`shift_id` text NOT NULL,
 	`register_id` text NOT NULL,
-	`operator_id` integer NOT NULL,
+	`operator_id` TEXT NOT NULL,
 	`report_data` text NOT NULL,
 	`summary_data` text NOT NULL,
 	`generated_at` integer NOT NULL,
@@ -1015,7 +1015,7 @@ CREATE TABLE `group_cart_items` (
 CREATE TABLE `group_members` (
 	`id` text PRIMARY KEY NOT NULL,
 	`group_order_id` text NOT NULL,
-	`user_id` integer,
+	`user_id` TEXT,
 	`session_id` text NOT NULL,
 	`name` text NOT NULL,
 	`phone` text,
@@ -1034,8 +1034,8 @@ CREATE TABLE `group_members` (
 CREATE TABLE `group_orders` (
 	`id` text PRIMARY KEY NOT NULL,
 	`share_code` text NOT NULL,
-	`master_order_id` integer,
-	`created_by` integer NOT NULL,
+	`master_order_id` TEXT,
+	`created_by` TEXT NOT NULL,
 	`restaurant_id` text NOT NULL,
 	`table_id` integer,
 	`status` text DEFAULT 'active' NOT NULL,
@@ -1061,7 +1061,7 @@ CREATE TABLE `share_codes` (
 	`code` text NOT NULL,
 	`type` text NOT NULL,
 	`resource_id` text NOT NULL,
-	`created_by` integer NOT NULL,
+	`created_by` TEXT NOT NULL,
 	`expires_at` integer NOT NULL,
 	`is_active` integer DEFAULT true NOT NULL,
 	`usage_count` integer DEFAULT 0 NOT NULL,
@@ -1260,7 +1260,7 @@ CREATE INDEX `idx_verified_members_status` ON `verified_members` (`status`);--> 
 CREATE INDEX `idx_verified_members_email` ON `verified_members` (`email`);--> statement-breakpoint
 CREATE TABLE `email_verification_tokens` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`token` text NOT NULL,
 	`email` text NOT NULL,
 	`expires_at` integer NOT NULL,
@@ -1276,7 +1276,7 @@ CREATE INDEX `idx_email_verification_user` ON `email_verification_tokens` (`user
 CREATE INDEX `idx_email_verification_expires` ON `email_verification_tokens` (`expires_at`);--> statement-breakpoint
 CREATE TABLE `password_change_logs` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`change_method` text NOT NULL,
 	`success` integer DEFAULT true NOT NULL,
 	`failure_reason` text,
@@ -1290,7 +1290,7 @@ CREATE INDEX `idx_password_change_user_created` ON `password_change_logs` (`user
 CREATE INDEX `idx_password_change_created` ON `password_change_logs` (`created_at`);--> statement-breakpoint
 CREATE TABLE `password_reset_tokens` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`token` text NOT NULL,
 	`token_type` text DEFAULT 'email' NOT NULL,
 	`otp_code` text,
@@ -1308,7 +1308,7 @@ CREATE INDEX `idx_password_reset_user_expires` ON `password_reset_tokens` (`user
 CREATE INDEX `idx_password_reset_expires` ON `password_reset_tokens` (`expires_at`);--> statement-breakpoint
 CREATE TABLE `phone_verification_tokens` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`user_id` integer NOT NULL,
+	`user_id` TEXT NOT NULL,
 	`phone` text NOT NULL,
 	`otp_code` text NOT NULL,
 	`expires_at` integer NOT NULL,

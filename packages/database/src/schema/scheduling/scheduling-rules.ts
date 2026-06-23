@@ -52,10 +52,10 @@ export const schedulingRules = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
     // Audit
-    createdBy: integer("created_by")
+    createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
-    updatedBy: integer("updated_by").references(() => users.id),
+    updatedBy: text("updated_by").references(() => users.id),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$defaultFn(() => new Date()),

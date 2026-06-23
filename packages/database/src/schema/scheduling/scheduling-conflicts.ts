@@ -52,7 +52,7 @@ export const schedulingConflicts = sqliteTable(
     })
       .notNull()
       .default("unresolved"),
-    resolvedBy: integer("resolved_by").references(() => users.id),
+    resolvedBy: text("resolved_by").references(() => users.id),
     resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
     resolutionNotes: text("resolution_notes"),
 

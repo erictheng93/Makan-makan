@@ -101,14 +101,14 @@ export class UserService extends BaseService {
       // Convert Drizzle objects to primitive values to avoid circular references
       // Also remove sensitive information (passwordHash)
       const userWithoutPassword = {
-        id: Number(newUser.id),
+        id: String(newUser.id),
         username: String(newUser.username),
         email: newUser.email ? String(newUser.email) : null,
         phone: newUser.phone ? String(newUser.phone) : null,
         fullName: newUser.fullName ? String(newUser.fullName) : null,
         role: Number(newUser.role),
         restaurantId: newUser.restaurantId
-          ? Number(newUser.restaurantId)
+          ? String(newUser.restaurantId)
           : null,
         address: newUser.address ? String(newUser.address) : null,
         dateOfBirth: newUser.dateOfBirth ? String(newUser.dateOfBirth) : null,
@@ -132,7 +132,7 @@ export class UserService extends BaseService {
   }
 
   // 取得用戶詳細資訊
-  async getUserById(id: number): Promise<any> {
+  async getUserById(id: string): Promise<any> {
     try {
       const user = await this.db
         .select({
@@ -163,7 +163,7 @@ export class UserService extends BaseService {
 
       // Convert Drizzle objects to primitive values to avoid circular references
       return {
-        id: Number(user.id),
+        id: String(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
         phone: user.phone ? String(user.phone) : null,
@@ -214,7 +214,7 @@ export class UserService extends BaseService {
 
       // Convert Drizzle objects to primitive values to avoid circular references
       return {
-        id: Number(user.id),
+        id: String(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
         phone: user.phone ? String(user.phone) : null,
@@ -232,7 +232,7 @@ export class UserService extends BaseService {
   }
 
   // 更新用戶資訊
-  async updateUser(id: number, data: UpdateUserData): Promise<any> {
+  async updateUser(id: string, data: UpdateUserData): Promise<any> {
     try {
       // 檢查 email 是否已被其他用戶使用
       if (data.email) {
@@ -282,7 +282,7 @@ export class UserService extends BaseService {
   }
 
   // 刪除用戶（軟刪除 - 設為不活躍）
-  async deleteUser(id: number): Promise<boolean> {
+  async deleteUser(id: string): Promise<boolean> {
     try {
       const result = await this.db
         .update(users)
@@ -379,7 +379,7 @@ export class UserService extends BaseService {
 
       // Convert Drizzle objects to primitive values
       const serializedUsers = usersList.map((user) => ({
-        id: Number(user.id),
+        id: String(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
         phone: user.phone ? String(user.phone) : null,
@@ -483,7 +483,7 @@ export class UserService extends BaseService {
 
       // Convert Drizzle objects to primitive values
       const serializedUsers = usersList.map((user) => ({
-        id: Number(user.id),
+        id: String(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
         fullName: user.fullName ? String(user.fullName) : null,
@@ -509,9 +509,9 @@ export class UserService extends BaseService {
 
   // 更新用戶角色
   async updateUserRole(
-    id: number,
+    id: string,
     role: number,
-    updatedBy: number,
+    updatedBy: string,
   ): Promise<any> {
     try {
       // 驗證角色是否有效
@@ -543,7 +543,7 @@ export class UserService extends BaseService {
   }
 
   // 驗證用戶
-  async verifyUser(id: number): Promise<boolean> {
+  async verifyUser(id: string): Promise<boolean> {
     try {
       const result = await this.db
         .update(users)
@@ -562,7 +562,7 @@ export class UserService extends BaseService {
   }
 
   // 重設密碼
-  async resetPassword(id: number, newPassword: string): Promise<boolean> {
+  async resetPassword(id: string, newPassword: string): Promise<boolean> {
     try {
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(newPassword, saltRounds);
@@ -587,7 +587,7 @@ export class UserService extends BaseService {
 
   // 更新用戶統計資訊（訂單數量和消費金額）
   async updateUserStats(
-    userId: number,
+    userId: string,
     orderCount: number,
     orderAmount: number,
   ): Promise<void> {
@@ -695,7 +695,7 @@ export class UserService extends BaseService {
 
       // Convert Drizzle objects to primitive values
       return results.map((user) => ({
-        id: Number(user.id),
+        id: String(user.id),
         username: String(user.username),
         fullName: user.fullName ? String(user.fullName) : null,
         email: user.email ? String(user.email) : null,
@@ -735,7 +735,7 @@ export class UserService extends BaseService {
 
       // Convert Drizzle objects to primitive values
       return results.map((user) => ({
-        id: Number(user.id),
+        id: String(user.id),
         username: String(user.username),
         fullName: user.fullName ? String(user.fullName) : null,
         email: user.email ? String(user.email) : null,

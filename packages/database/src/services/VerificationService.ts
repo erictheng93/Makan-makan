@@ -43,7 +43,7 @@ export interface ResetPasswordParams {
 }
 
 export interface SendEmailVerificationParams {
-  userId: number;
+  userId: string;
   email: string;
   ipAddress?: string;
 }
@@ -54,13 +54,13 @@ export interface VerifyEmailParams {
 }
 
 export interface SendPhoneVerificationParams {
-  userId: number;
+  userId: string;
   phone: string;
   ipAddress?: string;
 }
 
 export interface VerifyPhoneParams {
-  userId: number;
+  userId: string;
   phone: string;
   otpCode: string;
   ipAddress?: string;
@@ -261,7 +261,7 @@ export class VerificationService extends BaseService {
    */
   async verifyResetToken(params: VerifyResetTokenParams): Promise<{
     valid: boolean;
-    userId?: number;
+    userId?: string;
     email?: string;
     error?: string;
   }> {
@@ -500,7 +500,7 @@ export class VerificationService extends BaseService {
   async verifyEmail(params: VerifyEmailParams): Promise<{
     success: boolean;
     message: string;
-    userId?: number;
+    userId?: string;
     error?: string;
   }> {
     const { token, ipAddress } = params;

@@ -59,18 +59,18 @@ describe("RealtimeService order identity handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
-    mocks.orderService.updateOrderStatus.mockResolvedValue({ id: 202 });
+    mocks.orderService.updateOrderStatus.mockResolvedValue({
+      id: "018f0000-0000-7000-8000-000000000202",
+    });
   });
 
-  it("updates status from a public order id while preserving numeric and UUID cache keys", async () => {
-    const publicId = "018f0000-0000-7000-8000-000000000202";
-    const { service, d1, cache, fetch } = createService([
-      { id: 202, public_id: publicId },
-    ]);
+  it("updates status from a UUID order id and caches the UUID key", async () => {
+    const orderId = "018f0000-0000-7000-8000-000000000202";
+    const { service, d1, cache, fetch } = createService([{ id: orderId }]);
 
     await expect(
       service.updateOrderStatus(
-        publicId,
+        orderId,
         "preparing",
         "restaurant-1",
         "table-9",
@@ -79,19 +79,14 @@ describe("RealtimeService order identity handling", () => {
     ).resolves.toBe(true);
 
     expect(d1.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("public_id"),
+      expect.stringContaining("WHERE restaurant_id = ?"),
     );
-    expect(d1.bind).toHaveBeenCalledWith("restaurant-1", 0, publicId);
-    expect(mocks.orderService.updateOrderStatus).toHaveBeenCalledWith(202, {
+    expect(d1.bind).toHaveBeenCalledWith("restaurant-1", orderId);
+    expect(mocks.orderService.updateOrderStatus).toHaveBeenCalledWith(orderId, {
       status: "preparing",
     });
     expect(cache.put).toHaveBeenCalledWith(
-      `order_status:${publicId}`,
-      expect.any(String),
-      expect.any(Object),
-    );
-    expect(cache.put).toHaveBeenCalledWith(
-      "order_status:202",
+      `order_status:${orderId}`,
       expect.any(String),
       expect.any(Object),
     );
@@ -103,41 +98,34 @@ describe("RealtimeService order identity handling", () => {
       expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            orderId: 202,
-            orderPublicId: publicId,
+            orderId,
+            orderPublicId: orderId,
           }),
         }),
       ]),
     );
   });
 
-  it("keeps numeric order id compatibility and adds orderPublicId when available", async () => {
-    const publicId = "018f0000-0000-7000-8000-000000000303";
-    const { service, cache, fetch } = createService([
-      { id: 303, public_id: publicId },
-    ]);
+  it("uses the UUID order id as the orderPublicId alias", async () => {
+    const orderId = "018f0000-0000-7000-8000-000000000303";
+    const { service, cache, fetch } = createService([{ id: orderId }]);
 
     await expect(
-      service.updateOrderStatus("303", "ready", "restaurant-1", "table-3"),
+      service.updateOrderStatus(orderId, "ready", "restaurant-1", "table-3"),
     ).resolves.toBe(true);
 
-    expect(mocks.orderService.updateOrderStatus).toHaveBeenCalledWith(303, {
+    expect(mocks.orderService.updateOrderStatus).toHaveBeenCalledWith(orderId, {
       status: "ready",
     });
     expect(cache.put).toHaveBeenCalledWith(
-      "order_status:303",
-      expect.any(String),
-      expect.any(Object),
-    );
-    expect(cache.put).toHaveBeenCalledWith(
-      `order_status:${publicId}`,
+      `order_status:${orderId}`,
       expect.any(String),
       expect.any(Object),
     );
     expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toMatchObject({
       data: {
-        orderId: 303,
-        orderPublicId: publicId,
+        orderId,
+        orderPublicId: orderId,
       },
     });
   });

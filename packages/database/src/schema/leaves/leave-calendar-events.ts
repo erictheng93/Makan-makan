@@ -44,7 +44,7 @@ export const leaveCalendarEvents = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
-    createdBy: integer("created_by").references(() => users.id),
+    createdBy: text("created_by").references(() => users.id),
     color: text("color"),
     icon: text("icon"),
   },

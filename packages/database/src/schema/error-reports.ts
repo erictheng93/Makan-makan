@@ -8,7 +8,7 @@ export const errorReports = sqliteTable(
   "error_reports",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: integer("user_id").notNull(),
+    userId: text("user_id").notNull(),
     restaurantId: text("restaurant_id"), // 引用 restaurants.public_id (TEXT)
     errorType: text("error_type", {
       enum: ["network", "api", "sse", "validation", "permission", "unknown"],
@@ -27,7 +27,7 @@ export const errorReports = sqliteTable(
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
     resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
-    resolvedBy: integer("resolved_by"),
+    resolvedBy: text("resolved_by"),
     resolutionNotes: text("resolution_notes"),
   },
   (table) => ({
@@ -66,7 +66,7 @@ export const systemAlerts = sqliteTable(
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
     resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
-    resolvedBy: integer("resolved_by"),
+    resolvedBy: text("resolved_by"),
     resolutionNotes: text("resolution_notes"),
     autoResolved: integer("auto_resolved", { mode: "boolean" }).default(false),
   },

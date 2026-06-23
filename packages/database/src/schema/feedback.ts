@@ -45,7 +45,7 @@ export const shopFeedback = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     restaurantId: text("restaurant_id").notNull(),
-    userId: integer("user_id").notNull(),
+    userId: text("user_id").notNull(),
     category: text("category", {
       enum: FEEDBACK_CATEGORIES,
     }).notNull(),
@@ -74,7 +74,7 @@ export const shopFeedback = sqliteTable(
       .notNull()
       .default(sql`(unixepoch('now') * 1000)`),
     resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
-    resolvedBy: integer("resolved_by"),
+    resolvedBy: text("resolved_by"),
   },
   (table) => ({
     restaurantIdIdx: index("idx_shop_feedback_restaurant_id").on(
@@ -100,7 +100,7 @@ export const feedbackResponses = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     feedbackId: integer("feedback_id").notNull(),
-    userId: integer("user_id").notNull(),
+    userId: text("user_id").notNull(),
     message: text("message").notNull(),
     isInternal: integer("is_internal", { mode: "boolean" })
       .notNull()

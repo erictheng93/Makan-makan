@@ -93,8 +93,8 @@ export const leaveTypes = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
-    createdBy: integer("created_by").references(() => users.id),
-    updatedBy: integer("updated_by").references(() => users.id),
+    createdBy: text("created_by").references(() => users.id),
+    updatedBy: text("updated_by").references(() => users.id),
   },
   (table) => ({
     restaurantCodeIdx: index("idx_leave_types_restaurant_code").on(

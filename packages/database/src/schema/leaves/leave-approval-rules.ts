@@ -44,7 +44,7 @@ export const leaveApprovalRules = sqliteTable(
       .notNull()
       .default(false),
     escalationTimeoutHours: integer("escalation_timeout_hours"),
-    escalationToUserId: integer("escalation_to_user_id").references(
+    escalationToUserId: text("escalation_to_user_id").references(
       () => users.id,
     ),
 
@@ -59,10 +59,10 @@ export const leaveApprovalRules = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
       .notNull()
       .$onUpdate(() => new Date()),
-    createdBy: integer("created_by")
+    createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
-    updatedBy: integer("updated_by").references(() => users.id),
+    updatedBy: text("updated_by").references(() => users.id),
   },
   (table) => ({
     restaurantTypeIdx: index("idx_leave_approval_rules_restaurant_type").on(

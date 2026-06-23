@@ -6,8 +6,8 @@
 CREATE TABLE group_orders (
     id TEXT PRIMARY KEY,
     share_code TEXT UNIQUE NOT NULL,
-    master_order_id INTEGER,
-    created_by INTEGER NOT NULL,
+    master_order_id TEXT,
+    created_by TEXT NOT NULL,
     restaurant_id INTEGER NOT NULL,
     table_id INTEGER,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'ordering', 'checkout', 'completed', 'cancelled')),
@@ -34,7 +34,7 @@ CREATE TABLE group_orders (
 CREATE TABLE group_members (
     id TEXT PRIMARY KEY,
     group_order_id TEXT NOT NULL,
-    user_id INTEGER,
+    user_id TEXT,
     session_id TEXT NOT NULL,
     name TEXT NOT NULL,
     phone TEXT,
@@ -101,7 +101,7 @@ CREATE TABLE share_codes (
     code TEXT UNIQUE NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('group_order', 'menu_share', 'table_share')),
     resource_id TEXT NOT NULL, -- 對應的資源ID
-    created_by INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
     usage_limit INTEGER DEFAULT -1, -- -1 表示無限制
     usage_count INTEGER DEFAULT 0,
     expires_at DATETIME,

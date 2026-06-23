@@ -66,7 +66,7 @@ export const cashShifts = sqliteTable(
     registerId: text("register_id")
       .notNull()
       .references(() => cashRegisters.id),
-    operatorId: integer("operator_id")
+    operatorId: text("operator_id")
       .notNull()
       .references(() => users.id),
 
@@ -138,10 +138,10 @@ export const cashMovements = sqliteTable(
       .default("{}"), // JSON: {1000: 5, 500: 10, ...}
 
     // 操作人員
-    recordedBy: integer("recorded_by")
+    recordedBy: text("recorded_by")
       .notNull()
       .references(() => users.id),
-    approvedBy: integer("approved_by").references(() => users.id),
+    approvedBy: text("approved_by").references(() => users.id),
     approvalStatus: text("approval_status").notNull().default("pending"), // pending, approved, rejected
 
     // 收據編號
@@ -169,7 +169,7 @@ export const receipts = sqliteTable(
   "receipts",
   {
     id: text("id").primaryKey(), // UUID
-    orderId: integer("order_id")
+    orderId: text("order_id")
       .notNull()
       .references(() => orders.id),
     registerId: text("register_id")
@@ -216,7 +216,7 @@ export const refunds = sqliteTable(
   "refunds",
   {
     id: text("id").primaryKey(), // UUID
-    originalOrderId: integer("original_order_id")
+    originalOrderId: text("original_order_id")
       .notNull()
       .references(() => orders.id),
     registerId: text("register_id")
@@ -239,10 +239,10 @@ export const refunds = sqliteTable(
     itemsRefunded: text("items_refunded").notNull().default("[]"), // JSON array
 
     // 處理人員
-    processedBy: integer("processed_by")
+    processedBy: text("processed_by")
       .notNull()
       .references(() => users.id),
-    approvedBy: integer("approved_by").references(() => users.id),
+    approvedBy: text("approved_by").references(() => users.id),
 
     // 客戶簽名
     customerSignature: text("customer_signature"),
@@ -279,7 +279,7 @@ export const shiftReports = sqliteTable(
     registerId: text("register_id")
       .notNull()
       .references(() => cashRegisters.id),
-    operatorId: integer("operator_id")
+    operatorId: text("operator_id")
       .notNull()
       .references(() => users.id),
 

@@ -5,7 +5,7 @@ import { ApiError, unauthorized, forbidden } from "../shared/utils/api-error";
 import { resolveStaffPrincipal } from "../shared/services/staff-principal";
 
 export interface AuthUser {
-  id: number;
+  id: string;
   publicId?: string;
   username: string;
   role: number;
@@ -24,7 +24,7 @@ export interface AuthCustomer {
 }
 
 interface TokenUserRecord {
-  id: number;
+  id: string;
   publicId?: string;
   username: string;
   role: number;
@@ -34,7 +34,7 @@ interface TokenUserRecord {
 }
 
 interface AuthTokenPayload {
-  id?: number;
+  id?: string;
   sub?: string;
   username: string;
   role: number;
@@ -73,15 +73,11 @@ function isAuthTokenPayload(decoded: unknown): decoded is AuthTokenPayload {
   if (!decoded || typeof decoded !== "object") return false;
 
   const payload = decoded as Record<string, unknown>;
-  const hasLegacyId =
-    typeof payload.id === "number" &&
-    Number.isInteger(payload.id) &&
-    payload.id > 0;
   const hasPublicId =
     typeof payload.sub === "string" && UUID_V7_PATTERN.test(payload.sub);
 
   return (
-    (hasLegacyId || hasPublicId) &&
+    hasPublicId &&
     typeof payload.username === "string" &&
     payload.username.length > 0 &&
     typeof payload.role === "number" &&
@@ -218,7 +214,7 @@ function createAuthMiddleware(maxRole: number) {
       }
 
       c.set("user", {
-        id: userRecord?.id ?? decoded.id!,
+        id: userRecord?.id ?? decoded.sub,
         publicId: userRecord?.publicId ?? decoded.sub,
         username: decoded.username,
         role: decoded.role,
@@ -480,7 +476,7 @@ export const sseAuthMiddleware = async (
     }
 
     c.set("user", {
-      id: userRecord?.id ?? decoded.id!,
+      id: userRecord?.id ?? decoded.sub,
       publicId: userRecord?.publicId ?? decoded.sub,
       username: decoded.username,
       role: decoded.role,
@@ -504,14 +500,14 @@ export const sseAuthMiddleware = async (
 
 async function loadTokenUser(
   c: Context<{ Bindings: Env }>,
-  principalId: string | number,
+  principalId: string,
 ): Promise<TokenUserRecord | null> {
   try {
     const principal = await resolveStaffPrincipal(c.env.DB, principalId, {
       requireActive: false,
     });
     return {
-      id: principal.legacyUserId,
+      id: principal.id,
       publicId: principal.publicUserId,
       username: principal.username,
       role: principal.role,

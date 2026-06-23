@@ -64,7 +64,7 @@ export interface NotificationTemplate {
 }
 
 export interface NotificationPayload {
-  recipientId: number;
+  recipientId: string;
   recipientEmail?: string;
   recipientPhone?: string;
   category: NotificationCategory;
@@ -77,7 +77,7 @@ export interface NotificationPayload {
 export interface NotificationRecord {
   id: number;
   restaurantId: string;
-  recipientId: number;
+  recipientId: string;
   category: NotificationCategory;
   type: NotificationType;
   subject: string | null;

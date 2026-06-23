@@ -60,7 +60,7 @@ CREATE TABLE restaurants (
 -- 2. Users Table - 用戶表（支持員工和客戶）
 -- ==========================================
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY NOT NULL,
 
     -- 基本資訊
     username TEXT NOT NULL UNIQUE,
@@ -115,7 +115,7 @@ CREATE INDEX users_phone_idx ON users(phone);
 -- ==========================================
 CREATE TABLE sessions (
     id TEXT PRIMARY KEY,                  -- UUID
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
 
     -- Session 資訊
     token TEXT NOT NULL UNIQUE,           -- JWT Token
@@ -296,7 +296,7 @@ CREATE TABLE tables (
     features TEXT,                        -- {hasChargingPort, hasWifi, ...}
 
     -- 目前使用狀況
-    current_order_id INTEGER,
+    current_order_id TEXT,
     occupied_at INTEGER,
     occupied_by TEXT,
     estimated_free_at INTEGER,
@@ -341,7 +341,7 @@ CREATE TABLE seats (
     -- 狀態管理
     is_occupied INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 1,
-    current_order_id INTEGER,
+    current_order_id TEXT,
 
     -- 使用追蹤
     occupied_at INTEGER,
@@ -366,7 +366,7 @@ CREATE INDEX seats_is_active_idx ON seats(is_active);
 -- 8. Orders Table - 訂單表
 -- ==========================================
 CREATE TABLE orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY NOT NULL,
 
     -- 關聯資訊
     restaurant_id TEXT NOT NULL,
@@ -449,7 +449,7 @@ CREATE TABLE order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     -- 關聯資訊
-    order_id INTEGER NOT NULL,
+    order_id TEXT NOT NULL,
     menu_item_id INTEGER NOT NULL,
 
     -- 基本資訊
@@ -497,7 +497,7 @@ CREATE TABLE audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     -- 關聯資訊
-    user_id INTEGER,                      -- 可為空（系統操作）
+    user_id TEXT,                      -- 可為空（系統操作）
     restaurant_id TEXT,                -- 可為空（全局操作）
 
     -- 操作資訊

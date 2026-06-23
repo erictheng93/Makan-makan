@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS market_checkout_child_orders (
   checkout_id TEXT NOT NULL,
   restaurant_id TEXT NOT NULL,
   restaurant_name TEXT NOT NULL,
-  order_id INTEGER NOT NULL,
+  order_id TEXT NOT NULL,
   order_number TEXT NOT NULL,
   total_amount REAL NOT NULL,
   total_amount_cents INTEGER NOT NULL,

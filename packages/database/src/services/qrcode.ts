@@ -54,7 +54,7 @@ export interface CreateQRCodeData {
   content: string;
   format?: "png" | "svg" | "pdf" | "jpeg";
   restaurantId?: string | number | null;
-  createdBy?: number | null;
+  createdBy?: string | null;
   style?: QRStyleData;
   metadata?: unknown;
 }
@@ -64,7 +64,7 @@ export interface CreateQRTemplateData {
   description?: string;
   style: QRStyleData;
   isDefault?: boolean;
-  createdBy: number;
+  createdBy: string;
 }
 
 export interface QRCodeStats {
@@ -104,7 +104,7 @@ export class QRCodeService extends BaseService {
   async generateBulkQRCodes(
     restaurantId: string,
     tableIds: number[],
-    userId: number,
+    userId: string,
   ): Promise<{ id: number; batchId: string; totalCodes: number }> {
     const batchId = prefixedUuid("batch");
 
@@ -220,7 +220,7 @@ export class QRCodeService extends BaseService {
   async updateTemplate(
     id: number,
     data: Partial<CreateQRTemplateData>,
-    userId: number,
+    userId: string,
   ): Promise<QRTemplate> {
     const updateData: Partial<NewQRTemplate> = {
       updatedAt: new Date(),
@@ -259,7 +259,7 @@ export class QRCodeService extends BaseService {
   /**
    * 軟刪除QR碼模板
    */
-  async deleteTemplate(id: number, userId: number): Promise<void> {
+  async deleteTemplate(id: number, userId: string): Promise<void> {
     await this.db
       .update(qrTemplates)
       .set({
@@ -342,7 +342,7 @@ export class QRCodeService extends BaseService {
    * 創建審計日誌
    */
   async createAuditLog(data: {
-    userId: number;
+    userId: string;
     action: string;
     resource: string;
     description: string;

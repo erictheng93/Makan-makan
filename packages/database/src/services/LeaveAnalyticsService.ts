@@ -35,7 +35,7 @@ export interface LeaveTypeSummary {
 }
 
 export interface EmployeeLeaveStats {
-  employeeId: number;
+  employeeId: string;
   employeeName: string;
   email: string;
   role: string;

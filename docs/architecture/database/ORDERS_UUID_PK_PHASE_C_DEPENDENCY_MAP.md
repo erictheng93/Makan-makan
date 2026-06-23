@@ -1,6 +1,12 @@
 # Orders UUID Primary-Key Phase C Dependency Map
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
+
+> Superseded: this Phase C bridge/rehearsal plan is no longer the active
+> direction. The repository is being treated as greenfield for staff/order
+> identity data, so `orders.id` will become a native UUID-v7 `TEXT` primary key
+> at schema creation time. See
+> `docs/architecture/database/GREENFIELD_UUID_PK_RESET_PLAN.md`.
 
 ## Objective
 

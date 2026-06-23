@@ -9,18 +9,24 @@ const packageJson = JSON.parse(
 };
 
 describe("orders PK package scripts", () => {
-  it("keeps real representative and synthetic fixture rehearsals distinct", () => {
-    expect(packageJson.scripts["db:orders-pk-dry-run:representative"]).toBe(
-      "node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --require-complete-surface-coverage",
+  it("does not expose legacy destructive PK rehearsal aliases", () => {
+    expect(packageJson.scripts).not.toHaveProperty("db:orders-pk-dry-run");
+    expect(packageJson.scripts).not.toHaveProperty(
+      "db:orders-pk-dry-run:fixture",
     );
-    expect(
-      packageJson.scripts["db:orders-pk-dry-run:representative"],
-    ).not.toContain("--with-fixture");
-
-    expect(
-      packageJson.scripts["db:orders-pk-dry-run:fixture-full-surface"],
-    ).toBe(
-      "node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage",
+    expect(packageJson.scripts).not.toHaveProperty(
+      "db:orders-pk-dry-run:representative",
+    );
+    expect(packageJson.scripts).not.toHaveProperty(
+      "db:orders-pk-dry-run:fixture-full-surface",
+    );
+    expect(packageJson.scripts).not.toHaveProperty("db:users-pk-dry-run");
+    expect(packageJson.scripts).not.toHaveProperty(
+      "db:users-pk-dry-run:representative",
+    );
+    expect(packageJson.scripts).not.toHaveProperty("db:pk-rehearsal:validate");
+    expect(packageJson.scripts).not.toHaveProperty(
+      "db:orders-pk-readiness:verify",
     );
   });
 });

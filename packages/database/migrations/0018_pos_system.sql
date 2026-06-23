@@ -24,7 +24,7 @@ CREATE TABLE cash_registers (
 CREATE TABLE cash_shifts (
     id TEXT PRIMARY KEY,
     register_id TEXT NOT NULL,
-    operator_id INTEGER NOT NULL,
+    operator_id TEXT NOT NULL,
     start_amount DECIMAL(10,2) NOT NULL DEFAULT 0, -- 開班金額
     end_amount DECIMAL(10,2), -- 結班金額
     expected_amount DECIMAL(10,2) DEFAULT 0, -- 預期金額
@@ -58,8 +58,8 @@ CREATE TABLE cash_movements (
     reference_type TEXT, -- 關聯類型（'order', 'refund', 'adjustment', etc.）
     payment_method TEXT, -- 支付方式
     denomination_breakdown TEXT DEFAULT '{}', -- JSON 面額分解
-    recorded_by INTEGER NOT NULL,
-    approved_by INTEGER, -- 需要審核的操作
+    recorded_by TEXT NOT NULL,
+    approved_by TEXT, -- 需要審核的操作
     approval_status TEXT DEFAULT 'approved' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
     receipt_number TEXT,
     metadata TEXT DEFAULT '{}', -- JSON 額外資料
@@ -74,7 +74,7 @@ CREATE TABLE cash_movements (
 -- 4. 收據記錄表
 CREATE TABLE receipts (
     id TEXT PRIMARY KEY,
-    order_id INTEGER NOT NULL,
+    order_id TEXT NOT NULL,
     register_id TEXT NOT NULL,
     shift_id TEXT,
     receipt_number TEXT NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE receipts (
 -- 5. 退款記錄表  
 CREATE TABLE refunds (
     id TEXT PRIMARY KEY,
-    original_order_id INTEGER NOT NULL,
+    original_order_id TEXT NOT NULL,
     register_id TEXT NOT NULL,
     shift_id TEXT,
     refund_number TEXT NOT NULL UNIQUE,
@@ -110,8 +110,8 @@ CREATE TABLE refunds (
     reason_code TEXT NOT NULL,
     reason_description TEXT,
     items_refunded TEXT DEFAULT '[]', -- JSON 退款項目
-    processed_by INTEGER NOT NULL,
-    approved_by INTEGER,
+    processed_by TEXT NOT NULL,
+    approved_by TEXT,
     customer_signature TEXT, -- 客戶簽名（Base64）
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled')),
     processed_at DATETIME,
@@ -143,7 +143,7 @@ CREATE TABLE promotions (
     valid_until DATETIME NOT NULL,
     time_restrictions TEXT DEFAULT '{}', -- JSON 時間限制
     is_active BOOLEAN DEFAULT TRUE,
-    created_by INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     
@@ -173,7 +173,7 @@ CREATE TABLE shift_reports (
     id TEXT PRIMARY KEY,
     shift_id TEXT NOT NULL UNIQUE,
     register_id TEXT NOT NULL,
-    operator_id INTEGER NOT NULL,
+    operator_id TEXT NOT NULL,
     report_data TEXT NOT NULL, -- JSON 完整報表數據
     summary_data TEXT NOT NULL, -- JSON 摘要數據
     generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -9,7 +9,7 @@ const partialPaymentSchema = z.object({
 
 export const paymentRequestSchema = z
   .object({
-    orderId: z.number().int().positive(),
+    orderId: z.string().min(1),
     paymentMode: z.enum(["full", "partial"]).optional().default("full"),
     // Optional client-side sanity check. Server recomputes the authoritative
     // total regardless; when provided, mismatch is rejected with

@@ -313,7 +313,7 @@ export class SeatService extends BaseService {
    */
   async occupySeat(
     seatId: number,
-    orderId: number,
+    orderId: string,
     occupiedBy?: string,
   ): Promise<boolean> {
     try {

@@ -19,12 +19,10 @@ function createDb(rows: Array<StaffPrincipalRow | null>) {
 }
 
 describe("staff principal resolver", () => {
-  it("normalizes legacy numeric ids and UUID public ids", () => {
-    expect(toStaffPrincipalLookupInput(7)).toEqual({ legacyUserId: 7 });
-    expect(toStaffPrincipalLookupInput("7")).toEqual({ legacyUserId: 7 });
+  it("normalizes UUID staff principal ids", () => {
     expect(
       toStaffPrincipalLookupInput(" 018f0000-0000-7000-8000-000000000777 "),
-    ).toEqual({ publicUserId: "018f0000-0000-7000-8000-000000000777" });
+    ).toEqual({ userId: "018f0000-0000-7000-8000-000000000777" });
   });
 
   it("rejects invalid staff principals before querying", async () => {
@@ -46,11 +44,11 @@ describe("staff principal resolver", () => {
     });
   });
 
-  it("resolves active legacy numeric users", async () => {
+  it("resolves active UUID users", async () => {
+    const userId = "018f0000-0000-7000-8000-000000000777";
     const db = createDb([
       {
-        id: 7,
-        public_id: "018f0000-0000-7000-8000-000000000777",
+        id: userId,
         username: "owner",
         role: 1,
         restaurant_id: "restaurant-1",
@@ -59,11 +57,11 @@ describe("staff principal resolver", () => {
       },
     ]);
 
-    const principal = await resolveStaffPrincipal(db, "7");
+    const principal = await resolveStaffPrincipal(db, userId);
 
     expect(principal).toEqual({
-      legacyUserId: 7,
-      publicUserId: "018f0000-0000-7000-8000-000000000777",
+      id: userId,
+      publicUserId: userId,
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -75,12 +73,11 @@ describe("staff principal resolver", () => {
     );
   });
 
-  it("resolves active UUID public users", async () => {
-    const publicUserId = "018f0000-0000-7000-8000-000000000888";
+  it("uses users.id for UUID principal lookup", async () => {
+    const userId = "018f0000-0000-7000-8000-000000000888";
     const db = createDb([
       {
-        id: 8,
-        public_id: publicUserId,
+        id: userId,
         username: "chef",
         role: 2,
         restaurant_id: null,
@@ -89,28 +86,28 @@ describe("staff principal resolver", () => {
       },
     ]);
 
-    const principal = await resolveStaffPrincipal(db, publicUserId);
+    const principal = await resolveStaffPrincipal(db, userId);
 
     expect(principal).toMatchObject({
-      legacyUserId: 8,
-      publicUserId,
+      id: userId,
+      publicUserId: userId,
       username: "chef",
       role: 2,
       isActive: true,
       tokenVersion: 1,
     });
     expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE `public_id` = ?"),
+      expect.stringContaining("WHERE `id` = ?"),
     );
   });
 
   it("rejects inactive users by default", async () => {
+    const userId = "018f0000-0000-7000-8000-000000000999";
     await expect(
       resolveStaffPrincipal(
         createDb([
           {
-            id: 9,
-            public_id: "018f0000-0000-7000-8000-000000000999",
+            id: userId,
             username: "inactive",
             role: 4,
             restaurant_id: null,
@@ -118,7 +115,7 @@ describe("staff principal resolver", () => {
             token_version: 1,
           },
         ]),
-        9,
+        userId,
       ),
     ).rejects.toMatchObject({
       code: "STAFF_PRINCIPAL_INACTIVE",
@@ -127,11 +124,11 @@ describe("staff principal resolver", () => {
   });
 
   it("can return inactive users for compatibility callers", async () => {
+    const userId = "018f0000-0000-7000-8000-000000000999";
     const principal = await resolveStaffPrincipal(
       createDb([
         {
-          id: 9,
-          public_id: "018f0000-0000-7000-8000-000000000999",
+          id: userId,
           username: "inactive",
           role: 4,
           restaurant_id: null,
@@ -139,12 +136,12 @@ describe("staff principal resolver", () => {
           token_version: 1,
         },
       ]),
-      9,
+      userId,
       { requireActive: false },
     );
 
     expect(principal).toMatchObject({
-      legacyUserId: 9,
+      id: userId,
       isActive: false,
     });
   });

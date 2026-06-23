@@ -16,7 +16,7 @@ export const employeeAvailability = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.id (UUID v7)
-    employeeId: integer("employee_id")
+    employeeId: text("employee_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
