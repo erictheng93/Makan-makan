@@ -111,7 +111,7 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - A gated users PK rehearsal artifact has non-empty representative user data.
 - The archived rehearsal was run with `--require-representative-data`, and the
   JSON artifact has `assessment.exitCode = 0` and
-  `dataCoverage.isRepresentative = true`.
+  `assessment.failures = []`, and `dataCoverage.isRepresentative = true`.
 - Every dependency has `mapped_user_refs = non_null_user_refs`.
 - `users.public_id` has zero missing, duplicate, or malformed values.
 - `uninventoriedUserForeignKeys` is empty.

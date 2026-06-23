@@ -22,6 +22,9 @@ function validateCommonArtifact(artifact) {
   if (numberValue(artifact.assessment?.exitCode) !== 0) {
     failures.push("artifact assessment exitCode is not 0");
   }
+  if (asArray(artifact.assessment?.failures).length > 0) {
+    failures.push("artifact assessment failures is not empty");
+  }
   if (artifact.dataCoverage?.isRepresentative !== true) {
     failures.push("artifact dataCoverage is not representative");
   }

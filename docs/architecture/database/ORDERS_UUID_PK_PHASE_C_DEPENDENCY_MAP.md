@@ -148,7 +148,7 @@ Do not create paired Phase C migrations until all of these are true:
 - A local or staging rehearsal contains non-empty representative order data.
 - The archived rehearsal was run with `--require-representative-data`, and the
   JSON artifact has `assessment.exitCode = 0` and
-  `dataCoverage.isRepresentative = true`.
+  `assessment.failures = []`, and `dataCoverage.isRepresentative = true`.
 - The rollback fixture rehearsal was also run with
   `--require-complete-surface-coverage`, proving every existing dependency
   surface can be copied and emits schema metadata for migration preservation.

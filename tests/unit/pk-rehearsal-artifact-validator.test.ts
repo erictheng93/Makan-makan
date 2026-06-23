@@ -66,6 +66,67 @@ describe("PK rehearsal artifact validator", () => {
     ).toEqual({ exitCode: 0, failures: [] });
   });
 
+  it("rejects artifacts with non-empty assessment failures even when exitCode is zero", () => {
+    const ordersArtifact = {
+      assessment: { exitCode: 0, failures: ["stale failure"] },
+      dataCoverage: { isRepresentative: true },
+      ordersBridge: {
+        order_rows: 1,
+        missing_public_id: 0,
+        duplicate_public_id: 0,
+      },
+      dependencies: [
+        {
+          table: "order_items",
+          column: "order_id",
+          non_null_order_refs: 1,
+          mapped_order_refs: 1,
+          unmapped_order_refs: 0,
+          schemaObjects: [{ type: "index", name: "order_items_order_id" }],
+        },
+      ],
+      appCompatibility: {
+        public_lookup_rows: 1,
+        shadow_public_id_rows: 1,
+        lookup_mismatches: 0,
+        shadow_public_id_missing: 0,
+        shadow_public_id_mismatches: 0,
+      },
+      foreignKeyCheck: [],
+    };
+    const usersArtifact = {
+      assessment: { exitCode: 0, failures: ["stale failure"] },
+      dataCoverage: { isRepresentative: true },
+      usersBridge: {
+        user_rows: 1,
+        missing_public_id: 0,
+        duplicate_public_id: 0,
+        malformed_public_id: 0,
+      },
+      dependencies: [
+        {
+          table: "sessions",
+          column: "user_id",
+          non_null_user_refs: 1,
+          mapped_user_refs: 1,
+          unmapped_user_refs: 0,
+          schemaObjects: [{ type: "index", name: "sessions_user_id_idx" }],
+        },
+      ],
+      uninventoriedUserForeignKeys: [],
+      foreignKeyCheck: [],
+    };
+
+    expect(validateArtifact("orders", ordersArtifact)).toEqual({
+      exitCode: 1,
+      failures: ["artifact assessment failures is not empty"],
+    });
+    expect(validateArtifact("users", usersArtifact)).toEqual({
+      exitCode: 1,
+      failures: ["artifact assessment failures is not empty"],
+    });
+  });
+
   it("rejects a Phase C orders artifact that is not migration-ready", () => {
     expect(
       validateArtifact("orders", {
@@ -98,6 +159,7 @@ describe("PK rehearsal artifact validator", () => {
       exitCode: 1,
       failures: [
         "artifact assessment exitCode is not 0",
+        "artifact assessment failures is not empty",
         "artifact dataCoverage is not representative",
         "orders artifact has no order rows",
         "orders.public_id bridge has missing values",

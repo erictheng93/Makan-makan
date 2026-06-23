@@ -307,9 +307,9 @@ Current blocker before paired Phase C migrations:
 - Run the same gated dry-run against restored production or staging data with
   non-empty representative order volume.
 - Archive the JSON artifact and confirm `assessment.exitCode = 0`,
-  `dataCoverage.isRepresentative = true`, zero bridge violations, zero
-  unmapped refs, zero `appCompatibility` mismatches, and zero `foreignKeyCheck`
-  rows.
+  `assessment.failures = []`, `dataCoverage.isRepresentative = true`, zero
+  bridge violations, zero unmapped refs, zero `appCompatibility` mismatches,
+  and zero `foreignKeyCheck` rows.
 - Run
   `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json>`
   and require validator `exitCode = 0`.
