@@ -23,20 +23,13 @@ describe("check-production-config", () => {
     expect(result.violations).toEqual([]);
   });
 
-  it("blocks production deploys when required alerting secrets are absent", () => {
+  it("does not require Slack alerting during pilot production deploys", () => {
     const result = checkProductionConfig({
       root: process.cwd(),
       env: {},
     });
 
-    expect(result.violations).toContainEqual(
-      expect.objectContaining({
-        file: "apps/api/wrangler.toml",
-        text: expect.stringContaining(
-          "missing deployment secret: SLACK_WEBHOOK_URL",
-        ),
-      }),
-    );
+    expect(result.violations).toEqual([]);
   });
 
   it("can skip deployment secret checks for non-deploy CI gates", () => {

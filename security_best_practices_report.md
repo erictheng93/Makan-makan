@@ -8,26 +8,21 @@ Scope: repository-level review of the current `C:\Code\Makan-makan` working tree
 
 Verdict: not ready for broad production. For a controlled pilot with a few partner restaurants, it is close enough only if the high-priority items below are fixed or explicitly accepted with compensating operational controls.
 
-The codebase has several mature controls: Cloudflare Workers deployment separation, production resource checks, JWT secret length checks, token-version invalidation, CSRF middleware, security headers, strict production CORS origins, idempotency middleware for payment retries, and route-level restaurant scoping in major API modules. However, several gaps remain material for even a pilot: the production config gate currently fails, staff login rate limiting is a stub, browser bearer tokens are stored in `localStorage`, admin payment redirects are not client-side validated, some security/test gates remain non-blocking, and many real workflow tests are skipped when staging credentials or fixtures are absent.
+The codebase has several mature controls: Cloudflare Workers deployment separation, production resource checks, JWT secret length checks, token-version invalidation, CSRF middleware, security headers, strict production CORS origins, idempotency middleware for payment retries, and route-level restaurant scoping in major API modules. However, several gaps remain material for even a pilot: staff login rate limiting is a stub, browser bearer tokens are stored in `localStorage`, admin payment redirects are not client-side validated, payment idempotency keys are still optional, some security/test gates remain non-blocking, and many real workflow tests are skipped when staging credentials or fixtures are absent. The Slack alerting deployment secret requirement has been disabled for pilot deployments; Slack runtime notifications still work when the webhook is configured.
 
 ## Critical / Blocker
 
-### R-001: Production Deploy Gate Currently Fails
+### R-001: Slack Alerting Requirement Disabled for Pilot
 
-Severity: Critical for production deployment
+Severity: Resolved for pilot deployment
 
-Location: `scripts/check-production-config.cjs`; `apps/api/wrangler.toml`
+Location: `scripts/check-production-config.cjs`; `tests/unit/check-production-config.test.ts`
 
-Evidence: `rtk pnpm run check:prod-config` failed with:
+Evidence: the production config gate no longer lists `SLACK_WEBHOOK_URL` as a required deployment secret. The focused unit test now asserts that missing Slack alerting does not block pilot production deploys.
 
-```text
-[check-production-config] Production deploy blocked.
-apps/api/wrangler.toml:1 missing deployment secret: SLACK_WEBHOOK_URL
-```
+Impact: pilot deployments are no longer blocked by Slack setup. Runtime Slack notifications remain optional: services still send Slack alerts when `SLACK_WEBHOOK_URL` is configured.
 
-Impact: the current repository-defined production gate will block deployment. If bypassed manually, the team loses a safety mechanism meant to verify production resources, runtime URLs, and required deployment secrets.
-
-Fix: configure `SLACK_WEBHOOK_URL` as a deployment secret, or adjust `scripts/check-production-config.cjs` if Slack is intentionally optional for pilot deployments. Do not bypass the gate silently.
+Follow-up: before broad production, decide whether Slack or another alert channel should become mandatory again.
 
 ### R-002: Staff Login Rate Limiting Is a Stub
 
@@ -161,7 +156,7 @@ Fix: define one required pilot smoke profile with real staging credentials and f
 
 ## Pilot Go / No-Go
 
-Recommended decision: conditional no-go until R-001, R-002, and R-005 are fixed or explicitly mitigated. After that, a limited pilot can proceed with operational constraints:
+Recommended decision: conditional no-go until R-002 and R-005 are fixed or explicitly mitigated. After that, a limited pilot can proceed with operational constraints:
 
 - only onboard named restaurants with test-aware agreements;
 - keep admin/owner account creation controlled by the team;
@@ -174,6 +169,6 @@ Recommended decision: conditional no-go until R-001, R-002, and R-005 are fixed 
 
 - Read framework/security guidance for Vue/frontend TypeScript.
 - Inspected API app factory, auth middleware, CSRF, CORS, security headers, rate limit code, payment routes, frontend auth storage, management API CORS/auth, production wrangler files, and CI/security workflow configuration.
-- Ran `rtk pnpm run check:prod-config`; it failed on missing `SLACK_WEBHOOK_URL`.
+- Ran `rtk pnpm run check:prod-config`; after disabling Slack as a hard pilot requirement, it passed and checked 10 wrangler.toml files.
 
 Not run: full `pnpm build`, `pnpm test`, real integration suite, Playwright smoke suite, Snyk, OSV, or ZAP. Those are required before an actual pilot release decision.

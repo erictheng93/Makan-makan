@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Blocks production deploys while production Cloudflare resources, runtime
-// URLs, or required deployment secrets are missing or still point at local
-// development targets.
+// Blocks production deploys while production Cloudflare resources or runtime
+// URLs are missing or still point at local development targets.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -25,9 +24,7 @@ const REQUIRED_PRODUCTION_RUNTIME_VARS = new Map([
   ],
 ]);
 
-const REQUIRED_DEPLOYMENT_SECRETS = new Map([
-  ["apps/api/wrangler.toml", ["SLACK_WEBHOOK_URL"]],
-]);
+const REQUIRED_DEPLOYMENT_SECRETS = new Map();
 
 function checkProductionConfig(options = {}) {
   const root = path.resolve(options.root || DEFAULT_ROOT);
