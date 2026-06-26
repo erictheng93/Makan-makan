@@ -81,7 +81,11 @@ export function toggleFavoriteMarket(market: MarketListItem) {
 }
 
 export function isCustomerFavoriteSyncAvailable() {
-  return Boolean(storage()?.getItem("customer_auth_token"));
+  return Boolean(
+    typeof window !== "undefined"
+      ? window.sessionStorage.getItem("customer_auth_token")
+      : undefined,
+  );
 }
 
 export async function syncFavoriteMarketPreference(

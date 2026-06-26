@@ -51,6 +51,12 @@ interface DatabaseSessionSummary {
   createdAt: string | number | Date;
 }
 
+const LOGIN_RATE_LIMIT_ERROR =
+  "Account locked after repeated failures. Please try again later.";
+const LOGIN_RATE_LIMIT_TTL_SECONDS = 15 * 60;
+const LOGIN_IP_FAILURE_LIMIT = 10;
+const LOGIN_USERNAME_FAILURE_LIMIT = 5;
+
 export class AuthService implements IAuthService {
   private db: ReturnType<typeof getDatabaseConnection>;
   private dbAuthService: DatabaseAuthService;
@@ -76,10 +82,27 @@ export class AuthService implements IAuthService {
 
     try {
       // Rate limiting check
-      await this.checkRateLimit(
-        data.deviceInfo?.ipAddress || "unknown",
-        "login",
+      const rateLimitError = await this.checkRateLimit(
+        data.username,
+        data.deviceInfo?.ipAddress,
       );
+      if (rateLimitError) {
+        await this.logSecurityEvent({
+          type: "ACCOUNT_LOCKED",
+          username: data.username,
+          ipAddress: data.deviceInfo?.ipAddress,
+          userAgent: data.deviceInfo?.userAgent,
+          location: data.location,
+          metadata: { reason: "login_rate_limit" },
+          severity: "HIGH",
+        });
+        this.performance.recordMetric("auth.login.rate_limited", 1);
+
+        return {
+          success: false,
+          error: rateLimitError,
+        };
+      }
 
       // Call the existing DatabaseAuthService
       const dbResult = await this.dbAuthService.login(data);
@@ -125,7 +148,10 @@ export class AuthService implements IAuthService {
         });
 
         // Clear any previous failed login attempts
-        await this.clearFailedLoginAttempts(result.user.username);
+        await this.clearFailedLoginAttempts(
+          result.user.username,
+          data.deviceInfo?.ipAddress,
+        );
 
         this.logger.info("User login successful", {
           userId: result.user.id,
@@ -1047,12 +1073,38 @@ export class AuthService implements IAuthService {
   }
 
   private async checkRateLimit(
-    identifier: string,
-    operation: string,
-  ): Promise<void> {
-    // Implementation would check rate limits
-    // For now, just log the check
-    this.logger.debug("Rate limit check", { identifier, operation });
+    username: string,
+    ipAddress?: string,
+  ): Promise<string | null> {
+    try {
+      const normalizedUsername = username.trim().toLowerCase();
+      const ipKey = `failed-login:${normalizedUsername}:${ipAddress || "unknown"}`;
+      const usernameKey = `failed-login:${normalizedUsername}`;
+
+      const [ipAttempts, usernameAttempts] = await Promise.all([
+        this.cache.get<number>(ipKey),
+        this.cache.get<number>(usernameKey),
+      ]);
+
+      const ipCount = Number(ipAttempts ?? 0);
+      const usernameCount = Number(usernameAttempts ?? 0);
+      const limited =
+        ipCount >= LOGIN_IP_FAILURE_LIMIT ||
+        usernameCount >= LOGIN_USERNAME_FAILURE_LIMIT;
+
+      this.logger.debug("Rate limit check", {
+        username: normalizedUsername,
+        ipAddress: ipAddress || "unknown",
+        ipCount,
+        usernameCount,
+        limited,
+      });
+
+      return limited ? LOGIN_RATE_LIMIT_ERROR : null;
+    } catch (error) {
+      this.logger.error("Failed to check login rate limit", error as Error);
+      return null;
+    }
   }
 
   private async logFailedLoginAttempt(
@@ -1060,17 +1112,42 @@ export class AuthService implements IAuthService {
     ipAddress?: string,
   ): Promise<void> {
     try {
-      const key = `failed-login:${username}:${ipAddress || "unknown"}`;
-      const attempts = (await this.cache.get<number>(key)) || 0;
-      await this.cache.set(key, attempts + 1, CACHE_TTL.LONG);
+      const normalizedUsername = username.trim().toLowerCase();
+      const ipKey = `failed-login:${normalizedUsername}:${ipAddress || "unknown"}`;
+      const usernameKey = `failed-login:${normalizedUsername}`;
+      const [ipAttempts, usernameAttempts] = await Promise.all([
+        this.cache.get<number>(ipKey),
+        this.cache.get<number>(usernameKey),
+      ]);
+      await Promise.all([
+        this.cache.set(
+          ipKey,
+          Number(ipAttempts ?? 0) + 1,
+          LOGIN_RATE_LIMIT_TTL_SECONDS,
+        ),
+        this.cache.set(
+          usernameKey,
+          Number(usernameAttempts ?? 0) + 1,
+          LOGIN_RATE_LIMIT_TTL_SECONDS,
+        ),
+      ]);
     } catch (error) {
       this.logger.error("Failed to log failed login attempt", error as Error);
     }
   }
 
-  private async clearFailedLoginAttempts(username: string): Promise<void> {
+  private async clearFailedLoginAttempts(
+    username: string,
+    ipAddress?: string,
+  ): Promise<void> {
     try {
-      await this.cache.clear(`failed-login:${username}`);
+      const normalizedUsername = username.trim().toLowerCase();
+      await Promise.all([
+        this.cache.clear(`failed-login:${normalizedUsername}`),
+        this.cache.clear(
+          `failed-login:${normalizedUsername}:${ipAddress || "unknown"}`,
+        ),
+      ]);
     } catch (error) {
       this.logger.error(
         "Failed to clear failed login attempts",

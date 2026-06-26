@@ -57,12 +57,23 @@ const CUSTOMER_URL = process.env.SMOKE_CUSTOMER_URL || "http://localhost:3000";
 
 const AUTH_USERNAME = optionalEnv("SMOKE_AUTH_USERNAME");
 const AUTH_PASSWORD = optionalEnv("SMOKE_AUTH_PASSWORD");
+const SMOKE_STRICT =
+  optionalEnv("SMOKE_STRICT")?.toLowerCase() === "true" ||
+  optionalEnv("SMOKE_STRICT") === "1";
 
 const RESTAURANT_ID = optionalEnv("SMOKE_RESTAURANT_ID");
 const menuItemIdValue = optionalEnv("SMOKE_MENU_ITEM_ID");
 const MENU_ITEM_ID = menuItemIdValue ? Number(menuItemIdValue) : undefined;
 
 let smokeAuthLoginDataPromise: Promise<SmokeLoginData> | undefined;
+
+function requireSmokeCondition(condition: unknown, message: string): void {
+  if (condition) return;
+  if (SMOKE_STRICT) {
+    throw new Error(message);
+  }
+  test.skip(true, message);
+}
 
 function getSmokeAuthLoginData(): Promise<SmokeLoginData> {
   smokeAuthLoginDataPromise ??= (async () => {
@@ -130,7 +141,7 @@ const layer2Reason =
 
 test.describe("Smoke: Layer 2 (authenticated read)", () => {
   test("login returns token then GET /api/v1/orders succeeds", async () => {
-    test.skip(!AUTH_USERNAME || !AUTH_PASSWORD, layer2Reason);
+    requireSmokeCondition(AUTH_USERNAME && AUTH_PASSWORD, layer2Reason);
 
     const loginData = await getSmokeAuthLoginData();
     const token = loginData.token;
@@ -175,8 +186,8 @@ test.describe("Smoke: Layer 3 (guest happy path round-trip)", () => {
           : undefined,
     });
 
-    test.skip(
-      !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
+    requireSmokeCondition(
+      fixtureIds.restaurantId && fixtureIds.menuItemId !== undefined,
       layer3Reason,
     );
 

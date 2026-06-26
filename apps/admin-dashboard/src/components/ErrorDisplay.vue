@@ -287,7 +287,7 @@ const handleReconnect = () => {
 const handleClearCache = () => {
   try {
     // 清理 localStorage
-    const keysToKeep = ["auth_token", "user_preferences"];
+    const keysToKeep = ["auth_user", "user_preferences"];
     const keys = Object.keys(localStorage);
     keys.forEach((key) => {
       if (!keysToKeep.includes(key)) {
@@ -325,11 +325,7 @@ const handleResetSettings = async () => {
     confirmLabel: t("errorDisplay.resetSettings"),
   });
   if (!confirmed) return;
-  const authToken = localStorage.getItem("auth_token");
   localStorage.clear();
-  if (authToken) {
-    localStorage.setItem("auth_token", authToken);
-  }
   sessionStorage.clear();
   window.location.reload();
 };

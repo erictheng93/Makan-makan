@@ -121,6 +121,11 @@ function mockUpdateReturning(rows: unknown[]) {
 describe("AuthService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.cache.get.mockReset();
+    mocks.cache.get.mockResolvedValue(null);
+    mocks.cache.set.mockReset();
+    mocks.cache.delete.mockReset();
+    mocks.cache.clear.mockReset();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
   });
@@ -197,7 +202,11 @@ describe("AuthService", () => {
   });
 
   it("tracks failed login attempts without throwing", async () => {
-    mocks.cache.get.mockResolvedValueOnce(2);
+    mocks.cache.get
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(4);
     mocks.dbAuthService.login.mockResolvedValue({
       success: false,
       error: "Invalid credentials",
@@ -222,6 +231,11 @@ describe("AuthService", () => {
       expect.any(Number),
     );
     expect(mocks.cache.set).toHaveBeenCalledWith(
+      "failed-login:owner",
+      5,
+      expect.any(Number),
+    );
+    expect(mocks.cache.set).toHaveBeenCalledWith(
       "security-event:1780790400000",
       expect.objectContaining({
         type: "LOGIN_FAILED",
@@ -234,6 +248,51 @@ describe("AuthService", () => {
       "auth.login.failed",
       1,
     );
+  });
+
+  it("blocks login before password verification when the IP is rate limited", async () => {
+    mocks.cache.get.mockResolvedValueOnce(10).mockResolvedValueOnce(null);
+
+    await expect(
+      createService().login({
+        username: "owner",
+        password: "wrong",
+        deviceInfo: { ipAddress: "203.0.113.10" },
+      }),
+    ).resolves.toMatchObject({
+      success: false,
+      error: "Account locked after repeated failures. Please try again later.",
+    });
+
+    expect(mocks.dbAuthService.login).not.toHaveBeenCalled();
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "security-event:1780790400000",
+      expect.objectContaining({
+        type: "ACCOUNT_LOCKED",
+        username: "owner",
+        ipAddress: "203.0.113.10",
+        severity: "HIGH",
+      }),
+      expect.any(Number),
+    );
+  });
+
+  it("blocks login before password verification when the username is rate limited", async () => {
+    mocks.cache.get.mockResolvedValueOnce(null).mockResolvedValueOnce(5);
+
+    await expect(
+      createService().login({
+        username: "Owner",
+        password: "wrong",
+        deviceInfo: { ipAddress: "203.0.113.10" },
+      }),
+    ).resolves.toMatchObject({
+      success: false,
+      error: "Account locked after repeated failures. Please try again later.",
+    });
+
+    expect(mocks.dbAuthService.login).not.toHaveBeenCalled();
+    expect(mocks.cache.get).toHaveBeenNthCalledWith(2, "failed-login:owner");
   });
 
   it("transforms registration and refresh results and clears related caches", async () => {

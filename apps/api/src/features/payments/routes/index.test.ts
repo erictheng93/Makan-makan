@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   },
   paymentServiceCtor: vi.fn(),
   refundPaymentTransaction: vi.fn(),
+  idempotencyOptions: [] as Array<Record<string, unknown>>,
 }));
 
 const orderId101 = "018f0000-0000-7000-8000-000000000101";
@@ -26,9 +27,10 @@ const authState = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../middleware/idempotency", () => ({
-  idempotencyMiddleware: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
-  ),
+  idempotencyMiddleware: vi.fn((options: Record<string, unknown>) => {
+    mocks.idempotencyOptions.push(options);
+    return async (_c: unknown, next: () => Promise<void>) => next();
+  }),
 }));
 
 vi.mock("../../../middleware/auth", async () => {
@@ -72,6 +74,7 @@ vi.mock("../services/refundPayment", () => ({
 }));
 
 import routes from "./index";
+import { idempotencyMiddleware } from "../../../middleware/idempotency";
 
 routes.onError((err, c) => {
   if (err instanceof ApiError) {
@@ -189,6 +192,29 @@ describe("payments routes", () => {
       status: "succeeded",
       paymentStatus: "partially_refunded",
     });
+  });
+
+  it("requires idempotency keys on both payment creation routes", () => {
+    const paymentOptions = mocks.idempotencyOptions.filter(
+      (options) => options.scope === "payment",
+    );
+
+    expect(paymentOptions).toHaveLength(2);
+    expect(paymentOptions[0]).toEqual(
+      expect.objectContaining({
+        scope: "payment",
+        requireKey: true,
+        effectId: expect.any(Function),
+      }),
+    );
+    expect(paymentOptions[1]).toEqual(
+      expect.objectContaining({
+        scope: "payment",
+        requireKey: true,
+        effectId: expect.any(Function),
+      }),
+    );
+    expect(idempotencyMiddleware).toHaveBeenCalledTimes(0);
   });
 
   it("creates full payments for UUID orders with default route mapping", async () => {

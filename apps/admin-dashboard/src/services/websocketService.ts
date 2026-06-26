@@ -10,6 +10,7 @@ import {
   type RealtimeAuthTokenResponse,
 } from "@makanmakan/shared-types";
 import { api } from "@/services/api";
+import { getAuthToken } from "@/utils/authTokenProvider";
 import { sanitizeForLog } from "@/utils/sanitize";
 
 export type ConnectionStatus =
@@ -71,7 +72,7 @@ class WebSocketService {
   private async getWebSocketToken(
     restaurantId: string,
   ): Promise<RealtimeAuthTokenResponse> {
-    const token = localStorage.getItem("auth_token");
+    const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
     }

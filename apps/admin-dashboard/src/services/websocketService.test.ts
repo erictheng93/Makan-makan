@@ -11,6 +11,10 @@ vi.mock("@/services/api", () => ({
   },
 }));
 
+vi.mock("@/utils/authTokenProvider", () => ({
+  getAuthToken: vi.fn(() => "session-token"),
+}));
+
 vi.mock("@/utils/sanitize", () => ({
   sanitizeForLog: (value: unknown) => value,
 }));
@@ -41,7 +45,6 @@ describe("WebSocketService", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     MockWebSocket.instances = [];
     vi.stubGlobal("WebSocket", MockWebSocket);
-    localStorage.setItem("auth_token", "session-token");
     apiPost.mockResolvedValue({
       status: 200,
       data: {

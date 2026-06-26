@@ -27,6 +27,7 @@ import { OrderService } from "./order";
 
 const restaurantId = "restaurant-price-test";
 const menuItemId = 101;
+const couponUserId = "018f0000-0000-7000-8000-000000000077";
 
 describe("OrderService order pricing", () => {
   let testDb: TestDatabase;
@@ -268,7 +269,7 @@ describe("OrderService createOrder atomicity", () => {
       .set({ usageLimitPerUser: 1 })
       .where(eq(coupons.code, "SAVE5"));
     await testDb.drizzle.insert(users).values({
-      id: 77,
+      id: couponUserId,
       username: "coupon-user-77",
       fullName: "Coupon User",
       passwordHash: "hash",
@@ -280,14 +281,14 @@ describe("OrderService createOrder atomicity", () => {
 
     const firstOrder = await service.createOrder({
       ...couponOrder,
-      couponUserId: 77,
+      couponUserId,
       clientMutationId: "coupon-user-first",
     });
 
     const [usage] = await testDb.drizzle.select().from(couponUsage);
     expect(usage).toMatchObject({
       orderId: firstOrder.id,
-      userId: 77,
+      userId: couponUserId,
       status: "active",
     });
 
@@ -299,7 +300,7 @@ describe("OrderService createOrder atomicity", () => {
       await expect(
         service.createOrder({
           ...couponOrder,
-          couponUserId: 77,
+          couponUserId,
           clientMutationId: "coupon-user-second",
         }),
       ).rejects.toThrow("您已達到此優惠券的使用次數上限");

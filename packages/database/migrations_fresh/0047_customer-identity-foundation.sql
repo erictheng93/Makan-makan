@@ -219,7 +219,7 @@ WHERE `users`.`preferences` IS NOT NULL
 --> statement-breakpoint
 
 CREATE TABLE `orders__customer_identity_rebuild` (
-  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `id` text PRIMARY KEY NOT NULL,
   `restaurant_id` text NOT NULL,
   `table_id` integer,
   `customer_id` text,

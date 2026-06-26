@@ -6,6 +6,8 @@ import {
 import { SchedulingService } from "../SchedulingService";
 
 let testDb: TestDatabase;
+const ownerId = "018f0000-0000-7000-8000-000000000001";
+const employeeId = "018f0000-0000-7000-8000-000000000002";
 
 beforeAll(async () => {
   testDb = await createTestDatabase();
@@ -30,8 +32,8 @@ beforeEach(async () => {
       `INSERT INTO users
          (id, username, full_name, password_hash, role, restaurant_id, is_active, is_verified, total_orders, total_spent, token_version, created_at_ms, updated_at_ms)
        VALUES
-         (1, 'sched-owner', 'Schedule Owner', 'test', 1, 'sched-rest', 1, 1, 0, 0, 1, 1735689600000, 1735689600000),
-         (2, 'sched-employee', 'Schedule Employee', 'test', 3, 'sched-rest', 1, 1, 0, 0, 1, 1735689600000, 1735689600000)`,
+         ('${ownerId}', 'sched-owner', 'Schedule Owner', 'test', 1, 'sched-rest', 1, 1, 0, 0, 1, 1735689600000, 1735689600000),
+         ('${employeeId}', 'sched-employee', 'Schedule Employee', 'test', 3, 'sched-rest', 1, 1, 0, 0, 1, 1735689600000, 1735689600000)`,
     )
     .run();
 });
@@ -45,8 +47,8 @@ describe("employee_schedules active slot uniqueness", () => {
             break_duration_minutes, scheduled_hours, status, created_by,
             created_at_ms, updated_at_ms)
          VALUES
-           ('sched-rest', 2, '2026-06-05', '14:00', '18:00',
-            0, 4, ?, 1, 1735689600000, 1735689600000)`,
+           ('sched-rest', '${employeeId}', '2026-06-05', '14:00', '18:00',
+            0, 4, ?, '${ownerId}', 1735689600000, 1735689600000)`,
       )
       .bind(status)
       .run();
@@ -76,14 +78,14 @@ describe("SchedulingService.cancelSchedulesByDateRange", () => {
             break_duration_minutes, scheduled_hours, status, created_by,
             created_at_ms, updated_at_ms)
          VALUES
-           (10, 'sched-rest', 2, '2026-06-10', '09:00', '13:00',
-            0, 4, 'scheduled', 1, 1735689600000, 1735689600000),
-           (11, 'sched-rest', 2, '2026-06-11', '09:00', '13:00',
-            0, 4, 'confirmed', 1, 1735689600000, 1735689600000),
-           (12, 'sched-rest', 2, '2026-06-12', '09:00', '13:00',
-            0, 4, 'cancelled', 1, 1735689600000, 1735689600000),
-           (13, 'sched-rest', 1, '2026-06-10', '09:00', '13:00',
-            0, 4, 'scheduled', 1, 1735689600000, 1735689600000)`,
+           (10, 'sched-rest', '${employeeId}', '2026-06-10', '09:00', '13:00',
+            0, 4, 'scheduled', '${ownerId}', 1735689600000, 1735689600000),
+           (11, 'sched-rest', '${employeeId}', '2026-06-11', '09:00', '13:00',
+            0, 4, 'confirmed', '${ownerId}', 1735689600000, 1735689600000),
+           (12, 'sched-rest', '${employeeId}', '2026-06-12', '09:00', '13:00',
+            0, 4, 'cancelled', '${ownerId}', 1735689600000, 1735689600000),
+           (13, 'sched-rest', '${ownerId}', '2026-06-10', '09:00', '13:00',
+            0, 4, 'scheduled', '${ownerId}', 1735689600000, 1735689600000)`,
       )
       .run();
     const service = new SchedulingService(testDb.bindings.DB, {
@@ -92,11 +94,11 @@ describe("SchedulingService.cancelSchedulesByDateRange", () => {
 
     await expect(
       service.cancelSchedulesByDateRange({
-        employeeId: 2,
+        employeeId,
         startDate: "2026-06-10",
         endDate: "2026-06-12",
         reason: "leave approved",
-        cancelledBy: 1,
+        cancelledBy: ownerId,
       }),
     ).resolves.toEqual({ cancelledCount: 2, scheduleIds: [10, 11] });
 
@@ -111,7 +113,7 @@ describe("SchedulingService.cancelSchedulesByDateRange", () => {
         id: number;
         status: string;
         manager_notes: string | null;
-        updated_by: number | null;
+        updated_by: string | null;
       }>();
 
     expect(rows.results).toEqual([
@@ -119,13 +121,13 @@ describe("SchedulingService.cancelSchedulesByDateRange", () => {
         id: 10,
         status: "cancelled",
         manager_notes: "leave approved",
-        updated_by: 1,
+        updated_by: ownerId,
       },
       {
         id: 11,
         status: "cancelled",
         manager_notes: "leave approved",
-        updated_by: 1,
+        updated_by: ownerId,
       },
       {
         id: 12,
@@ -152,8 +154,8 @@ describe("SchedulingService.createSchedule", () => {
             break_duration_minutes, scheduled_hours, status, created_by,
             created_at_ms, updated_at_ms)
          VALUES
-           (20, 'sched-rest', 2, '2026-06-15', '09:00', '13:00',
-            0, 4, 'scheduled', 1, 1735689600000, 1735689600000)`,
+           (20, 'sched-rest', '${employeeId}', '2026-06-15', '09:00', '13:00',
+            0, 4, 'scheduled', '${ownerId}', 1735689600000, 1735689600000)`,
       )
       .run();
     const service = new SchedulingService(testDb.bindings.DB, {
@@ -163,12 +165,12 @@ describe("SchedulingService.createSchedule", () => {
     await expect(
       service.createSchedule({
         restaurantId: "sched-rest",
-        employeeId: 2,
+        employeeId,
         workDate: "2026-06-15",
         startTime: "12:00",
         endTime: "16:00",
         scheduledHours: 4,
-        createdBy: 1,
+        createdBy: ownerId,
       }),
     ).rejects.toThrow("Overlapping shift detected");
 
@@ -176,7 +178,7 @@ describe("SchedulingService.createSchedule", () => {
       .prepare(
         `SELECT id, start_time, end_time
            FROM employee_schedules
-          WHERE employee_id = 2 AND work_date = '2026-06-15'
+          WHERE employee_id = '${employeeId}' AND work_date = '2026-06-15'
           ORDER BY id`,
       )
       .all<{ id: number; start_time: string; end_time: string }>();

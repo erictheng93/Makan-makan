@@ -1,5 +1,6 @@
 import { useToast } from "vue-toastification";
 import { apiPath } from "@/services/api-url";
+import { getAuthToken } from "@/utils/authTokenProvider";
 
 const toast = useToast();
 
@@ -147,7 +148,9 @@ class ErrorReportingService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          ...(getAuthToken()
+            ? { Authorization: `Bearer ${getAuthToken()}` }
+            : {}),
           ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
         body: JSON.stringify({ errors }),
@@ -298,9 +301,7 @@ export class ErrorHandler {
       const onLoginPage =
         typeof window !== "undefined" &&
         window.location?.pathname?.startsWith("/login");
-      const hasToken =
-        typeof localStorage !== "undefined" &&
-        !!localStorage.getItem("auth_token");
+      const hasToken = !!getAuthToken();
       if (onLoginPage || !hasToken) {
         return;
       }

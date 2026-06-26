@@ -17,6 +17,11 @@ const API_URL =
   optionalEnv("WORKFLOW_API_URL") ||
   optionalEnv("SMOKE_API_URL") ||
   "http://localhost:8787";
+const WORKFLOW_STRICT =
+  optionalEnv("WORKFLOW_STRICT")?.toLowerCase() === "true" ||
+  optionalEnv("WORKFLOW_STRICT") === "1" ||
+  optionalEnv("SMOKE_STRICT")?.toLowerCase() === "true" ||
+  optionalEnv("SMOKE_STRICT") === "1";
 const CUSTOMER_URL =
   optionalEnv("WORKFLOW_CUSTOMER_URL") ||
   optionalEnv("SMOKE_CUSTOMER_URL") ||
@@ -81,6 +86,14 @@ const MENU_ITEM_ID = Number(
     optionalEnv("SMOKE_MENU_ITEM_ID") ||
     NaN,
 );
+
+function skipWhen(condition: unknown, message: string): void {
+  if (!condition) return;
+  if (WORKFLOW_STRICT) {
+    throw new Error(message);
+  }
+  test.skip(true, message);
+}
 const SERVICE_ITEM_ID = Number(optionalEnv("WORKFLOW_SERVICE_ITEM_ID") || NaN);
 const MARKET_SLUG = optionalEnv("WORKFLOW_MARKET_SLUG");
 const TABLE_ID = Number(
@@ -1164,14 +1177,14 @@ test.describe("Real system workflows", () => {
     page,
   }) => {
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId || !fixtureIds.tableId,
       "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID and WORKFLOW_TABLE_ID/SMOKE_TABLE_ID not set and local discovery failed",
     );
 
     const menu = await fetchMenu(fixtureIds.restaurantId!);
     const item = firstAvailableNamedMenuItem(menu);
-    test.skip(!item?.name, "real API did not return an available named item");
+    skipWhen(!item?.name, "real API did not return an available named item");
 
     await Promise.all([
       page.waitForResponse(
@@ -1198,7 +1211,7 @@ test.describe("Real system workflows", () => {
     test.setTimeout(90_000);
 
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId || !fixtureIds.tableId,
       "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID and WORKFLOW_TABLE_ID/SMOKE_TABLE_ID not set and local discovery failed",
     );
@@ -1216,7 +1229,7 @@ test.describe("Real system workflows", () => {
     const menuItemId = Number(item?.id);
     const secondMenuItemId = Number(secondItem?.id);
 
-    test.skip(
+    skipWhen(
       !item?.name ||
         !secondItem?.name ||
         !Number.isFinite(menuItemId) ||
@@ -1375,7 +1388,7 @@ test.describe("Real system workflows", () => {
     page,
   }) => {
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId,
       "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
     );
@@ -1383,7 +1396,7 @@ test.describe("Real system workflows", () => {
     const serviceFixture = await findBookableServiceFixture(
       fixtureIds.restaurantId!,
     );
-    test.skip(
+    skipWhen(
       !serviceFixture,
       "real API did not return a bookable service item with an available slot; set WORKFLOW_SERVICE_ITEM_ID for this workflow",
     );
@@ -1555,7 +1568,7 @@ test.describe("Real system workflows", () => {
     page,
   }) => {
     const checkoutFixture = await findMarketCheckoutFixture();
-    test.skip(
+    skipWhen(
       !checkoutFixture,
       "real API did not return a public market with two vendors and available menu items; set WORKFLOW_MARKET_SLUG for this workflow",
     );
@@ -1669,7 +1682,7 @@ test.describe("Real system workflows", () => {
     page,
   }) => {
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId || fixtureIds.menuItemId === undefined,
       "WORKFLOW_RESTAURANT_ID and WORKFLOW_MENU_ITEM_ID are required for guest workflow",
     );
@@ -1677,7 +1690,7 @@ test.describe("Real system workflows", () => {
     const menu = await fetchMenu(fixtureIds.restaurantId!);
     const menuItemId =
       fixtureIds.menuItemId ?? firstAvailableMenuItemId(menu as any);
-    test.skip(menuItemId === undefined, "real API did not return a menu item");
+    skipWhen(menuItemId === undefined, "real API did not return a menu item");
 
     const createResponse = await fetch(`${API_URL}/api/v1/guest-orders`, {
       method: "POST",
@@ -1733,16 +1746,16 @@ test.describe("Real system workflows", () => {
   test("owner dashboard updates a real API order status", async ({ page }) => {
     test.setTimeout(180_000);
 
-    test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+    skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    test.skip(
+    skipWhen(
       !loginData?.token || !loginData.user,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId ||
         fixtureIds.menuItemId === undefined ||
         !fixtureIds.tableId,
@@ -1827,16 +1840,16 @@ test.describe("Real system workflows", () => {
   test("owner dashboard creates and updates a real menu item from the browser", async ({
     page,
   }) => {
-    test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+    skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    test.skip(
+    skipWhen(
       !loginData?.token || !loginData.user,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId,
       "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
     );
@@ -1844,7 +1857,7 @@ test.describe("Real system workflows", () => {
     const menu = await fetchMenu(fixtureIds.restaurantId!);
     const category = firstMenuCategory(menu);
     const categoryId = Number(category?.id);
-    test.skip(
+    skipWhen(
       !Number.isFinite(categoryId),
       "real API did not return a menu category",
     );
@@ -1932,16 +1945,16 @@ test.describe("Real system workflows", () => {
   test("owner dashboard creates, updates, and deletes a real menu category from the browser", async ({
     page,
   }) => {
-    test.skip(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+    skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    test.skip(
+    skipWhen(
       !loginData?.token || !loginData.user,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId,
       "WORKFLOW_RESTAURANT_ID/SMOKE_RESTAURANT_ID not set and local discovery failed",
     );
@@ -2076,25 +2089,25 @@ test.describe("Real system workflows", () => {
   }) => {
     test.setTimeout(180_000);
 
-    test.skip(
+    skipWhen(
       !KITCHEN_URL,
       "WORKFLOW_KITCHEN_URL/SMOKE_KITCHEN_URL is required",
     );
 
     const ownerLoginData = await getLoginData();
-    test.skip(
+    skipWhen(
       !ownerLoginData?.token,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
     const chefLoginData = await loginChef();
-    test.skip(
+    skipWhen(
       !chefLoginData?.token || !chefLoginData.user,
       "WORKFLOW_CHEF_USERNAME and WORKFLOW_CHEF_PASSWORD are required for non-local kitchen workflow",
     );
 
     const fixtureIds = await resolveFixtureIds();
-    test.skip(
+    skipWhen(
       !fixtureIds.restaurantId ||
         fixtureIds.menuItemId === undefined ||
         !fixtureIds.tableId,
@@ -2391,7 +2404,7 @@ test.describe("Real system workflows", () => {
   test("management portal health page loads data from the management API", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !MANAGEMENT_PORTAL_URL || !MANAGEMENT_TOKEN,
       "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
     );
@@ -2414,7 +2427,7 @@ test.describe("Real system workflows", () => {
   test("management portal tenants page loads tenant data from the management API", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !MANAGEMENT_PORTAL_URL || !MANAGEMENT_TOKEN,
       "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
     );
@@ -2437,7 +2450,7 @@ test.describe("Real system workflows", () => {
   test("management portal creates a real tenant from the browser and reads it back from the management API", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !MANAGEMENT_PORTAL_URL ||
         !MANAGEMENT_TOKEN ||
         !MANAGEMENT_WORKFLOW_API_URL,
@@ -2526,7 +2539,7 @@ test.describe("Real system workflows", () => {
   test("management portal tenant detail loads tenant resources, deployments, health, and licenses from the management API", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !MANAGEMENT_PORTAL_URL ||
         !MANAGEMENT_TOKEN ||
         !MANAGEMENT_WORKFLOW_API_URL,
@@ -2617,7 +2630,7 @@ test.describe("Real system workflows", () => {
   test("management portal deployments, licenses, and markets pages load from management APIs", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !MANAGEMENT_PORTAL_URL || !MANAGEMENT_TOKEN,
       "WORKFLOW_MANAGEMENT_PORTAL_URL and WORKFLOW_MANAGEMENT_TOKEN are required",
     );
@@ -2656,7 +2669,7 @@ test.describe("Real system workflows", () => {
   test("onboarding app submits the application form to the management API", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !ONBOARDING_URL || !MANAGEMENT_API_URL,
       "WORKFLOW_ONBOARDING_URL and WORKFLOW_MANAGEMENT_API_URL are required",
     );
@@ -2719,7 +2732,7 @@ test.describe("Real system workflows", () => {
   test("onboarding app verifies Cloudflare credentials and completes from the browser", async ({
     page,
   }) => {
-    test.skip(
+    skipWhen(
       !ONBOARDING_URL ||
         !MANAGEMENT_API_URL ||
         !CLOUDFLARE_ACCOUNT_ID ||

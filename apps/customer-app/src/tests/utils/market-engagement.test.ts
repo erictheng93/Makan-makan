@@ -83,7 +83,7 @@ describe("marketEngagement", () => {
   });
 
   it("syncs favorite market changes to customer identity when authenticated", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([]);
 
     await syncFavoriteMarketPreference(market(), true);
@@ -96,7 +96,7 @@ describe("marketEngagement", () => {
   });
 
   it("removes synced favorite market records when unfavorited", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
       {
         id: 42,
@@ -112,7 +112,7 @@ describe("marketEngagement", () => {
   });
 
   it("hydrates server favorite ids into local market snapshots", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
       {
         id: 42,
@@ -139,7 +139,7 @@ describe("marketEngagement", () => {
   });
 
   it("syncs recent market visits to customer identity when authenticated", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
 
     await syncRecentMarketVisit(market());
 
@@ -150,7 +150,7 @@ describe("marketEngagement", () => {
   });
 
   it("hydrates server recent market ids into local market snapshots", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValueOnce([
       {
         marketId: "market-2",

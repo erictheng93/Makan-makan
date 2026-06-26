@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { useAuthStore } from "./auth";
 import { UserRole, type User } from "@/types";
 import { api, authClient } from "@/services/api";
+import { getAuthToken } from "@/utils/authTokenProvider";
 
 vi.mock("@/i18n", () => ({
   t: (key: string) => key,
@@ -21,12 +22,17 @@ vi.mock("@/services/api", () => ({
       post: vi.fn(),
     },
     tokens: {
+      getToken: vi.fn(),
       setTokens: vi.fn(),
       setUser: vi.fn(),
       clearAll: vi.fn(),
       scheduleProactiveRefresh: vi.fn(),
     },
   },
+}));
+
+vi.mock("@/utils/authTokenProvider", () => ({
+  getAuthToken: vi.fn(() => null),
 }));
 
 const user = (overrides: Partial<User> = {}): User => ({
@@ -44,16 +50,18 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   setActivePinia(createPinia());
+  vi.mocked(getAuthToken).mockReset();
+  vi.mocked(getAuthToken).mockReturnValue(null);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
 
 describe("useAuthStore", () => {
-  it("hydrates user, token, and admin restaurant context from browser storage", () => {
+  it("hydrates user, memory token, and admin restaurant context", () => {
     localStorage.setItem(
       "auth_user",
       JSON.stringify(user({ role: UserRole.ADMIN, restaurantId: null })),
     );
-    localStorage.setItem("auth_token", "stored-token");
+    vi.mocked(getAuthToken).mockReturnValue("stored-token");
     sessionStorage.setItem("admin_selected_restaurant_id", "restaurant-42");
     sessionStorage.setItem("admin_selected_restaurant_name", "Demo Restaurant");
 
@@ -65,6 +73,7 @@ describe("useAuthStore", () => {
     expect(store.hasRestaurantContext).toBe(true);
     expect(store.selectedRestaurantName).toBe("Demo Restaurant");
     expect(store.getDefaultRoute()).toBe("/dashboard");
+    expect(localStorage.getItem("auth_token")).toBeNull();
   });
 
   it("logs in, persists auth data through auth-client, and exposes owner permissions", async () => {
@@ -102,7 +111,6 @@ describe("useAuthStore", () => {
       "auth_user",
       JSON.stringify(user({ role: UserRole.ADMIN, restaurantId: null })),
     );
-    localStorage.setItem("auth_token", "stored-token");
     const store = useAuthStore();
 
     expect(store.getDefaultRoute()).toBe("/dashboard/platform");
@@ -121,7 +129,7 @@ describe("useAuthStore", () => {
 
   it("keeps hydrated sessions on transient auth revalidation failures", async () => {
     localStorage.setItem("auth_user", JSON.stringify(user()));
-    localStorage.setItem("auth_token", "stored-token");
+    vi.mocked(getAuthToken).mockReturnValue("stored-token");
     vi.mocked(api.get).mockRejectedValue({ response: { status: 500 } });
     const store = useAuthStore();
 
@@ -134,7 +142,7 @@ describe("useAuthStore", () => {
 
   it("logs out and clears restaurant context on definitive auth failure", async () => {
     localStorage.setItem("auth_user", JSON.stringify(user()));
-    localStorage.setItem("auth_token", "stored-token");
+    vi.mocked(getAuthToken).mockReturnValue("stored-token");
     sessionStorage.setItem("admin_selected_restaurant_id", "restaurant-42");
     vi.mocked(api.get).mockRejectedValue({ response: { status: 401 } });
     vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
@@ -151,8 +159,7 @@ describe("useAuthStore", () => {
 
   it("refreshes tokens with cookie credentials and updates user when returned", async () => {
     localStorage.setItem("auth_user", JSON.stringify(user()));
-    localStorage.setItem("auth_token", "old-token");
-    localStorage.setItem("auth_refresh_token", "old-refresh");
+    vi.mocked(getAuthToken).mockReturnValue("old-token");
     vi.mocked(authClient.instance.post).mockResolvedValue({
       data: {
         success: true,

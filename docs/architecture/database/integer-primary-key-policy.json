@@ -256,16 +256,6 @@
     "rationale": "Order item ids appear in order lifecycle and refund workflows."
   },
   {
-    "tableName": "orders",
-    "schemaFile": "packages/database/src/schema/orders.ts",
-    "line": 45,
-    "category": "legacy_domain",
-    "migrationPlan": "migrate_to_uuid_v7",
-    "migrationPhase": "orders-public-id-bridge",
-    "phaseOrder": 1,
-    "rationale": "Orders are core business entities and need non-enumerable ids."
-  },
-  {
     "tableName": "payment_transactions",
     "schemaFile": "packages/database/src/schema/payments.ts",
     "line": 30,
@@ -296,14 +286,6 @@
     "category": "join_edge",
     "migrationPlan": "retain",
     "rationale": "Menu mappings are edges between local and external platform items."
-  },
-  {
-    "tableName": "platform_orders",
-    "schemaFile": "packages/database/src/schema/platform-orders.ts",
-    "line": 25,
-    "category": "legacy_domain",
-    "migrationPlan": "migrate_to_uuid_v7",
-    "rationale": "Platform orders cross integration and restaurant order workflows."
   },
   {
     "tableName": "platform_webhook_logs",
@@ -416,16 +398,6 @@
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "rationale": "Tables are core restaurant layout entities referenced by orders and seats."
-  },
-  {
-    "tableName": "users",
-    "schemaFile": "packages/database/src/schema/users.ts",
-    "line": 21,
-    "category": "legacy_domain",
-    "migrationPlan": "migrate_to_uuid_v7",
-    "migrationPhase": "staff-principal-id-bridge",
-    "phaseOrder": 2,
-    "rationale": "Users are security principals and must move away from enumerable local ids."
   },
   {
     "tableName": "email_verification_tokens",

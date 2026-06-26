@@ -2,15 +2,17 @@ import { describe, expect, it } from "vitest";
 import { paymentRequestSchema } from "./validation";
 
 describe("payment validation schemas", () => {
+  const orderId = "018f0000-0000-7000-8000-000000001001";
+
   it("accepts full payments with defaults", () => {
     expect(
       paymentRequestSchema.parse({
-        orderId: 1001,
+        orderId,
         amount: 25.5,
         method: "cash",
       }),
     ).toMatchObject({
-      orderId: 1001,
+      orderId,
       paymentMode: "full",
       amount: 25.5,
       method: "cash",
@@ -20,7 +22,7 @@ describe("payment validation schemas", () => {
   it("requires an amount for full payment mode", () => {
     expect(() =>
       paymentRequestSchema.parse({
-        orderId: 1001,
+        orderId,
         method: "cash",
       }),
     ).toThrow(/amount is required/);
@@ -29,7 +31,7 @@ describe("payment validation schemas", () => {
   it("accepts bounded partial payment arrays", () => {
     expect(
       paymentRequestSchema.parse({
-        orderId: 1001,
+        orderId,
         paymentMode: "partial",
         payments: [
           { method: "cash", amount: 10 },
@@ -46,7 +48,7 @@ describe("payment validation schemas", () => {
 
     expect(() =>
       paymentRequestSchema.parse({
-        orderId: 1001,
+        orderId,
         paymentMode: "partial",
       }),
     ).toThrow(/payments are required/);
@@ -55,13 +57,13 @@ describe("payment validation schemas", () => {
   it("rejects non-finite or negative money values", () => {
     expect(() =>
       paymentRequestSchema.parse({
-        orderId: 1001,
+        orderId,
         amount: Number.POSITIVE_INFINITY,
       }),
     ).toThrow();
     expect(() =>
       paymentRequestSchema.parse({
-        orderId: 1001,
+        orderId,
         amount: -1,
       }),
     ).toThrow();

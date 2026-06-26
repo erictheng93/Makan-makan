@@ -189,18 +189,15 @@ async function handlePayment(c: PaymentContext) {
 /**
  * POST /api/v1/payments/create
  *
- * Process a payment. The idempotencyMiddleware is wired so that any
- * client sending an `Idempotency-Key` header gets safe retry behaviour
- * (a duplicate request replays the original response instead of
- * double-charging). The header is currently optional because the
- * admin-dashboard frontend doesn't send it yet — flip requireKey to
- * true once the apiClient is updated to always include one.
+ * Process a payment. Payment creation always requires an Idempotency-Key so
+ * client retries, double-clicks, reconnects, and edge retries cannot create
+ * duplicate payment effects.
  */
 app.post(
   "/create",
   idempotencyMiddleware({
     scope: "payment",
-    requireKey: false,
+    requireKey: true,
     effectId: paymentEffectId,
   }),
   validateBody(createPaymentRequestSchema),
@@ -211,7 +208,7 @@ app.post(
   "/",
   idempotencyMiddleware({
     scope: "payment",
-    requireKey: false,
+    requireKey: true,
     effectId: paymentEffectId,
   }),
   validateBody(rootPaymentRequestSchema),

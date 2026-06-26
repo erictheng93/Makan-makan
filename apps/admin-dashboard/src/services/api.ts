@@ -6,6 +6,7 @@ import {
 import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
+import { setAuthTokenProvider } from "@/utils/authTokenProvider";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -35,6 +36,7 @@ const authClient = createAuthenticatedApiClient({
     refreshToken: "auth_refresh_token",
     user: "auth_user",
   },
+  tokenStorage: "memory",
   csrf: true,
   onAuthFailure: () => {
     // Don't hard-redirect here — let the router guard handle navigation
@@ -56,6 +58,8 @@ const authClient = createAuthenticatedApiClient({
     return KitchenErrorHandler.handleAPIError(error, context);
   },
 });
+
+setAuthTokenProvider(() => authClient.tokens.getToken());
 
 // Backward-compatible API object matching the old ApiService class interface.
 // 42 files import { api } or { apiClient } from this module.

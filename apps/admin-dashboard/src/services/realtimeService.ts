@@ -4,6 +4,7 @@ import {
   type RealtimeEvent,
 } from "@makanmakan/shared-types";
 import { useWebSocketService } from "./websocketService";
+import { getAuthToken } from "@/utils/authTokenProvider";
 
 export interface RealtimeMessage {
   id: string;
@@ -297,7 +298,7 @@ class RealtimeService {
     roomId: string,
     payload: unknown,
   ): Promise<void> {
-    const token = localStorage.getItem("auth_token");
+    const token = getAuthToken();
     const response = await fetch(
       `${resolveRealtimeHttpBase()}/broadcast/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
       {

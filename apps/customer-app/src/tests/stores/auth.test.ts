@@ -55,7 +55,7 @@ describe("customer auth store", () => {
         role: 5,
       }),
     );
-    localStorage.setItem("customer_auth_token", "stored-access");
+    sessionStorage.setItem("customer_auth_token", "stored-access");
 
     const store = useAuthStore();
 
@@ -113,7 +113,7 @@ describe("customer auth store", () => {
       phone: "0912345678",
       role: 5,
     });
-    expect(localStorage.getItem("customer_auth_token")).toBe("access-token");
+    expect(sessionStorage.getItem("customer_auth_token")).toBe("access-token");
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(JSON.parse(localStorage.getItem("customer_user")!)).toMatchObject({
       id: "customer-1",
@@ -122,7 +122,7 @@ describe("customer auth store", () => {
   });
 
   it("falls back to refresh during checkAuth and does not logout on refresh success", async () => {
-    localStorage.setItem("customer_auth_token", "old-access");
+    sessionStorage.setItem("customer_auth_token", "old-access");
     vi.mocked(customerIdentityApi.getMe).mockRejectedValue(
       new Error("access expired"),
     );
@@ -136,13 +136,13 @@ describe("customer auth store", () => {
 
     expect(customerIdentityApi.refresh).toHaveBeenCalledWith();
     expect(store.token).toBe("new-access");
-    expect(localStorage.getItem("customer_auth_token")).toBe("new-access");
+    expect(sessionStorage.getItem("customer_auth_token")).toBe("new-access");
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(customerIdentityApi.logout).not.toHaveBeenCalled();
   });
 
   it("logs out locally even when logout API fails", async () => {
-    localStorage.setItem("customer_auth_token", "access-token");
+    sessionStorage.setItem("customer_auth_token", "access-token");
     localStorage.setItem(
       "customer_user",
       JSON.stringify({
@@ -161,7 +161,7 @@ describe("customer auth store", () => {
 
     expect(store.user).toBeNull();
     expect(store.token).toBeNull();
-    expect(localStorage.getItem("customer_auth_token")).toBeNull();
+    expect(sessionStorage.getItem("customer_auth_token")).toBeNull();
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(localStorage.getItem("customer_user")).toBeNull();
   });

@@ -41,6 +41,7 @@ export function createAuthenticatedApiClient(
   const storage = createPrefixedStorage(
     config.storageKeyPrefix,
     config.storageKeys,
+    config.tokenStorage,
   );
   const csrfConfig = normalizeCsrfConfig(config.csrf);
   const retryOn401 = config.retryOn401 !== false; // default true

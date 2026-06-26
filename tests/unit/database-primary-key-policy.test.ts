@@ -135,7 +135,7 @@ describe("database primary key policy", () => {
     }
   });
 
-  it("keeps the highest-risk PK migrations in an explicit phase order", () => {
+  it("does not inventory completed UUID-v7 primary key migrations", () => {
     const policy = JSON.parse(
       readFileSync(policyPath, "utf8"),
     ) as IntegerPrimaryKeyPolicyEntry[];
@@ -143,17 +143,8 @@ describe("database primary key policy", () => {
       policy.map((entry) => [entry.tableName, entry]),
     );
 
-    expect(policyByTable.get("orders")).toMatchObject({
-      category: "legacy_domain",
-      migrationPlan: "migrate_to_uuid_v7",
-      migrationPhase: "orders-public-id-bridge",
-      phaseOrder: 1,
-    });
-    expect(policyByTable.get("users")).toMatchObject({
-      category: "legacy_domain",
-      migrationPlan: "migrate_to_uuid_v7",
-      migrationPhase: "staff-principal-id-bridge",
-      phaseOrder: 2,
-    });
+    expect(policyByTable.has("orders")).toBe(false);
+    expect(policyByTable.has("platform_orders")).toBe(false);
+    expect(policyByTable.has("users")).toBe(false);
   });
 });

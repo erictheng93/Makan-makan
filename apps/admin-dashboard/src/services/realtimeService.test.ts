@@ -23,20 +23,13 @@ vi.mock("./api", () => ({
   unwrapApiData: vi.fn((response) => response.data),
 }));
 
+vi.mock("@/utils/authTokenProvider", () => ({
+  getAuthToken: vi.fn(() => "session-token"),
+}));
+
 describe("realtimeService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    const storage = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: vi.fn((key: string) => storage.get(key) ?? null),
-      setItem: vi.fn((key: string, value: string) => {
-        storage.set(key, value);
-      }),
-      removeItem: vi.fn((key: string) => {
-        storage.delete(key);
-      }),
-    });
-    localStorage.setItem("auth_token", "session-token");
   });
 
   it("connects through the realtime WebSocket service instead of legacy EventSource", async () => {

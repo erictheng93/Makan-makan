@@ -589,7 +589,7 @@ export class PWAPerformanceMonitor {
     // 未登入的訪客呼叫會 401 污染 log；這個遙測不是業務關鍵，未登入就跳過。
     const authToken =
       typeof localStorage !== "undefined"
-        ? localStorage.getItem("customer_auth_token")
+        ? sessionStorage.getItem("customer_auth_token")
         : null;
     if (!authToken) {
       return;

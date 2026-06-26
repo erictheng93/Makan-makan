@@ -183,6 +183,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { api } from "@/services/api";
 import { usePaymentStore } from "@/stores/payment";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 import type {
   PaymentRequest,
   PaymentMethod,
@@ -348,8 +349,14 @@ const processPayment = async () => {
         paymentStatus.value = "success";
         emit("payment-success", result.transactionId);
       } else if (result.redirectUrl) {
+        const redirectUrl = safeExternalHref(result.redirectUrl);
+        if (!redirectUrl) {
+          paymentStatus.value = "error";
+          emit("payment-error", t("payment.form.paymentError"));
+          return;
+        }
         // 重定向到第三方支付
-        window.location.href = result.redirectUrl;
+        window.location.href = redirectUrl;
       }
     } else {
       paymentStatus.value = "error";

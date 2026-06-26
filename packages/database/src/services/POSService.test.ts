@@ -97,7 +97,7 @@ describe("POSService money reads", () => {
     const db = {
       select: createSelectQueue([
         {
-          id: 123,
+          id: "018f0000-0000-7000-8000-000000000123",
           totalAmountCents: 10000,
         },
         {
@@ -118,7 +118,7 @@ describe("POSService money reads", () => {
 
     const result = await service.processRefund(
       {
-        originalOrderId: 123,
+        originalOrderId: "018f0000-0000-7000-8000-000000000123",
         refundType: "partial",
         refundAmount: 50,
         refundMethod: "card",

@@ -154,9 +154,7 @@ describe("market discovery schema", () => {
     expect(columnSqlType(marketCheckoutChildOrders, "checkout_id")).toBe(
       "text",
     );
-    expect(columnSqlType(marketCheckoutChildOrders, "order_id")).toBe(
-      "integer",
-    );
+    expect(columnSqlType(marketCheckoutChildOrders, "order_id")).toBe("text");
 
     expect(columnNames(marketCheckoutPayments)).toEqual(
       expect.arrayContaining([

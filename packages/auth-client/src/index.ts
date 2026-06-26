@@ -10,4 +10,5 @@ export type {
   PrefixedStorage,
   RefreshResult,
   StorageKeyOverrides,
+  TokenStorageMode,
 } from "./types";

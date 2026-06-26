@@ -383,7 +383,7 @@ const showCancelConfirmation = ref(false);
 const guestRealtimeCacheKey = `makanmakan_guest_realtime_token:${props.restaurantId}:${props.tableId}:${props.orderId}`;
 const guestQrCacheKey = `makanmakan_table_qr:${props.restaurantId}:${props.tableId}`;
 const shouldUseGuestRealtime = computed(() => {
-  const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
+  const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
   const hasGuestToken = !!localStorage.getItem("guest_auth_token");
   return !hasCustomerToken && hasGuestToken;
 });
@@ -482,7 +482,7 @@ const {
 } = useQuery({
   queryKey: ["order", props.orderId],
   queryFn: () => {
-    const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
+    const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
     const hasGuestToken = !!localStorage.getItem("guest_auth_token");
 
     if (!hasCustomerToken && hasGuestToken) {

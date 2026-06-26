@@ -1011,7 +1011,7 @@ const submitOrder = async () => {
     isSubmitting.value = true;
     showConfirmation.value = false;
 
-    const isAuthenticated = !!localStorage.getItem("customer_auth_token");
+    const isAuthenticated = !!sessionStorage.getItem("customer_auth_token");
     const isDineIn = !!props.tableId;
 
     if (!isAuthenticated && isDineIn) {

@@ -51,7 +51,9 @@ const toCustomerUser = (customer: CustomerSummary): CustomerUser => ({
 export const useAuthStore = defineStore("auth", () => {
   // 狀態
   const user = ref<CustomerUser | null>(hydrateUser());
-  const token = ref<string | null>(localStorage.getItem("customer_auth_token"));
+  const token = ref<string | null>(
+    sessionStorage.getItem("customer_auth_token"),
+  );
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -109,7 +111,7 @@ export const useAuthStore = defineStore("auth", () => {
         token.value = data.accessToken;
         user.value = toCustomerUser(data.customer);
 
-        localStorage.setItem("customer_auth_token", token.value!);
+        sessionStorage.setItem("customer_auth_token", token.value!);
         localStorage.removeItem("customer_refresh_token");
         persistUser(user.value);
 
@@ -160,7 +162,7 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = null;
       error.value = null;
 
-      localStorage.removeItem("customer_auth_token");
+      sessionStorage.removeItem("customer_auth_token");
       localStorage.removeItem("customer_refresh_token");
       persistUser(null);
       clearRefreshTimer();
@@ -174,7 +176,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       if ("accessToken" in data && data.accessToken) {
         token.value = data.accessToken;
-        localStorage.setItem("customer_auth_token", token.value!);
+        sessionStorage.setItem("customer_auth_token", token.value!);
         localStorage.removeItem("customer_refresh_token");
 
         if (token.value) scheduleProactiveRefresh(token.value);

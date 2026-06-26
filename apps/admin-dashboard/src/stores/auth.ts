@@ -6,6 +6,7 @@ import { UserRole } from "@/types";
 import { api, authClient } from "@/services/api";
 import { t } from "@/i18n";
 import { setAuthRefreshHandler } from "@/utils/errorHandler";
+import { getAuthToken } from "@/utils/authTokenProvider";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
@@ -33,7 +34,7 @@ let sharedRefreshPromise: Promise<boolean> | null = null;
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(hydrateUser());
-  const token = ref<string | null>(localStorage.getItem("auth_token"));
+  const token = ref<string | null>(getAuthToken());
 
   const isLoading = ref(false);
 
@@ -248,6 +249,11 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const checkAuth = async () => {
+    if (!token.value && user.value) {
+      const refreshed = await refreshToken();
+      if (!refreshed) return false;
+    }
+
     if (!token.value) return false;
 
     try {

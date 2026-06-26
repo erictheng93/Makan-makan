@@ -1,4 +1,10 @@
-import type { PrefixedStorage, StorageKeyOverrides } from "./types";
+import type {
+  PrefixedStorage,
+  StorageKeyOverrides,
+  TokenStorageMode,
+} from "./types";
+
+const memoryTokens = new Map<string, string>();
 
 /**
  * Create a localStorage adapter with prefixed keys.
@@ -16,15 +22,36 @@ import type { PrefixedStorage, StorageKeyOverrides } from "./types";
 export function createPrefixedStorage(
   prefix: string,
   overrides?: StorageKeyOverrides,
+  tokenStorage: TokenStorageMode = "localStorage",
 ): PrefixedStorage {
   const tokenKey = overrides?.token ?? `${prefix}_auth_token`;
   const refreshKey = overrides?.refreshToken ?? `${prefix}_refresh_token`;
   const userKey = overrides?.user ?? `${prefix}_user`;
+  const memoryToken = {
+    get: () => memoryTokens.get(tokenKey) ?? null,
+    set: (value: string) => {
+      memoryTokens.set(tokenKey, value);
+      localStorage.removeItem(tokenKey);
+    },
+    remove: () => {
+      memoryTokens.delete(tokenKey);
+      localStorage.removeItem(tokenKey);
+    },
+  };
 
   return {
-    getToken: () => localStorage.getItem(tokenKey),
-    setToken: (v) => localStorage.setItem(tokenKey, v),
-    removeToken: () => localStorage.removeItem(tokenKey),
+    getToken: () =>
+      tokenStorage === "memory"
+        ? memoryToken.get()
+        : localStorage.getItem(tokenKey),
+    setToken: (v) =>
+      tokenStorage === "memory"
+        ? memoryToken.set(v)
+        : localStorage.setItem(tokenKey, v),
+    removeToken: () =>
+      tokenStorage === "memory"
+        ? memoryToken.remove()
+        : localStorage.removeItem(tokenKey),
 
     getRefreshToken: () => null,
     setRefreshToken: () => localStorage.removeItem(refreshKey),
@@ -49,6 +76,7 @@ export function createPrefixedStorage(
     removeUser: () => localStorage.removeItem(userKey),
 
     clearAll: () => {
+      memoryTokens.delete(tokenKey);
       localStorage.removeItem(tokenKey);
       localStorage.removeItem(refreshKey);
       localStorage.removeItem(userKey);

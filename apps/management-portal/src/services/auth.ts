@@ -7,37 +7,37 @@ export interface ManagementSession {
 }
 
 function storageAvailable(): boolean {
-  return typeof window !== "undefined" && typeof localStorage !== "undefined";
+  return typeof window !== "undefined" && typeof sessionStorage !== "undefined";
 }
 
 export function saveManagementSession(session: ManagementSession): void {
   if (!storageAvailable()) return;
 
-  localStorage.setItem(MANAGEMENT_TOKEN_KEY, session.token);
+  sessionStorage.setItem(MANAGEMENT_TOKEN_KEY, session.token);
   if (session.expiresAt != null) {
-    localStorage.setItem(
+    sessionStorage.setItem(
       MANAGEMENT_TOKEN_EXPIRES_AT_KEY,
       String(session.expiresAt),
     );
   } else {
-    localStorage.removeItem(MANAGEMENT_TOKEN_EXPIRES_AT_KEY);
+    sessionStorage.removeItem(MANAGEMENT_TOKEN_EXPIRES_AT_KEY);
   }
 }
 
 export function clearManagementSession(): void {
   if (!storageAvailable()) return;
 
-  localStorage.removeItem(MANAGEMENT_TOKEN_KEY);
-  localStorage.removeItem(MANAGEMENT_TOKEN_EXPIRES_AT_KEY);
+  sessionStorage.removeItem(MANAGEMENT_TOKEN_KEY);
+  sessionStorage.removeItem(MANAGEMENT_TOKEN_EXPIRES_AT_KEY);
 }
 
 export function getManagementToken(): string | null {
   if (!storageAvailable()) return null;
 
-  const token = localStorage.getItem(MANAGEMENT_TOKEN_KEY);
+  const token = sessionStorage.getItem(MANAGEMENT_TOKEN_KEY);
   if (!token) return null;
 
-  const expiresAtRaw = localStorage.getItem(MANAGEMENT_TOKEN_EXPIRES_AT_KEY);
+  const expiresAtRaw = sessionStorage.getItem(MANAGEMENT_TOKEN_EXPIRES_AT_KEY);
   if (!expiresAtRaw) {
     return token;
   }

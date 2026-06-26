@@ -9,6 +9,7 @@ import { ref } from "vue";
 import { realtimeService } from "./realtimeService";
 import { groupOrderBroadcastService } from "./groupOrderBroadcastService";
 import { collaborativeOrderService } from "./collaborativeOrderService";
+import { getAuthToken } from "@/utils/authTokenProvider";
 
 // 錯誤類型定義
 export interface RealtimeError {
@@ -540,7 +541,7 @@ class RealtimeResilienceService {
       condition: (error) => error.type === "permission",
       action: async () => {
         // 重新獲取權限或刷新令牌
-        const token = localStorage.getItem("auth_token");
+        const token = getAuthToken();
         if (token) {
           // 驗證令牌有效性
           return true;

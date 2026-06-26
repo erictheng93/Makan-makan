@@ -555,7 +555,7 @@ const handleCheckout = async () => {
     };
 
     // Use guest endpoint if no customer auth token
-    const hasCustomerToken = !!localStorage.getItem("customer_auth_token");
+    const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
     let orderResult: any;
 
     if (hasCustomerToken) {

@@ -461,7 +461,7 @@ describe("MarketDetailView", () => {
   });
 
   it("records recent market visits and toggles favorite markets", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     const wrapper = mountView();
     await vi.waitFor(() => {
       expect(localStorage.getItem("makanmakan_recent_markets")).toContain(

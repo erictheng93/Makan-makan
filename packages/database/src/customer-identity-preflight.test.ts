@@ -28,9 +28,10 @@ describe("customer identity migration preflight", () => {
     ).run();
     await testDb.bindings.DB.prepare(
       `INSERT INTO users
-        (username, email, phone, full_name, password_hash, role, is_active,
+        (id, username, email, phone, full_name, password_hash, role, is_active,
          is_verified, created_at_ms, updated_at_ms)
-       VALUES ('legacy-a', 'SAME@example.com', '0912-345-678', 'Legacy A',
+       VALUES ('018f0000-0000-7000-8000-000000000555',
+         'legacy-a', 'SAME@example.com', '0912-345-678', 'Legacy A',
          'hash', 5, 1, 1, 1, 1)`,
     ).run();
 

@@ -29,9 +29,27 @@ function jsonResponse(body: unknown, init?: ResponseInit) {
   });
 }
 
+const adminUserId = "018f0000-0000-7000-8000-000000000001";
+const staffUserId = "018f0000-0000-7000-8000-000000000002";
+
+function userRowForRole(role: number, restaurantId: string) {
+  return {
+    id: role === 0 ? adminUserId : staffUserId,
+    username: role === 0 ? "admin" : "staff",
+    role,
+    restaurant_id: role === 0 ? null : restaurantId,
+    is_active: 1,
+    token_version: 1,
+  };
+}
+
 function createEnv(input?: {
+  userRole?: number;
+  restaurantId?: string;
   durableFetch?: (request: Request) => Response | Promise<Response>;
 }) {
+  const userRole = input?.userRole ?? 0;
+  const restaurantId = input?.restaurantId ?? "restaurant-1";
   const durableFetch = vi.fn(
     input?.durableFetch ?? (() => jsonResponse({ connectionCount: 0 })),
   );
@@ -40,7 +58,13 @@ function createEnv(input?: {
   };
 
   return {
-    DB: {},
+    DB: {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => userRowForRole(userRole, restaurantId)),
+        })),
+      })),
+    },
     JWT_SECRET: "x".repeat(32),
     REALTIME_JWT_SECRET: "y".repeat(32),
     REALTIME_SERVICE_URL: "https://realtime.test",
@@ -66,10 +90,11 @@ async function authHeaders(
   const now = Math.floor(Date.now() / 1000);
   const token = await sign(
     {
-      id: role === 0 ? 1 : 2,
+      sub: role === 0 ? adminUserId : staffUserId,
       username: role === 0 ? "admin" : "staff",
       role,
       restaurantId,
+      tv: 1,
       iat: now,
       exp: now + 3600,
     },
@@ -323,12 +348,12 @@ describe("realtime routes", () => {
     expect(serviceMethods.revokeToken).toHaveBeenCalledWith(
       "token",
       "logout",
-      "1",
+      adminUserId,
     );
     expect(serviceMethods.revokeUserTokens).toHaveBeenCalledWith(
       "user-1",
       "admin_action",
-      "1",
+      adminUserId,
     );
   });
 
@@ -343,7 +368,7 @@ describe("realtime routes", () => {
             ...(await authHeaders(1)),
           },
         }),
-        createEnv() as never,
+        createEnv({ userRole: 1 }) as never,
       ),
     );
     const statsResponse = await withSilencedRouteError(async () =>
@@ -351,7 +376,7 @@ describe("realtime routes", () => {
         new Request("https://api.test/auth/blacklist/stats", {
           headers: await authHeaders(1),
         }),
-        createEnv() as never,
+        createEnv({ userRole: 1 }) as never,
       ),
     );
 
@@ -390,6 +415,8 @@ describe("realtime routes", () => {
   it("reads room stats through the realtime Durable Object binding", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
     const env = createEnv({
+      userRole: 1,
+      restaurantId: "restaurant-1",
       durableFetch: async (request) => {
         expect(request.url).toBe("https://realtime-internal/stats");
         expect(request.method).toBe("GET");
@@ -418,7 +445,7 @@ describe("realtime routes", () => {
         new Request("https://api.test/stats/unknown/restaurant-1", {
           headers: await authHeaders(1, "restaurant-1"),
         }),
-        createEnv() as never,
+        createEnv({ userRole: 1, restaurantId: "restaurant-1" }) as never,
       ),
     );
     expect(invalidResponse.status).toBe(500);
@@ -438,7 +465,7 @@ describe("realtime routes", () => {
   });
 
   it("blocks cross-restaurant realtime room stats", async () => {
-    const env = createEnv();
+    const env = createEnv({ userRole: 1, restaurantId: "restaurant-1" });
 
     const response = await withSilencedRouteError(async () =>
       routes.fetch(
@@ -456,6 +483,8 @@ describe("realtime routes", () => {
   it("aggregates overview stats across realtime room types", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
     const env = createEnv({
+      userRole: 1,
+      restaurantId: "restaurant-1",
       durableFetch: vi
         .fn()
         .mockResolvedValueOnce(jsonResponse({ connectionCount: 2 }))
@@ -501,7 +530,7 @@ describe("realtime routes", () => {
         new Request("https://api.test/stats/overview", {
           headers: await authHeaders(1, "restaurant-1"),
         }),
-        createEnv() as never,
+        createEnv({ userRole: 1, restaurantId: "restaurant-1" }) as never,
       ),
     );
     expect(missingResponse.status).toBe(500);

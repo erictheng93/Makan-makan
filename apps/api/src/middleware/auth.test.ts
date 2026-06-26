@@ -21,6 +21,8 @@ function apiErrorHandler(error: Error, c: never) {
   throw error;
 }
 
+const staffUserId = "018f0000-0000-7000-8000-000000000777";
+
 function createStaffDb(row: Record<string, unknown> | null) {
   return {
     prepare: vi.fn(() => ({
@@ -48,7 +50,7 @@ async function staffToken(role: number) {
   const now = Math.floor(Date.now() / 1000);
   return sign(
     {
-      id: 7,
+      sub: staffUserId,
       username: `role-${role}`,
       role,
       restaurantId: "rest-1",
@@ -64,7 +66,7 @@ async function staffPublicIdToken(role: number) {
   const now = Math.floor(Date.now() / 1000);
   return sign(
     {
-      sub: "018f0000-0000-7000-8000-000000000777",
+      sub: staffUserId,
       username: `role-${role}`,
       role,
       restaurantId: "rest-1",
@@ -103,7 +105,7 @@ describe("authMiddleware", () => {
       {
         JWT_SECRET,
         DB: createStaffDb({
-          id: 7,
+          id: staffUserId,
           username: "role-1",
           role: 1,
           restaurant_id: "rest-db",
@@ -114,7 +116,12 @@ describe("authMiddleware", () => {
     );
 
     await expect(response.json()).resolves.toMatchObject({
-      user: { id: 7, role: 1, restaurantId: "rest-db" },
+      user: {
+        id: staffUserId,
+        publicId: staffUserId,
+        role: 1,
+        restaurantId: "rest-db",
+      },
     });
     expect(response.status).toBe(200);
   });
@@ -132,8 +139,7 @@ describe("authMiddleware", () => {
       {
         JWT_SECRET,
         DB: createStaffDb({
-          id: 7,
-          public_id: "018f0000-0000-7000-8000-000000000777",
+          id: staffUserId,
           username: "role-1",
           role: 1,
           restaurant_id: "rest-db",
@@ -145,8 +151,8 @@ describe("authMiddleware", () => {
 
     await expect(response.json()).resolves.toMatchObject({
       user: {
-        id: 7,
-        publicId: "018f0000-0000-7000-8000-000000000777",
+        id: staffUserId,
+        publicId: staffUserId,
         role: 1,
         restaurantId: "rest-db",
       },
@@ -186,7 +192,7 @@ describe("authMiddleware", () => {
       {
         JWT_SECRET,
         DB: createStaffDb({
-          id: 7,
+          id: staffUserId,
           username: "role-5",
           role: 5,
           restaurant_id: null,
@@ -197,7 +203,7 @@ describe("authMiddleware", () => {
     );
 
     await expect(response.json()).resolves.toMatchObject({
-      user: { id: 7, role: 5 },
+      user: { id: staffUserId, publicId: staffUserId, role: 5 },
     });
     expect(response.status).toBe(200);
   });

@@ -21,6 +21,8 @@ vi.mock("@/services/api", () => ({
 
 describe("LoginView", () => {
   beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
     routeState.query = {};
     replace.mockReset();
     vi.mocked(authApi.exchange).mockReset();
@@ -39,10 +41,11 @@ describe("LoginView", () => {
     await wrapper.find("form").trigger("submit.prevent");
 
     expect(authApi.exchange).toHaveBeenCalledWith("api-admin-token");
-    expect(localStorage.getItem("management_token")).toBe("management-jwt");
-    expect(localStorage.getItem("management_token_expires_at")).toBe(
+    expect(sessionStorage.getItem("management_token")).toBe("management-jwt");
+    expect(sessionStorage.getItem("management_token_expires_at")).toBe(
       "1780000600",
     );
+    expect(localStorage.getItem("management_token")).toBeNull();
     expect(replace).toHaveBeenCalledWith("/health");
   });
 
@@ -53,7 +56,7 @@ describe("LoginView", () => {
     await wrapper.find("textarea").setValue("invalid-token");
     await wrapper.find("form").trigger("submit.prevent");
 
-    expect(localStorage.getItem("management_token")).toBeNull();
+    expect(sessionStorage.getItem("management_token")).toBeNull();
     expect(wrapper.text()).toContain("登入失敗");
     expect(replace).not.toHaveBeenCalled();
   });

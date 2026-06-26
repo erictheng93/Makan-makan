@@ -53,4 +53,26 @@ describe("createPrefixedStorage", () => {
     expect(localStorage.getItem("auth_refresh_token")).toBeNull();
     expect(storage.getUser()).toBeNull();
   });
+
+  it("can keep access tokens in memory instead of localStorage", () => {
+    const storage = createPrefixedStorage(
+      "auth",
+      {
+        token: "auth_token",
+        refreshToken: "auth_refresh_token",
+        user: "auth_user",
+      },
+      "memory",
+    );
+
+    storage.setToken("memory-token");
+    storage.setRefreshToken("refresh-2");
+
+    expect(storage.getToken()).toBe("memory-token");
+    expect(localStorage.getItem("auth_token")).toBeNull();
+    expect(localStorage.getItem("auth_refresh_token")).toBeNull();
+
+    storage.clearAll();
+    expect(storage.getToken()).toBeNull();
+  });
 });

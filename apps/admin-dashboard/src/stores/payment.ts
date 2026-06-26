@@ -61,6 +61,10 @@ interface PaymentTransaction {
   error?: string;
 }
 
+function createPaymentIdempotencyKey(request: PaymentRequest): string {
+  return `payment-${request.orderId}-${crypto.randomUUID()}`;
+}
+
 export const usePaymentStore = defineStore("payment", () => {
   // 狀態
   const state = ref<PaymentState>({
@@ -169,7 +173,11 @@ export const usePaymentStore = defineStore("payment", () => {
         redirectUrl?: string;
         qrCodeData?: string;
         metadata?: Record<string, unknown>;
-      }>("/payments/create", request);
+      }>("/payments/create", request, {
+        headers: {
+          "Idempotency-Key": createPaymentIdempotencyKey(request),
+        },
+      });
       const data = response.data;
 
       if (!data.success || !data.data) {

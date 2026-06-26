@@ -300,7 +300,7 @@ describe("MarketsView", () => {
   });
 
   it("hydrates authenticated market favorites from customer identity", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
       {
         id: 42,
@@ -329,7 +329,7 @@ describe("MarketsView", () => {
   });
 
   it("hydrates authenticated recent markets from customer identity", async () => {
-    localStorage.setItem("customer_auth_token", "customer-token");
+    sessionStorage.setItem("customer_auth_token", "customer-token");
     vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValueOnce([
       {
         marketId: "m1",
