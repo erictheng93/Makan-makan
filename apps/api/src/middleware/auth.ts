@@ -42,7 +42,7 @@ interface AuthTokenPayload {
   iat?: number;
   nbf?: number;
   tv?: number;
-  restaurantId?: string | number;
+  restaurantId?: string | number | null;
 }
 
 interface CustomerAuthTokenPayload {
@@ -86,6 +86,7 @@ function isAuthTokenPayload(decoded: unknown): decoded is AuthTokenPayload {
     (payload.nbf === undefined || typeof payload.nbf === "number") &&
     (payload.tv === undefined || typeof payload.tv === "number") &&
     (payload.restaurantId === undefined ||
+      payload.restaurantId === null ||
       typeof payload.restaurantId === "string" ||
       typeof payload.restaurantId === "number")
   );
@@ -116,6 +117,12 @@ function isSseAuthTokenPayload(
     aud?: unknown;
   };
   return payload.purpose === "kitchen_sse" && payload.aud === "kitchen_sse";
+}
+
+function normalizeTokenRestaurantId(
+  restaurantId: AuthTokenPayload["restaurantId"],
+): string | number | undefined {
+  return restaurantId == null ? undefined : restaurantId;
 }
 
 // JWT 認證中間件工廠。`maxRole` 界定最大可接受的角色值：
@@ -214,11 +221,13 @@ function createAuthMiddleware(maxRole: number) {
       }
 
       c.set("user", {
-        id: userRecord?.id ?? decoded.sub,
-        publicId: userRecord?.publicId ?? decoded.sub,
+        id: userRecord?.id ?? tokenPrincipal(decoded),
+        publicId: userRecord?.publicId ?? tokenPrincipal(decoded),
         username: decoded.username,
         role: decoded.role,
-        restaurantId: userRecord?.restaurantId ?? decoded.restaurantId,
+        restaurantId:
+          userRecord?.restaurantId ??
+          normalizeTokenRestaurantId(decoded.restaurantId),
       });
 
       await next();
@@ -476,11 +485,13 @@ export const sseAuthMiddleware = async (
     }
 
     c.set("user", {
-      id: userRecord?.id ?? decoded.sub,
-      publicId: userRecord?.publicId ?? decoded.sub,
+      id: userRecord?.id ?? tokenPrincipal(decoded),
+      publicId: userRecord?.publicId ?? tokenPrincipal(decoded),
       username: decoded.username,
       role: decoded.role,
-      restaurantId: userRecord?.restaurantId ?? decoded.restaurantId,
+      restaurantId:
+        userRecord?.restaurantId ??
+        normalizeTokenRestaurantId(decoded.restaurantId),
     });
 
     await next();
@@ -527,7 +538,7 @@ async function loadTokenUser(
   }
 }
 
-function tokenPrincipal(decoded: AuthTokenPayload): string | number {
+function tokenPrincipal(decoded: AuthTokenPayload): string {
   return decoded.sub ?? decoded.id!;
 }
 
@@ -666,10 +677,11 @@ export const optionalAuth = async (
 
       if (isAuthTokenPayload(decoded)) {
         c.set("user", {
-          id: decoded.id,
+          id: tokenPrincipal(decoded),
+          publicId: tokenPrincipal(decoded),
           username: decoded.username,
           role: decoded.role,
-          restaurantId: decoded.restaurantId,
+          restaurantId: normalizeTokenRestaurantId(decoded.restaurantId),
         });
       }
     }

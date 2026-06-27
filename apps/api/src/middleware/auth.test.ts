@@ -62,6 +62,22 @@ async function staffToken(role: number) {
   );
 }
 
+async function adminTokenWithoutRestaurant() {
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    {
+      sub: staffUserId,
+      username: "admin",
+      role: 0,
+      restaurantId: null,
+      tv: 1,
+      iat: now,
+      exp: now + 3600,
+    },
+    JWT_SECRET,
+  );
+}
+
 async function staffPublicIdToken(role: number) {
   const now = Math.floor(Date.now() / 1000);
   return sign(
@@ -157,6 +173,44 @@ describe("authMiddleware", () => {
         restaurantId: "rest-db",
       },
     });
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts platform admin tokens without a restaurant", async () => {
+    const app = new Hono();
+    app.onError(apiErrorHandler);
+    app.use("/protected", authMiddleware);
+    app.get("/protected", (c) => c.json({ user: c.get("user") }));
+
+    const response = await app.fetch(
+      new Request("https://api.test/protected", {
+        headers: {
+          Authorization: `Bearer ${await adminTokenWithoutRestaurant()}`,
+        },
+      }),
+      {
+        JWT_SECRET,
+        DB: createStaffDb({
+          id: staffUserId,
+          username: "admin",
+          role: 0,
+          restaurant_id: null,
+          is_active: 1,
+          token_version: 1,
+        }),
+      } as never,
+    );
+
+    const body = await response.json();
+
+    expect(body).toMatchObject({
+      user: {
+        id: staffUserId,
+        publicId: staffUserId,
+        role: 0,
+      },
+    });
+    expect(body.user).not.toHaveProperty("restaurantId");
     expect(response.status).toBe(200);
   });
 

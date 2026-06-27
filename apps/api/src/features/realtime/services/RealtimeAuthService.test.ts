@@ -431,6 +431,33 @@ describe("RealtimeAuthService", () => {
     expect(response).toMatchObject({ expiresIn: 300 });
   });
 
+  it("accepts platform admin session tokens without a restaurant", async () => {
+    const prepared = createPreparedDb({
+      id: ownerId,
+      username: "admin",
+      role: 0,
+      restaurant_id: null,
+      is_active: true,
+      token_version: 1,
+    });
+    const service = createService({ DB: { prepare: prepared.prepare } });
+    const sessionId = createSessionToken({
+      sub: ownerId,
+      username: "admin",
+      role: 0,
+      restaurantId: null,
+    });
+
+    const response = await service.generateWebSocketToken({
+      roomType: "restaurant",
+      roomId: "restaurant-2",
+      restaurantId: "restaurant-2",
+      sessionId,
+    });
+
+    expect(response).toMatchObject({ expiresIn: 300 });
+  });
+
   it("returns precise session validation errors", async () => {
     const service = createService({
       TOKEN_BLACKLIST: createKV({ "token:blacklisted": "1" }),

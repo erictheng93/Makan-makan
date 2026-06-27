@@ -34,7 +34,7 @@ interface SessionTokenPayload {
   iat?: number;
   nbf?: number;
   tv?: number;
-  restaurantId?: string | number;
+  restaurantId?: string | number | null;
 }
 
 interface AuthenticatedRealtimeUser {
@@ -65,6 +65,7 @@ function isSessionTokenPayload(value: unknown): value is SessionTokenPayload {
     (payload.nbf === undefined || typeof payload.nbf === "number") &&
     (payload.tv === undefined || typeof payload.tv === "number") &&
     (payload.restaurantId === undefined ||
+      payload.restaurantId === null ||
       typeof payload.restaurantId === "string" ||
       typeof payload.restaurantId === "number")
   );
@@ -590,9 +591,7 @@ export class RealtimeAuthService {
       username: payload.username,
       role: payload.role,
       restaurantId:
-        payload.restaurantId === undefined
-          ? undefined
-          : String(payload.restaurantId),
+        payload.restaurantId == null ? undefined : String(payload.restaurantId),
       isActive: true,
       tokenVersion: typeof payload.tv === "number" ? payload.tv : 1,
     });
