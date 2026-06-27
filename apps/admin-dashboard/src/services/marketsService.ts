@@ -174,6 +174,37 @@ export interface CreateMarketInput {
   isActive?: boolean;
 }
 
+export interface ImportMarketResult {
+  status: "created" | "skipped" | "would_create";
+  reason?: "duplicate_in_payload" | "slug_exists";
+  slug: string;
+  marketName: string;
+  type?: CreateMarketInput["type"];
+  city?: string;
+  district?: string;
+  market?: MarketListItem;
+}
+
+export interface ImportMarketIssue {
+  index: number;
+  code: "duplicate_in_payload" | "slug_exists";
+  severity: "blocking";
+  message: string;
+  slug: string;
+  marketName?: string;
+}
+
+export interface ImportMarketsResult {
+  dryRun?: boolean;
+  wouldCreateMarkets?: number;
+  createdMarkets: number;
+  skipped: number;
+  issueCount: number;
+  blockingIssueCount: number;
+  issues: ImportMarketIssue[];
+  results: ImportMarketResult[];
+}
+
 export interface ImportMarketVendorInput {
   restaurantId?: string;
   name?: string;
@@ -445,6 +476,17 @@ export const marketsService = {
       input,
     );
     return unwrapApiPayload<{ market: MarketListItem }>(response.data).market;
+  },
+
+  async importMarkets(
+    markets: CreateMarketInput[],
+    options: { dryRun?: boolean } = {},
+  ): Promise<ImportMarketsResult> {
+    const response = await api.post<ImportMarketsResult>(
+      "/admin/markets/bulk",
+      { markets, ...(options.dryRun ? { dryRun: true } : {}) },
+    );
+    return unwrapApiPayload<ImportMarketsResult>(response.data);
   },
 
   async importVendors(

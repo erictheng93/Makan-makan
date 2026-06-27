@@ -14,6 +14,7 @@ vi.mock("@/services/marketsService", () => ({
     listAreaReadiness: vi.fn(),
     updateMarketPublicProfile: vi.fn(),
     createMarket: vi.fn(),
+    importMarkets: vi.fn(),
     importVendors: vi.fn(),
     searchVendorCandidates: vi.fn(),
     addVendor: vi.fn(),
@@ -239,6 +240,14 @@ describe("PlatformMarketsView", () => {
     vi.mocked(marketsService.listAdminJoinRequests).mockResolvedValue([]);
     vi.mocked(marketsService.approveJoinRequest).mockResolvedValue(undefined);
     vi.mocked(marketsService.rejectJoinRequest).mockResolvedValue(undefined);
+    vi.mocked(marketsService.importMarkets).mockResolvedValue({
+      createdMarkets: 0,
+      skipped: 0,
+      issueCount: 0,
+      blockingIssueCount: 0,
+      issues: [],
+      results: [],
+    });
     vi.mocked(discoveryService.reindex).mockResolvedValue({
       dishes: 12,
       restaurants: 4,
@@ -1414,13 +1423,27 @@ describe("PlatformMarketsView", () => {
   });
 
   it("imports markets from CSV and refreshes platform readiness", async () => {
-    vi.mocked(marketsService.createMarket).mockResolvedValue({
-      id: "market-3",
-      slug: "miaokou",
-      name: "基隆廟口夜市",
-      type: "night_market",
-      city: "基隆市",
-      district: "仁愛區",
+    vi.mocked(marketsService.importMarkets).mockResolvedValue({
+      createdMarkets: 1,
+      skipped: 0,
+      issueCount: 0,
+      blockingIssueCount: 0,
+      issues: [],
+      results: [
+        {
+          status: "created",
+          slug: "miaokou",
+          marketName: "基隆廟口夜市",
+          market: {
+            id: "market-3",
+            slug: "miaokou",
+            name: "基隆廟口夜市",
+            type: "night_market",
+            city: "基隆市",
+            district: "仁愛區",
+          },
+        },
+      ],
     });
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();
@@ -1438,17 +1461,20 @@ describe("PlatformMarketsView", () => {
     await wrapper.get('[data-testid="market-import-submit"]').trigger("click");
     await flushPromises();
 
-    expect(marketsService.createMarket).toHaveBeenCalledWith({
-      slug: "miaokou",
-      name: "基隆廟口夜市",
-      type: "night_market",
-      city: "基隆市",
-      district: "仁愛區",
-      address: "仁三路",
-      latitude: 25.128,
-      longitude: 121.743,
-      tags: ["夜市", "海港"],
-    });
+    expect(marketsService.importMarkets).toHaveBeenCalledWith([
+      {
+        slug: "miaokou",
+        name: "基隆廟口夜市",
+        type: "night_market",
+        city: "基隆市",
+        district: "仁愛區",
+        address: "仁三路",
+        latitude: 25.128,
+        longitude: 121.743,
+        tags: ["夜市", "海港"],
+      },
+    ]);
+    expect(marketsService.createMarket).not.toHaveBeenCalled();
     expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("已建立 1 個市場");
     expect(wrapper.text()).toContain("下一步：編輯市場並批次匯入店鋪");
@@ -1471,61 +1497,74 @@ describe("PlatformMarketsView", () => {
   });
 
   it("reports per-market import failures without hiding created markets", async () => {
-    const errorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
-    try {
-      vi.mocked(marketsService.createMarket).mockImplementation(
-        async (market) => {
-          if (market.slug === "created-market") {
-            return {
-              id: "market-3",
-              slug: market.slug,
-              name: market.name,
-              type: market.type,
-              city: market.city,
-              district: market.district,
-            };
-          }
-
-          throw new Error("slug 已存在");
+    vi.mocked(marketsService.importMarkets).mockResolvedValue({
+      createdMarkets: 1,
+      skipped: 1,
+      issueCount: 1,
+      blockingIssueCount: 1,
+      issues: [
+        {
+          index: 1,
+          code: "slug_exists",
+          severity: "blocking",
+          message: "Market slug already exists",
+          slug: "existing-market",
+          marketName: "既有市場",
         },
+      ],
+      results: [
+        {
+          status: "created",
+          slug: "created-market",
+          marketName: "成功市場",
+          market: {
+            id: "market-3",
+            slug: "created-market",
+            name: "成功市場",
+            type: "night_market",
+            city: "台中市",
+            district: "西屯區",
+          },
+        },
+        {
+          status: "skipped",
+          reason: "slug_exists",
+          slug: "existing-market",
+          marketName: "既有市場",
+        },
+      ],
+    });
+    const wrapper = mount(PlatformMarketsView);
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="market-import-text"]')
+      .setValue(
+        [
+          "slug,name,type,city,district,address,latitude,longitude",
+          '"created-market","成功市場","night_market","台中市","西屯區","文華路",24.176,120.646',
+          '"existing-market","既有市場","night_market","台中市","西屯區","福星路",24.179,120.645',
+        ].join("\n"),
       );
-      const wrapper = mount(PlatformMarketsView);
-      await flushPromises();
 
-      await wrapper
-        .get('[data-testid="market-import-text"]')
-        .setValue(
-          [
-            "slug,name,type,city,district,address,latitude,longitude",
-            '"created-market","成功市場","night_market","台中市","西屯區","文華路",24.176,120.646',
-            '"existing-market","既有市場","night_market","台中市","西屯區","福星路",24.179,120.645',
-          ].join("\n"),
-        );
+    await wrapper.get('[data-testid="market-import-submit"]').trigger("click");
+    await flushPromises();
 
-      await wrapper
-        .get('[data-testid="market-import-submit"]')
-        .trigger("click");
-      await flushPromises();
-
-      expect(marketsService.createMarket).toHaveBeenCalledTimes(2);
-      expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
-      expect(wrapper.text()).toContain("已建立 1 個市場");
-      expect(wrapper.text()).toContain("匯入失敗 1 筆");
-      expect(wrapper.text()).toContain("既有市場");
-      expect(wrapper.text()).toContain("slug 已存在");
-      expect(
-        wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
-          .element.value,
-      ).toContain("existing-market");
-      expect(
-        wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
-          .element.value,
-      ).not.toContain("created-market");
-    } finally {
-      errorSpy.mockRestore();
-    }
+    expect(marketsService.importMarkets).toHaveBeenCalledTimes(1);
+    expect(marketsService.createMarket).not.toHaveBeenCalled();
+    expect(marketsService.listPlatformReadiness).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("已建立 1 個市場");
+    expect(wrapper.text()).toContain("匯入失敗 1 筆");
+    expect(wrapper.text()).toContain("既有市場");
+    expect(wrapper.text()).toContain("slug 已存在");
+    expect(
+      wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
+        .element.value,
+    ).toContain("existing-market");
+    expect(
+      wrapper.get<HTMLTextAreaElement>('[data-testid="market-import-text"]')
+        .element.value,
+    ).not.toContain("created-market");
   });
 
   it("imports vendors into the selected market from CSV with a preview", async () => {

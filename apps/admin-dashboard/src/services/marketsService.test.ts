@@ -84,6 +84,64 @@ describe("marketsService", () => {
     });
   });
 
+  it("bulk imports markets through the server endpoint", async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        data: {
+          createdMarkets: 1,
+          skipped: 0,
+          issueCount: 0,
+          blockingIssueCount: 0,
+          issues: [],
+          results: [
+            {
+              status: "created",
+              slug: "miaokou",
+              marketName: "基隆廟口夜市",
+              market: {
+                id: "market-3",
+                slug: "miaokou",
+                name: "基隆廟口夜市",
+              },
+            },
+          ],
+        },
+      },
+    } as never);
+
+    const result = await marketsService.importMarkets([
+      {
+        slug: "miaokou",
+        name: "基隆廟口夜市",
+        type: "night_market",
+        city: "基隆市",
+        district: "仁愛區",
+        address: "仁三路",
+        latitude: 25.128,
+        longitude: 121.743,
+      },
+    ]);
+
+    expect(api.post).toHaveBeenCalledWith("/admin/markets/bulk", {
+      markets: [
+        {
+          slug: "miaokou",
+          name: "基隆廟口夜市",
+          type: "night_market",
+          city: "基隆市",
+          district: "仁愛區",
+          address: "仁三路",
+          latitude: 25.128,
+          longitude: 121.743,
+        },
+      ],
+    });
+    expect(result).toMatchObject({
+      createdMarkets: 1,
+      results: [{ status: "created", slug: "miaokou" }],
+    });
+  });
+
   it("searches vendor candidates excluding the selected market", async () => {
     vi.mocked(api.get).mockResolvedValueOnce({
       data: {

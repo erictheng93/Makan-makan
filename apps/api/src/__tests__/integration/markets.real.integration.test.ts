@@ -2467,6 +2467,256 @@ describe("Markets API — real integration", () => {
     expect(publicDetailRes.status).toBe(404);
   });
 
+  it("lets platform admins dry-run and bulk import markets", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Market Bulk Import Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const adminUser = await seed.user({
+      username: "market-bulk-import-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+      adminUser.id,
+    );
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const marketsPayload = [
+      {
+        slug: "bulk-import-miaokou",
+        name: "批次廟口夜市",
+        type: "night_market",
+        city: "基隆市",
+        district: "仁愛區",
+        address: "仁三路",
+        latitude: 25.128,
+        longitude: 121.743,
+        tags: ["夜市", "海港"],
+      },
+      {
+        slug: "bulk-import-commercial",
+        name: "批次商圈",
+        type: "commercial_district",
+        city: "台中市",
+        district: "北區",
+        address: "一中街",
+        latitude: 24.15,
+        longitude: 120.684,
+      },
+    ];
+
+    const dryRunRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/admin/markets/bulk", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          dryRun: true,
+          markets: marketsPayload,
+        }),
+      }),
+    );
+
+    expect(dryRunRes.status).toBe(200);
+    const dryRunJson: any = await dryRunRes.json();
+    expect(dryRunJson.data).toMatchObject({
+      dryRun: true,
+      wouldCreateMarkets: 2,
+      createdMarkets: 0,
+      skipped: 0,
+      issueCount: 0,
+      results: [
+        {
+          status: "would_create",
+          slug: "bulk-import-miaokou",
+          marketName: "批次廟口夜市",
+          type: "night_market",
+        },
+        {
+          status: "would_create",
+          slug: "bulk-import-commercial",
+          marketName: "批次商圈",
+          type: "commercial_district",
+        },
+      ],
+    });
+
+    const dryRunRows = await testApp.testDb.drizzle
+      .select({ slug: markets.slug })
+      .from(markets)
+      .where(eq(markets.slug, "bulk-import-miaokou"));
+    expect(dryRunRows).toEqual([]);
+
+    const importRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/admin/markets/bulk", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ markets: marketsPayload }),
+      }),
+    );
+
+    expect(importRes.status).toBe(201);
+    const importJson: any = await importRes.json();
+    expect(importJson.data).toMatchObject({
+      createdMarkets: 2,
+      skipped: 0,
+      issueCount: 0,
+    });
+    expect(importJson.data.results).toEqual([
+      expect.objectContaining({
+        status: "created",
+        slug: "bulk-import-miaokou",
+        market: expect.objectContaining({
+          slug: "bulk-import-miaokou",
+          tags: ["夜市", "海港"],
+        }),
+      }),
+      expect.objectContaining({
+        status: "created",
+        slug: "bulk-import-commercial",
+        market: expect.objectContaining({
+          type: "commercial_district",
+        }),
+      }),
+    ]);
+
+    const importedRows = await testApp.testDb.drizzle
+      .select({
+        slug: markets.slug,
+        type: markets.type,
+        tags: markets.tags,
+      })
+      .from(markets)
+      .where(eq(markets.city, "基隆市"));
+    expect(importedRows).toEqual([
+      {
+        slug: "bulk-import-miaokou",
+        type: "night_market",
+        tags: ["夜市", "海港"],
+      },
+    ]);
+  });
+
+  it("skips invalid rows during market bulk imports without blocking valid rows", async () => {
+    const adminRestaurant = await seed.restaurant({
+      name: "Market Bulk Partial Admin",
+      latitude: 24.15,
+      longitude: 120.67,
+    });
+    const adminUser = await seed.user({
+      username: "market-bulk-partial-admin",
+      role: 0,
+      restaurantId: String(adminRestaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(adminRestaurant.id),
+      adminUser.id,
+    );
+    await seedMarket(testApp, {
+      slug: "existing-bulk-market",
+      name: "既有批次市場",
+    });
+    const headers = {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+      ...CSRF_HEADERS,
+    };
+
+    const importRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/admin/markets/bulk", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          markets: [
+            {
+              slug: "existing-bulk-market",
+              name: "重複既有市場",
+              type: "night_market",
+              city: "台中市",
+              district: "西屯區",
+              address: "文華路",
+              latitude: 24.176,
+              longitude: 120.646,
+            },
+            {
+              slug: "new-bulk-market",
+              name: "新批次市場",
+              type: "food_court",
+              city: "台北市",
+              district: "信義區",
+              address: "松壽路",
+              latitude: 25.034,
+              longitude: 121.566,
+            },
+            {
+              slug: "new-bulk-market",
+              name: "payload 內重複",
+              type: "food_court",
+              city: "台北市",
+              district: "信義區",
+              address: "松壽路二段",
+              latitude: 25.035,
+              longitude: 121.567,
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(importRes.status).toBe(201);
+    const importJson: any = await importRes.json();
+    expect(importJson.data).toMatchObject({
+      createdMarkets: 1,
+      skipped: 2,
+      issueCount: 2,
+      blockingIssueCount: 2,
+    });
+    expect(importJson.data.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          index: 0,
+          code: "slug_exists",
+          slug: "existing-bulk-market",
+        }),
+        expect.objectContaining({
+          index: 2,
+          code: "duplicate_in_payload",
+          slug: "new-bulk-market",
+        }),
+      ]),
+    );
+    expect(importJson.data.results).toEqual([
+      expect.objectContaining({
+        status: "skipped",
+        reason: "slug_exists",
+        slug: "existing-bulk-market",
+      }),
+      expect.objectContaining({
+        status: "created",
+        slug: "new-bulk-market",
+      }),
+      expect.objectContaining({
+        status: "skipped",
+        reason: "duplicate_in_payload",
+        slug: "new-bulk-market",
+      }),
+    ]);
+
+    const createdRows = await testApp.testDb.drizzle
+      .select({ slug: markets.slug, name: markets.name })
+      .from(markets)
+      .where(eq(markets.slug, "new-bulk-market"));
+    expect(createdRows).toEqual([
+      { slug: "new-bulk-market", name: "新批次市場" },
+    ]);
+  });
+
   it("syncs discovery search scope when admins add and remove market vendors", async () => {
     const adminRestaurant = await seed.restaurant({
       name: "Vendor Discovery Admin",

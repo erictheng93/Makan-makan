@@ -221,6 +221,11 @@ export const importMarketVendorsSchema = z.object({
   vendors: z.array(importMarketVendorSchema).min(1).max(50),
 });
 
+export const bulkCreateMarketsSchema = z.object({
+  dryRun: z.boolean().optional(),
+  markets: z.array(createMarketSchema).min(1).max(50),
+});
+
 export const createMarketJoinRequestSchema = z
   .object({
     marketId: z.string().min(1).max(120).optional(),

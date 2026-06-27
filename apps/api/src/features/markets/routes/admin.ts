@@ -13,6 +13,7 @@ import {
   adminMarketJoinRequestsQuerySchema,
   adminVendorCandidatesQuerySchema,
   approveMarketJoinRequestSchema,
+  bulkCreateMarketsSchema,
   createMarketSchema,
   importMarketVendorsSchema,
   marketJoinRequestIdParamSchema,
@@ -29,6 +30,18 @@ const routes = new Hono<{ Bindings: Env }>();
 type ImportMarketVendorInput = z.infer<
   typeof importMarketVendorsSchema
 >["vendors"][number];
+type BulkCreateMarketInput = z.infer<
+  typeof bulkCreateMarketsSchema
+>["markets"][number];
+
+type BulkCreateMarketIssue = {
+  index: number;
+  code: "duplicate_in_payload" | "slug_exists";
+  severity: "blocking";
+  message: string;
+  slug: string;
+  marketName?: string;
+};
 
 type VendorImportIssue = {
   index: number;
@@ -52,6 +65,84 @@ const newVendorDuplicateKey = (vendor: ImportMarketVendorInput) =>
     : `new:${vendor.name?.trim().toLowerCase() ?? ""}\u0000${
         vendor.address?.trim().toLowerCase() ?? ""
       }`;
+
+async function preflightMarketBulkImport(input: {
+  markets: BulkCreateMarketInput[];
+  marketsService: MarketsService;
+}) {
+  const issues: BulkCreateMarketIssue[] = [];
+  const seen = new Map<string, number>();
+  const duplicateIndexes = new Set<number>();
+
+  for (const [index, market] of input.markets.entries()) {
+    const firstIndex = seen.get(market.slug);
+    if (firstIndex !== undefined) {
+      duplicateIndexes.add(index);
+      issues.push({
+        index,
+        code: "duplicate_in_payload",
+        severity: "blocking",
+        message: "Market slug appears more than once in this import payload",
+        slug: market.slug,
+        marketName: market.name,
+      });
+      continue;
+    }
+    seen.set(market.slug, index);
+  }
+
+  const existingMarkets = await input.marketsService.listMarketsBySlugs([
+    ...seen.keys(),
+  ]);
+  const existingSlugNames = new Map(
+    existingMarkets.map((market) => [market.slug, market.name]),
+  );
+  const createableMarkets: BulkCreateMarketInput[] = [];
+  const results = input.markets.map((market, index) => {
+    const existingName = existingSlugNames.get(market.slug);
+    if (duplicateIndexes.has(index)) {
+      return {
+        status: "skipped" as const,
+        reason: "duplicate_in_payload" as const,
+        slug: market.slug,
+        marketName: market.name,
+      };
+    }
+
+    if (existingName !== undefined) {
+      issues.push({
+        index,
+        code: "slug_exists",
+        severity: "blocking",
+        message: "Market slug already exists",
+        slug: market.slug,
+        marketName: existingName,
+      });
+      return {
+        status: "skipped" as const,
+        reason: "slug_exists" as const,
+        slug: market.slug,
+        marketName: existingName,
+      };
+    }
+
+    createableMarkets.push(market);
+    return {
+      status: "would_create" as const,
+      slug: market.slug,
+      marketName: market.name,
+      type: market.type,
+      city: market.city,
+      district: market.district,
+    };
+  });
+
+  return {
+    createableMarkets,
+    issues,
+    results,
+  };
+}
 
 function addNewVendorDefaultIssues(
   issues: VendorImportIssue[],
@@ -367,6 +458,78 @@ routes.post("/", validateBody(createMarketSchema), async (c) => {
   const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
   const market = await service.createMarket(body);
   return c.json({ success: true, data: { market } }, 201);
+});
+
+routes.post("/bulk", validateBody(bulkCreateMarketsSchema), async (c) => {
+  const { dryRun = false, markets } = c.get("validatedBody");
+  const service = new MarketsService(c.env.DB, c.env.CACHE_KV);
+  const preflight = await preflightMarketBulkImport({
+    markets,
+    marketsService: service,
+  });
+
+  if (dryRun) {
+    return c.json({
+      success: true,
+      data: {
+        dryRun: true,
+        wouldCreateMarkets: preflight.createableMarkets.length,
+        createdMarkets: 0,
+        skipped: markets.length - preflight.createableMarkets.length,
+        issueCount: preflight.issues.length,
+        blockingIssueCount: preflight.issues.length,
+        issues: preflight.issues,
+        results: preflight.results,
+      },
+    });
+  }
+
+  try {
+    const createdMarkets = await service.createMarketsBulk(
+      preflight.createableMarkets,
+    );
+    const createdBySlug = new Map(
+      createdMarkets.map((market) => [market.slug, market]),
+    );
+    const results = preflight.results.map((result) => {
+      if (result.status !== "would_create") return result;
+
+      const market = createdBySlug.get(result.slug);
+      return {
+        status: "created" as const,
+        slug: result.slug,
+        marketName: result.marketName,
+        market,
+      };
+    });
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          createdMarkets: createdMarkets.length,
+          skipped: markets.length - createdMarkets.length,
+          issueCount: preflight.issues.length,
+          blockingIssueCount: preflight.issues.length,
+          issues: preflight.issues,
+          results,
+        },
+      },
+      201,
+    );
+  } catch (error) {
+    console.error("Failed to bulk create markets:", error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "MARKET_BULK_IMPORT_FAILED",
+          message: "Bulk market import failed and no markets were created",
+        },
+      },
+      409,
+    );
+  }
 });
 
 routes.put(

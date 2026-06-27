@@ -151,6 +151,10 @@ export interface MarketExplorationSummary {
 export type CreateMarketInput = typeof markets.$inferInsert;
 export type UpdateMarketInput = Partial<typeof markets.$inferInsert>;
 
+function jsonBindValue(value: unknown) {
+  return value === undefined || value === null ? null : JSON.stringify(value);
+}
+
 export class MarketsService {
   private db;
   private d1: D1Database;
@@ -1356,6 +1360,96 @@ export class MarketsService {
       .returning();
     await this.bumpPublicCacheVersion();
     return market;
+  }
+
+  async listMarketsBySlugs(slugs: string[]) {
+    if (slugs.length === 0) return [];
+
+    return this.db
+      .select({
+        id: markets.id,
+        slug: markets.slug,
+        name: markets.name,
+      })
+      .from(markets)
+      .where(inArray(markets.slug, slugs));
+  }
+
+  async createMarketsBulk(inputs: CreateMarketInput[]) {
+    if (inputs.length === 0) return [];
+
+    const now = new Date();
+    const rows = inputs.map((input) => ({
+      ...input,
+      id: input.id ?? crypto.randomUUID(),
+      platformFeeRateBps: input.platformFeeRateBps ?? 0,
+      isActive: input.isActive ?? true,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    }));
+
+    await this.d1.batch(
+      rows.map((market) =>
+        this.d1
+          .prepare(
+            `
+              INSERT INTO markets (
+                id,
+                slug,
+                name,
+                type,
+                description,
+                city,
+                district,
+                address,
+                latitude,
+                longitude,
+                boundary_geojson,
+                opening_hours,
+                map_layout,
+                banner_url,
+                logo_url,
+                image_urls,
+                tags,
+                platform_fee_rate_bps,
+                is_active,
+                created_at_ms,
+                updated_at_ms,
+                deleted_at_ms
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+          )
+          .bind(
+            market.id,
+            market.slug,
+            market.name,
+            market.type,
+            market.description ?? null,
+            market.city,
+            market.district,
+            market.address,
+            market.latitude,
+            market.longitude,
+            jsonBindValue(market.boundaryGeojson),
+            jsonBindValue(market.openingHours),
+            jsonBindValue(market.mapLayout),
+            market.bannerUrl ?? null,
+            market.logoUrl ?? null,
+            jsonBindValue(market.imageUrls),
+            jsonBindValue(market.tags),
+            market.platformFeeRateBps,
+            market.isActive ? 1 : 0,
+            now.getTime(),
+            now.getTime(),
+            null,
+          ),
+      ),
+    );
+
+    await this.bumpPublicCacheVersion();
+    return rows;
   }
 
   async updateMarket(id: string, input: UpdateMarketInput) {

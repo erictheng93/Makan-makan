@@ -2434,28 +2434,35 @@ async function importMarkets() {
 
   isImportingMarkets.value = true;
   try {
-    const items: MarketImportItemResult[] = [];
-    for (const market of marketInputs) {
-      try {
-        const createdMarket = await marketsService.createMarket(market);
-        items.push({
-          slug: market.slug,
-          name: market.name,
+    const result = await marketsService.importMarkets(marketInputs);
+    const inputBySlug = new Map(
+      marketInputs.map((market) => [market.slug, market]),
+    );
+    const items: MarketImportItemResult[] = result.results.map((item) => {
+      const market = inputBySlug.get(item.slug);
+      const fallbackMarket = marketInputs.find(
+        (input) => input.name === item.marketName,
+      );
+      const inputMarket = market ?? fallbackMarket ?? marketInputs[0];
+
+      if (item.status === "created") {
+        return {
+          slug: item.slug,
+          name: item.marketName,
           status: "created",
-          market,
-          createdMarket,
-        });
-      } catch (error) {
-        console.error("Failed to import market:", error);
-        items.push({
-          slug: market.slug,
-          name: market.name,
-          status: "failed",
-          market,
-          message: marketImportFailureMessage(error),
-        });
+          market: inputMarket,
+          createdMarket: item.market,
+        };
       }
-    }
+
+      return {
+        slug: item.slug,
+        name: item.marketName,
+        status: "failed",
+        market: inputMarket,
+        message: marketImportFailureMessage(item.reason),
+      };
+    });
     const created = items.filter((item) => item.status === "created").length;
     const failed = items.length - created;
     marketImportResult.value = { created, failed, items };
@@ -2477,9 +2484,15 @@ async function importMarkets() {
   }
 }
 
-function marketImportFailureMessage(error: unknown) {
-  return error instanceof Error && error.message
-    ? error.message
+function marketImportFailureMessage(reason: unknown) {
+  if (reason === "duplicate_in_payload") {
+    return "匯入資料內 slug 重複。";
+  }
+  if (reason === "slug_exists") {
+    return "slug 已存在。";
+  }
+  return reason instanceof Error && reason.message
+    ? reason.message
     : "建立失敗，請確認 slug 不重複且欄位格式正確。";
 }
 
