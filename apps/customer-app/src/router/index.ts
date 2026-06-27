@@ -76,7 +76,7 @@ const routes: RouteRecordRaw[] = [
     name: "OrderDetail",
     component: () => import("@/views/OrderTrackingView.vue"),
     props: (route) => ({
-      orderId: Number(route.params.id),
+      orderId: String(route.params.id),
     }),
     meta: {
       titleKey: "navigation.orderDetail",
@@ -190,7 +190,7 @@ const routes: RouteRecordRaw[] = [
     props: (route) => ({
       restaurantId: route.params.restaurantId,
       tableId: 0,
-      orderId: Number(route.params.orderId),
+      orderId: String(route.params.orderId),
     }),
     meta: {
       titleKey: "navigation.orderTracking",
@@ -230,7 +230,7 @@ const routes: RouteRecordRaw[] = [
     props: (route) => ({
       restaurantId: route.params.restaurantId,
       tableId: Number(route.params.tableId),
-      orderId: Number(route.params.orderId),
+      orderId: String(route.params.orderId),
     }),
     meta: {
       titleKey: "navigation.orderTracking",

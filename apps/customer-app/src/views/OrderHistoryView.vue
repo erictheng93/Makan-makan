@@ -341,12 +341,12 @@ const changePage = (page: number) => {
 };
 
 // 查看訂單詳情
-const viewOrderDetail = (orderId: number) => {
+const viewOrderDetail = (orderId: string) => {
   router.push(`/orders/${orderId}`);
 };
 
 // 取消訂單
-const cancelOrder = async (orderId: number) => {
+const cancelOrder = async (orderId: string) => {
   const confirmed = await confirmModal({
     type: "danger",
     title: t("orderHistory.cancelOrder"),

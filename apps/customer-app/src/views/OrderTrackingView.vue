@@ -370,7 +370,7 @@ import {
 const props = defineProps<{
   restaurantId: string;
   tableId: number;
-  orderId: number;
+  orderId: string;
 }>();
 
 const router = useRouter();

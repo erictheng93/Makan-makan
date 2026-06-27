@@ -332,7 +332,7 @@ export const orderApi = {
   /**
    * 獲取訂單詳情
    */
-  async getOrder(orderId: number): Promise<Order> {
+  async getOrder(orderId: string): Promise<Order> {
     const response = await apiClient.get<Order>(`/orders/${orderId}`);
     return response;
   },
@@ -340,7 +340,7 @@ export const orderApi = {
   /**
    * 獲取訪客訂單詳情 (uses guest token from localStorage)
    */
-  async getGuestOrder(orderId: number): Promise<Order> {
+  async getGuestOrder(orderId: string): Promise<Order> {
     const response = await apiClient.get<Order | GuestOrderEnvelope>(
       `/guest-orders/${orderId}`,
     );
@@ -360,7 +360,7 @@ export const orderApi = {
   /**
    * 獲取訂單追蹤資訊
    */
-  async getOrderTracking(orderId: number): Promise<OrderTrackingInfo> {
+  async getOrderTracking(orderId: string): Promise<OrderTrackingInfo> {
     const response = await apiClient.get<OrderTrackingInfo>(
       `/orders/${orderId}/tracking`,
     );
@@ -370,7 +370,7 @@ export const orderApi = {
   /**
    * 取消訂單
    */
-  async cancelOrder(orderId: number, reason?: string): Promise<Order> {
+  async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     const response = await apiClient.post<Order>(`/orders/${orderId}/cancel`, {
       reason,
     });

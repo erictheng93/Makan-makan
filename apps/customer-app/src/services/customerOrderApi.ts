@@ -59,7 +59,7 @@ export const customerOrderApi = {
   /**
    * 獲取訂單詳情
    */
-  async getOrderDetail(orderId: number): Promise<Order> {
+  async getOrderDetail(orderId: string): Promise<Order> {
     const response = await apiClient.get<Order>(`/orders/${orderId}`);
     return response;
   },
@@ -67,7 +67,7 @@ export const customerOrderApi = {
   /**
    * 取消訂單
    */
-  async cancelOrder(orderId: number, reason?: string): Promise<Order> {
+  async cancelOrder(orderId: string, reason?: string): Promise<Order> {
     const url = `/orders/${orderId}${reason ? `?reason=${encodeURIComponent(reason)}` : ""}`;
     const response = await apiClient.delete<Order>(url);
     return response;
@@ -76,7 +76,7 @@ export const customerOrderApi = {
   /**
    * 獲取訂單收據
    */
-  async getOrderReceipt(orderId: number): Promise<{
+  async getOrderReceipt(orderId: string): Promise<{
     orderNumber: string;
     restaurantInfo: {
       id: number;
