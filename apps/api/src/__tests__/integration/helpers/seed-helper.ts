@@ -20,7 +20,7 @@ export interface SeedHelpers {
     restaurantId: string | number,
     overrides?: SeedRecord,
   ): Promise<{ id: number }>;
-  user(overrides?: SeedRecord): Promise<{ id: number; username: string }>;
+  user(overrides?: SeedRecord): Promise<{ id: string; username: string }>;
   coupon(
     restaurantId: string | number,
     overrides?: SeedRecord,
@@ -42,6 +42,16 @@ function formatYMD(base: Date, daysOffset: number): string {
 function maybeDate(value: unknown): Date | undefined {
   if (value instanceof Date) return value;
   if (typeof value === "number") return new Date(value);
+  return undefined;
+}
+
+function normalizeSeedUserId(value: unknown): string | undefined {
+  if (typeof value === "number") {
+    return `01900000-0000-7000-8000-${String(value).padStart(12, "0")}`;
+  }
+  if (typeof value === "string") {
+    return value;
+  }
   return undefined;
 }
 
@@ -126,9 +136,11 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
       const now = new Date();
       const restaurantId =
         "restaurantId" in overrides ? overrides.restaurantId : null;
+      const { id: overrideId, ...restOverrides } = overrides;
       const [row] = await testDb.drizzle
         .insert(users)
         .values({
+          id: normalizeSeedUserId(overrideId),
           username: `user-${suffix}`,
           email: `user-${suffix}@example.com`,
           phone: "0912345678",
@@ -145,10 +157,10 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           updatedAt: maybeDate(overrides.updatedAt) ?? now,
           lastLoginAt: maybeDate(overrides.lastLoginAt),
           passwordChangedAt: maybeDate(overrides.passwordChangedAt),
-          ...overrides,
+          ...restOverrides,
         } as never)
         .returning();
-      return { id: row.id as number, username: row.username as string };
+      return { id: row.id as string, username: row.username as string };
     },
 
     coupon: async (restaurantId, overrides = {}) => {

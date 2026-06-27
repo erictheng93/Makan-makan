@@ -3,9 +3,10 @@ import { sign } from "hono/jwt";
 const TEST_SECRET = "test-jwt-secret-do-not-use-in-prod";
 
 export type UserRole = 0 | 1 | 2 | 3 | 4 | 5;
+type TestUserId = string | number;
 
 export interface IssueTestJwtClaims {
-  userId?: number;
+  userId?: TestUserId;
   username?: string;
   restaurantId?: string;
   tokenVersion?: number;
@@ -17,11 +18,11 @@ export async function issueTestJwt(
   claims?: IssueTestJwtClaims,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const userId = claims?.userId ?? 1;
+  const userId = normalizeTestUserId(claims?.userId ?? 1);
   const username = claims?.username ?? `test-user-${userId}`;
   return sign(
     {
-      sub: String(userId),
+      sub: userId,
       id: userId,
       username,
       role,
@@ -35,14 +36,14 @@ export async function issueTestJwt(
 }
 
 export interface AuthHelper {
-  adminToken(restaurantId?: string, userId?: number): Promise<string>;
-  ownerToken(userId: number, restaurantId: string): Promise<string>;
+  adminToken(restaurantId?: string, userId?: TestUserId): Promise<string>;
+  ownerToken(userId: TestUserId, restaurantId: string): Promise<string>;
   staffToken(
-    userId: number,
+    userId: TestUserId,
     role: UserRole,
     restaurantId: string,
   ): Promise<string>;
-  customerToken(userId: number): Promise<string>;
+  customerToken(userId: TestUserId): Promise<string>;
 }
 
 interface TokenUserRow {
@@ -54,7 +55,7 @@ interface TokenUserRow {
 
 async function loadTokenUser(
   db: D1Database | undefined,
-  userId: number,
+  userId: TestUserId,
 ): Promise<TokenUserRow | null> {
   if (!db) return null;
 
@@ -66,9 +67,16 @@ async function loadTokenUser(
           WHERE id = ?
           LIMIT 1`,
       )
-      .bind(userId)
+      .bind(normalizeTestUserId(userId))
       .first<TokenUserRow>()) ?? null
   );
+}
+
+function normalizeTestUserId(userId: TestUserId): string {
+  if (typeof userId === "number") {
+    return `01900000-0000-7000-8000-${String(userId).padStart(12, "0")}`;
+  }
+  return userId;
 }
 
 async function issueDbBackedJwt(

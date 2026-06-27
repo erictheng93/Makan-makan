@@ -422,7 +422,7 @@ describe("seats routes", () => {
 
     const occupyResponse = await routes.fetch(
       jsonRequest("https://test/7/occupy", "POST", {
-        orderId: 42,
+        orderId: "42",
         occupiedBy: "service",
       }),
       env as never,
@@ -432,7 +432,7 @@ describe("seats routes", () => {
     await expect(occupyResponse.json()).resolves.toMatchObject({
       message: "Seat occupied successfully",
     });
-    expect(mocks.occupySeat).toHaveBeenCalledWith(7, 42, "service");
+    expect(mocks.occupySeat).toHaveBeenCalledWith(7, "42", "service");
 
     const releaseResponse = await routes.fetch(
       new Request("https://test/7/release", { method: "POST" }),
@@ -450,7 +450,7 @@ describe("seats routes", () => {
     mocks.getSeatById.mockResolvedValueOnce(seat({ isOccupied: true }));
     const occupiedResponse = await withSilencedRouteError(() =>
       routes.fetch(
-        jsonRequest("https://test/7/occupy", "POST", { orderId: 42 }),
+        jsonRequest("https://test/7/occupy", "POST", { orderId: "42" }),
         createEnv() as never,
       ),
     );
@@ -461,7 +461,7 @@ describe("seats routes", () => {
     mocks.occupySeat.mockResolvedValue(false);
     const occupyResponse = await withSilencedRouteError(() =>
       routes.fetch(
-        jsonRequest("https://test/7/occupy", "POST", { orderId: 42 }),
+        jsonRequest("https://test/7/occupy", "POST", { orderId: "42" }),
         createEnv() as never,
       ),
     );
