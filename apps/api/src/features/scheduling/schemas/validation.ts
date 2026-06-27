@@ -88,7 +88,7 @@ export const updateShiftTemplateSchema = z.object({
 // Supports all time combinations including overnight shifts (e.g., 22:00–06:00)
 export const createEmployeeScheduleSchema = z.object({
   restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
-  employeeId: positiveInteger,
+  employeeId: nonEmptyString,
   shiftTemplateId: positiveInteger.optional().nullable(),
 
   workDate: dateString,
@@ -101,7 +101,7 @@ export const createEmployeeScheduleSchema = z.object({
   notes: z.string().max(500).optional().nullable(),
   managerNotes: z.string().max(500).optional().nullable(),
 
-  createdBy: positiveInteger.optional(), // Injected by route handler from auth context
+  createdBy: nonEmptyString.optional(), // Injected by route handler from auth context
 });
 
 export const updateEmployeeScheduleSchema = z.object({
@@ -116,20 +116,20 @@ export const updateEmployeeScheduleSchema = z.object({
     .optional(),
   notes: z.string().max(500).optional().nullable(),
   managerNotes: z.string().max(500).optional().nullable(),
-  updatedBy: positiveInteger.optional(),
+  updatedBy: nonEmptyString.optional(),
 });
 
 export const bulkCreateSchedulesSchema = z
   .object({
     restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
     shiftTemplateId: positiveInteger,
-    employeeIds: z.array(positiveInteger).min(1).max(50),
+    employeeIds: z.array(nonEmptyString).min(1).max(50),
     dateRange: z.object({
       startDate: dateString,
       endDate: dateString,
     }),
     daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1),
-    createdBy: positiveInteger.optional(), // Injected by route handler from auth context
+    createdBy: nonEmptyString.optional(), // Injected by route handler from auth context
   })
   .refine(
     (data) => {
@@ -143,7 +143,7 @@ export const bulkCreateSchedulesSchema = z
 // Clock In/Out Schema (identical shape for both actions)
 export const clockActionSchema = z.object({
   scheduleId: positiveInteger,
-  employeeId: positiveInteger,
+  employeeId: nonEmptyString,
   notes: z.string().max(500).optional(),
 });
 
@@ -170,7 +170,7 @@ export const createSchedulingRuleSchema = z.object({
   severity: z.enum(["error", "warning", "info"]).default("warning"),
   isSystemRule: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  createdBy: positiveInteger.optional(), // Injected by route handler from auth context
+  createdBy: nonEmptyString.optional(), // Injected by route handler from auth context
 });
 
 export const updateSchedulingRuleSchema = z.object({
@@ -192,21 +192,21 @@ export const updateSchedulingRuleSchema = z.object({
   priority: nonNegativeInteger.optional(),
   severity: z.enum(["error", "warning", "info"]).optional(),
   isActive: z.boolean().optional(),
-  updatedBy: positiveInteger.optional(),
+  updatedBy: nonEmptyString.optional(),
 });
 
 // Conflict Resolution Schema
 export const resolveConflictSchema = z.object({
-  userId: positiveInteger,
+  userId: nonEmptyString,
   resolutionNotes: z.string().max(500),
 });
 
 // Swap Request Schemas
 export const createSwapRequestSchema = z.object({
   restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
-  requesterEmployeeId: positiveInteger,
+  requesterEmployeeId: nonEmptyString,
   requesterScheduleId: positiveInteger,
-  targetEmployeeId: positiveInteger.optional().nullable(),
+  targetEmployeeId: nonEmptyString.optional().nullable(),
   targetScheduleId: positiveInteger.optional().nullable(),
   requestType: z.enum(["swap", "cover", "drop"]),
   reason: nonEmptyString.max(500),
@@ -216,15 +216,15 @@ export const createSwapRequestSchema = z.object({
 });
 
 export const acceptSwapRequestSchema = z.object({
-  employeeId: positiveInteger,
+  employeeId: nonEmptyString,
 });
 
 export const approveSwapRequestSchema = z.object({
-  managerId: positiveInteger,
+  managerId: nonEmptyString,
 });
 
 export const rejectSwapRequestSchema = z.object({
-  managerId: positiveInteger,
+  managerId: nonEmptyString,
   reason: nonEmptyString.max(500),
 });
 
@@ -232,7 +232,7 @@ export const rejectSwapRequestSchema = z.object({
 export const createAvailabilitySchema = z
   .object({
     restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
-    employeeId: positiveInteger,
+    employeeId: nonEmptyString,
     availabilityType: z.enum(["recurring", "specific_date"]),
     dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
     startTime: timeString.optional().nullable(),
@@ -275,7 +275,7 @@ export const createAvailabilitySchema = z
 export const attendanceReportQuerySchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  employeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  employeeId: nonEmptyString.optional(),
 });
 
 // Admin Clock In/Out Schema
@@ -286,7 +286,7 @@ export const adminClockSchema = z.object({
 // Query Parameter Schemas
 export const scheduleFiltersSchema = z.object({
   restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  employeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  employeeId: nonEmptyString.optional(),
   shiftTemplateId: z.string().regex(/^\d+$/).transform(Number).optional(),
   startDate: dateString.optional(),
   endDate: dateString.optional(),
@@ -314,7 +314,7 @@ export const conflictFiltersSchema = z.object({
   status: z
     .enum(["unresolved", "acknowledged", "resolved", "ignored"])
     .optional(),
-  employeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  employeeId: nonEmptyString.optional(),
   startDate: dateString.optional(),
   endDate: dateString.optional(),
   page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
@@ -323,8 +323,8 @@ export const conflictFiltersSchema = z.object({
 
 export const swapRequestFiltersSchema = z.object({
   restaurantId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  requesterEmployeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  targetEmployeeId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  requesterEmployeeId: nonEmptyString.optional(),
+  targetEmployeeId: nonEmptyString.optional(),
   status: z
     .enum([
       "pending",
@@ -375,7 +375,7 @@ export const swapRequestIdParamSchema = z.object({
 });
 
 export const employeeIdParamSchema = z.object({
-  employeeId: z.string().regex(/^\d+$/).transform(Number),
+  employeeId: nonEmptyString,
 });
 
 // Helper Functions

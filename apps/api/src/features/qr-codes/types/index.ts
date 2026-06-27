@@ -91,7 +91,7 @@ export interface CreateQRTemplateData {
   category: "modern" | "classic" | "colorful" | "minimalist" | "branded";
   style: QRStyle;
   /** User ID of the creator (injected from auth context) */
-  createdBy?: number;
+  createdBy?: string;
 }
 
 export interface UpdateQRTemplateData {
@@ -113,7 +113,7 @@ export interface QRCodeEntity {
   downloadCount: number;
   fileSize?: number;
   restaurantId?: string;
-  userId?: number;
+  userId?: string;
   batchId?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -128,7 +128,7 @@ export interface QRBatchEntity extends BaseEntity {
   downloadCount: number;
   totalFileSize: number;
   restaurantId?: string;
-  userId?: number;
+  userId?: string;
   status: "pending" | "processing" | "completed" | "failed";
   progress?: number;
   errorMessage?: string;
@@ -162,12 +162,12 @@ export interface QRDownloadCaller {
 export interface IQRCodeService {
   generateQR(
     data: GenerateQRRequest,
-    userId?: number,
+    userId?: string,
     restaurantId?: string,
   ): Promise<QRCodeEntity>;
   generateBulkQR(
     data: BulkQRRequest,
-    userId?: number,
+    userId?: string,
     restaurantId?: string,
   ): Promise<QRBatchEntity>;
   downloadQR(

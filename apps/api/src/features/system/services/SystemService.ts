@@ -47,7 +47,7 @@ export class SystemService implements ISystemService {
    */
   async createErrorReport(
     data: ErrorReportRequest,
-    userId: number,
+    userId: string,
     restaurantId: string | null,
     userAgent?: string,
   ): Promise<ErrorReportResponse> {

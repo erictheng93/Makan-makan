@@ -38,7 +38,7 @@ type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
 type SettingsSyncInput = z.infer<typeof settingsSyncSchema>;
 
 type NotificationSettingsRecord = {
-  userId: number;
+  userId: string;
   restaurantId: string | null;
   settings: NotificationSettings;
   updatedAt: string;
@@ -165,11 +165,11 @@ routes.post(
 );
 
 function createSettingsKey(user: {
-  id: number;
-  restaurantId?: string | number;
+  id: string;
+  restaurantId?: string | number | null;
 }): string {
   const restaurantId =
-    user.restaurantId !== undefined ? String(user.restaurantId).trim() : "";
+    user.restaurantId == null ? "" : String(user.restaurantId).trim();
   const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
   return `admin:notification-settings:${scope}:${user.id}`;
 }

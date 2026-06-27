@@ -326,12 +326,7 @@ const securityEventsQuerySchema = z.object({
 
 // Parameter validation schemas
 const userIdParamSchema = z.object({
-  id: z
-    .string()
-    .transform(Number)
-    .refine((val) => Number.isInteger(val) && val > 0, {
-      message: "User ID must be a positive integer",
-    }),
+  id: z.string().trim().min(1, "User ID is required"),
 });
 
 const sessionIdParamSchema = z.object({

@@ -56,7 +56,7 @@ export interface RealtimeAuthPayload {
   /** 座位 ID（座位級別連線時使用） */
   seatId?: string;
   /** 使用者 ID（已登入使用者） */
-  userId?: number;
+  userId?: string;
   /** UUID public user id during staff identity migration */
   publicUserId?: string;
   /** Token 過期時間（Unix timestamp） */
@@ -185,7 +185,7 @@ export interface NewOrderEvent extends BaseRealtimeEvent {
   type: RealtimeEventType.NEW_ORDER;
   data: {
     /** 訂單 ID */
-    orderId: number;
+    orderId: string;
     /** 訂單公開 UUID */
     orderPublicId?: string;
     /** 訂單編號 */
@@ -226,7 +226,7 @@ export interface OrderStatusUpdateEvent extends BaseRealtimeEvent {
   type: RealtimeEventType.ORDER_STATUS_UPDATE;
   data: {
     /** 訂單 ID */
-    orderId: number;
+    orderId: string;
     /** 訂單公開 UUID */
     orderPublicId?: string;
     /** 訂單編號 */
@@ -241,7 +241,7 @@ export interface OrderStatusUpdateEvent extends BaseRealtimeEvent {
     message?: string;
     /** 更新者 */
     updatedBy?: {
-      userId: number;
+      userId: string;
       userName: string;
       role: string;
     };
@@ -255,7 +255,7 @@ export interface OrderItemStatusUpdateEvent extends BaseRealtimeEvent {
   type: RealtimeEventType.ORDER_ITEM_STATUS_UPDATE;
   data: {
     /** 訂單 ID */
-    orderId: number;
+    orderId: string;
     /** 訂單公開 UUID */
     orderPublicId?: string;
     /** 訂單項目 ID */
@@ -280,7 +280,7 @@ export interface OrderCancelledEvent extends BaseRealtimeEvent {
   type: RealtimeEventType.ORDER_CANCELLED;
   data: {
     /** 訂單 ID */
-    orderId: number;
+    orderId: string;
     /** 訂單公開 UUID */
     orderPublicId?: string;
     /** 訂單編號 */
@@ -289,7 +289,7 @@ export interface OrderCancelledEvent extends BaseRealtimeEvent {
     reason: string;
     /** 取消者 */
     cancelledBy: {
-      userId: number;
+      userId: string;
       userName: string;
       role: string;
     };
@@ -307,7 +307,7 @@ export interface KitchenItemStatusEvent extends BaseRealtimeEvent {
   type: RealtimeEventType.KITCHEN_ITEM_STATUS;
   data: {
     /** 訂單 ID */
-    orderId: number;
+    orderId: string;
     /** 訂單公開 UUID */
     orderPublicId?: string;
     /** 訂單項目 ID */

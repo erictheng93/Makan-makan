@@ -33,14 +33,14 @@ export const mockMarketCheckoutProviderGatewayInput: MarketCheckoutProviderSplit
       {
         restaurantId: "restaurant-1",
         restaurantName: "Chicken Stall",
-        orderId: 101,
+        orderId: "101",
         orderNumber: "A001",
         amountCents: 16000,
       },
       {
         restaurantId: "restaurant-2",
         restaurantName: "Dessert Stall",
-        orderId: 102,
+        orderId: "102",
         orderNumber: "A002",
         amountCents: 8000,
       },
@@ -73,12 +73,12 @@ export const mockMarketCheckoutProviderPaidResponse: MarketCheckoutProviderSplit
     authorizedAmountCents: 24000,
     allocations: [
       {
-        orderId: 101,
+        orderId: "101",
         paymentId: "mock-pay-101",
         amountCents: 16000,
       },
       {
-        orderId: 102,
+        orderId: "102",
         paymentId: "mock-pay-102",
         amountCents: 8000,
       },
@@ -110,14 +110,14 @@ export const mockMarketCheckoutProviderRefundInput: MarketCheckoutProviderSplitR
       {
         restaurantId: "restaurant-1",
         restaurantName: "Chicken Stall",
-        orderId: 101,
+        orderId: "101",
         orderNumber: "A001",
         amountCents: 16000,
       },
       {
         restaurantId: "restaurant-2",
         restaurantName: "Dessert Stall",
-        orderId: 102,
+        orderId: "102",
         orderNumber: "A002",
         amountCents: 8000,
       },

@@ -99,8 +99,7 @@ export class ServiceBookingNotificationService {
     }
   }
 
-  private getRecipientId(customerId: string | null | undefined): number {
-    const parsedId = Number(customerId);
-    return Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
+  private getRecipientId(customerId: string | null | undefined): string {
+    return customerId?.trim() || "service-booking-customer";
   }
 }

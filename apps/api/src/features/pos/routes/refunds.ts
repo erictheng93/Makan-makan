@@ -112,7 +112,7 @@ app.get(
       status: z
         .enum(["pending", "processing", "completed", "failed", "cancelled"])
         .optional(),
-      orderId: z.string().regex(/^\d+$/).transform(Number).optional(),
+      orderId: z.string().trim().min(1).optional(),
       page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
       limit: z
         .string()

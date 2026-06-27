@@ -255,9 +255,10 @@ app.post("/", async (c) => {
 // ─── GET /:id ─── View guest order (guest token required) ───
 app.get("/:id", guestTokenAuth, async (c) => {
   const orderId = c.req.param("id");
+  if (!orderId) throw badRequest("Missing order id");
 
   const ordersService = new OrdersService(c.env);
-  const order = await ordersService.getOrder(Number(orderId), true);
+  const order = await ordersService.getOrder(orderId, true);
 
   if (!order) {
     throw notFound("Order not found");
@@ -269,6 +270,7 @@ app.get("/:id", guestTokenAuth, async (c) => {
 // ─── POST /:id/items ─── Add items to guest order (guest token required) ───
 app.post("/:id/items", guestTokenAuth, async (c) => {
   const orderId = c.req.param("id");
+  if (!orderId) throw badRequest("Missing order id");
 
   const body = await c.req.json();
   const parsed = addGuestOrderItemsSchema.safeParse(body);
@@ -284,7 +286,7 @@ app.post("/:id/items", guestTokenAuth, async (c) => {
   }
 
   const ordersService = new OrdersService(c.env);
-  const order = await ordersService.getOrder(Number(orderId), true);
+  const order = await ordersService.getOrder(orderId, true);
 
   if (!order) {
     throw notFound("Order not found");
@@ -303,7 +305,7 @@ app.post("/:id/items", guestTokenAuth, async (c) => {
   }
 
   const updatedOrder = await ordersService.addItemsToOrder(
-    Number(orderId),
+    orderId,
     parsed.data.items,
   );
 
@@ -317,9 +319,10 @@ app.post("/:id/items", guestTokenAuth, async (c) => {
 // ─── POST /:id/cancel ─── Cancel guest order (guest token required) ───
 app.post("/:id/cancel", guestTokenAuth, async (c) => {
   const orderId = c.req.param("id");
+  if (!orderId) throw badRequest("Missing order id");
 
   const ordersService = new OrdersService(c.env);
-  const order = await ordersService.getOrder(Number(orderId), false);
+  const order = await ordersService.getOrder(orderId, false);
 
   if (!order) {
     throw notFound("Order not found");
@@ -332,7 +335,7 @@ app.post("/:id/cancel", guestTokenAuth, async (c) => {
   }
 
   const cancelledOrder = await ordersService.cancelOrder(
-    Number(orderId),
+    orderId,
     "Cancelled by guest",
   );
 

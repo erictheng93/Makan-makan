@@ -141,7 +141,7 @@ export class ShiftService {
   async endShift(
     shiftId: string,
     data: EndShiftRequest,
-    operatorId: number,
+    operatorId: string,
   ): Promise<{
     success: boolean;
     data?: { shift: CashShift };
@@ -314,7 +314,7 @@ export class ShiftService {
       type: string;
       amount: number;
       description: string;
-      recordedBy: number;
+      recordedBy: string;
       referenceId?: number;
       referenceType?: string;
       paymentMethod?: string;

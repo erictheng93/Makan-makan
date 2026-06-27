@@ -38,14 +38,14 @@ export interface CreateCouponData {
   validTo: string;
   isActive?: boolean;
   isVisible?: boolean;
-  createdBy?: number;
+  createdBy?: string;
 }
 
 // 優惠券使用資料接口
 export interface UseCouponData {
   couponId: number;
-  orderId: number;
-  userId?: number;
+  orderId: string;
+  userId?: string;
   discountAmount: number;
   originalAmount: number;
   finalAmount: number;
@@ -74,7 +74,7 @@ export interface ValidateCouponRequest {
   code: string;
   restaurantId: string;
   orderAmount: number;
-  userId?: number;
+  userId?: string;
   menuItems?: Array<{ menuItemId: number; quantity: number }>;
 }
 
@@ -87,7 +87,7 @@ export interface CouponDistributionData {
   totalDistributed?: number;
   expiresAt?: string;
   notes?: string;
-  createdBy?: number;
+  createdBy?: string;
 }
 
 // 優惠券模板資料
@@ -97,7 +97,7 @@ export interface CouponTemplateData {
   description?: string;
   templateData: unknown;
   isSystemTemplate?: boolean;
-  createdBy?: number;
+  createdBy?: string;
 }
 
 // 分頁響應

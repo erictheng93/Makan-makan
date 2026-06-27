@@ -51,7 +51,7 @@ export interface BaseWebSocketMessage {
 // 訂單狀態更新訊息
 export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
   type: "ORDER_STATUS_UPDATE";
-  orderId: number;
+  orderId: string;
   status: OrderStatus;
   estimatedTime?: number;
   message?: string;
@@ -60,7 +60,7 @@ export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
 // 訂單項目狀態更新訊息
 export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
   type: "ORDER_ITEM_STATUS_UPDATE";
-  orderId: number;
+  orderId: string;
   orderItemId: number;
   status: OrderItemStatus;
 }
@@ -68,7 +68,7 @@ export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
 // 新訂單通知訊息
 export interface NewOrderMessage extends BaseWebSocketMessage {
   type: "NEW_ORDER";
-  orderId: number;
+  orderId: string;
   restaurantId: string;
   tableId: number;
   totalAmount: number;
@@ -103,7 +103,7 @@ export interface MenuAvailabilityUpdateMessage extends BaseWebSocketMessage {
 // 廚房顯示更新訊息
 export interface KitchenDisplayUpdateMessage extends BaseWebSocketMessage {
   type: "KITCHEN_DISPLAY_UPDATE";
-  orderId: number;
+  orderId: string;
   action: "add" | "update" | "remove";
   priority?: "normal" | "high" | "urgent";
 }

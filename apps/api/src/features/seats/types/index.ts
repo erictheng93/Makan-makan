@@ -21,7 +21,7 @@ export interface UpdateSeatInput {
 }
 
 export interface OccupySeatInput {
-  orderId: number;
+  orderId: string;
   occupiedBy?: string;
 }
 

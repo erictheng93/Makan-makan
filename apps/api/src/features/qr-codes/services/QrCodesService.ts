@@ -72,7 +72,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
   // QR Code Generation Methods
   async generateQR(
     data: GenerateQRRequest,
-    userId?: number,
+    userId?: string,
     restaurantId?: string,
   ): Promise<QRCodeEntity> {
     const timer = this.performance.startTimer("qr-codes.generate");
@@ -116,7 +116,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
       // Create audit log
       await this.qrService.createAuditLog({
-        userId: userId || 0,
+        userId: userId ?? "system",
         action: "QR_GENERATED",
         resource: "qr_codes",
         description: `Generated QR code for content: ${data.content.substring(0, 50)}...`,
@@ -151,7 +151,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
   async generateBulkQR(
     data: BulkQRRequest,
-    userId?: number,
+    userId?: string,
     restaurantId?: string,
   ): Promise<QRBatchEntity> {
     const timer = this.performance.startTimer("qr-codes.generateBulk");
@@ -659,7 +659,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
         name: data.name,
         description: data.description,
         style: data.style,
-        createdBy: data.createdBy || 1, // Use provided createdBy from auth context
+        createdBy: data.createdBy ?? "system",
       });
 
       // Transform to match our interface
@@ -716,7 +716,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
           description: data.description,
           style: data.style,
         },
-        1,
+        "system",
       ); // Default user ID - should be passed from context
 
       if (!template) {
@@ -766,7 +766,7 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
 
     try {
       // Delete template using the existing QRCodeService
-      await this.qrService.deleteTemplate(id, 1); // Default user ID - should be passed from context
+      await this.qrService.deleteTemplate(id, "system"); // Default user ID - should be passed from context
 
       // Clear caches
       await this.cache.delete(`qr-template:${id}`);

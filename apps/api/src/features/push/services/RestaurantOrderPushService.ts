@@ -14,7 +14,7 @@ interface PushSubscriptionRecord {
 
 export interface RestaurantOrderPushInput {
   restaurantId: string;
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   orderSource?: string | null;
   totalAmount: number;

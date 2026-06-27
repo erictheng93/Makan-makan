@@ -16,7 +16,7 @@ interface FinalizationEnv {
 }
 
 export interface OrderStatusBroadcastSnapshot {
-  id: number;
+  id: string;
   restaurantId: string | number;
   orderNumber?: string | null;
 }
@@ -26,7 +26,7 @@ export interface FinalizeOrderStatusSideEffectsOptions {
   order: OrderStatusBroadcastSnapshot;
   previousStatus: OrderStatus;
   newStatus: OrderStatus;
-  updatedBy?: number;
+  updatedBy?: string;
   updatedByRole?: string;
   notes?: string;
   estimatedReadyTime?: Date;
@@ -34,7 +34,7 @@ export interface FinalizeOrderStatusSideEffectsOptions {
 
 export async function invalidateOrderCache(
   cacheKV: KVLike,
-  orderId: number,
+  orderId: string,
 ): Promise<void> {
   await Promise.all([
     cacheKV.delete(`order:${orderId}:full`),

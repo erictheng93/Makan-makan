@@ -59,7 +59,7 @@ export interface LeaveType {
  */
 export interface EmployeeLeaveBalance {
   id: number;
-  employeeId: number;
+  employeeId: string;
   leaveTypeId: number;
   restaurantId: string;
   year: number;
@@ -78,7 +78,7 @@ export interface EmployeeLeaveBalance {
   // Manual Adjustments (手動調整)
   manualAdjustment: number;
   adjustmentReason: string | null;
-  adjustedBy: number | null;
+  adjustedBy: string | null;
   adjustedAt: number | null;
 
   // Metadata
@@ -99,7 +99,7 @@ export type LeaveBalance = EmployeeLeaveBalance;
 export interface LeaveRequest {
   id: number;
   restaurantId: string;
-  employeeId: number;
+  employeeId: string;
   leaveTypeId: number;
 
   // Date & Duration (日期與時長)
@@ -227,7 +227,7 @@ export interface LeaveRequestWithRelations extends LeaveRequest {
   };
   approvers?: Array<{
     level: number;
-    userId: number;
+    userId: string;
     userName: string;
     approvedAt: number | null;
     comments: string | null;
@@ -292,7 +292,7 @@ export type CreateLeaveRequestData = Omit<
  * Leave Request Filters
  */
 export interface LeaveRequestFilters {
-  employeeId?: number;
+  employeeId?: string;
   leaveTypeId?: number;
   status?: LeaveRequest["status"];
   startDate?: string; // Filter requests that overlap with this date range
@@ -305,12 +305,12 @@ export interface LeaveRequestFilters {
  * Leave Balance Adjustment
  */
 export interface LeaveBalanceAdjustment {
-  employeeId: number;
+  employeeId: string;
   leaveTypeId: number;
   year: number;
   adjustment: number;
   reason: string;
-  adjustedBy: number;
+  adjustedBy: string;
 }
 
 /**
@@ -352,11 +352,11 @@ export interface ILeaveService {
 
   // Leave Balances
   getEmployeeLeaveBalances(
-    employeeId: number,
+    employeeId: string,
     year: number,
   ): Promise<LeaveBalanceWithType[]>;
   getLeaveBalance(
-    employeeId: number,
+    employeeId: string,
     leaveTypeId: number,
     year: number,
   ): Promise<EmployeeLeaveBalance | null>;
@@ -373,17 +373,17 @@ export interface ILeaveService {
   createLeaveRequest(data: CreateLeaveRequestData): Promise<LeaveRequest>;
   approveLeaveRequest(
     requestId: number,
-    approverId: number,
+    approverId: string,
     comments?: string,
   ): Promise<LeaveRequest>;
   rejectLeaveRequest(
     requestId: number,
-    approverId: number,
+    approverId: string,
     reason: string,
   ): Promise<LeaveRequest>;
   cancelLeaveRequest(
     requestId: number,
-    userId: number,
+    userId: string,
     reason: string,
   ): Promise<LeaveRequest>;
 

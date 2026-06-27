@@ -248,7 +248,7 @@ app.post(
     // Inject createdBy from authenticated user
     const template = await service.createTemplate({
       ...data,
-      createdBy: user?.id || 1,
+      createdBy: user.id,
     });
 
     return c.json(

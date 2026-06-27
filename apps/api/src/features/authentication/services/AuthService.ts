@@ -43,7 +43,7 @@ import type {
 } from "../types";
 
 interface DatabaseSessionSummary {
-  id: number;
+  id: string;
   deviceInfo?: string | null;
   location?: string | null;
   lastAccessedAt?: string | number | Date | null;
@@ -202,7 +202,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async register(data: RegisterData, createdBy?: number): Promise<AuthResult> {
+  async register(data: RegisterData, createdBy?: string): Promise<AuthResult> {
     const timer = this.performance.startTimer("auth.register");
 
     try {
@@ -338,7 +338,7 @@ export class AuthService implements IAuthService {
   }
 
   async logout(
-    userId: number,
+    userId: string,
     token?: string,
     allSessions?: boolean,
   ): Promise<boolean> {
@@ -456,7 +456,7 @@ export class AuthService implements IAuthService {
   }
 
   // User Management Methods
-  async getUserProfile(userId: number): Promise<UserProfile | null> {
+  async getUserProfile(userId: string): Promise<UserProfile | null> {
     const timer = this.performance.startTimer("auth.getUserProfile");
 
     try {
@@ -535,7 +535,7 @@ export class AuthService implements IAuthService {
   }
 
   async updateUserProfile(
-    userId: number,
+    userId: string,
     data: Partial<AuthUser>,
   ): Promise<AuthUser | null> {
     const timer = this.performance.startTimer("auth.updateUserProfile");
@@ -609,7 +609,7 @@ export class AuthService implements IAuthService {
   }
 
   async changePassword(
-    userId: number,
+    userId: string,
     oldPassword: string,
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
@@ -660,7 +660,7 @@ export class AuthService implements IAuthService {
   }
 
   // Session Management Methods
-  async getUserSessions(userId: number): Promise<SessionSummary[]> {
+  async getUserSessions(userId: string): Promise<SessionSummary[]> {
     const timer = this.performance.startTimer("auth.getUserSessions");
 
     try {
@@ -711,7 +711,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async terminateSession(userId: number, sessionId: string): Promise<boolean> {
+  async terminateSession(userId: string, sessionId: string): Promise<boolean> {
     const timer = this.performance.startTimer("auth.terminateSession");
 
     try {
@@ -751,7 +751,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async terminateAllSessions(userId: number): Promise<boolean> {
+  async terminateAllSessions(userId: string): Promise<boolean> {
     const timer = this.performance.startTimer("auth.terminateAllSessions");
 
     try {
@@ -778,7 +778,7 @@ export class AuthService implements IAuthService {
 
   // Two-Factor Authentication Methods (Placeholder implementations)
   async setupTwoFactor(
-    userId: number,
+    userId: string,
     _password: string,
   ): Promise<{ secret: string; qrCode: string; backupCodes: string[] }> {
     this.logger.warn("setupTwoFactor not implemented", { userId });
@@ -786,7 +786,7 @@ export class AuthService implements IAuthService {
   }
 
   async verifyTwoFactor(
-    userId: number,
+    userId: string,
     _token: string,
     _backupCode?: string,
   ): Promise<{ success: boolean; error?: string }> {
@@ -798,7 +798,7 @@ export class AuthService implements IAuthService {
   }
 
   async disableTwoFactor(
-    userId: number,
+    userId: string,
     _password: string,
     _token?: string,
   ): Promise<{ success: boolean; error?: string }> {
@@ -809,7 +809,7 @@ export class AuthService implements IAuthService {
     };
   }
 
-  async generateBackupCodes(userId: number): Promise<TwoFactorBackupCodes> {
+  async generateBackupCodes(userId: string): Promise<TwoFactorBackupCodes> {
     this.logger.warn("generateBackupCodes not implemented", { userId });
     throw new Error("Two-factor authentication not yet implemented");
   }
@@ -893,7 +893,7 @@ export class AuthService implements IAuthService {
 
   // Email Verification Methods
   async requestEmailVerification(
-    userId: number,
+    userId: string,
   ): Promise<{ success: boolean; error?: string }> {
     const user = await this.db
       .select({ email: users.email })
@@ -957,7 +957,7 @@ export class AuthService implements IAuthService {
   }
 
   async getSecurityEvents(
-    userId?: number,
+    userId?: string,
     limit = 50,
   ): Promise<SecurityEvent[]> {
     this.logger.warn("getSecurityEvents not fully implemented", {
@@ -967,7 +967,7 @@ export class AuthService implements IAuthService {
     return [];
   }
 
-  async checkAccountSecurity(userId: number): Promise<AccountSecurity> {
+  async checkAccountSecurity(userId: string): Promise<AccountSecurity> {
     const user = await this.db
       .select({
         passwordChangedAt: users.passwordChangedAt,
@@ -1046,7 +1046,7 @@ export class AuthService implements IAuthService {
 
   // Private Helper Methods
   private async validateRoleCreationPermissions(
-    creatorId: number,
+    creatorId: string,
     targetRole: number,
   ): Promise<void> {
     // Implementation would check if creator has permission to create users with target role
@@ -1057,7 +1057,7 @@ export class AuthService implements IAuthService {
     });
   }
 
-  private async cacheUserSession(userId: number, token: string): Promise<void> {
+  private async cacheUserSession(userId: string, token: string): Promise<void> {
     try {
       const sessionKey = `user-session:${userId}:${token}`;
       await this.cache.set(

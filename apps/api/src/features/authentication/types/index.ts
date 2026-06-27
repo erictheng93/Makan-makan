@@ -3,8 +3,6 @@
  * TypeScript type definitions for the authentication feature
  */
 
-import type { BaseEntity } from "../../../shared/types";
-
 // Import shared types that exist
 import type { UserRole } from "@makanmakan/shared-types";
 
@@ -89,7 +87,8 @@ export interface RegisterData {
 }
 
 // User and Session Types (feature-specific user type)
-export interface AuthUser extends BaseEntity {
+export interface AuthUser {
+  id: string;
   username: string;
   fullName: string;
   email?: string;
@@ -103,11 +102,14 @@ export interface AuthUser extends BaseEntity {
   emailVerifiedAt?: Date;
   twoFactorEnabled: boolean;
   twoFactorSecret?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface SessionEntity extends BaseEntity {
+export interface SessionEntity {
+  id: string;
   sessionId: string;
-  userId: number;
+  userId: string;
   token: string;
   refreshToken?: string;
   deviceInfo?: DeviceInfo;
@@ -117,21 +119,23 @@ export interface SessionEntity extends BaseEntity {
   expiresAt: Date;
   lastAccessedAt?: Date;
   isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // JWT Token Types
 export interface JWTPayload {
-  id: number;
+  id: string;
   username: string;
   role: UserRole;
-  restaurantId?: string;
+  restaurantId?: string | null;
   iat?: number;
   exp?: number;
   nbf?: number;
 }
 
 export interface RefreshTokenPayload {
-  userId: number;
+  userId: string;
   type: "refresh";
   iat?: number;
   exp?: number;
@@ -162,7 +166,7 @@ export interface TokenValidation {
 }
 
 export interface UserProfile {
-  id: number;
+  id: string;
   username: string;
   fullName: string;
   email?: string;
@@ -204,20 +208,26 @@ export interface TwoFactorBackupCodes {
 }
 
 // Password Reset Types
-export interface PasswordResetToken extends BaseEntity {
-  userId: number;
+export interface PasswordResetToken {
+  id: string;
+  userId: string;
   token: string;
   expiresAt: Date;
   isUsed: boolean;
   ipAddress?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface EmailVerificationToken extends BaseEntity {
-  userId: number;
+export interface EmailVerificationToken {
+  id: string;
+  userId: string;
   token: string;
   email: string;
   expiresAt: Date;
   isUsed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Security and Audit Types
@@ -233,7 +243,7 @@ export interface SecurityEvent {
     | "PASSWORD_RESET_REQUESTED"
     | "PASSWORD_RESET_COMPLETED"
     | "EMAIL_VERIFIED";
-  userId?: number;
+  userId?: string;
   username?: string;
   ipAddress?: string;
   userAgent?: string;
@@ -288,48 +298,48 @@ export interface AuthStatistics {
 export interface IAuthService {
   // Core authentication methods
   login(data: LoginData): Promise<AuthResult>;
-  register(data: RegisterData, createdBy?: number): Promise<AuthResult>;
+  register(data: RegisterData, createdBy?: string): Promise<AuthResult>;
   refreshToken(refreshToken: string): Promise<AuthResult>;
   logout(
-    userId: number,
+    userId: string,
     token?: string,
     allSessions?: boolean,
   ): Promise<boolean>;
   validateToken(token: string): Promise<TokenValidation>;
 
   // User management
-  getUserProfile(userId: number): Promise<UserProfile | null>;
+  getUserProfile(userId: string): Promise<UserProfile | null>;
   updateUserProfile(
-    userId: number,
+    userId: string,
     data: Partial<AuthUser>,
   ): Promise<AuthUser | null>;
   changePassword(
-    userId: number,
+    userId: string,
     oldPassword: string,
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }>;
 
   // Session management
-  getUserSessions(userId: number): Promise<SessionSummary[]>;
-  terminateSession(userId: number, sessionId: string): Promise<boolean>;
-  terminateAllSessions(userId: number): Promise<boolean>;
+  getUserSessions(userId: string): Promise<SessionSummary[]>;
+  terminateSession(userId: string, sessionId: string): Promise<boolean>;
+  terminateAllSessions(userId: string): Promise<boolean>;
 
   // Two-factor authentication
   setupTwoFactor(
-    userId: number,
+    userId: string,
     password: string,
   ): Promise<{ secret: string; qrCode: string; backupCodes: string[] }>;
   verifyTwoFactor(
-    userId: number,
+    userId: string,
     token: string,
     backupCode?: string,
   ): Promise<{ success: boolean; error?: string }>;
   disableTwoFactor(
-    userId: number,
+    userId: string,
     password: string,
     token?: string,
   ): Promise<{ success: boolean; error?: string }>;
-  generateBackupCodes(userId: number): Promise<TwoFactorBackupCodes>;
+  generateBackupCodes(userId: string): Promise<TwoFactorBackupCodes>;
 
   // Password reset
   requestPasswordReset(
@@ -342,14 +352,14 @@ export interface IAuthService {
 
   // Email verification
   requestEmailVerification(
-    userId: number,
+    userId: string,
   ): Promise<{ success: boolean; error?: string }>;
   verifyEmail(token: string): Promise<{ success: boolean; error?: string }>;
 
   // Security and monitoring
   logSecurityEvent(event: Omit<SecurityEvent, "timestamp">): Promise<void>;
-  getSecurityEvents(userId?: number, limit?: number): Promise<SecurityEvent[]>;
-  checkAccountSecurity(userId: number): Promise<AccountSecurity>;
+  getSecurityEvents(userId?: string, limit?: number): Promise<SecurityEvent[]>;
+  checkAccountSecurity(userId: string): Promise<AccountSecurity>;
 
   // Statistics
   getAuthStatistics(timeRange?: string): Promise<AuthStatistics>;
@@ -359,16 +369,16 @@ export interface IAuthService {
 export type AuthEvent =
   | {
       type: "USER_LOGGED_IN";
-      payload: { userId: number; deviceInfo?: DeviceInfo };
+      payload: { userId: string; deviceInfo?: DeviceInfo };
     }
-  | { type: "USER_LOGGED_OUT"; payload: { userId: number } }
+  | { type: "USER_LOGGED_OUT"; payload: { userId: string } }
   | { type: "USER_REGISTERED"; payload: AuthUser }
-  | { type: "PASSWORD_CHANGED"; payload: { userId: number } }
-  | { type: "TWO_FACTOR_ENABLED"; payload: { userId: number } }
-  | { type: "TWO_FACTOR_DISABLED"; payload: { userId: number } }
+  | { type: "PASSWORD_CHANGED"; payload: { userId: string } }
+  | { type: "TWO_FACTOR_ENABLED"; payload: { userId: string } }
+  | { type: "TWO_FACTOR_DISABLED"; payload: { userId: string } }
   | { type: "SECURITY_ALERT"; payload: SecurityEvent }
-  | { type: "ACCOUNT_LOCKED"; payload: { userId: number; reason: string } }
-  | { type: "EMAIL_VERIFIED"; payload: { userId: number; email: string } };
+  | { type: "ACCOUNT_LOCKED"; payload: { userId: string; reason: string } }
+  | { type: "EMAIL_VERIFIED"; payload: { userId: string; email: string } };
 
 // Configuration Types
 export interface AuthConfig {

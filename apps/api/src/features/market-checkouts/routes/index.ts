@@ -73,7 +73,7 @@ const payMarketCheckoutSchema = z.object({
 });
 
 const recoverMarketCheckoutGuestTokenSchema = z.object({
-  orderId: z.number().int().positive(),
+  orderId: z.string().trim().min(1),
   phoneLastDigits: z.string().regex(/^\d{3}$/),
 });
 
@@ -115,7 +115,7 @@ app.post("/payment-webhooks/:provider", async (c) => {
 interface MarketCheckoutChildOrder {
   restaurantId: string;
   restaurantName: string;
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   totalAmount: number;
   totalAmountCents?: number | null;
@@ -196,7 +196,7 @@ interface MarketCheckoutSettlementSummary {
   vendorAllocations: Array<{
     restaurantId: string;
     restaurantName: string;
-    orderId: number;
+    orderId: string;
     orderNumber: string;
     grossAmountCents: number;
     originalAmountCents?: number;
@@ -232,7 +232,7 @@ interface MarketCheckoutPaymentSummary {
   childPayments: Array<{
     restaurantId: string;
     restaurantName: string;
-    orderId: number;
+    orderId: string;
     orderNumber: string;
     paymentId?: string;
     refundId?: string;
@@ -582,7 +582,7 @@ app.post("/:id/voucher", async (c) => {
     );
   }
 
-  const existingDiscountByOrderId = new Map<number, number>();
+  const existingDiscountByOrderId = new Map<string, number>();
   for (const voucher of existingVouchers) {
     for (const alloc of voucher.allocations) {
       existingDiscountByOrderId.set(
@@ -764,7 +764,7 @@ app.post("/:id/pay", async (c) => {
       throw error;
     }
   }
-  const voucherDiscountByOrderId = new Map<number, number>(
+  const voucherDiscountByOrderId = new Map<string, number>(
     appliedVoucher?.allocations.map((alloc) => [
       alloc.orderId,
       alloc.discountCents,
@@ -1260,7 +1260,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
           {
             refundId: providerRefund.refundId,
             transactionId: parentPayment.paymentId,
-            orderId: 0,
+            orderId: "unknown",
             amount: providerRefund.refundedAmountCents / 100,
             status: providerRefund.status === "failed" ? "failed" : "completed",
             paymentStatus: providerRefund.status,
@@ -1987,7 +1987,7 @@ function buildMarketCheckoutSettlement(
 
 function buildVoucherDiscountAttribution(session: MarketCheckoutSession) {
   const discountsByOrderId = new Map<
-    number,
+    string,
     { platformDiscountCents: number; vendorDiscountCents: number }
   >();
 
@@ -2014,7 +2014,7 @@ function buildVoucherDiscountAttribution(session: MarketCheckoutSession) {
 async function markMarketCheckoutVoucherRefunded(
   env: Env,
   session: MarketCheckoutSession,
-  orderIds: number[],
+  orderIds: string[],
 ): Promise<void> {
   const appliedVouchers = listAppliedMarketCheckoutVouchers(
     session.appliedVoucher,

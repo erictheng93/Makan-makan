@@ -7,12 +7,12 @@ import type { AuditLogQuery } from "../schemas/validation";
 export interface AuditLogEntry {
   id: number;
   // Primary actor alias: tests match either actorId or userId.
-  actorId: number | null;
-  userId: number | null;
+  actorId: string | null;
+  userId: string | null;
   // Delegated-user alias: tests match either onBehalfOfUserId or
   // delegatedUserId.
-  onBehalfOfUserId: number | null;
-  delegatedUserId: number | null;
+  onBehalfOfUserId: string | null;
+  delegatedUserId: string | null;
   restaurantId: string | null;
   action: string;
   resource: string;

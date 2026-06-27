@@ -63,7 +63,7 @@ export interface BulkQROptions {
   /** Restaurant ID for the QR codes */
   restaurantId: string;
   /** User ID who is generating the QR codes */
-  userId: number;
+  userId: string;
   tables: Array<{
     id: number;
     name: string;
@@ -461,7 +461,7 @@ export class QRCodeService {
    */
   async createTemplate(
     template: Omit<QRTemplate, "id" | "createdAt" | "updatedAt"> & {
-      createdBy?: number;
+      createdBy?: string;
     },
   ): Promise<{
     success: boolean;
@@ -477,7 +477,7 @@ export class QRCodeService {
         name: template.name,
         description: template.description,
         style: template.style as QRStyleData,
-        createdBy: template.createdBy || 1, // Use provided createdBy from auth context
+        createdBy: template.createdBy || "system", // Use provided createdBy from auth context
       });
 
       const newTemplate: QRTemplate = {

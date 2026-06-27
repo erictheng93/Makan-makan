@@ -17,7 +17,8 @@ import type { Env } from "../../../types/env";
 const app = new Hono<{ Bindings: Env }>();
 
 type SseJwtPayload = {
-  id: number;
+  id?: string;
+  sub?: string;
   username: string;
   role: number;
   restaurantId?: string;
@@ -58,7 +59,8 @@ const sseAuthMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
   )) as SseJwtPayload;
 
   const user: AuthUser = {
-    id: decoded.id,
+    id: decoded.sub ?? decoded.id!,
+    publicId: decoded.sub ?? decoded.id,
     username: decoded.username,
     role: decoded.role,
     restaurantId: decoded.restaurantId,

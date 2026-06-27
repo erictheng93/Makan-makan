@@ -3,7 +3,7 @@
  */
 
 export interface KitchenOrder {
-  id: number;
+  id: string;
   orderNumber: string;
   tableId: number;
   tableName: string;
@@ -62,24 +62,24 @@ export interface IKitchenService {
   // Kitchen Operations
   getKitchenOrders(
     restaurantId: string,
-    userId?: number,
+    userId?: string,
     limit?: number,
   ): Promise<KitchenOrdersResponse>;
   updateOrderItemStatus(
     restaurantId: string,
-    orderId: number,
+    orderId: string,
     itemId: number,
     statusUpdate: OrderItemStatusUpdate,
-    userId: number,
+    userId: string,
   ): Promise<{
-    orderId: number;
+    orderId: string;
     itemId: number;
     status: string;
     updatedAt: string;
   }>;
 
   validateChefAccess(
-    userId: number,
+    userId: string,
     userRole: number,
     restaurantId: string,
   ): boolean;

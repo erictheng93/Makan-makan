@@ -8,8 +8,8 @@ import type { ManagerActionInput } from "../schemas/validation";
 
 export interface ManagerActionResult {
   auditLogId: number;
-  actorId: number;
-  onBehalfOfUserId: number | null;
+  actorId: string;
+  onBehalfOfUserId: string | null;
   action: string;
   resource: string;
   resourceId: string;

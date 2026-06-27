@@ -27,7 +27,7 @@ export const updateSeatSchema = z.object({
 
 // Occupy seat schema
 export const occupySeatSchema = z.object({
-  orderId: z.number().int().positive(),
+  orderId: z.string().trim().min(1),
   occupiedBy: z.string().max(100).optional(),
 });
 

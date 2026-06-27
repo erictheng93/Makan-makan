@@ -34,7 +34,7 @@ const unsubscribeSchema = z
 
 type PushSubscriptionRecord = {
   id: string;
-  userId: number;
+  userId: string;
   username: string;
   userRole: number;
   requestedRole?: string | number;

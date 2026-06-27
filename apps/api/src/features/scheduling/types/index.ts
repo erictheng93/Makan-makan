@@ -50,8 +50,8 @@ export interface SchedulingRule {
   severity: "error" | "warning" | "info";
   isSystemRule: boolean;
   isActive: boolean;
-  createdBy: number;
-  updatedBy: number | null;
+  createdBy: string;
+  updatedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,7 +62,7 @@ export interface SchedulingRule {
 export interface EmployeeAvailability {
   id: number;
   restaurantId: string;
-  employeeId: number;
+  employeeId: string;
   availabilityType: "recurring" | "specific_date";
   dayOfWeek: number | null;
   startTime: string | null;
@@ -97,7 +97,7 @@ export interface EmployeeScheduleWithRelations extends EmployeeSchedule {
 export interface SchedulingConflictWithDetails extends SchedulingConflict {
   affectedSchedules: Array<{
     id: number;
-    employeeId: number;
+    employeeId: string;
     employeeName: string;
     workDate: string;
     startTime: string;
@@ -111,14 +111,14 @@ export interface SchedulingConflictWithDetails extends SchedulingConflict {
 }
 
 export interface ScheduleSwapRequestWithRelations extends ScheduleSwapRequest {
-  requesterEmployee: { id: number; fullName: string };
+  requesterEmployee: { id: string; fullName: string };
   requesterSchedule: {
     id: number;
     workDate: string;
     startTime: string;
     endTime: string;
   };
-  targetEmployee: { id: number; fullName: string } | null;
+  targetEmployee: { id: string; fullName: string } | null;
   targetSchedule: {
     id: number;
     workDate: string;
@@ -192,7 +192,7 @@ export interface ConflictFilters {
   conflictType?: SchedulingConflict["conflictType"];
   severity?: SchedulingConflict["severity"];
   status?: SchedulingConflict["status"];
-  employeeId?: number;
+  employeeId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -201,8 +201,8 @@ export interface ConflictFilters {
 
 export interface SwapRequestFilters {
   restaurantId?: string;
-  requesterEmployeeId?: number;
-  targetEmployeeId?: number;
+  requesterEmployeeId?: string;
+  targetEmployeeId?: string;
   status?: ScheduleSwapRequest["status"];
   requestType?: ScheduleSwapRequest["requestType"];
   page?: number;
@@ -234,7 +234,7 @@ export interface WeeklyScheduleSummary {
 }
 
 export interface EmployeeScheduleSummary {
-  employeeId: number;
+  employeeId: string;
   employeeName: string;
   weekStartDate: string;
   weekEndDate: string;
@@ -258,7 +258,7 @@ export interface LaborLawCheckResult {
 }
 
 export interface DailyHoursCheck {
-  employeeId: number;
+  employeeId: string;
   date: string;
   totalHours: number;
   normalHours: number;
@@ -268,7 +268,7 @@ export interface DailyHoursCheck {
 }
 
 export interface WeeklyHoursCheck {
-  employeeId: number;
+  employeeId: string;
   weekStartDate: string;
   weekEndDate: string;
   totalHours: number;
@@ -277,7 +277,7 @@ export interface WeeklyHoursCheck {
 }
 
 export interface RestPeriodCheck {
-  employeeId: number;
+  employeeId: string;
   schedule1: { id: number; workDate: string; endTime: string };
   schedule2: { id: number; workDate: string; startTime: string };
   restHours: number;
@@ -286,7 +286,7 @@ export interface RestPeriodCheck {
 }
 
 export interface ConsecutiveDaysCheck {
-  employeeId: number;
+  employeeId: string;
   startDate: string;
   endDate: string;
   consecutiveDays: number;
@@ -332,7 +332,7 @@ export interface ISchedulingService {
   ): Promise<{ items: SchedulingConflictWithDetails[]; total: number }>;
   resolveConflict(
     conflictId: number,
-    userId: number,
+    userId: string,
     notes: string,
   ): Promise<SchedulingConflict>;
   getSwapRequests(
@@ -343,18 +343,18 @@ export interface ISchedulingService {
   ): Promise<ScheduleSwapRequest>;
   acceptSwapRequest(
     requestId: number,
-    employeeId: number,
+    employeeId: string,
   ): Promise<ScheduleSwapRequest>;
   approveSwapRequest(
     requestId: number,
-    managerId: number,
+    managerId: string,
   ): Promise<ScheduleSwapRequest>;
   rejectSwapRequest(
     requestId: number,
-    managerId: number,
+    managerId: string,
     reason: string,
   ): Promise<ScheduleSwapRequest>;
-  getEmployeeAvailability(employeeId: number): Promise<EmployeeAvailability[]>;
+  getEmployeeAvailability(employeeId: string): Promise<EmployeeAvailability[]>;
   setEmployeeAvailability(
     data: CreateEmployeeAvailabilityData,
   ): Promise<EmployeeAvailability>;
@@ -364,7 +364,7 @@ export interface ISchedulingService {
     weekStartDate: string,
   ): Promise<WeeklyScheduleSummary>;
   getEmployeeSummary(
-    employeeId: number,
+    employeeId: string,
     weekStartDate: string,
   ): Promise<EmployeeScheduleSummary>;
 }

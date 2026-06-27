@@ -89,7 +89,7 @@ export class OrdersService implements IOrdersService {
   }
 
   // Core CRUD Operations
-  async createOrder(data: CreateOrderData, userId?: number): Promise<Order> {
+  async createOrder(data: CreateOrderData, userId?: string): Promise<Order> {
     try {
       this.logger.info("Creating new order", {
         restaurantId: data.restaurantId,
@@ -249,7 +249,7 @@ export class OrdersService implements IOrdersService {
   }
 
   async getOrder(
-    id: number,
+    id: string,
     includeItems: boolean = true,
     caller?: CallerContext,
   ): Promise<Order | null> {
@@ -287,7 +287,7 @@ export class OrdersService implements IOrdersService {
 
   async getOrders(
     filters: OrderQueryFilters,
-    userId?: number,
+    userId?: string,
     userRole?: UserRole,
     caller?: CallerContext,
   ): Promise<{
@@ -343,9 +343,9 @@ export class OrdersService implements IOrdersService {
   }
 
   async updateOrder(
-    id: number,
+    id: string,
     data: UpdateOrderData,
-    userId?: number,
+    userId?: string,
   ): Promise<Order | null> {
     try {
       this.logger.info("Updating order", { orderId: id, data, userId });
@@ -395,9 +395,9 @@ export class OrdersService implements IOrdersService {
   }
 
   async addItemsToOrder(
-    id: number,
+    id: string,
     items: CreateOrderData["items"],
-    userId?: number,
+    userId?: string,
   ): Promise<Order> {
     try {
       this.logger.info("Adding items to order", {
@@ -437,7 +437,7 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  async deleteOrder(id: number, userId?: number): Promise<boolean> {
+  async deleteOrder(id: string, userId?: string): Promise<boolean> {
     try {
       const order = await this.getOrder(id);
       if (!order) return false;
@@ -494,9 +494,9 @@ export class OrdersService implements IOrdersService {
 
   // Status Management
   async updateOrderStatus(
-    id: number,
+    id: string,
     statusData: OrderStatusUpdateData,
-    userId?: number,
+    userId?: string,
     userRole?: UserRole,
     caller?: CallerContext,
     /** Pre-fetched order to avoid redundant DB lookups */
@@ -562,9 +562,9 @@ export class OrdersService implements IOrdersService {
   }
 
   async cancelOrder(
-    id: number,
+    id: string,
     reason: string,
-    userId?: number,
+    userId?: string,
     caller?: CallerContext,
     /** Pre-fetched order to avoid redundant DB lookups */
     prefetchedOrder?: Order,
@@ -587,7 +587,11 @@ export class OrdersService implements IOrdersService {
         await Promise.all([
           this.invalidateOrderCache(id),
           this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason }),
-          this.broadcastOrderCancelled(cancelledOrder, reason, userId || 0),
+          this.broadcastOrderCancelled(
+            cancelledOrder,
+            reason,
+            userId ?? "system",
+          ),
         ]);
       }
 
@@ -602,11 +606,11 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  async getOrderStatusHistory(id: number): Promise<
+  async getOrderStatusHistory(id: string): Promise<
     Array<{
       status: OrderStatus;
       timestamp: Date;
-      updatedBy?: number;
+      updatedBy?: string;
       notes?: string;
     }>
   > {
@@ -635,7 +639,7 @@ export class OrdersService implements IOrdersService {
 
   // Payment Operations
   async updatePaymentStatus(
-    id: number,
+    id: string,
     _paymentStatus: OrderPaymentStatus,
     _paymentMethod?: OrderPaymentMethod,
     _transactionData?: PaymentIntegration,
@@ -664,7 +668,7 @@ export class OrdersService implements IOrdersService {
   // Analytics and Reporting
   async getOrderAnalytics(
     filters: OrderQueryFilters,
-    _userId?: number,
+    _userId?: string,
     _caller?: CallerContext,
   ): Promise<OrderAnalytics> {
     try {
@@ -828,7 +832,7 @@ export class OrdersService implements IOrdersService {
   async searchOrders(
     searchParams: OrderSearchParams,
     filters?: OrderQueryFilters,
-    userId?: number,
+    userId?: string,
   ): Promise<Order[]> {
     try {
       // Combine search with filters
@@ -854,7 +858,7 @@ export class OrdersService implements IOrdersService {
   // Bulk Operations
   async bulkUpdateOrders(
     operation: BulkOrderOperation,
-    userId?: number,
+    userId?: string,
   ): Promise<BulkOrderResult> {
     try {
       const batchId =
@@ -983,7 +987,7 @@ export class OrdersService implements IOrdersService {
   }
 
   // Receipt and Export
-  async generateReceipt(orderId: number): Promise<OrderReceipt> {
+  async generateReceipt(orderId: string): Promise<OrderReceipt> {
     try {
       const order = await this.getOrder(orderId, true);
       if (!order) throw notFound("Order not found", "ORDER_NOT_FOUND");
@@ -1155,7 +1159,7 @@ export class OrdersService implements IOrdersService {
     order: Order,
     previousStatus: OrderStatus,
     newStatus: OrderStatus,
-    updatedBy: number,
+    updatedBy: string,
     notes?: string,
     estimatedReadyTime?: Date,
   ): Promise<void> {
@@ -1182,7 +1186,7 @@ export class OrdersService implements IOrdersService {
   private async broadcastOrderCancelled(
     order: Order,
     reason: string,
-    cancelledBy: number,
+    cancelledBy: string,
   ): Promise<void> {
     try {
       const realtimeEvent: OrderCancelledEvent = {
@@ -1280,14 +1284,14 @@ export class OrdersService implements IOrdersService {
     ]);
   }
 
-  private async invalidateOrderCache(orderId: number): Promise<void> {
+  private async invalidateOrderCache(orderId: string): Promise<void> {
     await invalidateOrderCacheKeys(this.cacheKV, orderId);
   }
 
   private async logOrderActivity(
-    orderId: number,
+    orderId: string,
     action: string,
-    userId?: number,
+    userId?: string,
     metadata?: unknown,
   ): Promise<void> {
     // Implementation would log to audit system
@@ -1323,7 +1327,7 @@ export class OrdersService implements IOrdersService {
 
   private async applyPermissionFilters(
     filters: OrderQueryFilters,
-    userId?: number,
+    userId?: string,
     userRole?: UserRole,
     caller?: CallerContext,
   ): Promise<OrderQueryFilters> {

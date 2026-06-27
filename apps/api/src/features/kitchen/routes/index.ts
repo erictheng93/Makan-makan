@@ -27,11 +27,11 @@ interface NotificationSettingsRecord {
 }
 
 function createNotificationSettingsKey(user: {
-  id: number;
-  restaurantId?: string | number;
+  id: string;
+  restaurantId?: string | number | null;
 }): string {
   const restaurantId =
-    user.restaurantId !== undefined ? String(user.restaurantId).trim() : "";
+    user.restaurantId == null ? "" : String(user.restaurantId).trim();
   const scope = restaurantId ? encodeURIComponent(restaurantId) : "global";
   return `kitchen:notification-settings:${scope}:${user.id}`;
 }

@@ -258,7 +258,7 @@ export const previewCouponSchema = z.object({
   restaurantId: z.string().min(1),
   couponCode: z.string().min(1).max(50),
   orderAmount: positiveNumberSchema,
-  userId: optionalIdSchema,
+  userId: z.string().trim().min(1).optional(),
   menuItems: z
     .array(
       z.object({
@@ -272,7 +272,7 @@ export const previewCouponSchema = z.object({
 // Bulk operations schema
 export const bulkOrderOperationSchema = z.object({
   action: z.enum(["update_status", "cancel", "export", "archive"]),
-  orderIds: z.array(idSchema).min(1).max(100),
+  orderIds: z.array(z.string().trim().min(1)).min(1).max(100),
   data: z
     .object({
       status: orderStatusSchema.optional(),
@@ -380,7 +380,7 @@ export const orderSubscriptionSchema = z.object({
 
 // Parameter validation schemas
 export const orderIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/).transform(Number),
+  id: z.string().trim().min(1),
 });
 
 export const orderBatchIdParamSchema = z.object({
@@ -388,7 +388,7 @@ export const orderBatchIdParamSchema = z.object({
 });
 
 export const orderItemIdParamSchema = z.object({
-  orderId: z.string().regex(/^\d+$/).transform(Number),
+  orderId: z.string().trim().min(1),
   itemId: z.string().regex(/^\d+$/).transform(Number),
 });
 

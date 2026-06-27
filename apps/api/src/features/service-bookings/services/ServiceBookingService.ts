@@ -69,7 +69,7 @@ export interface CreateServiceBookingInput {
   bookingDate: string; // YYYY-MM-DD
   bookingTime: string; // HH:MM
   partySize?: number;
-  employeeId?: number;
+  employeeId?: string;
   specialRequests?: string;
   /** 卷 code applied as a pricing-layer discount. */
   voucherCode?: string;
@@ -101,7 +101,7 @@ export interface JoinServiceBookingWaitlistInput {
   bookingDate: string;
   bookingTime: string;
   partySize?: number;
-  employeeId?: number;
+  employeeId?: string;
   specialRequests?: string;
   notes?: string;
 }
@@ -913,7 +913,7 @@ export class ServiceBookingService {
 
   private async assertEmployeeAvailable(input: {
     restaurantId: string;
-    employeeId: number;
+    employeeId: string;
     bookingDate: string;
     bookingTime: string;
     durationMinutes: number;
@@ -987,7 +987,7 @@ export class ServiceBookingService {
 
   private async assertEmployeeHasNoOverlappingBooking(input: {
     restaurantId: string;
-    employeeId: number;
+    employeeId: string;
     bookingDate: string;
     bookingTime: string;
     durationMinutes: number;

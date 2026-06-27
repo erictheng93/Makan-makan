@@ -58,11 +58,16 @@ export interface CustomerProfile {
   preferences?: Record<string, unknown>;
 }
 
-// Order overrides BaseEntity's `createdAt`/`updatedAt` (declared as string there)
-// to the Unix-ms integer wire contract. See packages/database/src/services/order.ts
+// Order overrides BaseEntity's `id` plus `createdAt`/`updatedAt` to the
+// database-backed UUID/text id and Unix-ms integer wire contract. See
+// packages/database/src/services/order.ts
 // `toMillis` and apps/api/src/__tests__/integration/orders.real.integration.test.ts
 // for the enforcement point.
-export interface Order extends Omit<BaseEntity, "createdAt" | "updatedAt"> {
+export interface Order extends Omit<
+  BaseEntity,
+  "id" | "createdAt" | "updatedAt"
+> {
+  id: string;
   restaurantId: string;
   tableId?: number;
   customerId?: string;
@@ -135,7 +140,7 @@ export enum OrderPaymentStatus {
 export type OrderPaymentMethod = "cash" | "card" | "online" | "ewallet";
 
 export interface OrderItem extends BaseEntity {
-  orderId: number;
+  orderId: string;
   menuItemId: number;
   quantity: number;
   unitPrice: number; // in cents, price at time of order

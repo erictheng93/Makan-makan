@@ -13,7 +13,7 @@ export const managerActionSchema = z.object({
   resourceId: z
     .union([z.string().min(1), z.number().int().positive()])
     .transform((v) => String(v)),
-  onBehalfOfUserId: z.number().int().positive().optional(),
+  onBehalfOfUserId: z.string().trim().min(1).optional(),
   reason: z.string().max(500).optional(),
   // Free-form extension bag for action-specific arguments. The menu
   // availability handler reads { isAvailable: boolean } when present.
@@ -23,8 +23,8 @@ export const managerActionSchema = z.object({
 export const auditLogQuerySchema = z.object({
   resourceId: z.string().min(1).optional(),
   resource: z.string().min(1).optional(),
-  actorId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  onBehalfOfUserId: z.string().regex(/^\d+$/).transform(Number).optional(),
+  actorId: z.string().trim().min(1).optional(),
+  onBehalfOfUserId: z.string().trim().min(1).optional(),
   restaurantId: z.string().min(1).optional(),
   action: z.string().min(1).optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().default("50"),

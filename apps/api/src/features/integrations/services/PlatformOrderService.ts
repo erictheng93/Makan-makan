@@ -30,7 +30,7 @@ export class PlatformOrderService {
     platform: PlatformType,
     payload: unknown,
     restaurantId: string,
-  ): Promise<number> {
+  ): Promise<string> {
     const adapter = getAdapter(platform);
     const parsedOrder = await adapter.parseOrder(payload);
 
@@ -149,7 +149,7 @@ export class PlatformOrderService {
   }
 
   async syncStatusToPlatform(
-    orderId: number,
+    orderId: string,
     newStatus: string,
   ): Promise<void> {
     const platformOrderRecords = await this.db

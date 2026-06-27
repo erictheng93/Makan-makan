@@ -284,9 +284,8 @@ export const logUsageSchema = z.object({
   partnershipId: z.string().uuid(),
   planId: z.string().uuid(),
   memberId: z.string().uuid(),
-  // orders.id is integer auto-increment in DB (not the same as the
-  // partnership/plan/member text-UUID PKs). users.id is also integer.
-  orderId: z.number().int().positive(),
+  // orders.id is a text UUID/opaque id in the canonical DB schema.
+  orderId: z.string().trim().min(1),
   restaurantId: z.string().min(1),
 
   // 折扣資訊

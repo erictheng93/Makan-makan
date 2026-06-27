@@ -46,7 +46,7 @@ function createFeedbackBatchSyncId(payload: Record<string, unknown>): string {
 async function assertOwnerAccess(
   service: FeedbackService,
   feedbackId: number,
-  user: { role: number; id: number },
+  user: { role: number; id: string },
 ) {
   const feedback = await service.getFeedbackById(feedbackId);
   if (!feedback) throw notFound("Feedback not found", "FEEDBACK_NOT_FOUND");

@@ -11,7 +11,7 @@ export const validateCouponSchema = z.object({
   code: z.string().min(1).max(50),
   restaurantId: z.string().min(1),
   orderAmount: z.number().positive(),
-  userId: z.number().int().positive().optional(),
+  userId: z.string().trim().min(1).optional(),
   menuItems: z
     .array(
       z.object({
@@ -56,8 +56,8 @@ export const couponFiltersSchema = z.object({
 
 export const useCouponSchema = z.object({
   couponId: z.number().int().positive(),
-  orderId: z.number().int().positive(),
-  userId: z.number().int().positive().optional(),
+  orderId: z.string().trim().min(1),
+  userId: z.string().trim().min(1).optional(),
   discountAmount: z.number().positive(),
   originalAmount: z.number().positive(),
   finalAmount: z.number().min(0),

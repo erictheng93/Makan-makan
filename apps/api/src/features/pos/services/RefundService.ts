@@ -63,7 +63,7 @@ export class RefundService {
   async processRefund(
     data: ProcessRefundRequest,
     registerId: string,
-    processedBy: number,
+    processedBy: string,
     shiftId?: string,
   ): Promise<{ success: boolean; data?: RefundResult; error?: string }> {
     try {
@@ -164,7 +164,7 @@ export class RefundService {
             amount: -validatedData.refundAmount, // 負數表示流出
             description: `退款 - ${refundNumber}`,
             recordedBy: processedBy,
-            referenceId: validatedData.originalOrderId,
+            referenceId: undefined,
             referenceType: "refund",
           }),
         );
@@ -223,7 +223,7 @@ export class RefundService {
       startDate?: string;
       endDate?: string;
       status?: string;
-      orderId?: number;
+      orderId?: string;
       page?: number;
       limit?: number;
     },
@@ -350,7 +350,7 @@ export class RefundService {
    */
   async cancelRefund(
     refundId: string,
-    cancelledBy: number,
+    cancelledBy: string,
     reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -387,7 +387,7 @@ export class RefundService {
    */
   async approveRefund(
     refundId: string,
-    approvedBy: number,
+    approvedBy: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const completedAt = new Date();
@@ -415,7 +415,7 @@ export class RefundService {
    */
   async rejectRefund(
     refundId: string,
-    rejectedBy: number,
+    rejectedBy: string,
     reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -452,7 +452,7 @@ export class RefundService {
       type: string;
       amount: number;
       description: string;
-      recordedBy: number;
+      recordedBy: string;
       referenceId?: number;
       referenceType?: string;
     },

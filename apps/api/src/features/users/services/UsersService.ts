@@ -16,13 +16,13 @@ import {
 } from "../types";
 
 interface CurrentUser {
-  id: number;
+  id: string;
   role: number;
   restaurantId?: string | number | null;
 }
 
 interface UserRecord {
-  id: number;
+  id: string;
   username: string;
   role: number;
   restaurantId?: string;
@@ -69,7 +69,7 @@ export class UsersService {
 
   canViewUser(
     currentUser: CurrentUser,
-    targetUser: { id: number; restaurantId?: string | number | null },
+    targetUser: { id: string; restaurantId?: string | number | null },
   ): boolean {
     return (
       currentUser.role === USER_ROLES.ADMIN ||
@@ -82,7 +82,7 @@ export class UsersService {
   canUpdateUser(
     currentUser: CurrentUser,
     targetUser: {
-      id: number;
+      id: string;
       role: number;
       restaurantId?: string | number | null;
     },
@@ -126,7 +126,7 @@ export class UsersService {
   }
 
   /** Fetch user or throw 404. Shared by multiple methods. */
-  private async requireUser(userId: number): Promise<UserRecord> {
+  private async requireUser(userId: string): Promise<UserRecord> {
     const user = await this.userService.getUserById(userId);
     if (!user) throw notFound("User not found");
     return user as UserRecord;
@@ -135,7 +135,7 @@ export class UsersService {
   /** Fetch user + verify caller can manage them, or throw. */
   private async requireManagedUser(
     currentUser: CurrentUser,
-    userId: number,
+    userId: string,
   ): Promise<UserRecord> {
     const target = await this.requireUser(userId);
     if (!this.canManageUser(currentUser, target.role, target.restaurantId)) {
@@ -174,7 +174,7 @@ export class UsersService {
 
   async getUserById(
     currentUser: CurrentUser,
-    userId: number,
+    userId: string,
   ): Promise<FormattedUser> {
     const targetUser = await this.requireUser(userId);
 
@@ -213,7 +213,7 @@ export class UsersService {
 
   async updateUser(
     currentUser: CurrentUser,
-    userId: number,
+    userId: string,
     updateData: UpdateUserData,
   ): Promise<FormattedUser> {
     const targetUser = await this.requireUser(userId);
@@ -228,7 +228,7 @@ export class UsersService {
 
   async changePassword(
     currentUser: CurrentUser,
-    userId: number,
+    userId: string,
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
@@ -249,7 +249,7 @@ export class UsersService {
 
   async updateUserStatus(
     currentUser: CurrentUser,
-    userId: number,
+    userId: string,
     isActive: boolean,
   ): Promise<string> {
     const _targetUser = await this.requireManagedUser(currentUser, userId);
@@ -262,7 +262,7 @@ export class UsersService {
     return `User ${isActive ? "activated" : "deactivated"} successfully`;
   }
 
-  async verifyUser(currentUser: CurrentUser, userId: number): Promise<void> {
+  async verifyUser(currentUser: CurrentUser, userId: string): Promise<void> {
     await this.requireManagedUser(currentUser, userId);
 
     const success = await this.userService.verifyUser(userId);
@@ -273,7 +273,7 @@ export class UsersService {
 
   async resetPassword(
     currentUser: CurrentUser,
-    userId: number,
+    userId: string,
     newPassword: string,
   ): Promise<void> {
     await this.requireManagedUser(currentUser, userId);

@@ -32,7 +32,7 @@ import {
 type KitchenOrderItemStatus = OrderItemStatusUpdate["status"];
 
 type KitchenScopedItemRow = {
-  order_id: number;
+  order_id: string;
   order_number: string | null;
   order_created_at: string | number | null;
   table_id: number | null;
@@ -58,7 +58,7 @@ export class KitchenService implements IKitchenService {
   // Kitchen Operations
   async getKitchenOrders(
     restaurantId: string,
-    userId?: number,
+    userId?: string,
     limit = 100,
   ): Promise<KitchenOrdersResponse> {
     try {
@@ -184,12 +184,12 @@ export class KitchenService implements IKitchenService {
 
   async updateOrderItemStatus(
     restaurantId: string,
-    orderId: number,
+    orderId: string,
     itemId: number,
     statusUpdate: OrderItemStatusUpdate,
-    userId: number,
+    userId: string,
   ): Promise<{
-    orderId: number;
+    orderId: string;
     itemId: number;
     status: string;
     updatedAt: string;
@@ -248,7 +248,7 @@ export class KitchenService implements IKitchenService {
   }
 
   validateChefAccess(
-    userId: number,
+    userId: string,
     userRole: number,
     restaurantId: string,
   ): boolean {
@@ -269,7 +269,7 @@ export class KitchenService implements IKitchenService {
 
   private async getScopedKitchenItem(
     restaurantId: string,
-    orderId: number,
+    orderId: string,
     itemId: number,
   ): Promise<KitchenScopedItemRow | null> {
     const row = await this.env.DB.prepare(

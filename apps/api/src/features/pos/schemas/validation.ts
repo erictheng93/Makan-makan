@@ -15,7 +15,7 @@ export const createRegisterSchema = z.object({
 
 export const startShiftSchema = z.object({
   registerId: z.string().uuid(),
-  operatorId: z.number().int().positive(),
+  operatorId: z.string().trim().min(1),
   startAmount: z.number().min(0),
   notes: z.string().max(500).optional(),
 });
@@ -42,7 +42,7 @@ export const cashMovementSchema = z.object({
 });
 
 export const printReceiptSchema = z.object({
-  orderId: z.number().int().positive(),
+  orderId: z.string().trim().min(1),
   templateName: z.string().optional().default("standard"),
   receiptType: z
     .enum(["customer", "kitchen", "merchant"])
@@ -52,7 +52,7 @@ export const printReceiptSchema = z.object({
 });
 
 export const processRefundSchema = z.object({
-  originalOrderId: z.number().int().positive(),
+  originalOrderId: z.string().trim().min(1),
   refundType: z.enum(["full", "partial", "item", "service"]),
   refundAmount: z.number().positive(),
   refundMethod: z.string().min(1).max(50),

@@ -17,7 +17,7 @@ export interface GroupOrder extends Omit<BaseEntity, "id"> {
   restaurantId: string;
   tableId?: number;
   shareCode: string;
-  createdBy: number;
+  createdBy: string;
   status: GroupOrderStatus;
   expiresAt: Date;
   maxMembers: number;
@@ -210,7 +210,7 @@ export interface IGroupOrderService {
   // Core operations
   createGroupOrder(
     data: CreateGroupOrderRequest,
-    hostId: number,
+    hostId: string,
   ): Promise<{
     success: boolean;
     data?: CreateGroupOrderResponse;

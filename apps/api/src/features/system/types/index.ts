@@ -111,7 +111,7 @@ export interface SystemNotificationUser {
 export interface ISystemService {
   createErrorReport(
     data: ErrorReportRequest,
-    userId: number,
+    userId: string,
     restaurantId: string | null,
     userAgent?: string,
   ): Promise<ErrorReportResponse>;
@@ -129,11 +129,11 @@ export interface ISystemService {
 export type SystemEvent =
   | {
       type: "ERROR_REPORT_CREATED";
-      payload: { reportId: string; errorCount: number; userId: number };
+      payload: { reportId: string; errorCount: number; userId: string };
     }
   | {
       type: "CRITICAL_ERROR_DETECTED";
-      payload: { errors: ErrorReportItem[]; userId: number };
+      payload: { errors: ErrorReportItem[]; userId: string };
     }
   | { type: "HEALTH_CHECK_FAILED"; payload: { service: string; error: string } }
   | { type: "CLEANUP_COMPLETED"; payload: { deletedCount: number } };

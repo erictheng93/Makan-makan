@@ -24,7 +24,7 @@ export const MARKET_CHECKOUT_PROVIDER_ADAPTER_OPERATIONS = [
 export interface MarketCheckoutPaymentChildOrder {
   restaurantId: string;
   restaurantName: string;
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   totalAmount: number;
 }
@@ -32,7 +32,7 @@ export interface MarketCheckoutPaymentChildOrder {
 export interface MarketCheckoutChildPayment {
   restaurantId: string;
   restaurantName: string;
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   paymentId?: string;
   refundId?: string;
@@ -100,7 +100,7 @@ export interface MarketCheckoutPaymentProviderConnectivityCheck {
 export interface MarketCheckoutProviderSplitAllocation {
   restaurantId: string;
   restaurantName: string;
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   amountCents: number;
 }
@@ -1086,7 +1086,7 @@ function validateProviderSplitAllocations(
   actualAllocations: MarketCheckoutProviderSplitGatewayResult["allocations"],
 ) {
   const actualByOrderId = new Map<
-    number,
+    string,
     MarketCheckoutProviderSplitGatewayResult["allocations"][number]
   >();
 

@@ -770,7 +770,7 @@ function makeValidateUnitService(coupon: unknown) {
 function makeRedeemUnitService(
   insertRun: ReturnType<typeof vi.fn>,
   couponUpdateRun: ReturnType<typeof vi.fn>,
-  existingRows: Array<{ orderId: number }> = [],
+  existingRows: Array<{ orderId: string }> = [],
 ) {
   const service = Object.create(MarketCheckoutVoucherService.prototype) as {
     db: {
@@ -825,9 +825,9 @@ function makeReservationUnitService(couponUpdateRun: ReturnType<typeof vi.fn>) {
 }
 
 function makeRefundUnitService(options: {
-  checkoutRows: Array<{ checkoutId: string; orderId: number }>;
-  childRows: Array<{ checkoutId: string; orderId: number }>;
-  usageRows: Array<{ orderId: number; status: string | null }>;
+  checkoutRows: Array<{ checkoutId: string; orderId: string }>;
+  childRows: Array<{ checkoutId: string; orderId: string }>;
+  usageRows: Array<{ orderId: string; status: string | null }>;
   releaseRows: Array<{ id: number }>;
   updateRun: ReturnType<typeof vi.fn>;
   decrementRun: ReturnType<typeof vi.fn>;

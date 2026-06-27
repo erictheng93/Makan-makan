@@ -264,7 +264,7 @@ export class GroupOrdersService implements IGroupOrderService {
    */
   async createGroupOrder(
     data: CreateGroupOrderRequest,
-    hostId: number,
+    hostId: string,
   ): Promise<{
     success: boolean;
     data?: CreateGroupOrderResponse;

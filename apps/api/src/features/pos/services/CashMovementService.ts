@@ -29,7 +29,7 @@ export class CashMovementService {
   async processCashMovement(
     shiftId: string,
     data: CashMovementRequest,
-    operatorId: number,
+    operatorId: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const validatedData = cashMovementSchema.parse(data);
@@ -198,7 +198,7 @@ export class CashMovementService {
       type: string;
       amount: number;
       description: string;
-      recordedBy: number;
+      recordedBy: string;
       referenceId?: number;
       referenceType?: string;
       denominationBreakdown?: Record<string, number>;
@@ -233,7 +233,7 @@ export class CashMovementService {
    */
   async approveCashMovement(
     movementId: string,
-    approvedBy: number,
+    approvedBy: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.db
@@ -264,7 +264,7 @@ export class CashMovementService {
    */
   async rejectCashMovement(
     movementId: string,
-    approvedBy: number,
+    approvedBy: string,
     reason?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {

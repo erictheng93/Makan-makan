@@ -46,7 +46,7 @@ interface MarketCheckoutSessionRow {
 interface MarketCheckoutChildOrderRow {
   restaurant_id: string;
   restaurant_name: string;
-  order_id: number;
+  order_id: string;
   order_number: string;
   total_amount_cents: number;
 }
@@ -64,7 +64,7 @@ export interface ProcessMarketCheckoutPOSPaymentInput {
   paymentMethod: MarketCheckoutPaymentMethod;
   country: "TW" | "MY" | "VN";
   currency: "TWD" | "MYR" | "VND";
-  operatorId: number;
+  operatorId: string;
   operatorRole: number;
   operatorRestaurantId?: string | number | null;
   idempotencyKey?: string | null;
@@ -447,7 +447,7 @@ export class MarketCheckoutPOSPaymentService {
     checkoutId: string;
     registerId: string;
     shiftId: string;
-    operatorId: number;
+    operatorId: string;
     paymentMethod: MarketCheckoutPaymentMethod;
     amountCents: number;
     nowMs: number;
@@ -558,7 +558,7 @@ function buildSettlement(
   childPayments: Array<{
     restaurantId: string;
     restaurantName: string;
-    orderId: number;
+    orderId: string;
     orderNumber: string;
     amountCents: number;
   }>,

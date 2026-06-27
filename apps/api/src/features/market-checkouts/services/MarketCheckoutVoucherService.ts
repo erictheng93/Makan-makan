@@ -25,13 +25,13 @@ import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { fromCents, percentageFromBps } from "../../../shared/utils/money";
 
 export interface VoucherChildOrder {
-  orderId: number;
+  orderId: string;
   restaurantId?: string;
   amountCents: number;
 }
 
 export interface VoucherAllocation {
-  orderId: number;
+  orderId: string;
   /** Child order total before the voucher (for the coupon_usage audit row). */
   amountCents: number;
   /** This child's share of the voucher discount. */
@@ -288,7 +288,7 @@ export class MarketCheckoutVoucherService {
       await this.claimUsageSlot(applied.couponId);
     }
 
-    const claimOrderId = Math.min(...orderIds);
+    const claimOrderId = [...orderIds].sort()[0];
     let insertedClaimUsage = false;
     for (const alloc of applied.allocations) {
       if (existingOrderIds.has(alloc.orderId)) continue;
@@ -356,7 +356,7 @@ export class MarketCheckoutVoucherService {
    */
   async markRefunded(input: {
     couponId: number;
-    orderIds: number[];
+    orderIds: string[];
   }): Promise<void> {
     const orderIds = Array.from(new Set(input.orderIds));
     if (orderIds.length === 0) return;
@@ -399,8 +399,8 @@ export class MarketCheckoutVoucherService {
   }
 
   private async resolveRefundOrderGroups(
-    orderIds: number[],
-  ): Promise<number[][]> {
+    orderIds: string[],
+  ): Promise<string[][]> {
     const checkoutRows = await this.db
       .select({
         checkoutId: marketCheckoutChildOrders.checkoutId,
@@ -414,7 +414,7 @@ export class MarketCheckoutVoucherService {
       new Set(checkoutRows.map((row) => row.checkoutId)),
     );
     const mappedOrderIds = new Set(checkoutRows.map((row) => row.orderId));
-    const groups: number[][] = [];
+    const groups: string[][] = [];
 
     if (checkoutIds.length > 0) {
       const childRows = await this.db
@@ -425,10 +425,10 @@ export class MarketCheckoutVoucherService {
         .from(marketCheckoutChildOrders)
         .where(inArray(marketCheckoutChildOrders.checkoutId, checkoutIds))
         .all();
-      const orderIdsByCheckout = new Map<string, Set<number>>();
+      const orderIdsByCheckout = new Map<string, Set<string>>();
       for (const row of childRows) {
         const checkoutOrderIds =
-          orderIdsByCheckout.get(row.checkoutId) ?? new Set<number>();
+          orderIdsByCheckout.get(row.checkoutId) ?? new Set<string>();
         checkoutOrderIds.add(row.orderId);
         orderIdsByCheckout.set(row.checkoutId, checkoutOrderIds);
       }
@@ -449,8 +449,8 @@ export class MarketCheckoutVoucherService {
 
   private async getFullyRefundedVoucherClaimOrderId(
     couponId: number,
-    orderIds: number[],
-  ): Promise<number | null> {
+    orderIds: string[],
+  ): Promise<string | null> {
     if (orderIds.length === 0) return null;
 
     const usageRows = await this.db
@@ -472,12 +472,12 @@ export class MarketCheckoutVoucherService {
       return null;
     }
 
-    return Math.min(...usageRows.map((row) => row.orderId));
+    return usageRows.map((row) => row.orderId).sort()[0] ?? null;
   }
 
   private async claimRefundCountRelease(
     couponId: number,
-    claimOrderId: number,
+    claimOrderId: string,
   ): Promise<boolean> {
     const releasedRows = await this.db
       .update(couponUsage)
@@ -548,7 +548,7 @@ export function combineAppliedMarketCheckoutVouchers(
   if (vouchers.length === 0) return undefined;
   if (vouchers.length === 1) return vouchers[0];
 
-  const allocationByOrderId = new Map<number, VoucherAllocation>();
+  const allocationByOrderId = new Map<string, VoucherAllocation>();
   for (const voucher of vouchers) {
     for (const alloc of voucher.allocations) {
       const existing = allocationByOrderId.get(alloc.orderId);
@@ -567,8 +567,8 @@ export function combineAppliedMarketCheckoutVouchers(
       (sum, voucher) => sum + voucher.discountCents,
       0,
     ),
-    allocations: Array.from(allocationByOrderId.values()).sort(
-      (a, b) => a.orderId - b.orderId,
+    allocations: Array.from(allocationByOrderId.values()).sort((a, b) =>
+      a.orderId.localeCompare(b.orderId),
     ),
   };
 }

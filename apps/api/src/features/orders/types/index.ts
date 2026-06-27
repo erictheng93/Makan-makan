@@ -74,7 +74,7 @@ export interface CreateOrderData {
     | "grabfood";
   scheduledTime?: Date;
   couponCode?: string;
-  couponUserId?: number;
+  couponUserId?: string;
   clientMutationId?: string;
   isGuestOrder?: boolean;
   deliveryInfo?: {
@@ -109,7 +109,7 @@ export interface OrderStatusUpdateData {
   status: OrderStatus;
   notes?: string;
   estimatedReadyTime?: Date;
-  updatedBy?: number;
+  updatedBy?: string;
 }
 
 // Coupon and Discount Types
@@ -133,7 +133,7 @@ export interface CouponPreviewRequest {
   restaurantId: string;
   couponCode: string;
   orderAmount: number;
-  userId?: number;
+  userId?: string;
   menuItems?: Array<{
     menuItemId: number;
     quantity: number;
@@ -173,7 +173,7 @@ export interface OrderQueryFilters {
  * When provided, the service validates restaurant ownership for non-admin callers.
  */
 export interface CallerContext {
-  userId: number;
+  userId: string;
   userRole: number;
   /** The restaurant the caller belongs to. undefined for admin users. */
   userRestaurantId?: string;
@@ -256,10 +256,10 @@ export interface OrderAnalytics {
 
 // Real-time Order Updates and Events
 export interface OrderUpdateEvent {
-  orderId: number;
+  orderId: string;
   previousStatus?: OrderStatus;
   newStatus: OrderStatus;
-  updatedBy: number;
+  updatedBy: string;
   updatedAt: Date;
   notes?: string;
   estimatedReadyTime?: Date;
@@ -272,7 +272,7 @@ export interface OrderNotification {
     | "ORDER_UPDATED"
     | "ORDER_CANCELLED"
     | "PAYMENT_UPDATED";
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   restaurantId: string;
   message: string;
@@ -286,7 +286,7 @@ export interface OrderNotification {
 // Bulk Operations
 export interface BulkOrderOperation {
   action: "update_status" | "cancel" | "export" | "archive";
-  orderIds: number[];
+  orderIds: string[];
   data?: {
     status?: OrderStatus;
     reason?: string;
@@ -302,11 +302,11 @@ export interface BulkOrderResult {
   successCount: number;
   failedCount: number;
   errors: Array<{
-    orderId: number;
+    orderId: string;
     error: string;
   }>;
   results: Array<{
-    orderId: number;
+    orderId: string;
     success: boolean;
     data?: unknown;
     error?: string;
@@ -371,11 +371,11 @@ export interface OrderReceipt {
 // Service Interface Definitions
 export interface IOrdersService {
   // Core CRUD Operations
-  createOrder(data: CreateOrderData, userId?: number): Promise<Order>;
-  getOrder(id: number, includeItems?: boolean): Promise<Order | null>;
+  createOrder(data: CreateOrderData, userId?: string): Promise<Order>;
+  getOrder(id: string, includeItems?: boolean): Promise<Order | null>;
   getOrders(
     filters: OrderQueryFilters,
-    userId?: number,
+    userId?: string,
     userRole?: UserRole,
   ): Promise<{
     orders: Order[];
@@ -387,41 +387,41 @@ export interface IOrdersService {
     };
   }>;
   updateOrder(
-    id: number,
+    id: string,
     data: UpdateOrderData,
-    userId?: number,
+    userId?: string,
   ): Promise<Order | null>;
   addItemsToOrder(
-    id: number,
+    id: string,
     items: CreateOrderData["items"],
-    userId?: number,
+    userId?: string,
   ): Promise<Order>;
-  deleteOrder(id: number, userId?: number): Promise<boolean>;
+  deleteOrder(id: string, userId?: string): Promise<boolean>;
 
   // Status Management
   updateOrderStatus(
-    id: number,
+    id: string,
     statusData: OrderStatusUpdateData,
-    userId?: number,
+    userId?: string,
     userRole?: UserRole,
   ): Promise<Order | null>;
   cancelOrder(
-    id: number,
+    id: string,
     reason: string,
-    userId?: number,
+    userId?: string,
   ): Promise<Order | null>;
-  getOrderStatusHistory(id: number): Promise<
+  getOrderStatusHistory(id: string): Promise<
     Array<{
       status: OrderStatus;
       timestamp: Date;
-      updatedBy?: number;
+      updatedBy?: string;
       notes?: string;
     }>
   >;
 
   // Payment Operations
   updatePaymentStatus(
-    id: number,
+    id: string,
     paymentStatus: OrderPaymentStatus,
     paymentMethod?: OrderPaymentMethod,
     transactionData?: PaymentIntegration,
@@ -430,7 +430,7 @@ export interface IOrdersService {
   // Analytics and Reporting
   getOrderAnalytics(
     filters: OrderQueryFilters,
-    userId?: number,
+    userId?: string,
   ): Promise<OrderAnalytics>;
   getDailyStats(restaurantId: string, date?: Date): Promise<OrderStats>;
   getPopularItems(
@@ -449,20 +449,20 @@ export interface IOrdersService {
   searchOrders(
     searchParams: OrderSearchParams,
     filters?: OrderQueryFilters,
-    userId?: number,
+    userId?: string,
   ): Promise<Order[]>;
 
   // Bulk Operations
   bulkUpdateOrders(
     operation: BulkOrderOperation,
-    userId?: number,
+    userId?: string,
   ): Promise<BulkOrderResult>;
 
   // Coupon and Discount Operations
   validateCoupon(data: CouponPreviewRequest): Promise<CouponValidation>;
 
   // Receipt and Export
-  generateReceipt(orderId: number): Promise<OrderReceipt>;
+  generateReceipt(orderId: string): Promise<OrderReceipt>;
   exportOrders(
     filters: OrderQueryFilters,
     format: "csv" | "excel" | "pdf",
@@ -580,14 +580,14 @@ export type OrderEvent =
   | { type: "ORDER_CREATED"; payload: Order }
   | { type: "ORDER_UPDATED"; payload: Order }
   | { type: "ORDER_STATUS_CHANGED"; payload: OrderUpdateEvent }
-  | { type: "ORDER_CANCELLED"; payload: { orderId: number; reason: string } }
+  | { type: "ORDER_CANCELLED"; payload: { orderId: string; reason: string } }
   | {
       type: "PAYMENT_STATUS_CHANGED";
-      payload: { orderId: number; paymentStatus: OrderPaymentStatus };
+      payload: { orderId: string; paymentStatus: OrderPaymentStatus };
     }
   | {
       type: "ORDER_ITEM_UPDATED";
-      payload: { orderId: number; itemId: number; status: OrderItemStatus };
+      payload: { orderId: string; itemId: number; status: OrderItemStatus };
     }
   | { type: "BULK_OPERATION_COMPLETED"; payload: BulkOrderResult }
   | { type: "ORDER_NOTIFICATION"; payload: OrderNotification };

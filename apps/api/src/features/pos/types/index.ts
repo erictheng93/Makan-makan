@@ -20,7 +20,7 @@ export interface CashRegister {
 export interface CashShift {
   id: string;
   registerId: string;
-  operatorId: number;
+  operatorId: string;
   startAmount: number;
   endAmount?: number;
   expectedAmount: number;
@@ -60,8 +60,8 @@ export interface CashMovement {
   referenceType?: string;
   paymentMethod?: string;
   denominationBreakdown: Record<string, number>;
-  recordedBy: number;
-  approvedBy?: number;
+  recordedBy: string;
+  approvedBy?: string;
   approvalStatus: "pending" | "approved" | "rejected";
   receiptNumber?: string;
   metadata: Record<string, unknown>;
@@ -70,7 +70,7 @@ export interface CashMovement {
 
 export interface Receipt {
   id: string;
-  orderId: number;
+  orderId: string;
   registerId: string;
   shiftId?: string;
   receiptNumber: string;
@@ -90,7 +90,7 @@ export interface Receipt {
 
 export interface Refund {
   id: string;
-  originalOrderId: number;
+  originalOrderId: string;
   registerId: string;
   shiftId?: string;
   refundNumber: string;
@@ -101,8 +101,8 @@ export interface Refund {
   reasonCode: string;
   reasonDescription?: string;
   itemsRefunded: unknown[];
-  processedBy: number;
-  approvedBy?: number;
+  processedBy: string;
+  approvedBy?: string;
   customerSignature?: string;
   status: "pending" | "processing" | "completed" | "failed" | "cancelled";
   processedAt?: Date;
@@ -122,7 +122,7 @@ export interface CreateRegisterRequest {
 
 export interface StartShiftRequest {
   registerId: string;
-  operatorId: number;
+  operatorId: string;
   startAmount: number;
   notes?: string;
 }
@@ -142,14 +142,14 @@ export interface CashMovementRequest {
 }
 
 export interface PrintReceiptRequest {
-  orderId: number;
+  orderId: string;
   templateName?: string;
   receiptType?: "customer" | "kitchen" | "merchant";
   copies?: number;
 }
 
 export interface ProcessRefundRequest {
-  originalOrderId: number;
+  originalOrderId: string;
   refundType: "full" | "partial" | "item" | "service";
   refundAmount: number;
   refundMethod: string;

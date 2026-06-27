@@ -43,7 +43,7 @@ export class RegisterService {
    */
   async createRegister(
     data: CreateRegisterRequest,
-    _createdBy: number,
+    _createdBy: string,
   ): Promise<{ success: boolean; data?: CashRegister; error?: string }> {
     try {
       const validatedData = createRegisterSchema.parse(data);

@@ -40,7 +40,7 @@ const testNotificationSchema = z.object({
 });
 
 const sendNotificationSchema = z.object({
-  recipientId: z.number().int().positive(),
+  recipientId: z.string().trim().min(1),
   recipientEmail: z.string().email(),
   category: z.enum([
     "leave_request_submitted",

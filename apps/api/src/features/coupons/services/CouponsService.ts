@@ -45,7 +45,7 @@ interface CouponUsageByDay {
 }
 
 interface CouponTopUser {
-  userId: number;
+  userId: string;
   username?: string | null;
   usageCount: number;
   totalDiscount: number;
@@ -81,7 +81,7 @@ export class CouponsService extends BaseCouponService {
     code: string,
     restaurantId: string,
     orderAmount: number,
-    userId?: number,
+    userId?: string,
     menuItems?: Array<{ menuItemId: number; quantity: number }>,
   ): Promise<CouponValidationResult> {
     // Use base validation
@@ -237,7 +237,7 @@ export class CouponsService extends BaseCouponService {
    */
   async getAvailableCouponsForUser(
     restaurantId: string,
-    userId?: number,
+    userId?: string,
     orderAmount?: number,
   ): Promise<AvailableCoupon[]> {
     const availableCoupons = (
@@ -296,8 +296,8 @@ export class CouponsService extends BaseCouponService {
 
   async useCouponForOrder(input: {
     couponId: number;
-    orderId: number;
-    userId?: number;
+    orderId: string;
+    userId?: string;
     allowedRestaurantId?: string;
   }) {
     const [order] = await this.db

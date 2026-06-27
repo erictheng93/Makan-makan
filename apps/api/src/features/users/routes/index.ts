@@ -32,7 +32,10 @@ import {
 import type { CreateUserData, UserFilters } from "../types";
 
 const app = new Hono<{ Bindings: Env }>();
-type IdParamInput = { id: number };
+type IdParamInput = { id: string };
+const userIdParamSchema = z.object({
+  id: z.string().trim().min(1),
+});
 const notificationSettingsSchema = z.object({}).passthrough();
 const userSyncSchema = z.object({}).passthrough();
 type NotificationSettings = Record<string, unknown>;
@@ -56,12 +59,12 @@ function toCreateUserData(input: CreateUserInput): CreateUserData {
   };
 }
 
-function createNotificationSettingsKey(userId: number): string {
+function createNotificationSettingsKey(userId: string): string {
   return `customer:notification-settings:${userId}`;
 }
 
 function createUserSyncKey(
-  userId: number,
+  userId: string,
   syncType: string,
   syncId: string,
 ): string {
@@ -275,7 +278,7 @@ app.post(
 app.get(
   "/:id",
   authMiddleware,
-  validateParams(commonSchemas.idParam),
+  validateParams(userIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
@@ -315,7 +318,7 @@ app.post(
 app.put(
   "/:id",
   authMiddleware,
-  validateParams(commonSchemas.idParam),
+  validateParams(userIdParamSchema),
   validateBody(updateUserSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;
@@ -335,7 +338,7 @@ app.put(
 app.post(
   "/:id/password",
   authMiddleware,
-  validateParams(commonSchemas.idParam),
+  validateParams(userIdParamSchema),
   validateBody(updatePasswordSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;
@@ -363,7 +366,7 @@ app.patch(
   "/:id/status",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam),
+  validateParams(userIdParamSchema),
   validateBody(userStatusSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;
@@ -388,7 +391,7 @@ app.patch(
   "/:id/verify",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam),
+  validateParams(userIdParamSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;
     const currentUser = c.get("user");
@@ -407,7 +410,7 @@ app.post(
   "/:id/reset-password",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
-  validateParams(commonSchemas.idParam),
+  validateParams(userIdParamSchema),
   validateBody(resetPasswordSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;

@@ -251,7 +251,7 @@ app.get("/guest/:id", guestTokenAuth, async (c) => {
   const idParam = c.req.param("id");
   if (!idParam) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const ordersService = new OrdersService(c.env);
-  const order = await ordersService.getOrder(parseInt(idParam), true);
+  const order = await ordersService.getOrder(idParam, true);
 
   if (!order) {
     throw notFound("Order not found");

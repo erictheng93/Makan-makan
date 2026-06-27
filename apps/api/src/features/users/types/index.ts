@@ -94,7 +94,7 @@ export interface UserSearchQuery {
  * Formatted user response interface
  */
 export interface FormattedUser {
-  id: number;
+  id: string;
   username: string;
   role: number;
   role_name: string;
