@@ -44,6 +44,13 @@ const waitlistRateLimit = rateLimitMiddleware({
   message: "Too many waitlist requests. Please try again later.",
 });
 
+const idString = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, z.string().trim().min(1));
+
 const createSchema = z.object({
   restaurantId: z.string().min(1),
   serviceItemId: z.number().int().positive(),
@@ -54,7 +61,7 @@ const createSchema = z.object({
   bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   bookingTime: z.string().regex(/^\d{2}:\d{2}$/),
   partySize: z.number().int().positive().max(100).optional(),
-  employeeId: z.string().trim().min(1).optional(),
+  employeeId: idString.optional(),
   specialRequests: z.string().max(500).optional(),
   voucherCode: z.string().min(1).max(64).optional(),
   paymentRequirement: z.enum(["none", "deposit", "prepay"]).optional(),

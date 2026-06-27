@@ -67,7 +67,7 @@ describe("manager action routes", () => {
       action: "update_menu_availability",
       resource: "menu_item",
       resourceId: 123,
-      onBehalfOfUserId: 99,
+      onBehalfOfUserId: "99",
       reason: "covering lunch rush",
       payload: { isAvailable: false },
     });
@@ -83,7 +83,7 @@ describe("manager action routes", () => {
         action: "update_menu_availability",
         resource: "menu_item",
         resourceId: "123",
-        onBehalfOfUserId: 99,
+        onBehalfOfUserId: "99",
         reason: "covering lunch rush",
         payload: { isAvailable: false },
       },

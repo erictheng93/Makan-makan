@@ -1106,7 +1106,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       amountCents: 24000,
       reason: "customer_request",
       allocations: expect.arrayContaining([
-        expect.objectContaining({ orderId: 101, amountCents: 16000 }),
+        expect.objectContaining({ orderId: "101", amountCents: 16000 }),
       ]),
     });
   });

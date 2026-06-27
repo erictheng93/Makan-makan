@@ -109,7 +109,7 @@ function createLeaveTypeBody(overrides: Record<string, unknown> = {}) {
 
 function createLeaveRequestBody(overrides: Record<string, unknown> = {}) {
   return {
-    employeeId: 7,
+    employeeId: "7",
     leaveTypeId: 3,
     startDate: "2026-07-01",
     endDate: "2026-07-02",
@@ -216,7 +216,7 @@ describe("leaves routes", () => {
   it("reads and adjusts leave balances", async () => {
     mocks.getEmployeeLeaveBalances.mockResolvedValue([{ remainingDays: 8 }]);
     mocks.adjustLeaveBalance.mockResolvedValue({ remainingDays: 9 });
-    mocks.getRestaurantLeaveBalances.mockResolvedValue([{ employeeId: 7 }]);
+    mocks.getRestaurantLeaveBalances.mockResolvedValue([{ employeeId: "7" }]);
     mocks.accrueLeaveBalances.mockResolvedValue(3);
     const env = createEnv();
 
@@ -225,27 +225,27 @@ describe("leaves routes", () => {
       env as never,
     );
     expect(employeeResponse.status).toBe(200);
-    expect(mocks.getEmployeeLeaveBalances).toHaveBeenCalledWith(7, 2026);
+    expect(mocks.getEmployeeLeaveBalances).toHaveBeenCalledWith("7", 2026);
 
     const adjustResponse = await app.fetch(
       jsonRequest("https://test/balances/adjust", "POST", {
-        employeeId: 7,
+        employeeId: "7",
         leaveTypeId: 3,
         year: 2026,
         adjustment: 1,
         reason: "Correction",
-        adjustedBy: 42,
+        adjustedBy: "42",
       }),
       env as never,
     );
     expect(adjustResponse.status).toBe(200);
     expect(mocks.adjustLeaveBalance).toHaveBeenCalledWith({
-      employeeId: 7,
+      employeeId: "7",
       leaveTypeId: 3,
       year: 2026,
       adjustment: 1,
       reason: "Correction",
-      adjustedBy: 42,
+      adjustedBy: "42",
     });
 
     const restaurantResponse = await app.fetch(
@@ -291,7 +291,7 @@ describe("leaves routes", () => {
     );
     expect(listResponse.status).toBe(200);
     expect(mocks.getLeaveRequests).toHaveBeenCalledWith(
-      expect.objectContaining({ employeeId: 7, page: 2, limit: 5 }),
+      expect.objectContaining({ employeeId: "7", page: 2, limit: 5 }),
     );
 
     const detailResponse = await withSilencedRouteError(() =>
@@ -321,7 +321,7 @@ describe("leaves routes", () => {
     expect(mocks.createLeaveRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: RESTAURANT_ID,
-        employeeId: 7,
+        employeeId: "7",
         totalDays: 1.5,
       }),
     );
@@ -334,7 +334,7 @@ describe("leaves routes", () => {
       env as never,
     );
     expect(approveResponse.status).toBe(200);
-    expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(9, 42, "Enjoy");
+    expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(9, "42", "Enjoy");
 
     const rejectResponse = await app.fetch(
       jsonRequest("https://test/requests/9/reject", "POST", {
@@ -346,7 +346,7 @@ describe("leaves routes", () => {
     expect(rejectResponse.status).toBe(200);
     expect(mocks.rejectLeaveRequest).toHaveBeenCalledWith(
       9,
-      42,
+      "42",
       "Coverage gap",
     );
 
@@ -360,7 +360,7 @@ describe("leaves routes", () => {
     expect(cancelResponse.status).toBe(200);
     expect(mocks.cancelLeaveRequest).toHaveBeenCalledWith(
       9,
-      42,
+      "42",
       "Changed plans",
     );
   });

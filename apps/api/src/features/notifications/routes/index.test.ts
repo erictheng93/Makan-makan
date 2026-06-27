@@ -102,7 +102,7 @@ function request(
 }
 
 const notificationBody = {
-  recipientId: 12,
+  recipientId: "12",
   recipientEmail: "staff@test.dev",
   category: "schedule_created",
   type: "email",

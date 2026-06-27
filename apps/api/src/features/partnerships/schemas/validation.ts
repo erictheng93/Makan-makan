@@ -5,6 +5,13 @@
 
 import { z } from "zod";
 
+const idString = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, z.string().trim().min(1));
+
 // ================================================
 // PARTNERSHIP SCHEMAS
 // ================================================
@@ -285,7 +292,7 @@ export const logUsageSchema = z.object({
   planId: z.string().uuid(),
   memberId: z.string().uuid(),
   // orders.id is a text UUID/opaque id in the canonical DB schema.
-  orderId: z.string().trim().min(1),
+  orderId: idString,
   restaurantId: z.string().min(1),
 
   // 折扣資訊

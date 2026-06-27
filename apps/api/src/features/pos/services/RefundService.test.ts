@@ -97,7 +97,7 @@ function createService(
 
 function refundRequest(overrides: Record<string, unknown> = {}) {
   return {
-    originalOrderId: 101,
+    originalOrderId: "101",
     refundType: "partial" as const,
     refundAmount: 25,
     refundMethod: "cash",
@@ -112,7 +112,7 @@ function refundRequest(overrides: Record<string, unknown> = {}) {
 function refundRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "refund-1",
-    originalOrderId: 101,
+    originalOrderId: "101",
     registerId: "register-1",
     shiftId: "shift-1",
     refundNumber: "RF1",
@@ -175,7 +175,7 @@ describe("RefundService", () => {
     });
     expect(mutations.inserted).toHaveLength(2);
     expect(mutations.inserted[0]).toMatchObject({
-      originalOrderId: 101,
+      originalOrderId: "101",
       registerId: "register-1",
       shiftId: "shift-1",
       originalAmountCents: 10000,
@@ -190,7 +190,7 @@ describe("RefundService", () => {
       type: "refund",
       amountCents: -2500,
       description: "退款 - RF1780790400000-ABCDEF12",
-      referenceId: 101,
+      referenceId: null,
       referenceType: "refund",
     });
     expect(randomSpy).not.toHaveBeenCalled();
@@ -387,7 +387,7 @@ describe("RefundService", () => {
         startDate: "2026-06-01",
         endDate: "2026-06-07",
         status: "completed",
-        orderId: 101,
+        orderId: "101",
         page: 2,
         limit: 2,
       }),

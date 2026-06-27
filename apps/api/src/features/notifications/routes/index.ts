@@ -39,8 +39,15 @@ const testNotificationSchema = z.object({
   type: z.enum(["email", "sms"]).default("email"),
 });
 
+const idString = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, z.string().trim().min(1));
+
 const sendNotificationSchema = z.object({
-  recipientId: z.string().trim().min(1),
+  recipientId: idString,
   recipientEmail: z.string().email(),
   category: z.enum([
     "leave_request_submitted",

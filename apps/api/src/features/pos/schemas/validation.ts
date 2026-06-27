@@ -4,6 +4,13 @@
 
 import { z } from "zod";
 
+const idString = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, z.string().trim().min(1));
+
 export const createRegisterSchema = z.object({
   name: z.string().min(1).max(100),
   location: z.string().max(100).optional(),
@@ -15,7 +22,7 @@ export const createRegisterSchema = z.object({
 
 export const startShiftSchema = z.object({
   registerId: z.string().uuid(),
-  operatorId: z.string().trim().min(1),
+  operatorId: idString,
   startAmount: z.number().min(0),
   notes: z.string().max(500).optional(),
 });
@@ -42,7 +49,7 @@ export const cashMovementSchema = z.object({
 });
 
 export const printReceiptSchema = z.object({
-  orderId: z.string().trim().min(1),
+  orderId: idString,
   templateName: z.string().optional().default("standard"),
   receiptType: z
     .enum(["customer", "kitchen", "merchant"])
@@ -52,7 +59,7 @@ export const printReceiptSchema = z.object({
 });
 
 export const processRefundSchema = z.object({
-  originalOrderId: z.string().trim().min(1),
+  originalOrderId: idString,
   refundType: z.enum(["full", "partial", "item", "service"]),
   refundAmount: z.number().positive(),
   refundMethod: z.string().min(1).max(50),

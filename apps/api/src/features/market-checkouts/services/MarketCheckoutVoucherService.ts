@@ -568,7 +568,7 @@ export function combineAppliedMarketCheckoutVouchers(
       0,
     ),
     allocations: Array.from(allocationByOrderId.values()).sort((a, b) =>
-      a.orderId.localeCompare(b.orderId),
+      String(a.orderId).localeCompare(String(b.orderId)),
     ),
   };
 }

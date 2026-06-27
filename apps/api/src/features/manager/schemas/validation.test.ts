@@ -33,12 +33,14 @@ describe("manager validation schemas", () => {
         onBehalfOfUserId: "8",
       }),
     ).toEqual({
-      actorId: 7,
-      onBehalfOfUserId: 8,
+      actorId: "7",
+      onBehalfOfUserId: "8",
       limit: 50,
       offset: 0,
     });
 
-    expect(() => auditLogQuerySchema.parse({ actorId: "abc" })).toThrow();
+    expect(auditLogQuerySchema.parse({ actorId: "abc" })).toMatchObject({
+      actorId: "abc",
+    });
   });
 });

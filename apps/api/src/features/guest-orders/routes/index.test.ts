@@ -355,7 +355,7 @@ describe("guest order routes", () => {
       success: true,
       data: { order: { id: 501 } },
     });
-    expect(getOrder).toHaveBeenCalledWith(501, true);
+    expect(getOrder).toHaveBeenCalledWith("501", true);
   });
 
   it("validates guest item additions and order state", async () => {
@@ -431,7 +431,7 @@ describe("guest order routes", () => {
       message: "Items added successfully",
       data: { order: { id: 501 } },
     });
-    expect(addItemsToOrder).toHaveBeenCalledWith(501, addedItems);
+    expect(addItemsToOrder).toHaveBeenCalledWith("501", addedItems);
     expect(updateOrder).not.toHaveBeenCalled();
   });
 
@@ -460,7 +460,7 @@ describe("guest order routes", () => {
       message: "Order cancelled successfully",
       data: { order: { status: "cancelled" } },
     });
-    expect(cancelOrder).toHaveBeenCalledWith(501, "Cancelled by guest");
+    expect(cancelOrder).toHaveBeenCalledWith("501", "Cancelled by guest");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
       "guest_active:restaurant-1:678",
     );

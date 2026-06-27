@@ -73,7 +73,12 @@ const payMarketCheckoutSchema = z.object({
 });
 
 const recoverMarketCheckoutGuestTokenSchema = z.object({
-  orderId: z.string().trim().min(1),
+  orderId: z.preprocess((value) => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+    return value;
+  }, z.string().trim().min(1)),
   phoneLastDigits: z.string().regex(/^\d{3}$/),
 });
 
@@ -1045,7 +1050,7 @@ app.post(
     await c.env.CACHE_KV.delete(attemptsKey);
 
     const child = session.childOrders.find(
-      (order) => order.orderId === parsed.data.orderId,
+      (order) => String(order.orderId) === parsed.data.orderId,
     );
     if (!child) {
       throw notFound("Child order not found for this market checkout");

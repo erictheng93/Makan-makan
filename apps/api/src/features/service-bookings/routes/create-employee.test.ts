@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   createBooking.mockResolvedValue({
     id: "booking-1",
-    employeeId: 7,
+    employeeId: "7",
     status: "pending",
   });
 });
@@ -44,7 +44,7 @@ describe("service booking create route employee assignment", () => {
       customerPhone: "0911222333",
       bookingDate: "2026-06-05",
       bookingTime: "14:00",
-      employeeId: 7,
+      employeeId: "7",
     });
 
     expect(res.status).toBe(201);
@@ -55,7 +55,7 @@ describe("service booking create route employee assignment", () => {
       customerPhone: "0911222333",
       bookingDate: "2026-06-05",
       bookingTime: "14:00",
-      employeeId: 7,
+      employeeId: "7",
     });
   });
 });

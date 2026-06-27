@@ -222,7 +222,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.createShiftTemplate).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        createdBy: 42,
+        createdBy: "42",
         name: "Dinner",
         shiftType: "regular",
       }),
@@ -254,7 +254,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getSchedules).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        employeeId: 42,
+        employeeId: "42",
         page: 2,
         limit: 10,
       }),
@@ -267,7 +267,7 @@ describe("scheduling routes", () => {
     let res = await request("/rest-1/schedules", "POST", scheduleBody);
     expect(res.status).toBe(201);
     expect(serviceFns.createSchedule).toHaveBeenCalledWith(
-      expect.objectContaining({ restaurantId: "rest-1", createdBy: 7 }),
+      expect.objectContaining({ restaurantId: "rest-1", createdBy: "7" }),
     );
 
     res = await request("/rest-1/schedules/bulk", "POST", {
@@ -278,7 +278,7 @@ describe("scheduling routes", () => {
     });
     expect(res.status).toBe(201);
     expect(serviceFns.bulkCreateSchedules).toHaveBeenCalledWith(
-      expect.objectContaining({ restaurantId: "rest-1", createdBy: 7 }),
+      expect.objectContaining({ restaurantId: "rest-1", createdBy: "7" }),
     );
 
     res = await request("/schedules/10", "PUT", {
@@ -289,7 +289,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.updateSchedule).toHaveBeenCalledWith(10, {
       status: "confirmed",
       notes: "ready",
-      updatedBy: 7,
+      updatedBy: "7",
     });
 
     res = await request("/schedules/10", "DELETE");
@@ -320,13 +320,13 @@ describe("scheduling routes", () => {
 
     let res = await request("/schedules/10/clock-in", "POST", {
       scheduleId: 10,
-      employeeId: 42,
+      employeeId: "42",
       notes: "arrived",
     });
     expect(res.status).toBe(200);
     expect(serviceFns.clockIn).toHaveBeenCalledWith({
       scheduleId: 10,
-      employeeId: 42,
+      employeeId: "42",
       clockInTime: new Date("2026-06-10T01:00:00.000Z"),
       notes: "arrived",
     });
@@ -339,7 +339,7 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.clockOut).toHaveBeenCalledWith({
       scheduleId: 10,
-      employeeId: 42,
+      employeeId: "42",
       clockOutTime: new Date("2026-06-10T01:00:00.000Z"),
       notes: "done",
     });
@@ -361,7 +361,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getAttendanceReport).toHaveBeenCalledWith("rest-1", {
       startDate: "2026-06-10",
       endDate: "2026-06-11",
-      employeeId: 42,
+      employeeId: "42",
     });
   });
 
@@ -403,7 +403,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.createSwapRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        requesterEmployeeId: 42,
+        requesterEmployeeId: "42",
         expiresAt: new Date(1_780_800_000_000),
       }),
     );
@@ -413,7 +413,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getSwapRequests).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        requesterEmployeeId: 42,
+        requesterEmployeeId: "42",
       }),
     );
   });
@@ -424,13 +424,13 @@ describe("scheduling routes", () => {
       employeeId: 42,
     });
     expect(res.status).toBe(200);
-    expect(serviceFns.acceptSwapRequest).toHaveBeenCalledWith(20, 42);
+    expect(serviceFns.acceptSwapRequest).toHaveBeenCalledWith(20, "42");
 
     res = await request("/swap-requests/20/approve", "POST", {
       managerId: 7,
     });
     expect(res.status).toBe(200);
-    expect(serviceFns.approveSwapRequest).toHaveBeenCalledWith(20, 7);
+    expect(serviceFns.approveSwapRequest).toHaveBeenCalledWith(20, "7");
 
     res = await request("/swap-requests/20/reject", "POST", {
       managerId: 7,
@@ -439,13 +439,13 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.rejectSwapRequest).toHaveBeenCalledWith(
       20,
-      7,
+      "7",
       "coverage unavailable",
     );
 
     res = await request("/swap-requests/20/cancel", "POST");
     expect(res.status).toBe(200);
-    expect(serviceFns.cancelSwapRequest).toHaveBeenCalledWith(20, 42);
+    expect(serviceFns.cancelSwapRequest).toHaveBeenCalledWith(20, "42");
   });
 
   it("returns availability, conflicts, and scheduling stats", async () => {
@@ -472,7 +472,7 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.resolveConflict).toHaveBeenCalledWith(
       30,
-      7,
+      "7",
       "Adjusted shift",
     );
 

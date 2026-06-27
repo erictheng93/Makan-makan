@@ -89,7 +89,7 @@ describe("scheduling validation", () => {
         scheduledHours: 8,
       }),
     ).toMatchObject({
-      employeeId: 42,
+      employeeId: "42",
       breakDurationMinutes: 0,
       scheduledHours: 8,
     });
@@ -109,7 +109,7 @@ describe("scheduling validation", () => {
         dateRange: { startDate: "2026-06-10", endDate: "2026-06-12" },
         daysOfWeek: [3, 4],
       }),
-    ).toMatchObject({ employeeIds: [42, 43] });
+    ).toMatchObject({ employeeIds: ["42", "43"] });
 
     expect(
       bulkCreateSchedulesSchema.safeParse({
@@ -124,7 +124,7 @@ describe("scheduling validation", () => {
   it("validates clock, rules, conflict, and swap request bodies", () => {
     expect(clockInSchema.parse({ scheduleId: 1, employeeId: 42 })).toEqual({
       scheduleId: 1,
-      employeeId: 42,
+      employeeId: "42",
     });
 
     expect(
@@ -152,7 +152,7 @@ describe("scheduling validation", () => {
         userId: 7,
         resolutionNotes: "Adjusted shift",
       }),
-    ).toMatchObject({ userId: 7 });
+    ).toMatchObject({ userId: "7" });
 
     expect(
       createSwapRequestSchema.parse({
@@ -167,14 +167,14 @@ describe("scheduling validation", () => {
     });
 
     expect(acceptSwapRequestSchema.parse({ employeeId: 42 })).toEqual({
-      employeeId: 42,
+      employeeId: "42",
     });
     expect(approveSwapRequestSchema.parse({ managerId: 7 })).toEqual({
-      managerId: 7,
+      managerId: "7",
     });
     expect(
       rejectSwapRequestSchema.parse({ managerId: 7, reason: "No coverage" }),
-    ).toEqual({ managerId: 7, reason: "No coverage" });
+    ).toEqual({ managerId: "7", reason: "No coverage" });
   });
 
   it("refines availability requirements by availability type", () => {
@@ -223,7 +223,7 @@ describe("scheduling validation", () => {
         endDate: "2026-06-11",
         employeeId: "42",
       }),
-    ).toMatchObject({ employeeId: 42 });
+    ).toMatchObject({ employeeId: "42" });
 
     expect(adminClockSchema.parse({ notes: "manual" })).toEqual({
       notes: "manual",
@@ -237,7 +237,7 @@ describe("scheduling validation", () => {
       }),
     ).toMatchObject({
       restaurantId: 1,
-      employeeId: 42,
+      employeeId: "42",
       shiftTemplateId: 5,
       page: 1,
       limit: 20,
@@ -252,7 +252,7 @@ describe("scheduling validation", () => {
         page: "2",
         limit: "5",
       }),
-    ).toMatchObject({ employeeId: 42, page: 2, limit: 5 });
+    ).toMatchObject({ employeeId: "42", page: 2, limit: 5 });
 
     expect(
       swapRequestFiltersSchema.parse({
@@ -262,8 +262,8 @@ describe("scheduling validation", () => {
         requestType: "swap",
       }),
     ).toMatchObject({
-      requesterEmployeeId: 42,
-      targetEmployeeId: 43,
+      requesterEmployeeId: "42",
+      targetEmployeeId: "43",
       page: 1,
       limit: 20,
     });
@@ -289,7 +289,7 @@ describe("scheduling validation", () => {
     expect(conflictIdParamSchema.parse({ id: "7" })).toEqual({ id: 7 });
     expect(swapRequestIdParamSchema.parse({ id: "8" })).toEqual({ id: 8 });
     expect(employeeIdParamSchema.parse({ employeeId: "42" })).toEqual({
-      employeeId: 42,
+      employeeId: "42",
     });
   });
 

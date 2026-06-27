@@ -134,7 +134,7 @@ describe("coupons routes", () => {
         code: "SAVE10",
         restaurantId: "restaurant-1",
         orderAmount: 300,
-        userId: 5,
+        userId: "5",
         menuItems: [{ menuItemId: 1, quantity: 2 }],
       }),
       env as never,
@@ -148,7 +148,7 @@ describe("coupons routes", () => {
       "SAVE10",
       "restaurant-1",
       300,
-      5,
+      "5",
       [{ menuItemId: 1, quantity: 2 }],
     );
 
@@ -348,8 +348,8 @@ describe("coupons routes", () => {
     const useResponse = await app.fetch(
       jsonRequest("https://test/use", "POST", {
         couponId: 10,
-        orderId: 99,
-        userId: 5,
+        orderId: "99",
+        userId: "5",
         discountAmount: 30,
         originalAmount: 300,
         finalAmount: 270,
@@ -359,8 +359,8 @@ describe("coupons routes", () => {
     expect(useResponse.status).toBe(200);
     expect(mocks.useCouponForOrder).toHaveBeenCalledWith({
       couponId: 10,
-      orderId: 99,
-      userId: 5,
+      orderId: "99",
+      userId: "5",
       allowedRestaurantId: "restaurant-1",
     });
 
@@ -371,7 +371,7 @@ describe("coupons routes", () => {
       app.fetch(
         jsonRequest("https://test/use", "POST", {
           couponId: 10,
-          orderId: 99,
+          orderId: "99",
           discountAmount: 30,
           originalAmount: 300,
           finalAmount: 270,

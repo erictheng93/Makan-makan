@@ -316,9 +316,7 @@ async function resolvePaymentOrder(
   }
 
   if (UUID_V7_PATTERN.test(input.orderId)) {
-    return resolveOrderIdentity(db, input.orderId, {
-      requireRestaurantForAliases: false,
-    });
+    return null;
   }
 
   throw new ApiError(

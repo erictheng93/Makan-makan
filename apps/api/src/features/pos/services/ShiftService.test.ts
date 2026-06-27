@@ -86,7 +86,7 @@ function shiftRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "shift-1",
     registerId: "550e8400-e29b-41d4-a716-446655440001",
-    operatorId: 7,
+    operatorId: "7",
     startAmountCents: 25000,
     endAmountCents: null,
     expectedAmountCents: 25000,
@@ -130,7 +130,7 @@ describe("ShiftService", () => {
 
     const result = await createService().startShift({
       registerId,
-      operatorId: 7,
+      operatorId: "7",
       startAmount: 250.5,
       notes: "morning",
     });
@@ -140,7 +140,7 @@ describe("ShiftService", () => {
       data: {
         id: "shift-1",
         registerId,
-        operatorId: 7,
+        operatorId: "7",
         startAmount: 250,
         status: "active",
         notes: "morning",
@@ -152,7 +152,7 @@ describe("ShiftService", () => {
       expect.objectContaining({
         id: "shift-1",
         registerId,
-        operatorId: 7,
+        operatorId: "7",
         startAmountCents: 25050,
         expectedAmountCents: 25050,
         differenceAmountCents: 0,
@@ -166,7 +166,7 @@ describe("ShiftService", () => {
         registerId,
         type: "opening",
         amountCents: 25050,
-        recordedBy: 7,
+        recordedBy: "7",
         approvalStatus: "approved",
         metadata: "{}",
         createdAt: new Date("2026-06-07T08:00:00.000Z"),
@@ -182,7 +182,7 @@ describe("ShiftService", () => {
     let result = await withSuppressedConsoleError(() =>
       createService().startShift({
         registerId: "not-a-uuid",
-        operatorId: 7,
+        operatorId: "7",
         startAmount: 250,
       }),
     );
@@ -194,7 +194,7 @@ describe("ShiftService", () => {
     mockSelectResults([[{ id: "shift-existing" }]]);
     result = await createService().startShift({
       registerId,
-      operatorId: 7,
+      operatorId: "7",
       startAmount: 250,
     });
 

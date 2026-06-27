@@ -15,10 +15,10 @@ describe("POS validation schemas", () => {
     expect(
       startShiftSchema.parse({
         registerId,
-        operatorId: 1,
+        operatorId: "1",
         startAmount: 1000,
       }),
-    ).toMatchObject({ registerId, operatorId: 1 });
+    ).toMatchObject({ registerId, operatorId: "1" });
 
     expect(
       cashMovementSchema.parse({
@@ -30,8 +30,8 @@ describe("POS validation schemas", () => {
   });
 
   it("applies receipt and market checkout payment defaults", () => {
-    expect(printReceiptSchema.parse({ orderId: 10 })).toEqual({
-      orderId: 10,
+    expect(printReceiptSchema.parse({ orderId: "10" })).toEqual({
+      orderId: "10",
       templateName: "standard",
       receiptType: "customer",
       copies: 1,
@@ -59,7 +59,7 @@ describe("POS validation schemas", () => {
     );
 
     expect(() =>
-      printReceiptSchema.parse({ orderId: 10, copies: 6 }),
+      printReceiptSchema.parse({ orderId: "10", copies: 6 }),
     ).toThrow();
   });
 });

@@ -10,6 +10,12 @@ const positiveInteger = z.number().int().positive();
 const nonNegativeInteger = z.number().int().min(0);
 const nonNegativeNumber = z.number().min(0);
 const nonEmptyString = z.string().min(1).trim();
+const idString = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, nonEmptyString);
 const optionalUrl = z.string().url().optional();
 const dateString = z
   .string()
@@ -73,7 +79,7 @@ export const updateLeaveTypeSchema = createLeaveTypeSchema.partial();
 export const createLeaveRequestSchema = z
   .object({
     restaurantId: restaurantIdString.optional(), // Injected by route handler from URL param
-    employeeId: nonEmptyString.optional(), // Staff UUID from auth context
+    employeeId: idString.optional(), // Staff UUID from auth context
     leaveTypeId: positiveInteger,
 
     // Date & Duration
@@ -97,28 +103,28 @@ export const createLeaveRequestSchema = z
   );
 
 export const approveLeaveRequestSchema = z.object({
-  approverId: nonEmptyString,
+  approverId: idString,
   comments: z.string().max(500).optional(),
 });
 
 export const rejectLeaveRequestSchema = z.object({
-  approverId: nonEmptyString,
+  approverId: idString,
   reason: nonEmptyString.max(500),
 });
 
 export const cancelLeaveRequestSchema = z.object({
-  userId: nonEmptyString,
+  userId: idString,
   reason: nonEmptyString.max(500),
 });
 
 // Leave Balance Schemas
 export const adjustLeaveBalanceSchema = z.object({
-  employeeId: nonEmptyString,
+  employeeId: idString,
   leaveTypeId: positiveInteger,
   year: yearInteger,
   adjustment: z.number().min(-365).max(365), // Allow both positive and negative adjustments
   reason: nonEmptyString.max(500),
-  adjustedBy: nonEmptyString,
+  adjustedBy: idString,
 });
 
 export const accrueLeaveBalancesSchema = z.object({
@@ -146,7 +152,7 @@ const baseLeaveApprovalRuleSchema = z.object({
   // Escalation
   enableAutoEscalation: z.boolean().default(false),
   escalationTimeoutHours: positiveInteger.optional().nullable(),
-  escalationToUserId: nonEmptyString.optional().nullable(),
+  escalationToUserId: idString.optional().nullable(),
 
   // Priority
   priority: nonNegativeInteger.default(0),
@@ -216,7 +222,7 @@ export const updateLeaveCalendarEventSchema =
 
 // Query Parameter Schemas
 export const leaveRequestFiltersSchema = z.object({
-  employeeId: nonEmptyString.optional(),
+  employeeId: idString.optional(),
   leaveTypeId: z.string().regex(/^\d+$/).transform(Number).optional(),
   status: z
     .enum(["pending", "approved", "rejected", "cancelled", "withdrawn"])
@@ -234,7 +240,7 @@ export const leaveRequestFiltersSchema = z.object({
 });
 
 export const leaveBalanceQuerySchema = z.object({
-  employeeId: nonEmptyString,
+  employeeId: idString,
   year: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 

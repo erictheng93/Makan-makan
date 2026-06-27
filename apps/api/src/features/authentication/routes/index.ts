@@ -404,7 +404,7 @@ export function createAuthRoutes(
       const { id: userId } = c.get("validatedParams");
 
       // Users can only view their own profile unless they are admin
-      if (currentUser.role !== 0 && currentUser.id !== userId) {
+      if (currentUser.role !== 0 && String(currentUser.id) !== userId) {
         return c.json(
           {
             success: false,
@@ -449,7 +449,7 @@ export function createAuthRoutes(
       const updateData = c.get("validatedBody");
 
       // Users can only update their own profile unless they are admin
-      if (currentUser.role !== 0 && currentUser.id !== userId) {
+      if (currentUser.role !== 0 && String(currentUser.id) !== userId) {
         return c.json(
           {
             success: false,

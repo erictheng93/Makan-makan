@@ -102,15 +102,15 @@ describe("leave validation schemas", () => {
         status: "approved",
       }),
     ).toEqual({
-      employeeId: 10,
+      employeeId: "10",
       leaveTypeId: 2,
       status: "approved",
       page: 1,
       limit: 20,
     });
 
-    expect(approveLeaveRequestSchema.parse({ approverId: 3 })).toEqual({
-      approverId: 3,
+    expect(approveLeaveRequestSchema.parse({ approverId: "3" })).toEqual({
+      approverId: "3",
     });
   });
 

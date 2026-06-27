@@ -192,7 +192,7 @@ describe("users routes", () => {
       createEnv() as never,
     );
     expect(getResponse.status).toBe(200);
-    expect(serviceMethods.getUserById).toHaveBeenCalledWith(currentUser, 42);
+    expect(serviceMethods.getUserById).toHaveBeenCalledWith(currentUser, "42");
 
     serviceMethods.createUser.mockResolvedValue({
       id: 43,
@@ -232,7 +232,7 @@ describe("users routes", () => {
       createEnv() as never,
     );
     expect(updateResponse.status).toBe(200);
-    expect(serviceMethods.updateUser).toHaveBeenCalledWith(currentUser, 42, {
+    expect(serviceMethods.updateUser).toHaveBeenCalledWith(currentUser, "42", {
       fullName: "Updated Name",
     });
   });
@@ -253,7 +253,7 @@ describe("users routes", () => {
     expect(changeResponse.status).toBe(200);
     expect(serviceMethods.changePassword).toHaveBeenCalledWith(
       currentUser,
-      42,
+      "42",
       "Oldpass1!",
       strongPassword,
     );
@@ -272,7 +272,7 @@ describe("users routes", () => {
     expect(resetResponse.status).toBe(200);
     expect(serviceMethods.resetPassword).toHaveBeenCalledWith(
       currentUser,
-      42,
+      "42",
       strongPassword,
     );
   });
@@ -293,7 +293,7 @@ describe("users routes", () => {
     });
     expect(serviceMethods.updateUserStatus).toHaveBeenCalledWith(
       currentUser,
-      42,
+      "42",
       false,
     );
 
@@ -305,6 +305,6 @@ describe("users routes", () => {
       createEnv() as never,
     );
     expect(verifyResponse.status).toBe(200);
-    expect(serviceMethods.verifyUser).toHaveBeenCalledWith(currentUser, 42);
+    expect(serviceMethods.verifyUser).toHaveBeenCalledWith(currentUser, "42");
   });
 });

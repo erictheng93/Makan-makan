@@ -268,7 +268,7 @@ describe("POS refund routes", () => {
       startDate: "2026-06-01",
       endDate: "2026-06-07",
       status: "completed",
-      orderId: 101,
+      orderId: "101",
       page: 2,
       limit: 5,
     });

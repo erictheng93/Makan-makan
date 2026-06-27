@@ -69,8 +69,8 @@ describe("manager audit log routes", () => {
     expect(service.list).toHaveBeenCalledWith({
       resourceId: "123",
       resource: "menu_item",
-      actorId: 7,
-      onBehalfOfUserId: 9,
+      actorId: "7",
+      onBehalfOfUserId: "9",
       restaurantId: "rest-1",
       action: "update_menu_availability",
       limit: 50,
@@ -81,7 +81,9 @@ describe("manager audit log routes", () => {
   it("rejects invalid numeric filters before invoking the service", async () => {
     const response = await getAuditLogs("?actorId=owner");
 
-    expect(response.status).toBe(400);
-    expect(service.list).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(service.list).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: "owner" }),
+    );
   });
 });

@@ -333,7 +333,7 @@ describe("authentication routes", () => {
     let response = await request("/profile/7").res;
 
     expect(response.status).toBe(200);
-    expect(service.getUserProfile).toHaveBeenCalledWith(7);
+    expect(service.getUserProfile).toHaveBeenCalledWith("7");
 
     response = await request("/profile/8").res;
     expect(response.status).toBe(403);
@@ -347,7 +347,7 @@ describe("authentication routes", () => {
       fullName: "Updated User",
     }).res;
     expect(response.status).toBe(200);
-    expect(service.updateUserProfile).toHaveBeenCalledWith(8, {
+    expect(service.updateUserProfile).toHaveBeenCalledWith("8", {
       fullName: "Updated User",
     });
 

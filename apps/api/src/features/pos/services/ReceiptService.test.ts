@@ -120,7 +120,7 @@ function itemRow(overrides: Record<string, unknown> = {}) {
 function receiptRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "receipt-1",
-    orderId: 101,
+    orderId: "101",
     registerId: "register-1",
     shiftId: "shift-1",
     receiptNumber: "R1710000000000-4FZZZX",
@@ -163,7 +163,7 @@ describe("ReceiptService", () => {
     mockSelectResults([[orderRow()], [itemRow()], [receiptRow()]]);
 
     const result = await createService().printReceipt(
-      { orderId: 101 },
+      { orderId: "101" },
       "register-1",
       "shift-1",
     );
@@ -172,7 +172,7 @@ describe("ReceiptService", () => {
       success: true,
       data: {
         id: "receipt-1",
-        orderId: 101,
+        orderId: "101",
         registerId: "register-1",
         shiftId: "shift-1",
         receiptType: "customer",
@@ -183,7 +183,7 @@ describe("ReceiptService", () => {
     expect(mutations.inserted).toHaveLength(1);
     expect(mutations.inserted[0]).toMatchObject({
       id: "receipt-1",
-      orderId: 101,
+      orderId: "101",
       registerId: "register-1",
       shiftId: "shift-1",
       receiptType: "customer",
@@ -225,7 +225,7 @@ describe("ReceiptService", () => {
     mockSelectResults([[]]);
 
     await expect(
-      createService().printReceipt({ orderId: 101 }, "register-1"),
+      createService().printReceipt({ orderId: "101" }, "register-1"),
     ).resolves.toMatchObject({ success: false });
 
     expect(mutations.inserted).toHaveLength(0);
@@ -332,7 +332,7 @@ describe("ReceiptService", () => {
     ]);
 
     await expect(
-      createService().printReceipt({ orderId: 101, copies: 2 }, "register-1"),
+      createService().printReceipt({ orderId: "101", copies: 2 }, "register-1"),
     ).resolves.toMatchObject({ success: true });
 
     await vi.advanceTimersByTimeAsync(3_999);
@@ -398,7 +398,7 @@ describe("ReceiptService", () => {
       createRejectedQuery(new Error("print lookup failed")),
     );
     await expect(
-      createService().printReceipt({ orderId: 101 }, "register-1"),
+      createService().printReceipt({ orderId: "101" }, "register-1"),
     ).resolves.toMatchObject({
       success: false,
       error: "print lookup failed",

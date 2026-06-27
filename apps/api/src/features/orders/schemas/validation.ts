@@ -12,6 +12,12 @@ const idSchema = z.number().int().positive();
 const optionalIdSchema = z.number().int().positive().optional();
 const phoneSchema = z.string().max(20).optional();
 const emailSchema = z.string().email().optional();
+const idStringSchema = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, z.string().trim().min(1));
 // Sanitize free-text user input by removing HTML metacharacters instead of
 // trying to strip whole tags/attributes, which can be bypassed by overlap.
 const sanitizeFreeText = (input: string): string => {
@@ -258,7 +264,7 @@ export const previewCouponSchema = z.object({
   restaurantId: z.string().min(1),
   couponCode: z.string().min(1).max(50),
   orderAmount: positiveNumberSchema,
-  userId: z.string().trim().min(1).optional(),
+  userId: idStringSchema.optional(),
   menuItems: z
     .array(
       z.object({
@@ -272,7 +278,7 @@ export const previewCouponSchema = z.object({
 // Bulk operations schema
 export const bulkOrderOperationSchema = z.object({
   action: z.enum(["update_status", "cancel", "export", "archive"]),
-  orderIds: z.array(z.string().trim().min(1)).min(1).max(100),
+  orderIds: z.array(idStringSchema).min(1).max(100),
   data: z
     .object({
       status: orderStatusSchema.optional(),

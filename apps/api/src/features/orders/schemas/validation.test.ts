@@ -209,13 +209,13 @@ describe("order validation", () => {
       }),
     ).toMatchObject({ restaurantId: 1, roles: [1, 2], tableIds: [3] });
 
-    expect(orderIdParamSchema.parse({ id: "55" })).toEqual({ id: 55 });
+    expect(orderIdParamSchema.parse({ id: "55" })).toEqual({ id: "55" });
     expect(
       orderBatchIdParamSchema.safeParse({ batchId: "not-a-uuid" }).success,
     ).toBe(false);
     expect(orderItemIdParamSchema.parse({ orderId: "5", itemId: "6" })).toEqual(
       {
-        orderId: 5,
+        orderId: "5",
         itemId: 6,
       },
     );
@@ -239,10 +239,10 @@ describe("order validation", () => {
         restaurantId: "rest-1",
         couponCode: "SAVE10",
         orderAmount: 100,
-        userId: 42,
+        userId: "42",
         menuItems: [{ menuItemId: 1, quantity: 2 }],
       }),
-    ).toMatchObject({ couponCode: "SAVE10", userId: 42 });
+    ).toMatchObject({ couponCode: "SAVE10", userId: "42" });
   });
 
   it("parses advanced query and notification defaults", () => {

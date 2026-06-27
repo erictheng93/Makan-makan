@@ -94,7 +94,7 @@ describe("POS shift routes", () => {
     };
     mocks.shiftService.startShift.mockResolvedValue({
       success: true,
-      data: { id: shiftId, registerId, operatorId: 10, status: "active" },
+      data: { id: shiftId, registerId, operatorId: "10", status: "active" },
     });
     mocks.shiftService.endShift.mockResolvedValue({
       success: true,
@@ -119,7 +119,7 @@ describe("POS shift routes", () => {
   it("starts a shift for the authenticated cashier", async () => {
     const payload = {
       registerId,
-      operatorId: 10,
+      operatorId: "10",
       startAmount: 500,
       notes: "morning shift",
     };
@@ -136,7 +136,7 @@ describe("POS shift routes", () => {
     expect(mocks.shiftService.startShift).toHaveBeenCalledWith(payload);
     expect(body).toEqual({
       success: true,
-      data: { id: shiftId, registerId, operatorId: 10, status: "active" },
+      data: { id: shiftId, registerId, operatorId: "10", status: "active" },
     });
   });
 

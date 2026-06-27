@@ -37,7 +37,7 @@ app.post(
     const user = c.get("user");
 
     // 如果不是管理員，操作員必須是自己
-    if (user.role !== 0 && data.operatorId !== user.id) {
+    if (user.role !== 0 && data.operatorId !== String(user.id)) {
       throw forbidden("只能為自己開班");
     }
 

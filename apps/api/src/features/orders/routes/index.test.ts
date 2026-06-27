@@ -227,7 +227,7 @@ describe("orders routes", () => {
         createdAt: Date.parse("2026-06-07T00:00:00.000Z"),
       },
     });
-    expect(serviceMocks.getOrder).toHaveBeenCalledWith(777, true);
+    expect(serviceMocks.getOrder).toHaveBeenCalledWith("777", true);
 
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -645,7 +645,7 @@ describe("orders routes", () => {
       },
     });
     expect(serviceMocks.updateOrderStatus).toHaveBeenCalledWith(
-      55,
+      "55",
       expect.objectContaining({
         status: "delivered",
         notes: "Ready",
@@ -711,7 +711,7 @@ describe("orders routes", () => {
       message: "Order cancelled successfully",
     });
     expect(serviceMocks.cancelOrder).toHaveBeenCalledWith(
-      55,
+      "55",
       "Cancelled by user",
       42,
       expect.any(Object),
@@ -799,7 +799,7 @@ describe("orders routes", () => {
     expect(serviceMocks.bulkUpdateOrders).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "update_status",
-        orderIds: [55, 56],
+        orderIds: ["55", "56"],
       }),
       42,
     );
@@ -878,13 +878,13 @@ describe("orders routes", () => {
       success: true,
       data: { html: "<p>receipt</p>" },
     });
-    expect(serviceMocks.generateReceipt).toHaveBeenCalledWith(55);
+    expect(serviceMocks.generateReceipt).toHaveBeenCalledWith("55");
     expect(gateMocks.meterEmit).toHaveBeenCalledWith(
       expect.anything(),
       "print.jobs",
       {
         restaurantId: "restaurant-1",
-        metadata: { orderId: 55 },
+        metadata: { orderId: "55" },
       },
     );
   });

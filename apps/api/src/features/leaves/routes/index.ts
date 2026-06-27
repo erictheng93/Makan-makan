@@ -163,7 +163,7 @@ app.get(
 
     // Check access: employees can only view their own balances
     if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER) {
-      if (query.employeeId !== user.id) {
+      if (query.employeeId !== String(user.id)) {
         throw forbidden("Access denied");
       }
     }
@@ -266,7 +266,7 @@ app.get(
       ...query,
       employeeId:
         user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER
-          ? user.id
+          ? String(user.id)
           : query.employeeId,
     };
 
@@ -306,7 +306,7 @@ app.get(
 
     // Check access
     if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER) {
-      if (request.employeeId !== user.id) {
+      if (String(request.employeeId) !== String(user.id)) {
         throw forbidden("Access denied");
       }
     }
@@ -428,7 +428,7 @@ app.post(
     }
 
     if (user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER) {
-      if (request.employeeId !== user.id) {
+      if (String(request.employeeId) !== String(user.id)) {
         throw forbidden("Access denied");
       }
     }

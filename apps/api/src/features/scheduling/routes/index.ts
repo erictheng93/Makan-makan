@@ -37,6 +37,10 @@ function isManager(role: number): boolean {
   return role === USER_ROLES.ADMIN || role === USER_ROLES.OWNER;
 }
 
+function userIdString(user: { id: string | number }): string {
+  return String(user.id);
+}
+
 // ========================================
 // Shift Template Management
 // ========================================
@@ -95,7 +99,7 @@ app.post(
     const template = await service.createShiftTemplate({
       ...data,
       restaurantId,
-      createdBy: user.id,
+      createdBy: userIdString(user),
     });
 
     return c.json(
@@ -120,7 +124,7 @@ app.put(
 
     const template = await service.updateShiftTemplate(id, {
       ...data,
-      updatedBy: user.id,
+      updatedBy: userIdString(user),
     });
 
     return c.json(
@@ -174,7 +178,7 @@ app.get(
     const filters = {
       ...query,
       restaurantId,
-      employeeId: !isManager(user.role) ? user.id : query.employeeId,
+      employeeId: !isManager(user.role) ? userIdString(user) : query.employeeId,
     };
 
     const result = await service.getSchedules(filters);
@@ -213,7 +217,7 @@ app.get(
 
     // Check access
     if (!isManager(user.role)) {
-      if (schedule.employeeId !== user.id) {
+      if (String(schedule.employeeId) !== userIdString(user)) {
         throw forbidden("Access denied");
       }
     }
@@ -239,7 +243,7 @@ app.post(
     const schedule = await service.createSchedule({
       ...data,
       restaurantId,
-      createdBy: user.id,
+      createdBy: userIdString(user),
     });
 
     return c.json(
@@ -266,7 +270,7 @@ app.post(
     const count = await service.bulkCreateSchedules({
       ...data,
       restaurantId,
-      createdBy: user.id,
+      createdBy: userIdString(user),
     });
 
     return c.json(
@@ -294,7 +298,7 @@ app.put(
 
     const schedule = await service.updateSchedule(id, {
       ...data,
-      updatedBy: user.id,
+      updatedBy: userIdString(user),
     });
 
     return c.json(
@@ -345,7 +349,7 @@ app.post(
 
     // Verify user is clocking in for themselves (unless admin)
     if (!isManager(user.role)) {
-      if (employeeId !== user.id) {
+      if (employeeId !== userIdString(user)) {
         throw forbidden("Access denied");
       }
     }
@@ -378,7 +382,7 @@ app.post(
 
     // Verify user is clocking out for themselves (unless admin)
     if (!isManager(user.role)) {
-      if (employeeId !== user.id) {
+      if (employeeId !== userIdString(user)) {
         throw forbidden("Access denied");
       }
     }
@@ -641,7 +645,7 @@ app.get(
       ...filters,
       restaurantId,
       requesterEmployeeId: !isManager(user.role)
-        ? user.id
+        ? userIdString(user)
         : filters.requesterEmployeeId,
     };
 
@@ -677,7 +681,7 @@ app.post(
 
     // Verify user is accepting for themselves (unless admin)
     if (!isManager(user.role)) {
-      if (employeeId !== user.id) {
+      if (employeeId !== userIdString(user)) {
         throw forbidden("Access denied");
       }
     }
@@ -743,7 +747,7 @@ app.post(
     const user = c.get("user");
     const service = createService(c.env);
 
-    const request = await service.cancelSwapRequest(id, user.id);
+    const request = await service.cancelSwapRequest(id, userIdString(user));
 
     return c.json(
       createSuccessResponse(request, "Swap request cancelled successfully"),
