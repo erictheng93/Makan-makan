@@ -4,7 +4,7 @@ Date: 2026-06-25
 
 Remediation update: 2026-06-27
 
-Scope: repository-level review of the current `C:\Code\Makan-makan` working tree, focused on pilot/limited production readiness. This is not a full penetration test and does not prove every route is vulnerability-free. The review prioritized deployment gates, authentication, authorization, multi-tenant isolation, browser security, payment flows, and test/security automation.
+Scope: repository-level review of the current working tree, focused on pilot/limited production readiness. This is not a full penetration test and does not prove every route is vulnerability-free. The review prioritized deployment gates, authentication, authorization, multi-tenant isolation, browser security, payment flows, and test/security automation.
 
 ## Executive Summary
 
