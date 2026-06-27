@@ -28,6 +28,7 @@ const toJwtAuthPayload = (
     typeof payload.username !== "string" ||
     typeof payload.role !== "number" ||
     (payload.restaurantId !== undefined &&
+      payload.restaurantId !== null &&
       typeof payload.restaurantId !== "number")
   ) {
     return null;
@@ -37,7 +38,7 @@ const toJwtAuthPayload = (
     id: payload.id,
     username: payload.username,
     role: payload.role,
-    restaurantId: payload.restaurantId,
+    restaurantId: payload.restaurantId ?? undefined,
     exp: typeof payload.exp === "number" ? payload.exp : undefined,
     iat: typeof payload.iat === "number" ? payload.iat : undefined,
     nbf: typeof payload.nbf === "number" ? payload.nbf : undefined,

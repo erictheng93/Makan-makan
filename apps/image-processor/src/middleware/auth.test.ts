@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
-import { apiKeyAuth, corsMiddleware } from "./auth";
+import { sign } from "hono/jwt";
+import { apiKeyAuth, authMiddleware, corsMiddleware } from "./auth";
 
 function createApp(env: Record<string, unknown>) {
   const app = new Hono();
@@ -35,6 +36,53 @@ describe("image processor API key auth", () => {
 
     expect((await app.request("wrong")).status).toBe(401);
     expect((await app.request("x".repeat(32))).status).toBe(200);
+  });
+});
+
+describe("image processor JWT auth", () => {
+  it("accepts platform admin tokens without a restaurant", async () => {
+    const jwtSecret = "test-jwt-secret-with-at-least-32-chars";
+    const now = Math.floor(Date.now() / 1000);
+    const token = await sign(
+      {
+        id: 1,
+        username: "admin",
+        role: 0,
+        restaurantId: null,
+        iat: now,
+        exp: now + 3600,
+      },
+      jwtSecret,
+    );
+
+    const app = new Hono();
+    app.use("*", (c, next) => authMiddleware(c as never, next));
+    app.get("/protected", (c) => c.json({ user: c.get("user") }));
+
+    const response = await app.fetch(
+      new Request("https://images.test/protected", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { JWT_SECRET: jwtSecret },
+    );
+    const body = (await response.json()) as {
+      user: {
+        id: number;
+        username: string;
+        role: number;
+        restaurantId?: number;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      user: {
+        id: 1,
+        username: "admin",
+        role: 0,
+      },
+    });
+    expect(body.user).not.toHaveProperty("restaurantId");
   });
 });
 
