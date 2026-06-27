@@ -230,10 +230,10 @@ pnpm db:migrate:local
 
 ```bash
 # Create D1 database
-npx wrangler d1 create makanmakan-staging
+npx wrangler d1 create makanmasak-staging
 
 # Apply migrations
-npx wrangler d1 migrations apply makanmakan-staging --env staging
+pnpm db:migrate:staging
 ```
 
 ## Type Safety Examples

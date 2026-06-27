@@ -220,7 +220,7 @@ npx wrangler d1 execute makanmakan-test-v2 --command="SELECT name FROM sqlite_ma
 # 執行所有 migrations (按順序)
 for file in migrations_v2/*.sql; do
   echo "Executing $file..."
-  npx wrangler d1 execute makanmakan-staging --file="$file" --env staging
+  npx wrangler d1 execute makanmasak-staging --file="$file" --env staging
 done
 ```
 
