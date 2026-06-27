@@ -24,7 +24,7 @@ import {
 // ============================================================================
 
 export interface OrderNotification {
-  orderId: number;
+  orderId: string;
   orderNumber: string;
   tableId?: string;
   tableName?: string;
@@ -463,7 +463,7 @@ export function useAdminRealtime() {
   /**
    * 標記訂單通知為已讀
    */
-  const markOrderAsRead = (orderId: number) => {
+  const markOrderAsRead = (orderId: string) => {
     const notification = orderNotifications.value.find(
       (n) => n.orderId === orderId,
     );
