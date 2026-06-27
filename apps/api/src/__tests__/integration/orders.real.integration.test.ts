@@ -104,6 +104,6 @@ describe("Orders API — real integration", () => {
     expect(Math.abs(fetched.createdAt - Date.now())).toBeLessThan(5000);
 
     // Belt-and-braces: the actor was created
-    expect(actor.id).toBe(1);
+    expect(actor.id).toBe("01900000-0000-7000-8000-000000000001");
   });
 });

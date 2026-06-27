@@ -98,7 +98,7 @@ async function seedRestaurant(id: string = TEST_RESTAURANT_ID): Promise<void> {
 
 async function seedMarketCheckout(
   checkoutId: string,
-  childOrderIds: number[],
+  childOrderIds: string[],
 ): Promise<void> {
   const now = new Date();
   await testDb.drizzle.insert(markets).values({
@@ -141,7 +141,7 @@ async function seedMarketCheckout(
 }
 
 async function seedOrder(
-  id: number,
+  id: string,
   totalCents: number,
   restaurantId: string = TEST_RESTAURANT_ID,
 ): Promise<void> {
@@ -192,15 +192,15 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
       code: "market10", // case-insensitive
       subtotalCents: 24000,
       childOrders: [
-        { orderId: 101, amountCents: 16000 },
-        { orderId: 102, amountCents: 8000 },
+        { orderId: "101", amountCents: 16000 },
+        { orderId: "102", amountCents: 8000 },
       ],
     });
 
     expect(applied.discountCents).toBe(2400);
     expect(applied.allocations).toEqual([
-      { orderId: 101, amountCents: 16000, discountCents: 1600 },
-      { orderId: 102, amountCents: 8000, discountCents: 800 },
+      { orderId: "101", amountCents: 16000, discountCents: 1600 },
+      { orderId: "102", amountCents: 8000, discountCents: 800 },
     ]);
   });
 
@@ -212,7 +212,7 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
       makeService().validateAndPrice({
         code: "SHOPONLY",
         subtotalCents: 24000,
-        childOrders: [{ orderId: 101, amountCents: 24000 }],
+        childOrders: [{ orderId: "101", amountCents: 24000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_NOT_APPLICABLE" });
   });
@@ -224,7 +224,7 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
       makeService().validateAndPrice({
         code: "MIN500",
         subtotalCents: 24000,
-        childOrders: [{ orderId: 101, amountCents: 24000 }],
+        childOrders: [{ orderId: "101", amountCents: 24000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_MIN_ORDER_NOT_MET" });
   });
@@ -236,7 +236,7 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
       makeService().validateAndPrice({
         code: "ONEUSE",
         subtotalCents: 24000,
-        childOrders: [{ orderId: 101, amountCents: 24000 }],
+        childOrders: [{ orderId: "101", amountCents: 24000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_EXHAUSTED" });
   });
@@ -248,7 +248,7 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
       makeService().validateAndPrice({
         code: "OLD",
         subtotalCents: 24000,
-        childOrders: [{ orderId: 101, amountCents: 24000 }],
+        childOrders: [{ orderId: "101", amountCents: 24000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_EXPIRED" });
   });
@@ -258,7 +258,7 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
       makeService().validateAndPrice({
         code: "NOPE",
         subtotalCents: 24000,
-        childOrders: [{ orderId: 101, amountCents: 24000 }],
+        childOrders: [{ orderId: "101", amountCents: 24000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_NOT_FOUND" });
   });
@@ -271,16 +271,16 @@ describe("MarketCheckoutVoucherService — redeem", () => {
       discountPercentageBps: 1000,
     });
     await seedRestaurant();
-    await seedOrder(101, 16000);
-    await seedOrder(102, 8000);
+    await seedOrder("101", 16000);
+    await seedOrder("102", 8000);
     const service = makeService();
 
     const applied = await service.validateAndPrice({
       code: "MARKET10",
       subtotalCents: 24000,
       childOrders: [
-        { orderId: 101, amountCents: 16000 },
-        { orderId: 102, amountCents: 8000 },
+        { orderId: "101", amountCents: 16000 },
+        { orderId: "102", amountCents: 8000 },
       ],
     });
 
@@ -288,7 +288,9 @@ describe("MarketCheckoutVoucherService — redeem", () => {
 
     const usage = await usageFor(couponId);
     expect(usage).toHaveLength(2);
-    const byOrder = Object.fromEntries(usage.map((u) => [u.orderId, u]));
+    const byOrder = Object.fromEntries(
+      usage.map((u) => [Number(u.orderId), u]),
+    );
     expect(byOrder[101]).toMatchObject({
       discountAmountCents: 1600,
       originalAmountCents: 16000,
@@ -309,15 +311,15 @@ describe("MarketCheckoutVoucherService — redeem", () => {
       discountPercentageBps: 1000,
     });
     await seedRestaurant();
-    await seedOrder(101, 16000);
-    await seedOrder(102, 8000);
+    await seedOrder("101", 16000);
+    await seedOrder("102", 8000);
     const service = makeService();
     const applied = await service.validateAndPrice({
       code: "MARKET10",
       subtotalCents: 24000,
       childOrders: [
-        { orderId: 101, amountCents: 16000 },
-        { orderId: 102, amountCents: 8000 },
+        { orderId: "101", amountCents: 16000 },
+        { orderId: "102", amountCents: 8000 },
       ],
     });
 
@@ -334,22 +336,22 @@ describe("MarketCheckoutVoucherService — redeem", () => {
       discountPercentageBps: 1000,
     });
     await seedRestaurant();
-    await seedOrder(101, 16000);
-    await seedOrder(102, 8000);
+    await seedOrder("101", 16000);
+    await seedOrder("102", 8000);
     const service = makeService();
     const applied = await service.validateAndPrice({
       code: "MARKET10",
       subtotalCents: 24000,
       childOrders: [
-        { orderId: 101, amountCents: 16000 },
-        { orderId: 102, amountCents: 8000 },
+        { orderId: "101", amountCents: 16000 },
+        { orderId: "102", amountCents: 8000 },
       ],
     });
     await service.redeem(applied);
     expect(await usedCountFor(couponId)).toBe(1);
 
-    await service.markRefunded({ couponId, orderIds: [101, 102] });
-    await service.markRefunded({ couponId, orderIds: [101, 102] });
+    await service.markRefunded({ couponId, orderIds: ["101", "102"] });
+    await service.markRefunded({ couponId, orderIds: ["101", "102"] });
 
     const usage = await usageFor(couponId);
     expect(usage.every((u) => u.status === "refunded")).toBe(true);
@@ -362,16 +364,16 @@ describe("MarketCheckoutVoucherService — redeem", () => {
       discountPercentageBps: 1000,
     });
     await seedRestaurant();
-    await seedOrder(101, 16000);
-    await seedOrder(102, 8000);
-    await seedMarketCheckout("checkout-partial", [101, 102]);
+    await seedOrder("101", 16000);
+    await seedOrder("102", 8000);
+    await seedMarketCheckout("checkout-partial", ["101", "102"]);
     const service = makeService();
     const applied = await service.validateAndPrice({
       code: "PARTIAL10",
       subtotalCents: 24000,
       childOrders: [
-        { orderId: 101, amountCents: 16000 },
-        { orderId: 102, amountCents: 8000 },
+        { orderId: "101", amountCents: 16000 },
+        { orderId: "102", amountCents: 8000 },
       ],
     });
     await service.redeem(applied);
@@ -382,12 +384,15 @@ describe("MarketCheckoutVoucherService — redeem", () => {
       .where(eq(coupons.id, couponId));
     expect(await usedCountFor(couponId)).toBe(2);
 
-    await service.markRefunded({ couponId, orderIds: [102] });
+    await service.markRefunded({ couponId, orderIds: ["102"] });
 
     const partiallyRefundedUsage = await usageFor(couponId);
     expect(
       Object.fromEntries(
-        partiallyRefundedUsage.map((usage) => [usage.orderId, usage.status]),
+        partiallyRefundedUsage.map((usage) => [
+          Number(usage.orderId),
+          usage.status,
+        ]),
       ),
     ).toEqual({
       101: "active",
@@ -400,8 +405,8 @@ describe("MarketCheckoutVoucherService — redeem", () => {
     ).toBe(true);
     expect(await usedCountFor(couponId)).toBe(2);
 
-    await service.markRefunded({ couponId, orderIds: [101] });
-    await service.markRefunded({ couponId, orderIds: [101, 102] });
+    await service.markRefunded({ couponId, orderIds: ["101"] });
+    await service.markRefunded({ couponId, orderIds: ["101", "102"] });
 
     const fullyRefundedUsage = await usageFor(couponId);
     expect(
@@ -409,7 +414,7 @@ describe("MarketCheckoutVoucherService — redeem", () => {
     ).toBe(true);
     const releaseMarkersByOrderId = Object.fromEntries(
       fullyRefundedUsage.map((usage) => [
-        usage.orderId,
+        Number(usage.orderId),
         usage.refundCountReleasedAt,
       ]),
     );

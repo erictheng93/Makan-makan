@@ -26,7 +26,7 @@ export async function issueTestJwt(
       id: userId,
       username,
       role,
-      restaurantId: claims?.restaurantId ?? "1",
+      restaurantId: claims?.restaurantId ?? null,
       tv: claims?.tokenVersion ?? 1,
       iat: now,
       exp: now + (claims?.expiresInSeconds ?? 3600),
@@ -79,13 +79,67 @@ function normalizeTestUserId(userId: TestUserId): string {
   return userId;
 }
 
+async function ensureTokenUser(
+  db: D1Database | undefined,
+  role: UserRole,
+  claims: IssueTestJwtClaims,
+): Promise<TokenUserRow | null> {
+  if (!db) return null;
+
+  const userId = normalizeTestUserId(claims.userId ?? 1);
+  const existing = await loadTokenUser(db, userId);
+  if (existing) return existing;
+
+  const now = Date.now();
+  const username = claims.username ?? `test-user-${userId}`;
+  const restaurantId = claims.restaurantId ?? null;
+  const tokenVersion = claims.tokenVersion ?? 1;
+
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO users (
+         id,
+         username,
+         email,
+         phone,
+         full_name,
+         password_hash,
+         role,
+         restaurant_id,
+         is_active,
+         is_verified,
+         preferences,
+         token_version,
+         created_at_ms,
+         updated_at_ms
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, ?)`,
+    )
+    .bind(
+      userId,
+      username,
+      `${userId}@example.test`,
+      "0912345678",
+      "Integration Test User",
+      "$2a$10$wLQYkZtHPzOVvvEVdW/PGe0IzS5gYejVGKj.mJ/.SmdO1sAgG4Y/S",
+      role,
+      restaurantId,
+      JSON.stringify({}),
+      tokenVersion,
+      now,
+      now,
+    )
+    .run();
+
+  return loadTokenUser(db, userId);
+}
+
 async function issueDbBackedJwt(
   db: D1Database | undefined,
   role: UserRole,
   claims: IssueTestJwtClaims,
 ): Promise<string> {
   const userId = claims.userId ?? 1;
-  const row = await loadTokenUser(db, userId);
+  const row = await ensureTokenUser(db, role, claims);
 
   return issueTestJwt(role, {
     ...claims,
@@ -99,8 +153,11 @@ async function issueDbBackedJwt(
 
 export function buildAuthHelper(db?: D1Database): AuthHelper {
   return {
-    adminToken: (restaurantId = "1", userId = 1) =>
-      issueDbBackedJwt(db, 0, { userId, restaurantId }),
+    adminToken: (restaurantId, userId = 1) =>
+      issueDbBackedJwt(db, 0, {
+        userId,
+        ...(restaurantId === undefined ? {} : { restaurantId }),
+      }),
     ownerToken: (userId, restaurantId) =>
       issueDbBackedJwt(db, 1, { userId, restaurantId }),
     staffToken: (userId, role, restaurantId) =>

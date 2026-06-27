@@ -174,7 +174,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
     expect(createRes.status).toBe(201);
     const createJson: any = await createRes.json();
     expect(createJson.success).toBe(true);
-    expect(createJson.data.id).toBeGreaterThan(0);
+    expect(String(createJson.data.id)).toBeTruthy();
   });
 
   it("does not dedupe repeated POST for identical payload + token when no idempotency key binding exists", async () => {

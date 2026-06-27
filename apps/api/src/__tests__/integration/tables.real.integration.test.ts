@@ -149,6 +149,6 @@ describe("Tables API - real integration", () => {
     expect(getReleasedJson.data.occupiedBy).toBeNull();
     expect(getReleasedJson.data.totalUsage).toBeGreaterThanOrEqual(1);
 
-    expect(admin.id).toBe(1);
+    expect(admin.id).toBe("01900000-0000-7000-8000-000000000001");
   });
 });
