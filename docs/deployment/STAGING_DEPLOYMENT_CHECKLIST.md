@@ -169,10 +169,13 @@ gh run watch <RUN_ID> --repo erictheng93/Makan-Masak --exit-status
 # 1. 安裝依賴
 pnpm install --frozen-lockfile
 
-# 2. 執行 staging D1 遷移
+# 2. 類型檢查
+pnpm typecheck
+
+# 3. 執行 staging D1 遷移
 pnpm db:migrate:staging
 
-# 3. 執行 migration 檢查、全 workspace build 與各 workspace staging deploy
+# 4. 執行 migration 檢查、全 workspace build 與各 workspace staging deploy
 pnpm deploy:staging
 ```
 
