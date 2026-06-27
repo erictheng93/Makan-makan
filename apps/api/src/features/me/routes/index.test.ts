@@ -21,7 +21,7 @@ const usageMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../middleware/auth", () => ({
-  customerAuthMiddleware: vi.fn(async (c, next) => {
+  staffOrUserCustomerAuthMiddleware: vi.fn(async (c, next) => {
     c.set("user", authState.user);
     await next();
   }),

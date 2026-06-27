@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Env } from "../../../types/env";
-import { customerAuthMiddleware } from "../../../middleware/auth";
+import { staffOrUserCustomerAuthMiddleware } from "../../../middleware/auth";
 import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
 import { UsageService } from "../../billing/services/UsageService";
 import type { ModuleKey, ModuleMap, PlanTier } from "@makanmakan/database";
@@ -19,7 +19,7 @@ const CACHE_TTL_SECONDS = 300;
 
 const router = new Hono<{ Bindings: Env }>();
 
-router.use("*", customerAuthMiddleware);
+router.use("*", staffOrUserCustomerAuthMiddleware);
 
 router.get("/modules", async (c) => {
   const user = c.get("user");

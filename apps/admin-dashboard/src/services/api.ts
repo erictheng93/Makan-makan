@@ -40,6 +40,39 @@ export function getAdminTokenStorageMode(
   return env.DEV ? "sessionStorage" : "memory";
 }
 
+const ADMIN_AUTH_STORAGE_KEYS = [
+  "auth_token",
+  "auth_refresh_token",
+  "auth_user",
+] as const;
+
+let loginRedirectRequested = false;
+
+interface AuthFailureLocation {
+  pathname: string;
+  assign(url: string): void;
+}
+
+export function clearAdminAuthStorage(): void {
+  for (const key of ADMIN_AUTH_STORAGE_KEYS) {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  }
+}
+
+export function handleAdminAuthFailure(
+  location: AuthFailureLocation = window.location,
+): void {
+  clearAdminAuthStorage();
+
+  if (loginRedirectRequested || location.pathname === "/login") {
+    return;
+  }
+
+  loginRedirectRequested = true;
+  location.assign("/login");
+}
+
 const authClient = createAuthenticatedApiClient({
   storageKeyPrefix: "auth",
   storageKeys: {
@@ -49,13 +82,7 @@ const authClient = createAuthenticatedApiClient({
   },
   tokenStorage: getAdminTokenStorageMode(),
   csrf: true,
-  onAuthFailure: () => {
-    // Don't hard-redirect here — let the router guard handle navigation
-    // via Vue Router to avoid aborting pending requests.
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("auth_refresh_token");
-    localStorage.removeItem("auth_user");
-  },
+  onAuthFailure: handleAdminAuthFailure,
   errorHandler: (error: unknown) => {
     const context = isAxiosError(error)
       ? {
