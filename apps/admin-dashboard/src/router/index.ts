@@ -456,6 +456,17 @@ export const router = createRouter({
   },
 });
 
+export const adminRestaurantOptionalRoutes = [
+  "PlatformOverview",
+  "PlatformMarkets",
+  "PlatformMarketCheckouts",
+  "Monitoring",
+  "Settings",
+  "AccountManagement",
+  "Feedback", // Admin views all shops' feedback at platform level
+  "Subscriptions", // Admin manages all subscriptions at platform level
+];
+
 router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();
 
@@ -497,17 +508,8 @@ router.beforeEach(async (to, _, next) => {
   }
 
   // Admin without restaurant context → redirect to platform overview
-  const platformRoutes = [
-    "PlatformOverview",
-    "PlatformMarkets",
-    "Monitoring",
-    "Settings",
-    "AccountManagement",
-    "Feedback", // Admin views all shops' feedback at platform level
-    "Subscriptions", // Admin manages all subscriptions at platform level
-  ];
   if (authStore.isAdminRole && !authStore.hasRestaurantContext) {
-    if (routeName && !platformRoutes.includes(routeName)) {
+    if (routeName && !adminRestaurantOptionalRoutes.includes(routeName)) {
       return next("/dashboard/platform");
     }
   }

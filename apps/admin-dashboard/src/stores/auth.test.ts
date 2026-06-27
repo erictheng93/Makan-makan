@@ -106,6 +106,22 @@ describe("useAuthStore", () => {
     expect(api.setAuthToken).toHaveBeenCalledWith("access-token");
   });
 
+  it("restricts platform market checkout routes to admins", () => {
+    localStorage.setItem(
+      "auth_user",
+      JSON.stringify(user({ role: UserRole.ADMIN, restaurantId: null })),
+    );
+    const adminStore = useAuthStore();
+
+    expect(adminStore.canAccessRoute("PlatformMarketCheckouts")).toBe(true);
+
+    setActivePinia(createPinia());
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    const ownerStore = useAuthStore();
+
+    expect(ownerStore.canAccessRoute("PlatformMarketCheckouts")).toBe(false);
+  });
+
   it("selects and clears admin restaurant context per browser tab", () => {
     localStorage.setItem(
       "auth_user",
