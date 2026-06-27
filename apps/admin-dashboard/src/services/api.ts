@@ -3,7 +3,10 @@ import {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
+import {
+  createAuthenticatedApiClient,
+  type TokenStorageMode,
+} from "@makanmakan/auth-client";
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 import { setAuthTokenProvider } from "@/utils/authTokenProvider";
@@ -29,6 +32,14 @@ export function unwrapApiList<T>(payload: unknown): T[] {
   return Array.isArray(data) ? (data as T[]) : [];
 }
 
+export function getAdminTokenStorageMode(
+  env: Pick<ImportMetaEnv, "DEV"> = import.meta.env,
+): TokenStorageMode {
+  // Development only: survive Vite full reloads while keeping production tokens
+  // out of browser storage.
+  return env.DEV ? "sessionStorage" : "memory";
+}
+
 const authClient = createAuthenticatedApiClient({
   storageKeyPrefix: "auth",
   storageKeys: {
@@ -36,7 +47,7 @@ const authClient = createAuthenticatedApiClient({
     refreshToken: "auth_refresh_token",
     user: "auth_user",
   },
-  tokenStorage: "memory",
+  tokenStorage: getAdminTokenStorageMode(),
   csrf: true,
   onAuthFailure: () => {
     // Don't hard-redirect here — let the router guard handle navigation

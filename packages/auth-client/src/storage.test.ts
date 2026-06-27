@@ -14,10 +14,24 @@ function installLocalStorage() {
   });
 }
 
+function installSessionStorage() {
+  const values = new Map<string, string>();
+  vi.stubGlobal("sessionStorage", {
+    getItem: vi.fn((key: string) => values.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      values.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      values.delete(key);
+    }),
+  });
+}
+
 describe("createPrefixedStorage", () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
     installLocalStorage();
+    installSessionStorage();
   });
 
   it("stores access tokens and users but never persists refresh tokens", () => {
@@ -71,6 +85,33 @@ describe("createPrefixedStorage", () => {
     expect(storage.getToken()).toBe("memory-token");
     expect(localStorage.getItem("auth_token")).toBeNull();
     expect(localStorage.getItem("auth_refresh_token")).toBeNull();
+
+    storage.clearAll();
+    expect(storage.getToken()).toBeNull();
+  });
+
+  it("can keep access tokens in sessionStorage for reload-tolerant dev sessions", () => {
+    const storage = createPrefixedStorage(
+      "auth",
+      {
+        token: "auth_token",
+        refreshToken: "auth_refresh_token",
+        user: "auth_user",
+      },
+      "sessionStorage",
+    );
+
+    localStorage.setItem("auth_token", "stale-local-token");
+    sessionStorage.setItem("auth_refresh_token", "stale-refresh-token");
+
+    storage.setToken("session-token");
+    storage.setRefreshToken("refresh-2");
+
+    expect(storage.getToken()).toBe("session-token");
+    expect(sessionStorage.getItem("auth_token")).toBe("session-token");
+    expect(localStorage.getItem("auth_token")).toBeNull();
+    expect(localStorage.getItem("auth_refresh_token")).toBeNull();
+    expect(sessionStorage.getItem("auth_refresh_token")).toBeNull();
 
     storage.clearAll();
     expect(storage.getToken()).toBeNull();

@@ -80,7 +80,7 @@ export interface StorageKeyOverrides {
   user?: string;
 }
 
-export type TokenStorageMode = "localStorage" | "memory";
+export type TokenStorageMode = "localStorage" | "sessionStorage" | "memory";
 
 export interface AuthClientConfig {
   /** Prefix for localStorage keys. E.g. 'kitchen' → 'kitchen_auth_token'. */
@@ -92,9 +92,9 @@ export interface AuthClientConfig {
    */
   storageKeys?: StorageKeyOverrides;
   /**
-   * Where access tokens are kept. Use "memory" for staff/admin surfaces that
-   * rely on HttpOnly refresh cookies and should not persist bearer tokens in
-   * browser storage.
+   * Where access tokens are kept. Use "memory" for staff/admin production
+   * surfaces that rely on HttpOnly refresh cookies and should not persist
+   * bearer tokens in browser storage.
    */
   tokenStorage?: TokenStorageMode;
   /** Base URL for API requests. Default: '/api/v1'. */

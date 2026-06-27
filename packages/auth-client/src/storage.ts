@@ -27,15 +27,21 @@ export function createPrefixedStorage(
   const tokenKey = overrides?.token ?? `${prefix}_auth_token`;
   const refreshKey = overrides?.refreshToken ?? `${prefix}_refresh_token`;
   const userKey = overrides?.user ?? `${prefix}_user`;
+  const removePersistedToken = () => {
+    localStorage.removeItem(tokenKey);
+    sessionStorage.removeItem(tokenKey);
+  };
+  const tokenStorageAdapter =
+    tokenStorage === "sessionStorage" ? sessionStorage : localStorage;
   const memoryToken = {
     get: () => memoryTokens.get(tokenKey) ?? null,
     set: (value: string) => {
       memoryTokens.set(tokenKey, value);
-      localStorage.removeItem(tokenKey);
+      removePersistedToken();
     },
     remove: () => {
       memoryTokens.delete(tokenKey);
-      localStorage.removeItem(tokenKey);
+      removePersistedToken();
     },
   };
 
@@ -43,19 +49,15 @@ export function createPrefixedStorage(
     getToken: () =>
       tokenStorage === "memory"
         ? memoryToken.get()
-        : localStorage.getItem(tokenKey),
+        : tokenStorageAdapter.getItem(tokenKey),
     setToken: (v) =>
-      tokenStorage === "memory"
-        ? memoryToken.set(v)
-        : localStorage.setItem(tokenKey, v),
+      tokenStorage === "memory" ? memoryToken.set(v) : setStoredToken(v),
     removeToken: () =>
-      tokenStorage === "memory"
-        ? memoryToken.remove()
-        : localStorage.removeItem(tokenKey),
+      tokenStorage === "memory" ? memoryToken.remove() : removePersistedToken(),
 
     getRefreshToken: () => null,
-    setRefreshToken: () => localStorage.removeItem(refreshKey),
-    removeRefreshToken: () => localStorage.removeItem(refreshKey),
+    setRefreshToken: () => removeRefreshToken(),
+    removeRefreshToken: () => removeRefreshToken(),
 
     getUser: <T = unknown>(): T | null => {
       const raw = localStorage.getItem(userKey);
@@ -77,9 +79,22 @@ export function createPrefixedStorage(
 
     clearAll: () => {
       memoryTokens.delete(tokenKey);
-      localStorage.removeItem(tokenKey);
-      localStorage.removeItem(refreshKey);
+      removePersistedToken();
+      removeRefreshToken();
       localStorage.removeItem(userKey);
     },
   };
+
+  function setStoredToken(value: string) {
+    memoryTokens.delete(tokenKey);
+    const otherStorage =
+      tokenStorage === "sessionStorage" ? localStorage : sessionStorage;
+    otherStorage.removeItem(tokenKey);
+    tokenStorageAdapter.setItem(tokenKey, value);
+  }
+
+  function removeRefreshToken() {
+    localStorage.removeItem(refreshKey);
+    sessionStorage.removeItem(refreshKey);
+  }
 }
