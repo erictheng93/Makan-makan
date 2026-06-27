@@ -90,6 +90,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "platform/onboarding",
+        name: "PlatformOnboardingApplications",
+        component: () =>
+          import("@/views/PlatformOnboardingApplicationsView.vue"),
+        meta: {
+          titleKey: "pages.platformOverview",
+          roles: [UserRole.ADMIN],
+        },
+      },
+      {
         path: "orders",
         name: "Orders",
         component: () => import("@/views/OrdersView.vue"),

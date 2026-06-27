@@ -1,0 +1,83 @@
+// @vitest-environment jsdom
+
+import { mount } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import PlatformOnboardingApplicationsView from "./PlatformOnboardingApplicationsView.vue";
+import { onboardingApplicationsService } from "@/services/onboardingApplicationsService";
+
+vi.mock("@/services/onboardingApplicationsService", () => ({
+  onboardingApplicationsService: {
+    list: vi.fn(),
+    approve: vi.fn(),
+    reject: vi.fn(),
+  },
+}));
+
+describe("PlatformOnboardingApplicationsView", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(onboardingApplicationsService.list).mockResolvedValue({
+      applications: [
+        {
+          id: "APP-1",
+          businessName: "Laksa Shop",
+          contactName: "Tan Mei",
+          contactEmail: "tan@example.test",
+          contactPhone: "0912345678",
+          planId: "trial",
+          latitude: 24.147736,
+          longitude: 120.673648,
+          assignedSubdomain: "laksa",
+          cfVerifiedAt: "2026-06-01T00:00:00.000Z",
+          status: "cf_verified",
+          createdAt: "2026-06-01T00:00:00.000Z",
+          updatedAt: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    vi.mocked(onboardingApplicationsService.approve).mockResolvedValue({
+      tenantId: "T-1",
+      subdomain: "laksa",
+      status: "completed",
+    });
+    vi.mocked(onboardingApplicationsService.reject).mockResolvedValue({
+      status: "rejected",
+    });
+  });
+
+  it("loads onboarding applications and filters by submitted status by default", async () => {
+    const wrapper = mount(PlatformOnboardingApplicationsView);
+    await vi.dynamicImportSettled();
+
+    expect(onboardingApplicationsService.list).toHaveBeenCalledWith({
+      status: "submitted",
+      limit: 50,
+    });
+    expect(wrapper.text()).toContain("Laksa Shop");
+    expect(wrapper.text()).toContain("可核准");
+  });
+
+  it("approves and rejects applications then refreshes the list", async () => {
+    const wrapper = mount(PlatformOnboardingApplicationsView);
+    await vi.dynamicImportSettled();
+
+    await wrapper
+      .get('[data-testid="approve-onboarding-APP-1"]')
+      .trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(onboardingApplicationsService.approve).toHaveBeenCalledWith("APP-1");
+    expect(onboardingApplicationsService.list).toHaveBeenCalledTimes(2);
+
+    await wrapper
+      .get('[data-testid="reject-onboarding-APP-1"]')
+      .trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(onboardingApplicationsService.reject).toHaveBeenCalledWith("APP-1");
+    expect(onboardingApplicationsService.list).toHaveBeenCalledTimes(3);
+  });
+});

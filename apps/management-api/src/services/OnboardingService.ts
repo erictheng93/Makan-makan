@@ -183,6 +183,47 @@ export class OnboardingService {
     return this.mapRowToApplication(result as Record<string, unknown>);
   }
 
+  async listApplications(input: {
+    status?: OnboardingStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    applications: OnboardingApplication[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = Math.max(input.page ?? 1, 1);
+    const limit = Math.min(Math.max(input.limit ?? 25, 1), 100);
+    const offset = (page - 1) * limit;
+    const whereClause = input.status ? "WHERE status = ?" : "";
+    const bindings = input.status ? [input.status] : [];
+
+    const countResult = await this.env.MANAGEMENT_DB.prepare(
+      `SELECT COUNT(*) AS count FROM onboarding_applications ${whereClause}`,
+    )
+      .bind(...bindings)
+      .first<{ count: number }>();
+
+    const result = await this.env.MANAGEMENT_DB.prepare(
+      `SELECT * FROM onboarding_applications
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+    )
+      .bind(...bindings, limit, offset)
+      .all<Record<string, unknown>>();
+
+    return {
+      applications: (result.results ?? []).map((row) =>
+        this.mapRowToApplication(row),
+      ),
+      total: Number(countResult?.count ?? 0),
+      page,
+      limit,
+    };
+  }
+
   /**
    * Verify the one-time secret returned when an application is created.
    */
@@ -357,6 +398,55 @@ export class OnboardingService {
             : "Failed to complete application",
       };
     }
+  }
+
+  async approveApplication(applicationId: string): Promise<{
+    success: boolean;
+    tenantId?: string;
+    subdomain?: string;
+    status?: OnboardingStatus;
+    error?: string;
+  }> {
+    const application = await this.getApplication(applicationId);
+    if (!application) return { success: false, error: "Application not found" };
+    if (application.status === "completed") {
+      return {
+        success: true,
+        tenantId: application.tenantId,
+        subdomain: application.assignedSubdomain,
+        status: "completed",
+      };
+    }
+    if (application.status !== "cf_verified") {
+      return {
+        success: false,
+        error: `Cannot approve application with status: ${application.status}`,
+      };
+    }
+
+    const result = await this.completeApplication(applicationId);
+    return {
+      ...result,
+      status: result.success ? "completed" : undefined,
+    };
+  }
+
+  async rejectApplication(applicationId: string): Promise<{
+    success: boolean;
+    status?: OnboardingStatus;
+    error?: string;
+  }> {
+    const application = await this.getApplication(applicationId);
+    if (!application) return { success: false, error: "Application not found" };
+    if (["completed", "provisioning"].includes(application.status)) {
+      return {
+        success: false,
+        error: `Cannot reject application with status: ${application.status}`,
+      };
+    }
+
+    await this.updateApplicationStatus(applicationId, "rejected");
+    return { success: true, status: "rejected" };
   }
 
   /**

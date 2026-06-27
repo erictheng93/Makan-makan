@@ -143,6 +143,7 @@ const platformItemNames = new Set([
   "platform",
   "platform-markets",
   "platform-market-checkouts",
+  "platform-onboarding",
   "monitoring",
   "settings",
   "account-management",
@@ -182,6 +183,13 @@ const navigationItems = computed(() => {
       path: "/dashboard/platform/market-checkouts",
       label: "市場結帳",
       icon: ReceiptText,
+      visible: authStore.isAdminRole,
+    },
+    {
+      name: "platform-onboarding",
+      path: "/dashboard/platform/onboarding",
+      label: "開店申請",
+      icon: UserPlus,
       visible: authStore.isAdminRole,
     },
     {

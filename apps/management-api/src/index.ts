@@ -22,6 +22,7 @@ import monitoringRouter from "./routes/monitoring";
 import updatesRouter from "./routes/updates";
 import onboardingRouter from "./routes/onboarding";
 import authRouter from "./routes/auth";
+import adminOnboardingRouter from "./routes/admin-onboarding";
 import { adminMarketsRouter, marketsRouter } from "./routes/markets";
 
 // Create main application
@@ -205,6 +206,7 @@ protectedApi.route("/monitoring", monitoringRouter);
 protectedApi.route("/updates", updatesRouter);
 protectedApi.route("/markets", marketsRouter);
 protectedApi.route("/admin/markets", adminMarketsRouter);
+protectedApi.route("/admin/onboarding", adminOnboardingRouter);
 
 // Mount API versions
 app.route("/api/v1", publicApi);
