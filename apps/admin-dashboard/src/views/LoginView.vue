@@ -136,6 +136,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/i18n";
 import { UserRole } from "@/types";
 import { Eye, EyeOff, AlertCircle } from "lucide-vue-next";
+import { getInitialLoginCredentials } from "./loginDefaults";
 
 // Kitchen Display App URL — Chef role redirects here instead of admin dashboard
 const KITCHEN_DISPLAY_URL =
@@ -149,10 +150,7 @@ const showPassword = ref(false);
 const isLoading = ref(false);
 const error = ref("");
 
-const form = reactive({
-  username: "admin",
-  password: "password123",
-});
+const form = reactive(getInitialLoginCredentials());
 
 const errors = reactive({
   username: "",
