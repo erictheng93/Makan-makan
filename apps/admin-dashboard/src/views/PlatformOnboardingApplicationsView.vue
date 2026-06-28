@@ -172,7 +172,7 @@
                   class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                   :disabled="
                     actionId === application.id ||
-                    !['submitted', 'cf_verified'].includes(application.status)
+                    !isApprovableStatus(application.status)
                   "
                   @click="approveApplication(application.id)"
                 >
@@ -216,8 +216,8 @@ const error = ref("");
 
 const approvableCount = computed(
   () =>
-    applications.value.filter(
-      (application) => application.status === "cf_verified",
+    applications.value.filter((application) =>
+      isApprovableStatus(application.status),
     ).length,
 );
 const submittedCount = computed(
@@ -271,6 +271,10 @@ async function rejectApplication(applicationId: string) {
   } finally {
     actionId.value = "";
   }
+}
+
+function isApprovableStatus(status: OnboardingApplicationStatus) {
+  return ["submitted", "cf_verified"].includes(status);
 }
 
 function statusLabel(status: OnboardingApplicationStatus) {
