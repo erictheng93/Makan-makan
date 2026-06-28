@@ -80,4 +80,42 @@ describe("PlatformOnboardingApplicationsView", () => {
     expect(onboardingApplicationsService.reject).toHaveBeenCalledWith("APP-1");
     expect(onboardingApplicationsService.list).toHaveBeenCalledTimes(3);
   });
+
+  it("allows approving submitted applications in the managed onboarding flow", async () => {
+    vi.mocked(onboardingApplicationsService.list).mockResolvedValue({
+      applications: [
+        {
+          id: "APP-2",
+          businessName: "Nasi Lemak Shop",
+          contactName: "Chen Wei",
+          contactEmail: "chen@example.test",
+          contactPhone: "0987654321",
+          planId: "standard",
+          latitude: null,
+          longitude: null,
+          assignedSubdomain: "nasi-lemak",
+          cfVerifiedAt: null,
+          status: "submitted",
+          createdAt: "2026-06-02T00:00:00.000Z",
+          updatedAt: "2026-06-02T00:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+
+    const wrapper = mount(PlatformOnboardingApplicationsView);
+    await vi.dynamicImportSettled();
+
+    const approveButton = wrapper.get(
+      '[data-testid="approve-onboarding-APP-2"]',
+    );
+    expect(approveButton.attributes("disabled")).toBeUndefined();
+
+    await approveButton.trigger("click");
+    await vi.dynamicImportSettled();
+
+    expect(onboardingApplicationsService.approve).toHaveBeenCalledWith("APP-2");
+  });
 });
