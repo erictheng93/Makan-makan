@@ -28,6 +28,7 @@
           <div
             v-if="item.showRestaurantSectionLabel && !isCollapsed"
             class="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-gray-400"
+            data-testid="restaurant-section-label"
           >
             {{ t("nav.restaurantManagement") }}
           </div>
@@ -35,6 +36,7 @@
             <component
               :is="'router-link'"
               :to="item.path"
+              :data-testid="`nav-item-${item.name}`"
               class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               :class="[
                 isActiveRoute(item.path)
@@ -53,6 +55,7 @@
             :is="'router-link'"
             v-else
             :to="item.path"
+            :data-testid="`nav-item-${item.name}`"
             class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
             :class="[
               isActiveRoute(item.path)
@@ -65,18 +68,15 @@
             <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
           </component>
         </template>
-        <div
+        <p
           v-if="needsRestaurantContext && !isCollapsed"
-          class="mx-3 mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2"
+          class="px-3 pt-2 text-xs leading-5 text-gray-500"
           role="status"
+          data-testid="restaurant-context-hint"
         >
-          <div class="text-sm font-medium text-gray-700">
-            {{ t("nav.selectRestaurantFirst") }}
-          </div>
-          <p class="mt-1 text-xs leading-5 text-gray-500">
-            {{ t("nav.restaurantContextHint") }}
-          </p>
-        </div>
+          {{ t("nav.selectRestaurantFirst") }} ·
+          {{ t("nav.restaurantContextHint") }}
+        </p>
       </nav>
 
       <!-- User Info -->
@@ -162,6 +162,10 @@ const platformItemNames = new Set([
 
 const needsRestaurantContext = computed(
   () => authStore.isAdminRole && !authStore.hasRestaurantContext,
+);
+
+const shouldShowRestaurantSectionLabel = computed(
+  () => authStore.isAdminRole && authStore.hasRestaurantContext,
 );
 
 const navigationItems = computed(() => {
@@ -369,7 +373,9 @@ const navigationItems = computed(() => {
     )
     .map((item) => {
       const showRestaurantSectionLabel =
-        item.section === "restaurant" && !restaurantSectionShown;
+        shouldShowRestaurantSectionLabel.value &&
+        item.section === "restaurant" &&
+        !restaurantSectionShown;
 
       if (showRestaurantSectionLabel) {
         restaurantSectionShown = true;
