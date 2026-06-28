@@ -470,6 +470,7 @@ export const adminRestaurantOptionalRoutes = [
   "PlatformOverview",
   "PlatformMarkets",
   "PlatformMarketCheckouts",
+  "PlatformOnboardingApplications",
   "Monitoring",
   "Settings",
   "AccountManagement",

@@ -7,4 +7,10 @@ describe("admin dashboard router", () => {
   it("allows platform market checkouts without a selected restaurant", () => {
     expect(adminRestaurantOptionalRoutes).toContain("PlatformMarketCheckouts");
   });
+
+  it("allows platform onboarding applications without a selected restaurant", () => {
+    expect(adminRestaurantOptionalRoutes).toContain(
+      "PlatformOnboardingApplications",
+    );
+  });
 });
