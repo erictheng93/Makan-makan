@@ -10,12 +10,9 @@ import type {
   OnboardingStatus,
   CreateApplicationRequest,
   LicenseTier,
-  CloudflareVerificationResult,
   OnboardingPlanId,
 } from "../types";
-import { encrypt, decrypt } from "@makanmakan/utils";
 import { TenantService } from "./TenantService";
-import { CloudflareApiClient } from "./CloudflareApiClient";
 import {
   generateLicenseKey,
   randomBase36,
@@ -30,12 +27,10 @@ import {
 export class OnboardingService {
   private env: ManagementEnv;
   private tenantService: TenantService;
-  private cfClient: CloudflareApiClient;
 
   constructor(env: ManagementEnv) {
     this.env = env;
     this.tenantService = new TenantService(env);
-    this.cfClient = new CloudflareApiClient(env);
   }
 
   /**
@@ -88,22 +83,7 @@ export class OnboardingService {
     const applicationSecretHash =
       await this.hashApplicationSecret(applicationSecret);
 
-    // Determine subdomain
-    let assignedSubdomain = data.subdomain?.toLowerCase().trim();
-
-    // If no subdomain provided or it's taken, generate one
-    if (assignedSubdomain) {
-      const availability =
-        await this.checkSubdomainAvailability(assignedSubdomain);
-      if (!availability.available) {
-        // Use first suggestion if original is taken
-        assignedSubdomain =
-          availability.suggestions?.[0] ||
-          this.generateSubdomain(data.businessName);
-      }
-    } else {
-      assignedSubdomain = this.generateSubdomain(data.businessName);
-    }
+    let assignedSubdomain = this.generateSubdomain(data.businessName);
 
     // Ensure generated subdomain is also available
     let attempts = 0;
@@ -112,6 +92,12 @@ export class OnboardingService {
       if (check.available) break;
       assignedSubdomain = this.generateSubdomain(data.businessName);
       attempts++;
+    }
+
+    const finalAvailability =
+      await this.checkSubdomainAvailability(assignedSubdomain);
+    if (!finalAvailability.available) {
+      throw new Error("Unable to generate an available subdomain");
     }
 
     await this.env.MANAGEMENT_DB.prepare(
@@ -131,7 +117,7 @@ export class OnboardingService {
         data.planId ?? "trial",
         data.latitude,
         data.longitude,
-        data.subdomain || null,
+        null,
         assignedSubdomain,
         "submitted",
         applicationSecretHash,
@@ -246,77 +232,6 @@ export class OnboardingService {
   }
 
   /**
-   * Verify Cloudflare credentials for an application
-   */
-  async verifyCloudflareCredentials(
-    applicationId: string,
-    accountId: string,
-    apiToken: string,
-  ): Promise<CloudflareVerificationResult> {
-    const application = await this.getApplication(applicationId);
-    if (!application) {
-      return {
-        valid: false,
-        permissions: {
-          workers: false,
-          d1: false,
-          kv: false,
-          r2: false,
-          pages: false,
-        },
-        error: "Application not found",
-      };
-    }
-
-    // Verify token with permission checks
-    const verificationResult = await this.cfClient.verifyTokenWithPermissions(
-      apiToken,
-      accountId,
-    );
-
-    if (!verificationResult.valid) {
-      return verificationResult;
-    }
-
-    // Check if all required permissions are present
-    const { permissions } = verificationResult;
-    const hasAllPermissions =
-      permissions.workers && permissions.d1 && permissions.kv && permissions.r2;
-
-    if (!hasAllPermissions) {
-      const missing: string[] = [];
-      if (!permissions.workers) missing.push("Workers");
-      if (!permissions.d1) missing.push("D1");
-      if (!permissions.kv) missing.push("KV");
-      if (!permissions.r2) missing.push("R2");
-
-      return {
-        valid: false,
-        permissions,
-        error: `Missing permissions: ${missing.join(", ")}`,
-      };
-    }
-
-    // Store verified credentials
-    const encryptedToken = await this.encryptToken(apiToken);
-    const now = new Date().toISOString();
-
-    await this.env.MANAGEMENT_DB.prepare(
-      `UPDATE onboarding_applications
-       SET cf_account_id = ?, cf_api_token_enc = ?, cf_verified_at = ?,
-           status = ?, updated_at = ?
-       WHERE id = ?`,
-    )
-      .bind(accountId, encryptedToken, now, "cf_verified", now, applicationId)
-      .run();
-
-    return {
-      valid: true,
-      permissions,
-    };
-  }
-
-  /**
    * Complete the application and create tenant
    */
   async completeApplication(applicationId: string): Promise<{
@@ -331,44 +246,28 @@ export class OnboardingService {
       return { success: false, error: "Application not found" };
     }
 
-    if (application.status !== "cf_verified") {
+    if (!["submitted", "cf_verified"].includes(application.status)) {
       return {
         success: false,
         error: `Cannot complete application with status: ${application.status}`,
       };
     }
 
-    if (!application.cfAccountId || !application.assignedSubdomain) {
+    if (!application.assignedSubdomain) {
       return {
         success: false,
-        error: "Cloudflare credentials not verified",
+        error: "Assigned subdomain is missing",
       };
     }
 
     const now = new Date().toISOString();
+    const previousStatus = application.status;
 
     try {
       // Update status to provisioning
       await this.updateApplicationStatus(applicationId, "provisioning");
 
       const tenant = await this.createTenantWithSubscription(application, now);
-
-      // Get the encrypted token from the application
-      const appRow = await this.env.MANAGEMENT_DB.prepare(
-        "SELECT cf_api_token_enc FROM onboarding_applications WHERE id = ?",
-      )
-        .bind(applicationId)
-        .first<{ cf_api_token_enc: string }>();
-
-      if (appRow?.cf_api_token_enc) {
-        // Decrypt and connect Cloudflare account
-        const decryptedToken = await this.decryptToken(appRow.cf_api_token_enc);
-        await this.tenantService.connectCloudflareAccount(
-          tenant.id,
-          decryptedToken,
-          application.cfAccountId,
-        );
-      }
 
       // Mark application as completed
       await this.env.MANAGEMENT_DB.prepare(
@@ -388,7 +287,7 @@ export class OnboardingService {
       console.error("[OnboardingService] Complete error:", error);
 
       // Rollback status
-      await this.updateApplicationStatus(applicationId, "cf_verified");
+      await this.updateApplicationStatus(applicationId, previousStatus);
 
       return {
         success: false,
@@ -417,7 +316,7 @@ export class OnboardingService {
         status: "completed",
       };
     }
-    if (application.status !== "cf_verified") {
+    if (!["submitted", "cf_verified"].includes(application.status)) {
       return {
         success: false,
         error: `Cannot approve application with status: ${application.status}`,
@@ -523,7 +422,7 @@ export class OnboardingService {
 
     // Add random suffix for uniqueness
     const suffix = randomBase36(6);
-    return `${base}-${suffix}`;
+    return base ? `${base}-${suffix}` : `tenant-${suffix}`;
   }
 
   private generateSubdomainSuggestions(base: string): string[] {
@@ -535,14 +434,6 @@ export class OnboardingService {
     }
 
     return suggestions;
-  }
-
-  private async encryptToken(token: string): Promise<string> {
-    return encrypt(token, this.env.ENCRYPTION_KEY);
-  }
-
-  private async decryptToken(encrypted: string): Promise<string> {
-    return decrypt(encrypted, this.env.ENCRYPTION_KEY);
   }
 
   private async createTenantWithSubscription(

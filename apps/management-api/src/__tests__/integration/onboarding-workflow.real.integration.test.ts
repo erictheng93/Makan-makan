@@ -42,14 +42,13 @@ function createEnv(db: D1DatabaseAdapter): ManagementEnv {
   };
 }
 
-function createApplicationBody(subdomain: string) {
+function createApplicationBody() {
   return {
     businessName: "Workflow Laksa",
     contactName: "Tan Mei",
     contactEmail: "tan.mei@example.com",
     contactPhone: "0912345678",
     planId: "standard",
-    subdomain,
     latitude: 24.147736,
     longitude: 120.673648,
   };
@@ -71,23 +70,23 @@ async function managementToken() {
 }
 
 describe("Onboarding public API workflow — real integration", () => {
-  it("checks a subdomain, creates an application, and reads it back", async () => {
+  it("does not expose the legacy public subdomain check endpoint", async () => {
     const db = createManagementDb();
     const env = createEnv(db);
 
-    const checkBefore = await app.fetch(
+    const response = await app.fetch(
       new Request(
         "https://management.test/api/v1/onboarding/subdomain/check?subdomain=workflow-laksa",
       ),
       env,
     );
 
-    expect(checkBefore.status).toBe(200);
-    const checkBeforeJson: any = await checkBefore.json();
-    expect(checkBeforeJson).toMatchObject({
-      success: true,
-      data: { subdomain: "workflow-laksa", available: true },
-    });
+    expect(response.status).not.toBe(200);
+  });
+
+  it("creates an application with an auto-generated subdomain and reads it back", async () => {
+    const db = createManagementDb();
+    const env = createEnv(db);
 
     const createResponse = await app.fetch(
       new Request("https://management.test/api/v1/onboarding/applications", {
@@ -97,7 +96,7 @@ describe("Onboarding public API workflow — real integration", () => {
           Origin: "http://localhost:3004",
           "User-Agent": "onboarding-workflow-test",
         },
-        body: JSON.stringify(createApplicationBody("workflow-laksa")),
+        body: JSON.stringify(createApplicationBody()),
       }),
       env,
     );
@@ -106,9 +105,9 @@ describe("Onboarding public API workflow — real integration", () => {
     const createJson: any = await createResponse.json();
     expect(createJson.success).toBe(true);
     expect(createJson.data).toMatchObject({
-      assignedSubdomain: "workflow-laksa",
       status: "submitted",
     });
+    expect(createJson.data.assignedSubdomain).toMatch(/^workflow-laksa-/);
     expect(typeof createJson.data.applicationId).toBe("string");
     expect(typeof createJson.data.applicationSecret).toBe("string");
 
@@ -135,23 +134,10 @@ describe("Onboarding public API workflow — real integration", () => {
       latitude: 24.147736,
       longitude: 120.673648,
       planId: "standard",
-      assignedSubdomain: "workflow-laksa",
+      assignedSubdomain: createJson.data.assignedSubdomain,
       status: "submitted",
     });
     expect(getJson.data.cfApiTokenEnc).toBeUndefined();
-
-    const checkAfter = await app.fetch(
-      new Request(
-        "https://management.test/api/v1/onboarding/subdomain/check?subdomain=workflow-laksa",
-      ),
-      env,
-    );
-
-    expect(checkAfter.status).toBe(200);
-    const checkAfterJson: any = await checkAfter.json();
-    expect(checkAfterJson.success).toBe(true);
-    expect(checkAfterJson.data.available).toBe(false);
-    expect(checkAfterJson.data.suggestions.length).toBeGreaterThan(0);
   });
 
   it("rejects invalid application payloads with onboarding-app compatible errors", async () => {
@@ -163,7 +149,7 @@ describe("Onboarding public API workflow — real integration", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...createApplicationBody("Invalid Subdomain"),
+          ...createApplicationBody(),
           contactEmail: "not-an-email",
           latitude: 200,
         }),
@@ -188,31 +174,25 @@ describe("Onboarding public API workflow — real integration", () => {
       new Request("https://management.test/api/v1/onboarding/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createApplicationBody("workflow-approved")),
+        body: JSON.stringify(createApplicationBody()),
       }),
       env,
     );
     const approvedCandidateJson: any = await createApprovedCandidate.json();
     const approvedCandidateId = approvedCandidateJson.data.applicationId;
-    await db
-      .prepare(
-        `UPDATE onboarding_applications
-         SET status = 'cf_verified', cf_account_id = 'account-123', cf_verified_at = '2026-06-01T00:00:00.000Z'
-         WHERE id = ?`,
-      )
-      .bind(approvedCandidateId)
-      .run();
+    const approvedSubdomain = approvedCandidateJson.data.assignedSubdomain;
 
     const createRejectedCandidate = await app.fetch(
       new Request("https://management.test/api/v1/onboarding/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createApplicationBody("workflow-rejected")),
+        body: JSON.stringify(createApplicationBody()),
       }),
       env,
     );
     const rejectedCandidateJson: any = await createRejectedCandidate.json();
     const rejectedCandidateId = rejectedCandidateJson.data.applicationId;
+    const rejectedSubdomain = rejectedCandidateJson.data.assignedSubdomain;
 
     const listResponse = await app.fetch(
       new Request(
@@ -231,13 +211,13 @@ describe("Onboarding public API workflow — real integration", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: approvedCandidateId,
-          status: "cf_verified",
-          assignedSubdomain: "workflow-approved",
+          status: "submitted",
+          assignedSubdomain: approvedSubdomain,
         }),
         expect.objectContaining({
           id: rejectedCandidateId,
           status: "submitted",
-          assignedSubdomain: "workflow-rejected",
+          assignedSubdomain: rejectedSubdomain,
         }),
       ]),
     );
@@ -258,7 +238,7 @@ describe("Onboarding public API workflow — real integration", () => {
     const approveJson: any = await approveResponse.json();
     expect(approveJson.data).toMatchObject({
       status: "completed",
-      subdomain: "workflow-approved",
+      subdomain: approvedSubdomain,
     });
     expect(typeof approveJson.data.tenantId).toBe("string");
 
@@ -280,7 +260,7 @@ describe("Onboarding public API workflow — real integration", () => {
     });
   });
 
-  it("requires Cloudflare verification before admin approval", async () => {
+  it("rejects completed applications from admin rejection", async () => {
     const db = createManagementDb();
     const env = createEnv(db);
     const token = await managementToken();
@@ -289,15 +269,26 @@ describe("Onboarding public API workflow — real integration", () => {
       new Request("https://management.test/api/v1/onboarding/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createApplicationBody("workflow-unverified")),
+        body: JSON.stringify(createApplicationBody()),
       }),
       env,
     );
     const createJson: any = await createResponse.json();
 
-    const response = await app.fetch(
+    await app.fetch(
       new Request(
         `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/approve`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      ),
+      env,
+    );
+
+    const response = await app.fetch(
+      new Request(
+        `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/reject`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },

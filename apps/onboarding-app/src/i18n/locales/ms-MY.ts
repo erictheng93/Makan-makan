@@ -208,8 +208,8 @@ const msMY: Messages = {
     summary: {
       applicationId: "ID Permohonan",
       businessName: "Nama Restoran",
-      cloudflare: "Akaun Cloudflare",
-      connected: "Bersambung ✓",
+      cloudflare: "Pengehosan Platform",
+      connected: "Aktif",
       contactEmail: "E-mel Hubungi",
       plan: "Rancangan Terpilih",
       subdomain: "URL khusus",

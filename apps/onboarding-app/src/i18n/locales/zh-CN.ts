@@ -199,8 +199,8 @@ const zhCN: Messages = {
     summary: {
       applicationId: "申请编号",
       businessName: "餐厅名称",
-      cloudflare: "Cloudflare 帐号",
-      connected: "已连接 ✓",
+      cloudflare: "平台代管",
+      connected: "已启用",
       contactEmail: "联络 Email",
       plan: "选择方案",
       subdomain: "专属网址",

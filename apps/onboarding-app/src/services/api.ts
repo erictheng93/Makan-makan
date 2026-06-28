@@ -47,7 +47,6 @@ export interface CreateApplicationData {
   contactEmail: string;
   contactPhone: string;
   planId: "standard" | "professional" | "enterprise";
-  subdomain?: string;
   latitude: number;
   longitude: number;
 }
@@ -57,25 +56,6 @@ export interface ApplicationResponse {
   applicationSecret: string;
   assignedSubdomain: string;
   status: string;
-}
-
-export interface SubdomainCheckResponse {
-  subdomain: string;
-  available: boolean;
-  suggestions?: string[];
-}
-
-export interface CloudflarePermissions {
-  workers: boolean;
-  d1: boolean;
-  kv: boolean;
-  r2: boolean;
-  pages: boolean;
-}
-
-export interface VerifyCloudflareResponse {
-  verified: boolean;
-  permissions: CloudflarePermissions;
 }
 
 export interface CompleteApplicationResponse {
@@ -154,30 +134,6 @@ function handleApiError(error: unknown): never {
 
 export const onboardingApi = {
   /**
-   * Check if a subdomain is available
-   */
-  async checkSubdomain(subdomain: string): Promise<SubdomainCheckResponse> {
-    try {
-      const response = await apiClient.get<ApiResponse<SubdomainCheckResponse>>(
-        "/onboarding/subdomain/check",
-        { params: { subdomain } },
-      );
-
-      if (!response.data.success || !response.data.data) {
-        throw new ApiError(
-          response.data.error || "Failed to check subdomain",
-          response.data.code || "CHECK_FAILED",
-        );
-      }
-
-      return response.data.data;
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-      handleApiError(error);
-    }
-  },
-
-  /**
    * Create a new onboarding application
    */
   async createApplication(
@@ -223,43 +179,6 @@ export const onboardingApi = {
         throw new ApiError(
           response.data.error || "Application not found",
           response.data.code || "NOT_FOUND",
-        );
-      }
-
-      return response.data.data;
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-      handleApiError(error);
-    }
-  },
-
-  /**
-   * Verify Cloudflare credentials
-   */
-  async verifyCloudflare(
-    applicationId: string,
-    accountId: string,
-    apiToken: string,
-    applicationSecret: string,
-  ): Promise<VerifyCloudflareResponse> {
-    try {
-      const response = await apiClient.post<
-        ApiResponse<VerifyCloudflareResponse>
-      >(
-        `/onboarding/applications/${applicationId}/verify-cloudflare`,
-        {
-          accountId,
-          apiToken,
-        },
-        {
-          headers: { "X-Onboarding-Secret": applicationSecret },
-        },
-      );
-
-      if (!response.data.success || !response.data.data) {
-        throw new ApiError(
-          response.data.error || "Cloudflare verification failed",
-          response.data.code || "CF_VERIFICATION_FAILED",
         );
       }
 

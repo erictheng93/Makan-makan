@@ -9,7 +9,6 @@ describe("onboarding application payload", () => {
       contactEmail: "mei@example.com",
       contactPhone: "0912345678",
       planId: "standard",
-      subdomain: "gps-dumpling",
       latitude: 24.147736,
       longitude: 120.673648,
     };

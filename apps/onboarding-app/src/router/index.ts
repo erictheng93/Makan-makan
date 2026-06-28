@@ -18,12 +18,6 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "填寫申請" },
   },
   {
-    path: "/connect",
-    name: "Connect",
-    component: () => import("@/views/ConnectView.vue"),
-    meta: { title: "連接 Cloudflare" },
-  },
-  {
     path: "/success",
     name: "Success",
     component: () => import("@/views/SuccessView.vue"),

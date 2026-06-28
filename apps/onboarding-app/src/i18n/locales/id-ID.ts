@@ -208,8 +208,8 @@ const idID: Messages = {
     summary: {
       applicationId: "ID Aplikasi",
       businessName: "Nama Restoran",
-      cloudflare: "Akun Cloudflare",
-      connected: "Terhubung ✓",
+      cloudflare: "Hosting Platform",
+      connected: "Aktif",
       contactEmail: "Hubungi Email",
       plan: "Paket yang Dipilih",
       subdomain: "URL khusus",

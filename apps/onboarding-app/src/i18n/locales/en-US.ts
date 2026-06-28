@@ -189,8 +189,8 @@ const enUS: Messages = {
       contactEmail: "Contact Email",
       plan: "Selected Plan",
       subdomain: "Dedicated URL",
-      cloudflare: "Cloudflare Account",
-      connected: "Connected ✓",
+      cloudflare: "Platform Hosting",
+      connected: "Enabled",
     },
     nextSteps: {
       title: "What Happens Next?",

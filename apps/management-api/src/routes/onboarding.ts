@@ -27,20 +27,6 @@ const createApplicationSchema = z.object({
     .optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  subdomain: z
-    .string()
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Subdomain must be lowercase alphanumeric with hyphens",
-    )
-    .min(3)
-    .max(30)
-    .optional(),
-});
-
-const verifyCloudflareSchema = z.object({
-  accountId: z.string().length(32, "Account ID must be 32 characters"),
-  apiToken: z.string().min(40, "API Token must be at least 40 characters"),
 });
 
 async function requireApplicationSecret(
@@ -71,66 +57,6 @@ async function requireApplicationSecret(
 // ============================================================
 // Routes
 // ============================================================
-
-/**
- * Check subdomain availability
- * GET /api/v1/onboarding/subdomain/check?subdomain=xxx
- */
-router.get("/subdomain/check", async (c) => {
-  const onboardingService = new OnboardingService(c.env);
-  const subdomain = c.req.query("subdomain");
-
-  if (!subdomain) {
-    return c.json(
-      {
-        success: false,
-        error: "Subdomain query parameter is required",
-        code: "MISSING_SUBDOMAIN",
-      },
-      400,
-    );
-  }
-
-  // Validate subdomain format
-  if (
-    !/^[a-z0-9-]+$/.test(subdomain) ||
-    subdomain.length < 3 ||
-    subdomain.length > 30
-  ) {
-    return c.json(
-      {
-        success: false,
-        error: "Invalid subdomain format",
-        code: "INVALID_SUBDOMAIN",
-      },
-      400,
-    );
-  }
-
-  try {
-    const result =
-      await onboardingService.checkSubdomainAvailability(subdomain);
-
-    return c.json({
-      success: true,
-      data: {
-        subdomain,
-        available: result.available,
-        suggestions: result.suggestions,
-      },
-    });
-  } catch (error) {
-    console.error("[Onboarding] Subdomain check error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to check subdomain availability",
-        code: "CHECK_FAILED",
-      },
-      500,
-    );
-  }
-});
 
 /**
  * Create new application
@@ -254,103 +180,6 @@ router.get("/applications/:id", async (c) => {
 });
 
 /**
- * Verify Cloudflare credentials
- * POST /api/v1/onboarding/applications/:id/verify-cloudflare
- */
-router.post("/applications/:id/verify-cloudflare", async (c) => {
-  const onboardingService = new OnboardingService(c.env);
-  const applicationId = c.req.param("id");
-
-  try {
-    const secretError = await requireApplicationSecret(
-      c,
-      onboardingService,
-      applicationId,
-    );
-    if (secretError) return secretError;
-
-    const body = await c.req.json();
-    const validated = verifyCloudflareSchema.parse(body);
-
-    // Check application exists
-    const application = await onboardingService.getApplication(applicationId);
-    if (!application) {
-      return c.json(
-        {
-          success: false,
-          error: "Application not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
-    }
-
-    // Check application is in correct state
-    if (application.status !== "submitted") {
-      return c.json(
-        {
-          success: false,
-          error: `Application already in status: ${application.status}`,
-          code: "INVALID_STATUS",
-        },
-        400,
-      );
-    }
-
-    const result = await onboardingService.verifyCloudflareCredentials(
-      applicationId,
-      validated.accountId,
-      validated.apiToken,
-    );
-
-    if (!result.valid) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Cloudflare verification failed",
-          code: "CF_VERIFICATION_FAILED",
-          data: {
-            verified: false,
-            permissions: result.permissions,
-          },
-        },
-        400,
-      );
-    }
-
-    return c.json({
-      success: true,
-      data: {
-        verified: true,
-        permissions: result.permissions,
-      },
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
-    }
-
-    console.error("[Onboarding] Verify CF error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to verify Cloudflare credentials",
-        code: "VERIFY_FAILED",
-      },
-      500,
-    );
-  }
-});
-
-/**
  * Complete application and create tenant
  * POST /api/v1/onboarding/applications/:id/complete
  */
@@ -380,7 +209,7 @@ router.post("/applications/:id/complete", async (c) => {
     }
 
     // Check application is in correct state
-    if (application.status !== "cf_verified") {
+    if (!["submitted", "cf_verified"].includes(application.status)) {
       return c.json(
         {
           success: false,

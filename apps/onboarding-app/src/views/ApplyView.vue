@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useOnboardingStore } from "@/stores/onboarding";
-import {
-  CheckCircleIcon,
-  XCircleIcon,
-  ArrowPathIcon,
-  MapPinIcon,
-} from "@heroicons/vue/24/outline";
+import { ArrowPathIcon, MapPinIcon } from "@heroicons/vue/24/outline";
 import { useI18n } from "@/i18n";
 
 const { t } = useI18n();
@@ -24,14 +19,10 @@ const form = ref({
   latitude: null as number | null,
   longitude: null as number | null,
   planId: "standard" as const,
-  subdomain: "",
 });
 
 const errors = ref<Record<string, string>>({});
 const isLocating = ref(false);
-
-// Debounce timer for subdomain check
-let subdomainCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
 const parseCoordinate = (value: number | string | null): number | null => {
   if (value === null || value === "") {
@@ -41,38 +32,6 @@ const parseCoordinate = (value: number | string | null): number | null => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
-
-// Watch subdomain input for debounced availability check
-watch(
-  () => form.value.subdomain,
-  (newValue) => {
-    // Clear previous timer
-    if (subdomainCheckTimer) {
-      clearTimeout(subdomainCheckTimer);
-    }
-
-    // Reset status if empty
-    if (!newValue) {
-      store.subdomainStatus = null;
-      return;
-    }
-
-    // Validate format first
-    if (!/^[a-z0-9-]*$/.test(newValue)) {
-      store.subdomainStatus = "invalid";
-      return;
-    }
-
-    // Debounce the API call (300ms)
-    subdomainCheckTimer = setTimeout(async () => {
-      if (newValue.length >= 3) {
-        await store.checkSubdomain(newValue);
-      } else {
-        store.subdomainStatus = null;
-      }
-    }, 300);
-  },
-);
 
 const validate = (): boolean => {
   errors.value = {};
@@ -110,16 +69,6 @@ const validate = (): boolean => {
     errors.value.longitude = t("apply.validation.longitudeInvalid");
   }
 
-  if (form.value.subdomain) {
-    if (!/^[a-z0-9-]+$/.test(form.value.subdomain)) {
-      errors.value.subdomain = t("apply.validation.subdomainInvalidFormat");
-    } else if (form.value.subdomain.length < 3) {
-      errors.value.subdomain = t("apply.validation.subdomainTooShort");
-    } else if (store.subdomainStatus === "taken") {
-      errors.value.subdomain = t("apply.validation.subdomainTaken");
-    }
-  }
-
   return Object.keys(errors.value).length === 0;
 };
 
@@ -140,19 +89,14 @@ const handleSubmit = async () => {
     latitude,
     longitude,
     planId: form.value.planId,
-    subdomain: form.value.subdomain || undefined,
   });
 
   if (success) {
     toast.success(t("apply.toast.submitSuccess"));
-    router.push("/connect");
+    router.push("/success");
   } else {
     toast.error(store.apiError || t("apply.toast.submitFailureFallback"));
   }
-};
-
-const selectSuggestion = (suggestion: string) => {
-  form.value.subdomain = suggestion;
 };
 
 const useCurrentLocation = () => {
@@ -196,12 +140,6 @@ const useCurrentLocation = () => {
           class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-medium"
         >
           2
-        </div>
-        <div class="w-24 h-1 bg-gray-200" />
-        <div
-          class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-medium"
-        >
-          3
         </div>
       </div>
     </div>
@@ -358,103 +296,6 @@ const useCurrentLocation = () => {
           </div>
         </div>
 
-        <!-- 子域名 -->
-        <div>
-          <label class="label">{{ t("apply.form.subdomain.label") }}</label>
-          <div class="flex">
-            <div class="relative flex-1">
-              <input
-                v-model="form.subdomain"
-                data-testid="onboarding-subdomain"
-                type="text"
-                class="input rounded-r-none pr-10"
-                :class="{
-                  'input-error':
-                    errors.subdomain || store.subdomainStatus === 'taken',
-                  'border-green-500 focus:border-green-500 focus:ring-green-500':
-                    store.subdomainStatus === 'available',
-                }"
-                :placeholder="t('apply.form.subdomain.placeholder')"
-              />
-              <!-- Status indicator -->
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                <ArrowPathIcon
-                  v-if="store.isCheckingSubdomain"
-                  class="h-5 w-5 text-gray-400 animate-spin"
-                />
-                <CheckCircleIcon
-                  v-else-if="store.subdomainStatus === 'available'"
-                  class="h-5 w-5 text-green-500"
-                />
-                <XCircleIcon
-                  v-else-if="
-                    store.subdomainStatus === 'taken' ||
-                    store.subdomainStatus === 'invalid'
-                  "
-                  class="h-5 w-5 text-red-500"
-                />
-              </div>
-            </div>
-            <span
-              class="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-r-md"
-            >
-              .makanmakan.app
-            </span>
-          </div>
-
-          <!-- Subdomain status message -->
-          <div class="mt-1">
-            <p v-if="errors.subdomain" class="text-sm text-red-600">
-              {{ errors.subdomain }}
-            </p>
-            <p
-              v-else-if="store.subdomainStatus === 'available'"
-              class="text-sm text-green-600"
-            >
-              {{ t("apply.form.subdomain.available") }}
-            </p>
-            <p
-              v-else-if="store.subdomainStatus === 'taken'"
-              class="text-sm text-red-600"
-            >
-              {{ t("apply.form.subdomain.taken") }}
-            </p>
-            <p
-              v-else-if="store.subdomainStatus === 'invalid'"
-              class="text-sm text-red-600"
-            >
-              {{ t("apply.form.subdomain.invalidFormat") }}
-            </p>
-            <p v-else class="text-xs text-gray-500">
-              {{ t("apply.form.subdomain.emptyHint") }}
-            </p>
-          </div>
-
-          <!-- Subdomain suggestions -->
-          <div
-            v-if="
-              store.subdomainStatus === 'taken' &&
-              store.subdomainSuggestions.length > 0
-            "
-            class="mt-2"
-          >
-            <p class="text-xs text-gray-600 mb-1">
-              {{ t("apply.form.subdomain.suggestionsLabel") }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="suggestion in store.subdomainSuggestions"
-                :key="suggestion"
-                type="button"
-                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition-colors"
-                @click="selectSuggestion(suggestion)"
-              >
-                {{ suggestion }}.makanmakan.app
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- 提交按鈕 -->
         <div class="flex justify-between pt-4">
           <button
@@ -468,14 +309,14 @@ const useCurrentLocation = () => {
             type="submit"
             data-testid="onboarding-submit"
             class="btn btn-primary"
-            :disabled="store.isLoading || store.isCheckingSubdomain"
+            :disabled="store.isLoading || store.isCompleting"
           >
             <ArrowPathIcon
-              v-if="store.isLoading"
+              v-if="store.isLoading || store.isCompleting"
               class="h-4 w-4 mr-2 animate-spin"
             />
             {{
-              store.isLoading
+              store.isLoading || store.isCompleting
                 ? t("apply.form.submitting")
                 : t("apply.form.next")
             }}

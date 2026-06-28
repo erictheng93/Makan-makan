@@ -38,6 +38,11 @@ interface BatchDeployResult {
   error?: string;
 }
 
+interface CloudflareCredentials {
+  accountId: string;
+  apiToken: string;
+}
+
 export class ProvisioningService {
   private env: ManagementEnv;
   private cfClient: CloudflareApiClient;
@@ -73,13 +78,12 @@ export class ProvisioningService {
       return { success: false, error: "Tenant not found" };
     }
 
-    if (!tenant.cf_account_id || !tenant.cf_api_token_enc) {
+    const credentials = await this.getCloudflareCredentials(tenant);
+    if (!credentials) {
       return { success: false, error: "Cloudflare account not connected" };
     }
 
-    // Decrypt API token
-    const apiToken = await this.decryptToken(tenant.cf_api_token_enc);
-    const accountId = tenant.cf_account_id;
+    const { apiToken, accountId } = credentials;
     const prefix = `makanmakan-${tenant.subdomain}`;
 
     // Default resource types if not specified
@@ -223,7 +227,8 @@ export class ProvisioningService {
         return { success: false, deploymentId, error: "Tenant not found" };
       }
 
-      if (!tenant.cf_account_id || !tenant.cf_api_token_enc) {
+      const credentials = await this.getCloudflareCredentials(tenant);
+      if (!credentials) {
         await this.updateDeploymentLog(
           deploymentId,
           "failed",
@@ -272,9 +277,8 @@ export class ProvisioningService {
         resources.results.map((r) => [r.resource_type, r.resource_id]),
       );
 
-      // 3. Decrypt API token
-      const apiToken = await this.decryptToken(tenant.cf_api_token_enc);
-      const accountId = tenant.cf_account_id;
+      // 3. Resolve Cloudflare credentials
+      const { apiToken, accountId } = credentials;
 
       // 4. Apply pending migrations if D1 resource exists
       const d1ResourceId = resourceMap.get("d1");
@@ -596,6 +600,32 @@ export class ProvisioningService {
 
   private async decryptToken(encryptedToken: string): Promise<string> {
     return decrypt(encryptedToken, this.env.ENCRYPTION_KEY);
+  }
+
+  private async getCloudflareCredentials(tenant: {
+    cf_account_id?: string | null;
+    cf_api_token_enc?: string | null;
+  }): Promise<CloudflareCredentials | null> {
+    const platformAccountId =
+      this.env.PLATFORM_CF_ACCOUNT_ID || this.env.CF_ACCOUNT_ID;
+    const platformApiToken =
+      this.env.PLATFORM_CF_API_TOKEN || this.env.CF_API_TOKEN;
+
+    if (platformAccountId && platformApiToken) {
+      return {
+        accountId: platformAccountId,
+        apiToken: platformApiToken,
+      };
+    }
+
+    if (tenant.cf_account_id && tenant.cf_api_token_enc) {
+      return {
+        accountId: tenant.cf_account_id,
+        apiToken: await this.decryptToken(tenant.cf_api_token_enc),
+      };
+    }
+
+    return null;
   }
 
   private getResourceName(prefix: string, type: ResourceType): string {

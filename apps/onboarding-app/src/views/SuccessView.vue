@@ -61,12 +61,6 @@ const handleStartNew = () => {
         >
           ✓
         </div>
-        <div class="w-24 h-1 bg-primary-600" />
-        <div
-          class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium"
-        >
-          ✓
-        </div>
       </div>
     </div>
 

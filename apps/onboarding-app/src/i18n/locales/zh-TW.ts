@@ -179,8 +179,8 @@ const zhTW = {
       contactEmail: "聯絡 Email",
       plan: "選擇方案",
       subdomain: "專屬網址",
-      cloudflare: "Cloudflare 帳號",
-      connected: "已連接 ✓",
+      cloudflare: "平台代管",
+      connected: "已啟用",
     },
     nextSteps: {
       title: "接下來會發生什麼？",

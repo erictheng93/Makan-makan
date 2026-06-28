@@ -9,7 +9,6 @@ import {
   onboardingApi,
   ApiError,
   type CreateApplicationData,
-  type CloudflarePermissions,
 } from "@/services/api";
 
 export interface ApplicationData {
@@ -20,20 +19,7 @@ export interface ApplicationData {
   latitude: number;
   longitude: number;
   planId: "standard" | "professional" | "enterprise";
-  subdomain?: string;
-  status:
-    | "pending"
-    | "submitted"
-    | "cf_verified"
-    | "provisioning"
-    | "completed";
-}
-
-export interface CloudflareInfo {
-  accountId: string;
-  apiToken: string;
-  verified: boolean;
-  permissions?: CloudflarePermissions;
+  status: "pending" | "submitted" | "provisioning" | "completed";
 }
 
 export interface CompletionResult {
@@ -50,34 +36,21 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   const applicationId = ref<string | null>(null);
   const applicationSecret = ref<string | null>(null);
   const assignedSubdomain = ref<string | null>(null);
-  const cloudflareInfo = ref<CloudflareInfo | null>(null);
   const completionResult = ref<CompletionResult | null>(null);
 
   // Loading states
   const isLoading = ref(false);
-  const isCheckingSubdomain = ref(false);
-  const isVerifyingCf = ref(false);
   const isCompleting = ref(false);
 
   // Error state
   const apiError = ref<string | null>(null);
 
-  // Subdomain availability
-  const subdomainStatus = ref<
-    "available" | "taken" | "checking" | "invalid" | null
-  >(null);
-  const subdomainSuggestions = ref<string[]>([]);
-
   // ============================================================
   // Computed
   // ============================================================
 
-  const canVerifyCloudflare = computed(() => {
-    return applicationId.value && application.value?.status === "submitted";
-  });
-
   const canComplete = computed(() => {
-    return applicationId.value && cloudflareInfo.value?.verified;
+    return applicationId.value !== null && applicationSecret.value !== null;
   });
 
   const isCompleted = computed(() => {
@@ -89,42 +62,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   // ============================================================
 
   /**
-   * Check subdomain availability
-   */
-  async function checkSubdomain(subdomain: string): Promise<boolean> {
-    if (!subdomain || subdomain.length < 3) {
-      subdomainStatus.value = "invalid";
-      return false;
-    }
-
-    // Validate format
-    if (!/^[a-z0-9-]+$/.test(subdomain)) {
-      subdomainStatus.value = "invalid";
-      return false;
-    }
-
-    isCheckingSubdomain.value = true;
-    subdomainStatus.value = "checking";
-    apiError.value = null;
-
-    try {
-      const result = await onboardingApi.checkSubdomain(subdomain);
-      subdomainStatus.value = result.available ? "available" : "taken";
-      subdomainSuggestions.value = result.suggestions || [];
-      return result.available;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        apiError.value = error.message;
-      }
-      subdomainStatus.value = null;
-      return false;
-    } finally {
-      isCheckingSubdomain.value = false;
-    }
-  }
-
-  /**
-   * Submit application
+   * Submit and complete an application in the managed platform flow.
    */
   async function submitApplication(
     data: CreateApplicationData,
@@ -143,10 +81,9 @@ export const useOnboardingStore = defineStore("onboarding", () => {
         status: "submitted",
       };
 
-      // Persist to session storage
       saveToSession();
 
-      return true;
+      return await completeApplication();
     } catch (error) {
       if (error instanceof ApiError) {
         apiError.value = error.message;
@@ -156,54 +93,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
       return false;
     } finally {
       isLoading.value = false;
-    }
-  }
-
-  /**
-   * Verify Cloudflare credentials
-   */
-  async function verifyCloudflare(
-    accountId: string,
-    apiToken: string,
-  ): Promise<boolean> {
-    if (!applicationId.value || !applicationSecret.value) {
-      apiError.value = "No application credentials";
-      return false;
-    }
-
-    isVerifyingCf.value = true;
-    apiError.value = null;
-
-    try {
-      const result = await onboardingApi.verifyCloudflare(
-        applicationId.value,
-        accountId,
-        apiToken,
-        applicationSecret.value,
-      );
-
-      cloudflareInfo.value = {
-        accountId,
-        apiToken,
-        verified: result.verified,
-        permissions: result.permissions,
-      };
-
-      if (application.value) {
-        application.value.status = "cf_verified";
-        saveToSession();
-      }
-
-      return result.verified;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        apiError.value = error.message;
-      } else {
-        apiError.value = "Failed to verify Cloudflare credentials";
-      }
-      return false;
-    } finally {
-      isVerifyingCf.value = false;
     }
   }
 
@@ -257,14 +146,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   }
 
   /**
-   * Set cloudflare info (without verification)
-   */
-  function setCloudflareInfo(info: CloudflareInfo) {
-    cloudflareInfo.value = info;
-    // Don't persist sensitive info
-  }
-
-  /**
    * Load from session storage
    */
   function loadFromSession() {
@@ -303,11 +184,8 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     applicationId.value = null;
     applicationSecret.value = null;
     assignedSubdomain.value = null;
-    cloudflareInfo.value = null;
     completionResult.value = null;
     apiError.value = null;
-    subdomainStatus.value = null;
-    subdomainSuggestions.value = [];
     sessionStorage.removeItem("onboarding_application");
   }
 
@@ -327,28 +205,19 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     applicationId,
     applicationSecret,
     assignedSubdomain,
-    cloudflareInfo,
     completionResult,
     isLoading,
-    isCheckingSubdomain,
-    isVerifyingCf,
     isCompleting,
     apiError,
-    subdomainStatus,
-    subdomainSuggestions,
 
     // Computed
-    canVerifyCloudflare,
     canComplete,
     isCompleted,
 
     // Actions
-    checkSubdomain,
     submitApplication,
-    verifyCloudflare,
     completeApplication,
     setApplication,
-    setCloudflareInfo,
     loadFromSession,
     reset,
     clearError,

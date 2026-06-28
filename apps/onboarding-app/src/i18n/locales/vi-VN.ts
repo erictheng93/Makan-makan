@@ -211,8 +211,8 @@ const viVN: Messages = {
     summary: {
       applicationId: "ID ứng dụng",
       businessName: "Tên nhà hàng",
-      cloudflare: "Tài khoản đám mây",
-      connected: "Đã kết nối ✓",
+      cloudflare: "Lưu trữ nền tảng",
+      connected: "Đã bật",
       contactEmail: "Email liên hệ",
       plan: "Kế hoạch đã chọn",
       subdomain: "URL chuyên dụng",

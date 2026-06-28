@@ -28,6 +28,8 @@ export interface ManagementEnv {
   ENCRYPTION_KEY: string;
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
+  PLATFORM_CF_API_TOKEN?: string;
+  PLATFORM_CF_ACCOUNT_ID?: string;
   SLACK_WEBHOOK_URL?: string; // Optional: for alert notifications
 
   // D1 Database binding
@@ -414,7 +416,6 @@ export interface CreateApplicationRequest {
   contactEmail: string;
   contactPhone: string;
   planId?: OnboardingPlanId | null;
-  subdomain?: string;
   latitude: number;
   longitude: number;
 }

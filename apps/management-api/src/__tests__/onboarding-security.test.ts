@@ -3,11 +3,9 @@ import app from "../index";
 import type { ManagementEnv } from "../types";
 
 const onboardingMocks = vi.hoisted(() => ({
-  checkSubdomainAvailability: vi.fn(),
   createApplication: vi.fn(),
   getApplication: vi.fn(),
   verifyApplicationSecret: vi.fn(),
-  verifyCloudflareCredentials: vi.fn(),
   completeApplication: vi.fn(),
 }));
 
@@ -58,30 +56,16 @@ const createApplicationBody = {
   latitude: 24.147736,
   longitude: 120.673648,
   planId: "trial",
-  subdomain: "demo-noodles",
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  onboardingMocks.checkSubdomainAvailability.mockResolvedValue({
-    available: true,
-  });
   onboardingMocks.createApplication.mockResolvedValue({
     ...application,
     applicationSecret: "onb_secret_123",
   });
   onboardingMocks.getApplication.mockResolvedValue(application);
   onboardingMocks.verifyApplicationSecret.mockResolvedValue(true);
-  onboardingMocks.verifyCloudflareCredentials.mockResolvedValue({
-    valid: true,
-    permissions: {
-      workers: true,
-      d1: true,
-      kv: true,
-      r2: true,
-      pages: false,
-    },
-  });
   onboardingMocks.completeApplication.mockResolvedValue({
     success: true,
     tenantId: "tenant-123",
@@ -123,25 +107,33 @@ describe("onboarding route authorization", () => {
     );
     expect(readResponse.status).toBe(401);
 
-    const verifyResponse = await app.fetch(
-      jsonRequest("/api/v1/onboarding/applications/app-123/verify-cloudflare", {
-        accountId: "a".repeat(32),
-        apiToken: "t".repeat(40),
-      }),
-      createEnv(),
-    );
-    expect(verifyResponse.status).toBe(401);
-
     const completeResponse = await app.fetch(
       jsonRequest("/api/v1/onboarding/applications/app-123/complete", {}),
       createEnv(),
     );
     expect(completeResponse.status).toBe(401);
-    expect(onboardingMocks.verifyCloudflareCredentials).not.toHaveBeenCalled();
     expect(onboardingMocks.completeApplication).not.toHaveBeenCalled();
   });
 
-  it("accepts the application secret for legitimate onboarding mutations", async () => {
+  it("accepts the application secret for legitimate completion", async () => {
+    const response = await app.fetch(
+      jsonRequest(
+        "/api/v1/onboarding/applications/app-123/complete",
+        {},
+        { "X-Onboarding-Secret": "onb_secret_123" },
+      ),
+      createEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(onboardingMocks.verifyApplicationSecret).toHaveBeenCalledWith(
+      "app-123",
+      "onb_secret_123",
+    );
+    expect(onboardingMocks.completeApplication).toHaveBeenCalledWith("app-123");
+  });
+
+  it("does not expose the legacy Cloudflare verification endpoint", async () => {
     const response = await app.fetch(
       jsonRequest(
         "/api/v1/onboarding/applications/app-123/verify-cloudflare",
@@ -154,11 +146,7 @@ describe("onboarding route authorization", () => {
       createEnv(),
     );
 
-    expect(response.status).toBe(200);
-    expect(onboardingMocks.verifyApplicationSecret).toHaveBeenCalledWith(
-      "app-123",
-      "onb_secret_123",
-    );
-    expect(onboardingMocks.verifyCloudflareCredentials).toHaveBeenCalled();
+    expect(response.status).not.toBe(200);
+    expect(onboardingMocks.verifyApplicationSecret).not.toHaveBeenCalled();
   });
 });
