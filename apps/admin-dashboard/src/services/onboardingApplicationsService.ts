@@ -18,7 +18,6 @@ export interface OnboardingApplication {
   longitude?: number | null;
   requestedSubdomain?: string | null;
   assignedSubdomain?: string | null;
-  cfAccountId?: string | null;
   cfVerifiedAt?: string | null;
   status: OnboardingApplicationStatus;
   tenantId?: string | null;

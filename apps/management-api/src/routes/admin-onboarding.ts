@@ -30,7 +30,6 @@ function publicApplication(application: {
   longitude?: number;
   requestedSubdomain?: string;
   assignedSubdomain?: string;
-  cfAccountId?: string;
   cfVerifiedAt?: string;
   status: OnboardingStatus;
   tenantId?: string;
@@ -52,7 +51,6 @@ function publicApplication(application: {
     longitude: application.longitude,
     requestedSubdomain: application.requestedSubdomain,
     assignedSubdomain: application.assignedSubdomain,
-    cfAccountId: application.cfAccountId,
     cfVerifiedAt: application.cfVerifiedAt,
     status: application.status,
     tenantId: application.tenantId,

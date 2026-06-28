@@ -176,7 +176,6 @@ const enUS: Messages = {
       title: "Deployment Info",
       currentVersion: "Current Version",
       notDeployed: "Not deployed",
-      cfAccount: "Cloudflare Account",
       connected: "Connected",
       notConnected: "Not connected",
       resourceCount: "Resource Count",

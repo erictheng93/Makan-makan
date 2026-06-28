@@ -293,8 +293,6 @@ export class VersionSyncService {
       contactPhone: (row.contact_phone as string | null) ?? undefined,
       latitude: (row.latitude as number | null) ?? undefined,
       longitude: (row.longitude as number | null) ?? undefined,
-      cfAccountId: (row.cf_account_id as string | null) ?? undefined,
-      cfApiTokenEnc: (row.cf_api_token_enc as string | null) ?? undefined,
       subdomain: row.subdomain as string,
       customDomain: (row.custom_domain as string | null) ?? undefined,
       deployedVersion: (row.deployed_version as string | null) ?? undefined,

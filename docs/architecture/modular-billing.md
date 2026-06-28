@@ -14,9 +14,9 @@ Module access starts with `PLAN_DEFAULT_MODULES` in
 - `enterprise`: every module — `pro` plus `multi_branch`, `ai_analytics`, `platform_integration`, `loyalty`, `inventory`, `staff_management`.
 - `trial`: all 15 modules until `trial_ends_at_ms`, after which `TrialReaperService` downgrades the subscription to `basic`.
 
-`shop_subscriptions.deployment_mode` records whether a shop is platform-managed
-or BYOC-hosted. Phase 1 only stores and returns it; later license verification
-uses it for BYOC enforcement.
+`shop_subscriptions.deployment_mode` is retained for compatibility, but runtime
+behavior is platform-managed. Legacy values are normalized to `managed` before
+module access is returned.
 
 ## API Gates
 

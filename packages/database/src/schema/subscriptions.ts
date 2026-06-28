@@ -130,10 +130,10 @@ export const shopSubscriptions = sqliteTable("shop_subscriptions", {
     .$type<ModuleMap>()
     .default(sql`'{}'`),
 
-  // Deployment mode reserved for future BYOC license-token verification.
+  // Deployment mode is fixed to platform-managed hosting.
   deploymentMode: text("deployment_mode")
     .notNull()
-    .$type<"managed" | "byoc">()
+    .$type<"managed">()
     .default("managed"),
 
   // Master kill switch — set false to immediately lock out the shop

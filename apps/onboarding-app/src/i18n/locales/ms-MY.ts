@@ -81,65 +81,6 @@ const msMY: Messages = {
       copiedToClipboard: "Disalin ke papan keratan",
     },
   },
-  connect: {
-    assignedSubdomainLabel: "URL khusus anda:",
-    button: {
-      complete: "Permohonan Lengkap",
-      completing: "Memproses...",
-      verify: "Sahkan Sambungan",
-      verifying: "Mengesahkan...",
-    },
-    form: {
-      accountId: {
-        label: "ID Akaun Cloudflare",
-        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      },
-      apiToken: {
-        label: "Token API",
-        placeholder: "•••••••••••••••••••••••••••••••••",
-      },
-    },
-    help: {
-      linkText: "Hubungi kami untuk panduan video",
-      prompt: "Perlukan bantuan?",
-    },
-    info: {
-      description:
-        "MakanMakan berjalan pada akaun Cloudflare anda sendiri, memastikan anda mempunyai kawalan penuh ke atas data anda. Kos sumber disertakan dalam langganan anda.",
-      title: "Mengapa anda memerlukan akaun Cloudflare?",
-    },
-    permissions: {
-      pagesOptional: "Halaman (Pilihan)",
-      titleSuccess: "Semakan kebenaran lulus",
-      titleWarning: "Keputusan semakan kebenaran",
-    },
-    steps: {
-      heading: "Langkah-langkah:",
-      step1Prefix: "Pergi ke",
-      step1Suffix: "(daftar dahulu jika anda tidak mempunyai akaun)",
-      step2: 'Klik avatar di bahagian atas sebelah kanan → pilih "Profil Saya"',
-      step3ClipboardText: "ID Akaun berada dalam bar sisi kanan Papan Pemuka",
-      step3Prefix: "Salin anda",
-      step4: 'Pergi ke "Token API" → klik "Buat Token"',
-      step5: 'Pilih templat "Edit Cloudflare Workers".',
-      step6: "Salin Token API yang dijana",
-    },
-    title: "Sambungkan Akaun Cloudflare",
-    toast: {
-      completeFailureFallback:
-        "Gagal melengkapkan permohonan. Sila cuba lagi kemudian.",
-      completeSuccess: "Permohonan selesai!",
-      verifyFailureFallback: "Pengesahan gagal. Sila semak butiran anda.",
-      verifySuccess: "Akaun Cloudflare disahkan!",
-    },
-    validation: {
-      accountIdLength: "ID Akaun mestilah 32 aksara",
-      accountIdRequired: "Sila masukkan ID Akaun",
-      apiTokenFormat: "Format Token API tidak sah",
-      apiTokenRequired: "Sila masukkan Token API",
-    },
-    verifiedMessage: "Akaun Cloudflare berjaya disambungkan!",
-  },
   home: {
     cta: {
       button: "Mulakan Permohonan",
@@ -203,8 +144,9 @@ const msMY: Messages = {
       },
       title: "Apa yang Berlaku Seterusnya?",
     },
-    subtitleLine1: "tahniah! Arahan MakanMakan anda telah dibuat.",
-    subtitleLine2: "Sistem sedang menyediakan persekitaran khusus anda.",
+    subtitleLine1: "Kami telah menerima permohonan restoran anda.",
+    subtitleLine2:
+      "Selepas semakan platform, kami akan mengaktifkan akaun dan sumber hosting anda.",
     summary: {
       applicationId: "ID Permohonan",
       businessName: "Nama Restoran",
@@ -214,9 +156,11 @@ const msMY: Messages = {
       plan: "Rancangan Terpilih",
       subdomain: "URL khusus",
       tenantId: "ID penyewa",
+      status: "Status Permohonan",
+      pendingReview: "Menunggu Semakan Platform",
       title: "Ringkasan Permohonan",
     },
-    title: "Permohonan Selesai!",
+    title: "Permohonan Dihantar!",
   },
 };
 

@@ -1,7 +1,7 @@
 /**
  * Tenant Service
  *
- * Handles tenant CRUD operations and Cloudflare account management
+ * Handles tenant CRUD operations for the managed platform.
  */
 
 import type {
@@ -12,17 +12,13 @@ import type {
   UpdateTenantRequest,
   TenantStatus,
 } from "../types";
-import { encrypt } from "@makanmakan/utils";
-import { CloudflareApiClient } from "./CloudflareApiClient";
 import { generateLicenseKey, randomBase36Upper } from "../utils/random";
 
 export class TenantService {
   private env: ManagementEnv;
-  private cfClient: CloudflareApiClient;
 
   constructor(env: ManagementEnv) {
     this.env = env;
-    this.cfClient = new CloudflareApiClient(env);
   }
 
   /**
@@ -74,7 +70,6 @@ export class TenantService {
         contact_phone: string;
         latitude: number | null;
         longitude: number | null;
-        cf_account_id: string;
         subdomain: string;
         custom_domain: string;
         deployed_version: string;
@@ -281,39 +276,6 @@ export class TenantService {
     }));
   }
 
-  /**
-   * Connect Cloudflare account to tenant
-   */
-  async connectCloudflareAccount(
-    tenantId: string,
-    apiToken: string,
-    accountId: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    // Verify the API token works
-    const isValid = await this.cfClient.verifyToken(apiToken, accountId);
-    if (!isValid) {
-      return {
-        success: false,
-        error: "Invalid API token or account ID",
-      };
-    }
-
-    // Encrypt and store the token
-    const encryptedToken = await this.encryptToken(apiToken);
-
-    await this.env.MANAGEMENT_DB.prepare(
-      `
-      UPDATE tenants
-      SET cf_account_id = ?, cf_api_token_enc = ?, updated_at = ?
-      WHERE id = ?
-    `,
-    )
-      .bind(accountId, encryptedToken, new Date().toISOString(), tenantId)
-      .run();
-
-    return { success: true };
-  }
-
   // ============================================================
   // Helper Methods
   // ============================================================
@@ -325,10 +287,6 @@ export class TenantService {
     return `T-${dateStr}-${random}`;
   }
 
-  private async encryptToken(token: string): Promise<string> {
-    return encrypt(token, this.env.ENCRYPTION_KEY);
-  }
-
   private mapRowToTenant(row: Record<string, unknown>): Tenant {
     return {
       id: row.id as string,
@@ -337,8 +295,6 @@ export class TenantService {
       contactPhone: row.contact_phone as string | undefined,
       latitude: row.latitude as number | undefined,
       longitude: row.longitude as number | undefined,
-      cfAccountId: row.cf_account_id as string | undefined,
-      cfApiTokenEnc: row.cf_api_token_enc as string | undefined,
       subdomain: row.subdomain as string,
       customDomain: row.custom_domain as string | undefined,
       deployedVersion: row.deployed_version as string | undefined,

@@ -242,6 +242,12 @@ describe("Onboarding public API workflow — real integration", () => {
     });
     expect(typeof approveJson.data.tenantId).toBe("string");
 
+    const tenantRow = db
+      .raw()
+      .prepare("SELECT status FROM tenants WHERE id = ?")
+      .get(approveJson.data.tenantId);
+    expect(tenantRow).toMatchObject({ status: "active" });
+
     const rejectResponse = await app.fetch(
       new Request(
         `https://management.test/api/v1/admin/onboarding/applications/${rejectedCandidateId}/reject`,
@@ -258,6 +264,39 @@ describe("Onboarding public API workflow — real integration", () => {
       success: true,
       data: { status: "rejected" },
     });
+  });
+
+  it("does not let applicants complete applications without platform approval", async () => {
+    const db = createManagementDb();
+    const env = createEnv(db);
+
+    const createResponse = await app.fetch(
+      new Request("https://management.test/api/v1/onboarding/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createApplicationBody()),
+      }),
+      env,
+    );
+    const createJson: any = await createResponse.json();
+
+    const completeResponse = await app.fetch(
+      new Request(
+        `https://management.test/api/v1/onboarding/applications/${createJson.data.applicationId}/complete`,
+        {
+          method: "POST",
+          headers: { "X-Onboarding-Secret": createJson.data.applicationSecret },
+        },
+      ),
+      env,
+    );
+
+    expect(completeResponse.status).toBe(404);
+    const tenantCount = db
+      .raw()
+      .prepare("SELECT COUNT(*) AS count FROM tenants")
+      .get();
+    expect(tenantCount).toMatchObject({ count: 0 });
   });
 
   it("rejects completed applications from admin rejection", async () => {

@@ -78,64 +78,6 @@ const zhCN: Messages = {
       copiedToClipboard: "已复制到剪贴簿",
     },
   },
-  connect: {
-    assignedSubdomainLabel: "您的专属网址：",
-    button: {
-      complete: "完成申请",
-      completing: "处理中...",
-      verify: "验证连接",
-      verifying: "验证中...",
-    },
-    form: {
-      accountId: {
-        label: "Cloudflare Account ID",
-        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      },
-      apiToken: {
-        label: "API Token",
-        placeholder: "••••••••••••••••••••••••••••••••",
-      },
-    },
-    help: {
-      linkText: "联系我们安排视讯辅导",
-      prompt: "需要协助？",
-    },
-    info: {
-      description:
-        "MakanMakan 独立部署使用您自己的 Cloudflare 帐号来运行，这确保您对所有资料拥有完整控制权。资源费用已包含在订阅费中。",
-      title: "为什么需要 Cloudflare 帐号？",
-    },
-    permissions: {
-      pagesOptional: "Pages (选用)",
-      titleSuccess: "权限检查通过",
-      titleWarning: "权限检查结果",
-    },
-    steps: {
-      heading: "操作步骤：",
-      step1Prefix: "前往",
-      step1Suffix: "（如果没有帐号，请先注册）",
-      step2: "点击右上角的头像 → 选择「My Profile」",
-      step3ClipboardText: "Account ID 位于 Dashboard 右侧栏",
-      step3Prefix: "复制您的",
-      step4: "前往「API Tokens」→ 点击「Create Token」",
-      step5: "选择「Edit Cloudflare Workers」模板",
-      step6: "复制生成的 API Token",
-    },
-    title: "连接 Cloudflare 帐号",
-    toast: {
-      completeFailureFallback: "完成申请失败，请稍后再试",
-      completeSuccess: "申请已完成！",
-      verifyFailureFallback: "验证失败，请检查您的资讯",
-      verifySuccess: "Cloudflare 帐号验证成功！",
-    },
-    validation: {
-      accountIdLength: "Account ID 应为 32 位字元",
-      accountIdRequired: "请输入 Account ID",
-      apiTokenFormat: "API Token 格式不正确",
-      apiTokenRequired: "请输入 API Token",
-    },
-    verifiedMessage: "Cloudflare 帐号已成功连接！",
-  },
   home: {
     cta: {
       button: "开始申请",
@@ -194,8 +136,8 @@ const zhCN: Messages = {
       },
       title: "接下来会发生什么？",
     },
-    subtitleLine1: "恭喜您！您的 MakanMakan 独立部署已建立完成。",
-    subtitleLine2: "系统正在为您准备专属环境。",
+    subtitleLine1: "我们已收到您的店家加入申请。",
+    subtitleLine2: "平台团队审核通过后，会启用您的帐号与系统资源。",
     summary: {
       applicationId: "申请编号",
       businessName: "餐厅名称",
@@ -205,9 +147,11 @@ const zhCN: Messages = {
       plan: "选择方案",
       subdomain: "专属网址",
       tenantId: "租户编号",
+      status: "申请状态",
+      pendingReview: "等待平台审核",
       title: "申请摘要",
     },
-    title: "申请已完成！",
+    title: "申请已送出！",
   },
 };
 

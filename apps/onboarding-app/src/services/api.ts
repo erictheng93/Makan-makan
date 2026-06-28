@@ -58,12 +58,6 @@ export interface ApplicationResponse {
   status: string;
 }
 
-export interface CompleteApplicationResponse {
-  tenantId: string;
-  subdomain: string;
-  status: string;
-}
-
 export interface ApplicationDetails {
   id: string;
   businessName: string;
@@ -179,38 +173,6 @@ export const onboardingApi = {
         throw new ApiError(
           response.data.error || "Application not found",
           response.data.code || "NOT_FOUND",
-        );
-      }
-
-      return response.data.data;
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-      handleApiError(error);
-    }
-  },
-
-  /**
-   * Complete application and create tenant
-   */
-  async completeApplication(
-    applicationId: string,
-    applicationSecret: string,
-  ): Promise<CompleteApplicationResponse> {
-    try {
-      const response = await apiClient.post<
-        ApiResponse<CompleteApplicationResponse>
-      >(
-        `/onboarding/applications/${applicationId}/complete`,
-        {},
-        {
-          headers: { "X-Onboarding-Secret": applicationSecret },
-        },
-      );
-
-      if (!response.data.success || !response.data.data) {
-        throw new ApiError(
-          response.data.error || "Failed to complete application",
-          response.data.code || "COMPLETE_FAILED",
         );
       }
 

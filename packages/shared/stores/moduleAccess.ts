@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import type { ModuleKey, PlanTier } from "../types/module-access";
 
-export type DeploymentMode = "managed" | "byoc";
+export type DeploymentMode = "managed";
 
 export interface ModuleAccessData {
   restaurantId: string | null;

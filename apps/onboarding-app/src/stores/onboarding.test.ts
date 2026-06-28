@@ -18,7 +18,6 @@ vi.mock("@/services/api", () => {
     ApiError: MockApiError,
     onboardingApi: {
       createApplication: vi.fn(),
-      completeApplication: vi.fn(),
     },
   };
 });
@@ -41,17 +40,12 @@ beforeEach(() => {
 });
 
 describe("useOnboardingStore", () => {
-  it("submits and completes applications in the managed platform flow", async () => {
+  it("submits applications without self-activating the tenant", async () => {
     vi.mocked(onboardingApi.createApplication).mockResolvedValue({
       applicationId: "app-123",
       applicationSecret: "secret-123",
       assignedSubdomain: "demo-noodles",
       status: "submitted",
-    });
-    vi.mocked(onboardingApi.completeApplication).mockResolvedValue({
-      tenantId: "tenant-123",
-      subdomain: "demo-noodles",
-      status: "completed",
     });
     const store = useOnboardingStore();
     const data = applicationData();
@@ -60,23 +54,16 @@ describe("useOnboardingStore", () => {
 
     expect(store.applicationId).toBe("app-123");
     expect(store.assignedSubdomain).toBe("demo-noodles");
-    expect(store.application).toEqual({ ...data, status: "completed" });
-    expect(store.completionResult).toEqual({
-      tenantId: "tenant-123",
-      subdomain: "demo-noodles",
-    });
+    expect(store.application).toEqual({ ...data, status: "submitted" });
+    expect(store.completionResult).toBeNull();
     expect(store.isCompleted).toBe(true);
-    expect(onboardingApi.completeApplication).toHaveBeenCalledWith(
-      "app-123",
-      "secret-123",
-    );
     expect(
       JSON.parse(sessionStorage.getItem("onboarding_application")!),
     ).toMatchObject({
       applicationId: "app-123",
       assignedSubdomain: "demo-noodles",
-      application: { businessName: "Demo Noodles", status: "completed" },
-      completionResult: { tenantId: "tenant-123", subdomain: "demo-noodles" },
+      application: { businessName: "Demo Noodles", status: "submitted" },
+      completionResult: null,
     });
     expect(sessionStorage.getItem("onboarding_application")).not.toContain(
       "secret-123",
@@ -95,29 +82,6 @@ describe("useOnboardingStore", () => {
 
     expect(store.apiError).toBe("Validation failed");
     expect(store.isLoading).toBe(false);
-  });
-
-  it("captures API errors from failed completion after application creation", async () => {
-    vi.mocked(onboardingApi.createApplication).mockResolvedValue({
-      applicationId: "app-123",
-      applicationSecret: "secret-123",
-      assignedSubdomain: "demo-noodles",
-      status: "submitted",
-    });
-    vi.mocked(onboardingApi.completeApplication).mockRejectedValue(
-      new ApiError("Failed to complete application", "COMPLETE_FAILED"),
-    );
-    const store = useOnboardingStore();
-
-    await expect(store.submitApplication(applicationData())).resolves.toBe(
-      false,
-    );
-
-    expect(store.apiError).toBe("Failed to complete application");
-    expect(store.application?.status).toBe("submitted");
-    expect(store.completionResult).toBeNull();
-    expect(store.isLoading).toBe(false);
-    expect(store.isCompleting).toBe(false);
   });
 
   it("resets persisted state", () => {

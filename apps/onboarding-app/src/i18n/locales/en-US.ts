@@ -116,71 +116,11 @@ const enUS: Messages = {
     },
   },
 
-  connect: {
-    title: "Connect Cloudflare Account",
-    assignedSubdomainLabel: "Your dedicated URL:",
-    info: {
-      title: "Why do you need a Cloudflare account?",
-      description:
-        "MakanMakan runs on your own Cloudflare account, ensuring you have full control over your data. Resource costs are included in your subscription.",
-    },
-    steps: {
-      heading: "Steps:",
-      step1Prefix: "Go to",
-      step1Suffix: "(register first if you don't have an account)",
-      step2: 'Click the avatar in the top-right → select "My Profile"',
-      step3Prefix: "Copy your",
-      step3ClipboardText: "Account ID is in the Dashboard right sidebar",
-      step4: 'Go to "API Tokens" → click "Create Token"',
-      step5: 'Select the "Edit Cloudflare Workers" template',
-      step6: "Copy the generated API Token",
-    },
-    form: {
-      accountId: {
-        label: "Cloudflare Account ID",
-        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      },
-      apiToken: {
-        label: "API Token",
-        placeholder: "••••••••••••••••••••••••••••••••",
-      },
-    },
-    permissions: {
-      titleSuccess: "Permission check passed",
-      titleWarning: "Permission check result",
-      pagesOptional: "Pages (Optional)",
-    },
-    verifiedMessage: "Cloudflare account connected successfully!",
-    button: {
-      verifying: "Verifying...",
-      verify: "Verify Connection",
-      completing: "Processing...",
-      complete: "Complete Application",
-    },
-    help: {
-      prompt: "Need help?",
-      linkText: "Contact us for a video walkthrough",
-    },
-    validation: {
-      accountIdRequired: "Please enter Account ID",
-      accountIdLength: "Account ID must be 32 characters",
-      apiTokenRequired: "Please enter API Token",
-      apiTokenFormat: "Invalid API Token format",
-    },
-    toast: {
-      verifySuccess: "Cloudflare account verified!",
-      verifyFailureFallback: "Verification failed. Please check your details.",
-      completeSuccess: "Application completed!",
-      completeFailureFallback:
-        "Failed to complete application. Please try again later.",
-    },
-  },
-
   success: {
-    title: "Application Complete!",
-    subtitleLine1:
-      "Congratulations! Your MakanMakan deployment has been created.",
-    subtitleLine2: "The system is preparing your dedicated environment.",
+    title: "Application Submitted!",
+    subtitleLine1: "We've received your restaurant application.",
+    subtitleLine2:
+      "After platform review, we'll activate your account and hosted resources.",
     summary: {
       title: "Application Summary",
       applicationId: "Application ID",
@@ -191,6 +131,8 @@ const enUS: Messages = {
       subdomain: "Dedicated URL",
       cloudflare: "Platform Hosting",
       connected: "Enabled",
+      status: "Application Status",
+      pendingReview: "Pending Platform Review",
     },
     nextSteps: {
       title: "What Happens Next?",
@@ -200,9 +142,9 @@ const enUS: Messages = {
         suffix: ". Please check your inbox.",
       },
       deploy: {
-        title: "System Deployment",
+        title: "Platform Review",
         description:
-          "Your dedicated system is being deployed, usually within a few minutes. Login details will be sent when ready.",
+          "The platform team will review your restaurant details and plan, then activate platform-hosted resources after approval.",
       },
       start: {
         title: "Get Started",

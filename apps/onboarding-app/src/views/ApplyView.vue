@@ -309,14 +309,14 @@ const useCurrentLocation = () => {
             type="submit"
             data-testid="onboarding-submit"
             class="btn btn-primary"
-            :disabled="store.isLoading || store.isCompleting"
+            :disabled="store.isLoading"
           >
             <ArrowPathIcon
-              v-if="store.isLoading || store.isCompleting"
+              v-if="store.isLoading"
               class="h-4 w-4 mr-2 animate-spin"
             />
             {{
-              store.isLoading || store.isCompleting
+              store.isLoading
                 ? t("apply.form.submitting")
                 : t("apply.form.next")
             }}

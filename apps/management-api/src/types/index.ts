@@ -74,10 +74,6 @@ export interface Tenant {
   latitude?: number;
   longitude?: number;
 
-  // Cloudflare account info
-  cfAccountId?: string;
-  cfApiTokenEnc?: string; // Encrypted
-
   // Deployment info
   subdomain: string;
   customDomain?: string;
@@ -395,7 +391,6 @@ export interface OnboardingApplication {
   longitude?: number;
   requestedSubdomain?: string;
   assignedSubdomain?: string;
-  cfAccountId?: string;
   cfVerifiedAt?: string;
   status: OnboardingStatus;
   tenantId?: string;

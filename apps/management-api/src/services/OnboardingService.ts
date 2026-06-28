@@ -232,9 +232,9 @@ export class OnboardingService {
   }
 
   /**
-   * Complete the application and create tenant
+   * Activate an approved application and create the tenant.
    */
-  async completeApplication(applicationId: string): Promise<{
+  private async activateApplication(applicationId: string): Promise<{
     success: boolean;
     tenantId?: string;
     subdomain?: string;
@@ -323,7 +323,7 @@ export class OnboardingService {
       };
     }
 
-    const result = await this.completeApplication(applicationId);
+    const result = await this.activateApplication(applicationId);
     return {
       ...result,
       status: result.success ? "completed" : undefined,
@@ -454,8 +454,8 @@ export class OnboardingService {
       `INSERT INTO tenants (
         id, business_name, contact_email, contact_phone, latitude, longitude,
         subdomain, custom_domain, license_tier, license_key,
-        status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status, activated_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       tenantId,
       application.businessName,
@@ -467,7 +467,8 @@ export class OnboardingService {
       null,
       tenantLicenseTier,
       licenseKey,
-      "pending",
+      "active",
+      nowIso,
       nowIso,
       nowIso,
     );
@@ -535,7 +536,6 @@ export class OnboardingService {
       longitude: row.longitude as number | undefined,
       requestedSubdomain: row.requested_subdomain as string | undefined,
       assignedSubdomain: row.assigned_subdomain as string | undefined,
-      cfAccountId: row.cf_account_id as string | undefined,
       cfVerifiedAt: row.cf_verified_at as string | undefined,
       status: row.status as OnboardingStatus,
       tenantId: row.tenant_id as string | undefined,

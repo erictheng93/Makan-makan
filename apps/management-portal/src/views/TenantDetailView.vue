@@ -358,18 +358,6 @@ const tabs = computed(() => [
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-gray-500">
-                {{ t("tenantDetail.deployInfo.cfAccount") }}
-              </dt>
-              <dd class="text-sm font-medium text-gray-900">
-                {{
-                  tenant.cfAccountId
-                    ? t("tenantDetail.deployInfo.connected")
-                    : t("tenantDetail.deployInfo.notConnected")
-                }}
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-gray-500">
                 {{ t("tenantDetail.deployInfo.resourceCount") }}
               </dt>
               <dd class="text-sm font-medium text-gray-900">

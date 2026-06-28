@@ -108,69 +108,10 @@ const zhTW = {
     },
   },
 
-  connect: {
-    title: "連接 Cloudflare 帳號",
-    assignedSubdomainLabel: "您的專屬網址：",
-    info: {
-      title: "為什麼需要 Cloudflare 帳號？",
-      description:
-        "MakanMakan 獨立部署使用您自己的 Cloudflare 帳號來運行，這確保您對所有資料擁有完整控制權。資源費用已包含在訂閱費中。",
-    },
-    steps: {
-      heading: "操作步驟：",
-      step1Prefix: "前往",
-      step1Suffix: "（如果沒有帳號，請先註冊）",
-      step2: "點擊右上角的頭像 → 選擇「My Profile」",
-      step3Prefix: "複製您的",
-      step3ClipboardText: "Account ID 位於 Dashboard 右側欄",
-      step4: "前往「API Tokens」→ 點擊「Create Token」",
-      step5: "選擇「Edit Cloudflare Workers」模板",
-      step6: "複製生成的 API Token",
-    },
-    form: {
-      accountId: {
-        label: "Cloudflare Account ID",
-        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      },
-      apiToken: {
-        label: "API Token",
-        placeholder: "••••••••••••••••••••••••••••••••",
-      },
-    },
-    permissions: {
-      titleSuccess: "權限檢查通過",
-      titleWarning: "權限檢查結果",
-      pagesOptional: "Pages (選用)",
-    },
-    verifiedMessage: "Cloudflare 帳號已成功連接！",
-    button: {
-      verifying: "驗證中...",
-      verify: "驗證連接",
-      completing: "處理中...",
-      complete: "完成申請",
-    },
-    help: {
-      prompt: "需要協助？",
-      linkText: "聯繫我們安排視訊輔導",
-    },
-    validation: {
-      accountIdRequired: "請輸入 Account ID",
-      accountIdLength: "Account ID 應為 32 位字元",
-      apiTokenRequired: "請輸入 API Token",
-      apiTokenFormat: "API Token 格式不正確",
-    },
-    toast: {
-      verifySuccess: "Cloudflare 帳號驗證成功！",
-      verifyFailureFallback: "驗證失敗，請檢查您的資訊",
-      completeSuccess: "申請已完成！",
-      completeFailureFallback: "完成申請失敗，請稍後再試",
-    },
-  },
-
   success: {
-    title: "申請已完成！",
-    subtitleLine1: "恭喜您！您的 MakanMakan 獨立部署已建立完成。",
-    subtitleLine2: "系統正在為您準備專屬環境。",
+    title: "申請已送出！",
+    subtitleLine1: "我們已收到您的店家加入申請。",
+    subtitleLine2: "平台團隊審核通過後，會啟用您的帳號與系統資源。",
     summary: {
       title: "申請摘要",
       applicationId: "申請編號",
@@ -181,6 +122,8 @@ const zhTW = {
       subdomain: "專屬網址",
       cloudflare: "平台代管",
       connected: "已啟用",
+      status: "申請狀態",
+      pendingReview: "等待平台審核",
     },
     nextSteps: {
       title: "接下來會發生什麼？",
@@ -190,9 +133,8 @@ const zhTW = {
         suffix: "，請查收。",
       },
       deploy: {
-        title: "系統部署",
-        description:
-          "您的專屬系統正在部署中，通常在幾分鐘內完成。完成後會發送登入資訊。",
+        title: "平台審核",
+        description: "平台方會確認店家資料與方案，核准後即啟用平台代管資源。",
       },
       start: {
         title: "開始使用",

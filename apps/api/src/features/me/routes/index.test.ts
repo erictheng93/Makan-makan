@@ -194,7 +194,7 @@ describe("me routes", () => {
     });
   });
 
-  it("preserves cached deployment mode when present", async () => {
+  it("normalizes legacy cached deployment mode to managed", async () => {
     const env = createEnv(
       new Map([
         [
@@ -215,7 +215,7 @@ describe("me routes", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       data: {
-        deploymentMode: "byoc",
+        deploymentMode: "managed",
         trialEndsAt: null,
       },
     });
@@ -264,7 +264,7 @@ describe("me routes", () => {
         planTier: "enterprise",
         isActive: true,
         trialEndsAt: trialEndsAt.getTime(),
-        deploymentMode: "byoc",
+        deploymentMode: "managed",
         effectiveModules: { pos: true, analytics: false },
       },
     });
@@ -275,7 +275,7 @@ describe("me routes", () => {
         planTier: "enterprise",
         moduleOverrides: { pos: true },
         trialEndsAt: trialEndsAt.getTime(),
-        deploymentMode: "byoc",
+        deploymentMode: "managed",
       }),
       { expirationTtl: 300 },
     );

@@ -184,7 +184,6 @@ const zhCN: Messages = {
       title: "基本资讯",
     },
     deployInfo: {
-      cfAccount: "Cloudflare 帐号",
       connected: "已连接",
       currentVersion: "当前版本",
       itemSuffix: "个",

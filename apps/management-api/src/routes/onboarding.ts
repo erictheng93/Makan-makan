@@ -179,79 +179,15 @@ router.get("/applications/:id", async (c) => {
   }
 });
 
-/**
- * Complete application and create tenant
- * POST /api/v1/onboarding/applications/:id/complete
- */
-router.post("/applications/:id/complete", async (c) => {
-  const onboardingService = new OnboardingService(c.env);
-  const applicationId = c.req.param("id");
-
-  try {
-    const secretError = await requireApplicationSecret(
-      c,
-      onboardingService,
-      applicationId,
-    );
-    if (secretError) return secretError;
-
-    // Check application exists
-    const application = await onboardingService.getApplication(applicationId);
-    if (!application) {
-      return c.json(
-        {
-          success: false,
-          error: "Application not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
-    }
-
-    // Check application is in correct state
-    if (!["submitted", "cf_verified"].includes(application.status)) {
-      return c.json(
-        {
-          success: false,
-          error: `Cannot complete application with status: ${application.status}`,
-          code: "INVALID_STATUS",
-        },
-        400,
-      );
-    }
-
-    const result = await onboardingService.completeApplication(applicationId);
-
-    if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Failed to complete application",
-          code: "COMPLETE_FAILED",
-        },
-        500,
-      );
-    }
-
-    return c.json({
-      success: true,
-      data: {
-        tenantId: result.tenantId,
-        subdomain: result.subdomain,
-        status: "completed",
-      },
-    });
-  } catch (error) {
-    console.error("[Onboarding] Complete application error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to complete application",
-        code: "COMPLETE_FAILED",
-      },
-      500,
-    );
-  }
-});
+router.post("/applications/:id/complete", (c) =>
+  c.json(
+    {
+      success: false,
+      error: "Endpoint not found",
+      code: "NOT_FOUND",
+    },
+    404,
+  ),
+);
 
 export default router;

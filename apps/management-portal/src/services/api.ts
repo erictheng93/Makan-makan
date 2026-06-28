@@ -17,7 +17,6 @@ import type {
   PaginationParams,
   CreateTenantRequest,
   UpdateTenantRequest,
-  ConnectCloudflareRequest,
   DeployRequest,
   BatchDeployRequest,
   GenerateLicenseRequest,
@@ -180,14 +179,6 @@ export const tenantsApi = {
       `/tenants/${id}/resources`,
     );
     return data.data!;
-  },
-
-  // 連接 Cloudflare
-  async connectCloudflare(
-    id: string,
-    request: ConnectCloudflareRequest,
-  ): Promise<void> {
-    await apiClient.post(`/tenants/${id}/connect-cf`, request);
   },
 };
 

@@ -19,12 +19,7 @@ export interface ApplicationData {
   latitude: number;
   longitude: number;
   planId: "standard" | "professional" | "enterprise";
-  status: "pending" | "submitted" | "provisioning" | "completed";
-}
-
-export interface CompletionResult {
-  tenantId: string;
-  subdomain: string;
+  status: "pending" | "submitted" | "approved" | "rejected";
 }
 
 export const useOnboardingStore = defineStore("onboarding", () => {
@@ -36,11 +31,10 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   const applicationId = ref<string | null>(null);
   const applicationSecret = ref<string | null>(null);
   const assignedSubdomain = ref<string | null>(null);
-  const completionResult = ref<CompletionResult | null>(null);
+  const completionResult = ref<null>(null);
 
   // Loading states
   const isLoading = ref(false);
-  const isCompleting = ref(false);
 
   // Error state
   const apiError = ref<string | null>(null);
@@ -49,12 +43,8 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   // Computed
   // ============================================================
 
-  const canComplete = computed(() => {
-    return applicationId.value !== null && applicationSecret.value !== null;
-  });
-
   const isCompleted = computed(() => {
-    return completionResult.value !== null;
+    return applicationId.value !== null;
   });
 
   // ============================================================
@@ -62,7 +52,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
   // ============================================================
 
   /**
-   * Submit and complete an application in the managed platform flow.
+   * Submit an application. Platform admins review and activate it later.
    */
   async function submitApplication(
     data: CreateApplicationData,
@@ -83,7 +73,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
 
       saveToSession();
 
-      return await completeApplication();
+      return true;
     } catch (error) {
       if (error instanceof ApiError) {
         apiError.value = error.message;
@@ -93,47 +83,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
       return false;
     } finally {
       isLoading.value = false;
-    }
-  }
-
-  /**
-   * Complete the application
-   */
-  async function completeApplication(): Promise<boolean> {
-    if (!applicationId.value || !applicationSecret.value) {
-      apiError.value = "No application credentials";
-      return false;
-    }
-
-    isCompleting.value = true;
-    apiError.value = null;
-
-    try {
-      const result = await onboardingApi.completeApplication(
-        applicationId.value,
-        applicationSecret.value,
-      );
-
-      completionResult.value = {
-        tenantId: result.tenantId,
-        subdomain: result.subdomain,
-      };
-
-      if (application.value) {
-        application.value.status = "completed";
-        saveToSession();
-      }
-
-      return true;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        apiError.value = error.message;
-      } else {
-        apiError.value = "Failed to complete application";
-      }
-      return false;
-    } finally {
-      isCompleting.value = false;
     }
   }
 
@@ -156,7 +105,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
         application.value = data.application || null;
         applicationId.value = data.applicationId || null;
         assignedSubdomain.value = data.assignedSubdomain || null;
-        completionResult.value = data.completionResult || null;
       } catch {
         // Ignore parse errors
       }
@@ -171,7 +119,7 @@ export const useOnboardingStore = defineStore("onboarding", () => {
       application: application.value,
       applicationId: applicationId.value,
       assignedSubdomain: assignedSubdomain.value,
-      completionResult: completionResult.value,
+      completionResult: null,
     };
     sessionStorage.setItem("onboarding_application", JSON.stringify(data));
   }
@@ -184,7 +132,6 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     applicationId.value = null;
     applicationSecret.value = null;
     assignedSubdomain.value = null;
-    completionResult.value = null;
     apiError.value = null;
     sessionStorage.removeItem("onboarding_application");
   }
@@ -207,16 +154,13 @@ export const useOnboardingStore = defineStore("onboarding", () => {
     assignedSubdomain,
     completionResult,
     isLoading,
-    isCompleting,
     apiError,
 
     // Computed
-    canComplete,
     isCompleted,
 
     // Actions
     submitApplication,
-    completeApplication,
     setApplication,
     loadFromSession,
     reset,

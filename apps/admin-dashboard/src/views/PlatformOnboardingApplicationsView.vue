@@ -6,7 +6,7 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900">店家加入申請</h1>
         <p class="mt-1 text-sm text-gray-500">
-          審核自助開店申請，確認 Cloudflare 驗證後建立租戶。
+          審核自助開店申請，核准後由平台資源啟用租戶。
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -17,8 +17,8 @@
           @change="loadApplications"
         >
           <option value="">全部狀態</option>
-          <option value="submitted">待驗證</option>
-          <option value="cf_verified">可核准</option>
+          <option value="submitted">待審核</option>
+          <option value="cf_verified">待審核（舊資料）</option>
           <option value="provisioning">建置中</option>
           <option value="completed">已完成</option>
           <option value="rejected">已拒絕</option>
@@ -41,15 +41,15 @@
         <div class="mt-1 text-2xl font-bold text-gray-900">{{ total }}</div>
       </div>
       <div class="rounded-lg bg-white p-4 shadow-ios-card">
-        <div class="text-sm font-medium text-gray-500">可核准</div>
+        <div class="text-sm font-medium text-gray-500">待審核</div>
         <div class="mt-1 text-2xl font-bold text-emerald-700">
           {{ approvableCount }}
         </div>
       </div>
       <div class="rounded-lg bg-white p-4 shadow-ios-card">
-        <div class="text-sm font-medium text-gray-500">待驗證</div>
+        <div class="text-sm font-medium text-gray-500">已拒絕</div>
         <div class="mt-1 text-2xl font-bold text-amber-700">
-          {{ submittedCount }}
+          {{ rejectedCount }}
         </div>
       </div>
     </div>
@@ -158,7 +158,7 @@
                 v-if="application.cfVerifiedAt"
                 class="mt-1 text-xs text-gray-500"
               >
-                CF {{ formatDate(application.cfVerifiedAt) }}
+                舊驗證 {{ formatDate(application.cfVerifiedAt) }}
               </div>
             </td>
             <td class="px-4 py-4 text-sm text-gray-700">
@@ -220,10 +220,10 @@ const approvableCount = computed(
       isApprovableStatus(application.status),
     ).length,
 );
-const submittedCount = computed(
+const rejectedCount = computed(
   () =>
     applications.value.filter(
-      (application) => application.status === "submitted",
+      (application) => application.status === "rejected",
     ).length,
 );
 
@@ -253,7 +253,7 @@ async function approveApplication(applicationId: string) {
     await loadApplications();
   } catch (approveError) {
     console.error("Failed to approve onboarding application:", approveError);
-    error.value = "核准失敗。請確認申請已完成 Cloudflare 驗證。";
+    error.value = "核准失敗。請確認申請狀態仍可核准。";
   } finally {
     actionId.value = "";
   }
@@ -280,8 +280,8 @@ function isApprovableStatus(status: OnboardingApplicationStatus) {
 function statusLabel(status: OnboardingApplicationStatus) {
   return (
     {
-      submitted: "待驗證",
-      cf_verified: "可核准",
+      submitted: "待審核",
+      cf_verified: "待審核（舊資料）",
       provisioning: "建置中",
       completed: "已完成",
       rejected: "已拒絕",

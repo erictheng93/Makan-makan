@@ -185,7 +185,6 @@ const viVN: Messages = {
       title: "Thông tin cơ bản",
     },
     deployInfo: {
-      cfAccount: "Tài khoản đám mây",
       connected: "Đã kết nối",
       currentVersion: "Phiên bản hiện tại",
       itemSuffix: "個",

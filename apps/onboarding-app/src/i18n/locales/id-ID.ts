@@ -82,65 +82,6 @@ const idID: Messages = {
       copiedToClipboard: "Disalin ke papan klip",
     },
   },
-  connect: {
-    assignedSubdomainLabel: "URL khusus Anda:",
-    button: {
-      complete: "Aplikasi Lengkap",
-      completing: "Memproses...",
-      verify: "Verifikasi Koneksi",
-      verifying: "Memverifikasi...",
-    },
-    form: {
-      accountId: {
-        label: "ID Akun Cloudflare",
-        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      },
-      apiToken: {
-        label: "Token API",
-        placeholder: "•••••••••••••••••••••••••••••••••",
-      },
-    },
-    help: {
-      linkText: "Hubungi kami untuk panduan video",
-      prompt: "Butuh bantuan?",
-    },
-    info: {
-      description:
-        "MakanMakan berjalan di akun Cloudflare Anda sendiri, memastikan Anda memiliki kendali penuh atas data Anda. Biaya sumber daya sudah termasuk dalam langganan Anda.",
-      title: "Mengapa Anda memerlukan akun Cloudflare?",
-    },
-    permissions: {
-      pagesOptional: "Halaman (Opsional)",
-      titleSuccess: "Pemeriksaan izin berlalu",
-      titleWarning: "Hasil pemeriksaan izin",
-    },
-    steps: {
-      heading: "Langkah-langkah:",
-      step1Prefix: "Pergi ke",
-      step1Suffix: "(daftar terlebih dahulu jika belum mempunyai akun)",
-      step2: 'Klik avatar di kanan atas → pilih "Profil Saya"',
-      step3ClipboardText: "ID Akun ada di sidebar kanan Dashboard",
-      step3Prefix: "Salin milik Anda",
-      step4: 'Buka "Token API" → klik "Buat Token"',
-      step5: 'Pilih templat "Edit Cloudflare Workers".',
-      step6: "Salin Token API yang dihasilkan",
-    },
-    title: "Hubungkan Akun Cloudflare",
-    toast: {
-      completeFailureFallback:
-        "Gagal menyelesaikan aplikasi. Silakan coba lagi nanti.",
-      completeSuccess: "Aplikasi selesai!",
-      verifyFailureFallback: "Verifikasi gagal. Silakan periksa detail Anda.",
-      verifySuccess: "Akun Cloudflare terverifikasi!",
-    },
-    validation: {
-      accountIdLength: "ID Akun harus terdiri dari 32 karakter",
-      accountIdRequired: "Silakan masukkan ID Akun",
-      apiTokenFormat: "Format Token API tidak valid",
-      apiTokenRequired: "Silakan masukkan Token API",
-    },
-    verifiedMessage: "Akun Cloudflare berhasil terhubung!",
-  },
   home: {
     cta: {
       button: "Mulai Aplikasi",
@@ -203,8 +144,9 @@ const idID: Messages = {
       },
       title: "Apa yang Terjadi Selanjutnya?",
     },
-    subtitleLine1: "Selamat! Penerapan MakanMakan Anda telah dibuat.",
-    subtitleLine2: "Sistem sedang mempersiapkan lingkungan khusus Anda.",
+    subtitleLine1: "Kami telah menerima aplikasi restoran Anda.",
+    subtitleLine2:
+      "Setelah ditinjau platform, kami akan mengaktifkan akun dan sumber daya hosting Anda.",
     summary: {
       applicationId: "ID Aplikasi",
       businessName: "Nama Restoran",
@@ -214,9 +156,11 @@ const idID: Messages = {
       plan: "Paket yang Dipilih",
       subdomain: "URL khusus",
       tenantId: "ID Penyewa",
+      status: "Status Aplikasi",
+      pendingReview: "Menunggu Tinjauan Platform",
       title: "Ringkasan Aplikasi",
     },
-    title: "Aplikasi Selesai!",
+    title: "Aplikasi Dikirim!",
   },
 };
 

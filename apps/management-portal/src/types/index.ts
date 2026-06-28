@@ -44,7 +44,6 @@ export interface Tenant {
   deployedVersion?: string;
   status: TenantStatus;
   licenseTier?: LicenseTier;
-  cfAccountId?: string;
   createdAt: string;
   activatedAt?: string;
 }
@@ -173,14 +172,6 @@ export interface UpdateTenantRequest {
   subdomain?: string;
   customDomain?: string;
   status?: TenantStatus;
-}
-
-/**
- * 連接 Cloudflare 請求
- */
-export interface ConnectCloudflareRequest {
-  accountId: string;
-  apiToken: string;
 }
 
 /**

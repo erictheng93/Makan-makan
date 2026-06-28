@@ -185,7 +185,6 @@ const idID: Messages = {
       title: "Informasi Dasar",
     },
     deployInfo: {
-      cfAccount: "Akun Cloudflare",
       connected: "Terhubung",
       currentVersion: "Versi Saat Ini",
       itemSuffix: "個",

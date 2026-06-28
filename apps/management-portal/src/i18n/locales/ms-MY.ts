@@ -185,7 +185,6 @@ const msMY: Messages = {
       title: "Maklumat Asas",
     },
     deployInfo: {
-      cfAccount: "Akaun Cloudflare",
       connected: "Bersambung",
       currentVersion: "Versi Semasa",
       itemSuffix: "個",

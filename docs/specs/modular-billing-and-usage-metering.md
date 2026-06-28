@@ -87,7 +87,7 @@
 
 ### 1.1 為什麼現在做
 
-商業模式同時要支援兩條銷售線（中央 SaaS + BYOC 部署），兩種模式都需要相同的「模組授權」與「用量計量」基礎設施——只是收費代理不同（SaaS 統一收 vs. BYOC license token 收）。先不做 BYOC，但 schema 與 API 設計**不能假設只有單一 Cloudflare 帳號**。
+商業模式現已收斂為平台代管部署。租戶不再自帶 Cloudflare 帳號；申請送出後由平台審核，核准時使用平台資源啟用租戶。模組授權與用量計量仍維持獨立基礎設施，但不再為 BYOC license token 或租戶自有 Cloudflare 帳號預留新流程。
 
 ### 1.2 readiness 現況（驗證結論）
 
@@ -103,7 +103,7 @@
 | Billing cycle 邏輯 | 30% | 只有欄位，沒有結算 / 重置 |
 | Payment audit log | **0%** | P1 TODO 已記 |
 | Frontend module gating | **0%** | 前端無法知道自己有哪些模組 |
-| BYOC deployment mode 區分 | **0%** | schema 沒有欄位識別「中央 SaaS」vs「店家自建」 |
+| Deployment mode 收斂 | **100%** | runtime 將 deployment mode 視為 `managed`，舊 `byoc` 值僅作相容正規化 |
 
 ### 1.3 三大架構決策
 
@@ -119,11 +119,8 @@
 **D3｜P3 不自建金流，接外部訂閱平台**
 自建 invoice/proration/dunning 是 6 個月起跳的工程，且法遵風險高（發票格式、稅務、退款）。P3 只做：(a) 把 `shopSubscriptions` 同步到外部訂閱平台、(b) 接 webhook 觸發 plan 變更、(c) 內部 payment audit log。**外部金流商選擇暫時 skip**——P3 SPEC 寫成「provider-agnostic」，金流商選定後再開實作 PR。**自建發票永久放 §8 Deferred TODO**。
 
-**D4｜為 BYOC 模式預留 hook，但不在本 SPEC 實作**
-本 SPEC 的計量／gating 系統設計成「兩種部署模式都能用」：
-- 中央 SaaS：Worker 直接讀 `shopSubscriptions`
-- BYOC：Worker 讀內嵌 license token（JWT，含 `enabledModules` + 過期時間），由中央簽發
-schema 加 `deploymentMode` 欄位、middleware 留 license verification 介面（見 §7），但 BYOC 的部署自動化／token 簽發／升級協調器**留給下個 SPEC**。
+**D4｜部署模式固定為平台代管**
+計量／gating 系統一律由平台 Worker 讀取 `shopSubscriptions`。`deploymentMode` 保留為資料庫欄位以相容既有資料，但型別與 API 回應固定正規化為 `managed`；不再新增 BYOC license token、租戶自有 Cloudflare 帳號或自動部署協調器。
 
 ---
 
@@ -203,7 +200,7 @@ type MeModulesResponse = {
     planTier: PlanTier | null;          // null if no subscription
     isActive: boolean;
     trialEndsAt: number | null;          // unix ms
-    deploymentMode: 'managed' | 'byoc';
+    deploymentMode: 'managed';
     effectiveModules: Record<ModuleKey, boolean>;  // 同 SubscriptionService.getEffectiveModules() 回傳
   };
 };
@@ -312,17 +309,17 @@ export const DEFAULT_BILLING_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;  // 30 days, l
 
 **新增 3 個 module key** 到 `packages/database/src/schema/subscriptions.ts` 的 `MODULES` 常數（`pos` / `inventory` / `staff_management`），並更新 `PLAN_DEFAULT_MODULES` 對應表。**無 SQL migration 需要**——`MODULES` 是 TypeScript 常數，`moduleOverrides` 是 JSON 欄位向前相容。
 
-**新增** `shopSubscriptions.deploymentMode` 欄位（為 BYOC hook 預留）：
+**保留** `shopSubscriptions.deploymentMode` 欄位（平台代管部署）：
 
 ```typescript
 // packages/database/src/schema/subscriptions.ts
 deploymentMode: text("deployment_mode")
   .notNull()
-  .$type<"managed" | "byoc">()
+  .$type<"managed">()
   .default("managed"),
 ```
 
-migration 對既有 row 預設 `'managed'`（不影響行為）。`'byoc'` 值在本 SPEC 不被消費，但 §7 的 license verification 中介層會用到。
+migration 對既有 row 預設 `'managed'`（不影響行為）。若舊資料仍含 `'byoc'`，runtime 讀取時正規化為 `'managed'`，不再觸發 BYOC 專用邏輯。
 
 ### 2.5 P1 Acceptance Criteria
 
@@ -939,7 +936,7 @@ P3-c 上線時實作至少一個（取決於 §5 #1 決策後）。本 SPEC 寫�
 | # | 問題 | 狀態 |
 |---|---|---|
 | 1 | 外部金流商選擇（Stripe / 藍新 / LINE Pay） | **暫時 skip**——P3 寫成 provider-agnostic（§4.4.1），金流商選定後實作對應 `WebhookProvider` |
-| 2 | BYOC license token 機制 | **已決策**：本 SPEC 預留 hook（§7），完整實作留下個 SPEC |
+| 2 | BYOC license token 機制 | **已取消**：平台代管部署已成為唯一支援模式 |
 | 3 | 自建 invoice / proration / dunning | **已決策**：永久 deferred（§8），只接外部平台 |
 | 4 | Trial 期間長度 | **已鎖定 14 天**（§2.3.1 `TRIAL_DURATION_MS` 常數） |
 | 5 | Plan 升級 cycle 處理 | **已鎖定**：立即生效，不 prorate（外部平台處理 prorate 即可） |
@@ -977,44 +974,20 @@ runtime 預設 `disabled`。
 
 ---
 
-## 7. BYOC License Token Hook（預留，本 SPEC 不實作）
+## 7. Legacy BYOC Compatibility
 
-為了讓未來的 BYOC 模式（店家自有 Cloudflare 帳號部署）能無痛接入，本 SPEC 在以下三處預留 hook：
+平台已取消 BYOC 模式。此節只記錄既有資料相容策略，不再新增 license token 或租戶自有 Cloudflare 帳號流程。
 
 ### 7.1 Schema Hook
-- `shopSubscriptions.deploymentMode: 'managed' | 'byoc'`（P1-a 加入，預設 `managed`）
+- `shopSubscriptions.deploymentMode` 保留於資料庫，預設 `managed`
+- TypeScript 型別與 API 回應固定為 `'managed'`
+- 舊 row 若含 `'byoc'`，讀取時正規化為 `'managed'`
 
 ### 7.2 Middleware Hook
-**新增** `apps/api/src/middleware/licenseVerification.ts`（P1-d 一併建立**空殼**）：
-
-```typescript
-// 本 SPEC 只建檔案 + 介面，實作留給下個 SPEC
-export interface LicenseToken {
-  restaurantId: string;
-  enabledModules: ModuleMap;
-  planTier: PlanTier;
-  expiresAt: number;
-  signature: string;  // JWT/HS256 or Ed25519
-}
-
-export async function verifyLicense(c: Context): Promise<LicenseToken | null> {
-  // P1: 永遠回 null（managed 模式直接讀 DB）
-  // 下個 SPEC：BYOC 模式從環境變數 LICENSE_TOKEN 讀、驗簽、回 token
-  return null;
-}
-```
-
-`moduleGate` middleware 改寫成：先呼叫 `verifyLicense()`，若回 token → 直接用 token 內的 `enabledModules`；否則 fallback 到既有的 DB + KV cache 流程。
+不再建立 `licenseVerification` hook。`moduleGate` 一律從 DB + KV cache 讀取平台訂閱狀態。
 
 ### 7.3 計量回報 Hook
-**新增** `usageReporter` 介面（P2 一併建立空殼）：BYOC Worker 將 `usage_events` 同步回中央，供計費。介面留 stub，實作留給下個 SPEC。
-
-```typescript
-export interface UsageReporter {
-  report(events: UsageEvent[]): Promise<void>;
-}
-// P2 預設實作：no-op（managed 模式中央自己有 events 表）
-```
+不再建立 BYOC `usageReporter`。平台代管 Worker 直接寫入中央 `usage_events`。
 
 ---
 
@@ -1026,7 +999,7 @@ export interface UsageReporter {
 | **自建 proration 計算** | 邊界 case 太多（plan 切換時點、refund、信用額） | 同上，由外部平台處理 |
 | **自建 dunning（催繳流程）** | 需 retry schedule、信用卡更新提醒、多通道通知整合 | 同上 |
 | **Admin UI 管理 plan tier 內容** | 目前 hardcode 已足夠，加 admin UI 是 nice-to-have | 直接改 `PLAN_DEFAULT_MODULES` 常數，重新 deploy |
-| **BYOC 部署自動化** | 是獨立的大型工程（onboarding CLI、wrangler 自動部署、升級協調器） | 留下個 SPEC |
+| **租戶自帶 Cloudflare / BYOC 部署** | 已由產品流程取消；租戶直接使用平台資源 | 不實作，舊資料只做相容正規化 |
 | **更多計量單位**（SMS、email、KDS 螢幕活躍時數、WebSocket 連線） | 目前 5 個已涵蓋核心商業價值 | 視商務需求加入，schema 已支援（meterKey 是字串） |
 
 ---

@@ -57,7 +57,7 @@ describe("PlatformOnboardingApplicationsView", () => {
       limit: 50,
     });
     expect(wrapper.text()).toContain("Laksa Shop");
-    expect(wrapper.text()).toContain("可核准");
+    expect(wrapper.text()).toContain("待審核（舊資料）");
   });
 
   it("approves and rejects applications then refreshes the list", async () => {

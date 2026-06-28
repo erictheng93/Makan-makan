@@ -173,7 +173,6 @@ const zhTW = {
       title: "部署資訊",
       currentVersion: "當前版本",
       notDeployed: "未部署",
-      cfAccount: "Cloudflare 帳號",
       connected: "已連接",
       notConnected: "未連接",
       resourceCount: "資源數量",

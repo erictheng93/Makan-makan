@@ -6,7 +6,6 @@ import {
   CheckCircleIcon,
   EnvelopeIcon,
   ClockIcon,
-  RocketLaunchIcon,
   DocumentDuplicateIcon,
 } from "@heroicons/vue/24/outline";
 import { useToast } from "vue-toastification";
@@ -17,9 +16,9 @@ const router = useRouter();
 const toast = useToast();
 const store = useOnboardingStore();
 
-// Redirect if no completion data
+// Redirect if no submitted application data
 onMounted(() => {
-  if (!store.completionResult) {
+  if (!store.applicationId) {
     router.push("/apply");
   }
 });
@@ -102,20 +101,6 @@ const handleStartNew = () => {
               </button>
             </dd>
           </div>
-          <div class="flex justify-between items-center">
-            <dt class="text-gray-500">{{ t("success.summary.tenantId") }}</dt>
-            <dd class="text-gray-900 font-mono text-xs flex items-center">
-              {{ store.completionResult?.tenantId || "-" }}
-              <button
-                v-if="store.completionResult?.tenantId"
-                type="button"
-                class="ml-2 text-gray-400 hover:text-gray-600"
-                @click="copyToClipboard(store.completionResult!.tenantId)"
-              >
-                <DocumentDuplicateIcon class="h-4 w-4" />
-              </button>
-            </dd>
-          </div>
           <div class="flex justify-between">
             <dt class="text-gray-500">
               {{ t("success.summary.businessName") }}
@@ -140,26 +125,14 @@ const handleStartNew = () => {
           </div>
           <div class="flex justify-between items-center">
             <dt class="text-gray-500">{{ t("success.summary.subdomain") }}</dt>
-            <dd class="text-primary-600 font-medium flex items-center">
-              <a
-                :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`"
-                target="_blank"
-                class="hover:underline"
-              >
-                {{
-                  store.completionResult?.subdomain || store.assignedSubdomain
-                }}.makanmakan.app
-              </a>
+            <dd class="text-gray-900 font-medium flex items-center">
+              {{ store.assignedSubdomain || "-" }}.makanmakan.app
               <button
-                v-if="
-                  store.completionResult?.subdomain || store.assignedSubdomain
-                "
+                v-if="store.assignedSubdomain"
                 type="button"
                 class="ml-2 text-gray-400 hover:text-gray-600"
                 @click="
-                  copyToClipboard(
-                    `https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app`,
-                  )
+                  copyToClipboard(`${store.assignedSubdomain}.makanmakan.app`)
                 "
               >
                 <DocumentDuplicateIcon class="h-4 w-4" />
@@ -167,9 +140,9 @@ const handleStartNew = () => {
             </dd>
           </div>
           <div class="flex justify-between">
-            <dt class="text-gray-500">{{ t("success.summary.cloudflare") }}</dt>
-            <dd class="text-green-600 font-medium">
-              {{ t("success.summary.connected") }}
+            <dt class="text-gray-500">{{ t("success.summary.status") }}</dt>
+            <dd class="text-amber-700 font-medium">
+              {{ t("success.summary.pendingReview") }}
             </dd>
           </div>
         </dl>
@@ -211,31 +184,11 @@ const handleStartNew = () => {
               </p>
             </div>
           </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 p-2 bg-primary-100 rounded-lg">
-              <RocketLaunchIcon class="h-5 w-5 text-primary-600" />
-            </div>
-            <div class="ml-4">
-              <p class="font-medium text-gray-900">
-                {{ t("success.nextSteps.start.title") }}
-              </p>
-              <p class="text-sm text-gray-500">
-                {{ t("success.nextSteps.start.description") }}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
       <!-- 按鈕 -->
       <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-        <a
-          :href="`https://${store.completionResult?.subdomain || store.assignedSubdomain}.makanmakan.app/admin`"
-          target="_blank"
-          class="btn btn-primary"
-        >
-          {{ t("success.button.goToAdmin") }}
-        </a>
         <button type="button" class="btn btn-secondary" @click="handleStartNew">
           {{ t("success.button.backHome") }}
         </button>

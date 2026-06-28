@@ -6,7 +6,6 @@ const onboardingMocks = vi.hoisted(() => ({
   createApplication: vi.fn(),
   getApplication: vi.fn(),
   verifyApplicationSecret: vi.fn(),
-  completeApplication: vi.fn(),
 }));
 
 vi.mock("../services/OnboardingService", () => ({
@@ -66,11 +65,6 @@ beforeEach(() => {
   });
   onboardingMocks.getApplication.mockResolvedValue(application);
   onboardingMocks.verifyApplicationSecret.mockResolvedValue(true);
-  onboardingMocks.completeApplication.mockResolvedValue({
-    success: true,
-    tenantId: "tenant-123",
-    subdomain: "demo-noodles",
-  });
 });
 
 function jsonRequest(path: string, body: unknown, headers = {}) {
@@ -98,7 +92,7 @@ describe("onboarding route authorization", () => {
     });
   });
 
-  it("requires the application secret before reading or mutating applications", async () => {
+  it("requires the application secret before reading applications", async () => {
     const readResponse = await app.fetch(
       new Request(
         "https://management.test/api/v1/onboarding/applications/app-123",
@@ -106,16 +100,9 @@ describe("onboarding route authorization", () => {
       createEnv(),
     );
     expect(readResponse.status).toBe(401);
-
-    const completeResponse = await app.fetch(
-      jsonRequest("/api/v1/onboarding/applications/app-123/complete", {}),
-      createEnv(),
-    );
-    expect(completeResponse.status).toBe(401);
-    expect(onboardingMocks.completeApplication).not.toHaveBeenCalled();
   });
 
-  it("accepts the application secret for legitimate completion", async () => {
+  it("does not expose public application completion", async () => {
     const response = await app.fetch(
       jsonRequest(
         "/api/v1/onboarding/applications/app-123/complete",
@@ -125,12 +112,8 @@ describe("onboarding route authorization", () => {
       createEnv(),
     );
 
-    expect(response.status).toBe(200);
-    expect(onboardingMocks.verifyApplicationSecret).toHaveBeenCalledWith(
-      "app-123",
-      "onb_secret_123",
-    );
-    expect(onboardingMocks.completeApplication).toHaveBeenCalledWith("app-123");
+    expect(response.status).toBe(404);
+    expect(onboardingMocks.verifyApplicationSecret).not.toHaveBeenCalled();
   });
 
   it("does not expose the legacy Cloudflare verification endpoint", async () => {

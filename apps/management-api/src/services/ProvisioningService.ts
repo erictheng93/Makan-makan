@@ -12,7 +12,6 @@ import type {
   DeploymentType,
   DeploymentStatus,
 } from "../types";
-import { decrypt } from "@makanmakan/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 import { BundleService } from "./BundleService";
 import { MigrationService } from "./MigrationService";
@@ -59,10 +58,10 @@ export class ProvisioningService {
     tenantId: string,
     resourceTypes?: ResourceType[],
   ): Promise<ProvisionResult> {
-    // Get tenant info including CF credentials
+    // Get tenant info for platform-managed provisioning
     const tenant = await this.env.MANAGEMENT_DB.prepare(
       `
-      SELECT id, subdomain, cf_account_id, cf_api_token_enc
+      SELECT id, subdomain
       FROM tenants WHERE id = ?
     `,
     )
@@ -70,17 +69,18 @@ export class ProvisioningService {
       .first<{
         id: string;
         subdomain: string;
-        cf_account_id: string;
-        cf_api_token_enc: string;
       }>();
 
     if (!tenant) {
       return { success: false, error: "Tenant not found" };
     }
 
-    const credentials = await this.getCloudflareCredentials(tenant);
+    const credentials = this.getPlatformCloudflareCredentials();
     if (!credentials) {
-      return { success: false, error: "Cloudflare account not connected" };
+      return {
+        success: false,
+        error: "Platform Cloudflare credentials are not configured",
+      };
     }
 
     const { apiToken, accountId } = credentials;
@@ -205,7 +205,7 @@ export class ProvisioningService {
       // Get tenant info
       const tenant = await this.env.MANAGEMENT_DB.prepare(
         `
-        SELECT id, subdomain, deployed_version, cf_account_id, cf_api_token_enc
+        SELECT id, subdomain, deployed_version
         FROM tenants WHERE id = ?
       `,
       )
@@ -214,8 +214,6 @@ export class ProvisioningService {
           id: string;
           subdomain: string;
           deployed_version: string;
-          cf_account_id: string;
-          cf_api_token_enc: string;
         }>();
 
       if (!tenant) {
@@ -227,17 +225,17 @@ export class ProvisioningService {
         return { success: false, deploymentId, error: "Tenant not found" };
       }
 
-      const credentials = await this.getCloudflareCredentials(tenant);
+      const credentials = this.getPlatformCloudflareCredentials();
       if (!credentials) {
         await this.updateDeploymentLog(
           deploymentId,
           "failed",
-          "Cloudflare account not connected",
+          "Platform Cloudflare credentials are not configured",
         );
         return {
           success: false,
           deploymentId,
-          error: "Cloudflare account not connected",
+          error: "Platform Cloudflare credentials are not configured",
         };
       }
 
@@ -350,7 +348,7 @@ export class ProvisioningService {
         { type: "plain_text", name: "API_VERSION", text: targetVersion },
       );
 
-      // 6. Deploy worker to tenant's Cloudflare account
+      // 6. Deploy worker to the platform Cloudflare account
       const scriptName = `makanmakan-${tenant.subdomain}-api`;
       const deployResult = await this.cfClient.deployWorker(
         apiToken,
@@ -598,14 +596,7 @@ export class ProvisioningService {
   // Private Helper Methods
   // ============================================================
 
-  private async decryptToken(encryptedToken: string): Promise<string> {
-    return decrypt(encryptedToken, this.env.ENCRYPTION_KEY);
-  }
-
-  private async getCloudflareCredentials(tenant: {
-    cf_account_id?: string | null;
-    cf_api_token_enc?: string | null;
-  }): Promise<CloudflareCredentials | null> {
+  private getPlatformCloudflareCredentials(): CloudflareCredentials | null {
     const platformAccountId =
       this.env.PLATFORM_CF_ACCOUNT_ID || this.env.CF_ACCOUNT_ID;
     const platformApiToken =
@@ -615,13 +606,6 @@ export class ProvisioningService {
       return {
         accountId: platformAccountId,
         apiToken: platformApiToken,
-      };
-    }
-
-    if (tenant.cf_account_id && tenant.cf_api_token_enc) {
-      return {
-        accountId: tenant.cf_account_id,
-        apiToken: await this.decryptToken(tenant.cf_api_token_enc),
       };
     }
 
