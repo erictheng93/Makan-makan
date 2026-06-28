@@ -42,13 +42,19 @@
       </div>
       <div class="rounded-lg bg-white p-4 shadow-ios-card">
         <div class="text-sm font-medium text-gray-500">待審核</div>
-        <div class="mt-1 text-2xl font-bold text-emerald-700">
+        <div
+          data-testid="approvable-count"
+          class="mt-1 text-2xl font-bold text-emerald-700"
+        >
           {{ approvableCount }}
         </div>
       </div>
       <div class="rounded-lg bg-white p-4 shadow-ios-card">
         <div class="text-sm font-medium text-gray-500">已拒絕</div>
-        <div class="mt-1 text-2xl font-bold text-amber-700">
+        <div
+          data-testid="rejected-count"
+          class="mt-1 text-2xl font-bold text-amber-700"
+        >
           {{ rejectedCount }}
         </div>
       </div>

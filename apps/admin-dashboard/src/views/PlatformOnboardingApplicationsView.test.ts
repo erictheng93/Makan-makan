@@ -112,7 +112,7 @@ describe("PlatformOnboardingApplicationsView", () => {
       '[data-testid="approve-onboarding-APP-2"]',
     );
     expect(approveButton.attributes("disabled")).toBeUndefined();
-    expect(wrapper.get(".text-emerald-700").text()).toBe("1");
+    expect(wrapper.get('[data-testid="approvable-count"]').text()).toBe("1");
 
     await approveButton.trigger("click");
     await vi.dynamicImportSettled();
