@@ -1495,6 +1495,9 @@ const enUS: Messages = {
     service: "Delivery",
     owner: "Owner",
     selectRestaurantFirst: "Select a restaurant first",
+    restaurantContextHint:
+      "Choose a shop to manage orders, menu, POS, and staff.",
+    restaurantManagement: "Shop Management",
     accountManagement: "Accounts",
     feedback: "Feedback",
   },

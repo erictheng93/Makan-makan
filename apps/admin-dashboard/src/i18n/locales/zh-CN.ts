@@ -1428,6 +1428,8 @@ const zhCN: Messages = {
     service: "送菜系统",
     owner: "店主管理",
     selectRestaurantFirst: "请先选择餐厅",
+    restaurantContextHint: "选择店铺后可管理订单、菜单、POS 与员工。",
+    restaurantManagement: "店铺管理",
     feedback: "意见反馈",
   },
 

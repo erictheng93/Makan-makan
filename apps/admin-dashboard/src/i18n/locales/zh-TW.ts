@@ -1539,6 +1539,8 @@ const zhTWCore = {
     service: "送菜系統",
     owner: "店主管理",
     selectRestaurantFirst: "請先選擇餐廳",
+    restaurantContextHint: "選擇店鋪後可管理訂單、菜單、POS 與員工。",
+    restaurantManagement: "店鋪管理",
     accountManagement: "帳號管理",
     feedback: "意見反饋",
   },

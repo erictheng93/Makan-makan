@@ -25,21 +25,23 @@
       <!-- Navigation -->
       <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         <template v-for="item in navigationItems" :key="item.name">
+          <div
+            v-if="item.showRestaurantSectionLabel && !isCollapsed"
+            class="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-gray-400"
+          >
+            {{ t("nav.restaurantManagement") }}
+          </div>
           <ModuleGate v-if="item.module" :module="item.module">
             <component
-              :is="item.disabled ? 'div' : 'router-link'"
-              v-show="item.visible"
-              :to="item.disabled ? undefined : item.path"
+              :is="'router-link'"
+              :to="item.path"
               class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               :class="[
-                item.disabled
-                  ? 'opacity-40 cursor-not-allowed text-gray-400'
-                  : isActiveRoute(item.path)
-                    ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                isActiveRoute(item.path)
+                  ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
               ]"
-              :title="item.disabled ? t('nav.selectRestaurantFirst') : ''"
-              @click="!item.disabled && emit('navigate')"
+              @click="emit('navigate')"
             >
               <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
               <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
@@ -48,25 +50,33 @@
             <template #loading><span /></template>
           </ModuleGate>
           <component
-            :is="item.disabled ? 'div' : 'router-link'"
+            :is="'router-link'"
             v-else
-            v-show="item.visible"
-            :to="item.disabled ? undefined : item.path"
+            :to="item.path"
             class="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
             :class="[
-              item.disabled
-                ? 'opacity-40 cursor-not-allowed text-gray-400'
-                : isActiveRoute(item.path)
-                  ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              isActiveRoute(item.path)
+                ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
             ]"
-            :title="item.disabled ? t('nav.selectRestaurantFirst') : ''"
-            @click="!item.disabled && emit('navigate')"
+            @click="emit('navigate')"
           >
             <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
             <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
           </component>
         </template>
+        <div
+          v-if="needsRestaurantContext && !isCollapsed"
+          class="mx-3 mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2"
+          role="status"
+        >
+          <div class="text-sm font-medium text-gray-700">
+            {{ t("nav.selectRestaurantFirst") }}
+          </div>
+          <p class="mt-1 text-xs leading-5 text-gray-500">
+            {{ t("nav.restaurantContextHint") }}
+          </p>
+        </div>
       </nav>
 
       <!-- User Info -->
@@ -162,6 +172,7 @@ const navigationItems = computed(() => {
     icon: Component;
     visible: boolean;
     module?: ModuleKey;
+    section: "platform" | "restaurant";
   }> = [
     // Platform Overview (admin-only, always at top)
     {
@@ -170,6 +181,7 @@ const navigationItems = computed(() => {
       label: t("nav.platform"),
       icon: Globe,
       visible: authStore.isAdminRole,
+      section: "platform",
     },
     {
       name: "platform-markets",
@@ -177,6 +189,7 @@ const navigationItems = computed(() => {
       label: "市場品質",
       icon: MapPinned,
       visible: authStore.isAdminRole,
+      section: "platform",
     },
     {
       name: "platform-market-checkouts",
@@ -184,6 +197,7 @@ const navigationItems = computed(() => {
       label: "市場結帳",
       icon: ReceiptText,
       visible: authStore.isAdminRole,
+      section: "platform",
     },
     {
       name: "platform-onboarding",
@@ -191,6 +205,7 @@ const navigationItems = computed(() => {
       label: "開店申請",
       icon: UserPlus,
       visible: authStore.isAdminRole,
+      section: "platform",
     },
     {
       name: "dashboard",
@@ -198,6 +213,7 @@ const navigationItems = computed(() => {
       label: t("nav.dashboard"),
       icon: Home,
       visible: true,
+      section: "restaurant",
     },
     {
       name: "owner-overview",
@@ -205,6 +221,7 @@ const navigationItems = computed(() => {
       label: t("nav.ownerOverview"),
       icon: Crown,
       visible: authStore.canAccessOwnerDashboard,
+      section: "restaurant",
     },
     {
       name: "pos",
@@ -216,6 +233,7 @@ const navigationItems = computed(() => {
         UserRole.OWNER,
         UserRole.CASHIER,
       ]),
+      section: "restaurant",
     },
     {
       name: "orders",
@@ -223,6 +241,7 @@ const navigationItems = computed(() => {
       label: t("nav.orders"),
       icon: ShoppingCart,
       visible: authStore.canManageOrders,
+      section: "restaurant",
     },
     {
       name: "menu",
@@ -230,6 +249,7 @@ const navigationItems = computed(() => {
       label: t("nav.menu"),
       icon: Menu,
       visible: authStore.canManageMenu,
+      section: "restaurant",
     },
     {
       name: "seating",
@@ -242,6 +262,7 @@ const navigationItems = computed(() => {
         UserRole.SERVICE,
         UserRole.CASHIER,
       ]),
+      section: "restaurant",
     },
     {
       name: "employees",
@@ -249,6 +270,7 @@ const navigationItems = computed(() => {
       label: t("nav.employees"),
       icon: Users,
       visible: authStore.canAccessAdminFeatures,
+      section: "restaurant",
     },
     {
       name: "coupons",
@@ -257,6 +279,7 @@ const navigationItems = computed(() => {
       icon: TicketIcon,
       visible: authStore.canAccessAdminFeatures,
       module: "coupons",
+      section: "restaurant",
     },
     {
       name: "analytics",
@@ -265,6 +288,7 @@ const navigationItems = computed(() => {
       icon: BarChart3,
       visible: authStore.canAccessAdminFeatures,
       module: "analytics",
+      section: "restaurant",
     },
     {
       name: "ai-analytics",
@@ -273,6 +297,7 @@ const navigationItems = computed(() => {
       icon: Sparkles,
       visible: authStore.canAccessAdminFeatures,
       module: "ai_analytics",
+      section: "restaurant",
     },
     {
       name: "group-orders",
@@ -285,6 +310,7 @@ const navigationItems = computed(() => {
         UserRole.SERVICE,
         UserRole.CASHIER,
       ]),
+      section: "restaurant",
     },
     {
       name: "service-bookings",
@@ -297,6 +323,7 @@ const navigationItems = computed(() => {
         UserRole.SERVICE,
         UserRole.CASHIER,
       ]),
+      section: "restaurant",
     },
     {
       name: "account-management",
@@ -304,6 +331,7 @@ const navigationItems = computed(() => {
       label: t("nav.accountManagement"),
       icon: UserPlus,
       visible: authStore.isAdminRole,
+      section: "platform",
     },
     {
       name: "feedback",
@@ -311,6 +339,7 @@ const navigationItems = computed(() => {
       label: t("nav.feedback"),
       icon: MessageSquare,
       visible: authStore.hasPermission([UserRole.ADMIN, UserRole.OWNER]),
+      section: "platform",
     },
     {
       name: "monitoring",
@@ -318,6 +347,7 @@ const navigationItems = computed(() => {
       label: t("nav.monitoring"),
       icon: Activity,
       visible: authStore.canAccessAdminFeatures,
+      section: "platform",
     },
     {
       name: "settings",
@@ -325,13 +355,31 @@ const navigationItems = computed(() => {
       label: t("nav.settings"),
       icon: Settings,
       visible: authStore.canAccessAdminFeatures,
+      section: "platform",
     },
   ];
 
-  return items.map((item) => ({
-    ...item,
-    disabled: needsRestaurantContext.value && !platformItemNames.has(item.name),
-  }));
+  let restaurantSectionShown = false;
+
+  return items
+    .filter((item) => item.visible)
+    .filter(
+      (item) =>
+        !needsRestaurantContext.value || platformItemNames.has(item.name),
+    )
+    .map((item) => {
+      const showRestaurantSectionLabel =
+        item.section === "restaurant" && !restaurantSectionShown;
+
+      if (showRestaurantSectionLabel) {
+        restaurantSectionShown = true;
+      }
+
+      return {
+        ...item,
+        showRestaurantSectionLabel,
+      };
+    });
 });
 
 const isActiveRoute = (path: string) => {

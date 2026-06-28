@@ -1421,6 +1421,9 @@ const idID: Messages = {
     service: "Sistem Pengiriman",
     owner: "Manajemen Pemilik",
     selectRestaurantFirst: "Silakan pilih restoran terlebih dahulu",
+    restaurantContextHint:
+      "Pilih toko untuk mengelola pesanan, menu, POS, dan staf.",
+    restaurantManagement: "Manajemen Toko",
     feedback: "Umpan Balik",
   },
 

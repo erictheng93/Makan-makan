@@ -1342,6 +1342,9 @@ const viVN: Messages = {
     service: "Hệ thống phục vụ",
     owner: "Quản lý chủ cửa hàng",
     selectRestaurantFirst: "Vui lòng chọn nhà hàng trước",
+    restaurantContextHint:
+      "Chọn cửa hàng để quản lý đơn hàng, thực đơn, POS và nhân viên.",
+    restaurantManagement: "Quản lý cửa hàng",
     feedback: "Phản hồi",
   },
 

@@ -1343,6 +1343,9 @@ const jaJP: Messages = {
     service: "配膳システム",
     owner: "オーナー管理",
     selectRestaurantFirst: "先にレストランを選択してください",
+    restaurantContextHint:
+      "店舗を選択すると、注文、メニュー、POS、スタッフを管理できます。",
+    restaurantManagement: "店舗管理",
     feedback: "フィードバック",
   },
 
