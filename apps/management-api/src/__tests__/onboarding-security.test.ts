@@ -112,24 +112,7 @@ describe("onboarding route authorization", () => {
       createEnv(),
     );
 
-    expect(response.status).toBe(404);
-    expect(onboardingMocks.verifyApplicationSecret).not.toHaveBeenCalled();
-  });
-
-  it("does not expose the legacy Cloudflare verification endpoint", async () => {
-    const response = await app.fetch(
-      jsonRequest(
-        "/api/v1/onboarding/applications/app-123/verify-cloudflare",
-        {
-          accountId: "a".repeat(32),
-          apiToken: "t".repeat(40),
-        },
-        { "X-Onboarding-Secret": "onb_secret_123" },
-      ),
-      createEnv(),
-    );
-
-    expect(response.status).not.toBe(200);
+    expect(response.status).toBe(401);
     expect(onboardingMocks.verifyApplicationSecret).not.toHaveBeenCalled();
   });
 });

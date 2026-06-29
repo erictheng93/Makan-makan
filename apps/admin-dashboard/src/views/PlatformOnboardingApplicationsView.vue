@@ -18,7 +18,6 @@
         >
           <option value="">全部狀態</option>
           <option value="submitted">待審核</option>
-          <option value="cf_verified">待審核（舊資料）</option>
           <option value="provisioning">建置中</option>
           <option value="completed">已完成</option>
           <option value="rejected">已拒絕</option>
@@ -160,12 +159,6 @@
               >
                 {{ statusLabel(application.status) }}
               </span>
-              <div
-                v-if="application.cfVerifiedAt"
-                class="mt-1 text-xs text-gray-500"
-              >
-                舊驗證 {{ formatDate(application.cfVerifiedAt) }}
-              </div>
             </td>
             <td class="px-4 py-4 text-sm text-gray-700">
               {{ formatDate(application.createdAt) }}
@@ -280,14 +273,13 @@ async function rejectApplication(applicationId: string) {
 }
 
 function isApprovableStatus(status: OnboardingApplicationStatus) {
-  return ["submitted", "cf_verified"].includes(status);
+  return status === "submitted";
 }
 
 function statusLabel(status: OnboardingApplicationStatus) {
   return (
     {
       submitted: "待審核",
-      cf_verified: "待審核（舊資料）",
       provisioning: "建置中",
       completed: "已完成",
       rejected: "已拒絕",
@@ -299,7 +291,6 @@ function statusClass(status: OnboardingApplicationStatus) {
   return (
     {
       submitted: "bg-amber-50 text-amber-800",
-      cf_verified: "bg-emerald-50 text-emerald-800",
       provisioning: "bg-blue-50 text-blue-800",
       completed: "bg-gray-100 text-gray-700",
       rejected: "bg-red-50 text-red-700",

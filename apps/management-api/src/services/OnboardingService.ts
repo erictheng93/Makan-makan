@@ -246,7 +246,7 @@ export class OnboardingService {
       return { success: false, error: "Application not found" };
     }
 
-    if (!["submitted", "cf_verified"].includes(application.status)) {
+    if (application.status !== "submitted") {
       return {
         success: false,
         error: `Cannot complete application with status: ${application.status}`,
@@ -316,7 +316,7 @@ export class OnboardingService {
         status: "completed",
       };
     }
-    if (!["submitted", "cf_verified"].includes(application.status)) {
+    if (application.status !== "submitted") {
       return {
         success: false,
         error: `Cannot approve application with status: ${application.status}`,
@@ -475,16 +475,15 @@ export class OnboardingService {
 
     const subscriptionInsert = this.env.MANAGEMENT_DB.prepare(
       `INSERT INTO shop_subscriptions (
-        id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+        id, restaurant_id, plan_tier, module_overrides,
         is_active, trial_ends_at_ms, billing_cycle_start_at_ms,
         billing_cycle_end_at_ms, created_at_ms, updated_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       this.generateSubscriptionId(),
       tenantId,
       planTier,
       "{}",
-      "managed",
       1,
       trialEndsAt,
       billingCycleStartAt,
@@ -536,7 +535,6 @@ export class OnboardingService {
       longitude: row.longitude as number | undefined,
       requestedSubdomain: row.requested_subdomain as string | undefined,
       assignedSubdomain: row.assigned_subdomain as string | undefined,
-      cfVerifiedAt: row.cf_verified_at as string | undefined,
       status: row.status as OnboardingStatus,
       tenantId: row.tenant_id as string | undefined,
       ipAddress: row.ip_address as string | undefined,

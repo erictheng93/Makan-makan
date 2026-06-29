@@ -2,14 +2,11 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import type { ModuleKey, PlanTier } from "../types/module-access";
 
-export type DeploymentMode = "managed";
-
 export interface ModuleAccessData {
   restaurantId: string | null;
   planTier: PlanTier | null;
   isActive: boolean;
   trialEndsAt: number | null;
-  deploymentMode: DeploymentMode;
   effectiveModules: Partial<Record<ModuleKey, boolean>>;
 }
 
@@ -25,7 +22,6 @@ const emptyAccess: ModuleAccessData = {
   planTier: null,
   isActive: false,
   trialEndsAt: null,
-  deploymentMode: "managed",
   effectiveModules: {},
 };
 
@@ -39,7 +35,6 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
   const effectiveModules = computed(() => data.value.effectiveModules);
   const planTier = computed(() => data.value.planTier);
   const trialEndsAt = computed(() => data.value.trialEndsAt);
-  const deploymentMode = computed(() => data.value.deploymentMode);
 
   async function fetchAccess(options: { force?: boolean } = {}) {
     const now = Date.now();
@@ -94,7 +89,6 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
     effectiveModules,
     planTier,
     trialEndsAt,
-    deploymentMode,
     isLoading,
     isLoaded,
     error,

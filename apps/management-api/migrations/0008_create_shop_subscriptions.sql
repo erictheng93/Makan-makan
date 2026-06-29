@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS shop_subscriptions (
   restaurant_id TEXT NOT NULL UNIQUE,
   plan_tier TEXT NOT NULL DEFAULT 'trial',
   module_overrides TEXT DEFAULT '{}',
-  deployment_mode TEXT NOT NULL DEFAULT 'managed',
   is_active INTEGER NOT NULL DEFAULT 1,
   trial_ends_at_ms INTEGER,
   billing_cycle_start_at_ms INTEGER,

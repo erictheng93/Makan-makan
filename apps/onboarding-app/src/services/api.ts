@@ -68,7 +68,6 @@ export interface ApplicationDetails {
   planId: string;
   assignedSubdomain: string;
   status: string;
-  cfVerifiedAt?: string;
   tenantId?: string;
   createdAt: string;
   completedAt?: string;

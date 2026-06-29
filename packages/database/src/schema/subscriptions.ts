@@ -130,12 +130,6 @@ export const shopSubscriptions = sqliteTable("shop_subscriptions", {
     .$type<ModuleMap>()
     .default(sql`'{}'`),
 
-  // Deployment mode is fixed to platform-managed hosting.
-  deploymentMode: text("deployment_mode")
-    .notNull()
-    .$type<"managed">()
-    .default("managed"),
-
   // Master kill switch — set false to immediately lock out the shop
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 

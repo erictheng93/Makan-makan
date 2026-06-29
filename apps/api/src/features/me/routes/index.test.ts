@@ -103,7 +103,6 @@ describe("me routes", () => {
         planTier: null,
         isActive: false,
         trialEndsAt: null,
-        deploymentMode: "managed",
         effectiveModules: {},
       },
     });
@@ -178,7 +177,6 @@ describe("me routes", () => {
         planTier: "growth",
         isActive: true,
         trialEndsAt: 1780000000000,
-        deploymentMode: "managed",
         effectiveModules: { pos: true, analytics: false },
       },
     });
@@ -191,33 +189,6 @@ describe("me routes", () => {
     expect(subscriptionMocks.getEffectiveModules).toHaveBeenCalledWith({
       planTier: "growth",
       moduleOverrides: { analytics: false },
-    });
-  });
-
-  it("normalizes legacy cached deployment mode to managed", async () => {
-    const env = createEnv(
-      new Map([
-        [
-          "subscription:restaurant-1",
-          {
-            isActive: true,
-            planTier: "enterprise",
-            moduleOverrides: { pos: true },
-            trialEndsAt: null,
-            deploymentMode: "byoc",
-          },
-        ],
-      ]),
-    );
-
-    const response = await request("/modules", env);
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      data: {
-        deploymentMode: "managed",
-        trialEndsAt: null,
-      },
     });
   });
 
@@ -250,7 +221,6 @@ describe("me routes", () => {
       planTier: "enterprise",
       moduleOverrides: { pos: true },
       trialEndsAt,
-      deploymentMode: "byoc",
     };
     subscriptionMocks.getByRestaurantId.mockResolvedValue(subscription);
 
@@ -264,7 +234,6 @@ describe("me routes", () => {
         planTier: "enterprise",
         isActive: true,
         trialEndsAt: trialEndsAt.getTime(),
-        deploymentMode: "managed",
         effectiveModules: { pos: true, analytics: false },
       },
     });
@@ -275,7 +244,6 @@ describe("me routes", () => {
         planTier: "enterprise",
         moduleOverrides: { pos: true },
         trialEndsAt: trialEndsAt.getTime(),
-        deploymentMode: "managed",
       }),
       { expirationTtl: 300 },
     );
@@ -292,7 +260,6 @@ describe("me routes", () => {
       planTier: "trial",
       moduleOverrides: null,
       trialEndsAt: null,
-      deploymentMode: "managed",
     };
     subscriptionMocks.getByRestaurantId.mockResolvedValue(subscription);
 
@@ -304,7 +271,6 @@ describe("me routes", () => {
         planTier: "trial",
         isActive: false,
         trialEndsAt: null,
-        deploymentMode: "managed",
       },
     });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
@@ -314,7 +280,6 @@ describe("me routes", () => {
         planTier: "trial",
         moduleOverrides: {},
         trialEndsAt: null,
-        deploymentMode: "managed",
       }),
       { expirationTtl: 300 },
     );

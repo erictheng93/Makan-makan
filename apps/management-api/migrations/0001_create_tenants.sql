@@ -1,15 +1,11 @@
 -- Migration: Create tenants table
--- Description: Main table for tenant management in hybrid deployment
+-- Description: Main table for platform-managed tenant management
 
 CREATE TABLE IF NOT EXISTS tenants (
   id TEXT PRIMARY KEY,
   business_name TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   contact_phone TEXT,
-
-  -- Cloudflare account info
-  cf_account_id TEXT,
-  cf_api_token_enc TEXT,  -- Encrypted API token
 
   -- Deployment info
   subdomain TEXT UNIQUE NOT NULL,

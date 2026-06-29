@@ -291,7 +291,7 @@ describe("Onboarding public API workflow — real integration", () => {
       env,
     );
 
-    expect(completeResponse.status).toBe(404);
+    expect(completeResponse.status).toBe(401);
     const tenantCount = db
       .raw()
       .prepare("SELECT COUNT(*) AS count FROM tenants")

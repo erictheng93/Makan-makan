@@ -160,7 +160,6 @@ router.get("/applications/:id", async (c) => {
         planId: application.planId,
         assignedSubdomain: application.assignedSubdomain,
         status: application.status,
-        cfVerifiedAt: application.cfVerifiedAt,
         tenantId: application.tenantId,
         createdAt: application.createdAt,
         completedAt: application.completedAt,
@@ -178,16 +177,5 @@ router.get("/applications/:id", async (c) => {
     );
   }
 });
-
-router.post("/applications/:id/complete", (c) =>
-  c.json(
-    {
-      success: false,
-      error: "Endpoint not found",
-      code: "NOT_FOUND",
-    },
-    404,
-  ),
-);
 
 export default router;

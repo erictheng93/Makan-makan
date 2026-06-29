@@ -1114,9 +1114,9 @@ describe("Market checkouts API - real integration", () => {
   function insertSubscription(restaurantId: string) {
     return testApp.env.DB.prepare(
       `INSERT INTO shop_subscriptions
-        (id, restaurant_id, plan_tier, module_overrides, deployment_mode,
+        (id, restaurant_id, plan_tier, module_overrides,
          is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
-       VALUES (?, ?, 'trial', ?, 'managed', 1, ?, ?, ?)`,
+       VALUES (?, ?, 'trial', ?, 1, ?, ?, ?)`,
     )
       .bind(
         `sub-${restaurantId}`,

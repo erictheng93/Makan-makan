@@ -371,7 +371,6 @@ export interface WorkerInfo {
  */
 export type OnboardingStatus =
   | "submitted"
-  | "cf_verified"
   | "provisioning"
   | "completed"
   | "rejected";
@@ -391,7 +390,6 @@ export interface OnboardingApplication {
   longitude?: number;
   requestedSubdomain?: string;
   assignedSubdomain?: string;
-  cfVerifiedAt?: string;
   status: OnboardingStatus;
   tenantId?: string;
   ipAddress?: string;
@@ -413,14 +411,6 @@ export interface CreateApplicationRequest {
   planId?: OnboardingPlanId | null;
   latitude: number;
   longitude: number;
-}
-
-/**
- * Verify Cloudflare credentials request
- */
-export interface VerifyCloudflareRequest {
-  accountId: string;
-  apiToken: string;
 }
 
 /**

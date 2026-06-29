@@ -7,7 +7,6 @@ const router = new Hono<{ Bindings: ManagementEnv }>();
 
 const onboardingStatusSchema = z.enum([
   "submitted",
-  "cf_verified",
   "provisioning",
   "completed",
   "rejected",
@@ -30,7 +29,6 @@ function publicApplication(application: {
   longitude?: number;
   requestedSubdomain?: string;
   assignedSubdomain?: string;
-  cfVerifiedAt?: string;
   status: OnboardingStatus;
   tenantId?: string;
   ipAddress?: string;
@@ -51,7 +49,6 @@ function publicApplication(application: {
     longitude: application.longitude,
     requestedSubdomain: application.requestedSubdomain,
     assignedSubdomain: application.assignedSubdomain,
-    cfVerifiedAt: application.cfVerifiedAt,
     status: application.status,
     tenantId: application.tenantId,
     ipAddress: application.ipAddress,

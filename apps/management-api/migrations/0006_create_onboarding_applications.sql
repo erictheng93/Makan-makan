@@ -13,13 +13,8 @@ CREATE TABLE IF NOT EXISTS onboarding_applications (
   requested_subdomain TEXT,                         -- User's preferred subdomain
   assigned_subdomain TEXT UNIQUE,                   -- Final assigned subdomain
 
-  -- Cloudflare verification
-  cf_account_id TEXT,
-  cf_api_token_enc TEXT,                           -- Encrypted API token
-  cf_verified_at TEXT,                             -- When CF credentials were verified
-
   -- Application status
-  status TEXT NOT NULL DEFAULT 'submitted',         -- submitted, cf_verified, provisioning, completed, rejected
+  status TEXT NOT NULL DEFAULT 'submitted',         -- submitted, provisioning, completed, rejected
 
   -- Relationship to tenant (after completion)
   tenant_id TEXT REFERENCES tenants(id),

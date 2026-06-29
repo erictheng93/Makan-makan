@@ -79,7 +79,6 @@ function installBackofficeMocks(page: Page, session: OwnerSession) {
           planTier: "enterprise",
           isActive: true,
           trialEndsAt: null,
-          deploymentMode: "managed",
           effectiveModules: {},
         }),
       );

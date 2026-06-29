@@ -31,7 +31,6 @@ interface CachedSubscription {
   planTier: PlanTier;
   moduleOverrides: ModuleMap;
   trialEndsAt: number | null;
-  deploymentMode?: "managed";
 }
 
 /** Returns the effective access state for a single module given the subscription. */
@@ -73,7 +72,6 @@ async function getSubscription(
       planTier: shopSubscriptions.planTier,
       moduleOverrides: shopSubscriptions.moduleOverrides,
       trialEndsAt: shopSubscriptions.trialEndsAt,
-      deploymentMode: shopSubscriptions.deploymentMode,
     })
     .from(shopSubscriptions)
     .where(eq(shopSubscriptions.restaurantId, restaurantId))
@@ -86,7 +84,6 @@ async function getSubscription(
     planTier: row.planTier as PlanTier,
     moduleOverrides: (row.moduleOverrides ?? {}) as ModuleMap,
     trialEndsAt: row.trialEndsAt ? row.trialEndsAt.getTime() : null,
-    deploymentMode: "managed",
   };
 
   // Cache write-through

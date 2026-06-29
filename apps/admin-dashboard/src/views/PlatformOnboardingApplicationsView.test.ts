@@ -28,8 +28,7 @@ describe("PlatformOnboardingApplicationsView", () => {
           latitude: 24.147736,
           longitude: 120.673648,
           assignedSubdomain: "laksa",
-          cfVerifiedAt: "2026-06-01T00:00:00.000Z",
-          status: "cf_verified",
+          status: "submitted",
           createdAt: "2026-06-01T00:00:00.000Z",
           updatedAt: "2026-06-01T00:00:00.000Z",
         },
@@ -57,7 +56,7 @@ describe("PlatformOnboardingApplicationsView", () => {
       limit: 50,
     });
     expect(wrapper.text()).toContain("Laksa Shop");
-    expect(wrapper.text()).toContain("待審核（舊資料）");
+    expect(wrapper.text()).toContain("待審核");
   });
 
   it("approves and rejects applications then refreshes the list", async () => {
@@ -94,7 +93,6 @@ describe("PlatformOnboardingApplicationsView", () => {
           latitude: null,
           longitude: null,
           assignedSubdomain: "nasi-lemak",
-          cfVerifiedAt: null,
           status: "submitted",
           createdAt: "2026-06-02T00:00:00.000Z",
           updatedAt: "2026-06-02T00:00:00.000Z",

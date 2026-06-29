@@ -5,14 +5,11 @@ import { SubscriptionService } from "../../subscriptions/services/SubscriptionSe
 import { UsageService } from "../../billing/services/UsageService";
 import type { ModuleKey, ModuleMap, PlanTier } from "@makanmakan/database";
 
-type DeploymentMode = "managed";
-
 interface CachedSubscription {
   isActive: boolean;
   planTier: PlanTier;
   moduleOverrides: ModuleMap;
   trialEndsAt: number | null;
-  deploymentMode?: DeploymentMode;
 }
 
 const CACHE_TTL_SECONDS = 300;
@@ -52,7 +49,6 @@ router.get("/modules", async (c) => {
         planTier: cached.planTier,
         isActive: cached.isActive,
         trialEndsAt: cached.trialEndsAt,
-        deploymentMode: normalizeDeploymentMode(cached.deploymentMode),
         effectiveModules: service.getEffectiveModules({
           planTier: cached.planTier,
           moduleOverrides: cached.moduleOverrides,
@@ -79,7 +75,6 @@ router.get("/modules", async (c) => {
       planTier: sub.planTier,
       moduleOverrides: sub.moduleOverrides ?? {},
       trialEndsAt,
-      deploymentMode: "managed" as DeploymentMode,
     } satisfies CachedSubscription),
     { expirationTtl: CACHE_TTL_SECONDS },
   );
@@ -91,7 +86,6 @@ router.get("/modules", async (c) => {
       planTier: sub.planTier,
       isActive: sub.isActive,
       trialEndsAt,
-      deploymentMode: "managed" as DeploymentMode,
       effectiveModules: service.getEffectiveModules(sub),
     },
   });
@@ -132,13 +126,8 @@ function emptyModuleAccess(restaurantId: string | null) {
     planTier: null,
     isActive: false,
     trialEndsAt: null,
-    deploymentMode: "managed" as DeploymentMode,
     effectiveModules: {} as Record<ModuleKey, boolean>,
   };
-}
-
-function normalizeDeploymentMode(_mode: unknown): DeploymentMode {
-  return "managed";
 }
 
 export default router;

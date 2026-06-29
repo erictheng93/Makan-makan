@@ -56,18 +56,16 @@
 
 ### 任務
 
-新增 3 個 module key + `deploymentMode` 欄位 + 更新 `PLAN_DEFAULT_MODULES`。
+新增 3 個 module key + 更新 `PLAN_DEFAULT_MODULES`。
 
 ### 動到的檔案（只有這幾個，不要動別的）
 
 1. `packages/database/src/schema/subscriptions.ts`
    - `MODULES` 物件加 `POS / INVENTORY / STAFF_MANAGEMENT` 三個 key（依 SPEC Appendix A.4 完整內容）
    - `PLAN_DEFAULT_MODULES` 更新四個 plan tier 對應（依 SPEC §2.1）
-   - `shopSubscriptions` table 加 `deploymentMode` 欄位（依 SPEC §2.4）
-
 2. `packages/database/migrations_fresh/<timestamp>_*.sql`
    - 由 `pnpm db:generate` 自動產生，**不要手寫**
-   - 確認生成的 SQL：(a) 加 `deployment_mode` 欄位、(b) 對既存 row default `'managed'`
+   - 確認生成的 SQL 只包含 module/subscription 需要的欄位，不新增部署模式欄位
 
 3. （視需要）測試檔
    - `apps/api/src/middleware/__tests__/moduleGate.test.ts` 若有列舉 modules 需更新

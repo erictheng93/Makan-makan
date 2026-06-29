@@ -2,7 +2,6 @@ import { api, unwrapApiPayload } from "@/services/api";
 
 export type OnboardingApplicationStatus =
   | "submitted"
-  | "cf_verified"
   | "provisioning"
   | "completed"
   | "rejected";
@@ -18,7 +17,6 @@ export interface OnboardingApplication {
   longitude?: number | null;
   requestedSubdomain?: string | null;
   assignedSubdomain?: string | null;
-  cfVerifiedAt?: string | null;
   status: OnboardingApplicationStatus;
   tenantId?: string | null;
   ipAddress?: string | null;
