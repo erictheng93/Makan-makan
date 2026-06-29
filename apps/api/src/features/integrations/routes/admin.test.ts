@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  currentUser: {
+    value: {
+      id: 42,
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    },
+  },
   integrationService: {
     connect: vi.fn(),
     disconnect: vi.fn(),
@@ -30,7 +38,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../shared/middleware", () => ({
-  authMiddleware: vi.fn(async (_c, next) => {
+  authMiddleware: vi.fn(async (c, next) => {
+    c.set("user", mocks.currentUser.value);
     await next();
   }),
   requireRole: vi.fn(
@@ -114,6 +123,12 @@ async function json(response: Response) {
 describe("integrations admin routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.currentUser.value = {
+      id: 42,
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
     mocks.adapterSupported.mockImplementation(
       (platform: string) => platform === "uber_eats",
     );
@@ -171,6 +186,31 @@ describe("integrations admin routes", () => {
     expect(body.data).toEqual({ platform: "uber_eats", enabled: true });
   });
 
+  it("rejects owner access to another restaurant's integrations", async () => {
+    const response = await withSilencedRouteError(() =>
+      request("/restaurant-2"),
+    );
+
+    expect(response.status).toBe(500);
+    expect(mocks.integrationService.getIntegrations).not.toHaveBeenCalled();
+  });
+
+  it("allows admins to access any restaurant's integrations", async () => {
+    mocks.currentUser.value = {
+      id: 1,
+      username: "admin",
+      role: 0,
+      restaurantId: "platform",
+    };
+
+    const response = await request("/restaurant-2");
+
+    expect(response.status).toBe(200);
+    expect(mocks.integrationService.getIntegrations).toHaveBeenCalledWith(
+      "restaurant-2",
+    );
+  });
+
   it("returns 404 for missing integration details", async () => {
     mocks.integrationService.getIntegration.mockResolvedValueOnce(null);
 
@@ -220,6 +260,25 @@ describe("integrations admin routes", () => {
       "uber_eats",
     );
     expect(body).toEqual({ success: true });
+  });
+
+  it("rejects owner mutation of another restaurant's integration", async () => {
+    const updateResponse = await withSilencedRouteError(() =>
+      request("/restaurant-2/uber_eats", {
+        method: "PUT",
+        body: JSON.stringify({ enabled: false }),
+      }),
+    );
+    const deleteResponse = await withSilencedRouteError(() =>
+      request("/restaurant-2/uber_eats", {
+        method: "DELETE",
+      }),
+    );
+
+    expect(updateResponse.status).toBe(500);
+    expect(deleteResponse.status).toBe(500);
+    expect(mocks.integrationService.updateConfig).not.toHaveBeenCalled();
+    expect(mocks.integrationService.disconnect).not.toHaveBeenCalled();
   });
 
   it("rejects unsupported connect, update, and menu sync platforms", async () => {
@@ -278,6 +337,22 @@ describe("integrations admin routes", () => {
     expect(body.data).toEqual({ items: [{ id: "order-1" }] });
   });
 
+  it("rejects owner menu sync and order listing for another restaurant", async () => {
+    const syncResponse = await withSilencedRouteError(() =>
+      request("/restaurant-2/uber_eats/menu-sync", {
+        method: "POST",
+      }),
+    );
+    const ordersResponse = await withSilencedRouteError(() =>
+      request("/restaurant-2/uber_eats/orders"),
+    );
+
+    expect(syncResponse.status).toBe(500);
+    expect(ordersResponse.status).toBe(500);
+    expect(mocks.menuSyncService.syncMenu).not.toHaveBeenCalled();
+    expect(mocks.orderService.getPlatformOrders).not.toHaveBeenCalled();
+  });
+
   it("lists webhook logs with default and explicit filters", async () => {
     let response = await request("/restaurant-1/webhook-logs");
     let body = await json(response);
@@ -298,3 +373,14 @@ describe("integrations admin routes", () => {
     expect(body.data).toEqual([{ id: "log-1", platform: "uber_eats" }]);
   });
 });
+
+async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
+  try {
+    return await action();
+  } finally {
+    consoleError.mockRestore();
+  }
+}

@@ -11,17 +11,51 @@ import type {
 import type { Env } from "../../../types/env";
 import { authMiddleware, requireRole } from "../../../shared/middleware";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { forbidden } from "../../../shared/utils/api-error";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
 import { PlatformOrderService } from "../services/PlatformOrderService";
 import { PlatformMenuSyncService } from "../services/PlatformMenuSyncService";
 import { isPlatformAdapterSupported } from "../adapters/PlatformAdapter";
 
-const adminRoutes = new Hono<{ Bindings: Env }>();
+type IntegrationAdminUser = {
+  role: number;
+  restaurantId?: string | number | null;
+};
+
+type IntegrationAdminEnv = {
+  Bindings: Env;
+  Variables: {
+    user: IntegrationAdminUser;
+  };
+};
+
+const adminRoutes = new Hono<IntegrationAdminEnv>();
+
+function assertRestaurantScope(
+  user: IntegrationAdminUser,
+  restaurantId: string,
+) {
+  if (user.role === 0) {
+    return;
+  }
+
+  if (user.restaurantId == null || String(user.restaurantId) !== restaurantId) {
+    throw forbidden("Cannot manage integrations for another restaurant");
+  }
+}
 
 // All admin routes require admin (0) or shop owner (1) role
 adminRoutes.use("/*", authMiddleware);
 adminRoutes.use("/*", requireRole([0, 1]));
 adminRoutes.use("/*", moduleGate("platform_integration"));
+adminRoutes.use("/:restaurantId", async (c, next) => {
+  assertRestaurantScope(c.get("user"), c.req.param("restaurantId"));
+  await next();
+});
+adminRoutes.use("/:restaurantId/*", async (c, next) => {
+  assertRestaurantScope(c.get("user"), c.req.param("restaurantId"));
+  await next();
+});
 
 // GET /:restaurantId — list all integrations
 adminRoutes.get("/:restaurantId", async (c) => {

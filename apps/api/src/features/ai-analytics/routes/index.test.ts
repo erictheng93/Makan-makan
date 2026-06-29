@@ -167,6 +167,18 @@ describe("ai analytics routes", () => {
     });
   });
 
+  it("rejects owner access to AI configuration for another restaurant", async () => {
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/config/restaurant-2"),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(serviceMethods.getConfig).not.toHaveBeenCalled();
+  });
+
   it("rejects protected AI configuration access for non-owner roles", async () => {
     currentUser.value = {
       id: 42,
@@ -224,6 +236,33 @@ describe("ai analytics routes", () => {
         provider: "openai",
       }),
     );
+  });
+
+  it("rejects owner AI configuration writes for another restaurant", async () => {
+    serviceMethods.testProvider.mockResolvedValue({
+      success: true,
+      latencyMs: 123,
+      model: "gpt-test",
+    });
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/config", {
+          method: "POST",
+          body: JSON.stringify({
+            restaurantId: "restaurant-2",
+            provider: "openai",
+            apiKey: "sk-test-key",
+            model: "gpt-test",
+          }),
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(serviceMethods.testProvider).not.toHaveBeenCalled();
+    expect(serviceMethods.saveConfig).not.toHaveBeenCalled();
   });
 
   it("rejects invalid AI configuration and failed provider tests", async () => {
@@ -334,6 +373,24 @@ describe("ai analytics routes", () => {
     );
   });
 
+  it("rejects owner AI report generation for another restaurant", async () => {
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/generate", {
+          method: "POST",
+          body: JSON.stringify({
+            restaurantId: "restaurant-2",
+            timeRange: { range: "30d" },
+          }),
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(serviceMethods.generateReport).not.toHaveBeenCalled();
+  });
+
   it("rejects AI report generation for non-owner roles", async () => {
     currentUser.value = {
       id: 42,
@@ -414,6 +471,51 @@ describe("ai analytics routes", () => {
     );
   });
 
+  it("rejects owner product analytics for another restaurant", async () => {
+    const env = createEnv();
+    const traffic = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(
+          "https://test/products/traffic-drivers/restaurant-2?timeRange=7d&limit=3",
+        ),
+        env as never,
+      ),
+    );
+    const best = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(
+          "https://test/products/bestsellers/restaurant-2?timeRange=14d&limit=4",
+        ),
+        env as never,
+      ),
+    );
+    const profit = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(
+          "https://test/products/profit-leaders/restaurant-2?timeRange=90d&limit=5",
+        ),
+        env as never,
+      ),
+    );
+    const analysis = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(
+          "https://test/products/analysis/restaurant-2?timeRange=180d",
+        ),
+        env as never,
+      ),
+    );
+
+    expect(traffic.status).toBe(500);
+    expect(best.status).toBe(500);
+    expect(profit.status).toBe(500);
+    expect(analysis.status).toBe(500);
+    expect(serviceMethods.getTrafficDrivers).not.toHaveBeenCalled();
+    expect(serviceMethods.getBestsellers).not.toHaveBeenCalled();
+    expect(serviceMethods.getProfitLeaders).not.toHaveBeenCalled();
+    expect(serviceMethods.analyzeProducts).not.toHaveBeenCalled();
+  });
+
   it("returns AI usage statistics for a restaurant", async () => {
     serviceMethods.getUsageStats.mockResolvedValue({
       totalRequests: 5,
@@ -437,5 +539,19 @@ describe("ai analytics routes", () => {
       "2026-06-01",
       "2026-06-07",
     );
+  });
+
+  it("rejects owner AI usage reads for another restaurant", async () => {
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(
+          "https://test/usage/restaurant-2?startDate=2026-06-01&endDate=2026-06-07",
+        ),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(serviceMethods.getUsageStats).not.toHaveBeenCalled();
   });
 });

@@ -29,6 +29,19 @@ type AiAnalyticsEnv = {
 
 const routes = new Hono<AiAnalyticsEnv>();
 
+function assertRestaurantScope(
+  user: AiAnalyticsEnv["Variables"]["user"],
+  restaurantId: string,
+) {
+  if (user.role === 0) {
+    return;
+  }
+
+  if (String(user.restaurantId) !== restaurantId) {
+    throw forbidden("Cannot access AI analytics for another restaurant");
+  }
+}
+
 async function trackAiRequest<E extends { Bindings: Env }>(c: Context<E>) {
   await meterEmit(c, "ai.requests", {
     metadata: { endpoint: c.req.path },
@@ -55,6 +68,7 @@ routes.get(
     if (userRole !== 0 && userRole !== 1) {
       throw forbidden("Unauthorized");
     }
+    assertRestaurantScope(user, restaurantId);
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
     const config = await service.getConfig(restaurantId);
@@ -102,6 +116,7 @@ routes.post(
     if (userRole !== 0 && userRole !== 1) {
       throw forbidden("Unauthorized");
     }
+    assertRestaurantScope(user, data.restaurantId);
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
 
@@ -184,6 +199,7 @@ routes.post(
     if (userRole !== 0 && userRole !== 1) {
       throw forbidden("Unauthorized");
     }
+    assertRestaurantScope(user, data.restaurantId);
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
     const report = await service.generateReport(
@@ -217,6 +233,7 @@ routes.get(
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange, limit } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -253,6 +270,7 @@ routes.get(
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange, limit } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -289,6 +307,7 @@ routes.get(
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange, limit } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -325,6 +344,7 @@ routes.get(
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
@@ -357,6 +377,7 @@ routes.get(
     const restaurantId = c.req.param("restaurantId");
     if (!restaurantId)
       throw badRequest("Missing restaurantId parameter", "MISSING_PARAM");
+    assertRestaurantScope(c.get("user"), restaurantId);
     const { startDate, endDate } = c.get("validatedQuery");
 
     const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
