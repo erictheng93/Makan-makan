@@ -20,10 +20,51 @@ import {
 } from "../utils/random";
 import {
   DEFAULT_BILLING_CYCLE_MS,
+  passwordResetTokens,
   planIdToTier,
+  restaurants,
+  users,
   TRIAL_DURATION_MS,
 } from "@makanmakan/database";
 import bcrypt from "bcryptjs";
+import { desc, eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+const onboardingCredentialDeliveries = sqliteTable(
+  "onboarding_credential_deliveries",
+  {
+    id: text("id").primaryKey(),
+    applicationId: text("application_id").notNull(),
+    tenantId: text("tenant_id").notNull(),
+    restaurantId: text("restaurant_id").notNull(),
+    userId: text("user_id").notNull(),
+    recipientEmail: text("recipient_email").notNull(),
+    recipientName: text("recipient_name").notNull(),
+    username: text("username").notNull(),
+    setupPasswordLink: text("setup_password_link").notNull(),
+    setupPasswordExpiresAt: text("setup_password_expires_at").notNull(),
+    deliveryChannel: text("delivery_channel").notNull(),
+    status: text("status").notNull(),
+    errorMessage: text("error_message"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+);
+
+type CredentialDeliveryChannel = "email" | "manual";
+type CredentialDeliveryStatus = "sent" | "pending" | "failed";
+
+interface CredentialDelivery {
+  id: string;
+  channel: CredentialDeliveryChannel;
+  status: CredentialDeliveryStatus;
+  recipientEmail: string;
+  recipientName: string;
+  setupPasswordLink: string;
+  setupPasswordExpiresAt: string;
+  errorMessage?: string;
+}
 
 interface ProvisionedOwnerAccount {
   restaurantId: string;
@@ -249,6 +290,7 @@ export class OnboardingService {
     tenantId?: string;
     subdomain?: string;
     ownerAccount?: ProvisionedOwnerAccount;
+    credentialDelivery?: CredentialDelivery;
     error?: string;
   }> {
     const application = await this.getApplication(applicationId);
@@ -275,6 +317,7 @@ export class OnboardingService {
     const previousStatus = application.status;
     let tenantId: string | undefined;
     let ownerAccount: ProvisionedOwnerAccount | undefined;
+    let credentialDelivery: CredentialDelivery | undefined;
 
     try {
       // Update status to provisioning
@@ -286,6 +329,11 @@ export class OnboardingService {
         application,
         tenant.id,
       );
+      credentialDelivery = await this.createCredentialDelivery(
+        application,
+        tenant.id,
+        ownerAccount,
+      );
 
       // Mark application as completed
       await this.env.MANAGEMENT_DB.prepare(
@@ -295,16 +343,37 @@ export class OnboardingService {
       )
         .bind("completed", tenant.id, now, now, applicationId)
         .run();
+      try {
+        credentialDelivery = await this.dispatchCredentialDelivery(
+          application,
+          ownerAccount,
+          credentialDelivery,
+        );
+      } catch (error) {
+        console.error("[OnboardingService] Credential delivery error:", error);
+        credentialDelivery = {
+          ...credentialDelivery,
+          status: "failed",
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Failed to dispatch credential delivery",
+        };
+      }
 
       return {
         success: true,
         tenantId: tenant.id,
         subdomain: application.assignedSubdomain,
         ownerAccount,
+        credentialDelivery,
       };
     } catch (error) {
       console.error("[OnboardingService] Complete error:", error);
 
+      if (credentialDelivery) {
+        await this.rollbackCredentialDelivery(credentialDelivery.id);
+      }
       if (ownerAccount) {
         await this.rollbackPlatformOwnerAccount(ownerAccount);
       }
@@ -330,6 +399,7 @@ export class OnboardingService {
     tenantId?: string;
     subdomain?: string;
     ownerAccount?: ProvisionedOwnerAccount;
+    credentialDelivery?: CredentialDelivery;
     status?: OnboardingStatus;
     error?: string;
   }> {
@@ -341,6 +411,7 @@ export class OnboardingService {
         tenantId: application.tenantId,
         subdomain: application.assignedSubdomain,
         ownerAccount: await this.getProvisionedOwnerAccount(application),
+        credentialDelivery: await this.getCredentialDelivery(application.id),
         status: "completed",
       };
     }
@@ -554,77 +625,56 @@ export class OnboardingService {
       setupPasswordExpiresAt: new Date(setupPasswordExpiresAtMs).toISOString(),
     };
 
-    const restaurantInsert = this.env.PLATFORM_DB.prepare(
-      `INSERT INTO restaurants (
-        id, name, type, category, description, address, district, city, phone,
-        email, latitude, longitude, is_available, is_active, created_at_ms,
-        updated_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      restaurantId,
-      application.businessName,
-      "onboarding",
-      "restaurant",
-      `Provisioned from onboarding application ${application.id}`,
-      "待補充",
-      "待補充",
-      "台中市",
-      application.contactPhone || "00000000",
-      application.contactEmail,
-      application.latitude ?? null,
-      application.longitude ?? null,
-      1,
-      1,
-      nowMs,
-      nowMs,
-    );
-
-    const userInsert = this.env.PLATFORM_DB.prepare(
-      `INSERT INTO users (
-        id, username, email, phone, full_name, password_hash, role,
-        restaurant_id, is_active, is_verified, total_orders, total_spent,
-        token_version, created_at_ms, updated_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      userId,
-      username,
-      application.contactEmail,
-      application.contactPhone || null,
-      application.contactName,
-      passwordHash,
-      1,
-      restaurantId,
-      1,
-      0,
-      0,
-      0,
-      1,
-      nowMs,
-      nowMs,
-    );
-
-    const resetTokenInsert = this.env.PLATFORM_DB.prepare(
-      `INSERT INTO password_reset_tokens (
-        user_id, token, token_type, otp_code, expires_at_ms, used_at_ms,
-        ip_address, user_agent, created_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      userId,
-      setupPasswordToken,
-      "email",
-      null,
-      setupPasswordExpiresAtMs,
-      null,
-      null,
-      "management-onboarding",
-      nowMs,
-    );
+    const platformDb = drizzle(this.env.PLATFORM_DB);
 
     try {
-      await this.env.PLATFORM_DB.batch([
-        restaurantInsert,
-        userInsert,
-        resetTokenInsert,
+      await platformDb.batch([
+        platformDb.insert(restaurants).values({
+          id: restaurantId,
+          name: application.businessName,
+          type: "onboarding",
+          category: "restaurant",
+          description: `Provisioned from onboarding application ${application.id}; owner must complete the restaurant profile before publishing.`,
+          address: this.initialRestaurantAddress(application),
+          district: this.initialRestaurantDistrict(application),
+          city: "台中市",
+          phone: this.initialRestaurantPhone(application),
+          email: application.contactEmail,
+          latitude: application.latitude ?? null,
+          longitude: application.longitude ?? null,
+          isAvailable: false,
+          isActive: true,
+          createdAt: new Date(nowMs),
+          updatedAt: new Date(nowMs),
+        }),
+        platformDb.insert(users).values({
+          id: userId,
+          username,
+          email: application.contactEmail,
+          phone: application.contactPhone || null,
+          fullName: application.contactName,
+          passwordHash,
+          role: 1,
+          restaurantId,
+          isActive: true,
+          isVerified: false,
+          totalOrders: 0,
+          totalSpent: 0,
+          tokenVersion: 1,
+          createdAt: new Date(nowMs),
+          updatedAt: new Date(nowMs),
+        }),
+        platformDb.insert(passwordResetTokens).values({
+          userId,
+          token: setupPasswordToken,
+          tokenType: "email",
+          otpCode: null,
+          expiresAt: new Date(setupPasswordExpiresAtMs),
+          usedAt: null,
+          ipAddress: null,
+          userAgent: "management-onboarding",
+          createdAt: new Date(nowMs),
+        }),
       ]);
 
       await this.env.MANAGEMENT_DB.prepare(
@@ -649,6 +699,82 @@ export class OnboardingService {
     }
   }
 
+  private async createCredentialDelivery(
+    application: OnboardingApplication,
+    tenantId: string,
+    ownerAccount: ProvisionedOwnerAccount,
+  ): Promise<CredentialDelivery> {
+    const now = new Date().toISOString();
+    const channel =
+      this.env.ONBOARDING_EMAIL_ENABLED === "true" ? "email" : "manual";
+    const delivery: CredentialDelivery = {
+      id: crypto.randomUUID(),
+      channel,
+      status: "pending",
+      recipientEmail: application.contactEmail,
+      recipientName: application.contactName,
+      setupPasswordLink: ownerAccount.setupPasswordLink,
+      setupPasswordExpiresAt: ownerAccount.setupPasswordExpiresAt,
+    };
+
+    const managementDb = drizzle(this.env.MANAGEMENT_DB);
+    await managementDb
+      .insert(onboardingCredentialDeliveries)
+      .values({
+        id: delivery.id,
+        applicationId: application.id,
+        tenantId,
+        restaurantId: ownerAccount.restaurantId,
+        userId: ownerAccount.userId,
+        recipientEmail: delivery.recipientEmail,
+        recipientName: delivery.recipientName,
+        username: ownerAccount.username,
+        setupPasswordLink: delivery.setupPasswordLink,
+        setupPasswordExpiresAt: delivery.setupPasswordExpiresAt,
+        deliveryChannel: delivery.channel,
+        status: delivery.status,
+        errorMessage: delivery.errorMessage ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    return delivery;
+  }
+
+  private async dispatchCredentialDelivery(
+    application: OnboardingApplication,
+    ownerAccount: ProvisionedOwnerAccount,
+    delivery: CredentialDelivery,
+  ): Promise<CredentialDelivery> {
+    if (delivery.channel === "manual") {
+      return delivery;
+    }
+
+    const emailResult = await this.sendSetupPasswordEmail(
+      application,
+      ownerAccount,
+    );
+    const updatedDelivery: CredentialDelivery = {
+      ...delivery,
+      status: emailResult.status,
+      errorMessage: emailResult.errorMessage,
+    };
+
+    const managementDb = drizzle(this.env.MANAGEMENT_DB);
+    await managementDb
+      .update(onboardingCredentialDeliveries)
+      .set({
+        status: updatedDelivery.status,
+        errorMessage: updatedDelivery.errorMessage ?? null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(onboardingCredentialDeliveries.id, delivery.id))
+      .run();
+
+    return updatedDelivery;
+  }
+
   private async rollbackPlatformOwnerAccount(
     ownerAccount: ProvisionedOwnerAccount,
   ): Promise<void> {
@@ -669,6 +795,14 @@ export class OnboardingService {
       .run();
     await this.env.PLATFORM_DB.prepare("DELETE FROM restaurants WHERE id = ?")
       .bind(ownerAccount.restaurantId)
+      .run();
+  }
+
+  private async rollbackCredentialDelivery(deliveryId: string): Promise<void> {
+    const managementDb = drizzle(this.env.MANAGEMENT_DB);
+    await managementDb
+      .delete(onboardingCredentialDeliveries)
+      .where(eq(onboardingCredentialDeliveries.id, deliveryId))
       .run();
   }
 
@@ -715,6 +849,31 @@ export class OnboardingService {
       setupPasswordToken: resetToken.token,
       setupPasswordLink: this.buildSetupPasswordLink(resetToken.token),
       setupPasswordExpiresAt: new Date(resetToken.expires_at_ms).toISOString(),
+    };
+  }
+
+  private async getCredentialDelivery(
+    applicationId: string,
+  ): Promise<CredentialDelivery | undefined> {
+    const managementDb = drizzle(this.env.MANAGEMENT_DB);
+    const [row] = await managementDb
+      .select()
+      .from(onboardingCredentialDeliveries)
+      .where(eq(onboardingCredentialDeliveries.applicationId, applicationId))
+      .orderBy(desc(onboardingCredentialDeliveries.createdAt))
+      .limit(1);
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      channel: row.deliveryChannel as CredentialDeliveryChannel,
+      status: row.status,
+      recipientEmail: row.recipientEmail,
+      recipientName: row.recipientName,
+      setupPasswordLink: row.setupPasswordLink,
+      setupPasswordExpiresAt: row.setupPasswordExpiresAt,
+      errorMessage: row.errorMessage ?? undefined,
     };
   }
 
@@ -766,6 +925,112 @@ export class OnboardingService {
 
   private generateUnusablePassword(): string {
     return `disabled-${crypto.randomUUID()}-${randomBase36Upper(12)}`;
+  }
+
+  private initialRestaurantAddress(application: OnboardingApplication): string {
+    if (
+      typeof application.latitude === "number" &&
+      typeof application.longitude === "number"
+    ) {
+      return `Onboarding GPS ${application.latitude.toFixed(6)}, ${application.longitude.toFixed(6)}`;
+    }
+
+    return `Onboarding application ${application.id}`;
+  }
+
+  private initialRestaurantDistrict(
+    application: OnboardingApplication,
+  ): string {
+    return application.assignedSubdomain
+      ? `onboarding-${application.assignedSubdomain}`
+      : `onboarding-${application.id.toLowerCase()}`;
+  }
+
+  private initialRestaurantPhone(application: OnboardingApplication): string {
+    const phone = application.contactPhone.trim();
+    if (!phone) {
+      throw new Error("Application contact phone is required");
+    }
+
+    return phone;
+  }
+
+  private async sendSetupPasswordEmail(
+    application: OnboardingApplication,
+    ownerAccount: ProvisionedOwnerAccount,
+  ): Promise<{
+    attempted: boolean;
+    status: CredentialDeliveryStatus;
+    errorMessage?: string;
+  }> {
+    if (this.env.ONBOARDING_EMAIL_ENABLED !== "true") {
+      return { attempted: false, status: "pending" };
+    }
+
+    const fromEmail = this.env.ONBOARDING_EMAIL_FROM;
+    if (!fromEmail) {
+      return {
+        attempted: true,
+        status: "failed",
+        errorMessage: "ONBOARDING_EMAIL_FROM is not configured",
+      };
+    }
+
+    try {
+      const response = await fetch("https://api.mailchannels.net/tx/v1/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personalizations: [
+            {
+              to: [
+                {
+                  email: application.contactEmail,
+                  name: application.contactName,
+                },
+              ],
+            },
+          ],
+          from: {
+            email: fromEmail,
+            name: "MakanMakan Onboarding",
+          },
+          subject: "Set up your MakanMakan owner account",
+          content: [
+            {
+              type: "text/plain",
+              value: [
+                `Hi ${application.contactName},`,
+                "",
+                `Your MakanMakan owner account for ${application.businessName} is ready.`,
+                `Username: ${ownerAccount.username}`,
+                `Set your password here: ${ownerAccount.setupPasswordLink}`,
+                `This link expires at ${ownerAccount.setupPasswordExpiresAt}.`,
+              ].join("\n"),
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        return {
+          attempted: true,
+          status: "failed",
+          errorMessage: `MailChannels returned ${response.status}`,
+        };
+      }
+
+      return { attempted: true, status: "sent" };
+    } catch (error) {
+      return {
+        attempted: true,
+        status: "failed",
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "Failed to send onboarding email",
+      };
+    }
   }
 
   private buildSetupPasswordLink(token: string): string {

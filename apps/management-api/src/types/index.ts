@@ -31,6 +31,8 @@ export interface ManagementEnv {
   PLATFORM_CF_API_TOKEN?: string;
   PLATFORM_CF_ACCOUNT_ID?: string;
   SLACK_WEBHOOK_URL?: string; // Optional: for alert notifications
+  ONBOARDING_EMAIL_ENABLED?: string;
+  ONBOARDING_EMAIL_FROM?: string;
 
   // D1 Database binding
   MANAGEMENT_DB: D1Database;

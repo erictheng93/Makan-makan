@@ -114,6 +114,7 @@ router.post("/applications/:id/approve", async (c) => {
       tenantId: result.tenantId,
       subdomain: result.subdomain,
       ownerAccount: result.ownerAccount,
+      credentialDelivery: result.credentialDelivery,
       status: result.status ?? "completed",
     },
   });

@@ -40,12 +40,32 @@ function createPlatformDb() {
       city TEXT NOT NULL DEFAULT '台中市',
       phone TEXT NOT NULL,
       email TEXT,
+      website TEXT,
+      messaging_channels TEXT,
+      business_hours TEXT,
       latitude REAL,
       longitude REAL,
       is_available INTEGER NOT NULL DEFAULT 1,
       is_active INTEGER NOT NULL DEFAULT 1,
+      logo_url TEXT,
+      banner_url TEXT,
+      image_urls TEXT,
+      shop_qr_code TEXT UNIQUE,
+      shop_qr_code_image_url TEXT,
+      enable_shop_mode INTEGER NOT NULL DEFAULT 0,
+      shop_qr_settings TEXT,
+      shop_qr_version INTEGER NOT NULL DEFAULT 1,
+      settings TEXT,
+      rating REAL DEFAULT 0,
+      review_count INTEGER NOT NULL DEFAULT 0,
+      total_orders INTEGER NOT NULL DEFAULT 0,
       created_at_ms INTEGER NOT NULL,
-      updated_at_ms INTEGER NOT NULL
+      updated_at_ms INTEGER NOT NULL,
+      deleted_at_ms INTEGER,
+      cuisine_tags TEXT,
+      price_range INTEGER,
+      supports_takeaway INTEGER NOT NULL DEFAULT 0,
+      supports_delivery INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE users (
@@ -57,13 +77,22 @@ function createPlatformDb() {
       password_hash TEXT NOT NULL,
       role INTEGER NOT NULL DEFAULT 4,
       restaurant_id TEXT,
+      address TEXT,
+      date_of_birth TEXT,
+      profile_image_url TEXT,
       is_active INTEGER NOT NULL DEFAULT 1,
       is_verified INTEGER NOT NULL DEFAULT 0,
+      preferences TEXT,
       total_orders INTEGER NOT NULL DEFAULT 0,
       total_spent INTEGER NOT NULL DEFAULT 0,
+      last_login_at_ms INTEGER,
+      password_changed_at_ms INTEGER,
       token_version INTEGER NOT NULL DEFAULT 1,
+      email_verified_at_ms INTEGER,
+      phone_verified_at_ms INTEGER,
       created_at_ms INTEGER NOT NULL,
-      updated_at_ms INTEGER NOT NULL
+      updated_at_ms INTEGER NOT NULL,
+      deleted_at_ms INTEGER
     );
 
     CREATE TABLE password_reset_tokens (
@@ -77,6 +106,23 @@ function createPlatformDb() {
       ip_address TEXT,
       user_agent TEXT,
       created_at_ms INTEGER NOT NULL
+    );
+
+    CREATE TABLE onboarding_credential_deliveries (
+      id TEXT PRIMARY KEY NOT NULL,
+      application_id TEXT NOT NULL,
+      tenant_id TEXT NOT NULL,
+      restaurant_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      recipient_email TEXT NOT NULL,
+      recipient_name TEXT NOT NULL,
+      username TEXT NOT NULL,
+      setup_password_link TEXT NOT NULL,
+      setup_password_expires_at TEXT NOT NULL,
+      delivery_channel TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `);
 
@@ -318,6 +364,15 @@ describe("Onboarding public API workflow — real integration", () => {
       `http://localhost:3004/reset-password?token=${approveJson.data.ownerAccount.setupPasswordToken}`,
     );
     expect("initialPassword" in approveJson.data.ownerAccount).toBe(false);
+    expect(approveJson.data.credentialDelivery).toMatchObject({
+      channel: "manual",
+      status: "pending",
+      recipientEmail: "tan.mei@example.com",
+      recipientName: "Tan Mei",
+    });
+    expect(approveJson.data.credentialDelivery.setupPasswordLink).toBe(
+      approveJson.data.ownerAccount.setupPasswordLink,
+    );
 
     const tenantRow = db
       .raw()
@@ -336,13 +391,14 @@ describe("Onboarding public API workflow — real integration", () => {
     const restaurantRow = platformDb
       .raw()
       .prepare(
-        "SELECT id, name, email, is_active FROM restaurants WHERE id = ?",
+        "SELECT id, name, email, is_available, is_active FROM restaurants WHERE id = ?",
       )
       .get(approveJson.data.ownerAccount.restaurantId);
     expect(restaurantRow).toMatchObject({
       id: approveJson.data.ownerAccount.restaurantId,
       name: "Workflow Laksa",
       email: "tan.mei@example.com",
+      is_available: 0,
       is_active: 1,
     });
 
@@ -382,6 +438,41 @@ describe("Onboarding public API workflow — real integration", () => {
       token_type: "email",
       used_at_ms: null,
     });
+
+    const deliveryRow = db
+      .raw()
+      .prepare(
+        `SELECT application_id, tenant_id, restaurant_id, user_id,
+                recipient_email, recipient_name, username,
+                setup_password_link, delivery_channel, status
+         FROM onboarding_credential_deliveries
+         WHERE application_id = ?`,
+      )
+      .get(approvedCandidateId);
+    expect(deliveryRow).toMatchObject({
+      application_id: approvedCandidateId,
+      tenant_id: approveJson.data.tenantId,
+      restaurant_id: approveJson.data.ownerAccount.restaurantId,
+      user_id: approveJson.data.ownerAccount.userId,
+      recipient_email: "tan.mei@example.com",
+      recipient_name: "Tan Mei",
+      username: "tan.mei",
+      setup_password_link: approveJson.data.ownerAccount.setupPasswordLink,
+      delivery_channel: "manual",
+      status: "pending",
+    });
+
+    const incompleteProfileCount = platformDb
+      .raw()
+      .prepare(
+        `SELECT COUNT(*) AS count
+         FROM restaurants
+         WHERE address = '待補充'
+            OR district = '待補充'
+            OR phone = '00000000'`,
+      )
+      .get();
+    expect(incompleteProfileCount).toMatchObject({ count: 0 });
 
     const rejectResponse = await app.fetch(
       new Request(
@@ -455,6 +546,10 @@ describe("Onboarding public API workflow — real integration", () => {
         username: firstJson.data.ownerAccount.username,
         setupPasswordToken: firstJson.data.ownerAccount.setupPasswordToken,
       },
+      credentialDelivery: {
+        status: "pending",
+        channel: "manual",
+      },
     });
     expect(
       platformDb.raw().prepare("SELECT COUNT(*) AS count FROM users").get(),
@@ -467,6 +562,14 @@ describe("Onboarding public API workflow — real integration", () => {
     ).toMatchObject({ count: 1 });
     expect(
       db.raw().prepare("SELECT COUNT(*) AS count FROM tenants").get(),
+    ).toMatchObject({ count: 1 });
+    expect(
+      db
+        .raw()
+        .prepare(
+          "SELECT COUNT(*) AS count FROM onboarding_credential_deliveries",
+        )
+        .get(),
     ).toMatchObject({ count: 1 });
   });
 
