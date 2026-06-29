@@ -78,7 +78,7 @@
         <div>
           <h2 class="font-semibold">店主帳號已啟用</h2>
           <p class="mt-1 text-emerald-800">
-            請將以下一次性初始帳密交給店主，登入後應立即變更密碼。
+            請將以下一次性設定密碼連結交給店主。連結使用後即失效。
           </p>
         </div>
         <button
@@ -98,20 +98,21 @@
           </dd>
         </div>
         <div>
-          <dt class="text-xs font-medium text-emerald-700">初始密碼</dt>
+          <dt class="text-xs font-medium text-emerald-700">設定密碼連結</dt>
           <dd class="mt-1 break-all font-mono text-sm">
-            {{ approvedOwnerAccount.initialPassword }}
+            {{ approvedOwnerAccount.setupPasswordLink }}
           </dd>
         </div>
         <div>
-          <dt class="text-xs font-medium text-emerald-700">餐廳 ID</dt>
+          <dt class="text-xs font-medium text-emerald-700">有效期限</dt>
           <dd class="mt-1 break-all font-mono text-sm">
-            {{ approvedOwnerAccount.restaurantId }}
+            {{ formatDate(approvedOwnerAccount.setupPasswordExpiresAt) }}
           </dd>
         </div>
         <div>
-          <dt class="text-xs font-medium text-emerald-700">使用者 ID</dt>
+          <dt class="text-xs font-medium text-emerald-700">餐廳 / 使用者</dt>
           <dd class="mt-1 break-all font-mono text-sm">
+            {{ approvedOwnerAccount.restaurantId }} /
             {{ approvedOwnerAccount.userId }}
           </dd>
         </div>

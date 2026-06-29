@@ -44,7 +44,10 @@ describe("PlatformOnboardingApplicationsView", () => {
         restaurantId: "restaurant-1",
         userId: "owner-1",
         username: "tan",
-        initialPassword: "Mkm-ABCDEF-GHIJKL!",
+        setupPasswordToken: "setup-token",
+        setupPasswordLink:
+          "https://admin.example.test/reset-password?token=setup-token",
+        setupPasswordExpiresAt: "2026-06-30T00:00:00.000Z",
       },
       status: "completed",
     });
@@ -81,7 +84,7 @@ describe("PlatformOnboardingApplicationsView", () => {
     ).toContain("tan");
     expect(
       wrapper.get('[data-testid="approved-owner-account"]').text(),
-    ).toContain("Mkm-ABCDEF-GHIJKL!");
+    ).toContain("https://admin.example.test/reset-password?token=setup-token");
 
     await wrapper
       .get('[data-testid="reject-onboarding-APP-1"]')

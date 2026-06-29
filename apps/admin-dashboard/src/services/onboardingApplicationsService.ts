@@ -38,7 +38,9 @@ export interface ProvisionedOwnerAccount {
   restaurantId: string;
   userId: string;
   username: string;
-  initialPassword: string;
+  setupPasswordToken: string;
+  setupPasswordLink: string;
+  setupPasswordExpiresAt: string;
 }
 
 export interface ApproveOnboardingApplicationResult {

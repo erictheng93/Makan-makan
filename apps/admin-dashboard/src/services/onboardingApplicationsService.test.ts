@@ -68,7 +68,10 @@ describe("onboardingApplicationsService", () => {
               restaurantId: "restaurant-1",
               userId: "owner-1",
               username: "tan",
-              initialPassword: "Mkm-ABCDEF-GHIJKL!",
+              setupPasswordToken: "setup-token",
+              setupPasswordLink:
+                "https://admin.example.test/reset-password?token=setup-token",
+              setupPasswordExpiresAt: "2026-06-30T00:00:00.000Z",
             },
             status: "completed",
           },
@@ -83,7 +86,8 @@ describe("onboardingApplicationsService", () => {
 
     expect(approveResult.ownerAccount).toMatchObject({
       username: "tan",
-      initialPassword: "Mkm-ABCDEF-GHIJKL!",
+      setupPasswordLink:
+        "https://admin.example.test/reset-password?token=setup-token",
     });
     expect(api.post).toHaveBeenNthCalledWith(
       1,

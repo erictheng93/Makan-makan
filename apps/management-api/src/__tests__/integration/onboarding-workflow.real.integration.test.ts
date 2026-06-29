@@ -65,6 +65,19 @@ function createPlatformDb() {
       created_at_ms INTEGER NOT NULL,
       updated_at_ms INTEGER NOT NULL
     );
+
+    CREATE TABLE password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      user_id TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      token_type TEXT NOT NULL DEFAULT 'email',
+      otp_code TEXT,
+      expires_at_ms INTEGER NOT NULL,
+      used_at_ms INTEGER,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at_ms INTEGER NOT NULL
+    );
   `);
 
   return new D1DatabaseAdapter(sqlite);
@@ -298,7 +311,13 @@ describe("Onboarding public API workflow — real integration", () => {
     expect(typeof approveJson.data.tenantId).toBe("string");
     expect(typeof approveJson.data.ownerAccount.restaurantId).toBe("string");
     expect(typeof approveJson.data.ownerAccount.userId).toBe("string");
-    expect(typeof approveJson.data.ownerAccount.initialPassword).toBe("string");
+    expect(typeof approveJson.data.ownerAccount.setupPasswordToken).toBe(
+      "string",
+    );
+    expect(approveJson.data.ownerAccount.setupPasswordLink).toBe(
+      `http://localhost:3004/reset-password?token=${approveJson.data.ownerAccount.setupPasswordToken}`,
+    );
+    expect("initialPassword" in approveJson.data.ownerAccount).toBe(false);
 
     const tenantRow = db
       .raw()
@@ -347,11 +366,22 @@ describe("Onboarding public API workflow — real integration", () => {
       is_active: 1,
     });
     await expect(
-      bcrypt.compare(
-        approveJson.data.ownerAccount.initialPassword,
-        userRow.password_hash,
-      ),
-    ).resolves.toBe(true);
+      bcrypt.compare("Mkm-ABCDEF-GHIJKL!", userRow.password_hash),
+    ).resolves.toBe(false);
+
+    const resetTokenRow = platformDb
+      .raw()
+      .prepare(
+        `SELECT user_id, token, token_type, expires_at_ms, used_at_ms
+         FROM password_reset_tokens WHERE user_id = ?`,
+      )
+      .get(approveJson.data.ownerAccount.userId);
+    expect(resetTokenRow).toMatchObject({
+      user_id: approveJson.data.ownerAccount.userId,
+      token: approveJson.data.ownerAccount.setupPasswordToken,
+      token_type: "email",
+      used_at_ms: null,
+    });
 
     const rejectResponse = await app.fetch(
       new Request(
@@ -369,6 +399,127 @@ describe("Onboarding public API workflow — real integration", () => {
       success: true,
       data: { status: "rejected" },
     });
+    expect(
+      platformDb.raw().prepare("SELECT COUNT(*) AS count FROM users").get(),
+    ).toMatchObject({ count: 1 });
+    expect(
+      platformDb
+        .raw()
+        .prepare("SELECT COUNT(*) AS count FROM restaurants")
+        .get(),
+    ).toMatchObject({ count: 1 });
+  });
+
+  it("keeps approve idempotent after completion without creating duplicate platform records", async () => {
+    const db = createManagementDb();
+    const platformDb = createPlatformDb();
+    const env = createEnv(db, platformDb);
+    const token = await managementToken();
+
+    const createResponse = await app.fetch(
+      new Request("https://management.test/api/v1/onboarding/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createApplicationBody()),
+      }),
+      env,
+    );
+    const createJson: any = await createResponse.json();
+    const approveUrl = `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/approve`;
+
+    const firstApprove = await app.fetch(
+      new Request(approveUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      env,
+    );
+    const firstJson: any = await firstApprove.json();
+
+    const secondApprove = await app.fetch(
+      new Request(approveUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      env,
+    );
+    const secondJson: any = await secondApprove.json();
+
+    expect(secondApprove.status).toBe(200);
+    expect(secondJson.data).toMatchObject({
+      status: "completed",
+      tenantId: firstJson.data.tenantId,
+      ownerAccount: {
+        userId: firstJson.data.ownerAccount.userId,
+        restaurantId: firstJson.data.ownerAccount.restaurantId,
+        username: firstJson.data.ownerAccount.username,
+        setupPasswordToken: firstJson.data.ownerAccount.setupPasswordToken,
+      },
+    });
+    expect(
+      platformDb.raw().prepare("SELECT COUNT(*) AS count FROM users").get(),
+    ).toMatchObject({ count: 1 });
+    expect(
+      platformDb
+        .raw()
+        .prepare("SELECT COUNT(*) AS count FROM restaurants")
+        .get(),
+    ).toMatchObject({ count: 1 });
+    expect(
+      db.raw().prepare("SELECT COUNT(*) AS count FROM tenants").get(),
+    ).toMatchObject({ count: 1 });
+  });
+
+  it("rolls back tenant and platform records when setup token provisioning fails", async () => {
+    const db = createManagementDb();
+    const platformDb = createPlatformDb();
+    platformDb.raw().prepare("DROP TABLE password_reset_tokens").run();
+    const env = createEnv(db, platformDb);
+    const token = await managementToken();
+
+    const createResponse = await app.fetch(
+      new Request("https://management.test/api/v1/onboarding/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createApplicationBody()),
+      }),
+      env,
+    );
+    const createJson: any = await createResponse.json();
+
+    const approveResponse = await app.fetch(
+      new Request(
+        `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/approve`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      ),
+      env,
+    );
+
+    expect(approveResponse.status).toBe(400);
+    expect(
+      db.raw().prepare("SELECT status FROM onboarding_applications").get(),
+    ).toMatchObject({ status: "submitted" });
+    expect(
+      db.raw().prepare("SELECT COUNT(*) AS count FROM tenants").get(),
+    ).toMatchObject({ count: 0 });
+    expect(
+      db
+        .raw()
+        .prepare("SELECT COUNT(*) AS count FROM shop_subscriptions")
+        .get(),
+    ).toMatchObject({ count: 0 });
+    expect(
+      platformDb.raw().prepare("SELECT COUNT(*) AS count FROM users").get(),
+    ).toMatchObject({ count: 0 });
+    expect(
+      platformDb
+        .raw()
+        .prepare("SELECT COUNT(*) AS count FROM restaurants")
+        .get(),
+    ).toMatchObject({ count: 0 });
   });
 
   it("does not let applicants complete applications without platform approval", async () => {

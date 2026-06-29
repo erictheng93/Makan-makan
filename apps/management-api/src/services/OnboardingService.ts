@@ -29,7 +29,9 @@ interface ProvisionedOwnerAccount {
   restaurantId: string;
   userId: string;
   username: string;
-  initialPassword: string;
+  setupPasswordToken: string;
+  setupPasswordLink: string;
+  setupPasswordExpiresAt: string;
 }
 
 export class OnboardingService {
@@ -338,6 +340,7 @@ export class OnboardingService {
         success: true,
         tenantId: application.tenantId,
         subdomain: application.assignedSubdomain,
+        ownerAccount: await this.getProvisionedOwnerAccount(application),
         status: "completed",
       };
     }
@@ -539,8 +542,17 @@ export class OnboardingService {
     const restaurantId = crypto.randomUUID();
     const userId = crypto.randomUUID();
     const username = await this.generateAvailableOwnerUsername(application);
-    const initialPassword = this.generateInitialPassword();
-    const passwordHash = await bcrypt.hash(initialPassword, 10);
+    const passwordHash = await bcrypt.hash(this.generateUnusablePassword(), 10);
+    const setupPasswordToken = crypto.randomUUID();
+    const setupPasswordExpiresAtMs = nowMs + 24 * 60 * 60 * 1000;
+    const ownerAccount: ProvisionedOwnerAccount = {
+      restaurantId,
+      userId,
+      username,
+      setupPasswordToken,
+      setupPasswordLink: this.buildSetupPasswordLink(setupPasswordToken),
+      setupPasswordExpiresAt: new Date(setupPasswordExpiresAtMs).toISOString(),
+    };
 
     const restaurantInsert = this.env.PLATFORM_DB.prepare(
       `INSERT INTO restaurants (
@@ -591,24 +603,50 @@ export class OnboardingService {
       nowMs,
     );
 
-    await this.env.PLATFORM_DB.batch([restaurantInsert, userInsert]);
+    const resetTokenInsert = this.env.PLATFORM_DB.prepare(
+      `INSERT INTO password_reset_tokens (
+        user_id, token, token_type, otp_code, expires_at_ms, used_at_ms,
+        ip_address, user_agent, created_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      userId,
+      setupPasswordToken,
+      "email",
+      null,
+      setupPasswordExpiresAtMs,
+      null,
+      null,
+      "management-onboarding",
+      nowMs,
+    );
 
-    await this.env.MANAGEMENT_DB.prepare(
-      `UPDATE tenants
-       SET platform_restaurant_id = ?, owner_user_id = ?, owner_username = ?,
-           updated_at = ?
-       WHERE id = ?`,
-    )
-      .bind(
-        restaurantId,
-        userId,
-        username,
-        new Date(nowMs).toISOString(),
-        tenantId,
+    try {
+      await this.env.PLATFORM_DB.batch([
+        restaurantInsert,
+        userInsert,
+        resetTokenInsert,
+      ]);
+
+      await this.env.MANAGEMENT_DB.prepare(
+        `UPDATE tenants
+         SET platform_restaurant_id = ?, owner_user_id = ?, owner_username = ?,
+             updated_at = ?
+         WHERE id = ?`,
       )
-      .run();
+        .bind(
+          restaurantId,
+          userId,
+          username,
+          new Date(nowMs).toISOString(),
+          tenantId,
+        )
+        .run();
 
-    return { restaurantId, userId, username, initialPassword };
+      return ownerAccount;
+    } catch (error) {
+      await this.rollbackPlatformOwnerAccount(ownerAccount);
+      throw error;
+    }
   }
 
   private async rollbackPlatformOwnerAccount(
@@ -616,12 +654,68 @@ export class OnboardingService {
   ): Promise<void> {
     if (!this.env.PLATFORM_DB) return;
 
+    try {
+      await this.env.PLATFORM_DB.prepare(
+        "DELETE FROM password_reset_tokens WHERE user_id = ?",
+      )
+        .bind(ownerAccount.userId)
+        .run();
+    } catch {
+      // The failure may be caused by token table provisioning itself. Continue
+      // deleting the records that are guaranteed to exist in platform DB.
+    }
     await this.env.PLATFORM_DB.prepare("DELETE FROM users WHERE id = ?")
       .bind(ownerAccount.userId)
       .run();
     await this.env.PLATFORM_DB.prepare("DELETE FROM restaurants WHERE id = ?")
       .bind(ownerAccount.restaurantId)
       .run();
+  }
+
+  private async getProvisionedOwnerAccount(
+    application: OnboardingApplication,
+  ): Promise<ProvisionedOwnerAccount | undefined> {
+    if (!this.env.PLATFORM_DB || !application.tenantId) return undefined;
+
+    const tenant = await this.env.MANAGEMENT_DB.prepare(
+      `SELECT platform_restaurant_id, owner_user_id, owner_username
+       FROM tenants WHERE id = ?`,
+    )
+      .bind(application.tenantId)
+      .first<{
+        platform_restaurant_id?: string | null;
+        owner_user_id?: string | null;
+        owner_username?: string | null;
+      }>();
+
+    if (
+      !tenant?.platform_restaurant_id ||
+      !tenant.owner_user_id ||
+      !tenant.owner_username
+    ) {
+      return undefined;
+    }
+
+    const resetToken = await this.env.PLATFORM_DB.prepare(
+      `SELECT token, expires_at_ms
+       FROM password_reset_tokens
+       WHERE user_id = ? AND used_at_ms IS NULL
+       ORDER BY expires_at_ms DESC
+       LIMIT 1`,
+    )
+      .bind(tenant.owner_user_id)
+      .first<{ token: string; expires_at_ms: number }>();
+
+    if (!resetToken) return undefined;
+
+    return {
+      restaurantId: tenant.platform_restaurant_id,
+      userId: tenant.owner_user_id,
+      username: tenant.owner_username,
+      setupPasswordToken: resetToken.token,
+      setupPasswordLink: this.buildSetupPasswordLink(resetToken.token),
+      setupPasswordExpiresAt: new Date(resetToken.expires_at_ms).toISOString(),
+    };
   }
 
   private async rollbackTenantProvisioning(tenantId: string): Promise<void> {
@@ -670,8 +764,30 @@ export class OnboardingService {
     return username.length >= 3 ? username : `owner-${randomBase36(6)}`;
   }
 
-  private generateInitialPassword(): string {
-    return `Mkm-${randomBase36Upper(6)}-${randomBase36Upper(6)}!`;
+  private generateUnusablePassword(): string {
+    return `disabled-${crypto.randomUUID()}-${randomBase36Upper(12)}`;
+  }
+
+  private buildSetupPasswordLink(token: string): string {
+    const baseUrl =
+      this.firstConfiguredOrigin(this.env.CORS_ORIGIN) ||
+      this.stripApiPath(this.env.API_BASE_URL) ||
+      "http://localhost:3000";
+
+    return `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+  }
+
+  private firstConfiguredOrigin(value: string | undefined): string | undefined {
+    if (!value || value.trim() === "*") return undefined;
+    return value
+      .split(",")
+      .map((origin) => origin.trim())
+      .find(Boolean);
+  }
+
+  private stripApiPath(value: string | undefined): string | undefined {
+    if (!value) return undefined;
+    return value.replace(/\/api(?:\/v\d+)?$/i, "").replace(/\/+$/, "");
   }
 
   private toTenantLicenseTier(planId: string | null | undefined): LicenseTier {
