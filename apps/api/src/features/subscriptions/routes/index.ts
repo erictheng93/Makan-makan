@@ -6,7 +6,9 @@
  */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import type { Env } from "../../../types/env";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { invalidateSubscriptionCache } from "../../../middleware/moduleGate";
@@ -21,6 +23,42 @@ import {
 } from "../schemas";
 
 const router = new Hono<{ Bindings: Env }>();
+
+const formatZodDetails = (error: z.ZodError) =>
+  error.errors.map((err) => ({
+    field: err.path.join("."),
+    message: err.message,
+    code: err.code,
+  }));
+
+function unifiedValidationHook(
+  result: { success: boolean; error?: z.ZodError },
+  c: Context,
+) {
+  if (!result.success) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: result.error ? formatZodDetails(result.error) : [],
+        },
+      },
+      400,
+    );
+  }
+}
+
+function requirePathParam(c: Context, name: string): string {
+  const value = c.req.param(name);
+  if (!value) {
+    throw badRequest(`Missing ${name}`, "VALIDATION_ERROR", [
+      { field: name, message: `${name} is required`, code: "required" },
+    ]);
+  }
+  return value;
+}
 
 // All subscription management routes require admin access
 router.use("*", authMiddleware, requireRole([0]));
@@ -120,30 +158,34 @@ router.get("/:restaurantId", async (c) => {
 });
 
 // ─── Create subscription (client onboarding) ─────────────────────────────────
-router.post("/", zValidator("json", createSubscriptionSchema), async (c) => {
-  const body = c.req.valid("json");
-  const service = new SubscriptionService(c.env.DB);
+router.post(
+  "/",
+  zValidator("json", createSubscriptionSchema, unifiedValidationHook),
+  async (c) => {
+    const body = c.req.valid("json");
+    const service = new SubscriptionService(c.env.DB);
 
-  const sub = await service.create({
-    ...body,
-    trialEndsAt: body.trialEndsAt ? new Date(body.trialEndsAt) : undefined,
-    billingCycleStartAt: body.billingCycleStartAt
-      ? new Date(body.billingCycleStartAt)
-      : undefined,
-    billingCycleEndAt: body.billingCycleEndAt
-      ? new Date(body.billingCycleEndAt)
-      : undefined,
-  });
+    const sub = await service.create({
+      ...body,
+      trialEndsAt: body.trialEndsAt ? new Date(body.trialEndsAt) : undefined,
+      billingCycleStartAt: body.billingCycleStartAt
+        ? new Date(body.billingCycleStartAt)
+        : undefined,
+      billingCycleEndAt: body.billingCycleEndAt
+        ? new Date(body.billingCycleEndAt)
+        : undefined,
+    });
 
-  return c.json({ success: true, data: sub }, 201);
-});
+    return c.json({ success: true, data: sub }, 201);
+  },
+);
 
 // ─── Update module overrides ──────────────────────────────────────────────────
 router.patch(
   "/:restaurantId/modules",
-  zValidator("json", updateModulesSchema),
+  zValidator("json", updateModulesSchema, unifiedValidationHook),
   async (c) => {
-    const restaurantId = c.req.param("restaurantId");
+    const restaurantId = requirePathParam(c, "restaurantId");
     const body = c.req.valid("json");
     const service = new SubscriptionService(c.env.DB);
 
@@ -167,9 +209,9 @@ router.patch(
 // ─── Change plan tier ─────────────────────────────────────────────────────────
 router.patch(
   "/:restaurantId/plan",
-  zValidator("json", changePlanSchema),
+  zValidator("json", changePlanSchema, unifiedValidationHook),
   async (c) => {
-    const restaurantId = c.req.param("restaurantId");
+    const restaurantId = requirePathParam(c, "restaurantId");
     const { planTier } = c.req.valid("json");
     const service = new SubscriptionService(c.env.DB);
 
@@ -189,9 +231,9 @@ router.patch(
 // ─── Kill switch ──────────────────────────────────────────────────────────────
 router.patch(
   "/:restaurantId/status",
-  zValidator("json", setActiveSchema),
+  zValidator("json", setActiveSchema, unifiedValidationHook),
   async (c) => {
-    const restaurantId = c.req.param("restaurantId");
+    const restaurantId = requirePathParam(c, "restaurantId");
     const { isActive } = c.req.valid("json");
     const service = new SubscriptionService(c.env.DB);
 

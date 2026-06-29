@@ -285,6 +285,32 @@ describe("subscription admin routes", () => {
     });
   });
 
+  it("returns the unified error shape for invalid onboarding payloads", async () => {
+    const response = await request("/", {
+      method: "POST",
+      body: JSON.stringify({
+        restaurantId: "",
+        planTier: "not-a-plan",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: expect.arrayContaining([
+          expect.objectContaining({ field: "restaurantId" }),
+          expect.objectContaining({ field: "planTier" }),
+        ]),
+      },
+    });
+    expect(mocks.subscriptionService.create).not.toHaveBeenCalled();
+  });
+
   it("updates module overrides and invalidates the subscription cache", async () => {
     const response = await request("/restaurant-1/modules", {
       method: "PATCH",

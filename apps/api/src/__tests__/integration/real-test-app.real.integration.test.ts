@@ -41,6 +41,23 @@ describe("createRealIntegrationTestApp", () => {
     expect(res.status).toBe(401);
   });
 
+  it("returns 404 for unknown paths under protected prefixes", async () => {
+    testApp = await createRealIntegrationTestApp();
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/orders/definitely/not-a-route"),
+    );
+    const body = (await res.json()) as {
+      success: boolean;
+      error?: { code?: string };
+    };
+
+    expect(res.status).toBe(404);
+    expect(body).toMatchObject({
+      success: false,
+      error: { code: "ROUTE_NOT_FOUND" },
+    });
+  });
+
   it("dispose releases resources without error", async () => {
     testApp = await createRealIntegrationTestApp();
     await expect(testApp.dispose()).resolves.not.toThrow();

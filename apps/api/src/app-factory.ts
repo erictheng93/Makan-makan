@@ -126,6 +126,12 @@ export interface AppRuntimeOptions {
 }
 
 type ErrorResponseStatusCode = ClientErrorStatusCode | ServerErrorStatusCode;
+type HonoRoute = {
+  method: string;
+  path: string;
+};
+
+const ROUTE_REGEX_CACHE = new Map<string, RegExp>();
 
 const ERROR_RESPONSE_STATUS_CODES = new Set<number>([
   400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414,
@@ -137,6 +143,74 @@ function toErrorResponseStatusCode(status: number): ErrorResponseStatusCode {
   return ERROR_RESPONSE_STATUS_CODES.has(status)
     ? (status as ErrorResponseStatusCode)
     : 500;
+}
+
+function normalizeRoutePath(path: string): string {
+  if (path === "") return "/";
+  const withoutTrailingSlash =
+    path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+  return withoutTrailingSlash || "/";
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function routePathToRegex(path: string): RegExp {
+  const normalized = normalizeRoutePath(path);
+  const cached = ROUTE_REGEX_CACHE.get(normalized);
+  if (cached) return cached;
+
+  if (normalized === "/") return /^\/$/;
+
+  const pattern = normalized
+    .split("/")
+    .map((segment) => {
+      if (segment === "*") return ".*";
+      if (segment.startsWith(":")) return "[^/]+";
+      return escapeRegex(segment);
+    })
+    .join("/");
+
+  const regex = new RegExp(`^${pattern}$`);
+  ROUTE_REGEX_CACHE.set(normalized, regex);
+  return regex;
+}
+
+function routeCanHandleMethod(routeMethod: string, requestMethod: string) {
+  if (routeMethod === "ALL") return true;
+  if (requestMethod === "HEAD" && routeMethod === "GET") return true;
+  return routeMethod === requestMethod;
+}
+
+function hasConcreteApiRoute(
+  routes: HonoRoute[],
+  requestPath: string,
+  requestMethod: string,
+) {
+  const path = normalizeRoutePath(
+    requestPath.startsWith("/api/v1")
+      ? requestPath.slice("/api/v1".length)
+      : requestPath,
+  );
+
+  return routes.some((route) => {
+    if (route.method === "ALL") return false;
+    return (
+      routeCanHandleMethod(route.method, requestMethod) &&
+      routePathToRegex(route.path).test(path)
+    );
+  });
+}
+
+function apiV1RouteNotFound(method: string, path: string) {
+  return {
+    success: false,
+    error: {
+      code: "ROUTE_NOT_FOUND",
+      message: `API endpoint not found: ${method} ${path}`,
+    },
+  };
 }
 
 export function createApp(
@@ -479,6 +553,20 @@ export function createApp(
   apiV1.route("/market-checkouts", marketCheckoutsFeature.routes); // 市場多攤位訪客結帳
   apiV1.route("/credits", creditsFeature.routes); // 代幣儲值卡 (查餘額公開限流, 管理端點 admin)
   apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
+
+  apiV1.use("*", async (c, next) => {
+    if (
+      !hasConcreteApiRoute(
+        apiV1.routes as HonoRoute[],
+        c.req.path,
+        c.req.method,
+      )
+    ) {
+      return c.json(apiV1RouteNotFound(c.req.method, c.req.path), 404);
+    }
+
+    await next();
+  });
 
   // 受保護的路由（需要認證）
   // Note: /restaurants/* uses optionalAuth globally because GET routes are public (list, details, popular, nearby)
