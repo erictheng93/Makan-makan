@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const loggerFns = vi.hoisted(() => ({
   info: vi.fn(),
@@ -20,10 +20,24 @@ vi.mock("./routes", () => {
   return { default: routes };
 });
 
+vi.mock("@makanmakan/database", () => ({
+  SchedulingService: vi.fn(),
+}));
+
+vi.mock("./schemas/validation", () => ({
+  schedulingSchemas: {},
+}));
+
 describe("scheduling feature module", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it("initializes metadata, health, diagnostics, routes, and cleanup exports", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-08T08:30:00.000Z"));
+    vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
+      "2026-06-08T08:30:00.000Z",
+    );
 
     const schedulingFeature = await import("./index");
     const module = new schedulingFeature.SchedulingModule();
@@ -42,7 +56,9 @@ describe("scheduling feature module", () => {
     await expect(
       module.routes.request("/probe").then((res) => res.json()),
     ).resolves.toEqual({ success: true, feature: "scheduling" });
+    const missingDateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     const missingResponse = await module.routes.request("/missing");
+    missingDateNow.mockRestore();
     expect(missingResponse.status).toBe(404);
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - starting");
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - completed", {
@@ -110,7 +126,5 @@ describe("scheduling feature module", () => {
       name: "scheduling",
     });
     await schedulingFeature.default.cleanup();
-
-    vi.useRealTimers();
   });
 });

@@ -17,6 +17,7 @@ import type { SupportedLanguage } from "@/i18n";
 
 type I18nGlobal = {
   t: (key: string, params?: Record<string, unknown>) => string;
+  getLocaleMessage: (locale: SupportedLanguage) => Record<string, unknown>;
 };
 
 const testI18n = i18n.global as unknown as I18nGlobal;
@@ -38,13 +39,27 @@ const ALL_LOCALES: SupportedLanguage[] = [
  */
 function assertKeysInAllLocales(keys: string[]) {
   ALL_LOCALES.forEach((locale) => {
-    switchLanguage(locale);
+    const localeMessages = testI18n.getLocaleMessage(locale);
+
     keys.forEach((key) => {
-      const val = tGlobal(key);
+      const val = getNestedMessage(localeMessages, key);
       expect(val, `${key} missing in ${locale}`).not.toBe(key);
       expect(val, `${key} empty in ${locale}`).toBeTruthy();
     });
   });
+}
+
+function getNestedMessage(
+  messages: Record<string, unknown>,
+  key: string,
+): unknown {
+  return key.split(".").reduce<unknown>((current, segment) => {
+    if (current && typeof current === "object" && segment in current) {
+      return (current as Record<string, unknown>)[segment];
+    }
+
+    return undefined;
+  }, messages);
 }
 
 describe("i18n Integration Tests", () => {

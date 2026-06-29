@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const loggerFns = vi.hoisted(() => ({
   info: vi.fn(),
@@ -21,10 +21,20 @@ vi.mock("./routes", () => {
   return { default: routes };
 });
 
+vi.mock("./services/AnalyticsService", () => ({
+  AnalyticsService: vi.fn(),
+}));
+
 describe("analytics feature module", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it("initializes module metadata, health status, and mounted routes", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-08T08:30:00.000Z"));
+    vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
+      "2026-06-08T08:30:00.000Z",
+    );
 
     const { AnalyticsModule } = await import("./index");
     const module = new AnalyticsModule();
@@ -43,9 +53,11 @@ describe("analytics feature module", () => {
       module.routes.request("/probe").then((res) => res.json()),
     ).resolves.toEqual({ success: true, feature: "analytics" });
 
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     await expect(module.routes.request("/missing")).resolves.toMatchObject({
       status: 404,
     });
+    dateNow.mockRestore();
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - 0ms");
 
     expect(module.getHealthStatus()).toEqual({
@@ -64,8 +76,6 @@ describe("analytics feature module", () => {
         sseStreaming: true,
       },
     });
-
-    vi.useRealTimers();
   });
 
   it("reuses the lazy singleton behind factory and default exports", async () => {

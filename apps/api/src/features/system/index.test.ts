@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const loggerFns = vi.hoisted(() => ({
   info: vi.fn(),
@@ -18,10 +18,20 @@ vi.mock("./routes", () => {
   return { default: routes };
 });
 
+vi.mock("./services/SystemService", () => ({
+  SystemService: vi.fn(),
+}));
+
 describe("system feature module", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it("initializes metadata, health status, routes, and singleton exports", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-08T08:30:00.000Z"));
+    vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
+      "2026-06-08T08:30:00.000Z",
+    );
 
     const systemFeature = await import("./index");
     const module = new systemFeature.SystemModule();
@@ -38,9 +48,11 @@ describe("system feature module", () => {
     await expect(
       module.routes.request("/probe").then((res) => res.json()),
     ).resolves.toEqual({ success: true, feature: "system" });
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     await expect(module.routes.request("/missing")).resolves.toMatchObject({
       status: 404,
     });
+    dateNow.mockRestore();
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - 0ms");
 
     expect(module.getHealthStatus()).toEqual({
@@ -64,7 +76,5 @@ describe("system feature module", () => {
       name: "system",
       status: "healthy",
     });
-
-    vi.useRealTimers();
   });
 });

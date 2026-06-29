@@ -159,17 +159,21 @@ describe("MarketProductSearch", () => {
       .setValue("popular");
     await wrapper.get("form").trigger("submit.prevent");
 
-    expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
-      q: "章魚燒",
-      marketId: "market-1",
-      categoryName: "小吃",
-      sortBy: "popular",
-      takeaway: undefined,
-      page: 1,
-      limit: 20,
+    await vi.waitFor(() => {
+      expect(discoveryApi.searchDishes).toHaveBeenCalledWith({
+        q: "章魚燒",
+        marketId: "market-1",
+        categoryName: "小吃",
+        sortBy: "popular",
+        takeaway: undefined,
+        page: 1,
+        limit: 20,
+      });
     });
-    expect(wrapper.text()).toContain("章魚燒");
-    expect(wrapper.text()).toContain("一中章魚燒");
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("章魚燒");
+      expect(wrapper.text()).toContain("一中章魚燒");
+    });
 
     const openMenuButton = wrapper.get('[data-testid="dish-result-open-menu"]');
     expect(openMenuButton.text()).toContain("查看菜單");

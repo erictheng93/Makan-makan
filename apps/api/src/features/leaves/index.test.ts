@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const loggerFns = vi.hoisted(() => ({
   info: vi.fn(),
@@ -20,10 +20,24 @@ vi.mock("./routes", () => {
   return { default: routes };
 });
 
+vi.mock("@makanmakan/database", () => ({
+  LeaveService: vi.fn(),
+}));
+
+vi.mock("./schemas/validation", () => ({
+  leaveSchemas: {},
+}));
+
 describe("leaves feature module", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it("initializes metadata, health, diagnostics, routes, and cleanup exports", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-08T08:30:00.000Z"));
+    vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
+      "2026-06-08T08:30:00.000Z",
+    );
 
     const leavesFeature = await import("./index");
     const module = new leavesFeature.LeavesModule();
@@ -41,7 +55,9 @@ describe("leaves feature module", () => {
     await expect(
       module.routes.request("/probe").then((res) => res.json()),
     ).resolves.toEqual({ success: true, feature: "leaves" });
+    const missingDateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     const missingResponse = await module.routes.request("/missing");
+    missingDateNow.mockRestore();
     expect(missingResponse.status).toBe(404);
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - starting");
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - completed", {
@@ -107,7 +123,5 @@ describe("leaves feature module", () => {
       name: "leaves",
     });
     await leavesFeature.default.cleanup();
-
-    vi.useRealTimers();
   });
 });
