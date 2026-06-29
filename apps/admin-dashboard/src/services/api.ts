@@ -5,6 +5,7 @@ import {
 } from "axios";
 import {
   createAuthenticatedApiClient,
+  type ApiClient,
   type TokenStorageMode,
 } from "@makanmakan/auth-client";
 import type { ApiResponse } from "@/types";
@@ -99,22 +100,53 @@ const authClient = createAuthenticatedApiClient({
 
 setAuthTokenProvider(() => authClient.tokens.getToken());
 
+function resolveManagementApiBase(): string {
+  return import.meta.env.VITE_MANAGEMENT_API_URL || "/management-api/v1";
+}
+
+const managementAuthClient = createAuthenticatedApiClient({
+  baseURL: resolveManagementApiBase(),
+  storageKeyPrefix: "auth",
+  storageKeys: {
+    token: "auth_token",
+    refreshToken: "auth_refresh_token",
+    user: "auth_user",
+  },
+  tokenStorage: getAdminTokenStorageMode(),
+  csrf: true,
+  onAuthFailure: handleAdminAuthFailure,
+  errorHandler: (error: unknown) => {
+    const context = isAxiosError(error)
+      ? {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          data: error.response?.data,
+        }
+      : undefined;
+
+    return KitchenErrorHandler.handleAPIError(error, context);
+  },
+});
+
 // Backward-compatible API object matching the old ApiService class interface.
 // 42 files import { api } or { apiClient } from this module.
 class ApiServiceCompat {
+  constructor(private readonly client: ApiClient = authClient) {}
+
   get instance() {
-    return authClient.instance;
+    return this.client.instance;
   }
 
   setAuthToken(token: string | null) {
-    authClient.setAuthToken(token);
+    this.client.setAuthToken(token);
   }
 
   async get<T>(
     url: string,
     paramsOrConfig?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return authClient.instance.get(url, this.toGetConfig(paramsOrConfig));
+    return this.client.instance.get(url, this.toGetConfig(paramsOrConfig));
   }
 
   async post<T>(
@@ -122,32 +154,32 @@ class ApiServiceCompat {
     data?: any,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return authClient.instance.post(url, data, config);
+    return this.client.instance.post(url, data, config);
   }
 
   async put<T>(
     url: string,
     data?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return authClient.instance.put(url, data);
+    return this.client.instance.put(url, data);
   }
 
   async patch<T>(
     url: string,
     data?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return authClient.instance.patch(url, data);
+    return this.client.instance.patch(url, data);
   }
 
   async delete<T>(
     url: string,
     data?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
-    return authClient.instance.delete(url, data ? { data } : undefined);
+    return this.client.instance.delete(url, data ? { data } : undefined);
   }
 
   async upload(url: string, formData: FormData): Promise<AxiosResponse<any>> {
-    return authClient.instance.post(url, formData, {
+    return this.client.instance.post(url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -184,4 +216,5 @@ class ApiServiceCompat {
 
 export const api = new ApiServiceCompat();
 export const apiClient = api;
-export { authClient };
+export const managementApi = new ApiServiceCompat(managementAuthClient);
+export { authClient, managementAuthClient };

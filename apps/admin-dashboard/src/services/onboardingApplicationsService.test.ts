@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "@/services/api";
+import { managementApi } from "@/services/api";
 import { onboardingApplicationsService } from "./onboardingApplicationsService";
 
 vi.mock("@/services/api", () => ({
   api: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+  managementApi: {
     get: vi.fn(),
     post: vi.fn(),
   },
@@ -16,7 +20,7 @@ describe("onboardingApplicationsService", () => {
   });
 
   it("lists onboarding applications with filters", async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({
+    vi.mocked(managementApi.get).mockResolvedValueOnce({
       data: {
         data: {
           applications: [
@@ -46,11 +50,14 @@ describe("onboardingApplicationsService", () => {
       limit: 25,
     });
 
-    expect(api.get).toHaveBeenCalledWith("/admin/onboarding/applications", {
-      status: "submitted",
-      page: 1,
-      limit: 25,
-    });
+    expect(managementApi.get).toHaveBeenCalledWith(
+      "/admin/onboarding/applications",
+      {
+        status: "submitted",
+        page: 1,
+        limit: 25,
+      },
+    );
     expect(result.applications[0]).toMatchObject({
       id: "APP-1",
       businessName: "Laksa Shop",
@@ -58,7 +65,7 @@ describe("onboardingApplicationsService", () => {
   });
 
   it("approves and rejects onboarding applications", async () => {
-    vi.mocked(api.post)
+    vi.mocked(managementApi.post)
       .mockResolvedValueOnce({
         data: {
           data: {
@@ -89,12 +96,12 @@ describe("onboardingApplicationsService", () => {
       setupPasswordLink:
         "https://admin.example.test/reset-password?token=setup-token",
     });
-    expect(api.post).toHaveBeenNthCalledWith(
+    expect(managementApi.post).toHaveBeenNthCalledWith(
       1,
       "/admin/onboarding/applications/APP-1/approve",
       {},
     );
-    expect(api.post).toHaveBeenNthCalledWith(
+    expect(managementApi.post).toHaveBeenNthCalledWith(
       2,
       "/admin/onboarding/applications/APP-2/reject",
       {},

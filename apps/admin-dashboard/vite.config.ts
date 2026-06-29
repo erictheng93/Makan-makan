@@ -42,6 +42,13 @@ export default defineConfig({
     host: "localhost", // SECURITY FIX: Restrict to localhost only in development
     port: 3001,
     proxy: {
+      "/management-api": {
+        target:
+          process.env.VITE_MANAGEMENT_API_URL?.replace("/api/v1", "") ||
+          "http://localhost:8789",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/management-api/, "/api"),
+      },
       "/api": {
         target:
           process.env.VITE_API_BASE_URL?.replace("/api/v1", "") ||
