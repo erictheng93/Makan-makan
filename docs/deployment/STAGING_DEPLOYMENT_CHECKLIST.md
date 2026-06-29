@@ -172,8 +172,9 @@ pnpm install --frozen-lockfile
 # 2. 類型檢查
 pnpm typecheck
 
-# 3. 執行 staging D1 遷移
+# 3. 執行 staging platform 與 management D1 遷移
 pnpm db:migrate:staging
+pnpm db:migrate:staging:mgmt
 
 # 4. 執行 migration 檢查、全 workspace build 與各 workspace staging deploy
 pnpm deploy:staging
@@ -188,8 +189,9 @@ pnpm install
 # 2. 類型檢查
 pnpm run typecheck
 
-# 3. 執行數據庫遷移
+# 3. 執行 platform 與 management 數據庫遷移
 pnpm db:migrate:staging
+pnpm db:migrate:staging:mgmt
 
 # 4. 部署 API
 pnpm --filter @makanmakan/api deploy:staging

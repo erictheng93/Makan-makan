@@ -90,7 +90,8 @@
 
 ### 資料庫
 
-- [ ] Production D1 migrations 已 apply（`pnpm db:migrate:prod`）
+- [ ] Production platform D1 migrations 已 apply（`pnpm db:migrate:prod`）
+- [ ] Production management D1 migrations 已 apply（`pnpm db:migrate:prod:mgmt`）
 - [ ] 備份排程已啟用並測試過至少一次
 
 ### ⚠️ 高風險：Test Accounts 絕對不能進 Production
