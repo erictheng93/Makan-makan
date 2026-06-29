@@ -662,6 +662,9 @@ importers:
       '@makanmakan/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
       '@types/node':
         specifier: ^22.15.29
         version: 22.19.5
