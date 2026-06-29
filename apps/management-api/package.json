@@ -23,6 +23,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.5.0",
     "@makanmakan/utils": "workspace:*",
+    "bcryptjs": "^2.4.3",
     "hono": "^4.12.24",
     "zod": "^3.25.76"
   },

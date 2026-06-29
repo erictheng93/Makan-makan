@@ -29,6 +29,12 @@ database_name = "makanmakan-management-local"
 database_id = "local"
 migrations_dir = "migrations"
 
+[[d1_databases]]
+binding = "PLATFORM_DB"
+database_name = "makanmakan-local"
+database_id = "local"
+migrations_dir = "../../packages/database/migrations_fresh"
+
 # KV namespace for caching
 [[kv_namespaces]]
 binding = "CACHE_KV"
@@ -63,6 +69,12 @@ database_name = "makanmasak-management-staging"
 database_id = "ad9fc277-ec03-4092-af74-88571f2767a0"
 migrations_dir = "migrations"
 
+[[env.staging.d1_databases]]
+binding = "PLATFORM_DB"
+database_name = "makanmasak-staging"
+database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
+migrations_dir = "../../packages/database/migrations_fresh"
+
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
 id = "9d6145956f874d56b700488562466af0"
@@ -90,6 +102,12 @@ binding = "MANAGEMENT_DB"
 database_name = "makanmasak-management-prod"
 database_id = "0a1f532c-37b5-4b77-8e9f-403cfda307c4"
 migrations_dir = "migrations"
+
+[[env.production.d1_databases]]
+binding = "PLATFORM_DB"
+database_name = "makanmasak-prod"
+database_id = "4e3c7ba8-5aa7-4652-bfea-a9c565b3a141"
+migrations_dir = "../../packages/database/migrations_fresh"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"

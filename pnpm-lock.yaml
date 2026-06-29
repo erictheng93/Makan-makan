@@ -643,6 +643,9 @@ importers:
       '@makanmakan/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
       hono:
         specifier: ^4.12.24
         version: 4.12.24

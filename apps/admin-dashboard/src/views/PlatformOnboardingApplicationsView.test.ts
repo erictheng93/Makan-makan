@@ -40,6 +40,12 @@ describe("PlatformOnboardingApplicationsView", () => {
     vi.mocked(onboardingApplicationsService.approve).mockResolvedValue({
       tenantId: "T-1",
       subdomain: "laksa",
+      ownerAccount: {
+        restaurantId: "restaurant-1",
+        userId: "owner-1",
+        username: "tan",
+        initialPassword: "Mkm-ABCDEF-GHIJKL!",
+      },
       status: "completed",
     });
     vi.mocked(onboardingApplicationsService.reject).mockResolvedValue({
@@ -70,6 +76,12 @@ describe("PlatformOnboardingApplicationsView", () => {
 
     expect(onboardingApplicationsService.approve).toHaveBeenCalledWith("APP-1");
     expect(onboardingApplicationsService.list).toHaveBeenCalledTimes(2);
+    expect(
+      wrapper.get('[data-testid="approved-owner-account"]').text(),
+    ).toContain("tan");
+    expect(
+      wrapper.get('[data-testid="approved-owner-account"]').text(),
+    ).toContain("Mkm-ABCDEF-GHIJKL!");
 
     await wrapper
       .get('[data-testid="reject-onboarding-APP-1"]')

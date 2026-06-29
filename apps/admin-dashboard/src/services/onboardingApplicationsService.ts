@@ -34,6 +34,20 @@ export interface OnboardingApplicationsResult {
   limit: number;
 }
 
+export interface ProvisionedOwnerAccount {
+  restaurantId: string;
+  userId: string;
+  username: string;
+  initialPassword: string;
+}
+
+export interface ApproveOnboardingApplicationResult {
+  tenantId?: string;
+  subdomain?: string;
+  ownerAccount?: ProvisionedOwnerAccount;
+  status: "completed";
+}
+
 export const onboardingApplicationsService = {
   async list(
     input: {
@@ -49,21 +63,14 @@ export const onboardingApplicationsService = {
     return unwrapApiPayload<OnboardingApplicationsResult>(response.data);
   },
 
-  async approve(applicationId: string): Promise<{
-    tenantId?: string;
-    subdomain?: string;
-    status: "completed";
-  }> {
-    const response = await api.post<{
-      tenantId?: string;
-      subdomain?: string;
-      status: "completed";
-    }>(`/admin/onboarding/applications/${applicationId}/approve`, {});
-    return unwrapApiPayload<{
-      tenantId?: string;
-      subdomain?: string;
-      status: "completed";
-    }>(response.data);
+  async approve(
+    applicationId: string,
+  ): Promise<ApproveOnboardingApplicationResult> {
+    const response = await api.post<ApproveOnboardingApplicationResult>(
+      `/admin/onboarding/applications/${applicationId}/approve`,
+      {},
+    );
+    return unwrapApiPayload<ApproveOnboardingApplicationResult>(response.data);
   },
 
   async reject(applicationId: string): Promise<{ status: "rejected" }> {

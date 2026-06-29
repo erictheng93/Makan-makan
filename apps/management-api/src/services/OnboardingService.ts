@@ -23,6 +23,14 @@ import {
   planIdToTier,
   TRIAL_DURATION_MS,
 } from "@makanmakan/database";
+import bcrypt from "bcryptjs";
+
+interface ProvisionedOwnerAccount {
+  restaurantId: string;
+  userId: string;
+  username: string;
+  initialPassword: string;
+}
 
 export class OnboardingService {
   private env: ManagementEnv;
@@ -238,6 +246,7 @@ export class OnboardingService {
     success: boolean;
     tenantId?: string;
     subdomain?: string;
+    ownerAccount?: ProvisionedOwnerAccount;
     error?: string;
   }> {
     const application = await this.getApplication(applicationId);
@@ -262,12 +271,19 @@ export class OnboardingService {
 
     const now = new Date().toISOString();
     const previousStatus = application.status;
+    let tenantId: string | undefined;
+    let ownerAccount: ProvisionedOwnerAccount | undefined;
 
     try {
       // Update status to provisioning
       await this.updateApplicationStatus(applicationId, "provisioning");
 
       const tenant = await this.createTenantWithSubscription(application, now);
+      tenantId = tenant.id;
+      ownerAccount = await this.createPlatformOwnerAccount(
+        application,
+        tenant.id,
+      );
 
       // Mark application as completed
       await this.env.MANAGEMENT_DB.prepare(
@@ -282,9 +298,17 @@ export class OnboardingService {
         success: true,
         tenantId: tenant.id,
         subdomain: application.assignedSubdomain,
+        ownerAccount,
       };
     } catch (error) {
       console.error("[OnboardingService] Complete error:", error);
+
+      if (ownerAccount) {
+        await this.rollbackPlatformOwnerAccount(ownerAccount);
+      }
+      if (tenantId) {
+        await this.rollbackTenantProvisioning(tenantId);
+      }
 
       // Rollback status
       await this.updateApplicationStatus(applicationId, previousStatus);
@@ -303,6 +327,7 @@ export class OnboardingService {
     success: boolean;
     tenantId?: string;
     subdomain?: string;
+    ownerAccount?: ProvisionedOwnerAccount;
     status?: OnboardingStatus;
     error?: string;
   }> {
@@ -500,6 +525,153 @@ export class OnboardingService {
     }
 
     return tenant;
+  }
+
+  private async createPlatformOwnerAccount(
+    application: OnboardingApplication,
+    tenantId: string,
+  ): Promise<ProvisionedOwnerAccount> {
+    if (!this.env.PLATFORM_DB) {
+      throw new Error("Platform DB binding is not configured");
+    }
+
+    const nowMs = Date.now();
+    const restaurantId = crypto.randomUUID();
+    const userId = crypto.randomUUID();
+    const username = await this.generateAvailableOwnerUsername(application);
+    const initialPassword = this.generateInitialPassword();
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
+
+    const restaurantInsert = this.env.PLATFORM_DB.prepare(
+      `INSERT INTO restaurants (
+        id, name, type, category, description, address, district, city, phone,
+        email, latitude, longitude, is_available, is_active, created_at_ms,
+        updated_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      restaurantId,
+      application.businessName,
+      "onboarding",
+      "restaurant",
+      `Provisioned from onboarding application ${application.id}`,
+      "待補充",
+      "待補充",
+      "台中市",
+      application.contactPhone || "00000000",
+      application.contactEmail,
+      application.latitude ?? null,
+      application.longitude ?? null,
+      1,
+      1,
+      nowMs,
+      nowMs,
+    );
+
+    const userInsert = this.env.PLATFORM_DB.prepare(
+      `INSERT INTO users (
+        id, username, email, phone, full_name, password_hash, role,
+        restaurant_id, is_active, is_verified, total_orders, total_spent,
+        token_version, created_at_ms, updated_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      userId,
+      username,
+      application.contactEmail,
+      application.contactPhone || null,
+      application.contactName,
+      passwordHash,
+      1,
+      restaurantId,
+      1,
+      0,
+      0,
+      0,
+      1,
+      nowMs,
+      nowMs,
+    );
+
+    await this.env.PLATFORM_DB.batch([restaurantInsert, userInsert]);
+
+    await this.env.MANAGEMENT_DB.prepare(
+      `UPDATE tenants
+       SET platform_restaurant_id = ?, owner_user_id = ?, owner_username = ?,
+           updated_at = ?
+       WHERE id = ?`,
+    )
+      .bind(
+        restaurantId,
+        userId,
+        username,
+        new Date(nowMs).toISOString(),
+        tenantId,
+      )
+      .run();
+
+    return { restaurantId, userId, username, initialPassword };
+  }
+
+  private async rollbackPlatformOwnerAccount(
+    ownerAccount: ProvisionedOwnerAccount,
+  ): Promise<void> {
+    if (!this.env.PLATFORM_DB) return;
+
+    await this.env.PLATFORM_DB.prepare("DELETE FROM users WHERE id = ?")
+      .bind(ownerAccount.userId)
+      .run();
+    await this.env.PLATFORM_DB.prepare("DELETE FROM restaurants WHERE id = ?")
+      .bind(ownerAccount.restaurantId)
+      .run();
+  }
+
+  private async rollbackTenantProvisioning(tenantId: string): Promise<void> {
+    await this.env.MANAGEMENT_DB.prepare(
+      "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
+    )
+      .bind(tenantId)
+      .run();
+    await this.env.MANAGEMENT_DB.prepare("DELETE FROM tenants WHERE id = ?")
+      .bind(tenantId)
+      .run();
+  }
+
+  private async generateAvailableOwnerUsername(
+    application: OnboardingApplication,
+  ): Promise<string> {
+    const base = this.slugifyUsername(
+      application.contactEmail.split("@")[0] ||
+        application.assignedSubdomain ||
+        application.businessName,
+    );
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const username =
+        attempt === 0 ? base : `${base}-${randomBase36(4).toLowerCase()}`;
+      const existing = await this.env
+        .PLATFORM_DB!.prepare("SELECT id FROM users WHERE username = ? LIMIT 1")
+        .bind(username)
+        .first();
+      if (!existing) return username;
+    }
+
+    return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+  }
+
+  private slugifyUsername(value: string): string {
+    const username = value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9._-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40);
+
+    return username.length >= 3 ? username : `owner-${randomBase36(6)}`;
+  }
+
+  private generateInitialPassword(): string {
+    return `Mkm-${randomBase36Upper(6)}-${randomBase36Upper(6)}!`;
   }
 
   private toTenantLicenseTier(planId: string | null | undefined): LicenseTier {

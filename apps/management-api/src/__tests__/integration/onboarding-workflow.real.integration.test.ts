@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { sign } from "hono/jwt";
 import { describe, expect, it } from "vitest";
+import bcrypt from "bcryptjs";
 import { D1DatabaseAdapter } from "../../../../../tests/helpers/d1-adapter";
 import app from "../../index";
 import type { ManagementEnv } from "../../types";
@@ -24,7 +25,55 @@ function createManagementDb() {
   return new D1DatabaseAdapter(sqlite);
 }
 
-function createEnv(db: D1DatabaseAdapter): ManagementEnv {
+function createPlatformDb() {
+  const sqlite = new Database(":memory:");
+  sqlite.pragma("foreign_keys = OFF");
+  sqlite.exec(`
+    CREATE TABLE restaurants (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      category TEXT NOT NULL,
+      description TEXT,
+      address TEXT NOT NULL,
+      district TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT '台中市',
+      phone TEXT NOT NULL,
+      email TEXT,
+      latitude REAL,
+      longitude REAL,
+      is_available INTEGER NOT NULL DEFAULT 1,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL
+    );
+
+    CREATE TABLE users (
+      id TEXT PRIMARY KEY NOT NULL,
+      username TEXT NOT NULL UNIQUE,
+      email TEXT,
+      phone TEXT,
+      full_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      role INTEGER NOT NULL DEFAULT 4,
+      restaurant_id TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      is_verified INTEGER NOT NULL DEFAULT 0,
+      total_orders INTEGER NOT NULL DEFAULT 0,
+      total_spent INTEGER NOT NULL DEFAULT 0,
+      token_version INTEGER NOT NULL DEFAULT 1,
+      created_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL
+    );
+  `);
+
+  return new D1DatabaseAdapter(sqlite);
+}
+
+function createEnv(
+  db: D1DatabaseAdapter,
+  platformDb: D1DatabaseAdapter = createPlatformDb(),
+): ManagementEnv {
   return {
     NODE_ENV: "test",
     API_VERSION: "v1",
@@ -36,6 +85,7 @@ function createEnv(db: D1DatabaseAdapter): ManagementEnv {
     CF_API_TOKEN: "test-token",
     CF_ACCOUNT_ID: "test-account",
     MANAGEMENT_DB: db as unknown as D1Database,
+    PLATFORM_DB: platformDb as unknown as D1Database,
     CACHE_KV: {} as KVNamespace,
     DEPLOYMENT_STATUS_KV: {} as KVNamespace,
     BUNDLE_STORAGE: {} as R2Bucket,
@@ -72,7 +122,8 @@ async function managementToken() {
 describe("Onboarding public API workflow — real integration", () => {
   it("does not expose the legacy public subdomain check endpoint", async () => {
     const db = createManagementDb();
-    const env = createEnv(db);
+    const platformDb = createPlatformDb();
+    const env = createEnv(db, platformDb);
 
     const response = await app.fetch(
       new Request(
@@ -167,7 +218,8 @@ describe("Onboarding public API workflow — real integration", () => {
 
   it("lets platform admins list, approve, and reject onboarding applications", async () => {
     const db = createManagementDb();
-    const env = createEnv(db);
+    const platformDb = createPlatformDb();
+    const env = createEnv(db, platformDb);
     const token = await managementToken();
 
     const createApprovedCandidate = await app.fetch(
@@ -239,14 +291,67 @@ describe("Onboarding public API workflow — real integration", () => {
     expect(approveJson.data).toMatchObject({
       status: "completed",
       subdomain: approvedSubdomain,
+      ownerAccount: {
+        username: "tan.mei",
+      },
     });
     expect(typeof approveJson.data.tenantId).toBe("string");
+    expect(typeof approveJson.data.ownerAccount.restaurantId).toBe("string");
+    expect(typeof approveJson.data.ownerAccount.userId).toBe("string");
+    expect(typeof approveJson.data.ownerAccount.initialPassword).toBe("string");
 
     const tenantRow = db
       .raw()
-      .prepare("SELECT status FROM tenants WHERE id = ?")
+      .prepare(
+        `SELECT status, platform_restaurant_id, owner_user_id, owner_username
+         FROM tenants WHERE id = ?`,
+      )
       .get(approveJson.data.tenantId);
-    expect(tenantRow).toMatchObject({ status: "active" });
+    expect(tenantRow).toMatchObject({
+      status: "active",
+      platform_restaurant_id: approveJson.data.ownerAccount.restaurantId,
+      owner_user_id: approveJson.data.ownerAccount.userId,
+      owner_username: "tan.mei",
+    });
+
+    const restaurantRow = platformDb
+      .raw()
+      .prepare(
+        "SELECT id, name, email, is_active FROM restaurants WHERE id = ?",
+      )
+      .get(approveJson.data.ownerAccount.restaurantId);
+    expect(restaurantRow).toMatchObject({
+      id: approveJson.data.ownerAccount.restaurantId,
+      name: "Workflow Laksa",
+      email: "tan.mei@example.com",
+      is_active: 1,
+    });
+
+    const userRow = platformDb
+      .raw()
+      .prepare(
+        `SELECT id, username, email, full_name, password_hash, role,
+                restaurant_id, is_active
+         FROM users WHERE id = ?`,
+      )
+      .get(approveJson.data.ownerAccount.userId) as {
+      password_hash: string;
+    } & Record<string, unknown>;
+    expect(userRow).toMatchObject({
+      id: approveJson.data.ownerAccount.userId,
+      username: "tan.mei",
+      email: "tan.mei@example.com",
+      full_name: "Tan Mei",
+      role: 1,
+      restaurant_id: approveJson.data.ownerAccount.restaurantId,
+      is_active: 1,
+    });
+    await expect(
+      bcrypt.compare(
+        approveJson.data.ownerAccount.initialPassword,
+        userRow.password_hash,
+      ),
+    ).resolves.toBe(true);
 
     const rejectResponse = await app.fetch(
       new Request(

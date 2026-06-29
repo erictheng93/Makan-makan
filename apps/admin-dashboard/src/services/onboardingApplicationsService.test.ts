@@ -64,6 +64,12 @@ describe("onboardingApplicationsService", () => {
           data: {
             tenantId: "T-1",
             subdomain: "laksa",
+            ownerAccount: {
+              restaurantId: "restaurant-1",
+              userId: "owner-1",
+              username: "tan",
+              initialPassword: "Mkm-ABCDEF-GHIJKL!",
+            },
             status: "completed",
           },
         },
@@ -72,9 +78,13 @@ describe("onboardingApplicationsService", () => {
         data: { data: { status: "rejected" } },
       } as never);
 
-    await onboardingApplicationsService.approve("APP-1");
+    const approveResult = await onboardingApplicationsService.approve("APP-1");
     await onboardingApplicationsService.reject("APP-2");
 
+    expect(approveResult.ownerAccount).toMatchObject({
+      username: "tan",
+      initialPassword: "Mkm-ABCDEF-GHIJKL!",
+    });
     expect(api.post).toHaveBeenNthCalledWith(
       1,
       "/admin/onboarding/applications/APP-1/approve",

@@ -113,6 +113,7 @@ router.post("/applications/:id/approve", async (c) => {
     data: {
       tenantId: result.tenantId,
       subdomain: result.subdomain,
+      ownerAccount: result.ownerAccount,
       status: result.status ?? "completed",
     },
   });

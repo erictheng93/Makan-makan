@@ -34,6 +34,7 @@ export interface ManagementEnv {
 
   // D1 Database binding
   MANAGEMENT_DB: D1Database;
+  PLATFORM_DB?: D1Database;
 
   // KV namespaces
   CACHE_KV: KVNamespace;

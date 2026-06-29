@@ -68,6 +68,57 @@
     </p>
 
     <div
+      v-if="approvedOwnerAccount"
+      data-testid="approved-owner-account"
+      class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"
+    >
+      <div
+        class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div>
+          <h2 class="font-semibold">店主帳號已啟用</h2>
+          <p class="mt-1 text-emerald-800">
+            請將以下一次性初始帳密交給店主，登入後應立即變更密碼。
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="dismiss-approved-owner-account"
+          class="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100"
+          @click="approvedOwnerAccount = null"
+        >
+          關閉
+        </button>
+      </div>
+      <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <dt class="text-xs font-medium text-emerald-700">帳號</dt>
+          <dd class="mt-1 break-all font-mono text-sm">
+            {{ approvedOwnerAccount.username }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-emerald-700">初始密碼</dt>
+          <dd class="mt-1 break-all font-mono text-sm">
+            {{ approvedOwnerAccount.initialPassword }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-emerald-700">餐廳 ID</dt>
+          <dd class="mt-1 break-all font-mono text-sm">
+            {{ approvedOwnerAccount.restaurantId }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-emerald-700">使用者 ID</dt>
+          <dd class="mt-1 break-all font-mono text-sm">
+            {{ approvedOwnerAccount.userId }}
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <div
       v-if="isLoading"
       class="flex items-center justify-center rounded-lg bg-white py-12 text-gray-500 shadow-ios-card"
     >
@@ -204,6 +255,7 @@ import {
   onboardingApplicationsService,
   type OnboardingApplication,
   type OnboardingApplicationStatus,
+  type ProvisionedOwnerAccount,
 } from "@/services/onboardingApplicationsService";
 
 const statusFilter = ref<"" | OnboardingApplicationStatus>("submitted");
@@ -212,6 +264,7 @@ const total = ref(0);
 const isLoading = ref(false);
 const actionId = ref("");
 const error = ref("");
+const approvedOwnerAccount = ref<ProvisionedOwnerAccount | null>(null);
 
 const approvableCount = computed(
   () =>
@@ -248,7 +301,8 @@ async function approveApplication(applicationId: string) {
   actionId.value = applicationId;
   error.value = "";
   try {
-    await onboardingApplicationsService.approve(applicationId);
+    const result = await onboardingApplicationsService.approve(applicationId);
+    approvedOwnerAccount.value = result.ownerAccount ?? null;
     await loadApplications();
   } catch (approveError) {
     console.error("Failed to approve onboarding application:", approveError);
