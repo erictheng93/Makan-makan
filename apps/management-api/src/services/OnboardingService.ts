@@ -868,7 +868,7 @@ export class OnboardingService {
     return {
       id: row.id,
       channel: row.deliveryChannel as CredentialDeliveryChannel,
-      status: row.status,
+      status: row.status as CredentialDeliveryStatus,
       recipientEmail: row.recipientEmail,
       recipientName: row.recipientName,
       setupPasswordLink: row.setupPasswordLink,
