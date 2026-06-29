@@ -3,7 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { AxiosRequestConfig } from "axios";
 import type { User } from "@/types";
 import { UserRole } from "@/types";
-import { api, authClient } from "@/services/api";
+import { api, authClient, managementAuthClient } from "@/services/api";
 import { t } from "@/i18n";
 import { setAuthRefreshHandler } from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
@@ -246,6 +246,8 @@ export const useAuthStore = defineStore("auth", () => {
       clearRestaurant();
       api.setAuthToken(null);
       authClient.tokens.clearAll();
+      managementAuthClient.tokens.clearAll();
+      managementAuthClient.setAuthToken(null);
     }
   };
 

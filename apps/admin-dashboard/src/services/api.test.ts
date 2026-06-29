@@ -3,8 +3,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearAdminAuthStorage,
+  ensureManagementAuthToken,
   getAdminTokenStorageMode,
   handleAdminAuthFailure,
+  managementAuthClient,
 } from "./api";
 
 describe("admin API auth storage", () => {
@@ -30,13 +32,22 @@ describe("admin API auth storage", () => {
     localStorage.setItem("auth_token", "stale-local-token");
     localStorage.setItem("auth_refresh_token", "stale-local-refresh");
     localStorage.setItem("auth_user", '{"id":"local-user"}');
+    localStorage.setItem("management_auth_token", "stale-management-token");
     sessionStorage.setItem("auth_token", "stale-session-token");
     sessionStorage.setItem("auth_refresh_token", "stale-session-refresh");
     sessionStorage.setItem("auth_user", '{"id":"session-user"}');
+    sessionStorage.setItem("management_auth_token", "stale-management-token");
 
     clearAdminAuthStorage();
 
-    for (const key of ["auth_token", "auth_refresh_token", "auth_user"]) {
+    for (const key of [
+      "auth_token",
+      "auth_refresh_token",
+      "auth_user",
+      "management_auth_token",
+      "management_auth_refresh_token",
+      "management_auth_user",
+    ]) {
       expect(localStorage.getItem(key)).toBeNull();
       expect(sessionStorage.getItem(key)).toBeNull();
     }
@@ -58,5 +69,34 @@ describe("admin API auth storage", () => {
     expect(location.assign).toHaveBeenCalledWith("/login");
     expect(localStorage.getItem("auth_token")).toBeNull();
     expect(sessionStorage.getItem("auth_token")).toBeNull();
+  });
+
+  it("exchanges an admin API token for an isolated management token", async () => {
+    vi.spyOn(managementAuthClient.instance, "post").mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          token: "management-token",
+        },
+      },
+    });
+    vi.spyOn(managementAuthClient.tokens, "setTokens");
+    vi.spyOn(managementAuthClient, "setAuthToken");
+
+    await expect(ensureManagementAuthToken("api-token")).resolves.toBe(
+      "management-token",
+    );
+
+    expect(managementAuthClient.instance.post).toHaveBeenCalledWith(
+      "/auth/exchange",
+      { token: "api-token" },
+      expect.objectContaining({ _retry: true }),
+    );
+    expect(managementAuthClient.tokens.setTokens).toHaveBeenCalledWith(
+      "management-token",
+    );
+    expect(managementAuthClient.setAuthToken).toHaveBeenCalledWith(
+      "management-token",
+    );
   });
 });

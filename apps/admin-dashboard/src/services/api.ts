@@ -45,6 +45,9 @@ const ADMIN_AUTH_STORAGE_KEYS = [
   "auth_token",
   "auth_refresh_token",
   "auth_user",
+  "management_auth_token",
+  "management_auth_refresh_token",
+  "management_auth_user",
 ] as const;
 
 let loginRedirectRequested = false;
@@ -59,6 +62,9 @@ export function clearAdminAuthStorage(): void {
     localStorage.removeItem(key);
     sessionStorage.removeItem(key);
   }
+
+  managementAuthClient.tokens.clearAll();
+  managementAuthClient.setAuthToken(null);
 }
 
 export function handleAdminAuthFailure(
@@ -106,11 +112,11 @@ function resolveManagementApiBase(): string {
 
 const managementAuthClient = createAuthenticatedApiClient({
   baseURL: resolveManagementApiBase(),
-  storageKeyPrefix: "auth",
+  storageKeyPrefix: "management_auth",
   storageKeys: {
-    token: "auth_token",
-    refreshToken: "auth_refresh_token",
-    user: "auth_user",
+    token: "management_auth_token",
+    refreshToken: "management_auth_refresh_token",
+    user: "management_auth_user",
   },
   tokenStorage: getAdminTokenStorageMode(),
   csrf: true,
@@ -128,6 +134,33 @@ const managementAuthClient = createAuthenticatedApiClient({
     return KitchenErrorHandler.handleAPIError(error, context);
   },
 });
+
+type RetryableRequestConfig = AxiosRequestConfig & { _retry?: boolean };
+
+export async function ensureManagementAuthToken(
+  apiToken = authClient.tokens.getToken(),
+): Promise<string> {
+  if (!apiToken) {
+    throw new Error("Admin API token is required for management API access");
+  }
+
+  const response = await managementAuthClient.instance.post<
+    ApiResponse<{ token: string }>
+  >("/auth/exchange", { token: apiToken }, {
+    _retry: true,
+    withCredentials: true,
+  } as RetryableRequestConfig);
+  const data = unwrapApiPayload<{ token?: string }>(response.data);
+
+  if (!data.token) {
+    throw new Error("Management token exchange did not return a token");
+  }
+
+  managementAuthClient.tokens.setTokens(data.token);
+  managementAuthClient.setAuthToken(data.token);
+
+  return data.token;
+}
 
 // Backward-compatible API object matching the old ApiService class interface.
 // 42 files import { api } or { apiClient } from this module.

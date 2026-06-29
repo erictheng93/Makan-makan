@@ -1,4 +1,8 @@
-import { managementApi, unwrapApiPayload } from "@/services/api";
+import {
+  ensureManagementAuthToken,
+  managementApi,
+  unwrapApiPayload,
+} from "@/services/api";
 
 export type OnboardingApplicationStatus =
   | "submitted"
@@ -58,6 +62,7 @@ export const onboardingApplicationsService = {
       limit?: number;
     } = {},
   ): Promise<OnboardingApplicationsResult> {
+    await ensureManagementAuthToken();
     const response = await managementApi.get<OnboardingApplicationsResult>(
       "/admin/onboarding/applications",
       input,
@@ -68,6 +73,7 @@ export const onboardingApplicationsService = {
   async approve(
     applicationId: string,
   ): Promise<ApproveOnboardingApplicationResult> {
+    await ensureManagementAuthToken();
     const response =
       await managementApi.post<ApproveOnboardingApplicationResult>(
         `/admin/onboarding/applications/${applicationId}/approve`,
@@ -77,6 +83,7 @@ export const onboardingApplicationsService = {
   },
 
   async reject(applicationId: string): Promise<{ status: "rejected" }> {
+    await ensureManagementAuthToken();
     const response = await managementApi.post<{ status: "rejected" }>(
       `/admin/onboarding/applications/${applicationId}/reject`,
       {},

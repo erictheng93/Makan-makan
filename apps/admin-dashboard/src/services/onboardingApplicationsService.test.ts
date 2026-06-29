@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { managementApi } from "@/services/api";
+import { ensureManagementAuthToken, managementApi } from "@/services/api";
 import { onboardingApplicationsService } from "./onboardingApplicationsService";
 
 vi.mock("@/services/api", () => ({
@@ -11,12 +11,14 @@ vi.mock("@/services/api", () => ({
     get: vi.fn(),
     post: vi.fn(),
   },
+  ensureManagementAuthToken: vi.fn(),
   unwrapApiPayload: (payload: { data?: unknown }) => payload.data ?? payload,
 }));
 
 describe("onboardingApplicationsService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(ensureManagementAuthToken).mockResolvedValue("management-token");
   });
 
   it("lists onboarding applications with filters", async () => {
@@ -58,6 +60,9 @@ describe("onboardingApplicationsService", () => {
         limit: 25,
       },
     );
+    expect(
+      vi.mocked(ensureManagementAuthToken).mock.invocationCallOrder[0],
+    ).toBeLessThan(vi.mocked(managementApi.get).mock.invocationCallOrder[0]);
     expect(result.applications[0]).toMatchObject({
       id: "APP-1",
       businessName: "Laksa Shop",
@@ -106,5 +111,6 @@ describe("onboardingApplicationsService", () => {
       "/admin/onboarding/applications/APP-2/reject",
       {},
     );
+    expect(ensureManagementAuthToken).toHaveBeenCalledTimes(2);
   });
 });

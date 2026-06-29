@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useAuthStore } from "./auth";
 import { UserRole, type User } from "@/types";
-import { api, authClient } from "@/services/api";
+import { api, authClient, managementAuthClient } from "@/services/api";
 import { getAuthToken } from "@/utils/authTokenProvider";
 
 vi.mock("@/i18n", () => ({
@@ -29,6 +29,12 @@ vi.mock("@/services/api", () => ({
       scheduleProactiveRefresh: vi.fn(),
     },
   },
+  managementAuthClient: {
+    setAuthToken: vi.fn(),
+    tokens: {
+      clearAll: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("@/utils/authTokenProvider", () => ({
@@ -47,12 +53,17 @@ const user = (overrides: Partial<User> = {}): User => ({
 });
 
 beforeEach(() => {
+  vi.clearAllMocks();
   localStorage.clear();
   sessionStorage.clear();
   setActivePinia(createPinia());
   vi.mocked(getAuthToken).mockReset();
   vi.mocked(getAuthToken).mockReturnValue(null);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("useAuthStore", () => {
@@ -171,6 +182,8 @@ describe("useAuthStore", () => {
     expect(store.restaurantId).toBeNull();
     expect(api.setAuthToken).toHaveBeenLastCalledWith(null);
     expect(authClient.tokens.clearAll).toHaveBeenCalled();
+    expect(managementAuthClient.tokens.clearAll).toHaveBeenCalled();
+    expect(managementAuthClient.setAuthToken).toHaveBeenCalledWith(null);
   });
 
   it("refreshes tokens with cookie credentials and updates user when returned", async () => {
