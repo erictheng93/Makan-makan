@@ -1,0 +1,24 @@
+# Local Development Environment Variables — management-api (port 8789)
+# Copy this file to .dev.vars and fill in the values.
+# IMPORTANT: Never commit .dev.vars to version control (it is gitignored).
+
+# JWT secret used to VERIFY tokens issued by apps/api.
+#
+# ⚠️ This MUST be byte-for-byte identical to apps/api/.dev.vars JWT_SECRET.
+# The admin dashboard logs in against apps/api, then calls
+# POST /api/v1/auth/exchange here to swap that token for a management token.
+# /auth/exchange verifies the incoming apps/api token with this exact
+# JWT_SECRET (see src/routes/auth.ts). If the two workers' secrets differ,
+# exchange fails with 401 "Invalid or expired API token" and the platform
+# onboarding page (/dashboard/platform/onboarding) cannot load.
+JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
+
+# Optional: dedicated secret for SIGNING management tokens.
+# If unset, management token signing falls back to JWT_SECRET
+# (managementJwtSecret() = MANAGEMENT_JWT_SECRET || JWT_SECRET). The
+# management auth middleware verifies with the same fallback, so setting this
+# is optional locally and does not affect the exchange-verify step above.
+# MANAGEMENT_JWT_SECRET=your-dedicated-management-secret-min-32-chars
+
+# Optional: encryption key for stored tenant API tokens
+# ENCRYPTION_KEY=your-encryption-key

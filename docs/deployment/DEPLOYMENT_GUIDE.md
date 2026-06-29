@@ -153,12 +153,25 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 # apps/realtime/.dev.vars
 JWT_SECRET=your-local-jwt-secret-min-32-characters
 
+# apps/management-api/.dev.vars
+# ⚠️ 必須與 apps/api/.dev.vars 的 JWT_SECRET 完全相同（見下方說明）
+JWT_SECRET=your-local-jwt-secret-min-32-characters
+
 # apps/image-processor/.dev.vars
 CLOUDFLARE_IMAGES_KEY=your_images_key
 CLOUDFLARE_IMAGES_ACCOUNT_ID=your_account_id
 ```
 
 ⚠️ **重要**: `.dev.vars` 文件已在 `.gitignore` 中，**絕不提交到版本控制**！
+
+> **跨 Worker JWT_SECRET 對齊（onboarding 必需）**
+> 平台 onboarding 頁面（`/dashboard/platform/onboarding`）的 admin dashboard 先登入
+> `apps/api`（8787），再呼叫 `apps/management-api`（8789）的
+> `POST /api/v1/auth/exchange` 把 token 換成 management token。`/auth/exchange`
+> 用 `env.JWT_SECRET` 驗證 `apps/api` 簽出的 token，因此
+> **`apps/management-api` 與 `apps/api` 的 `JWT_SECRET` 必須一致**。
+> 兩者不同會導致 exchange 回 `401 Invalid or expired API token`，onboarding 頁面無法載入。
+> 範本見 `apps/management-api/.dev.vars.example`。
 
 #### Staging & Production Secrets
 
@@ -176,6 +189,14 @@ wrangler secret put JWT_SECRET --env staging
 # 為 production 設置
 wrangler secret put JWT_SECRET --env production
 # 粘貼生成的 secret（應與 staging 不同）
+
+# === Management API JWT_SECRET (onboarding 必需) ===
+# apps/management-api 的 /auth/exchange 用 JWT_SECRET 驗證 apps/api 簽出的 token，
+# 因此 management-api 的 JWT_SECRET 必須與「同一環境」的 apps/api 完全相同。
+# 在 apps/management-api 目錄為每個環境設置相同的值：
+wrangler secret put JWT_SECRET --env staging      # = apps/api staging 的 JWT_SECRET
+wrangler secret put JWT_SECRET --env production    # = apps/api production 的 JWT_SECRET
+# 驗證：兩個 Worker 同環境的 secret 一致，否則 onboarding 換 token 會 401。
 
 
 # === API Tokens (選用) ===
@@ -462,6 +483,7 @@ wrangler pages deploy dist --project-name makanmakan-kitchen-staging
 - [ ] R2 Bucket 名稱已更新為 production
 - [ ] Customer App map variables 已設定：`VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`，或 `VITE_MAP_STYLE_URL`
 - [ ] 若使用 Protomaps PMTiles，R2 map tile bucket/object 已上傳並允許 browser Range requests
+- [ ] Admin Dashboard 已設定 `VITE_MANAGEMENT_API_URL` 指向已部署的 management-api（例如 `https://management-api.example.com/api/v1`）。生產 build **不走 Vite proxy**，此值會直接當作 management-api 請求的 baseURL；未設定則平台 onboarding 頁面無法連到 management-api。
 - [ ] CORS 設定為正確的 production 域名
 - [ ] Rate limiting 設定為生產級別
 - [ ] 已備份現有 production 數據
