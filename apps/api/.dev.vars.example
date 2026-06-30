@@ -6,6 +6,10 @@
 # Generate a secure secret: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
 
+# Shared token for apps/api -> apps/management-api internal service calls.
+# This MUST be byte-for-byte identical to apps/management-api/.dev.vars.
+INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-chars-change-this-value
+
 # Comma-separated local frontend origins allowed by CSRF origin checks
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
 

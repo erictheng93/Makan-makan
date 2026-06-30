@@ -144,6 +144,7 @@ pnpm run lint
 ```bash
 # apps/api/.dev.vars
 JWT_SECRET=your-local-jwt-secret-min-32-characters
+INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-characters
 CLOUDFLARE_API_TOKEN=your_api_token
 RESEND_API_KEY=your_resend_api_key
 TWILIO_ACCOUNT_SID=your_twilio_sid
@@ -156,6 +157,8 @@ JWT_SECRET=your-local-jwt-secret-min-32-characters
 # apps/management-api/.dev.vars
 # ⚠️ 必須與 apps/api/.dev.vars 的 JWT_SECRET 完全相同（見下方說明）
 JWT_SECRET=your-local-jwt-secret-min-32-characters
+# ⚠️ 必須與 apps/api/.dev.vars 的 INTERNAL_API_TOKEN 完全相同（見下方說明）
+INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-characters
 
 # apps/image-processor/.dev.vars
 CLOUDFLARE_IMAGES_KEY=your_images_key
@@ -172,6 +175,14 @@ CLOUDFLARE_IMAGES_ACCOUNT_ID=your_account_id
 > **`apps/management-api` 與 `apps/api` 的 `JWT_SECRET` 必須一致**。
 > 兩者不同會導致 exchange 回 `401 Invalid or expired API token`，onboarding 頁面無法載入。
 > 範本見 `apps/management-api/.dev.vars.example`。
+
+> **跨 Worker INTERNAL_API_TOKEN 對齊（tenant provisioning 必需）**
+> `apps/api` 建立餐廳時會透過 `MANAGEMENT_API` service binding 呼叫
+> `apps/management-api` 的 `/api/v1/internal/platform-restaurants/*` 路由。
+> `apps/api` 會用 `INTERNAL_API_TOKEN` 填入 `X-Internal-API-Token` header，
+> `apps/management-api` 會用同名 secret 驗證。兩個 Worker 同一環境的
+> **`INTERNAL_API_TOKEN` 必須一致**；缺值時 `apps/api` 會拋
+> `INTERNAL_API_TOKEN is not configured`，不一致時 internal route 會回 401。
 
 #### Staging & Production Secrets
 
@@ -198,6 +209,20 @@ wrangler secret put JWT_SECRET --env staging      # = apps/api staging 的 JWT_S
 wrangler secret put JWT_SECRET --env production    # = apps/api production 的 JWT_SECRET
 # 驗證：兩個 Worker 同環境的 secret 一致，否則 onboarding 換 token 會 401。
 
+# === Internal API Token (tenant provisioning 必需) ===
+# 生成安全的 internal token (64 字符)
+openssl rand -hex 32
+
+# 同一環境的 apps/api 與 apps/management-api 必須使用完全相同的值。
+wrangler secret put INTERNAL_API_TOKEN --env staging --config apps/api/wrangler.toml
+wrangler secret put INTERNAL_API_TOKEN --env staging --config apps/management-api/wrangler.toml
+
+wrangler secret put INTERNAL_API_TOKEN --env production --config apps/api/wrangler.toml
+wrangler secret put INTERNAL_API_TOKEN --env production --config apps/management-api/wrangler.toml
+
+# 部署前可檢查兩個 Worker 是否都有設定（Cloudflare 不會回傳 secret 值）：
+scripts/verify-internal-api-token-secrets.sh staging
+scripts/verify-internal-api-token-secrets.sh production
 
 # === API Tokens (選用) ===
 # Cloudflare API Token

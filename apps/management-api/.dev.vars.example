@@ -13,6 +13,11 @@
 # onboarding page (/dashboard/platform/onboarding) cannot load.
 JWT_SECRET=your-secure-jwt-secret-min-32-chars-long-change-this-value
 
+# Shared token for apps/api -> apps/management-api internal service calls.
+# This MUST be byte-for-byte identical to apps/api/.dev.vars. If unset or
+# mismatched, internal tenant provisioning routes return 401.
+INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-chars-change-this-value
+
 # Optional: dedicated secret for SIGNING management tokens.
 # If unset, management token signing falls back to JWT_SECRET
 # (managementJwtSecret() = MANAGEMENT_JWT_SECRET || JWT_SECRET). The

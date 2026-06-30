@@ -104,9 +104,10 @@ set_secret realtime JWT_SECRET               "$JWT_SECRET"
 set_secret realtime REALTIME_JWT_SECRET      "$REALTIME_JWT_SECRET"
 
 echo ""
-echo "=== apps/management-api (4 secrets) ==="
+echo "=== apps/management-api (5 secrets) ==="
 set_secret management-api JWT_SECRET         "$JWT_SECRET"
 set_secret management-api ENCRYPTION_KEY     "$ENCRYPTION_KEY"
+set_secret management-api INTERNAL_API_TOKEN "$INTERNAL_API_TOKEN"
 set_secret management-api EMAIL_API_KEY      "$EMAIL_API_KEY"
 set_secret management-api SLACK_WEBHOOK_URL  "$SLACK_WEBHOOK_URL"
 
