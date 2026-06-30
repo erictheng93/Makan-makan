@@ -141,6 +141,10 @@ describe("AuthService refresh token rotation", () => {
       role: 1,
       tv: 3,
     });
+    expect(typeof accessPayload).toBe("object");
+    expect((accessPayload as { exp?: number; iat?: number }).exp).toBe(
+      (accessPayload as { exp?: number; iat?: number }).iat! + 60 * 60,
+    );
     expect(accessPayload).not.toHaveProperty("id");
 
     const refreshPayload = verify(result.tokens!.refreshToken, jwtSecret);

@@ -205,7 +205,9 @@ describe("AuthService", () => {
     mocks.cache.get
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(6)
       .mockResolvedValueOnce(4);
     mocks.dbAuthService.login.mockResolvedValue({
       success: false,
@@ -231,6 +233,11 @@ describe("AuthService", () => {
       expect.any(Number),
     );
     expect(mocks.cache.set).toHaveBeenCalledWith(
+      "failed-login-ip:203.0.113.10",
+      7,
+      expect.any(Number),
+    );
+    expect(mocks.cache.set).toHaveBeenCalledWith(
       "failed-login:owner",
       5,
       expect.any(Number),
@@ -251,7 +258,10 @@ describe("AuthService", () => {
   });
 
   it("blocks login before password verification when the IP is rate limited", async () => {
-    mocks.cache.get.mockResolvedValueOnce(10).mockResolvedValueOnce(null);
+    mocks.cache.get
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(10)
+      .mockResolvedValueOnce(null);
 
     await expect(
       createService().login({
@@ -278,7 +288,10 @@ describe("AuthService", () => {
   });
 
   it("blocks login before password verification when the username is rate limited", async () => {
-    mocks.cache.get.mockResolvedValueOnce(null).mockResolvedValueOnce(5);
+    mocks.cache.get
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(5);
 
     await expect(
       createService().login({
@@ -292,7 +305,31 @@ describe("AuthService", () => {
     });
 
     expect(mocks.dbAuthService.login).not.toHaveBeenCalled();
-    expect(mocks.cache.get).toHaveBeenNthCalledWith(2, "failed-login:owner");
+    expect(mocks.cache.get).toHaveBeenNthCalledWith(3, "failed-login:owner");
+  });
+
+  it("blocks one IP across different usernames before password verification", async () => {
+    mocks.cache.get
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(10)
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      createService().login({
+        username: "new-user",
+        password: "wrong",
+        deviceInfo: { ipAddress: "203.0.113.10" },
+      }),
+    ).resolves.toMatchObject({
+      success: false,
+      error: "Account locked after repeated failures. Please try again later.",
+    });
+
+    expect(mocks.dbAuthService.login).not.toHaveBeenCalled();
+    expect(mocks.cache.get).toHaveBeenNthCalledWith(
+      2,
+      "failed-login-ip:203.0.113.10",
+    );
   });
 
   it("transforms registration and refresh results and clears related caches", async () => {

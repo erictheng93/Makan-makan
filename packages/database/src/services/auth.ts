@@ -91,7 +91,7 @@ const verifyAuthToken = (token: string, secret: string): AuthTokenPayload => {
   return decoded as AuthTokenPayload;
 };
 
-const ACCESS_TOKEN_TTL_HOURS = 72;
+const ACCESS_TOKEN_TTL_HOURS = 1;
 const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_HOURS * 60 * 60 * 1000;
 const ACCESS_TOKEN_EXPIRES_IN = `${ACCESS_TOKEN_TTL_HOURS}h`;
 
