@@ -38,8 +38,11 @@ const mocks = vi.hoisted(() => {
     update: vi.fn(),
     delete: vi.fn(),
   };
+  const managementApi = {
+    fetch: vi.fn(),
+  };
 
-  return { dbService, subscriptionService, cache, logger, db };
+  return { dbService, subscriptionService, cache, logger, db, managementApi };
 });
 
 vi.mock("drizzle-orm/d1", () => ({
@@ -86,6 +89,8 @@ function createService() {
         get: vi.fn(async () => "1"),
         put: vi.fn(async () => undefined),
       },
+      INTERNAL_API_TOKEN: "internal-token",
+      MANAGEMENT_API: mocks.managementApi,
     } as any,
     {} as KVNamespace,
   );
@@ -151,6 +156,20 @@ const restaurant = {
 describe("RestaurantsService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.managementApi.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            tenant: {
+              id: "T-20260630-ABC12345",
+              platformRestaurantId: "restaurant-1",
+            },
+          },
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
   });
 
   it("returns cached restaurant lists using stable sorted filter cache keys", async () => {
@@ -270,9 +289,57 @@ describe("RestaurantsService", () => {
     expect(
       mocks.subscriptionService.provisionDefaultForRestaurant,
     ).toHaveBeenCalledWith({ restaurantId: "restaurant-1" });
+    expect(mocks.managementApi.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "POST",
+        url: "https://management.internal/api/v1/internal/platform-restaurants/restaurant-1/tenant",
+      }),
+    );
     expect(mocks.db.insert).toHaveBeenCalled();
     expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:list:*");
     expect(mocks.logger.debug).toHaveBeenCalledWith(
+      "Emitting restaurant event",
+      expect.objectContaining({ type: "RESTAURANT_CREATED" }),
+    );
+  });
+
+  it("deactivates a newly created restaurant when management tenant provisioning fails", async () => {
+    const created = {
+      ...restaurant,
+      email: "owner@example.test",
+      phone: "0912345678",
+    };
+    mocks.dbService.createRestaurant.mockResolvedValue(created);
+    mocks.managementApi.fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: "Failed to provision tenant",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(
+      createService().createRestaurant({
+        name: "Makan",
+        type: "malaysian",
+        category: "casual",
+        address: "Main Street",
+        district: "Central",
+        city: "Taipei",
+        phone: "0912345678",
+        email: "owner@example.test",
+      }),
+    ).rejects.toThrow("Failed to provision tenant");
+
+    expect(mocks.dbService.deactivateRestaurant).toHaveBeenCalledWith(
+      "restaurant-1",
+    );
+    expect(
+      mocks.subscriptionService.provisionDefaultForRestaurant,
+    ).not.toHaveBeenCalled();
+    expect(mocks.logger.debug).not.toHaveBeenCalledWith(
       "Emitting restaurant event",
       expect.objectContaining({ type: "RESTAURANT_CREATED" }),
     );

@@ -4296,8 +4296,14 @@ const zhTWCore = {
     createNewRestaurant: "＋ 新增餐廳",
     restaurantName: "餐廳名稱",
     restaurantNamePlaceholder: "新餐廳名稱",
+    restaurantType: "餐廳類型",
+    restaurantTypePlaceholder: "例如：日式料理",
     restaurantAddress: "餐廳地址",
     restaurantAddressPlaceholder: "餐廳地址",
+    restaurantDistrict: "行政區",
+    restaurantDistrictPlaceholder: "例如：西區",
+    restaurantPhone: "餐廳電話",
+    restaurantPhonePlaceholder: "例如：0912345678",
     // Permissions info
     permissionNote: "此帳號建立後將擁有以下權限：",
     ownerPermissions: {
@@ -4339,6 +4345,9 @@ const zhTWCore = {
     emailInvalid: "請輸入有效的 Email",
     restaurantRequired: "請選擇或新增餐廳",
     newRestaurantNameRequired: "請輸入餐廳名稱",
+    newRestaurantTypeRequired: "請輸入餐廳類型",
+    newRestaurantDistrictRequired: "請輸入行政區",
+    newRestaurantPhoneRequired: "請輸入餐廳電話",
   },
 
   // 食材管理

@@ -13,7 +13,6 @@ import type {
   UpdateTenantRequest,
 } from "../types";
 import { TenantService } from "../services/TenantService";
-import { randomBase36 } from "../utils/random";
 
 const router = new Hono<{ Bindings: ManagementEnv }>();
 
@@ -150,17 +149,9 @@ router.post("/", async (c) => {
     // Auto-generate subdomain from businessName if not provided
     let subdomain = validated.subdomain;
     if (!subdomain) {
-      const base = validated.businessName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 20);
-      const suffix = randomBase36(6);
-      subdomain = base ? `${base}-${suffix}` : `tenant-${suffix}`;
+      subdomain = await tenantService.generateAvailableSubdomain(
+        validated.businessName,
+      );
     }
 
     // Check subdomain availability

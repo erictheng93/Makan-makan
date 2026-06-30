@@ -24,6 +24,7 @@ import onboardingRouter from "./routes/onboarding";
 import authRouter from "./routes/auth";
 import adminOnboardingRouter from "./routes/admin-onboarding";
 import { adminMarketsRouter, marketsRouter } from "./routes/markets";
+import internalRouter from "./routes/internal";
 
 // Create main application
 const app = new Hono<{ Bindings: ManagementEnv }>();
@@ -210,6 +211,7 @@ protectedApi.route("/admin/onboarding", adminOnboardingRouter);
 
 // Mount API versions
 app.route("/api/v1", publicApi);
+app.route("/api/v1/internal", internalRouter);
 app.route("/api/v1", protectedApi);
 
 // ============================================================

@@ -1,4 +1,9 @@
-import type { KVNamespace, R2Bucket, Queue } from "@cloudflare/workers-types";
+import type {
+  Fetcher,
+  KVNamespace,
+  R2Bucket,
+  Queue,
+} from "@cloudflare/workers-types";
 import type { DeploymentMode } from "./deployment";
 
 // Custom AnalyticsEngine interface since it's not exported by @cloudflare/workers-types
@@ -95,6 +100,7 @@ export interface Env {
   PRELOAD_QUEUE?: Queue; // Cache preloading queue
   REVALIDATION_QUEUE?: Queue; // Cache revalidation queue
   REALTIME_SESSION: DurableObjectNamespace; // Advanced Durable Objects
+  MANAGEMENT_API?: Fetcher;
 
   // Security and monitoring
   CF_API_TOKEN?: string; // Cloudflare API for advanced features

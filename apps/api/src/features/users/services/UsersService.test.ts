@@ -42,6 +42,10 @@ vi.mock("@makanmakan/database", () => ({
 
 const env = {
   DB: { binding: "db" },
+  INTERNAL_API_TOKEN: "internal-token",
+  MANAGEMENT_API: {
+    fetch: vi.fn(),
+  },
 } as unknown as Env;
 
 const admin = { id: 1, role: 0 };
@@ -79,6 +83,22 @@ function user(overrides: Record<string, unknown> = {}) {
 describe("UsersService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(env.MANAGEMENT_API!.fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            tenant: {
+              id: "T-20260630-ABC12345",
+              platformRestaurantId: "restaurant-1",
+              ownerUserId: "owner-1",
+              ownerUsername: "owner",
+            },
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
   });
 
   it("constructs database services with the API database binding", () => {
@@ -250,6 +270,48 @@ describe("UsersService", () => {
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       message: "Insufficient permissions to create this type of user",
+    });
+  });
+
+  it("links newly created owner users back to the management tenant", async () => {
+    dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
+      user({
+        id: "owner-1",
+        username: "owner",
+        role: 1,
+        restaurantId: "restaurant-1",
+        fullName: "Owner User",
+      }),
+    );
+
+    await expect(
+      createService().createUser(admin, {
+        username: "owner",
+        fullName: "Owner User",
+        password: "Secret1!",
+        role: 1,
+        restaurantId: "restaurant-1",
+      }),
+    ).resolves.toMatchObject({
+      id: "owner-1",
+      role_name: "Shop Owner",
+      restaurantId: "restaurant-1",
+    });
+
+    expect(env.MANAGEMENT_API!.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "PATCH",
+        url: "https://management.internal/api/v1/internal/platform-restaurants/restaurant-1/owner",
+      }),
+    );
+    const request = vi.mocked(env.MANAGEMENT_API!.fetch).mock.calls[0][0] as
+      | Request
+      | URL
+      | string;
+    expect(request).toBeInstanceOf(Request);
+    await expect((request as Request).json()).resolves.toEqual({
+      ownerUserId: "owner-1",
+      ownerUsername: "owner",
     });
   });
 

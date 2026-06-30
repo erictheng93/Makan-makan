@@ -33,6 +33,7 @@ export interface ManagementEnv {
   SLACK_WEBHOOK_URL?: string; // Optional: for alert notifications
   ONBOARDING_EMAIL_ENABLED?: string;
   ONBOARDING_EMAIL_FROM?: string;
+  INTERNAL_API_TOKEN?: string;
 
   // D1 Database binding
   MANAGEMENT_DB: D1Database;
@@ -90,6 +91,11 @@ export interface Tenant {
   // Status
   status: TenantStatus;
 
+  // Platform account links
+  platformRestaurantId?: string;
+  ownerUserId?: string;
+  ownerUsername?: string;
+
   // Timestamps
   createdAt: string;
   activatedAt?: string;
@@ -103,7 +109,7 @@ export interface CreateTenantRequest {
   businessName: string;
   contactEmail: string;
   contactPhone?: string;
-  subdomain: string;
+  subdomain?: string;
   customDomain?: string;
   licenseTier: LicenseTier;
 }

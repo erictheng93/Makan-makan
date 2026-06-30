@@ -5,6 +5,9 @@ const PASSWORD_STRENGTH_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
 
 const restaurantIdQuerySchema = z.string().trim().min(1).optional();
+const restaurantIdInputSchema = z
+  .union([z.string().trim().min(1), z.number().int().positive()])
+  .optional();
 
 // Strong password schema - requires 8+ characters with uppercase, lowercase, number, and special character
 const strongPasswordSchema = z
@@ -26,7 +29,7 @@ export const createUserSchema = z.object({
   phone: z.string().max(20).optional(),
   password: strongPasswordSchema,
   role: z.number().int().min(0).max(4),
-  restaurantId: z.number().int().positive().optional(),
+  restaurantId: restaurantIdInputSchema,
   address: z.string().max(200).optional(),
   dateOfBirth: z.string().optional(),
   profileImageUrl: z.string().url().optional(),

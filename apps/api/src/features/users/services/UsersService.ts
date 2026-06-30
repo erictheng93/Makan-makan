@@ -14,6 +14,7 @@ import {
   type FormattedUser,
   type UserStats,
 } from "../types";
+import { ManagementTenantClient } from "../../../services/managementTenantClient";
 
 interface CurrentUser {
   id: string;
@@ -45,10 +46,12 @@ interface UserRecord {
 export class UsersService {
   private userService: UserService;
   private authService: AuthService;
+  private managementTenantClient: ManagementTenantClient;
 
   constructor(private env: Env) {
     this.userService = new UserService(env.DB, env);
     this.authService = new AuthService(env.DB, env);
+    this.managementTenantClient = new ManagementTenantClient(env);
   }
 
   canManageUser(
@@ -207,6 +210,17 @@ export class UsersService {
       restaurantId: effectiveRestaurantId,
     };
     const newUser = await this.userService.createUser(dbUserData);
+    if (
+      currentUser.role === USER_ROLES.ADMIN &&
+      newUser.role === USER_ROLES.OWNER &&
+      newUser.restaurantId
+    ) {
+      await this.managementTenantClient.linkRestaurantOwner({
+        restaurantId: String(newUser.restaurantId),
+        ownerUserId: String(newUser.id),
+        ownerUsername: newUser.username,
+      });
+    }
 
     return this.formatUser(newUser);
   }

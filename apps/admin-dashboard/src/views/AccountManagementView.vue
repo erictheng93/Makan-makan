@@ -43,9 +43,12 @@ const ownerForm = reactive({
   fullName: "",
   email: "",
   phone: "",
-  restaurantId: undefined as number | undefined,
+  restaurantId: undefined as string | undefined,
   newRestaurantName: "",
+  newRestaurantType: "",
   newRestaurantAddress: "",
+  newRestaurantDistrict: "",
+  newRestaurantPhone: "",
 });
 
 // Admin form
@@ -98,6 +101,21 @@ function validateOwnerForm(): boolean {
     if (!ownerForm.newRestaurantName?.trim()) {
       errors.newRestaurantName = t(
         "accountManagement.newRestaurantNameRequired",
+      );
+    }
+    if (!ownerForm.newRestaurantType?.trim()) {
+      errors.newRestaurantType = t(
+        "accountManagement.newRestaurantTypeRequired",
+      );
+    }
+    if (!ownerForm.newRestaurantDistrict?.trim()) {
+      errors.newRestaurantDistrict = t(
+        "accountManagement.newRestaurantDistrictRequired",
+      );
+    }
+    if (!ownerForm.newRestaurantPhone?.trim()) {
+      errors.newRestaurantPhone = t(
+        "accountManagement.newRestaurantPhoneRequired",
       );
     }
   } else if (!ownerForm.restaurantId) {
@@ -203,7 +221,10 @@ function resetOwnerForm() {
   ownerForm.phone = "";
   ownerForm.restaurantId = undefined;
   ownerForm.newRestaurantName = "";
+  ownerForm.newRestaurantType = "";
   ownerForm.newRestaurantAddress = "";
+  ownerForm.newRestaurantDistrict = "";
+  ownerForm.newRestaurantPhone = "";
   showNewRestaurant.value = false;
   clearErrors();
   submitError.value = "";
@@ -231,7 +252,12 @@ async function handleOwnerSubmit() {
     if (showNewRestaurant.value) {
       const restaurantRes = await api.post<Restaurant>("/restaurants", {
         name: ownerForm.newRestaurantName,
+        type: ownerForm.newRestaurantType,
+        category: "restaurant",
         address: ownerForm.newRestaurantAddress,
+        district: ownerForm.newRestaurantDistrict,
+        phone: ownerForm.newRestaurantPhone,
+        email: ownerForm.email,
       });
       if (restaurantRes.data?.success && restaurantRes.data.data) {
         restaurantId = restaurantRes.data.data.id;
@@ -308,7 +334,7 @@ function handleRestaurantChange(event: Event) {
     ownerForm.restaurantId = undefined;
   } else {
     showNewRestaurant.value = false;
-    ownerForm.restaurantId = value ? Number(value) : undefined;
+    ownerForm.restaurantId = value || undefined;
   }
 }
 
@@ -529,6 +555,26 @@ function switchTab(tab: TabType) {
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {{ t("accountManagement.restaurantType") }} *
+                </label>
+                <input
+                  v-model="ownerForm.newRestaurantType"
+                  type="text"
+                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  :class="{ 'border-red-300': errors.newRestaurantType }"
+                  :placeholder="
+                    t('accountManagement.restaurantTypePlaceholder')
+                  "
+                />
+                <p
+                  v-if="errors.newRestaurantType"
+                  class="mt-1 text-xs text-red-600"
+                >
+                  {{ errors.newRestaurantType }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
                   {{ t("accountManagement.restaurantAddress") }}
                 </label>
                 <input
@@ -539,6 +585,46 @@ function switchTab(tab: TabType) {
                     t('accountManagement.restaurantAddressPlaceholder')
                   "
                 />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {{ t("accountManagement.restaurantDistrict") }} *
+                </label>
+                <input
+                  v-model="ownerForm.newRestaurantDistrict"
+                  type="text"
+                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  :class="{ 'border-red-300': errors.newRestaurantDistrict }"
+                  :placeholder="
+                    t('accountManagement.restaurantDistrictPlaceholder')
+                  "
+                />
+                <p
+                  v-if="errors.newRestaurantDistrict"
+                  class="mt-1 text-xs text-red-600"
+                >
+                  {{ errors.newRestaurantDistrict }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {{ t("accountManagement.restaurantPhone") }} *
+                </label>
+                <input
+                  v-model="ownerForm.newRestaurantPhone"
+                  type="tel"
+                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  :class="{ 'border-red-300': errors.newRestaurantPhone }"
+                  :placeholder="
+                    t('accountManagement.restaurantPhonePlaceholder')
+                  "
+                />
+                <p
+                  v-if="errors.newRestaurantPhone"
+                  class="mt-1 text-xs text-red-600"
+                >
+                  {{ errors.newRestaurantPhone }}
+                </p>
               </div>
             </div>
 

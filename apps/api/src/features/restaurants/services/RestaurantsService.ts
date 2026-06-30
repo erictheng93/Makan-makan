@@ -19,6 +19,7 @@ import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
 import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
+import { ManagementTenantClient } from "../../../services/managementTenantClient";
 import type {
   Restaurant,
   EnhancedRestaurantStats,
@@ -148,6 +149,7 @@ export class RestaurantsService {
   private dbService: DatabaseRestaurantService;
   private db;
   private subscriptionService: SubscriptionService;
+  private managementTenantClient: ManagementTenantClient;
   private cache: CacheService;
   private logger: ConsoleLogger;
   private env: Env;
@@ -156,6 +158,7 @@ export class RestaurantsService {
     this.dbService = new DatabaseRestaurantService(db, env);
     this.db = drizzle(db);
     this.subscriptionService = new SubscriptionService(db);
+    this.managementTenantClient = new ManagementTenantClient(env);
     this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
     this.logger = new ConsoleLogger("RestaurantsService");
     this.env = env;
@@ -259,6 +262,28 @@ export class RestaurantsService {
 
       const restaurant = await this.dbService.createRestaurant(data);
 
+      try {
+        await this.managementTenantClient.provisionRestaurantTenant({
+          restaurantId: restaurant.id,
+          businessName: restaurant.name ?? data.name,
+          contactEmail:
+            restaurant.email ?? data.email ?? "admin@makanmasak.com",
+          contactPhone: restaurant.phone ?? data.phone,
+          planId: "trial",
+        });
+      } catch (error) {
+        await Promise.resolve(
+          this.dbService.deactivateRestaurant(restaurant.id),
+        ).catch((deactivateError) => {
+          this.logger.error(
+            "Failed to deactivate restaurant after tenant provisioning failure",
+            deactivateError as Error,
+            { restaurantId: restaurant.id },
+          );
+        });
+        throw error;
+      }
+
       await this.attachNearestActiveMarketIfPresent(restaurant);
 
       const subscription =
@@ -290,7 +315,9 @@ export class RestaurantsService {
       this.logger.error("Failed to create restaurant", error as Error, {
         data,
       });
-      throw new Error("Failed to create restaurant");
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to create restaurant",
+      );
     }
   }
 

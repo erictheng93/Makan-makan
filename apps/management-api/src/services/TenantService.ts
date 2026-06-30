@@ -11,8 +11,14 @@ import type {
   CreateTenantRequest,
   UpdateTenantRequest,
   TenantStatus,
+  OnboardingPlanId,
 } from "../types";
 import { generateLicenseKey, randomBase36Upper } from "../utils/random";
+import {
+  DEFAULT_BILLING_CYCLE_MS,
+  planIdToTier,
+  TRIAL_DURATION_MS,
+} from "@makanmakan/database";
 
 export class TenantService {
   private env: ManagementEnv;
@@ -122,6 +128,40 @@ export class TenantService {
     return this.mapRowToTenant(result as Record<string, unknown>);
   }
 
+  async getTenantByPlatformRestaurantId(
+    platformRestaurantId: string,
+  ): Promise<Tenant | null> {
+    const result = await this.env.MANAGEMENT_DB.prepare(
+      "SELECT * FROM tenants WHERE platform_restaurant_id = ?",
+    )
+      .bind(platformRestaurantId)
+      .first();
+
+    if (!result) return null;
+
+    return this.mapRowToTenant(result as Record<string, unknown>);
+  }
+
+  async generateAvailableSubdomain(businessName: string): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const base = businessName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 20);
+      const suffix = randomBase36Upper(6).toLowerCase();
+      const subdomain = base ? `${base}-${suffix}` : `tenant-${suffix}`;
+      const existing = await this.getTenantBySubdomain(subdomain);
+      if (!existing) return subdomain;
+    }
+
+    throw new Error("Unable to generate an available subdomain");
+  }
+
   /**
    * Create new tenant
    */
@@ -129,6 +169,9 @@ export class TenantService {
     const id = this.generateTenantId();
     const now = new Date().toISOString();
     const licenseKey = generateLicenseKey(data.licenseTier);
+    const subdomain =
+      data.subdomain ??
+      (await this.generateAvailableSubdomain(data.businessName));
 
     await this.env.MANAGEMENT_DB.prepare(
       `
@@ -146,7 +189,7 @@ export class TenantService {
         data.contactPhone || null,
         null,
         null,
-        data.subdomain,
+        subdomain,
         data.customDomain || null,
         data.licenseTier,
         licenseKey,
@@ -157,6 +200,131 @@ export class TenantService {
       .run();
 
     return (await this.getTenantById(id))!;
+  }
+
+  async provisionPlatformRestaurantTenant(data: {
+    platformRestaurantId: string;
+    businessName: string;
+    contactEmail: string;
+    contactPhone?: string;
+    planId?: OnboardingPlanId | null;
+    subdomain?: string | null;
+  }): Promise<Tenant> {
+    const existing = await this.getTenantByPlatformRestaurantId(
+      data.platformRestaurantId,
+    );
+    if (existing) {
+      await this.ensureShopSubscription(existing.id, data.planId);
+      return existing;
+    }
+
+    return this.provisionTenantWithSubscription(data);
+  }
+
+  async provisionTenantWithSubscription(data: {
+    businessName: string;
+    contactEmail: string;
+    contactPhone?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    planId?: OnboardingPlanId | null;
+    subdomain?: string | null;
+    platformRestaurantId?: string | null;
+  }): Promise<Tenant> {
+    const id = this.generateTenantId();
+    const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
+    const licenseTier = this.toLicenseTier(data.planId);
+    const licenseKey = generateLicenseKey(licenseTier);
+    const subdomain =
+      data.subdomain ??
+      (await this.generateAvailableSubdomain(data.businessName));
+    const planTier = planIdToTier(data.planId);
+    const isTrial = planTier === "trial";
+    const trialEndsAt = isTrial ? nowMs + TRIAL_DURATION_MS : null;
+    const billingCycleStartAt = isTrial ? null : nowMs;
+    const billingCycleEndAt = isTrial ? null : nowMs + DEFAULT_BILLING_CYCLE_MS;
+
+    await this.env.MANAGEMENT_DB.batch([
+      this.env.MANAGEMENT_DB.prepare(
+        `INSERT INTO tenants (
+          id, business_name, contact_email, contact_phone, latitude, longitude,
+          subdomain, custom_domain, license_tier, license_key,
+          status, activated_at, created_at, updated_at, platform_restaurant_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        id,
+        data.businessName,
+        data.contactEmail,
+        data.contactPhone || null,
+        data.latitude ?? null,
+        data.longitude ?? null,
+        subdomain,
+        null,
+        licenseTier,
+        licenseKey,
+        "active",
+        nowIso,
+        nowIso,
+        nowIso,
+        data.platformRestaurantId || null,
+      ),
+      this.env.MANAGEMENT_DB.prepare(
+        `INSERT INTO shop_subscriptions (
+          id, restaurant_id, plan_tier, module_overrides,
+          is_active, trial_ends_at_ms, billing_cycle_start_at_ms,
+          billing_cycle_end_at_ms, notes, created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        this.generateSubscriptionId(),
+        id,
+        planTier,
+        "{}",
+        1,
+        trialEndsAt,
+        billingCycleStartAt,
+        billingCycleEndAt,
+        "auto-provisioned for platform restaurant",
+        nowMs,
+        nowMs,
+      ),
+    ]);
+
+    return (await this.getTenantById(id))!;
+  }
+
+  async linkPlatformRestaurantOwner(data: {
+    platformRestaurantId: string;
+    ownerUserId: string;
+    ownerUsername: string;
+  }): Promise<Tenant | null> {
+    const tenant = await this.getTenantByPlatformRestaurantId(
+      data.platformRestaurantId,
+    );
+    if (!tenant) return null;
+
+    if (
+      tenant.ownerUserId &&
+      (tenant.ownerUserId !== data.ownerUserId ||
+        tenant.ownerUsername !== data.ownerUsername)
+    ) {
+      throw new Error("Tenant is already linked to a different owner");
+    }
+
+    await this.env.MANAGEMENT_DB.prepare(
+      `UPDATE tenants
+       SET owner_user_id = ?, owner_username = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+      .bind(
+        data.ownerUserId,
+        data.ownerUsername,
+        new Date().toISOString(),
+        tenant.id,
+      )
+      .run();
+
+    return this.getTenantById(tenant.id);
   }
 
   /**
@@ -287,6 +455,52 @@ export class TenantService {
     return `T-${dateStr}-${random}`;
   }
 
+  private generateSubscriptionId(): string {
+    return `sub_${crypto.randomUUID()}`;
+  }
+
+  private toLicenseTier(planId: OnboardingPlanId | null | undefined) {
+    if (planId === "professional" || planId === "enterprise") return planId;
+    return "standard";
+  }
+
+  private async ensureShopSubscription(
+    tenantId: string,
+    planId: OnboardingPlanId | null | undefined,
+  ) {
+    const existing = await this.env.MANAGEMENT_DB.prepare(
+      "SELECT id FROM shop_subscriptions WHERE restaurant_id = ?",
+    )
+      .bind(tenantId)
+      .first();
+    if (existing) return;
+
+    const nowMs = Date.now();
+    const planTier = planIdToTier(planId);
+    const isTrial = planTier === "trial";
+    await this.env.MANAGEMENT_DB.prepare(
+      `INSERT INTO shop_subscriptions (
+        id, restaurant_id, plan_tier, module_overrides,
+        is_active, trial_ends_at_ms, billing_cycle_start_at_ms,
+        billing_cycle_end_at_ms, notes, created_at_ms, updated_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        this.generateSubscriptionId(),
+        tenantId,
+        planTier,
+        "{}",
+        1,
+        isTrial ? nowMs + TRIAL_DURATION_MS : null,
+        isTrial ? null : nowMs,
+        isTrial ? null : nowMs + DEFAULT_BILLING_CYCLE_MS,
+        "backfilled during platform restaurant provisioning retry",
+        nowMs,
+        nowMs,
+      )
+      .run();
+  }
+
   private mapRowToTenant(row: Record<string, unknown>): Tenant {
     return {
       id: row.id as string,
@@ -302,6 +516,9 @@ export class TenantService {
       licenseKey: row.license_key as string,
       licenseExpiresAt: row.license_expires_at as string | undefined,
       status: row.status as TenantStatus,
+      platformRestaurantId: row.platform_restaurant_id as string | undefined,
+      ownerUserId: row.owner_user_id as string | undefined,
+      ownerUsername: row.owner_username as string | undefined,
       createdAt: row.created_at as string,
       activatedAt: row.activated_at as string | undefined,
       updatedAt: row.updated_at as string,

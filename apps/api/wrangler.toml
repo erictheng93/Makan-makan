@@ -56,6 +56,10 @@ database_name = "makanmakan-local"
 database_id = "local"
 migrations_dir = "../../packages/database/migrations_fresh"
 
+[[services]]
+binding = "MANAGEMENT_API"
+service = "makanmasak-management-api"
+
 # KV namespaces for caching and rate limiting
 [[kv_namespaces]]
 binding = "CACHE_KV"
@@ -132,6 +136,10 @@ binding = "DB"
 database_name = "makanmakan-local"
 database_id = "local"
 
+[[env.development.services]]
+binding = "MANAGEMENT_API"
+service = "makanmasak-management-api"
+
 [[env.development.kv_namespaces]]
 binding = "CACHE_KV"
 id = "makanmasak-cache-dev"
@@ -198,6 +206,10 @@ binding = "DB"
 database_name = "makanmasak-staging"
 database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
 migrations_dir = "../../packages/database/migrations_fresh"
+
+[[env.staging.services]]
+binding = "MANAGEMENT_API"
+service = "makanmasak-management-api-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "CACHE_KV"
@@ -270,6 +282,10 @@ binding = "DB"
 database_name = "makanmasak-prod"
 database_id = "4e3c7ba8-5aa7-4652-bfea-a9c565b3a141"
 migrations_dir = "../../packages/database/migrations_fresh"
+
+[[env.production.services]]
+binding = "MANAGEMENT_API"
+service = "makanmasak-management-api-prod"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"

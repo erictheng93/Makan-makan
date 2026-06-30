@@ -8,24 +8,12 @@ import type {
   ManagementEnv,
   OnboardingApplication,
   OnboardingStatus,
-  CreateApplicationRequest,
-  LicenseTier,
   OnboardingPlanId,
+  CreateApplicationRequest,
 } from "../types";
 import { TenantService } from "./TenantService";
-import {
-  generateLicenseKey,
-  randomBase36,
-  randomBase36Upper,
-} from "../utils/random";
-import {
-  DEFAULT_BILLING_CYCLE_MS,
-  passwordResetTokens,
-  planIdToTier,
-  restaurants,
-  users,
-  TRIAL_DURATION_MS,
-} from "@makanmakan/database";
+import { randomBase36, randomBase36Upper } from "../utils/random";
+import { passwordResetTokens, restaurants, users } from "@makanmakan/database";
 import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -323,7 +311,7 @@ export class OnboardingService {
       // Update status to provisioning
       await this.updateApplicationStatus(applicationId, "provisioning");
 
-      const tenant = await this.createTenantWithSubscription(application, now);
+      const tenant = await this.createTenantWithSubscription(application);
       tenantId = tenant.id;
       ownerAccount = await this.createPlatformOwnerAccount(
         application,
@@ -537,63 +525,16 @@ export class OnboardingService {
 
   private async createTenantWithSubscription(
     application: OnboardingApplication,
-    nowIso: string,
   ) {
-    const tenantId = this.generateTenantId();
-    const tenantLicenseTier = this.toTenantLicenseTier(application.planId);
-    const licenseKey = generateLicenseKey(tenantLicenseTier);
-    const planTier = planIdToTier(application.planId);
-    const nowMs = Date.now();
-    const isTrial = planTier === "trial";
-    const trialEndsAt = isTrial ? nowMs + TRIAL_DURATION_MS : null;
-    const billingCycleStartAt = isTrial ? null : nowMs;
-    const billingCycleEndAt = isTrial ? null : nowMs + DEFAULT_BILLING_CYCLE_MS;
-
-    const tenantInsert = this.env.MANAGEMENT_DB.prepare(
-      `INSERT INTO tenants (
-        id, business_name, contact_email, contact_phone, latitude, longitude,
-        subdomain, custom_domain, license_tier, license_key,
-        status, activated_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      tenantId,
-      application.businessName,
-      application.contactEmail,
-      application.contactPhone || null,
-      application.latitude ?? null,
-      application.longitude ?? null,
-      application.assignedSubdomain!,
-      null,
-      tenantLicenseTier,
-      licenseKey,
-      "active",
-      nowIso,
-      nowIso,
-      nowIso,
-    );
-
-    const subscriptionInsert = this.env.MANAGEMENT_DB.prepare(
-      `INSERT INTO shop_subscriptions (
-        id, restaurant_id, plan_tier, module_overrides,
-        is_active, trial_ends_at_ms, billing_cycle_start_at_ms,
-        billing_cycle_end_at_ms, created_at_ms, updated_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      this.generateSubscriptionId(),
-      tenantId,
-      planTier,
-      "{}",
-      1,
-      trialEndsAt,
-      billingCycleStartAt,
-      billingCycleEndAt,
-      nowMs,
-      nowMs,
-    );
-
-    await this.env.MANAGEMENT_DB.batch([tenantInsert, subscriptionInsert]);
-
-    const tenant = await this.tenantService.getTenantById(tenantId);
+    const tenant = await this.tenantService.provisionTenantWithSubscription({
+      businessName: application.businessName,
+      contactEmail: application.contactEmail,
+      contactPhone: application.contactPhone,
+      latitude: application.latitude ?? null,
+      longitude: application.longitude ?? null,
+      planId: application.planId,
+      subdomain: application.assignedSubdomain,
+    });
     if (!tenant) {
       throw new Error("Tenant creation failed");
     }
@@ -1053,25 +994,6 @@ export class OnboardingService {
   private stripApiPath(value: string | undefined): string | undefined {
     if (!value) return undefined;
     return value.replace(/\/api(?:\/v\d+)?$/i, "").replace(/\/+$/, "");
-  }
-
-  private toTenantLicenseTier(planId: string | null | undefined): LicenseTier {
-    if (planId === "professional" || planId === "enterprise") {
-      return planId;
-    }
-
-    return "standard";
-  }
-
-  private generateTenantId(): string {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-    const random = randomBase36Upper(8);
-    return `T-${dateStr}-${random}`;
-  }
-
-  private generateSubscriptionId(): string {
-    return crypto.randomUUID();
   }
 
   private mapRowToApplication(

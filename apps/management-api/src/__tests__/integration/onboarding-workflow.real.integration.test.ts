@@ -140,6 +140,7 @@ function createEnv(
     CORS_ORIGIN: "http://localhost:3004",
     LOG_LEVEL: "error",
     JWT_SECRET: "test-secret",
+    INTERNAL_API_TOKEN: "internal-token",
     ENCRYPTION_KEY: "a".repeat(32),
     CF_API_TOKEN: "test-token",
     CF_ACCOUNT_ID: "test-account",
@@ -499,6 +500,144 @@ describe("Onboarding public API workflow — real integration", () => {
         .prepare("SELECT COUNT(*) AS count FROM restaurants")
         .get(),
     ).toMatchObject({ count: 1 });
+  });
+
+  it("provisions and links tenants for platform restaurants through the internal API", async () => {
+    const db = createManagementDb();
+    const env = createEnv(db);
+
+    const provisionResponse = await app.fetch(
+      new Request(
+        "https://management.test/api/v1/internal/platform-restaurants/restaurant-jp-1/tenant",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-API-Token": "internal-token",
+          },
+          body: JSON.stringify({
+            businessName: "日式料理",
+            contactEmail: "owner@example.test",
+            contactPhone: "0912345678",
+            planId: "trial",
+          }),
+        },
+      ),
+      env,
+    );
+
+    expect(provisionResponse.status).toBe(201);
+    const provisionJson: any = await provisionResponse.json();
+    expect(provisionJson.success).toBe(true);
+    expect(provisionJson.data.tenant).toMatchObject({
+      businessName: "日式料理",
+      contactEmail: "owner@example.test",
+      status: "active",
+      platformRestaurantId: "restaurant-jp-1",
+    });
+
+    const tenantRow = db
+      .raw()
+      .prepare(
+        `SELECT id, status, platform_restaurant_id, owner_user_id, owner_username
+         FROM tenants WHERE platform_restaurant_id = ?`,
+      )
+      .get("restaurant-jp-1");
+    expect(tenantRow).toMatchObject({
+      id: provisionJson.data.tenant.id,
+      status: "active",
+      platform_restaurant_id: "restaurant-jp-1",
+      owner_user_id: null,
+      owner_username: null,
+    });
+
+    expect(
+      db
+        .raw()
+        .prepare(
+          `SELECT restaurant_id, plan_tier, is_active
+           FROM shop_subscriptions WHERE restaurant_id = ?`,
+        )
+        .get(provisionJson.data.tenant.id),
+    ).toMatchObject({
+      restaurant_id: provisionJson.data.tenant.id,
+      plan_tier: "trial",
+      is_active: 1,
+    });
+
+    const retryResponse = await app.fetch(
+      new Request(
+        "https://management.test/api/v1/internal/platform-restaurants/restaurant-jp-1/tenant",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-API-Token": "internal-token",
+          },
+          body: JSON.stringify({
+            businessName: "日式料理",
+            contactEmail: "owner@example.test",
+            contactPhone: "0912345678",
+            planId: "trial",
+          }),
+        },
+      ),
+      env,
+    );
+    const retryJson: any = await retryResponse.json();
+    expect(retryResponse.status).toBe(201);
+    expect(retryJson.data.tenant.id).toBe(provisionJson.data.tenant.id);
+    expect(
+      db.raw().prepare("SELECT COUNT(*) AS count FROM tenants").get(),
+    ).toMatchObject({ count: 1 });
+    expect(
+      db
+        .raw()
+        .prepare("SELECT COUNT(*) AS count FROM shop_subscriptions")
+        .get(),
+    ).toMatchObject({ count: 1 });
+
+    const linkResponse = await app.fetch(
+      new Request(
+        "https://management.test/api/v1/internal/platform-restaurants/restaurant-jp-1/owner",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-API-Token": "internal-token",
+          },
+          body: JSON.stringify({
+            ownerUserId: "owner-jp-1",
+            ownerUsername: "sushi-owner",
+          }),
+        },
+      ),
+      env,
+    );
+
+    expect(linkResponse.status).toBe(200);
+    await expect(linkResponse.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        tenant: {
+          id: provisionJson.data.tenant.id,
+          ownerUserId: "owner-jp-1",
+          ownerUsername: "sushi-owner",
+        },
+      },
+    });
+    expect(
+      db
+        .raw()
+        .prepare(
+          `SELECT owner_user_id, owner_username
+           FROM tenants WHERE platform_restaurant_id = ?`,
+        )
+        .get("restaurant-jp-1"),
+    ).toMatchObject({
+      owner_user_id: "owner-jp-1",
+      owner_username: "sushi-owner",
+    });
   });
 
   it("keeps approve idempotent after completion without creating duplicate platform records", async () => {

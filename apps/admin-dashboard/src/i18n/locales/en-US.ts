@@ -4294,8 +4294,14 @@ const enUS: Messages = {
     createNewRestaurant: "+ New Restaurant",
     restaurantName: "Restaurant Name",
     restaurantNamePlaceholder: "New restaurant name",
+    restaurantType: "Restaurant Type",
+    restaurantTypePlaceholder: "e.g. Japanese cuisine",
     restaurantAddress: "Restaurant Address",
     restaurantAddressPlaceholder: "Restaurant address",
+    restaurantDistrict: "District",
+    restaurantDistrictPlaceholder: "e.g. West District",
+    restaurantPhone: "Restaurant Phone",
+    restaurantPhonePlaceholder: "e.g. 0912345678",
     permissionNote: "This account will have the following permissions:",
     ownerPermissions: {
       manageMenu: "Manage restaurant menu",
@@ -4332,6 +4338,9 @@ const enUS: Messages = {
     emailInvalid: "Please enter a valid email",
     restaurantRequired: "Please select or create a restaurant",
     newRestaurantNameRequired: "Restaurant name is required",
+    newRestaurantTypeRequired: "Restaurant type is required",
+    newRestaurantDistrictRequired: "District is required",
+    newRestaurantPhoneRequired: "Restaurant phone is required",
   },
 
   // Ingredient Management
