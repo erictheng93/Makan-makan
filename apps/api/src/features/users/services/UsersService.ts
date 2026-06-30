@@ -215,11 +215,27 @@ export class UsersService {
       newUser.role === USER_ROLES.OWNER &&
       newUser.restaurantId
     ) {
-      await this.managementTenantClient.linkRestaurantOwner({
-        restaurantId: String(newUser.restaurantId),
-        ownerUserId: String(newUser.id),
-        ownerUsername: newUser.username,
-      });
+      try {
+        await this.managementTenantClient.linkRestaurantOwner({
+          restaurantId: String(newUser.restaurantId),
+          ownerUserId: String(newUser.id),
+          ownerUsername: newUser.username,
+        });
+      } catch (error) {
+        await this.userService
+          .updateUser(String(newUser.id), { isActive: false })
+          .catch((deactivateError) => {
+            console.error(
+              "Failed to deactivate owner user after management owner link failure",
+              deactivateError,
+              {
+                userId: newUser.id,
+                restaurantId: newUser.restaurantId,
+              },
+            );
+          });
+        throw error;
+      }
     }
 
     return this.formatUser(newUser);

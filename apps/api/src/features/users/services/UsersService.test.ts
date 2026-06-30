@@ -315,6 +315,50 @@ describe("UsersService", () => {
     });
   });
 
+  it("deactivates a newly created owner when management owner linking fails", async () => {
+    dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
+      user({
+        id: "owner-1",
+        username: "owner",
+        role: 1,
+        restaurantId: "restaurant-1",
+        fullName: "Owner User",
+      }),
+    );
+    dbMocks.userServiceFns.updateUser.mockResolvedValueOnce(
+      user({
+        id: "owner-1",
+        username: "owner",
+        role: 1,
+        restaurantId: "restaurant-1",
+        isActive: false,
+      }),
+    );
+    vi.mocked(env.MANAGEMENT_API!.fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: "Failed to link owner",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(
+      createService().createUser(admin, {
+        username: "owner",
+        fullName: "Owner User",
+        password: "Secret1!",
+        role: 1,
+        restaurantId: "restaurant-1",
+      }),
+    ).rejects.toThrow("Failed to link owner");
+
+    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith("owner-1", {
+      isActive: false,
+    });
+  });
+
   it("updates users and changes passwords with permission checks", async () => {
     dbMocks.userServiceFns.getUserById
       .mockResolvedValueOnce(user())
