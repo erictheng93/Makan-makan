@@ -7,6 +7,7 @@ import {
   users,
   coupons,
 } from "@makanmakan/database";
+import { eq } from "drizzle-orm";
 
 type SeedRecord = Record<string, unknown>;
 
@@ -53,6 +54,14 @@ function normalizeSeedUserId(value: unknown): string | undefined {
     return value;
   }
   return undefined;
+}
+
+function isTransientD1Error(err: unknown): boolean {
+  const error = err as { message?: string; cause?: { code?: string } };
+  return (
+    error.message?.includes("fetch failed") === true ||
+    error.cause?.code === "ECONNRESET"
+  );
 }
 
 export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
@@ -137,30 +146,64 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
       const restaurantId =
         "restaurantId" in overrides ? overrides.restaurantId : null;
       const { id: overrideId, ...restOverrides } = overrides;
-      const [row] = await testDb.drizzle
-        .insert(users)
-        .values({
-          id: normalizeSeedUserId(overrideId),
-          username: `user-${suffix}`,
-          email: `user-${suffix}@example.com`,
-          phone: "0912345678",
-          fullName: "Integration User",
-          passwordHash:
-            "$2a$10$wLQYkZtHPzOVvvEVdW/PGe0IzS5gYejVGKj.mJ/.SmdO1sAgG4Y/S",
-          role: 4,
-          isActive: true,
-          isVerified: true,
-          preferences: {},
-          tokenVersion: 1,
-          restaurantId,
-          createdAt: maybeDate(overrides.createdAt) ?? now,
-          updatedAt: maybeDate(overrides.updatedAt) ?? now,
-          lastLoginAt: maybeDate(overrides.lastLoginAt),
-          passwordChangedAt: maybeDate(overrides.passwordChangedAt),
-          ...restOverrides,
-        } as never)
-        .returning();
-      return { id: row.id as string, username: row.username as string };
+      const username =
+        typeof restOverrides.username === "string"
+          ? restOverrides.username
+          : `user-${suffix}`;
+      const values = {
+        id: normalizeSeedUserId(overrideId),
+        username,
+        email: `user-${suffix}@example.com`,
+        phone: `09${Math.floor(10000000 + Math.random() * 90000000)}`,
+        fullName: "Integration User",
+        passwordHash:
+          "$2a$10$wLQYkZtHPzOVvvEVdW/PGe0IzS5gYejVGKj.mJ/.SmdO1sAgG4Y/S",
+        role: 4,
+        isActive: true,
+        isVerified: true,
+        preferences: {},
+        tokenVersion: 1,
+        restaurantId,
+        createdAt: maybeDate(overrides.createdAt) ?? now,
+        updatedAt: maybeDate(overrides.updatedAt) ?? now,
+        lastLoginAt: maybeDate(overrides.lastLoginAt),
+        passwordChangedAt: maybeDate(overrides.passwordChangedAt),
+        ...restOverrides,
+      } as never;
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const [row] = await testDb.drizzle
+            .insert(users)
+            .values(values)
+            .returning();
+          return { id: row.id as string, username: row.username as string };
+        } catch (err) {
+          if (!isTransientD1Error(err) || attempt === 2) throw err;
+
+          const existing = await testDb.drizzle
+            .select()
+            .from(users)
+            .where(eq(users.username, username))
+            .limit(1)
+            .all();
+          const row = existing[0];
+          if (row) {
+            return { id: row.id as string, username: row.username as string };
+          }
+
+          console.warn(
+            `[seed.user] transient miniflare insert failed (attempt ${
+              attempt + 1
+            }/3), retrying...`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, 100 * (attempt + 1)),
+          );
+        }
+      }
+
+      throw new Error("seed.user retry loop exhausted");
     },
 
     coupon: async (restaurantId, overrides = {}) => {

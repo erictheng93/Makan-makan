@@ -85,6 +85,25 @@ function buildTestEnv(testDb: TestDatabase): Env {
     RATE_LIMIT_KV: testDb.bindings.RATE_LIMIT_KV,
     IMAGES_BUCKET: testDb.bindings.IMAGES_BUCKET,
     BACKUP_STORAGE: testDb.bindings.BACKUP_STORAGE,
+    INTERNAL_API_TOKEN: "test-internal-api-token",
+    MANAGEMENT_API: {
+      fetch: async (request: Request) => {
+        const url = new URL(request.url);
+        const parts = url.pathname.split("/");
+        const restaurantId =
+          parts[parts.indexOf("platform-restaurants") + 1] ?? "test-restaurant";
+
+        return Response.json({
+          success: true,
+          data: {
+            tenant: {
+              id: `tenant-${restaurantId}`,
+              platformRestaurantId: restaurantId,
+            },
+          },
+        });
+      },
+    } as Fetcher,
     JOB_QUEUE: { send: async () => {} } as never,
     PRELOAD_QUEUE: { send: async () => {} } as never,
     REVALIDATION_QUEUE: { send: async () => {} } as never,

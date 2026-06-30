@@ -53,6 +53,9 @@ describe("package test scripts", () => {
     const expectedPersistPath = "--persist-to ./apps/api/.wrangler/state";
 
     expect(packageJson.scripts["db:migrate:local"]).toContain(
+      "pnpm db:migrate:local:api",
+    );
+    expect(packageJson.scripts["db:migrate:local:api"]).toContain(
       expectedPersistPath,
     );
     expect(packageJson.scripts["db:seed:local"]).toContain(expectedPersistPath);

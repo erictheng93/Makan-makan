@@ -252,7 +252,7 @@ vi.mock("@/composables/useCurrency", () => ({
 }));
 
 describe("ShopMenuView service items", () => {
-  let scrollIntoView: ReturnType<typeof vi.fn>;
+  let scrollIntoView: Element["scrollIntoView"];
 
   beforeEach(() => {
     routerPush.mockReset();
@@ -260,7 +260,7 @@ describe("ShopMenuView service items", () => {
     menuItemsFixture.items = null;
     serviceItemsFixture.items = null;
     marketMembershipsFixture.memberships = null;
-    scrollIntoView = vi.fn();
+    scrollIntoView = vi.fn() as Element["scrollIntoView"];
     Element.prototype.scrollIntoView = scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
   });

@@ -93,9 +93,7 @@ async function createFreshTestDatabase(input: {
     } catch (err) {
       await mf.dispose();
       lastErr = err;
-      const msg = (err as Error).message ?? "";
-      const isTransient = msg.includes("fetch failed");
-      if (!isTransient) throw err;
+      if (!isTransientD1Error(err)) throw err;
       console.warn(
         `[createTestDatabase] transient miniflare fetch failed (attempt ${attempt + 1}/3), retrying...`,
       );
@@ -116,26 +114,28 @@ function buildTestDatabase(
     bindings,
     drizzle: drizzleDb,
     truncateAll: async () => {
-      const tables = await listUserTables(bindings.DB);
-      // D1 ignores `PRAGMA foreign_keys = OFF` from user statements, so we
-      // can't naively DELETE FROM each table in arbitrary order — sibling
-      // FKs (e.g. menu_items → categories) trip SQLITE_CONSTRAINT.
-      //
-      // Workaround: run all DELETEs as a D1 batch. D1 batches execute inside
-      // a single transaction, and with `PRAGMA defer_foreign_keys = ON`
-      // injected first, FK checking is postponed to commit time — by which
-      // point every referenced row is gone too.
-      const stmts = [
-        bindings.DB.prepare(`PRAGMA defer_foreign_keys = ON`),
-        ...tables.map((t) => bindings.DB.prepare(`DELETE FROM "${t}"`)),
-      ];
-      await bindings.DB.batch(stmts);
-      // sqlite_sequence only exists after first AUTOINCREMENT insert
-      try {
-        await bindings.DB.prepare(`DELETE FROM sqlite_sequence`).run();
-      } catch {
-        // sqlite_sequence table doesn't exist yet — no sequences to reset
-      }
+      await retryTransientD1Error("truncateAll", async () => {
+        const tables = await listUserTables(bindings.DB);
+        // D1 ignores `PRAGMA foreign_keys = OFF` from user statements, so we
+        // can't naively DELETE FROM each table in arbitrary order — sibling
+        // FKs (e.g. menu_items → categories) trip SQLITE_CONSTRAINT.
+        //
+        // Workaround: run all DELETEs as a D1 batch. D1 batches execute inside
+        // a single transaction, and with `PRAGMA defer_foreign_keys = ON`
+        // injected first, FK checking is postponed to commit time — by which
+        // point every referenced row is gone too.
+        const stmts = [
+          bindings.DB.prepare(`PRAGMA defer_foreign_keys = ON`),
+          ...tables.map((t) => bindings.DB.prepare(`DELETE FROM "${t}"`)),
+        ];
+        await bindings.DB.batch(stmts);
+        // sqlite_sequence only exists after first AUTOINCREMENT insert
+        try {
+          await bindings.DB.prepare(`DELETE FROM sqlite_sequence`).run();
+        } catch {
+          // sqlite_sequence table doesn't exist yet — no sequences to reset
+        }
+      });
     },
     dispose: async () => {
       await mf.dispose();
@@ -144,6 +144,36 @@ function buildTestDatabase(
       }
     },
   };
+}
+
+async function retryTransientD1Error<T>(
+  operation: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientD1Error(err) || attempt === 2) throw err;
+      console.warn(
+        `[createTestDatabase] transient miniflare ${operation} failed (attempt ${
+          attempt + 1
+        }/3), retrying...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+function isTransientD1Error(err: unknown): boolean {
+  const error = err as { message?: string; cause?: { code?: string } };
+  return (
+    error.message?.includes("fetch failed") === true ||
+    error.cause?.code === "ECONNRESET"
+  );
 }
 
 async function ensureMigratedBaseline(): Promise<string> {

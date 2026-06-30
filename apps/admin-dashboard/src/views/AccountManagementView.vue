@@ -260,7 +260,7 @@ async function handleOwnerSubmit() {
         email: ownerForm.email,
       });
       if (restaurantRes.data?.success && restaurantRes.data.data) {
-        restaurantId = restaurantRes.data.data.id;
+        restaurantId = String(restaurantRes.data.data.id);
         await fetchRestaurants();
       } else {
         throw new Error(
