@@ -13,9 +13,15 @@ cd "$REPO_ROOT"
 check_secret() {
   local app="$1"
   local config="apps/$app/wrangler.toml"
+  local output
 
-  if $WRANGLER secret list --env "$ENVIRONMENT" --config "$config" \
-    | grep -q 'INTERNAL_API_TOKEN'; then
+  if ! output="$($WRANGLER secret list --env "$ENVIRONMENT" --config "$config" 2>&1)"; then
+    printf "ERROR unable to list secrets for %s in %s\n" "$app" "$ENVIRONMENT" >&2
+    printf "%s\n" "$output" >&2
+    return 1
+  fi
+
+  if printf "%s\n" "$output" | grep -q 'INTERNAL_API_TOKEN'; then
     printf "OK %s has INTERNAL_API_TOKEN for %s\n" "$app" "$ENVIRONMENT"
   else
     printf "ERROR %s is missing INTERNAL_API_TOKEN for %s\n" "$app" "$ENVIRONMENT" >&2
