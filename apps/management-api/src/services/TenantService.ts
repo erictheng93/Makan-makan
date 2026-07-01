@@ -14,6 +14,7 @@ import type {
   OnboardingPlanId,
 } from "../types";
 import { generateLicenseKey, randomBase36Upper } from "../utils/random";
+import { createSubdomainBase } from "../utils/subdomain";
 import {
   DEFAULT_BILLING_CYCLE_MS,
   planIdToTier,
@@ -143,16 +144,9 @@ export class TenantService {
   }
 
   async generateAvailableSubdomain(businessName: string): Promise<string> {
+    const base = createSubdomainBase(businessName);
+
     for (let attempt = 0; attempt < 10; attempt++) {
-      const base = businessName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 20);
       const suffix = randomBase36Upper(6).toLowerCase();
       const subdomain = base ? `${base}-${suffix}` : `tenant-${suffix}`;
       const existing = await this.getTenantBySubdomain(subdomain);
