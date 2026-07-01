@@ -17,6 +17,7 @@ import { passwordResetTokens, restaurants, users } from "@makanmakan/database";
 import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { pinyin } from "pinyin-pro";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const onboardingCredentialDeliveries = sqliteTable(
@@ -496,8 +497,15 @@ export class OnboardingService {
   }
 
   private generateSubdomain(businessName: string): string {
-    // Convert to lowercase, remove special chars, replace spaces with hyphens
-    const base = businessName
+    const romanizedName = pinyin(businessName, {
+      toneType: "none",
+      separator: " ",
+      nonZh: "consecutive",
+      traditional: true,
+      v: true,
+    });
+
+    const base = romanizedName
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "") // Remove diacritics

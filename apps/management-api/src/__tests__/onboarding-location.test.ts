@@ -42,6 +42,39 @@ function createEnv(db: D1DatabaseAdapter): ManagementEnv {
 }
 
 describe("OnboardingService location capture", () => {
+  it("generates semantic subdomains for Chinese business names", async () => {
+    const db = createManagementDb();
+    const service = new OnboardingService(createEnv(db));
+
+    const application = await service.createApplication({
+      businessName: "鼎泰豐",
+      contactName: "Lin Mei",
+      contactEmail: "mei@example.com",
+      contactPhone: "0912345678",
+      planId: "standard",
+      latitude: 24.147736,
+      longitude: 120.673648,
+    });
+
+    expect(application.assignedSubdomain).toMatch(
+      /^ding-tai-feng-[a-z0-9]{6}$/,
+    );
+
+    const secondApplication = await service.createApplication({
+      businessName: "青花驕",
+      contactName: "Chen Yu",
+      contactEmail: "chen@example.com",
+      contactPhone: "0987654321",
+      planId: "standard",
+      latitude: 24.147736,
+      longitude: 120.673648,
+    });
+
+    expect(secondApplication.assignedSubdomain).toMatch(
+      /^qing-hua-jiao-[a-z0-9]{6}$/,
+    );
+  });
+
   it("persists restaurant coordinates on new applications", async () => {
     const db = createManagementDb();
     const service = new OnboardingService(createEnv(db));
