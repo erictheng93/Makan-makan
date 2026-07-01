@@ -4,7 +4,7 @@
   "description": "MakanMakan API server built with Hono and Cloudflare Workers",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state",
     "build": "wrangler deploy --dry-run --env=\"\"",
     "build:staging": "wrangler deploy --dry-run --env staging",
     "build:prod": "wrangler deploy --dry-run --env production",
