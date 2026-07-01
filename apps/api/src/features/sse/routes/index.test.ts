@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sign } from "hono/jwt";
+import { sign as signJsonWebToken } from "jsonwebtoken";
 import routes from "./index";
 
 const authMiddleware = vi.hoisted(() =>
@@ -14,9 +15,14 @@ const authMiddleware = vi.hoisted(() =>
   }),
 );
 
-vi.mock("../../../middleware/auth", () => ({
-  authMiddleware,
-}));
+vi.mock("../../../middleware/auth", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../../middleware/auth")>();
+  return {
+    ...actual,
+    authMiddleware,
+  };
+});
 
 const jwtSecret = "x".repeat(32);
 
@@ -39,6 +45,30 @@ async function createToken() {
     jwtSecret,
     "HS256",
   );
+}
+
+function createJsonWebToken() {
+  return signJsonWebToken(
+    {
+      id: 42,
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    },
+    jwtSecret,
+    { algorithm: "HS256" },
+  );
+}
+
+function strictAtob(encoded: string): string {
+  if (encoded.length % 4 !== 0) {
+    throw new DOMException(
+      "atob() called with invalid base64-encoded data",
+      "InvalidCharacterError",
+    );
+  }
+
+  return Buffer.from(encoded, "base64").toString("binary");
 }
 
 async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
@@ -71,6 +101,27 @@ describe("legacy SSE compatibility routes", () => {
       success: false,
       data: { realtimeWsUrl: "wss://realtime.test" },
     });
+  });
+
+  it("accepts jsonwebtoken-signed SSE tokens when atob requires padded base64", async () => {
+    const originalAtob = globalThis.atob;
+    vi.stubGlobal("atob", strictAtob);
+    try {
+      const token = createJsonWebToken();
+
+      const response = await routes.fetch(
+        new Request(`https://api.test/events?token=${token}`),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(410);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        data: { realtimeWsUrl: "wss://realtime.test" },
+      });
+    } finally {
+      vi.stubGlobal("atob", originalAtob);
+    }
   });
 
   it("accepts bearer tokens and checks the token blacklist for SSE events", async () => {

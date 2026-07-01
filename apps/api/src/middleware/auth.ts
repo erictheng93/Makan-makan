@@ -1,5 +1,6 @@
 import { Context, Next } from "hono";
-import { verify } from "hono/jwt";
+import { verify } from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
 import type { Env } from "../types/env";
 import { ApiError, unauthorized, forbidden } from "../shared/utils/api-error";
 import { resolveStaffPrincipal } from "../shared/services/staff-principal";
@@ -125,6 +126,42 @@ function normalizeTokenRestaurantId(
   return restaurantId == null ? undefined : restaurantId;
 }
 
+export function verifyJwtToken(
+  token: string,
+  secret: string,
+  options: { ignoreExpiration?: boolean; ignoreNotBefore?: boolean } = {},
+): JwtPayload | string {
+  return verify(token, secret, {
+    algorithms: ["HS256"],
+    ...options,
+  });
+}
+
+const DEFER_TIME_CLAIM_VALIDATION = {
+  ignoreExpiration: true,
+  ignoreNotBefore: true,
+} as const;
+
+function isJwtExpiredError(error: unknown): boolean {
+  return (
+    Boolean(error) &&
+    typeof error === "object" &&
+    "name" in error &&
+    (error.name === "JwtTokenExpired" || error.name === "TokenExpiredError")
+  );
+}
+
+function isJwtInvalidError(error: unknown): boolean {
+  return (
+    Boolean(error) &&
+    typeof error === "object" &&
+    "name" in error &&
+    (error.name === "JwtTokenInvalid" ||
+      error.name === "JsonWebTokenError" ||
+      error.name === "NotBeforeError")
+  );
+}
+
 // JWT 認證中間件工廠。`maxRole` 界定最大可接受的角色值：
 // staff/admin 路由使用 4，customer-facing 路由使用 5。
 function createAuthMiddleware(maxRole: number) {
@@ -161,7 +198,11 @@ function createAuthMiddleware(maxRole: number) {
         }
       }
 
-      const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+      const decoded = verifyJwtToken(
+        token,
+        c.env.JWT_SECRET,
+        DEFER_TIME_CLAIM_VALIDATION,
+      );
 
       if (!isAuthTokenPayload(decoded)) {
         throw unauthorized("Invalid token claims", "TOKEN_INVALID");
@@ -234,20 +275,10 @@ function createAuthMiddleware(maxRole: number) {
     } catch (error) {
       if (error instanceof ApiError) throw error;
 
-      if (
-        error &&
-        typeof error === "object" &&
-        "name" in error &&
-        error.name === "JwtTokenExpired"
-      ) {
+      if (isJwtExpiredError(error)) {
         throw unauthorized("Token has expired", "TOKEN_EXPIRED");
       }
-      if (
-        error &&
-        typeof error === "object" &&
-        "name" in error &&
-        error.name === "JwtTokenInvalid"
-      ) {
+      if (isJwtInvalidError(error)) {
         throw unauthorized("Invalid token format", "TOKEN_INVALID");
       }
       throw unauthorized("Authentication failed", "TOKEN_INVALID");
@@ -298,7 +329,11 @@ export const canonicalCustomerAuthMiddleware = async (
       }
     }
 
-    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+    const decoded = verifyJwtToken(
+      token,
+      c.env.JWT_SECRET,
+      DEFER_TIME_CLAIM_VALIDATION,
+    );
 
     if (!isCustomerAuthTokenPayload(decoded)) {
       throw unauthorized("Invalid customer token claims", "TOKEN_INVALID");
@@ -337,20 +372,10 @@ export const canonicalCustomerAuthMiddleware = async (
   } catch (error) {
     if (error instanceof ApiError) throw error;
 
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "JwtTokenExpired"
-    ) {
+    if (isJwtExpiredError(error)) {
       throw unauthorized("Token has expired", "TOKEN_EXPIRED");
     }
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      error.name === "JwtTokenInvalid"
-    ) {
+    if (isJwtInvalidError(error)) {
       throw unauthorized("Invalid token format", "TOKEN_INVALID");
     }
     throw unauthorized("Authentication failed", "TOKEN_INVALID");
@@ -377,7 +402,11 @@ export const optionalCanonicalCustomerAuthMiddleware = async (
       }
     }
 
-    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+    const decoded = verifyJwtToken(
+      token,
+      c.env.JWT_SECRET,
+      DEFER_TIME_CLAIM_VALIDATION,
+    );
     if (!isCustomerAuthTokenPayload(decoded)) {
       await next();
       return;
@@ -445,7 +474,11 @@ export const sseAuthMiddleware = async (
       }
     }
 
-    const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+    const decoded = verifyJwtToken(
+      token,
+      c.env.JWT_SECRET,
+      DEFER_TIME_CLAIM_VALIDATION,
+    );
 
     if (requiresScopedSseToken) {
       if (!isSseAuthTokenPayload(decoded)) {
@@ -497,13 +530,11 @@ export const sseAuthMiddleware = async (
     await next();
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      (error as { name: string }).name === "JwtTokenExpired"
-    ) {
+    if (isJwtExpiredError(error)) {
       throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+    }
+    if (isJwtInvalidError(error)) {
+      throw unauthorized("Invalid token format", "TOKEN_INVALID");
     }
     throw unauthorized("Authentication failed", "TOKEN_INVALID");
   }
@@ -673,7 +704,11 @@ export const optionalAuth = async (
         }
       }
 
-      const decoded = await verify(token, c.env.JWT_SECRET, "HS256");
+      const decoded = verifyJwtToken(
+        token,
+        c.env.JWT_SECRET,
+        DEFER_TIME_CLAIM_VALIDATION,
+      );
 
       if (isAuthTokenPayload(decoded)) {
         c.set("user", {

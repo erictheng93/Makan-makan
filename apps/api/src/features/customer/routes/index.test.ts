@@ -10,20 +10,21 @@ const auth = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../../middleware/auth", () => ({
-  canonicalCustomerAuthMiddleware: vi.fn(async (c: any, next: any) => {
-    c.set("customer", auth.customer);
-    await next();
-  }),
-}));
-
 const jwt = vi.hoisted(() => ({
   decoded: undefined as unknown,
   sign: vi.fn(
     async (payload: any) =>
       `signed:${payload.type}:${payload.sub}:${payload.jti ?? "access"}`,
   ),
-  verify: vi.fn(async () => jwt.decoded),
+  verify: vi.fn(() => jwt.decoded),
+}));
+
+vi.mock("../../../middleware/auth", () => ({
+  canonicalCustomerAuthMiddleware: vi.fn(async (c: any, next: any) => {
+    c.set("customer", auth.customer);
+    await next();
+  }),
+  verifyJwtToken: jwt.verify,
 }));
 
 vi.mock("hono/jwt", () => ({
