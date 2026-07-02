@@ -144,8 +144,8 @@ const DEFER_TIME_CLAIM_VALIDATION = {
 
 function isJwtExpiredError(error: unknown): boolean {
   return (
-    Boolean(error) &&
     typeof error === "object" &&
+    error !== null &&
     "name" in error &&
     (error.name === "JwtTokenExpired" || error.name === "TokenExpiredError")
   );
@@ -153,8 +153,8 @@ function isJwtExpiredError(error: unknown): boolean {
 
 function isJwtInvalidError(error: unknown): boolean {
   return (
-    Boolean(error) &&
     typeof error === "object" &&
+    error !== null &&
     "name" in error &&
     (error.name === "JwtTokenInvalid" ||
       error.name === "JsonWebTokenError" ||

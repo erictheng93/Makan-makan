@@ -8,6 +8,7 @@ vi.mock("../../../middleware/guestAuth", () => ({
 
 type TestUser = {
   id: number;
+  username?: string;
   role: number;
   restaurantId?: string | number | null;
 };
@@ -49,6 +50,14 @@ const requireRole = vi.fn(
 
 const app = createAuthRoutes({
   authMiddleware: async (c, next) => {
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      throw new ApiError(
+        "MISSING_AUTH_HEADER",
+        "Missing or invalid authorization header",
+        401,
+      );
+    }
     c.set("user", currentUser.value as never);
     await next();
   },
@@ -306,23 +315,47 @@ describe("authentication routes", () => {
     expect(response.status).toBe(500);
   });
 
-  it("validates bearer tokens for the current user endpoint", async () => {
+  it("returns the auth middleware user for the current user endpoint", async () => {
+    currentUser.value = {
+      id: 7,
+      username: "owner",
+      role: 1,
+      restaurantId: "S-20250124-001",
+    };
+    service.getUserProfile.mockResolvedValueOnce({
+      id: 7,
+      username: "owner",
+      fullName: "Owner User",
+      email: "owner@example.test",
+      role: 1,
+      restaurantId: "S-20250124-001",
+      isActive: true,
+      isVerified: true,
+      sessions: [{ id: "session-1" }],
+    });
+
     let response = await request("/me").res;
 
     expect(response.status).toBe(200);
-    expect(service.validateToken).toHaveBeenCalledWith("access-token-1");
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        id: 7,
+        username: "owner",
+        fullName: "Owner User",
+        email: "owner@example.test",
+        role: 1,
+        restaurantId: "S-20250124-001",
+      },
+    });
+    expect(body.data).not.toHaveProperty("sessions");
+    expect(service.validateToken).not.toHaveBeenCalled();
+    expect(service.getUserProfile).toHaveBeenCalledWith("7");
 
     response = await request("/me", "GET", undefined, {
-      Authorization: "Token access-token-1",
+      Authorization: "",
     }).res;
-
-    expect(response.status).toBe(401);
-
-    service.validateToken.mockResolvedValueOnce({
-      valid: false,
-      error: "Expired token",
-    });
-    response = await request("/me").res;
 
     expect(response.status).toBe(401);
   });

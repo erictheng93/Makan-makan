@@ -356,39 +356,17 @@ export function createAuthRoutes(
 
   // Get Current User Info - GET /me
   authRoutes.get("/me", authMiddleware, async (c) => {
-    const _user = c.get("user");
-
-    // Initialize auth service
+    const user = c.get("user");
     const authService = AuthService(c.env);
-
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return c.json(
-        {
-          success: false,
-          error: "Authorization token required",
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
-    }
-
-    const token = authHeader.substring(7);
-    const validation = await authService.validateToken(token);
-
-    if (!validation.valid) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error || "Invalid token",
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
-    }
+    const profile = await authService.getUserProfile(String(user.id));
+    const responseUser = profile
+      ? (({ sessions: _sessions, ...publicProfile }) => publicProfile)(profile)
+      : user;
 
     return c.json(
       {
         success: true,
-        data: validation.user,
+        data: responseUser,
       },
       HTTP_STATUS.OK,
     );
