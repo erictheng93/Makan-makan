@@ -340,6 +340,29 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     }
   });
 
+  it("uses JWT_SECRET to verify websocket tokens when REALTIME_JWT_SECRET is not configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const response = await createSession(
+        createAuthEnv({ REALTIME_JWT_SECRET: undefined }),
+      ).fetch(
+        new Request(
+          `https://do.test/admin/restaurant-1?token=${tokenFor({
+            roomId: "restaurant-2",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.text()).resolves.toBe(
+        "Forbidden: Room ID does not match token",
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("rejects websocket upgrades when restaurant or table access fails", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
