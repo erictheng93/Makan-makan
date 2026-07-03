@@ -284,4 +284,42 @@ describe("PlatformIntegrationService", () => {
       "No integration found for uber_eats in restaurant restaurant-1",
     );
   });
+
+  it("reads encrypted credentials stored by the legacy JSON-mode column", async () => {
+    const service = new PlatformIntegrationService(env());
+    const encrypted = await service.encryptCredentials(
+      {
+        clientId: "client-id",
+        clientSecret: "client-secret",
+        storeId: "store-1",
+      },
+      "test-encryption-key",
+    );
+
+    await expect(
+      service.readStoredCredentials(JSON.stringify(encrypted)),
+    ).resolves.toEqual({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      storeId: "store-1",
+    });
+  });
+
+  it("reads plaintext credentials stored by legacy JSON rows", async () => {
+    const service = new PlatformIntegrationService(env());
+
+    await expect(
+      service.readStoredCredentials(
+        JSON.stringify({
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          storeId: "store-1",
+        }),
+      ),
+    ).resolves.toEqual({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      storeId: "store-1",
+    });
+  });
 });

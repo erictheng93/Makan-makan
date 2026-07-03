@@ -167,7 +167,20 @@ export class PlatformIntegrationService {
 
   async readStoredCredentials(stored: unknown): Promise<PlatformCredentials> {
     if (typeof stored === "string" && stored.length > 0) {
-      return this.decryptCredentials(stored, this.encryptionKey);
+      const storedValue = stored.trim();
+      if (storedValue.length === 0) {
+        return {};
+      }
+      if (storedValue.startsWith('"') || storedValue.startsWith("{")) {
+        const parsed = JSON.parse(storedValue) as unknown;
+        if (typeof parsed === "string") {
+          return this.decryptCredentials(parsed, this.encryptionKey);
+        }
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed as PlatformCredentials;
+        }
+      }
+      return this.decryptCredentials(storedValue, this.encryptionKey);
     }
     if (stored && typeof stored === "object" && !Array.isArray(stored)) {
       return stored as PlatformCredentials;

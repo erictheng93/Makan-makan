@@ -1,4 +1,5 @@
 import { getTableConfig } from "drizzle-orm/sqlite-core";
+import Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,6 +27,10 @@ function migration(name: string): string {
     resolve(process.cwd(), "packages/database/migrations_fresh", name),
     "utf8",
   );
+}
+
+function migrationPath(path: string): string {
+  return readFileSync(resolve(process.cwd(), path), "utf8");
 }
 
 describe("schema hardening", () => {
@@ -82,5 +87,38 @@ describe("schema hardening", () => {
     for (const [table, column] of integerTimestampColumns) {
       expect(columnSqlType(table, column)).toBe("integer");
     }
+  });
+
+  it("converts ISO backup timestamps through the datetime branch", () => {
+    const migrationSql = [
+      migrationPath(
+        "packages/database/migrations_fresh/0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      ),
+      migrationPath(
+        "packages/database/migrations/0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      ),
+    ];
+    const db = new Database(":memory:");
+    const timestamp = "2026-06-07T03:04:05.000Z";
+
+    for (const sql of migrationSql) {
+      expect(sql).toContain("NOT GLOB '*[^0-9]*' THEN CAST");
+      expect(sql).not.toContain("GLOB '[0-9]*' THEN CAST");
+    }
+
+    const converted = db
+      .prepare(
+        `
+        SELECT CASE
+          WHEN @timestamp IS NULL THEN NULL
+          WHEN typeof(@timestamp) = 'integer' THEN @timestamp
+          WHEN @timestamp NOT GLOB '*[^0-9]*' THEN CAST(@timestamp AS INTEGER)
+          ELSE CAST(strftime('%s', @timestamp) AS INTEGER) * 1000
+        END AS value
+        `,
+      )
+      .get({ timestamp }) as { value: number };
+
+    expect(converted.value).toBe(new Date(timestamp).getTime());
   });
 });
