@@ -29,19 +29,19 @@ ALTER TABLE backup_records ADD COLUMN updated_at_ms INTEGER;
 UPDATE backup_records
 SET
   started_at_ms = CASE
-    WHEN started_at IS NULL THEN NULL
+    WHEN started_at IS NULL OR started_at = '' THEN NULL
     WHEN typeof(started_at) = 'integer' THEN started_at
     WHEN started_at NOT GLOB '*[^0-9]*' THEN CAST(started_at AS INTEGER)
     ELSE CAST(strftime('%s', started_at) AS INTEGER) * 1000
   END,
   completed_at_ms = CASE
-    WHEN completed_at IS NULL THEN NULL
+    WHEN completed_at IS NULL OR completed_at = '' THEN NULL
     WHEN typeof(completed_at) = 'integer' THEN completed_at
     WHEN completed_at NOT GLOB '*[^0-9]*' THEN CAST(completed_at AS INTEGER)
     ELSE CAST(strftime('%s', completed_at) AS INTEGER) * 1000
   END,
   updated_at_ms = CASE
-    WHEN updated_at IS NULL THEN unixepoch('now') * 1000
+    WHEN updated_at IS NULL OR updated_at = '' THEN unixepoch('now') * 1000
     WHEN typeof(updated_at) = 'integer' THEN updated_at
     WHEN updated_at NOT GLOB '*[^0-9]*' THEN CAST(updated_at AS INTEGER)
     ELSE CAST(strftime('%s', updated_at) AS INTEGER) * 1000
@@ -59,25 +59,25 @@ ALTER TABLE backup_schedules ADD COLUMN updated_at_ms INTEGER;
 UPDATE backup_schedules
 SET
   last_run_at_ms = CASE
-    WHEN last_run_at IS NULL THEN NULL
+    WHEN last_run_at IS NULL OR last_run_at = '' THEN NULL
     WHEN typeof(last_run_at) = 'integer' THEN last_run_at
     WHEN last_run_at NOT GLOB '*[^0-9]*' THEN CAST(last_run_at AS INTEGER)
     ELSE CAST(strftime('%s', last_run_at) AS INTEGER) * 1000
   END,
   next_run_at_ms = CASE
-    WHEN next_run_at IS NULL THEN NULL
+    WHEN next_run_at IS NULL OR next_run_at = '' THEN NULL
     WHEN typeof(next_run_at) = 'integer' THEN next_run_at
     WHEN next_run_at NOT GLOB '*[^0-9]*' THEN CAST(next_run_at AS INTEGER)
     ELSE CAST(strftime('%s', next_run_at) AS INTEGER) * 1000
   END,
   created_at_ms = CASE
-    WHEN created_at IS NULL THEN unixepoch('now') * 1000
+    WHEN created_at IS NULL OR created_at = '' THEN unixepoch('now') * 1000
     WHEN typeof(created_at) = 'integer' THEN created_at
     WHEN created_at NOT GLOB '*[^0-9]*' THEN CAST(created_at AS INTEGER)
     ELSE CAST(strftime('%s', created_at) AS INTEGER) * 1000
   END,
   updated_at_ms = CASE
-    WHEN updated_at IS NULL THEN unixepoch('now') * 1000
+    WHEN updated_at IS NULL OR updated_at = '' THEN unixepoch('now') * 1000
     WHEN typeof(updated_at) = 'integer' THEN updated_at
     WHEN updated_at NOT GLOB '*[^0-9]*' THEN CAST(updated_at AS INTEGER)
     ELSE CAST(strftime('%s', updated_at) AS INTEGER) * 1000
@@ -90,13 +90,13 @@ ALTER TABLE backup_configurations ADD COLUMN updated_at_ms INTEGER;
 UPDATE backup_configurations
 SET
   created_at_ms = CASE
-    WHEN created_at IS NULL THEN unixepoch('now') * 1000
+    WHEN created_at IS NULL OR created_at = '' THEN unixepoch('now') * 1000
     WHEN typeof(created_at) = 'integer' THEN created_at
     WHEN created_at NOT GLOB '*[^0-9]*' THEN CAST(created_at AS INTEGER)
     ELSE CAST(strftime('%s', created_at) AS INTEGER) * 1000
   END,
   updated_at_ms = CASE
-    WHEN updated_at IS NULL THEN unixepoch('now') * 1000
+    WHEN updated_at IS NULL OR updated_at = '' THEN unixepoch('now') * 1000
     WHEN typeof(updated_at) = 'integer' THEN updated_at
     WHEN updated_at NOT GLOB '*[^0-9]*' THEN CAST(updated_at AS INTEGER)
     ELSE CAST(strftime('%s', updated_at) AS INTEGER) * 1000
@@ -109,13 +109,13 @@ ALTER TABLE backup_alerts ADD COLUMN resolved_at_ms INTEGER;
 UPDATE backup_alerts
 SET
   triggered_at_ms = CASE
-    WHEN triggered_at IS NULL THEN NULL
+    WHEN triggered_at IS NULL OR triggered_at = '' THEN NULL
     WHEN typeof(triggered_at) = 'integer' THEN triggered_at
     WHEN triggered_at NOT GLOB '*[^0-9]*' THEN CAST(triggered_at AS INTEGER)
     ELSE CAST(strftime('%s', triggered_at) AS INTEGER) * 1000
   END,
   resolved_at_ms = CASE
-    WHEN resolved_at IS NULL THEN NULL
+    WHEN resolved_at IS NULL OR resolved_at = '' THEN NULL
     WHEN typeof(resolved_at) = 'integer' THEN resolved_at
     WHEN resolved_at NOT GLOB '*[^0-9]*' THEN CAST(resolved_at AS INTEGER)
     ELSE CAST(strftime('%s', resolved_at) AS INTEGER) * 1000
@@ -129,7 +129,7 @@ ALTER TABLE backup_audit_logs ADD COLUMN timestamp_ms INTEGER;
 --> statement-breakpoint
 UPDATE backup_audit_logs
 SET timestamp_ms = CASE
-  WHEN timestamp IS NULL THEN NULL
+  WHEN timestamp IS NULL OR timestamp = '' THEN NULL
   WHEN typeof(timestamp) = 'integer' THEN timestamp
   WHEN timestamp NOT GLOB '*[^0-9]*' THEN CAST(timestamp AS INTEGER)
   ELSE CAST(strftime('%s', timestamp) AS INTEGER) * 1000
@@ -145,13 +145,13 @@ ALTER TABLE restore_operations ADD COLUMN completed_at_ms INTEGER;
 UPDATE restore_operations
 SET
   started_at_ms = CASE
-    WHEN started_at IS NULL THEN NULL
+    WHEN started_at IS NULL OR started_at = '' THEN NULL
     WHEN typeof(started_at) = 'integer' THEN started_at
     WHEN started_at NOT GLOB '*[^0-9]*' THEN CAST(started_at AS INTEGER)
     ELSE CAST(strftime('%s', started_at) AS INTEGER) * 1000
   END,
   completed_at_ms = CASE
-    WHEN completed_at IS NULL THEN NULL
+    WHEN completed_at IS NULL OR completed_at = '' THEN NULL
     WHEN typeof(completed_at) = 'integer' THEN completed_at
     WHEN completed_at NOT GLOB '*[^0-9]*' THEN CAST(completed_at AS INTEGER)
     ELSE CAST(strftime('%s', completed_at) AS INTEGER) * 1000

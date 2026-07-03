@@ -121,4 +121,35 @@ describe("schema hardening", () => {
 
     expect(converted.value).toBe(new Date(timestamp).getTime());
   });
+
+  it("converts empty legacy backup timestamp strings to null", () => {
+    const migrationSql = [
+      migrationPath(
+        "packages/database/migrations_fresh/0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      ),
+      migrationPath(
+        "packages/database/migrations/0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      ),
+    ];
+    const db = new Database(":memory:");
+
+    for (const sql of migrationSql) {
+      expect(sql).toContain("= '' THEN NULL");
+    }
+
+    const converted = db
+      .prepare(
+        `
+        SELECT CASE
+          WHEN @timestamp IS NULL OR @timestamp = '' THEN NULL
+          WHEN typeof(@timestamp) = 'integer' THEN @timestamp
+          WHEN @timestamp NOT GLOB '*[^0-9]*' THEN CAST(@timestamp AS INTEGER)
+          ELSE CAST(strftime('%s', @timestamp) AS INTEGER) * 1000
+        END AS value
+        `,
+      )
+      .get({ timestamp: "" }) as { value: null };
+
+    expect(converted.value).toBeNull();
+  });
 });
