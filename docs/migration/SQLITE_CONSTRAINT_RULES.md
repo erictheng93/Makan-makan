@@ -1,7 +1,7 @@
 # SQLite Constraint Rules - Quick Reference
 
 **Purpose**: Prevent SQLite syntax errors in future migrations
-**Last Updated**: 2025-10-09
+**Last Updated**: 2026-07-03
 
 ---
 
@@ -162,6 +162,18 @@ CREATE INDEX idx_completed_orders
   ON orders(restaurant_id, created_at DESC, total_amount)
   WHERE status IN ('paid', 'delivered');
 ```
+
+Use a **unique** partial index for nullable idempotency or provider-event keys:
+
+```sql
+-- ✅ CORRECT - NULL values may repeat, non-NULL keys cannot
+CREATE UNIQUE INDEX payment_transactions_idempotency_unique_idx
+  ON payment_transactions(idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+```
+
+A plain index on a nullable idempotency key only speeds up lookups; it does not
+prevent duplicate payment, webhook, billing, or retry side effects.
 
 ---
 

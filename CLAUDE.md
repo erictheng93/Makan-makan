@@ -44,8 +44,12 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 ### Schema & Migrations
 
 - **Source of Truth**: Drizzle schema files in `packages/database/src/schema/` (includes subdirectories)
-- **Generated Migrations**: `packages/database/migrations_fresh/`
-- **ID Strategy**: `TEXT` primary keys using UUID v7 (`packages/utils/src/uuid.ts`). Timestamps: `INTEGER` (Unix ms via `timestamp_ms` mode).
+- **Migration Tracks**: `packages/database/migrations_fresh/` is the fresh baseline; `packages/database/migrations/` is the Wrangler deployment track.
+- **Migration Guard**: changes after the reviewed checkpoint must be paired or documented in `packages/database/migration-dual-track.json`, then verified with `pnpm check:migration-dual-track`.
+- **ID Strategy**: mixed by design while legacy modules remain. New domain tables should prefer `TEXT` UUID v7 primary keys, but existing integer-autoincrement tables are still valid until a scoped migration retires them. Do not claim the whole database is UUID-only.
+- **Timestamp Strategy**: use `INTEGER` Unix milliseconds via Drizzle `{ mode: "timestamp_ms" }`. Avoid new `TEXT` timestamp columns.
+- **Idempotency Strategy**: nullable idempotency/event keys on payment, webhook, billing, or retryable write paths require a DB-level partial unique index such as `WHERE idempotency_key IS NOT NULL`.
+- **Secret Storage**: OAuth credentials, access/refresh tokens, client secrets, and webhook secrets must be stored only in encrypted payload fields. JSON config columns are for non-secret flags and preferences.
 
 ```bash
 pnpm db:generate        # Generate migration from schema changes
@@ -54,7 +58,7 @@ pnpm db:reset:local     # Reset local database (clears all data)
 pnpm db:seed:local      # Seed local database (scripts/seed-local.sql)
 ```
 
-**Adding New Tables**: Create schema in `packages/database/src/schema/`, export from `index.ts`, run `pnpm db:generate` then `pnpm db:migrate:local`.
+**Adding New Tables**: Create schema in `packages/database/src/schema/`, export from `index.ts`, run `pnpm db:generate`, add/validate the paired migration-track entry when applicable, then run `pnpm db:migrate:local`.
 
 ## Development Setup
 

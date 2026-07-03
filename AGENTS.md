@@ -23,6 +23,16 @@ The codebase is TypeScript-first with Vue 3 and Cloudflare Workers. Prettier enf
 
 Vitest is the primary test runner; Playwright covers end-to-end and visual flows. Name tests `*.test.ts` and keep them near the owning app/package or under `tests/`. Global coverage thresholds are 85%; `apps/api/src/features/**/*.ts` is held to 90%. Add or update tests with every behavior change, especially for API routes, realtime flows, and database logic.
 
+## Database Schema & Migration Guidelines
+
+Drizzle schema files in `packages/database/src/schema/` are the source of truth. When schema changes require SQL, keep both migration tracks current: `packages/database/migrations_fresh/` for the generated/fresh baseline and `packages/database/migrations/` for the Wrangler deployment track. Any migration after the reviewed checkpoint must be paired or explicitly marked in `packages/database/migration-dual-track.json`; verify with `rtk pnpm run check:migration-dual-track`.
+
+Use `INTEGER` Unix milliseconds with Drizzle `{ mode: "timestamp_ms" }` for new or migrated timestamp columns. Avoid new `TEXT` timestamp columns unless there is a documented interoperability reason.
+
+For nullable idempotency keys or external event IDs, enforce DB-level deduplication with a partial unique index, for example `WHERE idempotency_key IS NOT NULL`. A plain non-unique index is not sufficient for payment, webhook, or billing write paths.
+
+Do not store OAuth tokens, client secrets, webhook secrets, or provider credentials as plaintext JSON. Persist secrets only in encrypted payload fields; configuration JSON may contain non-secret flags and preferences.
+
 ## Commit & Pull Request Guidelines
 
 Recent history follows Conventional Commits, for example `feat(tests): ...`, `fix(kitchen): ...`, and `docs(testing): ...`. Use `<type>(<scope>): <subject>` with clear scopes like `api`, `customer`, `kitchen`, `database`, or `tests`. PRs should include a short problem/solution summary, linked issues, screenshots for UI changes, and the exact verification commands you ran.

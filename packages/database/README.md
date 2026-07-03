@@ -36,6 +36,24 @@ const restaurants = await restaurantService.getRestaurants();
 
 ## Database Schema
 
+Drizzle schema files in `packages/database/src/schema/` are the source of truth.
+This package currently has mixed primary-key strategies: new domain tables
+should prefer `TEXT` UUID v7 IDs, while legacy integer-autoincrement tables
+remain in place until a scoped migration retires them.
+
+Timestamp columns should be `INTEGER` Unix milliseconds using Drizzle
+`{ mode: "timestamp_ms" }`. Do not add new `TEXT` timestamp columns without a
+documented compatibility reason.
+
+Retryable write paths need database-level idempotency. Nullable idempotency
+keys or provider event IDs must use partial unique indexes such as
+`WHERE idempotency_key IS NOT NULL`; a plain index only improves lookup speed
+and does not prevent duplicate side effects.
+
+Secrets do not belong in JSON config columns. OAuth credentials, tokens, client
+secrets, and webhook secrets must be stored in encrypted payload fields; config
+JSON should contain only non-secret flags and preferences.
+
 ### Core Tables
 
 - **restaurants**: Restaurant information and settings
@@ -212,7 +230,9 @@ pnpm db:seed
 `migrations/` is the Wrangler deployment track. When adding a migration after
 the reviewed checkpoint, update
 `packages/database/migration-dual-track.json` with a pair or a documented
-single-track reason; CI runs `pnpm check:migration-dual-track`.
+single-track reason; CI runs `pnpm check:migration-dual-track`. Keep migration
+filenames sequential within each track and avoid reusing an existing numeric
+prefix.
 
 ## Environment Setup
 
