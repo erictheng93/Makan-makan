@@ -208,6 +208,57 @@ describe("PlatformIntegrationService", () => {
     expect(mutations.deleted).toBe(1);
   });
 
+  it("stores webhook secrets in encrypted credentials instead of config", async () => {
+    const service = new PlatformIntegrationService(env());
+    const encrypted = await service.encryptCredentials(
+      {
+        clientId: "client-id",
+        clientSecret: "client-secret",
+        storeId: "store-1",
+      },
+      "test-encryption-key",
+    );
+    queueSelectResults([
+      [
+        {
+          id: "integration-1",
+          credentials: encrypted,
+          config: {
+            webhookSecret: "legacy-plain-secret",
+            autoAcceptOrders: false,
+          },
+        },
+      ],
+      [{ id: "integration-1" }],
+    ]);
+    const mutations = mockMutations();
+
+    await service.updateConfig("restaurant-1", "uber_eats", {
+      webhookSecret: "webhook-secret",
+      menuSyncEnabled: true,
+    });
+
+    expect(mutations.updated).toHaveLength(1);
+    const payload = mutations.updated[0] as Record<string, unknown>;
+    expect(payload.config).toEqual({
+      autoAcceptOrders: false,
+      menuSyncEnabled: true,
+    });
+    expect(payload.config).not.toHaveProperty("webhookSecret");
+    expect(payload.credentials).not.toBe("webhook-secret");
+    await expect(
+      service.decryptCredentials(
+        payload.credentials as string,
+        "test-encryption-key",
+      ),
+    ).resolves.toMatchObject({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      storeId: "store-1",
+      webhookSecret: "webhook-secret",
+    });
+  });
+
   it("round-trips decrypted credentials and rejects missing integrations", async () => {
     const service = new PlatformIntegrationService(env());
     const encrypted = await service.encryptCredentials(

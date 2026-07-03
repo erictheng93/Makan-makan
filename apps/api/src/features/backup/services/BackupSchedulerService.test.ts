@@ -155,7 +155,7 @@ describe("BackupSchedulerService", () => {
       "system",
     );
     expect(db.updates[0]).toMatchObject({
-      lastRunAt: currentIso(),
+      lastRunAt: expect.any(Date),
       consecutiveFailures: 0,
     });
     expect(db.updates).toHaveLength(1);

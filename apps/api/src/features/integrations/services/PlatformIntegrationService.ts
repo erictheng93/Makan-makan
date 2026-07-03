@@ -114,13 +114,30 @@ export class PlatformIntegrationService {
     configUpdate: UpdatePlatformConfigRequest,
   ) {
     const existing = await this.getIntegration(restaurantId, platform);
+    const { webhookSecret, ...nonSecretConfigUpdate } = configUpdate;
     const currentConfig = (existing?.config ?? {}) as Record<string, unknown>;
-    const newConfig = { ...currentConfig, ...configUpdate };
+    const { webhookSecret: _legacySecret, ...safeCurrentConfig } =
+      currentConfig;
+    const newConfig = { ...safeCurrentConfig, ...nonSecretConfigUpdate };
+
+    let credentials:
+      | typeof platformIntegrations.$inferInsert.credentials
+      | undefined;
+    if (webhookSecret !== undefined) {
+      const currentCredentials = await this.readStoredCredentials(
+        existing?.credentials,
+      );
+      credentials = await this.encryptCredentials(
+        { ...currentCredentials, webhookSecret },
+        this.encryptionKey,
+      );
+    }
 
     await this.db
       .update(platformIntegrations)
       .set({
         config: newConfig as typeof platformIntegrations.$inferInsert.config,
+        ...(credentials ? { credentials } : {}),
         updatedAt: new Date(),
       })
       .where(
@@ -145,7 +162,17 @@ export class PlatformIntegrationService {
     }
 
     const credentialsStr = integration.credentials as unknown as string;
-    return this.decryptCredentials(credentialsStr, this.encryptionKey);
+    return this.readStoredCredentials(credentialsStr);
+  }
+
+  async readStoredCredentials(stored: unknown): Promise<PlatformCredentials> {
+    if (typeof stored === "string" && stored.length > 0) {
+      return this.decryptCredentials(stored, this.encryptionKey);
+    }
+    if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+      return stored as PlatformCredentials;
+    }
+    return {};
   }
 
   async encryptCredentials(

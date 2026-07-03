@@ -54,22 +54,13 @@ export const platformIntegrations = sqliteTable(
     // Status
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
 
-    // Encrypted credentials (JSON)
-    // { clientId, clientSecret, accessToken, refreshToken, tokenExpiresAt, storeId }
-    credentials: text("credentials", { mode: "json" }).$type<{
-      clientId?: string;
-      clientSecret?: string;
-      accessToken?: string;
-      refreshToken?: string;
-      tokenExpiresAt?: number;
-      storeId?: string;
-    }>(),
+    // Encrypted credentials payload.
+    credentials: text("credentials"),
 
     // Configuration (JSON)
-    // { webhookSecret, autoAcceptOrders, menuSyncEnabled }
+    // { autoAcceptOrders, menuSyncEnabled }
     config: text("config", { mode: "json" })
       .$type<{
-        webhookSecret?: string;
         autoAcceptOrders?: boolean;
         menuSyncEnabled?: boolean;
       }>()

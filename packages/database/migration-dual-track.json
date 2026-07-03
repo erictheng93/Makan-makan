@@ -35,6 +35,11 @@
       "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
       "legacy": "0088_market_checkout_child_order_cents_cutover.sql",
       "reason": "Market checkout child orders now retain total_amount_cents only; API responses derive decimal totals from cents."
+    },
+    {
+      "fresh": "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      "legacy": "0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      "reason": "Payment idempotency keys are unique when present and backup timestamp fields move to integer millisecond columns in both migration tracks."
     }
   ],
   "freshOnly": [

@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
 import { orders } from "./orders";
 import { restaurants } from "./restaurants";
@@ -69,9 +75,11 @@ export const paymentTransactions = sqliteTable(
       table.status,
       table.createdAt,
     ),
-    idempotencyIdx: index("payment_transactions_idempotency_idx").on(
-      table.idempotencyKey,
-    ),
+    idempotencyUniqueIdx: uniqueIndex(
+      "payment_transactions_idempotency_unique_idx",
+    )
+      .on(table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} IS NOT NULL`),
   }),
 );
 

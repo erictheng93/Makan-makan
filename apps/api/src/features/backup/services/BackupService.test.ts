@@ -373,7 +373,7 @@ describe("BackupService", () => {
         performedBy: "user-1",
         ipAddress: "203.0.113.10",
         userAgent: "Vitest",
-        timestamp: expect.any(String),
+        timestamp: expect.any(Date),
       }),
     );
   });

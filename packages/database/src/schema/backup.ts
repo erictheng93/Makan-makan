@@ -11,7 +11,7 @@
  */
 
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 
 // ==========================================
@@ -40,14 +40,16 @@ export const backupRecords = sqliteTable(
       .notNull()
       .default(false),
     checksum: text("checksum").notNull().default(""),
-    startedAt: text("started_at"),
-    completedAt: text("completed_at"),
+    startedAt: integer("started_at_ms", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at_ms", { mode: "timestamp_ms" }),
     errorMessage: text("error_message"),
     createdBy: text("created_by").notNull(),
     metadata: text("metadata", { mode: "json" })
       .$type<Record<string, unknown>>()
       .default({}),
-    updatedAt: text("updated_at"),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).default(
+      sql`(unixepoch('now') * 1000)`,
+    ),
   },
   (table) => ({
     restaurantIdx: index("idx_backup_records_restaurant").on(
@@ -74,11 +76,15 @@ export const backupSchedules = sqliteTable(
     restaurantId: text("restaurant_id").notNull(),
     cronExpression: text("cron_expression").notNull(),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-    lastRunAt: text("last_run_at"),
-    nextRunAt: text("next_run_at"),
+    lastRunAt: integer("last_run_at_ms", { mode: "timestamp_ms" }),
+    nextRunAt: integer("next_run_at_ms", { mode: "timestamp_ms" }),
     consecutiveFailures: integer("consecutive_failures").notNull().default(0),
-    createdAt: text("created_at"),
-    updatedAt: text("updated_at"),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).default(
+      sql`(unixepoch('now') * 1000)`,
+    ),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).default(
+      sql`(unixepoch('now') * 1000)`,
+    ),
   },
   (table) => ({
     configIdx: index("idx_backup_schedules_config").on(table.configurationId),
@@ -127,8 +133,12 @@ export const backupConfigurations = sqliteTable(
       .$type<string[]>()
       .default([]),
     createdBy: text("created_by").notNull(),
-    createdAt: text("created_at"),
-    updatedAt: text("updated_at"),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).default(
+      sql`(unixepoch('now') * 1000)`,
+    ),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).default(
+      sql`(unixepoch('now') * 1000)`,
+    ),
   },
   (table) => ({
     restaurantIdx: index("idx_backup_configurations_restaurant").on(
@@ -159,8 +169,8 @@ export const backupAlerts = sqliteTable(
       .notNull()
       .default(false),
     resolved: integer("resolved", { mode: "boolean" }).notNull().default(false),
-    triggeredAt: text("triggered_at"),
-    resolvedAt: text("resolved_at"),
+    triggeredAt: integer("triggered_at_ms", { mode: "timestamp_ms" }),
+    resolvedAt: integer("resolved_at_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     restaurantIdx: index("idx_backup_alerts_restaurant").on(table.restaurantId),
@@ -190,7 +200,7 @@ export const backupAuditLogs = sqliteTable(
     performedBy: text("performed_by").notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    timestamp: text("timestamp"),
+    timestamp: integer("timestamp_ms", { mode: "timestamp_ms" }),
   },
   (table) => ({
     restaurantIdx: index("idx_backup_audit_logs_restaurant").on(
@@ -219,8 +229,8 @@ export const restoreOperations = sqliteTable(
     overwriteExisting: integer("overwrite_existing", { mode: "boolean" })
       .notNull()
       .default(false),
-    startedAt: text("started_at"),
-    completedAt: text("completed_at"),
+    startedAt: integer("started_at_ms", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at_ms", { mode: "timestamp_ms" }),
     tablesRestored: integer("tables_restored").notNull().default(0),
     recordsRestored: integer("records_restored").notNull().default(0),
     errorMessage: text("error_message"),

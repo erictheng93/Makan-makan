@@ -205,17 +205,17 @@ export class BackupSchedulerService {
       await this.db.run(sql`
         INSERT OR REPLACE INTO backup_schedules (
           id, configuration_id, restaurant_id, cron_expression, enabled,
-          next_run_at, consecutive_failures, created_at, updated_at
+          next_run_at_ms, consecutive_failures, created_at_ms, updated_at_ms
         ) VALUES (
           ${crypto.randomUUID()},
           ${configId},
           ${restaurantId},
           ${cronExpression},
           ${1},
-          ${nextRun?.toISOString() ?? null},
+          ${nextRun?.getTime() ?? null},
           ${0},
-          ${new Date().toISOString()},
-          ${new Date().toISOString()}
+          ${Date.now()},
+          ${Date.now()}
         )
       `);
     } catch (error) {
@@ -233,7 +233,7 @@ export class BackupSchedulerService {
         .update(backupSchedules)
         .set({
           enabled: false,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         })
         .where(eq(backupSchedules.configurationId, configId));
     } catch (error) {
@@ -308,8 +308,8 @@ export class BackupSchedulerService {
         id: row.id,
         configuration_id: row.configurationId,
         restaurant_id: row.restaurantId,
-        last_run_at: row.lastRunAt ?? undefined,
-        next_run_at: row.nextRunAt ?? undefined,
+        last_run_at: this.toOptionalIsoString(row.lastRunAt),
+        next_run_at: this.toOptionalIsoString(row.nextRunAt),
         consecutive_failures: row.consecutiveFailures,
         enabled: row.enabled,
       } as ScheduleInfo;
@@ -337,23 +337,23 @@ export class BackupSchedulerService {
       const results = await this.db.run(sql`
         SELECT
           bc.*,
-          bs.next_run_at,
+          bs.next_run_at_ms AS next_run_at,
           r.name as restaurant_name
         FROM backup_configurations bc
         JOIN backup_schedules bs ON bc.id = bs.configuration_id
         LEFT JOIN restaurants r ON bc.restaurant_id = r.id
         WHERE bc.schedule_enabled = 1
         AND bs.enabled = 1
-        AND bs.next_run_at IS NOT NULL
-        AND bs.next_run_at <= ${futureTime.toISOString()}
-        ORDER BY bs.next_run_at ASC
+        AND bs.next_run_at_ms IS NOT NULL
+        AND bs.next_run_at_ms <= ${futureTime.getTime()}
+        ORDER BY bs.next_run_at_ms ASC
       `);
 
       const rows =
         (results as { results?: Record<string, unknown>[] }).results || [];
       return rows.map((row) => ({
         configuration: this.parseConfiguration(row),
-        scheduled_time: row.next_run_at as string,
+        scheduled_time: this.toIsoString(row.next_run_at),
         restaurant_name: row.restaurant_name as string,
       }));
     } catch (error) {
@@ -484,9 +484,9 @@ export class BackupSchedulerService {
     await this.db
       .update(backupSchedules)
       .set({
-        lastRunAt: timestamp.toISOString(),
+        lastRunAt: timestamp,
         consecutiveFailures: 0,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       })
       .where(eq(backupSchedules.configurationId, configId));
   }
@@ -498,8 +498,8 @@ export class BackupSchedulerService {
     await this.db
       .update(backupSchedules)
       .set({
-        nextRunAt: nextRun.toISOString(),
-        updatedAt: new Date().toISOString(),
+        nextRunAt: nextRun,
+        updatedAt: new Date(),
       })
       .where(eq(backupSchedules.configurationId, configId));
   }
@@ -507,7 +507,7 @@ export class BackupSchedulerService {
   private async updateConsecutiveFailures(configId: string): Promise<void> {
     await this.db.run(sql`
       UPDATE backup_schedules
-      SET consecutive_failures = consecutive_failures + 1, updated_at = ${new Date().toISOString()}
+      SET consecutive_failures = consecutive_failures + 1, updated_at_ms = ${Date.now()}
       WHERE configuration_id = ${configId}
     `);
   }
@@ -538,8 +538,25 @@ export class BackupSchedulerService {
       notification_channels:
         row.notificationChannels ?? row.notification_channels ?? [],
       created_by: row.createdBy ?? row.created_by,
-      created_at: row.createdAt ?? row.created_at,
-      updated_at: row.updatedAt ?? row.updated_at,
+      created_at: this.toIsoString(row.createdAt ?? row.created_at),
+      updated_at: this.toIsoString(row.updatedAt ?? row.updated_at),
     } as BackupConfiguration;
+  }
+
+  private toIsoString(value: unknown): string {
+    return this.toOptionalIsoString(value) ?? new Date().toISOString();
+  }
+
+  private toOptionalIsoString(value: unknown): string | undefined {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (typeof value === "number") {
+      return new Date(value).toISOString();
+    }
+    return String(value);
   }
 }
