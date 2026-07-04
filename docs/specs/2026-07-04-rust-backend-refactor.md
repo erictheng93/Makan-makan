@@ -36,10 +36,30 @@ Success means:
    `workers-rs`, including bindings such as KV, R2, D1, Queues, Workers AI, and
    service bindings:
    https://developers.cloudflare.com/workers/languages/rust/
+   Note that this documented binding list does NOT include Vectorize; see
+   assumption 7.
 6. Durable Object and WebSocket behavior must be proven in a spike before
    `apps/realtime` is committed to Rust. If parity is not acceptable, realtime
    may remain TypeScript temporarily behind the same API contract while the REST
-   backend migrates.
+   backend migrates. The current implementation uses classic
+   `new WebSocketPair()` + `server.accept()` + event listeners with an in-memory
+   connection map (`apps/realtime/src/RealtimeSession.ts`), NOT the WebSocket
+   hibernation API. An `alarm()` handler exists but nothing ever calls
+   `setAlarm()`, so it is effectively unscheduled cleanup code. The spike must
+   decide whether the Rust port replicates the non-hibernation model or
+   deliberately migrates to hibernation, and must treat that as a behavior
+   change requiring its own parity evidence.
+7. Vectorize is a named platform risk with the same exception model as
+   realtime. `apps/api` binds both `AI` (Workers AI) and `DISCOVERY_VECTORIZE`
+   (Vectorize) in `wrangler.toml`, and the discovery feature actively uses them
+   (`SemanticDiscoveryService` calls `ai.run("@cf/baai/bge-m3")` for embeddings
+   plus `vectorize.query()`/`vectorize.upsert()`). Workers AI is in the
+   documented `workers-rs` binding list; Vectorize is not. The Phase 1 spike
+   must prove Vectorize access from Rust. If native support is missing, the
+   approved fallbacks are: a manual `wasm-bindgen`/`js-sys` wrapper around the
+   raw JS binding, or temporarily keeping the `discovery` module in TypeScript
+   behind the same API contract while everything else migrates. The decision
+   must be recorded before Phase 3 item 4 (discovery migration) starts.
 
 ## Current Backend Understanding
 
@@ -49,12 +69,34 @@ Success means:
 | --- | --- | --- | --- |
 | Main REST API | `apps/api` | Cloudflare Worker + Hono | Largest backend surface; 48 feature dirs, 41 index modules, 50 `/api/v1` mount points. |
 | Management control plane | `apps/management-api` | Cloudflare Worker + Hono | Tenant onboarding, licenses, deployments, Cloudflare API orchestration, health/monitoring. |
-| Realtime | `apps/realtime` | Worker + Durable Object | WebSocket sessions, room fanout, token blacklist, D1 restaurant access checks. |
+| Realtime | `apps/realtime` | Worker + Durable Object | WebSocket sessions, room fanout, token blacklist, D1 restaurant access checks. Classic `WebSocketPair` model, not hibernation; DO class `RealtimeSession`. |
 | Image processing | `apps/image-processor` | Worker + Hono | Image upload, Cloudflare Images integration, D1 metadata, KV/R2/cache analytics. |
 | Backup scheduler | `apps/backup-scheduler` | Worker Cron wrapper | Package says worker code lives mostly in `apps/api`; validates via API build/lint. |
 | Print agent | `apps/print-agent` | Local Node.js daemon | Express + WebSocket local service for ESC/POS printing. |
 | Database | `packages/database` | Drizzle schema + SQL migrations | Source of truth for schema; dual migration tracks are enforced. |
 | Shared contracts | `packages/shared-types`, `apps/api/src/contracts` | TypeScript | Must be converted into language-neutral contracts before Rust ports. |
+
+### Inter-Worker Topology
+
+Verified against every `wrangler.toml` on 2026-07-04:
+
+- Exactly one true service binding exists in the repo:
+  `apps/api` → `management-api` (`MANAGEMENT_API` binding).
+- `apps/api` → `apps/realtime` is a cross-script Durable Object binding
+  (`REALTIME_SESSION`, class `RealtimeSession`,
+  `script_name = "makanmasak-realtime"`), not a service binding. A Rust Worker
+  attaching a DO binding to a class hosted by another (initially still
+  TypeScript) script must be proven in the Phase 1 spike.
+- There is NO service binding between `apps/api` and `apps/image-processor`.
+- `apps/management-api` binds two D1 databases: its own `MANAGEMENT_DB` (own
+  migrations dir) plus `PLATFORM_DB`, which shares the same `database_id` as
+  the main API `DB`. The Phase 5 migration must respect that data boundary.
+- `apps/backup-scheduler` is a thin cron wrapper whose `main` points at
+  `apps/api/src/workers/backup-scheduler.ts`; its logic migrates with
+  `apps/api`, not as an independent service.
+- Environment parity caveat: the `TOKEN_BLACKLIST` KV binding on `apps/api`
+  exists only in staging and production, not in the default/dev environment.
+  Parity test environments must account for this.
 
 ### Main API Shape
 
@@ -83,6 +125,10 @@ behavior:
 
 - Public route mounts first, then a concrete-route guard, then protected route
   middleware and CSRF protection, then protected route mounts.
+- Root-level public routes outside `/api/v1`: `/info` returns the deployment
+  info payload and is the real public liveness probe; `/health` is only a 302
+  redirect to `/api/v1/monitoring/health` (which requires auth). A Rust port of
+  `/health` is a redirect, not a health computation.
 - Scheduled handlers in `apps/api/src/index.ts` run cleanup, forecast warmup,
   usage aggregation, payment reconciliation, storage snapshots, push pruning,
   credit expiry, and billing lifecycle work.
@@ -91,9 +137,11 @@ behavior:
 ### `/api/v1` Mount Points
 
 The docs drift script reports 50 route mounts derived from
-`apps/api/src/app-factory.ts`. The current generated mount index in
-`docs/api/README.md` is synchronized and should be treated as the route prefix
-source of truth:
+`apps/api/src/app-factory.ts`. That figure counts `apiV1.route()` calls; there
+are 49 distinct path prefixes because `/auth` is mounted twice (the
+`authentication` router and the `verification` router share the prefix). The
+current generated mount index in `docs/api/README.md` is synchronized and
+should be treated as the route prefix source of truth:
 
 `/auth`, `/qr`, `/queue`, `/coupons`, `/reservations`, `/service-bookings`,
 `/waiting-list`, `/realtime`, `/partnerships`, `/guest-orders`,
@@ -158,7 +206,20 @@ Results:
 ### Contract Gaps
 
 The current API contract report covers 21 modules. The main API exposes 48
-feature dirs and 50 route mounts. Before Rust implementation, contract coverage
+feature dirs and 50 route mounts (41 feature dirs have an `index.ts` module).
+
+Tooling limitation: `scripts/check-api-contracts.cjs` regex-extracts only
+top-level field names from exported Zod `z.object` schemas in
+`apps/api/src/contracts/schemas/`. It captures no HTTP method, path, auth
+requirement, field type, or side-effect information, and it silently drops
+schema files its regex cannot parse (`integrations.ts` exists on disk but
+yields zero schemas, which is why the snapshot says 21 modules while 22 files
+exist). The existing tool therefore cannot express the coverage this spec
+requires; Phase 0 must build a new contract generator in
+`packages/backend-contracts` rather than extend `contract:report` alone.
+`contract:report` remains useful as a field-drift tripwire during migration.
+
+Before Rust implementation, contract coverage
 must be expanded so every route that will be ported has:
 
 - request method/path;
@@ -493,19 +554,31 @@ rtk cargo test --workspace
 
 Exit criteria:
 
-- `contract:report` covers every route planned for Rust migration.
+- The new `packages/backend-contracts` generator covers every route planned for
+  Rust migration with method, path, auth, schemas, and side effects. The
+  existing `contract:report` field-shape snapshot stays green but is not the
+  coverage gate (see Contract Gaps: it captures top-level field names only).
 - Docs explain which backend docs are authoritative.
 - Parity runner can execute against the current TypeScript backend.
 
 ### Phase 1: Rust Platform Spike
 
 1. Scaffold `apps/api-rust` with `workers-rs`.
-2. Port only `/health`, `/info`, and one read-only public route.
-3. Prove access to D1, KV, R2, Queue producer, service binding, and AI/Vectorize
-   bindings used by the current app.
-4. Prove response/error envelope parity.
-5. Measure Wasm bundle size and cold-start behavior.
-6. Separately spike Durable Object/WebSocket parity for `apps/realtime`.
+2. Port only `/health` (a 302 redirect), `/info`, and one read-only public
+   route.
+3. Prove access to D1, KV, R2, Queue producer, the service binding to
+   management-api, and the Workers AI binding used by the current app.
+4. Prove Vectorize access separately. Vectorize is not in the documented
+   `workers-rs` binding list (see assumption 7), so expect this to require a
+   manual `wasm-bindgen`/`js-sys` wrapper. If the wrapper is not viable,
+   record the decision to keep `discovery` in TypeScript temporarily.
+5. Prove the cross-script Durable Object binding: a Rust Worker attaching
+   `REALTIME_SESSION` to the `RealtimeSession` class hosted by the (still
+   TypeScript) realtime script.
+6. Prove response/error envelope parity.
+7. Measure Wasm bundle size and cold-start behavior.
+8. Separately spike Durable Object/WebSocket parity for `apps/realtime`,
+   accounting for its classic non-hibernation WebSocket model (assumption 6).
 
 Exit criteria:
 
@@ -513,6 +586,8 @@ Exit criteria:
 - Local Wrangler dev serves the spike routes.
 - Parity tests pass for spike routes.
 - Realtime decision is recorded: migrate now, defer, or keep TS temporarily.
+- Vectorize decision is recorded: native binding, interop wrapper, or keep
+  `discovery` in TypeScript temporarily.
 
 ### Phase 2: Shared Rust Foundations
 
@@ -537,7 +612,8 @@ Migrate read-heavy or isolated modules first:
 1. `system`, `monitoring` health-only paths, `cache` read endpoints.
 2. `restaurants` public GET routes.
 3. `menu` public GET routes.
-4. `discovery` read endpoints after Vectorize/D1 behavior is proven.
+4. `discovery` read endpoints only after the Phase 1 Vectorize decision
+   (assumption 7) has been recorded and its chosen access path is proven.
 
 Exit criteria:
 
@@ -549,16 +625,25 @@ Exit criteria:
 
 Migrate modules with increasing write risk:
 
-1. `authentication`, `verification`, `me`, `users`, `customers`, `customer`.
-2. `orders`, `guest-orders`, `group-orders`, `kitchen`, `sse`.
+Module names below are the actual directory names under
+`apps/api/src/features/`:
+
+1. `authentication`, `verification` (both mount at `/auth`), `me`, `users`,
+   `customers`, `customer`.
+2. `orders`, `guest-orders`, `group-orders` (mounts at `/orders/group`),
+   `kitchen`, `sse`, `realtime` (public token/session routes at `/realtime`;
+   coordinate with the realtime service decision).
 3. `pos`, `payments`, `billing`, `market-checkouts`, `credits`.
 4. `queue`, `waiting-list`, `reservations`, `service-bookings`.
 5. `tables`, `seats`, `qr-codes`.
-6. `scheduling`, `leaves`, `manager`, `audit-logs`, `audit`.
+6. `scheduling`, `leaves`, `manager` (also owns the `/audit-logs` mount via
+   `managerFeature.auditLogsRoutes` — there is no `audit-logs` feature dir),
+   `audit`.
 7. `coupons`, `partnerships`, `integrations`.
 8. `analytics`, `ai-analytics`, `forecast`, `ingredients`, `feedback`.
-9. `markets`, `admin`, `admin/markets`, `admin/subscriptions`,
-   `notifications`, `push`, `backup`.
+9. `markets` (also `/admin/markets`), `admin-settings` (mounts at `/admin`),
+   `subscriptions` (mounts at `/admin/subscriptions`), `notifications`,
+   `push`, `backup`.
 
 Exit criteria for each module:
 
@@ -571,11 +656,22 @@ Exit criteria for each module:
 ### Phase 5: Management, Image, Realtime, Print
 
 1. Migrate `apps/management-api` after main auth/shared foundations are stable.
+   It binds two D1 databases: its own `MANAGEMENT_DB` (own migrations dir) and
+   `PLATFORM_DB`, which is the same physical database as the main API `DB`.
+   The Rust port must preserve that boundary: management migrations stay in
+   the management track; platform reads/writes follow the main schema source
+   of truth.
 2. Migrate `apps/image-processor` after file upload, Cloudflare Images, R2, and
-   metadata parity tests exist.
+   metadata parity tests exist. Note there is no service binding between it and
+   `apps/api`; do not introduce one as a side effect of the port.
 3. Migrate `apps/realtime` only if the Durable Object spike passes.
 4. Decide whether `apps/print-agent` should become Rust. Because it is local
    native software, it can be migrated independently after API parity is done.
+5. `apps/backup-scheduler` needs no separate migration: it is a thin cron
+   wrapper whose `main` points at `apps/api/src/workers/backup-scheduler.ts`,
+   so its logic moves when the main API backup/cron code moves. The wrapper's
+   `wrangler.toml` entry point must be repointed at the Rust equivalent at
+   cutover.
 
 Exit criteria:
 
@@ -614,7 +710,8 @@ Exit criteria:
 
 ## Open Questions
 
-1. Is the target "100% Rust backend" mandatory, or may `apps/realtime` and
+1. Is the target "100% Rust backend" mandatory, or may `apps/realtime`,
+   the `discovery` module (Vectorize dependency, assumption 7), and
    `apps/print-agent` remain TypeScript/Node temporarily if platform parity is
    risky?
 2. Should the team keep Cloudflare Workers as the hard deployment target, or is
@@ -664,8 +761,20 @@ Exit criteria:
 
 - [ ] Task: Decide realtime migration strategy.
   - Acceptance: Durable Object/WebSocket spike either passes or a documented
-    temporary TypeScript exception is approved.
+    temporary TypeScript exception is approved. The spike must state whether
+    the port keeps the current non-hibernation `WebSocketPair` model or
+    migrates to hibernation.
   - Verify: realtime connection, fanout, room auth, reconnect, and token
     blacklist tests pass in the chosen runtime.
   - Files: `apps/realtime-rust/**` or `docs/runbooks/realtime-rust-decision.md`.
+
+- [ ] Task: Decide Vectorize/discovery migration strategy.
+  - Acceptance: Rust access to the `DISCOVERY_VECTORIZE` binding is proven
+    (native or `wasm-bindgen`/`js-sys` wrapper), or a documented temporary
+    TypeScript exception for the `discovery` module is approved.
+  - Verify: embedding generation via the `AI` binding plus `vectorize.query()`
+    and `vectorize.upsert()` round-trips succeed from the Rust spike Worker
+    against the dev index.
+  - Files: `apps/api-rust/src/platform/vectorize.rs` or
+    `docs/runbooks/discovery-rust-decision.md`.
 
