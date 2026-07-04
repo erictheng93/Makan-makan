@@ -12,6 +12,7 @@ const DEFAULT_PAYMENT_REDIRECT_HOSTS = [
 
 interface SafeExternalHrefOptions {
   allowedHosts?: readonly string[];
+  allowAnyHttpHost?: boolean;
 }
 
 function isAllowedHost(hostname: string, allowedHosts: readonly string[]) {
@@ -35,6 +36,12 @@ export function safeExternalHref(
   try {
     const url = new URL(value);
     const allowedHosts = options.allowedHosts ?? DEFAULT_PAYMENT_REDIRECT_HOSTS;
+
+    if (options.allowAnyHttpHost) {
+      return url.protocol === "http:" || url.protocol === "https:"
+        ? url.toString()
+        : null;
+    }
 
     if (url.protocol !== "https:") return null;
     if (!isAllowedHost(url.hostname, allowedHosts)) return null;

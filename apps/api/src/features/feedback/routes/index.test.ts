@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import { createFeedbackSchema } from "../schemas/validation";
 
 const mocks = vi.hoisted(() => ({
   currentUser: { id: 10, role: 1, restaurantId: "restaurant-1" },
@@ -137,6 +138,30 @@ describe("feedback routes", () => {
     vi.useRealTimers();
   });
 
+  it("validates feedback attachment URLs as http or https only", () => {
+    expect(
+      createFeedbackSchema.safeParse(
+        createFeedbackBody({
+          attachmentUrls: [
+            "https://cdn.example.test/feedback.png",
+            "http://cdn.example.test/log.txt",
+          ],
+        }),
+      ).success,
+    ).toBe(true);
+
+    expect(
+      createFeedbackSchema.safeParse(
+        createFeedbackBody({
+          attachmentUrls: [
+            "javascript:alert(document.domain)",
+            "data:text/html,<script>alert(1)</script>",
+          ],
+        }),
+      ).success,
+    ).toBe(false);
+  });
+
   it("creates feedback for the authenticated owner restaurant", async () => {
     mocks.createFeedback.mockResolvedValue(feedback());
 
@@ -175,6 +200,25 @@ describe("feedback routes", () => {
       success: false,
       error: { code: "NO_RESTAURANT" },
     });
+    expect(mocks.createFeedback).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-http attachment URLs during feedback creation", async () => {
+    const response = await routes.fetch(
+      jsonRequest(
+        "https://test/",
+        "POST",
+        createFeedbackBody({
+          attachmentUrls: [
+            "javascript:alert(document.domain)",
+            "data:text/html,<script>alert(1)</script>",
+          ],
+        }),
+      ),
+      createEnv() as never,
+    );
+
+    expect(response.status).not.toBe(201);
     expect(mocks.createFeedback).not.toHaveBeenCalled();
   });
 
