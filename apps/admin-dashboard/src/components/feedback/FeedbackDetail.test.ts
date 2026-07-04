@@ -64,7 +64,10 @@ describe("FeedbackDetail", () => {
       },
     });
 
-    const hrefs = wrapper.findAll("a").map((link) => link.attributes("href"));
+    const hrefs = wrapper
+      .get("[data-testid='feedback-attachments']")
+      .findAll("a")
+      .map((link) => link.attributes("href"));
 
     expect(hrefs).toEqual([
       "https://cdn.example.test/feedback.png",

@@ -215,7 +215,11 @@
       </div>
 
       <!-- Attachments -->
-      <div v-if="safeAttachmentUrls.length" class="mt-3 flex flex-wrap gap-2">
+      <div
+        v-if="safeAttachmentUrls.length"
+        data-testid="feedback-attachments"
+        class="mt-3 flex flex-wrap gap-2"
+      >
         <a
           v-for="(url, i) in safeAttachmentUrls"
           :key="i"
