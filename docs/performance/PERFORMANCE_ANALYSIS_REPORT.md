@@ -145,10 +145,15 @@ Gzipped: ~285KB (estimated)
 
 **Critical Endpoints**:
 
-1. **GET /api/v1/orders** (P95: 680ms) ❌
+1. **GET /api/v1/orders** (P95: 680ms) ❌ — ✅ **fixed as of 2026-07-05**:
+   `packages/database/src/services/order.ts:1044-1064` `getOrders()` (and
+   `getOrderByNumber`, lines 964-984) already use Drizzle relational `with:`
+   eager-loading exactly as this report's own "AFTER" example below
+   proposes — this is no longer a live problem, kept here for historical
+   context on what the fix looked like.
 
    ```typescript
-   // Current N+1 query pattern detected
+   // Historical: N+1 query pattern that existed at time of writing
    async getOrders(filters, page, limit) {
      const orders = await this.db.query.orders.findMany(...)
      // For each order, fetches related data separately

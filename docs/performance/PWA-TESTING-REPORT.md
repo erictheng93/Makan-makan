@@ -299,8 +299,8 @@ class PWAPerformanceManager {
 
 ### 已提供測試資源:
 
-1. **`pwa-test-suite.js`** - 完整的 PWA 功能測試套件
-2. **`pwa-performance-optimizer.ts`** - 性能優化實施
+1. ~~**`pwa-test-suite.js`**~~ - ⚠️ 不存在於現行 repo（2026-07-05 核實，repo 中找不到此檔案）
+2. **`pwa-performance-optimizer.ts`** - 性能優化實施（存在，`apps/customer-app/src/utils/pwa-performance-optimizer.ts`，已於 `main.ts` 引入）
 3. **`pwa-performance-analysis.md`** - 詳細分析報告
 
 ### 使用方式:
@@ -345,13 +345,13 @@ console.log(pwaPerformanceManager.syncOptimizer.getBatchStatus())
 
 #### **✅ 已完成實施 (2025-09-23)**:
 
-1. ✅ 部署 Service Worker 優化器 - `sw-optimized.js`
-2. ✅ 啟用 IndexedDB 性能優化 - `offline-storage-optimized.ts`
+1. ❌ ~~部署 Service Worker 優化器 - `sw-optimized.js`~~ — 不存在於現行 repo（2026-07-05 核實）；`main.ts:57` 明確註解 Service Worker 由 VitePWA plugin 自動產生管理，不是手動部署的 `sw-optimized.js`
+2. ✅ 啟用 IndexedDB 性能優化 - `offline-storage-optimized.ts`（存在）
 3. ✅ 實施智慧快取策略 - 動態策略選擇
-4. ✅ 部署背景同步優化 - `background-sync-optimized.ts`
-5. ✅ 啟用性能監控系統 - `performance-monitor.ts`
-6. ✅ 整合應用主入口點 - `main.ts` 更新
-7. ✅ 創建驗證測試套件 - `pwa-optimization-verification.js`
+4. ✅ 部署背景同步優化 - `background-sync-optimized.ts`（存在）
+5. ✅ 啟用性能監控系統 - `performance-monitor.ts`（存在）
+6. ✅ 整合應用主入口點 - `main.ts` 更新（`main.ts:13,59` 確認引入 `PWAPerformanceManager`）
+7. ❌ ~~創建驗證測試套件 - `pwa-optimization-verification.js`~~ — 不存在於現行 repo（2026-07-05 核實）
 
 #### **下一階段建議**:
 
@@ -385,12 +385,15 @@ MakanMakan PWA 已達到**企業級PWA標準**，具備：
 
 ### 核心優化文件:
 
-- `apps/customer-app/public/sw-optimized.js` - 優化版 Service Worker
+> ⚠️ 準確性提醒（2026-07-05）：下方兩項標示 ❌ 的檔案不存在於現行 repo；
+> 其餘 4 項存在，且 `main.ts` 確認有引入。
+
+- ❌ ~~`apps/customer-app/public/sw-optimized.js` - 優化版 Service Worker~~（不存在；Service Worker 由 VitePWA plugin 自動產生管理）
 - `apps/customer-app/src/utils/offline-storage-optimized.ts` - IndexedDB 優化管理器
 - `apps/customer-app/src/utils/background-sync-optimized.ts` - 智慧背景同步
 - `apps/customer-app/src/utils/performance-monitor.ts` - 實時性能監控
 - `apps/customer-app/src/utils/pwa-performance-optimizer.ts` - 統一優化管理器
-- `pwa-optimization-verification.js` - 自動驗證測試套件
+- ❌ ~~`pwa-optimization-verification.js` - 自動驗證測試套件~~（不存在）
 
 ### 應用整合:
 

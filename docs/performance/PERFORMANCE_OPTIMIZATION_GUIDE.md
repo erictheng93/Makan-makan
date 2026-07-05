@@ -89,6 +89,14 @@ npx wrangler d1 execute makanmakan-prod --env production \
 
 ## Phase 2: Fix N+1 Query Pattern (1-2 hours)
 
+> ⚠️ **Already done (verified 2026-07-05)** — this fix has already shipped
+> directly into `packages/database/src/services/order.ts` (`getOrders()` and
+> `getOrderByNumber()` both use Drizzle relational `with:` eager-loading).
+> There is no `order.optimized.ts` or `order.backup.ts` file — the fix was
+> merged in-place rather than through the backup/gradual-migration steps
+> below. Steps 2.1-2.4 are kept for historical context only; do not follow
+> them, there's nothing left to migrate.
+
 ### Step 2.1: Backup Current Order Service
 
 ```bash
