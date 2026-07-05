@@ -44,7 +44,9 @@ PRs.
 - 2026-04-21: `rtk pnpm typecheck` passed.
 - 2026-04-21: `rtk pnpm lint` timed out after 120s, so lint status is unknown.
 - Existing untracked file was left untouched:
-  `docs/testing/PERSONA_TEST_CHECKLIST_AUDIT.md`.
+  `docs/testing/PERSONA_TEST_CHECKLIST_AUDIT.md` (since moved to
+  `docs/archive/deprecated/PERSONA_TEST_CHECKLIST_AUDIT.md` — see that file's
+  SUPERSEDED banner, its cited spec files were deleted 2026-05-25).
 - Existing `TODOS.md` i18n items are included here so this document can be used
   as the primary working list.
 
@@ -76,7 +78,10 @@ already runs through the active payment path:
 - `apps/api/src/features/billing/services/PaymentAuditService.ts` is the
   single writer, used by:
   - `apps/api/src/features/payments/services/PaymentService.ts` emits
-    `ATTEMPT`, `SUCCESS`, and `FAILURE` events on every order payment.
+    `ATTEMPT` and `SUCCESS` events (verified 2026-07-05:
+    `PaymentService.ts:188,211`). `FAILURE` is defined in
+    `PAYMENT_AUDIT_EVENT_TYPES` but never emitted anywhere in the repo — dead
+    enum value, not wired to any failure path.
   - `apps/api/src/features/billing/services/BillingCycleService.ts` emits
     cycle close / trial downgrade / plan change events.
   - `apps/api/src/features/billing/services/BillingWebhookService.ts` emits
@@ -114,9 +119,14 @@ launch checklist item but is encoding-damaged and not canonical.
 - 2FA methods throw or return failure with "not yet implemented".
 - Auth statistics and account security return zero/default data.
 - 2026-04-21 update: password reset, email verification, profile
-  read/update, session termination, account security, and auth statistics now
-  use database-backed service paths. 2FA remains intentionally unsupported by
-  the current API/UI surface.
+  read/update, and session termination now use database-backed service paths.
+  2FA remains intentionally unsupported by the current API/UI surface.
+- **Correction (2026-07-05):** account security and auth statistics are
+  *not* fully database-backed as claimed above — `AuthService.ts`'s
+  `checkAccountSecurity()` still hardcodes `failedLoginAttempts: 0` and
+  `twoFactorAdoptionRate: 0`, and `getSecurityEvents()` unconditionally
+  `return []` with a `"not fully implemented"` warning log. This is a
+  genuinely still-open gap, not resolved.
 
 **Impact:** Frontend flows can appear wired while the backend cannot actually
 reset passwords, verify email, terminate sessions, or report account security.
@@ -229,15 +239,14 @@ will fail at runtime.
 
 ### Queue Modular Path Threw At Runtime
 
-**Priority:** P1 - completed 2026-04-22 for runtime safety; metric accuracy
-follow-ups remain
+**Priority:** P4 (was P1 — resolved 2026-07-05, see below; only served_by_name remains)
 
 **Files:**
 
 - `apps/api/src/features/queue/services/UnifiedQueueService.ts`
 - `packages/queue-service/src/services/QueueService.ts`
 
-**Evidence:**
+**Evidence (historical — see resolution below):**
 
 - `UnifiedQueueService` has a `useModular` branch that throws "Modular queue
   service not yet implemented".
@@ -246,6 +255,16 @@ follow-ups remain
 - 2026-04-22 update: requesting modular mode now logs a warning and falls back
   to the legacy implementation instead of throwing.
 
+**Resolution (verified 2026-07-05):** The legacy/modular split described above
+has been replaced wholesale (landed in `e3d02a23`, 2026-04-29) —
+`UnifiedQueueService.ts`'s own header comment now states this explicitly, and
+there is no `useModular` branch left at all; it's a thin adapter over the
+production `WaitingListService`. `packages/queue-service/src/services/QueueService.ts:187-198`
+now computes `minWait`, `onlineCount`, `walkinCount`, and `priorityCount` from
+real waiting-list rows, not hardcoded values. Only `served_by_name` remains a
+genuinely open follow-up (`QueueService.ts:546-548`, still `undefined` with a
+comment noting it requires a cross-package user lookup).
+
 **Impact:** A feature flag or config switch can route production traffic into
 runtime exceptions. Queue dashboards may report incomplete metrics.
 
@@ -253,20 +272,17 @@ runtime exceptions. Queue dashboards may report incomplete metrics.
 
 - [x] Remove or lock down `useModular` until repositories are wired.
 - [x] Add tests for legacy fallback when modular mode is requested.
-- [ ] **P2:** Implement repository-backed modular service construction.
-- [ ] **P2:** Calculate queue type counts and priority counts from real queue
-      rows.
-- [ ] **P2:** Join served-by user data or explicitly remove the field from the
+- [x] Implement repository-backed modular service construction. (superseded — legacy/modular split removed entirely, not repository-backed modular mode)
+- [x] Calculate queue type counts and priority counts from real queue rows.
+- [ ] **P4:** Join served-by user data or explicitly remove the field from the
       response.
-- [ ] **P2:** Add tests for both legacy and modular branches before enabling
-      modular
-      mode.
+- [x] Add tests for both legacy and modular branches before enabling (moot — no modular branch remains)
 
 ## P2: Cross-Cutting Architecture Debt
 
 ### i18n Runtime Is Duplicated Across Apps
 
-**Priority:** P2
+**Priority:** Resolved 2026-05-25 (verified 2026-07-05) — kept for traceability
 
 **Files:**
 
@@ -278,14 +294,23 @@ runtime exceptions. Queue dashboards may report incomplete metrics.
 **Impact:** Locale loading, `localStorage` key behavior, deep merge behavior,
 and type safety can drift per app.
 
+**Resolution (verified 2026-07-05):** `packages/shared/src/i18n/src/index.ts`
+exports a `createI18n<Locale, Messages>()` factory (landed in `d8815cbb`), and
+all four target apps (admin-dashboard, kitchen-display, onboarding-app,
+management-portal) import and use it via their own `src/i18n/index.ts`
+wrappers. `localStorage` key standardized to `makanmakan_locale`. Message
+types are derived from each app's `zh-TW.ts`. `customer-app` is the one
+remaining app still on raw `vue-i18n` directly (by design — it predates the
+shared package and wasn't in scope for this consolidation).
+
 **TODO:**
 
-- [ ] Extract a shared `createI18n(appMessages)` factory into
+- [x] Extract a shared `createI18n(appMessages)` factory into
       `packages/shared/src/i18n`.
-- [ ] Migrate admin-dashboard, kitchen-display, onboarding-app, and
+- [x] Migrate admin-dashboard, kitchen-display, onboarding-app, and
       management-portal to the shared runtime.
-- [ ] Standardize the locale storage key.
-- [ ] Derive message types from the base locale instead of open recursive maps.
+- [x] Standardize the locale storage key.
+- [x] Derive message types from the base locale instead of open recursive maps.
 
 ### Stub Locales Fall Back To zh-TW
 
@@ -308,27 +333,39 @@ Traditional Chinese.
 
 ### OrderStatus Unification Still Has Cleanup Work
 
-**Priority:** P2
+**Priority:** P4 (was P2 — mostly resolved 2026-07-05, one item remains)
 
 **Reference:** `docs/investigations/2026-04-09-orderstatus-surface-audit.md`
 
-**Evidence:**
+**Evidence (historical):**
 
 - Existing audit identified 11 `OrderStatus`-shaped definitions, dead code, and
   stale disabled examples.
 - Phase 3 cleanup items include local admin-dashboard definitions,
   `OrdersService.checkOrderPermissions`, `OrderPermissions`, and scratch files.
 
+**Resolution (verified 2026-07-05):** `OrdersService.checkOrderPermissions()`
+is fully deleted (0 matches repo-wide). The remaining local `OrderStatus`
+declarations (`apps/kitchen-display/src/types/index.ts`,
+`apps/api/src/features/orders/types/index.ts`) are pure re-exports of
+`@makanmakan/shared-types`'s `OrderStatus`, not duplicate definitions — so
+this item is already effectively done, not "local definitions" in the
+problematic sense the original audit meant. Only the `.disabled` examples
+cleanup is still open: `apps/api/src/examples/StripeIntegrationExample.ts.disabled`
+and `PaymentSystemUsage.ts.disabled` are still present.
+
 **TODO:**
 
-- [ ] Finish replacing local `OrderStatus` definitions with canonical
+- [x] Finish replacing local `OrderStatus` definitions with canonical
       `@makanmakan/shared-types`.
-- [ ] Decide whether `OrdersService.checkOrderPermissions()` should be deleted
-      or wired to a real production route.
-- [ ] Delete stale `.disabled` examples once the payment/order-status migration
+- [x] Decide whether `OrdersService.checkOrderPermissions()` should be deleted
+      or wired to a real production route. (deleted)
+- [ ] **P4:** Delete stale `.disabled` examples
+      (`apps/api/src/examples/StripeIntegrationExample.ts.disabled`,
+      `PaymentSystemUsage.ts.disabled`) once the payment/order-status migration
       path is settled.
-- [ ] Add contract snapshot coverage for enum/status values, not just route
-      shape.
+- [ ] **P4:** Add contract snapshot coverage for enum/status values, not just
+      route shape.
 
 ### Cloudflare Resource IDs Are Still Placeholders
 
@@ -342,20 +379,29 @@ Traditional Chinese.
 - `apps/management-api/wrangler.toml`
 - `apps/realtime/wrangler.toml`
 
-**Evidence:** Production D1/KV IDs still include 16
+**Priority:** P4 (was P2 — primary placeholder issue resolved 2026-07-05)
+
+**Evidence (historical):** Production D1/KV IDs previously included 16
 `REPLACE_ME__PRODUCTION__...` placeholders across API, realtime,
 backup-scheduler, image-processor, and management-api Worker configs.
-Realtime staging D1 now has a concrete UUID, but the stale TODO comment above
-that value still needs cleanup.
+
+**Resolution (verified 2026-07-05):** `grep -rn "REPLACE_ME__PRODUCTION"
+apps/*/wrangler.toml` returns 0 matches — all placeholders have been replaced
+with real Cloudflare resource IDs. A config check script also now exists
+(`scripts/check-production-config.cjs`, run via `pnpm check:prod-config`),
+but it is not wired into any `.github/workflows/*.yml` CI job — it only runs
+when someone invokes it manually.
 
 **Impact:** Deployment can succeed against wrong/missing infrastructure or fail
 late during release.
 
 **TODO:**
 
-- [ ] Replace placeholder D1/KV IDs with real Cloudflare resource IDs.
-- [ ] Add a CI config check that fails on placeholder resource IDs.
-- [ ] Document which environment owns each D1/KV/R2/queue binding.
+- [x] Replace placeholder D1/KV IDs with real Cloudflare resource IDs.
+- [ ] **P4:** Wire `pnpm check:prod-config` (`scripts/check-production-config.cjs`)
+      into CI so it actually fails a PR — the script exists but currently only
+      runs manually.
+- [ ] **P4:** Document which environment owns each D1/KV/R2/queue binding.
 - [ ] Remove stale TODO comments where a real resource ID has already been
       populated.
 
@@ -390,7 +436,20 @@ test workflow's actual green state.
 
 ### Core Restaurant FK Rebuilds Covered By D1-Safe Components
 
-**Priority:** P1
+**Priority:** P4 (was P1 — superseded 2026-07-05, see note below; kept for traceability)
+
+**Correction (2026-07-05):** `packages/database/src/testing/__tests__/migration-inventory.test.ts`
+(listed below and cited as the live guard) has been deleted — it does not
+exist anywhere in the repo. `migrations_fresh/` now runs to
+`0072_schema_hardening_payment_idempotency_backup_timestamps.sql`
+(2026-07-04); 33+ migrations of unrelated shipped work (money-cents cutover,
+service bookings, market checkout, discount BPS) have landed since this
+section's `0028`-`0039` frontier. This item should be treated as resolved and
+superseded by later work, not as an active P1 pointing at dead test
+infrastructure — the one open checkbox below (staging data audit) is the only
+piece that might still be operationally relevant, and even that predates a
+huge amount of subsequent schema churn so should be re-scoped before acting on
+it.
 
 **Files:**
 
@@ -437,9 +496,26 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
 
 ### Money REAL Columns Still Need Cents Retirement
 
-**Priority:** P2
+**Priority:** P4 (was P2 — resolved 2026-07-05, see note below; kept for traceability)
 
-**Reference:** `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md`
+**Resolution (verified 2026-07-05):** The destructive cutover this section
+describes as pending has already shipped.
+`packages/database/migrations_fresh/0070_money_cents_cutover.sql` and
+`0071_market_checkout_child_order_cents_cutover.sql` (paired with
+`0087`/`0088` in the legacy/Wrangler track via
+`packages/database/migration-dual-track.json`) `DROP COLUMN` every legacy
+`REAL` money field listed below, self-guarded by a
+`CHECK (violation_count = 0)` assertion table so the migration would abort if
+the retirement audit hadn't already shown zero violations. Current
+`packages/database/src/schema/orders.ts` and `menu-items.ts` only have
+`*_cents` integer columns — no legacy `REAL` money columns remain. The guard
+test cited below (`migration-inventory.test.ts`) no longer exists; real
+coverage is now `packages/database/src/testing/money-cents-retirement-rollout.test.ts`.
+Whether the migration has been *run* against production D1 (vs. merged into
+the repo) is a deployment fact this repo audit can't confirm — check
+deployment logs before relying on this for further cleanup work.
+
+**Reference:** `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` (also updated 2026-07-05)
 
 **Files:**
 
@@ -515,23 +591,25 @@ representation indefinitely keeps precision drift and migration risk alive.
 
 **TODO:**
 
-- [ ] Finish the code-path inventory for every in-scope money field and mark
+- [x] Finish the code-path inventory for every in-scope money field and mark
       cents as the authoritative read source.
 - [x] Normalize coupon and group-order service/API money reads to prefer cents
       while preserving decimal API response contracts.
 - [x] Add executable migration inventory coverage for tracked money
       `REAL`/`*_cents` pairs and audit-table alignment.
-- [ ] Keep percentage/rate/non-money `REAL` fields out of this migration
+- [x] Keep percentage/rate/non-money `REAL` fields out of this migration
       (`discount_type = 'percentage'`, leave days, ratings, coordinates, etc.).
 - [x] Add a dedicated `data_integrity_audit` pass that compares each legacy
       money `REAL` value with its `*_cents` value and records sample row IDs.
-- [ ] Require zero unresolved `money_cents_retirement` audit violations before
-      any destructive schema change.
-- [ ] Land a separate D1/SQLite table-rebuild migration to remove retired
+- [x] Require zero unresolved `money_cents_retirement` audit violations before
+      any destructive schema change. (enforced by the migration's own CHECK guard)
+- [x] Land a separate D1/SQLite table-rebuild migration to remove retired
       legacy `REAL` money columns, preserve constraints/indexes, and drop
-      obsolete cents sync triggers.
-- [ ] Add migration tests that verify rebuilt table shape, row counts, null
-      handling, percentage discount exceptions, and FK/index preservation.
+      obsolete cents sync triggers. (`0070`/`0071`, see Resolution above)
+- [ ] **P4:** Add migration tests that verify rebuilt table shape, row counts,
+      null handling, percentage discount exceptions, and FK/index preservation
+      — worth double-checking `money-cents-retirement-rollout.test.ts`'s
+      actual coverage against this specific list.
 
 ## P2: Test Debt
 
@@ -539,20 +617,30 @@ representation indefinitely keeps precision drift and migration risk alive.
 
 **Priority:** P2
 
-**Files:**
+**Files (corrected 2026-07-05 — all six files above no longer exist):**
 
-- `tests/e2e/journeys/customer/coupon-checkout.spec.ts`
-- `tests/e2e/admin/restaurant-switching.spec.ts`
-- `tests/e2e/admin/coupon-management.spec.ts`
-- `tests/e2e/admin/bulk-qr-progress.spec.ts`
-- `tests/e2e/admin/menu-management.spec.ts`
-- `tests/e2e/integration/qr-generation.spec.ts`
+The entire `tests/e2e/` tree this section was written against (`journeys/`,
+`admin/`, and the specific spec files below) was deleted and rebuilt in commit
+`b936600f` ("remove mock-based test doubles", 2026-05-25). Current structure
+is `tests/e2e/{ci-smoke,integration,kitchen-display,smoke}/`. Repo-wide skip
+count as of 2026-07-05 is **11**, not the claimed 14, spread across these
+current files:
 
-**Evidence:** Multiple tests call `test.skip(true, ...)` or unconditional
+- `tests/e2e/smoke/owner-overview.spec.ts`
+- `tests/e2e/smoke/admin-realtime-websocket.spec.ts`
+- `tests/e2e/smoke/smoke.spec.ts`
+- `tests/e2e/smoke/owner-order-management.spec.ts`
+- `tests/e2e/smoke/owner-pos-usage-state.spec.ts`
+- `tests/e2e/smoke/owner-backoffice-pages.spec.ts`
+- `tests/e2e/integration/real-workflows.spec.ts`
+- `tests/e2e/smoke/kitchen-display.spec.ts`
+- `tests/e2e/smoke/owner-menu-management.spec.ts`
+
+**Evidence (historical — describes the deleted tree, kept for context):**
+Multiple tests call `test.skip(true, ...)` or unconditional
 `test.skip()` when coupon input, coupon discount UI, remove buttons, file input,
-or setup data are missing. The current scan found 14 E2E skip/fixme markers;
-`tests/e2e/smoke/` now exists, so the old missing-directory blocker should be
-retired from older reports.
+or setup data are missing. `tests/e2e/smoke/` now exists, so the old
+missing-directory blocker should be retired from older reports.
 
 **Impact:** Important user journeys can silently disappear from E2E coverage.
 
@@ -571,6 +659,14 @@ retired from older reports.
 **Evidence:** Many API feature tests mock database, middleware, services, or
 external adapters. There are newer real-integration configs, but legacy
 mock-drizzle coverage remains.
+
+**Update (2026-07-05):** A large mock-removal pass already happened
+(`b936600f`, "remove mock-based test doubles", 2026-05-25) and real
+`*.real.integration.test.ts` suites now cover most major features (customer
+identity, market checkouts, service bookings, coupons, role gaps, etc.). This
+section overstated remaining debt somewhat, but it's not resolved: as of
+2026-07-05, 132 of 213 API test files still use `vi.mock` somewhere. Still a
+real, open item — just smaller than the original framing suggested.
 
 **Impact:** Route/service contracts can pass tests while failing with real D1,
 Drizzle queries, middleware order, or cross-service behavior.
@@ -688,11 +784,12 @@ artifact storage remains a product decision
 
 **Priority:** P3
 
-**Files found:**
+**Files found (updated 2026-07-05 — 5 of the original 18 are already gone,
+struck through below):**
 
-- `apps/api/src/__tests__/payment-system-integration.test.ts.disabled`
-- `apps/api/src/routes/__tests__/coupons.test.ts.disabled`
-- `apps/api/src/services/providers/__tests__/StripeProvider.test.ts.disabled`
+- ~~`apps/api/src/__tests__/payment-system-integration.test.ts.disabled`~~ (deleted)
+- ~~`apps/api/src/routes/__tests__/coupons.test.ts.disabled`~~ (deleted)
+- ~~`apps/api/src/services/providers/__tests__/StripeProvider.test.ts.disabled`~~ (deleted)
 - `apps/api/src/examples/StripeIntegrationExample.ts.disabled`
 - `apps/api/src/examples/PaymentSystemUsage.ts.disabled`
 - `packages/database/migrations/0010_index_optimization.sql.disabled`
@@ -704,9 +801,9 @@ artifact storage remains a product decision
 - `packages/database/migrations/0044_cleanup_and_rename.sql.old`
 - `apps/admin-dashboard/src/views/ReservationView.vue.old`
 - `apps/admin-dashboard/src/views/WaitingListView.vue.old`
-- `apps/kitchen-display/priority3-analysis.txt`
+- ~~`apps/kitchen-display/priority3-analysis.txt`~~ (deleted)
 - `apps/kitchen-display/priority3-final-status.txt`
-- `apps/kitchen-display/priority3-progress1.txt`
+- ~~`apps/kitchen-display/priority3-progress1.txt`~~ (deleted)
 - `apps/kitchen-display/order-workflow-errors.txt`
 
 **TODO:**
@@ -722,43 +819,71 @@ artifact storage remains a product decision
 
 ### i18n Deep Merge Prototype Pollution Hardening
 
-**Priority:** P4
+**Priority:** Resolved (verified 2026-07-05) — kept for traceability
 
-**Files:** duplicated app-level i18n runtimes.
+**Files:** `packages/shared/src/i18n/src/index.ts`.
 
 **Context:** Current locale data is static, but if remote locale loading is
 added later, deep merge logic should reject `__proto__`, `constructor`, and
 `prototype`.
 
+**Resolution (verified 2026-07-05):** `packages/shared/src/i18n/src/index.ts:350`
+defines `UNSAFE_MESSAGE_KEYS = new Set(["__proto__", "constructor", "prototype"])`,
+and `deepMergeMessages` (line 456) skips any source key in that set, plus uses
+`Object.prototype.toString.call(value) === "[object Object]"` (not
+`instanceof Object`) and `Object.prototype.hasOwnProperty.call` for safe
+traversal.
+
 **TODO:**
 
-- [ ] Harden `deepMerge`, or remove deep merge if static locale assignment is
+- [x] Harden `deepMerge`, or remove deep merge if static locale assignment is
       sufficient.
 
 ### Kitchen Display Locale Formatting
 
-**Priority:** P4
+**Priority:** P4 (2 of 3 items resolved 2026-07-05)
 
 **Files:** see `TODOS.md`.
 
+**Resolution (verified 2026-07-05):** All 10 files TODOS.md lists for the
+hardcoded-`"zh-TW"` item now use `locale.value` /
+`getCurrentLocaleConfig().code` — except one file not in that original list:
+`apps/kitchen-display/src/components/performance/PerformanceDashboard.vue:706`
+still hardcodes `.toLocaleString("zh-TW")`. `HistoryView.vue`'s status/type
+label maps are already `computed()`. `OrderCard.displayTableName`'s regex is
+still `^(Table|桌)[\s-]+i` — no Vietnamese/Malay support yet, this item is
+still genuinely open.
+
 **TODO:**
 
-- [ ] Replace hardcoded `"zh-TW"` in date/time formatting with active locale.
-- [ ] Convert `HistoryView` status/type label maps to computed maps.
+- [ ] Replace hardcoded `"zh-TW"` in
+      `apps/kitchen-display/src/components/performance/PerformanceDashboard.vue:706`
+      with active locale (the other 10 files TODOS.md originally listed are
+      already fixed).
+- [x] Convert `HistoryView` status/type label maps to computed maps.
 - [ ] Tighten `OrderCard.displayTableName` prefix stripping regex and extend it
       once Vietnamese/Malay translations exist.
 
 ## Suggested Execution Order
 
-1. Auth placeholder flows.
+> ⚠️ **Note (2026-07-05):** items 4-7 and 10 below (payment audit trail,
+> Cloudflare resource IDs, queue modular branch, i18n shared runtime) are now
+> resolved per the sections above — this ordering predates those fixes and is
+> kept for historical context, not as a current priority queue. Remaining
+> real work: auth account-security/statistics stubs, backup metrics, QR
+> artifact generation, E2E skip cleanup, disabled-file deletion, and low-risk
+> hardening (kitchen locale, contract snapshots).
+
+1. Auth placeholder flows. (mostly done — account security/statistics stats
+   still stubbed, see above)
 2. Backup restore and backup metrics.
 3. QR code real artifact generation.
-4. Payment audit trail persistence.
-5. Cloudflare resource ID validation.
+4. ~~Payment audit trail persistence.~~ (resolved — `FAILURE` event still dead code)
+5. ~~Cloudflare resource ID validation.~~ (resolved — CI wiring still open)
 6. Production deploy environment gate and auto-deploy chain.
-7. Queue modular branch guard or implementation.
-8. E2E skip cleanup for coupon/QR/admin workflows.
+7. ~~Queue modular branch guard or implementation.~~ (resolved — only `served_by_name` open)
+8. E2E skip cleanup for coupon/QR/admin workflows. (file set has changed, see above)
 9. OrderStatus cleanup and disabled file deletion.
-10. i18n shared runtime and locale completion.
+10. ~~i18n shared runtime and locale completion.~~ (resolved)
 11. Remaining admin polish and metrics TODOs.
 12. Low-risk hardening items.
