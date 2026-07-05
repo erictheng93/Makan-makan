@@ -63,9 +63,13 @@ wrangler kv:namespace create "IMAGE_CACHE" --env production
 wrangler kv:namespace create "REALTIME_CACHE" --env staging
 wrangler kv:namespace create "REALTIME_CACHE" --env production
 
-# API service KV namespaces (for rate limiting, caching)
-wrangler kv:namespace create "API_CACHE" --env staging
-wrangler kv:namespace create "API_CACHE" --env production
+# API service KV namespaces (caching, rate limiting, backup state — bindings per apps/api/wrangler.toml)
+wrangler kv:namespace create "CACHE_KV" --env staging
+wrangler kv:namespace create "CACHE_KV" --env production
+wrangler kv:namespace create "RATE_LIMIT_KV" --env staging
+wrangler kv:namespace create "RATE_LIMIT_KV" --env production
+wrangler kv:namespace create "BACKUP_KV" --env staging
+wrangler kv:namespace create "BACKUP_KV" --env production
 ```
 
 ### 4. **Update Wrangler Configuration IDs**
@@ -136,10 +140,10 @@ curl -X POST https://api.makanmakan.app/api/v1/auth/login \\
   -d '{"username":"test","password":"test"}'
 
 # Verify rate limiting
-for i in {1..10}; do curl https://api.makanmakan.app/api/v1/health; done
+for i in {1..10}; do curl https://api.makanmakan.app/info; done
 
 # Test CORS headers
-curl -I https://api.makanmakan.app/api/v1/health
+curl -I https://api.makanmakan.app/info
 ```
 
 ## 🚨 **CRITICAL SECURITY WARNINGS**

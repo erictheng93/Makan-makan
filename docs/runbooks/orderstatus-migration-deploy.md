@@ -49,7 +49,7 @@ Deploy in this order to minimize the transition window:
 
 ### Immediate (within 30 minutes)
 
-- [ ] Verify API health: `GET /api/v1/health`
+- [ ] Verify API health: `GET /info`
 - [ ] Verify an order status update works: create a test order, transition pending → confirmed → preparing
 - [ ] Check kitchen-display cache rebuild: verify a kitchen-display tab loads correctly after refresh
 - [ ] **Notify restaurant staff** to refresh kitchen-display tabs (one-time)

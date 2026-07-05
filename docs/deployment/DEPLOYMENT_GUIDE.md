@@ -64,15 +64,15 @@
 
 ### 1. 開發環境
 
-- **Node.js**: >= 20.0.0
-- **pnpm**: >= 8.0.0
+- **Node.js**: >= 22.13.0
+- **pnpm**: 10.24.0（`packageManager` 欄位鎖定，透過 corepack 強制）
 - **Git**: 版本控制工具
 - **Terminal**: Bash/PowerShell/Zsh
 
 ```bash
 # 驗證環境
-node --version    # 應該 >= v20.0.0
-pnpm --version    # 應該 >= 8.0.0
+node --version    # 應該 >= v22.13.0
+pnpm --version    # 應該是 10.24.0
 git --version     # 任意版本
 ```
 
@@ -467,7 +467,7 @@ wrangler deployments list --name makanmakan-api-staging
 wrangler tail makanmakan-api-staging
 
 # 測試 API Health Endpoint
-curl https://api-staging.makanmakan.com/api/v1/health
+curl https://api-staging.makanmakan.com/info
 ```
 
 ### 2. 部署 Frontend Apps (Staging)
@@ -574,8 +574,8 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 ```bash
 # API Service
-curl https://api.makanmakan.com/api/v1/health
-# 預期: {"status":"healthy","timestamp":"...","version":"v1"}
+curl https://api.makanmakan.com/info
+# 預期: {"name":"MakanMakan API","version":"v1","environment":"...",...} (200 OK)
 
 # Realtime Service
 curl https://realtime.makanmakan.com/health
@@ -635,7 +635,7 @@ config:
 scenarios:
   - flow:
     - get:
-        url: "/api/v1/health"
+        url: "/info"
 EOF
 
 # 運行負載測試
@@ -650,13 +650,13 @@ curl -I http://api.makanmakan.com
 # 預期: 301 或 302 重定向到 https://
 
 # CORS Headers
-curl -I https://api.makanmakan.com/api/v1/health \
+curl -I https://api.makanmakan.com/info \
   -H "Origin: https://makanmakan.com"
 # 預期: Access-Control-Allow-Origin 正確
 
 # Rate Limiting
 for i in {1..150}; do
-  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/api/v1/health
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/info
 done
 # 預期: 前 100 個請求返回 200，之後返回 429
 ```
@@ -863,7 +863,7 @@ jobs:
 wrangler deploy --env production-green
 
 # 測試 green 環境
-curl https://api-green.makanmakan.com/api/v1/health
+curl https://api-green.makanmakan.com/info
 
 # 切換流量到 green (透過 DNS 或 Workers 路由)
 # 如果有問題，立即切換回 blue
@@ -928,7 +928,7 @@ wrangler deployments list --name makanmakan-api-prod
 wrangler rollback --name makanmakan-api-prod --message "Rollback due to critical issue"
 
 # 驗證回滾
-curl https://api.makanmakan.com/api/v1/health
+curl https://api.makanmakan.com/info
 wrangler tail makanmakan-api-prod
 ```
 

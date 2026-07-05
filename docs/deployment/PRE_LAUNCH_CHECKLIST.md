@@ -153,7 +153,7 @@
 ### 監控
 
 - [ ] Slack webhook 已設定並測試（送一條測試訊息）
-- [ ] Health endpoint `/api/v1/health` 在 production 回傳 `healthy`
+- [ ] Health endpoint `/info` 在 production 回傳 `healthy`
 - [ ] Cloudflare Dashboard 已確認 Workers、D1、KV 都正常
 
 ---

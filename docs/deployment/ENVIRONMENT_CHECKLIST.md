@@ -67,10 +67,10 @@
 ### 本地開發環境
 
 - [ ] 🔧 Node.js 已安裝
-  - 版本: `□ >= 20.0.0` (運行 `node --version`)
+  - 版本: `□ >= 22.13.0` (運行 `node --version`)
 
 - [ ] 🔧 pnpm 已安裝
-  - 版本: `□ >= 8.0.0` (運行 `pnpm --version`)
+  - 版本: `□ 10.24.0`（`package.json` 的 `packageManager` 欄位鎖定，透過 corepack 強制，運行 `pnpm --version`）
 
 - [ ] 🔧 專案依賴已安裝
 
@@ -139,7 +139,7 @@
 
   ```bash
   cd apps/api && pnpm run dev
-  # 訪問 http://localhost:8787/api/v1/health  □
+  # 訪問 http://localhost:8787/info  □
   ```
 
 - [ ] ✅ Realtime Service 可以啟動
@@ -349,7 +349,7 @@
 - [ ] ✅ Health Checks 通過
 
   ```bash
-  curl https://api-staging.makanmakan.com/api/v1/health        □
+  curl https://api-staging.makanmakan.com/info        □
   curl https://realtime-staging.makanmakan.com/health          □
   curl https://staging.makanmakan.com                          □
   ```
@@ -617,7 +617,7 @@
 
 - [ ] 🚀 健康檢查監控
   - 配置外部監控服務（如 UptimeRobot, Pingdom）
-  - 監控端點: `https://api.makanmakan.com/api/v1/health`
+  - 監控端點: `https://api.makanmakan.com/info`
   - 檢查頻率: `□ 每 5 分鐘`
   - 告警接收人: `_____________________________`
 
@@ -657,7 +657,7 @@
 - [ ] ✅ Health Checks 通過
 
   ```bash
-  curl https://api.makanmakan.com/api/v1/health        # 應返回 200 □
+  curl https://api.makanmakan.com/info        # 應返回 200 □
   curl https://realtime.makanmakan.com/health          # 應返回 200 □
   curl https://makanmakan.com                          # 應返回 200 □
   curl https://kitchen.makanmakan.com                  # 應返回 HTML / 200 □
@@ -804,7 +804,7 @@ echo "=== Verifying $ENVIRONMENT Environment ==="
 
 # 1. Health Checks
 echo "1. Health Checks..."
-curl -sf https://api-${ENVIRONMENT}.makanmakan.com/api/v1/health || echo "❌ API Health Check Failed"
+curl -sf https://api-${ENVIRONMENT}.makanmakan.com/info || echo "❌ API Health Check Failed"
 curl -sf https://realtime-${ENVIRONMENT}.makanmakan.com/health || echo "❌ Realtime Health Check Failed"
 
 # 2. Database Connection

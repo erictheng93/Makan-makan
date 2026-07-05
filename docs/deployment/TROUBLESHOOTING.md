@@ -74,7 +74,7 @@ echo "=== MakanMakan System Health Check ==="
 
 # 1. API Service
 echo -n "API Service: "
-if curl -s -f https://api.makanmakan.com/api/v1/health > /dev/null 2>&1; then
+if curl -s -f https://api.makanmakan.com/info > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -814,7 +814,7 @@ cat apps/api/wrangler.toml | grep RATE_LIMIT
 # 測試 rate limit
 for i in {1..110}; do
   echo -n "$i: "
-  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/api/v1/health
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/info
 done
 ```
 
@@ -1312,7 +1312,7 @@ wrangler d1 execute makanmakan-prod --file=db-health-check.sql
 
 API_URL="https://api.makanmakan.com"
 ENDPOINTS=(
-  "/api/v1/health"
+  "/info"
   "/api/v1/restaurants/1/menu"
   "/api/v1/orders?page=1&limit=20"
 )
@@ -1349,7 +1349,7 @@ echo "=== MakanMakan Auto Troubleshoot ==="
 
 # 1. 檢查 API 健康
 echo -n "API Health: "
-if curl -sf "$API_URL/api/v1/health" > /dev/null; then
+if curl -sf "$API_URL/info" > /dev/null; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
