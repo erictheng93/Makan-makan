@@ -6,32 +6,31 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Retire legacy REAL money columns with D1 drop-column cutover
 
-**Priority:** P2 **Status:** Open 2026-06-12 **Context:** Money cents cutover is guarded by `packages/database/migrations_fresh/0067_money_cents_retirement_rollout_guard.sql` and `packages/database/migrations/0085_money_cents_retirement_rollout_guard.sql`. The guard must pass in staging and production before any destructive cutover drops legacy `REAL` money columns. Until then, the system should continue using `*_cents` as authoritative while keeping the legacy columns for compatibility and audit comparison.
+**Priority:** P3 (was P2 — the migration itself is written; only deployment verification is unconfirmed) **Status (updated 2026-07-05):** The destructive cutover migration this item describes as future work has **already been written and paired**, not just guarded: `packages/database/migrations_fresh/0070_money_cents_cutover.sql` and `0071_market_checkout_child_order_cents_cutover.sql` (paired with the legacy/Wrangler track's `0087`/`0088` in `packages/database/migration-dual-track.json`, `reviewedThrough` already covers both). Both migrations self-guard with a `CHECK (violation_count = 0)` table before dropping any column, use `PRAGMA defer_foreign_keys = ON`, and capture before/after row counts — matching every item in the scope below almost verbatim. Current Drizzle schema (`packages/database/src/schema/orders.ts` etc.) has **zero remaining legacy `REAL` money columns** — only `*_cents` columns exist.
 
-**Scope:**
+**Not verifiable from the repo:** whether these migrations have actually been run against staging/production D1 (vs. only written and merged). That's an operational fact, not a code fact — check deployment logs or run `pnpm wrangler d1 execute` against the target DB to confirm.
 
-- Confirm production `money_cents_retirement` and `money_cents_retirement_rollout` audit rows have `violation_count = 0`
-- Rehearse the destructive migration on staging or a restored D1 drill database with backup/restore evidence captured
-- Use the dedicated D1/SQLite drop-column cutover migration that omits only the legacy `REAL` money columns listed in `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md`
+**Doc drift to fix separately:** `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` ("Last reviewed: 2026-06-12") still describes the cutover as "intentionally incomplete" future work, even though it names these exact migration files as the plan — the doc's "Current State" section needs updating to reflect that the plan was executed.
+
+**Original scope (all items below now exist in the migration files — kept for reference):**
+
+- Confirm production `money_cents_retirement` and `money_cents_retirement_rollout` audit rows have `violation_count = 0` — enforced automatically via the self-guarding assertion table in the migration itself
+- Rehearse the destructive migration on staging or a restored D1 drill database with backup/restore evidence captured — ⚠️ unverified, see above
+- Use the dedicated D1/SQLite drop-column cutover migration that omits only the legacy `REAL` money columns listed in `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` — ✅ `0070_money_cents_cutover.sql` / `0071_market_checkout_child_order_cents_cutover.sql`
 - Preserve primary keys, FKs, unique constraints, defaults, generated columns, indexes, non-legacy triggers, timestamp columns, and soft-delete columns
-- Start the cutover with `PRAGMA defer_foreign_keys = ON`, run `PRAGMA foreign_key_check`, and include row-count assertions
+- Start the cutover with `PRAGMA defer_foreign_keys = ON`, run `PRAGMA foreign_key_check`, and include row-count assertions — ✅ present in the migration files
 - Remove obsolete cents sync triggers and legacy fallback reads only after the cutover migration is verified
 
 ## database / transaction integrity
 
 ### Migrate remaining safeTransaction callers to D1 batch
 
-**Priority:** P1 **Status:** Open 2026-06-13 **Context:** `BaseService.safeTransaction` (`packages/database/src/services/base.ts`) now fails closed when D1 rejects interactive `BEGIN`, so it no longer silently re-runs writes non-transactionally. Production D1 still does not support interactive `BEGIN`, so every remaining `safeTransaction` write path must be converted before those features can rely on D1-compatible atomicity. The order-creation money path was migrated to `db.batch()` on 2026-06-12 (see `OrderService.createOrder` + atomicity tests in `packages/database/src/services/order.test.ts`), but these callers still need the same batch migration:
+**Priority:** P4 (was P1 — caller migration is done, only cleanup remains) **Status (verified 2026-07-05):** Caller migration is COMPLETE. Repo-wide search (`grep -rln "safeTransaction" --include="*.ts" .`) finds `safeTransaction` used ONLY in its own definition (`packages/database/src/services/base.ts:154`) and its dedicated test (`base.test.ts`) — zero remaining callers anywhere in `apps/` or `packages/`. `FeedbackService.ts`, `LeaveService.ts`, and `SchedulingService.ts` (the three listed below) are all fully on `db.batch()` now (verified via git log: `5c2be3be`, `1f16fe22`, `b2f40b7b` and others).
 
-- `packages/database/src/services/FeedbackService.ts`
-- `packages/database/src/services/LeaveService.ts`
-- `packages/database/src/services/SchedulingService.ts`
+**Remaining scope (the only thing left):**
 
-**Scope:**
-
-- Convert each caller's multi-statement write sequence to a single `db.batch()` (pattern: `OrderService.createOrder`; FK backfill via unique-column subquery when the parent id is autoincrement)
-- Then delete `safeTransaction` from `BaseService` so interactive transaction usage cannot be reintroduced
-- Environment-compat shims must be gated on explicit environment checks, never on error-message sniffing
+- Delete `safeTransaction` from `BaseService` (`packages/database/src/services/base.ts`) so interactive transaction usage cannot be reintroduced — nothing calls it anymore, this is now dead code, not a migration
+- Remove/update `base.test.ts`'s coverage of `safeTransaction` accordingly
 
 ## payments / provider integrations
 
