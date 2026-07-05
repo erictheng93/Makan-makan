@@ -58,10 +58,22 @@ Deploy in this order to minimize the transition window:
 
 - [ ] API 5xx rate stays below 0.5%
 - [ ] No Slack alert from error reporting
-- [ ] Kitchen-display `orderstate_legacy_migration_total` metric (DO migration counter) — should be low and decreasing
+- [ ] ~~Kitchen-display `orderstate_legacy_migration_total` metric~~ — moot; the DO migration code this metric tracked was deleted wholesale (see 60-day Cleanup note below), not gradually retired
 - [ ] Customer support ticket volume — no spike related to "order status not showing"
 
 ### 60-day Cleanup
+
+**Update (2026-07-05):** `apps/realtime/src/advanced-realtime-session.ts` no
+longer exists — the entire file (`migrateDOState`, `LEGACY_VALUE_MAP`,
+`PersistedSessionHeader`, `CURRENT_DO_STATE_VERSION`, and every identifier
+below) was deleted wholesale in commit `97aa93cd` ("remove unused advanced
+session", 2026-06-13), not surgically cleaned up as this section describes.
+The current realtime Durable Object is `apps/realtime/src/durableObjects/RealtimeSession.ts`,
+which does not contain this migration code at all. This cleanup is moot —
+kept below only for historical context on what the original plan was.
+
+<details>
+<summary>Original plan (superseded)</summary>
 
 After 60 days post-deploy, the DO lazy migration code in
 `apps/realtime/src/advanced-realtime-session.ts` (`migrateDOState` method)
@@ -74,6 +86,8 @@ Create a cleanup PR that:
 1. Deletes `migrateDOState()` and the `LEGACY_VALUE_MAP` / `PersistedSessionHeader` helper
 2. Removes the version check from `loadPersistedState()`
 3. Keeps `CURRENT_DO_STATE_VERSION` and `session_version` storage key (future migrations may use them)
+
+</details>
 
 ## Rollback
 
