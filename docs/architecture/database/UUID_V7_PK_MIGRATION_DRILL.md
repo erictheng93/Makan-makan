@@ -1,7 +1,13 @@
 # UUID v7 Primary Key Migration Drill
 
 **Date:** 2026-06-23
-**Status:** Draft drill plan, no destructive migration generated
+**Status (updated 2026-07-05): SHIPPED.** `orders.id` and `users.id` are both
+`text("id")` UUID v7 in current schema (`packages/database/src/schema/orders.ts:45`,
+`users.ts:22` — landed via commit `43b024ff feat(database): reset users and
+orders to uuid primary keys`, with staff UUID auth tokens/sessions issued and
+accepted across `apps/api`, `apps/management-api`, and `apps/realtime`). The
+"Current State" section below describes the pre-migration snapshot this drill
+was written against — kept for historical context, not current fact.
 
 ## Objective
 

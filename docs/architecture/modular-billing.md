@@ -25,8 +25,11 @@ The middleware reads `c.get("user").restaurantId`, loads the subscription from
 KV or D1, and returns `403 MODULE_NOT_ENABLED`, `403 TRIAL_EXPIRED`, or
 `403 SUBSCRIPTION_NOT_FOUND` when access is blocked.
 
-Current protected prefixes live in `apps/api/src/app-factory.ts`, with coverage
-in `apps/api/src/__tests__/module-gate-coverage.test.ts`.
+Current protected prefixes live in `apps/api/src/app-factory.ts`. Coverage is
+enforced by the pre-commit `scripts/audit-module-gates.cjs` check ("Module gate
+audit passed (N checks)" in commit output) plus per-feature route tests
+(e.g. `apps/api/src/features/subscriptions/routes/index.test.ts`) — there is no
+single `module-gate-coverage.test.ts` file.
 
 ## Frontend Gates
 

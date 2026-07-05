@@ -21,10 +21,15 @@ makanmakan/
 │   │       ├── seats/             # 座位管理 + QR
 │   │       ├── qr-codes/          # QR 碼產生/模板
 │   │       ├── reservations/      # 預約系統
+│   │       ├── service-bookings/  # 服務預約 (預約服務)
 │   │       ├── queue/             # 排隊系統 (legacy)
 │   │       ├── waiting-list/      # 候位系統 (modular)
+│   │       ├── markets/           # 夜市/商圈 market 實體 + GPS 搜尋
+│   │       ├── market-checkouts/  # 多攤位市集結帳 (provider split/refund/settlement)
 │   │       ├── pos/               # POS 收銀 (收銀機/班次/現金/收據)
 │   │       ├── payments/          # 支付、退款與分帳
+│   │       ├── credits/           # 代幣儲值 + 卷 voucher 兌換
+│   │       ├── billing/           # 模組化訂閱計費 + 用量計量
 │   │       ├── kitchen/           # 廚房顯示 (SSE)
 │   │       ├── coupons/           # 優惠券
 │   │       ├── partnerships/      # 合作夥伴 + 會員
@@ -37,6 +42,8 @@ makanmakan/
 │   │       ├── scheduling/        # 排班 + 打卡 + 換班
 │   │       ├── leaves/            # 請假管理
 │   │       ├── manager/           # 主管委派與管理操作
+│   │       ├── customer/          # 顧客身份 (phone-OTP 登入、收藏、推播、同意條款)
+│   │       ├── me/                # 當前使用者自助端點
 │   │       ├── integrations/      # 第三方平台 (Uber Eats, Foodpanda)
 │   │       ├── realtime/          # WebSocket Token 管理
 │   │       ├── sse/               # SSE 即時事件
@@ -70,7 +77,7 @@ makanmakan/
 │   ├── ai-analytics/              # AI 分析引擎
 │   ├── queue-core/                # 排隊核心邏輯
 │   ├── queue-service/             # 排隊服務層
-│   └── testing-utils/             # 測試工具 + Factory Pattern
+│   └── auth-client/               # 共用認證用戶端（無 testing-utils 套件；測試 builder 就近放在各測試檔旁）
 │
 ├── docs/                          # 文檔
 │   ├── api/                       # API 端點文檔 (300+ endpoints)
@@ -160,7 +167,7 @@ pnpm deploy:prod          # 部署到 production
 
 ---
 
-**最後更新**: 2026-06-09
+**最後更新**: 2026-07-05
 **功能模組**: 48
 **API 端點**: 400+
 **前端應用**: 5 (customer, admin, kitchen, management-portal, onboarding)

@@ -81,7 +81,7 @@ ORM: Drizzle ORM
 
 ```sql
 - id: INTEGER PRIMARY KEY
-- user_id: INTEGER (關聯 users.id)
+- user_id: TEXT (關聯 users.id，現行為 UUID v7)
 - token: TEXT UNIQUE (UUID v4 或 OTP)
 - token_type: TEXT ('email' | 'sms')
 - otp_code: TEXT (6 位數字，SMS 專用)
@@ -96,7 +96,7 @@ ORM: Drizzle ORM
 
 ```sql
 - id: INTEGER PRIMARY KEY
-- user_id: INTEGER
+- user_id: TEXT（現行為 UUID v7，關聯 users.id）
 - token: TEXT UNIQUE (UUID v4)
 - email: TEXT
 - expires_at: INTEGER (24 小時)
@@ -109,7 +109,7 @@ ORM: Drizzle ORM
 
 ```sql
 - id: INTEGER PRIMARY KEY
-- user_id: INTEGER
+- user_id: TEXT（現行為 UUID v7，關聯 users.id）
 - phone: TEXT
 - otp_code: TEXT (6 位數字)
 - expires_at: INTEGER (5 分鐘)
@@ -123,7 +123,7 @@ ORM: Drizzle ORM
 
 ```sql
 - id: INTEGER PRIMARY KEY
-- user_id: INTEGER
+- user_id: TEXT（現行為 UUID v7，關聯 users.id）
 - change_method: TEXT ('reset_email' | 'reset_sms' | 'manual' | 'admin_reset')
 - ip_address: TEXT
 - user_agent: TEXT
@@ -753,7 +753,7 @@ wrangler tail makanmakan-api --env staging
 -- 手動重置嘗試計數（僅用於開發/調試）
 UPDATE phone_verification_tokens
 SET attempt_count = 0
-WHERE user_id = 1 AND phone = '+60123456789';
+WHERE user_id = '<uuid>' AND phone = '+60123456789';
 ```
 
 或者讓用戶重新發送新的 OTP。
