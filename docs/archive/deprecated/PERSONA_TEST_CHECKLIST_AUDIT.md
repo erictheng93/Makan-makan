@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件的角色/風險覆蓋表格所引用的 spec 檔案（`p0-release-gates.spec.ts`、`p1-*-gates.spec.ts`、`journeys/*`、`integration/*.spec.ts` 等）已隨 commit `b936600f`（2026-05-25,「remove mock-based test doubles」）整批刪除，所有「Covered/Partial」判定均已過時。現行覆蓋改由 `tests/e2e/integration/real-workflows.spec.ts` 與各 `apps/*/__tests__/integration/*.real.integration.test.ts` 提供，尚未有文件針對這些新測試重新評估角色覆蓋。本文件僅保留供歷史脈絡參考，`docs/testing/personas.md`（風險藍圖，非覆蓋率宣告）與 `docs/TECHNICAL_DEBT_TODO.md` 對本文件的引用請一併注意已過時。
+
 # Persona Test Checklist Audit
 
 Source of truth audited against:

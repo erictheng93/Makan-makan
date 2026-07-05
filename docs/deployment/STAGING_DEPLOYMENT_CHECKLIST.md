@@ -353,4 +353,4 @@ A: 確認 KV namespace ID 正確，且已授權給 Worker
 ---
 
 **最後更新**: 2026-06-27
-**相關文檔**: [REALTIME_SERVICES_IMPLEMENTATION.md](../REALTIME_SERVICES_IMPLEMENTATION.md)
+**相關文檔**: [REALTIME_SERVICES_IMPLEMENTATION.md](../archive/deprecated/REALTIME_SERVICES_IMPLEMENTATION.md)（已 superseded，見文件內橫幅；現行實作見 `apps/realtime/src/`）

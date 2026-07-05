@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件描述的 `AdvancedRealtimeSession`（含 group orders、split billing、hibernation API 等企業級功能）已於 commit `97aa93cd`（2026-06-13,「remove unused advanced session」）整個刪除（-3,488 行），程式碼庫中已不存在此類別。文件內列出的 `RealtimeBroadcastService.ts`、多個測試檔名稱也已不存在。現行即時服務架構請見 `apps/realtime/src/index.ts`、`apps/realtime/src/durableObjects/RealtimeSession.ts`，狀態請見同層 `docs/features/realtime-services/phases/REALTIME_PHASE4_STATUS.md`。本文件僅保留供歷史脈絡參考。
+
 # Realtime Services Implementation Guide
 
 **完成度**: 82.5% | **代碼量**: 3,886+ lines | **狀態**: Production Ready (Core Features)

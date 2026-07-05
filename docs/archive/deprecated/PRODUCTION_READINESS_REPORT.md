@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件引用的整個 `tests/e2e/` 目錄樹與 CI run 證據（`#24861758340` 等）已隨 commit `b936600f`（2026-05-25,「remove mock-based test doubles」）整批刪除並重建，「609 test files」清單與 P0/P1 gate 推進紀錄已不適用於現行測試基礎設施。現行測試結構請見 `docs/testing/CORE_WORKFLOW_TEST_MATRIX.md`。本文件僅保留供歷史脈絡參考。
+
 # Production Readiness Report
 
 - **Date**: 2026-04-24

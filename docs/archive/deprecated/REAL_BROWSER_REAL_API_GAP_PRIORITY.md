@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件引用的整個 `tests/e2e/` 目錄樹（journeys/、admin/、以及文件中列出的所有 spec 檔案）已於 commit `b936600f`（2026-05-25,「remove mock-based test doubles」）整批刪除並重建。現行測試結構請見 `docs/testing/CORE_WORKFLOW_TEST_MATRIX.md`（2026-06-08 起持續更新，與現行 `tests/e2e/{ci-smoke,integration,kitchen-display,smoke}/` 結構一致）。本文件僅保留供歷史脈絡參考。
+
 # Real Browser + Real API 補測優先級清單
 
 **日期**: 2026-04-20  

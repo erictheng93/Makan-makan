@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件宣稱 `0020_restaurant_id_to_text.sql` 與 `0026_week3_additional_indexes.sql` 已就地修復並「READY FOR DEPLOYMENT」，但磁碟上現行 `0020_restaurant_id_to_text.sql` 實際是一個空操作 stub（`SELECT 1 WHERE 1=0`），明確標註 「Status: SKIPPED... 非必要的重大結構變更」；真正的修復內容只存在於改名為 `.skip` 的備份檔案中，`0026_week3_additional_indexes.sql.skip` 的副檔名同樣證實它是被跳過而非部署。本文件僅保留供歷史脈絡參考，不應作為部署依據。
+
 # SQLite Migration Fixes Summary
 
 **Date**: 2025-10-09

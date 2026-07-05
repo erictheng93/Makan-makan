@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件規劃將 `restaurants.id` 從 `INTEGER` 改為 `S-YYYYMMDD-NNN` 格式的 TEXT，並透過 `public_id` 雙 ID 過渡（`0039_add_restaurant_public_id.sql` → `0041_finalize_restaurant_id.sql`）。實際採取的路徑不同：`restaurants.id` 現行直接是 `text("id").primaryKey().$defaultFn(() => uuidv7())`（見 `packages/database/src/schema/restaurants.ts:19-21`），純 UUID v7，沒有 `public_id`/`publicId` 欄位，也沒有經過此文件規劃的分段遷移。`packages/database/src/services/RestaurantIdGenerator.ts` 雖然存在，但實作的是 `uuidv7()`，並非本文件設計的 `S-YYYYMMDD-NNN` 格式，且目前程式碼庫中沒有任何地方呼叫它（已是死代碼）。本文件僅保留供歷史脈絡參考。
+
 # Restaurant ID Migration Plan
 
 ## 從 INTEGER 改為 TEXT 格式的完整遷移計劃

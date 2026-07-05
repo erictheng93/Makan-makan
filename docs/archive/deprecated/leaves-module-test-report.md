@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件引用的 `LeaveService.test.ts`（30 tests）與 `apps/api/src/features/leaves/__tests__/feature.test.ts`（20 tests）已於 commit `b936600f`（2026-05-25,「remove mock-based test doubles」）刪除。現行測試為 `packages/database/src/services/LeaveService.test.ts`（5 tests，聚焦並發/atomicity，走真實 DB）與 `apps/api/src/features/leaves/{index,routes/index,schemas/validation}.test.ts`（共 14 tests），總數 19 個，內容也從原本的 CRUD/business-logic 套件轉為並發 + schema 驗證導向。本文件僅保留供歷史脈絡參考。
+
 # Leaves 模組測試報告
 
 ## 📊 測試完成總結

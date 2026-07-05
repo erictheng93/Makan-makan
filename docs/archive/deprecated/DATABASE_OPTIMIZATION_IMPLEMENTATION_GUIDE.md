@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**：本文件將多個遷移檔案（`0010_index_optimization.sql`、`0012_performance_views.sql`、`0013`/`0014`/`0016` 等）呈現為「已完成」且可直接部署，但這些檔案在磁碟上實際帶有 `.disabled`/`.temp_skip`/`.skip` 副檔名，從未真正套用；`0010_index_optimization.sql.disabled` 內仍含有 `DATE(created_at)` 出現在 index 欄位清單中的 SQLite 語法違規（本文件宣稱已修復但實際只是被停用，未修正）。文件描述的多個 view/table（`restaurant_dashboard_stats`、`daily_restaurant_statistics`、`restaurant_business_hours` 等）在現行 Drizzle schema（`packages/database/src/schema/*.ts`）中完全不存在。遷移檔案編號 `0010` 現已被另一個無關且啟用中的 `0010_ai_analytics_system.sql` 佔用。本文件僅保留供歷史脈絡參考，不應作為部署依據。
+
 # MakanMakan 數據庫優化實施指南
 
 ## 概述

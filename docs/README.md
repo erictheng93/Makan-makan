@@ -113,7 +113,8 @@ Active feature docs for in-progress or reference-worthy features:
 | Document                                                                                                             | Description                 |
 | -------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | [migration/SQLITE_CONSTRAINT_RULES.md](./migration/SQLITE_CONSTRAINT_RULES.md)                                       | SQLite constraint reference |
-| [migration/DATABASE_OPTIMIZATION_IMPLEMENTATION_GUIDE.md](./migration/DATABASE_OPTIMIZATION_IMPLEMENTATION_GUIDE.md) | DB optimization guide       |
+| [migration/DATABASE_MIGRATION_TRIGGER_ALERT_SPEC.md](./migration/DATABASE_MIGRATION_TRIGGER_ALERT_SPEC.md)          | Migration trigger/alert threshold spec |
+| [architecture/database/](./architecture/database/)                                                                   | UUID v7 PK migration phases, index/optimization plans |
 
 ### User Manuals
 
