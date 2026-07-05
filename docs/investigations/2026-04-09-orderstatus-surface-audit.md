@@ -11,6 +11,13 @@
 > use the same runtime tuple, and DB/query/status-transition code is string
 > based. Treat the numeric-enum sections below as historical context, not as a
 > current migration backlog.
+>
+> Addendum (2026-07-05): sections below discussing `apps/realtime/src/advanced-realtime-session.ts`'s
+> `OrderLifecycleState` enum are even more thoroughly moot than "migrated" —
+> that file was deleted in its entirety (commit `97aa93cd chore(realtime):
+> remove unused advanced session`, 2026-06-13), not just updated to the
+> string-based OrderStatus. Current realtime code is
+> `apps/realtime/src/durableObjects/RealtimeSession.ts`.
 
 ## Summary
 

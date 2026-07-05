@@ -80,7 +80,7 @@ The project enforces a consistent and high-quality development workflow.
 ### Code Style & Quality
 
 - **Language:** The entire stack is written in **TypeScript**, ensuring type safety.
-- **Linting:** **ESLint** is used for static code analysis. Linting rules are configured in `.eslintrc.cjs`. You can run the linter with `pnpm run lint`.
+- **Linting:** **ESLint** is used for static code analysis. Linting rules are configured in `eslint.config.js` (flat config — corrected 2026-07-05; `.eslintrc.cjs` does not exist in this repo). You can run the linter with `pnpm run lint`.
 - **Formatting:** **Prettier** is used for code formatting to maintain a consistent style.
 
 ### Testing
@@ -91,9 +91,14 @@ The project enforces a consistent and high-quality development workflow.
 
 ### Git Workflow
 
+> ⚠️ **Corrected 2026-07-05**: there is no `develop` branch in this repo
+> (`git branch -a` shows only `main`). The description below of a
+> `main`/`develop`/`feature/*` model does not match actual practice —
+> feature branches are worked and merged directly against `main`.
+
 The project follows a standard Git workflow:
 
 - `main`: Represents the production-ready code.
-- `develop`: Serves as the staging branch.
-- `feature/*`: Development for new features happens in these branches.
-  Pull requests are made from `feature` branches into `develop`.
+- ~~`develop`: Serves as the staging branch.~~ (does not exist)
+- `feature/*`: Development for new features happens in these branches,
+  merged directly into `main`.

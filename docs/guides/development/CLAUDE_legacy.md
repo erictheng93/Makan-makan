@@ -1,3 +1,13 @@
+# CLAUDE.md (legacy — PHP-era snapshot)
+
+> ⚠️ **HISTORICAL DOCUMENT (flagged 2026-07-05)**: This is a preserved
+> snapshot of an early, PHP-based version of this project. The current,
+> authoritative `CLAUDE.md` lives at the repo root and describes the actual
+> current stack — Cloudflare Workers + D1 + KV + Durable Objects, Vue 3
+> frontends, no PHP anywhere in the codebase. Nothing below reflects current
+> reality; kept here only so the project's history is visible. Do not follow
+> this as guidance for working in the current codebase.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
