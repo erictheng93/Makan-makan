@@ -22,10 +22,10 @@ Source of truth: [`night-market-vision-roadmap.md`](../night-market-vision-roadm
 - Service reservation (預約服務) design spec landed — see [`service-reservation-system.md`](../superpowers/specs/2026-06-03-service-reservation-system.md); booking/reservation hardening continued through early July (`f008f77e`, `a80c0023`, `9c8963a7`).
 - Security fixes: HTML-entity sanitizer XSS bypass closed — `&amp;` now decoded last (`bbffe5c6`); constant-time HMAC compare added to the checkout webhook signature check (`382452e8`).
 
-### Customer Identity (Phase 1, partially verified)
+### Customer Identity (Phase 1 — complete, verified 2026-07-05)
 
 - `orders`, `waiting_list`, and `reservations` `customerId` columns migrated from `INTEGER` FK on `users.id` to `TEXT` FK on `customers.id`; five satellite tables added (`customer_preferences`, `customer_favorites`, `customer_push_subscriptions`, `customer_consents`, `customer_phone_verification_tokens`).
-- Scope not fully re-verified against the original spec — see the "Needs re-verification" note added to [`TODOS.md`](../../TODOS.md) § customer-identity (customer auth service / 17-endpoint surface / customer-app favorites-push-consent UI).
+- Full re-verification against the spec confirms Phase 1 is complete: phone-OTP auth with a dedicated `canonicalCustomerAuthMiddleware` (`type: "customer"` JWT discriminator, 15 min/30 day tokens), all 17 spec'd endpoints live at `/api/v1/customer/*`, real-D1 integration coverage (13 cases), and customer-app UI (login, preferences/consent, push enrollment, favorites via market engagement). Unblocks Marketplace Phase 4 (follow + broadcast push) — see [`TODOS.md`](../../TODOS.md) § customer-identity for the full verification detail.
 
 ### Users/Orders UUID v7 Primary-Key Migration
 

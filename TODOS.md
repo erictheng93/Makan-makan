@@ -144,22 +144,29 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Resolve customer/user identity fork (FK migration + 5 satellite tables)
 
-**Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-customer-identity-and-profile-design.md` **Context (updated 2026-07-05):** the FK migration described below has landed — `packages/database/src/schema/orders.ts:54`, `reservations.ts:36`, and `waiting-list.ts:36` all now define `customerId` as `TEXT` FK to `customers.id`, and `customers.ts` defines the satellite tables (`customerPreferences`, `customerFavorites`, `customerPushSubscriptions`, `customerPhoneVerificationTokens`). The original claim that these were `INTEGER` FKs to `users.id` with `customers` "functionally orphaned" is **no longer accurate** — verify against schema before reusing that description elsewhere.
+**Priority:** P2 (done — kept here for traceability, see Status) **Spec:** `docs/superpowers/specs/2026-05-25-customer-identity-and-profile-design.md` **Context:** the FK migration and satellite tables described below have landed — `packages/database/src/schema/orders.ts:54`, `reservations.ts:36`, and `waiting-list.ts:36` all define `customerId` as `TEXT` FK to `customers.id`, and `customers.ts` defines the satellite tables (`customerPreferences`, `customerFavorites`, `customerPushSubscriptions`, `customerPhoneVerificationTokens`). The original claim that these were `INTEGER` FKs to `users.id` with `customers` "functionally orphaned" was stale and has been corrected.
 
-**Status:** Phase 1 implementation landed. Open Questions Q-1 through Q-8 were closed on 2026-05-25 in the spec: phone numbers are current bindings, Phase 1 uses SMS-only OTP, anonymous order claiming is deferred, legacy `users.role = 5` rows are preserved, consent versions are managed in a shared catalog, stale failed push subscriptions are pruned daily, and PDPA records of processing are a legal/application-logging follow-up that does not block Customer Identity or Marketplace Phase 4.
+**Status (verified 2026-07-05 — Phase 1 COMPLETE):** Full re-verification against the spec confirms every Phase 1 scope item has landed and is live in production code, not just planned:
 
-**Needs re-verification (2026-07-05):** `customerAuthMiddleware` in `apps/api/src/middleware/auth.ts:293` is currently `createAuthMiddleware(5)` (reuses the legacy `users.role = 5` staff-table path) rather than a dedicated `customers`-table JWT flow, and `apps/api/src/features/customer/` currently only contains a `routes` entry — the full auth-service / 17-endpoint scope below has not been confirmed complete. Before treating Phase 1 as done (and unblocking Phase 4), re-check this against the spec's endpoint list.
+- `customers` table rebuilt exactly per spec §5.1: `displayName`, `primaryPhone`, `primaryEmail`, `avatarUrl`, `locale`, `status`, `lastSeenAt`, `uuidv7()` ID generator (`packages/database/src/schema/customers.ts`).
+- Dedicated `canonicalCustomerAuthMiddleware` (`apps/api/src/middleware/auth.ts:298`) validates `{ sub: customers.id, type: "customer" }` JWTs — separate from the legacy `customerAuthMiddleware = createAuthMiddleware(5)`, which is intentionally kept for legacy routes (matches the spec's locked decision to preserve `users.role = 5` rows, not an oversight).
+- All 17 spec'd endpoints (`auth/request-otp`, `verify-otp`, `refresh`, `logout`, `me` GET/PATCH/DELETE, `preferences` GET/PATCH, `favorites` GET/POST/DELETE, `push-subscriptions` GET/POST/DELETE, `consents` GET/POST) are implemented in `apps/api/src/features/customer/routes/index.ts` and mounted live at `apiV1.route("/customer", customerRouter)` (`apps/api/src/app-factory.ts:674`). Access/refresh tokens are 15 min / 30 day exactly per spec §6.2; OTP hashed with bcrypt, rate-limited per phone+IP.
+- Real-D1 integration coverage in `apps/api/src/__tests__/integration/customer-identity.real.integration.test.ts` (13 cases): OTP auth issuance, phone E.164 normalization, phone-number reclaim from deleted customers, refresh-token revocation on logout, staff-JWT rejection on canonical customer endpoints, push-subscription upsert + daily stale-pruning cron, idempotent favorites (incl. market favorites + recent-market-visit tracking), consent grant/revoke with shared-catalog version validation.
+- customer-app: `LoginView.vue` (phone-OTP flow), `ProfileView.vue` (preferences, consent toggles, push enrollment via `customerPushService`), favorites wired into `MarketsView.vue`/`MarketDetailView.vue` via `marketEngagement.ts` + `customerIdentityApi.ts` (not a standalone "favorites" view — easy to miss on a filename-only search).
+- Open, low-priority: `USER_ROLES.CUSTOMER = 5` has not been removed from `apps/api/src/shared/constants/index.ts` (intentional — legacy rows are preserved per the spec's locked decision) and no `customer_preferences` backfill script from legacy `users.preferences` JSON was found (unclear if any legacy rows actually needed it).
 
-**Scope (Phase 1, ~30 dev-days estimated in spec §15):**
+**Unblocks:** Marketplace Phase 4 (customer follow + broadcast push) below — its hard prerequisite (`customer_favorites`, `customer_push_subscriptions`, `customer_consents`) is satisfied.
 
-- Create 5 new tables: `customer_preferences`, `customer_favorites` (polymorphic), `customer_push_subscriptions`, `customer_consents` (append-only), `customer_phone_verification_tokens` — ✅ landed, see `packages/database/src/schema/customers.ts`
+**Scope (Phase 1, ~30 dev-days estimated in spec §15) — all items below are ✅ done, verified 2026-07-05:**
+
+- Create 5 new tables: `customer_preferences`, `customer_favorites` (polymorphic), `customer_push_subscriptions`, `customer_consents` (append-only), `customer_phone_verification_tokens`
 - Rebuild `customers` table: rename `full_name → display_name`, `phone → primary_phone`, `email → primary_email`; add `avatarUrl`, `locale`, `status`, `lastSeenAt_ms`; switch ID generator from `crypto.randomUUID().replace(/-/g, "")` to `uuidv7()`
-- Table-rebuild FK migration on `orders` / `waiting_list` / `reservations` (`customer_id INTEGER → TEXT`, FK → `customers.id`); requires temp `customer_id_mapping` from `users WHERE role IS NULL OR role = 5` — ✅ landed, see Context above
-- Customer auth service: phone-OTP flow + JWT (15 min access / 30 day refresh) with `type: "customer"` discriminator — ⚠️ unverified, see "Needs re-verification" above
-- New `customerAuthMiddleware` in `apps/api/src/middleware/auth.ts` — ⚠️ present but implemented as `createAuthMiddleware(5)`, not confirmed to match the spec's dedicated customer-JWT discriminator
-- New feature folder `apps/api/src/features/customer/` with 17 endpoints (auth, me, preferences, favorites, push, consents) — ⚠️ unverified, folder exists but only a `routes` entry was found
-- Backfill `customer_preferences` from `users.preferences` JSON for migrated rows; deprecate `USER_ROLES.CUSTOMER = 5`
-- customer-app: login screen, favorites UI, push enrollment flow, settings/consent UI — ⚠️ `LoginView.vue` exists; favorites/push/consent UI not confirmed
+- Table-rebuild FK migration on `orders` / `waiting_list` / `reservations` (`customer_id INTEGER → TEXT`, FK → `customers.id`)
+- Customer auth service: phone-OTP flow + JWT (15 min access / 30 day refresh) with `type: "customer"` discriminator
+- New `canonicalCustomerAuthMiddleware` in `apps/api/src/middleware/auth.ts`
+- New feature folder `apps/api/src/features/customer/` with 17 endpoints (auth, me, preferences, favorites, push, consents)
+- customer-app: login screen, favorites UI, push enrollment flow, settings/consent UI
+- Not done (low-priority, see Status): backfill `customer_preferences` from legacy `users.preferences` JSON; full removal of `USER_ROLES.CUSTOMER = 5` (deferred by design)
 
 **Hard prerequisite for:** marketplace Phase 4 (follow & broadcast) and waiting-list Phase 2 push (reuses `customer_push_subscriptions`).
 
@@ -204,6 +211,8 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 **Priority:** P3 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 4 **Context:** Customer can follow markets and vendors; vendors and market operators can broadcast push notifications to followers, gated by `customer_consents WHERE consentType='marketing'`. Reuses VAPID infra from waiting-list Phase 2.
 
 **Why deferred:** Hard prerequisite — customer-identity work above must land first because "follow" rows live in `customer_favorites` and "broadcast targets" live in `customer_push_subscriptions`. Without those tables, this feature has nowhere to attach.
+
+**Status (2026-07-05):** Prerequisite satisfied — customer-identity Phase 1 above is verified complete, so this phase is now unblocked. Phase 4 itself has not been built: no `BroadcastService` for markets/restaurants and no "Following" UI were found in `apps/api` or `apps/customer-app` as of this check.
 
 **Scope:**
 
