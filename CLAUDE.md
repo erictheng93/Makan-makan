@@ -21,7 +21,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 
 ## Applications Overview
 
-`pnpm dev` starts every app in this monorepo in parallel via turbo. The full map:
+`pnpm dev` starts every app in this monorepo in parallel via turbo **except `apps/print-agent`**, which is excluded from the default filter (run `pnpm dev:print-agent` separately when you need the local print daemon). The full map:
 
 | App | Type | Local port(s) | Notes |
 | --- | --- | --- | --- |

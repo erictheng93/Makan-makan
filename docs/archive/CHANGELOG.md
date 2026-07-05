@@ -4,6 +4,58 @@ Complete development history and achievement details for the MakanMakan restaura
 
 ---
 
+## 2026-05-25 to 2026-07-05: Night-Market Marketplace Platform, UUID Primary-Key Migration & Managed Onboarding
+
+**Status**: 🚧 Marketplace live (core phases), UUID PK migration shipped, several sub-phases still open — see [`TODOS.md`](../../TODOS.md)
+
+Six weeks, ~900 commits. The two biggest shifts: MakanMakan grew a full night-market/商圈 marketplace layer on top of the existing single-restaurant platform, and the long-deferred users/orders UUID v7 primary-key migration finally landed. A new managed onboarding + management-api/portal stack also shipped, replacing the old BYO-Cloudflare tenant setup flow.
+
+### Night-Market Marketplace Platform
+
+Source of truth: [`night-market-vision-roadmap.md`](../night-market-vision-roadmap.md) (vision/gap analysis) and [`night-market-scaling-execution.md`](../night-market-scaling-execution.md) (scaling execution record).
+
+- Markets entity + GPS discovery + takeaway bridge (`89147020`, `8ae7ce3a`, `c5f814c9`) — Discovery treats markets as first-class entities with lat/lng search and a one-tap bridge into the existing shop-mode order flow.
+- Multi-vendor market checkout with a provider-agnostic payment contract: split payments, refunds, settlement, webhook reconciliation (dozens of commits under `apps/api/src/features/market-checkouts`, e.g. `2157863d`, `04ca4873`, `9f211159`, `1dbdf584`).
+- Stored-value 代幣 credits + 卷 voucher redemption MVP shipped (`fbaf0e4f`, `e8d18038`, `2251ef4c`, `40115d28`, `6022b839` ledger integrity + liability export) — see [`market-checkout-voucher-redemption.md`](../superpowers/specs/2026-06-03-market-checkout-voucher-redemption.md).
+- Discovery scaling: D1 read replicas for public browse (P0a), queue fan-out for search-index sync (P0b), FTS5 trigram search for CJK queries (P2) — `c13925df`.
+- Vendor contact via deep links (LINE/WhatsApp/IG/Telegram) + per-restaurant FAQ, no native DM (Phase 3, completed 2026-05-25).
+- Service reservation (預約服務) design spec landed — see [`service-reservation-system.md`](../superpowers/specs/2026-06-03-service-reservation-system.md); booking/reservation hardening continued through early July (`f008f77e`, `a80c0023`, `9c8963a7`).
+- Security fixes: HTML-entity sanitizer XSS bypass closed — `&amp;` now decoded last (`bbffe5c6`); constant-time HMAC compare added to the checkout webhook signature check (`382452e8`).
+
+### Customer Identity (Phase 1, partially verified)
+
+- `orders`, `waiting_list`, and `reservations` `customerId` columns migrated from `INTEGER` FK on `users.id` to `TEXT` FK on `customers.id`; five satellite tables added (`customer_preferences`, `customer_favorites`, `customer_push_subscriptions`, `customer_consents`, `customer_phone_verification_tokens`).
+- Scope not fully re-verified against the original spec — see the "Needs re-verification" note added to [`TODOS.md`](../../TODOS.md) § customer-identity (customer auth service / 17-endpoint surface / customer-app favorites-push-consent UI).
+
+### Users/Orders UUID v7 Primary-Key Migration
+
+Source of truth: `docs/architecture/database/GREENFIELD_UUID_PK_RESET_PLAN.md` and the paired phase docs (`USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md`, `ORDERS_UUID_PK_PHASE_C_DEPENDENCY_MAP.md`, `USERS_UUID_AUTH_PHASE_D_PLAN.md`, `UUID_V7_PK_MIGRATION_DRILL.md`).
+
+- `users` and `orders` reset to UUID v7 primary keys (`43b024ff`), with staff UUID auth tokens/sessions issued and accepted across `apps/api`, `apps/management-api`, and `apps/realtime` (`305619d2`, `93e357ab`, `499426ea`, `62862386`).
+- QR code IDs preserved across the cutover (`4c68b684`); CI test fixtures aligned to UUID auth (`522fa203`).
+
+### Managed Onboarding & Management Platform
+
+- Onboarding switched from BYO-Cloudflare setup to a fully managed platform flow (`e180f35e`, `a66ca3e0`, `d234f0e3`), with admin application review (`4fdff4b5`, `dde571ad`, `97167239`).
+- `apps/management-api` issues its own management JWTs and CSPRNG-based license keys/identifiers (`cd23e727`, `5988b397`, `21d1e8d4`); `apps/management-portal` ships admin login + auth guard (`657f5bce`).
+- Subdomain romanization for Chinese restaurant names (`b9695707`, `002f40e4`); cross-worker `JWT_SECRET` alignment documented (`80e06430`).
+
+### Auth & Security Hardening
+
+- `/auth/me` now validated through `authMiddleware` with hardened JWT guards (`19b7b2d7`); realtime WebSocket auth falls back to `JWT_SECRET` (`7c68f074`); tokens verified via `jsonwebtoken` instead of hand-rolled decoding (`5694c235`).
+- Auth throttling and payment redirect hardening (`7e65b577`); dedicated realtime JWT secret now required (`3c19b18e`).
+- Feedback and leaves attachment URLs sanitized against unsafe schemes (`ddb82601`, `6eacc7e3`).
+
+### Database Schema Hardening
+
+- Payment and backup schemas hardened; empty backup-timestamp migration values guarded; legacy credential/timestamp migrations preserved (`57a91dd6`, `225c5d5c`, `91393441`).
+
+### Planning: Rust Backend Refactor
+
+- New spec for a staged TypeScript-Workers → Rust backend migration, preserving the existing public API, data model, Cloudflare topology, and frontend contracts (`6dde8471`, `450ab90f`) — see [`2026-07-04-rust-backend-refactor.md`](../specs/2026-07-04-rust-backend-refactor.md). **Planning stage only — no implementation has started.**
+
+---
+
 ## 2026-05-25: Test Quality & CI Worker Gate Hardening
 
 **Status**: ✅ Complete
@@ -1045,6 +1097,6 @@ tests/e2e/                              # End-to-end tests
 
 ---
 
-**Last Updated**: 2026-05-25
-**Total Achievements**: 29+ major milestones
-**Current Focus**: Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness)
+**Last Updated**: 2026-07-05
+**Total Achievements**: 30+ major milestones
+**Current Focus**: Night-market marketplace hardening, customer-identity re-verification, Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness), Rust backend refactor (planning)

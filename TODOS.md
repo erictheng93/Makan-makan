@@ -144,20 +144,22 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Resolve customer/user identity fork (FK migration + 5 satellite tables)
 
-**Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-customer-identity-and-profile-design.md` **Context:** `orders.customerId`, `waiting_list.customerId`, `reservations.customerId` are all `INTEGER` FK to `users.id` (the staff table), while a `customers` table (TEXT/UUID) exists but is functionally orphaned (only `verified_members` references it). `users.ts` even comments "顧客應使用 customers 表" — the refactor was started but never finished. Until this is resolved, every customer-facing feature has to pick a side and the inconsistency multiplies.
+**Priority:** P2 **Spec:** `docs/superpowers/specs/2026-05-25-customer-identity-and-profile-design.md` **Context (updated 2026-07-05):** the FK migration described below has landed — `packages/database/src/schema/orders.ts:54`, `reservations.ts:36`, and `waiting-list.ts:36` all now define `customerId` as `TEXT` FK to `customers.id`, and `customers.ts` defines the satellite tables (`customerPreferences`, `customerFavorites`, `customerPushSubscriptions`, `customerPhoneVerificationTokens`). The original claim that these were `INTEGER` FKs to `users.id` with `customers` "functionally orphaned" is **no longer accurate** — verify against schema before reusing that description elsewhere.
 
 **Status:** Phase 1 implementation landed. Open Questions Q-1 through Q-8 were closed on 2026-05-25 in the spec: phone numbers are current bindings, Phase 1 uses SMS-only OTP, anonymous order claiming is deferred, legacy `users.role = 5` rows are preserved, consent versions are managed in a shared catalog, stale failed push subscriptions are pruned daily, and PDPA records of processing are a legal/application-logging follow-up that does not block Customer Identity or Marketplace Phase 4.
 
+**Needs re-verification (2026-07-05):** `customerAuthMiddleware` in `apps/api/src/middleware/auth.ts:293` is currently `createAuthMiddleware(5)` (reuses the legacy `users.role = 5` staff-table path) rather than a dedicated `customers`-table JWT flow, and `apps/api/src/features/customer/` currently only contains a `routes` entry — the full auth-service / 17-endpoint scope below has not been confirmed complete. Before treating Phase 1 as done (and unblocking Phase 4), re-check this against the spec's endpoint list.
+
 **Scope (Phase 1, ~30 dev-days estimated in spec §15):**
 
-- Create 5 new tables: `customer_preferences`, `customer_favorites` (polymorphic), `customer_push_subscriptions`, `customer_consents` (append-only), `customer_phone_verification_tokens`
+- Create 5 new tables: `customer_preferences`, `customer_favorites` (polymorphic), `customer_push_subscriptions`, `customer_consents` (append-only), `customer_phone_verification_tokens` — ✅ landed, see `packages/database/src/schema/customers.ts`
 - Rebuild `customers` table: rename `full_name → display_name`, `phone → primary_phone`, `email → primary_email`; add `avatarUrl`, `locale`, `status`, `lastSeenAt_ms`; switch ID generator from `crypto.randomUUID().replace(/-/g, "")` to `uuidv7()`
-- Table-rebuild FK migration on `orders` / `waiting_list` / `reservations` (`customer_id INTEGER → TEXT`, FK → `customers.id`); requires temp `customer_id_mapping` from `users WHERE role IS NULL OR role = 5`
-- Customer auth service: phone-OTP flow + JWT (15 min access / 30 day refresh) with `type: "customer"` discriminator
-- New `customerAuthMiddleware` in `apps/api/src/middleware/auth.ts`
-- New feature folder `apps/api/src/features/customer/` with 17 endpoints (auth, me, preferences, favorites, push, consents)
+- Table-rebuild FK migration on `orders` / `waiting_list` / `reservations` (`customer_id INTEGER → TEXT`, FK → `customers.id`); requires temp `customer_id_mapping` from `users WHERE role IS NULL OR role = 5` — ✅ landed, see Context above
+- Customer auth service: phone-OTP flow + JWT (15 min access / 30 day refresh) with `type: "customer"` discriminator — ⚠️ unverified, see "Needs re-verification" above
+- New `customerAuthMiddleware` in `apps/api/src/middleware/auth.ts` — ⚠️ present but implemented as `createAuthMiddleware(5)`, not confirmed to match the spec's dedicated customer-JWT discriminator
+- New feature folder `apps/api/src/features/customer/` with 17 endpoints (auth, me, preferences, favorites, push, consents) — ⚠️ unverified, folder exists but only a `routes` entry was found
 - Backfill `customer_preferences` from `users.preferences` JSON for migrated rows; deprecate `USER_ROLES.CUSTOMER = 5`
-- customer-app: login screen, favorites UI, push enrollment flow, settings/consent UI
+- customer-app: login screen, favorites UI, push enrollment flow, settings/consent UI — ⚠️ `LoginView.vue` exists; favorites/push/consent UI not confirmed
 
 **Hard prerequisite for:** marketplace Phase 4 (follow & broadcast) and waiting-list Phase 2 push (reuses `customer_push_subscriptions`).
 
