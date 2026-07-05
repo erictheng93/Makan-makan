@@ -105,7 +105,6 @@ Active feature docs for in-progress or reference-worthy features:
 | Document                                                             | Description                 |
 | -------------------------------------------------------------------- | --------------------------- |
 | [testing/guides/TESTING_GUIDE.md](./testing/guides/TESTING_GUIDE.md) | Comprehensive testing guide |
-| [testing/factory-pattern/](./testing/factory-pattern/)               | Test data factory pattern   |
 | [testing/reports/](./testing/reports/)                               | Test coverage reports       |
 
 ### Database & Migration

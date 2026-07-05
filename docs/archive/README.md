@@ -41,6 +41,9 @@ Bug 修復記錄
 - `RESTAURANT_ID_MIGRATION_PLAN.md` - 餐廳 ID 遷移計畫，實際採取了不同方案
 - `DATABASE_OPTIMIZATION_IMPLEMENTATION_GUIDE.md` - 資料庫優化指南，描述的遷移檔案從未真正套用
 - `MIGRATION_FIXES_SUMMARY.md` - 遷移修復總結，描述的修復實際上是被跳過而非部署
+- `factory-pattern/` - 整套 factory 測試資料建構模式提案，全部指示從不存在的
+  `@makanmakan/testing-utils` 套件 import，與 `CLAUDE.md` 現行明確規範
+  （builder 應就近放在測試檔旁）直接矛盾；該套件從未真正建成
 
 **用途**: 保留歷史文檔，了解系統演變；每份文件僅供理解脈絡，不應作為現行狀態或部署依據
 
@@ -111,7 +114,7 @@ grep -r "Partnership System" docs/archive/
 1. Bug 修復 2025-10-11
 2. 安全修復 2025-10-11
 
-### Deprecated (10 個文件)
+### Deprecated (15 個文件，含 factory-pattern/ 子資料夾 5 份)
 
 1. 員工系統更新（已整合）
 2. 支付系統實施摘要（已移除）
@@ -123,6 +126,7 @@ grep -r "Partnership System" docs/archive/
 8. 餐廳 ID 遷移計畫（實際方案不同）
 9. 資料庫優化實作指南（遷移從未套用）
 10. 遷移修復總結（修復實際被跳過）
+11-15. `factory-pattern/`（5 份）- 整套 factory 測試資料建構提案，import 不存在的套件
 
 ### Root Level (1 個文件)
 
@@ -188,5 +192,5 @@ grep -r "Partnership System" docs/archive/
 ---
 
 **最後更新**: 2026-07-05
-**歸檔文件總數**: 18+ 文件
+**歸檔文件總數**: 23+ 文件
 **歸檔策略**: 階段完成後歸檔，或文件描述的程式碼/測試已被刪除或取代後歸檔

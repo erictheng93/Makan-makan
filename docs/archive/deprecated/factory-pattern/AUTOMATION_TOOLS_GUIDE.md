@@ -1,3 +1,16 @@
+> ⚠️ **SUPERSEDED (2026-07-05)**: This guide describes tooling
+> (`pnpm run factory:check`, `factory:badges`, `factory:report`,
+> `factory:usage`, `scripts/check-factory-usage.cjs`, an ESLint
+> `testing-utils` plugin) built entirely around the `@makanmakan/testing-utils`
+> package — which does not exist anywhere in this repo. None of the npm
+> scripts referenced here exist in `package.json`. The one CI workflow that
+> tried to run this check (`factory-usage-check.yml`) called a script that
+> didn't exist and silently no-op'd on every PR; it has been removed. See
+> `docs/archive/deprecated/factory-pattern/` for the related factory-pattern
+> docs this tooling was meant to support, and root `CLAUDE.md`'s Testing
+> Standards section for the actual current guidance. Kept for historical
+> context only.
+
 # 自動化檢查工具使用指南
 
 > 🤖 確保 factory 正確使用的自動化工具集

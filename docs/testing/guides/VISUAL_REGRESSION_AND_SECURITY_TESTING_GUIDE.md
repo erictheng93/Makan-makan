@@ -27,12 +27,25 @@
 
 使用 **Playwright 原生 `toHaveScreenshot()`** 進行視覺回歸測試，涵蓋全部 5 個前端應用。不依賴外部付費服務。
 
+> ⚠️ **準確性提醒（2026-07-05）**：架構描述（config/腳本）仍然正確，但
+> `tests/visual/` 整個目錄已於 commit `b936600f`（2026-05-25,「remove
+> mock-based test doubles」）連同其他測試樹一起刪除，且尚未重寫。
+> `playwright.visual.config.ts` 仍然存在並指向 `./tests/visual`，
+> `pnpm test:visual` 腳本也還在（帶 `--pass-with-no-tests`），但目前
+> 實際執行 0 個測試（靜默通過，不是真的在做視覺回歸檢查）。
+>
+> 下方「本地開發工作流程」與「Story 檔案組織」小節提到的 Chromatic、Percy、
+> Storybook、`.stories.ts` 檔案**從未真正導入本專案**（`package.json`
+> 中沒有 `chromatic`/`percy`/`storybook`，repo 中沒有任何 `.stories.ts`
+> 檔案），與本節開頭「不依賴外部付費服務」的說法互相矛盾——這些是規劃階段
+> 的構想，不是已採用的工具鏈，使用前請先確認。
+
 ### 架構
 
 - **配置**: `playwright.visual.config.ts`（根目錄）
-- **測試**: `tests/visual/*.visual.ts`（每個 app 一個檔案）
-- **工具**: `tests/visual/helpers/`（共用 utilities + 設計系統檢查）
-- **Baselines**: `tests/visual/__screenshots__/`（需 commit 到 repo）
+- **測試**: `tests/visual/*.visual.ts`（每個 app 一個檔案，⚠️ 目錄目前為空）
+- **工具**: `tests/visual/helpers/`（共用 utilities + 設計系統檢查，⚠️ 同上）
+- **Baselines**: `tests/visual/__screenshots__/`（需 commit 到 repo，⚠️ 同上）
 
 ### 執行測試
 
