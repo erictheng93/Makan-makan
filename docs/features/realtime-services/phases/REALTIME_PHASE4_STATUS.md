@@ -48,7 +48,7 @@ The original 4-week timeline is 6 months past its paper deadline, but substantia
 
 | Task                       | Original | 2026-05-25 Actual                                                                                          |
 | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| Prometheus / Analytics Engine metrics | ⏳ | ❌ Scaffolding only. `advanced-realtime-session.ts:949` has `collectAndSendMetrics()` with empty body |
+| Prometheus / Analytics Engine metrics | ⏳ | ❌ Not implemented (updated 2026-07-05: `advanced-realtime-session.ts` — including its `collectAndSendMetrics()` scaffold — was deleted entirely in commit `97aa93cd`; current `apps/realtime/src/durableObjects/RealtimeSession.ts` has no metrics collection code at all, only an unused `ANALYTICS_ENGINE` binding type in `types.ts`) |
 | Grafana dashboard          | ⏳       | ❌ Not built                                                                                                |
 | Structured logging         | ⏳       | ❌ Still uses ad-hoc `console.warn` / `console.error`                                                       |
 | Cloudflare Logpush         | ⏳       | ❌ Not configured                                                                                           |
