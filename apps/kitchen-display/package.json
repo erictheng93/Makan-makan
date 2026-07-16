@@ -39,7 +39,7 @@
     "@types/howler": "^2.2.11",
     "@types/node": "^20.0.0",
     "@types/sortablejs": "^1.15.8",
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitejs/plugin-vue": "^6.0.3",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.0",
     "jsdom": "^27.4.0",

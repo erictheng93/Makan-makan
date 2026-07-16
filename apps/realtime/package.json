@@ -29,7 +29,7 @@
     "@types/ws": "^8.5.10",
     "@vitest/coverage-v8": "4.1.9",
     "typescript": "^5.0.0",
-    "vitest": "4.0.17",
+    "vitest": "^4.1.0",
     "wrangler": "^4.101.0"
   }
 }

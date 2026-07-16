@@ -37,7 +37,7 @@
     "@pinia/testing": "^0.1.0",
     "@types/lodash-es": "^4.17.0",
     "@types/node": "^20.0.0",
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitejs/plugin-vue": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "^4.1.9",
     "@vue/test-utils": "^2.4.0",
