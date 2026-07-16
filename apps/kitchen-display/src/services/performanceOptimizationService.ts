@@ -197,7 +197,6 @@ class PerformanceOptimizationService {
     if (!this.config.value.enableResourceHints) return;
 
     this.addDNSPrefetch();
-    this.setupChunkPreloading();
   }
 
   private addDNSPrefetch(): void {
@@ -213,58 +212,6 @@ class PerformanceOptimizationService {
       link.href = `//${domain}`;
       document.head.appendChild(link);
     });
-  }
-
-  private setupChunkPreloading(): void {
-    // Preload chunks based on user behavior patterns
-    this.predictAndPreloadChunks();
-
-    // Preload critical route chunks
-    this.preloadCriticalChunks();
-  }
-
-  private predictAndPreloadChunks(): void {
-    // Simple prediction based on current route
-    const currentRoute = window.location.pathname;
-
-    const routePredictions: Record<string, string[]> = {
-      "/login": ["kitchen-dashboard", "settings"],
-      "/kitchen": ["statistics", "audio-controls", "shortcuts"],
-      "/settings": ["audio-system", "ui-components"],
-    };
-
-    const predictedChunks = routePredictions[currentRoute] || [];
-    predictedChunks.forEach((chunk) => this.preloadChunk(chunk));
-  }
-
-  private preloadCriticalChunks(): void {
-    const criticalChunks = ["vue-core", "vue-ecosystem", "ui-components"];
-
-    criticalChunks.forEach((chunk) => this.preloadChunk(chunk));
-  }
-
-  private preloadChunk(chunkName: string): void {
-    if (
-      this.preloadedChunks.has(chunkName) ||
-      this.loadingChunks.has(chunkName)
-    ) {
-      return;
-    }
-
-    this.loadingChunks.add(chunkName);
-
-    const link = document.createElement("link");
-    link.rel = "modulepreload";
-    link.href = `/assets/${chunkName}-[hash].js`; // Will be resolved by Vite
-    link.onload = () => {
-      this.preloadedChunks.add(chunkName);
-      this.loadingChunks.delete(chunkName);
-    };
-    link.onerror = () => {
-      this.loadingChunks.delete(chunkName);
-    };
-
-    document.head.appendChild(link);
   }
 
   // Component Cache Management
