@@ -354,9 +354,10 @@ There is no `scripts/check-factory-usage.cjs` gate in this repository.
 
 - Worker logs: `pnpm wrangler tail`
 - **Public liveness probe**: `GET /info` on the API (returns 200, no auth required) — use this for smoke tests, load balancer health checks, or quick "is it up?" curls.
-- **Authenticated health endpoints** (require bearer token):
-  - `/api/v1/monitoring/health` — aggregated monitoring view (this is also where `/health` redirects to)
-  - `/api/v1/system/health`, `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes under the System feature
+- **Health endpoints**:
+  - `/api/v1/monitoring/health` — aggregated monitoring view, public by design (this is also where `/health` redirects to); returns a bare payload, not the unified `{success, data}` envelope
+  - `/api/v1/system/health` — basic health check, public by design (code comment: 公開端點)
+  - `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes, **require bearer token**
 - Note: there is **no** unauthenticated `/api/v1/health` route anymore. The old router was replaced by the System/Monitoring features; public smoke checks should use `/info`.
 - Error tracking: Automatic Slack notifications
 
