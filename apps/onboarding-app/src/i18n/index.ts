@@ -26,13 +26,29 @@ export const SUPPORTED_LOCALES: LocaleConfig[] = [
   },
 ];
 
+// zh-TW is bundled eagerly (static import above); other locales stay lazy.
+// Explicit loaders keep zh-TW out of the dynamic-import graph, avoiding the
+// Rollup "dynamically imported but also statically imported" warning.
+const lazyLocaleLoaders: Record<
+  Exclude<Locale, "zh-TW">,
+  () => Promise<{ default: Messages }>
+> = {
+  "zh-CN": () => import("./locales/zh-CN"),
+  "en-US": () => import("./locales/en-US"),
+  "vi-VN": () => import("./locales/vi-VN"),
+  "ms-MY": () => import("./locales/ms-MY"),
+  "id-ID": () => import("./locales/id-ID"),
+};
+
 const runtime = createI18n<Locale, Messages>({
   defaultLocale: "zh-TW",
   fallbackLocale: "zh-TW",
   supportedLocales: SUPPORTED_LOCALES,
   initialMessages: { "zh-TW": zhTWMessages },
   loadMessages: async (locale) =>
-    (await import(`./locales/${locale}.ts`)).default,
+    locale === "zh-TW"
+      ? zhTWMessages
+      : (await lazyLocaleLoaders[locale]()).default,
 });
 
 export const getCurrentLocaleConfig = runtime.getCurrentLocaleConfig;
