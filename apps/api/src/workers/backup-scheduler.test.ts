@@ -174,10 +174,10 @@ describe("backup scheduler", () => {
       }),
     );
     expect(env.BACKUP_KV.get).toHaveBeenCalledWith(
-      "backup-health:last-system-alert",
+      "backup-health:last-system-alert:critical",
     );
     expect(env.BACKUP_KV.put).toHaveBeenCalledWith(
-      "backup-health:last-system-alert",
+      "backup-health:last-system-alert:critical",
       expect.any(String),
       expect.objectContaining({ expirationTtl: expect.any(Number) }),
     );
@@ -217,6 +217,9 @@ describe("backup scheduler", () => {
         title: "Backup System Degraded",
       }),
     );
+    expect(env.BACKUP_KV.get).toHaveBeenCalledWith(
+      "backup-health:last-system-alert:high",
+    );
     expect(env.BACKUP_KV.put).toHaveBeenCalledOnce();
   });
 
@@ -226,7 +229,11 @@ describe("backup scheduler", () => {
       failed_backups_24h: 12,
     });
     const env = createEnv();
-    env.BACKUP_KV.get.mockResolvedValue(new Date().toISOString());
+    env.BACKUP_KV.get.mockImplementation(async (key: string) =>
+      key === "backup-health:last-system-alert:critical"
+        ? new Date().toISOString()
+        : null,
+    );
 
     await worker.scheduled(
       { cron: "*/5 * * * *" } as ScheduledEvent,
@@ -240,6 +247,41 @@ describe("backup scheduler", () => {
       expect.objectContaining({
         blobs: ["backup_health_check", "critical"],
       }),
+    );
+  });
+
+  it("escalates critical health alerts even when warning alerts are throttled", async () => {
+    backupServiceState.health = backupServiceState.buildHealth({
+      overall_status: "critical",
+      failed_backups_24h: 12,
+    });
+    const env = createEnv();
+    env.BACKUP_KV.get.mockImplementation(async (key: string) =>
+      key === "backup-health:last-system-alert:high"
+        ? new Date().toISOString()
+        : null,
+    );
+
+    await worker.scheduled(
+      { cron: "*/5 * * * *" } as ScheduledEvent,
+      env as never,
+      {} as ExecutionContext,
+    );
+
+    expect(env.BACKUP_KV.get).toHaveBeenCalledWith(
+      "backup-health:last-system-alert:critical",
+    );
+    expect(backupServiceState.instances[0].createAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurant_id: "system",
+        severity: "critical",
+        alert_type: "backup_failed",
+      }),
+    );
+    expect(env.BACKUP_KV.put).toHaveBeenCalledWith(
+      "backup-health:last-system-alert:critical",
+      expect.any(String),
+      expect.objectContaining({ expirationTtl: expect.any(Number) }),
     );
   });
 

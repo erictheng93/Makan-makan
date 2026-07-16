@@ -37,7 +37,6 @@ interface OptimizationConfig {
   enableResourceHints: boolean;
   enableImageOptimization: boolean;
   enableComponentCache: boolean;
-  chunkPreloadThreshold: number;
 }
 
 class PerformanceOptimizationService {
@@ -59,12 +58,9 @@ class PerformanceOptimizationService {
     enableResourceHints: true,
     enableImageOptimization: true,
     enableComponentCache: true,
-    chunkPreloadThreshold: 0.5, // Preload chunks when 50% likely to be needed
   });
 
   private componentCache = new Map<string, any>();
-  private preloadedChunks = new Set<string>();
-  private loadingChunks = new Set<string>();
 
   constructor() {
     this.initializePerformanceMonitoring();
@@ -354,8 +350,6 @@ class PerformanceOptimizationService {
   get cacheStats() {
     return computed(() => ({
       componentsCached: this.componentCache.size,
-      preloadedChunks: this.preloadedChunks.size,
-      loadingChunks: this.loadingChunks.size,
     }));
   }
 }

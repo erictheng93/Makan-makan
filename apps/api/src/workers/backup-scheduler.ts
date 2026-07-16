@@ -240,7 +240,7 @@ export default {
 
 // The health cron fires every 5 minutes; throttle persisted system alerts so
 // a sustained outage produces one alert per window instead of 288 per day.
-const HEALTH_ALERT_THROTTLE_KEY = "backup-health:last-system-alert";
+const HEALTH_ALERT_THROTTLE_KEY_PREFIX = "backup-health:last-system-alert";
 const HEALTH_ALERT_THROTTLE_SECONDS = 3600;
 
 async function handleHealthCheck(
@@ -279,10 +279,12 @@ async function handleHealthCheck(
     const needsWarningAlert = health.overall_status === "warning";
 
     if (needsCriticalAlert || needsWarningAlert) {
-      const lastAlertAt = await env.BACKUP_KV.get(HEALTH_ALERT_THROTTLE_KEY);
+      const alertSeverity = needsCriticalAlert ? "critical" : "high";
+      const throttleKey = `${HEALTH_ALERT_THROTTLE_KEY_PREFIX}:${alertSeverity}`;
+      const lastAlertAt = await env.BACKUP_KV.get(throttleKey);
       if (!lastAlertAt) {
         await createSystemAlert(backupService, {
-          severity: needsCriticalAlert ? "critical" : "high",
+          severity: alertSeverity,
           title: needsCriticalAlert
             ? "Backup System Unhealthy"
             : "Backup System Degraded",
@@ -291,11 +293,9 @@ async function handleHealthCheck(
             ? "backup_failed"
             : "performance_degraded",
         });
-        await env.BACKUP_KV.put(
-          HEALTH_ALERT_THROTTLE_KEY,
-          new Date().toISOString(),
-          { expirationTtl: HEALTH_ALERT_THROTTLE_SECONDS },
-        );
+        await env.BACKUP_KV.put(throttleKey, new Date().toISOString(), {
+          expirationTtl: HEALTH_ALERT_THROTTLE_SECONDS,
+        });
       }
     }
 
