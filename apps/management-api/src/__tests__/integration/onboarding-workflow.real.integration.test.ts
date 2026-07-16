@@ -838,7 +838,9 @@ describe("Onboarding public API workflow — real integration", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      code: "INVALID_STATUS",
+      error: {
+        code: "INVALID_STATUS",
+      },
     });
   });
 });

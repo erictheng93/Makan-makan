@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
+import { ApiError, badRequest, notFound } from "@makanmakan/utils";
 import type { ManagementEnv, LicenseTier, LicenseFeatures } from "../types";
 import { generateLicenseKey } from "../utils/random";
 
@@ -141,32 +142,23 @@ router.post("/generate", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error("[Licenses] Generate error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to generate license",
-        code: "GENERATE_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("GENERATE_FAILED", "Failed to generate license", 500);
   }
 });
 
 /**
  * Verify license (called by independent deployments)
  * POST /api/v1/licenses/verify
+ *
+ * NOTE: This endpoint intentionally keeps its own `{ valid, error }` response
+ * contract — it is consumed by independent deployments' LicenseService
+ * (apps/api/src/services/LicenseService.ts), not by the management portal.
+ * Do not convert it to the `{ success, error: { code, message } }` format.
  */
 router.post("/verify", async (c) => {
   try {
@@ -271,14 +263,7 @@ router.get("/:tenantId", async (c) => {
       }>();
 
     if (!result) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     const isExpired = result.license_expires_at
@@ -298,15 +283,10 @@ router.get("/:tenantId", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Licenses] Get error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get license info",
-        code: "GET_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("GET_FAILED", "Failed to get license info", 500);
   }
 });
 
@@ -335,14 +315,7 @@ router.post("/:tenantId/renew", async (c) => {
       }>();
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     // Calculate new expiration (from current expiry or now, whichever is later)
@@ -372,15 +345,10 @@ router.post("/:tenantId/renew", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Licenses] Renew error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to renew license",
-        code: "RENEW_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("RENEW_FAILED", "Failed to renew license", 500);
   }
 });
 
@@ -396,14 +364,7 @@ router.post("/:tenantId/upgrade", async (c) => {
     const newTier = body.tier as LicenseTier;
 
     if (!["standard", "professional", "enterprise"].includes(newTier)) {
-      return c.json(
-        {
-          success: false,
-          error: "Invalid tier",
-          code: "VALIDATION_ERROR",
-        },
-        400,
-      );
+      throw badRequest("Invalid tier", "VALIDATION_ERROR");
     }
 
     // Get current tenant
@@ -419,14 +380,7 @@ router.post("/:tenantId/upgrade", async (c) => {
       }>();
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     // Generate new license key for new tier
@@ -452,15 +406,10 @@ router.post("/:tenantId/upgrade", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Licenses] Upgrade error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to upgrade license",
-        code: "UPGRADE_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("UPGRADE_FAILED", "Failed to upgrade license", 500);
   }
 });
 
