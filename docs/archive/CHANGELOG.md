@@ -4,6 +4,21 @@ Complete development history and achievement details for the MakanMakan restaura
 
 ---
 
+## 2026-07-05 to 2026-07-17: Backup Observability, Error-Format Unification & Smoke-Test Hardening
+
+**Status**: ✅ Complete
+
+Twelve commits, smaller in scope than the preceding six-week sprint but closing out real gaps found by smoke testing and a full documentation audit.
+
+- **Backup system health checks are now real.** `getSystemHealth()` (`apps/api/src/services/BackupService.ts`, consumed by the `*/5min` `backup-scheduler` cron) was a hardcoded always-healthy literal; it now runs Layer 1 Drizzle queries over `backup_records` (running count, failed-in-24h, 7-day success rate, last successful backup) with critical/warning thresholds. `createAlert()` now persists restaurant-scoped alerts to `backup_alerts` and system-scoped alerts to `system_alerts` instead of only `console.log`ing, and the cron throttles repeat alerts via KV (1h TTL) so a sustained outage raises one alert per hour, not 288/day (`27ec47f4`, `61041d65`). This is a separate code path from the already-shipped (2026-04-21) restore-feature `features/backup/services/BackupService.ts` — see `docs/TECHNICAL_DEBT_TODO.md`.
+- **`apps/print-agent` HTTP contract fixed.** `POST /print` and `/devices/:id/test` returned HTTP 200 with `success:false` on every failure; now map to real statuses (400/503/500), `DELETE /print/:jobId` 404s on unknown jobs, and `/api/v1/health` no longer reports unhealthy before the first print job (eager `initialize()` at `start()`). "Running with 0 printers" now correctly reports degraded (200) rather than unhealthy (503) (`a95e7a99`).
+- **`apps/management-api` onboarding/license/tenant routes unified to the nested error format.** Hand-rolled `c.json({success:false,...})` responses replaced with `throw`n `ApiError`/`badRequest`/`notFound`/`conflict`, matching the `{success:false,error:{code,message}}` contract enforced by root `CLAUDE.md`; `management-portal`'s response interceptor and `ApiErrorPayload` type updated to parse the nested shape with a legacy flat-string fallback (`017fdac4`, `fb2fe869`).
+- **Kitchen-display chunk preloader removed** — it built `modulepreload` links with a literal `[hash]` placeholder Vite never substitutes outside Rollup config, firing 3-5 guaranteed 404s per page load against chunk names that no longer existed after manual chunking was reworked (`6cfaea92`).
+- **Local dev environment hardening**: unique `--inspector-port` per worker (CLI flag, not the Windows-crashing `wrangler.toml` field) to stop `pnpm dev` port races (`e79ace0b`); `realtime` and `image-processor` now share the same `--persist-to` D1 state directory as `api`/`management-api` so they see the migrated local schema instead of an empty per-app database (`24b47839`).
+- Build warning silencing, dependency-range corrections, and a `package.json`→lockfile version sync for `@vitejs/plugin-vue`, `vitest`, and `uuid` (`41ad1bed`, `df9dc6cd`).
+
+---
+
 ## 2026-05-25 to 2026-07-05: Night-Market Marketplace Platform, UUID Primary-Key Migration & Managed Onboarding
 
 **Status**: 🚧 Marketplace live (core phases), UUID PK migration shipped, several sub-phases still open — see [`TODOS.md`](../../TODOS.md)
@@ -1097,6 +1112,6 @@ tests/e2e/                              # End-to-end tests
 
 ---
 
-**Last Updated**: 2026-07-05
+**Last Updated**: 2026-07-17
 **Total Achievements**: 30+ major milestones
-**Current Focus**: Night-market marketplace hardening, customer-identity re-verification, Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness), Rust backend refactor (planning)
+**Current Focus**: Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness), Marketplace Phase 4 (follow + broadcast push), Rust backend refactor (planning)

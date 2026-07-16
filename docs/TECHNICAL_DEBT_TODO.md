@@ -866,18 +866,28 @@ still genuinely open.
 
 ## Suggested Execution Order
 
-> ⚠️ **Note (2026-07-05):** items 4-7 and 10 below (payment audit trail,
-> Cloudflare resource IDs, queue modular branch, i18n shared runtime) are now
-> resolved per the sections above — this ordering predates those fixes and is
-> kept for historical context, not as a current priority queue. Remaining
-> real work: auth account-security/statistics stubs, backup metrics, QR
-> artifact generation, E2E skip cleanup, disabled-file deletion, and low-risk
-> hardening (kitchen locale, contract snapshots).
+> ⚠️ **Note (2026-07-05, updated 2026-07-17):** items 2, 3, 4-7 and 10 below
+> (backup restore, QR artifact generation, payment audit trail, Cloudflare
+> resource IDs, queue modular branch, i18n shared runtime) are now resolved
+> per the sections above — this ordering predates those fixes and is kept
+> for historical context, not as a current priority queue. The
+> backup-scheduler cron's system health check and alert persistence
+> (`apps/api/src/services/BackupService.ts` — a separate class from the
+> restore-feature `features/backup/services/BackupService.ts` covered above)
+> also shipped 2026-07-16/17 (commits `27ec47f4`, `61041d65`); the only
+> backup-metrics scope still open is the restore-feature's own P2/P3
+> follow-up (rollback coverage, compression-metric naming, storage quota —
+> see above). Remaining real work: auth account-security/statistics stubs,
+> E2E skip cleanup, disabled-file deletion, and low-risk hardening (kitchen
+> locale, contract snapshots).
 
 1. Auth placeholder flows. (mostly done — account security/statistics stats
    still stubbed, see above)
-2. Backup restore and backup metrics.
-3. QR code real artifact generation.
+2. ~~Backup restore and backup metrics.~~ (resolved — restore end-to-end
+   2026-04-21; cron health-check/alert persistence 2026-07-16/17; only the
+   restore-feature's P2/P3 metric follow-ups remain open, see above)
+3. ~~QR code real artifact generation.~~ (resolved 2026-04-22 — only P3 cache
+   headers / non-SVG renderers open)
 4. ~~Payment audit trail persistence.~~ (resolved — `FAILURE` event still dead code)
 5. ~~Cloudflare resource ID validation.~~ (resolved — CI wiring still open)
 6. Production deploy environment gate and auto-deploy chain.
