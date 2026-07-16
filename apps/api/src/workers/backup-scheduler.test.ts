@@ -1,19 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const backupServiceState = vi.hoisted(() => ({
-  instances: [] as Array<{
-    getSystemHealth: ReturnType<typeof vi.fn>;
-    createBackup: ReturnType<typeof vi.fn>;
-    deleteBackup: ReturnType<typeof vi.fn>;
-    createAlertPublicPublic: ReturnType<typeof vi.fn>;
-  }>,
-  health: {
+const backupServiceState = vi.hoisted(() => {
+  const buildHealth = (overrides: Record<string, unknown> = {}) => ({
     overall_status: "healthy",
     running_backups: 0,
     failed_backups_24h: 0,
+    last_successful_backup_at: null,
     alerts_summary: { critical: 0, high: 0, medium: 0, low: 0 },
-  },
-}));
+    performance_metrics: {
+      average_backup_duration_minutes: 0,
+      average_success_rate_percentage: 100,
+      average_compression_ratio: 1,
+    },
+    ...overrides,
+  });
+
+  return {
+    instances: [] as Array<{
+      getSystemHealth: ReturnType<typeof vi.fn>;
+      createBackup: ReturnType<typeof vi.fn>;
+      deleteBackup: ReturnType<typeof vi.fn>;
+      createAlert: ReturnType<typeof vi.fn>;
+    }>,
+    buildHealth,
+    health: buildHealth(),
+  };
+});
 
 vi.mock("../services/BackupService", () => ({
   BackupService: function MockBackupService() {
@@ -21,7 +33,7 @@ vi.mock("../services/BackupService", () => ({
       getSystemHealth: vi.fn(async () => backupServiceState.health),
       createBackup: vi.fn(async () => ({ backup_id: "backup-1" })),
       deleteBackup: vi.fn(async () => undefined),
-      createAlertPublicPublic: vi.fn(async () => undefined),
+      createAlert: vi.fn(async () => undefined),
     };
     backupServiceState.instances.push(instance);
     return instance;
@@ -74,7 +86,10 @@ function createEnv(db = createDb()) {
   return {
     DB: db,
     BACKUP_STORAGE: {},
-    BACKUP_KV: {},
+    BACKUP_KV: {
+      get: vi.fn(async () => null as string | null),
+      put: vi.fn(async () => undefined),
+    },
     ANALYTICS: {
       writeDataPoint: vi.fn(),
     },
@@ -85,12 +100,7 @@ describe("backup scheduler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     backupServiceState.instances.length = 0;
-    backupServiceState.health = {
-      overall_status: "healthy",
-      running_backups: 0,
-      failed_backups_24h: 0,
-      alerts_summary: { critical: 0, high: 0, medium: 0, low: 0 },
-    };
+    backupServiceState.health = backupServiceState.buildHealth();
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
@@ -116,9 +126,7 @@ describe("backup scheduler", () => {
     expect(db.prepare).toHaveBeenCalledWith(
       expect.stringContaining("FROM backup_records"),
     );
-    expect(
-      backupServiceState.instances[0].createAlertPublicPublic,
-    ).toHaveBeenCalledWith(
+    expect(backupServiceState.instances[0].createAlert).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurant_id: "restaurant-1",
         alert_type: "performance_degraded",
@@ -130,6 +138,128 @@ describe("backup scheduler", () => {
       expect.objectContaining({
         blobs: ["weekly_report_generated"],
         indexes: ["weekly_report"],
+      }),
+    );
+  });
+
+  it("creates a throttled critical system alert when health is critical", async () => {
+    backupServiceState.health = backupServiceState.buildHealth({
+      overall_status: "critical",
+      running_backups: 2,
+      failed_backups_24h: 12,
+      performance_metrics: {
+        average_backup_duration_minutes: 3,
+        average_success_rate_percentage: 42.5,
+        average_compression_ratio: 1,
+      },
+    });
+    const env = createEnv();
+
+    await worker.scheduled(
+      { cron: "*/5 * * * *" } as ScheduledEvent,
+      env as never,
+      {} as ExecutionContext,
+    );
+
+    const service = backupServiceState.instances[0];
+    expect(service.getSystemHealth).toHaveBeenCalledOnce();
+    expect(service.createAlert).toHaveBeenCalledOnce();
+    expect(service.createAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurant_id: "system",
+        severity: "critical",
+        alert_type: "backup_failed",
+        title: "Backup System Unhealthy",
+        message: expect.stringContaining("12 failed backups"),
+      }),
+    );
+    expect(env.BACKUP_KV.get).toHaveBeenCalledWith(
+      "backup-health:last-system-alert",
+    );
+    expect(env.BACKUP_KV.put).toHaveBeenCalledWith(
+      "backup-health:last-system-alert",
+      expect.any(String),
+      expect.objectContaining({ expirationTtl: expect.any(Number) }),
+    );
+    expect(env.ANALYTICS.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: ["backup_health_check", "critical"],
+        indexes: ["health", "critical"],
+      }),
+    );
+  });
+
+  it("creates a high-severity alert when health is degraded", async () => {
+    // Warning driven by success rate; failures stay below the legacy
+    // criticalIssues > 5 escalation rule.
+    backupServiceState.health = backupServiceState.buildHealth({
+      overall_status: "warning",
+      failed_backups_24h: 2,
+      performance_metrics: {
+        average_backup_duration_minutes: 3,
+        average_success_rate_percentage: 75,
+        average_compression_ratio: 1,
+      },
+    });
+    const env = createEnv();
+
+    await worker.scheduled(
+      { cron: "*/5 * * * *" } as ScheduledEvent,
+      env as never,
+      {} as ExecutionContext,
+    );
+
+    expect(backupServiceState.instances[0].createAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurant_id: "system",
+        severity: "high",
+        alert_type: "performance_degraded",
+        title: "Backup System Degraded",
+      }),
+    );
+    expect(env.BACKUP_KV.put).toHaveBeenCalledOnce();
+  });
+
+  it("skips duplicate health alerts inside the throttle window", async () => {
+    backupServiceState.health = backupServiceState.buildHealth({
+      overall_status: "critical",
+      failed_backups_24h: 12,
+    });
+    const env = createEnv();
+    env.BACKUP_KV.get.mockResolvedValue(new Date().toISOString());
+
+    await worker.scheduled(
+      { cron: "*/5 * * * *" } as ScheduledEvent,
+      env as never,
+      {} as ExecutionContext,
+    );
+
+    expect(backupServiceState.instances[0].createAlert).not.toHaveBeenCalled();
+    expect(env.BACKUP_KV.put).not.toHaveBeenCalled();
+    expect(env.ANALYTICS.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: ["backup_health_check", "critical"],
+      }),
+    );
+  });
+
+  it("does not create alerts when the system is healthy", async () => {
+    const env = createEnv();
+
+    await worker.scheduled(
+      { cron: "*/5 * * * *" } as ScheduledEvent,
+      env as never,
+      {} as ExecutionContext,
+    );
+
+    const service = backupServiceState.instances[0];
+    expect(service.getSystemHealth).toHaveBeenCalledOnce();
+    expect(service.createAlert).not.toHaveBeenCalled();
+    expect(env.BACKUP_KV.put).not.toHaveBeenCalled();
+    expect(env.ANALYTICS.writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: ["backup_health_check", "healthy"],
+        indexes: ["health", "healthy"],
       }),
     );
   });

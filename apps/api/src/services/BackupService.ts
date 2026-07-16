@@ -22,6 +22,37 @@ import type {
   R2Bucket,
   KVNamespace,
 } from "@cloudflare/workers-types";
+import { drizzle } from "drizzle-orm/d1";
+import { and, count, desc, eq, gte, sum } from "drizzle-orm";
+import {
+  backupAlerts,
+  backupConfigurations,
+  backupRecords,
+  systemAlerts,
+} from "@makanmakan/database";
+
+/**
+ * System health derivation thresholds.
+ * - Success rate is measured over the trailing window below and only
+ *   influences status once enough backups exist to be meaningful.
+ * - Status mapping: healthy → "healthy", degraded → "warning",
+ *   unhealthy → "critical" (matches BackupSystemHealth.overall_status).
+ */
+const HEALTH_SUCCESS_RATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const HEALTH_FAILED_24H_WARNING_THRESHOLD = 5; // > 5 failures/24h → warning
+const HEALTH_FAILED_24H_CRITICAL_THRESHOLD = 10; // > 10 failures/24h → critical
+const HEALTH_RUNNING_BACKUPS_WARNING_THRESHOLD = 20; // > 20 concurrent → warning
+const HEALTH_SUCCESS_RATE_WARNING_PERCENTAGE = 80; // < 80% over window → warning
+const HEALTH_SUCCESS_RATE_CRITICAL_PERCENTAGE = 50; // < 50% over window → critical
+const HEALTH_MIN_WINDOW_BACKUPS_FOR_RATE_STATUS = 5; // rate needs ≥ 5 samples
+
+/**
+ * BackupSystemHealth plus the last successful backup timestamp, which the
+ * shared type does not carry but monitoring consumers need.
+ */
+export type BackupSystemHealthReport = BackupSystemHealth & {
+  last_successful_backup_at: string | null;
+};
 
 const BACKUP_SORT_COLUMNS = {
   created_at: "created_at",
@@ -44,11 +75,15 @@ const BACKUP_TABLE_NAMES = new Set([
 ]);
 
 export class BackupService {
+  private orm: ReturnType<typeof drizzle>;
+
   constructor(
     private db: D1Database,
     private storage: R2Bucket,
     private kv: KVNamespace,
-  ) {}
+  ) {
+    this.orm = drizzle(db);
+  }
 
   /**
    * Create a new backup for a specific restaurant
@@ -396,30 +431,157 @@ export class BackupService {
     return config;
   }
 
-  async getSystemHealth(): Promise<BackupSystemHealth> {
-    return {
-      overall_status: "healthy",
-      total_restaurants: 0,
-      active_configurations: 0,
-      running_backups: 0,
-      failed_backups_24h: 0,
-      storage_usage: {
-        total_bytes: 0,
-        available_bytes: 0,
-        usage_percentage: 0,
-      },
-      performance_metrics: {
-        average_backup_duration_minutes: 0,
-        average_success_rate_percentage: 100,
-        average_compression_ratio: 0.5,
-      },
-      alerts_summary: {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0,
-      },
-    };
+  async getSystemHealth(): Promise<BackupSystemHealthReport> {
+    try {
+      const now = Date.now();
+      const since24h = new Date(now - 24 * 60 * 60 * 1000);
+      const windowStart = new Date(now - HEALTH_SUCCESS_RATE_WINDOW_MS);
+
+      const [runningRow] = await this.orm
+        .select({ total: count() })
+        .from(backupRecords)
+        .where(eq(backupRecords.status, "in_progress"));
+
+      const [failed24hRow] = await this.orm
+        .select({ total: count() })
+        .from(backupRecords)
+        .where(
+          and(
+            eq(backupRecords.status, "failed"),
+            gte(backupRecords.startedAt, since24h),
+          ),
+        );
+
+      const [windowFailedRow] = await this.orm
+        .select({ total: count() })
+        .from(backupRecords)
+        .where(
+          and(
+            eq(backupRecords.status, "failed"),
+            gte(backupRecords.startedAt, windowStart),
+          ),
+        );
+
+      const windowCompleted = await this.orm
+        .select({
+          startedAt: backupRecords.startedAt,
+          completedAt: backupRecords.completedAt,
+          fileSize: backupRecords.fileSize,
+          compressedSize: backupRecords.compressedSize,
+        })
+        .from(backupRecords)
+        .where(
+          and(
+            eq(backupRecords.status, "completed"),
+            gte(backupRecords.startedAt, windowStart),
+          ),
+        );
+
+      const [lastSuccessRow] = await this.orm
+        .select({ completedAt: backupRecords.completedAt })
+        .from(backupRecords)
+        .where(eq(backupRecords.status, "completed"))
+        .orderBy(desc(backupRecords.completedAt))
+        .limit(1);
+
+      const restaurantRows = await this.orm
+        .selectDistinct({ restaurantId: backupRecords.restaurantId })
+        .from(backupRecords);
+
+      const [configRow] = await this.orm
+        .select({ total: count() })
+        .from(backupConfigurations);
+
+      const [storageRow] = await this.orm
+        .select({ totalBytes: sum(backupRecords.fileSize) })
+        .from(backupRecords)
+        .where(eq(backupRecords.status, "completed"));
+
+      const unresolvedAlerts = await this.orm
+        .select({ severity: backupAlerts.severity })
+        .from(backupAlerts)
+        .where(eq(backupAlerts.resolved, false));
+
+      const runningBackups = runningRow?.total ?? 0;
+      const failedBackups24h = failed24hRow?.total ?? 0;
+      const windowFailed = windowFailedRow?.total ?? 0;
+      const windowTotal = windowCompleted.length + windowFailed;
+      // No backups in the window means an idle system, not a broken one.
+      const successRate =
+        windowTotal > 0 ? (windowCompleted.length / windowTotal) * 100 : 100;
+
+      const durationsMs = windowCompleted
+        .filter((row) => row.startedAt && row.completedAt)
+        .map(
+          (row) =>
+            (row.completedAt as Date).getTime() -
+            (row.startedAt as Date).getTime(),
+        );
+      const averageDurationMinutes =
+        durationsMs.length > 0
+          ? durationsMs.reduce((total, value) => total + value, 0) /
+            durationsMs.length /
+            60000
+          : 0;
+
+      const compressionRatios = windowCompleted
+        .filter((row) => row.fileSize > 0 && row.compressedSize > 0)
+        .map((row) => row.compressedSize / row.fileSize);
+      const averageCompressionRatio =
+        compressionRatios.length > 0
+          ? compressionRatios.reduce((total, value) => total + value, 0) /
+            compressionRatios.length
+          : 1;
+
+      const alertsSummary = { critical: 0, high: 0, medium: 0, low: 0 };
+      for (const alert of unresolvedAlerts) {
+        if (alert.severity in alertsSummary) {
+          alertsSummary[alert.severity as keyof typeof alertsSummary]++;
+        }
+      }
+
+      const hasRateSignal =
+        windowTotal >= HEALTH_MIN_WINDOW_BACKUPS_FOR_RATE_STATUS;
+      let overallStatus: BackupSystemHealth["overall_status"] = "healthy";
+      if (
+        failedBackups24h > HEALTH_FAILED_24H_CRITICAL_THRESHOLD ||
+        (hasRateSignal && successRate < HEALTH_SUCCESS_RATE_CRITICAL_PERCENTAGE)
+      ) {
+        overallStatus = "critical";
+      } else if (
+        failedBackups24h > HEALTH_FAILED_24H_WARNING_THRESHOLD ||
+        runningBackups > HEALTH_RUNNING_BACKUPS_WARNING_THRESHOLD ||
+        (hasRateSignal && successRate < HEALTH_SUCCESS_RATE_WARNING_PERCENTAGE)
+      ) {
+        overallStatus = "warning";
+      }
+
+      return {
+        overall_status: overallStatus,
+        total_restaurants: restaurantRows.length,
+        active_configurations: configRow?.total ?? 0,
+        running_backups: runningBackups,
+        failed_backups_24h: failedBackups24h,
+        last_successful_backup_at: lastSuccessRow?.completedAt
+          ? lastSuccessRow.completedAt.toISOString()
+          : null,
+        storage_usage: {
+          total_bytes: Number(storageRow?.totalBytes ?? 0),
+          // R2 has no fixed quota to report against.
+          available_bytes: 0,
+          usage_percentage: 0,
+        },
+        performance_metrics: {
+          average_backup_duration_minutes: averageDurationMinutes,
+          average_success_rate_percentage: successRate,
+          average_compression_ratio: averageCompressionRatio,
+        },
+        alerts_summary: alertsSummary,
+      };
+    } catch (error) {
+      console.error("Error getting backup system health:", error);
+      throw new Error("Failed to get backup system health");
+    }
   }
 
   async getRestaurantMetrics(
@@ -448,11 +610,58 @@ export class BackupService {
     return [];
   }
 
-  async createAlertPublicPublic(
+  async createAlert(
     alert: Partial<BackupAlert>,
     context?: Record<string, unknown>,
   ): Promise<void> {
-    console.log("Creating alert:", alert, "context:", context);
+    const message = alert.message ?? alert.title ?? "Backup alert";
+    const restaurantId = alert.restaurant_id;
+
+    if (restaurantId && restaurantId !== "system") {
+      // Restaurant-scoped alerts live in backup_alerts. The table has no
+      // title/related_backup_id columns — carry them in details.
+      await this.orm.insert(backupAlerts).values({
+        id: crypto.randomUUID(),
+        restaurantId,
+        alertType: alert.alert_type ?? "backup_failed",
+        severity: alert.severity ?? "medium",
+        message,
+        details: {
+          ...(alert.title ? { title: alert.title } : {}),
+          ...(alert.related_backup_id
+            ? { related_backup_id: alert.related_backup_id }
+            : {}),
+          ...(context ?? {}),
+        },
+        acknowledged: false,
+        resolved: false,
+        triggeredAt: new Date(),
+      });
+      return;
+    }
+
+    // System-wide alerts (restaurant_id "system" or absent) cannot go into
+    // backup_alerts: a DB trigger requires restaurant_id to reference a real
+    // restaurants.id. Persist them to system_alerts, whose restaurant scope
+    // is nullable by design.
+    const contextPayload = {
+      ...(alert.related_backup_id
+        ? { related_backup_id: alert.related_backup_id }
+        : {}),
+      ...(context ?? {}),
+    };
+    await this.orm.insert(systemAlerts).values({
+      title: alert.title ?? "Backup alert",
+      description:
+        Object.keys(contextPayload).length > 0
+          ? `${message} | context: ${JSON.stringify(contextPayload)}`
+          : message,
+      severity: alert.severity ?? "medium",
+      alertType: alert.alert_type ?? "backup_failed",
+      restaurantId: null,
+      affectedComponent: "backup",
+      createdAt: new Date(),
+    });
   }
 
   // Helper methods
