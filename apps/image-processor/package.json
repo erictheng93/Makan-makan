@@ -4,13 +4,14 @@
   "description": "Cloudflare Workers-based image processing service for MakanMakan",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
     "build": "tsc && wrangler deploy --dry-run --env=\"\"",
     "build:staging": "tsc && wrangler deploy --dry-run --env staging",
     "build:prod": "tsc && wrangler deploy --dry-run --env production",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
