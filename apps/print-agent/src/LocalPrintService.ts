@@ -11,7 +11,11 @@ import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
 import { validateConfig } from "./config/validation";
 import { PrinterDriverFactory } from "@makanmakan/queue-core/print";
-import type { PrintRequest, PrinterEvent } from "@makanmakan/shared-types";
+import type {
+  PrintRequest,
+  PrintResponse,
+  PrinterEvent,
+} from "@makanmakan/shared-types";
 
 type WebSocketClientInfo = {
   origin: string;
@@ -103,6 +107,17 @@ export class LocalPrintService {
         );
       }
 
+      // 初始化打印代理服務（避免延遲初始化導致健康檢查誤報）
+      // 初始化失敗時降級運行 — HTTP 伺服器仍然啟動，健康檢查會回報 unhealthy
+      try {
+        await this.printAgentService.initialize();
+      } catch (error) {
+        console.error(
+          "⚠️  Print Agent Service initialization failed; starting in degraded mode:",
+          error,
+        );
+      }
+
       // 啟動 HTTP 伺服器
       await this.startHttpServer();
 
@@ -147,6 +162,13 @@ export class LocalPrintService {
     // 關閉 WebSocket 連線
     this.connectedClients.forEach((ws) => ws.close());
 
+    // 關閉打印代理服務（清除作業佇列定時器等）
+    try {
+      await this.printAgentService.shutdown();
+    } catch (error) {
+      console.error("⚠️  Print Agent Service shutdown error:", error);
+    }
+
     await this.stopNetworkServers();
 
     console.log("✅ Local Print Service stopped");
@@ -176,6 +198,28 @@ export class LocalPrintService {
     this.expressApp.use(this.errorHandler.bind(this));
   }
 
+  /**
+   * 將 PrintResponse 結果對應到 HTTP 狀態碼：
+   * - 成功 → 200
+   * - VALIDATION_ERROR（請求格式錯誤）→ 400
+   * - NO_PRINTER_AVAILABLE（無可用打印機）→ 503
+   * - 其他錯誤（內部失敗）→ 500
+   */
+  private httpStatusForPrintResult(result: PrintResponse): number {
+    if (result.success) {
+      return 200;
+    }
+
+    switch (result.error?.code) {
+      case "VALIDATION_ERROR":
+        return 400;
+      case "NO_PRINTER_AVAILABLE":
+        return 503;
+      default:
+        return 500;
+    }
+  }
+
   private setupApiRoutes(): void {
     const router = express.Router();
 
@@ -189,7 +233,7 @@ export class LocalPrintService {
         const printRequest: PrintRequest = req.body;
         const result =
           await this.printAgentService.createPrintJob(printRequest);
-        res.json(result);
+        res.status(this.httpStatusForPrintResult(result)).json(result);
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -238,12 +282,20 @@ export class LocalPrintService {
         const { jobId } = req.params;
         const cancelled = await this.printAgentService.cancelJob(jobId);
 
-        res.json({
-          success: cancelled,
-          message: cancelled
-            ? "Job cancelled"
-            : "Job not found or cannot be cancelled",
-        });
+        if (cancelled) {
+          res.json({
+            success: true,
+            message: "Job cancelled",
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            error: {
+              code: "JOB_NOT_FOUND",
+              message: "Job not found or cannot be cancelled",
+            },
+          });
+        }
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -322,7 +374,19 @@ export class LocalPrintService {
 
         if (device) {
           // 註冊打印機
-          await this.printAgentService.registerPrinter(device);
+          const registered =
+            await this.printAgentService.registerPrinter(device);
+
+          if (!registered) {
+            res.status(500).json({
+              success: false,
+              error: {
+                code: "DEVICE_REGISTER_FAILED",
+                message: "Detected printer but failed to register it",
+              },
+            });
+            return;
+          }
 
           res.json({
             success: true,
@@ -412,7 +476,7 @@ export class LocalPrintService {
         };
 
         const result = await this.printAgentService.createPrintJob(testRequest);
-        res.json(result);
+        res.status(this.httpStatusForPrintResult(result)).json(result);
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -432,7 +496,8 @@ export class LocalPrintService {
     router.get("/health", async (req, res) => {
       try {
         const health = await this.printAgentService.healthCheck();
-        res.json({
+        // degraded 仍然回 200（服務可用，硬體缺席）；unhealthy 回 503
+        res.status(health.status === "unhealthy" ? 503 : 200).json({
           success: true,
           data: {
             ...health,
@@ -780,31 +845,14 @@ export class LocalPrintService {
   }
 
   private async sendHeartbeat(): Promise<void> {
-    // 發送心跳到雲端服務
-    // 實際實作中會調用雲端 API
-    console.log("💓 Heartbeat sent to cloud");
+    // TODO: 實作雲端心跳 — 調用 cloudEndpoint 的心跳 API
+    console.debug("Cloud heartbeat not implemented, skipping");
   }
 
   private async registerWithCloud(): Promise<void> {
-    try {
-      // 註冊到雲端服務
-      console.log("☁️  Registering with cloud service...");
-
-      // 實際實作中會調用雲端 API 註冊本地服務
-      const _registrationData = {
-        serviceId: `local-print-${this.config.restaurantId}`,
-        restaurantId: this.config.restaurantId,
-        endpoint: `http://localhost:${this.config.port}`,
-        wsEndpoint: `ws://localhost:${this.config.wsPort}`,
-        devices: this.printAgentService.getDevices(),
-        capabilities: [], // this.driverFactory.getSupportedBrands(),
-        version: "2.0.0",
-      };
-
-      console.log("✅ Successfully registered with cloud service");
-    } catch (error) {
-      console.error("❌ Failed to register with cloud service:", error);
-    }
+    // TODO: 實作雲端註冊 — 調用 cloudEndpoint 註冊本地服務
+    // （serviceId、restaurantId、HTTP/WS endpoint、devices、capabilities、version）
+    console.debug("Cloud registration not implemented, skipping");
   }
 
   private authenticateRequest(
