@@ -33,10 +33,18 @@ const apiClient = axios.create({
 // Types
 // ============================================================
 
+export interface ApiErrorPayload {
+  code?: string;
+  message?: string;
+  details?: Array<{ path: string[]; message: string }>;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  // Nested format (current management-api): error: { code, message, details }
+  // Flat format (legacy fallback during rollout): error: string + top-level code/details
+  error?: ApiErrorPayload | string;
   code?: string;
   details?: Array<{ path: string[]; message: string }>;
 }
@@ -93,16 +101,43 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Extract error info from an API error body.
+ * Prefers the unified nested format { error: { code, message, details } },
+ * falling back to the legacy flat format { error: string, code, details }
+ * so the app keeps working against not-yet-updated workers during rollout.
+ */
+function extractApiError(response: ApiResponse<unknown>): {
+  message?: string;
+  code?: string;
+  details?: Array<{ path: string[]; message: string }>;
+} {
+  if (response.error && typeof response.error === "object") {
+    return {
+      message: response.error.message,
+      code: response.error.code,
+      details: response.error.details,
+    };
+  }
+
+  return {
+    message: typeof response.error === "string" ? response.error : undefined,
+    code: response.code,
+    details: response.details,
+  };
+}
+
 function handleApiError(error: unknown): never {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<ApiResponse<unknown>>;
     const response = axiosError.response?.data;
 
     if (response) {
+      const extracted = extractApiError(response);
       throw new ApiError(
-        response.error || "Request failed",
-        response.code || "UNKNOWN_ERROR",
-        response.details,
+        extracted.message || "Request failed",
+        extracted.code || "UNKNOWN_ERROR",
+        extracted.details,
       );
     }
 
@@ -139,10 +174,11 @@ export const onboardingApi = {
       );
 
       if (!response.data.success || !response.data.data) {
+        const extracted = extractApiError(response.data);
         throw new ApiError(
-          response.data.error || "Failed to create application",
-          response.data.code || "CREATE_FAILED",
-          response.data.details,
+          extracted.message || "Failed to create application",
+          extracted.code || "CREATE_FAILED",
+          extracted.details,
         );
       }
 
@@ -169,9 +205,10 @@ export const onboardingApi = {
       );
 
       if (!response.data.success || !response.data.data) {
+        const extracted = extractApiError(response.data);
         throw new ApiError(
-          response.data.error || "Application not found",
-          response.data.code || "NOT_FOUND",
+          extracted.message || "Application not found",
+          extracted.code || "NOT_FOUND",
         );
       }
 

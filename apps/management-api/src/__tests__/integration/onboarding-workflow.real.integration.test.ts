@@ -271,9 +271,10 @@ describe("Onboarding public API workflow — real integration", () => {
     expect(response.status).toBe(400);
     const json: any = await response.json();
     expect(json.success).toBe(false);
-    expect(json.code).toBe("VALIDATION_ERROR");
-    expect(Array.isArray(json.details)).toBe(true);
-    expect(json.details.length).toBeGreaterThan(0);
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+    expect(typeof json.error.message).toBe("string");
+    expect(Array.isArray(json.error.details)).toBe(true);
+    expect(json.error.details.length).toBeGreaterThan(0);
   });
 
   it("lets platform admins list, approve, and reject onboarding applications", async () => {

@@ -7,6 +7,12 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
+import {
+  ApiError,
+  badRequest,
+  notFound,
+  unauthorized,
+} from "@makanmakan/utils";
 import type { ManagementEnv } from "../types";
 import { OnboardingService } from "../services/OnboardingService";
 
@@ -33,7 +39,7 @@ async function requireApplicationSecret(
   c: Context<{ Bindings: ManagementEnv }>,
   onboardingService: OnboardingService,
   applicationId: string,
-): Promise<Response | null> {
+): Promise<void> {
   const applicationSecret = c.req.header("X-Onboarding-Secret");
   const isValid =
     typeof applicationSecret === "string" &&
@@ -42,16 +48,12 @@ async function requireApplicationSecret(
       applicationSecret,
     ));
 
-  if (isValid) return null;
-
-  return c.json(
-    {
-      success: false,
-      error: "Application secret is required",
-      code: "APPLICATION_SECRET_REQUIRED",
-    },
-    401,
-  );
+  if (!isValid) {
+    throw unauthorized(
+      "Application secret is required",
+      "APPLICATION_SECRET_REQUIRED",
+    );
+  }
 }
 
 // ============================================================
@@ -95,26 +97,12 @@ router.post("/applications", async (c) => {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error("[Onboarding] Create application error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to create application",
-        code: "CREATE_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("CREATE_FAILED", "Failed to create application", 500);
   }
 });
 
@@ -127,24 +115,12 @@ router.get("/applications/:id", async (c) => {
   const applicationId = c.req.param("id");
 
   try {
-    const secretError = await requireApplicationSecret(
-      c,
-      onboardingService,
-      applicationId,
-    );
-    if (secretError) return secretError;
+    await requireApplicationSecret(c, onboardingService, applicationId);
 
     const application = await onboardingService.getApplication(applicationId);
 
     if (!application) {
-      return c.json(
-        {
-          success: false,
-          error: "Application not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Application not found", "NOT_FOUND");
     }
 
     // Don't expose sensitive fields
@@ -166,15 +142,10 @@ router.get("/applications/:id", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Onboarding] Get application error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get application",
-        code: "GET_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("GET_FAILED", "Failed to get application", 500);
   }
 });
 
