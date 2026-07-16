@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state",
+    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9233",
     "build": "tsc && wrangler deploy --dry-run --env=\"\"",
     "build:staging": "tsc && wrangler deploy --dry-run --env staging",
     "build:prod": "tsc && wrangler deploy --dry-run --env production",

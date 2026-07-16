@@ -4,7 +4,7 @@
   "description": "Cloudflare Workers-based image processing service for MakanMakan",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state",
+    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9234",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
