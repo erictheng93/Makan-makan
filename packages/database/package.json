@@ -45,7 +45,6 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^24.3.0",
-    "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.6",
     "miniflare": "^3.20250718.3",
     "tsup": "^8.0.0",
