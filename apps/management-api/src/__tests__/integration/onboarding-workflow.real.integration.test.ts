@@ -790,7 +790,9 @@ describe("Onboarding public API workflow — real integration", () => {
       env,
     );
 
-    expect(completeResponse.status).toBe(401);
+    // No public completion route exists — 404 (was 401 via catch-all auth
+    // before auth middleware was scoped to known protected prefixes).
+    expect(completeResponse.status).toBe(404);
     const tenantCount = db
       .raw()
       .prepare("SELECT COUNT(*) AS count FROM tenants")

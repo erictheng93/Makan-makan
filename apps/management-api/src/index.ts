@@ -198,7 +198,24 @@ publicApi.route("/onboarding", onboardingRouter);
 
 // Protected routes (auth required)
 const protectedApi = new Hono<{ Bindings: ManagementEnv }>();
-protectedApi.use("*", managementAuthMiddleware);
+// Auth is scoped to the known protected prefixes (not use("*")) so that
+// unmatched /api/v1/* paths fall through to the 404 handler instead of 401.
+// Unknown subpaths UNDER a protected prefix still 401 before 404.
+// Hono's "/prefix/*" does not match "/prefix" itself, hence both forms.
+const PROTECTED_PREFIXES = [
+  "/health",
+  "/tenants",
+  "/deployments",
+  "/licenses",
+  "/monitoring",
+  "/updates",
+  "/markets",
+  "/admin",
+];
+for (const prefix of PROTECTED_PREFIXES) {
+  protectedApi.use(prefix, managementAuthMiddleware);
+  protectedApi.use(`${prefix}/*`, managementAuthMiddleware);
+}
 protectedApi.route("/health", healthRouter);
 protectedApi.route("/tenants", tenantsRouter);
 protectedApi.route("/deployments", deploymentsRouter);
