@@ -109,6 +109,8 @@ apiClient.interceptors.response.use(
     const toast = useToast();
     // Nested unified format `{ error: { code, message } }` first, with a
     // fallback for legacy flat `{ error: "<string>" }` responses.
+    // TODO(cleanup): drop the flat fallback once every deployed
+    // management-api is at or past commit 7151ca2c.
     const apiError = error.response?.data?.error;
     const message =
       (typeof apiError === "object" && apiError !== null

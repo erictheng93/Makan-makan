@@ -106,6 +106,8 @@ export class ApiError extends Error {
  * Prefers the unified nested format { error: { code, message, details } },
  * falling back to the legacy flat format { error: string, code, details }
  * so the app keeps working against not-yet-updated workers during rollout.
+ * TODO(cleanup): drop the flat fallback once every deployed management-api
+ * is at or past commit 7151ca2c (all routes emit the nested format).
  */
 function extractApiError(response: ApiResponse<unknown>): {
   message?: string;
