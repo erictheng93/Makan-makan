@@ -49,7 +49,7 @@ describe("package test scripts", () => {
   });
 
   it("runs local D1 migrations against the API dev server state path", () => {
-    const expectedPersistPath = "--persist-to ./apps/api/.wrangler/state";
+    const expectedPersistPath = "--persist-to ./.wrangler/shared-state";
 
     expect(packageJson.scripts["db:migrate:local"]).toContain(
       "pnpm db:migrate:local:api",
@@ -59,7 +59,7 @@ describe("package test scripts", () => {
     );
     expect(packageJson.scripts["db:seed:local"]).toContain(expectedPersistPath);
     expect(packageJson.scripts["db:reset:local"]).toContain(
-      "apps/api/.wrangler/state/v3/d1/",
+      ".wrangler/shared-state/v3/d1/",
     );
   });
 
