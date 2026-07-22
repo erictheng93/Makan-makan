@@ -116,7 +116,7 @@ export class GeoIntelligentRateLimiter {
   constructor(
     private rateLimitKV: KVNamespace,
     private analyticsEngine: AnalyticsEngine | undefined,
-    private context: ExecutionContext,
+    private context: Pick<ExecutionContext, "waitUntil">,
     private env: Env,
   ) {}
 
