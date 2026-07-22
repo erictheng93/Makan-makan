@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import type { MenuItemImportInput } from "@/utils/menuItemImport";
+import type { ImageVariants } from "@/composables/useImageUpload";
 
 export interface CategoryData {
   id: number;
@@ -25,6 +26,8 @@ export interface MenuItemData {
   description?: string;
   price: number;
   imageUrl?: string | null;
+  imageId?: string | null;
+  imageVariants?: ImageVariants | null;
   isFeatured: boolean;
   isAvailable: boolean;
   sortOrder: number;
@@ -175,19 +178,23 @@ export function useMenuManagement() {
       categoryId: number;
       catalogType?: "menu_item" | "product";
       imageUrl?: string | null;
+      imageId?: string | null;
+      imageVariants?: ImageVariants | null;
       isFeatured: boolean;
       isAvailable: boolean;
       sortOrder: number;
     },
     editingId?: number,
   ) => {
-    if (!authStore.restaurantId) return;
+    if (!authStore.restaurantId) return false;
     try {
       const payload = {
         ...form,
         price: Number(form.price),
         categoryId: Number(form.categoryId),
         imageUrl: form.imageUrl || null,
+        imageId: form.imageId || null,
+        imageVariants: form.imageVariants ?? null,
       };
       if (editingId) {
         await api.put(`/menu/items/${editingId}`, payload);
@@ -197,11 +204,13 @@ export function useMenuManagement() {
         toast.success(t("menu.toast.itemCreated"));
       }
       await fetchMenu();
+      return true;
     } catch (error: any) {
       console.error("Failed to save menu item:", error);
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.saveFailed"),
       );
+      return false;
     }
   };
 
