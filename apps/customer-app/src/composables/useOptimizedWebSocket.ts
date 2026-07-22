@@ -206,6 +206,10 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
       };
 
       socket.onmessage = (event) => {
+        if (event.data === "pong") {
+          return;
+        }
+
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
           metrics.value.totalMessagesReceived++;

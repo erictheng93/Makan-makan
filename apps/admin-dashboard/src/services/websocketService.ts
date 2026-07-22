@@ -192,6 +192,11 @@ class WebSocketService {
     };
 
     this.ws.onmessage = (event) => {
+      if (event.data === "pong") {
+        this.resetHeartbeatTimeout();
+        return;
+      }
+
       try {
         const message: RealtimeEvent = JSON.parse(event.data);
         this.handleMessage(message);

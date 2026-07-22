@@ -135,6 +135,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.value.onmessage = (event) => {
+        if (event.data === "pong") {
+          return;
+        }
+
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
           onMessage?.(data);
