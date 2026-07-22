@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
-    "legacy": "0088_market_checkout_child_order_cents_cutover.sql"
+    "fresh": "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
+    "legacy": "0089_schema_hardening_payment_idempotency_backup_timestamps.sql"
   },
   "pairs": [
     {
