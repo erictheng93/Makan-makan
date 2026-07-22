@@ -40,6 +40,11 @@
       "fresh": "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
       "legacy": "0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
       "reason": "Payment idempotency keys are unique when present and backup timestamp fields move to integer millisecond columns in both migration tracks."
+    },
+    {
+      "fresh": "0073_images_uploaded_by_text.sql",
+      "legacy": "0090_images_uploaded_by_text.sql",
+      "reason": "images.uploaded_by moves from INTEGER to TEXT so it can store users.id UUID v7 values for the image-processor upload path (issue #56)."
     }
   ],
   "freshOnly": [

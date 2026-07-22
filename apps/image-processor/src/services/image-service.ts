@@ -26,8 +26,8 @@ type DatabaseImageListRow = {
   variants?: string | ImageMetadata["variants"] | null;
   uploadedAt?: Date | string | number;
   uploaded_at?: string;
-  uploadedBy?: number | null;
-  uploaded_by?: number | null;
+  uploadedBy?: string | null;
+  uploaded_by?: string | null;
   restaurantId?: string | number | null;
   restaurant_id?: string | number | null;
   category?: string;
@@ -163,9 +163,7 @@ export class ImageService {
             : String(result.uploadedAt),
         uploadedBy: result.uploadedBy !== null ? result.uploadedBy : undefined,
         restaurantId:
-          result.restaurantId !== null
-            ? Number(result.restaurantId)
-            : undefined,
+          result.restaurantId !== null ? result.restaurantId : undefined,
         category: result.category,
         tags: dbMetadata.tags,
         altText: dbMetadata.altText,
@@ -263,9 +261,9 @@ export class ImageService {
    */
   async listImages(
     options: {
-      restaurantId?: number;
+      restaurantId?: string;
       category?: string;
-      uploadedBy?: number;
+      uploadedBy?: string;
       tags?: string[];
       page?: number;
       limit?: number;
@@ -362,9 +360,9 @@ export class ImageService {
         uploadedBy: row.uploadedBy ?? row.uploaded_by ?? undefined,
         restaurantId:
           row.restaurantId !== undefined && row.restaurantId !== null
-            ? Number(row.restaurantId)
+            ? String(row.restaurantId)
             : row.restaurant_id !== undefined && row.restaurant_id !== null
-              ? Number(row.restaurant_id)
+              ? String(row.restaurant_id)
               : undefined,
         category: row.category,
         tags: typeof row.tags === "string" ? JSON.parse(row.tags) : row.tags,
@@ -567,7 +565,7 @@ export class ImageService {
    */
   async getImageAnalytics(
     options: {
-      restaurantId?: number;
+      restaurantId?: string;
       dateFrom?: string;
       dateTo?: string;
     } = {},

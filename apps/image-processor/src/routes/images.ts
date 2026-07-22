@@ -106,7 +106,7 @@ app.post(
       const imageMetadata = await cloudflareImages.extractImageMetadata(file);
 
       // Generate variants
-      const accountHash = c.env.CLOUDFLARE_ACCOUNT_ID; // You'll need this from Cloudflare
+      const accountHash = c.env.CLOUDFLARE_IMAGES_ACCOUNT_HASH;
       const variants = cloudflareImages.generateImageVariants(
         uploadResult.result.id,
         accountHash,
@@ -448,7 +448,7 @@ app.get(
           });
         }
 
-        const accountHash = c.env.CLOUDFLARE_ACCOUNT_ID;
+        const accountHash = c.env.CLOUDFLARE_IMAGES_ACCOUNT_HASH;
         imageUrl = cloudflareImages.buildTransformationURL(
           imageId,
           accountHash,
@@ -795,7 +795,7 @@ async function processImageAsync(
     await imageService.updateJobStatus(jobId, "processing", 50);
 
     // Generate variants and transformations
-    const accountHash = env.CLOUDFLARE_ACCOUNT_ID;
+    const accountHash = env.CLOUDFLARE_IMAGES_ACCOUNT_HASH;
     const newVariants = cloudflareImages.generateImageVariants(
       imageId,
       accountHash,

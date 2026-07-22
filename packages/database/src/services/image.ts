@@ -115,7 +115,7 @@ export interface CreateImageData {
   height?: number;
   category: string;
   restaurantId: string;
-  uploadedBy?: number;
+  uploadedBy?: string;
   cloudflareImageId?: string;
   variants?: string[];
   metadata?: any;

@@ -2,12 +2,14 @@ import type { D1Database } from "@cloudflare/workers-types";
 
 export interface Env {
   // Cloudflare bindings
-  IMAGES_BUCKET: R2Bucket;
   IMAGE_CACHE: KVNamespace;
   DB: D1Database;
 
   // Cloudflare Images API
   CLOUDFLARE_ACCOUNT_ID: string;
+  // Delivery URL hash for imagedelivery.net — NOT the account ID.
+  // Find it in Dashboard → Images → Developer Resources.
+  CLOUDFLARE_IMAGES_ACCOUNT_HASH: string;
   CLOUDFLARE_IMAGES_API_TOKEN: string;
 
   // Environment variables
@@ -49,7 +51,7 @@ export interface ImageUploadRequest {
   filename: string;
   variants?: string[];
   metadata?: Record<string, unknown>;
-  restaurantId?: number;
+  restaurantId?: string;
   category?: string;
 }
 
@@ -93,8 +95,8 @@ export interface ImageMetadata {
   height?: number;
   variants: Record<string, string>; // variant name -> URL
   uploadedAt: string;
-  uploadedBy?: number;
-  restaurantId?: number;
+  uploadedBy?: string;
+  restaurantId?: string;
   category?: string;
   tags?: string[];
   altText?: string;
