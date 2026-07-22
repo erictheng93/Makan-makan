@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 class TestWebSocketRequestResponsePair {
   constructor(
     public readonly request: string,
