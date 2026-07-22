@@ -65,30 +65,6 @@ bucket_name = "makanmasak-backups-dev"
 binding = "ANALYTICS"
 dataset = "makanmasak-backup-metrics-dev"
 
-# === STAGING ENVIRONMENT ===
-[env.staging]
-name = "makanmasak-backup-scheduler-staging"
-[env.staging.vars]
-NODE_ENV = "staging"
-LOG_LEVEL = "info"
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "makanmasak-staging"
-database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
-
-[[env.staging.kv_namespaces]]
-binding = "BACKUP_KV"
-id = "32892feb841d4716ae80d5b6dc46800c"
-
-[[env.staging.r2_buckets]]
-binding = "BACKUP_STORAGE"
-bucket_name = "makanmasak-backups-staging"
-
-[[env.staging.analytics_engine_datasets]]
-binding = "ANALYTICS"
-dataset = "makanmasak-backup-metrics-staging"
-
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmasak-backup-scheduler-prod"

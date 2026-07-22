@@ -161,7 +161,6 @@ pnpm dev                  # 啟動所有應用
 pnpm typecheck            # TypeScript 檢查
 pnpm test                 # 執行測試
 pnpm lint                 # 程式碼檢查
-pnpm deploy:staging       # 部署到 staging
 pnpm deploy:prod          # 部署到 production
 ```
 

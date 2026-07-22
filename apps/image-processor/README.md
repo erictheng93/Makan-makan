@@ -124,9 +124,6 @@ npm run dev
 ### Deployment
 
 ```bash
-# Deploy to staging
-npm run deploy:staging
-
 # Deploy to production
 npm run deploy:prod
 ```

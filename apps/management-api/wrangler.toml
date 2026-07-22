@@ -53,49 +53,21 @@ binding = "BUNDLE_STORAGE"
 bucket_name = "makanmasak-management-bundles-dev"
 preview_bucket_name = "makanmasak-management-bundles-preview"
 
-# === STAGING ENVIRONMENT ===
-[env.staging]
-name = "makanmasak-management-api-staging"
-[env.staging.vars]
-NODE_ENV = "staging"
-API_VERSION = "v1"
-API_BASE_URL = "https://manage-staging.makanmasak.com"
-CORS_ORIGIN = "https://admin-staging.makanmasak.com"
-LOG_LEVEL = "info"
-
-[[env.staging.d1_databases]]
-binding = "MANAGEMENT_DB"
-database_name = "makanmasak-management-staging"
-database_id = "ad9fc277-ec03-4092-af74-88571f2767a0"
-migrations_dir = "migrations"
-
-[[env.staging.d1_databases]]
-binding = "PLATFORM_DB"
-database_name = "makanmasak-staging"
-database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
-migrations_dir = "../../packages/database/migrations_fresh"
-
-[[env.staging.kv_namespaces]]
-binding = "CACHE_KV"
-id = "9d6145956f874d56b700488562466af0"
-
-[[env.staging.kv_namespaces]]
-binding = "DEPLOYMENT_STATUS_KV"
-id = "9ba6e6d8a66f440fbe0aaadc54b53017"
-
-[[env.staging.r2_buckets]]
-binding = "BUNDLE_STORAGE"
-bucket_name = "makanmasak-management-bundles-staging"
-
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmasak-management-api-prod"
 [env.production.vars]
 NODE_ENV = "production"
 API_VERSION = "v1"
-API_BASE_URL = "https://manage.makanmasak.com"
+API_BASE_URL = "https://manage-api.makanmasak.com"
 CORS_ORIGIN = "https://admin.makanmasak.com"
 LOG_LEVEL = "warn"
+
+# Custom domain — wrangler provisions DNS + SSL automatically on deploy
+# since the makanmasak.com zone is already on this Cloudflare account.
+[[env.production.routes]]
+pattern = "manage-api.makanmasak.com"
+custom_domain = true
 
 [[env.production.d1_databases]]
 binding = "MANAGEMENT_DB"

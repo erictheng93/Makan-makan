@@ -79,7 +79,6 @@ Active feature docs for in-progress or reference-worthy features:
 | [deployment/DEPLOYMENT_GUIDE.md](./deployment/DEPLOYMENT_GUIDE.md)                         | Deployment procedures           |
 | [deployment/DEPLOYMENT_SETUP.md](./deployment/DEPLOYMENT_SETUP.md)                         | Environment setup               |
 | [deployment/ENVIRONMENT_CHECKLIST.md](./deployment/ENVIRONMENT_CHECKLIST.md)               | Environment variables checklist |
-| [deployment/STAGING_DEPLOYMENT_CHECKLIST.md](./deployment/STAGING_DEPLOYMENT_CHECKLIST.md) | Staging checklist               |
 | [deployment/TROUBLESHOOTING.md](./deployment/TROUBLESHOOTING.md)                           | Common issues                   |
 | [security/SECURITY.md](./security/SECURITY.md)                                             | Security policies               |
 | [security/DEPLOYMENT_SECURITY_CHECKLIST.md](./security/DEPLOYMENT_SECURITY_CHECKLIST.md)   | Security checklist              |

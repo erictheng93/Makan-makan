@@ -446,7 +446,7 @@ exist anywhere in the repo. `migrations_fresh/` now runs to
 service bookings, market checkout, discount BPS) have landed since this
 section's `0028`-`0039` frontier. This item should be treated as resolved and
 superseded by later work, not as an active P1 pointing at dead test
-infrastructure — the one open checkbox below (staging data audit) is the only
+infrastructure — the one open checkbox below (production data audit) is the only
 piece that might still be operationally relevant, and even that predates a
 huge amount of subsequent schema churn so should be re-scoped before acting on
 it.
@@ -478,7 +478,7 @@ it.
 - The users root rebuild is split into stage/apply/finalize files because the
   original 204KB migration file exceeded wrangler local D1 payload limits.
 
-**Impact:** Remote rollout still needs a staging data audit and backup window
+**Impact:** Remote rollout still needs a production data audit and backup window
 because the users root apply phase rebuilds many dependent tables. Inventory
 tests now guard against losing physical FK metadata, temp table cleanup, or
 `foreign_key_check` cleanliness.
@@ -489,7 +489,7 @@ tests now guard against losing physical FK metadata, temp table cleanup, or
       remaining pending tables, temp-table cleanup, and `foreign_key_check`.
 - [x] Split the remaining core tables into D1-safe rebuild components based on
       inbound FK graph.
-- [ ] Run staging data audits before remote rollout and require zero orphan
+- [ ] Run production data audits before remote rollout and require zero orphan
       rows.
 - [x] Update `migration-inventory.test.ts` as each pending table receives a
       physical FK.
@@ -561,7 +561,7 @@ deployment logs before relying on this for further cleanup work.
   triggers. They do not remove the legacy `REAL` columns.
 - Fresh migration `0027` records `money_cents_retirement` mismatches and
   over-precision legacy REAL values in `data_integrity_audit`; destructive
-  column retirement is still gated on zero production/staging audit violations.
+  column retirement is still gated on zero production audit violations.
 - Revenue analytics, POS reports, payment total checks, and refund limit checks
   now use shared cents-first SQL helpers before falling back to legacy `REAL`
   values.

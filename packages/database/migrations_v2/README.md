@@ -214,17 +214,17 @@ npx wrangler d1 execute makanmakan-test-v2 --file=migrations_v2/03_audit_system.
 npx wrangler d1 execute makanmakan-test-v2 --command="SELECT name FROM sqlite_master WHERE type='table'"
 ```
 
-### Staging 部署
+### Production 部署 (批次執行)
 
 ```bash
 # 執行所有 migrations (按順序)
 for file in migrations_v2/*.sql; do
   echo "Executing $file..."
-  npx wrangler d1 execute makanmasak-staging --file="$file" --env staging
+  npx wrangler d1 execute makanmasak-prod --file="$file" --env production
 done
 ```
 
-### Production 部署
+### Production 部署 (逐步執行含備份)
 
 ```bash
 # ⚠️ 謹慎操作！先備份！

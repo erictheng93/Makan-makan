@@ -52,7 +52,6 @@
               ↓
 ┌─────────────────────────────────────────┐
 │  4. 複現問題                            │
-│     - Staging 環境測試                  │
 │     - 本地開發環境測試                  │
 └─────────────┬───────────────────────────┘
               ↓
@@ -279,8 +278,8 @@ wrangler d1 execute makanmakan-prod --command "SELECT name FROM sqlite_master WH
 wrangler d1 migrations list makanmakan-prod
 
 # 3. 如果需要，回滾到特定遷移
-# ⚠️ 危險操作！僅在測試環境使用
-wrangler d1 execute makanmakan-staging --command "DELETE FROM d1_migrations WHERE name='0002_add_new_table.sql';"
+# ⚠️ 危險操作！先在本機驗證，確認無誤後才對 production 執行
+wrangler d1 execute makanmakan-local --local --command "DELETE FROM d1_migrations WHERE name='0002_add_new_table.sql';"
 
 # 4. 創建修復遷移而不是直接修改舊遷移
 wrangler d1 migrations create fix-table-issue
@@ -1420,7 +1419,7 @@ echo "=== Troubleshooting Complete ==="
 
 ## 環境信息
 
-- Environment: Production / Staging / Development
+- Environment: Production / Development
 - Browser (if applicable):
 - Worker version:
 - Time of occurrence:

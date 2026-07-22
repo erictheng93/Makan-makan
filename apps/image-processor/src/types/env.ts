@@ -11,7 +11,7 @@ export interface Env {
   CLOUDFLARE_IMAGES_API_TOKEN: string;
 
   // Environment variables
-  NODE_ENV: "development" | "staging" | "production";
+  NODE_ENV: "development" | "production";
   API_VERSION: string;
   CORS_ORIGIN?: string;
 

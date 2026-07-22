@@ -7,9 +7,7 @@
   "scripts": {
     "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9233",
     "build": "tsc && wrangler deploy --dry-run --env=\"\"",
-    "build:staging": "tsc && wrangler deploy --dry-run --env staging",
     "build:prod": "tsc && wrangler deploy --dry-run --env production",
-    "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",

@@ -780,10 +780,6 @@ node_compat = true
 name = "makanmakan-api-prod"
 vars = { ENVIRONMENT = "production" }
 
-[env.staging]
-name = "makanmakan-api-staging"
-vars = { ENVIRONMENT = "staging" }
-
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-prod"
@@ -847,47 +843,6 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Run D1 migrations (staging)
-        if: github.ref == 'refs/heads/develop'
-        run: npx wrangler d1 migrations apply makanmakan-staging --env staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  deploy-staging:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build applications
-        run: npm run build
-
-      - name: Deploy API to staging
-        run: npx wrangler deploy --env staging
-        working-directory: apps/api
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-      - name: Deploy Customer App to staging
-        run: npx wrangler pages deploy dist --project-name=makanmakan-customer-staging
-        working-directory: apps/customer-app
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-      - name: Deploy Admin Dashboard to staging
-        run: npx wrangler pages deploy dist --project-name=makanmakan-admin-staging
-        working-directory: apps/admin-dashboard
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
   deploy-production:
     needs: test
     runs-on: ubuntu-latest
@@ -944,8 +899,7 @@ packages/database/
 │   ├── 0003_add_indexes.sql
 │   └── 0004_menu_improvements.sql
 ├── seeds/
-│   ├── development.sql
-│   └── staging.sql
+│   └── development.sql
 └── scripts/
     ├── migrate.ts
     └── seed.ts
@@ -1530,7 +1484,7 @@ export function validateInput(
 ```
 ✅ 任務清單:
 □ 設置 Cloudflare 帳戶與服務
-  □ 建立 D1 資料庫 (staging/production)
+  □ 建立 D1 資料庫 (production)
   □ 設置 KV namespace 用於快取
   □ 建立 R2 bucket 用於圖片儲存
   □ 設置 Durable Objects 用於即時功能
@@ -1543,7 +1497,7 @@ export function validateInput(
 
 □ CI/CD 流水線
   □ 設置 GitHub Actions
-  □ 配置 staging/production 環境
+  □ 配置 production 環境
   □ 設置自動化測試流程
 ```
 

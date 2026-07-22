@@ -57,7 +57,7 @@
 ### 4. CORS & Security Headers
 
 - `apps/api/src/middleware/cors.ts` builds an explicit allowed-origins list:
-  production/staging use `CORS_ORIGIN` (comma-separated), development
+  production uses `CORS_ORIGIN` (comma-separated), development
   allows only `localhost`/`127.0.0.1` on known dev ports plus
   `DEV_CORS_ORIGINS`. No wildcard origins in production.
 - Security headers set in `cors.ts` and `apps/api/src/middleware/security.ts`:

@@ -394,10 +394,8 @@ Add package scripts per Rust Worker:
   "scripts": {
     "dev": "wrangler dev --persist-to ../../.wrangler/shared-state",
     "build": "wrangler deploy --dry-run --env=\"\"",
-    "build:staging": "wrangler deploy --dry-run --env staging",
     "build:prod": "wrangler deploy --dry-run --env production",
-    "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:staging or pnpm run deploy:prod.'); process.exit(1)\"",
-    "deploy:staging": "wrangler deploy --env staging",
+    "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:prod.'); process.exit(1)\"",
     "deploy:prod": "wrangler deploy --env production",
     "fmt": "cargo fmt --all -- --check",
     "lint": "cargo clippy --workspace --all-targets -- -D warnings",
@@ -777,4 +775,3 @@ Exit criteria:
     against the dev index.
   - Files: `apps/api-rust/src/platform/vectorize.rs` or
     `docs/runbooks/discovery-rust-decision.md`.
-

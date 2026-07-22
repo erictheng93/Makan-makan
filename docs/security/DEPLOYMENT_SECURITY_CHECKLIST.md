@@ -24,9 +24,8 @@
   # Generate a new secret for each environment
   openssl rand -base64 48
 
-  # Set via Wrangler (NOT in wrangler.toml), per app, per environment
+  # Set via Wrangler (NOT in wrangler.toml), per app
   wrangler secret put JWT_SECRET --env production
-  wrangler secret put JWT_SECRET --env staging
   ```
 
 - [ ] **No secrets in committed files**
@@ -101,15 +100,6 @@ pnpm install
 pnpm wrangler login
 pnpm db:migrate:local
 pnpm dev
-```
-
-#### Staging Deployment
-
-```bash
-wrangler secret put JWT_SECRET --env staging
-wrangler secret put SLACK_WEBHOOK_URL --env staging
-
-pnpm deploy:staging
 ```
 
 #### Production Deployment

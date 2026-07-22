@@ -84,10 +84,6 @@ API 使用標準 HTTP 狀態碼：
         description: "Production Server",
       },
       {
-        url: "https://api-staging.makanmakan.com",
-        description: "Staging Server",
-      },
-      {
         url: "http://localhost:8787",
         description: "Local Development",
       },

@@ -198,9 +198,6 @@ API_BASE_URL = "https://yourdomain.com/api"
 ### 2. 數據庫遷移
 
 ```bash
-# 應用驗證系統遷移
-npx wrangler d1 migrations apply makanmakan-staging --env staging
-
 # 生產環境
 npx wrangler d1 migrations apply makanmakan-prod --env production
 ```
@@ -227,7 +224,6 @@ curl -X POST https://yourdomain.com/api/v1/auth/forgot-password \
 
 ```
 Production: https://yourdomain.com/api/v1/auth
-Staging: https://staging.yourdomain.com/api/v1/auth
 Local: http://localhost:8787/api/v1/auth
 ```
 
@@ -693,7 +689,7 @@ curl -X POST http://localhost:8787/api/v1/auth/reset-password \
 
 ```bash
 # 1. 檢查 MailChannels 配置
-wrangler tail makanmakan-api --env staging
+wrangler tail makanmakan-api --env production
 
 # 2. 驗證 DNS 記錄
 dig TXT yourdomain.com  # 檢查 SPF
@@ -731,7 +727,7 @@ curl -X POST https://api.mailchannels.net/tx/v1/send \
 
 ```bash
 # 1. 驗證 Twilio 憑證
-wrangler secret list --env staging
+wrangler secret list --env production
 
 # 2. 檢查 Twilio 帳戶餘額
 # 訪問 https://console.twilio.com
@@ -740,7 +736,7 @@ wrangler secret list --env staging
 # 必須包含國家代碼: +60123456789 (不是 0123456789)
 
 # 4. 檢查錯誤日誌
-wrangler tail makanmakan-api --env staging
+wrangler tail makanmakan-api --env production
 ```
 
 #### 4. 驗證次數超限

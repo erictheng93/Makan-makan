@@ -88,7 +88,7 @@ Acceptance for phase 1:
 
 - New public API responses and realtime events can carry order UUIDs.
 - Existing numeric order routes still work through compatibility lookup.
-- No destructive rebuild runs until staging drill has backup/restore evidence.
+- No destructive rebuild runs until restored-production drill has backup/restore evidence.
 
 ## Phase 2: `staff-principal-id-bridge`
 
@@ -117,7 +117,7 @@ Acceptance for phase 2:
 
 - Always: add bridge identifiers before destructive table rebuilds.
 - Always: preserve numeric compatibility during the rollout window.
-- Always: run local/staging D1 migration rehearsal with row-count and FK checks.
+- Always: run local D1 migration rehearsal with row-count and FK checks.
 - Ask first: dropping integer primary keys, invalidating existing JWTs, or
   changing public route parameter shapes.
 - Never: perform a production table rebuild without backup/restore evidence.

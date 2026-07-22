@@ -213,7 +213,6 @@ pnpm db:generate
 
 # Apply migrations
 pnpm db:migrate:local     # Local SQLite
-pnpm db:migrate:staging   # Staging D1
 pnpm db:migrate:prod      # Production D1
 
 # Verify fresh/legacy migration tracks stay reviewed
@@ -246,14 +245,14 @@ npx wrangler d1 create makanmakan-local --local
 pnpm db:migrate:local
 ```
 
-### Staging/Production
+### Production
 
 ```bash
 # Create D1 database
-npx wrangler d1 create makanmasak-staging
+npx wrangler d1 create makanmakan-prod
 
 # Apply migrations
-pnpm db:migrate:staging
+pnpm db:migrate:prod
 ```
 
 ## Type Safety Examples

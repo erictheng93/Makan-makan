@@ -505,9 +505,6 @@ CREATE INDEX IF NOT EXISTS idx_categories_visible
 **Deployment**:
 
 ```bash
-# Staging
-npx wrangler d1 migrations apply makanmakan-staging --env staging
-
 # Production (during low-traffic hours)
 npx wrangler d1 migrations apply makanmakan-prod --env production
 ```

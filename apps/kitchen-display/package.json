@@ -15,7 +15,6 @@
     "test:e2e": "playwright test --config=playwright.config.ts",
     "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:coverage": "vitest run --coverage",
-    "deploy:staging": "pnpm run build && wrangler pages deploy dist --project-name=makanmasak-kitchen-staging --branch=staging --commit-dirty=true",
     "deploy:prod": "pnpm run build && wrangler pages deploy dist --project-name=makanmasak-kitchen"
   },
   "dependencies": {

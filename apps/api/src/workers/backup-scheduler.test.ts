@@ -375,16 +375,17 @@ describe("backup scheduler", () => {
 
   it("builds a safe dry-run restore drill command plan", () => {
     const plan = buildRestoreDrillPlan({
-      environment: "staging",
+      environment: "production",
       backupFile: "artifacts/backup.sql",
       restoreDatabase: "makanmasak-restore-drill-20260612",
     });
 
     expect(plan).toMatchObject({
       mode: "dry-run",
-      environment: "staging",
+      environment: "production",
       restoreDatabase: "makanmasak-restore-drill-20260612",
-      evidenceKey: "restore-drills/staging/makanmasak-restore-drill-20260612",
+      evidenceKey:
+        "restore-drills/production/makanmasak-restore-drill-20260612",
     });
     expect(plan.commands.map((step) => step.command)).toEqual([
       "rtk pnpm exec wrangler d1 create makanmasak-restore-drill-20260612",
@@ -396,18 +397,19 @@ describe("backup scheduler", () => {
     ]);
   });
 
-  it("executes staging restore drills through an injected command runner", async () => {
+  it("executes restore drills through an injected command runner", async () => {
     const executor = vi.fn(async (command: string) => ({
       stdout: `ran ${command}`,
     }));
 
     const result = await executeRestoreDrill(
       {
-        environment: "staging",
+        environment: "production",
         backupFile: "backup.sql",
         restoreDatabase: "makanmasak-restore-drill-20260612",
         dryRun: false,
         validationTables: ["restaurants"],
+        productionApproval: "RESTORE DRILL APPROVED",
       },
       executor,
     );

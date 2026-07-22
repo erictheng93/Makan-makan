@@ -742,7 +742,7 @@ export function geoIntelligentRateLimitMiddleware(
     // blocks the whole IP for minutes. Both NODE_ENV=development (local
     // dev via `pnpm dev`) and NODE_ENV=test (the value CI sets in the
     // generated `.dev.vars` for nightly-integration.yml) need to bypass.
-    // Production is unaffected — staging/production set NODE_ENV explicitly.
+    // Production is unaffected because NODE_ENV is set explicitly.
     const nodeEnv = c.env.NODE_ENV as string;
     if (nodeEnv === "development" || nodeEnv === "test") {
       await next();

@@ -43,20 +43,22 @@ rtk pnpm exec wrangler r2 object put makanmasak-backups-prod/manual/backup-$(dat
 
 ## Restore Drill
 
-Run this on staging or a temporary restore database first. The scheduler helper
-in `apps/api/src/workers/backup-scheduler.ts` provides a dry-run command plan
+Run this against a temporary restore database first — never restore directly
+onto production. The scheduler helper in
+`apps/api/src/workers/backup-scheduler.ts` provides a dry-run command plan
 that is covered by `apps/api/src/workers/backup-scheduler.test.ts`.
 
 Dry-run the command plan:
 
 ```powershell
-rtk pnpm exec tsx -e "import { buildRestoreDrillPlan } from './apps/api/src/workers/backup-scheduler.ts'; console.log(JSON.stringify(buildRestoreDrillPlan({ environment: 'staging', backupFile: 'artifacts/restore-drill.sql', restoreDatabase: 'makanmasak-restore-drill-YYYYMMDD' }), null, 2));"
+rtk pnpm exec tsx -e "import { buildRestoreDrillPlan } from './apps/api/src/workers/backup-scheduler.ts'; console.log(JSON.stringify(buildRestoreDrillPlan({ environment: 'production', backupFile: 'artifacts/restore-drill.sql', restoreDatabase: 'makanmasak-restore-drill-YYYYMMDD' }), null, 2));"
 ```
 
-Execute the staging drill:
+Execute the drill (seeded from a production export, restored into a
+disposable scratch database — production itself is never touched):
 
 ```bash
-rtk pnpm exec wrangler d1 export makanmasak-staging --remote --env staging --config apps/api/wrangler.toml --output artifacts/restore-drill-YYYYMMDD.sql
+rtk pnpm exec wrangler d1 export makanmasak-prod --remote --env production --config apps/api/wrangler.toml --output artifacts/restore-drill-YYYYMMDD.sql
 rtk pnpm exec wrangler d1 create makanmasak-restore-drill-YYYYMMDD
 rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --file artifacts/restore-drill-YYYYMMDD.sql
 rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --command "SELECT COUNT(*) AS count FROM restaurants;"
@@ -70,7 +72,7 @@ Then validate:
 - Restaurant count is non-zero.
 - Users required for smoke tests exist.
 - Menu and order tables query successfully.
-- The evidence key is `restore-drills/staging/makanmasak-restore-drill-YYYYMMDD`.
+- The evidence key is `restore-drills/production/makanmasak-restore-drill-YYYYMMDD`.
 - The API can be pointed at the restored DB in a controlled test environment.
 
 The helper refuses production drill execution unless the caller passes

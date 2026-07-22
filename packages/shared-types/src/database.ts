@@ -39,7 +39,7 @@ export interface D1BatchResult {
 export interface DatabaseConfig {
   name: string;
   binding: string;
-  environment: "local" | "staging" | "production";
+  environment: "local" | "production";
 }
 
 // 查詢構建器選項

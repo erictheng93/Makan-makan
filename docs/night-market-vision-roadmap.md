@@ -62,7 +62,7 @@ after · **P2** = scale/polish. Effort: S < 1 day · M ≈ 2–4 days · L ≈ 1
 |---|---|---|---|
 | Real payment acquirer (ECPay / Stripe / LINE Pay) | ⏸ Deferred | L | product decision: no live acquirer in current project; future work tracked in `TODOS.md` |
 | Semantic search (embeddings / Vectorize) | ✅ Done | — | Workers AI embeddings + Vectorize recall; first cache-miss embeddings warm off the request path |
-| Multi-tenant auto-provisioning (currently manual trigger) | ✅ Done | — | tenant provisioning includes quotas and rate limits; staging and production set `QUOTA_ENFORCEMENT_MODE=enforce` |
+| Multi-tenant auto-provisioning (currently manual trigger) | ✅ Done | — | tenant provisioning includes quotas and rate limits; production sets `QUOTA_ENFORCEMENT_MODE=enforce` |
 | Booking deposits / prepay, reminders, waitlists | ✅ Done | — | implemented with recurring bookings and ICS export |
 | Settlement attribution (platform- vs vendor-funded discounts) | ✅ Done | — | platform vs vendor discount attribution included in settlement/accounting exports |
 

@@ -142,7 +142,6 @@ pnpm build
 ### 環境配置
 
 - **開發**: localhost:3002
-- **測試**: staging-kitchen.makanmakan.com
 - **生產**: kitchen.makanmakan.com
 
 ## 🤝 開發指南

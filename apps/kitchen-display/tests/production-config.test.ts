@@ -30,6 +30,5 @@ describe("kitchen-display production config", () => {
     ) as { scripts?: Record<string, string> };
 
     expect(pkg.scripts?.["deploy:prod"]).toMatch(/^pnpm run build && /);
-    expect(pkg.scripts?.["deploy:staging"]).toMatch(/^pnpm run build && /);
   });
 });

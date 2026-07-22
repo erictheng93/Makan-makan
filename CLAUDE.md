@@ -144,7 +144,6 @@ pnpm lint               # Lint all packages
 pnpm lint:fix           # Auto-fix lint issues
 
 # Deployment
-pnpm deploy:staging     # Deploy to staging
 pnpm deploy:prod        # Deploy to production
 ```
 

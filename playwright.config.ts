@@ -91,10 +91,9 @@ export default defineConfig({
       },
     },
 
-    // Smoke tests — minimal canary against any deployed env (local / staging /
+    // Smoke tests — minimal canary against any deployed env (local /
     // production). Reads SMOKE_* env vars; falls back to localhost so the
-    // suite is runnable against `pnpm dev` with no extra setup. The
-    // `playwright.staging.config.ts` overrides this for the deploy gate.
+    // suite is runnable against `pnpm dev` with no extra setup.
     {
       name: "smoke",
       testDir: "./tests/e2e/smoke",

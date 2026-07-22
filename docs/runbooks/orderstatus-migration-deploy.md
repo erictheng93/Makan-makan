@@ -31,10 +31,9 @@ worth the cost for a B2B SaaS with a known staff user base.
 Deploy in this order to minimize the transition window:
 
 ```
-1. pnpm deploy:staging          # Smoke-test staging first
-2. pnpm deploy:prod             # API (Cloudflare Workers) — deploys first
+1. pnpm deploy:prod             # API (Cloudflare Workers) — deploys first
                                  # because frontends depend on API responses
-3. Frontend apps deploy automatically via Cloudflare Pages on merge to main
+2. Frontend apps deploy automatically via Cloudflare Pages on merge to main
 ```
 
 ### Expected Behavior During Transition (~2-5 min window)

@@ -10,7 +10,7 @@
 
 - [x] 實作 `BackupService` 的 restore execution logic（`apps/api/src/features/backup/services/BackupService.ts`）—— 已於 2026-07-05 核實：`restoreFromBackup`（line 524）與 `executeRestore`（line 1126）已是完整實作（checksum 驗證、資料表還原、audit log），非空殼
 - [x] 實作 D1 database restore 流程（從 R2 拉回並 apply）—— 同上
-- [ ] 對 staging 環境做一次完整的 **backup → restore 演練**，驗證資料正確性
+- [ ] 對 production 環境做一次完整的 **backup → restore 演練**，驗證資料正確性
 - [ ] 記錄 restore SOP，確認任何 on-call 人員都能執行
 
 ### 2. Payment Audit Trail
@@ -62,7 +62,7 @@
 ### 8. Database Migration Rollback
 
 - [ ] 為每一個 forward migration 評估並撰寫 down migration
-- [ ] 重要的 schema migration 上線前先在 staging 驗證
+- [ ] 重要的 schema migration 上線前先在本機驗證
 
 ### 9. Queue Service 決策
 
@@ -141,7 +141,6 @@
 - [ ] `pnpm test` 全部通過（本地）
 - [ ] `pnpm typecheck` 無錯誤
 - [ ] `pnpm lint` 無錯誤
-- [ ] Staging smoke tests 通過（`pnpm test:smoke:staging`）
 - [ ] 手動測試核心 happy path：
   - [ ] 客戶掃 QR → 點餐 → 送出訂單
   - [ ] Kitchen display 收到訂單

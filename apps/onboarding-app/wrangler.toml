@@ -8,13 +8,6 @@ pages_build_output_dir = "dist"
 [vars]
 VITE_API_URL = "https://manage-api.makanmasak.com/api/v1"
 
-[env.preview]
-name = "makanmasak-onboarding-staging"
-
-[env.preview.vars]
-VITE_API_URL = "https://makanmasak-management-api-staging.omfg.workers.dev/api/v1"
-VITE_CUSTOMER_APP_URL = "https://makanmasak-customer-staging.pages.dev"
-
 [env.production]
 name = "makanmasak-onboarding"
 

@@ -14,7 +14,6 @@ function workspacePackageJson(path: string) {
 }
 
 const expectedExistingPaths = [
-  ["test:smoke:staging", "playwright.staging.config.ts"],
   ["test:performance", "tests/performance/artillery-api-ci.yml"],
   ["test:performance:ws", "tests/performance/artillery-realtime-ci.yml"],
   ["test:load:peak", "tests/performance/artillery-lunch-peak.yml"],
@@ -73,7 +72,6 @@ describe("package test scripts", () => {
 
       expect(pkg.scripts.deploy).toMatch(/Refusing unqualified deploy/);
       expect(pkg.scripts.deploy).not.toContain("wrangler deploy");
-      expect(pkg.scripts["deploy:staging"]).toContain("--env staging");
       expect(pkg.scripts["deploy:prod"]).toContain("--env production");
     }
   });

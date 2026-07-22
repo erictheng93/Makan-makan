@@ -62,10 +62,9 @@
 
 ## T1c｜加 `apps/api/wrangler.toml` 的 DO binding ✅ 完成（commit 3d2ef592）
 
-- [x] 在 `[env.development]`、`[env.staging]`、`[env.production]` 各加 `[[durable_objects.bindings]]` 指向對應 env 的 realtime worker（`script_name` 對照不同 env name）
-- [ ] 確認 dev 區塊用 `makanmasak-realtime`（root），staging 用 `makanmasak-realtime-staging`，production 用 `makanmasak-realtime-prod`
+- [x] 在 `[env.development]`、`[env.production]` 各加 `[[durable_objects.bindings]]` 指向對應 env 的 realtime worker（`script_name` 對照不同 env name）
+- [ ] 確認 dev 區塊用 `makanmasak-realtime`（root），production 用 `makanmasak-realtime-prod`
 - [ ] `pnpm wrangler deploy --dry-run --env development` 不報錯
-- [ ] `pnpm wrangler deploy --dry-run --env staging` 不報錯
 - [ ] 啟動兩個 worker 順序：`pnpm dev:realtime` → `pnpm dev:api`
 - [ ] dev 體驗驗證：暫時加 `console.log(c.env.REALTIME_SESSION)` 看 binding 是否存在（驗完拿掉）
 - [ ] **副作用驗證**：`pnpm --filter @makanmakan/api test orders` 全綠（mock 仍適用）

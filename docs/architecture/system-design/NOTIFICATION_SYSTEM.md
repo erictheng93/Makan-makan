@@ -118,11 +118,6 @@ wrangler secret put RESEND_API_KEY --env development
 wrangler secret put TWILIO_ACCOUNT_SID --env development
 wrangler secret put TWILIO_AUTH_TOKEN --env development
 
-# Staging
-wrangler secret put RESEND_API_KEY --env staging
-wrangler secret put TWILIO_ACCOUNT_SID --env staging
-wrangler secret put TWILIO_AUTH_TOKEN --env staging
-
 # Production
 wrangler secret put RESEND_API_KEY --env production
 wrangler secret put TWILIO_ACCOUNT_SID --env production

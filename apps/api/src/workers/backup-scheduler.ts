@@ -21,7 +21,7 @@ interface Env {
   ANALYTICS: AnalyticsEngineDataset;
 }
 
-type RestoreDrillEnvironment = "development" | "staging" | "production";
+type RestoreDrillEnvironment = "development" | "production";
 
 export interface RestoreDrillOptions {
   environment: RestoreDrillEnvironment;

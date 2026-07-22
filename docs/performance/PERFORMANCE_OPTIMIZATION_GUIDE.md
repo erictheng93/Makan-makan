@@ -11,7 +11,7 @@ This guide provides step-by-step instructions to implement the performance optim
 Before starting, ensure you have:
 
 - [x] Backup of production database
-- [x] Access to staging environment
+- [x] Local development environment set up (local D1 database)
 - [x] Performance baseline metrics recorded
 - [x] Cloudflare Wrangler CLI installed
 - [x] Node.js 22+ and pnpm installed
@@ -25,20 +25,20 @@ Before starting, ensure you have:
 **Expected Impact**: 85-92% query performance improvement
 
 ```bash
-# 1. Test on staging first
+# 1. Test locally first
 cd packages/database/migrations
 
-# 2. Apply migration to staging
-npx wrangler d1 migrations apply makanmakan-staging \
-  --env staging \
+# 2. Apply migration to local D1
+npx wrangler d1 migrations apply makanmakan-local \
+  --local \
   --file 20251001_performance_indexes.sql
 
 # 3. Verify indexes were created
-npx wrangler d1 execute makanmakan-staging --env staging \
+npx wrangler d1 execute makanmakan-local --local \
   --command "SELECT name, tbl_name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY tbl_name;"
 
-# 4. Test query performance on staging
-npx wrangler d1 execute makanmakan-staging --env staging \
+# 4. Test query performance locally
+npx wrangler d1 execute makanmakan-local --local \
   --command "EXPLAIN QUERY PLAN SELECT * FROM menu_items WHERE restaurant_id = 1 AND is_available = true ORDER BY sort_order;"
 
 # Expected output should show: "USING INDEX idx_menu_items_restaurant_available"
@@ -48,7 +48,7 @@ npx wrangler d1 execute makanmakan-staging --env staging \
 
 ```bash
 # Before optimization - should be slow (500-800ms)
-time npx wrangler d1 execute makanmakan-staging --env staging \
+time npx wrangler d1 execute makanmakan-local --local \
   --command "SELECT * FROM menu_items WHERE restaurant_id = 1 AND is_available = true ORDER BY sort_order LIMIT 50;"
 
 # After optimization - should be fast (20-40ms)
@@ -149,9 +149,9 @@ pnpm test order.test.ts
 cd ../../apps/api
 pnpm test:integration -- --grep "Order"
 
-# Test on staging
-curl https://api-staging.makanmakan.app/api/v1/orders \
-  -H "Authorization: Bearer $STAGING_TOKEN" \
+# Test locally
+curl http://localhost:8787/api/v1/orders \
+  -H "Authorization: Bearer $LOCAL_TOKEN" \
   -w "\nTime: %{time_total}s\n"
 
 # Expected: < 150ms (was 680ms)
@@ -163,8 +163,8 @@ curl https://api-staging.makanmakan.app/api/v1/orders \
 # Enable query logging temporarily
 export DEBUG_QUERIES=true
 
-# Check Cloudflare Workers logs
-npx wrangler tail makanmakan-api-staging
+# Check local dev server logs
+# (visible directly in the `pnpm dev:api` terminal output)
 
 # Look for: "Queries executed: 1" (should not be > 5)
 ```
@@ -383,7 +383,7 @@ export class MenuService extends BaseService {
 
 ```bash
 # Test cache hit rate
-curl https://api-staging.makanmakan.app/api/v1/menu/1 \
+curl http://localhost:8787/api/v1/menu/1 \
   -H "Authorization: Bearer $TOKEN" \
   -I | grep "X-Cache"
 
@@ -391,12 +391,12 @@ curl https://api-staging.makanmakan.app/api/v1/menu/1 \
 # Second request: X-Cache: HIT
 
 # Verify cache TTL
-curl https://api-staging.makanmakan.app/api/v1/menu/1 \
+curl http://localhost:8787/api/v1/menu/1 \
   -H "Authorization: Bearer $TOKEN" \
   -I | grep -E "X-Cache|Age"
 
-# Monitor cache hit rate
-npx wrangler tail makanmakan-api-staging | grep "Cache"
+# Monitor cache hit rate in the local dev server logs
+# (visible directly in the `pnpm dev:api` terminal output, filter for "Cache")
 
 # Target metrics:
 # - Menu endpoints: > 90% hit rate
@@ -530,31 +530,45 @@ const addItems = (itemsToAdd: CartItem[]) => {
 
 ## Phase 6: Deployment & Monitoring
 
-### Step 6.1: Deploy to Staging
+### Step 6.1: Test Locally
 
 ```bash
 # Build all apps
 pnpm build
 
-# Deploy API to staging
-cd apps/api
-npx wrangler deploy --env staging
+# Run API locally and smoke-test it
+pnpm dev:api
+curl http://localhost:8787/api/v1/menu/1
 
-# Deploy customer app to staging
+# Run customer app locally
+pnpm dev:customer
+
+# Run admin dashboard locally
+pnpm dev:admin
+```
+
+### Step 6.2: Deploy to Production
+
+```bash
+# Deploy API to production
+cd apps/api
+npx wrangler deploy --env production
+
+# Deploy customer app to production
 cd ../customer-app
-npx wrangler pages deploy dist --project-name makanmakan-customer-staging
+npx wrangler pages deploy dist --project-name makanmakan-customer-prod
 
 # Deploy admin dashboard
 cd ../admin-dashboard
-npx wrangler pages deploy dist --project-name makanmakan-admin-staging
+npx wrangler pages deploy dist --project-name makanmakan-admin-prod
 ```
 
-### Step 6.2: Performance Testing
+### Step 6.3: Performance Testing
 
 ```bash
 # Load testing with autocannon
 npx autocannon -c 100 -d 30 \
-  https://api-staging.makanmakan.app/api/v1/menu/1
+  https://api.makanmakan.app/api/v1/menu/1
 
 # Expected results:
 # - Latency P95: < 200ms
@@ -562,7 +576,7 @@ npx autocannon -c 100 -d 30 \
 # - Error rate: < 0.1%
 
 # Lighthouse performance test
-npx lighthouse https://staging.makanmakan.app \
+npx lighthouse https://makanmakan.app \
   --only-categories=performance \
   --chrome-flags="--headless"
 
@@ -573,7 +587,7 @@ npx lighthouse https://staging.makanmakan.app \
 # - TTI: < 2.5s
 ```
 
-### Step 6.3: Monitor Production Metrics
+### Step 6.4: Monitor Production Metrics
 
 ```bash
 # Setup monitoring endpoint

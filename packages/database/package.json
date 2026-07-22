@@ -26,7 +26,6 @@
     "test:coverage": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0003_qrcode_system.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0008_create_error_reports.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0009_additional_tables.sql",
-    "db:migrate:staging": "wrangler d1 migrations apply makanmasak-staging --remote --env staging --config=../../apps/api/wrangler.toml",
     "db:migrate:prod": "wrangler d1 migrations apply makanmasak-prod --remote --env production --config=../../apps/api/wrangler.toml",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts"

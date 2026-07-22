@@ -102,7 +102,7 @@ The rehearsal script must remain non-destructive:
 - It runs `PRAGMA foreign_key_check`.
 - It rolls back at the end.
 - With `--json-output`, it writes the same rehearsal result printed to stdout
-  to a caller-provided file so staging/restored-prod drill evidence can be
+  to a caller-provided file so restored-prod drill evidence can be
   archived.
 - The JSON artifact includes `rehearsalOptions`. Migration-ready evidence must
   show `requireRepresentativeData = true`.
@@ -118,7 +118,7 @@ The rehearsal script must remain non-destructive:
 
 Do not create paired Phase E users PK migrations until all of these are true:
 
-- `users.public_id` audit guard has passed against staging or restored
+- `users.public_id` audit guard has passed against restored
   production data.
 - A gated users PK rehearsal artifact has non-empty representative user data.
 - The archived rehearsal was run with `--require-representative-data`, and the
@@ -129,7 +129,7 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - `uninventoriedUserForeignKeys` is empty.
 - `PRAGMA foreign_key_check` returns zero rows.
 - `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json> --role representative`
-  returns `exitCode = 0` for the archived staging/restored-production evidence.
+  returns `exitCode = 0` for the archived restored-production evidence.
   This role gate rejects any fixture-generated artifact if a fixture mode is
   later added to the users drill.
   The validator recomputes dependency-surface and non-null reference coverage

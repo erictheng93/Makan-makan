@@ -179,82 +179,6 @@ binding = "AI"
 binding = "DISCOVERY_VECTORIZE"
 index_name = "makanmasak-discovery-dev"
 
-# === STAGING ENVIRONMENT ===
-[env.staging]
-name = "makanmasak-api-staging"
-[env.staging.vars]
-NODE_ENV = "staging"
-API_VERSION = "v1"
-API_BASE_URL = "https://api-staging.makanmasak.com"
-CORS_ORIGIN = "https://staging.makanmasak.com"
-LOG_LEVEL = "info"
-MAX_REQUEST_SIZE = "10MB"
-CACHE_TTL = "300"
-RATE_LIMIT_REQUESTS = "500"
-DEPLOYMENT_MODE = "saas"
-PLATFORM_VERSION = "1.0.0"
-CENTRAL_API_URL = "https://manage.makanmasak.com"
-REALTIME_WS_URL = "wss://realtime-staging.makanmasak.com"
-DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3"
-QUOTA_ENFORCEMENT_MODE = "enforce"
-# Notification configuration
-NOTIFICATION_FROM_EMAIL = "staging-notifications@makanmasak.com"
-TWILIO_PHONE_NUMBER = "+1234567890"
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "makanmasak-staging"
-database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
-migrations_dir = "../../packages/database/migrations_fresh"
-
-[[env.staging.services]]
-binding = "MANAGEMENT_API"
-service = "makanmasak-management-api-staging"
-
-[[env.staging.kv_namespaces]]
-binding = "CACHE_KV"
-id = "47ef05ba21c84fa98399b1bdfcc30812"
-
-[[env.staging.kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "ece9224665004216babdeda97371fd6c"
-
-[[env.staging.kv_namespaces]]
-binding = "BACKUP_KV"
-id = "32892feb841d4716ae80d5b6dc46800c"
-
-# Token Blacklist KV for WebSocket authentication security
-[[env.staging.kv_namespaces]]
-binding = "TOKEN_BLACKLIST"
-id = "d2c8169991254846a0db4154d1595747"
-
-[[env.staging.r2_buckets]]
-binding = "BACKUP_STORAGE"
-bucket_name = "makanmasak-backups-staging"
-
-[[env.staging.durable_objects.bindings]]
-name = "REALTIME_SESSION"
-class_name = "RealtimeSession"
-script_name = "makanmasak-realtime-staging"
-
-[[env.staging.queues.producers]]
-binding = "SEARCH_SYNC_QUEUE"
-queue = "makanmasak-search-sync-staging"
-
-[[env.staging.queues.consumers]]
-queue = "makanmasak-search-sync-staging"
-max_batch_size = 25
-max_batch_timeout = 10
-max_retries = 3
-dead_letter_queue = "makanmasak-search-sync-dlq-staging"
-
-[env.staging.ai]
-binding = "AI"
-
-[[env.staging.vectorize]]
-binding = "DISCOVERY_VECTORIZE"
-index_name = "makanmasak-discovery-staging"
-
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmasak-api-prod"
@@ -262,20 +186,26 @@ name = "makanmasak-api-prod"
 NODE_ENV = "production"
 API_VERSION = "v1"
 API_BASE_URL = "https://api.makanmasak.com"
-CORS_ORIGIN = "https://makanmasak.com"
+CORS_ORIGIN = "https://makanmasak.com,https://admin.makanmasak.com"
 LOG_LEVEL = "warn"
 MAX_REQUEST_SIZE = "5MB"
 CACHE_TTL = "600"
 RATE_LIMIT_REQUESTS = "100"
 DEPLOYMENT_MODE = "saas"
 PLATFORM_VERSION = "1.0.0"
-CENTRAL_API_URL = "https://manage.makanmasak.com"
+CENTRAL_API_URL = "https://manage-api.makanmasak.com"
 REALTIME_WS_URL = "wss://realtime.makanmasak.com"
 DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3"
 QUOTA_ENFORCEMENT_MODE = "enforce"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
+
+# Custom domain — wrangler provisions DNS + SSL automatically on deploy
+# since the makanmasak.com zone is already on this Cloudflare account.
+[[env.production.routes]]
+pattern = "api.makanmasak.com"
+custom_domain = true
 
 [[env.production.d1_databases]]
 binding = "DB"

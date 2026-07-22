@@ -7,10 +7,8 @@
   "scripts": {
     "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9230",
     "build": "wrangler deploy --dry-run --env=\"\"",
-    "build:staging": "wrangler deploy --dry-run --env staging",
     "build:prod": "wrangler deploy --dry-run --env production",
-    "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:staging or pnpm run deploy:prod.'); process.exit(1)\"",
-    "deploy:staging": "wrangler deploy --env staging",
+    "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:prod.'); process.exit(1)\"",
     "deploy:prod": "wrangler deploy --env production",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",

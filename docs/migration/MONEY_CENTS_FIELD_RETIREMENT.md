@@ -12,7 +12,7 @@ legacy `REAL` money columns, each self-guarded by a `CHECK (violation_count = 0)
 assertion table so the migration aborts if the rollout/audit preconditions
 aren't met. Current Drizzle schema (e.g. `packages/database/src/schema/orders.ts`)
 has zero remaining legacy `REAL` money columns — only `*_cents` columns exist.
-Whether these migrations have been *run* against staging/production D1 (vs.
+Whether these migrations have been *run* against production D1 (vs.
 merged into the repo) is a deployment fact, not verifiable from the schema —
 confirm via deployment logs or `pnpm wrangler d1 execute` before relying on this
 for further cleanup work (e.g. dropping the now-unused sync triggers).
@@ -130,21 +130,20 @@ Run the guard through the normal migration commands:
 
 ```bash
 rtk pnpm check:migration-dual-track
-rtk pnpm db:migrate:staging
 rtk pnpm db:migrate:prod
 ```
 
-After staging and before production, inspect the rollout rows:
+Before a destructive cutover migration is generated, inspect the rollout rows:
 
 ```bash
-rtk pnpm exec wrangler d1 execute makanmasak-staging \
+rtk pnpm exec wrangler d1 execute makanmasak-prod \
   --remote \
-  --env staging \
+  --env production \
   --config=./apps/api/wrangler.toml \
   --command "SELECT scope, table_name, column_name, check_name, violation_count, sample_values FROM data_integrity_audit WHERE scope IN ('money_cents_retirement', 'money_cents_retirement_rollout') AND severity = 'error' ORDER BY scope, table_name, column_name, check_name;"
 ```
 
-Production must show the same zero-violation rollout rows before a destructive
+Production must show zero-violation rollout rows before a destructive
 cutover migration is generated.
 
 ## Final Cutover Migration
@@ -239,10 +238,9 @@ cleanup, or product behavior changes.
 
 Do not apply the destructive drop-column migration until all of these are true:
 
-- `0067_money_cents_retirement_rollout_guard.sql` has passed in staging and
-  production.
+- `0067_money_cents_retirement_rollout_guard.sql` has passed in production.
 - `0069_discount_percentage_bps.sql` / `0086_discount_percentage_bps.sql` have
-  passed in staging and production. These migrations preserve percentage
+  passed in production. These migrations preserve percentage
   discount values in explicit basis-point columns before polymorphic
   `discount_value` columns are retired.
 - Production `money_cents_retirement_rollout` rows have `violation_count = 0`.

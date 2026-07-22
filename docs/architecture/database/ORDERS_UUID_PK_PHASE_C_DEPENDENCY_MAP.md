@@ -140,7 +140,7 @@ The rehearsal script must remain non-destructive:
 - It runs `PRAGMA foreign_key_check`.
 - It rolls back at the end.
 - With `--json-output`, it writes the same rehearsal result printed to stdout
-  to a caller-provided file so staging/prod drill evidence can be archived.
+  to a caller-provided file so restored-production drill evidence can be archived.
 - The JSON artifact includes `dataCoverage` and `assessment` sections. The
   assessment is the canonical exit-code reason list for bridge violations,
   unmapped references, shadow-copy row-count parity failures,
@@ -201,7 +201,7 @@ both required artifacts:
 
 `rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>` is the
 single Phase C conversion gate. It imports the single-artifact validator,
-requires the representative artifact to be staging/restored-production evidence
+requires the representative artifact to be restored-production evidence
 without fixture data, requires the rollback fixture artifact to use
 `--with-fixture`, and then compares dependency surfaces plus schema metadata
 between both artifacts.
@@ -210,7 +210,7 @@ between both artifacts.
 
 Do not create paired Phase C migrations until all of these are true:
 
-- A local or staging rehearsal contains non-empty representative order data.
+- A local or restored-production rehearsal contains non-empty representative order data.
 - The archived rehearsal was run with `--require-representative-data`, and the
   JSON artifact has `assessment.exitCode = 0` and
   `assessment.failures = []`, and `dataCoverage.isRepresentative = true`.
@@ -224,7 +224,7 @@ Do not create paired Phase C migrations until all of these are true:
   mismatches.
 - `PRAGMA foreign_key_check` returns zero rows.
 - `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
-  returns `exitCode = 0` for the archived staging/restored-production evidence.
+  returns `exitCode = 0` for the archived restored-production evidence.
   This role gate rejects rollback fixture artifacts so synthetic local data
   cannot be substituted for real representative data.
 - `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
