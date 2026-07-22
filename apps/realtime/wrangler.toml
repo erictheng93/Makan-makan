@@ -11,6 +11,12 @@ local_protocol = "http"
 # "*** std::terminate() called" in workerd on Windows (wrangler 4.84.1).
 # Let wrangler auto-allocate instead.
 
+[vars]
+ENVIRONMENT = "development"
+API_VERSION = "v1"
+CORS_ORIGIN = "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:5173,http://localhost:8000,http://localhost:8787"
+RATE_LIMIT_ENABLED = "false"
+
 [durable_objects]
 bindings = [
   { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
@@ -53,6 +59,7 @@ name = "makanmasak-realtime-staging"
 [env.staging.vars]
 ENVIRONMENT = "staging"
 API_VERSION = "v1"
+CORS_ORIGIN = "https://staging.makanmasak.com,https://admin-staging.makanmasak.com,https://kitchen-staging.makanmasak.com"
 RATE_LIMIT_ENABLED = "true"
 
 [env.staging.durable_objects]
@@ -90,6 +97,7 @@ name = "makanmasak-realtime-prod"
 [env.production.vars]
 ENVIRONMENT = "production"
 API_VERSION = "v1"
+CORS_ORIGIN = "https://makanmasak.com,https://customer.makanmasak.com,https://admin.makanmasak.com,https://kitchen.makanmasak.com"
 RATE_LIMIT_ENABLED = "true"
 
 [env.production.durable_objects]
