@@ -37,6 +37,7 @@ export const menuItems = sqliteTable(
       medium?: string; // 中圖 (600x600)
       large?: string; // 大圖 (1200x1200)
     }>(),
+    imageId: text("image_id"), // 引用 images.id，供換圖刪舊
 
     // 狀態設定
     catalogType: text("catalog_type")

@@ -45,6 +45,11 @@
       "fresh": "0073_images_uploaded_by_text.sql",
       "legacy": "0090_images_uploaded_by_text.sql",
       "reason": "images.uploaded_by moves from INTEGER to TEXT so it can store users.id UUID v7 values for the image-processor upload path (issue #56)."
+    },
+    {
+      "fresh": "0074_menu_items_image_id.sql",
+      "legacy": "0091_menu_items_image_id.sql",
+      "reason": "menu_items.image_id records the owning images.id value so menu image replacement can delete the previous image."
     }
   ],
   "freshOnly": [
