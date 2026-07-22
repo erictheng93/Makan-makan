@@ -175,29 +175,10 @@ app.get("/health", async (c) => {
       console.error("KV health check failed:", error);
     }
 
-    // 檢查 R2 存儲
-    let r2Status = "healthy";
-    let r2ResponseTime = 0;
-
-    try {
-      const r2Start = Date.now();
-      await c.env.IMAGES_BUCKET.head("health-check-dummy-file");
-      r2ResponseTime = Date.now() - r2Start;
-    } catch (error) {
-      // 404 is expected for dummy file, other errors are concerning
-      if (!(error as Error).message?.includes("404")) {
-        r2Status = "degraded";
-        console.warn("R2 health check warning:", error);
-      }
-      r2ResponseTime = Date.now() - 0; // Default value when r2Start is not accessible
-    }
-
     const overallStatus =
       dbStatus === "unhealthy" || kvStatus === "unhealthy"
         ? "unhealthy"
-        : dbStatus === "degraded" ||
-            kvStatus === "degraded" ||
-            r2Status === "degraded"
+        : dbStatus === "degraded" || kvStatus === "degraded"
           ? "degraded"
           : "healthy";
 
@@ -219,10 +200,6 @@ app.get("/health", async (c) => {
           cache: {
             status: kvStatus,
             responseTime: `${kvResponseTime}ms`,
-          },
-          storage: {
-            status: r2Status,
-            responseTime: `${r2ResponseTime}ms`,
           },
         },
         performance: {
@@ -319,9 +296,8 @@ export default {
       // 清理過期的快取
       await cleanupExpiredCache(env);
 
-      // 發送每日使用統計（如果是每日任務）
-      if (event.cron === "0 9 * * *") {
-        // 每天上午 9 點
+      // 發送每日使用統計（cron 為 UTC；01:00 UTC = 台灣時間上午 9 點）
+      if (event.cron === "0 1 * * *") {
         await sendDailyStats(env);
       }
     } catch (error) {
