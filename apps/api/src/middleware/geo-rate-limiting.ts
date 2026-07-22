@@ -37,6 +37,14 @@ interface RateLimitConfig {
   blockDuration: number;
 }
 
+interface NativeRateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetTime: number;
+  retryAfter?: number;
+  reason?: string;
+}
+
 interface GeoRiskProfile {
   country: string;
   riskLevel: "low" | "medium" | "high" | "critical";
@@ -54,6 +62,20 @@ interface ThreatIntelligence {
   riskFactors: string[];
   actionRecommendation: "allow" | "challenge" | "block";
   confidence: number;
+}
+
+const SENSITIVE_KV_RATE_LIMIT_PATHS = [
+  "/api/v1/auth/login",
+  "/api/v1/auth/register",
+  "/api/v1/customers/otp",
+  "/api/v1/customer/otp",
+  "/api/v1/realtime/auth/guest-token",
+];
+
+function shouldUseKvRateLimiter(path: string): boolean {
+  return SENSITIVE_KV_RATE_LIMIT_PATHS.some((sensitivePath) =>
+    path.includes(sensitivePath),
+  );
 }
 
 // High-risk countries requiring stricter limits
@@ -745,19 +767,25 @@ export function geoIntelligentRateLimitMiddleware(
     const ip = c.req.header("CF-Connecting-IP") || "unknown";
     const identifier = user?.id ? `user:${user.id}` : `ip:${ip}`;
 
-    // Check if blocked
-    const blockStatus = await rateLimiter.isBlocked(identifier);
-    if (blockStatus.blocked) {
-      return c.json(
-        {
-          success: false,
-          error: "Access temporarily blocked",
-          reason: blockStatus.reason,
-          blocked_until: blockStatus.blockedUntil,
-          escalation_level: blockStatus.escalationLevel,
-        },
-        429,
-      );
+    const nativeLimiter = c.env.GLOBAL_RATE_LIMITER;
+    const useKvRateLimiter = !nativeLimiter || shouldUseKvRateLimiter(path);
+
+    if (useKvRateLimiter) {
+      // Check if blocked. This remains KV-backed only for sensitive/fallback
+      // paths so normal traffic does not pay a KV read before native limiting.
+      const blockStatus = await rateLimiter.isBlocked(identifier);
+      if (blockStatus.blocked) {
+        return c.json(
+          {
+            success: false,
+            error: "Access temporarily blocked",
+            reason: blockStatus.reason,
+            blocked_until: blockStatus.blockedUntil,
+            escalation_level: blockStatus.escalationLevel,
+          },
+          429,
+        );
+      }
     }
 
     // Calculate dynamic rate limit
@@ -773,12 +801,39 @@ export function geoIntelligentRateLimitMiddleware(
       Object.assign(rateLimit, customLimit);
     }
 
+    let result: NativeRateLimitResult;
+
     // Check rate limit
-    const result = await rateLimiter.applyRateLimit(
-      c.req.raw,
-      rateLimit,
-      identifier,
-    );
+    if (!useKvRateLimiter) {
+      try {
+        const outcome = await nativeLimiter.limit({
+          key: `${identifier}:${path}`,
+        });
+        const resetTime = Date.now() + rateLimit.windowSeconds * 1000;
+        result = {
+          allowed: outcome.success,
+          remaining: outcome.success ? rateLimit.requests - 1 : 0,
+          resetTime,
+          retryAfter: rateLimit.blockDuration,
+          reason: outcome.success
+            ? undefined
+            : "Rate limit exceeded by edge limiter",
+        };
+      } catch (error) {
+        console.error("Native rate limiting error:", error);
+        result = {
+          allowed: true,
+          remaining: rateLimit.requests,
+          resetTime: Date.now() + rateLimit.windowSeconds * 1000,
+        };
+      }
+    } else {
+      result = await rateLimiter.applyRateLimit(
+        c.req.raw,
+        rateLimit,
+        identifier,
+      );
+    }
 
     if (!result.allowed) {
       // Extract threat intelligence for blocking decision

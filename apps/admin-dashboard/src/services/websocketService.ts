@@ -301,7 +301,7 @@ class WebSocketService {
    */
   send(data: any): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
+      this.ws.send(typeof data === "string" ? data : JSON.stringify(data));
     } else {
       console.warn("⚠️ WebSocket not connected, cannot send message");
     }
@@ -315,7 +315,7 @@ class WebSocketService {
 
     this.heartbeatTimer = window.setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send({ type: "ping", timestamp: Date.now() });
+        this.send("ping");
 
         // 設置心跳超時
         this.heartbeatTimeoutTimer = window.setTimeout(() => {

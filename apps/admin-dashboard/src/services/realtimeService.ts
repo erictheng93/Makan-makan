@@ -172,7 +172,7 @@ class RealtimeService {
 
   async ping(): Promise<boolean> {
     if (this.websocketService.isConnected.value) {
-      this.websocketService.send({ type: "ping", timestamp: Date.now() });
+      this.websocketService.send("ping");
       return true;
     }
     return false;

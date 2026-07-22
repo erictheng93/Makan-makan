@@ -96,6 +96,7 @@ export interface Env {
   // Advanced Cloudflare bindings for 100/100 optimization
   ANALYTICS_ENGINE?: AnalyticsEngine; // Workers Analytics for custom metrics
   ANALYTICS?: AnalyticsEngine; // Production binding alias used by wrangler.toml
+  GLOBAL_RATE_LIMITER?: RateLimit;
   RATE_LIMIT_KV: KVNamespace; // Geographic rate limiting storage
   PRELOAD_QUEUE?: Queue; // Cache preloading queue
   REVALIDATION_QUEUE?: Queue; // Cache revalidation queue

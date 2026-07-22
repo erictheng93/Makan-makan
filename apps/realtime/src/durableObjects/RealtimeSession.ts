@@ -30,17 +30,26 @@ interface ConnectionInfo {
   missedEvents?: RealtimeEvent[]; // 離線期間錯過的事件
 }
 
+const EVENT_HISTORY_STORAGE_KEY = "eventHistory";
+const ROOM_INFO_STORAGE_KEY = "roomInfo";
+const HEARTBEAT_REQUEST = "ping";
+const HEARTBEAT_RESPONSE = "pong";
+
 export class RealtimeSession implements DurableObject {
-  private connections: Map<WebSocket, ConnectionInfo> = new Map();
+  private state: DurableObjectState;
   private env: Env;
   private roomInfo: { type: string; id: string } | null = null;
   // 事件歷史記錄（用於離線重連）
-  private eventHistory: RealtimeEvent[] = [];
+  private eventHistory: RealtimeEvent[] | null = null;
   private readonly MAX_EVENT_HISTORY = 100; // 最多保留 100 個事件
   private readonly MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000; // 最多保留 24 小時的事件
 
-  constructor(_state: DurableObjectState, env: Env) {
+  constructor(state: DurableObjectState, env: Env) {
+    this.state = state;
     this.env = env;
+    this.state.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair(HEARTBEAT_REQUEST, HEARTBEAT_RESPONSE),
+    );
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -196,10 +205,7 @@ export class RealtimeSession implements DurableObject {
       }
     }
 
-    // Set room info if not already set
-    if (!this.roomInfo) {
-      this.roomInfo = { type: roomType, id: roomId };
-    }
+    await this.ensureRoomInfo(roomType, roomId);
 
     const webSocketPair = new WebSocketPair();
     const [client, server] = Object.values(webSocketPair);
@@ -216,25 +222,8 @@ export class RealtimeSession implements DurableObject {
       auth: authPayload, // 儲存認證資訊
     };
 
-    // Store connection
-    this.connections.set(server, connectionInfo);
-
-    // Set up event handlers
-    server.accept();
-
-    server.addEventListener("message", (event) => {
-      this.handleMessage(server, event.data, connectionInfo);
-    });
-
-    server.addEventListener("close", () => {
-      this.connections.delete(server);
-      // Connection closed - cleanup handled automatically
-    });
-
-    server.addEventListener("error", (error) => {
-      console.error(`WebSocket error for ${connectionId}:`, error);
-      this.connections.delete(server);
-    });
+    server.serializeAttachment(connectionInfo);
+    this.state.acceptWebSocket(server, [roomType, roomId]);
 
     // Send connection acknowledgment with auth info
     const ackEvent: ConnectionAckEvent = {
@@ -247,7 +236,7 @@ export class RealtimeSession implements DurableObject {
         roomType: authPayload.roomType,
         roomId: authPayload.roomId,
         connectedAt: Date.now(),
-        activeConnections: this.connections.size,
+        activeConnections: this.getActiveConnections().length,
       },
     };
     this.sendEvent(server, ackEvent);
@@ -261,12 +250,53 @@ export class RealtimeSession implements DurableObject {
     });
   }
 
+  async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer) {
+    const connectionInfo = this.getConnectionInfo(socket);
+    if (!connectionInfo) {
+      socket.close(1008, "Missing connection metadata");
+      return;
+    }
+
+    await this.handleMessage(socket, message, connectionInfo);
+  }
+
+  async webSocketClose(
+    socket: WebSocket,
+    _code: number,
+    _reason: string,
+    _wasClean: boolean,
+  ) {
+    socket.serializeAttachment(null);
+  }
+
+  async webSocketError(socket: WebSocket, error: unknown) {
+    console.error("WebSocket error:", error);
+    socket.serializeAttachment(null);
+    socket.close(1011, "WebSocket error");
+  }
+
   private async handleMessage(
     socket: WebSocket,
     data: string | ArrayBuffer,
     connectionInfo: ConnectionInfo,
   ): Promise<void> {
     try {
+      if (data === HEARTBEAT_REQUEST) {
+        connectionInfo.lastActivity = Date.now();
+        socket.serializeAttachment(connectionInfo);
+        const heartbeatEvent: HeartbeatEvent = {
+          type: RealtimeEventType.HEARTBEAT,
+          eventId: this.generateEventId(),
+          timestamp: Date.now(),
+          restaurantId: connectionInfo.auth?.restaurantId || "",
+          data: {
+            serverTime: Date.now(),
+          },
+        };
+        this.sendEvent(socket, heartbeatEvent);
+        return;
+      }
+
       const parsedMessage = parseJsonMessage(data);
       const validation = validateBasicClientMessage(parsedMessage);
       if (!validation.success) {
@@ -282,6 +312,7 @@ export class RealtimeSession implements DurableObject {
 
       // Update last activity
       connectionInfo.lastActivity = Date.now();
+      socket.serializeAttachment(connectionInfo);
 
       // Message received and validated
 
@@ -340,7 +371,7 @@ export class RealtimeSession implements DurableObject {
       }
 
       // 添加到事件歷史記錄
-      this.addToEventHistory(event);
+      await this.addToEventHistory(event);
 
       // 路由事件到相關的連線
       const sentCount = this.routeEvent(event);
@@ -363,10 +394,13 @@ export class RealtimeSession implements DurableObject {
   }
 
   private async handleStats(_request: Request): Promise<Response> {
+    const connections = this.getConnectionEntries();
+    const eventHistory = await this.loadEventHistory();
+    const roomInfo = await this.loadRoomInfo();
     const stats = {
-      roomInfo: this.roomInfo,
-      connectionCount: this.connections.size,
-      connections: Array.from(this.connections.values()).map((conn) => ({
+      roomInfo,
+      connectionCount: connections.length,
+      connections: connections.map(([, conn]) => ({
         id: conn.id,
         type: conn.type,
         role: conn.auth?.role,
@@ -374,14 +408,12 @@ export class RealtimeSession implements DurableObject {
         lastActivity: new Date(conn.lastActivity).toISOString(),
         lastEventId: conn.lastEventId,
       })),
-      eventHistorySize: this.eventHistory.length,
+      eventHistorySize: eventHistory.length,
       uptime:
         Date.now() -
-        (this.connections.size > 0
+        (connections.length > 0
           ? Math.min(
-              ...Array.from(this.connections.values()).map(
-                (c) => c.connectedAt,
-              ),
+              ...connections.map(([, connection]) => connection.connectedAt),
             )
           : Date.now()),
     };
@@ -396,18 +428,19 @@ export class RealtimeSession implements DurableObject {
     try {
       const url = new URL(request.url);
       const sinceEventId = url.searchParams.get("since");
+      const eventHistory = await this.loadEventHistory();
 
       if (!sinceEventId) {
         // 返回所有歷史事件
         return Response.json({
           success: true,
-          events: this.eventHistory,
-          count: this.eventHistory.length,
+          events: eventHistory,
+          count: eventHistory.length,
         });
       }
 
       // 找到指定事件 ID 之後的所有事件
-      const sinceIndex = this.eventHistory.findIndex(
+      const sinceIndex = eventHistory.findIndex(
         (e) => e.eventId === sinceEventId,
       );
 
@@ -415,14 +448,14 @@ export class RealtimeSession implements DurableObject {
         // 找不到指定的事件 ID，返回所有事件
         return Response.json({
           success: true,
-          events: this.eventHistory,
-          count: this.eventHistory.length,
+          events: eventHistory,
+          count: eventHistory.length,
           note: "Event ID not found, returning all available events",
         });
       }
 
       // 返回指定事件之後的所有事件
-      const missedEvents = this.eventHistory.slice(sinceIndex + 1);
+      const missedEvents = eventHistory.slice(sinceIndex + 1);
 
       return Response.json({
         success: true,
@@ -480,7 +513,7 @@ export class RealtimeSession implements DurableObject {
   private routeEvent(event: RealtimeEvent): number {
     let sentCount = 0;
 
-    for (const [socket, connectionInfo] of this.connections) {
+    for (const [socket, connectionInfo] of this.getConnectionEntries()) {
       if (socket.readyState !== WebSocket.OPEN) continue;
 
       // 檢查是否應該發送此事件到此連線
@@ -488,6 +521,7 @@ export class RealtimeSession implements DurableObject {
         this.sendEvent(socket, event);
         // 更新最後接收的事件 ID
         connectionInfo.lastEventId = event.eventId;
+        socket.serializeAttachment(connectionInfo);
         sentCount++;
       }
     }
@@ -565,20 +599,72 @@ export class RealtimeSession implements DurableObject {
   /**
    * 添加事件到歷史記錄
    */
-  private addToEventHistory(event: RealtimeEvent): void {
-    this.eventHistory.push(event);
+  private async loadEventHistory(): Promise<RealtimeEvent[]> {
+    if (this.eventHistory) return this.eventHistory;
+
+    this.eventHistory =
+      (await this.state.storage.get<RealtimeEvent[]>(
+        EVENT_HISTORY_STORAGE_KEY,
+      )) ?? [];
+    return this.eventHistory;
+  }
+
+  private async addToEventHistory(event: RealtimeEvent): Promise<void> {
+    const eventHistory = await this.loadEventHistory();
+    eventHistory.push(event);
 
     // 1. 基於大小的清理：保持歷史記錄在限制範圍內
-    if (this.eventHistory.length > this.MAX_EVENT_HISTORY) {
-      this.eventHistory.shift(); // 移除最舊的事件
+    while (eventHistory.length > this.MAX_EVENT_HISTORY) {
+      eventHistory.shift(); // 移除最舊的事件
     }
 
     // 2. 基於時間的清理：移除超過 24 小時的舊事件
     const now = Date.now();
     const cutoffTime = now - this.MAX_EVENT_AGE_MS;
-    this.eventHistory = this.eventHistory.filter(
-      (e) => e.timestamp > cutoffTime,
-    );
+    this.eventHistory = eventHistory.filter((e) => e.timestamp > cutoffTime);
+
+    await this.state.storage.put(EVENT_HISTORY_STORAGE_KEY, this.eventHistory);
+  }
+
+  private async loadRoomInfo(): Promise<{ type: string; id: string } | null> {
+    if (this.roomInfo) return this.roomInfo;
+
+    this.roomInfo =
+      (await this.state.storage.get<{ type: string; id: string }>(
+        ROOM_INFO_STORAGE_KEY,
+      )) ?? null;
+    return this.roomInfo;
+  }
+
+  private async ensureRoomInfo(
+    roomType: string,
+    roomId: string,
+  ): Promise<{ type: string; id: string }> {
+    const existingRoomInfo = await this.loadRoomInfo();
+    if (existingRoomInfo) return existingRoomInfo;
+
+    this.roomInfo = { type: roomType, id: roomId };
+    await this.state.storage.put(ROOM_INFO_STORAGE_KEY, this.roomInfo);
+    return this.roomInfo;
+  }
+
+  private getActiveConnections(): WebSocket[] {
+    return this.state.getWebSockets().filter((socket) => {
+      return (
+        socket.readyState === WebSocket.OPEN && !!this.getConnectionInfo(socket)
+      );
+    });
+  }
+
+  private getConnectionInfo(socket: WebSocket): ConnectionInfo | null {
+    return socket.deserializeAttachment() as ConnectionInfo | null;
+  }
+
+  private getConnectionEntries(): Array<[WebSocket, ConnectionInfo]> {
+    return this.getActiveConnections().map((socket) => [
+      socket,
+      this.getConnectionInfo(socket)!,
+    ]);
   }
 
   /**
@@ -740,25 +826,25 @@ export class RealtimeSession implements DurableObject {
   }
 
   // Cleanup inactive connections and expired events
-  private cleanupConnections(): void {
+  private async cleanupConnections(): Promise<void> {
     const now = Date.now();
     const timeout = 30 * 60 * 1000; // 30 minutes
 
     // 1. 清理不活躍的連線
-    for (const [socket, connectionInfo] of this.connections) {
+    for (const [socket, connectionInfo] of this.getConnectionEntries()) {
       if (now - connectionInfo.lastActivity > timeout) {
         socket.close();
-        this.connections.delete(socket);
+        socket.serializeAttachment(null);
         // Inactive connection cleanup completed
       }
     }
 
     // 2. 清理過期的事件歷史記錄
     const cutoffTime = now - this.MAX_EVENT_AGE_MS;
-    const beforeCount = this.eventHistory.length;
-    this.eventHistory = this.eventHistory.filter(
-      (e) => e.timestamp > cutoffTime,
-    );
+    const eventHistory = await this.loadEventHistory();
+    const beforeCount = eventHistory.length;
+    this.eventHistory = eventHistory.filter((e) => e.timestamp > cutoffTime);
+    await this.state.storage.put(EVENT_HISTORY_STORAGE_KEY, this.eventHistory);
     const afterCount = this.eventHistory.length;
 
     // 記錄清理情況（僅在有清理時）
@@ -769,6 +855,6 @@ export class RealtimeSession implements DurableObject {
 
   // Periodic cleanup
   async alarm(): Promise<void> {
-    this.cleanupConnections();
+    await this.cleanupConnections();
   }
 }

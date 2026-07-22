@@ -403,7 +403,7 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
 
     heartbeatTimer = setInterval(() => {
       if (ws.value?.readyState === WebSocket.OPEN) {
-        send({ type: "ping", timestamp: Date.now() });
+        send("ping");
       }
     }, heartbeatInterval);
   };
