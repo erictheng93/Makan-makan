@@ -270,7 +270,7 @@ async function handleHealthCheck(
         criticalIssues,
         warningIssues,
       ],
-      indexes: ["health", health.overall_status],
+      indexes: ["health"],
     });
 
     // Create alerts when the system is degraded or unhealthy
@@ -684,7 +684,7 @@ async function aggregateDailyMetrics(
         metric.total_size_bytes ?? 0,
         metric.average_duration_seconds ?? 0,
       ],
-      indexes: ["backup_daily_metrics", metric.restaurant_id],
+      indexes: ["backup_daily_metrics"],
     });
   }
 }
