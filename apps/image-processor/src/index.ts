@@ -14,7 +14,10 @@ import {
   images,
   imageViews,
   imageProcessingJobs,
+  menuItems,
 } from "@makanmakan/database";
+import { inArray } from "drizzle-orm";
+import { CloudflareImagesAPI } from "./utils/cloudflare-images";
 
 type SlackTextObject = {
   type: "mrkdwn";
@@ -296,6 +299,9 @@ export default {
       // 清理過期的快取
       await cleanupExpiredCache(env);
 
+      // 掃描並刪除孤兒 Cloudflare Images（上傳成功但未寫回選單的殘留圖片）
+      await sweepOrphanedImages(env);
+
       // 發送每日使用統計（cron 為 UTC；01:00 UTC = 台灣時間上午 9 點）
       if (event.cron === "0 1 * * *") {
         await sendDailyStats(env);
@@ -361,6 +367,165 @@ async function cleanupExpiredCache(env: Env) {
     console.log(`Cleaned up ${keys.keys.length} temporary cache items`);
   } catch (error) {
     console.error("Failed to cleanup cache:", error);
+  }
+}
+
+// 孤兒圖片掃描：每次執行最多刪除的張數上限，用於限制 cron 執行時間
+const ORPHAN_SWEEP_MAX_DELETIONS = 100;
+// 只清理上傳超過 48 小時的圖片，避免刪到剛上傳、選單寫回尚未完成的圖片
+const ORPHAN_SWEEP_MIN_AGE_MS = 48 * 60 * 60 * 1000;
+const ORPHAN_SWEEP_PAGE_SIZE = 100;
+
+// 給定一批 Cloudflare Images id，回傳其中「有被引用」的 id 集合。
+// 引用來源有二：
+//   1. menu_items.image_id 直接指向該 id（防禦性，涵蓋直接以 CF id 綁定的情況）
+//   2. 本 worker images 表以 cloudflare_image_id 對應到一筆 images.id，
+//      而該 images.id 又被 menu_items.image_id 引用（正常上傳→寫回選單流程）
+async function findReferencedImageIds(
+  db: ReturnType<typeof createDatabase>,
+  cloudflareImageIds: string[],
+): Promise<Set<string>> {
+  const referenced = new Set<string>();
+  if (cloudflareImageIds.length === 0) return referenced;
+
+  // 1. menu_items.image_id 直接引用 CF id
+  const directRefs = await db
+    .select({ imageId: menuItems.imageId })
+    .from(menuItems)
+    .where(inArray(menuItems.imageId, cloudflareImageIds));
+  for (const row of directRefs) {
+    if (row.imageId) referenced.add(row.imageId);
+  }
+
+  // 2. 透過本 worker images 表把 CF id 對應到 images.id
+  const imageRows = await db
+    .select({ id: images.id, cloudflareImageId: images.cloudflareImageId })
+    .from(images)
+    .where(inArray(images.cloudflareImageId, cloudflareImageIds));
+
+  const imageIdToCloudflareId = new Map<string, string>();
+  const workerImageIds: string[] = [];
+  for (const row of imageRows) {
+    if (row.id && row.cloudflareImageId) {
+      imageIdToCloudflareId.set(row.id, row.cloudflareImageId);
+      workerImageIds.push(row.id);
+    }
+  }
+
+  // 3. 檢查這些 images.id 是否被 menu_items.image_id 引用
+  if (workerImageIds.length > 0) {
+    const menuRefs = await db
+      .select({ imageId: menuItems.imageId })
+      .from(menuItems)
+      .where(inArray(menuItems.imageId, workerImageIds));
+    for (const row of menuRefs) {
+      const cfId = row.imageId
+        ? imageIdToCloudflareId.get(row.imageId)
+        : undefined;
+      if (cfId) referenced.add(cfId);
+    }
+  }
+
+  return referenced;
+}
+
+type OrphanSweepDeps = {
+  // 圖片 API：預設使用真實的 CloudflareImagesAPI，測試時可注入 mock
+  cloudflareImages?: Pick<CloudflareImagesAPI, "listImages" | "deleteImage">;
+  // 引用解析：給定一批 CF id 回傳已被引用的 id 集合，測試時可注入避免依賴真實 D1
+  resolveReferenced?: (cloudflareImageIds: string[]) => Promise<Set<string>>;
+};
+
+// 掃描 Cloudflare Images，刪除「超過 48h 且未被任何選單引用」的孤兒圖片。
+// 每個步驟都獨立 try/catch，任何失敗都不應影響其他 cron 步驟。
+export async function sweepOrphanedImages(
+  env: Env,
+  deps: OrphanSweepDeps = {},
+) {
+  try {
+    const cloudflareImages =
+      deps.cloudflareImages ?? new CloudflareImagesAPI(env);
+    const resolveReferenced =
+      deps.resolveReferenced ??
+      ((cloudflareImageIds: string[]) =>
+        findReferencedImageIds(createDatabase(env.DB), cloudflareImageIds));
+    const cutoffMs = Date.now() - ORPHAN_SWEEP_MIN_AGE_MS;
+
+    let deleted = 0;
+    let page = 1;
+
+    while (deleted < ORPHAN_SWEEP_MAX_DELETIONS) {
+      const listResult = await cloudflareImages.listImages({
+        page,
+        perPage: ORPHAN_SWEEP_PAGE_SIZE,
+      });
+
+      if (!listResult.success) {
+        console.error(
+          "Orphan sweep: failed to list Cloudflare images:",
+          listResult.error,
+        );
+        break;
+      }
+
+      const pageImages = listResult.result.images ?? [];
+      if (pageImages.length === 0) break;
+
+      // 只保留上傳超過 48h 的候選圖片
+      const oldEnough = pageImages.filter((img) => {
+        if (!img.uploaded) return false;
+        const uploadedMs = Date.parse(img.uploaded);
+        return Number.isFinite(uploadedMs) && uploadedMs < cutoffMs;
+      });
+
+      if (oldEnough.length > 0) {
+        let referenced: Set<string>;
+        try {
+          referenced = await resolveReferenced(oldEnough.map((img) => img.id));
+        } catch (error) {
+          console.error(
+            "Orphan sweep: reference lookup failed, skipping page to stay safe:",
+            error,
+          );
+          // 查不到引用關係時，寧可不刪，避免誤刪使用中的圖片
+          if (pageImages.length < ORPHAN_SWEEP_PAGE_SIZE) break;
+          page++;
+          continue;
+        }
+
+        for (const img of oldEnough) {
+          if (deleted >= ORPHAN_SWEEP_MAX_DELETIONS) break;
+          if (referenced.has(img.id)) continue;
+
+          try {
+            const deleteResult = await cloudflareImages.deleteImage(img.id);
+            if (deleteResult.success) {
+              deleted++;
+              console.log(
+                `Orphan sweep: deleted unreferenced Cloudflare image ${img.id} (uploaded ${img.uploaded})`,
+              );
+            } else {
+              console.error(
+                `Orphan sweep: failed to delete image ${img.id}: ${deleteResult.error}`,
+              );
+            }
+          } catch (error) {
+            console.error(
+              `Orphan sweep: error deleting image ${img.id}:`,
+              error,
+            );
+          }
+        }
+      }
+
+      // 最後一頁
+      if (pageImages.length < ORPHAN_SWEEP_PAGE_SIZE) break;
+      page++;
+    }
+
+    console.log(`Orphan sweep complete: ${deleted} image(s) deleted`);
+  } catch (error) {
+    console.error("Orphan sweep failed:", error);
   }
 }
 

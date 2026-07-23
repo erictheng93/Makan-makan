@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
-    "legacy": "0089_schema_hardening_payment_idempotency_backup_timestamps.sql"
+    "fresh": "0074_menu_items_image_id.sql",
+    "legacy": "0091_menu_items_image_id.sql"
   },
   "pairs": [
     {

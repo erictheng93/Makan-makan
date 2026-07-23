@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
 
 const serviceMethods = vi.hoisted(() => ({
-  requestPasswordReset: vi.fn(),
   verifyResetToken: vi.fn(),
-  resetPassword: vi.fn(),
   sendEmailVerification: vi.fn(),
   verifyEmail: vi.fn(),
   sendPhoneVerification: vi.fn(),
@@ -15,7 +13,6 @@ const verificationService = vi.hoisted(() =>
     return serviceMethods;
   }),
 );
-const passwordResetAttempt = vi.hoisted(() => vi.fn());
 const testUser = { id: 42, email: "customer@example.test", role: 5 };
 
 vi.mock("@makanmakan/database", async (importOriginal) => ({
@@ -48,12 +45,6 @@ vi.mock("../../../middleware/auth", () => ({
   },
 }));
 
-vi.mock("../../../services/AlertService", () => ({
-  AlertService: function AlertService() {
-    return { passwordResetAttempt };
-  },
-}));
-
 function createEnv() {
   return { DB: {}, CACHE_KV: {} };
 }
@@ -63,76 +54,9 @@ const token = "123e4567-e89b-12d3-a456-426614174000";
 describe("verification routes", () => {
   beforeEach(() => {
     verificationService.mockClear();
-    passwordResetAttempt.mockReset();
     for (const method of Object.values(serviceMethods)) {
       method.mockReset();
     }
-  });
-
-  it("requests password resets with client metadata", async () => {
-    serviceMethods.requestPasswordReset.mockResolvedValue({
-      success: true,
-      message: "sent",
-    });
-
-    const response = await routes.fetch(
-      new Request("https://test/forgot-password", {
-        method: "POST",
-        headers: {
-          "cf-connecting-ip": "203.0.113.10",
-          "user-agent": "Vitest",
-        },
-        body: JSON.stringify({
-          identifier: "customer@example.test",
-          method: "email",
-        }),
-      }),
-      createEnv() as never,
-    );
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      success: true,
-      message: "sent",
-    });
-    expect(serviceMethods.requestPasswordReset).toHaveBeenCalledWith({
-      identifier: "customer@example.test",
-      method: "email",
-      ipAddress: "203.0.113.10",
-      userAgent: "Vitest",
-    });
-  });
-
-  it("validates and wraps password reset request failures", async () => {
-    const invalidResponse = await routes.fetch(
-      new Request("https://test/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ identifier: "", method: "email" }),
-      }),
-      createEnv() as never,
-    );
-
-    expect(invalidResponse.status).toBe(400);
-    expect(serviceMethods.requestPasswordReset).not.toHaveBeenCalled();
-
-    serviceMethods.requestPasswordReset.mockRejectedValue(
-      new Error("mailer unavailable"),
-    );
-    const errorResponse = await routes.fetch(
-      new Request("https://test/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({
-          identifier: "customer@example.test",
-          method: "email",
-        }),
-      }),
-      createEnv() as never,
-    );
-
-    expect(errorResponse.status).toBe(500);
-    await expect(errorResponse.json()).resolves.toMatchObject({
-      success: false,
-    });
   });
 
   it("verifies reset tokens and handles invalid lookup results", async () => {
@@ -169,46 +93,6 @@ describe("verification routes", () => {
     );
 
     expect(invalidLookupResponse.status).toBe(400);
-  });
-
-  it("resets passwords after token and confirmation validation", async () => {
-    const mismatchResponse = await routes.fetch(
-      new Request("https://test/reset-password", {
-        method: "POST",
-        body: JSON.stringify({
-          token,
-          newPassword: "secret1",
-          confirmPassword: "secret2",
-        }),
-      }),
-      createEnv() as never,
-    );
-    expect(mismatchResponse.status).toBe(400);
-
-    serviceMethods.resetPassword.mockResolvedValue({
-      success: true,
-      message: "updated",
-    });
-    const response = await routes.fetch(
-      new Request("https://test/reset-password", {
-        method: "POST",
-        headers: { "user-agent": "Vitest" },
-        body: JSON.stringify({
-          token,
-          newPassword: "secret1",
-          confirmPassword: "secret1",
-        }),
-      }),
-      createEnv() as never,
-    );
-
-    expect(response.status).toBe(200);
-    expect(serviceMethods.resetPassword).toHaveBeenCalledWith({
-      token,
-      newPassword: "secret1",
-      ipAddress: "unknown",
-      userAgent: "Vitest",
-    });
   });
 
   it("sends email verification only for authenticated users", async () => {

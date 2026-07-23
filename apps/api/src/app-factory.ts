@@ -6,11 +6,7 @@ import type {
   ClientErrorStatusCode,
   ServerErrorStatusCode,
 } from "hono/utils/http-status";
-import {
-  authMiddleware,
-  optionalAuth,
-  staffOrUserCustomerAuthMiddleware,
-} from "./middleware/auth";
+import { authMiddleware, optionalAuth } from "./middleware/auth";
 import { corsMiddleware } from "./middleware/cors";
 import { csrfProtection, attachCSRFToken } from "./middleware/csrf";
 // import { rateLimitMiddleware } from './middleware/rateLimit'
@@ -229,12 +225,7 @@ export function createApp(
   app.use(
     "*",
     geoIntelligentRateLimitMiddleware({
-      skipPaths: [
-        "/health",
-        "/info",
-        "/api/v1/sse/events",
-        // Kitchen SSE — long-lived stream, rate limiting would reject reconnects
-      ],
+      skipPaths: ["/health", "/info"],
       customLimits: {
         "/api/v1/auth/login": {
           requests: 100,
@@ -524,6 +515,13 @@ export function createApp(
         credits: "/api/v1/credits",
         integrations: "/api/v1/integrations",
         ingredients: "/api/v1/ingredients",
+        discovery: "/api/v1/discovery",
+        markets: "/api/v1/markets",
+        feedback: "/api/v1/feedback",
+        billing: "/api/v1/billing",
+        manager: "/api/v1/manager",
+        auditLogs: "/api/v1/audit-logs",
+        customer: "/api/v1/customer",
         me: "/api/v1/me",
         health: "/health",
         docs: "/docs",
@@ -578,7 +576,16 @@ export function createApp(
   // Kitchen routes handle auth at the route level so the /events SSE endpoint
   // can use sseAuthMiddleware (token via query param — EventSource cannot send
   // Authorization headers). All /kitchen/* routes have per-route authMiddleware.
-  apiV1.use("/orders/*", staffOrUserCustomerAuthMiddleware);
+  //
+  // Orders + group-orders handle auth at the route level too. A blanket
+  // `use("/orders/*", staffOrUserCustomerAuthMiddleware)` here would run BEFORE
+  // the mounted sub-apps (Hono executes matching middleware in registration
+  // order, and this block precedes the `apiV1.route("/orders/...")` mounts
+  // below), gating the intentionally-anonymous group-order share-code routes
+  // (join/cart/split/payment/leave) that authenticate via share code instead of
+  // a JWT. Every protected orders/group-orders route already carries its own
+  // per-route customerAuthMiddleware/authMiddleware, so no blanket gate is
+  // needed — mirroring the tables/seats/menu convention.
   apiV1.use("/pos/*", authMiddleware);
   apiV1.use("/pos/*", moduleGate("pos"));
   apiV1.use("/payments/*", authMiddleware);
@@ -586,7 +593,10 @@ export function createApp(
   // apiV1.use('/print/*', authMiddleware) // Disabled - incomplete feature
   // Tables routes handle auth at the route level so public QR lookups
   // (`GET /tables/qr/:qrCode`) remain reachable without a bearer token.
-  apiV1.use("/seats/*", authMiddleware);
+  // Seats routes follow the same convention: every route carries its own
+  // per-route authMiddleware + requireRole, and the designed-public
+  // `GET /seats/qr/:qrCode` lookup is intentionally left unauthenticated.
+  // A blanket `use("/seats/*", authMiddleware)` here would defeat that.
   apiV1.use("/users/*", authMiddleware);
   apiV1.use("/analytics/*", authMiddleware);
   apiV1.use("/ai-analytics/*", authMiddleware);

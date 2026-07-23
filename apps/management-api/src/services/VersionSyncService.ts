@@ -11,6 +11,7 @@ import type {
 } from "../types";
 import { ProvisioningService } from "./ProvisioningService";
 import { randomId } from "../utils/random";
+import { compareVersions } from "../utils/semver";
 
 export interface VersionRelease {
   version: string;
@@ -150,20 +151,55 @@ export class VersionSyncService {
       })),
     };
 
-    // 根據策略執行更新
-    switch (plan.strategy) {
-      case "all_at_once":
-        await this.executeAllAtOnce(plan, tenants, progress);
-        break;
-      case "rolling":
-        await this.executeRolling(plan, tenants, progress);
-        break;
-      case "canary":
-        await this.executeCanary(plan, tenants, progress);
-        break;
+    // 寫入初始進度，讓 GET /updates/plans/:planId/progress 可即時查詢。
+    await this.writeProgress(progress);
+
+    try {
+      // 根據策略執行更新（updateTenant 會在每個租戶完成後回寫進度）
+      switch (plan.strategy) {
+        case "all_at_once":
+          await this.executeAllAtOnce(plan, tenants, progress);
+          break;
+        case "rolling":
+          await this.executeRolling(plan, tenants, progress);
+          break;
+        case "canary":
+          await this.executeCanary(plan, tenants, progress);
+          break;
+      }
+
+      // 標記計劃完成並回寫最終進度
+      plan.status = "completed";
+      plan.completedAt = new Date().toISOString();
+      await this.env.CACHE_KV.put(
+        `update_plan:${plan.id}`,
+        JSON.stringify(plan),
+      );
+    } catch (error) {
+      plan.status = "failed";
+      await this.env.CACHE_KV.put(
+        `update_plan:${plan.id}`,
+        JSON.stringify(plan),
+      );
+      throw error;
+    } finally {
+      // 無論成功或失敗，都回寫最新進度快照
+      await this.writeProgress(progress);
     }
 
     return progress;
+  }
+
+  /**
+   * 將批量更新進度寫入 CACHE_KV，供進度查詢端點讀取。
+   * TTL 24 小時，避免過期計劃殘留。
+   */
+  private async writeProgress(progress: BatchUpdateProgress): Promise<void> {
+    await this.env.CACHE_KV.put(
+      `update_progress:${progress.planId}`,
+      JSON.stringify(progress),
+      { expirationTtl: 86400 },
+    );
   }
 
   /**
@@ -275,6 +311,8 @@ export class VersionSyncService {
       progress.failedTenants++;
     } finally {
       progress.inProgressTenants--;
+      // 每個租戶更新後回寫進度快照，讓查詢端點看到即時狀態。
+      await this.writeProgress(progress);
     }
   }
 
@@ -327,21 +365,26 @@ export class VersionSyncService {
    */
   async getTenantsNeedingUpdate(targetVersion: string): Promise<Tenant[]> {
     const db = this.env.MANAGEMENT_DB;
+    // NOTE: We cannot filter `deployed_version < ?` in SQL — SQLite compares
+    // TEXT lexicographically, so "1.10.0" would be treated as < "1.2.0".
+    // Fetch active tenants and compare with semver in JS instead.
     const results = await db
       .prepare(
         `
         SELECT * FROM tenants
         WHERE status = 'active'
-          AND (deployed_version IS NULL OR deployed_version < ?)
         ORDER BY business_name
       `,
       )
-      .bind(targetVersion)
       .all();
 
-    return (results.results ?? []).map((row) =>
-      this.mapTenantRow(row as Record<string, unknown>),
-    );
+    return (results.results ?? [])
+      .map((row) => this.mapTenantRow(row as Record<string, unknown>))
+      .filter(
+        (tenant) =>
+          !tenant.deployedVersion ||
+          compareVersions(tenant.deployedVersion, targetVersion) < 0,
+      );
   }
 
   /**

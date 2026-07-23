@@ -134,17 +134,21 @@ export class AIInsightsService {
   ): Promise<BusinessMetrics> {
     const { startDate, endDate } = this.getDateRange(timeRange);
 
-    // Fetch overall metrics
+    // Fetch overall metrics.
+    // Real schema: monetary columns are integer *cents* (total_amount_cents),
+    // the customer FK is customer_id, and timestamps are Unix-ms (created_at_ms).
+    // Revenue/AOV are divided by 100 so downstream code sees major units.
+    // orders.status has no "completed" value — fulfilled orders are paid/delivered.
     const overallQuery = `
       SELECT
         COUNT(*) AS total_orders,
-        SUM(total_amount) AS total_revenue,
-        AVG(total_amount) AS avg_order_value,
-        COUNT(DISTINCT user_id) AS unique_customers
+        COALESCE(SUM(total_amount_cents), 0) / 100.0 AS total_revenue,
+        COALESCE(AVG(total_amount_cents), 0) / 100.0 AS avg_order_value,
+        COUNT(DISTINCT customer_id) AS unique_customers
       FROM orders
       WHERE restaurant_id = ?
-        AND DATE(created_at) BETWEEN ? AND ?
-        AND status = 'completed'
+        AND DATE(created_at_ms / 1000, 'unixepoch') BETWEEN ? AND ?
+        AND status IN ('paid', 'delivered')
     `;
 
     const overall = await this.db
@@ -160,13 +164,13 @@ export class AIInsightsService {
     // Fetch peak hours
     const peakHoursQuery = `
       SELECT
-        CAST(strftime('%H', created_at) AS INTEGER) AS hour,
+        CAST(strftime('%H', created_at_ms / 1000, 'unixepoch') AS INTEGER) AS hour,
         COUNT(*) AS orderCount,
-        SUM(total_amount) AS revenue
+        COALESCE(SUM(total_amount_cents), 0) / 100.0 AS revenue
       FROM orders
       WHERE restaurant_id = ?
-        AND DATE(created_at) BETWEEN ? AND ?
-        AND status = 'completed'
+        AND DATE(created_at_ms / 1000, 'unixepoch') BETWEEN ? AND ?
+        AND status IN ('paid', 'delivered')
       GROUP BY hour
       ORDER BY orderCount DESC
       LIMIT 5
@@ -180,13 +184,13 @@ export class AIInsightsService {
     // Fetch peak days
     const peakDaysQuery = `
       SELECT
-        CAST(strftime('%w', created_at) AS INTEGER) AS dayOfWeek,
+        CAST(strftime('%w', created_at_ms / 1000, 'unixepoch') AS INTEGER) AS dayOfWeek,
         COUNT(*) AS orderCount,
-        SUM(total_amount) AS revenue
+        COALESCE(SUM(total_amount_cents), 0) / 100.0 AS revenue
       FROM orders
       WHERE restaurant_id = ?
-        AND DATE(created_at) BETWEEN ? AND ?
-        AND status = 'completed'
+        AND DATE(created_at_ms / 1000, 'unixepoch') BETWEEN ? AND ?
+        AND status IN ('paid', 'delivered')
       GROUP BY dayOfWeek
       ORDER BY orderCount DESC
     `;
@@ -199,15 +203,15 @@ export class AIInsightsService {
     // Fetch daily metrics
     const dailyQuery = `
       SELECT
-        DATE(created_at) AS date,
-        SUM(total_amount) AS revenue,
+        DATE(created_at_ms / 1000, 'unixepoch') AS date,
+        COALESCE(SUM(total_amount_cents), 0) / 100.0 AS revenue,
         COUNT(*) AS orders,
-        AVG(total_amount) AS avgOrderValue
+        COALESCE(AVG(total_amount_cents), 0) / 100.0 AS avgOrderValue
       FROM orders
       WHERE restaurant_id = ?
-        AND DATE(created_at) BETWEEN ? AND ?
-        AND status = 'completed'
-      GROUP BY DATE(created_at)
+        AND DATE(created_at_ms / 1000, 'unixepoch') BETWEEN ? AND ?
+        AND status IN ('paid', 'delivered')
+      GROUP BY DATE(created_at_ms / 1000, 'unixepoch')
       ORDER BY date ASC
     `;
 
@@ -511,12 +515,12 @@ ${metrics.profitLeaders
 
     const query = `
       SELECT
-        SUM(total_amount) AS revenue,
+        COALESCE(SUM(total_amount_cents), 0) / 100.0 AS revenue,
         COUNT(*) AS orders
       FROM orders
       WHERE restaurant_id = ?
-        AND DATE(created_at) BETWEEN ? AND ?
-        AND status = 'completed'
+        AND DATE(created_at_ms / 1000, 'unixepoch') BETWEEN ? AND ?
+        AND status IN ('paid', 'delivered')
     `;
 
     const result = await this.db

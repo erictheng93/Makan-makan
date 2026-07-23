@@ -58,7 +58,7 @@ function newOrderEvent(): NewOrderEvent {
 }
 
 describe("RealtimeBroadcastService", () => {
-  it("fans out new order events to restaurant and kitchen rooms", async () => {
+  it("fans out new order events to restaurant, kitchen, and admin rooms", async () => {
     const { env, idFromName, fetch } = createRealtimeEnv();
     const service = new RealtimeBroadcastService(env);
 
@@ -67,11 +67,14 @@ describe("RealtimeBroadcastService", () => {
     expect(result).toMatchObject({
       success: true,
       eventId: "evt-market-1",
-      recipientCount: 4,
+      recipientCount: 6,
     });
     expect(idFromName).toHaveBeenCalledWith("restaurant:restaurant-1");
     expect(idFromName).toHaveBeenCalledWith("kitchen:restaurant-1");
-    expect(fetch).toHaveBeenCalledTimes(2);
+    // The admin dashboard connects to `admin:{restaurantId}`; without this room
+    // it never receives order events (bug-inventory #1).
+    expect(idFromName).toHaveBeenCalledWith("admin:restaurant-1");
+    expect(fetch).toHaveBeenCalledTimes(3);
     expect(fetch).toHaveBeenCalledWith(
       "https://realtime-internal/broadcast",
       expect.objectContaining({

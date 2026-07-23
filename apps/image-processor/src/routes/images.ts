@@ -58,6 +58,23 @@ app.post(
         );
       }
 
+      // Authoritative size enforcement. The checkFileSize middleware only
+      // inspects the Content-Length header (cheap early reject, but spoofable
+      // and absent on some clients). Now that the multipart body is parsed we
+      // have the real byte length — reject oversized uploads before spending a
+      // Cloudflare Images call.
+      const maxSizeMB = parseInt(c.env.MAX_IMAGE_SIZE_MB) || 10;
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        return c.json(
+          {
+            success: false,
+            error: `File too large. Maximum size: ${maxSizeMB}MB`,
+            maxSize: maxSizeMB,
+          },
+          413,
+        );
+      }
+
       const cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
       const uploadRestaurantId =

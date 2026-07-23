@@ -68,7 +68,7 @@
               ]"
             >
               <div
-                v-if="item.status === OrderItemStatus.PREPARING"
+                v-if="item.status === 'preparing'"
                 class="w-2 h-2 bg-current rounded-full animate-pulse mr-1"
               />
               {{ statusText }}
@@ -91,7 +91,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
-import { OrderItemStatus, type OrderItem } from "@makanmakan/shared-types";
+import { type OrderItem } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
 
 // Props
@@ -134,11 +134,11 @@ const customizationText = computed(() => {
   return parts.join(", ");
 });
 
-const statusMap = computed(() => ({
-  [OrderItemStatus.PENDING]: t("orderItem.statusPending"),
-  [OrderItemStatus.PREPARING]: t("orderItem.statusPreparing"),
-  [OrderItemStatus.READY]: t("orderItem.statusReady"),
-  [OrderItemStatus.DELIVERED]: t("orderItem.statusServed"),
+const statusMap = computed<Record<string, string>>(() => ({
+  pending: t("orderItem.statusPending"),
+  preparing: t("orderItem.statusPreparing"),
+  ready: t("orderItem.statusReady"),
+  served: t("orderItem.statusServed"),
 }));
 
 const statusText = computed(() => {
@@ -151,11 +151,11 @@ const statusText = computed(() => {
 const statusClasses = computed(() => {
   if (!props.showStatus || props.item.status === undefined) return "";
 
-  const classMap = {
-    [OrderItemStatus.PENDING]: "bg-ios-orange/15 text-ios-orange",
-    [OrderItemStatus.PREPARING]: "bg-ios-orange/15 text-ios-orange",
-    [OrderItemStatus.READY]: "bg-ios-green/15 text-ios-green",
-    [OrderItemStatus.DELIVERED]: "bg-gray-100 text-ios-secondary",
+  const classMap: Record<string, string> = {
+    pending: "bg-ios-orange/15 text-ios-orange",
+    preparing: "bg-ios-orange/15 text-ios-orange",
+    ready: "bg-ios-green/15 text-ios-green",
+    served: "bg-gray-100 text-ios-secondary",
   };
 
   return (

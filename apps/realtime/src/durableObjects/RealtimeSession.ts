@@ -536,12 +536,26 @@ export class RealtimeSession implements DurableObject {
     event: RealtimeEvent,
     connectionInfo: ConnectionInfo,
   ): boolean {
+    const eventType = event.type;
+
+    // 群組訂單事件：房間（DO 實例）本身即以 groupOrderId 隔離
+    // （customer:{groupOrderId}），房間內的每個連線都是同一筆群組訂單的
+    // 參與者，因此直接投遞給房間內所有連線，不套用 restaurantId 過濾
+    // ——部分群組事件的 payload 並未帶 restaurantId（bug-inventory #2）。
+    switch (eventType) {
+      case RealtimeEventType.GROUP_ORDER_CREATED:
+      case RealtimeEventType.GROUP_MEMBER_JOINED:
+      case RealtimeEventType.GROUP_CART_ITEM_ADDED:
+      case RealtimeEventType.GROUP_CART_ITEM_UPDATED:
+      case RealtimeEventType.GROUP_CART_ITEM_REMOVED:
+        return true;
+    }
+
     // 驗證餐廳 ID 匹配
     if (event.restaurantId !== connectionInfo.auth?.restaurantId) {
       return false;
     }
 
-    const eventType = event.type;
     const role = connectionInfo.auth?.role || "customer";
 
     // 根據事件類型和連線角色決定是否發送

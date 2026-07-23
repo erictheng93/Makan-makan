@@ -118,6 +118,40 @@ The Rust rewrite should *decide* on each (fix, drop, or intentionally
 preserve) rather than port them blindly. File references are in the linked
 docs.
 
+> **Remediation status (2026-07-24)**: all 35 items were remediated in the
+> TypeScript codebase (see the fix commit touching this line), with these
+> qualifications:
+> - **#29 requires operator action** — the production
+>   `CLOUDFLARE_IMAGES_ACCOUNT_HASH` is a secret only an operator can fill;
+>   the `check-production-config.cjs` deploy gate continues to block until
+>   it is set.
+> - **#6** turned out to be two (not three) genuine method+path collisions —
+>   verification's `GET /verify-email` never collided with authentication's
+>   POST; the two shadowed POST handlers were removed from verification
+>   (zero behavior change), which also resolves the colliding half of #25.
+> - **#4/#5** were fixed by deleting the blanket gates — every protected
+>   route already carried per-route auth; the unreachable `orders/guest*`
+>   routes were deleted (live path is `/guest-orders`).
+> - **#13** compensation is best-effort by design (D1 has no distributed
+>   transactions): failures surface as session status
+>   `requires_manual_review` + loud logs. While fixing **#18**, the
+>   pre-existing `db.transaction()` wrapper was found to be non-functional
+>   on D1 (rejects BEGIN/SAVEPOINT) and was replaced with `db.batch()`.
+> - **#19**: the stale `skipPaths` entry was removed; the 410 tombstone
+>   routes themselves are intentional and kept.
+> - **#22** deletions were each re-verified zero-reference before removal;
+>   three candidates were intentionally **kept**: `useGroupOrder.ts`
+>   (live type-only importers), `useOptimizedWebSocket.ts` (has a real
+>   behavioral test), and the `@makanmakan/queue-service` package
+>   (workspace-level decision deferred).
+> - **#20**: encryption/compression now wired into backup create/restore
+>   (key = existing `ENCRYPTION_KEY` secret; hard error if enabled without
+>   a key). Decrypt-on-download of encrypted backups remains a follow-up.
+> - **#24**: the server shape was taken as truth; only the client-side
+>   `orderApi.ts` type was wrong and was aligned.
+> The per-doc prose below describes the PRE-fix state the Rust rewrite
+> would otherwise have ported — read it together with this status block.
+
 **Realtime delivery (realtime.md, api-features-realtime-misc.md)**
 1. Order/kitchen broadcasts target DO rooms `restaurant:{id}`/`kitchen:{id}`,
    but the admin dashboard connects to `admin:{id}` — admin dashboards never

@@ -12,6 +12,14 @@ import { generateLicenseKey } from "../utils/random";
 
 const router = new Hono<{ Bindings: ManagementEnv }>();
 
+/**
+ * Public licenses router — routes that must be reachable WITHOUT a management
+ * Bearer token because they authenticate via the request payload itself.
+ * Mounted in index.ts on the public API prefix, ahead of the Bearer-protected
+ * `/licenses/*` block, so these routes win by registration order.
+ */
+export const publicLicensesRouter = new Hono<{ Bindings: ManagementEnv }>();
+
 // ============================================================
 // License Features by Tier
 // ============================================================
@@ -155,12 +163,17 @@ router.post("/generate", async (c) => {
  * Verify license (called by independent deployments)
  * POST /api/v1/licenses/verify
  *
+ * PUBLIC endpoint (no management Bearer token): cross-service callers
+ * authenticate by presenting a valid tenantId + licenseKey in the body, which
+ * this handler validates against the database. It is therefore registered on
+ * `publicLicensesRouter`, not the Bearer-protected `router`.
+ *
  * NOTE: This endpoint intentionally keeps its own `{ valid, error }` response
  * contract — it is consumed by independent deployments' LicenseService
  * (apps/api/src/services/LicenseService.ts), not by the management portal.
  * Do not convert it to the `{ success, error: { code, message } }` format.
  */
-router.post("/verify", async (c) => {
+publicLicensesRouter.post("/verify", async (c) => {
   try {
     const body = await c.req.json();
     const validated = verifyLicenseSchema.parse(body);

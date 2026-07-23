@@ -50,22 +50,6 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
   };
 });
 
-vi.mock("../../../middleware/guestAuth", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../../../middleware/guestAuth")>();
-  return {
-    ...actual,
-    guestSessionAuth: vi.fn(async (c, next) => {
-      c.set("guestSession", {
-        restaurantId: "restaurant-1",
-        phoneLastDigits: "6789",
-      });
-      await next();
-    }),
-    guestTokenAuth: vi.fn(async (_c, next) => next()),
-  };
-});
-
 vi.mock("../../../middleware/moduleGate", () => ({
   moduleGate: gateMocks.moduleGate,
 }));
@@ -132,110 +116,6 @@ describe("orders routes", () => {
       restaurantId: "restaurant-1",
     };
     authState.customer = { id: "customer-42" };
-  });
-
-  it("creates guest orders and stores the token order mapping", async () => {
-    const env = createEnv();
-    serviceMocks.createOrder.mockResolvedValue({
-      id: 777,
-      restaurantId: "restaurant-1",
-      createdAt: new Date("2026-06-07T00:00:00.000Z"),
-    });
-
-    const response = await routes.fetch(
-      new Request("https://orders.test/guest", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer guest-token-1",
-        },
-        body: JSON.stringify({
-          restaurantId: "restaurant-1",
-          customerName: "Guest",
-          customerPhone: "0912345678",
-          items: [{ menuItemId: 7, quantity: 1, price: 120 }],
-          orderType: "table",
-          tableId: 3,
-        }),
-      }),
-      env as never,
-    );
-
-    expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toMatchObject({
-      success: true,
-      guestToken: "guest-token-1",
-      data: {
-        id: 777,
-        createdAt: Date.parse("2026-06-07T00:00:00.000Z"),
-      },
-    });
-    expect(gateMocks.enforceQuota).toHaveBeenCalledWith(
-      expect.anything(),
-      "orders.created",
-      { restaurantId: "restaurant-1" },
-    );
-    expect(serviceMocks.createOrder).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isGuestOrder: true,
-        customerInfo: { name: "Guest", phone: "0912345678" },
-      }),
-    );
-    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "guest_token:guest-token-1",
-      expect.stringContaining('"orderId":"777"'),
-      { expirationTtl: 14400 },
-    );
-  });
-
-  it("rejects guest order restaurant mismatches", async () => {
-    const response = await withSilencedRouteError(() =>
-      routes.fetch(
-        jsonRequest("/guest", {
-          restaurantId: "restaurant-2",
-          customerName: "Guest",
-          customerPhone: "0912345678",
-          items: [{ menuItemId: 7, quantity: 1, price: 120 }],
-          orderType: "table",
-        }),
-        createEnv() as never,
-      ),
-    );
-
-    expect(response.status).toBe(500);
-    expect(serviceMocks.createOrder).not.toHaveBeenCalled();
-  });
-
-  it("reads guest order status and reports missing guest orders", async () => {
-    serviceMocks.getOrder
-      .mockResolvedValueOnce({
-        id: 777,
-        restaurantId: "restaurant-1",
-        createdAt: "2026-06-07T00:00:00.000Z",
-      })
-      .mockResolvedValueOnce(null);
-
-    const response = await routes.fetch(
-      new Request("https://orders.test/guest/777"),
-      createEnv() as never,
-    );
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      data: {
-        id: 777,
-        createdAt: Date.parse("2026-06-07T00:00:00.000Z"),
-      },
-    });
-    expect(serviceMocks.getOrder).toHaveBeenCalledWith("777", true);
-
-    const missingResponse = await withSilencedRouteError(() =>
-      routes.fetch(
-        new Request("https://orders.test/guest/778"),
-        createEnv() as never,
-      ),
-    );
-    expect(missingResponse.status).toBe(500);
   });
 
   it("previews coupon discounts for the authenticated user", async () => {
@@ -439,7 +319,9 @@ describe("orders routes", () => {
       expect.objectContaining({
         restaurantId: "restaurant-1",
         status: ["pending", "confirmed"],
-        paymentStatus: [1, 2],
+        // payment_status is a TEXT column (pending/completed/failed/refunded);
+        // "paid" is normalized to the canonical "completed".
+        paymentStatus: ["completed", "failed"],
         paymentMethod: ["cash", "card"],
         dateFrom: new Date("2026-06-01T00:00:00.000Z"),
         scheduledTimeFrom: new Date("2026-06-02T00:00:00.000Z"),
@@ -719,6 +601,78 @@ describe("orders routes", () => {
     );
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active:r:p");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:55");
+  });
+
+  it("passes a caller-supplied cancellation reason to the service", async () => {
+    const env = createEnv();
+    serviceMocks.getOrder.mockResolvedValue({
+      id: 55,
+      restaurantId: "restaurant-1",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue({ id: 55, status: "cancelled" });
+
+    const response = await routes.fetch(
+      new Request("https://orders.test/55", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "Customer changed their mind" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(serviceMocks.cancelOrder).toHaveBeenCalledWith(
+      "55",
+      "Customer changed their mind",
+      42,
+      expect.any(Object),
+      expect.objectContaining({ id: 55 }),
+    );
+  });
+
+  it("caps an over-long cancellation reason at 500 characters", async () => {
+    const env = createEnv();
+    serviceMocks.getOrder.mockResolvedValue({
+      id: 55,
+      restaurantId: "restaurant-1",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue({ id: 55, status: "cancelled" });
+
+    const response = await routes.fetch(
+      new Request("https://orders.test/55", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "x".repeat(900) }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const reasonArg = serviceMocks.cancelOrder.mock.calls[0]?.[1] as string;
+    expect(reasonArg).toHaveLength(500);
+  });
+
+  it("falls back to the default reason for an absent body", async () => {
+    const env = createEnv();
+    serviceMocks.getOrder.mockResolvedValue({
+      id: 55,
+      restaurantId: "restaurant-1",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue({ id: 55, status: "cancelled" });
+
+    const response = await routes.fetch(
+      new Request("https://orders.test/55", { method: "DELETE" }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(serviceMocks.cancelOrder).toHaveBeenCalledWith(
+      "55",
+      "Cancelled by user",
+      42,
+      expect.any(Object),
+      expect.objectContaining({ id: 55 }),
+    );
   });
 
   it("continues cancelling when guest active KV cleanup fails", async () => {

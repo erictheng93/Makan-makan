@@ -67,6 +67,24 @@ describe("BundleService", () => {
     });
   });
 
+  it("orders versions by semver, not lexicographically", () => {
+    const storage = {
+      list: vi.fn().mockResolvedValue({
+        delimitedPrefixes: [
+          "bundles/1.2.0/",
+          "bundles/1.10.0/",
+          "bundles/1.9.0/",
+          "bundles/2.0.0/",
+        ],
+      }),
+    };
+
+    // Lexical sort would yield 1.9.0 > 1.2.0 > 1.10.0; semver must not.
+    return expect(
+      new BundleService(envWithStorage(storage)).listVersions(),
+    ).resolves.toEqual(["2.0.0", "1.10.0", "1.9.0", "1.2.0"]);
+  });
+
   it("uploads script, migrations, and manifest for a bundle", async () => {
     vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
       "2026-06-07T00:00:00.000Z",

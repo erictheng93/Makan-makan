@@ -296,9 +296,14 @@ router.get("/:tenantId/migrations", async (c) => {
         tenantId,
         migrations,
         total: migrations.length,
+        // Latest by applied_at, not by name order — migration names do not
+        // always sort chronologically.
         lastApplied:
           migrations.length > 0
-            ? migrations[migrations.length - 1].appliedAt
+            ? migrations.reduce(
+                (latest, m) => (m.appliedAt > latest ? m.appliedAt : latest),
+                migrations[0].appliedAt,
+              )
             : null,
       },
     });

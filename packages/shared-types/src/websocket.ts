@@ -1,5 +1,25 @@
 import { OrderStatus, OrderItemStatus, Order } from "./order";
 
+// ============================================================================
+// ⚠️ LEGACY WEBSOCKET MESSAGE SYSTEM (bug-inventory #23)
+//
+// The interfaces in this file use UPPER_SNAKE / ad-hoc `type` discriminants
+// (e.g. "ORDER_STATUS_UPDATE", "NEW_ORDER"). They are NOT the wire format the
+// realtime pipeline (apps/realtime + RealtimeBroadcastService) actually speaks —
+// that pipeline uses `RealtimeEventType` from `./realtime-events.ts`, whose
+// values are lower_snake (e.g. "order_status_update", "new_order").
+//
+// Do NOT reach for these types in new code. They remain only because the
+// customer-app WebSocket composables still consume them. Every exported member
+// below is marked `@deprecated`; four previously-unused types
+// (WebSocketConnectionState, WebSocketSubscriptionOptions, UseWebSocketOptions,
+// UseWebSocketReturn) had zero references and have been removed.
+// ============================================================================
+
+/**
+ * @deprecated Part of the legacy WebSocketMessage system; NOT understood by the
+ * realtime pipeline. Use the event data shapes from `realtime-events.ts`.
+ */
 // Order update data structure
 export interface OrderUpdateData {
   order: Partial<Order>;
@@ -10,6 +30,10 @@ export interface OrderUpdateData {
   message?: string;
 }
 
+/**
+ * @deprecated Part of the legacy WebSocketMessage system; NOT understood by the
+ * realtime pipeline. Use the event data shapes from `realtime-events.ts`.
+ */
 // Restaurant status data structure
 export interface RestaurantStatusData {
   restaurantId: string;
@@ -19,6 +43,10 @@ export interface RestaurantStatusData {
   averageWaitTime?: number;
 }
 
+/**
+ * @deprecated Part of the legacy WebSocketMessage system; NOT understood by the
+ * realtime pipeline. Use the event data shapes from `realtime-events.ts`.
+ */
 // Notification data structure
 export interface NotificationData {
   id: string;
@@ -30,6 +58,10 @@ export interface NotificationData {
   persistUntilRead?: boolean;
 }
 
+/**
+ * @deprecated Part of the legacy WebSocketMessage system; NOT understood by the
+ * realtime pipeline. Use the event data shapes from `realtime-events.ts`.
+ */
 // Menu update data structure
 export interface MenuUpdateData {
   restaurantId: string;
@@ -41,6 +73,11 @@ export interface MenuUpdateData {
   description?: string;
 }
 
+/**
+ * @deprecated Legacy WebSocket base message. Use `RealtimeEventType` /
+ * `BaseRealtimeEvent` from `realtime-events.ts` (lower_snake) instead; these
+ * message types are NOT understood by the realtime pipeline.
+ */
 // WebSocket 訊息基礎結構
 export interface BaseWebSocketMessage {
   type: string;
@@ -48,6 +85,10 @@ export interface BaseWebSocketMessage {
   id?: string;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 訂單狀態更新訊息
 export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
   type: "ORDER_STATUS_UPDATE";
@@ -57,6 +98,10 @@ export interface OrderStatusUpdateMessage extends BaseWebSocketMessage {
   message?: string;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 訂單項目狀態更新訊息
 export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
   type: "ORDER_ITEM_STATUS_UPDATE";
@@ -65,6 +110,10 @@ export interface OrderItemStatusUpdateMessage extends BaseWebSocketMessage {
   status: OrderItemStatus;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 新訂單通知訊息
 export interface NewOrderMessage extends BaseWebSocketMessage {
   type: "NEW_ORDER";
@@ -75,6 +124,10 @@ export interface NewOrderMessage extends BaseWebSocketMessage {
   itemCount: number;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 系統通知訊息
 export interface SystemNotificationMessage extends BaseWebSocketMessage {
   type: "SYSTEM_NOTIFICATION";
@@ -84,6 +137,10 @@ export interface SystemNotificationMessage extends BaseWebSocketMessage {
   actionUrl?: string;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 桌台狀態更新訊息
 export interface TableStatusUpdateMessage extends BaseWebSocketMessage {
   type: "TABLE_STATUS_UPDATE";
@@ -92,6 +149,10 @@ export interface TableStatusUpdateMessage extends BaseWebSocketMessage {
   customerCount?: number;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 菜單項目可用性更新訊息
 export interface MenuAvailabilityUpdateMessage extends BaseWebSocketMessage {
   type: "MENU_AVAILABILITY_UPDATE";
@@ -100,6 +161,10 @@ export interface MenuAvailabilityUpdateMessage extends BaseWebSocketMessage {
   inventoryCount?: number;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 廚房顯示更新訊息
 export interface KitchenDisplayUpdateMessage extends BaseWebSocketMessage {
   type: "KITCHEN_DISPLAY_UPDATE";
@@ -108,35 +173,62 @@ export interface KitchenDisplayUpdateMessage extends BaseWebSocketMessage {
   priority?: "normal" | "high" | "urgent";
 }
 
+/**
+ * @deprecated Use `RealtimeEventType.HEARTBEAT` from `realtime-events.ts`
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 心跳響應訊息
 export interface PongMessage extends BaseWebSocketMessage {
   type: "pong";
 }
 
+/**
+ * @deprecated Use `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 訂單更新訊息（前端用）
 export interface OrderUpdateMessage extends BaseWebSocketMessage {
   type: "order_update";
   data: OrderUpdateData;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType.RESTAURANT_STATUS_UPDATE` from
+ * `realtime-events.ts` instead; this constant is NOT understood by the realtime
+ * pipeline.
+ */
 // 餐廳狀態更新訊息（前端用）
 export interface RestaurantStatusUpdateMessage extends BaseWebSocketMessage {
   type: "restaurant_status_update";
   data: RestaurantStatusData;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType.SYSTEM_NOTIFICATION` from
+ * `realtime-events.ts` instead; this constant is NOT understood by the realtime
+ * pipeline.
+ */
 // 通知訊息（前端用）
 export interface NotificationMessage extends BaseWebSocketMessage {
   type: "notification";
   data: NotificationData;
 }
 
+/**
+ * @deprecated Use `RealtimeEventType.MENU_ITEM_UPDATE` from `realtime-events.ts`
+ * instead; this constant is NOT understood by the realtime pipeline.
+ */
 // 菜單更新訊息（前端用）
 export interface MenuUpdateMessage extends BaseWebSocketMessage {
   type: "menu_update";
   data: MenuUpdateData;
 }
 
+/**
+ * @deprecated Legacy union of UPPER_SNAKE / ad-hoc WebSocket messages. Use
+ * `RealtimeEvent` / `RealtimeEventType` from `realtime-events.ts` (lower_snake)
+ * instead; none of these message types are understood by the realtime pipeline.
+ */
 // 聯合類型：所有WebSocket訊息類型
 export type WebSocketMessage =
   | OrderStatusUpdateMessage
@@ -151,45 +243,3 @@ export type WebSocketMessage =
   | RestaurantStatusUpdateMessage
   | NotificationMessage
   | MenuUpdateMessage;
-
-// WebSocket 連接狀態
-export interface WebSocketConnectionState {
-  status: "connecting" | "connected" | "disconnected" | "error";
-  lastConnected?: number;
-  reconnectAttempts: number;
-  maxReconnectAttempts: number;
-}
-
-// WebSocket 訂閱選項
-export interface WebSocketSubscriptionOptions {
-  restaurantId: string;
-  userRole?: string;
-  tableId?: number;
-  filters?: {
-    messageTypes?: string[];
-    priority?: string[];
-  };
-}
-
-// Frontend WebSocket composable options
-export interface UseWebSocketOptions {
-  autoReconnect?: boolean;
-  reconnectInterval?: number;
-  maxReconnectAttempts?: number;
-  onMessage?: (message: WebSocketMessage) => void;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-  onError?: (error: Event) => void;
-}
-
-// WebSocket connection return type for composable
-export interface UseWebSocketReturn {
-  ws: WebSocket | null;
-  connectionStatus: string;
-  isConnected: boolean;
-  connect: () => void;
-  disconnect: () => void;
-  send: (message: WebSocketMessage) => void;
-  subscribe: (channel: string) => boolean;
-  unsubscribe: (channel: string) => boolean;
-}

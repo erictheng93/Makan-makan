@@ -585,8 +585,9 @@ export interface WaitingListEvent extends BaseRealtimeEvent {
  *   group_order_created / group_member_joined / group_cart_item_added /
  *   group_cart_item_updated / group_cart_item_removed
  *
- * 廣播 room 為 `group_order:${groupOrderId}`。data 的額外欄位依事件類型而異，
- * 因此除必備的 groupOrderId 外以索引簽章保留彈性。
+ * 廣播 room 為 `customer:${groupOrderId}`（群組參與者連線的房間；DO 實例即以
+ * groupOrderId 隔離）。data 的額外欄位依事件類型而異，因此除必備的
+ * groupOrderId 外以索引簽章保留彈性。
  */
 export interface GroupOrderEvent extends BaseRealtimeEvent {
   type:

@@ -62,7 +62,10 @@ export default {
       }
 
       // Weekly cleanup on Sunday at 3 AM UTC: Clean old logs
-      if (event.cron === "0 3 * * 0") {
+      // NOTE: this literal must match wrangler.toml's crons entry byte-for-byte
+      // ("0 3 * * SUN"). Workers dispatches event.cron as the exact string from
+      // the toml, so "0 3 * * 0" would never fire against a "SUN" schedule.
+      if (event.cron === "0 3 * * SUN") {
         console.log("[Cron] Running weekly log cleanup...");
         await cleanupOldLogs(env);
       }

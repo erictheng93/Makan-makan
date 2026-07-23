@@ -78,10 +78,25 @@ function generateUUID(): string {
 }
 
 /**
- * Generate 6-digit OTP
+ * Generate 6-digit OTP.
+ * CSPRNG with rejection sampling (mirrors the customer feature's generateOtp):
+ * a uint32 in [0, 4_294_000_000) maps uniformly onto the 000000-999999 code
+ * space; values at or above the boundary are re-drawn to avoid modulo bias.
+ * Math.random() is not cryptographically secure and must not be used here.
  */
+const OTP_CODE_SPACE = 1_000_000;
+const OTP_RANDOM_BOUNDARY = 4_294_000_000; // largest multiple of 1e6 ≤ 2^32
+
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const values = new Uint32Array(1);
+  for (;;) {
+    crypto.getRandomValues(values);
+    const value = values[0];
+    if (value >= OTP_RANDOM_BOUNDARY) {
+      continue;
+    }
+    return (value % OTP_CODE_SPACE).toString().padStart(6, "0");
+  }
 }
 
 /**

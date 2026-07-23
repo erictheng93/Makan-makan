@@ -194,6 +194,7 @@ describe("backup routes", () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
+      undefined, // encryptionKey — not configured in the test env
     );
     expect(mocks.setRequestContext).toHaveBeenCalledWith({
       ipAddress: "203.0.113.10",

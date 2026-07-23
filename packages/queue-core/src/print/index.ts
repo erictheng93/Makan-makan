@@ -11,13 +11,20 @@ export { RegionManager } from "./services/RegionManager";
 // 收據格式化
 export { ReceiptFormattingService } from "./formatters/ReceiptFormattingService";
 export { ReceiptFormatterFactory } from "./formatters/ReceiptFormatterFactory";
-export type { IRegionFormatter } from "./formatters/RegionFormatters";
-export {
-  TWRegionFormatter,
-  MYRegionFormatter,
-  VNRegionFormatter,
-  RegionFormatterFactory,
-} from "./formatters/RegionFormatters";
+// IRegionFormatter is retained as a public type export. The concrete region
+// formatter classes and RegionFormatterFactory were removed as dead code
+// (no consumers); the interface stays here to keep the package's type surface.
+export interface IRegionFormatter {
+  formatCurrency(amount: number): string;
+  formatDate(date: Date): string;
+  formatTime(date: Date): string;
+  formatPhone(phone: string): string;
+  formatTaxNumber(taxNumber: string): string;
+  formatAddress(address: string): string;
+  getReceiptTitle(): string;
+  getTaxLabel(): string;
+  getCurrencySymbol(): string;
+}
 
 // 打印機驅動
 export { PrinterDriverFactory } from "./drivers/PrinterDriverFactory";
