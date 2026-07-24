@@ -17,6 +17,7 @@ const BINDING_TABLES = new Map([
 
 const REQUIRED_PRODUCTION_RUNTIME_VARS = new Map([
   ["apps/api/wrangler.toml", ["API_BASE_URL", "CORS_ORIGIN"]],
+  ["apps/image-processor/wrangler.toml", ["CORS_ORIGIN", "IMAGE_API_BASE_URL"]],
   ["apps/management-portal/wrangler.toml", ["VITE_MANAGEMENT_API_URL"]],
   [
     "apps/onboarding-app/wrangler.toml",
@@ -32,6 +33,12 @@ function checkProductionConfig(options = {}) {
   const requireDeploymentSecrets =
     options.requireDeploymentSecrets ??
     env.CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS !== "false";
+  // Deploy-only gate: the Images account hash is an operator-filled value, so
+  // the checked-in placeholder is a legitimate repo state. CI gates disable
+  // this (like deployment secrets) while `deploy:prod` keeps it enforced.
+  const requireImagesAccountHash =
+    options.requireImagesAccountHash ??
+    env.CHECK_PRODUCTION_CONFIG_REQUIRE_IMAGES_ACCOUNT_HASH !== "false";
   const appsDir = path.join(root, "apps");
   const wranglerFiles = [];
   walk(appsDir, wranglerFiles);
@@ -76,6 +83,9 @@ function checkProductionConfig(options = {}) {
     }
 
     validateProductionRuntimeVars(relativeFile, lines, violations);
+    if (requireImagesAccountHash) {
+      validateImagesAccountHash(relativeFile, lines, violations);
+    }
     if (requireDeploymentSecrets) {
       validateDeploymentSecrets(relativeFile, lines, env, violations);
     }
@@ -132,6 +142,46 @@ function validateProductionRuntimeVars(relativeFile, lines, violations) {
         text: `invalid production runtime var ${varName}: ${invalidUrl}`,
       });
     }
+  }
+}
+
+// imagedelivery.net URLs are built from the Images *account hash*, which is a
+// different value from the account id. A missing/placeholder hash — or the
+// account id pasted by mistake — produces uploads that succeed but return
+// image URLs that 404, so block the deploy instead.
+function validateImagesAccountHash(relativeFile, lines, violations) {
+  if (relativeFile !== "apps/image-processor/wrangler.toml") {
+    return;
+  }
+
+  const productionVars = collectProductionVars(lines);
+  const hash = productionVars.get("CLOUDFLARE_IMAGES_ACCOUNT_HASH");
+  const accountId = productionVars.get("CLOUDFLARE_ACCOUNT_ID");
+
+  if (!hash) {
+    violations.push({
+      file: relativeFile,
+      line: 1,
+      text: "missing production runtime var: CLOUDFLARE_IMAGES_ACCOUNT_HASH",
+    });
+    return;
+  }
+
+  if (hash.includes("REPLACE") || !/^[A-Za-z0-9_-]{8,}$/.test(hash)) {
+    violations.push({
+      file: relativeFile,
+      line: 1,
+      text: "CLOUDFLARE_IMAGES_ACCOUNT_HASH is unfilled or malformed (expected the imagedelivery.net account hash)",
+    });
+    return;
+  }
+
+  if (accountId && hash === accountId) {
+    violations.push({
+      file: relativeFile,
+      line: 1,
+      text: "CLOUDFLARE_IMAGES_ACCOUNT_HASH must be the Images delivery hash, not CLOUDFLARE_ACCOUNT_ID",
+    });
   }
 }
 

@@ -20,7 +20,10 @@ crons = ["0 1 * * *"]
 IMAGE_API_BASE_URL = "https://api.cloudflare.com/client/v4/accounts"
 CLOUDFLARE_ACCOUNT_ID = "bdddc08c066a9abc285d75fe5947a468"
 # Delivery URL hash for imagedelivery.net — NOT the account ID.
-# TODO: replace with the real value from Dashboard → Images → Developer Resources.
+# Fill from Dashboard → Images → Developer Resources. deploy:prod is blocked
+# by check:prod-config's validateImagesAccountHash while this is unfilled.
+# (This placeholder deliberately avoids the repo-wide hard-block prefix so CI
+# stays green while waiting on the operator; only deploys are gated.)
 CLOUDFLARE_IMAGES_ACCOUNT_HASH = "REPLACE_WITH_IMAGES_ACCOUNT_HASH"
 MAX_IMAGE_SIZE_MB = "10"
 ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
@@ -49,7 +52,10 @@ API_VERSION = "v1"
 IMAGE_API_BASE_URL = "https://api.cloudflare.com/client/v4/accounts"
 CLOUDFLARE_ACCOUNT_ID = "bdddc08c066a9abc285d75fe5947a468"
 # Delivery URL hash for imagedelivery.net — NOT the account ID.
-# TODO: replace with the real value from Dashboard → Images → Developer Resources.
+# Fill from Dashboard → Images → Developer Resources. deploy:prod is blocked
+# by check:prod-config's validateImagesAccountHash while this is unfilled.
+# (This placeholder deliberately avoids the repo-wide hard-block prefix so CI
+# stays green while waiting on the operator; only deploys are gated.)
 CLOUDFLARE_IMAGES_ACCOUNT_HASH = "REPLACE_WITH_IMAGES_ACCOUNT_HASH"
 CORS_ORIGIN = "https://admin.makanmasak.com"
 MAX_IMAGE_SIZE_MB = "10"

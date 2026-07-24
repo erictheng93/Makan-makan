@@ -72,6 +72,10 @@ jobs:
         run: pnpm run check:prod-config
         env:
           CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS: "false"
+          # Deploy-only gate (operator-filled Images account hash, issue #56):
+          # CI validates repo state, so the intentionally-unfilled placeholder
+          # must not fail this job. deploy:prod runs with the gate enabled.
+          CHECK_PRODUCTION_CONFIG_REQUIRE_IMAGES_ACCOUNT_HASH: "false"
 
       - name: 🧭 Migration dual-track guard
         run: pnpm run check:migration-dual-track
