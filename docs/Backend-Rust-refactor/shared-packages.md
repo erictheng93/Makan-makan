@@ -125,7 +125,7 @@ All tables are `sqliteTable(...)` calls under `packages/database/src/schema/`. P
 | `payment_transactions` | INTEGER | `payments.ts`. Has `idempotency_key` (partial-unique, see §2.3). |
 | `refund_transactions` | INTEGER | |
 | `payment_audit_log` | TEXT uuid7 | `payment-audit-log.ts:32-34` — schema-level `$defaultFn(() => uuidv7())`. |
-| `cash_registers` | TEXT (service-layer uuid v4) | `pos.ts:26` — plain `text("id").primaryKey()`, no default; ID assigned by `POSService.ts:271` `crypto.randomUUID()`. |
+| `cash_registers` | TEXT (service-layer uuid v4) | `pos.ts:26` — plain `text("id").primaryKey()`, no default; ID assigned by `apps/api/src/features/pos/services/RegisterService.ts:50` `crypto.randomUUID()` (the former `packages/database` POSService was deleted as orphan code). |
 | `cash_shifts` | TEXT | |
 | `cash_movements` | TEXT | |
 | `receipts` | TEXT | |
