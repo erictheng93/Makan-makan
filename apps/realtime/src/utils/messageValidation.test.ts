@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
+  formatValidationError,
   parseJsonMessage,
   validateAdvancedClientMessage,
   validateBasicClientMessage,
@@ -36,6 +38,20 @@ describe("basic realtime client message validation", () => {
 
     const encoded = new TextEncoder().encode('{"type":"unsubscribe"}').buffer;
     expect(parseJsonMessage(encoded)).toEqual({ type: "unsubscribe" });
+  });
+
+  it("formats root-level validation issues as message errors", () => {
+    const error = new z.ZodError([
+      {
+        code: "custom",
+        message: "Invalid websocket payload",
+        path: [],
+      },
+    ]);
+
+    expect(formatValidationError(error)).toBe(
+      "message: Invalid websocket payload",
+    );
   });
 });
 
