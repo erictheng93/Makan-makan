@@ -5,6 +5,7 @@ import type {
   ExecutionContext as CfExecutionContext,
 } from "@cloudflare/workers-types";
 import type { SearchSyncMessage } from "./features/discovery/services/SearchIndexSyncService";
+import { cronMatches } from "./utils/cron";
 
 const app = createApp();
 
@@ -55,22 +56,19 @@ export default {
 
     try {
       // Daily cleanup at 2 AM UTC: Clean expired verification tokens
-      if (event.cron === "0 2 * * *") {
+      if (cronMatches(event.cron, "0 2 * * *")) {
         console.log("[Cron] Running daily token cleanup...");
         const result = await cleanupExpiredTokens(env);
         console.log("[Cron] Token cleanup result:", result);
       }
 
       // Weekly cleanup on Sunday at 3 AM UTC: Clean old logs
-      // NOTE: this literal must match wrangler.toml's crons entry byte-for-byte
-      // ("0 3 * * SUN"). Workers dispatches event.cron as the exact string from
-      // the toml, so "0 3 * * 0" would never fire against a "SUN" schedule.
-      if (event.cron === "0 3 * * SUN") {
+      if (cronMatches(event.cron, "0 3 * * SUN")) {
         console.log("[Cron] Running weekly log cleanup...");
         await cleanupOldLogs(env);
       }
 
-      if (event.cron === "0 3 * * *") {
+      if (cronMatches(event.cron, "0 3 * * *")) {
         console.log("[Cron] Running usage events TTL cleanup...");
         const { cleanupExpiredUsageEvents } =
           await import("./workers/usage-events-ttl");
@@ -79,7 +77,7 @@ export default {
       }
 
       // Daily forecast warmup at 2:30 AM UTC
-      if (event.cron === "30 2 * * *") {
+      if (cronMatches(event.cron, "30 2 * * *")) {
         console.log("[Cron] Running daily forecast warmup...");
         const { ForecastService } =
           await import("./features/forecast/services/ForecastService");
@@ -114,14 +112,14 @@ export default {
         );
       }
 
-      if (event.cron === "*/5 * * * *") {
+      if (cronMatches(event.cron, "*/5 * * * *")) {
         console.log("[Cron] Running usage aggregation...");
         const { aggregateUsageMeters } =
           await import("./workers/usage-aggregator");
         await aggregateUsageMeters(env);
       }
 
-      if (event.cron === "*/5 * * * *") {
+      if (cronMatches(event.cron, "*/5 * * * *")) {
         console.log("[Cron] Running market checkout payment reconciliation...");
         const { reconcilePendingMarketCheckoutPayments } =
           await import("./workers/market-checkout-reconciliation");
@@ -129,14 +127,14 @@ export default {
         console.log("[Cron] Market checkout reconciliation result:", result);
       }
 
-      if (event.cron === "0 2 * * *") {
+      if (cronMatches(event.cron, "0 2 * * *")) {
         console.log("[Cron] Running storage usage snapshot...");
         const { snapshotStorageUsage } =
           await import("./workers/storage-snapshot");
         await snapshotStorageUsage(env);
       }
 
-      if (event.cron === "0 2 * * *") {
+      if (cronMatches(event.cron, "0 2 * * *")) {
         console.log("[Cron] Running customer push subscription pruning...");
         const { pruneStaleCustomerPushSubscriptions } =
           await import("./features/customer/routes");
@@ -144,14 +142,14 @@ export default {
         console.log("[Cron] Customer push pruning result:", result);
       }
 
-      if (event.cron === "0 4 * * *") {
+      if (cronMatches(event.cron, "0 4 * * *")) {
         console.log("[Cron] Running stored-value credit expiry...");
         const { expireStaleCredits } = await import("./workers/credit-expiry");
         const result = await expireStaleCredits(env);
         console.log("[Cron] Credit expiry result:", result);
       }
 
-      if (event.cron === "15 2 * * *") {
+      if (cronMatches(event.cron, "15 2 * * *")) {
         console.log("[Cron] Running billing cycle closer...");
         const { BillingCycleService, TrialReaperService } =
           await import("./features/billing/services/BillingCycleService");

@@ -18,6 +18,7 @@ import {
 } from "@makanmakan/database";
 import { inArray } from "drizzle-orm";
 import { CloudflareImagesAPI } from "./utils/cloudflare-images";
+import { cronMatches } from "./utils/cron";
 
 type SlackTextObject = {
   type: "mrkdwn";
@@ -303,7 +304,7 @@ export default {
       await sweepOrphanedImages(env);
 
       // 發送每日使用統計（cron 為 UTC；01:00 UTC = 台灣時間上午 9 點）
-      if (event.cron === "0 1 * * *") {
+      if (cronMatches(event.cron, "0 1 * * *")) {
         await sendDailyStats(env);
       }
     } catch (error) {
