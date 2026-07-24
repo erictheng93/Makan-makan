@@ -97,16 +97,20 @@ export class ImageService {
     variant: string,
     file: File,
   ): Promise<void> {
-    await this.imagesBucket.put(this.imageObjectKey(imageId, variant), file, {
-      httpMetadata: {
-        contentType: file.type || "application/octet-stream",
+    await this.imagesBucket.put(
+      this.imageObjectKey(imageId, variant),
+      await file.arrayBuffer(),
+      {
+        httpMetadata: {
+          contentType: file.type || "application/octet-stream",
+        },
+        customMetadata: {
+          imageId,
+          variant,
+          originalFilename: file.name,
+        },
       },
-      customMetadata: {
-        imageId,
-        variant,
-        originalFilename: file.name,
-      },
-    });
+    );
   }
 
   async getImageVariant(imageId: string, variant: string) {
@@ -208,18 +212,18 @@ export class ImageService {
       };
 
       const result = await this.dbImageService.createImage(imageData);
-      const imageId = result.id;
+      const savedId = result.id;
 
       // Cache the metadata for quick access
       await this.cache.put(
-        `image:${imageId}`,
-        JSON.stringify({ id: imageId, ...metadata }),
+        `image:${savedId}`,
+        JSON.stringify({ id: savedId, ...metadata }),
         { expirationTtl: 3600 }, // Cache for 1 hour
       );
 
       return {
         success: true,
-        id: imageId,
+        id: savedId,
       };
     } catch (error) {
       console.error("Error saving image metadata:", error);
