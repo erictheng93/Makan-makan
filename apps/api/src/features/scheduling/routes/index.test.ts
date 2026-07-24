@@ -58,6 +58,7 @@ const serviceFns = vi.hoisted(() => ({
   resolveConflict: vi.fn(),
   getDailyStats: vi.fn(),
   getWeeklySummary: vi.fn(),
+  getEmployeeNames: vi.fn(),
 }));
 
 vi.mock("@makanmakan/database", () => ({
@@ -90,6 +91,7 @@ vi.mock("@makanmakan/database", () => ({
     resolveConflict = serviceFns.resolveConflict;
     getDailyStats = serviceFns.getDailyStats;
     getWeeklySummary = serviceFns.getWeeklySummary;
+    getEmployeeNames = serviceFns.getEmployeeNames;
   },
 }));
 
@@ -172,6 +174,9 @@ beforeEach(() => {
       },
     ],
   });
+  serviceFns.getEmployeeNames.mockResolvedValue(
+    new Map<string | number, string>([[42, "Alice Server"]]),
+  );
   serviceFns.getScheduleById.mockResolvedValue({ id: 10, employeeId: 42 });
   serviceFns.createSwapRequest.mockResolvedValue({ id: 20 });
   serviceFns.getSwapRequests.mockResolvedValue({
@@ -355,9 +360,14 @@ describe("scheduling routes", () => {
     expect(res.headers.get("Content-Disposition")).toBe(
       'attachment; filename="attendance-report-2026-06-10-to-2026-06-11.csv"',
     );
-    await expect(res.text()).resolves.toContain(
+    const body = await res.text();
+    expect(body).toContain(
       "Employee Name,Date,Scheduled Start,Scheduled End,Clock In,Clock Out",
     );
+    // Resolved display name is emitted, not the raw employee id.
+    expect(body).toContain('"Alice Server"');
+    expect(body).not.toContain('"42"');
+    expect(serviceFns.getEmployeeNames).toHaveBeenCalledWith([42]);
     expect(serviceFns.getAttendanceReport).toHaveBeenCalledWith("rest-1", {
       startDate: "2026-06-10",
       endDate: "2026-06-11",

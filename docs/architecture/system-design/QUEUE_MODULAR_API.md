@@ -49,13 +49,13 @@ interface ApiResponse<T> {
   "data": {
     "status": "healthy",
     "timestamp": "2025-09-28T02:45:46.631Z",
-    "version": "2.0.0",
-    "systems": {
-      "modular": "available",
-      "legacy": "available"
-    }
+    "backend": "WaitingListService"
   }
 }
+```
+
+> ⚠️ 準確性提醒（2026-07-05）：舊有的「legacy」/「modular」雙軌路由已於 `apps/api/src/features/queue/routes/index.ts` 移除（該檔案開頭註解明確說明），現在單一走 `UnifiedQueueService` → `WaitingListService`，不再回傳 `systems.modular`/`systems.legacy` 欄位。
+```
 ```
 
 ---
@@ -71,7 +71,7 @@ interface ApiResponse<T> {
 
 ```typescript
 interface JoinQueueRequest {
-  restaurantId: number; // 餐廳ID (必填)
+  restaurantId: string; // 餐廳ID (必填，現行為 UUID v7 字串)
   customerName: string; // 客戶姓名 (必填)
   customerPhone: string; // 客戶電話 (必填)
   customerEmail?: string; // 客戶電子郵件 (選填)
@@ -94,7 +94,7 @@ interface JoinQueueRequest {
     "estimatedWaitMinutes": 45,
     "checkInCode": "ABC123",
     "position": 1,
-    "restaurantId": 1
+    "restaurantId": "<uuid>"
   }
 }
 ```
@@ -193,7 +193,7 @@ interface JoinQueueRequest {
 
 ```typescript
 interface CallNextRequest {
-  restaurantId: number; // 餐廳ID (必填)
+  restaurantId: string; // 餐廳ID (必填，現行為 UUID v7 字串)
   tableId?: number; // 指定桌位 (選填)
   specificQueueId?: string; // 指定客戶ID (選填)
 }
@@ -344,7 +344,7 @@ interface CancelQueueRequest {
 {
   "success": true,
   "data": {
-    "restaurantId": 1,
+    "restaurantId": "<uuid>",
     "isEnabled": true,
     "maxQueueSize": 50,
     "avgServiceTime": 45,
@@ -641,7 +641,7 @@ Authorization: Bearer {token}
 
 ```typescript
 // 加入排隊
-const joinQueue = async (restaurantId: number, customerData: any) => {
+const joinQueue = async (restaurantId: string, customerData: any) => {
   const response = await fetch("/api/v1/queue/join", {
     method: "POST",
     headers: {
@@ -663,7 +663,7 @@ const getQueuePosition = async (queueId: string) => {
 };
 
 // 呼叫下一位客戶 (需要認證)
-const callNext = async (restaurantId: number, authToken: string) => {
+const callNext = async (restaurantId: string, authToken: string) => {
   const response = await fetch("/api/v1/queue/call-next", {
     method: "POST",
     headers: {
@@ -684,7 +684,7 @@ const callNext = async (restaurantId: number, authToken: string) => {
 curl -X POST http://localhost:8787/api/v1/queue/join \
   -H "Content-Type: application/json" \
   -d '{
-    "restaurantId": 1,
+    "restaurantId": "<uuid>",
     "customerName": "測試顧客",
     "customerPhone": "012-3456789",
     "partySize": 4
@@ -697,7 +697,7 @@ curl http://localhost:8787/api/v1/queue/1/status
 curl -X POST http://localhost:8787/api/v1/queue/call-next \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"restaurantId": 1}'
+  -d '{"restaurantId": "<uuid>"}'
 ```
 
 ---

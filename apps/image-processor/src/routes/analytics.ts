@@ -244,37 +244,18 @@ app.get(
     }),
   ),
   async (c) => {
-    try {
-      const { type, format } = c.get(
-        "validatedQuery",
-      ) as ImageAnalyticsQuery & {
-        type: "summary" | "storage" | "usage" | "performance";
-        format: "json" | "csv";
-      };
-
-      // For now, return a JSON response with export information
-      // In a real implementation, you would generate the actual file
-
-      return c.json({
-        success: true,
-        data: {
-          type,
-          format,
-          message: "Export functionality would generate downloadable file here",
-          download_url: `https://api.makanmakan.com/images/analytics/exports/${Date.now()}.${format}`,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        },
-      });
-    } catch (error) {
-      console.error("Export analytics error:", error);
-      return c.json(
-        {
-          success: false,
-          error: "Failed to export analytics",
-        },
-        500,
-      );
-    }
+    // Analytics export is not implemented. Previously this returned a fabricated
+    // `download_url` pointing at a domain this worker does not serve, which would
+    // 404 for any caller. Respond honestly with 501 until real file generation
+    // (e.g. R2-backed export) is built.
+    return c.json(
+      {
+        success: false,
+        error:
+          "Analytics export is not implemented. This endpoint does not yet generate downloadable files.",
+      },
+      501,
+    );
   },
 );
 

@@ -1,20 +1,30 @@
 # Money Cents Field Retirement Plan
 
-Last reviewed: 2026-06-12
+Last reviewed: 2026-07-05
 
 ## Current State
 
-The cents migration is intentionally incomplete. Current Drizzle schema still
-keeps legacy `REAL` money columns beside newer integer `*_cents` shadow columns.
-The fresh migrations backfill cents values and add sync triggers, but they do
-not remove the old `REAL` columns. Migration
-`0067_money_cents_retirement_rollout_guard.sql` is a dedicated non-destructive
-rollout gate, not the destructive cutover.
+**Update 2026-07-05:** The destructive cutover described below as future work has
+been written. `packages/database/migrations_fresh/0070_money_cents_cutover.sql`
+and `0071_market_checkout_child_order_cents_cutover.sql` (paired with the
+legacy/Wrangler track's `0087`/`0088` in `migration-dual-track.json`) drop the
+legacy `REAL` money columns, each self-guarded by a `CHECK (violation_count = 0)`
+assertion table so the migration aborts if the rollout/audit preconditions
+aren't met. Current Drizzle schema (e.g. `packages/database/src/schema/orders.ts`)
+has zero remaining legacy `REAL` money columns — only `*_cents` columns exist.
+Whether these migrations have been *run* against production D1 (vs.
+merged into the repo) is a deployment fact, not verifiable from the schema —
+confirm via deployment logs or `pnpm wrangler d1 execute` before relying on this
+for further cleanup work (e.g. dropping the now-unused sync triggers).
 
-This means a follow-up migration must be separate from the original cents
-backfill work. Dropping the legacy columns should wait until application reads
-and writes have converged on cents and production data has passed an explicit
-audit.
+### Original plan (superseded by the above; kept for context)
+
+The cents migration was originally intentionally incomplete. The Drizzle schema
+kept legacy `REAL` money columns beside newer integer `*_cents` shadow columns.
+The fresh migrations backfilled cents values and added sync triggers, but did
+not remove the old `REAL` columns. Migration
+`0067_money_cents_retirement_rollout_guard.sql` was a dedicated non-destructive
+rollout gate, not the destructive cutover — that cutover is `0070`/`0071` above.
 
 ## In Scope
 
@@ -120,21 +130,20 @@ Run the guard through the normal migration commands:
 
 ```bash
 rtk pnpm check:migration-dual-track
-rtk pnpm db:migrate:staging
 rtk pnpm db:migrate:prod
 ```
 
-After staging and before production, inspect the rollout rows:
+Before a destructive cutover migration is generated, inspect the rollout rows:
 
 ```bash
-rtk pnpm exec wrangler d1 execute makanmasak-staging \
+rtk pnpm exec wrangler d1 execute makanmasak-prod \
   --remote \
-  --env staging \
+  --env production \
   --config=./apps/api/wrangler.toml \
   --command "SELECT scope, table_name, column_name, check_name, violation_count, sample_values FROM data_integrity_audit WHERE scope IN ('money_cents_retirement', 'money_cents_retirement_rollout') AND severity = 'error' ORDER BY scope, table_name, column_name, check_name;"
 ```
 
-Production must show the same zero-violation rollout rows before a destructive
+Production must show zero-violation rollout rows before a destructive
 cutover migration is generated.
 
 ## Final Cutover Migration
@@ -229,10 +238,9 @@ cleanup, or product behavior changes.
 
 Do not apply the destructive drop-column migration until all of these are true:
 
-- `0067_money_cents_retirement_rollout_guard.sql` has passed in staging and
-  production.
+- `0067_money_cents_retirement_rollout_guard.sql` has passed in production.
 - `0069_discount_percentage_bps.sql` / `0086_discount_percentage_bps.sql` have
-  passed in staging and production. These migrations preserve percentage
+  passed in production. These migrations preserve percentage
   discount values in explicit basis-point columns before polymorphic
   `discount_value` columns are retired.
 - Production `money_cents_retirement_rollout` rows have `violation_count = 0`.

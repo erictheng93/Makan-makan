@@ -175,6 +175,26 @@ describe("RealtimeAuthService", () => {
     ).toThrow("REALTIME_JWT_SECRET must be set and at least 32 characters");
   });
 
+  it("falls back to JWT_SECRET for local realtime token signing", async () => {
+    const service = createService({ REALTIME_JWT_SECRET: undefined });
+
+    const response = await service.generateWebSocketToken({
+      roomType: "customer",
+      roomId: "customer:table-1",
+      restaurantId: "restaurant-1",
+    });
+
+    expect(response).toMatchObject({
+      expiresIn: 300,
+      wsUrl: expect.stringMatching(
+        /^wss:\/\/realtime\.example\.test\/customer\/customer:table-1\?token=/,
+      ),
+    });
+    await expect(
+      service.verifyWebSocketToken("token" in response ? response.token : ""),
+    ).resolves.toMatchObject({ valid: true });
+  });
+
   it("generates and verifies customer websocket tokens", async () => {
     const service = createService();
 

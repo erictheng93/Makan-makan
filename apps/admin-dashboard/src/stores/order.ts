@@ -177,9 +177,14 @@ export const useOrderStore = defineStore("order", () => {
 
   const cancelOrder = async (orderId: number, reason?: string) => {
     try {
-      const response = await api.delete(`/orders/${orderId}`, {
-        data: reason ? { reason } : undefined,
-      });
+      // ApiServiceCompat.delete(url, data) already wraps `data` into the axios
+      // `{ data }` config, so pass the raw payload — passing `{ data: {...} }`
+      // here would double-wrap and put the body on the wire as
+      // `{"data":{"reason":...}}`, which the server ignores.
+      const response = await api.delete(
+        `/orders/${orderId}`,
+        reason ? { reason } : undefined,
+      );
 
       if (response.data.success) {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);

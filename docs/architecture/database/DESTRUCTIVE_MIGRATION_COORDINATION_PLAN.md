@@ -49,7 +49,7 @@ Before any destructive migration reaches production:
 
 - Capture a current D1 backup or export for the target environment.
 - Prove the backup can be restored into a drill database.
-- Run the migration against a restored drill database or staging database.
+- Run the migration against a restored drill database.
 - Capture before/after row counts for every touched table.
 - Run `PRAGMA foreign_key_check` after the migration.
 - Run schema-shape checks that verify removed columns are absent and retained
@@ -74,10 +74,9 @@ Scope:
 
 Required prechecks:
 
-- `0067_money_cents_retirement_rollout_guard.sql` has passed staging and
-  production.
+- `0067_money_cents_retirement_rollout_guard.sql` has passed production.
 - `0069_discount_percentage_bps.sql` / `0086_discount_percentage_bps.sql` have
-  passed staging and production.
+  passed production.
 - Production `money_cents_retirement_rollout` rows have
   `violation_count = 0`.
 - Production percentage-bps mismatch rows have `violation_count = 0`.
@@ -107,7 +106,7 @@ Progress:
 - 2026-06-23: Repo-level verification passed for the cutover schema test,
   migration dual-track guard, and database package typecheck. Local
   `db:migrate:local` was executable but reported no migrations to apply, so a
-  fresh/restored D1 drill remains required before staging or production cutover.
+  fresh/restored D1 drill remains required before production cutover.
 
 Verification commands:
 
@@ -276,10 +275,10 @@ Progress:
   rollback-only order and one dependent row per existing surface; every
   checked surface mapped 1 / 1 order references, `foreign_key_check` stayed
   empty, and rollback verification found no persisted `phase-c-orders-pk-*`
-  rows. A staging or production-like data rehearsal is still required before
+  rows. A production-like data rehearsal is still required before
   paired migrations are generated.
 - 2026-06-23: Added `--json-output` support to
-  `scripts/phase-c-orders-pk-dry-run.cjs` so local, staging, and restored-prod
+  `scripts/phase-c-orders-pk-dry-run.cjs` so local and restored-prod
   drill results can be archived as JSON evidence while preserving stdout.
 - 2026-06-23: Added a representative-data gate to the Phase C dry-run. The
   script now records `dataCoverage` and `assessment` in JSON artifacts, and
@@ -316,7 +315,7 @@ Progress:
   with missing or unsupported artifact schema versions.
 - 2026-06-23: Added artifact role validation to the shared validator. Phase C
   migration reviewers can now require `--role representative` for
-  staging/restored-production evidence and `--role fixture` for the local
+  restored-production evidence and `--role fixture` for the local
   rollback full-surface artifact, preventing synthetic fixture data from being
   substituted for representative data.
 - 2026-06-24: Added `scripts/verify-phase-c-orders-pk-readiness-manifest.cjs`
@@ -331,7 +330,7 @@ Progress:
 
 Current blocker before paired Phase C migrations:
 
-- Run the same gated dry-run against restored production or staging data with
+- Run the same gated dry-run against restored production data with
   non-empty representative order volume.
 - Archive the JSON artifact and confirm `assessment.exitCode = 0`,
   `assessment.failures = []`, `dataCoverage.isRepresentative = true`, zero
@@ -340,7 +339,7 @@ Current blocker before paired Phase C migrations:
 - Run
   `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
   and require validator `exitCode = 0`.
-- Keep the full-surface rollback fixture artifact alongside the staging or
+- Keep the full-surface rollback fixture artifact alongside the
   restored-production artifact so migration reviewers can verify every checked
   dependency surface has copy coverage and schema preservation metadata.
 - Run
@@ -419,13 +418,13 @@ Progress:
   `users.public_id` bridge health, creates TEMP shadow copies through
   `users.public_id`, records indexes/triggers, runs `PRAGMA foreign_key_check`,
   and rolls back. Local empty-data rehearsal passed as schema/inventory
-  coverage only; staging or restored-production representative data is still
+  coverage only; restored-production representative data is still
   required before paired Phase E migrations.
 - 2026-06-23: Added a users PK representative-data gate matching the Phase C
   orders gate. `--require-representative-data` now fails if the users rehearsal
   artifact has no `users` rows or no non-null checked user dependency
   references. The current empty local baseline correctly fails this gate, so
-  only a restored-production or staging artifact with
+  only a restored-production artifact with
   `assessment.exitCode = 0` and `dataCoverage.isRepresentative = true` can
   unblock paired Phase E migration drafting.
 - 2026-06-24: Added `rtk pnpm db:users-pk-dry-run:representative` and taught

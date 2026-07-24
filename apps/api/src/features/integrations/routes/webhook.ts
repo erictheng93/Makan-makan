@@ -68,11 +68,22 @@ webhookRoutes.post(
         ),
       );
 
-    // Find the integration whose credentials contain the matching storeId
-    const integration = integrations.find((i) => {
-      const creds = i.credentials as { storeId?: string } | null;
-      return creds?.storeId === storeId;
-    });
+    const integrationService = new PlatformIntegrationService(c.env);
+    let matchedCredentials: { clientSecret?: string; webhookSecret?: string } =
+      {};
+    const integration =
+      (
+        await Promise.all(
+          integrations.map(async (candidate) => {
+            const creds = await integrationService.readStoredCredentials(
+              candidate.credentials,
+            );
+            return creds.storeId === storeId
+              ? { integration: candidate, credentials: creds }
+              : null;
+          }),
+        )
+      ).find((match) => match !== null) ?? null;
 
     if (!integration) {
       return c.json({ error: "Unknown store" }, 404);
@@ -80,18 +91,16 @@ webhookRoutes.post(
 
     // Verify webhook signature
     const adapter = getAdapter("uber_eats");
-    const integrationService = new PlatformIntegrationService(c.env);
 
-    const config = integration.config as { webhookSecret?: string } | null;
-    // Only decrypt credentials when config.webhookSecret is not available.
-    let webhookSecret = config?.webhookSecret ?? "";
-    if (!webhookSecret) {
-      const creds = await integrationService.getDecryptedCredentials(
-        integration.restaurantId,
-        "uber_eats",
-      );
-      webhookSecret = creds.clientSecret ?? "";
-    }
+    matchedCredentials = integration.credentials;
+    const config = integration.integration.config as {
+      webhookSecret?: string;
+    } | null;
+    const webhookSecret =
+      matchedCredentials.webhookSecret ??
+      config?.webhookSecret ??
+      matchedCredentials.clientSecret ??
+      "";
 
     const clonedRequest = new Request(c.req.url, {
       method: c.req.method,
@@ -111,7 +120,7 @@ webhookRoutes.post(
     const [insertedLog] = await db
       .insert(platformWebhookLogs)
       .values({
-        restaurantId: integration.restaurantId,
+        restaurantId: integration.integration.restaurantId,
         platform: "uber_eats",
         eventType,
         payload: body as unknown as Record<string, unknown>,
@@ -150,7 +159,7 @@ webhookRoutes.post(
       const orderId = await orderService.processWebhook(
         "uber_eats",
         payload,
-        integration.restaurantId,
+        integration.integration.restaurantId,
       );
 
       await db

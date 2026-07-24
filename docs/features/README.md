@@ -12,11 +12,11 @@ Completed feature documentation has been moved to [`docs/archive/completed-featu
 
 WebSocket real-time communication via Durable Objects.
 
-**Status**: 90% complete — Phase 4 (production readiness) pending
+**Status**: 90% complete figure predates the 2026-06-13 `AdvancedRealtimeSession` removal (see archived doc below) — treat as stale until re-measured against the current `apps/realtime/src/durableObjects/RealtimeSession.ts`; Phase 4 (production readiness) pending
 
 **Active docs**:
 
-- `REALTIME_SERVICES_IMPLEMENTATION.md` - Architecture & implementation guide
+- `docs/archive/deprecated/REALTIME_SERVICES_IMPLEMENTATION.md` - superseded architecture doc (see banner); current implementation is `apps/realtime/src/index.ts` + `RealtimeSession.ts`
 - `phases/REALTIME_PHASE4_PLAN.md` - Phase 4 plan (pending)
 - `phases/REALTIME_PHASE4_KICKOFF.md` - Phase 4 kickoff notes
 

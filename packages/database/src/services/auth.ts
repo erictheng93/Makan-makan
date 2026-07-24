@@ -62,6 +62,7 @@ function accessTokenPayload(user: TokenUser, tokenVersion: number) {
     role: user.role,
     restaurantId: user.restaurantId,
     tv: tokenVersion,
+    jti: crypto.randomUUID(),
   };
 }
 

@@ -1,6 +1,6 @@
 # 角色測試缺口矩陣（API / integration / 報告彙整）
 
-更新時間：2026-05-27
+更新時間：2026-05-27（部分項目於 2026-07-05 核實更新，見表格內 2026-07-05 標註）
 
 ## 1) 已確認角色定義
 
@@ -41,11 +41,11 @@
 | 菜單查詢（公用 `/menu/*`、`/discovery/*`） | 有 | 有 | 有 | 有 | 有 | 有 | `apps/api/src/__tests__/integration/menu.real.integration.test.ts`, `apps/api/src/__tests__/integration/discovery.real.integration.test.ts` |
 | 菜單管理（需管理權限） | 有（間接） | 部分 | 缺口 | 缺口 | 缺口 | 缺口 | `apps/api/src/__tests__/integration/menu.real.integration.test.ts`, `apps/api/src/__tests__/integration/discovery.real.integration.test.ts` |
 | 服務項目（`/restaurants/:id/service-items`） | 缺口 | 有（含跨店拒絕） | 缺口 | 缺口 | 缺口 | 有（公用列表） | `apps/api/src/__tests__/integration/restaurant-services.real.integration.test.ts` |
-| Coupon（`/coupons*`） | 有 | 部分 | 缺口 | 缺口 | 缺口 | 缺口 | `apps/api/src/__tests__/integration/coupons.real.integration.test.ts` |
+| Coupon（`/coupons*`） | 有 | 有（2026-07-05 核實：owner 跨店拒絕 + analytics/deactivate 全邊界） | 缺口 | 缺口 | 缺口 | 缺口 | `apps/api/src/__tests__/integration/coupons.real.integration.test.ts` |
 | 桌位（`/tables*`、`/seats*`） | 有 | 缺口 | 缺口 | 缺口 | 缺口 | 缺口 | `apps/api/src/__tests__/integration/tables.real.integration.test.ts` |
 | 候位 / 留位（`/waiting-list/*`, `/reservations/*`） | 缺口 | 部分 | 缺口 | 缺口 | 缺口 | 部分（入列） | `apps/api/src/__tests__/integration/waiting-list-push.real.integration.test.ts` |
 | 市場 / 合作（`/admin/markets*`, `/markets*`） | 有 | 部分 | 缺口 | 缺口 | 缺口 | 缺口 | `apps/api/src/__tests__/integration/markets.real.integration.test.ts` |
-| Admin-only system（analytics / monitoring / system / users / feedback） | 有（路由定義） / 缺口（未測） | 缺口 | 缺口 | 缺口 | 缺口 | 缺口 | 目前缺少整體 RBAC 驗證 |
+| Admin-only system（analytics / monitoring / system / users / feedback） | 有（2026-07-05 核實：`/auth/stats`、`/monitoring/metrics`、`/system/health/detailed` 全覆蓋） | 有（owner 拒絕已覆蓋） | 缺口 | 缺口 | 缺口 | 缺口 | `apps/api/src/__tests__/integration/role-gaps-05-admin-modules.real.integration.test.ts` |
 
 ## 4) 已補齊的缺口（明確 endpoint）
 
@@ -84,11 +84,11 @@
 
 ## 5) 尚缺測試（優先補齊）
 
-1. 補齊角色 1 / 0 對 `/api/v1/coupons*` 的完整 RBAC：例如 `/coupons/analytics/trends`、`/coupons/:id/deactivate` 的 owner/cashier/chef/service/customer 邊界。
+1. ~~補齊角色 1 / 0 對 `/api/v1/coupons*` 的完整 RBAC~~ —— 已於 2026-07-05 核實完成：`coupons.real.integration.test.ts` 已涵蓋 owner 跨店拒絕 + `/coupons/analytics/trends`、`/coupons/:id/deactivate` 全邊界。
 2. 補齊 role 3 在非 kitchen 模組（候位/預約/訂位）與 role 2/3 的訂單流程拒絕矩陣。
 3. 補齊 role 1 對 `/api/v1/tables*`、`/api/v1/seats*` 的角色邊界（成功 + 跨店拒絕）。
-4. 補齊 role 5 對 `/api/v1/orders`（前台創單）與 CSRF/重複提交/幂等邏輯情境。
-5. 補齊 admin-only 模組（analytics/monitoring/system/feedback/users）在 `/v1/auth/stats`、`/v1/monitoring`、`/v1/system/*`、`/v1/feedback` 的系統角色邊界（至少 admin 允許 + owner 拒絕）。
+4. 補齊 role 5 對 `/api/v1/orders`（前台創單）與 CSRF/重複提交/幂等邏輯情境 —— **部分已解決（2026-07-05）**：CSRF 拒絕與前台創單邊界已由 `role-gaps-04-customer-orders.real.integration.test.ts` 覆蓋；幂等鍵仍是真實缺口（該測試檔本身標題即為「does not dedupe...when no idempotency key binding exists」）。
+5. ~~補齊 admin-only 模組（analytics/monitoring/system/feedback/users）在 `/v1/auth/stats`、`/v1/monitoring`、`/v1/system/*`、`/v1/feedback` 的系統角色邊界~~ —— 已於 2026-07-05 核實完成：`role-gaps-05-admin-modules.real.integration.test.ts` 已涵蓋全部場景。
 
 ## 6) 非自動化使用情境證據（已存在）
 

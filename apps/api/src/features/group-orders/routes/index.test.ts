@@ -241,7 +241,7 @@ describe("group orders routes", () => {
       10,
     );
     expect(broadcastEvent).toHaveBeenCalledWith(
-      "group_order",
+      "customer",
       groupOrderId,
       expect.objectContaining({
         type: RealtimeEventType.GROUP_ORDER_CREATED,
@@ -279,7 +279,7 @@ describe("group orders routes", () => {
       phone: "+886912345678",
     });
     expect(broadcastEvent).toHaveBeenCalledWith(
-      "group_order",
+      "customer",
       groupOrderId,
       expect.objectContaining({
         type: RealtimeEventType.GROUP_MEMBER_JOINED,
@@ -460,21 +460,21 @@ describe("group orders routes", () => {
     );
     expect(leaveGroup).toHaveBeenCalledWith(groupOrderId, memberId);
     expect(broadcastEvent).toHaveBeenCalledWith(
-      "group_order",
+      "customer",
       groupOrderId,
       expect.objectContaining({
         type: RealtimeEventType.GROUP_CART_ITEM_ADDED,
       }),
     );
     expect(broadcastEvent).toHaveBeenCalledWith(
-      "group_order",
+      "customer",
       groupOrderId,
       expect.objectContaining({
         type: RealtimeEventType.GROUP_CART_ITEM_UPDATED,
       }),
     );
     expect(broadcastEvent).toHaveBeenCalledWith(
-      "group_order",
+      "customer",
       groupOrderId,
       expect.objectContaining({
         type: RealtimeEventType.GROUP_CART_ITEM_REMOVED,

@@ -43,18 +43,15 @@ export interface RefundCompletionAlert {
 
 export interface RefundServiceOptions {
   alertSink?: (alert: RefundCompletionAlert) => Promise<void> | void;
-  completionDelayMs?: number;
 }
 
 export class RefundService {
   private db;
   private readonly alertSink?: RefundServiceOptions["alertSink"];
-  private readonly completionDelayMs: number;
 
   constructor(d1: D1Database, options: RefundServiceOptions = {}) {
     this.db = drizzle(d1);
     this.alertSink = options.alertSink;
-    this.completionDelayMs = options.completionDelayMs ?? 5000;
   }
 
   /**
@@ -174,8 +171,13 @@ export class RefundService {
         writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
       );
 
-      // 模擬退款處理完成
-      this.processRefundCompletion(refundId);
+      // Complete the refund synchronously. The previous implementation
+      // scheduled this via setTimeout to mimic an asynchronous PSP callback,
+      // but on Cloudflare Workers a timer scheduled after the response is sent
+      // is not guaranteed to run (and there is no real external callback here),
+      // so refunds got stuck in "processing". There is no genuine async work to
+      // defer, so we settle the terminal state before returning.
+      await this.completeRefund(refundId);
 
       const [refund] = await this.db
         .select()
@@ -478,43 +480,42 @@ export class RefundService {
   }
 
   /**
-   * 模擬退款處理完成
+   * Settle the refund's terminal state. Runs synchronously (awaited by the
+   * caller) rather than on a fire-and-forget timer. Any write failure is
+   * handled here — the refund is best-effort marked "failed" and an alert is
+   * raised — so a completion failure never rejects the caller.
    */
-  private processRefundCompletion(refundId: string): void {
-    setTimeout(async () => {
+  private async completeRefund(refundId: string): Promise<void> {
+    try {
+      const completedAt = new Date();
+      await this.db
+        .update(refunds)
+        .set({
+          status: "completed",
+          completedAt,
+        })
+        .where(and(eq(refunds.id, refundId), eq(refunds.status, "processing")));
+    } catch (error) {
+      console.error("更新退款狀態失敗:", error);
+      let markFailedError: unknown;
       try {
-        const completedAt = new Date();
         await this.db
           .update(refunds)
-          .set({
-            status: "completed",
-            completedAt,
-          })
+          .set({ status: "failed" })
           .where(
             and(eq(refunds.id, refundId), eq(refunds.status, "processing")),
           );
-      } catch (error) {
-        console.error("更新退款狀態失敗:", error);
-        let markFailedError: unknown;
-        try {
-          await this.db
-            .update(refunds)
-            .set({ status: "failed" })
-            .where(
-              and(eq(refunds.id, refundId), eq(refunds.status, "processing")),
-            );
-          await this.alertRefundCompletionFailure(refundId, error);
-        } catch (updateError) {
-          markFailedError = updateError;
-          await this.alertRefundCompletionFailure(
-            refundId,
-            error,
-            markFailedError,
-          );
-          console.error("更新失敗狀態失敗:", updateError);
-        }
+        await this.alertRefundCompletionFailure(refundId, error);
+      } catch (updateError) {
+        markFailedError = updateError;
+        await this.alertRefundCompletionFailure(
+          refundId,
+          error,
+          markFailedError,
+        );
+        console.error("更新失敗狀態失敗:", updateError);
       }
-    }, 5000); // 5秒後完成退款處理
+    }
   }
   private async alertRefundCompletionFailure(
     refundId: string,

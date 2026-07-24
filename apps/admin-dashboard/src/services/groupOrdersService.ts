@@ -319,8 +319,14 @@ export const groupOrdersService = {
     status?: GroupOrder["status"];
     format: "csv" | "excel";
   }): Promise<Blob> {
-    const response = await apiClient.get("/orders/group/export", params);
-    return unwrapApiData<Blob>(response);
+    const response = await apiClient.instance.get<Blob>(
+      "/orders/group/export",
+      {
+        params,
+        responseType: "blob",
+      },
+    );
+    return response.data;
   },
 
   // QR碼生成

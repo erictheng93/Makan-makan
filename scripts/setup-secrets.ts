@@ -131,7 +131,7 @@ async function createKvNamespaces(): Promise<void> {
   console.log(colors.blue("🗄️  Creating KV Namespaces..."));
 
   const namespaces = ["TOKEN_BLACKLIST", "CACHE_KV"];
-  const environments = ["", "staging"]; // '' = development
+  const environments = [""]; // '' = development
 
   for (const namespace of namespaces) {
     for (const env of environments) {
@@ -189,7 +189,6 @@ async function mainSetup(): Promise<void> {
 
   // Generate JWT secrets for each environment
   const jwtSecretDev = generateSecret();
-  const jwtSecretStaging = generateSecret();
   const jwtSecretProd = generateSecret();
 
   console.log(
@@ -210,22 +209,6 @@ async function mainSetup(): Promise<void> {
 
   // Update JWT_SECRET in .env.local
   await setSecret("JWT_SECRET", jwtSecretDev, "local");
-
-  // Set staging secrets
-  console.log();
-  const setupStaging = await promptYesNo(
-    "🤔 Do you want to set up staging environment secrets?",
-  );
-  if (setupStaging) {
-    await setSecret("JWT_SECRET", jwtSecretStaging, "staging");
-
-    const slackUrlStaging = await prompt(
-      "📧 Enter Slack webhook URL for staging (or press Enter to skip): ",
-    );
-    if (slackUrlStaging) {
-      await setSecret("SLACK_WEBHOOK_URL", slackUrlStaging, "staging");
-    }
-  }
 
   console.log();
 
@@ -269,7 +252,7 @@ async function mainSetup(): Promise<void> {
   console.log("3. Update wrangler.toml with the KV namespace IDs");
   console.log("4. Run database migrations:");
   console.log(
-    "   npx wrangler d1 migrations apply makanmakan-staging --env staging",
+    "   npx wrangler d1 migrations apply makanmakan-prod --env production",
   );
   console.log("5. Test your setup with: pnpm run dev");
 

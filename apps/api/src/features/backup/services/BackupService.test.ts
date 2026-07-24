@@ -17,13 +17,25 @@ vi.mock("drizzle-orm/d1", () => ({
 
 import { BackupService } from "./BackupService";
 
-function createService(d1: D1Database = {} as D1Database) {
+function createService(
+  d1: D1Database = {} as D1Database,
+  encryptionKey?: string,
+) {
   const storageService = {
     generateDownloadResponse: vi.fn(),
     deleteBackup: vi.fn(),
     backupExists: vi.fn(),
     retrieveBackup: vi.fn(),
     storeBackup: vi.fn(),
+    // Default pass-through: no compression/encryption transform applied.
+    processDataForStorage: vi.fn(
+      async (data: string, _c?: boolean, _e?: boolean, _k?: string) => ({
+        processedData: data,
+        originalSize: data.length,
+        processedSize: data.length,
+      }),
+    ),
+    processDataFromStorage: vi.fn(async (data: string) => data),
   };
   const configService = {
     getConfigurationById: vi.fn(),
@@ -41,6 +53,7 @@ function createService(d1: D1Database = {} as D1Database) {
     storageService as any,
     configService as any,
     validationService as any,
+    encryptionKey,
   );
 
   return { service, storageService, configService, validationService };
@@ -373,7 +386,7 @@ describe("BackupService", () => {
         performedBy: "user-1",
         ipAddress: "203.0.113.10",
         userAgent: "Vitest",
-        timestamp: expect.any(String),
+        timestamp: expect.any(Date),
       }),
     );
   });
@@ -1581,5 +1594,190 @@ describe("BackupService", () => {
         title: "Backup Failed",
       }),
     ]);
+  });
+});
+
+describe("BackupService compression/encryption wiring (#20)", () => {
+  function encBackupOverride(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "enc-backup",
+      restaurant_id: "restaurant-1",
+      configuration_id: "config-1",
+      name: "Enc",
+      backup_type: "full",
+      status: "pending",
+      file_size: 0,
+      compressed_size: 0,
+      compression_enabled: false,
+      records_count: 0,
+      tables_included: ["orders"],
+      storage_provider: "r2",
+      storage_path: "",
+      encryption_enabled: true,
+      checksum: "",
+      started_at: new Date().toISOString(),
+      created_by: "user-1",
+      metadata: null,
+      ...overrides,
+    } as any;
+  }
+
+  it("rejects backup creation when encryption is enabled without a key", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService();
+
+    await expect(
+      service.executeBackup("enc-backup", encBackupOverride()),
+    ).rejects.toThrow(/encryption key/i);
+
+    // Never reached storage when the key is missing.
+    expect(storageService.storeBackup).not.toHaveBeenCalled();
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "failed" }),
+      ]),
+    );
+  });
+
+  it("processes (encrypts) the payload before storing and records storage flags", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService(
+      {} as D1Database,
+      "secret-key",
+    );
+    storageService.processDataForStorage.mockResolvedValueOnce({
+      processedData: "ENCRYPTED-BLOB",
+      originalSize: 100,
+      processedSize: 40,
+    });
+    storageService.storeBackup.mockResolvedValue({
+      storage_path: "backups/enc.json",
+      checksum: "chk-enc",
+    });
+
+    await service.executeBackup(
+      "enc-backup",
+      encBackupOverride({ compression_enabled: true, encryption_enabled: true }),
+    );
+
+    // Both the compression and encryption flags flow through with the key.
+    expect(storageService.processDataForStorage).toHaveBeenCalledWith(
+      expect.any(String),
+      true,
+      true,
+      "secret-key",
+    );
+    // The processed (encrypted) bytes — not the raw JSON — are stored.
+    expect(storageService.storeBackup).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "enc-backup" }),
+      "ENCRYPTED-BLOB",
+      "r2",
+    );
+    // Storage flags persisted in metadata so restore knows how to read it back.
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "completed",
+          metadata: expect.objectContaining({
+            storage: { compressed: true, encrypted: true },
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("decrypts on restore using the configured key and persisted storage flags", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService(
+      {} as D1Database,
+      "secret-key",
+    );
+
+    mockSelectResults([
+      [
+        {
+          id: "restore-1",
+          restaurantId: "restaurant-1",
+          backupId: "backup-enc",
+          restoreType: "selective",
+          targetTables: ["orders"],
+          overwriteExisting: false,
+          performedBy: "user-1",
+        },
+      ],
+      [
+        {
+          id: "backup-enc",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: true,
+          checksum: "",
+          metadata: { storage: { compressed: false, encrypted: true } },
+        },
+      ],
+    ]);
+    storageService.retrieveBackup.mockResolvedValue("ENCRYPTED-BLOB");
+    // Decrypted payload with no matching tables -> restore completes trivially.
+    storageService.processDataFromStorage.mockResolvedValueOnce("{}");
+
+    await (service as any).executeRestore("restore-1");
+
+    expect(storageService.processDataFromStorage).toHaveBeenCalledWith(
+      "ENCRYPTED-BLOB",
+      false,
+      true,
+      "secret-key",
+    );
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "completed" }),
+      ]),
+    );
+  });
+
+  it("fails restore of an encrypted backup when no key is configured", async () => {
+    const mutations = mockMutations();
+    const { service, storageService } = createService();
+
+    mockSelectResults([
+      [
+        {
+          id: "restore-2",
+          restaurantId: "restaurant-1",
+          backupId: "backup-enc",
+          restoreType: "selective",
+          targetTables: ["orders"],
+          overwriteExisting: false,
+          performedBy: "user-1",
+        },
+      ],
+      [
+        {
+          id: "backup-enc",
+          restaurantId: "restaurant-1",
+          status: "completed",
+          tablesIncluded: ["orders"],
+          storageProvider: "r2",
+          storagePath: "backup.json",
+          encryptionEnabled: true,
+          checksum: "",
+          metadata: { storage: { compressed: false, encrypted: true } },
+        },
+      ],
+    ]);
+    storageService.retrieveBackup.mockResolvedValue("ENCRYPTED-BLOB");
+
+    await expect(
+      (service as any).executeRestore("restore-2"),
+    ).rejects.toThrow(/encryption key/i);
+    expect(storageService.processDataFromStorage).not.toHaveBeenCalled();
+    expect(mutations.updated).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "failed" }),
+      ]),
+    );
   });
 });

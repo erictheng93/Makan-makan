@@ -31,6 +31,7 @@ type Context = {
     DB: D1Database;
     BACKUP_STORAGE: R2Bucket;
     BACKUP_KV: KVNamespace;
+    ENCRYPTION_KEY: string;
   };
   Variables: ContextVariableMap;
 };
@@ -119,6 +120,7 @@ export function createBackupRoutes(): Hono<Context> {
       storageService,
       configService,
       validationService,
+      c.env.ENCRYPTION_KEY,
     );
     backupService.setRequestContext({
       ipAddress:

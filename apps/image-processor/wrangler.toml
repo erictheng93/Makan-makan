@@ -11,9 +11,12 @@ local_protocol = "http"
 # "*** std::terminate() called" in workerd on Windows (wrangler 4.84.1).
 # Let wrangler auto-allocate instead.
 
-# Cloudflare Images API configuration
+# Scheduled cleanup + daily stats (cron runs in UTC; 01:00 UTC = 09:00 台灣時間)
+[triggers]
+crons = ["0 1 * * *"]
+
 [vars]
-IMAGE_API_BASE_URL = "https://api.cloudflare.com/client/v4/accounts"
+IMAGE_API_BASE_URL = "http://localhost:8790"
 MAX_IMAGE_SIZE_MB = "10"
 ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
 
@@ -28,48 +31,18 @@ LARGE_SIZE = "1200x1200"
 MAX_UPLOADS_PER_MINUTE = "20"
 MAX_TRANSFORMS_PER_MINUTE = "100"
 
-[env.staging]
-name = "makanmasak-image-processor-staging"
-
-[env.staging.vars]
-NODE_ENV = "staging"
-API_VERSION = "v1"
-IMAGE_API_BASE_URL = "https://api.cloudflare.com/client/v4/accounts"
-MAX_IMAGE_SIZE_MB = "10"
-ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
-DEFAULT_VARIANTS = "thumbnail,small,medium,large,original"
-THUMBNAIL_SIZE = "150x150"
-SMALL_SIZE = "300x300"
-MEDIUM_SIZE = "600x600"
-LARGE_SIZE = "1200x1200"
-MAX_UPLOADS_PER_MINUTE = "20"
-MAX_TRANSFORMS_PER_MINUTE = "100"
-
-[[env.staging.r2_buckets]]
-binding = "IMAGES_BUCKET"
-bucket_name = "makanmasak-images-staging"
-
-[[env.staging.kv_namespaces]]
-binding = "IMAGE_CACHE"
-id = "78814688103144d69fc1528771153c1b"
-
-[[env.staging.kv_namespaces]]
-binding = "TOKEN_BLACKLIST"
-id = "d2c8169991254846a0db4154d1595747"
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "makanmasak-staging"
-# Provision with: wrangler d1 create makanmasak-staging
-database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
-
 [env.production]
 name = "makanmasak-image-processor-prod"
+
+[[env.production.routes]]
+pattern = "images.makanmasak.com"
+custom_domain = true
 
 [env.production.vars]
 NODE_ENV = "production"
 API_VERSION = "v1"
-IMAGE_API_BASE_URL = "https://api.cloudflare.com/client/v4/accounts"
+IMAGE_API_BASE_URL = "https://images.makanmasak.com"
+CORS_ORIGIN = "https://admin.makanmasak.com"
 MAX_IMAGE_SIZE_MB = "10"
 ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
 DEFAULT_VARIANTS = "thumbnail,small,medium,large,original"
@@ -79,10 +52,6 @@ MEDIUM_SIZE = "600x600"
 LARGE_SIZE = "1200x1200"
 MAX_UPLOADS_PER_MINUTE = "20"
 MAX_TRANSFORMS_PER_MINUTE = "100"
-
-[[env.production.r2_buckets]]
-binding = "IMAGES_BUCKET"
-bucket_name = "makanmasak-images-prod"
 
 [[env.production.kv_namespaces]]
 binding = "IMAGE_CACHE"
@@ -91,6 +60,10 @@ id = "1bdf850866984564b11d66ab5617744d"
 [[env.production.kv_namespaces]]
 binding = "TOKEN_BLACKLIST"
 id = "30ba7daf1e4c41438233542de10dd02f"
+
+[[env.production.r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "makanmasak-images-prod"
 
 [[env.production.d1_databases]]
 binding = "DB"

@@ -14,6 +14,7 @@ import {
   asc,
   isNull,
   isNotNull,
+  inArray,
 } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { D1Database } from "@cloudflare/workers-types";
@@ -765,6 +766,32 @@ export class SchedulingService extends BaseService {
   /**
    * Get attendance report for a date range
    */
+  /**
+   * Resolve display names for a set of employee ids.
+   * Returns a map of employeeId -> display name (fullName, falling back to
+   * username). Missing ids are simply absent from the map.
+   */
+  async getEmployeeNames(employeeIds: string[]): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const uniqueIds = [...new Set(employeeIds)];
+    if (uniqueIds.length === 0) return map;
+
+    const rows = await this.db
+      .select({
+        id: users.id,
+        fullName: users.fullName,
+        username: users.username,
+      })
+      .from(users)
+      .where(inArray(users.id, uniqueIds));
+
+    for (const row of rows) {
+      const name = row.fullName || row.username;
+      if (name) map.set(row.id, name);
+    }
+    return map;
+  }
+
   async getAttendanceReport(
     restaurantId: string,
     options: {
@@ -1317,25 +1344,156 @@ export class SchedulingService extends BaseService {
     requestId: number,
     managerId: string,
   ): Promise<ScheduleSwapRequest> {
-    // Wrap swap request update and any related schedule updates in a transaction
-    const updated = await this.db.transaction(async (tx) => {
-      const [result] = await tx
-        .update(scheduleSwapRequests)
-        .set({
-          status: "approved",
-          approvedBy: managerId,
-          approvedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(scheduleSwapRequests.id, requestId))
-        .returning();
+    // Re-load and validate the swap request. Reads happen up front; the roster
+    // reassignment and the approval commit atomically via `db.batch` (D1 does
+    // not support interactive `db.transaction` / SQL BEGIN).
+    const [request] = await this.db
+      .select()
+      .from(scheduleSwapRequests)
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .limit(1);
 
-      if (!result) {
-        throw new Error("Swap request not found");
+    if (!request) {
+      throw new Error("Swap request not found");
+    }
+
+    // Only a pending (or employee-accepted) request may be approved.
+    if (request.status !== "pending" && request.status !== "accepted") {
+      throw new Error(
+        `Swap request cannot be approved from status "${request.status}"`,
+      );
+    }
+
+    const now = new Date();
+
+    // The requester's schedule row is always the shift being changed.
+    const [requesterRow] = await this.db
+      .select()
+      .from(employeeSchedules)
+      .where(eq(employeeSchedules.id, request.requesterScheduleId))
+      .limit(1);
+    if (!requesterRow) {
+      throw new Error("Requester schedule not found");
+    }
+
+    // Build the schedule reassignment writes according to the request type.
+    const scheduleWrites: BatchItem<"sqlite">[] = [];
+    switch (request.requestType) {
+      case "swap": {
+        // Exchange the assigned employee between the two shifts.
+        if (!request.targetEmployeeId) {
+          throw new Error("Swap request is missing a target employee");
+        }
+        if (request.targetScheduleId) {
+          const [targetRow] = await this.db
+            .select()
+            .from(employeeSchedules)
+            .where(eq(employeeSchedules.id, request.targetScheduleId))
+            .limit(1);
+          if (!targetRow) {
+            throw new Error("Target schedule not found");
+          }
+          // Swap the employeeId on each row.
+          scheduleWrites.push(
+            this.db
+              .update(employeeSchedules)
+              .set({
+                employeeId: targetRow.employeeId,
+                updatedBy: managerId,
+                updatedAt: now,
+              })
+              .where(
+                eq(employeeSchedules.id, request.requesterScheduleId),
+              ) as BatchItem<"sqlite">,
+            this.db
+              .update(employeeSchedules)
+              .set({
+                employeeId: requesterRow.employeeId,
+                updatedBy: managerId,
+                updatedAt: now,
+              })
+              .where(
+                eq(employeeSchedules.id, request.targetScheduleId),
+              ) as BatchItem<"sqlite">,
+          );
+        } else {
+          // No target shift row — reassign the requester's shift outright.
+          scheduleWrites.push(
+            this.db
+              .update(employeeSchedules)
+              .set({
+                employeeId: request.targetEmployeeId,
+                updatedBy: managerId,
+                updatedAt: now,
+              })
+              .where(
+                eq(employeeSchedules.id, request.requesterScheduleId),
+              ) as BatchItem<"sqlite">,
+          );
+        }
+        break;
       }
+      case "cover": {
+        // Someone else covers the shift — reassign to the target employee.
+        if (!request.targetEmployeeId) {
+          throw new Error("Cover request is missing a target employee");
+        }
+        scheduleWrites.push(
+          this.db
+            .update(employeeSchedules)
+            .set({
+              employeeId: request.targetEmployeeId,
+              updatedBy: managerId,
+              updatedAt: now,
+            })
+            .where(
+              eq(employeeSchedules.id, request.requesterScheduleId),
+            ) as BatchItem<"sqlite">,
+        );
+        break;
+      }
+      case "drop": {
+        // Drop the shift without a replacement — cancel the schedule row.
+        scheduleWrites.push(
+          this.db
+            .update(employeeSchedules)
+            .set({
+              status: "cancelled",
+              updatedBy: managerId,
+              updatedAt: now,
+            })
+            .where(
+              eq(employeeSchedules.id, request.requesterScheduleId),
+            ) as BatchItem<"sqlite">,
+        );
+        break;
+      }
+    }
 
-      return result;
-    });
+    const requestUpdate = this.db
+      .update(scheduleSwapRequests)
+      .set({
+        status: "approved",
+        approvedBy: managerId,
+        approvedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(scheduleSwapRequests.id, requestId))
+      .returning() as BatchItem<"sqlite">;
+
+    // Atomic batch: schedule reassignment first, approval last.
+    const allWrites: BatchItem<"sqlite">[] = [...scheduleWrites, requestUpdate];
+    const batchResults = await this.db.batch(
+      allWrites as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+    );
+
+    const updatedRows = batchResults[batchResults.length - 1] as Array<
+      typeof request
+    >;
+    const updated = updatedRows[0];
+    if (!updated) {
+      throw new Error("Swap request not found");
+    }
 
     // Send notifications outside the transaction (non-critical side effects)
     try {

@@ -1848,13 +1848,13 @@ The migration path only runs on wakeup. Force it:
 
 ```bash
 # Connect a WebSocket to a known session that was created before the deploy
-wscat -c wss://staging.realtime.example.com/session/test
+wscat -c wss://production.realtime.example.com/session/test
 ```
 
 Monitor the session's logs:
 
 ```bash
-cd apps/realtime && pnpm wrangler tail --format pretty --env staging
+cd apps/realtime && pnpm wrangler tail --format pretty --env production
 ```
 
 Look for the `DO state migration: 1 → 2` log line.

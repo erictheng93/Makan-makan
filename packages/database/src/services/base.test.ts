@@ -8,7 +8,7 @@ class TestService extends BaseService {
 }
 
 describe("BaseService.safeTransaction", () => {
-  it("fails closed when D1 rejects interactive BEGIN", async () => {
+  it("fails closed without opening an unsupported D1 transaction", async () => {
     const db = {
       transaction: vi.fn(async () => {
         throw new Error("Failed query: begin");
@@ -20,6 +20,7 @@ describe("BaseService.safeTransaction", () => {
     await expect(service.runSafeTransaction(writeFn)).rejects.toThrow(
       "convert this write path to db.batch()",
     );
+    expect(db.transaction).not.toHaveBeenCalled();
     expect(writeFn).not.toHaveBeenCalled();
   });
 });

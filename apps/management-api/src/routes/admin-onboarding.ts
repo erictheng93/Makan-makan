@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { badRequest, notFound } from "@makanmakan/utils";
 import type { ManagementEnv, OnboardingStatus } from "../types";
 import { OnboardingService } from "../services/OnboardingService";
 
@@ -67,14 +68,10 @@ router.get("/applications", async (c) => {
     limit: c.req.query("limit"),
   });
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        code: "VALIDATION_ERROR",
-        details: parsed.error.errors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.errors,
     );
   }
 
@@ -97,14 +94,12 @@ router.post("/applications/:id/approve", async (c) => {
   const result = await service.approveApplication(c.req.param("id"));
 
   if (!result.success) {
-    const status = result.error === "Application not found" ? 404 : 400;
-    return c.json(
-      {
-        success: false,
-        error: result.error ?? "Failed to approve application",
-        code: status === 404 ? "NOT_FOUND" : "INVALID_STATUS",
-      },
-      status,
+    if (result.error === "Application not found") {
+      throw notFound(result.error, "NOT_FOUND");
+    }
+    throw badRequest(
+      result.error ?? "Failed to approve application",
+      "INVALID_STATUS",
     );
   }
 
@@ -125,14 +120,12 @@ router.post("/applications/:id/reject", async (c) => {
   const result = await service.rejectApplication(c.req.param("id"));
 
   if (!result.success) {
-    const status = result.error === "Application not found" ? 404 : 400;
-    return c.json(
-      {
-        success: false,
-        error: result.error ?? "Failed to reject application",
-        code: status === 404 ? "NOT_FOUND" : "INVALID_STATUS",
-      },
-      status,
+    if (result.error === "Application not found") {
+      throw notFound(result.error, "NOT_FOUND");
+    }
+    throw badRequest(
+      result.error ?? "Failed to reject application",
+      "INVALID_STATUS",
     );
   }
 

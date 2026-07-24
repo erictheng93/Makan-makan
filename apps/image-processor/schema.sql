@@ -151,7 +151,7 @@ INSERT OR IGNORE INTO images (
     'delicious_noodles.jpg', 
     'image/jpeg', 
     152400,
-    '{"thumbnail":"https://imagedelivery.net/abc/sample-1/thumbnail","medium":"https://imagedelivery.net/abc/sample-1/medium"}',
+    '{"thumbnail":"https://images.makanmasak.com/images/sample-1/thumbnail","medium":"https://images.makanmasak.com/images/sample-1/medium"}',
     datetime('now', '-1 day'),
     'menu',
     'Delicious stir-fried noodles'
@@ -162,7 +162,7 @@ INSERT OR IGNORE INTO images (
     'cozy_dining_room.jpg', 
     'image/jpeg', 
     234600,
-    '{"thumbnail":"https://imagedelivery.net/abc/sample-2/thumbnail","large":"https://imagedelivery.net/abc/sample-2/large"}',
+    '{"thumbnail":"https://images.makanmasak.com/images/sample-2/thumbnail","large":"https://images.makanmasak.com/images/sample-2/large"}',
     datetime('now', '-2 hours'),
     'restaurant',
     'Cozy dining room interior'

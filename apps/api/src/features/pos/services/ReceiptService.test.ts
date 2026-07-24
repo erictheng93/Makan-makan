@@ -295,7 +295,6 @@ describe("ReceiptService", () => {
   });
 
   it("reprints and cancels receipts with the expected update payloads", async () => {
-    vi.useFakeTimers();
     const mutations = mockMutations();
     mockSelectResults([[receiptRow()], []]);
 
@@ -309,20 +308,22 @@ describe("ReceiptService", () => {
       success: true,
     });
 
+    // reprint resets to "pending" then synchronously settles "printed"; the
+    // final cancelPrint marks "cancelled".
     expect(mutations.updated).toEqual([
       expect.objectContaining({
         printStatus: "pending",
         lastReprintAt: expect.any(Date),
       }),
+      expect.objectContaining({
+        printStatus: "printed",
+        printedAt: expect.any(Date),
+      }),
       { printStatus: "cancelled" },
     ]);
-    vi.clearAllTimers();
-    vi.useRealTimers();
   });
 
-  it("updates print status asynchronously after queued receipt prints", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+  it("marks the receipt printed synchronously before returning", async () => {
     vi.spyOn(crypto, "randomUUID").mockReturnValue("receipt-async");
     const mutations = mockMutations();
     mockSelectResults([
@@ -331,25 +332,22 @@ describe("ReceiptService", () => {
       [receiptRow({ id: "receipt-async" })],
     ]);
 
+    // Print completion is now awaited (no timer): by the time printReceipt
+    // resolves, the "printed" write has already run — the row never lingers in
+    // "pending".
     await expect(
       createService().printReceipt({ orderId: "101", copies: 2 }, "register-1"),
     ).resolves.toMatchObject({ success: true });
 
-    await vi.advanceTimersByTimeAsync(3_999);
-    expect(mutations.updated).toHaveLength(0);
-
-    await vi.advanceTimersByTimeAsync(1);
     expect(mutations.updated).toEqual([
       expect.objectContaining({
         printStatus: "printed",
-        printedAt: new Date("2026-06-07T00:00:04.000Z"),
+        printedAt: expect.any(Date),
       }),
     ]);
-    vi.useRealTimers();
   });
 
-  it("marks asynchronous print attempts failed when printed status update fails", async () => {
-    vi.useFakeTimers();
+  it("marks print attempts failed when the printed-status write fails", async () => {
     mockSelectResults([[receiptRow()]]);
     const updated: unknown[] = [];
     let updateAttempt = 0;
@@ -374,10 +372,11 @@ describe("ReceiptService", () => {
     });
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
+    // reprint runs: reset-to-pending (1), printed write fails (2), failed
+    // write (3) — all synchronously before reprintReceipt resolves.
     await expect(createService().reprintReceipt("receipt-1")).resolves.toEqual({
       success: true,
     });
-    await vi.advanceTimersByTimeAsync(2_000);
 
     expect(updated).toEqual([
       expect.objectContaining({ printStatus: "pending" }),
@@ -388,7 +387,6 @@ describe("ReceiptService", () => {
       "更新打印狀態失敗:",
       expect.any(Error),
     );
-    vi.useRealTimers();
   });
 
   it("maps query and mutation failures to service error responses", async () => {

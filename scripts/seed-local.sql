@@ -80,6 +80,47 @@ INSERT OR IGNORE INTO users (
     unixepoch('now') * 1000
   );
 
+INSERT OR IGNORE INTO shop_subscriptions (
+  id,
+  restaurant_id,
+  plan_tier,
+  module_overrides,
+  is_active,
+  trial_ends_at_ms,
+  billing_cycle_start_at_ms,
+  billing_cycle_end_at_ms,
+  notes,
+  created_at_ms,
+  updated_at_ms
+) VALUES (
+  '019469a2-0000-7000-8000-000000000003',
+  '019469a0-0099-7000-8000-000000000099',
+  'trial',
+  '{"online_ordering":true,"analytics":true,"menu_management":true,"table_management":true,"staff_management":true,"pos":true,"kitchen_display":true}',
+  1,
+  (unixepoch('now') * 1000) + (30 * 24 * 60 * 60 * 1000),
+  unixepoch('now') * 1000,
+  (unixepoch('now') * 1000) + (30 * 24 * 60 * 60 * 1000),
+  'local demo subscription for owner1',
+  unixepoch('now') * 1000,
+  unixepoch('now') * 1000
+);
+
+UPDATE shop_subscriptions
+SET
+  plan_tier = 'trial',
+  module_overrides = '{"online_ordering":true,"analytics":true,"menu_management":true,"table_management":true,"staff_management":true,"pos":true,"kitchen_display":true}',
+  is_active = 1,
+  trial_ends_at_ms = (unixepoch('now') * 1000) + (30 * 24 * 60 * 60 * 1000),
+  billing_cycle_start_at_ms = COALESCE(
+    billing_cycle_start_at_ms,
+    unixepoch('now') * 1000
+  ),
+  billing_cycle_end_at_ms = (unixepoch('now') * 1000) + (30 * 24 * 60 * 60 * 1000),
+  notes = 'local demo subscription for owner1',
+  updated_at_ms = unixepoch('now') * 1000
+WHERE restaurant_id = '019469a0-0099-7000-8000-000000000099';
+
 UPDATE users
 SET
   password_hash = CASE

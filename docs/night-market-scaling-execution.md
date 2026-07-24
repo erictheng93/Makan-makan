@@ -28,7 +28,7 @@ Roadmap tiers and their gates:
 - Public catalog browsing needs no cross-request bookmark (clients don't write
   the catalog), so no cookie/header plumbing was added.
 
-**ACTION REQUIRED (you):** enable Read Replication on the prod (and staging) D1 in
+**ACTION REQUIRED (you):** enable Read Replication on the prod D1 in
 the Cloudflare dashboard: D1 → database → Settings → Enable Read Replication.
 Until then the Sessions API is correct but routes everything to primary (no-op).
 
@@ -41,14 +41,14 @@ Until then the Sessions API is correct but routes everything to primary (no-op).
   inline (bounded). Falls back to inline when no queue is bound (tests).
 - Queue consumer added to the worker entry (`apps/api/src/index.ts`).
 - `SEARCH_SYNC_QUEUE` producer+consumer wired in `wrangler.toml` for default /
-  development / staging / production, each with a dead-letter queue.
+  development / production, each with a dead-letter queue.
 
 **ACTION REQUIRED (you):** create the queues before deploying (per env), e.g.:
 ```
 wrangler queues create makanmasak-search-sync-prod
 wrangler queues create makanmasak-search-sync-dlq-prod
 ```
-(and the `-staging` / `-dev` pairs). Deploy order: queues first, then the worker.
+(and the `-dev` pair). Deploy order: queues first, then the worker.
 
 ## ✅ P2 — FTS5 trigram hybrid search (shipped)
 

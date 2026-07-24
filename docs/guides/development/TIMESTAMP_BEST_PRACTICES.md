@@ -1,5 +1,19 @@
 # Database Timestamp Best Practices
 
+> ⚠️ **DEPRECATED (2026-07-05)**: The recommendation below (`getCurrentTimestamp()`
+> returning an ISO **string**, written via raw `.prepare().bind().run()` SQL)
+> contradicts the project's current, actively-enforced standards documented
+> in root `CLAUDE.md`: timestamps must be `INTEGER` Unix milliseconds via
+> Drizzle's `{ mode: "timestamp_ms" }`, and raw string SQL ("Layer 3") is
+> banned in new code in favor of the Drizzle Query Builder / `sql` template
+> layers. `getCurrentTimestamp()` itself is now effectively dead code — its
+> only real caller outside tests is `packages/ai-analytics/src/services/AIInsightsService.ts`.
+> The `QueueServiceModular.ts` example below no longer exists (the queue
+> feature was consolidated into `UnifiedQueueService`/`WaitingListService`).
+> Do not follow this guide for new code — see `CLAUDE.md`'s Database section
+> instead. Kept for historical context on the original `sql.js`/`CURRENT_TIMESTAMP`
+> testing problem it was solving.
+
 ## Overview
 
 This document outlines the best practices for handling timestamps in the MakanMakan codebase, especially for database operations.

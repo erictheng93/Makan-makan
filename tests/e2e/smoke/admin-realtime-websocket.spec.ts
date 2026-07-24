@@ -1,5 +1,5 @@
 /**
- * Staging admin realtime WebSocket smoke.
+ * Deployed admin realtime WebSocket smoke.
  *
  * This is intentionally not a mocked E2E: it logs in through the deployed API,
  * lets the deployed admin dashboard create its own WebSocket, then verifies
@@ -247,7 +247,7 @@ test.describe("Smoke: admin realtime WebSocket", () => {
         sessionStorage.setItem("admin_selected_restaurant_id", restaurantId);
         sessionStorage.setItem(
           "admin_selected_restaurant_name",
-          "Staging Smoke Restaurant",
+          "Deployed Smoke Restaurant",
         );
       },
       { token, refreshToken, user, restaurantId },
@@ -299,7 +299,7 @@ test.describe("Smoke: admin realtime WebSocket", () => {
             notificationId: eventId,
             level: "info",
             title: "blocked public realtime broadcast",
-            message: "staging admin realtime smoke",
+            message: "admin realtime smoke",
           },
         }),
       },

@@ -84,7 +84,10 @@ export class SoftDeleteService<
    * ```
    */
   async softDelete(table: SQLiteTable, condition: SQL) {
-    const now = Math.floor(Date.now() / 1000);
+    // deletedAt columns use Drizzle `timestamp_ms` mode, whose TS API expects a
+    // `Date` (Drizzle encodes it to Unix-ms). Writing `Math.floor(Date.now()/1000)`
+    // stored raw Unix *seconds*, which read back as dates in ~1970.
+    const now = new Date();
     return this.db
       .update(table)
       .set({ deletedAt: now } as Record<string, unknown>)
@@ -135,7 +138,9 @@ export class SoftDeleteService<
     retentionDays?: number,
   ) {
     const days = retentionDays ?? this.defaultRetentionDays;
-    const cutoffTime = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
+    // Compare in milliseconds/Date to match the `timestamp_ms` columns. Drizzle
+    // encodes the Date operand to Unix-ms via the column mapper.
+    const cutoffTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     return this.db
       .delete(table)
@@ -177,7 +182,8 @@ export class SoftDeleteService<
     retentionDays?: number,
   ) {
     const days = retentionDays ?? this.defaultRetentionDays;
-    const cutoffTime = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
+    // Compare in milliseconds/Date to match the `timestamp_ms` columns.
+    const cutoffTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const result = await this.db
       .select({ count: sql<number>`count(*)` })

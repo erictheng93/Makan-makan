@@ -112,7 +112,9 @@ describe("onboarding route authorization", () => {
       createEnv(),
     );
 
-    expect(response.status).toBe(401);
+    // No public completion route exists — the path 404s (it used to 401 via
+    // the catch-all auth middleware before auth was scoped to known prefixes).
+    expect(response.status).toBe(404);
     expect(onboardingMocks.verifyApplicationSecret).not.toHaveBeenCalled();
   });
 });

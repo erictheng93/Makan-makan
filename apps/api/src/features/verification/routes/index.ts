@@ -12,12 +12,9 @@ import {
   RateLimitPresets,
 } from "../../../middleware/rateLimiter";
 import { customerAuthMiddleware } from "../../../middleware/auth";
-import { AlertService } from "../../../services/AlertService";
 import type { Env } from "../../../types/env";
 import {
-  forgotPasswordSchema,
   verifyResetTokenSchema,
-  resetPasswordSchema,
   sendEmailVerificationSchema,
   verifyEmailSchema,
   sendPhoneVerificationSchema,
@@ -44,58 +41,14 @@ function getClientInfo(c: Context<{ Bindings: Env }>) {
 // Password Reset Routes
 // ========================================
 
-/**
- * POST /forgot-password
- * Request password reset link/OTP
- * Rate limit: 5 requests per hour per IP
- */
-routes.post(
-  "/forgot-password",
-  rateLimitMiddleware(RateLimitPresets.passwordReset),
-  async (c) => {
-    const body = await c.req.json();
-    const validation = forgotPasswordSchema.safeParse(body);
-
-    if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error.errors[0].message,
-        },
-        400,
-      );
-    }
-
-    const { identifier, method } = validation.data;
-    const { ipAddress, userAgent } = getClientInfo(c);
-
-    try {
-      const service = new VerificationService(c.env.DB, c.env);
-      const result = await service.requestPasswordReset({
-        identifier,
-        method,
-        ipAddress,
-        userAgent,
-      });
-
-      // Send alert for failed attempts (user not found)
-      if (!result.success && result.error?.includes("找不到用戶")) {
-        const alertService = new AlertService(c.env);
-        await alertService.passwordResetAttempt(identifier, ipAddress, false);
-      }
-
-      return c.json(result, result.success ? 200 : 500);
-    } catch {
-      return c.json(
-        {
-          success: false,
-          error: "處理請求時發生錯誤",
-        },
-        500,
-      );
-    }
-  },
-);
+// NOTE: `POST /forgot-password` and `POST /reset-password` were removed from
+// this module. They were unreachable dead code: the authentication feature
+// mounts on `/auth` BEFORE this verification feature (app-factory.ts), so its
+// same-path `POST /forgot-password` and `POST /reset-password` handlers
+// (AuthService-based) always won. Hono runs the first-registered matching
+// handler, so these VerificationService-based duplicates never executed. The
+// unique verification routes below (`GET /reset-password/verify`, email/phone
+// verification) do not collide and remain live.
 
 /**
  * GET /reset-password/verify?token=xxx
@@ -141,48 +94,6 @@ routes.get("/reset-password/verify", async (c) => {
       {
         valid: false,
         error: "驗證 Token 時發生錯誤",
-      },
-      500,
-    );
-  }
-});
-
-/**
- * POST /reset-password
- * Reset password using token
- */
-routes.post("/reset-password", async (c) => {
-  const body = await c.req.json();
-  const validation = resetPasswordSchema.safeParse(body);
-
-  if (!validation.success) {
-    return c.json(
-      {
-        success: false,
-        error: validation.error.errors[0].message,
-      },
-      400,
-    );
-  }
-
-  const { token, newPassword } = validation.data;
-  const { ipAddress, userAgent } = getClientInfo(c);
-
-  try {
-    const service = new VerificationService(c.env.DB, c.env);
-    const result = await service.resetPassword({
-      token,
-      newPassword,
-      ipAddress,
-      userAgent,
-    });
-
-    return c.json(result, result.success ? 200 : 400);
-  } catch {
-    return c.json(
-      {
-        success: false,
-        error: "重設密碼時發生錯誤",
       },
       500,
     );

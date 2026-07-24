@@ -31,9 +31,6 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
 #### Create D1 Databases
 
 ```bash
-# Create staging database
-wrangler d1 create makanmakan-staging
-
 # Create production database
 wrangler d1 create makanmakan-prod
 
@@ -43,9 +40,6 @@ wrangler d1 create makanmakan-prod
 #### Apply Database Migrations
 
 ```bash
-# Apply to staging
-wrangler d1 migrations apply makanmakan-staging --env staging
-
 # Apply to production
 wrangler d1 migrations apply makanmakan-prod --env production
 ```
@@ -56,16 +50,15 @@ wrangler d1 migrations apply makanmakan-prod --env production
 
 ```bash
 # Image processor KV namespaces
-wrangler kv:namespace create "IMAGE_CACHE" --env staging
 wrangler kv:namespace create "IMAGE_CACHE" --env production
 
 # Realtime service KV namespaces
-wrangler kv:namespace create "REALTIME_CACHE" --env staging
 wrangler kv:namespace create "REALTIME_CACHE" --env production
 
-# API service KV namespaces (for rate limiting, caching)
-wrangler kv:namespace create "API_CACHE" --env staging
-wrangler kv:namespace create "API_CACHE" --env production
+# API service KV namespaces (caching, rate limiting, backup state — bindings per apps/api/wrangler.toml)
+wrangler kv:namespace create "CACHE_KV" --env production
+wrangler kv:namespace create "RATE_LIMIT_KV" --env production
+wrangler kv:namespace create "BACKUP_KV" --env production
 ```
 
 ### 4. **Update Wrangler Configuration IDs**
@@ -111,13 +104,6 @@ grep -r "TO_BE_REPLACED" apps/*/wrangler.toml
 
 ### 6. **Deployment Commands**
 
-#### Deploy to Staging
-
-```bash
-# Build and deploy all services to staging
-npm run deploy:staging
-```
-
 #### Deploy to Production
 
 ```bash
@@ -136,10 +122,10 @@ curl -X POST https://api.makanmakan.app/api/v1/auth/login \\
   -d '{"username":"test","password":"test"}'
 
 # Verify rate limiting
-for i in {1..10}; do curl https://api.makanmakan.app/api/v1/health; done
+for i in {1..10}; do curl https://api.makanmakan.app/info; done
 
 # Test CORS headers
-curl -I https://api.makanmakan.app/api/v1/health
+curl -I https://api.makanmakan.app/info
 ```
 
 ## 🚨 **CRITICAL SECURITY WARNINGS**
@@ -156,7 +142,6 @@ curl -I https://api.makanmakan.app/api/v1/health
 
 - Generate unique secrets for each environment
 - Use wrangler secrets for all sensitive values
-- Test deployments in staging first
 - Monitor error logs after deployment
 - Set up proper DNS and SSL certificates
 
@@ -167,12 +152,6 @@ curl -I https://api.makanmakan.app/api/v1/health
 - Use `.env.local` with development-only secrets
 - Local D1 database for testing
 - Relaxed CORS for localhost development
-
-### Staging
-
-- Separate D1 database from production
-- Staging-specific JWT secrets
-- Limited access for testing
 
 ### Production
 

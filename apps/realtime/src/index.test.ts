@@ -10,6 +10,7 @@ function jsonResponse(body: unknown, init?: ResponseInit) {
 }
 
 function createEnv(input?: {
+  corsOrigin?: string;
   durableFetch?: (request: Request) => Response | Promise<Response>;
   rateLimitValue?: string | null;
   rateLimitEnabled?: boolean;
@@ -25,6 +26,7 @@ function createEnv(input?: {
   return {
     ENVIRONMENT: "test",
     API_VERSION: "1",
+    CORS_ORIGIN: input?.corsOrigin,
     JWT_SECRET: "secret",
     RATE_LIMIT_ENABLED: input?.rateLimitEnabled ? "true" : "false",
     REALTIME_SESSION: {
@@ -56,6 +58,44 @@ describe("realtime worker routes", () => {
       service: "makanmakan-realtime",
       environment: "test",
     });
+  });
+
+  it("allows CORS origins configured through env", async () => {
+    const response = await worker.fetch(
+      new Request("https://realtime.test/health", {
+        headers: {
+          Origin: "https://custom.example.com",
+        },
+      }),
+      createEnv({
+        corsOrigin:
+          "https://makanmasak.com, https://custom.example.com,https://admin.makanmasak.com",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://custom.example.com",
+    );
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
+      "true",
+    );
+  });
+
+  it("does not set CORS allow-origin for unconfigured origins", async () => {
+    const response = await worker.fetch(
+      new Request("https://realtime.test/health", {
+        headers: {
+          Origin: "https://blocked.example.com",
+        },
+      }),
+      createEnv({
+        corsOrigin: "https://makanmasak.com",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
   it("forwards customer websocket requests to the room Durable Object", async () => {

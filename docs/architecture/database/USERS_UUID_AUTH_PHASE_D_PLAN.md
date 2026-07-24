@@ -216,8 +216,7 @@ Progress:
 
 Do not begin Phase E users primary-key rebuild until all are true:
 
-- `users.public_id` audit guard has passed on staging or restored production
-  data.
+- `users.public_id` audit guard has passed on restored production data.
 - API auth, realtime auth, management auth, login, refresh, logout, and
   verification-token tests pass for both legacy and UUID-compatible token
   shapes.
@@ -227,7 +226,7 @@ Do not begin Phase E users primary-key rebuild until all are true:
 - A users PK dry-run script exists that creates shadow tables, copies through
   `users.public_id`, checks row-count parity, runs `PRAGMA foreign_key_check`,
   and rolls back.
-- The users PK dry-run has passed against restored production or staging data
+- The users PK dry-run has passed against restored production data
   with non-empty representative user rows and dependent references.
 
 ## Out of Scope

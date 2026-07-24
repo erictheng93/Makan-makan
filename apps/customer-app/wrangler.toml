@@ -22,15 +22,3 @@ VITE_REALTIME_WS_URL = "wss://realtime.makanmasak.com"
 VITE_MAP_PM_TILES_URL = "https://pub-2c3683e1158d4d579317f24fc66a34b3.r2.dev/taiwan.pmtiles"
 VITE_MAP_GLYPHS_URL = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf"
 VITE_NODE_ENV = "production"
-
-[env.preview]
-name = "makanmasak-customer-staging"
-
-[env.preview.vars]
-VITE_API_BASE_URL = "https://makanmasak-api-staging.omfg.workers.dev/api/v1"
-VITE_WS_BASE_URL = "wss://makanmasak-api-staging.omfg.workers.dev"
-VITE_REALTIME_URL = "wss://makanmasak-realtime-staging.omfg.workers.dev"
-VITE_REALTIME_WS_URL = "wss://makanmasak-realtime-staging.omfg.workers.dev"
-VITE_MAP_PM_TILES_URL = "https://pub-2c3683e1158d4d579317f24fc66a34b3.r2.dev/taiwan.pmtiles"
-VITE_MAP_GLYPHS_URL = "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf"
-VITE_NODE_ENV = "staging"

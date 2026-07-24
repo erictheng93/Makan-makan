@@ -4,41 +4,51 @@ import type { Env } from "../types/env";
 import { createDatabase, eq, images } from "@makanmakan/database";
 
 export interface AuthUser {
-  id: number;
+  id: string;
   username: string;
   role: number;
-  restaurantId?: number;
+  restaurantId?: string;
 }
 
 type JwtAuthPayload = {
-  id: number;
+  id: string;
   username: string;
   role: number;
-  restaurantId?: number;
+  restaurantId?: string;
   exp?: number;
   iat?: number;
   nbf?: number;
 };
 
+// Main-API access tokens carry the user id in `sub` as a UUID v7 string and
+// restaurantId as a string UUID (see packages/database/src/services/auth.ts
+// accessTokenPayload / apps/api/src/middleware/auth.ts isAuthTokenPayload).
+const UUID_V7_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 const toJwtAuthPayload = (
   payload: Record<string, unknown>,
 ): JwtAuthPayload | null => {
   if (
-    typeof payload.id !== "number" ||
+    typeof payload.sub !== "string" ||
+    !UUID_V7_PATTERN.test(payload.sub) ||
     typeof payload.username !== "string" ||
+    payload.username.length === 0 ||
     typeof payload.role !== "number" ||
     (payload.restaurantId !== undefined &&
       payload.restaurantId !== null &&
+      typeof payload.restaurantId !== "string" &&
       typeof payload.restaurantId !== "number")
   ) {
     return null;
   }
 
   return {
-    id: payload.id,
+    id: payload.sub,
     username: payload.username,
     role: payload.role,
-    restaurantId: payload.restaurantId ?? undefined,
+    restaurantId:
+      payload.restaurantId == null ? undefined : String(payload.restaurantId),
     exp: typeof payload.exp === "number" ? payload.exp : undefined,
     iat: typeof payload.iat === "number" ? payload.iat : undefined,
     nbf: typeof payload.nbf === "number" ? payload.nbf : undefined,
@@ -143,9 +153,10 @@ export const authMiddleware = async (
       return c.json({ success: false, error: "Invalid role in token" }, 401);
     }
 
-    // Check token age (reject tokens older than 24 hours without refresh)
+    // Check token age — aligned with the main API's 72h ceiling
+    // (MAX_ACCESS_TOKEN_AGE_SECONDS in apps/api/src/middleware/auth.ts)
     const tokenAge = now - (iat || 0);
-    const maxTokenAge = 24 * 60 * 60; // 24 hours
+    const maxTokenAge = 72 * 60 * 60;
     if (tokenAge > maxTokenAge) {
       return c.json(
         { success: false, error: "Token too old, please refresh" },

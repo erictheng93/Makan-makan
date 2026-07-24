@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { CloudflareImagesAPI, ImageUtils } from "../utils/cloudflare-images";
 import { ImageService } from "../services/image-service";
 import {
   authMiddleware,
@@ -30,6 +29,138 @@ import type { Env, ImageMetadata, ImageTransformation } from "../types/env";
 
 const app = new Hono<{ Bindings: Env }>();
 
+const generateUniqueFilename = (originalFilename: string): string => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const extension = originalFilename.split(".").pop();
+  const baseName = originalFilename
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9-_]/g, "-");
+
+  return `${baseName}-${timestamp}-${random}.${extension}`;
+};
+
+const extractImageMetadata = async (
+  file: File,
+): Promise<{
+  width?: number;
+  height?: number;
+  format?: string;
+  size: number;
+  exif?: Record<string, unknown>;
+}> => ({
+  size: file.size,
+  format: file.type,
+});
+
+const isUploadFile = (value: FormDataEntryValue): value is File =>
+  typeof value === "object" &&
+  value !== null &&
+  "arrayBuffer" in value &&
+  "name" in value &&
+  "size" in value &&
+  "type" in value;
+
+const getUploadVariantFiles = (
+  formData: FormData | undefined,
+  original: File,
+  allowedVariants: Set<string>,
+  allowedMimeTypes: string[],
+  maxSizeMB: number,
+): Array<{ variant: string; file: File }> | Response => {
+  const files = new Map<string, File>([["original", original]]);
+  const normalizedMimeTypes = allowedMimeTypes.map((type) =>
+    type.toLowerCase().trim(),
+  );
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  let validationError: Response | undefined;
+
+  if (formData) {
+    formData.forEach((value, key) => {
+      if (validationError) {
+        return;
+      }
+
+      if (key === "file" || !isUploadFile(value) || value.size === 0) {
+        return;
+      }
+
+      if (!allowedVariants.has(key)) {
+        validationError = Response.json(
+          {
+            success: false,
+            error: "Invalid image variant",
+            variant: key,
+          },
+          { status: 400 },
+        );
+        return;
+      }
+
+      if (value.size > maxSizeBytes) {
+        validationError = Response.json(
+          {
+            success: false,
+            error: `File too large. Maximum size: ${maxSizeMB}MB`,
+            variant: key,
+            maxSize: maxSizeMB,
+          },
+          { status: 413 },
+        );
+        return;
+      }
+
+      if (
+        value.type &&
+        !normalizedMimeTypes.includes(value.type.toLowerCase())
+      ) {
+        validationError = Response.json(
+          {
+            success: false,
+            error: "Invalid file type",
+            allowedTypes: allowedMimeTypes,
+            receivedType: value.type,
+            variant: key,
+          },
+          { status: 400 },
+        );
+        return;
+      }
+
+      files.set(key, value);
+    });
+  }
+
+  if (validationError) {
+    return validationError;
+  }
+
+  return Array.from(files, ([variant, variantFile]) => ({
+    variant,
+    file: variantFile,
+  }));
+};
+
+const fallbackVariantKeys = [
+  "original",
+  "thumbnail",
+  "small",
+  "medium",
+  "large",
+];
+
+const getAllowedUploadVariants = (env: Env): Set<string> =>
+  new Set(
+    (env.DEFAULT_VARIANTS?.split(",") ?? fallbackVariantKeys)
+      .map((variant) => variant.trim())
+      .filter(Boolean),
+  );
+
+const variantsFromMetadata = (metadata?: ImageMetadata): string[] => {
+  const variants = Object.keys(metadata?.variants ?? {});
+  return variants.length > 0 ? variants : fallbackVariantKeys;
+};
+
 /**
  * Upload image
  * POST /images/upload
@@ -58,8 +189,34 @@ app.post(
         );
       }
 
-      const cloudflareImages = new CloudflareImagesAPI(c.env);
-      const imageService = new ImageService(c.env);
+      // Authoritative size enforcement. The checkFileSize middleware only
+      // inspects the Content-Length header (cheap early reject, but spoofable
+      // and absent on some clients). Now that the multipart body is parsed we
+      // have the real byte length — reject oversized uploads before spending a
+      // Cloudflare Images call.
+      const maxSizeMB = parseInt(c.env.MAX_IMAGE_SIZE_MB) || 10;
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        return c.json(
+          {
+            success: false,
+            error: `File too large. Maximum size: ${maxSizeMB}MB`,
+            maxSize: maxSizeMB,
+          },
+          413,
+        );
+      }
+
+      const variantFiles = getUploadVariantFiles(
+        c.get("formData"),
+        file,
+        getAllowedUploadVariants(c.env),
+        c.env.ALLOWED_MIME_TYPES.split(","),
+        maxSizeMB,
+      );
+      if (variantFiles instanceof Response) {
+        return variantFiles;
+      }
+
       const uploadRestaurantId =
         user.role === 0 ? query.restaurantId : user.restaurantId;
 
@@ -74,43 +231,33 @@ app.post(
       }
 
       // Generate unique filename
-      const uniqueFilename = ImageUtils.generateUniqueFilename(file.name);
+      const uniqueFilename = generateUniqueFilename(file.name);
 
       // Parse tags if provided
       const tags = query.tags
         ? query.tags.split(",").map((tag: string) => tag.trim())
         : undefined;
 
-      // Upload to Cloudflare Images
-      const uploadResult = await cloudflareImages.uploadImage(file, {
-        filename: uniqueFilename,
-        metadata: {
-          originalName: file.name,
-          uploadedBy: user.id.toString(),
-          restaurantId: uploadRestaurantId.toString(),
-          category: query.category || "general",
-        },
-      });
+      const imageId = crypto.randomUUID();
+      const uploadedVariants: string[] = [];
+      const imageService = new ImageService(c.env);
 
-      if (!uploadResult.success) {
-        return c.json(
-          {
-            success: false,
-            error: uploadResult.error || "Upload failed",
-          },
-          500,
-        );
+      try {
+        for (const variantFile of variantFiles) {
+          await imageService.putImageVariant(
+            imageId,
+            variantFile.variant,
+            variantFile.file,
+          );
+          uploadedVariants.push(variantFile.variant);
+        }
+      } catch (error) {
+        await imageService.deleteImageVariants(imageId, uploadedVariants);
+        throw error;
       }
 
-      // Extract image metadata (basic implementation)
-      const imageMetadata = await cloudflareImages.extractImageMetadata(file);
-
-      // Generate variants
-      const accountHash = c.env.CLOUDFLARE_ACCOUNT_ID; // You'll need this from Cloudflare
-      const variants = cloudflareImages.generateImageVariants(
-        uploadResult.result.id,
-        accountHash,
-      );
+      const imageMetadata = await extractImageMetadata(file);
+      const variants = imageService.buildVariantUrls(imageId, uploadedVariants);
 
       // Save metadata to database
       const metadata: Omit<ImageMetadata, "id"> = {
@@ -131,11 +278,13 @@ app.post(
         exifData: imageMetadata.exif,
       };
 
-      const saveResult = await imageService.saveImageMetadata(metadata);
+      const saveResult = await imageService.saveImageMetadata(
+        metadata,
+        imageId,
+      );
 
       if (!saveResult.success) {
-        // Try to delete the uploaded image if metadata save fails
-        await cloudflareImages.deleteImage(uploadResult.result.id);
+        await imageService.deleteImageVariants(imageId, uploadedVariants);
 
         return c.json(
           {
@@ -285,11 +434,16 @@ app.delete(
   async (c) => {
     try {
       const { imageId } = c.get("validatedParams") as ImageIdParams;
-      const cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
 
-      // Delete from Cloudflare Images
-      const deleteResult = await cloudflareImages.deleteImage(imageId);
+      const metadataResult = await imageService.getImageMetadata(imageId);
+      const variants = metadataResult.success
+        ? variantsFromMetadata(metadataResult.data)
+        : fallbackVariantKeys;
+      const deleteResult = await imageService.deleteImageVariants(
+        imageId,
+        variants,
+      );
 
       if (!deleteResult.success) {
         return c.json(
@@ -302,11 +456,15 @@ app.delete(
       }
 
       // Delete metadata from database
-      const metadataResult = await imageService.deleteImageMetadata(imageId);
+      const deleteMetadataResult =
+        await imageService.deleteImageMetadata(imageId);
 
-      if (!metadataResult.success) {
-        console.error("Failed to delete image metadata:", metadataResult.error);
-        // Continue anyway since the image was deleted from Cloudflare
+      if (!deleteMetadataResult.success) {
+        console.error(
+          "Failed to delete image metadata:",
+          deleteMetadataResult.error,
+        );
+        // Continue anyway since the image objects were deleted from R2.
       }
 
       return c.json({
@@ -408,7 +566,6 @@ app.get(
       const { variant, width, height, fit, format, quality } = c.get(
         "validatedQuery",
       ) as ImageVariantQuery;
-      const cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
 
       // Get image metadata
@@ -426,48 +583,13 @@ app.get(
 
       const metadata = metadataResult.data!;
 
-      // Determine best format based on Accept header
-      const acceptHeader = c.req.header("Accept") || "";
-      const userAgent = c.req.header("User-Agent") || "";
-      const optimalFormat =
-        format || ImageUtils.getBestFormat(acceptHeader, userAgent);
+      void width;
+      void height;
+      void fit;
+      void format;
+      void quality;
 
-      // Build transformation URL
-      let imageUrl: string;
-
-      if (width || height || fit || format || quality) {
-        // Custom transformations
-        const transformations = [];
-
-        if (width || height) {
-          transformations.push({
-            type: "resize" as const,
-            width,
-            height,
-            fit: fit || "scale-down",
-          });
-        }
-
-        const accountHash = c.env.CLOUDFLARE_ACCOUNT_ID;
-        imageUrl = cloudflareImages.buildTransformationURL(
-          imageId,
-          accountHash,
-          transformations,
-        );
-
-        // Add format and quality parameters
-        const params = [];
-        if (optimalFormat !== "original")
-          params.push(`format=${optimalFormat}`);
-        if (quality) params.push(`quality=${quality}`);
-
-        if (params.length > 0) {
-          imageUrl += (imageUrl.includes("?") ? "&" : "?") + params.join("&");
-        }
-      } else {
-        // Use predefined variant
-        imageUrl = metadata.variants[variant] || metadata.variants.original;
-      }
+      const imageUrl = metadata.variants[variant] || metadata.variants.original;
 
       // Record view for analytics
       c.executionCtx.waitUntil(imageService.recordImageView(imageId, variant));
@@ -508,7 +630,6 @@ app.post(
         format,
         quality,
       } = c.get("validatedBody") as ImageProcessBody;
-      const _cloudflareImages = new CloudflareImagesAPI(c.env);
       const imageService = new ImageService(c.env);
 
       // Create processing job
@@ -625,7 +746,6 @@ app.post(
         "validatedBody",
       ) as ImageBulkOperationBody;
       const imageService = new ImageService(c.env);
-      const cloudflareImages = new CloudflareImagesAPI(c.env);
 
       const results = [];
 
@@ -649,7 +769,10 @@ app.post(
 
           switch (operation) {
             case "delete": {
-              const deleteResult = await cloudflareImages.deleteImage(imageId);
+              const deleteResult = await imageService.deleteImageVariants(
+                imageId,
+                variantsFromMetadata(metadata),
+              );
               if (deleteResult.success) {
                 await imageService.deleteImageMetadata(imageId);
               }
@@ -763,6 +886,55 @@ app.post(
   },
 );
 
+/**
+ * Serve public image variant
+ * GET /images/:imageId/:variant
+ */
+app.get("/:imageId/:variant", async (c) => {
+  try {
+    const imageId = c.req.param("imageId");
+    const variant = c.req.param("variant");
+    const imageService = new ImageService(c.env);
+    const object = await imageService.getImageVariant(imageId, variant);
+
+    if (!object) {
+      return c.json(
+        {
+          success: false,
+          error: "Image not found",
+        },
+        404,
+      );
+    }
+
+    const objectHeaders = new Headers();
+    object.writeHttpMetadata(
+      objectHeaders as unknown as import("@cloudflare/workers-types").Headers,
+    );
+    const headers: Record<string, string> = {};
+    objectHeaders.forEach((value, key) => {
+      headers[key] = value;
+    });
+    headers["Cache-Control"] = "public, max-age=31536000, immutable";
+    headers.ETag = object.httpEtag;
+
+    return c.newResponse(
+      object.body as unknown as ReadableStream,
+      200,
+      headers,
+    );
+  } catch (error) {
+    console.error("Image delivery error:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to serve image",
+      },
+      500,
+    );
+  }
+});
+
 // Helper function for async image processing
 async function processImageAsync(
   env: Env,
@@ -774,42 +946,31 @@ async function processImageAsync(
   _quality?: number,
 ) {
   const imageService = new ImageService(env);
-  const cloudflareImages = new CloudflareImagesAPI(env);
 
   try {
     await imageService.updateJobStatus(jobId, "processing", 10);
 
-    // Get image details
-    const imageResult = await cloudflareImages.getImageDetails(imageId);
-
-    if (!imageResult.success) {
+    const metadataResult = await imageService.getImageMetadata(imageId);
+    if (!metadataResult.success) {
       await imageService.updateJobStatus(
         jobId,
         "failed",
         undefined,
-        imageResult.error,
+        metadataResult.error,
       );
       return;
     }
 
     await imageService.updateJobStatus(jobId, "processing", 50);
 
-    // Generate variants and transformations
-    const accountHash = env.CLOUDFLARE_ACCOUNT_ID;
-    const newVariants = cloudflareImages.generateImageVariants(
-      imageId,
-      accountHash,
-    );
+    const newVariants = { ...metadataResult.data!.variants };
 
-    // Apply custom transformations if specified
+    // Custom transformations are no longer generated by this worker after
+    // Cloudflare Images was de-scoped. Keep the job lifecycle for callers.
     if (transformations.length > 0) {
       for (const transform of transformations) {
-        const transformUrl = cloudflareImages.buildTransformationURL(
-          imageId,
-          accountHash,
-          [transform],
-        );
-        newVariants[`custom_${transform.type}`] = transformUrl;
+        newVariants[`custom_${transform.type}`] =
+          metadataResult.data!.variants.original;
       }
     }
 

@@ -5,6 +5,7 @@
  */
 
 import { Hono } from "hono";
+import { ApiError, badRequest, notFound } from "@makanmakan/utils";
 import type {
   ManagementEnv,
   HealthStatus,
@@ -86,13 +87,12 @@ router.get("/tenants", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Health] Get tenants health error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get tenants health",
-        code: "GET_HEALTH_FAILED",
-      },
+    throw new ApiError(
+      "GET_HEALTH_FAILED",
+      "Failed to get tenants health",
       500,
     );
   }
@@ -124,14 +124,7 @@ router.get("/tenants/:tenantId", async (c) => {
       }>();
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     // Get recent health checks
@@ -208,15 +201,10 @@ router.get("/tenants/:tenantId", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Health] Get tenant health error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get tenant health",
-        code: "GET_HEALTH_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("GET_HEALTH_FAILED", "Failed to get tenant health", 500);
   }
 });
 
@@ -230,24 +218,13 @@ router.post("/report", async (c) => {
     const { tenantId, status, responseTimeMs, details } = body;
 
     if (!tenantId || !status) {
-      return c.json(
-        {
-          success: false,
-          error: "tenantId and status are required",
-          code: "VALIDATION_ERROR",
-        },
-        400,
-      );
+      throw badRequest("tenantId and status are required", "VALIDATION_ERROR");
     }
 
     if (!["healthy", "degraded", "down"].includes(status)) {
-      return c.json(
-        {
-          success: false,
-          error: "status must be healthy, degraded, or down",
-          code: "VALIDATION_ERROR",
-        },
-        400,
+      throw badRequest(
+        "status must be healthy, degraded, or down",
+        "VALIDATION_ERROR",
       );
     }
 
@@ -291,15 +268,10 @@ router.post("/report", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Health] Report error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to record health check",
-        code: "REPORT_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("REPORT_FAILED", "Failed to record health check", 500);
   }
 });
 
@@ -325,14 +297,7 @@ router.post("/check/:tenantId", async (c) => {
       }>();
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found or not active",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found or not active", "NOT_FOUND");
     }
 
     // Determine health check URL
@@ -408,15 +373,10 @@ router.post("/check/:tenantId", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Health] Check error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to perform health check",
-        code: "CHECK_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("CHECK_FAILED", "Failed to perform health check", 500);
   }
 });
 

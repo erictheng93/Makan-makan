@@ -69,6 +69,28 @@ describe("leave validation schemas", () => {
     ).toThrow("End date must be equal to or after start date");
   });
 
+  it("allows only http or https leave request attachment URLs", () => {
+    expect(
+      createLeaveRequestSchema.safeParse({
+        leaveTypeId: 1,
+        startDate: "2026-06-08",
+        endDate: "2026-06-09",
+        reason: "Family event",
+        attachmentUrl: "https://cdn.example.test/proof.png",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      createLeaveRequestSchema.safeParse({
+        leaveTypeId: 1,
+        startDate: "2026-06-08",
+        endDate: "2026-06-09",
+        reason: "Family event",
+        attachmentUrl: "javascript:alert(document.domain)",
+      }).success,
+    ).toBe(false);
+  });
+
   it("requires approver IDs based on approval rule type", () => {
     expect(
       createLeaveApprovalRuleSchema.parse({

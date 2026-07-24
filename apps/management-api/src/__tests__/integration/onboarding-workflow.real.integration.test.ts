@@ -271,9 +271,10 @@ describe("Onboarding public API workflow — real integration", () => {
     expect(response.status).toBe(400);
     const json: any = await response.json();
     expect(json.success).toBe(false);
-    expect(json.code).toBe("VALIDATION_ERROR");
-    expect(Array.isArray(json.details)).toBe(true);
-    expect(json.details.length).toBeGreaterThan(0);
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+    expect(typeof json.error.message).toBe("string");
+    expect(Array.isArray(json.error.details)).toBe(true);
+    expect(json.error.details.length).toBeGreaterThan(0);
   });
 
   it("lets platform admins list, approve, and reject onboarding applications", async () => {
@@ -789,7 +790,9 @@ describe("Onboarding public API workflow — real integration", () => {
       env,
     );
 
-    expect(completeResponse.status).toBe(401);
+    // No public completion route exists — 404 (was 401 via catch-all auth
+    // before auth middleware was scoped to known protected prefixes).
+    expect(completeResponse.status).toBe(404);
     const tenantCount = db
       .raw()
       .prepare("SELECT COUNT(*) AS count FROM tenants")
@@ -837,7 +840,9 @@ describe("Onboarding public API workflow — real integration", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      code: "INVALID_STATUS",
+      error: {
+        code: "INVALID_STATUS",
+      },
     });
   });
 });

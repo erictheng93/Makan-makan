@@ -78,10 +78,25 @@ function generateUUID(): string {
 }
 
 /**
- * Generate 6-digit OTP
+ * Generate 6-digit OTP.
+ * CSPRNG with rejection sampling (mirrors the customer feature's generateOtp):
+ * a uint32 in [0, 4_294_000_000) maps uniformly onto the 000000-999999 code
+ * space; values at or above the boundary are re-drawn to avoid modulo bias.
+ * Math.random() is not cryptographically secure and must not be used here.
  */
+const OTP_CODE_SPACE = 1_000_000;
+const OTP_RANDOM_BOUNDARY = 4_294_000_000; // largest multiple of 1e6 ≤ 2^32
+
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const values = new Uint32Array(1);
+  for (;;) {
+    crypto.getRandomValues(values);
+    const value = values[0];
+    if (value >= OTP_RANDOM_BOUNDARY) {
+      continue;
+    }
+    return (value % OTP_CODE_SPACE).toString().padStart(6, "0");
+  }
 }
 
 /**
@@ -348,36 +363,31 @@ export class VerificationService extends BaseService {
       // Hash new password
       const passwordHash = await hashPassword(newPassword);
 
-      // Transaction: update password, mark token used, log change (all-or-nothing)
-      await this.db.transaction(async (tx) => {
-        // Update user password
-        await tx
+      const passwordChangedAt = new Date();
+      const tokenUsedAt = new Date();
+      const logEntry: NewPasswordChangeLog = {
+        userId: verification.userId!,
+        changeMethod: token.includes("-") ? "reset_email" : "reset_sms",
+        ipAddress,
+        userAgent: userAgent || null,
+        success: true,
+      };
+
+      await this.db.batch([
+        this.db
           .update(users)
           .set({
             passwordHash,
-            passwordChangedAt: new Date(),
+            passwordChangedAt,
             tokenVersion: sql`${users.tokenVersion} + 1`,
           })
-          .where(eq(users.id, verification.userId!))
-          .run();
-
-        // Mark token as used
-        await tx
+          .where(eq(users.id, verification.userId!)),
+        this.db
           .update(passwordResetTokens)
-          .set({ usedAt: new Date() })
-          .where(eq(passwordResetTokens.token, token))
-          .run();
-
-        // Log password change
-        const logEntry: NewPasswordChangeLog = {
-          userId: verification.userId!,
-          changeMethod: token.includes("-") ? "reset_email" : "reset_sms",
-          ipAddress,
-          userAgent: userAgent || null,
-          success: true,
-        };
-        await tx.insert(passwordChangeLogs).values(logEntry).run();
-      });
+          .set({ usedAt: tokenUsedAt })
+          .where(eq(passwordResetTokens.token, token)),
+        this.db.insert(passwordChangeLogs).values(logEntry),
+      ] as [any, ...any[]]);
 
       // Get user details for notification
       const user = await this.db
@@ -531,28 +541,22 @@ export class VerificationService extends BaseService {
         return { success: false, message: "Token 已過期" };
       }
 
-      // Transaction: mark token verified and update user (all-or-nothing)
-      await this.db.transaction(async (tx) => {
-        // Mark as verified
-        await tx
+      await this.db.batch([
+        this.db
           .update(emailVerificationTokens)
           .set({
             verifiedAt: now,
             ipAddress: ipAddress || verificationToken.ipAddress,
           })
-          .where(eq(emailVerificationTokens.id, verificationToken.id))
-          .run();
-
-        // Update user
-        await tx
+          .where(eq(emailVerificationTokens.id, verificationToken.id)),
+        this.db
           .update(users)
           .set({
             isVerified: true,
             emailVerifiedAt: now,
           })
-          .where(eq(users.id, verificationToken.userId))
-          .run();
-      });
+          .where(eq(users.id, verificationToken.userId)),
+      ] as [any, ...any[]]);
 
       // Get user details
       const user = await this.db
@@ -709,27 +713,21 @@ export class VerificationService extends BaseService {
         };
       }
 
-      // Transaction: mark token verified and update user (all-or-nothing)
-      await this.db.transaction(async (tx) => {
-        // Mark as verified
-        await tx
+      await this.db.batch([
+        this.db
           .update(phoneVerificationTokens)
           .set({
             verifiedAt: now,
             ipAddress: ipAddress || verificationToken.ipAddress,
           })
-          .where(eq(phoneVerificationTokens.id, verificationToken.id))
-          .run();
-
-        // Update user
-        await tx
+          .where(eq(phoneVerificationTokens.id, verificationToken.id)),
+        this.db
           .update(users)
           .set({
             phoneVerifiedAt: now,
           })
-          .where(eq(users.id, userId))
-          .run();
-      });
+          .where(eq(users.id, userId)),
+      ] as [any, ...any[]]);
 
       // Send success notification
       await this.notificationService.sendNotification({
@@ -771,39 +769,26 @@ export class VerificationService extends BaseService {
     const now = new Date();
 
     try {
-      // Transaction: delete all expired tokens (all-or-nothing cleanup)
-      let passwordResetChanges = 0;
-      let emailVerificationChanges = 0;
-      let phoneVerificationChanges = 0;
-
-      await this.db.transaction(async (tx) => {
-        // Delete expired password reset tokens
-        const passwordResetResult = await tx
+      const [
+        passwordResetResult,
+        emailVerificationResult,
+        phoneVerificationResult,
+      ] = await this.db.batch([
+        this.db
           .delete(passwordResetTokens)
-          .where(lt(passwordResetTokens.expiresAt, now))
-          .run();
-
-        // Delete expired email verification tokens
-        const emailVerificationResult = await tx
+          .where(lt(passwordResetTokens.expiresAt, now)),
+        this.db
           .delete(emailVerificationTokens)
-          .where(lt(emailVerificationTokens.expiresAt, now))
-          .run();
-
-        // Delete expired phone verification tokens
-        const phoneVerificationResult = await tx
+          .where(lt(emailVerificationTokens.expiresAt, now)),
+        this.db
           .delete(phoneVerificationTokens)
-          .where(lt(phoneVerificationTokens.expiresAt, now))
-          .run();
-
-        passwordResetChanges = passwordResetResult.meta.changes;
-        emailVerificationChanges = emailVerificationResult.meta.changes;
-        phoneVerificationChanges = phoneVerificationResult.meta.changes;
-      });
+          .where(lt(phoneVerificationTokens.expiresAt, now)),
+      ] as [any, ...any[]]);
 
       return {
-        deletedPasswordResetTokens: passwordResetChanges,
-        deletedEmailVerificationTokens: emailVerificationChanges,
-        deletedPhoneVerificationTokens: phoneVerificationChanges,
+        deletedPasswordResetTokens: passwordResetResult.meta.changes,
+        deletedEmailVerificationTokens: emailVerificationResult.meta.changes,
+        deletedPhoneVerificationTokens: phoneVerificationResult.meta.changes,
       };
     } catch (error) {
       console.error("Cleanup expired tokens error:", error);

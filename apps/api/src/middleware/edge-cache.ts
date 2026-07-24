@@ -58,7 +58,7 @@ function isCacheableApiResponse(data: unknown): data is CacheableApiResponse {
 export class EdgeCacheManager {
   constructor(
     private kv: KVNamespace,
-    private context: ExecutionContext,
+    private context: Pick<ExecutionContext, "waitUntil">,
     private env: Env,
   ) {}
 

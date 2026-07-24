@@ -102,8 +102,8 @@ export class ReceiptService {
         createdAt: now,
       });
 
-      // 模擬打印過程
-      this.simulatePrinting(receiptId, validatedData.copies);
+      // Settle the print status before returning (see markPrinted).
+      await this.markPrinted(receiptId);
 
       const [receipt] = await this.db
         .select()
@@ -156,8 +156,8 @@ export class ReceiptService {
         })
         .where(eq(receipts.id, receiptId));
 
-      // 模擬重打過程
-      this.simulatePrinting(receiptId, 1);
+      // Settle the print status before returning (see markPrinted).
+      await this.markPrinted(receiptId);
 
       return {
         success: true,
@@ -326,36 +326,40 @@ export class ReceiptService {
   }
 
   /**
-   * 模擬打印過程
+   * Mark the receipt as printed. Runs synchronously (awaited by the caller)
+   * rather than on a fire-and-forget timer: the previous setTimeout was a
+   * simulation of printer latency, but on Cloudflare Workers a timer scheduled
+   * after the response is sent is not guaranteed to run, leaving receipts stuck
+   * in "pending". There is no real asynchronous printer callback here, so we
+   * settle the terminal state before returning. A write failure is handled
+   * here (best-effort "failed") so it never rejects the caller.
    */
-  private simulatePrinting(receiptId: string, copies: number = 1): void {
-    setTimeout(async () => {
+  private async markPrinted(receiptId: string): Promise<void> {
+    try {
+      const printedTime = new Date();
+      await this.db
+        .update(receipts)
+        .set({
+          printStatus: "printed",
+          printedAt: printedTime,
+          printAttempts: sql`${receipts.printAttempts} + 1`,
+        })
+        .where(eq(receipts.id, receiptId));
+    } catch (error) {
+      console.error("更新打印狀態失敗:", error);
+      // 標記為打印失敗
       try {
-        const printedTime = new Date();
         await this.db
           .update(receipts)
           .set({
-            printStatus: "printed",
-            printedAt: printedTime,
+            printStatus: "failed",
             printAttempts: sql`${receipts.printAttempts} + 1`,
           })
           .where(eq(receipts.id, receiptId));
-      } catch (error) {
-        console.error("更新打印狀態失敗:", error);
-        // 標記為打印失敗
-        try {
-          await this.db
-            .update(receipts)
-            .set({
-              printStatus: "failed",
-              printAttempts: sql`${receipts.printAttempts} + 1`,
-            })
-            .where(eq(receipts.id, receiptId));
-        } catch (updateError) {
-          console.error("更新失敗狀態失敗:", updateError);
-        }
+      } catch (updateError) {
+        console.error("更新失敗狀態失敗:", updateError);
       }
-    }, 2000 * copies); // 每份收據需要2秒打印時間
+    }
   }
 
   /**

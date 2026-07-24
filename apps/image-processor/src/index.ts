@@ -14,7 +14,12 @@ import {
   images,
   imageViews,
   imageProcessingJobs,
+  menuItems,
 } from "@makanmakan/database";
+import { inArray, or } from "drizzle-orm";
+import { cronMatches } from "./utils/cron";
+import { ImageService } from "./services/image-service";
+import type { StoredImageObject } from "./types/env";
 
 type SlackTextObject = {
   type: "mrkdwn";
@@ -175,29 +180,10 @@ app.get("/health", async (c) => {
       console.error("KV health check failed:", error);
     }
 
-    // 檢查 R2 存儲
-    let r2Status = "healthy";
-    let r2ResponseTime = 0;
-
-    try {
-      const r2Start = Date.now();
-      await c.env.IMAGES_BUCKET.head("health-check-dummy-file");
-      r2ResponseTime = Date.now() - r2Start;
-    } catch (error) {
-      // 404 is expected for dummy file, other errors are concerning
-      if (!(error as Error).message?.includes("404")) {
-        r2Status = "degraded";
-        console.warn("R2 health check warning:", error);
-      }
-      r2ResponseTime = Date.now() - 0; // Default value when r2Start is not accessible
-    }
-
     const overallStatus =
       dbStatus === "unhealthy" || kvStatus === "unhealthy"
         ? "unhealthy"
-        : dbStatus === "degraded" ||
-            kvStatus === "degraded" ||
-            r2Status === "degraded"
+        : dbStatus === "degraded" || kvStatus === "degraded"
           ? "degraded"
           : "healthy";
 
@@ -219,10 +205,6 @@ app.get("/health", async (c) => {
           cache: {
             status: kvStatus,
             responseTime: `${kvResponseTime}ms`,
-          },
-          storage: {
-            status: r2Status,
-            responseTime: `${r2ResponseTime}ms`,
           },
         },
         performance: {
@@ -319,9 +301,11 @@ export default {
       // 清理過期的快取
       await cleanupExpiredCache(env);
 
-      // 發送每日使用統計（如果是每日任務）
-      if (event.cron === "0 9 * * *") {
-        // 每天上午 9 點
+      // 掃描並刪除孤兒 Cloudflare Images（上傳成功但未寫回選單的殘留圖片）
+      await sweepOrphanedImages(env);
+
+      // 發送每日使用統計（cron 為 UTC；01:00 UTC = 台灣時間上午 9 點）
+      if (cronMatches(event.cron, "0 1 * * *")) {
         await sendDailyStats(env);
       }
     } catch (error) {
@@ -385,6 +369,204 @@ async function cleanupExpiredCache(env: Env) {
     console.log(`Cleaned up ${keys.keys.length} temporary cache items`);
   } catch (error) {
     console.error("Failed to cleanup cache:", error);
+  }
+}
+
+// 孤兒圖片掃描：每次執行最多刪除的張數上限，用於限制 cron 執行時間
+const ORPHAN_SWEEP_MAX_DELETIONS = 100;
+// 只清理上傳超過 48 小時的圖片，避免刪到剛上傳、選單寫回尚未完成的圖片
+const ORPHAN_SWEEP_MIN_AGE_MS = 48 * 60 * 60 * 1000;
+const ORPHAN_SWEEP_PAGE_SIZE = 100;
+
+// 給定一批 image id，回傳其中「有被引用」的 id 集合。
+// 引用來源有二：
+//   1. menu_items.image_id 直接指向該 id
+//   2. 本 worker images 表以 cloudflare_image_id 對應到一筆 images.id，
+//      而該 images.id 又被 menu_items.image_id 引用（正常上傳→寫回選單流程）
+async function findReferencedImageIds(
+  db: ReturnType<typeof createDatabase>,
+  imageIds: string[],
+): Promise<Set<string>> {
+  const referenced = new Set<string>();
+  if (imageIds.length === 0) return referenced;
+
+  // 1. menu_items.image_id 直接引用 image id
+  const directRefs = await db
+    .select({ imageId: menuItems.imageId })
+    .from(menuItems)
+    .where(inArray(menuItems.imageId, imageIds));
+  for (const row of directRefs) {
+    if (row.imageId) referenced.add(row.imageId);
+  }
+
+  // 2. 透過本 worker images 表把舊 cloudflare_image_id 對應到 images.id
+  const imageRows = await db
+    .select({ id: images.id, cloudflareImageId: images.cloudflareImageId })
+    .from(images)
+    .where(inArray(images.cloudflareImageId, imageIds));
+
+  const imageIdToCloudflareId = new Map<string, string>();
+  const workerImageIds: string[] = [];
+  for (const row of imageRows) {
+    if (row.id && row.cloudflareImageId) {
+      imageIdToCloudflareId.set(row.id, row.cloudflareImageId);
+      workerImageIds.push(row.id);
+    }
+  }
+
+  // 3. 檢查這些 images.id 是否被 menu_items.image_id 引用
+  if (workerImageIds.length > 0) {
+    const menuRefs = await db
+      .select({ imageId: menuItems.imageId })
+      .from(menuItems)
+      .where(inArray(menuItems.imageId, workerImageIds));
+    for (const row of menuRefs) {
+      const cfId = row.imageId
+        ? imageIdToCloudflareId.get(row.imageId)
+        : undefined;
+      if (cfId) referenced.add(cfId);
+    }
+  }
+
+  return referenced;
+}
+
+type OrphanSweepDeps = {
+  imageStorage?: Pick<ImageService, "listStoredImages" | "deleteImageVariants">;
+  // 引用解析：給定一批 image id 回傳已被引用的 id 集合，測試時可注入避免依賴真實 D1
+  resolveReferenced?: (imageIds: string[]) => Promise<Set<string>>;
+  deleteMetadata?: (cloudflareImageIds: string[]) => Promise<void>;
+};
+
+async function deleteOrphanedImageMetadata(
+  env: Env,
+  imageIds: string[],
+): Promise<void> {
+  if (imageIds.length === 0) return;
+
+  await createDatabase(env.DB)
+    .update(images)
+    .set({
+      isActive: false,
+      updatedAt: new Date(),
+    })
+    .where(
+      or(
+        inArray(images.id, imageIds),
+        inArray(images.cloudflareImageId, imageIds),
+      ),
+    );
+}
+
+// 掃描 R2 圖片，刪除「超過 48h 且未被任何選單引用」的孤兒圖片。
+// 每個步驟都獨立 try/catch，任何失敗都不應影響其他 cron 步驟。
+export async function sweepOrphanedImages(
+  env: Env,
+  deps: OrphanSweepDeps = {},
+) {
+  try {
+    const imageStorage = deps.imageStorage ?? new ImageService(env);
+    const resolveReferenced =
+      deps.resolveReferenced ??
+      ((imageIds: string[]) =>
+        findReferencedImageIds(createDatabase(env.DB), imageIds));
+    const deleteMetadata =
+      deps.deleteMetadata ??
+      ((imageIds: string[]) => deleteOrphanedImageMetadata(env, imageIds));
+    const cutoffMs = Date.now() - ORPHAN_SWEEP_MIN_AGE_MS;
+
+    let deleted = 0;
+    let cursor: string | undefined;
+
+    while (deleted < ORPHAN_SWEEP_MAX_DELETIONS) {
+      const listResult = await imageStorage.listStoredImages({
+        cursor,
+        limit: ORPHAN_SWEEP_PAGE_SIZE,
+        prefix: "",
+      });
+
+      if (!listResult.success) {
+        console.error(
+          "Orphan sweep: failed to list R2 images:",
+          listResult.error,
+        );
+        break;
+      }
+
+      const pageImages = listResult.result?.images ?? [];
+      if (pageImages.length === 0) break;
+
+      // 只保留上傳超過 48h 的候選圖片
+      const oldEnough = pageImages.filter((img) => {
+        if (!img.uploaded) return false;
+        const uploadedMs = Date.parse(img.uploaded);
+        return Number.isFinite(uploadedMs) && uploadedMs < cutoffMs;
+      });
+
+      if (oldEnough.length > 0) {
+        const deletedMetadataIds: string[] = [];
+        let referenced: Set<string>;
+        try {
+          referenced = await resolveReferenced(oldEnough.map((img) => img.id));
+        } catch (error) {
+          console.error(
+            "Orphan sweep: reference lookup failed, skipping page to stay safe:",
+            error,
+          );
+          // 查不到引用關係時，寧可不刪，避免誤刪使用中的圖片
+          if (!listResult.result?.cursor) break;
+          cursor = listResult.result.cursor;
+          continue;
+        }
+
+        for (const img of oldEnough as StoredImageObject[]) {
+          if (deleted >= ORPHAN_SWEEP_MAX_DELETIONS) break;
+          if (referenced.has(img.id)) continue;
+
+          try {
+            const deleteResult = await imageStorage.deleteImageVariants(
+              img.id,
+              [img.variant],
+            );
+            if (deleteResult.success) {
+              deleted++;
+              deletedMetadataIds.push(img.id);
+              console.log(
+                `Orphan sweep: deleted unreferenced R2 image ${img.key} (uploaded ${img.uploaded})`,
+              );
+            } else {
+              console.error(
+                `Orphan sweep: failed to delete image ${img.key}: ${deleteResult.error}`,
+              );
+            }
+          } catch (error) {
+            console.error(
+              `Orphan sweep: error deleting image ${img.key}:`,
+              error,
+            );
+          }
+        }
+
+        if (deletedMetadataIds.length > 0) {
+          try {
+            await deleteMetadata(deletedMetadataIds);
+          } catch (error) {
+            console.error(
+              "Orphan sweep: failed to delete image metadata:",
+              error,
+            );
+          }
+        }
+      }
+
+      // 最後一頁
+      if (!listResult.result?.cursor) break;
+      cursor = listResult.result.cursor;
+    }
+
+    console.log(`Orphan sweep complete: ${deleted} image(s) deleted`);
+  } catch (error) {
+    console.error("Orphan sweep failed:", error);
   }
 }
 

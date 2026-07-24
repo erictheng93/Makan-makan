@@ -1,150 +1,170 @@
 # Security Implementation Guide
 
-## 🔐 Security Fixes Implemented
+> ⚠️ **Rewritten 2026-07-05.** The previous version of this document described
+> a legacy PHP/MySQL deployment (`config.php`, `apps/api/src/routes/auth.ts`,
+> `SQL/migrate_passwords_security.sql`) that does not exist anywhere in this
+> repository — MakanMakan is Cloudflare Workers + D1 only. This version is a
+> best-effort rewrite based on what the current code actually implements.
+> It has not been reviewed against any formal security policy decisions that
+> may exist outside the codebase — verify against actual team policy before
+> treating this as authoritative for compliance purposes.
 
-This document outlines the security vulnerabilities that have been fixed and best practices for ongoing security.
+## 🔐 Current Security Implementation
 
-### ✅ Critical Fixes Applied
+### 1. Password & Secret Hashing
 
-#### 1. Password Hashing Implementation
+- **Staff/owner account passwords**: bcrypt, cost factor **10**
+  (`packages/database/src/services/auth.ts`, `user.ts` — `saltRounds = 10`).
+- **Customer phone-OTP codes**: bcrypt, cost factor 10
+  (`apps/api/src/features/customer/routes/index.ts`).
+- **Credit/wallet PINs**: bcrypt via `BCRYPT_COST`
+  (`apps/api/src/features/credits/services/CreditService.ts`).
+- **Email/phone verification tokens**: bcrypt-hashed
+  (`packages/database/src/services/VerificationService.ts`).
 
-**Issue**: Passwords were stored and compared in plain text
-**Fix**: Implemented bcrypt with salt rounds of 12
+### 2. Authentication — Two Separate JWT Flows
 
-- **Files Modified**:
-  - `apps/api/src/routes/auth.ts:47-54`
-  - `apps/api/src/routes/users.ts:309-320, 453-459, 496-500, 609-625`
-- **Impact**: All passwords are now securely hashed before storage
+- **Staff/admin JWT** (`apps/api/src/middleware/auth.ts`): `authMiddleware`
+  accepts role 0-4 tokens (`createAuthMiddleware(4)`); a legacy
+  `customerAuthMiddleware = createAuthMiddleware(5)` still exists for
+  routes that haven't migrated to the canonical customer flow.
+- **Canonical customer JWT** (`canonicalCustomerAuthMiddleware`, same file):
+  validates a dedicated `{ sub: customers.id, type: "customer" }` token
+  shape, issued by `apps/api/src/features/customer/routes/index.ts`
+  (phone-OTP → JWT, 15 min access / 30 day refresh, refresh tokens typed
+  `type: "customer_refresh"`).
+- **`JWT_SECRET` validation**: every JWT-verifying middleware checks
+  `JWT_SECRET.length >= 32` and throws `SERVER_CONFIG_ERROR` (500) if unset
+  or too short.
+- **Token revocation**: `TOKEN_BLACKLIST` KV namespace (bound in
+  `apps/api/wrangler.toml`) — logout writes a blacklist entry checked on
+  every subsequent request.
+- **Realtime WebSocket auth**: `apps/realtime` falls back to the shared
+  `JWT_SECRET` for session auth (see `docs/archive/CHANGELOG.md`'s
+  2026-05-25→2026-07-05 entry for recent hardening commits).
 
-#### 2. Hardcoded Credentials Removal
+### 3. Rate Limiting
 
-**Issue**: Database password hardcoded as "12345" in config.php
-**Fix**: Replaced with environment variable configuration
+- KV-backed (`RATE_LIMIT_KV`), applied globally via
+  `geoIntelligentRateLimitMiddleware` in `apps/api/src/app-factory.ts`, with
+  per-route `customLimits` overrides — e.g. `/api/v1/auth/login`: 100
+  requests/60s with burst multiplier 1.2 and 60s block duration.
+  `/health`, `/info`, and `/api/v1/sse/events` are exempted (health checks
+  and long-lived SSE streams shouldn't be throttled).
+- Customer OTP requests are additionally rate-limited per-phone and per-IP
+  in `apps/api/src/features/customer/routes/index.ts`.
 
-- **Files Modified**:
-  - `config.php:2-14`
-- **Impact**: Database credentials now sourced from environment variables
+### 4. CORS & Security Headers
 
-#### 3. JWT Security Enhancements
+- `apps/api/src/middleware/cors.ts` builds an explicit allowed-origins list:
+  production uses `CORS_ORIGIN` (comma-separated), development
+  allows only `localhost`/`127.0.0.1` on known dev ports plus
+  `DEV_CORS_ORIGINS`. No wildcard origins in production.
+- Security headers set in `cors.ts` and `apps/api/src/middleware/security.ts`:
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: strict-origin-when-cross-origin`,
+  `Content-Security-Policy`, and `Strict-Transport-Security`.
 
-**Improvements**: Added comprehensive JWT security measures
+### 5. Secret Storage
 
-- **Files Modified**:
-  - `apps/api/src/middleware/auth.ts:29-75`
-  - `apps/api/src/routes/auth.ts:241-252`
-- **Features Added**:
-  - JWT secret length validation (minimum 32 characters)
-  - Token blacklisting on logout
-  - Token expiration warnings
-  - Enhanced error handling
+- OAuth credentials, access/refresh tokens, client secrets, and webhook
+  secrets are stored only in **encrypted payload fields** — see
+  `packages/utils/src/encryption.ts` (AES-256-GCM via Web Crypto API, PBKDF2
+  key derivation). JSON config columns are reserved for non-secret
+  flags/preferences (see root `CLAUDE.md`'s Secret Storage rule).
+- Cloudflare Worker secrets (`JWT_SECRET`, `SLACK_WEBHOOK_URL`, etc.) are set
+  via `wrangler secret put`, never committed to `wrangler.toml` or
+  `.env.development` (which is checked into the repo for localhost-only
+  dev defaults — see root `CLAUDE.md`'s Environment Variables section).
 
-#### 4. CORS Security Hardening
+### 6. Platform-Level Controls
 
-**Issue**: Overly permissive CORS configuration
-**Fix**: Strict origin validation and security headers
-
-- **Files Modified**:
-  - `apps/api/src/middleware/cors.ts:4-63`
-- **Improvements**:
-  - Removed development wildcard origins
-  - Added comprehensive security headers
-  - Blocked unauthorized origins with logging
+Per root `CLAUDE.md`: Cloudflare WAF + Zero Trust, rate limiting (per-IP and
+per-user, described above), complete audit trail, and role-based access
+control (RBAC) across the 6-role system (Admin/Owner/Chef/Service/Cashier/
+Customer). Audit logging currently has dedicated tables per domain (e.g.
+`payment_audit_log` in `packages/database/src/schema/payment-audit-log.ts`)
+rather than a single unified `audit_logs` table — check
+`apps/api/src/features/audit/` for the audit feature module before assuming
+a specific table name.
 
 ## 🛡️ Security Configuration
 
 ### Environment Variables Setup
 
-1. Copy `.env.example` to `.env.local`:
+1. Copy the relevant app's `.env.development.example` to
+   `.env.development.local` for local overrides (see root `CLAUDE.md`'s
+   Environment Variables section) — never put secrets in `.env.development`,
+   which is committed.
+2. Generate a secure JWT secret:
 
-```bash
-cp .env.example .env.local
-```
+   ```bash
+   openssl rand -base64 48
+   ```
 
-2. Generate secure JWT secret:
+3. Set secrets via Wrangler, per environment, per app:
 
-```bash
-# Generate a secure 48-byte JWT secret
-openssl rand -base64 48
-```
+   ```bash
+   wrangler secret put JWT_SECRET --env production
+   wrangler secret put SLACK_WEBHOOK_URL --env production
+   ```
 
-3. Update environment variables with real values:
+   Never use default/example values in production; use different secrets
+   per environment.
 
-- Never use default/example values in production
-- Use different secrets for each environment
-- Store secrets securely (use `wrangler secret put` for Cloudflare Workers)
+### Cloudflare Bindings
 
-### Database Security (Legacy PHP)
-
-1. Create dedicated database user with minimal permissions:
-
-```sql
-CREATE USER 'makanmakan_app'@'localhost' IDENTIFIED BY 'your-secure-password';
-GRANT SELECT, INSERT, UPDATE, DELETE ON makanmakan.* TO 'makanmakan_app'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-2. Enable SSL for database connections in production
-3. Regularly update database passwords
-
-### Cloudflare Workers Security
-
-1. Configure wrangler.toml bindings:
-
-```toml
-[env.production]
-name = "makanmakan-api-prod"
-vars = { NODE_ENV = "production" }
-
-[[env.production.kv_namespaces]]
-binding = "TOKEN_BLACKLIST"
-id = "your-kv-namespace-id"
-
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "makanmakan-prod"
-database_id = "your-d1-database-id"
-```
-
-2. Set secrets using Wrangler:
-
-```bash
-wrangler secret put JWT_SECRET --env production
-wrangler secret put SLACK_WEBHOOK_URL --env production
-```
+Each app's `wrangler.toml` declares its own D1/KV/R2/Queue bindings — see
+`apps/api/wrangler.toml` for the primary API's `DB`, `CACHE_KV`,
+`RATE_LIMIT_KV`, `BACKUP_KV`, `TOKEN_BLACKLIST`, and `BACKUP_STORAGE`
+bindings. Resource IDs are real (no `REPLACE_ME__PRODUCTION` placeholders
+remain as of 2026-07-05) — see `docs/TECHNICAL_DEBT_TODO.md`.
 
 ## 🔍 Security Monitoring
 
 ### Audit Logging
 
-- All authentication events are logged to `audit_logs` table
-- Monitor for unusual login patterns
-- Set up alerts for failed authentication attempts
+- Domain-specific audit tables (payment, billing, etc.) rather than one
+  unified table — check `packages/database/src/schema/` for the specific
+  table backing any given feature before writing queries against it.
+- Monitor for unusual login patterns via `apps/api/src/features/auth`'s
+  auth statistics endpoints — note that `AuthService.checkAccountSecurity()`
+  currently hardcodes `failedLoginAttempts: 0` and `getSecurityEvents()`
+  returns `[]` (see `docs/TECHNICAL_DEBT_TODO.md`'s Authentication Flows
+  section) — these specific stats are **not yet real data**, don't rely on
+  them for actual monitoring today.
 
 ### Error Monitoring
 
-- Configure Slack webhook for critical errors
-- Review application logs regularly
-- Set up uptime monitoring
+- Slack webhook integration for critical errors (`SLACK_WEBHOOK_URL` secret).
+- `apps/api/src/features/system/` and `monitoring/` expose health/error
+  endpoints — see root `CLAUDE.md`'s Debug Tools section for the current
+  endpoint list (`/info` for public liveness; `/api/v1/monitoring/health`,
+  `/api/v1/system/health*` for authenticated deep health checks — there is
+  **no** unauthenticated `/api/v1/health` route).
 
 ### Regular Security Tasks
 
 #### Weekly
 
 - [ ] Review access logs for suspicious activity
-- [ ] Check for failed authentication attempts
+- [ ] Check for failed authentication attempts (see caveat above about
+      `checkAccountSecurity()` not yet being real data)
 - [ ] Monitor error rates and patterns
 
 #### Monthly
 
 - [ ] Review user permissions and roles
 - [ ] Update dependencies with security patches
-- [ ] Audit CORS allowed origins list
-- [ ] Check JWT token blacklist size
+- [ ] Audit `CORS_ORIGIN` allowed origins list per environment
+- [ ] Check `TOKEN_BLACKLIST` KV size/growth
 
 #### Quarterly
 
-- [ ] Rotate JWT secrets
-- [ ] Update database passwords
+- [ ] Rotate JWT secrets (coordinate across `apps/api`, `apps/realtime`,
+      `apps/management-api` — they must share `JWT_SECRET` for cross-worker
+      auth to keep working, per `docs/onboarding` cross-worker JWT_SECRET
+      alignment notes)
 - [ ] Review and update security headers
 - [ ] Audit user accounts and remove unused ones
 - [ ] Security penetration testing
@@ -153,26 +173,14 @@ wrangler secret put SLACK_WEBHOOK_URL --env production
 
 ### If Credentials Are Compromised
 
-1. **Immediate Actions**:
-   - Rotate affected credentials immediately
-   - Invalidate all active JWT tokens
-   - Check access logs for unauthorized activity
-   - Notify affected users if necessary
-
-2. **JWT Secret Compromise**:
-
-```bash
-# Generate new secret
-NEW_SECRET=$(openssl rand -base64 48)
-wrangler secret put JWT_SECRET --env production
-# Update all environments
-```
-
-3. **Database Compromise**:
-   - Change database password immediately
-   - Check for unauthorized data access
-   - Review database logs
-   - Consider additional authentication measures
+1. Rotate the affected secret via `wrangler secret put --env <env>`
+   immediately, for every worker that shares it.
+2. `TOKEN_BLACKLIST`-based revocation only blacklists tokens that were
+   explicitly logged out — a rotated `JWT_SECRET` invalidates all
+   outstanding tokens at once (they fail signature verification), which is
+   the correct emergency response for a suspected secret leak.
+3. Check audit/error logs for unauthorized activity in the affected window.
+4. Notify affected users if customer data was exposed.
 
 ### Security Contacts
 
@@ -184,44 +192,43 @@ wrangler secret put JWT_SECRET --env production
 
 ### Pre-deployment
 
-- [ ] All environment variables configured
-- [ ] JWT secret minimum 32 characters
-- [ ] Database credentials are environment-based
-- [ ] CORS origins list updated for environment
-- [ ] Security headers enabled
-- [ ] Rate limiting configured
-- [ ] SSL/TLS certificates valid
+- [ ] All environment variables/secrets configured per app
+      (`apps/api`, `apps/management-api`, `apps/realtime`, etc.)
+- [ ] `JWT_SECRET` is identical across workers that need to interoperate,
+      minimum 32 characters
+- [ ] `CORS_ORIGIN` set for the target environment (no wildcard)
+- [ ] Security headers verified (see section 4 above)
+- [ ] Rate limiting `customLimits` reviewed for the deployment's expected
+      traffic
 
 ### Post-deployment
 
-- [ ] Test authentication flows
-- [ ] Verify CORS behavior
-- [ ] Check security headers in browser
-- [ ] Test rate limiting
-- [ ] Confirm audit logging works
-- [ ] Monitor for errors in first 24 hours
+- [ ] Test staff and customer authentication flows separately
+- [ ] Verify CORS behavior against the real frontend origin
+- [ ] Check security headers in browser devtools
+- [ ] Test rate limiting on a login-like endpoint
+- [ ] Monitor for errors in the first 24 hours
 
 ## 🔧 Development Security
 
-### Secure Development Practices
-
-1. Never commit secrets or credentials
-2. Use `.env.local` for local development
-3. Run security linting regularly
-4. Keep dependencies updated
-5. Test authentication and authorization flows
+1. Never commit secrets — `.env.development` (committed) is for
+   localhost URLs and flags only; use `.env.development.local`
+   (gitignored) for anything sensitive.
+2. Keep dependencies updated.
+3. Test authentication and authorization flows for both staff-role and
+   canonical-customer JWT paths — they use different middleware.
 
 ### Testing Security Features
 
 ```bash
 # Test JWT token validation
-curl -H "Authorization: Bearer invalid-token" https://api.yourdomain.com/auth/me
+curl -H "Authorization: Bearer invalid-token" https://<api-host>/api/v1/auth/me
 
 # Test CORS restrictions
-curl -H "Origin: https://malicious-site.com" https://api.yourdomain.com/health
+curl -H "Origin: https://malicious-site.com" https://<api-host>/info
 
 # Test rate limiting
-for i in {1..10}; do curl https://api.yourdomain.com/health; done
+for i in {1..150}; do curl https://<api-host>/info; done
 ```
 
 ## 📚 Additional Resources
@@ -229,9 +236,8 @@ for i in {1..10}; do curl https://api.yourdomain.com/health; done
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Cloudflare Security Center](https://developers.cloudflare.com/security/)
 - [JWT Security Best Practices](https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/)
-- [Node.js Security Checklist](https://nodejs.org/en/docs/guides/security/)
 
 ---
 
-**Last Updated**: $(date '+%Y-%m-%d')  
-**Next Security Review**: $(date -d '+3 months' '+%Y-%m-%d')
+**Last Updated**: 2026-07-05
+**Next Security Review**: recommend quarterly (see Regular Security Tasks above)

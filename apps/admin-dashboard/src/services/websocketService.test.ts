@@ -77,4 +77,21 @@ describe("WebSocketService", () => {
 
     expect(ws.close).toHaveBeenCalledWith(4000, "Heartbeat timeout");
   });
+
+  it("clears heartbeat timeouts when the runtime returns raw pong", async () => {
+    const service = new WebSocketService({
+      heartbeatInterval: 1_000,
+      heartbeatTimeout: 500,
+    });
+
+    await service.connect("restaurant-1");
+    const ws = MockWebSocket.instances[0];
+    ws.onopen?.();
+
+    vi.advanceTimersByTime(1_000);
+    ws.onmessage?.({ data: "pong" } as MessageEvent);
+    vi.advanceTimersByTime(500);
+
+    expect(ws.close).not.toHaveBeenCalled();
+  });
 });

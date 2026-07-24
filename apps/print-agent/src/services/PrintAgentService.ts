@@ -105,11 +105,29 @@ export class PrintAgentService {
       await this.initialize();
     }
 
+    // Validate print request — validation failures are client errors
     try {
-      // Validate print request
       this.validatePrintRequest(request);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Invalid print request";
+      console.error(
+        "Print request validation failed:",
+        sanitizeForLog(message),
+      );
+      return {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message,
+        },
+      };
+    }
 
-      // Send to printer service (which handles job creation and queueing)
+    try {
+      // Send to printer service (which handles job creation and queueing).
+      // The printer service returns error-shaped responses itself
+      // (e.g. NO_PRINTER_AVAILABLE, PRINT_REQUEST_FAILED).
       const response = await this.printerService.print(request);
 
       return response;
@@ -253,8 +271,22 @@ export class PrintAgentService {
       initialized: this.isInitialized,
     };
 
+    // Agent-level status semantics:
+    // - "unhealthy" is reserved for real failures (service not initialized)
+    // - a running agent with no printers online is "degraded" — the service
+    //   itself is up, the hardware is simply absent/offline
+    // - otherwise defer to the underlying printer service assessment
+    let status: "healthy" | "degraded" | "unhealthy";
+    if (!this.isInitialized) {
+      status = "unhealthy";
+    } else if (devices.length === 0 || onlineDevices === 0) {
+      status = "degraded";
+    } else {
+      status = health.service;
+    }
+
     return {
-      status: health.service,
+      status,
       services,
       devices: {
         total: devices.length,

@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
+import { ApiError, badRequest } from "@makanmakan/utils";
 import type { ManagementEnv } from "../types";
 import { ProvisioningService } from "../services/ProvisioningService";
 import { MigrationService } from "../services/MigrationService";
@@ -51,13 +52,12 @@ router.get("/:tenantId", async (c) => {
       data: status,
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Deployments] Get status error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get deployment status",
-        code: "GET_STATUS_FAILED",
-      },
+    throw new ApiError(
+      "GET_STATUS_FAILED",
+      "Failed to get deployment status",
       500,
     );
   }
@@ -83,13 +83,12 @@ router.get("/:tenantId/history", async (c) => {
       data: history,
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Deployments] Get history error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get deployment history",
-        code: "GET_HISTORY_FAILED",
-      },
+    throw new ApiError(
+      "GET_HISTORY_FAILED",
+      "Failed to get deployment history",
       500,
     );
   }
@@ -112,14 +111,11 @@ router.post("/provision", async (c) => {
     );
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Provisioning failed",
-          code: "PROVISION_FAILED",
-          details: result.failedResources,
-        },
+      throw new ApiError(
+        "PROVISION_FAILED",
+        result.error || "Provisioning failed",
         500,
+        result.failedResources,
       );
     }
 
@@ -133,24 +129,14 @@ router.post("/provision", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error("[Deployments] Provision error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to provision resources",
-        code: "PROVISION_FAILED",
-      },
+    throw new ApiError(
+      "PROVISION_FAILED",
+      "Failed to provision resources",
       500,
     );
   }
@@ -174,14 +160,11 @@ router.post("/deploy", async (c) => {
     );
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Deployment failed",
-          code: "DEPLOY_FAILED",
-          deploymentId: result.deploymentId,
-        },
+      throw new ApiError(
+        "DEPLOY_FAILED",
+        result.error || "Deployment failed",
         500,
+        { deploymentId: result.deploymentId },
       );
     }
 
@@ -196,26 +179,12 @@ router.post("/deploy", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error("[Deployments] Deploy error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to deploy",
-        code: "DEPLOY_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("DEPLOY_FAILED", "Failed to deploy", 500);
   }
 });
 
@@ -237,12 +206,9 @@ router.post("/:tenantId/rollback", async (c) => {
     );
 
     if (!result.success) {
-      return c.json(
-        {
-          success: false,
-          error: result.error || "Rollback failed",
-          code: "ROLLBACK_FAILED",
-        },
+      throw new ApiError(
+        "ROLLBACK_FAILED",
+        result.error || "Rollback failed",
         500,
       );
     }
@@ -256,15 +222,10 @@ router.post("/:tenantId/rollback", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Deployments] Rollback error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to rollback deployment",
-        code: "ROLLBACK_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("ROLLBACK_FAILED", "Failed to rollback deployment", 500);
   }
 });
 
@@ -280,24 +241,16 @@ router.post("/batch", async (c) => {
     const { tenantIds, targetVersion } = body;
 
     if (!Array.isArray(tenantIds) || tenantIds.length === 0) {
-      return c.json(
-        {
-          success: false,
-          error: "tenantIds must be a non-empty array",
-          code: "VALIDATION_ERROR",
-        },
-        400,
+      throw badRequest(
+        "tenantIds must be a non-empty array",
+        "VALIDATION_ERROR",
       );
     }
 
     if (!targetVersion || !/^\d+\.\d+\.\d+$/.test(targetVersion)) {
-      return c.json(
-        {
-          success: false,
-          error: "targetVersion must be semver format",
-          code: "VALIDATION_ERROR",
-        },
-        400,
+      throw badRequest(
+        "targetVersion must be semver format",
+        "VALIDATION_ERROR",
       );
     }
 
@@ -319,15 +272,10 @@ router.post("/batch", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Deployments] Batch deploy error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to batch deploy",
-        code: "BATCH_DEPLOY_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("BATCH_DEPLOY_FAILED", "Failed to batch deploy", 500);
   }
 });
 
@@ -348,20 +296,24 @@ router.get("/:tenantId/migrations", async (c) => {
         tenantId,
         migrations,
         total: migrations.length,
+        // Latest by applied_at, not by name order — migration names do not
+        // always sort chronologically.
         lastApplied:
           migrations.length > 0
-            ? migrations[migrations.length - 1].appliedAt
+            ? migrations.reduce(
+                (latest, m) => (m.appliedAt > latest ? m.appliedAt : latest),
+                migrations[0].appliedAt,
+              )
             : null,
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Deployments] Get migrations error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get migration history",
-        code: "GET_MIGRATIONS_FAILED",
-      },
+    throw new ApiError(
+      "GET_MIGRATIONS_FAILED",
+      "Failed to get migration history",
       500,
     );
   }

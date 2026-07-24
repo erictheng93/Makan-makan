@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
+import { ApiError, badRequest, conflict, notFound } from "@makanmakan/utils";
 import type {
   ManagementEnv,
   Tenant,
@@ -84,15 +85,10 @@ router.get("/", async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Tenants] List error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to list tenants",
-        code: "LIST_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("LIST_FAILED", "Failed to list tenants", 500);
   }
 });
 
@@ -108,14 +104,7 @@ router.get("/:id", async (c) => {
     const tenant = await tenantService.getTenantById(tenantId);
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     return c.json({
@@ -123,15 +112,10 @@ router.get("/:id", async (c) => {
       data: tenant,
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Tenants] Get error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get tenant",
-        code: "GET_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("GET_FAILED", "Failed to get tenant", 500);
   }
 });
 
@@ -157,14 +141,7 @@ router.post("/", async (c) => {
     // Check subdomain availability
     const existing = await tenantService.getTenantBySubdomain(subdomain);
     if (existing) {
-      return c.json(
-        {
-          success: false,
-          error: "Subdomain already in use",
-          code: "SUBDOMAIN_TAKEN",
-        },
-        409,
-      );
+      throw conflict("Subdomain already in use", "SUBDOMAIN_TAKEN");
     }
 
     const tenant = await tenantService.createTenant({
@@ -181,26 +158,12 @@ router.post("/", async (c) => {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error("[Tenants] Create error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to create tenant",
-        code: "CREATE_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("CREATE_FAILED", "Failed to create tenant", 500);
   }
 });
 
@@ -222,14 +185,7 @@ router.patch("/:id", async (c) => {
     );
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     return c.json({
@@ -238,26 +194,12 @@ router.patch("/:id", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error("[Tenants] Update error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to update tenant",
-        code: "UPDATE_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("UPDATE_FAILED", "Failed to update tenant", 500);
   }
 });
 
@@ -273,14 +215,7 @@ router.delete("/:id", async (c) => {
     const success = await tenantService.deleteTenant(tenantId);
 
     if (!success) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found",
-          code: "NOT_FOUND",
-        },
-        404,
-      );
+      throw notFound("Tenant not found", "NOT_FOUND");
     }
 
     return c.json({
@@ -288,15 +223,10 @@ router.delete("/:id", async (c) => {
       data: { deleted: true },
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Tenants] Delete error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to delete tenant",
-        code: "DELETE_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("DELETE_FAILED", "Failed to delete tenant", 500);
   }
 });
 
@@ -316,13 +246,12 @@ router.get("/:id/resources", async (c) => {
       data: resources,
     });
   } catch (error) {
+    if (error instanceof ApiError) throw error;
+
     console.error("[Tenants] Get resources error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get tenant resources",
-        code: "GET_RESOURCES_FAILED",
-      },
+    throw new ApiError(
+      "GET_RESOURCES_FAILED",
+      "Failed to get tenant resources",
       500,
     );
   }

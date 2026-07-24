@@ -1,6 +1,6 @@
 # Rollback Runbook
 
-Use this when a production or staging deploy causes elevated errors, broken login, failed ordering, failed realtime updates, or failed smoke tests.
+Use this when a production deploy causes elevated errors, broken login, failed ordering, failed realtime updates, or failed smoke tests.
 
 ## Decision Criteria
 
@@ -28,7 +28,6 @@ wrangler rollback --name <worker-name> --message "Rollback <incident-id>"
 7. Re-run smoke checks:
 
 ```bash
-pnpm run test:smoke:staging
 curl --fail "$PRODUCTION_URL/info"
 ```
 

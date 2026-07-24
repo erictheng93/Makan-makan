@@ -8,14 +8,13 @@ import type { Env } from "../types/env";
  */
 export const buildAllowedOrigins = (env: Env): string[] => {
   const isProduction = env.NODE_ENV === "production";
-  const isStaging = env.NODE_ENV === "staging";
 
-  // Production/Staging: Use configured CORS_ORIGIN only
-  if (isProduction || isStaging) {
+  // Production: Use configured CORS_ORIGIN only
+  if (isProduction) {
     const configuredOrigin = env.CORS_ORIGIN;
     if (!configuredOrigin) {
       console.warn(
-        "[CORS] CORS_ORIGIN not configured in production/staging environment",
+        "[CORS] CORS_ORIGIN not configured in production environment",
       );
       return [];
     }

@@ -14,6 +14,7 @@ import {
   eq,
   and,
   between,
+  inArray,
   menuItems,
   orderItems,
   orders,
@@ -24,6 +25,19 @@ import type {
   ProductCategory,
   TimeRangeParams,
 } from "../types";
+
+/**
+ * Order statuses that count as "fulfilled" for revenue/analytics.
+ *
+ * `orders.status` uses the ORDER_STATUS union
+ * (pending/confirmed/preparing/ready/delivered/paid/cancelled/refunded) — it
+ * never contains the literal "completed", so the old `eq(orders.status,
+ * "completed")` filter silently matched zero rows. Of that union, only "paid"
+ * and "delivered" represent a successfully fulfilled order. (The database
+ * analytics service also lists "served", but that is an ORDER_ITEMS status, not
+ * an orders.status, so it is intentionally omitted here.)
+ */
+const FULFILLED_ORDER_STATUSES = ["paid", "delivered"] as const;
 
 interface RawProductMetrics {
   menu_item_id: number;
@@ -256,7 +270,7 @@ export class ProductAnalysisService {
           eq(orderItems.orderId, orders.id),
           eq(orders.restaurantId, restaurantId),
           between(orders.createdAt, new Date(startMs), new Date(endMs)),
-          eq(orders.status, "completed"),
+          inArray(orders.status, FULFILLED_ORDER_STATUSES),
         ),
       )
       .leftJoin(categories, eq(menuItems.categoryId, categories.id))
@@ -295,7 +309,7 @@ export class ProductAnalysisService {
         and(
           eq(orderItems.menuItemId, menuItemId),
           between(orders.createdAt, new Date(startMs), new Date(endMs)),
-          eq(orders.status, "completed"),
+          inArray(orders.status, FULFILLED_ORDER_STATUSES),
         ),
       )
       .groupBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`)

@@ -78,6 +78,13 @@ export class BackupService {
     private storageService: BackupStorageService,
     private configService: BackupConfigService,
     private validationService: BackupValidationService,
+    /**
+     * Symmetric key used to encrypt/decrypt backup payloads when a backup's
+     * `encryption_enabled` flag is set. Sourced from the `ENCRYPTION_KEY`
+     * environment secret at the route/worker wiring layer. When absent,
+     * encrypted backups cannot be created or restored and raise a clear error.
+     */
+    private encryptionKey?: string,
   ) {
     this.d1 = d1;
     this.db = drizzle(d1);
@@ -95,7 +102,8 @@ export class BackupService {
     userId: string,
   ): Promise<CreateBackupResponse> {
     const backupId = crypto.randomUUID();
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
+    const timestampIso = timestamp.toISOString();
 
     try {
       // Validate request and check limits
@@ -195,7 +203,7 @@ export class BackupService {
           storage_path: "",
           encryption_enabled: config.encryption_enabled,
           checksum: "",
-          started_at: timestamp,
+          started_at: timestampIso,
           created_by: userId,
           metadata: {
             manifest,
@@ -300,26 +308,53 @@ export class BackupService {
           compressedSize > 0 ? backupJson.length / compressedSize : 1.0;
       }
 
+      // Apply the configured compression/encryption before storing. The stored
+      // bytes (and therefore the checksum) reflect the processed payload; the
+      // storage flags are persisted in metadata so restore knows how to read
+      // the backup back.
+      const compress = Boolean(backup.compression_enabled);
+      const encrypt = Boolean(backup.encryption_enabled);
+      if (encrypt && !this.encryptionKey) {
+        throw new Error(
+          "Backup encryption is enabled but no encryption key is configured " +
+            "(set the ENCRYPTION_KEY environment secret).",
+        );
+      }
+      const { processedData } =
+        await this.storageService.processDataForStorage(
+          backupJson,
+          compress,
+          encrypt,
+          this.encryptionKey,
+        );
+
       // Store backup using storage service
       const { storage_path, checksum } = await this.storageService.storeBackup(
         backup,
-        backupJson,
+        processedData,
         backup.storage_provider,
       );
 
-      const completedAt = new Date().toISOString();
+      const completedAt = new Date();
+      const completedAtIso = completedAt.toISOString();
       const duration =
-        new Date(completedAt).getTime() - new Date(backup.started_at).getTime();
+        completedAt.getTime() - new Date(backup.started_at).getTime();
       const schemaHash = await this.getSchemaHash(backup.restaurant_id);
       const manifest: BackupManifest = {
         rowCounts,
         tables: backup.tables_included,
-        createdAt: completedAt,
+        createdAt: completedAtIso,
         checksum,
       };
       const metadata = {
         ...(backup.metadata ?? {}),
         manifest,
+        // Persist how the payload was processed so restore can reverse it.
+        // No schema change — this rides in the existing metadata JSON column.
+        storage: {
+          compressed: compress,
+          encrypted: encrypt,
+        },
         tables_info: backup.tables_included.map((table) => ({
           table_name: table,
           record_count: rowCounts[table] ?? backupData[table]?.length ?? 0,
@@ -353,7 +388,7 @@ export class BackupService {
           checksum,
           completedAt,
           metadata,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         })
         .where(eq(backupRecords.id, backupId));
 
@@ -381,7 +416,7 @@ export class BackupService {
           records_count: totalRecords,
           storage_path,
           checksum,
-          completed_at: completedAt,
+          completed_at: completedAtIso,
           metadata,
         },
       };
@@ -395,8 +430,8 @@ export class BackupService {
         .set({
           errorMessage:
             error instanceof Error ? error.message : "Unknown error",
-          completedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          completedAt: new Date(),
+          updatedAt: new Date(),
         })
         .where(eq(backupRecords.id, backupId));
 
@@ -434,11 +469,11 @@ export class BackupService {
       }
 
       if (date_from) {
-        conditions.push(gte(backupRecords.startedAt, date_from));
+        conditions.push(gte(backupRecords.startedAt, new Date(date_from)));
       }
 
       if (date_to) {
-        conditions.push(lte(backupRecords.startedAt, date_to));
+        conditions.push(lte(backupRecords.startedAt, new Date(date_to)));
       }
 
       const whereClause = and(...conditions);
@@ -566,7 +601,7 @@ export class BackupService {
         restoreType: request.restore_type,
         targetTables,
         overwriteExisting: request.overwrite_existing,
-        startedAt: new Date().toISOString(),
+        startedAt: new Date(),
         tablesRestored: 0,
         recordsRestored: 0,
         performedBy: userId,
@@ -648,13 +683,15 @@ export class BackupService {
           totalRestaurants: sql<number>`COUNT(DISTINCT ${backupRecords.restaurantId})`,
           totalBackups: count(),
           runningBackups: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'in_progress' THEN 1 END)`,
-          failedBackups24h: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'failed' AND ${backupRecords.startedAt} > datetime('now', '-24 hours') THEN 1 END)`,
+          failedBackups24h: sql<number>`COUNT(CASE WHEN ${backupRecords.status} = 'failed' AND ${backupRecords.startedAt} > (unixepoch('now', '-24 hours') * 1000) THEN 1 END)`,
           avgSize: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' AND ${backupRecords.fileSize} > 0 THEN ${backupRecords.fileSize} END)`,
           avgDurationMs: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' THEN json_extract(${backupRecords.metadata}, '$.performance_metrics.backup_duration_ms') END)`,
           avgCompressionRatio: sql<number>`AVG(CASE WHEN ${backupRecords.status} = 'completed' THEN json_extract(${backupRecords.metadata}, '$.performance_metrics.compression_ratio') END)`,
         })
         .from(backupRecords)
-        .where(gte(backupRecords.startedAt, sql`datetime('now', '-30 days')`));
+        .where(
+          gte(backupRecords.startedAt, sql`(unixepoch('now', '-30 days') * 1000)`),
+        );
 
       const stat = stats[0] || {};
 
@@ -743,7 +780,7 @@ export class BackupService {
           week: 7 * 24 * 60 * 60 * 1000,
           month: 30 * 24 * 60 * 60 * 1000,
         }[timeframe] ?? 7 * 24 * 60 * 60 * 1000;
-      const startedAfter = new Date(Date.now() - timeframeMs).toISOString();
+      const startedAfter = new Date(Date.now() - timeframeMs);
 
       const metrics = await this.db
         .select({
@@ -873,7 +910,8 @@ export class BackupService {
         throw notFound("Alert not found", "BACKUP_ALERT_NOT_FOUND");
       }
 
-      const resolvedAt = new Date().toISOString();
+      const resolvedAt = new Date();
+      const resolvedAtIso = resolvedAt.toISOString();
       await this.db
         .update(backupAlerts)
         .set({ resolved: true, resolvedAt })
@@ -889,7 +927,7 @@ export class BackupService {
       return {
         ...alert,
         resolved: true,
-        resolved_at: resolvedAt,
+        resolved_at: resolvedAtIso,
       };
     } catch (error) {
       console.error("Error resolving backup alert:", error);
@@ -947,7 +985,7 @@ export class BackupService {
   ): Promise<void> {
     await this.db
       .update(backupRecords)
-      .set({ status, updatedAt: new Date().toISOString() })
+      .set({ status, updatedAt: new Date() })
       .where(eq(backupRecords.id, backupId));
   }
 
@@ -979,8 +1017,8 @@ export class BackupService {
       storage_provider: r.storageProvider ?? r.storage_provider,
       storage_path: r.storagePath ?? r.storage_path,
       encryption_enabled: Boolean(r.encryptionEnabled ?? r.encryption_enabled),
-      started_at: r.startedAt ?? r.started_at,
-      completed_at: r.completedAt ?? r.completed_at,
+      started_at: this.toIsoString(r.startedAt ?? r.started_at),
+      completed_at: this.toOptionalIsoString(r.completedAt ?? r.completed_at),
       error_message: r.errorMessage ?? r.error_message,
       created_by: r.createdBy ?? r.created_by,
       metadata: r.metadata ?? {},
@@ -1114,7 +1152,7 @@ export class BackupService {
       performedBy: log.performed_by,
       ipAddress: this.requestContext?.ipAddress ?? "0.0.0.0",
       userAgent: this.requestContext?.userAgent ?? "MakanMakan-API",
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
   }
 
@@ -1155,7 +1193,31 @@ export class BackupService {
       }
       checksum ||= backup.checksum;
 
-      const backupData = JSON.parse(backupDataText) as Record<
+      // Reverse any compression/encryption applied at backup time. Detection is
+      // driven off persisted flags (metadata.storage, falling back to the
+      // encryption_enabled column) — never by sniffing — so legacy plaintext
+      // backups (no storage metadata) pass through unchanged.
+      const storageMeta = (
+        backup.metadata as { storage?: { compressed?: boolean; encrypted?: boolean } } | undefined
+      )?.storage;
+      const wasCompressed = Boolean(storageMeta?.compressed);
+      const wasEncrypted = Boolean(
+        storageMeta?.encrypted ?? backup.encryption_enabled,
+      );
+      if (wasEncrypted && !this.encryptionKey) {
+        throw new Error(
+          "Backup is encrypted but no encryption key is configured " +
+            "(set the ENCRYPTION_KEY environment secret).",
+        );
+      }
+      const restoredText = await this.storageService.processDataFromStorage(
+        backupDataText,
+        wasCompressed,
+        wasEncrypted,
+        this.encryptionKey,
+      );
+
+      const backupData = JSON.parse(restoredText) as Record<
         string,
         Record<string, unknown>[]
       >;
@@ -1202,7 +1264,7 @@ export class BackupService {
 
       await this.updateRestoreOperation(operationId, {
         status: "completed",
-        completedAt: new Date().toISOString(),
+        completedAt: new Date(),
         tablesRestored,
         recordsRestored,
       });
@@ -1227,7 +1289,7 @@ export class BackupService {
     } catch (error) {
       await this.updateRestoreOperation(operationId, {
         status: "failed",
-        completedAt: new Date().toISOString(),
+        completedAt: new Date(),
         errorMessage:
           error instanceof Error ? error.message : "Unknown restore error",
       });
@@ -1465,7 +1527,7 @@ export class BackupService {
             result.relatedBackupId ??
             details.related_backup_id,
         ),
-        triggered_at: String(result.triggered_at ?? result.triggeredAt ?? ""),
+        triggered_at: this.toIsoString(result.triggered_at ?? result.triggeredAt),
         acknowledged: Boolean(result.acknowledged),
         acknowledged_by: this.optionalString(
           result.acknowledged_by ?? result.acknowledgedBy,
@@ -1474,7 +1536,9 @@ export class BackupService {
           result.acknowledged_at ?? result.acknowledgedAt,
         ),
         resolved: Boolean(result.resolved),
-        resolved_at: this.optionalString(result.resolved_at ?? result.resolvedAt),
+        resolved_at: this.toOptionalIsoString(
+          result.resolved_at ?? result.resolvedAt,
+        ),
       };
     });
   }
@@ -1498,6 +1562,23 @@ export class BackupService {
 
   private optionalString(value: unknown): string | undefined {
     return value === null || value === undefined ? undefined : String(value);
+  }
+
+  private toIsoString(value: unknown): string {
+    return this.toOptionalIsoString(value) ?? "";
+  }
+
+  private toOptionalIsoString(value: unknown): string | undefined {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (typeof value === "number") {
+      return new Date(value).toISOString();
+    }
+    return String(value);
   }
 
   private formatAlertTitle(alertType: string): string {

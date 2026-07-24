@@ -14,7 +14,7 @@ export const images = sqliteTable("images", {
   height: integer("height"),
   category: text("category").notNull(), // 'menu', 'restaurant', 'profile', etc.
   restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
-  uploadedBy: integer("uploaded_by"),
+  uploadedBy: text("uploaded_by"), // 引用 users.id (TEXT UUID v7);migration 0073 由 INTEGER 轉型
   cloudflareImageId: text("cloudflare_image_id"),
   variants: text("variants"), // JSON array of available variants
   metadata: text("metadata"), // JSON metadata

@@ -7,7 +7,6 @@ export { BackupController } from "./controllers/BackupController";
 export { BackupService } from "./services/BackupService";
 export { BackupConfigService } from "./services/BackupConfigService";
 export { BackupStorageService } from "./services/BackupStorageService";
-export { BackupSchedulerService } from "./services/BackupSchedulerService";
 export { BackupValidationService } from "./services/BackupValidationService";
 export { BackupRoutes } from "./routes";
 

@@ -108,6 +108,11 @@ jobs:
           curl --fail --retry 3 --retry-delay 5 \
             "$PRODUCTION_KITCHEN_URL" \
             -o /dev/null -w "Kitchen display app: HTTP %{http_code} in %{time_total}s\n"
+
+          # Image-processor liveness — /info is public (no auth) on the Worker
+          curl --fail --retry 3 --retry-delay 5 \
+            "https://images.makanmasak.com/info" \
+            -o /dev/null -w "Image processor (/info): HTTP %{http_code} in %{time_total}s\n"
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
           PRODUCTION_KITCHEN_URL: ${{ secrets.PRODUCTION_KITCHEN_URL }}

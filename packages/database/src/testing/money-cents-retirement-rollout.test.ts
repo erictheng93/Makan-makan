@@ -357,7 +357,6 @@ describe("money cents retirement rollout migration", () => {
     expect(doc).toContain(rolloutLegacy);
     expect(doc).toContain(cutoverFresh);
     expect(doc).toContain(cutoverLegacy);
-    expect(doc).toContain("rtk pnpm db:migrate:staging");
     expect(doc).toContain("rtk pnpm db:migrate:prod");
     expect(doc).toContain("PRAGMA defer_foreign_keys = ON");
     expect(doc).toContain("money_cents_retirement_rollout");

@@ -26,7 +26,6 @@
     "test:coverage": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0003_qrcode_system.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0008_create_error_reports.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0009_additional_tables.sql",
-    "db:migrate:staging": "wrangler d1 migrations apply makanmasak-staging --remote --env staging --config=../../apps/api/wrangler.toml",
     "db:migrate:prod": "wrangler d1 migrations apply makanmasak-prod --remote --env production --config=../../apps/api/wrangler.toml",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts"
@@ -37,21 +36,20 @@
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.45.2",
     "jsonwebtoken": "^9.0.2",
-    "uuid": "^11.0.0",
+    "uuid": "^14.0.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260603.1",
+    "@cloudflare/workers-types": "^5.20260722.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^24.3.0",
-    "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.6",
     "miniflare": "^3.20250718.3",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.0"
   },
   "peerDependencies": {
     "@makanmakan/queue-core": "workspace:*",

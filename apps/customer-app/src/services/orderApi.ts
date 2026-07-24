@@ -21,6 +21,56 @@ export interface OrderSummary {
   total: number;
 }
 
+/**
+ * Order receipt response — mirrors the server `OrderReceipt` shape returned by
+ * `GET /orders/:id/receipt` (apps/api OrdersService.generateReceipt).
+ */
+export interface OrderReceiptResponse {
+  orderNumber: string;
+  restaurantInfo: {
+    id: number;
+    name: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  };
+  customerInfo: Record<string, unknown>;
+  tableInfo?: {
+    id: number;
+    number: string;
+    seats: number;
+  };
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    customizations?: string[];
+    notes?: string;
+  }>;
+  summary: {
+    subtotal: number;
+    tax: number;
+    serviceCharge: number;
+    discount: number;
+    total: number;
+  };
+  paymentInfo: {
+    method: string;
+    status: string;
+    transactionId?: string;
+    paidAt?: string;
+  };
+  timestamps: {
+    orderedAt: string;
+    confirmedAt?: string;
+    readyAt?: string;
+    deliveredAt?: string;
+  };
+  qrCode?: string;
+  footerMessage?: string;
+}
+
 export interface OrderTrackingInfo {
   order: Order;
   timeline: Array<{
@@ -535,54 +585,10 @@ export const orderApi = {
   /**
    * 獲取訂單收據
    */
-  async getOrderReceipt(orderId: number): Promise<{
-    orderId: number;
-    receiptNumber: string;
-    items: Array<{
-      name: string;
-      quantity: number;
-      unitPrice: number;
-      total: number;
-      customizations?: string;
-    }>;
-    summary: OrderSummary;
-    paymentInfo?: {
-      method: string;
-      transactionId?: string;
-      paidAt: string;
-    };
-    restaurant: {
-      name: string;
-      address: string;
-      phone: string;
-      taxId?: string;
-    };
-    generatedAt: string;
-  }> {
-    const response = await apiClient.get<{
-      orderId: number;
-      receiptNumber: string;
-      items: Array<{
-        name: string;
-        quantity: number;
-        unitPrice: number;
-        total: number;
-        customizations?: string;
-      }>;
-      summary: OrderSummary;
-      paymentInfo?: {
-        method: string;
-        transactionId?: string;
-        paidAt: string;
-      };
-      restaurant: {
-        name: string;
-        address: string;
-        phone: string;
-        taxId?: string;
-      };
-      generatedAt: string;
-    }>(`/orders/${orderId}/receipt`);
+  async getOrderReceipt(orderId: string): Promise<OrderReceiptResponse> {
+    const response = await apiClient.get<OrderReceiptResponse>(
+      `/orders/${orderId}/receipt`,
+    );
     return response;
   },
 

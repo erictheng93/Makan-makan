@@ -19,7 +19,7 @@ describe("smoke env helpers", () => {
   it("allows fallback discovery only for local API URLs", () => {
     expect(isLocalSmokeApi("http://localhost:8787")).toBe(true);
     expect(isLocalSmokeApi("http://127.0.0.1:8787")).toBe(true);
-    expect(isLocalSmokeApi("https://api-staging.makanmasak.com")).toBe(false);
+    expect(isLocalSmokeApi("https://api.makanmasak.com")).toBe(false);
     expect(localAdminUrlFallback("http://localhost:8787")).toBe(
       "http://localhost:3001",
     );
@@ -124,7 +124,7 @@ describe("smoke env helpers", () => {
 
   it("does not derive fixture ids for non-local smoke targets", async () => {
     const fixtureIds = await resolveLocalSmokeFixtureIds({
-      apiUrl: "https://api-staging.makanmasak.com",
+      apiUrl: "https://api.makanmasak.com",
       authUsername: "grandmaShop",
       authPassword: "password123",
       restaurantId: "explicit-restaurant",

@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { httpUrlSchema } from "../../../shared/utils/url";
 
 // Base validation schemas
 const positiveInteger = z.number().int().positive();
@@ -16,7 +17,7 @@ const idString = z.preprocess((value) => {
   }
   return value;
 }, nonEmptyString);
-const optionalUrl = z.string().url().optional();
+const optionalUrl = httpUrlSchema.optional();
 const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");

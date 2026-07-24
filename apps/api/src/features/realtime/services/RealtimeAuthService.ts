@@ -663,7 +663,7 @@ export class RealtimeAuthService {
   }
 
   private resolveRealtimeJwtSecret(): string {
-    return this.env.REALTIME_JWT_SECRET || "";
+    return this.env.REALTIME_JWT_SECRET || this.env.JWT_SECRET || "";
   }
 
   private async validateGuestRealtimeRequest(

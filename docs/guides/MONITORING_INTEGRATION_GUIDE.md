@@ -1,5 +1,13 @@
 # 監控儀表板進階功能整合指南
 
+> ⚠️ **準確性提醒（2026-07-05）**：下方元件/服務/型別檔案本身確實存在，但
+> 「步驟 1-4」描述的整合工作**從未實際套用**到
+> `apps/admin-dashboard/src/views/MonitoringView.vue` —— 該檔案目前只 import
+> `AlertNotificationPanel` 與 `CreateAlertRuleModal`，`AdvancedFilterPanel.vue`、
+> `ExportReportModal.vue`、`DashboardLayoutEditor.vue` 三個元件完全沒有被任何
+> 地方引用（孤兒程式碼）。文件結尾「所有核心功能已完成並可用」不準確 ——
+> 元件已寫好但從未接上。
+
 ## 📋 已完成的功能模塊
 
 ### 1. 類型定義（Types）✅
@@ -385,4 +393,7 @@ monitoringStorage.saveLayout(testLayout);
 ---
 
 **完成日期**: 2025-11-11
-**狀態**: ✅ 所有核心功能已完成並可用
+**狀態（更正 2026-07-05）**: 元件/服務/型別已建立，但整合到
+`MonitoringView.vue` 的步驟 1-4 從未執行 —— `AdvancedFilterPanel`、
+`ExportReportModal`、`DashboardLayoutEditor` 均為孤兒程式碼，未被任何檔案
+引用。若要使用本指南，仍需實際執行步驟 1-4 的整合工作。

@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-ENVIRONMENT="${1:-staging}"
+ENVIRONMENT="${1:-production}"
 WRANGLER="${WRANGLER:-pnpm wrangler}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

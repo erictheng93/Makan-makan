@@ -57,6 +57,7 @@ describe("MenuService", () => {
       description: "Rich curry soup",
       price: 180,
       originalPrice: 220,
+      imageId: "01940000-0000-7000-8000-000000000001",
       isAvailable: true,
       isFeatured: false,
       isPopular: false,
@@ -123,6 +124,7 @@ describe("MenuService", () => {
       menuItems: [
         {
           id: 101,
+          imageId: "01940000-0000-7000-8000-000000000001",
           restaurantId: "42",
           categoryId: 7,
           isAvailable: false,
@@ -185,6 +187,7 @@ describe("MenuService", () => {
         categoryId: 7,
         name: "Laksa",
         price: 180,
+        imageId: "01940000-0000-7000-8000-000000000002",
       } as never),
     ).resolves.toMatchObject({ id: 202, restaurantId: "rest-1" });
     expect(dbService.createMenuItem).toHaveBeenCalledWith(
@@ -192,6 +195,7 @@ describe("MenuService", () => {
         restaurantId: "rest-1",
         categoryId: 7,
         name: "Laksa",
+        imageId: "01940000-0000-7000-8000-000000000002",
       }),
     );
   });
@@ -245,7 +249,12 @@ describe("MenuService", () => {
     await expect(
       service.updateMenuItem(
         101,
-        { categoryId: 8, restaurantId: "rest-1", name: "New Laksa" },
+        {
+          categoryId: 8,
+          restaurantId: "rest-1",
+          name: "New Laksa",
+          imageId: null,
+        },
         menuItem({ categoryId: 7 }) as never,
       ),
     ).resolves.toMatchObject({ id: 101, categoryId: 8 });
@@ -253,6 +262,7 @@ describe("MenuService", () => {
       categoryId: 8,
       restaurantId: "rest-1",
       name: "New Laksa",
+      imageId: null,
     });
   });
 

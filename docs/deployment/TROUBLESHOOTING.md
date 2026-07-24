@@ -52,7 +52,6 @@
               ↓
 ┌─────────────────────────────────────────┐
 │  4. 複現問題                            │
-│     - Staging 環境測試                  │
 │     - 本地開發環境測試                  │
 └─────────────┬───────────────────────────┘
               ↓
@@ -74,7 +73,7 @@ echo "=== MakanMakan System Health Check ==="
 
 # 1. API Service
 echo -n "API Service: "
-if curl -s -f https://api.makanmakan.com/api/v1/health > /dev/null 2>&1; then
+if curl -s -f https://api.makanmakan.com/info > /dev/null 2>&1; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -279,8 +278,8 @@ wrangler d1 execute makanmakan-prod --command "SELECT name FROM sqlite_master WH
 wrangler d1 migrations list makanmakan-prod
 
 # 3. 如果需要，回滾到特定遷移
-# ⚠️ 危險操作！僅在測試環境使用
-wrangler d1 execute makanmakan-staging --command "DELETE FROM d1_migrations WHERE name='0002_add_new_table.sql';"
+# ⚠️ 危險操作！先在本機驗證，確認無誤後才對 production 執行
+wrangler d1 execute makanmakan-local --local --command "DELETE FROM d1_migrations WHERE name='0002_add_new_table.sql';"
 
 # 4. 創建修復遷移而不是直接修改舊遷移
 wrangler d1 migrations create fix-table-issue
@@ -814,7 +813,7 @@ cat apps/api/wrangler.toml | grep RATE_LIMIT
 # 測試 rate limit
 for i in {1..110}; do
   echo -n "$i: "
-  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/api/v1/health
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/info
 done
 ```
 
@@ -1312,7 +1311,7 @@ wrangler d1 execute makanmakan-prod --file=db-health-check.sql
 
 API_URL="https://api.makanmakan.com"
 ENDPOINTS=(
-  "/api/v1/health"
+  "/info"
   "/api/v1/restaurants/1/menu"
   "/api/v1/orders?page=1&limit=20"
 )
@@ -1349,7 +1348,7 @@ echo "=== MakanMakan Auto Troubleshoot ==="
 
 # 1. 檢查 API 健康
 echo -n "API Health: "
-if curl -sf "$API_URL/api/v1/health" > /dev/null; then
+if curl -sf "$API_URL/info" > /dev/null; then
   echo "✅ OK"
 else
   echo "❌ FAILED"
@@ -1420,7 +1419,7 @@ echo "=== Troubleshooting Complete ==="
 
 ## 環境信息
 
-- Environment: Production / Staging / Development
+- Environment: Production / Development
 - Browser (if applicable):
 - Worker version:
 - Time of occurrence:

@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  authMiddleware,
+  requireRole,
+  requireRestaurantAccess,
+} from "../../../middleware/auth";
 import {
   validateBody,
   validateQuery,
@@ -28,6 +32,7 @@ routes.get(
   "/:restaurantId",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(restaurantIdParamSchema),
   validateQuery(ingredientListQuerySchema),
   async (c) => {
@@ -46,6 +51,7 @@ routes.post(
   "/:restaurantId",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(restaurantIdParamSchema),
   validateBody(createIngredientSchema),
   async (c) => {
@@ -64,6 +70,7 @@ routes.post(
   "/:restaurantId/bulk",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(restaurantIdParamSchema),
   validateBody(bulkImportSchema),
   async (c) => {
@@ -82,6 +89,7 @@ routes.get(
   "/:restaurantId/categories",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
@@ -98,6 +106,7 @@ routes.get(
   "/:restaurantId/recipes/missing",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(restaurantIdParamSchema),
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
@@ -114,6 +123,7 @@ routes.get(
   "/:restaurantId/:id",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(ingredientIdParamSchema),
   async (c) => {
     const { restaurantId, id } = c.get("validatedParams");
@@ -133,6 +143,7 @@ routes.put(
   "/:restaurantId/:id",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(ingredientIdParamSchema),
   validateBody(updateIngredientSchema),
   async (c) => {
@@ -154,6 +165,7 @@ routes.patch(
   "/:restaurantId/:id/stock",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(ingredientIdParamSchema),
   validateBody(updateStockSchema),
   async (c) => {
@@ -175,6 +187,7 @@ routes.delete(
   "/:restaurantId/:id",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(ingredientIdParamSchema),
   async (c) => {
     const { restaurantId, id } = c.get("validatedParams");
@@ -205,6 +218,7 @@ routes.get(
   "/:restaurantId/recipes/:menuItemId",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(menuItemIdParamSchema),
   async (c) => {
     const { menuItemId } = c.get("validatedParams");
@@ -221,6 +235,7 @@ routes.put(
   "/:restaurantId/recipes/:menuItemId",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(menuItemIdParamSchema),
   validateBody(setRecipeSchema),
   async (c) => {
@@ -239,6 +254,7 @@ routes.post(
   "/:restaurantId/recipes/:menuItemId/validate",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(menuItemIdParamSchema),
   async (c) => {
     const { menuItemId } = c.get("validatedParams");

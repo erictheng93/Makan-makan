@@ -1,14 +1,46 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (c, next) => {
-    c.set("user", { id: 1, role: 1, restaurantId: "rest-1" });
-    await next();
-  }),
-  requireRole: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
-  ),
+const authState = vi.hoisted(() => ({
+  user: { id: 1, role: 1, restaurantId: "rest-1" } as {
+    id: number;
+    role: number;
+    restaurantId: string | null;
+  },
 }));
+
+vi.mock("../../../middleware/auth", async () => {
+  const { forbidden } = await import("../../../shared/utils/api-error");
+  return {
+    authMiddleware: vi.fn(async (c, next) => {
+      c.set("user", authState.user);
+      await next();
+    }),
+    requireRole: vi.fn(
+      () => async (_c: unknown, next: () => Promise<void>) => next(),
+    ),
+    // Faithful stand-in for the real requireRestaurantAccess: admins bypass,
+    // everyone else must match the :restaurantId path param.
+    requireRestaurantAccess:
+      (param = "restaurantId") =>
+      async (
+        c: {
+          get: (k: "user") => typeof authState.user;
+          req: { param: (n: string) => string | undefined };
+        },
+        next: () => Promise<void>,
+      ) => {
+        const user = c.get("user");
+        if (user?.role === 0) return next();
+        if (
+          !user?.restaurantId ||
+          String(user.restaurantId) !== c.req.param(param)
+        ) {
+          throw forbidden("Access denied to this restaurant", "FORBIDDEN");
+        }
+        return next();
+      },
+  };
+});
 
 const ingredientFns = vi.hoisted(() => ({
   list: vi.fn(),
@@ -107,6 +139,8 @@ function ingredientBody(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
 
+  authState.user = { id: 1, role: 1, restaurantId: "rest-1" };
+
   ingredientFns.list.mockResolvedValue({
     items: [ingredient],
     total: 1,
@@ -134,6 +168,46 @@ beforeEach(() => {
     { id: 51, name: "Plain rice" },
   ]);
   recipeFns.getIngredientUsage.mockResolvedValue([]);
+});
+
+describe("ingredients restaurant ownership (bug #7)", () => {
+  it("blocks a role-1 owner from another restaurant's ingredients", async () => {
+    authState.user = { id: 2, role: 1, restaurantId: "rest-1" };
+
+    const readResponse = await request("/rest-2");
+    expect(readResponse.status).toBe(403);
+    expect(ingredientFns.list).not.toHaveBeenCalled();
+
+    const writeResponse = await request("/rest-2", "POST", ingredientBody());
+    expect(writeResponse.status).toBe(403);
+    expect(ingredientFns.create).not.toHaveBeenCalled();
+
+    const nestedResponse = await request("/rest-2/recipes/51");
+    expect(nestedResponse.status).toBe(403);
+    expect(recipeFns.getRecipe).not.toHaveBeenCalled();
+  });
+
+  it("allows a role-1 owner to access their own restaurant", async () => {
+    authState.user = { id: 2, role: 1, restaurantId: "rest-1" };
+
+    const response = await request("/rest-1");
+    expect(response.status).toBe(200);
+    expect(ingredientFns.list).toHaveBeenCalledWith(
+      "rest-1",
+      expect.any(Object),
+    );
+  });
+
+  it("lets an admin (role 0) access any restaurant", async () => {
+    authState.user = { id: 1, role: 0, restaurantId: null };
+
+    const response = await request("/rest-99");
+    expect(response.status).toBe(200);
+    expect(ingredientFns.list).toHaveBeenCalledWith(
+      "rest-99",
+      expect.any(Object),
+    );
+  });
 });
 
 describe("ingredients routes", () => {

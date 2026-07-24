@@ -8,8 +8,7 @@
 
 import { Hono } from "hono";
 import type { Context, Next } from "hono";
-import { verify } from "hono/jwt";
-import { authMiddleware } from "../../../middleware/auth";
+import { authMiddleware, verifyJwtToken } from "../../../middleware/auth";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError, unauthorized } from "../../../shared/utils/api-error";
 import type { Env } from "../../../types/env";
@@ -52,11 +51,7 @@ const sseAuthMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) => {
     }
   }
 
-  const decoded = (await verify(
-    token,
-    c.env.JWT_SECRET,
-    "HS256",
-  )) as SseJwtPayload;
+  const decoded = verifyJwtToken(token, c.env.JWT_SECRET) as SseJwtPayload;
 
   const user: AuthUser = {
     id: decoded.sub ?? decoded.id!,

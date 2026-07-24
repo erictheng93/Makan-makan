@@ -4,6 +4,73 @@ Complete development history and achievement details for the MakanMakan restaura
 
 ---
 
+## 2026-07-05 to 2026-07-17: Backup Observability, Error-Format Unification & Smoke-Test Hardening
+
+**Status**: ✅ Complete
+
+Twelve commits, smaller in scope than the preceding six-week sprint but closing out real gaps found by smoke testing and a full documentation audit.
+
+- **Backup system health checks are now real.** `getSystemHealth()` (`apps/api/src/services/BackupService.ts`, consumed by the `*/5min` `backup-scheduler` cron) was a hardcoded always-healthy literal; it now runs Layer 1 Drizzle queries over `backup_records` (running count, failed-in-24h, 7-day success rate, last successful backup) with critical/warning thresholds. `createAlert()` now persists restaurant-scoped alerts to `backup_alerts` and system-scoped alerts to `system_alerts` instead of only `console.log`ing, and the cron throttles repeat alerts via KV (1h TTL) so a sustained outage raises one alert per hour, not 288/day (`27ec47f4`, `61041d65`). This is a separate code path from the already-shipped (2026-04-21) restore-feature `features/backup/services/BackupService.ts` — see `docs/TECHNICAL_DEBT_TODO.md`.
+- **`apps/print-agent` HTTP contract fixed.** `POST /print` and `/devices/:id/test` returned HTTP 200 with `success:false` on every failure; now map to real statuses (400/503/500), `DELETE /print/:jobId` 404s on unknown jobs, and `/api/v1/health` no longer reports unhealthy before the first print job (eager `initialize()` at `start()`). "Running with 0 printers" now correctly reports degraded (200) rather than unhealthy (503) (`a95e7a99`).
+- **`apps/management-api` onboarding/license/tenant routes unified to the nested error format.** Hand-rolled `c.json({success:false,...})` responses replaced with `throw`n `ApiError`/`badRequest`/`notFound`/`conflict`, matching the `{success:false,error:{code,message}}` contract enforced by root `CLAUDE.md`; `management-portal`'s response interceptor and `ApiErrorPayload` type updated to parse the nested shape with a legacy flat-string fallback (`017fdac4`, `fb2fe869`).
+- **Kitchen-display chunk preloader removed** — it built `modulepreload` links with a literal `[hash]` placeholder Vite never substitutes outside Rollup config, firing 3-5 guaranteed 404s per page load against chunk names that no longer existed after manual chunking was reworked (`6cfaea92`).
+- **Local dev environment hardening**: unique `--inspector-port` per worker (CLI flag, not the Windows-crashing `wrangler.toml` field) to stop `pnpm dev` port races (`e79ace0b`); `realtime` and `image-processor` now share the same `--persist-to` D1 state directory as `api`/`management-api` so they see the migrated local schema instead of an empty per-app database (`24b47839`).
+- Build warning silencing, dependency-range corrections, and a `package.json`→lockfile version sync for `@vitejs/plugin-vue`, `vitest`, and `uuid` (`41ad1bed`, `df9dc6cd`).
+
+---
+
+## 2026-05-25 to 2026-07-05: Night-Market Marketplace Platform, UUID Primary-Key Migration & Managed Onboarding
+
+**Status**: 🚧 Marketplace live (core phases), UUID PK migration shipped, several sub-phases still open — see [`TODOS.md`](../../TODOS.md)
+
+Six weeks, ~900 commits. The two biggest shifts: MakanMakan grew a full night-market/商圈 marketplace layer on top of the existing single-restaurant platform, and the long-deferred users/orders UUID v7 primary-key migration finally landed. A new managed onboarding + management-api/portal stack also shipped, replacing the old BYO-Cloudflare tenant setup flow.
+
+### Night-Market Marketplace Platform
+
+Source of truth: [`night-market-vision-roadmap.md`](../night-market-vision-roadmap.md) (vision/gap analysis) and [`night-market-scaling-execution.md`](../night-market-scaling-execution.md) (scaling execution record).
+
+- Markets entity + GPS discovery + takeaway bridge (`89147020`, `8ae7ce3a`, `c5f814c9`) — Discovery treats markets as first-class entities with lat/lng search and a one-tap bridge into the existing shop-mode order flow.
+- Multi-vendor market checkout with a provider-agnostic payment contract: split payments, refunds, settlement, webhook reconciliation (dozens of commits under `apps/api/src/features/market-checkouts`, e.g. `2157863d`, `04ca4873`, `9f211159`, `1dbdf584`).
+- Stored-value 代幣 credits + 卷 voucher redemption MVP shipped (`fbaf0e4f`, `e8d18038`, `2251ef4c`, `40115d28`, `6022b839` ledger integrity + liability export) — see [`market-checkout-voucher-redemption.md`](../superpowers/specs/2026-06-03-market-checkout-voucher-redemption.md).
+- Discovery scaling: D1 read replicas for public browse (P0a), queue fan-out for search-index sync (P0b), FTS5 trigram search for CJK queries (P2) — `c13925df`.
+- Vendor contact via deep links (LINE/WhatsApp/IG/Telegram) + per-restaurant FAQ, no native DM (Phase 3, completed 2026-05-25).
+- Service reservation (預約服務) design spec landed — see [`service-reservation-system.md`](../superpowers/specs/2026-06-03-service-reservation-system.md); booking/reservation hardening continued through early July (`f008f77e`, `a80c0023`, `9c8963a7`).
+- Security fixes: HTML-entity sanitizer XSS bypass closed — `&amp;` now decoded last (`bbffe5c6`); constant-time HMAC compare added to the checkout webhook signature check (`382452e8`).
+
+### Customer Identity (Phase 1 — complete, verified 2026-07-05)
+
+- `orders`, `waiting_list`, and `reservations` `customerId` columns migrated from `INTEGER` FK on `users.id` to `TEXT` FK on `customers.id`; five satellite tables added (`customer_preferences`, `customer_favorites`, `customer_push_subscriptions`, `customer_consents`, `customer_phone_verification_tokens`).
+- Full re-verification against the spec confirms Phase 1 is complete: phone-OTP auth with a dedicated `canonicalCustomerAuthMiddleware` (`type: "customer"` JWT discriminator, 15 min/30 day tokens), all 17 spec'd endpoints live at `/api/v1/customer/*`, real-D1 integration coverage (13 cases), and customer-app UI (login, preferences/consent, push enrollment, favorites via market engagement). Unblocks Marketplace Phase 4 (follow + broadcast push) — see [`TODOS.md`](../../TODOS.md) § customer-identity for the full verification detail.
+
+### Users/Orders UUID v7 Primary-Key Migration
+
+Source of truth: `docs/architecture/database/GREENFIELD_UUID_PK_RESET_PLAN.md` and the paired phase docs (`USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md`, `ORDERS_UUID_PK_PHASE_C_DEPENDENCY_MAP.md`, `USERS_UUID_AUTH_PHASE_D_PLAN.md`, `UUID_V7_PK_MIGRATION_DRILL.md`).
+
+- `users` and `orders` reset to UUID v7 primary keys (`43b024ff`), with staff UUID auth tokens/sessions issued and accepted across `apps/api`, `apps/management-api`, and `apps/realtime` (`305619d2`, `93e357ab`, `499426ea`, `62862386`).
+- QR code IDs preserved across the cutover (`4c68b684`); CI test fixtures aligned to UUID auth (`522fa203`).
+
+### Managed Onboarding & Management Platform
+
+- Onboarding switched from BYO-Cloudflare setup to a fully managed platform flow (`e180f35e`, `a66ca3e0`, `d234f0e3`), with admin application review (`4fdff4b5`, `dde571ad`, `97167239`).
+- `apps/management-api` issues its own management JWTs and CSPRNG-based license keys/identifiers (`cd23e727`, `5988b397`, `21d1e8d4`); `apps/management-portal` ships admin login + auth guard (`657f5bce`).
+- Subdomain romanization for Chinese restaurant names (`b9695707`, `002f40e4`); cross-worker `JWT_SECRET` alignment documented (`80e06430`).
+
+### Auth & Security Hardening
+
+- `/auth/me` now validated through `authMiddleware` with hardened JWT guards (`19b7b2d7`); realtime WebSocket auth falls back to `JWT_SECRET` (`7c68f074`); tokens verified via `jsonwebtoken` instead of hand-rolled decoding (`5694c235`).
+- Auth throttling and payment redirect hardening (`7e65b577`); dedicated realtime JWT secret now required (`3c19b18e`).
+- Feedback and leaves attachment URLs sanitized against unsafe schemes (`ddb82601`, `6eacc7e3`).
+
+### Database Schema Hardening
+
+- Payment and backup schemas hardened; empty backup-timestamp migration values guarded; legacy credential/timestamp migrations preserved (`57a91dd6`, `225c5d5c`, `91393441`).
+
+### Planning: Rust Backend Refactor
+
+- New spec for a staged TypeScript-Workers → Rust backend migration, preserving the existing public API, data model, Cloudflare topology, and frontend contracts (`6dde8471`, `450ab90f`) — see [`2026-07-04-rust-backend-refactor.md`](../specs/2026-07-04-rust-backend-refactor.md). **Planning stage only — no implementation has started.**
+
+---
+
 ## 2026-05-25: Test Quality & CI Worker Gate Hardening
 
 **Status**: ✅ Complete
@@ -1045,6 +1112,6 @@ tests/e2e/                              # End-to-end tests
 
 ---
 
-**Last Updated**: 2026-05-25
-**Total Achievements**: 29+ major milestones
-**Current Focus**: Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness)
+**Last Updated**: 2026-07-17
+**Total Achievements**: 30+ major milestones
+**Current Focus**: Waiting-List Phase 2 (push notifications), Realtime Phase 4 (production readiness), Marketplace Phase 4 (follow + broadcast push), Rust backend refactor (planning)

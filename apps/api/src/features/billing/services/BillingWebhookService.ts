@@ -1,6 +1,7 @@
 import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
+import { timingSafeEqual } from "../../../shared/utils/timing-safe-equal";
 import { PaymentAuditService } from "./PaymentAuditService";
 import {
   BILLING_NOTIFICATION_KINDS,
@@ -181,7 +182,7 @@ export class BillingWebhookService {
       signedPayload,
     );
 
-    if (signature !== expected) {
+    if (!timingSafeEqual(signature, expected)) {
       throw new Error("Invalid webhook signature");
     }
   }
@@ -201,7 +202,7 @@ export class BillingWebhookService {
       this.env.LINEPAY_WEBHOOK_SECRET,
       `${this.env.LINEPAY_WEBHOOK_SECRET}${rawBody}${nonce}`,
     );
-    if (signature !== expected) {
+    if (!timingSafeEqual(signature, expected)) {
       throw new Error("Invalid LINE Pay webhook signature");
     }
   }

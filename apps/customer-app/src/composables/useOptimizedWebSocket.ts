@@ -206,6 +206,10 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
       };
 
       socket.onmessage = (event) => {
+        if (event.data === "pong") {
+          return;
+        }
+
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
           metrics.value.totalMessagesReceived++;
@@ -403,7 +407,7 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
 
     heartbeatTimer = setInterval(() => {
       if (ws.value?.readyState === WebSocket.OPEN) {
-        send({ type: "ping", timestamp: Date.now() });
+        send("ping");
       }
     }, heartbeatInterval);
   };

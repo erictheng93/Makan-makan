@@ -143,7 +143,6 @@ export function useImagePreload() {
 export function useResponsiveImage() {
   /**
    * Generate srcset for responsive images
-   * Assumes Cloudflare Images or similar CDN
    */
   const generateSrcset = (
     baseUrl: string,
@@ -162,7 +161,7 @@ export function useResponsiveImage() {
    */
   const transformImageUrl = (
     url: string,
-    options: {
+    _options: {
       width?: number;
       height?: number;
       quality?: number;
@@ -170,42 +169,6 @@ export function useResponsiveImage() {
       fit?: "scale-down" | "contain" | "cover" | "crop" | "pad";
     } = {},
   ): string => {
-    const {
-      width,
-      height,
-      quality = 85,
-      format = "auto",
-      fit = "scale-down",
-    } = options;
-
-    // Check if it's a Cloudflare Images URL
-    let parsedHostname: string;
-    try {
-      parsedHostname = new URL(url).hostname;
-    } catch {
-      return url;
-    }
-    if (
-      parsedHostname === "imagedelivery.net" ||
-      parsedHostname.endsWith(".imagedelivery.net")
-    ) {
-      // Cloudflare Images format: /cdn-cgi/imagedelivery/{account_hash}/{id}/{variant}
-      const parts = url.split("/");
-      const baseUrl = parts.slice(0, -1).join("/");
-
-      const params: string[] = [];
-      if (width) params.push(`w=${width}`);
-      if (height) params.push(`h=${height}`);
-      if (quality) params.push(`q=${quality}`);
-      if (format) params.push(`f=${format}`);
-      if (fit) params.push(`fit=${fit}`);
-
-      const variant = params.length > 0 ? params.join(",") : "public";
-      return `${baseUrl}/${variant}`;
-    }
-
-    // For other CDNs, return original URL
-    // You can add other CDN transformations here
     return url;
   };
 

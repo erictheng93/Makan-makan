@@ -12,6 +12,13 @@ export { RealtimeSession } from "./durableObjects/RealtimeSession";
 
 const app = new Hono<{ Bindings: Env }>();
 
+export function buildAllowedOrigins(env: Pick<Env, "CORS_ORIGIN">): string[] {
+  return (env.CORS_ORIGIN ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 async function enforceWebSocketRateLimit(
   c: Context<{ Bindings: Env }>,
   subject: RealtimeRateLimitSubject,
@@ -39,15 +46,8 @@ async function enforceWebSocketRateLimit(
 app.use(
   "*",
   cors({
-    origin: [
-      "https://makanmasak.com",
-      "https://customer.makanmasak.com",
-      "https://admin.makanmasak.com",
-      "https://kitchen.makanmasak.com",
-      "https://staging.makanmasak.com",
-      "https://admin-staging.makanmasak.com",
-      "https://kitchen-staging.makanmasak.com",
-    ],
+    origin: (origin, c) =>
+      buildAllowedOrigins(c.env).includes(origin) ? origin : undefined,
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: [
       "Content-Type",

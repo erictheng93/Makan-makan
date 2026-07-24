@@ -865,7 +865,7 @@ Marketplace 最致命的是雙邊冷啟動：沒攤商→消費者不來；沒�
 
 ```
 Code Push → Lint/Type Check → Unit Tests → Build →
-Staging Deploy → E2E Tests → Production Deploy
+E2E Tests → Production Deploy
 ```
 
 **程式碼品質標準**：

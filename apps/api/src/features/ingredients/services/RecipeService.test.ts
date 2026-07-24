@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
     insert: vi.fn(),
     select: vi.fn(),
     selectDistinct: vi.fn(),
-    transaction: vi.fn(),
+    batch: vi.fn(),
   },
 }));
 
@@ -40,25 +40,23 @@ function mockSelectDistinctResult(result: unknown = []) {
   return query;
 }
 
-function mockTransaction() {
+function mockBatch() {
   const deleted: unknown[] = [];
   const inserted: unknown[] = [];
-  const tx = {
-    delete: vi.fn(() => ({
-      where: vi.fn((condition: unknown) => {
-        deleted.push(condition);
-        return Promise.resolve();
-      }),
-    })),
-    insert: vi.fn(() => ({
-      values: vi.fn((payload: unknown) => {
-        inserted.push(payload);
-        return Promise.resolve();
-      }),
-    })),
-  };
-  mocks.db.transaction.mockImplementation(async (callback) => callback(tx));
-  return { deleted, inserted, tx };
+  mocks.db.delete.mockReturnValue({
+    where: vi.fn((condition: unknown) => {
+      deleted.push(condition);
+      return { kind: "delete" };
+    }),
+  });
+  mocks.db.insert.mockReturnValue({
+    values: vi.fn((payload: unknown) => {
+      inserted.push(payload);
+      return { kind: "insert" };
+    }),
+  });
+  mocks.db.batch.mockResolvedValue([]);
+  return { deleted, inserted };
 }
 
 function createService() {
@@ -112,7 +110,7 @@ describe("RecipeService", () => {
   it("replaces recipe entries in a transaction and defaults optional flags", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const mutations = mockTransaction();
+    const mutations = mockBatch();
 
     await createService().setRecipe(51, [
       {
@@ -128,7 +126,11 @@ describe("RecipeService", () => {
       },
     ]);
 
-    expect(mutations.tx.delete).toHaveBeenCalledTimes(1);
+    expect(mocks.db.delete).toHaveBeenCalledTimes(1);
+    expect(mocks.db.batch).toHaveBeenCalledWith([
+      { kind: "delete" },
+      { kind: "insert" },
+    ]);
     expect(mutations.inserted).toEqual([
       [
         {
@@ -156,12 +158,13 @@ describe("RecipeService", () => {
   });
 
   it("deletes existing recipe rows without inserting when replacement is empty", async () => {
-    const mutations = mockTransaction();
+    const mutations = mockBatch();
 
     await createService().setRecipe(51, []);
 
-    expect(mutations.tx.delete).toHaveBeenCalledTimes(1);
-    expect(mutations.tx.insert).not.toHaveBeenCalled();
+    expect(mocks.db.delete).toHaveBeenCalledTimes(1);
+    expect(mocks.db.insert).not.toHaveBeenCalled();
+    expect(mocks.db.batch).toHaveBeenCalledWith([{ kind: "delete" }]);
     expect(mutations.inserted).toHaveLength(0);
   });
 

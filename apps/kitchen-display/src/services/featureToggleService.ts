@@ -523,7 +523,7 @@ class FeatureToggleService {
         enabled: false,
         category: "experimental",
         restrictions: {
-          environments: ["development", "staging"],
+          environments: ["development"],
           percentage: 50,
         },
       },
