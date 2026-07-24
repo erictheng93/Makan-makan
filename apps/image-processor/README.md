@@ -74,7 +74,7 @@ A powerful, serverless image processing service built on Cloudflare Workers, fea
 ### Prerequisites
 
 - Node.js 22+
-- Cloudflare account with Images enabled
+- Cloudflare account with R2 enabled
 - Wrangler CLI: `npm install -g wrangler`
 
 ### Environment Setup
@@ -90,8 +90,7 @@ npm install
 
 ```toml
 [vars]
-CLOUDFLARE_ACCOUNT_ID = "your_account_id"
-CLOUDFLARE_IMAGES_API_TOKEN = "your_images_token"
+IMAGE_API_BASE_URL = "http://localhost:8790"
 JWT_SECRET = "your_jwt_secret"
 MAX_IMAGE_SIZE_MB = "10"
 ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
@@ -103,8 +102,8 @@ ALLOWED_MIME_TYPES = "image/jpeg,image/png,image/webp,image/gif"
 # Create KV namespace for caching
 wrangler kv:namespace create IMAGE_CACHE
 
-# Create R2 bucket for storage
-wrangler r2 bucket create makanmakan-images
+# Create R2 bucket for production storage
+wrangler r2 bucket create makanmasak-images-prod
 
 # Create D1 database
 wrangler d1 create makanmakan-images-db

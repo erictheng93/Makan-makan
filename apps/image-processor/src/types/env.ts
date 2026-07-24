@@ -1,16 +1,10 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 
 export interface Env {
   // Cloudflare bindings
   IMAGE_CACHE: KVNamespace;
   DB: D1Database;
-
-  // Cloudflare Images API
-  CLOUDFLARE_ACCOUNT_ID: string;
-  // Delivery URL hash for imagedelivery.net — NOT the account ID.
-  // Find it in Dashboard → Images → Developer Resources.
-  CLOUDFLARE_IMAGES_ACCOUNT_HASH: string;
-  CLOUDFLARE_IMAGES_API_TOKEN: string;
+  IMAGES_BUCKET: R2Bucket;
 
   // Environment variables
   NODE_ENV: "development" | "production";
@@ -104,27 +98,11 @@ export interface ImageMetadata {
   exifData?: Record<string, unknown>;
 }
 
-export interface CloudflareImageDetails {
+export interface StoredImageObject {
   id: string;
-  filename?: string;
-  uploaded?: string;
-  requireSignedURLs?: boolean;
-  variants?: string[];
-}
-
-export interface CloudflareImageList {
-  images: CloudflareImageDetails[];
-  continuation_token?: string;
-}
-
-export interface CloudflareImagesResponse<TResult = CloudflareImageDetails> {
-  success: boolean;
-  errors: Array<{
-    code: number;
-    message: string;
-  }>;
-  messages: string[];
-  result?: TResult;
+  key: string;
+  variant: string;
+  uploaded: string;
 }
 
 export interface ImageProcessingJob {

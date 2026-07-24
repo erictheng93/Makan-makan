@@ -13,7 +13,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 - **Database**: Cloudflare D1 (SQLite-compatible serverless SQL)
 - **Cache**: Cloudflare KV Store
 - **Real-time**: Durable Objects (WebSocket connections)
-- **File Storage**: Cloudflare R2 + Images API
+- **File Storage**: Cloudflare R2
 - **Build System**: Turborepo (parallel builds with caching)
 - **Backup**: Cloudflare Workers Cron + R2
 - **Print**: Local Node.js agent (Express + WebSocket)
@@ -84,7 +84,6 @@ pnpm dev                # Start all apps in parallel
 ```env
 CLOUDFLARE_API_TOKEN=your_api_token
 JWT_SECRET=your_jwt_secret
-CLOUDFLARE_IMAGES_KEY=your_images_key
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ```
 

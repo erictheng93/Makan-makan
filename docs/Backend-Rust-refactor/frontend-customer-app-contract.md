@@ -21,7 +21,7 @@ All paths are repo-relative to `apps/customer-app/` unless stated otherwise.
 |---|---|---|
 | `apps/api` (main REST API, Hono) | HTTP via `apiClient` (axios), base path `VITE_API_BASE_URL` | `src/services/api.ts:10-19` |
 | `apps/realtime` (Durable Object WS service) | Raw `WebSocket`, base URL `VITE_WS_BASE_URL` (and two other env vars, see §4 caveat) | `src/composables/useWebSocket.ts:258,293`, `src/views/OrderTrackingView.vue:417,440` |
-| `apps/image-processor` | **Not called directly.** No fetch/axios call to an images host was found; `imageUrl`/`imageVariants` fields on `MenuItem`/`Restaurant` are consumed as opaque URLs already pointing at wherever the API put them. `VITE_IMAGES_BASE_URL` / `VITE_CLOUDFLARE_IMAGES_URL` are declared in `src/env.d.ts:9,12` but **no source file reads `import.meta.env.VITE_IMAGES_BASE_URL` or `VITE_CLOUDFLARE_IMAGES_URL`** — grep across `src/` found zero usages. Only the PWA service-worker cache config (`vite.config.ts`) hardcodes a URL-pattern rule for `https://images.makanmasak.com/` (`CacheFirst`, 7-day expiry) — that's a caching hint, not a live call site. |
+| `apps/image-processor` | **Not called directly.** No fetch/axios call to an images host was found; `imageUrl`/`imageVariants` fields on `MenuItem`/`Restaurant` are consumed as opaque URLs already pointing at wherever the API put them. `VITE_IMAGES_BASE_URL` is declared in `src/env.d.ts`, but **no source file reads `import.meta.env.VITE_IMAGES_BASE_URL`** — grep across `src/` found zero usages. Only the PWA service-worker cache config (`vite.config.ts`) hardcodes a URL-pattern rule for `https://images.makanmasak.com/` (`CacheFirst`, 7-day expiry) — that's a caching hint, not a live call site. |
 | `apps/management-api` | Never called. No reference found. |
 
 ### Base URLs / env
@@ -35,8 +35,9 @@ VITE_DEBUG_MODE=true
 ```
 
 `src/env.d.ts` (TypeScript's declared env surface) additionally lists
-`VITE_IMAGES_BASE_URL`, `VITE_APP_NAME`, `VITE_APP_VERSION`,
-`VITE_CLOUDFLARE_IMAGES_URL` — of these four, only `VITE_APP_VERSION` is read (`composables/useErrorTracking.ts:149`, defensively defaulted); the other three are read nowhere in `src/`.
+`VITE_IMAGES_BASE_URL`, `VITE_APP_NAME`, `VITE_APP_VERSION` — of these
+three, only `VITE_APP_VERSION` is read (`composables/useErrorTracking.ts:149`,
+defensively defaulted); the other two are read nowhere in `src/`.
 
 **Important gap**: two composables read env vars that are declared **nowhere**
 (`.env.development`, `.env.development.example`, or `env.d.ts`):

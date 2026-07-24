@@ -107,6 +107,7 @@ export interface PerformanceAnalytics {
 }
 
 export interface CreateImageData {
+  id?: string;
   filename: string;
   originalFilename: string;
   mimeType: string;
@@ -480,6 +481,7 @@ export class ImageService extends BaseService {
    */
   async createImage(data: CreateImageData): Promise<Image> {
     const imageData: NewImage = {
+      id: data.id,
       filename: data.filename,
       originalFilename: data.originalFilename,
       mimeType: data.mimeType,

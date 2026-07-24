@@ -804,7 +804,6 @@ queue = "makanmakan-tasks-prod"
 
 [env.production.vars]
 JWT_SECRET = "xxx"
-CLOUDFLARE_IMAGES_KEY = "xxx"
 ```
 
 ### GitHub Actions CI/CD Pipeline

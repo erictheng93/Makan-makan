@@ -1,19 +1,23 @@
-# `apps/image-processor` — Cloudflare Images Transform Worker
+# `apps/image-processor` — R2 Image Storage Worker
 
 > Source of truth for this document: `apps/image-processor/src/**` (excluding
 > `*.test.ts`/`__tests__/`), `apps/image-processor/wrangler.toml`,
 > `apps/image-processor/package.json`, plus the calling code in
 > `apps/admin-dashboard`. This documents the **current** code state (post
-> UUID v7 auth alignment, idle R2 binding removal, cron trigger + production
-> route addition) — not the commit history.
+> UUID v7 auth alignment, Cloudflare Images de-scope, R2 binding addition,
+> cron trigger + production route addition) — not the commit history.
+>
+> **2026-07-24 update**: Cloudflare Images has been de-scoped. Issue #29
+> (production Images account hash) is obsolete because image storage and
+> delivery now use R2 plus this Worker's public `/images/:imageId/:variant`
+> route.
 
 ## 1. Purpose & responsibilities
 
 `image-processor` is a standalone Cloudflare Worker (local port **8790**,
 production route `images.makanmasak.com`) that owns the entire Cloudflare
-Images integration for the platform: upload, variant generation, transform
-delivery, metadata storage/query, bulk ops, analytics, and scheduled
-cleanup/reporting.
+R2-backed image pipeline for the platform: upload, variant delivery, metadata
+storage/query, bulk ops, analytics, and scheduled cleanup/reporting.
 
 It is **not** proxied through the main API. Per
 `docs/Backend-Rust-refactor/api-features-identity-tenant.md` §8 ("menu"
@@ -30,7 +34,8 @@ module) and its "Image pipeline" section, the menu-image flow is entirely
    auth-client's live token storage directly because the Pinia store's
    cached ref can lag behind silent token refreshes.
 2. This Worker validates that same staff JWT independently (see §4) and
-   uploads to Cloudflare Images, returning `{id, variants:{...}}`.
+   writes the original and client-generated variants to R2, returning
+   `{id, variants:{...}}` with URLs on `images.makanmasak.com`.
 3. The frontend picks `{thumbnail, small, medium, large}` out of the
    response (`pickSupportedVariants` in `useImageUpload.ts:37-47`) and calls
    the **main API's** `PUT /api/v1/menu/items/:id` with
@@ -41,7 +46,7 @@ module) and its "Image pipeline" section, the menu-image flow is entirely
    `apps/admin-dashboard/src/composables/useMenuManagement.ts:200`, invoked
    from `MenuView.vue:892`.) The main API
    treats these fields as an opaque pass-through — it never talks to this
-   Worker or to Cloudflare Images itself.
+   Worker or to R2 itself.
 4. If the item previously had a **different** `imageId`, the frontend
    issues a separate `DELETE ${VITE_IMAGE_API_URL}/images/{oldImageId}`
    against this Worker to clean up the orphaned upload
@@ -72,20 +77,18 @@ From `apps/image-processor/wrangler.toml`:
 | --- | --- | --- |
 | `IMAGE_CACHE` | KV namespace (id `1bdf850866984564b11d66ab5617744d`) | Metadata/job cache, rate-limit counters |
 | `TOKEN_BLACKLIST` | KV namespace (id `30ba7daf1e4c41438233542de10dd02f`) | Revoked-token check in auth middleware |
+| `IMAGES_BUCKET` | R2 bucket (`makanmasak-images-prod`) | Original and variant image objects |
 | `DB` | D1 (`makanmasak-prod`, id `4e3c7ba8-5aa7-4652-bfea-a9c565b3a141`) | Shared platform database — `images`, `image_views`, `image_processing_jobs` tables |
 
-Development-only (top-level, unused when `wrangler dev --local` is active): `IMAGE_CACHE` (`id = "local"`), `DB` (`makanmakan-local`, `id = "local"`).
-
-There is **no R2 binding** — a prior idle R2 binding was dropped (per recent
-commit history); all image bytes are stored in Cloudflare Images itself, not
-in R2.
+Development-only (top-level, local simulation): `IMAGE_CACHE` (`id =
+"local"`), `IMAGES_BUCKET` (`makanmasak-images-dev`), `DB`
+(`makanmakan-local`, `id = "local"`).
 
 **Vars** (non-secret, committed in `wrangler.toml`, both `[vars]` and
 `[env.production.vars]`):
 
-- `IMAGE_API_BASE_URL` = `https://api.cloudflare.com/client/v4/accounts`
-- `CLOUDFLARE_ACCOUNT_ID` = `bdddc08c066a9abc285d75fe5947a468`
-- `CLOUDFLARE_IMAGES_ACCOUNT_HASH` — the **imagedelivery.net delivery hash**, distinct from the account ID; production value is currently the literal placeholder `REPLACE_ME__PRODUCTION__images_account_hash` in the committed file (must be filled from Dashboard → Images → Developer Resources before a real prod deploy — `scripts/check-production-config.cjs` blocks deploys on this: it rejects unfilled/malformed hashes and specifically rejects the account-ID value being pasted in by mistake)
+- `IMAGE_API_BASE_URL` = `http://localhost:8790` in local dev,
+  `https://images.makanmasak.com` in production
 - `MAX_IMAGE_SIZE_MB` = `10`
 - `ALLOWED_MIME_TYPES` = `image/jpeg,image/png,image/webp,image/gif`
 - `DEFAULT_VARIANTS` = `thumbnail,small,medium,large,original`
@@ -97,7 +100,6 @@ in R2.
 toml; declared in `src/types/env.ts`):
 
 - `JWT_SECRET` — required, must be ≥32 chars or the auth middleware hard-fails with 500 ("Server configuration error"); this is the **same** secret the main API (`apps/api`) uses to sign staff JWTs (shared-secret HS256 verification, not an introspection call — see §4)
-- `CLOUDFLARE_IMAGES_API_TOKEN` — Cloudflare Images API token used for all `fetch()` calls to `api.cloudflare.com`
 - `API_KEY` (optional) — used only by the unused-in-routes `apiKeyAuth` middleware (see §4)
 - `SLACK_WEBHOOK_URL` (optional) — error/daily-stats notifications
 
@@ -115,12 +117,13 @@ specific to `apps/api`, not shared by this Worker).
 | GET | `/` | none | Service info/feature list | — | `{name, version, ..., limits}` |
 | GET | `/health` | none | DB + KV health probe (writes/reads/deletes a KV test key, runs `SELECT 1` via Drizzle) | — | `{success, status, services:{database,cache}, performance}`, 503 if any dependency unhealthy |
 | GET | `/info` | none | Liveness/capability probe — the endpoint hit by the production deploy-verification workflow (`.github/workflows/deploy-production.yml`) | — | `{service, version, capabilities, supportedFormats, variants, rateLimits}` |
-| POST | `/images/upload` | JWT (staff) | Upload image, generate variants, save metadata | `multipart/form-data`: `file` field; query: `variants?, category?, altText?, caption?, tags?` (CSV), `restaurantId?` (admin-only override) | `201 {success, data:{id, filename, originalFilename, size, variants, uploadedAt}}` |
+| POST | `/images/upload` | JWT (staff) | Upload original plus provided variant files to R2, save metadata | `multipart/form-data`: `file` field plus optional variant file fields such as `medium`/`thumbnail`; query: `variants?, category?, altText?, caption?, tags?` (CSV), `restaurantId?` (admin-only override) | `201 {success, data:{id, filename, originalFilename, size, variants, uploadedAt}}` |
+| GET | `/images/:imageId/:variant` | none | Public immutable image delivery from R2 | — | Streams object body; `Cache-Control: public, max-age=31536000, immutable`, `ETag` |
 | GET | `/images/:imageId` | optional (public images allowed) | Get image metadata | — | `{success, data: ImageMetadata}` |
 | PUT | `/images/:imageId` | JWT, role ∈ {0,1,2} | Update metadata (alt text, caption, category, tags, variants) | JSON body per `imageSchemas.updateBody` | `{success, message}` |
-| DELETE | `/images/:imageId` | JWT, role ∈ {0,1,2} | Delete from Cloudflare Images + DB metadata | — | `{success, message}` |
+| DELETE | `/images/:imageId` | JWT, role ∈ {0,1,2} | Delete R2 variant objects + DB metadata | — | `{success, message}` |
 | GET | `/images` | JWT | List images (paginated, filtered) | query: `restaurantId?, category?, uploadedBy?, tags?, page, limit, sortBy, sortOrder` | `{success, data:{images, pagination}}` |
-| GET | `/images/:imageId/view` | optional | Redirect (302) to the best-format/variant delivery URL | query: `variant?, width?, height?, fit?, format?, quality?` | `302` redirect to `imagedelivery.net/...` |
+| GET | `/images/:imageId/view` | optional | Redirect (302) to the selected stored variant URL | query: `variant?, width?, height?, fit?, format?, quality?` (transform params retained for contract compatibility but no longer generate new variants) | `302` redirect to `images.makanmasak.com/images/...` |
 | POST | `/images/:imageId/process` | JWT, role ∈ {0,1,2} | Queue async transformation/variant-regeneration job | JSON body per `imageSchemas.processParams` (`transformations[], variants[], format?, quality?`) | `202 {success, data:{jobId, status:"pending"}}` |
 | GET | `/images/jobs/:jobId` | JWT | Poll processing job status | — | `{success, data: ImageProcessingJob}` |
 | POST | `/images/bulk` | JWT, role ∈ {0,1} | Bulk delete/update_category/update_tags/generate_variants across up to 100 images | JSON `{imageIds[1..100], operation, data?}` | `{success, data:{operation, processed, successful, failed, results[]}}` |
@@ -134,7 +137,10 @@ specific to `apps/api`, not shared by this Worker).
 
 - Middleware chain: `authMiddleware` → `uploadRateLimit` (KV-backed, 20/min default) → `checkFileSize` (`Content-Length` header check against `MAX_IMAGE_SIZE_MB`, fails **only if the header is present** — a missing/spoofed `Content-Length` bypasses this check) → `validateFileType` (parses the `multipart/form-data`, checks the `file` field's declared MIME type against `ALLOWED_MIME_TYPES`) → `securityScan` (magic-number check: JPEG `FFD8FF`, PNG `89504E47`, GIF `474946 38`, WebP `52494646` RIFF header, plus extension/MIME cross-check) → `validateQuery`.
 - Restaurant scoping: non-admin (`role !== 0`) uploads are always attributed to the caller's own `user.restaurantId` from the JWT; only role 0 (admin) may pass a different `restaurantId` in the query string. If neither is present, 403.
-- On DB metadata-save failure **after** a successful Cloudflare Images upload, the handler compensates by calling `cloudflareImages.deleteImage(...)` to avoid an orphaned upload (`images.ts:136-147`) — this is the only place such compensation happens; there is no equivalent for a crash between the two steps.
+- On DB metadata-save failure **after** successful R2 puts, the handler
+  compensates by deleting the uploaded variant keys to avoid orphaned objects;
+  the scheduled orphan sweep is the backstop for crashes between upload and
+  menu item write-back.
 - Analytics: `imageService.recordImageView(id, "upload")` fired via `c.executionCtx.waitUntil` (non-blocking).
 
 **Validation limits** (`src/middleware/validation.ts`):
@@ -174,72 +180,27 @@ Other auth-related middleware in the same file:
 - `corsMiddleware` — allow-list from `CORS_ORIGIN` (comma-split) in production, or a hardcoded localhost list (ports 3000/3001/3002/3010/3011) in `NODE_ENV=development`; otherwise empty (no wildcard fallback). Handles `OPTIONS` preflight directly with 204.
 - `checkFileSize(maxSizeMB)` — `Content-Length`-header-based only (see upload pipeline caveat above).
 
-## 5. Cloudflare Images integration
+## 5. R2 storage and delivery
 
-All Cloudflare Images API calls live in `src/utils/cloudflare-images.ts`
-(`CloudflareImagesAPI` class). Base URL is built as
-`${IMAGE_API_BASE_URL}/${CLOUDFLARE_ACCOUNT_ID}/images/v1`
-(`https://api.cloudflare.com/client/v4/accounts/{account_id}/images/v1`),
-authenticated with `Authorization: Bearer ${CLOUDFLARE_IMAGES_API_TOKEN}` on
-every call. **No retry logic** is implemented anywhere in this class — every
-method is a single `fetch()` wrapped in try/catch that surfaces
-`{success:false, error}` on any failure or non-`success` API response body.
+Cloudflare Images has been de-scoped. The former
+`src/utils/cloudflare-images.ts` wrapper and the parallel
+`ImageCompressionService` implementation were removed, and the production
+config gate no longer requires an Images account hash.
 
-- **Upload** (`uploadImage`): `POST {baseURL}` with `multipart/form-data`
-  (`file`, optional `id` = desired filename, `requireSignedURLs`,
-  `metadata[key]=value` per entry — note Cloudflare Images metadata is
-  flattened into individual `metadata[...]` form fields, not a single JSON
-  blob). Does **not** set `Content-Type` manually (left to the browser/runtime
-  to add the multipart boundary).
-- **Get details** (`getImageDetails`): `GET {baseURL}/{imageId}`.
-- **List** (`listImages`): `GET {baseURL}?page=&per_page=` — defined but not
-  called from any route (routes use the D1-backed `ImageService.listImages`
-  instead, which queries this Worker's own `images` table, not Cloudflare's
-  live image list).
-- **Delete** (`deleteImage`): `DELETE {baseURL}/{imageId}`.
-- **Update metadata** (`updateImageMetadata`): `PATCH {baseURL}/{imageId}`
-  with `metadata[key]=value` form fields — defined but **not called from any
-  route**; the route-level "update metadata" (`PUT /images/:imageId`) only
-  updates this Worker's own D1 `images` row via `ImageService`, it never
-  calls Cloudflare's PATCH endpoint. Cloudflare-side metadata and D1-side
-  metadata can therefore drift.
-- **Variant/transform URLs** are constructed **client-side as string
-  templates**, not via any Cloudflare Images "variants" API call:
-  `generateImageVariants(imageId, accountHash)` builds
-  `https://imagedelivery.net/{accountHash}/{imageId}/{variantName}` for
-  `original|thumbnail|small|medium|large` plus a few hardcoded custom
-  transforms (`square_thumbnail`, `webp_medium`, `mobile_optimized`,
-  `retina`) using Cloudflare's URL-based flexible variants syntax (e.g.
-  `w=150,h=150,fit=crop,gravity=auto`) — this assumes those named variants
-  (`thumbnail`/`small`/`medium`/`large`) are pre-configured in the Cloudflare
-  dashboard; the Worker does not create/configure variants via API.
-  `buildTransformationURL` builds ad hoc transform paths from the
-  `ImageTransformation[]` request shape (resize/crop/rotate/blur/brighten/
-  sharpen → comma-joined query-like segment in the URL path, Cloudflare's
-  "flexible variants" syntax, not query-string parameters).
-- **Signed URLs**: `generateSignedURL` is a stub — it returns the plain
-  `/original` delivery URL and does not implement Cloudflare's JWT-based
-  signed-URL scheme at all (comment: "would require implementing JWT signing
-  ... For now, return the direct URL").
-- **EXIF/dimension extraction**: `extractImageMetadata` only returns
-  `{size, format}` from the `File` object — no real width/height/EXIF
-  parsing (comment: "placeholder for basic metadata"); `width`/`height` are
-  therefore always `undefined` on freshly uploaded images unless populated
-  by some other path.
-- A separate, **unused-in-routing** `ImageCompressionService`
-  (`src/services/ImageCompressionService.ts`) duplicates a chunk of this
-  same logic (its own `uploadAndCompress`/`deleteImage`/variant-URL builder
-  against a `CloudflareImagesConfig{accountId, apiToken, deliveryUrl}` it
-  takes directly rather than from `Env`) — it is exercised only by its own
-  test file and is not imported by `index.ts` or either router. Treat as
-  dead/parallel code, not the live upload path.
+The live upload path stores each object in R2 under `{imageId}/{variant}`.
+The required original file is stored as `original`; admin-dashboard also sends
+client-generated `medium` and `thumbnail` files. Returned variant URLs are
+constructed from `IMAGE_API_BASE_URL`, for example
+`https://images.makanmasak.com/images/{imageId}/medium`.
 
-Account-hash safety: `scripts/check-production-config.cjs` specifically
-guards against `CLOUDFLARE_IMAGES_ACCOUNT_HASH` being left as the placeholder
-or accidentally set to `CLOUDFLARE_ACCOUNT_ID`'s value, because that produces
-uploads that succeed (they hit `api.cloudflare.com` with the *account ID*)
-but return delivery URLs (built from the *hash*) that 404 — the two values
-are visually similar-looking hex/alphanumeric strings.
+The public `GET /images/:imageId/:variant` route reads the object from
+`IMAGES_BUCKET`, streams it, and sets immutable one-year cache headers plus
+the R2 ETag. Deletes remove each known variant key before deleting metadata.
+
+**EXIF/dimension extraction** still only returns `{size, format}` from the
+`File` object — no real width/height/EXIF parsing; `width`/`height` are
+therefore always `undefined` on freshly uploaded images unless populated by
+some other path.
 
 ## 6. Scheduled work
 
@@ -261,12 +222,10 @@ triggered twice for the same cron tick (Cloudflare doesn't normally do this,
 but a manual `wrangler dev`/local trigger could), the same day's report would
 be posted to Slack twice.
 
-**Not covered by this cron**: there is no job that finds/deletes Cloudflare
-Images uploads whose `imageId` was orphaned by a client crash between
-"upload succeeded" and "menu item write-back" (see §1 step 3–4) — the
-scheduled task only cleans up this Worker's own job/view log tables, never
-calls Cloudflare's Images API to reconcile orphaned uploads against the
-`images` D1 table or against actual menu-item references.
+**Orphan sweep**: the scheduled task lists R2 objects with
+`IMAGES_BUCKET.list({prefix})`, filters to uploads older than 48h, checks
+menu-item references, and deletes unreferenced variant keys. It caps deletes
+at 100 per run and fails safe if list or reference lookup fails.
 
 On any uncaught error in the scheduled handler, `sendErrorNotification` posts
 to Slack (if configured) with the error message and a truncated (500-char)
@@ -289,8 +248,8 @@ stack trace.
 
 **Outbound (this Worker calls)**:
 
-- Cloudflare Images REST API (`api.cloudflare.com/client/v4/accounts/{id}/images/v1/...`) — see §5.
-- `imagedelivery.net/{accountHash}/...` — not called by the Worker itself, but URLs pointing there are constructed and returned/redirected to clients.
+- Cloudflare R2 via `IMAGES_BUCKET` — upload, public delivery, deletion, and
+  orphan sweep.
 - Slack incoming webhook (`SLACK_WEBHOOK_URL`) — error notifications (global `onError` handler and scheduled-task catch block) and the daily stats report.
 - Shared `@makanmakan/database` package — `createDatabase(env.DB)` (Drizzle) for direct schema access in `index.ts`, and the package's own `ImageService` class (`services/image-service.ts` wraps/re-exports it) for CRUD/analytics against `images`, `image_views`, `image_processing_jobs`.
 
@@ -299,10 +258,21 @@ stack trace.
 - **Multipart handling**: the upload route depends on Hono's `c.req.formData()` (backed by the Workers runtime's native `FormData`/`Request.formData()`), consumed in **two separate places** in the middleware chain (`validateFileType` in `validation.ts` calls `c.req.formData()` and stashes both the `FormData` and extracted `File` on context; `securityScan` re-reads `file.arrayBuffer()` and reconstructs a new `File` because the buffer is single-read). A Rust port on `workers-rs` needs an equivalent single-parse-then-share pattern (workers-rs also wraps the native `Request.formData()`/`Blob` primitives) — replicate the "parse once, pass forward" structure rather than re-parsing per middleware, since re-parsing a consumed body will fail in Rust the same way it would need explicit buffering here.
 - **Magic-number security scan**: the JPEG/PNG/GIF/WebP header-byte checks in `securityScan` (`validation.ts:359-391`) are pure byte comparisons — trivial to port with `bytes[0..4]` slicing in Rust; no external crate needed.
 - **JWT verification**: HS256 shared-secret verification via `hono/jwt` — in Rust, any standard JWT crate (`jsonwebtoken`) with HS256 support reproduces this. The **exact validation order and error messages matter for parity**: expired → invalid signature/format → generic failure, plus the manual `iat`/`nbf`/token-age/role-range checks layered on top of signature verification (these are hand-rolled here, not part of `hono/jwt`'s own validation). The UUID v7 regex gate on `sub` must be ported verbatim (`^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`) — **`JWT_SECRET` must stay byte-identical to `apps/api`'s secret**, this is a shared-secret trust relationship, not something the Rust rewrite can change unilaterally without coordinating both Workers' secrets.
-- **Cloudflare Images REST API from Rust**: plain HTTPS calls (`reqwest` or workers-rs's `Fetch`) to `api.cloudflare.com/client/v4/accounts/{id}/images/v1` — no official Rust SDK is used today (the TS code hand-rolls `fetch()` + JSON parsing), so a Rust port has no existing wrapper to match beyond replicating the same endpoints/multipart-body shape (`file`, `id`, `requireSignedURLs`, `metadata[key]`). No retries exist today — decide explicitly whether the Rust rewrite adds retry/backoff (a behavior change) or preserves the current single-attempt-then-fail behavior.
-- **Secrets needed**: `JWT_SECRET` (shared with `apps/api`), `CLOUDFLARE_IMAGES_API_TOKEN`, optionally `API_KEY` (currently dead — decide whether to port `apiKeyAuth` at all since it's unused) and `SLACK_WEBHOOK_URL`.
-- **Dead code to explicitly decide on, not silently port**: `apiKeyAuth` middleware (unmounted), `validateImageDimensions` middleware (no-op body, unmounted on any route beyond being defined), `CloudflareImagesAPI.listImages`/`.updateImageMetadata`/`.generateSignedURL` (defined, never called from a route), the entire `ImageCompressionService` class (parallel/duplicate upload logic, only exercised by its own test file), and `GET /analytics/export` (stub that returns a fabricated URL on a domain — `api.makanmakan.com` — that isn't even this Worker's own route). Porting these as-is would just carry forward dead code; flag each for a product decision (implement for real, or drop) rather than mechanically translating.
+- **R2 from Rust**: port the `{imageId}/{variant}` key convention, public
+  delivery headers, and orphan sweep fail-safe behavior. Do not reintroduce
+  Cloudflare Images REST calls; CF Images was explicitly de-scoped and #29 is
+  obsolete.
+- **Secrets needed**: `JWT_SECRET` (shared with `apps/api`), optionally
+  `API_KEY` (currently dead — decide whether to port `apiKeyAuth` at all
+  since it's unused) and `SLACK_WEBHOOK_URL`.
+- **Dead code to explicitly decide on, not silently port**: `apiKeyAuth`
+  middleware (unmounted), `validateImageDimensions` middleware (no-op body,
+  unmounted on any route beyond being defined), and `GET /analytics/export`
+  (stub returning 501 in the current Worker). Porting these as-is would just
+  carry forward dead code; flag each for a product decision (implement for
+  real, or drop) rather than mechanically translating.
 - **KV-backed rate limiting**: fixed-window counters keyed by `CF-Connecting-IP` + minute bucket, **fail-open** on KV errors. In Rust/workers-rs this is straightforward with the KV binding, but preserve the fail-open behavior explicitly if that's still the intended posture (a stricter Rust rewrite might reflexively fail-closed, which would be a behavior change).
-- **No R2 involvement**: confirm the Rust rewrite doesn't reintroduce an R2 binding unless there's a new requirement — image bytes live entirely in Cloudflare Images, not in this platform's own storage.
-- **Cron job**: three independent Drizzle deletes + one Slack report, no distributed lock/idempotency key — safe to port as-is given the cleanups are pure time-window deletes, but note the "orphaned upload from client-side crash" gap (§6) is a **known product gap**, not something to silently fix by inventing a new reconciliation job unless explicitly asked to add one.
+- **Cron job**: three independent Drizzle deletes + one Slack report plus the
+  R2 orphan sweep. Keep the 48h threshold, 100-delete cap, pagination, and
+  fail-safe reference lookup behavior.
 - **Response envelope mismatch**: this Worker's `{success, error: string}` shape is **not** the same as `apps/api`'s `{success, error:{code, message, details}}` `ApiError` convention mandated by root `CLAUDE.md` — if the Rust rewrite is meant to unify error shapes across services, that's a deliberate contract change to call out, not an oversight to "fix" quietly. Note the flat `error: string` is currently **not** read by the only client — `useImageUpload.ts`'s `UploadResponse` type (`useImageUpload.ts:15-21`) declares only `success?`/`data?` and the composable throws its own generic messages on failure without surfacing the Worker's `error` string — so changing the error shape would break nothing in today's admin-dashboard, but any future consumer written against the Worker's actual responses would see the flat shape.

@@ -85,6 +85,8 @@ describe("useImageUpload", () => {
     );
     const request = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
     expect((request.body as FormData).get("file")).toBe(file);
+    expect((request.body as FormData).get("medium")).toBe(file);
+    expect((request.body as FormData).get("thumbnail")).toBe(file);
     expect(result).toEqual({
       imageId: "image-1",
       imageUrl: "https://cdn.example/medium.webp",

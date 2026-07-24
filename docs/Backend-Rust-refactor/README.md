@@ -45,7 +45,7 @@ It is effectively documented as part of batch 1.
 | [shared-packages.md](shared-packages.md) | `packages/*`: full 109-table D1 schema inventory, shared types/constants, queue-core (misnamed — waiting-queue domain + ESC/POS printer driver), auth-client, ai-analytics |
 | [frontend-customer-app-contract.md](frontend-customer-app-contract.md) | `apps/customer-app` — endpoints called, response fields actually read, auth/session, realtime usage |
 | [frontend-admin-dashboard-contract.md](frontend-admin-dashboard-contract.md) | `apps/admin-dashboard` — same contract view for the staff UI |
-| [image-processor.md](image-processor.md) | `apps/image-processor` worker: upload/variant/delete surface, UUID v7 token auth, Cloudflare Images API calls, cron cleanup |
+| [image-processor.md](image-processor.md) | `apps/image-processor` worker: upload/variant/delete surface, UUID v7 token auth, R2 image storage/delivery, cron cleanup |
 | [frontend-kitchen-display-contract.md](frontend-kitchen-display-contract.md) | `apps/kitchen-display` — kitchen board endpoints, WS via `/realtime/auth/token` exchange (the live channel; SSE is heartbeat-only) |
 | [print-agent.md](print-agent.md) | `apps/print-agent` — local ESC/POS print daemon: HTTP/WS surface, `queue-core` printer-driver contract (discovery/connect/print are all hardware-free simulations today), job queue/retry, receipt formatting |
 | [backup-scheduler.md](backup-scheduler.md) | `apps/backup-scheduler` — separately deployed cron Worker whose code physically lives inside `apps/api` |
@@ -105,8 +105,8 @@ detail:
 - **Cloudflare-specific pieces** with no drop-in Rust equivalent: Durable
   Objects (workers-rs supports DOs; alternatively a stateful WS service), D1
   FTS5 trigram search (discovery), Workers AI + Vectorize (semantic
-  discovery), Cloudflare Images (menu image pipeline is client-orchestrated
-  via `apps/image-processor`).
+  discovery), Cloudflare R2 (menu image pipeline is client-orchestrated via
+  `apps/image-processor`).
 - **Consolidation opportunities**: four divergent encryption schemes → one;
   three copies of the coupon guarded-increment SQL → one; two BackupService
   implementations → one; duplicated `/auth` password-reset flows → one.
@@ -121,10 +121,9 @@ docs.
 > **Remediation status (2026-07-24)**: all 35 items were remediated in the
 > TypeScript codebase (see the fix commit touching this line), with these
 > qualifications:
-> - **#29 requires operator action** — the production
->   `CLOUDFLARE_IMAGES_ACCOUNT_HASH` is a secret only an operator can fill;
->   the `check-production-config.cjs` deploy gate continues to block until
->   it is set.
+> - **#29 is obsolete** — Cloudflare Images has been de-scoped in favor of R2,
+>   so the production Images account-hash placeholder and deploy gate were
+>   removed.
 > - **#6** turned out to be two (not three) genuine method+path collisions —
 >   verification's `GET /verify-email` never collided with authentication's
 >   POST; the two shadowed POST handlers were removed from verification
@@ -238,15 +237,14 @@ docs.
 **Image pipeline (image-processor.md)**
 26. `checkFileSize` only inspects the `Content-Length` header and passes when
     it's absent — a request omitting the header bypasses the size limit.
-27. No server-side reconciliation exists for Cloudflare Images uploads
+27. No server-side reconciliation exists for image uploads
     orphaned when the client crashes between "upload succeeded" and "menu
     item write-back" — the cron job cleans logs/jobs but never sweeps
     orphaned images.
 28. `GET /analytics/export` is a stub returning a fabricated `download_url`
     on `api.makanmakan.com`, a domain this worker doesn't serve.
-29. Production `CLOUDFLARE_IMAGES_ACCOUNT_HASH` is an unfilled placeholder
-    (blocks prod deploy — matches the known 上線缺 item for menu image
-    upload #56).
+29. Obsolete: production Images account-hash placeholder. Cloudflare Images
+    has been de-scoped, so this item is no longer applicable.
 
 **Found during the adversarial verification pass (2026-07-24)**
 30. `apps/api`'s weekly log cleanup **never fires**: the dispatcher checks

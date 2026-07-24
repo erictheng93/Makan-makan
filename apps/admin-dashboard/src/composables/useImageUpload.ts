@@ -34,6 +34,14 @@ const VARIANT_KEYS: ImageVariantKey[] = [
   "large",
 ];
 
+const CLIENT_VARIANT_SPECS: Array<{
+  key: "thumbnail" | "medium";
+  maxSize: number;
+}> = [
+  { key: "medium", maxSize: 600 },
+  { key: "thumbnail", maxSize: 150 },
+];
+
 function pickSupportedVariants(
   variants: Record<string, string | undefined> = {},
 ): ImageVariants {
@@ -44,6 +52,71 @@ function pickSupportedVariants(
     }
     return picked;
   }, {});
+}
+
+async function downsampleImage(
+  file: File,
+  maxSize: number,
+  variant: string,
+): Promise<File> {
+  if (
+    typeof createImageBitmap !== "function" ||
+    typeof document === "undefined"
+  ) {
+    return file;
+  }
+
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    bitmap.close?.();
+    return file;
+  }
+
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/webp", 0.85);
+  });
+
+  if (!blob) {
+    return file;
+  }
+
+  return new File(
+    [blob],
+    `${variant}-${file.name.replace(/\.[^/.]+$/, "")}.webp`,
+    {
+      type: "image/webp",
+      lastModified: Date.now(),
+    },
+  );
+}
+
+async function buildUploadFormData(file: File): Promise<FormData> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const variants = await Promise.all(
+    CLIENT_VARIANT_SPECS.map(async ({ key, maxSize }) => ({
+      key,
+      file: await downsampleImage(file, maxSize, key),
+    })),
+  );
+
+  for (const variant of variants) {
+    formData.append(variant.key, variant.file);
+  }
+
+  return formData;
 }
 
 export function useImageUpload() {
@@ -75,8 +148,7 @@ export function useImageUpload() {
     state.value = "uploading";
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const formData = await buildUploadFormData(file);
 
       const response = await fetch(
         `${import.meta.env.VITE_IMAGE_API_URL}/images/upload?category=menu`,
