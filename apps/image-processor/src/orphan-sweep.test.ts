@@ -4,7 +4,7 @@ import { images, restaurants } from "@makanmakan/database";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "../../../packages/database/src/testing";
+} from "@makanmakan/database/testing";
 import { sweepOrphanedImages } from "./index";
 import type { Env } from "./types/env";
 
