@@ -426,4 +426,47 @@ describe("BillingWebhookService", () => {
       ),
     ).rejects.toThrow("Invalid LINE Pay webhook signature");
   });
+
+  it("rejects an equal-length but forged Stripe signature (constant-time path)", async () => {
+    const body = raw({ id: "evt-forged", type: "invoice.paid" });
+    const valid = await hmacHex("stripe-secret", body);
+    // Flip the last hex nibble so the forged value keeps the same length but
+    // differs — this drives the length-equal branch of timingSafeEqual.
+    const lastChar = valid.slice(-1);
+    const forged = valid.slice(0, -1) + (lastChar === "0" ? "1" : "0");
+    expect(forged).toHaveLength(valid.length);
+    expect(forged).not.toBe(valid);
+
+    await expect(
+      new BillingWebhookService(createEnv().env).handle(
+        "stripe",
+        body,
+        new Headers({ "x-webhook-signature": forged }),
+      ),
+    ).rejects.toThrow("Invalid webhook signature");
+  });
+
+  it("rejects an equal-length but forged LINE Pay signature (constant-time path)", async () => {
+    const body = raw({ id: "evt-forged-linepay", type: "invoice.paid" });
+    const nonce = "nonce-1";
+    const valid = await hmacBase64(
+      "linepay-secret",
+      `linepay-secret${body}${nonce}`,
+    );
+    const lastChar = valid.slice(-1);
+    const forged = valid.slice(0, -1) + (lastChar === "A" ? "B" : "A");
+    expect(forged).toHaveLength(valid.length);
+    expect(forged).not.toBe(valid);
+
+    await expect(
+      new BillingWebhookService(createEnv().env).handle(
+        "linepay",
+        body,
+        new Headers({
+          "x-linepay-nonce": nonce,
+          "x-linepay-signature": forged,
+        }),
+      ),
+    ).rejects.toThrow("Invalid LINE Pay webhook signature");
+  });
 });

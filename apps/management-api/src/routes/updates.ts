@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { ApiError, badRequest, notFound } from "@makanmakan/utils";
 import type { ManagementEnv } from "../types";
 import { VersionSyncService } from "../services/VersionSyncService";
 
@@ -52,13 +53,7 @@ updates.get(
     }
 
     if (!version) {
-      return c.json(
-        {
-          success: false,
-          error: "No releases available",
-        },
-        400,
-      );
+      throw badRequest("No releases available", "NO_RELEASES_AVAILABLE");
     }
 
     const tenants = await service.getTenantsNeedingUpdate(version);
@@ -131,11 +126,11 @@ updates.post("/plans/:planId/execute", async (c) => {
       data: progress,
     });
   } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Execution failed",
-      },
+    if (error instanceof ApiError) throw error;
+
+    throw new ApiError(
+      "EXECUTION_FAILED",
+      error instanceof Error ? error.message : "Execution failed",
       400,
     );
   }
@@ -152,13 +147,7 @@ updates.get("/plans/:planId/progress", async (c) => {
   const progress = await service.getUpdatePlanProgress(planId);
 
   if (!progress) {
-    return c.json(
-      {
-        success: false,
-        error: "Plan not found",
-      },
-      404,
-    );
+    throw notFound("Plan not found", "NOT_FOUND");
   }
 
   return c.json({
@@ -183,11 +172,11 @@ updates.post("/plans/:planId/cancel", async (c) => {
       message: "Plan cancelled",
     });
   } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Cancel failed",
-      },
+    if (error instanceof ApiError) throw error;
+
+    throw new ApiError(
+      "CANCEL_FAILED",
+      error instanceof Error ? error.message : "Cancel failed",
       400,
     );
   }

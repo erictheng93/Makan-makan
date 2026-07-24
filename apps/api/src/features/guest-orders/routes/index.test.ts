@@ -470,6 +470,39 @@ describe("guest order routes", () => {
     );
   });
 
+  it("clears the anon: active-order lock via reverse lookup on guest cancel", async () => {
+    getOrder.mockResolvedValue({
+      id: 501,
+      status: "pending",
+    });
+    cancelOrder.mockResolvedValue({
+      id: 501,
+      status: "cancelled",
+    });
+    const env = createEnv();
+    // Anonymous guest: the active-order lock was keyed by client IP at
+    // creation, not by phoneLastDigits. The reverse lookup points at it.
+    const anonKey = "guest_active:restaurant-1:anon:203.0.113.9";
+    await env.CACHE_KV.put("guest_active_lookup:501", anonKey);
+
+    const response = await routes.fetch(
+      new Request("https://test/501/cancel", {
+        method: "POST",
+        headers: { Authorization: "Bearer gt_test_token" },
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    // The IP-scoped key must be deleted, not the (wrong) reconstructed
+    // `guest_active:restaurant-1:678` key.
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(anonKey);
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:501");
+    expect(env.CACHE_KV.delete).not.toHaveBeenCalledWith(
+      "guest_active:restaurant-1:678",
+    );
+  });
+
   it("rejects cancelling completed guest orders", async () => {
     getOrder.mockResolvedValue({
       id: 501,

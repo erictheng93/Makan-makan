@@ -7,6 +7,7 @@ import {
 } from "@makanmakan/database";
 import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
+import { timingSafeEqual } from "../../../shared/utils/timing-safe-equal";
 import { PaymentAuditService } from "../../billing/services/PaymentAuditService";
 import type { MarketCheckoutSplitMode } from "./MarketCheckoutPaymentProvider";
 import { redeemCachedMarketCheckoutVoucher } from "./MarketCheckoutVoucherService";
@@ -393,19 +394,6 @@ const marketCheckoutPaymentRowSelection = {
     string | null
   >`${marketCheckoutSessions.paymentSummary}`,
 };
-
-/**
- * Length-checked, constant-time string comparison. A plain `!==` returns as
- * soon as two bytes differ, leaking the expected signature byte by byte.
- */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
-}
 
 function eventIdFrom(payload: MarketCheckoutWebhookPayload, headers: Headers) {
   return (

@@ -11,6 +11,12 @@ local_protocol = "http"
 # "*** std::terminate() called" in workerd on Windows (wrangler 4.84.1).
 # Let wrangler auto-allocate instead.
 
+[vars]
+ENVIRONMENT = "development"
+API_VERSION = "v1"
+CORS_ORIGIN = "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:5173,http://localhost:8000,http://localhost:8787"
+RATE_LIMIT_ENABLED = "false"
+
 [durable_objects]
 bindings = [
   { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
@@ -46,43 +52,6 @@ binding = "RATE_LIMIT_KV"
 id = "makanmasak-ratelimit-dev"
 preview_id = "makanmasak-ratelimit-preview"
 
-# === STAGING ENVIRONMENT ===
-[env.staging]
-name = "makanmasak-realtime-staging"
-
-[env.staging.vars]
-ENVIRONMENT = "staging"
-API_VERSION = "v1"
-RATE_LIMIT_ENABLED = "true"
-
-[env.staging.durable_objects]
-bindings = [
-  { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
-]
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "makanmasak-staging"
-# TODO: Replace with actual D1 database ID from Cloudflare dashboard
-# Run: wrangler d1 create makanmasak-staging
-database_id = "c2ad06c3-30be-4934-b6f4-270e1e737187"
-
-# Cache KV - aligned with API naming convention
-[[env.staging.kv_namespaces]]
-binding = "CACHE_KV"
-# Use same KV namespace as API for data consistency
-id = "47ef05ba21c84fa98399b1bdfcc30812"
-
-# Token Blacklist KV - dedicated security namespace
-[[env.staging.kv_namespaces]]
-binding = "TOKEN_BLACKLIST"
-id = "d2c8169991254846a0db4154d1595747"
-
-# Rate Limit KV - for WebSocket connection rate limiting
-[[env.staging.kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "ece9224665004216babdeda97371fd6c"
-
 # === PRODUCTION ENVIRONMENT ===
 [env.production]
 name = "makanmasak-realtime-prod"
@@ -90,7 +59,14 @@ name = "makanmasak-realtime-prod"
 [env.production.vars]
 ENVIRONMENT = "production"
 API_VERSION = "v1"
+CORS_ORIGIN = "https://makanmasak.com,https://customer.makanmasak.com,https://admin.makanmasak.com,https://kitchen.makanmasak.com"
 RATE_LIMIT_ENABLED = "true"
+
+# Custom domain — wrangler provisions DNS + SSL automatically on deploy
+# since the makanmasak.com zone is already on this Cloudflare account.
+[[env.production.routes]]
+pattern = "realtime.makanmasak.com"
+custom_domain = true
 
 [env.production.durable_objects]
 bindings = [

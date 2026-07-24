@@ -32,17 +32,16 @@
             <span class="label">{{ t("leaves.request.reason") }}:</span>
             <span class="value">{{ request.reason }}</span>
           </div>
-          <div
-            v-if="request.attachments && request.attachments.length > 0"
-            class="detail-row"
-          >
+          <div v-if="safeAttachments(request).length > 0" class="detail-row">
             <span class="label">{{ t("leaves.request.attachments") }}:</span>
             <div class="attachments">
               <a
-                v-for="(file, index) in request.attachments"
+                v-for="(file, index) in safeAttachments(request)"
                 :key="index"
                 :href="file.url"
                 target="_blank"
+                rel="noopener noreferrer"
+                data-testid="leave-attachment-link"
                 class="attachment-link"
               >
                 📎 {{ file.name }}
@@ -94,6 +93,7 @@
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
 import { getInitials } from "@/composables/useEmployeeDisplay";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 import type { LeaveRequest } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
@@ -120,6 +120,17 @@ const getEmployeeName = (request: any): string => {
     request.employee?.username ||
     t("leaves.approval.unknownEmployee")
   );
+};
+
+const safeAttachments = (request: LeaveRequest) => {
+  const attachments =
+    (request as { attachments?: Array<{ name: string; url: string }> })
+      .attachments ?? [];
+
+  return attachments.flatMap((file) => {
+    const href = safeExternalHref(file.url, { allowAnyHttpHost: true });
+    return href ? [{ ...file, url: href }] : [];
+  });
 };
 
 const formatDate = (date: string): string => {

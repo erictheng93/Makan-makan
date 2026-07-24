@@ -1,5 +1,16 @@
 # Test Progress Tracker
 
+> ⚠️ **準確性提醒（2026-07-05）**：本文件多處內容已過時，包括下方
+> 「E2E 測試覆蓋」整節（`tests/e2e/admin/`、`tests/e2e/journeys/` 已於
+> commit `b936600f`〔2026-05-25,「remove mock-based test doubles」〕整批
+> 刪除重建為 `tests/e2e/{smoke,integration,kitchen-display,ci-smoke}/`）
+> 與「測試基礎設施」表格中的 `packages/testing-utils`、
+> `scripts/check-factory-usage.cjs`、`tests/e2e/helpers/`、
+> `tests/e2e/support/` 幾行（皆不存在）。現行測試結構的權威來源請見
+> [`CORE_WORKFLOW_TEST_MATRIX.md`](./CORE_WORKFLOW_TEST_MATRIX.md)。
+> 已在下方對應章節加註更正，其餘內容（unit/package 覆蓋率等）未逐一
+> 重新核實，執行 `pnpm test` 取得最新數字。
+
 > 最後更新: 2026-04-13 (OrderStatus 統一 + auth-client 抽離 + i18n 擴充)
 > 測試總數: 308+ files / 8,496+ tests (2026-04-03 基準，之後經歷多次遷移尚未重新統計，執行 `pnpm test` 取得最新數字)
 > Typecheck: PASS (21/21 tasks)
@@ -46,7 +57,6 @@
 | packages/shared        | 5        | B                                   |
 | packages/ai-analytics  | 4        | B                                   |
 | packages/queue-service | 1        | A — 73 tests, full service coverage |
-| packages/testing-utils | 1        | B — 此包本身是測試工具              |
 
 ---
 
@@ -120,40 +130,13 @@
 
 ## E2E 測試覆蓋
 
-### Admin E2E (`tests/e2e/admin/`) — 15 specs, 236 tests
+> ⚠️ **已刪除重建（2026-07-05）**：下方 `tests/e2e/admin/`（15 specs, 236
+> tests）與 `tests/e2e/journeys/`（8 specs, 76 tests）的逐一分解已於
+> commit `b936600f` 隨整個舊 E2E 樹一起刪除，不再存在。現行 `tests/e2e/`
+> 結構是 `{smoke,integration,kitchen-display,ci-smoke}/`，完整覆蓋對照表
+> 請見 [`CORE_WORKFLOW_TEST_MATRIX.md`](./CORE_WORKFLOW_TEST_MATRIX.md)。
+> 以下分解內容保留僅供歷史脈絡參考，不代表現行測試。
 
-| Spec                      | Tests | 覆蓋範圍                      |
-| ------------------------- | ----- | ----------------------------- |
-| rbac-permissions          | 47    | 5 角色權限邊界驗證            |
-| filter-search             | 24    | 訂單/菜單/優惠券/員工篩選搜尋 |
-| state-transitions         | 20    | 訂單/訂位狀態流轉             |
-| rwd-responsive            | 18    | 手機/平板/桌面 3 breakpoints  |
-| error-handling            | 18    | API 500/401/403/404/429       |
-| kitchen-queue-pos         | 15    | 廚房/排隊/POS 基本流程        |
-| tables-users-management   | 14    | 桌台/員工管理                 |
-| modal-dialog-interactions | 14    | 訂單詳情/訂位/刪除確認        |
-| menu-management           | 12    | 菜單 CRUD                     |
-| form-validation           | 12    | 訂位/優惠券/菜單表單驗證      |
-| orders-management         | 11    | 訂單列表/篩選/狀態更新        |
-| pagination-scroll         | 8     | 分頁/大量數據/虛擬滾動        |
-| export-functionality      | 8     | 匯出按鈕/格式/空數據          |
-| crud-operations           | 8     | 跨頁面 CRUD                   |
-| sse-realtime              | 7     | SSE 連線/訂單通知/心跳        |
-
-### Journey E2E (`tests/e2e/journeys/`) — 8 specs, 76 tests
-
-| Spec                  | Tests | 角色             | 裝置               |
-| --------------------- | ----- | ---------------- | ------------------ |
-| order-lifecycle       | 10    | All 5 roles      | Desktop + Mobile   |
-| guest-dine-in         | 12    | Guest            | Mobile (iPhone 12) |
-| guest-shop-takeaway   | 10    | Guest (shop)     | Mobile             |
-| kitchen-shift         | 10    | Chef             | Tablet (iPad Pro)  |
-| pos-shift             | 10    | Cashier          | Desktop            |
-| daily-operations      | 10    | Owner            | Desktop            |
-| delivery-shift        | 6     | Service Crew     | Mobile (Pixel 5)   |
-| reservation-to-seated | 8     | Owner + Customer | Desktop + Mobile   |
-
----
 
 ## 測試基礎設施
 
@@ -161,15 +144,16 @@
 | ------------------- | ---- | ----------------------------------------------------- |
 | Vitest 設定         | OK   | `vitest.config.ts` + 各 app config                    |
 | Playwright 設定     | OK   | `playwright.config.ts` (6 browsers/devices)           |
-| Visual 設定         | OK   | `playwright.visual.config.ts`                         |
-| Factory Pattern     | OK   | `packages/testing-utils/` (12 factories)              |
+| Visual 設定         | 部分 | `playwright.visual.config.ts` 存在，但 `tests/visual/` 目錄目前為空（見 `VISUAL_REGRESSION_AND_SECURITY_TESTING_GUIDE.md`） |
 | API Contract System | OK   | `apps/api/src/contracts/` (22 modules)                |
 | Contract Snapshot   | OK   | `.api-contracts-snapshot.json`                        |
-| Pre-commit Hook     | OK   | `scripts/check-factory-usage.cjs`                     |
-| E2E Helpers         | OK   | `tests/e2e/helpers/` (mock-api, personas, assertions) |
-| E2E Journey Helpers | OK   | `tests/e2e/support/test-helpers.ts`                   |
 | Performance Tests   | OK   | `tests/performance/` (6 Artillery configs)            |
 | Testing Standards   | OK   | `CLAUDE.md` Testing Standards section                 |
+
+> ⚠️ 已移除（2026-07-05，皆不存在於現行 repo）：Factory Pattern
+> (`packages/testing-utils/`)、Pre-commit Hook
+> (`scripts/check-factory-usage.cjs`)、E2E Helpers (`tests/e2e/helpers/`)、
+> E2E Journey Helpers (`tests/e2e/support/test-helpers.ts`)。
 
 ---
 

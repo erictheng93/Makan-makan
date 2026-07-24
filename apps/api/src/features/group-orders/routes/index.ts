@@ -50,7 +50,10 @@ async function broadcastGroupOrderEvent(
       data: { ...payload, groupOrderId },
     };
 
-    await broadcaster.broadcastEvent("group_order", groupOrderId, event);
+    // Clients join a group order through the `customer:{groupOrderId}` room
+    // (see apps/customer-app useGroupOrder). Broadcasting to a `group_order`
+    // room nobody connects to dropped every event (bug-inventory #2).
+    await broadcaster.broadcastEvent("customer", groupOrderId, event);
   } catch (broadcastError) {
     console.warn(`Failed to broadcast ${eventType}:`, broadcastError);
   }

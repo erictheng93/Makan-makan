@@ -107,7 +107,17 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiResponse<unknown>>) => {
     const toast = useToast();
-    const message = error.response?.data?.error || error.message || "請求失敗";
+    // Nested unified format `{ error: { code, message } }` first, with a
+    // fallback for legacy flat `{ error: "<string>" }` responses.
+    // TODO(cleanup): drop the flat fallback once every deployed
+    // management-api is at or past commit 7151ca2c.
+    const apiError = error.response?.data?.error;
+    const message =
+      (typeof apiError === "object" && apiError !== null
+        ? apiError.message
+        : apiError) ||
+      error.message ||
+      "請求失敗";
     toast.error(message);
     if (
       error.response?.status === 401 &&

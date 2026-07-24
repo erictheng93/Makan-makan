@@ -138,7 +138,13 @@ interface MarketCheckoutSession {
     name: string;
     platformFeeRateBps?: number;
   };
-  status: "submitted";
+  // "submitted" is the happy-path state. The two failure states are only ever
+  // written when vendor-order creation aborts mid-loop and the compensating
+  // rollback runs: "failed" when every already-created order was successfully
+  // unwound, "requires_manual_review" when a compensation step itself failed
+  // and live orders/locks may still exist. (The DB `status` column is free
+  // text, so this is not a schema change.)
+  status: "submitted" | "failed" | "requires_manual_review";
   phoneLastDigits?: string;
   childOrders: MarketCheckoutChildOrder[];
   payment?: MarketCheckoutPaymentSummary;
@@ -417,78 +423,125 @@ app.post("/", async (c) => {
   const checkoutId = crypto.randomUUID();
   const children = [];
 
-  for (const { vendor, restaurant } of vendors) {
-    const childOrder = await ordersService.createOrder({
-      restaurantId: vendor.restaurantId,
-      customerInfo: {
-        name: data.guestName,
-      },
-      items: vendor.items.map((item) => ({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        customizations: item.customizations,
-        notes: item.notes,
-      })),
-      notes: buildMarketCheckoutOrderNotes({
-        marketName: market.name,
-        marketSlug: market.slug,
-        checkoutId,
-        checkoutNotes: data.notes,
-        vendorNotes: vendor.notes,
-      }),
-      orderSource: "market_checkout",
-      clientMutationId: vendor.clientMutationId,
-      orderType: "shop",
-      deliveryInfo: {
-        type: "takeaway",
-      },
-      isGuestOrder: true,
+  // Compensation ledger. D1 has no cross-statement transaction, so each vendor
+  // order is committed independently as the loop advances. If a later vendor's
+  // createOrder throws, we must unwind the orders already committed for this
+  // checkout — otherwise those vendors see live guest orders (and active-order
+  // KV locks) for a checkout that never completed. We record just enough per
+  // committed order to void it and clear its locks in reverse order.
+  const createdForCompensation: Array<{
+    orderId: string;
+    restaurantId: string;
+    activeOrderKey: string;
+    guestToken: string;
+  }> = [];
+
+  try {
+    for (const { vendor, restaurant } of vendors) {
+      const childOrder = await ordersService.createOrder({
+        restaurantId: vendor.restaurantId,
+        customerInfo: {
+          name: data.guestName,
+        },
+        items: vendor.items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+        notes: buildMarketCheckoutOrderNotes({
+          marketName: market.name,
+          marketSlug: market.slug,
+          checkoutId,
+          checkoutNotes: data.notes,
+          vendorNotes: vendor.notes,
+        }),
+        orderSource: "market_checkout",
+        clientMutationId: vendor.clientMutationId,
+        orderType: "shop",
+        deliveryInfo: {
+          type: "takeaway",
+        },
+        isGuestOrder: true,
+      });
+
+      const guestToken = generateGuestToken();
+      const tokenData: GuestTokenData = {
+        orderId: String(childOrder.id),
+        restaurantId: vendor.restaurantId,
+        guestName: data.guestName,
+        phoneLastDigits: data.phoneLastDigits,
+        createdAt: Date.now(),
+      };
+
+      const fourHoursInSeconds = 4 * 60 * 60;
+      const twoHoursInSeconds = 2 * 60 * 60;
+      const activeOrderKey = `guest_active:${vendor.restaurantId}:${guestIdentifier}`;
+
+      // Record for compensation before writing locks: if the KV writes below
+      // partially succeed and a later vendor fails, we still want to attempt to
+      // clear whatever was written.
+      createdForCompensation.push({
+        orderId: String(childOrder.id),
+        restaurantId: vendor.restaurantId,
+        activeOrderKey,
+        guestToken,
+      });
+
+      await c.env.CACHE_KV.put(
+        `guest_token:${guestToken}`,
+        JSON.stringify(tokenData),
+        { expirationTtl: fourHoursInSeconds },
+      );
+      await c.env.CACHE_KV.put(activeOrderKey, String(childOrder.id), {
+        expirationTtl: twoHoursInSeconds,
+      });
+      await c.env.CACHE_KV.put(
+        `guest_active_lookup:${childOrder.id}`,
+        activeOrderKey,
+        { expirationTtl: twoHoursInSeconds },
+      );
+      await meterEmit(c, "orders.created", {
+        restaurantId: vendor.restaurantId,
+        metadata: {
+          orderId: childOrder.id,
+          source: "market-checkouts",
+          marketSlug: data.marketSlug,
+        },
+      });
+
+      children.push({
+        restaurantId: vendor.restaurantId,
+        restaurantName: restaurant.name,
+        order: childOrder,
+        guestToken,
+        tokenExpiresAt: new Date(
+          Date.now() + fourHoursInSeconds * 1000,
+        ).toISOString(),
+      });
+    }
+  } catch (creationError) {
+    // A vendor order (or its lock write) failed mid-loop. Roll back every order
+    // already committed for this checkout so no vendor is left holding a live
+    // order for an aborted checkout, then surface the failure. Retrying the
+    // endpoint is safe: compensation clears the active-order locks (and each
+    // retry mints a fresh checkoutId), so a fresh attempt starts clean.
+    const compensationFailed = await compensateFailedMarketCheckout(c.env, {
+      checkoutId,
+      ordersService,
+      created: createdForCompensation,
+      error: creationError,
     });
 
-    const guestToken = generateGuestToken();
-    const tokenData: GuestTokenData = {
-      orderId: String(childOrder.id),
-      restaurantId: vendor.restaurantId,
-      guestName: data.guestName,
+    await recordFailedMarketCheckoutSession(c.env, {
+      checkoutId,
+      market,
       phoneLastDigits: data.phoneLastDigits,
-      createdAt: Date.now(),
-    };
-
-    const fourHoursInSeconds = 4 * 60 * 60;
-    const twoHoursInSeconds = 2 * 60 * 60;
-    const activeOrderKey = `guest_active:${vendor.restaurantId}:${guestIdentifier}`;
-
-    await c.env.CACHE_KV.put(
-      `guest_token:${guestToken}`,
-      JSON.stringify(tokenData),
-      { expirationTtl: fourHoursInSeconds },
-    );
-    await c.env.CACHE_KV.put(activeOrderKey, String(childOrder.id), {
-      expirationTtl: twoHoursInSeconds,
-    });
-    await c.env.CACHE_KV.put(
-      `guest_active_lookup:${childOrder.id}`,
-      activeOrderKey,
-      { expirationTtl: twoHoursInSeconds },
-    );
-    await meterEmit(c, "orders.created", {
-      restaurantId: vendor.restaurantId,
-      metadata: {
-        orderId: childOrder.id,
-        source: "market-checkouts",
-        marketSlug: data.marketSlug,
-      },
+      children,
+      compensationFailed,
     });
 
-    children.push({
-      restaurantId: vendor.restaurantId,
-      restaurantName: restaurant.name,
-      order: childOrder,
-      guestToken,
-      tokenExpiresAt: new Date(
-        Date.now() + fourHoursInSeconds * 1000,
-      ).toISOString(),
-    });
+    throw creationError;
   }
 
   const subtotal = children.reduce(
@@ -2102,6 +2155,169 @@ function clampPlatformFeeRateBps(value: unknown) {
   return Math.min(10000, Math.max(0, Math.trunc(value)));
 }
 
+interface FailedMarketCheckoutCompensationItem {
+  orderId: string;
+  restaurantId: string;
+  activeOrderKey: string;
+  guestToken: string;
+}
+
+/**
+ * Best-effort rollback of a market checkout whose vendor-order loop aborted
+ * mid-way. Cancels every already-committed child order (in reverse order) and
+ * clears its guest token + active-order KV locks. Returns true when ANY
+ * compensation step failed, so the caller can flag the session for manual
+ * review. Never throws — compensation failures are logged loudly (with the
+ * checkout id) so the original creation error stays the surfaced failure.
+ */
+async function compensateFailedMarketCheckout(
+  env: Env,
+  params: {
+    checkoutId: string;
+    ordersService: OrdersService;
+    created: FailedMarketCheckoutCompensationItem[];
+    error: unknown;
+  },
+): Promise<boolean> {
+  const { checkoutId, ordersService, created, error } = params;
+  console.error(
+    `[market-checkout ${checkoutId}] vendor-order creation failed after ${created.length} committed order(s); rolling back`,
+    error instanceof Error ? error.message : error,
+  );
+
+  let compensationFailed = false;
+  // Unwind in reverse creation order so the most-recently committed order is
+  // voided first.
+  for (const item of [...created].reverse()) {
+    try {
+      const cancelled = await ordersService.cancelOrder(
+        item.orderId,
+        `Market checkout ${checkoutId} rolled back: a sibling vendor order failed`,
+      );
+      if (!cancelled) {
+        compensationFailed = true;
+        console.error(
+          `[market-checkout ${checkoutId}] compensating cancel returned no order for ${item.orderId}`,
+        );
+      }
+    } catch (cancelError) {
+      compensationFailed = true;
+      console.error(
+        `[market-checkout ${checkoutId}] failed to cancel compensating order ${item.orderId}`,
+        cancelError instanceof Error ? cancelError.message : cancelError,
+      );
+    }
+
+    const cleanup = await Promise.allSettled([
+      env.CACHE_KV.delete(`guest_token:${item.guestToken}`),
+      env.CACHE_KV.delete(item.activeOrderKey),
+      env.CACHE_KV.delete(`guest_active_lookup:${item.orderId}`),
+    ]);
+    if (cleanup.some((result) => result.status === "rejected")) {
+      compensationFailed = true;
+      console.error(
+        `[market-checkout ${checkoutId}] failed to clear KV locks for compensating order ${item.orderId}`,
+      );
+    }
+  }
+
+  return compensationFailed;
+}
+
+/**
+ * Record a market checkout that aborted during vendor-order creation so it is
+ * visible for ops/manual review. Status is "failed" when compensation fully
+ * unwound the committed orders, or "requires_manual_review" when a compensation
+ * step itself failed and live orders/locks may remain. Every sink (KV, DB,
+ * index) is best-effort — a failure here must not mask the original creation
+ * error the caller re-throws.
+ */
+async function recordFailedMarketCheckoutSession(
+  env: Env,
+  params: {
+    checkoutId: string;
+    market: {
+      id: string;
+      slug: string;
+      name: string;
+      platformFeeRateBps?: number;
+    };
+    phoneLastDigits?: string;
+    children: Array<{
+      restaurantId: string;
+      restaurantName: string;
+      order: {
+        id: string | number;
+        orderNumber: string;
+        totalAmount: number;
+        totalAmountCents?: number | null;
+      };
+      tokenExpiresAt: string;
+    }>;
+    compensationFailed: boolean;
+  },
+): Promise<void> {
+  const { checkoutId, market, phoneLastDigits, children, compensationFailed } =
+    params;
+
+  const failedSession: MarketCheckoutSession = {
+    id: checkoutId,
+    market: {
+      id: market.id,
+      slug: market.slug,
+      name: market.name,
+      platformFeeRateBps: market.platformFeeRateBps,
+    },
+    status: compensationFailed ? "requires_manual_review" : "failed",
+    phoneLastDigits,
+    childOrders: children.map((child) => ({
+      restaurantId: child.restaurantId,
+      restaurantName: child.restaurantName,
+      orderId: String(child.order.id),
+      orderNumber: child.order.orderNumber,
+      totalAmount: child.order.totalAmount,
+      totalAmountCents: orderTotalCents(child.order),
+      tokenExpiresAt: child.tokenExpiresAt,
+    })),
+    subtotal: children.reduce(
+      (sum, child) => sum + orderTotalCents(child.order),
+      0,
+    ),
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await env.CACHE_KV.put(
+      `market_checkout:${checkoutId}`,
+      JSON.stringify(failedSession),
+      { expirationTtl: 4 * 60 * 60 },
+    );
+  } catch (kvError) {
+    console.error(
+      `[market-checkout ${checkoutId}] failed to cache failed-checkout session`,
+      kvError,
+    );
+  }
+
+  try {
+    await persistMarketCheckoutSession(env, failedSession);
+  } catch (persistError) {
+    console.error(
+      `[market-checkout ${checkoutId}] failed to persist failed-checkout session`,
+      persistError,
+    );
+  }
+
+  try {
+    await upsertMarketCheckoutIndex(env.CACHE_KV, failedSession);
+  } catch (indexError) {
+    console.error(
+      `[market-checkout ${checkoutId}] failed to index failed-checkout session`,
+      indexError,
+    );
+  }
+}
+
 async function persistMarketCheckoutSession(
   env: Env,
   session: MarketCheckoutSession,
@@ -3123,7 +3339,9 @@ function isMarketCheckoutIndexItem(
     typeof item.market.id === "string" &&
     typeof item.market.slug === "string" &&
     typeof item.market.name === "string" &&
-    item.status === "submitted" &&
+    (item.status === "submitted" ||
+      item.status === "failed" ||
+      item.status === "requires_manual_review") &&
     typeof item.subtotal === "number" &&
     typeof item.childOrderCount === "number" &&
     typeof item.createdAt === "string" &&

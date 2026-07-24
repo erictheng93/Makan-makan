@@ -18,6 +18,7 @@ describe("menu validation schemas", () => {
       categoryId: 1,
       name: "  Nasi Lemak  ",
       price: 12,
+      imageId: "01940000-0000-7000-8000-000000000001",
       imageUrl: `data:image/png;base64,${Buffer.from("png").toString("base64")}`,
     });
 
@@ -25,6 +26,7 @@ describe("menu validation schemas", () => {
       categoryId: 1,
       name: "Nasi Lemak",
       price: 12,
+      imageId: "01940000-0000-7000-8000-000000000001",
       spiceLevel: 0,
       preparationTime: 15,
     });

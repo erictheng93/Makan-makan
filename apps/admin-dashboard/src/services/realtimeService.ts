@@ -4,7 +4,6 @@ import {
   type RealtimeEvent,
 } from "@makanmakan/shared-types";
 import { useWebSocketService } from "./websocketService";
-import { getAuthToken } from "@/utils/authTokenProvider";
 
 export interface RealtimeMessage {
   id: string;
@@ -61,22 +60,6 @@ function toRealtimeMessage(event: RealtimeEvent): RealtimeMessage {
     timestamp: new Date(event.timestamp).toISOString(),
     restaurantId: String(event.restaurantId),
   };
-}
-
-function resolveRealtimeHttpBase(): string {
-  const realtimeBase =
-    import.meta.env.VITE_REALTIME_HTTP_URL ||
-    import.meta.env.VITE_REALTIME_URL ||
-    import.meta.env.VITE_REALTIME_WS_URL;
-
-  if (!realtimeBase) {
-    throw new Error("Realtime service URL is not configured");
-  }
-
-  return String(realtimeBase)
-    .replace(/^wss:/, "https:")
-    .replace(/^ws:/, "http:")
-    .replace(/\/$/, "");
 }
 
 class RealtimeService {
@@ -172,7 +155,7 @@ class RealtimeService {
 
   async ping(): Promise<boolean> {
     if (this.websocketService.isConnected.value) {
-      this.websocketService.send({ type: "ping", timestamp: Date.now() });
+      this.websocketService.send("ping");
       return true;
     }
     return false;
@@ -180,77 +163,6 @@ class RealtimeService {
 
   async getServerTime(): Promise<Date> {
     return new Date();
-  }
-
-  async broadcastToGroup(
-    groupOrderId: string,
-    event: {
-      type: string;
-      data: any;
-      excludeSessionId?: string;
-    },
-  ): Promise<boolean> {
-    try {
-      await this.postRealtimeRoom("group_order", groupOrderId, event);
-      return true;
-    } catch (error) {
-      console.error("Failed to broadcast to group:", error);
-      return false;
-    }
-  }
-
-  async sendGroupNotification(
-    groupOrderId: string,
-    notification: {
-      type: string;
-      title: string;
-      message: string;
-      targetMembers?: string[];
-      priority?: "low" | "normal" | "high" | "urgent";
-    },
-  ): Promise<boolean> {
-    return this.broadcastToGroup(groupOrderId, {
-      type: "group_notification",
-      data: {
-        ...notification,
-        groupOrderId,
-        timestamp: Date.now(),
-        id: crypto.randomUUID(),
-      },
-    });
-  }
-
-  async checkGroupConnectionHealth(groupOrderId: string): Promise<{
-    connected: boolean;
-    memberCount: number;
-    activeMembers: number;
-    lastActivity: number;
-  }> {
-    try {
-      const stats = await this.getRealtimeRoomStats(
-        "group_order",
-        groupOrderId,
-      );
-      const connectionCount = Number(stats.connectionCount ?? 0);
-      return {
-        connected: connectionCount > 0,
-        memberCount: connectionCount,
-        activeMembers: connectionCount,
-        lastActivity: Date.now(),
-      };
-    } catch (error) {
-      console.error("Failed to check group connection health:", error);
-      return {
-        connected: false,
-        memberCount: 0,
-        activeMembers: 0,
-        lastActivity: 0,
-      };
-    }
-  }
-
-  async syncGroupState(_groupOrderId: string): Promise<any> {
-    return null;
   }
 
   getConnectionStatus() {
@@ -291,44 +203,6 @@ class RealtimeService {
     if (this.messageBuffer.length > this.maxBufferSize) {
       this.messageBuffer.shift();
     }
-  }
-
-  private async postRealtimeRoom(
-    roomType: string,
-    roomId: string,
-    payload: unknown,
-  ): Promise<void> {
-    const token = getAuthToken();
-    const response = await fetch(
-      `${resolveRealtimeHttpBase()}/broadcast/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Realtime broadcast failed with ${response.status}`);
-    }
-  }
-
-  private async getRealtimeRoomStats(
-    roomType: string,
-    roomId: string,
-  ): Promise<Record<string, unknown>> {
-    const response = await fetch(
-      `${resolveRealtimeHttpBase()}/stats/${encodeURIComponent(roomType)}/${encodeURIComponent(roomId)}`,
-    );
-
-    if (!response.ok) {
-      throw new Error(`Realtime stats failed with ${response.status}`);
-    }
-
-    return (await response.json()) as Record<string, unknown>;
   }
 }
 

@@ -13,7 +13,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 - **Database**: Cloudflare D1 (SQLite-compatible serverless SQL)
 - **Cache**: Cloudflare KV Store
 - **Real-time**: Durable Objects (WebSocket connections)
-- **File Storage**: Cloudflare R2 + Images API
+- **File Storage**: Cloudflare R2
 - **Build System**: Turborepo (parallel builds with caching)
 - **Backup**: Cloudflare Workers Cron + R2
 - **Print**: Local Node.js agent (Express + WebSocket)
@@ -21,7 +21,7 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 
 ## Applications Overview
 
-`pnpm dev` starts every app in this monorepo in parallel via turbo. The full map:
+`pnpm dev` starts every app in this monorepo in parallel via turbo **except `apps/print-agent`**, which is excluded from the default filter (run `pnpm dev:print-agent` separately when you need the local print daemon). The full map:
 
 | App | Type | Local port(s) | Notes |
 | --- | --- | --- | --- |
@@ -44,8 +44,12 @@ MakanMakan is a modern, serverless restaurant management system built on Cloudfl
 ### Schema & Migrations
 
 - **Source of Truth**: Drizzle schema files in `packages/database/src/schema/` (includes subdirectories)
-- **Generated Migrations**: `packages/database/migrations_fresh/`
-- **ID Strategy**: `TEXT` primary keys using UUID v7 (`packages/utils/src/uuid.ts`). Timestamps: `INTEGER` (Unix ms via `timestamp_ms` mode).
+- **Migration Tracks**: `packages/database/migrations_fresh/` is the fresh baseline; `packages/database/migrations/` is the Wrangler deployment track.
+- **Migration Guard**: changes after the reviewed checkpoint must be paired or documented in `packages/database/migration-dual-track.json`, then verified with `pnpm check:migration-dual-track`.
+- **ID Strategy**: mixed by design while legacy modules remain. New domain tables should prefer `TEXT` UUID v7 primary keys, but existing integer-autoincrement tables are still valid until a scoped migration retires them. Do not claim the whole database is UUID-only.
+- **Timestamp Strategy**: use `INTEGER` Unix milliseconds via Drizzle `{ mode: "timestamp_ms" }`. Avoid new `TEXT` timestamp columns.
+- **Idempotency Strategy**: nullable idempotency/event keys on payment, webhook, billing, or retryable write paths require a DB-level partial unique index such as `WHERE idempotency_key IS NOT NULL`.
+- **Secret Storage**: OAuth credentials, access/refresh tokens, client secrets, and webhook secrets must be stored only in encrypted payload fields. JSON config columns are for non-secret flags and preferences.
 
 ```bash
 pnpm db:generate        # Generate migration from schema changes
@@ -54,7 +58,7 @@ pnpm db:reset:local     # Reset local database (clears all data)
 pnpm db:seed:local      # Seed local database (scripts/seed-local.sql)
 ```
 
-**Adding New Tables**: Create schema in `packages/database/src/schema/`, export from `index.ts`, run `pnpm db:generate` then `pnpm db:migrate:local`.
+**Adding New Tables**: Create schema in `packages/database/src/schema/`, export from `index.ts`, run `pnpm db:generate`, add/validate the paired migration-track entry when applicable, then run `pnpm db:migrate:local`.
 
 ## Development Setup
 
@@ -80,7 +84,6 @@ pnpm dev                # Start all apps in parallel
 ```env
 CLOUDFLARE_API_TOKEN=your_api_token
 JWT_SECRET=your_jwt_secret
-CLOUDFLARE_IMAGES_KEY=your_images_key
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ```
 
@@ -140,7 +143,6 @@ pnpm lint               # Lint all packages
 pnpm lint:fix           # Auto-fix lint issues
 
 # Deployment
-pnpm deploy:staging     # Deploy to staging
 pnpm deploy:prod        # Deploy to production
 ```
 
@@ -350,9 +352,10 @@ There is no `scripts/check-factory-usage.cjs` gate in this repository.
 
 - Worker logs: `pnpm wrangler tail`
 - **Public liveness probe**: `GET /info` on the API (returns 200, no auth required) — use this for smoke tests, load balancer health checks, or quick "is it up?" curls.
-- **Authenticated health endpoints** (require bearer token):
-  - `/api/v1/monitoring/health` — aggregated monitoring view (this is also where `/health` redirects to)
-  - `/api/v1/system/health`, `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes under the System feature
+- **Health endpoints**:
+  - `/api/v1/monitoring/health` — aggregated monitoring view, public by design (this is also where `/health` redirects to); returns a bare payload, not the unified `{success, data}` envelope
+  - `/api/v1/system/health` — basic health check, public by design (code comment: 公開端點)
+  - `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes, **require bearer token**
 - Note: there is **no** unauthenticated `/api/v1/health` route anymore. The old router was replaced by the System/Monitoring features; public smoke checks should use `/info`.
 - Error tracking: Automatic Slack notifications
 

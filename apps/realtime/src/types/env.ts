@@ -28,6 +28,7 @@ export interface Env {
   REALTIME_JWT_SECRET?: string;
   ENVIRONMENT: string;
   API_VERSION: string;
+  CORS_ORIGIN?: string;
 
   // Rate limiting
   RATE_LIMIT_ENABLED: string;

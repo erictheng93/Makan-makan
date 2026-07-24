@@ -84,6 +84,9 @@ export class ManagementTenantClient {
       .catch(() => null)) as ApiResponse<T> | null;
 
     if (!response.ok || !payload?.success || !payload.data) {
+      // Nested unified error format first; flat-string fallback for legacy
+      // workers. TODO(cleanup): drop the flat branch once every deployed
+      // management-api is at or past commit 7151ca2c.
       const message =
         typeof payload?.error === "string"
           ? payload.error

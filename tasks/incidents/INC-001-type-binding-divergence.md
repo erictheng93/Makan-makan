@@ -9,7 +9,7 @@
 
 ## 摘要
 
-`apps/api/src/types/env.ts:91` 宣告 `REALTIME_SESSION: DurableObjectNamespace`，但 `apps/api/wrangler.toml` 從未加上對應的 `[[durable_objects]]` binding。型別在說謊——`env.REALTIME_SESSION` 在 production / staging / development 全部都是 `undefined`。
+`apps/api/src/types/env.ts:91` 宣告 `REALTIME_SESSION: DurableObjectNamespace`，但 `apps/api/wrangler.toml` 從未加上對應的 `[[durable_objects]]` binding。型別在說謊——`env.REALTIME_SESSION` 在 production / development 全部都是 `undefined`。
 
 ## 影響
 

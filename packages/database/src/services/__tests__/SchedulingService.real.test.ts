@@ -145,6 +145,158 @@ describe("SchedulingService.cancelSchedulesByDateRange", () => {
   });
 });
 
+describe("SchedulingService.approveSwapRequest", () => {
+  const employee2Id = "018f0000-0000-7000-8000-000000000003";
+
+  async function insertEmployee2() {
+    await testDb.db
+      .prepare(
+        `INSERT INTO users
+           (id, username, full_name, password_hash, role, restaurant_id, is_active, is_verified, total_orders, total_spent, token_version, created_at_ms, updated_at_ms)
+         VALUES
+           ('${employee2Id}', 'sched-employee2', 'Schedule Employee Two', 'test', 3, 'sched-rest', 1, 1, 0, 0, 1, 1735689600000, 1735689600000)`,
+      )
+      .run();
+  }
+
+  async function insertSchedule(
+    id: number,
+    employeeId: string,
+    workDate: string,
+    startTime: string,
+    endTime: string,
+    status = "scheduled",
+  ) {
+    await testDb.db
+      .prepare(
+        `INSERT INTO employee_schedules
+           (id, restaurant_id, employee_id, work_date, start_time, end_time,
+            break_duration_minutes, scheduled_hours, status, created_by,
+            created_at_ms, updated_at_ms)
+         VALUES
+           (?, 'sched-rest', ?, ?, ?, ?, 0, 4, ?, '${ownerId}', 1735689600000, 1735689600000)`,
+      )
+      .bind(id, employeeId, workDate, startTime, endTime, status)
+      .run();
+  }
+
+  async function insertSwapRequest(opts: {
+    id: number;
+    requestType: "swap" | "cover" | "drop";
+    requesterScheduleId: number;
+    targetEmployeeId?: string | null;
+    targetScheduleId?: number | null;
+    status?: string;
+  }) {
+    await testDb.db
+      .prepare(
+        `INSERT INTO schedule_swap_requests
+           (id, restaurant_id, requester_employee_id, requester_schedule_id,
+            target_employee_id, target_schedule_id, request_type, reason,
+            urgency, status, created_at_ms, updated_at_ms)
+         VALUES
+           (?, 'sched-rest', ?, ?, ?, ?, ?, 'test reason', 'normal', ?, 1735689600000, 1735689600000)`,
+      )
+      .bind(
+        opts.id,
+        employeeId,
+        opts.requesterScheduleId,
+        opts.targetEmployeeId ?? null,
+        opts.targetScheduleId ?? null,
+        opts.requestType,
+        opts.status ?? "pending",
+      )
+      .run();
+  }
+
+  async function scheduleRow(id: number) {
+    const rows = await testDb.db
+      .prepare(
+        `SELECT id, employee_id, status FROM employee_schedules WHERE id = ?`,
+      )
+      .bind(id)
+      .all<{ id: number; employee_id: string; status: string }>();
+    return rows.results[0];
+  }
+
+  it("swap: exchanges the assigned employee between both schedule rows", async () => {
+    await insertEmployee2();
+    await insertSchedule(30, employeeId, "2026-07-01", "09:00", "13:00");
+    await insertSchedule(31, employee2Id, "2026-07-02", "09:00", "13:00");
+    await insertSwapRequest({
+      id: 100,
+      requestType: "swap",
+      requesterScheduleId: 30,
+      targetEmployeeId: employee2Id,
+      targetScheduleId: 31,
+    });
+
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const result = await service.approveSwapRequest(100, ownerId);
+
+    expect(result.status).toBe("approved");
+    expect((await scheduleRow(30)).employee_id).toBe(employee2Id);
+    expect((await scheduleRow(31)).employee_id).toBe(employeeId);
+  });
+
+  it("cover: reassigns the requester's shift to the target employee", async () => {
+    await insertEmployee2();
+    await insertSchedule(40, employeeId, "2026-07-03", "09:00", "13:00");
+    await insertSwapRequest({
+      id: 101,
+      requestType: "cover",
+      requesterScheduleId: 40,
+      targetEmployeeId: employee2Id,
+    });
+
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    await service.approveSwapRequest(101, ownerId);
+
+    const row = await scheduleRow(40);
+    expect(row.employee_id).toBe(employee2Id);
+    expect(row.status).toBe("scheduled");
+  });
+
+  it("drop: cancels the requester's schedule row", async () => {
+    await insertSchedule(50, employeeId, "2026-07-04", "09:00", "13:00");
+    await insertSwapRequest({
+      id: 102,
+      requestType: "drop",
+      requesterScheduleId: 50,
+    });
+
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    await service.approveSwapRequest(102, ownerId);
+
+    const row = await scheduleRow(50);
+    expect(row.employee_id).toBe(employeeId);
+    expect(row.status).toBe("cancelled");
+  });
+
+  it("rejects approving a request that is not pending", async () => {
+    await insertSchedule(60, employeeId, "2026-07-05", "09:00", "13:00");
+    await insertSwapRequest({
+      id: 103,
+      requestType: "drop",
+      requesterScheduleId: 60,
+      status: "approved",
+    });
+
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    await expect(service.approveSwapRequest(103, ownerId)).rejects.toThrow(
+      /cannot be approved/,
+    );
+  });
+});
+
 describe("SchedulingService.createSchedule", () => {
   it("rejects overlapping schedules instead of inserting with a warning conflict", async () => {
     await testDb.db

@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
-    "legacy": "0088_market_checkout_child_order_cents_cutover.sql"
+    "fresh": "0074_menu_items_image_id.sql",
+    "legacy": "0091_menu_items_image_id.sql"
   },
   "pairs": [
     {
@@ -35,6 +35,21 @@
       "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
       "legacy": "0088_market_checkout_child_order_cents_cutover.sql",
       "reason": "Market checkout child orders now retain total_amount_cents only; API responses derive decimal totals from cents."
+    },
+    {
+      "fresh": "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      "legacy": "0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
+      "reason": "Payment idempotency keys are unique when present and backup timestamp fields move to integer millisecond columns in both migration tracks."
+    },
+    {
+      "fresh": "0073_images_uploaded_by_text.sql",
+      "legacy": "0090_images_uploaded_by_text.sql",
+      "reason": "images.uploaded_by moves from INTEGER to TEXT so it can store users.id UUID v7 values for the image-processor upload path (issue #56)."
+    },
+    {
+      "fresh": "0074_menu_items_image_id.sql",
+      "legacy": "0091_menu_items_image_id.sql",
+      "reason": "menu_items.image_id records the owning images.id value so menu image replacement can delete the previous image."
     }
   ],
   "freshOnly": [

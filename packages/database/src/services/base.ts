@@ -154,20 +154,10 @@ export class BaseService {
   protected async safeTransaction<T>(
     writeFn: (db: any) => Promise<T>,
   ): Promise<T> {
-    try {
-      return await this.db.transaction(async (tx) => writeFn(tx));
-    } catch (txError: any) {
-      const message = String(txError?.message ?? "");
-      if (
-        message.includes("Failed query: begin") ||
-        message.includes("Failed to run the query 'begin'")
-      ) {
-        throw new Error(
-          "D1 interactive transactions are unsupported; convert this write path to db.batch() for atomicity.",
-        );
-      }
-      throw txError;
-    }
+    void writeFn;
+    throw new Error(
+      "D1 interactive transactions are unsupported; convert this write path to db.batch() for atomicity.",
+    );
   }
 
   // 通用錯誤處理

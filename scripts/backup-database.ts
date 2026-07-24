@@ -4,7 +4,7 @@
  * Cross-platform TypeScript version
  *
  * Usage: npx tsx scripts/backup-database.ts [environment]
- * Example: npx tsx scripts/backup-database.ts staging
+ * Example: npx tsx scripts/backup-database.ts production
  */
 
 import { execFileSync, spawnSync } from "child_process";
@@ -23,7 +23,7 @@ const colors = {
 const BACKUP_DIR = "backups";
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 
-type Environment = "staging" | "production" | "local";
+type Environment = "production" | "local";
 
 interface DatabaseConfig {
   name: string;
@@ -32,7 +32,6 @@ interface DatabaseConfig {
 
 function getDatabaseConfig(env: Environment): DatabaseConfig {
   const configs: Record<Environment, DatabaseConfig> = {
-    staging: { name: "makanmakan-staging", isLocal: false },
     production: { name: "makanmakan-prod", isLocal: false },
     local: { name: "makanmakan-local", isLocal: true },
   };
@@ -76,14 +75,12 @@ function formatFileSize(bytes: number): string {
 
 async function main() {
   const args = process.argv.slice(2);
-  const environment = (args[0] || "staging") as Environment;
+  const environment = (args[0] || "production") as Environment;
 
   // Validate environment
-  if (!["staging", "production", "local"].includes(environment)) {
+  if (!["production", "local"].includes(environment)) {
     console.error(colors.red(`Invalid environment: ${environment}`));
-    console.log(
-      "Usage: npx tsx scripts/backup-database.ts [staging|production|local]",
-    );
+    console.log("Usage: npx tsx scripts/backup-database.ts [production|local]");
     process.exit(1);
   }
 

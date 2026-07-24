@@ -52,11 +52,10 @@
 
 ### 部署環境對應
 
-| 環境            | 用途       | 域名範例               | 資料庫        | 說明       |
-| --------------- | ---------- | ---------------------- | ------------- | ---------- |
-| **Development** | 本地開發   | localhost:\*           | Local SQLite  | 開發測試用 |
-| **Staging**     | 預生產測試 | staging.makanmakan.com | D1 Staging    | 功能驗證   |
-| **Production**  | 正式環境   | makanmakan.com         | D1 Production | 線上服務   |
+| 環境            | 用途       | 域名範例        | 資料庫        | 說明       |
+| --------------- | ---------- | --------------- | ------------- | ---------- |
+| **Development** | 本地開發   | localhost:\*    | Local SQLite  | 開發測試用 |
+| **Production**  | 正式環境   | makanmakan.com  | D1 Production | 線上服務   |
 
 ---
 
@@ -64,15 +63,15 @@
 
 ### 1. 開發環境
 
-- **Node.js**: >= 20.0.0
-- **pnpm**: >= 8.0.0
+- **Node.js**: >= 22.13.0
+- **pnpm**: 10.24.0（`packageManager` 欄位鎖定，透過 corepack 強制）
 - **Git**: 版本控制工具
 - **Terminal**: Bash/PowerShell/Zsh
 
 ```bash
 # 驗證環境
-node --version    # 應該 >= v20.0.0
-pnpm --version    # 應該 >= 8.0.0
+node --version    # 應該 >= v22.13.0
+pnpm --version    # 應該是 10.24.0
 git --version     # 任意版本
 ```
 
@@ -161,8 +160,7 @@ JWT_SECRET=your-local-jwt-secret-min-32-characters
 INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-characters
 
 # apps/image-processor/.dev.vars
-CLOUDFLARE_IMAGES_KEY=your_images_key
-CLOUDFLARE_IMAGES_ACCOUNT_ID=your_account_id
+JWT_SECRET=your-local-jwt-secret-min-32-characters
 ```
 
 ⚠️ **重要**: `.dev.vars` 文件已在 `.gitignore` 中，**絕不提交到版本控制**！
@@ -184,7 +182,7 @@ CLOUDFLARE_IMAGES_ACCOUNT_ID=your_account_id
 > **`INTERNAL_API_TOKEN` 必須一致**；缺值時 `apps/api` 會拋
 > `INTERNAL_API_TOKEN is not configured`，不一致時 internal route 會回 401。
 
-#### Staging & Production Secrets
+#### Production Secrets
 
 生產環境的秘密使用 `wrangler secret` 命令管理：
 
@@ -193,35 +191,26 @@ CLOUDFLARE_IMAGES_ACCOUNT_ID=your_account_id
 # 生成安全的 JWT secret (64 字符)
 openssl rand -hex 32
 
-# 為 staging 設置
-wrangler secret put JWT_SECRET --env staging
-# 粘貼生成的 secret
-
 # 為 production 設置
 wrangler secret put JWT_SECRET --env production
-# 粘貼生成的 secret（應與 staging 不同）
+# 粘貼生成的 secret
 
 # === Management API JWT_SECRET (onboarding 必需) ===
 # apps/management-api 的 /auth/exchange 用 JWT_SECRET 驗證 apps/api 簽出的 token，
-# 因此 management-api 的 JWT_SECRET 必須與「同一環境」的 apps/api 完全相同。
-# 在 apps/management-api 目錄為每個環境設置相同的值：
-wrangler secret put JWT_SECRET --env staging      # = apps/api staging 的 JWT_SECRET
+# 因此 management-api 的 JWT_SECRET 必須與 apps/api 完全相同。
+# 在 apps/management-api 目錄設置相同的值：
 wrangler secret put JWT_SECRET --env production    # = apps/api production 的 JWT_SECRET
-# 驗證：兩個 Worker 同環境的 secret 一致，否則 onboarding 換 token 會 401。
+# 驗證：兩個 Worker 的 secret 一致，否則 onboarding 換 token 會 401。
 
 # === Internal API Token (tenant provisioning 必需) ===
 # 生成安全的 internal token (64 字符)
 openssl rand -hex 32
 
-# 同一環境的 apps/api 與 apps/management-api 必須使用完全相同的值。
-wrangler secret put INTERNAL_API_TOKEN --env staging --config apps/api/wrangler.toml
-wrangler secret put INTERNAL_API_TOKEN --env staging --config apps/management-api/wrangler.toml
-
+# apps/api 與 apps/management-api 必須使用完全相同的值。
 wrangler secret put INTERNAL_API_TOKEN --env production --config apps/api/wrangler.toml
 wrangler secret put INTERNAL_API_TOKEN --env production --config apps/management-api/wrangler.toml
 
 # 部署前可檢查兩個 Worker 是否都有設定（Cloudflare 不會回傳 secret 值）：
-scripts/verify-internal-api-token-secrets.sh staging
 scripts/verify-internal-api-token-secrets.sh production
 
 # === API Tokens (選用) ===
@@ -238,16 +227,14 @@ wrangler secret put TWILIO_AUTH_TOKEN --env production
 # Error Notifications (Slack)
 wrangler secret put SLACK_WEBHOOK_URL --env production
 
-# Image Processing (Cloudflare Images)
-wrangler secret put CLOUDFLARE_IMAGES_KEY --env production
-wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID --env production
+# Image Processing
+wrangler secret put JWT_SECRET --env production
 ```
 
 #### 驗證 Secrets
 
 ```bash
 # 列出已設置的 secrets
-wrangler secret list --env staging
 wrangler secret list --env production
 
 # 注意：此命令只顯示 secret 名稱，不會顯示值
@@ -262,19 +249,16 @@ wrangler secret list --env production
 #### 創建數據庫
 
 ```bash
-# Staging 數據庫
-wrangler d1 create makanmakan-staging
+# Production 數據庫
+wrangler d1 create makanmakan-prod
 
 # 輸出範例：
-# ✅ Successfully created DB 'makanmakan-staging'
+# ✅ Successfully created DB 'makanmakan-prod'
 #
 # [[d1_databases]]
 # binding = "DB"
-# database_name = "makanmakan-staging"
-# database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-# Production 數據庫
-wrangler d1 create makanmakan-prod
+# database_name = "makanmakan-prod"
+# database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
 ```
 
 #### 更新 Database ID
@@ -284,11 +268,6 @@ wrangler d1 create makanmakan-prod
 **apps/api/wrangler.toml**:
 
 ```toml
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "makanmakan-staging"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # 替換這裡
-
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "makanmakan-prod"
@@ -303,14 +282,11 @@ database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"  # 替換這裡
 #### 應用數據庫遷移
 
 ```bash
-# 應用到 Staging
-wrangler d1 migrations apply makanmakan-staging --env staging
-
 # 應用到 Production
 wrangler d1 migrations apply makanmakan-prod --env production
 
 # 驗證遷移
-wrangler d1 execute makanmakan-staging --command "SELECT name FROM sqlite_master WHERE type='table';"
+wrangler d1 execute makanmakan-prod --command "SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
 ### 2. KV Namespaces
@@ -320,25 +296,20 @@ wrangler d1 execute makanmakan-staging --command "SELECT name FROM sqlite_master
 ```bash
 # === API Service KV Namespaces ===
 # Cache
-wrangler kv:namespace create "CACHE_KV" --env staging
 wrangler kv:namespace create "CACHE_KV" --env production
 
 # Rate Limiting
-wrangler kv:namespace create "RATE_LIMIT_KV" --env staging
 wrangler kv:namespace create "RATE_LIMIT_KV" --env production
 
 # Backup Metadata
-wrangler kv:namespace create "BACKUP_KV" --env staging
 wrangler kv:namespace create "BACKUP_KV" --env production
 
 
 # === Realtime Service KV Namespaces ===
-wrangler kv:namespace create "REALTIME_CACHE" --env staging
 wrangler kv:namespace create "REALTIME_CACHE" --env production
 
 
 # === Image Processor KV Namespaces ===
-wrangler kv:namespace create "IMAGE_CACHE" --env staging
 wrangler kv:namespace create "IMAGE_CACHE" --env production
 ```
 
@@ -356,20 +327,20 @@ id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 **apps/api/wrangler.toml**:
 
 ```toml
-[[env.staging.kv_namespaces]]
+[[env.production.kv_namespaces]]
 binding = "CACHE_KV"
 id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # 替換
 
-[[env.staging.kv_namespaces]]
+[[env.production.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
 id = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"  # 替換
 
-[[env.staging.kv_namespaces]]
+[[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
 id = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"  # 替換
 ```
 
-同樣更新 `production` 環境和其他 Workers 的配置。
+同樣更新其他 Workers 的配置。
 
 ### 3. R2 Buckets
 
@@ -377,11 +348,9 @@ id = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"  # 替換
 
 ```bash
 # Backup Storage
-wrangler r2 bucket create makanmakan-backups-staging
 wrangler r2 bucket create makanmakan-backups-prod
 
 # Image Storage (如需要)
-wrangler r2 bucket create makanmakan-images-staging
 wrangler r2 bucket create makanmakan-images-prod
 ```
 
@@ -390,10 +359,6 @@ wrangler r2 bucket create makanmakan-images-prod
 **apps/api/wrangler.toml**:
 
 ```toml
-[[env.staging.r2_buckets]]
-binding = "BACKUP_STORAGE"
-bucket_name = "makanmakan-backups-staging"
-
 [[env.production.r2_buckets]]
 binding = "BACKUP_STORAGE"
 bucket_name = "makanmakan-backups-prod"
@@ -422,55 +387,55 @@ dataset = "makanmakan-metrics-prod"
 
 按照依賴關係部署：
 
-1. **Backend Services** (Staging → Production)
+1. **Backend Services**
    - API Service
    - Realtime Service
    - Image Processor
    - Backup Scheduler
 
-2. **Frontend Apps** (Staging → Production)
+2. **Frontend Apps**
    - Customer App
    - Admin Dashboard
    - Kitchen Display
 
-### 1. 部署 Backend Services (Staging)
+### 1. 部署 Backend Services
 
 ```bash
 # === 方法 1: 全部一起部署 ===
-pnpm run deploy:staging
+pnpm run deploy:prod
 
 # === 方法 2: 單獨部署各服務 ===
 # API Service
 cd apps/api
-pnpm run deploy:staging
+pnpm run deploy:prod
 
 # Realtime Service
 cd apps/realtime
-pnpm run deploy:staging
+pnpm run deploy:prod
 
 # Image Processor
 cd apps/image-processor
-pnpm run deploy:staging
+pnpm run deploy:prod
 
 # Backup Scheduler
 cd apps/backup-scheduler
-pnpm run deploy:staging
+pnpm run deploy:prod
 ```
 
 #### 驗證部署
 
 ```bash
 # 查看 Workers 列表
-wrangler deployments list --name makanmakan-api-staging
+wrangler deployments list --name makanmakan-api-prod
 
 # 查看實時日誌
-wrangler tail makanmakan-api-staging
+wrangler tail makanmakan-api-prod
 
 # 測試 API Health Endpoint
-curl https://api-staging.makanmakan.com/api/v1/health
+curl https://api.makanmakan.com/info
 ```
 
-### 2. 部署 Frontend Apps (Staging)
+### 2. 部署 Frontend Apps
 
 #### 使用 Cloudflare Pages
 
@@ -486,22 +451,22 @@ curl https://api-staging.makanmakan.com/api/v1/health
 # === 方法 2: 透過 Wrangler 手動部署 ===
 cd apps/customer-app
 pnpm run build
-wrangler pages deploy dist --project-name makanmakan-customer-staging
+wrangler pages deploy dist --project-name makanmakan-customer-prod
 
 cd apps/admin-dashboard
 pnpm run build
-wrangler pages deploy dist --project-name makanmakan-admin-staging
+wrangler pages deploy dist --project-name makanmakan-admin-prod
 
 cd apps/kitchen-display
 pnpm run build
-wrangler pages deploy dist --project-name makanmakan-kitchen-staging
+wrangler pages deploy dist --project-name makanmakan-kitchen-prod
 ```
 
 ### 3. 部署到 Production
 
 ⚠️ **生產環境部署檢查清單**：
 
-- [ ] Staging 環境已完成測試
+- [ ] 所有測試已通過
 - [ ] 所有 secrets 已正確配置
 - [ ] Database IDs 已更新為 production
 - [ ] KV Namespace IDs 已更新為 production
@@ -541,12 +506,11 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 在 Cloudflare Dashboard → DNS → Records 添加：
 
-| Type  | Name        | Target                                      | Proxy      |
-| ----- | ----------- | ------------------------------------------- | ---------- |
-| CNAME | api         | makanmakan-api-prod.workers.dev             | ✅ Proxied |
-| CNAME | realtime    | makanmakan-realtime-prod.workers.dev        | ✅ Proxied |
-| CNAME | images      | makanmakan-image-processor-prod.workers.dev | ✅ Proxied |
-| CNAME | api-staging | makanmakan-api-staging.workers.dev          | ✅ Proxied |
+| Type  | Name     | Target                                      | Proxy      |
+| ----- | -------- | -------------------------------------------- | ---------- |
+| CNAME | api      | makanmakan-api-prod.workers.dev             | ✅ Proxied |
+| CNAME | realtime | makanmakan-realtime-prod.workers.dev        | ✅ Proxied |
+| CNAME | images   | makanmakan-image-processor-prod.workers.dev | ✅ Proxied |
 
 #### Pages 域名
 
@@ -555,8 +519,6 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 - `makanmakan.com` → Customer App (Production)
 - `admin.makanmakan.com` → Admin Dashboard (Production)
 - `kitchen.makanmakan.com` → Kitchen Display (Production)
-- `staging.makanmakan.com` → Customer App (Staging)
-- `admin-staging.makanmakan.com` → Admin Dashboard (Staging)
 
 ### 3. SSL/TLS 配置
 
@@ -574,8 +536,8 @@ cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --projec
 
 ```bash
 # API Service
-curl https://api.makanmakan.com/api/v1/health
-# 預期: {"status":"healthy","timestamp":"...","version":"v1"}
+curl https://api.makanmakan.com/info
+# 預期: {"name":"MakanMakan API","version":"v1","environment":"...",...} (200 OK)
 
 # Realtime Service
 curl https://realtime.makanmakan.com/health
@@ -635,7 +597,7 @@ config:
 scenarios:
   - flow:
     - get:
-        url: "/api/v1/health"
+        url: "/info"
 EOF
 
 # 運行負載測試
@@ -650,13 +612,13 @@ curl -I http://api.makanmakan.com
 # 預期: 301 或 302 重定向到 https://
 
 # CORS Headers
-curl -I https://api.makanmakan.com/api/v1/health \
+curl -I https://api.makanmakan.com/info \
   -H "Origin: https://makanmakan.com"
 # 預期: Access-Control-Allow-Origin 正確
 
 # Rate Limiting
 for i in {1..150}; do
-  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/api/v1/health
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.makanmakan.com/info
 done
 # 預期: 前 100 個請求返回 200，之後返回 429
 ```
@@ -806,33 +768,8 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
-  deploy-staging:
-    needs: test
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Deploy to Staging
-        run: pnpm run deploy:staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  smoke-test-staging:
-    needs: deploy-staging
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-
-      - name: Run smoke tests on staging
-        run: pnpm run test:smoke:staging
-
   deploy-production:
-    needs: smoke-test-staging
+    needs: test
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -863,7 +800,7 @@ jobs:
 wrangler deploy --env production-green
 
 # 測試 green 環境
-curl https://api-green.makanmakan.com/api/v1/health
+curl https://api-green.makanmakan.com/info
 
 # 切換流量到 green (透過 DNS 或 Workers 路由)
 # 如果有問題，立即切換回 blue
@@ -907,7 +844,7 @@ if (shouldUseCanary) {
 
 ### 部署後 (Post-Deployment)
 
-- [ ] 運行煙霧測試 (`pnpm run test:smoke:staging`)
+- [ ] 運行煙霧測試
 - [ ] 驗證關鍵功能（登入、訂單、支付）
 - [ ] 檢查性能指標
 - [ ] 監控錯誤日誌（至少 30 分鐘）
@@ -928,7 +865,7 @@ wrangler deployments list --name makanmakan-api-prod
 wrangler rollback --name makanmakan-api-prod --message "Rollback due to critical issue"
 
 # 驗證回滾
-curl https://api.makanmakan.com/api/v1/health
+curl https://api.makanmakan.com/info
 wrangler tail makanmakan-api-prod
 ```
 

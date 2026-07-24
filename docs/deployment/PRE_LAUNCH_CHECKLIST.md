@@ -8,15 +8,15 @@
 
 ### 1. Backup Restore 實作與演練
 
-- [ ] 實作 `BackupService` 的 restore execution logic（`apps/api/src/features/backup/services/BackupService.ts`）
-- [ ] 實作 D1 database restore 流程（從 R2 拉回並 apply）
-- [ ] 對 staging 環境做一次完整的 **backup → restore 演練**，驗證資料正確性
+- [x] 實作 `BackupService` 的 restore execution logic（`apps/api/src/features/backup/services/BackupService.ts`）—— 已於 2026-07-05 核實：`restoreFromBackup`（line 524）與 `executeRestore`（line 1126）已是完整實作（checksum 驗證、資料表還原、audit log），非空殼
+- [x] 實作 D1 database restore 流程（從 R2 拉回並 apply）—— 同上
+- [ ] 對 production 環境做一次完整的 **backup → restore 演練**，驗證資料正確性
 - [ ] 記錄 restore SOP，確認任何 on-call 人員都能執行
 
 ### 2. Payment Audit Trail
 
-- [ ] 補齊 `PaymentOrchestrator.ts` 的日誌記錄（目前有 2 個 TODO 標記）
-- [ ] 每一筆支付操作（建立、完成、退款、失敗）都必須寫入 audit log table
+- [ ] ~~補齊 `PaymentOrchestrator.ts` 的日誌記錄（目前有 2 個 TODO 標記）~~ —— **更正（2026-07-05）**：`PaymentOrchestrator.ts` 不存在於現行生產程式碼（只殘留在 `apps/api/src/examples/*.disabled`）。現行支付程式碼是 `apps/api/src/features/payments/services/{PaymentService,refundPayment}.ts`，已呼叫 `PaymentAuditService.buildAppendQuery`，功能目錄下 0 個 TODO
+- [ ] 每一筆支付操作（建立、完成、退款、失敗）都必須寫入 audit log table —— **注意**：`PaymentService.ts` 目前只發送 `ATTEMPT`/`SUCCESS` 事件，`FAILURE` 是定義了但從未觸發的 dead enum（見 `docs/TECHNICAL_DEBT_TODO.md` Payment Audit Trail 章節）
 - [ ] 退款操作的日誌記錄完整實作
 - [ ] 確認 audit log 不可被刪除（append-only）
 
@@ -62,13 +62,11 @@
 ### 8. Database Migration Rollback
 
 - [ ] 為每一個 forward migration 評估並撰寫 down migration
-- [ ] 重要的 schema migration 上線前先在 staging 驗證
+- [ ] 重要的 schema migration 上線前先在本機驗證
 
 ### 9. Queue Service 決策
 
-- [ ] 確認 `UnifiedQueueService` 是否為上線必要功能（有 4 個 TODO，核心邏輯未實作）
-- [ ] 如果不需要：標記為 `experimental`，從主要 API routing 移除
-- [ ] 如果需要：完成實作後才能上線
+- [x] 確認 `UnifiedQueueService` 是否為上線必要功能 —— **更正（2026-07-05）**：`apps/api/src/features/queue/services/UnifiedQueueService.ts` 現行 0 個 TODO；檔案開頭註解明確說明舊 legacy/modular 雙軌已「replaced wholesale」，現在是委派給 `WaitingListService`（真正持久化到 D1）的薄 adapter，核心邏輯已實作完成，此項已解決
 
 ---
 
@@ -80,7 +78,6 @@
 - [ ] 所有 `wrangler secret put` 已在 production 環境執行：
   - [ ] `JWT_SECRET`（≥ 32 字元）
   - [ ] `ENCRYPTION_KEY`
-  - [ ] `CLOUDFLARE_IMAGES_KEY`
   - [ ] `SLACK_WEBHOOK_URL`
   - [ ] `RESEND_API_KEY`（如有啟用 email）
   - [ ] `STRIPE_SECRET_KEY`（如有啟用 payment）
@@ -143,7 +140,6 @@
 - [ ] `pnpm test` 全部通過（本地）
 - [ ] `pnpm typecheck` 無錯誤
 - [ ] `pnpm lint` 無錯誤
-- [ ] Staging smoke tests 通過（`pnpm test:smoke:staging`）
 - [ ] 手動測試核心 happy path：
   - [ ] 客戶掃 QR → 點餐 → 送出訂單
   - [ ] Kitchen display 收到訂單
@@ -153,7 +149,7 @@
 ### 監控
 
 - [ ] Slack webhook 已設定並測試（送一條測試訊息）
-- [ ] Health endpoint `/api/v1/health` 在 production 回傳 `healthy`
+- [ ] Health endpoint `/info` 在 production 回傳 `healthy`
 - [ ] Cloudflare Dashboard 已確認 Workers、D1、KV 都正常
 
 ---

@@ -24,8 +24,9 @@
 - 不負責判斷 repo 內現有 spec 是否已完全符合本文件
 
 實際覆蓋與缺口應由獨立文件追蹤，例如：
-- `docs/testing/PERSONA_TEST_CHECKLIST_AUDIT.md`
+- `docs/archive/deprecated/PERSONA_TEST_CHECKLIST_AUDIT.md`（已 superseded，見文件內橫幅 —— 引用的 spec 檔案已刪除，現行覆蓋改由 `real.integration.test.ts` 系列測試提供）
 - `docs/testing/TEST_PROGRESS.md`
+- `docs/testing/CORE_WORKFLOW_TEST_MATRIX.md`（現行測試結構的權威來源）
 
 ### 0.3 使用方式
 

@@ -29,6 +29,7 @@ export {
   sum,
   avg,
   between,
+  inArray,
   isNull,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";

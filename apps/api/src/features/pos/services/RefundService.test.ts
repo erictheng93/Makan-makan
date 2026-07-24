@@ -263,8 +263,7 @@ describe("RefundService", () => {
     expect(mutations.inserted).toEqual([]);
   });
 
-  it("alerts when async refund completion cannot mark the refund failed", async () => {
-    vi.useFakeTimers();
+  it("alerts when synchronous refund completion cannot mark the refund failed", async () => {
     const alertSink = vi.fn();
     const mutations = mockMutations();
     const completionError = new Error("completion write failed");
@@ -299,10 +298,10 @@ describe("RefundService", () => {
       .mockImplementation(() => undefined);
 
     try {
-      const result = await createService({
-        alertSink,
-        completionDelayMs: 5_000,
-      }).processRefund(
+      // Completion now runs synchronously (awaited) inside processRefund, so
+      // both the completed and failed writes have already been attempted by the
+      // time the promise resolves — no timer advance required.
+      const result = await createService({ alertSink }).processRefund(
         refundRequest({ refundMethod: "card" }),
         "register-1",
         7,
@@ -312,8 +311,6 @@ describe("RefundService", () => {
         success: true,
         data: { refundId: "refund-1" },
       });
-
-      await vi.advanceTimersByTimeAsync(5_000);
 
       expect(mutations.updated).toEqual([
         expect.objectContaining({ status: "completed" }),
@@ -333,9 +330,29 @@ describe("RefundService", () => {
       );
     } finally {
       consoleError.mockRestore();
-      vi.clearAllTimers();
-      vi.useRealTimers();
     }
+  });
+
+  it("marks the refund completed synchronously before returning", async () => {
+    const mutations = mockMutations();
+    mockSelectResults([
+      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
+      [{ totalRefunded: 0 }],
+      [refundRow()],
+    ]);
+
+    const result = await createService().processRefund(
+      refundRequest({ refundMethod: "card" }),
+      "register-1",
+      7,
+    );
+
+    expect(result).toMatchObject({ success: true });
+    // The terminal "completed" write happened during the awaited call — the
+    // row does not linger in "processing".
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ status: "completed" }),
+    ]);
   });
 
   it("rejects invalid refund requests before inserting rows", async () => {

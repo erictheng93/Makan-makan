@@ -1,5 +1,7 @@
 # 📊 資料庫架構對比分析
 
+> ⚠️ **準確性提醒（2026-07-05）**：「現有架構 (Current)」欄位是撰寫當下的快照，多項當時列為問題的項目現已解決 —— `restaurant_id` 目前全表統一 `TEXT`（例如 `leave-types.ts:27`、`ai-analytics.ts:17,51`、`orders.ts:50`），時間戳已統一為 `INTEGER` Unix ms（Drizzle `timestamp_ms` mode）。遷移檔案數量與啟用/停用比例也已改變（`migrations_fresh/` 現有 70+ 個檔案，範圍到 `0072_*`）。本文件保留供理解當時的分析脈絡，實際現況請以 `packages/database/src/schema/` 為準。
+
 ## 一、現有架構 vs 新架構對比
 
 ### 【整體複雜度】

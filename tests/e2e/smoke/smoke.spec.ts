@@ -1,7 +1,7 @@
 /**
- * Production / Staging Smoke Test
+ * Production Smoke Test
  *
- * Minimal canary that runs against any deployed environment (local, staging,
+ * Minimal canary that runs against any deployed environment (local,
  * production) and exits fast. Three layers, gated by environment variables:
  *
  *   Layer 1 (always runs)
@@ -25,13 +25,14 @@
  *     SMOKE_RESTAURANT_ID can be discovered from the login response.
  *
  * Production smoke (deploy-production.yml) runs Layer 1 only — no
- * credentials configured, no test data created in prod. Staging smoke runs
- * all three layers because staging has seeded fixtures.
+ * credentials configured, no test data created in prod. Local smoke (run
+ * manually against `pnpm dev`) can exercise all three layers because local
+ * dev has seeded fixtures.
  *
  * Env vars (with localhost fallbacks for the local dev project):
- *   SMOKE_API_URL          — API base, e.g. https://api.staging.makanmakan.app
- *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://staging.makanmakan.app
- *   SMOKE_AUTH_USERNAME    — seeded user for Layer 2 (e.g. admin in staging)
+ *   SMOKE_API_URL          — API base, e.g. https://api.makanmakan.com
+ *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://makanmakan.com
+ *   SMOKE_AUTH_USERNAME    — seeded user for Layer 2 (e.g. admin locally)
  *   SMOKE_AUTH_PASSWORD    — password for SMOKE_AUTH_USERNAME
  *   SMOKE_RESTAURANT_ID    — seeded restaurant UUID for Layer 3; required
  *                            outside localhost
@@ -225,7 +226,7 @@ test.describe("Smoke: Layer 3 (guest happy path round-trip)", () => {
       );
     } finally {
       // Always attempt cleanup so a failed assertion doesn't leak an order
-      // into the staging dataset.
+      // into the target dataset.
       if (orderId !== undefined && guestToken) {
         await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
           method: "POST",

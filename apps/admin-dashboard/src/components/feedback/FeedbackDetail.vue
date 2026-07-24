@@ -216,11 +216,12 @@
 
       <!-- Attachments -->
       <div
-        v-if="feedback.attachmentUrls?.length"
+        v-if="safeAttachmentUrls.length"
+        data-testid="feedback-attachments"
         class="mt-3 flex flex-wrap gap-2"
       >
         <a
-          v-for="(url, i) in feedback.attachmentUrls"
+          v-for="(url, i) in safeAttachmentUrls"
           :key="i"
           :href="url"
           target="_blank"
@@ -384,6 +385,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { useFeedback } from "@/composables/useFeedback";
+import { safeExternalHref } from "@/utils/safeExternalHref";
 import type {
   FeedbackItem,
   FeedbackResponseItem,
@@ -508,6 +510,12 @@ async function handleDeleteFeedback() {
 }
 
 const visibleResponses = computed(() => props.feedback.responses ?? []);
+const safeAttachmentUrls = computed(() =>
+  (props.feedback.attachmentUrls ?? []).flatMap((url) => {
+    const href = safeExternalHref(url, { allowAnyHttpHost: true });
+    return href ? [href] : [];
+  }),
+);
 
 function isAdminUser(userId: number) {
   // A heuristic — admin responses are those from non-restaurant users

@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Build and upload a worker bundle to R2 for tenant deployment.
 # Usage: ./scripts/build-and-upload-bundle.sh <version> [environment]
-# Example: ./scripts/build-and-upload-bundle.sh 1.2.0 staging
+# Example: ./scripts/build-and-upload-bundle.sh 1.2.0 production
 
 VERSION="${1:?Usage: $0 <version> [environment]}"
 ENVIRONMENT="${2:-production}"

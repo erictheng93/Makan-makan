@@ -11,6 +11,7 @@
  */
 
 import type { ManagementEnv } from "../types";
+import { sortVersionsDescending } from "../utils/semver";
 
 export interface BundleManifest {
   version: string;
@@ -69,7 +70,7 @@ export class BundleService {
       if (version) versions.push(version);
     }
 
-    return versions.sort().reverse(); // Latest first
+    return sortVersionsDescending(versions); // Latest first (semver, not lexical)
   }
 
   /**

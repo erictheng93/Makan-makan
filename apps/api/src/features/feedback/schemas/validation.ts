@@ -5,6 +5,7 @@ import {
   FEEDBACK_STATUSES,
   FEEDBACK_MODULES,
 } from "@makanmakan/database";
+import { httpUrlSchema } from "../../../shared/utils/url";
 
 export const createFeedbackSchema = z.object({
   subject: z
@@ -19,7 +20,7 @@ export const createFeedbackSchema = z.object({
   priority: z.enum(FEEDBACK_PRIORITIES).optional(),
   relatedModule: z.enum(FEEDBACK_MODULES).optional(),
   attachmentUrls: z
-    .array(z.string().url("Each attachment must be a valid URL"))
+    .array(httpUrlSchema)
     .max(5, "Maximum 5 attachments allowed")
     .optional(),
 });

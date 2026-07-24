@@ -140,8 +140,8 @@ export class BackupConfigService {
         notificationsEnabled: config.notifications_enabled,
         notificationChannels: config.notification_channels || [],
         createdBy: config.created_by,
-        createdAt: config.created_at,
-        updatedAt: config.updated_at,
+        createdAt: config.created_at ? new Date(config.created_at) : new Date(),
+        updatedAt: config.updated_at ? new Date(config.updated_at) : new Date(),
       });
 
       return config;
@@ -193,7 +193,9 @@ export class BackupConfigService {
           maxParallelBackups: updated.max_parallel_backups,
           notificationsEnabled: updated.notifications_enabled,
           notificationChannels: updated.notification_channels || [],
-          updatedAt: updated.updated_at,
+          updatedAt: updated.updated_at
+            ? new Date(updated.updated_at)
+            : new Date(),
         })
         .where(eq(backupConfigurations.id, configId));
 
@@ -400,8 +402,21 @@ export class BackupConfigService {
       notification_channels:
         row.notificationChannels ?? row.notification_channels ?? [],
       created_by: row.createdBy ?? row.created_by,
-      created_at: row.createdAt ?? row.created_at,
-      updated_at: row.updatedAt ?? row.updated_at,
+      created_at: this.toIsoString(row.createdAt ?? row.created_at),
+      updated_at: this.toIsoString(row.updatedAt ?? row.updated_at),
     } as BackupConfiguration;
+  }
+
+  private toIsoString(value: unknown): string {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (typeof value === "number") {
+      return new Date(value).toISOString();
+    }
+    if (typeof value === "string") {
+      return value;
+    }
+    return new Date().toISOString();
   }
 }

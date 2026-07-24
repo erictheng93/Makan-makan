@@ -10,9 +10,9 @@
  * Infrastructure notes (from the smoke work):
  *   - /auth/register and /auth/login are CSRF-excluded in app-factory.ts
  *   - authMiddleware is JWT-only; it does NOT query the sessions table
- *   - /auth/me additionally calls AuthService.validateToken which DOES
- *     query the sessions table, so pre-signed tokens fail /me but work
- *     on other protected routes
+ *   - /auth/me uses authMiddleware only (JWT + users.token_version), so a
+ *     second login that invalidates the first session row does not make the
+ *     first access token fail /me until the JWT itself is invalidated
  *   - authMiddleware rejects role > 4, so customer (role 5) tokens
  *     cannot hit any protected route including /me
  *   - DatabaseAuthService.register returns { success, user } — no
@@ -236,9 +236,7 @@ describe("Auth API — real integration", () => {
 
   describe("GET /api/v1/auth/me", () => {
     // Happy path: seed a staff user with a real bcrypt hash, log in to
-    // create a session row, then call /me with the returned token. This
-    // exercises the full chain — authMiddleware JWT verify AND
-    // AuthService.validateToken's sessions table lookup.
+    // create a session row, then call /me with the returned token.
     it("returns profile through the full auth chain (register-less path)", async () => {
       const bcrypt = (await import("bcryptjs")).default;
       const password = "StaffPass123!";
@@ -280,6 +278,63 @@ describe("Auth API — real integration", () => {
       );
       // Belt-and-braces: staff row really exists with the id we seeded.
       expect(staff.username).toBe("pilot-staff");
+    });
+
+    it("keeps the first access token valid for /me after a second login", async () => {
+      const bcrypt = (await import("bcryptjs")).default;
+      const password = "OwnerPass123!";
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      await seed.user({
+        username: "multi-login-owner",
+        passwordHash,
+        role: 1,
+        restaurantId,
+        isActive: true,
+      });
+
+      const firstLogin = await testApp.app.fetch(
+        new Request("https://test/api/v1/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            username: "multi-login-owner",
+            password,
+          }),
+        }),
+      );
+      expect(firstLogin.status).toBe(200);
+      const firstJson: any = await firstLogin.json();
+      const firstToken: string = firstJson.data?.token;
+      expect(firstToken).toBeTruthy();
+
+      const secondLogin = await testApp.app.fetch(
+        new Request("https://test/api/v1/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            username: "multi-login-owner",
+            password,
+          }),
+        }),
+      );
+      expect(secondLogin.status).toBe(200);
+
+      const meRes = await testApp.app.fetch(
+        new Request("https://test/api/v1/auth/me", {
+          headers: { authorization: `Bearer ${firstToken}` },
+        }),
+      );
+      expect(meRes.status).toBe(200);
+      const meJson: any = await meRes.json();
+      expect(meJson).toMatchObject({
+        success: true,
+        data: {
+          username: "multi-login-owner",
+          role: 1,
+          restaurantId,
+        },
+      });
     });
 
     it("returns 401 when no Authorization header is provided", async () => {

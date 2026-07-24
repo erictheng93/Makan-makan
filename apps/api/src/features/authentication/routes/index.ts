@@ -356,39 +356,17 @@ export function createAuthRoutes(
 
   // Get Current User Info - GET /me
   authRoutes.get("/me", authMiddleware, async (c) => {
-    const _user = c.get("user");
-
-    // Initialize auth service
+    const user = c.get("user");
     const authService = AuthService(c.env);
-
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return c.json(
-        {
-          success: false,
-          error: "Authorization token required",
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
-    }
-
-    const token = authHeader.substring(7);
-    const validation = await authService.validateToken(token);
-
-    if (!validation.valid) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error || "Invalid token",
-        },
-        HTTP_STATUS.UNAUTHORIZED,
-      );
-    }
+    const profile = await authService.getUserProfile(String(user.id));
+    const responseUser = profile
+      ? (({ sessions: _sessions, ...publicProfile }) => publicProfile)(profile)
+      : user;
 
     return c.json(
       {
         success: true,
-        data: validation.user,
+        data: responseUser,
       },
       HTTP_STATUS.OK,
     );
@@ -595,7 +573,10 @@ export function createAuthRoutes(
     );
   });
 
-  // Forgot Password - POST /forgot-password (placeholder)
+  // Forgot Password - POST /forgot-password
+  // LIVE implementation. This mounts on /auth before the verification feature,
+  // so this AuthService-based handler is the one clients actually hit (the
+  // verification module's same-path handler was removed as unreachable).
   authRoutes.post(
     "/forgot-password",
     validateBody(authSchemas.forgotPassword),
@@ -617,7 +598,9 @@ export function createAuthRoutes(
     },
   );
 
-  // Reset Password - POST /reset-password (placeholder)
+  // Reset Password - POST /reset-password
+  // LIVE implementation (see /forgot-password note) — wins over the verification
+  // module's same-path handler, which was removed as unreachable dead code.
   authRoutes.post(
     "/reset-password",
     validateBody(authSchemas.resetPassword),
@@ -639,7 +622,9 @@ export function createAuthRoutes(
     },
   );
 
-  // Verify Email - POST /verify-email (placeholder)
+  // Verify Email - POST /verify-email
+  // LIVE implementation. The verification module only exposes GET /verify-email
+  // (a different method), so there is no collision — this POST handler is live.
   authRoutes.post(
     "/verify-email",
     validateBody(authSchemas.verifyEmail),

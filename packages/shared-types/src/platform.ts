@@ -27,6 +27,7 @@ export interface PlatformCredentials {
   refreshToken?: string;
   tokenExpiresAt?: number;
   storeId?: string;
+  webhookSecret?: string;
 }
 
 export interface PlatformConfig {

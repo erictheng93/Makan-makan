@@ -12,7 +12,6 @@ export { SeatService } from "./seat";
 export { AnalyticsService } from "./analytics";
 export { ErrorReportingService } from "./error-reporting";
 export { QRCodeService } from "./qrcode";
-export { POSService } from "./POSService";
 export { ImageService } from "./image";
 export { CouponService } from "./coupon";
 export { LeaveService } from "./LeaveService";
@@ -86,20 +85,6 @@ export type {
   QRStyleData,
   QRCodeStats,
 } from "./qrcode";
-
-export type {
-  CashRegister,
-  CashShift,
-  CashMovement,
-  Receipt,
-  Refund,
-  CreateRegisterRequest,
-  StartShiftRequest,
-  EndShiftRequest,
-  CashMovementRequest,
-  PrintReceiptRequest,
-  ProcessRefundRequest,
-} from "./POSService";
 
 export type {
   ImageAnalyticsOptions,

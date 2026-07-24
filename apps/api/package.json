@@ -4,12 +4,10 @@
   "description": "MakanMakan API server built with Hono and Cloudflare Workers",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9229",
     "build": "wrangler deploy --dry-run --env=\"\"",
-    "build:staging": "wrangler deploy --dry-run --env staging",
     "build:prod": "wrangler deploy --dry-run --env production",
-    "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:staging or pnpm run deploy:prod.'); process.exit(1)\"",
-    "deploy:staging": "wrangler deploy --env staging",
+    "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:prod.'); process.exit(1)\"",
     "deploy:prod": "wrangler deploy --env production",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
@@ -35,7 +33,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260603.1",
+    "@cloudflare/workers-types": "^5.20260722.1",
     "@hono/node-server": "^1.19.14",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
@@ -44,7 +42,7 @@
     "drizzle-orm": "^0.45.2",
     "sql.js": "^1.13.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.101.0"
+    "vitest": "^4.1.0",
+    "wrangler": "^4.114.0"
   }
 }

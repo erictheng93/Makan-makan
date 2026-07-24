@@ -6,6 +6,15 @@
 **最後更新**: 2025年8月  
 **負責人**: 產品團隊
 
+> ⚠️ **v1.0 已被取代（標註於 2026-07-05）**：本文件描述的技術棧
+> （Node.js+Express、MySQL 8.0+Redis、Docker+Kubernetes 部署、React 管理端）
+> 與付費訂閱 SaaS 定位，皆已不符合現況。現行技術棧是 Cloudflare
+> Workers+D1+KV+Durable Objects，前端全部是 Vue 3（無 React），且產品定位
+> 已 pivot 為夜市/商圈平台並移除訂閱月費（見 `docs/BUSINESS_PLAN.md` v2.0，
+> commit `77d79994 docs(business-plan): pivot v2.0 from restaurant SaaS to
+> night-market platform`）。本文件保留供理解 v1.0 產品構想脈絡，請勿作為
+> 現行技術或商業決策依據——現行架構請見根目錄 `CLAUDE.md`。
+
 ---
 
 ## 1. 產品概述

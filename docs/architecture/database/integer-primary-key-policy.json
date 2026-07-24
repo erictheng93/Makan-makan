@@ -258,7 +258,7 @@
   {
     "tableName": "payment_transactions",
     "schemaFile": "packages/database/src/schema/payments.ts",
-    "line": 30,
+    "line": 36,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "rationale": "Payment transactions cross provider, order, and reconciliation boundaries."
@@ -266,7 +266,7 @@
   {
     "tableName": "refund_transactions",
     "schemaFile": "packages/database/src/schema/payments.ts",
-    "line": 81,
+    "line": 89,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "rationale": "Refund transactions cross provider, order, and cashier workflows."

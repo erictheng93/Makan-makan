@@ -41,7 +41,7 @@ The MakanMakan Notification System provides automated employee notifications via
 ### ✅ 已實現功能 (Implemented Features)
 
 1. **通知服務核心 (Core Service)**
-   - NotificationService (677 行)
+   - NotificationService（現行 1081 行，2026-07-05 核實；已隨候位、預約服務、驗證等通知類別擴充）
    - 多供應商支持 (Resend、Twilio)
    - 模板渲染引擎
    - 錯誤處理機制
@@ -117,11 +117,6 @@ TWILIO_PHONE_NUMBER="+1234567890"
 wrangler secret put RESEND_API_KEY --env development
 wrangler secret put TWILIO_ACCOUNT_SID --env development
 wrangler secret put TWILIO_AUTH_TOKEN --env development
-
-# Staging
-wrangler secret put RESEND_API_KEY --env staging
-wrangler secret put TWILIO_ACCOUNT_SID --env staging
-wrangler secret put TWILIO_AUTH_TOKEN --env staging
 
 # Production
 wrangler secret put RESEND_API_KEY --env production
@@ -224,7 +219,7 @@ Authorization: Bearer <token>
       }
       // ... 更多模板
     ],
-    "totalCount": 11,
+    "totalCount": 28,
     "supportedChannels": ["email", "sms"],
     "configuredProviders": {
       "email": true,

@@ -124,8 +124,18 @@ export interface StatCard {
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  /**
+   * Unified nested error format `{ code, message, details? }`.
+   * A plain string is still accepted as a legacy fallback.
+   */
+  error?: string | ApiErrorPayload;
   message?: string;
+}
+
+export interface ApiErrorPayload {
+  code: string;
+  message: string;
+  details?: unknown;
 }
 
 /**

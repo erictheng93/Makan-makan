@@ -126,7 +126,7 @@ Request → Request ID → Security Monitor → CORS → Security Headers
 
 ### Configuration Security
 
-- ✅ **Environment Separation**: Dev/staging/production isolation
+- ✅ **Environment Separation**: Dev/production isolation
 - ✅ **Secret Management**: Cloudflare Workers secrets
 - ✅ **Database Security**: Proper connection strings
 - ✅ **Build Security**: Secure build processes

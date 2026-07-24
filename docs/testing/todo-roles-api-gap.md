@@ -38,9 +38,12 @@
   6. `POST /api/v1/coupons/{couponA.id}/deactivate` with `admin` → **預期 200/204**
   7. `POST /api/v1/coupons/{couponB.id}/deactivate` with `admin` → **預期 200/204**
   8. 無 `Authorization` 呼叫步驟 1 → **預期 401**
-- **完成條件（勾選）**
-  - [ ] 以上 8 項 API 狀態碼逐筆確認
-  - [ ] owner 跨店拒絕與 admin 全域授權皆有紀錄
+- **完成條件（勾選，2026-07-05 核實）**
+  - [x] 以上 8 項 API 狀態碼逐筆確認 —— `apps/api/src/__tests__/integration/coupons.real.integration.test.ts:388`
+        「enforces coupons owner access and cross-restaurant scope on analytics trends」
+        與 `:510`「enforces owner/cross-restaurant permission for coupon
+        deactivation and admin full access」已覆蓋
+  - [x] owner 跨店拒絕與 admin 全域授權皆有紀錄
 
 ---
 
@@ -102,7 +105,7 @@
 ## Ticket 04（`P1`）：`customer` 對前台下單與幂等/CSRF
 
 - **目標**：補齊 role 5 在下單流程的真實 API 邏輯，包含 CSRF 驗證與重複提交處理。
-- **狀態**：進行中（測試執行中）
+- **狀態（2026-07-05 核實）**：完成 —— `role-gaps-04-customer-orders.real.integration.test.ts` 已涵蓋大部分場景（僅幂等鍵仍是真實缺口，見下方）
 - **mock/seed 準備**
   - 建立可下單的 `menuItem/restaurant/menu/price`（屬於餐廳 A）
   - 建立 customer token（`customer`）
@@ -115,19 +118,21 @@
   4. 初次成功後變更 payload 金額再用同一 key → **預期 409/400**（避免資料衝突，依實作）
   5. 未帶 token 的前台下單 → **預期 401**
   6. 使用 `owner` 或 `admin` token 嘗試同 endpoint（非角色路徑）→ **預期 403**
-- **完成條件（勾選）**
-- [ ] 已新增 real API 測試檔：`apps/api/src/__tests__/integration/role-gaps-04-customer-orders.real.integration.test.ts`
-- [ ] 已覆蓋未帶 CSRF/未帶 token 的拒絕行為
-- [ ] 已覆蓋 `/api/v1/orders` 客戶角色建立與權限邊界
-- [ ] 已覆蓋重複提交行為（目前實作無幂等鍵綁定）
-- [ ] 已覆蓋 `/api/v1/customers/me/orders` 與 canonical customer token 一致性
+- **完成條件（勾選，2026-07-05 核實）**
+- [x] 已新增 real API 測試檔：`apps/api/src/__tests__/integration/role-gaps-04-customer-orders.real.integration.test.ts`
+- [x] 已覆蓋未帶 CSRF/未帶 token 的拒絕行為
+- [x] 已覆蓋 `/api/v1/orders` 客戶角色建立與權限邊界
+- [ ] 已覆蓋重複提交行為 —— 仍為真實缺口：測試檔本身明確標題為
+      「does not dedupe repeated POST for identical payload + token when no
+      idempotency key binding exists」（line 180），確認目前實作確實無幂等鍵綁定
+- [x] 已覆蓋 `/api/v1/customers/me/orders` 與 canonical customer token 一致性 —— line 232, 257
 
 ---
 
 ## Ticket 05（`P0`）：admin-only 模組邊界（`/v1/auth`, `/v1/monitoring`, `/v1/system`, `/v1/feedback`）
 
 - **目標**：確保 admin(0) 專屬端點行為一致：`admin` 可用，非 admin 不可用（除公開 health）。
-- **狀態**：進行中（測試執行中）
+- **狀態（2026-07-05 核實）**：完成 —— `role-gaps-05-admin-modules.real.integration.test.ts` 已涵蓋以下所有場景
 - **mock/seed 準備**
   - `admin`、`owner`、`chef`、`service`、`cashier`、`customer` token
   - 至少一筆 feedback record、system 錯誤紀錄（對應 `/system/error-stats`）
@@ -149,11 +154,11 @@
     10. `GET /api/v1/feedback` with owner → **預期 403**
     11. `GET /api/v1/feedback/stats` with admin → **預期 200**
     12. `GET /api/v1/feedback/stats` with owner → **預期 403**
-- **完成條件（勾選）**
-- [ ] 已新增 real API 測試檔：`apps/api/src/__tests__/integration/role-gaps-05-admin-modules.real.integration.test.ts`
-- [ ] 已覆蓋 admin 與非 admin 對照（`/api/v1/auth/stats`、`/api/v1/monitoring/metrics`、`/api/v1/system/health/detailed`、`/api/v1/feedback/stats`）
-- [ ] 已確認公開 endpoint 行為：`/api/v1/monitoring/health`、`/api/v1/system/health`
-- [ ] 已確認 `/api/v1/feedback` 與 `/api/v1/system/error-stats` owner/admin 邏輯範圍
+- **完成條件（勾選，2026-07-05 核實）**
+- [x] 已新增 real API 測試檔：`apps/api/src/__tests__/integration/role-gaps-05-admin-modules.real.integration.test.ts`
+- [x] 已覆蓋 admin 與非 admin 對照（`/api/v1/auth/stats`、`/api/v1/monitoring/metrics`、`/api/v1/system/health/detailed`、`/api/v1/feedback/stats`）
+- [x] 已確認公開 endpoint 行為：`/api/v1/monitoring/health`、`/api/v1/system/health`
+- [x] 已確認 `/api/v1/feedback` 與 `/api/v1/system/error-stats` owner/admin 邏輯範圍
 
 ---
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { sign, verify } from "hono/jwt";
+import { sign } from "hono/jwt";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { generateUUID, normalizeE164Phone } from "@makanmakan/utils";
@@ -10,7 +10,10 @@ import {
   isCustomerConsentVersion,
 } from "@makanmakan/shared-types";
 import type { Env } from "../../../types/env";
-import { canonicalCustomerAuthMiddleware } from "../../../middleware/auth";
+import {
+  canonicalCustomerAuthMiddleware,
+  verifyJwtToken,
+} from "../../../middleware/auth";
 import { validateBody, validateQuery } from "../../../middleware/validation";
 import { badRequest, unauthorized } from "../../../shared/utils/api-error";
 
@@ -249,7 +252,7 @@ routes.post("/auth/refresh", async (c) => {
     throw unauthorized("Refresh token is required", "TOKEN_INVALID");
   }
 
-  const decoded = await verify(refreshToken, c.env.JWT_SECRET, "HS256");
+  const decoded = verifyJwtToken(refreshToken, c.env.JWT_SECRET);
   if (!isRefreshPayload(decoded)) {
     throw unauthorized("Invalid refresh token", "TOKEN_INVALID");
   }
@@ -766,7 +769,7 @@ async function revokeCustomerRefreshToken(
   refreshToken: string,
 ): Promise<void> {
   try {
-    const decoded = await verify(refreshToken, env.JWT_SECRET, "HS256");
+    const decoded = verifyJwtToken(refreshToken, env.JWT_SECRET);
     if (isRefreshPayload(decoded)) {
       await env.TOKEN_BLACKLIST.delete(`customer_refresh:${decoded.jti}`);
     }

@@ -1,6 +1,13 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Context, Next } from "hono";
+import {
+  ApiError,
+  badRequest,
+  conflict,
+  notFound,
+  unauthorized,
+} from "@makanmakan/utils";
 import type { ManagementEnv } from "../types";
 import { TenantService } from "../services/TenantService";
 
@@ -45,13 +52,9 @@ async function requireInternalToken(c: Context<InternalEnv>, next: Next) {
   const expected = c.env.INTERNAL_API_TOKEN;
   const provided = c.req.header("X-Internal-API-Token");
   if (!expected || !provided || !constantTimeEqual(provided, expected)) {
-    return c.json(
-      {
-        success: false,
-        error: "Internal API token is required",
-        code: "INTERNAL_AUTH_REQUIRED",
-      },
-      401,
+    throw unauthorized(
+      "Internal API token is required",
+      "INTERNAL_AUTH_REQUIRED",
     );
   }
 
@@ -73,27 +76,17 @@ router.post("/platform-restaurants/:restaurantId/tenant", async (c) => {
     return c.json({ success: true, data: { tenant } }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
 
     console.error(
       "[Internal] Provision platform restaurant tenant error:",
       error,
     );
-    return c.json(
-      {
-        success: false,
-        error: "Failed to provision tenant",
-        code: "TENANT_PROVISION_FAILED",
-      },
+    throw new ApiError(
+      "TENANT_PROVISION_FAILED",
+      "Failed to provision tenant",
       500,
     );
   }
@@ -110,52 +103,27 @@ router.patch("/platform-restaurants/:restaurantId/owner", async (c) => {
     });
 
     if (!tenant) {
-      return c.json(
-        {
-          success: false,
-          error: "Tenant not found for platform restaurant",
-          code: "TENANT_NOT_FOUND",
-        },
-        404,
+      throw notFound(
+        "Tenant not found for platform restaurant",
+        "TENANT_NOT_FOUND",
       );
     }
 
     return c.json({ success: true, data: { tenant } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error.errors,
-        },
-        400,
-      );
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
     }
+    if (error instanceof ApiError) throw error;
     if (
       error instanceof Error &&
       error.message === "Tenant is already linked to a different owner"
     ) {
-      return c.json(
-        {
-          success: false,
-          error: error.message,
-          code: "OWNER_LINK_CONFLICT",
-        },
-        409,
-      );
+      throw conflict(error.message, "OWNER_LINK_CONFLICT");
     }
 
     console.error("[Internal] Link platform restaurant owner error:", error);
-    return c.json(
-      {
-        success: false,
-        error: "Failed to link owner",
-        code: "OWNER_LINK_FAILED",
-      },
-      500,
-    );
+    throw new ApiError("OWNER_LINK_FAILED", "Failed to link owner", 500);
   }
 });
 

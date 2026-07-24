@@ -469,7 +469,7 @@ CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
 ```bash
 # 完整備份
-npx wrangler d1 export makanmakan-staging --output backup_$(date +%Y%m%d).sql
+npx wrangler d1 export makanmakan-prod --output backup_$(date +%Y%m%d).sql
 
 # 驗證備份
 sqlite3 backup_*.sql ".tables"
@@ -617,16 +617,6 @@ npm run test:load
 ```
 
 ### Phase 6: 部署與切換 (1-2 天)
-
-#### 6.1 Staging 部署
-
-```bash
-# 部署新架構到 staging
-npm run deploy:staging:v2
-
-# 運行煙霧測試
-npm run test:smoke:staging
-```
 
 #### 6.2 Production 切換
 

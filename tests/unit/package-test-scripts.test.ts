@@ -14,7 +14,6 @@ function workspacePackageJson(path: string) {
 }
 
 const expectedExistingPaths = [
-  ["test:smoke:staging", "playwright.staging.config.ts"],
   ["test:performance", "tests/performance/artillery-api-ci.yml"],
   ["test:performance:ws", "tests/performance/artillery-realtime-ci.yml"],
   ["test:load:peak", "tests/performance/artillery-lunch-peak.yml"],
@@ -50,7 +49,7 @@ describe("package test scripts", () => {
   });
 
   it("runs local D1 migrations against the API dev server state path", () => {
-    const expectedPersistPath = "--persist-to ./apps/api/.wrangler/state";
+    const expectedPersistPath = "--persist-to ./.wrangler/shared-state";
 
     expect(packageJson.scripts["db:migrate:local"]).toContain(
       "pnpm db:migrate:local:api",
@@ -60,7 +59,7 @@ describe("package test scripts", () => {
     );
     expect(packageJson.scripts["db:seed:local"]).toContain(expectedPersistPath);
     expect(packageJson.scripts["db:reset:local"]).toContain(
-      "apps/api/.wrangler/state/v3/d1/",
+      ".wrangler/shared-state/v3/d1/",
     );
   });
 
@@ -73,7 +72,6 @@ describe("package test scripts", () => {
 
       expect(pkg.scripts.deploy).toMatch(/Refusing unqualified deploy/);
       expect(pkg.scripts.deploy).not.toContain("wrangler deploy");
-      expect(pkg.scripts["deploy:staging"]).toContain("--env staging");
       expect(pkg.scripts["deploy:prod"]).toContain("--env production");
     }
   });

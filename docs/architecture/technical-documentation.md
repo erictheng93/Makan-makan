@@ -6,6 +6,8 @@
 **最後更新**: 2025年8月  
 **技術負責人**: 開發團隊
 
+> ⚠️ **準確性提醒（2026-07-05）**：本文件的 SQL schema 範例是早期架構草稿，多處已與現行 schema 不符（例如下方 `users`/`restaurants` 仍示範 `INTEGER PRIMARY KEY AUTOINCREMENT`，但 `users.id`/`restaurants.id` 現行已改為 `TEXT` UUID v7；`DATETIME DEFAULT CURRENT_TIMESTAMP` 也已改為 `INTEGER` Unix ms via Drizzle `timestamp_ms`）。請以 `packages/database/src/schema/` 的 Drizzle schema 為準，本文件僅供理解整體架構脈絡。
+
 ---
 
 ## 🎯 技術需求概述
@@ -735,21 +737,31 @@ const cached = (ttl: number = 300) => {
 
 ### 專案結構設計
 
+> ⚠️ 下方樹狀圖是早期草稿；現行 `apps/` 共 11 個、`packages/` 共 8 個，完整清單見根目錄 `CLAUDE.md` 的 Applications Overview 表。
+
 ```
 makanmakan/
 ├── apps/
-│   ├── customer-app/          # 消費者前端 (Cloudflare Pages)
-│   ├── admin-dashboard/       # 管理後台 (Cloudflare Pages)
-│   ├── api/                   # API服務 (Cloudflare Workers)
+│   ├── customer-app/          # 消費者前端 (Vite/Vue)
+│   ├── admin-dashboard/       # 管理後台 (Vite/Vue)
+│   ├── kitchen-display/       # 廚房顯示系統 (Vite/Vue)
+│   ├── management-portal/     # 平台管理入口 (Vite/Vue)
+│   ├── onboarding-app/        # 租戶 onboarding 流程 (Vite/Vue)
+│   ├── api/                   # 主要公開/管理 API (Cloudflare Workers)
+│   ├── management-api/        # 平台管理控制面 API (Cloudflare Workers)
 │   ├── realtime/              # 即時服務 (Durable Objects)
-│   └── image-processor/       # 圖片處理 (Cloudflare Workers)
+│   ├── image-processor/       # 圖片處理 (Cloudflare Workers)
+│   ├── backup-scheduler/      # 排程備份觸發 (Cloudflare Workers Cron)
+│   └── print-agent/           # 本地出單代理 (Node.js, 非 Cloudflare)
 ├── packages/
 │   ├── shared-types/          # 共用型別定義
 │   ├── database/              # 資料庫 schema & 遷移
-│   └── utils/                 # 共用工具函式
-├── infrastructure/
-│   ├── terraform/             # 基礎設施代碼
-│   └── scripts/               # 部署腳本
+│   ├── shared/                # 共用元件/i18n runtime
+│   ├── utils/                 # 共用工具函式
+│   ├── auth-client/           # 共用認證用戶端
+│   ├── ai-analytics/          # AI 分析服務層
+│   ├── queue-core/            # 候位/佇列核心邏輯
+│   └── queue-service/         # 候位/佇列服務層
 └── docs/                      # 文檔
 ```
 
@@ -767,10 +779,6 @@ node_compat = true
 [env.production]
 name = "makanmakan-api-prod"
 vars = { ENVIRONMENT = "production" }
-
-[env.staging]
-name = "makanmakan-api-staging"
-vars = { ENVIRONMENT = "staging" }
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -796,7 +804,6 @@ queue = "makanmakan-tasks-prod"
 
 [env.production.vars]
 JWT_SECRET = "xxx"
-CLOUDFLARE_IMAGES_KEY = "xxx"
 ```
 
 ### GitHub Actions CI/CD Pipeline
@@ -834,47 +841,6 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
-
-      - name: Run D1 migrations (staging)
-        if: github.ref == 'refs/heads/develop'
-        run: npx wrangler d1 migrations apply makanmakan-staging --env staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  deploy-staging:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build applications
-        run: npm run build
-
-      - name: Deploy API to staging
-        run: npx wrangler deploy --env staging
-        working-directory: apps/api
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-      - name: Deploy Customer App to staging
-        run: npx wrangler pages deploy dist --project-name=makanmakan-customer-staging
-        working-directory: apps/customer-app
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-      - name: Deploy Admin Dashboard to staging
-        run: npx wrangler pages deploy dist --project-name=makanmakan-admin-staging
-        working-directory: apps/admin-dashboard
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   deploy-production:
     needs: test
@@ -932,8 +898,7 @@ packages/database/
 │   ├── 0003_add_indexes.sql
 │   └── 0004_menu_improvements.sql
 ├── seeds/
-│   ├── development.sql
-│   └── staging.sql
+│   └── development.sql
 └── scripts/
     ├── migrate.ts
     └── seed.ts
@@ -1518,7 +1483,7 @@ export function validateInput(
 ```
 ✅ 任務清單:
 □ 設置 Cloudflare 帳戶與服務
-  □ 建立 D1 資料庫 (staging/production)
+  □ 建立 D1 資料庫 (production)
   □ 設置 KV namespace 用於快取
   □ 建立 R2 bucket 用於圖片儲存
   □ 設置 Durable Objects 用於即時功能
@@ -1531,7 +1496,7 @@ export function validateInput(
 
 □ CI/CD 流水線
   □ 設置 GitHub Actions
-  □ 配置 staging/production 環境
+  □ 配置 production 環境
   □ 設置自動化測試流程
 ```
 
@@ -1878,5 +1843,3 @@ QA測試工程師         1      功能測試、自動化測試
 **文檔版本**: v1.0  
 **最後更新**: 2025年8月21日  
 **下次審查**: 開發進度檢討時更新
-<invoke name="TodoWrite">
-<parameter name="todos">[{"id": "1", "content": "\u5206\u6790PRD\u6280\u8853\u9700\u6c42\u4e26\u6620\u5c04\u5230Cloudflare\u670d\u52d9", "status": "completed"}, {"id": "2", "content": "\u8a2d\u8a08\u57fa\u65bcCloudflare\u751f\u614b\u7684\u7cfb\u7d71\u67b6\u69cb", "status": "completed"}, {"id": "3", "content": "\u8a2d\u8a08\u8cc7\u6599\u5eabSchema (Cloudflare D1)", "status": "in_progress"}, {"id": "4", "content": "\u8a2d\u8a08API\u67b6\u69cb (Cloudflare Workers)", "status": "pending"}, {"id": "5", "content": "\u64b0\u5beb\u90e8\u7f72\u8207CI/CD\u7b56\u7565", "status": "pending"}, {"id": "6", "content": "\u5236\u5b9a\u958b\u767c\u512a\u5148\u9806\u5e8f\u8207\u5be6\u4f5c\u8a08\u5283", "status": "pending"}, {"id": "7", "content": "\u5275\u5efaTechnical Documentation", "status": "pending"}]

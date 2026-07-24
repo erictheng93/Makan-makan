@@ -270,135 +270,42 @@ pnpm test:e2e:ui
 
 ### 測試結構
 
+> ⚠️ **準確性提醒（2026-07-05）**：下方舊有的 `admin/`、`journeys/`、
+> `specs/`、`helpers/` 目錄樹已於 commit `b936600f`（2026-05-25,「remove
+> mock-based test doubles」）整批刪除並重建。現行結構如下；完整模組對照表
+> 請見 `docs/testing/CORE_WORKFLOW_TEST_MATRIX.md`（權威來源，持續更新）。
+
 ```
 tests/e2e/
-├── admin/                        # Admin Dashboard E2E (15 specs / ~236 tests)
-│   ├── rbac-permissions.spec.ts        # 5 角色權限邊界
-│   ├── orders-management.spec.ts       # 訂單管理
-│   ├── menu-management.spec.ts         # 菜單 CRUD
-│   ├── tables-users-management.spec.ts # 桌台 / 員工
-│   ├── kitchen-queue-pos.spec.ts       # 廚房 / 排隊 / POS
-│   ├── filter-search.spec.ts           # 篩選搜尋
-│   ├── state-transitions.spec.ts       # 訂單 / 訂位狀態流轉
-│   ├── rwd-responsive.spec.ts          # 3 breakpoints
-│   ├── error-handling.spec.ts          # 500 / 401 / 403 / 404 / 429
-│   ├── form-validation.spec.ts
-│   ├── modal-dialog-interactions.spec.ts
-│   ├── pagination-scroll.spec.ts
-│   ├── export-functionality.spec.ts
-│   ├── crud-operations.spec.ts
-│   └── sse-realtime.spec.ts            # SSE / Realtime
-├── journeys/                     # 角色任務 E2E (8+ specs / ~76 tests)
-│   ├── owner/                    # daily-operations
-│   ├── chef/                     # kitchen-shift
-│   ├── cashier/                  # pos-shift
-│   ├── service-crew/             # delivery-shift
-│   ├── customer/                 # guest-dine-in, guest-shop-takeaway
-│   └── cross-role/               # order-lifecycle, reservation-to-seated
-├── integration/                  # 完整流程整合 (customer-dine-in, delivery-zone, ...)
-├── helpers/                      # mock-api, personas, assertions, test-helpers
-├── support/                      # 共用 test-helpers
-├── specs/                        # 舊版共用 specs（漸進式遷移至上述目錄）
+├── smoke/                         # 各角色 smoke tests（owner-*, kitchen-display 等，8 specs）
+├── integration/                   # real-workflows.spec.ts：對真實 API 的瀏覽器工作流程
+├── kitchen-display/               # kitchen-display.spec.ts：廚房畫面路由與狀態轉換
+├── ci-smoke/                      # CI 專用輕量 smoke test
 ├── global-setup.ts
 └── global-teardown.ts
 ```
 
 > 另有 `tests/visual/*.visual.ts`（Playwright screenshot baselines）、
-> `tests/performance/*.yml`（Artillery 6 configs）、`tests/security/`（4 files, 361 tests）。
+> `tests/performance/*.yml`（Artillery configs）、`tests/security/`（安全測試）。
 
 ### 核心測試場景
 
-#### 1. 訂單管理流程 (10 個測試)
-
-- ✅ 顯示訂單列表
-- ✅ 篩選訂單狀態
-- ✅ 查看訂單詳情
-- ✅ 更新訂單狀態
-- ✅ 搜尋訂單
-- ✅ 取消訂單
-- ✅ 顯示訂單統計
-- ✅ 導出訂單報表
-- ✅ 實時更新訂單 (WebSocket)
-- ✅ 錯誤處理
-
-#### 2. 菜單管理流程 (10 個測試)
-
-- ✅ 顯示菜單列表
-- ✅ 按分類篩選
-- ✅ 新增菜品
-- ✅ 編輯菜品
-- ✅ 刪除菜品
-- ✅ 管理分類
-- ✅ 上傳菜品圖片
-- ✅ 切換可用狀態
-- ✅ 搜尋菜品
-- ✅ 顯示統計資訊
-
-#### 3. 桌台管理流程 (5 個測試)
-
-- ✅ 顯示桌台列表
-- ✅ 新增桌台
-- ✅ 生成 QR 碼
-- ✅ 更新桌台狀態
-- ✅ 篩選桌台狀態
-
-#### 4. 用戶管理流程 (7 個測試)
-
-- ✅ 顯示員工列表
-- ✅ 新增員工
-- ✅ 編輯員工資訊
-- ✅ 停用/啟用員工
-- ✅ 按角色篩選
-- ✅ 重設密碼
-- ✅ 顯示統計資訊
-
-#### 5. 廚房顯示流程 (5 個測試)
-
-- ✅ 顯示待處理訂單
-- ✅ 更新訂單項目狀態
-- ✅ 標記訂單完成
-- ✅ 顯示訂單計時器
-- ✅ 按優先級排序
-
-#### 6. 隊列管理流程 (4 個測試)
-
-- ✅ 顯示排隊列表
-- ✅ 安排座位
-- ✅ 取消排隊
-- ✅ 顯示統計資訊
-
-#### 7. POS 收銀流程 (3 個測試)
-
-- ✅ 顯示待付款訂單
-- ✅ 處理現金支付
-- ✅ 顯示銷售摘要
-
-**Admin E2E 總計：15 specs / ~236 tests**（以上為基本分類，完整對照請見 `docs/testing/TEST_PROGRESS.md`）
-
-### Journey E2E 角色任務
-
-| Journey Spec          | 角色             | 裝置               |
-| --------------------- | ---------------- | ------------------ |
-| order-lifecycle       | All 5 roles      | Desktop + Mobile   |
-| guest-dine-in         | Guest            | Mobile (iPhone 12) |
-| guest-shop-takeaway   | Guest (shop)     | Mobile             |
-| kitchen-shift         | Chef             | Tablet (iPad Pro)  |
-| pos-shift             | Cashier          | Desktop            |
-| daily-operations      | Owner            | Desktop            |
-| delivery-shift        | Service Crew     | Mobile (Pixel 5)   |
-| reservation-to-seated | Owner + Customer | Desktop + Mobile   |
+各模組（customer-app、admin-dashboard、kitchen-display、management-portal、
+onboarding-app）的 smoke / unit / real-integration / real-browser-workflow
+覆蓋矩陣，請見 `docs/testing/CORE_WORKFLOW_TEST_MATRIX.md` ——
+該文件持續更新，這裡不重複維護一份會過時的副本。
 
 ### 執行特定測試
 
 ```bash
-# 只測試訂單管理
-npx playwright test orders-management
+# 只測試 smoke suite
+npx playwright test tests/e2e/smoke/
 
-# 只測試菜單管理
-npx playwright test menu-management
+# 只測試 real-workflows 整合測試
+npx playwright test tests/e2e/integration/real-workflows.spec.ts
 
-# 測試所有管理功能
-npx playwright test tests/e2e/admin/
+# 只測試廚房顯示
+npx playwright test tests/e2e/kitchen-display/
 ```
 
 ### E2E 測試最佳實踐
@@ -537,7 +444,6 @@ config:
                ↓
 ┌─────────────────────────────────────┐
 │   部署 (測試通過後)                 │
-│   - Staging: develop 分支           │
 │   - Production: main 分支           │
 └─────────────────────────────────────┘
 ```
@@ -547,7 +453,6 @@ config:
 - **每次 Push**: 程式碼品質、單元測試、Workers 測試
 - **Pull Request**: 所有測試
 - **Push 到 main**: 完整測試 + 性能測試 + 部署
-- **Push 到 develop**: 完整測試 + 部署到 Staging
 
 ### 查看測試報告
 

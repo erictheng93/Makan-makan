@@ -61,7 +61,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     stopHeartbeat();
     heartbeatTimer = setInterval(() => {
       if (ws.value?.readyState === WebSocket.OPEN) {
-        send({ type: "ping", timestamp: Date.now() });
+        send("ping");
       }
     }, heartbeatInterval);
   };
@@ -135,6 +135,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.value.onmessage = (event) => {
+        if (event.data === "pong") {
+          return;
+        }
+
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
           onMessage?.(data);

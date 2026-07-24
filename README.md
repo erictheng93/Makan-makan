@@ -28,7 +28,7 @@ MakanMakan is a serverless, multi-tenant **night-market / 商圈 marketplace pla
 
 ### Highlights
 
-- **Edge Computing** - Global deployment across 300+ Cloudflare nodes, P99 < 300ms (target / staging-measured)
+- **Edge Computing** - Global deployment across 300+ Cloudflare nodes, P99 < 300ms (target)
 - **Multi-tenant** - Each restaurant/vendor has isolated data, menus, tables, and staff
 - **Cost-effective** - Serverless pay-per-use, estimated < $10 USD/month for SMBs
 - **Enterprise Security** - Cloudflare WAF + Zero Trust, AES-256 encryption, bcrypt
@@ -125,7 +125,6 @@ pnpm typecheck        # TypeScript check (0 errors)
 pnpm lint             # ESLint check (0 errors)
 pnpm test             # Unit tests
 pnpm test:e2e         # End-to-end tests
-pnpm deploy:staging   # Deploy to staging
 pnpm deploy:prod      # Deploy to production
 ```
 
@@ -179,7 +178,7 @@ makanmakan/
 
 - **69 tables** across 21 schema files (Drizzle ORM)
 - **UUID v7** primary keys (time-sortable, globally unique)
-- **Environments**: Production (`makanmakan-prod`), Staging (`makanmakan-staging`), Local SQLite
+- **Environments**: Production (`makanmakan-prod`), Local SQLite
 
 ---
 

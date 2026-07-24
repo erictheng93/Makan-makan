@@ -444,18 +444,73 @@
                   </select>
                 </div>
 
-                <!-- Image URL -->
-                <div>
+                <!-- Image upload -->
+                <div class="md:col-span-2" data-status="image-upload">
                   <label
                     class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
                   >
-                    {{ t("menu.form.imageUrl") }}
+                    {{ t("menu.form.image") }}
                   </label>
-                  <input
-                    v-model="menuItemForm.imageUrl"
-                    type="url"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
-                  />
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <img
+                      v-if="currentImagePreview"
+                      :src="currentImagePreview"
+                      :alt="menuItemForm.name || t('menu.form.image')"
+                      class="h-20 w-20 rounded-2xl object-cover shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    />
+                    <div class="flex flex-wrap items-center gap-2.5">
+                      <input
+                        ref="imageFileInput"
+                        type="file"
+                        class="sr-only"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        data-testid="menu-item-image-input"
+                        @change="handleImageFileSelected"
+                      />
+                      <button
+                        type="button"
+                        class="rounded-full bg-ios-primary px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(0,122,255,0.18)] transition-all duration-300 ease-out hover:bg-ios-primary/90 disabled:opacity-60"
+                        :disabled="imageUploadState === 'uploading'"
+                        @click="imageFileInput?.click()"
+                      >
+                        {{
+                          currentImagePreview
+                            ? t("menu.upload.changeImage")
+                            : t("menu.upload.selectFile")
+                        }}
+                      </button>
+                      <span
+                        v-if="imageUploadState === 'uploading'"
+                        data-status="uploading"
+                        class="inline-flex items-center gap-2 rounded-full bg-[#E3F2FD] px-3 py-1.5 text-[12px] font-semibold text-ios-primary"
+                      >
+                        <span
+                          class="h-3 w-3 animate-spin rounded-full border-2 border-ios-primary/25 border-t-ios-primary"
+                        />
+                        {{ t("menu.upload.uploading") }}
+                      </span>
+                      <span
+                        v-else-if="imageUploadState === 'success'"
+                        data-status="success"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3 py-1.5 text-[12px] font-semibold text-[#2D8E47]"
+                      >
+                        ✓ {{ t("menu.upload.uploaded") }}
+                      </span>
+                      <span
+                        v-else-if="imageUploadState === 'error'"
+                        data-status="error"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-red"
+                      >
+                        ✗ {{ t("menu.upload.failed") }}
+                      </span>
+                    </div>
+                  </div>
+                  <p
+                    v-if="imageUploadState === 'error' && imageUploadError"
+                    class="mt-2 text-[12px] text-ios-red"
+                  >
+                    {{ imageUploadError }}
+                  </p>
                 </div>
 
                 <!-- Description -->
@@ -546,6 +601,11 @@ import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useMenuManagement } from "@/composables/useMenuManagement";
+import { getAuthToken } from "@/utils/authTokenProvider";
+import {
+  useImageUpload,
+  type ImageVariants,
+} from "@/composables/useImageUpload";
 import type {
   CategoryData,
   MenuItemData,
@@ -593,6 +653,7 @@ const showCategoryEditForm = ref(false);
 const editingCategory = ref<CategoryData | null>(null);
 const showMenuItemModal = ref(false);
 const editingMenuItem = ref<MenuItemData | null>(null);
+const previousImageId = ref<string | null>(null);
 const menuGridRef = ref<VirtualMenuGridInstance | null>(null);
 const highlightedItemId = ref<number | null>(null);
 const menuItemImportText = ref("");
@@ -600,6 +661,13 @@ const menuItemImportError = ref("");
 const menuItemImportResult = ref<number | null>(null);
 const isImportingMenuItems = ref(false);
 const hasCompletedMarketProductGap = ref(false);
+const imageFileInput = ref<HTMLInputElement | null>(null);
+const {
+  upload: uploadImage,
+  reset: resetImageUpload,
+  state: imageUploadState,
+  errorMessage: imageUploadError,
+} = useImageUpload();
 
 const menuItemForm = ref({
   name: "",
@@ -609,6 +677,8 @@ const menuItemForm = ref({
   categoryId: "" as string | number,
   catalogType: "menu_item" as "menu_item" | "product",
   imageUrl: "",
+  imageId: "",
+  imageVariants: null as ImageVariants | null,
   isFeatured: false,
   isAvailable: true,
   sortOrder: 0,
@@ -669,6 +739,12 @@ const marketGapAreaDistrict = computed(() =>
 );
 const showMarketProductGapNextStep = computed(
   () => isMarketProductGapContext.value && hasCompletedMarketProductGap.value,
+);
+const currentImagePreview = computed(
+  () =>
+    menuItemForm.value.imageVariants?.thumbnail ||
+    menuItemForm.value.imageUrl ||
+    "",
 );
 const menuItemImportPreview = computed(() => {
   if (!menuItemImportText.value.trim()) {
@@ -757,15 +833,20 @@ const openAddItemModal = () => {
     categoryId: selectedCategoryId.value ?? "",
     catalogType: "menu_item",
     imageUrl: "",
+    imageId: "",
+    imageVariants: null,
     isFeatured: false,
     isAvailable: true,
     sortOrder: 0,
   };
+  previousImageId.value = null;
+  resetImageUpload();
   showMenuItemModal.value = true;
 };
 
 const editMenuItem = (item: MenuItemData) => {
   editingMenuItem.value = item;
+  previousImageId.value = item.imageId ?? null;
   menuItemForm.value = {
     name: item.name,
     nameEn: item.nameEn ?? "",
@@ -774,20 +855,41 @@ const editMenuItem = (item: MenuItemData) => {
     categoryId: item.categoryId,
     catalogType: item.catalogType ?? "menu_item",
     imageUrl: item.imageUrl ?? "",
+    imageId: item.imageId ?? "",
+    imageVariants: item.imageVariants ?? null,
     isFeatured: item.isFeatured,
     isAvailable: item.isAvailable,
     sortOrder: item.sortOrder,
   };
+  resetImageUpload();
   showMenuItemModal.value = true;
 };
 
 const closeMenuItemModal = () => {
   showMenuItemModal.value = false;
   editingMenuItem.value = null;
+  previousImageId.value = null;
+  resetImageUpload();
+};
+
+const handleImageFileSelected = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const uploaded = await uploadImage(file);
+  if (uploaded) {
+    menuItemForm.value.imageUrl = uploaded.imageUrl;
+    menuItemForm.value.imageId = uploaded.imageId;
+    menuItemForm.value.imageVariants = uploaded.imageVariants;
+  }
+  input.value = "";
 };
 
 const handleSaveMenuItem = async () => {
-  await saveMenuItem(
+  const oldImageId = previousImageId.value;
+  const nextImageId = menuItemForm.value.imageId || null;
+  const didSave = await saveMenuItem(
     {
       name: menuItemForm.value.name,
       nameEn: menuItemForm.value.nameEn || undefined,
@@ -796,17 +898,48 @@ const handleSaveMenuItem = async () => {
       categoryId: Number(menuItemForm.value.categoryId),
       catalogType: menuItemForm.value.catalogType,
       imageUrl: menuItemForm.value.imageUrl || null,
+      imageId: nextImageId,
+      imageVariants: menuItemForm.value.imageVariants,
       isFeatured: menuItemForm.value.isFeatured,
       isAvailable: menuItemForm.value.isAvailable,
       sortOrder: menuItemForm.value.sortOrder,
     },
     editingMenuItem.value?.id,
   );
+  if (!didSave) {
+    return;
+  }
+  deletePreviousImageIfChanged(oldImageId, nextImageId);
   if (isMarketProductGapContext.value) {
     hasCompletedMarketProductGap.value = true;
   }
   closeMenuItemModal();
 };
+
+function deletePreviousImageIfChanged(
+  oldImageId: string | null,
+  nextImageId: string | null,
+) {
+  if (!oldImageId || oldImageId === nextImageId) {
+    return;
+  }
+
+  const imageApiUrl = import.meta.env.VITE_IMAGE_API_URL;
+  const token = getAuthToken();
+  if (!imageApiUrl || !token) {
+    console.warn("Skipping previous image delete: missing image API config");
+    return;
+  }
+
+  fetch(`${imageApiUrl}/images/${oldImageId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }).catch((error) => {
+    console.warn("Failed to delete previous menu item image:", error);
+  });
+}
 
 const loadMenuItemImportExample = () => {
   menuItemImportError.value = "";

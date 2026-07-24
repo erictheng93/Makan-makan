@@ -18,7 +18,6 @@ API 使用指南
 
 ```
 Production:  https://api.makanmakan.com/v1
-Staging:     https://staging-api.makanmakan.com/v1
 Local:       http://localhost:8787/api/v1
 ```
 

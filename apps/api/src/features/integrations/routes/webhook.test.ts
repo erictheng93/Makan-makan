@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   },
   integrationService: {
     getDecryptedCredentials: vi.fn(),
+    readStoredCredentials: vi.fn(),
   },
   integrationServiceCtor: vi.fn(),
   orderService: {
@@ -164,6 +165,9 @@ describe("platform webhook routes", () => {
     mocks.integrationService.getDecryptedCredentials.mockResolvedValue({
       clientSecret: "decrypted-secret",
     });
+    mocks.integrationService.readStoredCredentials.mockImplementation(
+      (stored: unknown) => Promise.resolve(stored),
+    );
     mocks.orderService.processWebhook.mockResolvedValue(101);
   });
 
@@ -235,9 +239,17 @@ describe("platform webhook routes", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("decrypts credentials when no webhook secret is configured", async () => {
+  it("uses encrypted credentials for store matching and webhook secrets", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[integration({ config: {} })]]);
+    const encryptedCredentials = "encrypted-credentials";
+    mockSelectResults([
+      [integration({ credentials: encryptedCredentials, config: {} })],
+    ]);
+    mocks.integrationService.readStoredCredentials.mockResolvedValueOnce({
+      storeId: "store-1",
+      clientSecret: "client-secret",
+      webhookSecret: "decrypted-webhook-secret",
+    });
 
     const response = await request("/uber-eats", {
       method: "POST",
@@ -247,12 +259,12 @@ describe("platform webhook routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(200);
-    expect(
-      mocks.integrationService.getDecryptedCredentials,
-    ).toHaveBeenCalledWith("restaurant-1", "uber_eats");
+    expect(mocks.integrationService.readStoredCredentials).toHaveBeenCalledWith(
+      encryptedCredentials,
+    );
     expect(mocks.adapter.verifyWebhook).toHaveBeenCalledWith(
       expect.any(Request),
-      "decrypted-secret",
+      "decrypted-webhook-secret",
     );
     expect(mocks.orderService.processWebhook).toHaveBeenCalledWith(
       "uber_eats",

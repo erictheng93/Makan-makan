@@ -53,7 +53,6 @@ makanmakan/
 ### 資料庫設定
 
 - **生產環境**: `makanmakan-prod`（Cloudflare D1）
-- **測試環境**: `makanmakan-staging`（Cloudflare D1）
 - **本機開發**: 本機 SQLite 資料庫
 
 ### 關鍵資料表（生產架構）
@@ -86,14 +85,11 @@ makanmakan/
 ### 資料庫操作
 
 ```bash
-# 應用遷移到測試環境
-npx wrangler d1 migrations apply makanmakan-staging --env staging
-
 # 應用遷移到生產環境
 npx wrangler d1 migrations apply makanmakan-prod --env production
 
 # 在本機執行 SQL 查詢
-npx wrangler d1 execute makanmakan-staging --local --command "SELECT * FROM users LIMIT 5"
+npx wrangler d1 execute makanmakan-local --local --command "SELECT * FROM users LIMIT 5"
 ```
 
 ## 開發工作流程
@@ -136,9 +132,6 @@ CLOUDFLARE_API_TOKEN=your_api_token
 
 # JWT 密鑰，用於身份驗證
 JWT_SECRET=your_jwt_secret
-
-# Cloudflare Images API
-CLOUDFLARE_IMAGES_KEY=your_images_key
 
 # Slack webhook，用於錯誤通知
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
@@ -188,12 +181,10 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ```bash
 # 建立並應用遷移
 npm run db:migrate:create <遷移名稱>
-npm run db:migrate:staging
 npm run db:migrate:prod
 
 # 開發用資料種子
 npm run db:seed:local
-npm run db:seed:staging
 ```
 
 ### 測試
@@ -223,9 +214,6 @@ cd apps/customer-app && npm run test
 ### 部署
 
 ```bash
-# 部署到測試環境（推送到 develop 分支時自動執行）
-npm run deploy:staging
-
 # 部署到生產環境（推送到 main 分支時自動執行）
 npm run deploy:prod
 

@@ -327,31 +327,13 @@
           {{ t("optimization.codeSplitStatus") }}
         </h4>
         <div class="bg-gray-50 rounded-lg p-4">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-            <div>
-              <p class="font-medium text-gray-600">
-                {{ t("optimization.preloaded") }}
-              </p>
-              <p class="text-lg font-bold text-green-600">
-                {{ cacheStats.preloadedChunks }}
-              </p>
-            </div>
-            <div>
-              <p class="font-medium text-gray-600">
-                {{ t("optimization.loading") }}
-              </p>
-              <p class="text-lg font-bold text-blue-600">
-                {{ cacheStats.loadingChunks }}
-              </p>
-            </div>
-            <div>
-              <p class="font-medium text-gray-600">
-                {{ t("optimization.cached") }}
-              </p>
-              <p class="text-lg font-bold text-purple-600">
-                {{ cacheStats.componentsCached }}
-              </p>
-            </div>
+          <div class="text-sm">
+            <p class="font-medium text-gray-600">
+              {{ t("optimization.cached") }}
+            </p>
+            <p class="text-lg font-bold text-purple-600">
+              {{ cacheStats.componentsCached }}
+            </p>
           </div>
         </div>
       </div>
@@ -452,7 +434,6 @@ const config = ref<OptimizationConfig>({
   enableResourceHints: true,
   enableImageOptimization: true,
   enableComponentCache: true,
-  chunkPreloadThreshold: 0.5,
 });
 
 // Computed properties

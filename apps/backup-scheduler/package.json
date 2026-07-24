@@ -6,16 +6,14 @@
   "type": "module",
   "scripts": {
     "build": "wrangler deploy --dry-run --env=\"\"",
-    "build:staging": "wrangler deploy --dry-run --env staging",
     "build:prod": "wrangler deploy --dry-run --env production",
     "typecheck": "pnpm --filter @makanmakan/api typecheck",
     "lint": "pnpm --filter @makanmakan/api lint",
     "test": "pnpm run build",
     "deploy": "wrangler deploy",
-    "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production"
   },
   "devDependencies": {
-    "wrangler": "^4.101.0"
+    "wrangler": "^4.114.0"
   }
 }

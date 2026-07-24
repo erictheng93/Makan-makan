@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { sign } from "hono/jwt";
+import { sign as signJsonWebToken } from "jsonwebtoken";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "../shared/utils/api-error";
 import {
@@ -7,6 +8,7 @@ import {
   canonicalCustomerAuthMiddleware,
   customerAuthMiddleware,
   optionalCanonicalCustomerAuthMiddleware,
+  verifyJwtToken,
 } from "./auth";
 
 const JWT_SECRET = "test-jwt-secret-with-at-least-32-chars";
@@ -107,6 +109,17 @@ async function customerToken(sub = "customer-1") {
   );
 }
 
+function strictAtob(encoded: string): string {
+  if (encoded.length % 4 !== 0) {
+    throw new DOMException(
+      "atob() called with invalid base64-encoded data",
+      "InvalidCharacterError",
+    );
+  }
+
+  return Buffer.from(encoded, "base64").toString("binary");
+}
+
 describe("authMiddleware", () => {
   it("accepts active staff tokens and attaches the user", async () => {
     const app = new Hono();
@@ -140,6 +153,61 @@ describe("authMiddleware", () => {
       },
     });
     expect(response.status).toBe(200);
+  });
+
+  it("accepts jsonwebtoken-signed login tokens when atob requires padded base64", async () => {
+    const originalAtob = globalThis.atob;
+    vi.stubGlobal("atob", strictAtob);
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      const token = signJsonWebToken(
+        {
+          sub: staffUserId,
+          username: "role-1",
+          role: 1,
+          restaurantId: "rest-1",
+          tv: 1,
+          iat: now,
+          exp: now + 3600,
+        },
+        JWT_SECRET,
+        { algorithm: "HS256" },
+      );
+
+      const app = new Hono();
+      app.onError(apiErrorHandler);
+      app.use("/protected", authMiddleware);
+      app.get("/protected", (c) => c.json({ user: c.get("user") }));
+
+      const response = await app.fetch(
+        new Request("https://api.test/protected", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        {
+          JWT_SECRET,
+          DB: createStaffDb({
+            id: staffUserId,
+            username: "role-1",
+            role: 1,
+            restaurant_id: "rest-db",
+            is_active: 1,
+            token_version: 1,
+          }),
+        } as never,
+      );
+
+      await expect(response.json()).resolves.toMatchObject({
+        user: {
+          id: staffUserId,
+          publicId: staffUserId,
+          role: 1,
+          restaurantId: "rest-db",
+        },
+      });
+      expect(response.status).toBe(200);
+    } finally {
+      vi.stubGlobal("atob", originalAtob);
+    }
   });
 
   it("accepts UUID-principal staff tokens and attaches the legacy user id", async () => {
@@ -260,6 +328,25 @@ describe("authMiddleware", () => {
       user: { id: staffUserId, publicId: staffUserId, role: 5 },
     });
     expect(response.status).toBe(200);
+  });
+});
+
+describe("verifyJwtToken", () => {
+  it("rejects expired tokens by default", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = signJsonWebToken(
+      {
+        sub: staffUserId,
+        username: "role-1",
+        role: 1,
+        iat: now - 7200,
+        exp: now - 3600,
+      },
+      JWT_SECRET,
+      { algorithm: "HS256" },
+    );
+
+    expect(() => verifyJwtToken(token, JWT_SECRET)).toThrow("jwt expired");
   });
 });
 

@@ -4,6 +4,7 @@
  */
 
 import { BackupService } from "../services/BackupService";
+import { cronMatches } from "../utils/cron";
 import type { BackupConfiguration } from "@makanmakan/shared-types";
 import type {
   D1Database,
@@ -21,7 +22,7 @@ interface Env {
   ANALYTICS: AnalyticsEngineDataset;
 }
 
-type RestoreDrillEnvironment = "development" | "staging" | "production";
+type RestoreDrillEnvironment = "development" | "production";
 
 export interface RestoreDrillOptions {
   environment: RestoreDrillEnvironment;
@@ -192,27 +193,16 @@ export default {
         env.BACKUP_KV,
       );
 
-      switch (trigger) {
-        case "*/5 * * * *": // Every 5 minutes - Check running backups and system health
-          await handleHealthCheck(backupService, env, env.ANALYTICS);
-          break;
-
-        case "0 */6 * * *": // Every 6 hours - Process scheduled backups
-          await handleScheduledBackups(backupService, env, env.ANALYTICS);
-          break;
-
-        case "0 2 * * *": // Daily at 2 AM - Cleanup and maintenance
-          await handleDailyMaintenance(backupService, env, env.ANALYTICS);
-          break;
-
-        // event.cron is the literal trigger string from wrangler.toml —
-        // this case must match it byte-for-byte ("SUN", not "0").
-        case "0 0 * * SUN": // Weekly on Sunday - Generate reports and alerts
-          await handleWeeklyReports(backupService, env, env.ANALYTICS);
-          break;
-
-        default:
-          console.log(`Unknown cron trigger: ${trigger}`);
+      if (cronMatches(trigger, "*/5 * * * *")) {
+        await handleHealthCheck(backupService, env, env.ANALYTICS);
+      } else if (cronMatches(trigger, "0 */6 * * *")) {
+        await handleScheduledBackups(backupService, env, env.ANALYTICS);
+      } else if (cronMatches(trigger, "0 2 * * *")) {
+        await handleDailyMaintenance(backupService, env, env.ANALYTICS);
+      } else if (cronMatches(trigger, "0 0 * * SUN")) {
+        await handleWeeklyReports(backupService, env, env.ANALYTICS);
+      } else {
+        console.log(`Unknown cron trigger: ${trigger}`);
       }
     } catch (error: unknown) {
       console.error("Backup scheduler error:", error);
@@ -237,6 +227,12 @@ export default {
 /**
  * Health Check - Monitor system health and running backups
  */
+
+// The health cron fires every 5 minutes; throttle persisted system alerts so
+// a sustained outage produces one alert per window instead of 288 per day.
+const HEALTH_ALERT_THROTTLE_KEY_PREFIX = "backup-health:last-system-alert";
+const HEALTH_ALERT_THROTTLE_SECONDS = 3600;
+
 async function handleHealthCheck(
   backupService: BackupService,
   env: Env,
@@ -264,21 +260,37 @@ async function handleHealthCheck(
         criticalIssues,
         warningIssues,
       ],
-      indexes: ["health", health.overall_status],
+      indexes: ["health"],
     });
 
-    // Create alerts for critical issues
-    if (criticalIssues > 5) {
-      await createSystemAlert(backupService, {
-        severity: "critical",
-        title: "High Number of Backup Failures",
-        message: `System has ${health.failed_backups_24h} failed backups in the last 24 hours`,
-        alert_type: "backup_failed",
-      });
+    // Create alerts when the system is degraded or unhealthy
+    const needsCriticalAlert =
+      health.overall_status === "critical" || criticalIssues > 5;
+    const needsWarningAlert = health.overall_status === "warning";
+
+    if (needsCriticalAlert || needsWarningAlert) {
+      const alertSeverity = needsCriticalAlert ? "critical" : "high";
+      const throttleKey = `${HEALTH_ALERT_THROTTLE_KEY_PREFIX}:${alertSeverity}`;
+      const lastAlertAt = await env.BACKUP_KV.get(throttleKey);
+      if (!lastAlertAt) {
+        await createSystemAlert(backupService, {
+          severity: alertSeverity,
+          title: needsCriticalAlert
+            ? "Backup System Unhealthy"
+            : "Backup System Degraded",
+          message: `Backup system status: ${health.overall_status}. ${health.failed_backups_24h} failed backups in the last 24 hours, ${health.running_backups} running, success rate ${health.performance_metrics.average_success_rate_percentage.toFixed(1)}%`,
+          alert_type: needsCriticalAlert
+            ? "backup_failed"
+            : "performance_degraded",
+        });
+        await env.BACKUP_KV.put(throttleKey, new Date().toISOString(), {
+          expirationTtl: HEALTH_ALERT_THROTTLE_SECONDS,
+        });
+      }
     }
 
     console.log(
-      `Health check completed - Status: ${health.overall_status}, Running: ${health.running_backups}, Failed 24h: ${health.failed_backups_24h}`,
+      `Health check completed - Status: ${health.overall_status}, Running: ${health.running_backups}, Failed 24h: ${health.failed_backups_24h}, Success rate: ${health.performance_metrics.average_success_rate_percentage.toFixed(1)}%, Last success: ${health.last_successful_backup_at ?? "never"}`,
     );
   } catch (error: unknown) {
     console.error("Health check failed:", error);
@@ -662,7 +674,7 @@ async function aggregateDailyMetrics(
         metric.total_size_bytes ?? 0,
         metric.average_duration_seconds ?? 0,
       ],
-      indexes: ["backup_daily_metrics", metric.restaurant_id],
+      indexes: ["backup_daily_metrics"],
     });
   }
 }
@@ -735,7 +747,7 @@ async function createSystemAlert(
   },
 ) {
   // Create system-wide alert (restaurant_id = 'system')
-  await backupService.createAlertPublicPublic({
+  await backupService.createAlert({
     ...alert,
     restaurant_id: "system",
   });
@@ -757,7 +769,7 @@ async function createRestaurantAlert(
     related_backup_id?: string;
   },
 ) {
-  await backupService.createAlertPublicPublic({
+  await backupService.createAlert({
     ...alert,
     restaurant_id: restaurantId,
   });

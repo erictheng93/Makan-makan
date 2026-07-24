@@ -339,12 +339,20 @@ app.post("/:id/cancel", guestTokenAuth, async (c) => {
     "Cancelled by guest",
   );
 
-  // Clean up KV keys
+  // Clean up KV keys. Anonymous guests (phoneLastDigits === "000") have their
+  // active-order lock keyed by client IP (`...:anon:{ip}`), which cannot be
+  // reconstructed from the token's phoneLastDigits. Resolve the real key via
+  // the `guest_active_lookup:{orderId}` reverse mapping written at creation
+  // (same as the admin cancel path), falling back to the reconstructed key
+  // only when the lookup is missing/expired.
   const guestData = c.get("guestOrder");
-  const activeOrderKey = `guest_active:${guestData.restaurantId}:${guestData.phoneLastDigits}`;
+  const lookupKey = `guest_active_lookup:${orderId}`;
+  const activeOrderKey =
+    (await c.env.CACHE_KV.get(lookupKey)) ??
+    `guest_active:${guestData.restaurantId}:${guestData.phoneLastDigits}`;
   await Promise.allSettled([
     c.env.CACHE_KV.delete(activeOrderKey),
-    c.env.CACHE_KV.delete(`guest_active_lookup:${orderId}`),
+    c.env.CACHE_KV.delete(lookupKey),
   ]);
 
   // Also remove guest token to prevent further access

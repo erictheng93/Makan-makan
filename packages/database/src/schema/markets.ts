@@ -268,9 +268,11 @@ export const marketCheckoutPayments = sqliteTable(
       table.status,
       table.createdAt,
     ),
-    idempotencyIdx: index("market_checkout_payments_idempotency_idx").on(
-      table.idempotencyKey,
-    ),
+    idempotencyUniqueIdx: uniqueIndex(
+      "market_checkout_payments_idempotency_unique_idx",
+    )
+      .on(table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} IS NOT NULL`),
   }),
 );
 

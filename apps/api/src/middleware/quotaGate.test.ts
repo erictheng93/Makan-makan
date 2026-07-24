@@ -26,7 +26,7 @@ beforeEach(async () => {
 });
 
 describe("enforceQuota", () => {
-  it("throws a 429 quota error when staging-style enforcement is enabled and trial usage exceeds the hard limit", async () => {
+  it("throws a 429 quota error when enforcement mode is enabled and trial usage exceeds the hard limit", async () => {
     const restaurantId = "quota-restaurant";
     await testDb.drizzle.insert(restaurants).values({
       id: restaurantId,

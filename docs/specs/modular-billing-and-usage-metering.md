@@ -60,7 +60,7 @@
 | 3.7#7 | 3 個 usage GET API | ✅ | `/me/usage`（me/routes:100-120）、`/admin/subscriptions/:id/usage` + `/usage/events`（subscriptions/routes:28,43）|
 | 3.7#8 | admin-dashboard 用量頁籤 | ✅ | `apps/admin-dashboard/src/components/billing/UsageTab.vue` |
 | §9.3 | `quotaExceeded(meterKey, hardLimit)` factory | ✅ | `apps/api/src/middleware/quotaGate.ts` 匯出 `quotaExceeded()`，details 含 `{ meterKey, hardLimit, current }` |
-| 3.4.4 | `QUOTA_ENFORCEMENT_MODE` 三模式 | ✅ | `quotaGate.ts:26` 讀取；runtime 未設定時預設 `disabled`，staging/production `wrangler.toml` 皆設定 `enforce` |
+| 3.4.4 | `QUOTA_ENFORCEMENT_MODE` 三模式 | ✅ | `quotaGate.ts:26` 讀取；runtime 未設定時預設 `disabled`，production `wrangler.toml` 設定 `enforce` |
 
 ### P3 — Billing Lifecycle（7/7 ✅）
 
@@ -951,7 +951,7 @@ P2 的 `quotaGate` middleware 上線時用環境變數 `QUOTA_ENFORCEMENT_MODE`�
 - `warn`：只發 header，不擋
 - `enforce`：完整擋下（最終態）
 
-目前 staging 與 production 的 `apps/api/wrangler.toml` 都已明確設定
+目前 production 的 `apps/api/wrangler.toml` 已明確設定
 `QUOTA_ENFORCEMENT_MODE = "enforce"`；未設定的環境仍由 `quotaGate`
 runtime 預設 `disabled`。
 
@@ -1047,7 +1047,7 @@ Cache invalidation hook：subscription 變更走既有 `invalidateSubscriptionCa
 P2/P3 新增：
 | 變數 | 用途 | 預設 |
 |---|---|---|
-| `QUOTA_ENFORCEMENT_MODE` | `disabled` / `warn` / `enforce` | runtime 預設 `disabled`；staging/production 設定 `enforce` |
+| `QUOTA_ENFORCEMENT_MODE` | `disabled` / `warn` / `enforce` | runtime 預設 `disabled`；production 設定 `enforce` |
 | `RESEND_API_KEY` | Email 寄送 | 未設定時降級為 skip + audit log |
 | `BILLING_EMAIL_FROM` | Email From 地址 | 未設定時降級為 skip + audit log |
 | `STRIPE_WEBHOOK_SECRET`（或對應 provider） | Webhook 驗簽 | P3-c 啟動前設定 |

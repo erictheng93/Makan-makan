@@ -17,6 +17,7 @@ const BINDING_TABLES = new Map([
 
 const REQUIRED_PRODUCTION_RUNTIME_VARS = new Map([
   ["apps/api/wrangler.toml", ["API_BASE_URL", "CORS_ORIGIN"]],
+  ["apps/image-processor/wrangler.toml", ["CORS_ORIGIN", "IMAGE_API_BASE_URL"]],
   ["apps/management-portal/wrangler.toml", ["VITE_MANAGEMENT_API_URL"]],
   [
     "apps/onboarding-app/wrangler.toml",

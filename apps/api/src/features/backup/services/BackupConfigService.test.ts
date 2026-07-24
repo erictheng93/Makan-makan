@@ -259,7 +259,7 @@ describe("BackupConfigService", () => {
     expect(db.updated[0]).toMatchObject({
       name: "Updated",
       retentionDays: 45,
-      updatedAt: "2026-06-07T03:04:05.000Z",
+      updatedAt: expect.any(Date),
     });
 
     await expect(

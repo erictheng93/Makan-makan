@@ -199,19 +199,18 @@ export function assertWaitingTransition(
 
 **修改檔案：** 只動 `apps/api/wrangler.toml`
 
-**修改內容：** 在 `[env.development]`、`[env.staging]`、`[env.production]` 三個 env 區塊各加：
+**修改內容：** 在 `[env.development]`、`[env.production]` 兩個 env 區塊各加：
 
 ```toml
 [[env.development.durable_objects.bindings]]
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"
-script_name = "makanmasak-realtime"  # 注意：dev 用 dev name，staging/prod 用對應的
+script_name = "makanmasak-realtime"  # 注意：dev 用 dev name，prod 用對應的
 ```
 
 正確的 `script_name` 對照：
 
 - dev：`makanmasak-realtime`（同 root namespace）— 但 dev 環境下兩個 worker 跑在不同 wrangler 進程，cross-worker DO 在 dev 需要 `wrangler dev --remote` 或 service binding fallback；T1c 動工時要驗 dev 體驗
-- staging：`makanmasak-realtime-staging`
 - production：`makanmasak-realtime-prod`
 
 **也要動的（外加 binding）：** dev 區塊的 `[vars]` 也要更新——目前 root level `[vars]` 有定義 `REALTIME_WS_URL = "ws://localhost:8788"` 但 `[env.development.vars]` 才是 `pnpm dev` 實際讀取的。確認雙處同步。
@@ -219,12 +218,11 @@ script_name = "makanmasak-realtime"  # 注意：dev 用 dev name，staging/prod 
 **驗收條件：**
 
 - [ ] `pnpm wrangler deploy --dry-run --env development` 不報 binding 錯
-- [ ] `pnpm wrangler deploy --dry-run --env staging` 不報錯
 - [ ] `pnpm dev:api` 啟動成功（dev 環境下 cross-worker DO binding 可能需要先 `pnpm dev:realtime` 跑起來）
 - [ ] 啟動後手動驗：在程式裡加暫時 `console.log(env.REALTIME_SESSION)` 看是否非 undefined（記得拿掉）
 - [ ] **副作用驗證**：執行 `pnpm test apps/api orders` 確認 OrdersService 既有測試（mock REALTIME_SESSION）仍全綠
 
-**已知風險：** dev 環境下 cross-worker DO 設定相對複雜。若 dev 體驗不佳，可在文件補充「先跑 `pnpm dev:realtime`，再跑 `pnpm dev:api`」的順序要求。production / staging 不受影響。
+**已知風險：** dev 環境下 cross-worker DO 設定相對複雜。若 dev 體驗不佳，可在文件補充「先跑 `pnpm dev:realtime`，再跑 `pnpm dev:api`」的順序要求。production 不受影響。
 
 ---
 
@@ -576,7 +574,7 @@ await broadcaster.broadcastEvent("admin", this.restaurantId, {
 | **R-P1-4**：T5 lookup 端點變成隱私風險（手機列舉） | 安全 | 低 | 公開端點僅回單筆 active 票（不洩漏終態票），找不到 404 不洩漏其他資訊；可加 rate limit（沿用既有 middleware） |
 | **R-P1-5**：integration test fixture 無法產生 active WebSocket 連線，G1 廣播驗證只能用 mock | 信心不足 | 中 | 用 mock `RealtimeBroadcastService`（spy on `broadcastEvent`）驗證呼叫；真連線驗證留給 manual test |
 | **R-P1-6**（T0 浮現）：T1c 加 DO binding 後，OrdersService/KitchenService 廣播從「靜默 no-op」變成「廣播到無人 room（`restaurant:`）」 | 對使用者無新影響（一樣收不到），但會多消耗 DO 調用次數（成本可忽略） | 已知 | 已驗證使用者體驗不變。OrdersService 的 room name 修復走獨立 PR（INC-002） |
-| **R-P1-7**（T0 浮現）：dev 環境下 cross-worker DO binding 體驗可能不順 | dev 流程小幅變動 | 中 | T1c 動工時若 dev 體驗不佳，文件補充「先 `pnpm dev:realtime` 再 `pnpm dev:api`」的順序要求；production / staging 不受影響 |
+| **R-P1-7**（T0 浮現）：dev 環境下 cross-worker DO binding 體驗可能不順 | dev 流程小幅變動 | 中 | T1c 動工時若 dev 體驗不佳，文件補充「先 `pnpm dev:realtime` 再 `pnpm dev:api`」的順序要求；production 不受影響 |
 
 ---
 

@@ -16,7 +16,7 @@ import type { ManagementEnv } from "./types";
 import { managementAuthMiddleware } from "./middleware/auth";
 import tenantsRouter from "./routes/tenants";
 import deploymentsRouter from "./routes/deployments";
-import licensesRouter from "./routes/licenses";
+import licensesRouter, { publicLicensesRouter } from "./routes/licenses";
 import healthRouter from "./routes/health";
 import monitoringRouter from "./routes/monitoring";
 import updatesRouter from "./routes/updates";
@@ -195,10 +195,32 @@ app.get("/", (c) => c.redirect("/info"));
 const publicApi = new Hono<{ Bindings: ManagementEnv }>();
 publicApi.route("/auth", authRouter);
 publicApi.route("/onboarding", onboardingRouter);
+// POST /licenses/verify is designed for cross-service calls that authenticate
+// via the licenseKey payload itself. Mounting it on the public API (registered
+// before the Bearer-protected /licenses/* block below) keeps it reachable while
+// every other /licenses/* route stays protected.
+publicApi.route("/licenses", publicLicensesRouter);
 
 // Protected routes (auth required)
 const protectedApi = new Hono<{ Bindings: ManagementEnv }>();
-protectedApi.use("*", managementAuthMiddleware);
+// Auth is scoped to the known protected prefixes (not use("*")) so that
+// unmatched /api/v1/* paths fall through to the 404 handler instead of 401.
+// Unknown subpaths UNDER a protected prefix still 401 before 404.
+// Hono's "/prefix/*" does not match "/prefix" itself, hence both forms.
+const PROTECTED_PREFIXES = [
+  "/health",
+  "/tenants",
+  "/deployments",
+  "/licenses",
+  "/monitoring",
+  "/updates",
+  "/markets",
+  "/admin",
+];
+for (const prefix of PROTECTED_PREFIXES) {
+  protectedApi.use(prefix, managementAuthMiddleware);
+  protectedApi.use(`${prefix}/*`, managementAuthMiddleware);
+}
 protectedApi.route("/health", healthRouter);
 protectedApi.route("/tenants", tenantsRouter);
 protectedApi.route("/deployments", deploymentsRouter);

@@ -50,4 +50,22 @@ describe("safeExternalHref", () => {
       "https://payment.ecpay.com.tw/Cashier",
     );
   });
+
+  it("can allow arbitrary http attachment hosts while rejecting executable schemes", () => {
+    const options = { allowAnyHttpHost: true };
+
+    expect(safeExternalHref("https://cdn.example.test/a.png", options)).toBe(
+      "https://cdn.example.test/a.png",
+    );
+    expect(safeExternalHref("http://cdn.example.test/a.txt", options)).toBe(
+      "http://cdn.example.test/a.txt",
+    );
+    expect(safeExternalHref("javascript:alert(1)", options)).toBeNull();
+    expect(
+      safeExternalHref("data:text/html,<script>alert(1)</script>", options),
+    ).toBeNull();
+    expect(
+      safeExternalHref("ftp://cdn.example.test/a.txt", options),
+    ).toBeNull();
+  });
 });

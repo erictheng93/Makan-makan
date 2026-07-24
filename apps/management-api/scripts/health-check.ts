@@ -66,7 +66,10 @@ async function checkTenantHealth(tenantId: string): Promise<void> {
         });
       }
     } else {
-      console.log(`\n❌ Health check failed: ${data.error}`);
+      // Nested unified format `{ error: { code, message } }` first, with a
+      // fallback for legacy flat `{ error: "<string>" }` responses.
+      const message = data.error?.message ?? data.error;
+      console.log(`\n❌ Health check failed: ${message}`);
     }
   } catch (error) {
     console.error("Health check error:", error);

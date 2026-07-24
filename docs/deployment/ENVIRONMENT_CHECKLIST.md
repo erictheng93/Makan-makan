@@ -2,7 +2,7 @@
 
 > **Complete Environment Setup Checklist for All Deployment Stages**
 
-本檢查清單用於確保 MakanMakan 系統在所有環境（Development、Staging、Production）中正確配置，涵蓋基礎設施、安全性、性能和監控等各個方面。
+本檢查清單用於確保 MakanMakan 系統在所有環境（Development、Production）中正確配置，涵蓋基礎設施、安全性、性能和監控等各個方面。
 
 ---
 
@@ -10,7 +10,7 @@
 
 ### 如何使用此檢查清單
 
-1. **選擇目標環境**：根據你要配置的環境（Development/Staging/Production），選擇對應的章節
+1. **選擇目標環境**：根據你要配置的環境（Development/Production），選擇對應的章節
 2. **逐項檢查**：按照清單順序，逐項完成配置並打勾
 3. **記錄資訊**：在提供的空格中記錄重要的 ID、URL 等資訊
 4. **驗證測試**：完成配置後，運行驗證測試確保一切正常
@@ -67,10 +67,10 @@
 ### 本地開發環境
 
 - [ ] 🔧 Node.js 已安裝
-  - 版本: `□ >= 20.0.0` (運行 `node --version`)
+  - 版本: `□ >= 22.13.0` (運行 `node --version`)
 
 - [ ] 🔧 pnpm 已安裝
-  - 版本: `□ >= 8.0.0` (運行 `pnpm --version`)
+  - 版本: `□ 10.24.0`（`package.json` 的 `packageManager` 欄位鎖定，透過 corepack 強制，運行 `pnpm --version`）
 
 - [ ] 🔧 專案依賴已安裝
 
@@ -139,7 +139,7 @@
 
   ```bash
   cd apps/api && pnpm run dev
-  # 訪問 http://localhost:8787/api/v1/health  □
+  # 訪問 http://localhost:8787/info  □
   ```
 
 - [ ] ✅ Realtime Service 可以啟動
@@ -172,220 +172,12 @@
 
 ---
 
-## 🎯 Staging 環境檢查清單
-
-預生產測試環境配置。
-
-### D1 數據庫 (Staging)
-
-- [ ] ✅ Staging 數據庫已創建
-
-  ```bash
-  wrangler d1 create makanmakan-staging
-  ```
-
-  - Database Name: `makanmakan-staging`
-  - Database ID: `_____________________________`
-
-- [ ] ✅ Database ID 已更新到配置文件
-  - [ ] `apps/api/wrangler.toml` - `env.staging.d1_databases`
-  - [ ] `apps/realtime/wrangler.toml` - `env.staging.d1_databases`
-  - [ ] `apps/backup-scheduler/wrangler.toml` - `env.staging.d1_databases`
-
-- [ ] ✅ 數據庫遷移已應用
-
-  ```bash
-  wrangler d1 migrations apply makanmakan-staging --env staging  □
-  ```
-
-- [ ] 🔸 測試數據已填充
-  ```bash
-  pnpm run db:seed:staging  □
-  ```
-
-### KV Namespaces (Staging)
-
-- [ ] ✅ API Service KV Namespaces
-
-  ```bash
-  wrangler kv:namespace create "CACHE_KV" --env staging
-  ```
-
-  - CACHE_KV ID: `_____________________________`
-
-  ```bash
-  wrangler kv:namespace create "RATE_LIMIT_KV" --env staging
-  ```
-
-  - RATE_LIMIT_KV ID: `_____________________________`
-
-  ```bash
-  wrangler kv:namespace create "BACKUP_KV" --env staging
-  ```
-
-  - BACKUP_KV ID: `_____________________________`
-
-- [ ] ✅ Realtime Service KV Namespace
-
-  ```bash
-  wrangler kv:namespace create "REALTIME_CACHE" --env staging
-  ```
-
-  - REALTIME_CACHE ID: `_____________________________`
-
-- [ ] ✅ Image Processor KV Namespace
-
-  ```bash
-  wrangler kv:namespace create "IMAGE_CACHE" --env staging
-  ```
-
-  - IMAGE_CACHE ID: `_____________________________`
-
-- [ ] ✅ KV IDs 已更新到 wrangler.toml
-  - [ ] `apps/api/wrangler.toml`
-  - [ ] `apps/realtime/wrangler.toml`
-  - [ ] `apps/image-processor/wrangler.toml`
-
-### R2 Buckets (Staging)
-
-- [ ] ✅ Backup Storage Bucket 已創建
-
-  ```bash
-  wrangler r2 bucket create makanmakan-backups-staging  □
-  ```
-
-- [ ] 🔸 Image Storage Bucket 已創建
-
-  ```bash
-  wrangler r2 bucket create makanmakan-images-staging  □
-  ```
-
-- [ ] ✅ Bucket 名稱已更新到 wrangler.toml
-  - [ ] `apps/api/wrangler.toml`
-  - [ ] `apps/backup-scheduler/wrangler.toml`
-
-- [ ] 🔸 Map Tiles Bucket / Object 已準備（若使用 Protomaps PMTiles）
-
-  ```bash
-  wrangler r2 bucket create makanmakan-map-tiles-staging  □
-  # Upload a bounded PMTiles archive, e.g. taiwan.pmtiles, through the
-  # Cloudflare dashboard, S3-compatible API, or wrangler-supported upload flow.
-  ```
-
-- [ ] 🔸 Map Tiles CORS 已允許 browser PMTiles Range requests
-  - [ ] `GET`, `HEAD`
-  - [ ] request header: `range`
-  - [ ] exposed headers: `etag`, `content-length`, `content-range`
-
-### Customer App Map Variables (Staging)
-
-- [ ] 🔸 若使用 R2/PMTiles，Cloudflare Pages 已設定：
-  - [ ] `VITE_MAP_PM_TILES_URL=https://<public-r2-or-custom-domain>/taiwan.pmtiles`
-  - [ ] `VITE_MAP_GLYPHS_URL=https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf` 或等效自管 glyph PBF path
-- [ ] 🔸 若使用完整 MapLibre style，Cloudflare Pages 已設定：
-  - [ ] `VITE_MAP_STYLE_URL=https://<cdn>/style.json`
-- [ ] ✅ 未設定上述變數時已接受 fallback 行為：local/dev 會使用 MapLibre demo style；production 會使用已驗證的 R2 PMTiles object 與 Protomaps hosted glyph assets。
-
-### Secrets (Staging)
-
-- [ ] ⚠️ JWT_SECRET 已設置
-
-  ```bash
-  openssl rand -hex 32 > staging-jwt-secret.txt  # 安全存儲
-  wrangler secret put JWT_SECRET --env staging  □
-  ```
-
-- [ ] 🔸 可選服務 Secrets
-
-  ```bash
-  wrangler secret put RESEND_API_KEY --env staging           □
-  wrangler secret put TWILIO_ACCOUNT_SID --env staging       □
-  wrangler secret put TWILIO_AUTH_TOKEN --env staging        □
-  wrangler secret put SLACK_WEBHOOK_URL --env staging        □
-  wrangler secret put CLOUDFLARE_IMAGES_KEY --env staging    □
-  ```
-
-- [ ] ✅ Secrets 驗證
-  ```bash
-  wrangler secret list --env staging  # 顯示所有已設置的 secrets □
-  ```
-
-### DNS 配置 (Staging)
-
-- [ ] ✅ Staging 子域名 DNS 記錄已添加
-  - [ ] `api-staging.makanmakan.com` → API Service
-  - [ ] `realtime-staging.makanmakan.com` → Realtime Service
-  - [ ] `images-staging.makanmakan.com` → Image Processor
-  - [ ] `staging.makanmakan.com` → Customer App (Pages)
-  - [ ] `admin-staging.makanmakan.com` → Admin Dashboard (Pages)
-  - [ ] `kitchen-staging.makanmakan.com` → Kitchen Display (Pages)
-
-### 部署 (Staging)
-
-- [ ] ✅ Backend Services 已部署
-
-  ```bash
-  pnpm run deploy:staging  □
-  ```
-
-  或分別部署：
-
-  ```bash
-  cd apps/api && wrangler deploy --env staging              □
-  cd apps/realtime && wrangler deploy --env staging         □
-  cd apps/image-processor && wrangler deploy --env staging  □
-  cd apps/backup-scheduler && wrangler deploy --env staging □
-  ```
-
-- [ ] ✅ Frontend Apps 已部署到 Pages
-  ```bash
-  cd apps/customer-app && pnpm run build && wrangler pages deploy dist --project-name makanmakan-customer-staging     □
-  cd apps/admin-dashboard && pnpm run build && wrangler pages deploy dist --project-name makanmakan-admin-staging    □
-  cd apps/kitchen-display && pnpm run build && wrangler pages deploy dist --project-name makanmakan-kitchen-staging  □
-  ```
-
-### 驗證測試 (Staging)
-
-- [ ] ✅ Health Checks 通過
-
-  ```bash
-  curl https://api-staging.makanmakan.com/api/v1/health        □
-  curl https://realtime-staging.makanmakan.com/health          □
-  curl https://staging.makanmakan.com                          □
-  ```
-
-- [ ] ✅ 功能測試通過
-  - [ ] 用戶登入/註冊
-  - [ ] 菜單顯示
-  - [ ] 訂單創建
-  - [ ] WebSocket 連接
-  - [ ] 圖片上傳
-
-- [ ] 🔸 自動化測試通過
-  ```bash
-  pnpm run test:smoke:staging  □
-  ```
-  - [ ] 若要覆蓋 Admin Realtime DO WebSocket，CI secrets 需包含
-        `STAGING_ADMIN_URL`、`STAGING_AUTH_USERNAME`、
-        `STAGING_AUTH_PASSWORD`、`STAGING_RESTAURANT_ID`；測試會登入
-        admin dashboard、建立真實 WebSocket，並透過 Realtime DO broadcast
-        驗證瀏覽器收到事件。
-  - [ ] Kitchen Display 上線驗收 gate 需包含
-        `STAGING_KITCHEN_URL`、`STAGING_KITCHEN_USERNAME`、
-        `STAGING_KITCHEN_PASSWORD`，可選
-        `STAGING_KITCHEN_RESTAURANT_ID`。CI 會設定
-        `SMOKE_REQUIRE_KITCHEN_AUTH=true`，因此缺少 chef credentials 會讓
-        staging smoke 失敗，而不是跳過。
-
----
-
 ## 🚀 Production 環境檢查清單
 
-生產環境配置（在 Staging 驗證通過後進行）。
+生產環境配置。
 
 ### 前置檢查
 
-- [ ] ⚠️ Staging 環境已完全測試並驗證
 - [ ] ⚠️ 所有測試通過（單元、整合、端到端）
 - [ ] ⚠️ 性能測試滿足要求
 - [ ] ⚠️ 安全審計完成
@@ -490,14 +282,14 @@
 ### Customer App Map Variables (Production)
 
 - [ ] 🚀 `VITE_MAP_PM_TILES_URL` plus `VITE_MAP_GLYPHS_URL`，或 `VITE_MAP_STYLE_URL`，已在 Customer App Pages production 環境設定
-- [ ] 🚀 若使用 `VITE_MAP_PM_TILES_URL`，URL 指向 production R2/custom-domain PMTiles object，而不是 staging object
-- [ ] 🚀 若使用 `VITE_MAP_GLYPHS_URL`，URL 指向 production glyph PBF path，而不是 staging path
+- [ ] 🚀 若使用 `VITE_MAP_PM_TILES_URL`，URL 指向 production R2/custom-domain PMTiles object
+- [ ] 🚀 若使用 `VITE_MAP_GLYPHS_URL`，URL 指向 production glyph PBF path
 - [ ] 🚀 PMTiles object 支援 browser Range requests（`HEAD` 回 `Accept-Ranges: bytes`，`Range: bytes=0-16383` 回 `206 Partial Content`）
 - [ ] 🚀 手機瀏覽 `/markets/:slug` 時外部市場地圖可載入，且攤位示意圖仍保留
 
 ### Secrets (Production)
 
-- [ ] ⚠️ JWT_SECRET 已設置（與 Staging 不同）
+- [ ] ⚠️ JWT_SECRET 已設置
 
   ```bash
   openssl rand -hex 32 > prod-jwt-secret.txt  # 安全存儲於密碼管理器
@@ -519,11 +311,11 @@
   wrangler secret put SLACK_WEBHOOK_URL --env production        □
   ```
 
-- [ ] 🚀 圖片處理 Secrets
+- [ ] 🚀 圖片處理資源
 
   ```bash
-  wrangler secret put CLOUDFLARE_IMAGES_KEY --env production       □
-  wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID --env production □
+  wrangler r2 bucket create makanmasak-images-prod                □
+  wrangler secret put JWT_SECRET --env production                 □
   ```
 
 - [ ] 🚀 GitHub production environment secrets
@@ -617,14 +409,13 @@
 
 - [ ] 🚀 健康檢查監控
   - 配置外部監控服務（如 UptimeRobot, Pingdom）
-  - 監控端點: `https://api.makanmakan.com/api/v1/health`
+  - 監控端點: `https://api.makanmakan.com/info`
   - 檢查頻率: `□ 每 5 分鐘`
   - 告警接收人: `_____________________________`
 
 ### 部署 (Production)
 
 - [ ] ⚠️ 部署前最終檢查
-  - [ ] 所有 Staging 測試通過
   - [ ] Code review 完成
   - [ ] 團隊已通知部署時間
   - [ ] 維護視窗已確認（如需要）
@@ -657,7 +448,7 @@
 - [ ] ✅ Health Checks 通過
 
   ```bash
-  curl https://api.makanmakan.com/api/v1/health        # 應返回 200 □
+  curl https://api.makanmakan.com/info        # 應返回 200 □
   curl https://realtime.makanmakan.com/health          # 應返回 200 □
   curl https://makanmakan.com                          # 應返回 200 □
   curl https://kitchen.makanmakan.com                  # 應返回 HTML / 200 □
@@ -793,10 +584,10 @@
 #!/bin/bash
 # verify-environment.sh - 自動驗證環境配置
 
-ENVIRONMENT=$1  # staging or production
+ENVIRONMENT=$1  # production
 
 if [ -z "$ENVIRONMENT" ]; then
-  echo "Usage: ./verify-environment.sh [staging|production]"
+  echo "Usage: ./verify-environment.sh [production]"
   exit 1
 fi
 
@@ -804,7 +595,7 @@ echo "=== Verifying $ENVIRONMENT Environment ==="
 
 # 1. Health Checks
 echo "1. Health Checks..."
-curl -sf https://api-${ENVIRONMENT}.makanmakan.com/api/v1/health || echo "❌ API Health Check Failed"
+curl -sf https://api-${ENVIRONMENT}.makanmakan.com/info || echo "❌ API Health Check Failed"
 curl -sf https://realtime-${ENVIRONMENT}.makanmakan.com/health || echo "❌ Realtime Health Check Failed"
 
 # 2. Database Connection
@@ -825,9 +616,6 @@ echo "=== Verification Complete ==="
 ### 使用方式
 
 ```bash
-# 驗證 Staging
-./verify-environment.sh staging
-
 # 驗證 Production
 ./verify-environment.sh production
 ```
@@ -841,7 +629,7 @@ echo "=== Verification Complete ==="
 完成檢查清單後，請記錄以下信息：
 
 ```
-Environment: [Development / Staging / Production]
+Environment: [Development / Production]
 配置完成日期: _______________
 配置人員: _______________
 

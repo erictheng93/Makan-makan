@@ -13,11 +13,11 @@ import type {
 } from "../types";
 import { TenantService } from "./TenantService";
 import { randomBase36, randomBase36Upper } from "../utils/random";
+import { createSubdomainBase } from "../utils/subdomain";
 import { passwordResetTokens, restaurants, users } from "@makanmakan/database";
 import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { pinyin } from "pinyin-pro";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const onboardingCredentialDeliveries = sqliteTable(
@@ -497,23 +497,7 @@ export class OnboardingService {
   }
 
   private generateSubdomain(businessName: string): string {
-    const romanizedName = pinyin(businessName, {
-      toneType: "none",
-      separator: " ",
-      nonZh: "consecutive",
-      traditional: true,
-      v: true,
-    });
-
-    const base = romanizedName
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
-      .replace(/[^a-z0-9\s-]/g, "") // Remove special chars
-      .replace(/\s+/g, "-") // Replace spaces with hyphens
-      .replace(/-+/g, "-") // Remove multiple hyphens
-      .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
-      .slice(0, 20); // Limit length
+    const base = createSubdomainBase(businessName);
 
     // Add random suffix for uniqueness
     const suffix = randomBase36(6);

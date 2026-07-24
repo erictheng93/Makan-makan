@@ -1,8 +1,8 @@
 # Group Orders E2E Test Implementation Report
 
 **Created**: 2025-11-13
-**Test Suite**: `apps/api/src/features/group-orders/__tests__/e2e.test.ts`
-**Status**: ✅ **Implemented** | ⚠️ **Partial Pass (43.75%)**
+**Test Suite (original)**: `apps/api/src/features/group-orders/__tests__/e2e.test.ts` — ⚠️ this file no longer exists (2026-07-05); current group-orders tests live at `apps/api/src/features/group-orders/{routes/index,schemas/validation,services/GroupOrdersService}.test.ts`
+**Status**: ✅ **Implemented** | ⚠️ **Partial Pass (43.75%)** (point-in-time snapshot from 2025-11-13, not re-verified against current test files)
 
 ---
 

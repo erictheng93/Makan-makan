@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount } from "@vue/test-utils";
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MenuView from "./MenuView.vue";
 
@@ -9,6 +9,10 @@ const importMenuItems = vi.fn();
 const saveMenuItem = vi.fn();
 const fetchMenu = vi.fn();
 const push = vi.fn();
+const imageUploadMocks = vi.hoisted(() => ({
+  upload: vi.fn(),
+  reset: vi.fn(),
+}));
 const routeQuery = {} as Record<string, unknown>;
 const categories = ref([
   { id: 1, name: "主食", sortOrder: 0 },
@@ -35,6 +39,16 @@ vi.mock("@/composables/useCurrency", () => ({
   }),
 }));
 
+vi.mock("@/composables/useImageUpload", () => ({
+  useImageUpload: () => ({
+    upload: imageUploadMocks.upload,
+    reset: imageUploadMocks.reset,
+    state: ref("idle"),
+    errorMessage: ref(""),
+    result: ref(null),
+  }),
+}));
+
 vi.mock("@/composables/useMenuManagement", () => ({
   useMenuManagement: () => ({
     categories,
@@ -55,12 +69,21 @@ vi.mock("@/composables/useMenuManagement", () => ({
   }),
 }));
 
+vi.mock("@/utils/authTokenProvider", () => ({
+  setAuthTokenProvider: vi.fn(),
+  getAuthToken: () => "test-token",
+}));
+
 describe("MenuView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.keys(routeQuery).forEach((key) => delete routeQuery[key]);
     selectedCategoryId.value = null;
     menuItems.value = [];
+    saveMenuItem.mockResolvedValue(true);
+    imageUploadMocks.upload.mockResolvedValue(null);
+    vi.stubEnv("VITE_IMAGE_API_URL", "https://images.example.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null)));
   });
 
   it("shows market search context when opened from a product gap", () => {
@@ -235,6 +258,54 @@ describe("MenuView", () => {
     ).toContain("重建搜尋索引");
   });
 
+  it("writes uploaded image fields to the form and save payload", async () => {
+    const wrapper = mountMenuView();
+    const file = new File([new Uint8Array(3 * 1024 * 1024)], "menu.jpg", {
+      type: "image/jpeg",
+    });
+    const imageVariants = {
+      thumbnail: "https://cdn.example.test/thumb.webp",
+      small: "https://cdn.example.test/small.webp",
+      medium: "https://cdn.example.test/medium.webp",
+      large: "https://cdn.example.test/large.webp",
+    };
+    imageUploadMocks.upload.mockResolvedValue({
+      imageId: "uploaded-image-id",
+      imageUrl: imageVariants.medium,
+      imageVariants,
+    });
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+    await wrapper
+      .get('[data-testid="menu-item-name-input"]')
+      .setValue("蚵仔煎");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(7000);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    await wrapper.vm.handleImageFileSelected({
+      target: { files: [file], value: "" },
+    } as unknown as Event);
+
+    expect(imageUploadMocks.upload).toHaveBeenCalledWith(file);
+    expect(wrapper.vm.menuItemForm.imageUrl).toBe(imageVariants.medium);
+    expect(wrapper.vm.menuItemForm.imageId).toBe("uploaded-image-id");
+    expect(wrapper.vm.menuItemForm.imageVariants).toEqual(imageVariants);
+
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(saveMenuItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageUrl: imageVariants.medium,
+        imageId: "uploaded-image-id",
+        imageVariants,
+      }),
+      undefined,
+    );
+  });
+
   it("returns to the filtered market workbench after fixing product gaps", async () => {
     routeQuery.source = "market-gap";
     routeQuery.gap = "products";
@@ -278,9 +349,95 @@ describe("MenuView", () => {
       },
     });
   });
+
+  it("deletes the previous image once after changing imageId and saving successfully", async () => {
+    const wrapper = mountMenuView();
+    const item = menuItem({
+      imageId: "previous-image-id",
+      imageUrl: "https://cdn.example.test/previous.jpg",
+    });
+
+    await editItem(wrapper, item);
+    wrapper.vm.menuItemForm.imageId = "next-image-id";
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://images.example.test/images/previous-image-id",
+      expect.objectContaining({
+        method: "DELETE",
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-token",
+        }),
+      }),
+    );
+  });
+
+  it("does not delete the previous image when saving fails", async () => {
+    saveMenuItem.mockResolvedValue(false);
+    const wrapper = mountMenuView();
+    const item = menuItem({ imageId: "previous-image-id" });
+
+    await editItem(wrapper, item);
+    wrapper.vm.menuItemForm.imageId = "next-image-id";
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not delete an image when imageId is unchanged", async () => {
+    const wrapper = mountMenuView();
+    const item = menuItem({ imageId: "same-image-id" });
+
+    await editItem(wrapper, item);
+    wrapper.vm.menuItemForm.imageId = "same-image-id";
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
 
 async function flushPromises() {
   await Promise.resolve();
   await Promise.resolve();
+}
+
+function mountMenuView() {
+  return mount(MenuView, {
+    global: {
+      stubs: {
+        CategoryPanel: true,
+        CategoryEditForm: true,
+        MenuItemCard: true,
+        VirtualMenuGrid: true,
+      },
+    },
+  });
+}
+
+function menuItem(overrides: Partial<(typeof menuItems.value)[number]> = {}) {
+  return {
+    id: 1,
+    categoryId: 1,
+    catalogType: "menu_item",
+    name: "蚵仔煎",
+    price: 7000,
+    imageUrl: null,
+    imageId: null,
+    isFeatured: false,
+    isAvailable: true,
+    sortOrder: 0,
+    ...overrides,
+  };
+}
+
+async function editItem(
+  wrapper: ReturnType<typeof mountMenuView>,
+  item: ReturnType<typeof menuItem>,
+) {
+  wrapper.vm.editMenuItem(item);
+  await nextTick();
 }

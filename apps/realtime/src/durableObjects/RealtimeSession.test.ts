@@ -6,6 +6,22 @@ import type { Env } from "../types/env";
 
 const jwtSecret = "0123456789abcdefghijklmnopqrstuvwxyz";
 
+class TestWebSocketRequestResponsePair {
+  constructor(
+    public readonly request: string,
+    public readonly response: string,
+  ) {}
+}
+
+function ensureWebSocketRequestResponsePair() {
+  if (!("WebSocketRequestResponsePair" in globalThis)) {
+    vi.stubGlobal(
+      "WebSocketRequestResponsePair",
+      TestWebSocketRequestResponsePair,
+    );
+  }
+}
+
 function createEnv(): Env {
   return {
     ENVIRONMENT: "test",
@@ -21,12 +37,42 @@ function createEnv(): Env {
   };
 }
 
-function createState(): DurableObjectState {
-  return {} as DurableObjectState;
+function createState(input?: {
+  sockets?: WebSocket[];
+  storage?: Map<string, unknown>;
+}) {
+  const sockets = input?.sockets ?? [];
+  const storage = input?.storage ?? new Map<string, unknown>();
+  const state = {
+    storage: {
+      get: vi.fn(async (key: string) => storage.get(key)),
+      put: vi.fn(async (key: string, value: unknown) => {
+        storage.set(key, value);
+      }),
+    },
+    acceptWebSocket: vi.fn((socket: WebSocket) => {
+      sockets.push(socket);
+    }),
+    getWebSockets: vi.fn(() => sockets),
+    setWebSocketAutoResponse: vi.fn(),
+    __sockets: sockets,
+    __storage: storage,
+  };
+
+  return state as unknown as DurableObjectState & {
+    __sockets: WebSocket[];
+    __storage: Map<string, unknown>;
+    acceptWebSocket: ReturnType<typeof vi.fn>;
+    setWebSocketAutoResponse: ReturnType<typeof vi.fn>;
+  };
 }
 
-function createSession(env: Env = createEnv()): RealtimeSession {
-  return new RealtimeSession(createState(), env);
+function createSession(
+  env: Env = createEnv(),
+  state: DurableObjectState = createState(),
+): RealtimeSession {
+  ensureWebSocketRequestResponsePair();
+  return new RealtimeSession(state, env);
 }
 
 function createAuthEnv(overrides: Partial<Env> = {}): Env {
@@ -53,14 +99,21 @@ function createDb(results: unknown[] = []) {
 }
 
 function createSocket(overrides: Record<string, unknown> = {}) {
+  let attachment: unknown = null;
   return {
     readyState: WebSocket.OPEN,
     send: vi.fn(),
     close: vi.fn(),
+    serializeAttachment: vi.fn((value: unknown) => {
+      attachment = value;
+    }),
+    deserializeAttachment: vi.fn(() => attachment),
     ...overrides,
   } as unknown as WebSocket & {
     send: ReturnType<typeof vi.fn>;
     close: ReturnType<typeof vi.fn>;
+    serializeAttachment: ReturnType<typeof vi.fn>;
+    deserializeAttachment: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -109,8 +162,19 @@ function tokenFor(payload: Record<string, unknown>) {
 }
 
 describe("RealtimeSession HTTP endpoints", () => {
+  it("configures WebSocket hibernation auto-response", () => {
+    const state = createState();
+
+    createSession(createEnv(), state);
+
+    expect(state.setWebSocketAutoResponse).toHaveBeenCalledWith(
+      expect.any(WebSocketRequestResponsePair),
+    );
+  });
+
   it("returns 404 for unknown HTTP endpoints", async () => {
-    const session = createSession(createEnv());
+    const state = createState();
+    const session = createSession(createEnv(), state);
 
     const response = await session.fetch(new Request("https://do.test/nope"));
 
@@ -135,7 +199,8 @@ describe("RealtimeSession HTTP endpoints", () => {
   });
 
   it("records valid broadcast events and exposes history", async () => {
-    const session = createSession(createEnv());
+    const state = createState();
+    const session = createSession(createEnv(), state);
 
     const broadcast = await session.fetch(
       new Request("https://do.test/broadcast", {
@@ -157,6 +222,10 @@ describe("RealtimeSession HTTP endpoints", () => {
       count: 1,
       events: [expect.objectContaining({ eventId: "evt-1" })],
     });
+    expect(state.storage.put).toHaveBeenCalledWith(
+      "eventHistory",
+      expect.arrayContaining([expect.objectContaining({ eventId: "evt-1" })]),
+    );
   });
 
   it("returns only missed events when a history cursor is known", async () => {
@@ -208,11 +277,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const socket = createSocket();
     const info = connection();
 
-    await (session as any).handleMessage(
-      socket,
-      JSON.stringify({ type: "ping", timestamp: Date.now() }),
-      info,
-    );
+    await (session as any).handleMessage(socket, "ping", info);
     await (session as any).handleMessage(
       socket,
       JSON.stringify({ type: "subscribe", channel: "orders" }),
@@ -340,6 +405,29 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     }
   });
 
+  it("uses JWT_SECRET to verify websocket tokens when REALTIME_JWT_SECRET is not configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const response = await createSession(
+        createAuthEnv({ REALTIME_JWT_SECRET: undefined }),
+      ).fetch(
+        new Request(
+          `https://do.test/admin/restaurant-1?token=${tokenFor({
+            roomId: "restaurant-2",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.text()).resolves.toBe(
+        "Forbidden: Room ID does not match token",
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("rejects websocket upgrades when restaurant or table access fails", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
@@ -396,7 +484,8 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     });
     try {
       const db = createDb([{ restaurant_id: null, role: 0 }]);
-      const session = createSession(createAuthEnv({ DB: db.DB }));
+      const state = createState();
+      const session = createSession(createAuthEnv({ DB: db.DB }), state);
 
       await expect(
         session.fetch(
@@ -409,22 +498,27 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         ),
       ).rejects.toThrow('init["status"] must be in the range');
 
-      expect(server.accept).toHaveBeenCalled();
-      expect(server.addEventListener).toHaveBeenCalledWith(
-        "message",
-        expect.any(Function),
+      expect(state.acceptWebSocket).toHaveBeenCalledWith(server, [
+        "admin",
+        "restaurant-1",
+      ]);
+      expect(server.serializeAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "admin",
+          roomId: "restaurant-1",
+          auth: expect.objectContaining({
+            userId: "1",
+            role: "admin",
+          }),
+        }),
       );
       expect((session as any).roomInfo).toEqual({
         type: "admin",
         id: "restaurant-1",
       });
-      expect((session as any).connections.get(server)).toMatchObject({
+      expect(state.storage.put).toHaveBeenCalledWith("roomInfo", {
         type: "admin",
-        roomId: "restaurant-1",
-        auth: expect.objectContaining({
-          userId: "1",
-          role: "admin",
-        }),
+        id: "restaurant-1",
       });
       expect(server.send).toHaveBeenCalledWith(
         expect.stringContaining(RealtimeEventType.CONNECTION_ACK),
@@ -456,11 +550,13 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         { id: 7, restaurant_id: "restaurant-1" },
         { id: 7, restaurant_id: "restaurant-1" },
       ]);
+      const state = createState();
       const session = createSession(
         createAuthEnv({
           DB: db.DB,
           REALTIME_JWT_SECRET: jwtSecret,
         }),
+        state,
       );
       const guestToken = tokenFor({
         roomType: "customer",
@@ -489,8 +585,15 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         type: "customer",
         id: "7",
       });
-      expect((session as any).connections.size).toBe(2);
-      expect((session as any).connections.get(pairs[0]?.[1])).toBeUndefined();
+      expect(state.storage.put).toHaveBeenCalledWith("roomInfo", {
+        type: "customer",
+        id: "7",
+      });
+      expect(state.__sockets).toHaveLength(2);
+      expect(state.__sockets[0].deserializeAttachment()).toMatchObject({
+        type: "customer",
+        roomId: "7",
+      });
     } finally {
       warn.mockRestore();
       vi.unstubAllGlobals();
@@ -509,7 +612,8 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       return { 0: client, 1: server };
     });
     try {
-      const session = createSession(createAuthEnv());
+      const state = createState();
+      const session = createSession(createAuthEnv(), state);
       const guestToken = tokenFor({
         roomType: "customer",
         roomId: `order:${publicId}`,
@@ -532,7 +636,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         type: "customer",
         id: `order:${publicId}`,
       });
-      expect((session as any).connections.get(server)).toMatchObject({
+      expect(server.deserializeAttachment()).toMatchObject({
         type: "customer",
         roomId: `order:${publicId}`,
         auth: expect.objectContaining({
@@ -660,16 +764,16 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("routes broadcast events by restaurant, role, event type, and socket readiness", async () => {
-    const session = createSession(createEnv());
+    const sockets: WebSocket[] = [];
+    const session = createSession(createEnv(), createState({ sockets }));
     const customer = createSocket();
     const staff = createSocket();
     const admin = createSocket();
     const closed = createSocket({ readyState: WebSocket.CLOSED });
     const otherRestaurant = createSocket();
 
-    (session as any).connections.set(customer, connection());
-    (session as any).connections.set(
-      staff,
+    customer.serializeAttachment(connection());
+    staff.serializeAttachment(
       connection({
         id: "staff-1",
         type: "kitchen",
@@ -681,8 +785,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         },
       }),
     );
-    (session as any).connections.set(
-      admin,
+    admin.serializeAttachment(
       connection({
         id: "admin-1",
         type: "admin",
@@ -694,14 +797,14 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         },
       }),
     );
-    (session as any).connections.set(closed, connection({ id: "closed-1" }));
-    (session as any).connections.set(
-      otherRestaurant,
+    closed.serializeAttachment(connection({ id: "closed-1" }));
+    otherRestaurant.serializeAttachment(
       connection({
         id: "other-1",
         auth: { role: "admin", restaurantId: "restaurant-2" },
       }),
     );
+    sockets.push(customer, staff, admin, closed, otherRestaurant);
 
     const kitchenEvent = event("kitchen-1") as any;
     kitchenEvent.type = RealtimeEventType.KITCHEN_QUEUE_UPDATE;
@@ -713,9 +816,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     expect(admin.send).toHaveBeenCalledWith(JSON.stringify(kitchenEvent));
     expect(closed.send).not.toHaveBeenCalled();
     expect(otherRestaurant.send).not.toHaveBeenCalled();
-    expect((session as any).connections.get(staff).lastEventId).toBe(
-      "kitchen-1",
-    );
+    expect(staff.deserializeAttachment().lastEventId).toBe("kitchen-1");
 
     const heartbeat = event("heartbeat-1") as any;
     heartbeat.type = RealtimeEventType.HEARTBEAT;
@@ -727,9 +828,11 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const now = Date.now();
 
     for (let index = 0; index < 105; index++) {
-      (session as any).addToEventHistory(event(`evt-${index}`, now));
+      await (session as any).addToEventHistory(event(`evt-${index}`, now));
     }
-    (session as any).addToEventHistory(event("too-old", now - 90_000_000));
+    await (session as any).addToEventHistory(
+      event("too-old", now - 90_000_000),
+    );
 
     expect((session as any).eventHistory).toHaveLength(99);
     expect((session as any).eventHistory[0].eventId).toBe("evt-6");
@@ -767,11 +870,11 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("reports active connection stats with ISO timestamps and last event IDs", async () => {
-    const session = createSession(createEnv());
+    const sockets: WebSocket[] = [];
+    const session = createSession(createEnv(), createState({ sockets }));
     const socket = createSocket();
     (session as any).roomInfo = { type: "kitchen", id: "restaurant-1" };
-    (session as any).connections.set(
-      socket,
+    socket.serializeAttachment(
       connection({
         id: "staff-1",
         type: "kitchen",
@@ -786,13 +889,14 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         },
       }),
     );
-    (session as any).connections.set(
-      createSocket(),
+    const anonymous = createSocket();
+    anonymous.serializeAttachment(
       connection({
         id: "anonymous",
         auth: undefined,
       }),
     );
+    sockets.push(socket, anonymous);
 
     const response = await session.fetch(new Request("https://do.test/stats"));
 
@@ -1029,39 +1133,43 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("cleans up inactive connections and expired history through alarm", async () => {
-    const session = createSession(createEnv());
     const staleSocket = createSocket();
     const activeSocket = createSocket();
     const now = Date.now();
-    (session as any).connections.set(
-      staleSocket,
+    staleSocket.serializeAttachment(
       connection({ id: "stale", lastActivity: now - 31 * 60 * 1000 }),
     );
-    (session as any).connections.set(
-      activeSocket,
+    activeSocket.serializeAttachment(
       connection({ id: "active", lastActivity: now }),
     );
-    (session as any).eventHistory = [
-      event("fresh", now),
-      event("old", now - 90_000_000),
-    ];
+    const state = createState({
+      sockets: [staleSocket, activeSocket],
+      storage: new Map([
+        ["eventHistory", [event("fresh", now), event("old", now - 90_000_000)]],
+      ]),
+    });
+    const session = createSession(createEnv(), state);
 
     await session.alarm();
 
     expect(staleSocket.close).toHaveBeenCalled();
-    expect((session as any).connections.has(staleSocket)).toBe(false);
-    expect((session as any).connections.has(activeSocket)).toBe(true);
-    expect(
-      (session as any).eventHistory.map((item: any) => item.eventId),
-    ).toEqual(["fresh"]);
+    expect(staleSocket.serializeAttachment).toHaveBeenLastCalledWith(null);
+    expect(activeSocket.deserializeAttachment()).toMatchObject({
+      id: "active",
+    });
+    expect(state.storage.put).toHaveBeenCalledWith("eventHistory", [
+      expect.objectContaining({ eventId: "fresh" }),
+    ]);
 
-    const freshOnlySession = createSession(createEnv());
-    (freshOnlySession as any).eventHistory = [event("still-fresh", now)];
+    const freshOnlyState = createState({
+      storage: new Map([["eventHistory", [event("still-fresh", now)]]]),
+    });
+    const freshOnlySession = createSession(createEnv(), freshOnlyState);
 
     await freshOnlySession.alarm();
 
-    expect(
-      (freshOnlySession as any).eventHistory.map((item: any) => item.eventId),
-    ).toEqual(["still-fresh"]);
+    expect(freshOnlyState.storage.put).toHaveBeenCalledWith("eventHistory", [
+      expect.objectContaining({ eventId: "still-fresh" }),
+    ]);
   });
 });
