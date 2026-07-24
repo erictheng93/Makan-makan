@@ -54,6 +54,16 @@ const parseProcessingJobId = (jobId: string): number | null => {
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
+const stripTrailingSlashes = (value: string): string => {
+  let end = value.length;
+
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+
+  return end === value.length ? value : value.slice(0, end);
+};
+
 /**
  * Image service for database operations and metadata management
  */
@@ -69,7 +79,7 @@ export class ImageService {
     this.cache = env.IMAGE_CACHE;
     this.dbImageService = new DatabaseImageService(env.DB, env);
     this.imagesBucket = env.IMAGES_BUCKET;
-    this.imageBaseUrl = env.IMAGE_API_BASE_URL.replace(/\/+$/, "");
+    this.imageBaseUrl = stripTrailingSlashes(env.IMAGE_API_BASE_URL);
   }
 
   generateImageUrl(imageId: string, variant: string): string {
