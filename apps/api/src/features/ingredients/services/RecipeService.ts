@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, isNull, notInArray } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import {
   menuItemIngredients,
   ingredientDefinitions,
@@ -51,13 +52,17 @@ export class RecipeService {
   ): Promise<void> {
     const now = new Date();
 
-    await this.db.transaction(async (tx) => {
-      await tx
+    const writes: BatchItem<"sqlite">[] = [
+      this.db
         .delete(menuItemIngredients)
-        .where(eq(menuItemIngredients.menuItemId, menuItemId));
+        .where(
+          eq(menuItemIngredients.menuItemId, menuItemId),
+        ) as BatchItem<"sqlite">,
+    ];
 
-      if (entries.length > 0) {
-        await tx.insert(menuItemIngredients).values(
+    if (entries.length > 0) {
+      writes.push(
+        this.db.insert(menuItemIngredients).values(
           entries.map((entry) => ({
             menuItemId,
             ingredientId: entry.ingredientId,
@@ -67,9 +72,13 @@ export class RecipeService {
             createdAt: now,
             updatedAt: now,
           })),
-        );
-      }
-    });
+        ) as BatchItem<"sqlite">,
+      );
+    }
+
+    await this.db.batch(
+      writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+    );
   }
 
   async validateRecipe(

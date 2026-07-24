@@ -14,24 +14,31 @@ function createSelectQueue(results: unknown[]) {
   return vi.fn(() => {
     const builder = {
       from: vi.fn(() => builder),
+      innerJoin: vi.fn(() => builder),
       where: vi.fn(() => builder),
+      orderBy: vi.fn(() => builder),
       get: vi.fn(async () => results.shift() ?? null),
+      all: vi.fn(async () => results.shift() ?? []),
     };
     return builder;
   });
 }
 
-function createTx(captured: { inserted: unknown[]; updated: unknown[] }) {
+function createDbMutations(captured: {
+  inserted: unknown[];
+  updated: unknown[];
+}) {
   return {
     insert: vi.fn(() => ({
       values: vi.fn(async (payload: unknown) => {
         captured.inserted.push(payload);
+        return { kind: "insert" };
       }),
     })),
     update: vi.fn(() => ({
       set: vi.fn((payload: unknown) => {
         captured.updated.push(payload);
-        return { where: vi.fn(async () => undefined) };
+        return { where: vi.fn(() => ({ kind: "update" })) };
       }),
     })),
   };
@@ -45,31 +52,46 @@ describe("POSService money reads", () => {
 
   it("calculates shift closing totals from authoritative cents", async () => {
     const captured = { inserted: [], updated: [] as unknown[] };
-    const tx = createTx(captured);
+    const mutations = createDbMutations(captured);
     const db = {
+      ...mutations,
       select: createSelectQueue([
         {
           id: "shift-1",
           registerId: "register-1",
+          operatorId: "7",
           status: "active",
           startAmountCents: 10000,
           totalSalesCents: 7500,
           totalRefundsCents: 2500,
+          cashSalesCents: 7500,
+          cardSalesCents: 0,
+          digitalSalesCents: 0,
+          startedAt: new Date("2026-06-07T08:00:00.000Z"),
         },
+        {
+          shift: {
+            id: "shift-1",
+            registerId: "register-1",
+            operatorId: "7",
+            status: "active",
+            startAmountCents: 10000,
+            totalSalesCents: 7500,
+            totalRefundsCents: 2500,
+            cashSalesCents: 7500,
+            cardSalesCents: 0,
+            digitalSalesCents: 0,
+            startedAt: new Date("2026-06-07T08:00:00.000Z"),
+          },
+          registerName: "Front Register",
+          operatorName: "Cashier",
+        },
+        [],
+        { totalReceipts: 2, printedReceipts: 1 },
       ]),
-      transaction: vi.fn(async (callback: (tx: typeof tx) => Promise<void>) =>
-        callback(tx),
-      ),
+      batch: vi.fn(async () => []),
     };
     const service = createServiceWithDb(db);
-    vi.spyOn(
-      service as unknown as { recordCashMovement: () => Promise<void> },
-      "recordCashMovement",
-    ).mockResolvedValue(undefined);
-    vi.spyOn(service, "generateShiftReport").mockResolvedValue({
-      success: true,
-      data: { shiftId: "shift-1" },
-    });
 
     const result = await service.endShift("shift-1", { actualAmount: 150 }, 7);
 
@@ -82,10 +104,31 @@ describe("POSService money reads", () => {
         },
       },
     });
+    const batchStatements = db.batch.mock.calls[0][0];
+    expect(batchStatements).toHaveLength(4);
     expect(captured.updated[0]).toMatchObject({
       expectedAmountCents: 15000,
       differenceAmountCents: 0,
     });
+    expect(captured.inserted[0]).toMatchObject({
+      shiftId: "shift-1",
+      registerId: "register-1",
+      type: "closing",
+      amountCents: 15000,
+    });
+    expect(captured.inserted[1]).toMatchObject({
+      shiftId: "shift-1",
+      registerId: "register-1",
+      operatorId: "7",
+    });
+    expect(
+      JSON.parse((captured.inserted[1] as { summaryData: string }).summaryData),
+    ).toMatchObject({
+      expectedAmount: 150,
+      actualAmount: 150,
+      difference: 0,
+    });
+    expect(db.batch).toHaveBeenCalledTimes(1);
     expect(captured.updated[0]).not.toHaveProperty("expectedAmount");
     expect(captured.updated[0]).not.toHaveProperty("differenceAmount");
   });
@@ -93,8 +136,9 @@ describe("POSService money reads", () => {
   it("validates and records refunds from authoritative order total cents", async () => {
     vi.useFakeTimers();
     const captured = { inserted: [] as unknown[], updated: [] };
-    const tx = createTx(captured);
+    const mutations = createDbMutations(captured);
     const db = {
+      ...mutations,
       select: createSelectQueue([
         {
           id: "018f0000-0000-7000-8000-000000000123",
@@ -106,9 +150,7 @@ describe("POSService money reads", () => {
           metadata: "{}",
         },
       ]),
-      transaction: vi.fn(async (callback: (tx: typeof tx) => Promise<void>) =>
-        callback(tx),
-      ),
+      batch: vi.fn(async () => []),
       update: vi.fn(() => ({
         set: vi.fn(() => ({ where: vi.fn(async () => undefined) })),
       })),
