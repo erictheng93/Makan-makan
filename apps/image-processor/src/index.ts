@@ -16,7 +16,7 @@ import {
   imageProcessingJobs,
   menuItems,
 } from "@makanmakan/database";
-import { inArray } from "drizzle-orm";
+import { inArray, or } from "drizzle-orm";
 import { cronMatches } from "./utils/cron";
 import { ImageService } from "./services/image-service";
 import type { StoredImageObject } from "./types/env";
@@ -440,9 +440,9 @@ type OrphanSweepDeps = {
 
 async function deleteOrphanedImageMetadata(
   env: Env,
-  cloudflareImageIds: string[],
+  imageIds: string[],
 ): Promise<void> {
-  if (cloudflareImageIds.length === 0) return;
+  if (imageIds.length === 0) return;
 
   await createDatabase(env.DB)
     .update(images)
@@ -450,7 +450,12 @@ async function deleteOrphanedImageMetadata(
       isActive: false,
       updatedAt: new Date(),
     })
-    .where(inArray(images.cloudflareImageId, cloudflareImageIds));
+    .where(
+      or(
+        inArray(images.id, imageIds),
+        inArray(images.cloudflareImageId, imageIds),
+      ),
+    );
 }
 
 // 掃描 R2 圖片，刪除「超過 48h 且未被任何選單引用」的孤兒圖片。
