@@ -18,4 +18,18 @@ describe("admin API base URL", () => {
       "https://api.makanmasak.com/api/v1",
     );
   });
+
+  it("configures the management auth client from VITE_MANAGEMENT_API_URL", async () => {
+    vi.stubEnv(
+      "VITE_MANAGEMENT_API_URL",
+      "https://manage-api.makanmasak.com/api/v1",
+    );
+    vi.resetModules();
+
+    const { managementAuthClient } = await import("./api");
+
+    expect(managementAuthClient.instance.defaults.baseURL).toBe(
+      "https://manage-api.makanmasak.com/api/v1",
+    );
+  });
 });
