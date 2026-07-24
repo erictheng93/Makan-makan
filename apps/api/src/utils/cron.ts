@@ -26,13 +26,18 @@ const DAY_OF_WEEK_ALIASES: Record<string, string> = {
 function normalizeCronPart(
   part: string,
   aliases: Record<string, string>,
+  options: { normalizeSundaySeven?: boolean } = {},
 ): string {
-  return part
+  const normalized = part
     .toUpperCase()
     .split(",")
-    .map((value) => aliases[value] ?? value)
-    .map((value) => (value === "7" ? "0" : value))
-    .join(",");
+    .map((value) => aliases[value] ?? value);
+
+  if (options.normalizeSundaySeven) {
+    return normalized.map((value) => (value === "7" ? "0" : value)).join(",");
+  }
+
+  return normalized.join(",");
 }
 
 export function normalizeCronExpression(cron: string): string {
@@ -46,7 +51,9 @@ export function normalizeCronExpression(cron: string): string {
     parts[1],
     parts[2],
     normalizeCronPart(parts[3], MONTH_ALIASES),
-    normalizeCronPart(parts[4], DAY_OF_WEEK_ALIASES),
+    normalizeCronPart(parts[4], DAY_OF_WEEK_ALIASES, {
+      normalizeSundaySeven: true,
+    }),
   ].join(" ");
 }
 

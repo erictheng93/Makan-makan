@@ -11,6 +11,10 @@ describe("cronMatches", () => {
     expect(normalizeCronExpression("0 9 * JAN MON")).toBe("0 9 * 1 1");
   });
 
+  it("does not rewrite numeric July in the month field", () => {
+    expect(normalizeCronExpression("0 9 * 7 *")).toBe("0 9 * 7 *");
+  });
+
   it("does not match different schedules", () => {
     expect(cronMatches("0 3 * * SUN", "0 2 * * SUN")).toBe(false);
   });
