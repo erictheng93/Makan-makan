@@ -53,19 +53,86 @@ const extractImageMetadata = async (
   format: file.type,
 });
 
+const isUploadFile = (value: FormDataEntryValue): value is File =>
+  typeof value === "object" &&
+  value !== null &&
+  "arrayBuffer" in value &&
+  "name" in value &&
+  "size" in value &&
+  "type" in value;
+
 const getUploadVariantFiles = (
   formData: FormData | undefined,
   original: File,
-): Array<{ variant: string; file: File }> => {
+  allowedVariants: Set<string>,
+  allowedMimeTypes: string[],
+  maxSizeMB: number,
+): Array<{ variant: string; file: File }> | Response => {
   const files = new Map<string, File>([["original", original]]);
+  const normalizedMimeTypes = allowedMimeTypes.map((type) =>
+    type.toLowerCase().trim(),
+  );
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  let validationError: Response | undefined;
 
   if (formData) {
-    for (const [key, value] of formData.entries()) {
-      if (key === "file" || !(value instanceof File) || value.size === 0) {
-        continue;
+    formData.forEach((value, key) => {
+      if (validationError) {
+        return;
       }
+
+      if (key === "file" || !isUploadFile(value) || value.size === 0) {
+        return;
+      }
+
+      if (!allowedVariants.has(key)) {
+        validationError = Response.json(
+          {
+            success: false,
+            error: "Invalid image variant",
+            variant: key,
+          },
+          { status: 400 },
+        );
+        return;
+      }
+
+      if (value.size > maxSizeBytes) {
+        validationError = Response.json(
+          {
+            success: false,
+            error: `File too large. Maximum size: ${maxSizeMB}MB`,
+            variant: key,
+            maxSize: maxSizeMB,
+          },
+          { status: 413 },
+        );
+        return;
+      }
+
+      if (
+        value.type &&
+        !normalizedMimeTypes.includes(value.type.toLowerCase())
+      ) {
+        validationError = Response.json(
+          {
+            success: false,
+            error: "Invalid file type",
+            allowedTypes: allowedMimeTypes,
+            receivedType: value.type,
+            variant: key,
+          },
+          { status: 400 },
+        );
+        return;
+      }
+
       files.set(key, value);
-    }
+    });
+  }
+
+  if (validationError) {
+    return validationError;
   }
 
   return Array.from(files, ([variant, variantFile]) => ({
@@ -81,6 +148,13 @@ const fallbackVariantKeys = [
   "medium",
   "large",
 ];
+
+const getAllowedUploadVariants = (env: Env): Set<string> =>
+  new Set(
+    (env.DEFAULT_VARIANTS?.split(",") ?? fallbackVariantKeys)
+      .map((variant) => variant.trim())
+      .filter(Boolean),
+  );
 
 const variantsFromMetadata = (metadata?: ImageMetadata): string[] => {
   const variants = Object.keys(metadata?.variants ?? {});
@@ -132,7 +206,17 @@ app.post(
         );
       }
 
-      const imageService = new ImageService(c.env);
+      const variantFiles = getUploadVariantFiles(
+        c.get("formData"),
+        file,
+        getAllowedUploadVariants(c.env),
+        c.env.ALLOWED_MIME_TYPES.split(","),
+        maxSizeMB,
+      );
+      if (variantFiles instanceof Response) {
+        return variantFiles;
+      }
+
       const uploadRestaurantId =
         user.role === 0 ? query.restaurantId : user.restaurantId;
 
@@ -155,8 +239,8 @@ app.post(
         : undefined;
 
       const imageId = crypto.randomUUID();
-      const variantFiles = getUploadVariantFiles(c.get("formData"), file);
       const uploadedVariants: string[] = [];
+      const imageService = new ImageService(c.env);
 
       try {
         for (const variantFile of variantFiles) {
@@ -823,15 +907,22 @@ app.get("/:imageId/:variant", async (c) => {
       );
     }
 
-    const headers = new Headers();
-    object.writeHttpMetadata(headers);
-    headers.set("Cache-Control", "public, max-age=31536000, immutable");
-    headers.set("ETag", object.httpEtag);
-
-    return new Response(object.body, {
-      status: 200,
-      headers,
+    const objectHeaders = new Headers();
+    object.writeHttpMetadata(
+      objectHeaders as unknown as import("@cloudflare/workers-types").Headers,
+    );
+    const headers: Record<string, string> = {};
+    objectHeaders.forEach((value, key) => {
+      headers[key] = value;
     });
+    headers["Cache-Control"] = "public, max-age=31536000, immutable";
+    headers.ETag = object.httpEtag;
+
+    return c.newResponse(
+      object.body as unknown as ReadableStream,
+      200,
+      headers,
+    );
   } catch (error) {
     console.error("Image delivery error:", error);
     return c.json(

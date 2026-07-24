@@ -68,6 +68,62 @@ describe("sweepOrphanedImages", () => {
     );
   });
 
+  it("marks corresponding D1 image metadata inactive after R2 deletion", async () => {
+    const listStoredImages = vi.fn().mockResolvedValue({
+      success: true,
+      result: {
+        images: [
+          {
+            id: "cf-orphan-1",
+            key: "cf-orphan-1/original",
+            variant: "original",
+            uploaded: isoAgo(72 * HOUR),
+          },
+        ],
+      },
+    });
+    const deleteImageVariants = vi.fn().mockResolvedValue({ success: true });
+    const deleteMetadata = vi.fn().mockResolvedValue(undefined);
+
+    await sweepOrphanedImages(buildEnv(), {
+      imageStorage: { listStoredImages, deleteImageVariants },
+      resolveReferenced: async () => new Set<string>(),
+      deleteMetadata,
+    });
+
+    expect(deleteMetadata).toHaveBeenCalledOnce();
+    expect(deleteMetadata).toHaveBeenCalledWith(["cf-orphan-1"]);
+  });
+
+  it("does not mark metadata inactive when R2 deletion fails", async () => {
+    const listStoredImages = vi.fn().mockResolvedValue({
+      success: true,
+      result: {
+        images: [
+          {
+            id: "cf-orphan-1",
+            key: "cf-orphan-1/original",
+            variant: "original",
+            uploaded: isoAgo(72 * HOUR),
+          },
+        ],
+      },
+    });
+    const deleteImageVariants = vi.fn().mockResolvedValue({
+      success: false,
+      error: "r2 unavailable",
+    });
+    const deleteMetadata = vi.fn();
+
+    await sweepOrphanedImages(buildEnv(), {
+      imageStorage: { listStoredImages, deleteImageVariants },
+      resolveReferenced: async () => new Set<string>(),
+      deleteMetadata,
+    });
+
+    expect(deleteMetadata).not.toHaveBeenCalled();
+  });
+
   it("only passes >48h candidates to the reference resolver", async () => {
     const listStoredImages = vi.fn().mockResolvedValue({
       success: true,

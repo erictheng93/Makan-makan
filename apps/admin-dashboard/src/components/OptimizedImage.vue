@@ -67,19 +67,8 @@ import {
 
 interface Props {
   /**
-   * 圖片來源（三種方式之一）
-   * 1. Cloudflare Images: accountHash + imageId
-   * 2. 直接 URL: src
-   * 3. 本地路徑: src
+   * 直接 URL 或本地路徑
    */
-
-  /** Cloudflare Account Hash */
-  accountHash?: string;
-
-  /** Cloudflare Image ID */
-  imageId?: string;
-
-  /** 直接 URL 或本地路徑 */
   src?: string;
 
   /** Alt text */
@@ -162,14 +151,7 @@ const emit = defineEmits<{
 // 圖片優化
 // ============================================================================
 
-const isLocalImage = computed(() => {
-  return !props.accountHash || !props.imageId;
-});
-
-// 使用優化 composable（僅用於 Cloudflare Images）
-const cloudflareOptions = computed<ImageOptimizationOptions>(() => ({
-  accountHash: props.accountHash,
-  imageId: props.imageId,
+const imageOptions = computed<ImageOptimizationOptions>(() => ({
   src: props.src,
   width: props.width,
   height: props.height,
@@ -184,13 +166,13 @@ const cloudflareOptions = computed<ImageOptimizationOptions>(() => ({
 }));
 
 const {
-  imageUrl: cloudflareImageUrl,
-  srcset: cloudflareSrcset,
-  sizes: cloudflareSizes,
+  imageUrl: optimizedImageUrl,
+  srcset: optimizedSrcset,
+  sizes: optimizedSizes,
   detectedFormat,
-  isLoading: cloudflareIsLoading,
-  error: cloudflareError,
-} = useOptimizedImage(cloudflareOptions.value);
+  isLoading: optimizedIsLoading,
+  error: optimizedError,
+} = useOptimizedImage(imageOptions.value);
 
 // ========================================
 // 狀態管理
@@ -200,11 +182,11 @@ const localIsLoading = ref(true);
 const localError = ref(false);
 
 const isLoading = computed(() => {
-  return isLocalImage.value ? localIsLoading.value : cloudflareIsLoading.value;
+  return localIsLoading.value || optimizedIsLoading.value;
 });
 
 const error = computed(() => {
-  return isLocalImage.value ? localError.value : !!cloudflareError.value;
+  return localError.value || !!optimizedError.value;
 });
 
 // ========================================
@@ -215,30 +197,27 @@ const error = computed(() => {
  * 最終圖片 URL
  */
 const computedImageUrl = computed(() => {
-  if (isLocalImage.value) {
-    return props.src || "";
-  }
-  return cloudflareImageUrl.value;
+  return optimizedImageUrl.value;
 });
 
 /**
  * 最終 srcset
  */
 const computedSrcset = computed(() => {
-  if (isLocalImage.value || !props.generateSrcset) {
+  if (!props.generateSrcset) {
     return undefined;
   }
-  return cloudflareSrcset.value;
+  return optimizedSrcset.value;
 });
 
 /**
  * 最終 sizes
  */
 const computedSizes = computed(() => {
-  if (isLocalImage.value || !props.generateSrcset) {
+  if (!props.generateSrcset) {
     return undefined;
   }
-  return cloudflareSizes.value;
+  return optimizedSizes.value;
 });
 
 // ========================================
@@ -250,7 +229,7 @@ const handleLoad = (event: Event) => {
   emit("load", event);
 
   // 發射檢測到的格式
-  if (!isLocalImage.value && detectedFormat.value) {
+  if (detectedFormat.value) {
     emit("formatDetected", detectedFormat.value);
   }
 };

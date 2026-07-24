@@ -1,13 +1,10 @@
 /**
  * Optimized Image Composable
- * 自動圖片格式優化和 Cloudflare Images 集成
+ * 自動圖片格式偵測
  *
  * 功能：
  * 1. 自動檢測瀏覽器支持的最佳格式 (AVIF > WebP > JPEG)
- * 2. 生成 Cloudflare Images 優化 URL
- * 3. 支援響應式圖片 (srcset)
- * 4. 自動質量調整
- * 5. 懶加載集成
+ * 2. 懶加載集成
  *
  * 性能目標：
  * - 圖片大小減少 30-50% (AVIF/WebP vs JPEG)
@@ -47,18 +44,7 @@ export type ImageGravity =
  */
 export interface ImageOptimizationOptions {
   /**
-   * Cloudflare Images Account Hash
-   * 從環境變量或配置中獲取
-   */
-  accountHash?: string;
-
-  /**
-   * 圖片 ID（Cloudflare Images）
-   */
-  imageId?: string;
-
-  /**
-   * 原始 URL（非 Cloudflare Images）
+   * 原始 URL
    */
   src?: string;
 
@@ -205,139 +191,6 @@ async function getBestFormat(
 }
 
 // ============================================================================
-// Cloudflare Images URL 生成
-// ============================================================================
-
-/**
- * 構建 Cloudflare Images 轉換 URL
- */
-function buildCloudflareImageURL(
-  accountHash: string,
-  imageId: string,
-  options: ImageOptimizationOptions,
-  format: ImageFormat,
-): string {
-  const base = `https://imagedelivery.net/${accountHash}/${imageId}`;
-  const params: string[] = [];
-
-  // Width
-  if (options.width) {
-    params.push(`w=${options.width}`);
-  }
-
-  // Height
-  if (options.height) {
-    params.push(`h=${options.height}`);
-  }
-
-  // Fit mode
-  if (options.fit) {
-    params.push(`fit=${options.fit}`);
-  }
-
-  // Gravity
-  if (options.gravity && options.fit === "crop") {
-    params.push(`gravity=${options.gravity}`);
-  }
-
-  // Format
-  if (format && format !== "auto") {
-    params.push(`format=${format}`);
-  }
-
-  // Quality (auto-calculate if not specified)
-  const quality =
-    options.quality ||
-    calculateOptimalQuality(format, options.width, options.height);
-  if (quality) {
-    params.push(`quality=${quality}`);
-  }
-
-  // DPR
-  if (options.dpr && options.dpr > 1) {
-    params.push(`dpr=${options.dpr}`);
-  }
-
-  // Sharpen (auto or manual)
-  if (options.sharpen !== undefined) {
-    params.push(`sharpen=${options.sharpen}`);
-  } else if (options.width && options.width < 400) {
-    // Auto-sharpen for small images
-    params.push("sharpen=1");
-  }
-
-  // Background (for pad mode)
-  if (options.background && options.fit === "pad") {
-    params.push(`background=${options.background.replace("#", "")}`);
-  }
-
-  return params.length > 0 ? `${base}/${params.join(",")}` : `${base}/public`;
-}
-
-/**
- * 計算最佳質量
- */
-function calculateOptimalQuality(
-  format: ImageFormat,
-  width: number | undefined,
-  height: number | undefined,
-): number {
-  if (!width || !height) return 85;
-
-  const pixels = width * height;
-
-  if (format === "avif") {
-    if (pixels > 1000000) return 75; // Large: more aggressive compression
-    if (pixels > 400000) return 80; // Medium
-    return 85; // Small
-  }
-
-  if (format === "webp") {
-    if (pixels > 1000000) return 80;
-    if (pixels > 400000) return 85;
-    return 90;
-  }
-
-  if (format === "jpeg" || format === "png") {
-    if (pixels > 1000000) return 75;
-    if (pixels > 400000) return 80;
-    return 85;
-  }
-
-  return 85;
-}
-
-/**
- * 生成響應式 srcset
- */
-function generateSrcset(
-  accountHash: string,
-  imageId: string,
-  options: ImageOptimizationOptions,
-  format: ImageFormat,
-): string {
-  const baseWidth = options.width || 800;
-  const widths = [
-    Math.round(baseWidth * 0.5), // 0.5x
-    baseWidth, // 1x
-    Math.round(baseWidth * 1.5), // 1.5x
-    Math.round(baseWidth * 2), // 2x (Retina)
-  ];
-
-  return widths
-    .map((width) => {
-      const url = buildCloudflareImageURL(
-        accountHash,
-        imageId,
-        { ...options, width },
-        format,
-      );
-      return `${url} ${width}w`;
-    })
-    .join(", ");
-}
-
-// ============================================================================
 // Composable 主體
 // ============================================================================
 
@@ -347,8 +200,7 @@ function generateSrcset(
  * @example
  * ```typescript
  * const { imageUrl, srcset, sizes, isLoading } = useOptimizedImage({
- *   accountHash: 'abc123',
- *   imageId: 'menu-item-1',
+ *   src: '/images/menu-item-1/medium',
  *   width: 600,
  *   height: 400,
  *   format: 'auto',
@@ -382,32 +234,14 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
    * 優化後的圖片 URL
    */
   const imageUrl = computed(() => {
-    if (!options.accountHash || !options.imageId) {
-      return options.src || "";
-    }
-
-    return buildCloudflareImageURL(
-      options.accountHash,
-      options.imageId,
-      options,
-      detectedFormat.value,
-    );
+    return options.src || "";
   });
 
   /**
    * 響應式 srcset
    */
   const srcset = computed(() => {
-    if (!options.generateSrcset || !options.accountHash || !options.imageId) {
-      return undefined;
-    }
-
-    return generateSrcset(
-      options.accountHash,
-      options.imageId,
-      options,
-      detectedFormat.value,
-    );
+    return undefined;
   });
 
   /**
@@ -462,13 +296,7 @@ export function useOptimizedImage(options: ImageOptimizationOptions) {
 // 工具函數導出
 // ============================================================================
 
-export {
-  getFormatSupport,
-  getBestFormat,
-  buildCloudflareImageURL,
-  calculateOptimalQuality,
-  generateSrcset,
-};
+export { getFormatSupport, getBestFormat };
 
 // ============================================================================
 // 預設配置導出

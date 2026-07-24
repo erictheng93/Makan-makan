@@ -6,6 +6,7 @@ import type { Env } from "../types/env";
 
 const JWT_SECRET = "test-jwt-secret-with-at-least-32-chars";
 const ADMIN_UUID = "01890a5d-ac96-774b-bcce-b302099a8057";
+const RESTAURANT_UUID = "01890a5d-ac96-774b-bcce-b302099a8058";
 
 async function adminToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
@@ -71,6 +72,25 @@ function streamedMultipartRequest(
   } as RequestInit & { duplex: "half" });
 }
 
+function multipartRequest(token: string, formData: FormData): Request {
+  return new Request(
+    `https://images.test/images/upload?restaurantId=${RESTAURANT_UUID}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    },
+  );
+}
+
+function imageFile(bytes: Uint8Array, name: string, type = "image/jpeg"): File {
+  const copy: Uint8Array<ArrayBuffer> = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return new File([copy.buffer], name, { type });
+}
+
 describe("POST /images/upload size enforcement", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -102,5 +122,84 @@ describe("POST /images/upload size enforcement", () => {
     expect(body.success).toBe(false);
     expect(body.error).toContain("File too large");
     expect(body.maxSize).toBe(1);
+  });
+
+  it("rejects an upload variant whose field name is not allowlisted", async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/images", imagesRouter);
+    const token = await adminToken();
+    const validJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
+    const formData = new FormData();
+    formData.set("file", imageFile(validJpeg, "original.jpg"));
+    formData.set("../../../escape", imageFile(validJpeg, "escape.jpg"));
+
+    const response = await app.fetch(
+      multipartRequest(token, formData),
+      buildEnv(),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "Invalid image variant",
+      variant: "../../../escape",
+    });
+  });
+
+  it("rejects an upload variant with a disallowed MIME type", async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/images", imagesRouter);
+    const token = await adminToken();
+    const validJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
+    const formData = new FormData();
+    formData.set("file", imageFile(validJpeg, "original.jpg"));
+    formData.set(
+      "medium",
+      imageFile(
+        new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+        "medium.pdf",
+        "application/pdf",
+      ),
+    );
+
+    const response = await app.fetch(
+      multipartRequest(token, formData),
+      buildEnv(),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "Invalid file type",
+      variant: "medium",
+      receivedType: "application/pdf",
+    });
+  });
+
+  it("rejects an oversized upload variant", async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/images", imagesRouter);
+    const token = await adminToken();
+    const validJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
+    const oversizedVariant = new Uint8Array(1_200_000);
+    oversizedVariant[0] = 0xff;
+    oversizedVariant[1] = 0xd8;
+    oversizedVariant[2] = 0xff;
+    const formData = new FormData();
+    formData.set("file", imageFile(validJpeg, "original.jpg"));
+    formData.set("medium", imageFile(oversizedVariant, "medium.jpg"));
+
+    const response = await app.fetch(
+      multipartRequest(token, formData),
+      buildEnv(),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "File too large. Maximum size: 1MB",
+      variant: "medium",
+      maxSize: 1,
+    });
   });
 });

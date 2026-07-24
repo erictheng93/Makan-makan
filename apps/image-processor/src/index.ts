@@ -435,7 +435,23 @@ type OrphanSweepDeps = {
   imageStorage?: Pick<ImageService, "listStoredImages" | "deleteImageVariants">;
   // 引用解析：給定一批 image id 回傳已被引用的 id 集合，測試時可注入避免依賴真實 D1
   resolveReferenced?: (imageIds: string[]) => Promise<Set<string>>;
+  deleteMetadata?: (cloudflareImageIds: string[]) => Promise<void>;
 };
+
+async function deleteOrphanedImageMetadata(
+  env: Env,
+  cloudflareImageIds: string[],
+): Promise<void> {
+  if (cloudflareImageIds.length === 0) return;
+
+  await createDatabase(env.DB)
+    .update(images)
+    .set({
+      isActive: false,
+      updatedAt: new Date(),
+    })
+    .where(inArray(images.cloudflareImageId, cloudflareImageIds));
+}
 
 // 掃描 R2 圖片，刪除「超過 48h 且未被任何選單引用」的孤兒圖片。
 // 每個步驟都獨立 try/catch，任何失敗都不應影響其他 cron 步驟。
@@ -449,6 +465,9 @@ export async function sweepOrphanedImages(
       deps.resolveReferenced ??
       ((imageIds: string[]) =>
         findReferencedImageIds(createDatabase(env.DB), imageIds));
+    const deleteMetadata =
+      deps.deleteMetadata ??
+      ((imageIds: string[]) => deleteOrphanedImageMetadata(env, imageIds));
     const cutoffMs = Date.now() - ORPHAN_SWEEP_MIN_AGE_MS;
 
     let deleted = 0;
@@ -480,6 +499,7 @@ export async function sweepOrphanedImages(
       });
 
       if (oldEnough.length > 0) {
+        const deletedMetadataIds: string[] = [];
         let referenced: Set<string>;
         try {
           referenced = await resolveReferenced(oldEnough.map((img) => img.id));
@@ -505,6 +525,7 @@ export async function sweepOrphanedImages(
             );
             if (deleteResult.success) {
               deleted++;
+              deletedMetadataIds.push(img.id);
               console.log(
                 `Orphan sweep: deleted unreferenced R2 image ${img.key} (uploaded ${img.uploaded})`,
               );
@@ -516,6 +537,17 @@ export async function sweepOrphanedImages(
           } catch (error) {
             console.error(
               `Orphan sweep: error deleting image ${img.key}:`,
+              error,
+            );
+          }
+        }
+
+        if (deletedMetadataIds.length > 0) {
+          try {
+            await deleteMetadata(deletedMetadataIds);
+          } catch (error) {
+            console.error(
+              "Orphan sweep: failed to delete image metadata:",
               error,
             );
           }
