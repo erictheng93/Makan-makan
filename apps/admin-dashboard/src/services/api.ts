@@ -81,6 +81,7 @@ export function handleAdminAuthFailure(
 }
 
 const authClient = createAuthenticatedApiClient({
+  baseURL: resolveApiBase(),
   storageKeyPrefix: "auth",
   storageKeys: {
     token: "auth_token",
@@ -105,6 +106,10 @@ const authClient = createAuthenticatedApiClient({
 });
 
 setAuthTokenProvider(() => authClient.tokens.getToken());
+
+function resolveApiBase(): string {
+  return import.meta.env.VITE_API_BASE_URL || "/api/v1";
+}
 
 function resolveManagementApiBase(): string {
   return import.meta.env.VITE_MANAGEMENT_API_URL || "/management-api/v1";
