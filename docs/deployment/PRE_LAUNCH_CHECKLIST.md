@@ -78,7 +78,6 @@
 - [ ] 所有 `wrangler secret put` 已在 production 環境執行：
   - [ ] `JWT_SECRET`（≥ 32 字元）
   - [ ] `ENCRYPTION_KEY`
-  - [ ] `CLOUDFLARE_IMAGES_KEY`
   - [ ] `SLACK_WEBHOOK_URL`
   - [ ] `RESEND_API_KEY`（如有啟用 email）
   - [ ] `STRIPE_SECRET_KEY`（如有啟用 payment）

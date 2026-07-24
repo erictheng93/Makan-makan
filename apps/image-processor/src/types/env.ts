@@ -1,14 +1,10 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 
 export interface Env {
   // Cloudflare bindings
-  IMAGES_BUCKET: R2Bucket;
   IMAGE_CACHE: KVNamespace;
   DB: D1Database;
-
-  // Cloudflare Images API
-  CLOUDFLARE_ACCOUNT_ID: string;
-  CLOUDFLARE_IMAGES_API_TOKEN: string;
+  IMAGES_BUCKET: R2Bucket;
 
   // Environment variables
   NODE_ENV: "development" | "production";
@@ -49,7 +45,7 @@ export interface ImageUploadRequest {
   filename: string;
   variants?: string[];
   metadata?: Record<string, unknown>;
-  restaurantId?: number;
+  restaurantId?: string;
   category?: string;
 }
 
@@ -93,8 +89,8 @@ export interface ImageMetadata {
   height?: number;
   variants: Record<string, string>; // variant name -> URL
   uploadedAt: string;
-  uploadedBy?: number;
-  restaurantId?: number;
+  uploadedBy?: string;
+  restaurantId?: string;
   category?: string;
   tags?: string[];
   altText?: string;
@@ -102,27 +98,11 @@ export interface ImageMetadata {
   exifData?: Record<string, unknown>;
 }
 
-export interface CloudflareImageDetails {
+export interface StoredImageObject {
   id: string;
-  filename?: string;
-  uploaded?: string;
-  requireSignedURLs?: boolean;
-  variants?: string[];
-}
-
-export interface CloudflareImageList {
-  images: CloudflareImageDetails[];
-  continuation_token?: string;
-}
-
-export interface CloudflareImagesResponse<TResult = CloudflareImageDetails> {
-  success: boolean;
-  errors: Array<{
-    code: number;
-    message: string;
-  }>;
-  messages: string[];
-  result?: TResult;
+  key: string;
+  variant: string;
+  uploaded: string;
 }
 
 export interface ImageProcessingJob {

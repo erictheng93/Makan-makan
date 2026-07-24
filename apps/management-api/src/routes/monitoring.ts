@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { ManagementEnv } from "../types";
+import { compareVersions, maxVersion } from "../utils/semver";
 
 const monitoring = new Hono<{ Bindings: ManagementEnv }>();
 
@@ -313,7 +314,7 @@ monitoring.get(
           ELSE 'info'
         END as severity
       FROM health_checks h
-      JOIN tenants t ON h.id = t.id
+      JOIN tenants t ON h.tenant_id = t.id
       WHERE 1=1
     `;
 
@@ -367,7 +368,11 @@ monitoring.get("/versions", async (c) => {
   const db = c.env.MANAGEMENT_DB;
 
   // 獲取版本分佈和更新狀態
-  const [versionDist, recentUpdates, pendingUpdates] = await Promise.all([
+  // NOTE: version ordering / "which tenants are behind" cannot be computed in
+  // SQL — SQLite compares TEXT lexicographically ("1.10.0" < "1.2.0"). We fetch
+  // the raw rows and derive the latest version + pending tenants with the
+  // semver comparator in JS.
+  const [versionDist, recentUpdates, activeTenants] = await Promise.all([
     // 版本分佈
     db
       .prepare(
@@ -379,7 +384,6 @@ monitoring.get("/versions", async (c) => {
         FROM tenants
         WHERE status = 'active'
         GROUP BY deployed_version
-        ORDER BY version DESC
       `,
       )
       .all(),
@@ -405,7 +409,7 @@ monitoring.get("/versions", async (c) => {
       )
       .all(),
 
-    // 待更新租戶（版本低於最新）
+    // 有版本的活躍租戶（待更新計算在 JS 端以 semver 進行）
     db
       .prepare(
         `
@@ -416,22 +420,30 @@ monitoring.get("/versions", async (c) => {
         FROM tenants t
         WHERE t.status = 'active'
           AND t.deployed_version IS NOT NULL
-          AND t.deployed_version < (
-            SELECT MAX(deployed_version) FROM tenants WHERE status = 'active'
-          )
-        ORDER BY t.deployed_version ASC
       `,
       )
       .all(),
   ]);
 
-  // 獲取最新版本
-  const latestVersion =
-    versionDist.results
-      ?.filter((v: Record<string, unknown>) => v.version !== "not_deployed")
-      .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
-        (b.version as string).localeCompare(a.version as string),
-      )[0]?.version || null;
+  // 獲取最新版本（semver 比較，非字典序）
+  const deployedVersions = (versionDist.results ?? [])
+    .map((v: Record<string, unknown>) => v.version as string)
+    .filter((v: string) => v !== "not_deployed");
+  const latestVersion = maxVersion(deployedVersions);
+
+  // 待更新租戶（版本低於最新）
+  const pendingUpdates = (activeTenants.results ?? [])
+    .filter(
+      (row: Record<string, unknown>) =>
+        latestVersion !== null &&
+        compareVersions(row.deployed_version as string, latestVersion) < 0,
+    )
+    .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
+      compareVersions(
+        a.deployed_version as string,
+        b.deployed_version as string,
+      ),
+    );
 
   return c.json({
     success: true,
@@ -445,7 +457,7 @@ monitoring.get("/versions", async (c) => {
         }),
       ),
       recentUpdates: recentUpdates.results,
-      pendingUpdates: pendingUpdates.results,
+      pendingUpdates,
     },
   });
 });

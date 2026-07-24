@@ -467,7 +467,8 @@ describe("PaymentService", () => {
 
     expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:101:full");
     expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:101:basic");
-    expect(setup.fetch).toHaveBeenCalledTimes(2);
+    // restaurant + kitchen + admin rooms (admin added in bug-inventory fix #1)
+    expect(setup.fetch).toHaveBeenCalledTimes(3);
 
     const event = JSON.parse(
       String(setup.fetch.mock.calls[0]?.[1]?.body),

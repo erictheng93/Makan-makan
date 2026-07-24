@@ -30,6 +30,12 @@ coverage/
 .dev.vars
 !.env.development
 !.env.test
+# Frontend production env files only contain public VITE_* URLs needed by CI.
+!apps/admin-dashboard/.env.production
+!apps/customer-app/.env.production
+!apps/kitchen-display/.env.production
+!apps/management-portal/.env.production
+!apps/onboarding-app/.env.production
 
 # IDE files
 .vscode/

@@ -25,6 +25,7 @@ export interface MenuItem extends BaseEntity {
   price: number; // in cents
   originalPrice?: number; // original price for promotional items
   imageUrl?: string;
+  imageId?: string | null;
   imageVariants?: ImageVariants;
   dietaryInfo?: DietaryInfo;
   spiceLevel: SpiceLevel;
@@ -88,6 +89,7 @@ export interface CreateMenuItemRequest {
   name: string;
   description?: string;
   price: number; // in cents
+  imageId?: string | null;
   dietaryInfo?: DietaryInfo;
   spiceLevel?: SpiceLevel;
   options?: MenuItemOptions;

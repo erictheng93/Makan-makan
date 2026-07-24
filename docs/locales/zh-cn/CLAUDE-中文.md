@@ -133,9 +133,6 @@ CLOUDFLARE_API_TOKEN=your_api_token
 # JWT 密鑰，用於身份驗證
 JWT_SECRET=your_jwt_secret
 
-# Cloudflare Images API
-CLOUDFLARE_IMAGES_KEY=your_images_key
-
 # Slack webhook，用於錯誤通知
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ```

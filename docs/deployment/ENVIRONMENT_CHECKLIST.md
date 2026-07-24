@@ -311,11 +311,11 @@
   wrangler secret put SLACK_WEBHOOK_URL --env production        □
   ```
 
-- [ ] 🚀 圖片處理 Secrets
+- [ ] 🚀 圖片處理資源
 
   ```bash
-  wrangler secret put CLOUDFLARE_IMAGES_KEY --env production       □
-  wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID --env production □
+  wrangler r2 bucket create makanmasak-images-prod                □
+  wrangler secret put JWT_SECRET --env production                 □
   ```
 
 - [ ] 🚀 GitHub production environment secrets

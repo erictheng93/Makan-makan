@@ -108,7 +108,6 @@ export interface Env {
   CF_ACCOUNT_ID?: string; // Cloudflare Account ID
   CF_ZONE_ID?: string; // Zone ID for WAF rules
   CF_STREAM_TOKEN?: string; // Cloudflare Streams for video
-  CF_IMAGES_TOKEN?: string; // Cloudflare Images API
 
   // Optional variables
   API_BASE_URL?: string;
@@ -124,7 +123,6 @@ export interface Env {
   MONITORING_WEBHOOK_URL?: string;
   ALERT_EMAIL_FROM?: string;
   ALERT_EMAIL_TO?: string;
-  CLOUDFLARE_IMAGES_KEY?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   SENTRY_DSN?: string;
 

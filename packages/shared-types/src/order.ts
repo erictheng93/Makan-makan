@@ -131,11 +131,21 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-export enum OrderPaymentStatus {
-  PENDING = 0,
-  PAID = 1,
-  FAILED = 2,
-}
+/**
+ * Canonical OrderPaymentStatus — matches the TEXT `orders.payment_status`
+ * column in `packages/database/src/schema/orders.ts:109`
+ * (pending / completed / failed / refunded). This used to be a numeric enum
+ * (PENDING=0, PAID=1, FAILED=2), which never matched the string values the DB
+ * and API actually produce — comparisons against real data always failed.
+ */
+export const ORDER_PAYMENT_STATUSES = [
+  "pending",
+  "completed",
+  "failed",
+  "refunded",
+] as const;
+
+export type OrderPaymentStatus = (typeof ORDER_PAYMENT_STATUSES)[number];
 
 export type OrderPaymentMethod = "cash" | "card" | "online" | "ewallet";
 
@@ -162,12 +172,22 @@ export interface OrderItemSnapshot {
   customizations?: SelectedCustomizations;
 }
 
-export enum OrderItemStatus {
-  PENDING = 0,
-  PREPARING = 1,
-  READY = 2,
-  DELIVERED = 3,
-}
+/**
+ * Canonical OrderItemStatus — matches the TEXT `order_items.status` column in
+ * `packages/database/src/schema/order-items.ts:87`
+ * (pending / preparing / ready / served / cancelled). Previously a numeric enum
+ * (PENDING=0…DELIVERED=3) that never matched the string values in the DB/API.
+ * Note the fulfilled terminal state is "served" (not "delivered") for items.
+ */
+export const ORDER_ITEM_STATUSES = [
+  "pending",
+  "preparing",
+  "ready",
+  "served",
+  "cancelled",
+] as const;
+
+export type OrderItemStatus = (typeof ORDER_ITEM_STATUSES)[number];
 
 export interface SelectedCustomizations {
   size?: {

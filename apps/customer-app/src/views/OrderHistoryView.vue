@@ -192,7 +192,7 @@
                   {{ formatPrice(order.totalAmount) }}
                 </p>
                 <p
-                  v-if="order.paymentStatus === 1"
+                  v-if="order.paymentStatus === 'completed'"
                   class="text-sm text-green-600 mt-1"
                 >
                   {{ t("orderHistory.paid") }}

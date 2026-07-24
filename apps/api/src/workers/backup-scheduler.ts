@@ -4,6 +4,7 @@
  */
 
 import { BackupService } from "../services/BackupService";
+import { cronMatches } from "../utils/cron";
 import type { BackupConfiguration } from "@makanmakan/shared-types";
 import type {
   D1Database,
@@ -192,27 +193,16 @@ export default {
         env.BACKUP_KV,
       );
 
-      switch (trigger) {
-        case "*/5 * * * *": // Every 5 minutes - Check running backups and system health
-          await handleHealthCheck(backupService, env, env.ANALYTICS);
-          break;
-
-        case "0 */6 * * *": // Every 6 hours - Process scheduled backups
-          await handleScheduledBackups(backupService, env, env.ANALYTICS);
-          break;
-
-        case "0 2 * * *": // Daily at 2 AM - Cleanup and maintenance
-          await handleDailyMaintenance(backupService, env, env.ANALYTICS);
-          break;
-
-        // event.cron is the literal trigger string from wrangler.toml —
-        // this case must match it byte-for-byte ("SUN", not "0").
-        case "0 0 * * SUN": // Weekly on Sunday - Generate reports and alerts
-          await handleWeeklyReports(backupService, env, env.ANALYTICS);
-          break;
-
-        default:
-          console.log(`Unknown cron trigger: ${trigger}`);
+      if (cronMatches(trigger, "*/5 * * * *")) {
+        await handleHealthCheck(backupService, env, env.ANALYTICS);
+      } else if (cronMatches(trigger, "0 */6 * * *")) {
+        await handleScheduledBackups(backupService, env, env.ANALYTICS);
+      } else if (cronMatches(trigger, "0 2 * * *")) {
+        await handleDailyMaintenance(backupService, env, env.ANALYTICS);
+      } else if (cronMatches(trigger, "0 0 * * SUN")) {
+        await handleWeeklyReports(backupService, env, env.ANALYTICS);
+      } else {
+        console.log(`Unknown cron trigger: ${trigger}`);
       }
     } catch (error: unknown) {
       console.error("Backup scheduler error:", error);
@@ -270,7 +260,7 @@ async function handleHealthCheck(
         criticalIssues,
         warningIssues,
       ],
-      indexes: ["health", health.overall_status],
+      indexes: ["health"],
     });
 
     // Create alerts when the system is degraded or unhealthy
@@ -684,7 +674,7 @@ async function aggregateDailyMetrics(
         metric.total_size_bytes ?? 0,
         metric.average_duration_seconds ?? 0,
       ],
-      indexes: ["backup_daily_metrics", metric.restaurant_id],
+      indexes: ["backup_daily_metrics"],
     });
   }
 }

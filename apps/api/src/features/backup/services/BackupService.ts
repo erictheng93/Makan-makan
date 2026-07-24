@@ -78,6 +78,13 @@ export class BackupService {
     private storageService: BackupStorageService,
     private configService: BackupConfigService,
     private validationService: BackupValidationService,
+    /**
+     * Symmetric key used to encrypt/decrypt backup payloads when a backup's
+     * `encryption_enabled` flag is set. Sourced from the `ENCRYPTION_KEY`
+     * environment secret at the route/worker wiring layer. When absent,
+     * encrypted backups cannot be created or restored and raise a clear error.
+     */
+    private encryptionKey?: string,
   ) {
     this.d1 = d1;
     this.db = drizzle(d1);
@@ -301,10 +308,30 @@ export class BackupService {
           compressedSize > 0 ? backupJson.length / compressedSize : 1.0;
       }
 
+      // Apply the configured compression/encryption before storing. The stored
+      // bytes (and therefore the checksum) reflect the processed payload; the
+      // storage flags are persisted in metadata so restore knows how to read
+      // the backup back.
+      const compress = Boolean(backup.compression_enabled);
+      const encrypt = Boolean(backup.encryption_enabled);
+      if (encrypt && !this.encryptionKey) {
+        throw new Error(
+          "Backup encryption is enabled but no encryption key is configured " +
+            "(set the ENCRYPTION_KEY environment secret).",
+        );
+      }
+      const { processedData } =
+        await this.storageService.processDataForStorage(
+          backupJson,
+          compress,
+          encrypt,
+          this.encryptionKey,
+        );
+
       // Store backup using storage service
       const { storage_path, checksum } = await this.storageService.storeBackup(
         backup,
-        backupJson,
+        processedData,
         backup.storage_provider,
       );
 
@@ -322,6 +349,12 @@ export class BackupService {
       const metadata = {
         ...(backup.metadata ?? {}),
         manifest,
+        // Persist how the payload was processed so restore can reverse it.
+        // No schema change — this rides in the existing metadata JSON column.
+        storage: {
+          compressed: compress,
+          encrypted: encrypt,
+        },
         tables_info: backup.tables_included.map((table) => ({
           table_name: table,
           record_count: rowCounts[table] ?? backupData[table]?.length ?? 0,
@@ -1160,7 +1193,31 @@ export class BackupService {
       }
       checksum ||= backup.checksum;
 
-      const backupData = JSON.parse(backupDataText) as Record<
+      // Reverse any compression/encryption applied at backup time. Detection is
+      // driven off persisted flags (metadata.storage, falling back to the
+      // encryption_enabled column) — never by sniffing — so legacy plaintext
+      // backups (no storage metadata) pass through unchanged.
+      const storageMeta = (
+        backup.metadata as { storage?: { compressed?: boolean; encrypted?: boolean } } | undefined
+      )?.storage;
+      const wasCompressed = Boolean(storageMeta?.compressed);
+      const wasEncrypted = Boolean(
+        storageMeta?.encrypted ?? backup.encryption_enabled,
+      );
+      if (wasEncrypted && !this.encryptionKey) {
+        throw new Error(
+          "Backup is encrypted but no encryption key is configured " +
+            "(set the ENCRYPTION_KEY environment secret).",
+        );
+      }
+      const restoredText = await this.storageService.processDataFromStorage(
+        backupDataText,
+        wasCompressed,
+        wasEncrypted,
+        this.encryptionKey,
+      );
+
+      const backupData = JSON.parse(restoredText) as Record<
         string,
         Record<string, unknown>[]
       >;

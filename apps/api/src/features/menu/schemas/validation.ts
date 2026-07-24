@@ -128,6 +128,7 @@ export const createMenuItemSchema = z.object({
   price: priceSchema,
   originalPrice: priceSchema.optional(),
   imageUrl: imageUrlSchema,
+  imageId: z.string().uuid().nullish(),
   imageVariants: imageVariantsSchema.optional(),
   spiceLevel: z.number().int().min(0).max(5).optional().default(0),
   preparationTime: positiveInteger.optional().default(15),

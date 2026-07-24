@@ -487,7 +487,17 @@ app.get(
       "Status",
     ];
 
+    // Resolve employee display names for the CSV (records only carry ids).
+    const nameMap = await service.getEmployeeNames(
+      report.records.map((r) => r.employeeId),
+    );
+
     const rows = report.records.map((r) => {
+      // Names are free text — escape embedded quotes for CSV safety.
+      const employeeName = (nameMap.get(r.employeeId) || r.employeeId).replace(
+        /"/g,
+        '""',
+      );
       const clockIn = r.clockInTime
         ? new Date(r.clockInTime).toLocaleTimeString("en-US", {
             hour12: false,
@@ -504,7 +514,7 @@ app.get(
         : "";
 
       return [
-        `"${r.employeeId}"`,
+        `"${employeeName}"`,
         `"${r.workDate}"`,
         `"${r.startTime}"`,
         `"${r.endTime}"`,

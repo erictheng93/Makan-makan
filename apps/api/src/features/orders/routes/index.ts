@@ -14,11 +14,6 @@ import {
   validateQuery,
   validateParams,
 } from "../../../shared/middleware";
-import {
-  guestSessionAuth,
-  guestTokenAuth,
-} from "../../../middleware/guestAuth";
-import type { GuestSessionData } from "../../../middleware/guestAuth";
 import { OrdersService } from "../services/OrdersService";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
@@ -35,7 +30,7 @@ import {
   badRequest,
 } from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
-import { enforceQuota, quotaGate } from "../../../middleware/quotaGate";
+import { quotaGate } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
 import type { CallerContext } from "../types";
 import { ROLE_STATUS_PERMISSIONS } from "../types";
@@ -110,16 +105,19 @@ function convertStatusArray(
   return (typeof status === "string" ? [status] : status) as OrderStatus[];
 }
 
-// Helper function to convert payment status
+// Helper function to normalize an incoming payment-status string to the
+// canonical TEXT values stored in orders.payment_status
+// (pending / completed / failed / refunded). "paid" is accepted as a legacy
+// alias for "completed".
 function stringToPaymentStatus(status: string): OrderPaymentStatus {
-  const statusMap = {
-    pending: OrderPaymentStatus.PENDING,
-    paid: OrderPaymentStatus.PAID,
-    failed: OrderPaymentStatus.FAILED,
+  const statusMap: Record<string, OrderPaymentStatus> = {
+    pending: "pending",
+    completed: "completed",
+    paid: "completed",
+    failed: "failed",
+    refunded: "refunded",
   };
-  return (
-    statusMap[status as keyof typeof statusMap] ?? OrderPaymentStatus.PENDING
-  );
+  return statusMap[status] ?? "pending";
 }
 
 // Helper function to convert payment status array
@@ -161,6 +159,13 @@ const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("OrdersRoutes");
 const orderBatchSyncSchema = z.object({}).passthrough();
 
+// Optional body for DELETE /orders/:id — carries a human cancellation reason.
+// Both the body and the field are optional; the value is trimmed and capped to
+// 500 chars by the handler (truncated rather than rejected) before it is stored.
+const cancelOrderBodySchema = z.object({
+  reason: z.string().optional(),
+});
+
 function createBatchSyncId(payload: Record<string, unknown>): string {
   if (typeof payload.sync_id === "string" && payload.sync_id.trim()) {
     return encodeURIComponent(payload.sync_id);
@@ -168,97 +173,13 @@ function createBatchSyncId(payload: Record<string, unknown>): string {
   return `${Date.now()}`;
 }
 
-/**
- * Create guest order (no JWT required, uses guest token)
- * POST /api/v1/orders/guest
- */
-app.post(
-  "/guest",
-  guestSessionAuth,
-  validateBody(orderSchemas.createOrder),
-  async (c) => {
-    const guestSession: GuestSessionData = c.get("guestSession");
-    const data: CreateOrderInput = c.get("validatedBody");
-    const ordersService = new OrdersService(c.env);
-
-    logger.info("Creating guest order", {
-      restaurantId: data.restaurantId,
-      phoneLastDigits: guestSession.phoneLastDigits,
-    });
-
-    // Verify restaurant matches token
-    if (data.restaurantId !== guestSession.restaurantId) {
-      throw forbidden("Restaurant mismatch");
-    }
-    await enforceQuota(c, "orders.created", {
-      restaurantId: data.restaurantId,
-    });
-
-    // Build order data (no customerId for guests)
-    const createOrderData: import("../types").CreateOrderData = {
-      restaurantId: data.restaurantId,
-      tableId: data.tableId,
-      customerInfo: {
-        name: data.customerName,
-        phone: data.customerPhone,
-      },
-      items: data.items.map((item) => ({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        price: item.price,
-        customizations: item.customizations,
-        notes: item.notes,
-      })),
-      notes: data.notes,
-      orderType: data.orderType,
-      isGuestOrder: true,
-    };
-
-    const order = await ordersService.createOrder(createOrderData);
-    await meterEmit(c, "orders.created", {
-      restaurantId: data.restaurantId,
-      metadata: { orderId: order.id, source: "guest" },
-    });
-
-    // Update KV token to include orderId for tracking
-    const authHeader = c.req.header("Authorization")!;
-    const token = authHeader.substring(7);
-    await c.env.CACHE_KV.put(
-      `guest_token:${token}`,
-      JSON.stringify({
-        ...guestSession,
-        orderId: String(order.id),
-      }),
-      { expirationTtl: 14400 },
-    );
-
-    return c.json(
-      {
-        success: true,
-        data: serializeOrderForWire(order),
-        guestToken: token,
-      },
-      201,
-    );
-  },
-);
-
-/**
- * Get guest order status (uses guest token)
- * GET /api/v1/orders/guest/:id
- */
-app.get("/guest/:id", guestTokenAuth, async (c) => {
-  const idParam = c.req.param("id");
-  if (!idParam) throw badRequest("Missing id parameter", "MISSING_PARAM");
-  const ordersService = new OrdersService(c.env);
-  const order = await ordersService.getOrder(idParam, true);
-
-  if (!order) {
-    throw notFound("Order not found");
-  }
-
-  return c.json({ success: true, data: serializeOrderForWire(order) });
-});
+// NOTE: The `/orders/guest` and `/orders/guest/:id` routes were removed as dead
+// code. They were unreachable in production because the blanket
+// `use("/orders/*", staffOrUserCustomerAuthMiddleware)` gate (formerly in
+// app-factory.ts) ran first and rejected KV-based guest tokens with a 401
+// before guestSessionAuth/guestTokenAuth could execute. The live guest-ordering
+// path is the separately-mounted `/api/v1/guest-orders` feature, which is what
+// the customer app actually calls.
 
 /**
  * Preview coupon discount effect (without creating order)
@@ -726,6 +647,26 @@ app.delete(
     const user: AuthUser = c.get("user");
     const ordersService = new OrdersService(c.env);
 
+    // Parse the optional cancellation reason from the request body. The body is
+    // optional — an absent or empty body must not error. The reason is trimmed
+    // and capped so an over-long or malformed value can't bloat the audit log.
+    let reason = "Cancelled by user";
+    try {
+      const rawBody = await c.req.text();
+      if (rawBody.trim().length > 0) {
+        const parsed = cancelOrderBodySchema.safeParse(JSON.parse(rawBody));
+        const provided = parsed.success
+          ? parsed.data.reason?.trim()
+          : undefined;
+        if (provided) {
+          reason = provided.slice(0, 500);
+        }
+      }
+    } catch {
+      // Malformed JSON body — fall back to the default reason rather than 400,
+      // matching the tolerant behaviour of the other guest/order cancel paths.
+    }
+
     logger.info("Cancelling order", { orderId: id, userId: user.id });
 
     // Get order for permission check
@@ -741,7 +682,7 @@ app.delete(
 
     const cancelledOrder = await ordersService.cancelOrder(
       id,
-      "Cancelled by user",
+      reason,
       user.id,
       toCallerContext(user),
       order, // Pass pre-fetched order to avoid redundant DB lookup

@@ -16,6 +16,7 @@ const databaseMocks = vi.hoisted(() => ({
 }));
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
+const cancelOrder = vi.hoisted(() => vi.fn());
 const processPayment = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
@@ -78,7 +79,7 @@ vi.mock("../../../middleware/guestAuth", async (importOriginal) => ({
 
 vi.mock("../../orders/services/OrdersService", () => ({
   OrdersService: function OrdersService() {
-    return { createOrder, getOrder };
+    return { createOrder, getOrder, cancelOrder };
   },
 }));
 
@@ -391,6 +392,7 @@ describe("market checkout routes", () => {
     databaseMocks.createDatabase.mockReturnValue(createMockDb());
     createOrder.mockReset();
     getOrder.mockReset();
+    cancelOrder.mockReset();
     processPayment.mockReset();
     enforceQuota.mockReset();
     meterEmit.mockReset();
@@ -973,6 +975,144 @@ describe("market checkout routes", () => {
     expect(response.status).toBe(500);
     await expect(response.text()).resolves.toBe("Internal Server Error");
     expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  function pushTwoVendorCreateQueue() {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "逢甲夜市",
+          platformFeeRateBps: 350,
+          isActive: true,
+        },
+      },
+      {
+        get: {
+          id: "restaurant-1",
+          name: "雞排攤",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
+      {
+        get: {
+          id: "restaurant-2",
+          name: "甜點攤",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
+      { all: [{ id: 101 }] },
+      { all: [{ id: 202 }] },
+    );
+  }
+
+  function twoVendorCreateRequest() {
+    return new Request("https://test/", {
+      method: "POST",
+      body: JSON.stringify({
+        marketSlug: "fengjia",
+        guestName: "Guest",
+        phoneLastDigits: "789",
+        vendors: [
+          {
+            restaurantId: "restaurant-1",
+            items: [{ menuItemId: 101, quantity: 2 }],
+          },
+          {
+            restaurantId: "restaurant-2",
+            items: [{ menuItemId: 202, quantity: 1 }],
+          },
+        ],
+      }),
+    });
+  }
+
+  function findFailedSessionInsert() {
+    return databaseMocks.insertValues.find(
+      (value): value is Record<string, unknown> =>
+        !!value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        "status" in value &&
+        "marketId" in value,
+    );
+  }
+
+  it("compensates already-created vendor orders when a later vendor fails mid-loop", async () => {
+    pushTwoVendorCreateQueue();
+    createOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+      })
+      .mockRejectedValueOnce(new Error("vendor 2 createOrder exploded"));
+    cancelOrder.mockResolvedValue({ id: 1001, status: "cancelled" });
+    const env = createEnv();
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(twoVendorCreateRequest(), env as never),
+    );
+
+    expect(response.status).toBe(500);
+
+    // The first vendor's committed order is cancelled (compensation).
+    expect(createOrder).toHaveBeenCalledTimes(2);
+    expect(cancelOrder).toHaveBeenCalledTimes(1);
+    expect(cancelOrder).toHaveBeenCalledWith(
+      "1001",
+      expect.stringContaining("rolled back"),
+    );
+
+    // Its active-order lock, reverse lookup, and guest token are cleared so a
+    // retry starts clean.
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
+      "guest_active:restaurant-1:789",
+    );
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
+      "guest_active_lookup:1001",
+    );
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
+      "guest_token:guest-token-1",
+    );
+
+    // The failed checkout is recorded with an explicit failed status.
+    const failedSession = findFailedSessionInsert();
+    expect(failedSession?.status).toBe("failed");
+    expect(failedSession?.childOrderCount).toBe(1);
+  });
+
+  it("flags the session for manual review when compensation itself fails", async () => {
+    pushTwoVendorCreateQueue();
+    createOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+      })
+      .mockRejectedValueOnce(new Error("vendor 2 createOrder exploded"));
+    cancelOrder.mockRejectedValue(new Error("cancel also failed"));
+    const env = createEnv();
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(twoVendorCreateRequest(), env as never),
+    );
+
+    expect(response.status).toBe(500);
+    expect(cancelOrder).toHaveBeenCalledWith(
+      "1001",
+      expect.stringContaining("rolled back"),
+    );
+
+    const failedSession = findFailedSessionInsert();
+    expect(failedSession?.status).toBe("requires_manual_review");
   });
 
   it("hydrates child order status when reading a market checkout", async () => {

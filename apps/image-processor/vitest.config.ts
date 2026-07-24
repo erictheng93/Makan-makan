@@ -22,20 +22,39 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@makanmakan/shared-types": path.resolve(
-        __dirname,
-        "../../packages/shared-types/src/index.ts",
-      ),
-      "@makanmakan/database": path.resolve(
-        __dirname,
-        "../../packages/database/src/index.ts",
-      ),
-      "@makanmakan/utils": path.resolve(
-        __dirname,
-        "../../packages/utils/src/index.ts",
-      ),
-    },
+    alias: [
+      {
+        find: "@",
+        replacement: path.resolve(__dirname, "./src"),
+      },
+      {
+        find: "@makanmakan/database/testing",
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/database/src/testing",
+        ),
+      },
+      {
+        find: "@makanmakan/shared-types",
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/shared-types/src/index.ts",
+        ),
+      },
+      {
+        find: "@makanmakan/database",
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/database/src/index.ts",
+        ),
+      },
+      {
+        find: "@makanmakan/utils",
+        replacement: path.resolve(
+          __dirname,
+          "../../packages/utils/src/index.ts",
+        ),
+      },
+    ],
   },
 });

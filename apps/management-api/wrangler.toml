@@ -60,7 +60,7 @@ name = "makanmasak-management-api-prod"
 NODE_ENV = "production"
 API_VERSION = "v1"
 API_BASE_URL = "https://manage-api.makanmasak.com"
-CORS_ORIGIN = "https://admin.makanmasak.com"
+CORS_ORIGIN = "https://admin.makanmasak.com,https://management.makanmasak.com,https://onboarding.makanmasak.com"
 LOG_LEVEL = "warn"
 
 # Custom domain — wrangler provisions DNS + SSL automatically on deploy

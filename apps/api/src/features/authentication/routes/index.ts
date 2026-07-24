@@ -573,7 +573,10 @@ export function createAuthRoutes(
     );
   });
 
-  // Forgot Password - POST /forgot-password (placeholder)
+  // Forgot Password - POST /forgot-password
+  // LIVE implementation. This mounts on /auth before the verification feature,
+  // so this AuthService-based handler is the one clients actually hit (the
+  // verification module's same-path handler was removed as unreachable).
   authRoutes.post(
     "/forgot-password",
     validateBody(authSchemas.forgotPassword),
@@ -595,7 +598,9 @@ export function createAuthRoutes(
     },
   );
 
-  // Reset Password - POST /reset-password (placeholder)
+  // Reset Password - POST /reset-password
+  // LIVE implementation (see /forgot-password note) — wins over the verification
+  // module's same-path handler, which was removed as unreachable dead code.
   authRoutes.post(
     "/reset-password",
     validateBody(authSchemas.resetPassword),
@@ -617,7 +622,9 @@ export function createAuthRoutes(
     },
   );
 
-  // Verify Email - POST /verify-email (placeholder)
+  // Verify Email - POST /verify-email
+  // LIVE implementation. The verification module only exposes GET /verify-email
+  // (a different method), so there is no collision — this POST handler is live.
   authRoutes.post(
     "/verify-email",
     validateBody(authSchemas.verifyEmail),

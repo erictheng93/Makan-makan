@@ -19,6 +19,7 @@ export interface CreateMenuItemData {
   originalPrice?: number | null;
   imageUrl?: string | null;
   imageVariants?: any;
+  imageId?: string | null;
   isAvailable?: boolean;
   isFeatured?: boolean;
   isPopular?: boolean;
@@ -64,6 +65,8 @@ const menuItemSelectColumns = {
   priceCents: menuItems.priceCents,
   originalPriceCents: menuItems.originalPriceCents,
   imageUrl: menuItems.imageUrl,
+  imageVariants: menuItems.imageVariants,
+  imageId: menuItems.imageId,
   isAvailable: menuItems.isAvailable,
   isFeatured: menuItems.isFeatured,
   isPopular: menuItems.isPopular,
@@ -624,6 +627,7 @@ export class MenuService extends BaseService {
       originalPrice: amountFromCents(item.originalPriceCents),
       imageUrl: item.imageUrl,
       imageVariants: item.imageVariants,
+      imageId: item.imageId,
       isAvailable: item.isAvailable,
       isFeatured: item.isFeatured,
       isPopular: item.isPopular,

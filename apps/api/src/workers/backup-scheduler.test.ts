@@ -184,7 +184,7 @@ describe("backup scheduler", () => {
     expect(env.ANALYTICS.writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
         blobs: ["backup_health_check", "critical"],
-        indexes: ["health", "critical"],
+        indexes: ["health"],
       }),
     );
   });
@@ -301,7 +301,7 @@ describe("backup scheduler", () => {
     expect(env.ANALYTICS.writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
         blobs: ["backup_health_check", "healthy"],
-        indexes: ["health", "healthy"],
+        indexes: ["health"],
       }),
     );
   });

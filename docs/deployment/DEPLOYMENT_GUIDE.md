@@ -160,8 +160,7 @@ JWT_SECRET=your-local-jwt-secret-min-32-characters
 INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-characters
 
 # apps/image-processor/.dev.vars
-CLOUDFLARE_IMAGES_KEY=your_images_key
-CLOUDFLARE_IMAGES_ACCOUNT_ID=your_account_id
+JWT_SECRET=your-local-jwt-secret-min-32-characters
 ```
 
 ⚠️ **重要**: `.dev.vars` 文件已在 `.gitignore` 中，**絕不提交到版本控制**！
@@ -228,9 +227,8 @@ wrangler secret put TWILIO_AUTH_TOKEN --env production
 # Error Notifications (Slack)
 wrangler secret put SLACK_WEBHOOK_URL --env production
 
-# Image Processing (Cloudflare Images)
-wrangler secret put CLOUDFLARE_IMAGES_KEY --env production
-wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID --env production
+# Image Processing
+wrangler secret put JWT_SECRET --env production
 ```
 
 #### 驗證 Secrets

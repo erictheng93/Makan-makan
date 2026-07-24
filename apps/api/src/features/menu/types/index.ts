@@ -147,6 +147,7 @@ export interface CreateMenuItemData extends Omit<
   originalPrice?: number;
   catalogType?: "menu_item" | "product";
   imageUrl?: string | null;
+  imageId?: string | null;
   imageVariants?: ImageVariantsInput;
   availableHours?: AvailableHours;
   tags?: string[];
@@ -161,6 +162,7 @@ export interface UpdateMenuItemData extends Omit<
   originalPrice?: number;
   costPrice?: number;
   catalogType?: "menu_item" | "product";
+  imageId?: string | null;
   sortOrder?: number;
   inventoryCount?: number;
   minInventoryAlert?: number;
