@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import worker from "./index";
+import worker, { buildAllowedOrigins } from "./index";
 import type { Env } from "./types/env";
 
 function jsonResponse(body: unknown, init?: ResponseInit) {
@@ -46,6 +46,11 @@ function createEnv(input?: {
 }
 
 describe("realtime worker routes", () => {
+  it("normalizes empty CORS origin configuration to no allowed origins", () => {
+    expect(buildAllowedOrigins({ CORS_ORIGIN: undefined })).toEqual([]);
+    expect(buildAllowedOrigins({ CORS_ORIGIN: " ,  , " })).toEqual([]);
+  });
+
   it("returns health metadata with the current environment", async () => {
     const response = await worker.fetch(
       new Request("https://realtime.test/health"),
