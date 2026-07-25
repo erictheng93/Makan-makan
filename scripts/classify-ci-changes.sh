@@ -49,6 +49,14 @@ else
       scripts/*)
         tooling=true
         ;;
+      .github/workflows/*)
+        full=true
+        app=true
+        backend=true
+        frontend=true
+        integration=true
+        tooling=true
+        ;;
       apps/customer-app/* | apps/admin-dashboard/* | apps/kitchen-display/*)
         app=true
         frontend=true

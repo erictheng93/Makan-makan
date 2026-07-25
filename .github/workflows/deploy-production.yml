@@ -121,15 +121,17 @@ jobs:
       - name: 📊 部署摘要
         if: always()
         run: |
-          echo "## 🚀 Production Deploy" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           COMMIT_SHA="${{ github.sha }}"
-          echo "**Commit**: ${COMMIT_SHA}" >> $GITHUB_STEP_SUMMARY
-          echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           JOB_STATUS="${{ job.status }}"
-          if [ "$JOB_STATUS" == "success" ]; then
-            echo "### ✅ 部署成功" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ 部署失敗 — 請檢查 logs" >> $GITHUB_STEP_SUMMARY
-          fi
+          {
+            echo "## 🚀 Production Deploy"
+            echo ""
+            echo "**Commit**: ${COMMIT_SHA}"
+            echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            if [ "$JOB_STATUS" == "success" ]; then
+              echo "### ✅ 部署成功"
+            else
+              echo "### ❌ 部署失敗 — 請檢查 logs"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

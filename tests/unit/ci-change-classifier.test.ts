@@ -49,13 +49,28 @@ const none: Scope = {
   full: false,
 };
 
+const fullValidation: Scope = {
+  app: true,
+  backend: true,
+  frontend: true,
+  integration: true,
+  tooling: true,
+  guard_tests: false,
+  full_lint: false,
+  full: true,
+};
+
 describe("CI change classifier", () => {
-  it.each(["docs/operations.md", "README.md", ".github/workflows/test.yml"])(
+  it.each(["docs/operations.md", "README.md"])(
     "skips application checks for %s",
     (file) => {
       expect(classify([file])).toEqual(none);
     },
   );
+
+  it("uses full validation when a GitHub Actions workflow changes", () => {
+    expect(classify([".github/workflows/test.yml"])).toEqual(fullValidation);
+  });
 
   it("runs full lint when the root ESLint configuration changes", () => {
     expect(classify(["eslint.config.js"])).toEqual({
@@ -78,16 +93,7 @@ describe("CI change classifier", () => {
   it.each([".npmrc", "codecov.yml"])(
     "uses full validation when root CI behavior changes in %s",
     (file) => {
-      expect(classify([file])).toEqual({
-        app: true,
-        backend: true,
-        frontend: true,
-        integration: true,
-        tooling: true,
-        guard_tests: false,
-        full_lint: false,
-        full: true,
-      });
+      expect(classify([file])).toEqual(fullValidation);
     },
   );
 
@@ -137,15 +143,6 @@ describe("CI change classifier", () => {
   });
 
   it("treats an unavailable comparison base as a full validation", () => {
-    expect(classify(["docs/operations.md"], true)).toEqual({
-      app: true,
-      backend: true,
-      frontend: true,
-      integration: true,
-      tooling: true,
-      guard_tests: false,
-      full_lint: false,
-      full: true,
-    });
+    expect(classify(["docs/operations.md"], true)).toEqual(fullValidation);
   });
 });

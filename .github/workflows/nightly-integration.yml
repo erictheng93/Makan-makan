@@ -237,14 +237,16 @@ jobs:
       - name: 📊 生成測試摘要
         if: always()
         run: |
-          echo "## 🌙 Nightly Integration Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Coverage" >> $GITHUB_STEP_SUMMARY
-          echo "- tests/e2e/integration/p0-release-gates.spec.ts (Tier 1 P0)" >> $GITHUB_STEP_SUMMARY
-          echo "- tests/e2e/integration/p1-current-quarter-gates.spec.ts (Tier 2 P1)" >> $GITHUB_STEP_SUMMARY
-          echo "- real API integration smokes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "詳細報告請查看 Artifacts 區域" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## 🌙 Nightly Integration Tests"
+            echo ""
+            echo "**分支**: ${{ github.ref_name }}"
+            echo "**時間**: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "### Coverage"
+            echo "- tests/e2e/integration/p0-release-gates.spec.ts (Tier 1 P0)"
+            echo "- tests/e2e/integration/p1-current-quarter-gates.spec.ts (Tier 2 P1)"
+            echo "- real API integration smokes"
+            echo ""
+            echo "詳細報告請查看 Artifacts 區域"
+          } >> "$GITHUB_STEP_SUMMARY"

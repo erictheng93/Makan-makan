@@ -23,6 +23,7 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  ACTIONLINT_VERSION: "1.7.12"
 
 jobs:
   changes:
@@ -126,6 +127,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🧾 GitHub Actions workflow lint
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v6
 
@@ -177,12 +186,7 @@ jobs:
 
       - name: 🧪 守門腳本回歸測試
         if: needs.changes.outputs.guard_tests == 'true'
-        run: |
-          pnpm exec vitest run \
-            tests/unit/ci-change-classifier.test.ts \
-            tests/unit/check-production-config.test.ts \
-            tests/unit/migration-dual-track.test.ts \
-            tests/unit/code-scanning-regressions.test.ts
+        run: pnpm run test:ci-guards
 
   # 單元測試
   unit-tests:
