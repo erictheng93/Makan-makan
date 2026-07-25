@@ -516,9 +516,14 @@ export const corsMiddleware = async (
   );
   c.header("Access-Control-Max-Age", "86400");
 
-  // Handle preflight requests
+  // Handle preflight requests.
+  // Must go through c.body() rather than `new Response()`: the CORS headers
+  // above are staged on the context, and a freshly constructed Response would
+  // ship without any of them, so the browser rejects the preflight and the
+  // admin upload never fires. (A bare `new Response("")` also throws in strict
+  // runtimes, since 204 is a null-body status.)
   if (c.req.method === "OPTIONS") {
-    return new Response("", { status: 204 });
+    return c.body(null, 204);
   }
 
   await next();
