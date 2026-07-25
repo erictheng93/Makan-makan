@@ -16,6 +16,7 @@ import {
   notFound,
   unauthorized,
 } from "../../../shared/utils/api-error";
+import { generateUUID } from "@makanmakan/utils";
 
 // Spends strictly above this amount require a PIN ((b) 門檻式 PIN). Override via env.
 const DEFAULT_CREDIT_PIN_THRESHOLD_CENTS = 20000;
@@ -134,7 +135,7 @@ export class CreditService {
       })
       .returning();
 
-    const publicId = crypto.randomUUID();
+    const publicId = generateUUID();
     const [card] = await this.db
       .insert(creditCards)
       .values({

@@ -18,6 +18,7 @@ import {
 import type { Refund, ProcessRefundRequest } from "../types";
 import { processRefundSchema } from "../schemas";
 import { toRequiredCents } from "../../../shared/utils/money";
+import { generateUUID } from "@makanmakan/utils";
 
 // K6 release gate: refunds issued while a shift is already closed must not
 // mutate the closed ledger totals or post a live cash movement. Instead the
@@ -81,9 +82,9 @@ export class RefundService {
       }
 
       // 檢查退款金額是否合理
-      const orderTotalAmount =
-        amountFromCents(originalOrder.totalAmountCents) ?? 0;
-      if (validatedData.refundAmount > orderTotalAmount) {
+      const orderTotalAmountCents = originalOrder.totalAmountCents ?? 0;
+      const refundAmountCents = toRequiredCents(validatedData.refundAmount);
+      if (refundAmountCents > orderTotalAmountCents) {
         return {
           success: false,
           error: "退款金額不能超過原訂單金額",
@@ -103,8 +104,10 @@ export class RefundService {
           ),
         );
 
-      const totalRefunded = existingRefund?.totalRefunded || 0;
-      if (totalRefunded + validatedData.refundAmount > orderTotalAmount) {
+      const totalRefundedCents = toRequiredCents(
+        existingRefund?.totalRefunded || 0,
+      );
+      if (totalRefundedCents + refundAmountCents > orderTotalAmountCents) {
         return {
           success: false,
           error: "退款金額超過可退款額度",
@@ -124,7 +127,7 @@ export class RefundService {
         isPostClose = shift?.status === "closed";
       }
 
-      const refundId = crypto.randomUUID();
+      const refundId = generateUUID();
       const refundNumber = businessNumber("RF");
 
       const processedAt = new Date();
@@ -136,8 +139,8 @@ export class RefundService {
           shiftId: shiftId || null,
           refundNumber,
           refundType: validatedData.refundType,
-          originalAmountCents: toRequiredCents(orderTotalAmount),
-          refundAmountCents: toRequiredCents(validatedData.refundAmount),
+          originalAmountCents: orderTotalAmountCents,
+          refundAmountCents,
           refundMethod: validatedData.refundMethod,
           reasonCode: validatedData.reasonCode,
           reasonDescription: validatedData.reasonDescription || null,
@@ -459,7 +462,7 @@ export class RefundService {
       referenceType?: string;
     },
   ): BatchItem<"sqlite"> {
-    const movementId = crypto.randomUUID();
+    const movementId = generateUUID();
     const now = new Date();
 
     return this.db.insert(cashMovements).values({

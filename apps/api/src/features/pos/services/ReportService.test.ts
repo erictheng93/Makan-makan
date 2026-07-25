@@ -8,6 +8,13 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
+
+vi.mock("@makanmakan/utils", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  generateUUID: uuidMocks.generateUUID,
+}));
+
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
@@ -94,7 +101,7 @@ describe("ReportService", () => {
   it("generates shift reports with normalized money, JSON fields, and persisted summaries", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("report-1");
+    uuidMocks.generateUUID.mockReturnValue("report-1");
     const inserted = mockInsert();
     mockSelectResults([
       [shiftRow()],

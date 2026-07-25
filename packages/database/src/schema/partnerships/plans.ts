@@ -10,6 +10,7 @@ import { restaurants } from "../restaurants";
 import { users } from "../users";
 import { partnerships } from "./partnerships";
 import { partnershipUsageLogs } from "./usage-logs";
+import { v7 as uuidv7 } from "uuid";
 
 // ================================================
 // ENUMS & CONSTANTS
@@ -37,7 +38,7 @@ export const partnershipPlans = sqliteTable(
   {
     id: text("id")
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID().replace(/-/g, "")),
+      .$defaultFn(() => uuidv7().replace(/-/g, "")),
 
     // 關聯資訊
     partnershipId: text("partnership_id")

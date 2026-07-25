@@ -36,6 +36,7 @@ import {
   pointInGeoJsonBoundary,
 } from "./geo";
 import { evaluateMarketPublicReadiness } from "../utils/publicReadiness";
+import { generateUUID } from "@makanmakan/utils";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
 const OPEN_NOW_VENDOR_SCAN_LIMIT = 50000;
@@ -1381,7 +1382,7 @@ export class MarketsService {
     const now = new Date();
     const rows = inputs.map((input) => ({
       ...input,
-      id: input.id ?? crypto.randomUUID(),
+      id: input.id ?? generateUUID(),
       platformFeeRateBps: input.platformFeeRateBps ?? 0,
       isActive: input.isActive ?? true,
       createdAt: now,

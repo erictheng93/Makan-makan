@@ -5,6 +5,13 @@ const drizzleState = vi.hoisted(() => ({
   db: undefined as unknown,
 }));
 
+const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
+
+vi.mock("@makanmakan/utils", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  generateUUID: uuidMocks.generateUUID,
+}));
+
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => drizzleState.db),
 }));
@@ -124,7 +131,7 @@ describe("BackupConfigService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T03:04:05.000Z"));
-    vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "uuid-1") });
+    uuidMocks.generateUUID.mockReturnValue("uuid-1");
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 

@@ -26,6 +26,7 @@ import {
   type ImageVariantQuery,
 } from "../middleware/validation";
 import type { Env, ImageMetadata, ImageTransformation } from "../types/env";
+import { v7 as uuidv7 } from "uuid";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -238,7 +239,7 @@ app.post(
         ? query.tags.split(",").map((tag: string) => tag.trim())
         : undefined;
 
-      const imageId = crypto.randomUUID();
+      const imageId = uuidv7();
       const uploadedVariants: string[] = [];
       const imageService = new ImageService(c.env);
 

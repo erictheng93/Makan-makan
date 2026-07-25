@@ -30,6 +30,7 @@ import {
   backupRecords,
   systemAlerts,
 } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 
 /**
  * System health derivation thresholds.
@@ -92,7 +93,7 @@ export class BackupService {
     request: CreateBackupRequest,
     userId: string,
   ): Promise<CreateBackupResponse> {
-    const backupId = crypto.randomUUID();
+    const backupId = generateUUID();
     const timestamp = new Date().toISOString();
 
     try {
@@ -322,7 +323,7 @@ export class BackupService {
     request: RestoreBackupRequest,
     userId: string,
   ): Promise<{ operation_id: string }> {
-    const operationId = crypto.randomUUID();
+    const operationId = generateUUID();
 
     try {
       if (
@@ -407,7 +408,7 @@ export class BackupService {
     userId: string,
   ): Promise<BackupConfiguration> {
     const config: BackupConfiguration = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       restaurant_id: configInput.restaurant_id,
       name: configInput.name,
       description: configInput.description,
@@ -621,7 +622,7 @@ export class BackupService {
       // Restaurant-scoped alerts live in backup_alerts. The table has no
       // title/related_backup_id columns — carry them in details.
       await this.orm.insert(backupAlerts).values({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         restaurantId,
         alertType: alert.alert_type ?? "backup_failed",
         severity: alert.severity ?? "medium",

@@ -18,6 +18,7 @@ type ReceiptRow = typeof receipts.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
 import type { Receipt, PrintReceiptRequest } from "../types";
 import { printReceiptSchema } from "../schemas";
+import { generateUUID } from "@makanmakan/utils";
 
 export class ReceiptService {
   private db;
@@ -77,7 +78,7 @@ export class ReceiptService {
         };
       }
 
-      const receiptId = crypto.randomUUID();
+      const receiptId = generateUUID();
       const receiptNumber = businessNumber("R");
 
       // 生成收據內容

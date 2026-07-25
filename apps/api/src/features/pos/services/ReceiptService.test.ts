@@ -9,6 +9,13 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
+
+vi.mock("@makanmakan/utils", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  generateUUID: uuidMocks.generateUUID,
+}));
+
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
@@ -153,9 +160,12 @@ describe("ReceiptService", () => {
   it("prints a receipt with generated content and queued print status", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    vi.spyOn(crypto, "randomUUID")
-      .mockReturnValueOnce("receipt-1")
-      .mockReturnValueOnce("12345678-abcd-4000-8000-123456789abc");
+    uuidMocks.generateUUID.mockReturnValueOnce("receipt-1");
+    // businessNumber() keeps crypto.randomUUID on purpose: a v7 suffix would be
+    // timestamp-derived and collide for receipts issued in the same millisecond.
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(
+      "12345678-abcd-4000-8000-123456789abc",
+    );
     const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
       throw new Error("Math.random should not be used for receipt numbers");
     });
@@ -324,7 +334,7 @@ describe("ReceiptService", () => {
   });
 
   it("marks the receipt printed synchronously before returning", async () => {
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("receipt-async");
+    uuidMocks.generateUUID.mockReturnValue("receipt-async");
     const mutations = mockMutations();
     mockSelectResults([
       [orderRow()],

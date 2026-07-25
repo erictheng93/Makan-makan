@@ -12,6 +12,7 @@ import type {
   DeploymentType,
   DeploymentStatus,
 } from "../types";
+import { generateUUID } from "@makanmakan/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 import { BundleService } from "./BundleService";
 import { MigrationService } from "./MigrationService";
@@ -96,7 +97,7 @@ export class ProvisioningService {
 
     for (const type of types) {
       const resourceName = this.getResourceName(prefix, type);
-      const resourceId = crypto.randomUUID();
+      const resourceId = generateUUID();
 
       // Create resource record as pending
       await this.createResourceRecord(
@@ -189,7 +190,7 @@ export class ProvisioningService {
     targetVersion: string,
     deploymentType: DeploymentType = "update",
   ): Promise<DeployResult> {
-    const deploymentId = crypto.randomUUID();
+    const deploymentId = generateUUID();
     const startedAt = new Date().toISOString();
 
     // Create deployment log

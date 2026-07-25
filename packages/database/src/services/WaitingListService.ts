@@ -28,6 +28,7 @@ import {
   businessDateFromUnixMsSql,
   businessDateSql,
 } from "../utils/business-day";
+import { v7 as uuidv7 } from "uuid";
 
 /** Call timeout: 5 minutes */
 const CALL_TIMEOUT_MS = 5 * 60 * 1000;
@@ -1497,7 +1498,7 @@ export class WaitingListService extends BaseService {
    * 生成 UUID
    */
   private generateUUID(): string {
-    return `wait_${crypto.randomUUID()}`;
+    return `wait_${uuidv7()}`;
   }
 
   private queueBackgroundTask(task: Promise<void>): void {

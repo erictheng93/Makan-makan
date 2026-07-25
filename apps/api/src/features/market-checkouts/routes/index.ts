@@ -53,6 +53,7 @@ import {
 import { fromCents } from "../../../shared/utils/money";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
+import { generateUUID } from "@makanmakan/utils";
 
 const app = new Hono<{ Bindings: Env }>();
 const MARKET_CHECKOUT_INDEX_KEY = "market_checkout:index";
@@ -420,7 +421,7 @@ app.post("/", async (c) => {
   }
 
   const ordersService = new OrdersService(c.env);
-  const checkoutId = crypto.randomUUID();
+  const checkoutId = generateUUID();
   const children = [];
 
   // Compensation ledger. D1 has no cross-statement transaction, so each vendor
@@ -906,12 +907,12 @@ app.post("/:id/pay", async (c) => {
   const paidPayments = childPayments.filter(
     (payment) => payment?.status === "paid",
   );
-  const totalAmount = payableChildOrders.reduce(
-    (sum, child) => sum + Number(child.totalAmount ?? 0),
+  const totalAmountCents = payableChildOrders.reduce(
+    (sum, child) => sum + orderChildTotalCents(child),
     0,
   );
-  const paidAmount = paidPayments.reduce(
-    (sum, child) => sum + Number(child?.amount ?? 0),
+  const paidAmountCents = paidPayments.reduce(
+    (sum, child) => sum + child.amountCents,
     0,
   );
   const paymentStatus =
@@ -928,10 +929,10 @@ app.post("/:id/pay", async (c) => {
     method: parsed.data.method,
     currency: parsed.data.currency,
     country: parsed.data.country,
-    totalAmount,
-    totalAmountCents: Math.round(totalAmount * 100),
-    paidAmount,
-    paidAmountCents: Math.round(paidAmount * 100),
+    totalAmount: fromCents(totalAmountCents),
+    totalAmountCents,
+    paidAmount: fromCents(paidAmountCents),
+    paidAmountCents,
     paidAt: paymentStatus === "paid" ? now : session.payment?.paidAt,
     failedAt: paymentStatus === "failed" ? now : session.payment?.failedAt,
     childPayments: childPayments.filter(
@@ -1382,8 +1383,13 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   const remainingPaidPayments = childPayments.filter(
     (payment) => payment.status === "paid",
   );
-  const refundedAmount = refunds.reduce(
-    (sum, refund) => sum + refund.amount,
+  const refundedAmountCents = childPayments.reduce(
+    (sum, payment) =>
+      payment.status === "refunded" &&
+      payment.paymentId &&
+      refundedPaymentIds.has(payment.paymentId)
+        ? sum + payment.amountCents
+        : sum,
     0,
   );
   const now = new Date().toISOString();
@@ -1391,10 +1397,11 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     ...session.payment,
     status:
       remainingPaidPayments.length === 0 ? "refunded" : "partial_refunded",
-    refundedAmount: (session.payment.refundedAmount ?? 0) + refundedAmount,
+    refundedAmount: fromCents(
+      (session.payment.refundedAmountCents ?? 0) + refundedAmountCents,
+    ),
     refundedAmountCents:
-      (session.payment.refundedAmountCents ?? 0) +
-      Math.round(refundedAmount * 100),
+      (session.payment.refundedAmountCents ?? 0) + refundedAmountCents,
     refundedAt: now,
     childPayments,
   };
@@ -1927,8 +1934,8 @@ function buildFailedMarketCheckoutPayment(input: {
   errorMessage: string;
 }): MarketCheckoutPaymentSummary {
   const now = new Date().toISOString();
-  const totalAmount = input.session.childOrders.reduce(
-    (sum, child) => sum + Number(child.totalAmount ?? 0),
+  const totalAmountCents = input.session.childOrders.reduce(
+    (sum, child) => sum + orderChildTotalCents(child),
     0,
   );
   const paymentBase: MarketCheckoutPaymentSummary = {
@@ -1936,8 +1943,8 @@ function buildFailedMarketCheckoutPayment(input: {
     method: input.method,
     currency: input.currency,
     country: input.country,
-    totalAmount,
-    totalAmountCents: Math.round(totalAmount * 100),
+    totalAmount: fromCents(totalAmountCents),
+    totalAmountCents,
     paidAmount: 0,
     paidAmountCents: 0,
     failedAt: now,

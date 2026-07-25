@@ -18,6 +18,7 @@ import {
   notFound,
 } from "../../../shared/utils/api-error";
 import { fromCents } from "../../../shared/utils/money";
+import { generateUUID } from "@makanmakan/utils";
 
 type MarketCheckoutPaymentStatus =
   | "pending"
@@ -463,7 +464,7 @@ export class MarketCheckoutPOSPaymentService {
         })
         .where(eq(cashShifts.id, input.shiftId)),
       this.db.insert(cashMovements).values({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         shiftId: input.shiftId,
         registerId: input.registerId,
         type: "sale",

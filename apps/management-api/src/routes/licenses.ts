@@ -6,7 +6,12 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
-import { ApiError, badRequest, notFound } from "@makanmakan/utils";
+import {
+  ApiError,
+  badRequest,
+  generateUUID,
+  notFound,
+} from "@makanmakan/utils";
 import type { ManagementEnv, LicenseTier, LicenseFeatures } from "../types";
 import { generateLicenseKey } from "../utils/random";
 
@@ -110,7 +115,7 @@ router.post("/generate", async (c) => {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    const licenseId = crypto.randomUUID();
+    const licenseId = generateUUID();
     await stmt
       .bind(
         licenseId,

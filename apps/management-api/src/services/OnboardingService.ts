@@ -15,6 +15,7 @@ import { TenantService } from "./TenantService";
 import { randomBase36, randomBase36Upper } from "../utils/random";
 import { createSubdomainBase } from "../utils/subdomain";
 import { passwordResetTokens, restaurants, users } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -543,10 +544,15 @@ export class OnboardingService {
     }
 
     const nowMs = Date.now();
-    const restaurantId = crypto.randomUUID();
-    const userId = crypto.randomUUID();
+    // Platform domain IDs must be UUID v7: apps/image-processor rejects any
+    // access token whose `sub` is not v7 (middleware/auth.ts UUID_V7_PATTERN),
+    // so a v4 owner id would silently break menu image uploads for this tenant.
+    const restaurantId = generateUUID();
+    const userId = generateUUID();
     const username = await this.generateAvailableOwnerUsername(application);
     const passwordHash = await bcrypt.hash(this.generateUnusablePassword(), 10);
+    // Security token, not a domain id — keep v4. UUID v7 embeds a timestamp and
+    // carries 74 random bits instead of v4's 122, which weakens a setup link.
     const setupPasswordToken = crypto.randomUUID();
     const setupPasswordExpiresAtMs = nowMs + 24 * 60 * 60 * 1000;
     const ownerAccount: ProvisionedOwnerAccount = {
@@ -641,7 +647,7 @@ export class OnboardingService {
     const channel =
       this.env.ONBOARDING_EMAIL_ENABLED === "true" ? "email" : "manual";
     const delivery: CredentialDelivery = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       channel,
       status: "pending",
       recipientEmail: application.contactEmail,

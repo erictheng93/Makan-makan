@@ -34,6 +34,13 @@ const mocks = vi.hoisted(() => ({
   setRequestContext: vi.fn(),
 }));
 
+const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
+
+vi.mock("@makanmakan/utils", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  generateUUID: uuidMocks.generateUUID,
+}));
+
 vi.mock("../controllers/BackupController", () => ({
   BackupController: vi.fn(function BackupController() {
     return mocks.controller;
@@ -143,9 +150,7 @@ describe("backup routes", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T04:05:06.000Z"));
-    vi.stubGlobal("crypto", {
-      randomUUID: vi.fn(() => "upload-uuid"),
-    });
+    uuidMocks.generateUUID.mockReturnValue("upload-uuid");
     mocks.user = { id: "user-1", role: 1, restaurantId };
 
     for (const [name, fn] of Object.entries(mocks.controller)) {

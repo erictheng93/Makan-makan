@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { cashRegisters, cashShifts } from "@makanmakan/database";
 import type { CashRegister, CreateRegisterRequest } from "../types";
 import { createRegisterSchema } from "../schemas";
+import { generateUUID } from "@makanmakan/utils";
 
 export class RegisterService {
   private db;
@@ -47,7 +48,7 @@ export class RegisterService {
   ): Promise<{ success: boolean; data?: CashRegister; error?: string }> {
     try {
       const validatedData = createRegisterSchema.parse(data);
-      const registerId = crypto.randomUUID();
+      const registerId = generateUUID();
       const now = new Date();
 
       await this.db.insert(cashRegisters).values({

@@ -15,6 +15,7 @@ import type {
   KVNamespace,
 } from "@cloudflare/workers-types";
 import { validateBody, validateQuery } from "../../../middleware/validation";
+import { generateUUID } from "@makanmakan/utils";
 
 // Define proper Hono context with backup services
 type ContextVariableMap = {
@@ -355,7 +356,7 @@ function createBackupUploadId(): string {
     typeof crypto !== "undefined" &&
     typeof crypto.randomUUID === "function"
   ) {
-    return crypto.randomUUID();
+    return generateUUID();
   }
   return `offline-${Date.now()}`;
 }
