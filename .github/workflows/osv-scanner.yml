@@ -17,8 +17,8 @@ on:
     paths:
       - "pnpm-lock.yaml"
       - "package.json"
-      - "apps/*/package.json"
-      - "packages/*/package.json"
+      - "apps/**/package.json"
+      - "packages/**/package.json"
   merge_group:
     branches: ["main"]
   schedule:
@@ -28,8 +28,8 @@ on:
     paths:
       - "pnpm-lock.yaml"
       - "package.json"
-      - "apps/*/package.json"
-      - "packages/*/package.json"
+      - "apps/**/package.json"
+      - "packages/**/package.json"
 
 # Only the latest scan for a branch/PR is useful; weekly scans use their own ref.
 concurrency:

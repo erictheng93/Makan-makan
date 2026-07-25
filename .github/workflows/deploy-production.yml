@@ -36,7 +36,8 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  # Gate: only proceed if the test pipeline succeeded
+  # Manual operator gate. Before dispatching, verify that the latest main CI
+  # run is green; this workflow only validates the explicit confirmation text.
   check-tests:
     name: ✅ 確認測試通過
     runs-on: ubuntu-latest
