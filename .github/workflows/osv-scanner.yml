@@ -14,18 +14,27 @@ name: OSV-Scanner
 on:
   pull_request:
     branches: ["main"]
+    paths:
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - "apps/*/package.json"
+      - "packages/*/package.json"
   merge_group:
     branches: ["main"]
   schedule:
     - cron: "40 21 * * 3"
   push:
     branches: ["main"]
+    paths:
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - "apps/*/package.json"
+      - "packages/*/package.json"
 
-# Cancel in-flight runs on the same PR when a new commit lands; never cancel
-# scheduled or push-to-main scans.
+# Only the latest scan for a branch/PR is useful; weekly scans use their own ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 permissions:
   # Require writing security events to upload SARIF file to security tab

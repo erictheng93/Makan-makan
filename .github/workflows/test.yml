@@ -1,23 +1,16 @@
 name: 🧪 MakanMakan 測試流水線
 
 on:
-  # Auto-trigger restored 2026-04-24 after the perf wins from commit 83b7b6c1
-  # were validated in nightly-integration runs. Heavy jobs (e2e, perf, security,
-  # visual regression) remain gated to push-on-main/develop or workflow_dispatch
-  # via per-job `if:` guards, so PR feedback stays fast (~lint+typecheck+unit+
-  # workers+real-integration only).
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
   workflow_dispatch:
 
-# Cancel in-flight runs on the same PR when a new commit lands so reviewers
-# only see the latest result; on push to main/develop never cancel because
-# we want main's history to record every commit's status.
+# Only the newest SHA per branch/PR is worth validating.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -28,15 +21,127 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  # 程式碼品質檢查
-  lint-and-typecheck:
-    name: 📝 程式碼檢查
+  changes:
+    name: 🔎 變更範圍判斷
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      full: ${{ steps.filter.outputs.full }}
+      turbo_base: ${{ steps.filter.outputs.turbo_base }}
+      turbo_head: ${{ steps.filter.outputs.turbo_head }}
 
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: 🔎 分類變更
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+            if [[ "$base" =~ ^0+$ ]]; then
+              base="$(git rev-parse "${head}^" 2>/dev/null || true)"
+            fi
+          else
+            base="$(git rev-parse HEAD^ 2>/dev/null || true)"
+            head="${{ github.sha }}"
+          fi
+
+          if [ -z "${base:-}" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            full=true
+            files="$(git ls-files)"
+          else
+            full=false
+            files="$(git diff --name-only "$base" "$head")"
+          fi
+
+          app=false
+          backend=false
+          frontend=false
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+
+            case "$file" in
+              pnpm-lock.yaml|package.json|pnpm-workspace.yaml|turbo.json|tsconfig*.json|vitest*.config.*|playwright*.config.*)
+                full=true
+                app=true
+                backend=true
+                frontend=true
+                ;;
+              apps/customer-app/*|apps/admin-dashboard/*|apps/kitchen-display/*|apps/management-portal/*|apps/onboarding-app/*)
+                app=true
+                frontend=true
+                ;;
+              apps/api/*|apps/management-api/*|apps/realtime/*|apps/image-processor/*|apps/backup-scheduler/*|apps/print-agent/*|packages/database/*|packages/queue-core/*|packages/queue-service/*|tests/unit/*|tests/integration/*|tests/security/*)
+                app=true
+                backend=true
+                ;;
+              packages/shared/*|packages/shared-types/*|packages/utils/*|packages/auth-client/*|packages/ai-analytics/*)
+                app=true
+                backend=true
+                frontend=true
+                ;;
+              apps/*|packages/*|tests/e2e/*|tests/visual/*|tests/performance/*)
+                app=true
+                frontend=true
+                ;;
+            esac
+          done <<< "$files"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            full=true
+            app=true
+            backend=true
+            frontend=true
+          fi
+
+          {
+            echo "app=$app"
+            echo "backend=$backend"
+            echo "frontend=$frontend"
+            echo "full=$full"
+            echo "turbo_base=$base"
+            echo "turbo_head=$head"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## 變更範圍"
+            echo ""
+            echo "- app: $app"
+            echo "- backend: $backend"
+            echo "- frontend: $frontend"
+            echo "- full: $full"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # 程式碼品質檢查
+  lint-and-typecheck:
+    name: 📝 程式碼檢查
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    timeout-minutes: 15
+    env:
+      TURBO_SCM_BASE: ${{ needs.changes.outputs.turbo_base }}
+      TURBO_SCM_HEAD: ${{ needs.changes.outputs.turbo_head }}
+
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v6
@@ -51,13 +156,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🔍 ESLint 檢查
-        run: pnpm run lint
+        run: |
+          if [ "${{ needs.changes.outputs.full }}" = "true" ]; then
+            pnpm run lint
+          else
+            pnpm exec turbo run lint --affected
+          fi
 
       - name: 🧼 確認 lint 沒有修改檔案
         run: git diff --exit-code
 
       - name: 🎯 TypeScript 型別檢查
-        run: pnpm run typecheck
+        run: |
+          if [ "${{ needs.changes.outputs.full }}" = "true" ]; then
+            pnpm run typecheck
+          else
+            pnpm exec turbo run typecheck --affected
+          fi
 
       - name: 🌐 i18n locale coverage warning
         run: pnpm run check:i18n-locales
@@ -80,11 +195,18 @@ jobs:
   unit-tests:
     name: 🧪 單元測試
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     timeout-minutes: 20
+    env:
+      TURBO_SCM_BASE: ${{ needs.changes.outputs.turbo_base }}
+      TURBO_SCM_HEAD: ${{ needs.changes.outputs.turbo_head }}
 
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v6
@@ -99,15 +221,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🏗️ 建置內部套件
-        run: pnpm run build
+        run: |
+          if [ "${{ needs.changes.outputs.full }}" = "true" ]; then
+            pnpm run build
+          else
+            pnpm exec turbo run build --affected
+          fi
 
       - name: 🧪 執行所有單元測試
+        if: github.event_name == 'pull_request'
         run: pnpm exec vitest run
 
       - name: 📊 產生覆蓋率報告
-        # Coverage only runs on push events (main/develop/workflow_dispatch).
-        # PR runs skip this to keep feedback fast — vitest already ran once
-        # above for correctness.
+        # On main/manual, coverage is the test run; do not run Vitest twice.
         if: github.event_name != 'pull_request'
         run: pnpm exec vitest run --coverage
 
@@ -122,7 +248,7 @@ jobs:
 
       - name: 📎 上傳測試結果
         uses: actions/upload-artifact@v7
-        if: always()
+        if: failure() || github.event_name != 'pull_request'
         with:
           name: unit-test-results
           path: |
@@ -146,12 +272,15 @@ jobs:
   real-integration-tests:
     name: 🗄️ Real Integration 測試
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.full == 'true'
     timeout-minutes: 25
 
     steps:
       - name: 📦 Checkout 程式碼
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: 📦 安裝 pnpm
         uses: pnpm/action-setup@v6
@@ -185,8 +314,8 @@ jobs:
   e2e-tests:
     name: 🎭 E2E 測試
     runs-on: ubuntu-latest
-    needs: unit-tests
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
+    needs: [changes, unit-tests]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.full == 'true'))
     timeout-minutes: 35
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
@@ -305,86 +434,3 @@ jobs:
           name: playwright-screenshots-e2e
           path: test-results/
           retention-days: 7
-
-  # 測試結果彙總
-  test-summary:
-    name: 📊 測試結果彙總
-    runs-on: ubuntu-latest
-    needs: [unit-tests, real-integration-tests, e2e-tests]
-    if: always() && github.event_name != 'pull_request'
-    timeout-minutes: 5
-
-    steps:
-      - name: 📦 Checkout 程式碼
-        uses: actions/checkout@v7
-
-      - name: 📥 下載測試結果
-        uses: actions/download-artifact@v8
-        with:
-          path: test-artifacts
-
-      - name: 📊 產生測試報告
-        run: |
-          echo "## 🧪 MakanMakan 測試結果完整摘要" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**提交**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**觸發事件**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # 核心測試
-          echo "### 🎯 核心測試" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-            echo "- ✅ 單元測試: 通過" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.unit-tests.result }}" == "skipped" ]; then
-            echo "- ⏭️ 單元測試: 跳過" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ 單元測試: 失敗" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ needs.real-integration-tests.result }}" == "success" ]; then
-            echo "- ✅ Real integration 測試: 通過" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.real-integration-tests.result }}" == "skipped" ]; then
-            echo "- ⏭️ Real integration 測試: 跳過" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ Real integration 測試: 失敗" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
-            echo "- ✅ E2E 測試: 通過" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.e2e-tests.result }}" == "skipped" ]; then
-            echo "- ⏭️ E2E 測試: 跳過" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ E2E 測試: 失敗" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # 整體狀態判斷
-          OVERALL_STATUS="success"
-
-          if [ "${{ needs.unit-tests.result }}" != "success" ] && [ "${{ needs.unit-tests.result }}" != "skipped" ]; then
-            OVERALL_STATUS="failure"
-          fi
-          if [ "${{ needs.real-integration-tests.result }}" != "success" ] && [ "${{ needs.real-integration-tests.result }}" != "skipped" ]; then
-            OVERALL_STATUS="failure"
-          fi
-          if [ "${{ needs.e2e-tests.result }}" != "success" ] && [ "${{ needs.e2e-tests.result }}" != "skipped" ]; then
-            OVERALL_STATUS="failure"
-          fi
-
-          if [ "$OVERALL_STATUS" == "success" ]; then
-            echo "### ✅ 整體狀態: 所有測試通過" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🎉 **所有關鍵測試均已通過，系統可以安全部署！**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ 整體狀態: 部分測試失敗" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ **請檢查失敗的測試項目，修復後再進行部署。**" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📎 **完整測試報告和截圖請查看 Artifacts 區域**" >> $GITHUB_STEP_SUMMARY
