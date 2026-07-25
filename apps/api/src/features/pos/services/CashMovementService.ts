@@ -15,6 +15,7 @@ import type {
 } from "../types";
 import { cashMovementSchema } from "../schemas";
 import { toRequiredCents } from "../../../shared/utils/money";
+import { generateUUID } from "@makanmakan/utils";
 
 export class CashMovementService {
   private db;
@@ -204,7 +205,7 @@ export class CashMovementService {
       denominationBreakdown?: Record<string, number>;
     },
   ): Promise<string> {
-    const movementId = crypto.randomUUID();
+    const movementId = generateUUID();
     const now = new Date();
 
     await this.db.insert(cashMovements).values({

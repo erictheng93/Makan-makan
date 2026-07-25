@@ -21,8 +21,9 @@
   "author": "MakanMakan Team",
   "license": "MIT",
   "dependencies": {
+    "@makanmakan/database": "workspace:*",
     "@makanmakan/shared-types": "workspace:*",
-    "@makanmakan/database": "workspace:*"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

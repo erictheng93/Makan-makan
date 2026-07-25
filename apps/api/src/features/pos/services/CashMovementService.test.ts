@@ -9,6 +9,13 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
+
+vi.mock("@makanmakan/utils", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  generateUUID: uuidMocks.generateUUID,
+}));
+
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
@@ -124,7 +131,7 @@ describe("CashMovementService", () => {
   it("processes movements for active shifts and records cent values", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("movement-1");
+    uuidMocks.generateUUID.mockReturnValue("movement-1");
     const mutations = mockMutations();
     mockSelectResults([[{ status: "active", registerId: "register-1" }]]);
 

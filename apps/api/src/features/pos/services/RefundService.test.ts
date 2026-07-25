@@ -10,6 +10,13 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
+
+vi.mock("@makanmakan/utils", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  generateUUID: uuidMocks.generateUUID,
+}));
+
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
@@ -142,10 +149,14 @@ describe("RefundService", () => {
   it("processes live cash refunds and records a cash movement", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    vi.spyOn(crypto, "randomUUID")
+    uuidMocks.generateUUID
       .mockReturnValueOnce("refund-1")
-      .mockReturnValueOnce("abcdef12-3456-4000-8000-abcdef123456")
       .mockReturnValueOnce("movement-1");
+    // businessNumber() keeps crypto.randomUUID on purpose: a v7 suffix would be
+    // timestamp-derived and collide for refunds issued in the same millisecond.
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(
+      "abcdef12-3456-4000-8000-abcdef123456",
+    );
     const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
       throw new Error("Math.random should not be used for refund numbers");
     });
@@ -355,6 +366,39 @@ describe("RefundService", () => {
     ]);
   });
 
+  it("allows cent-exact cumulative refunds that reach the order total", async () => {
+    const mutations = mockMutations();
+    mockSelectResults([
+      [{ id: 101, totalAmount: 19.99, totalAmountCents: 1999 }],
+      [{ totalRefunded: 19.98 }],
+      [
+        refundRow({
+          originalAmountCents: 1999,
+          refundAmountCents: 1,
+          refundMethod: "card",
+        }),
+      ],
+    ]);
+
+    const result = await createService().processRefund(
+      refundRequest({ refundAmount: 0.01, refundMethod: "card" }),
+      "register-1",
+      7,
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        originalAmount: 19.99,
+        refundAmount: 0.01,
+      },
+    });
+    expect(mutations.inserted[0]).toMatchObject({
+      originalAmountCents: 1999,
+      refundAmountCents: 1,
+    });
+  });
+
   it("rejects invalid refund requests before inserting rows", async () => {
     const mutations = mockMutations();
 
@@ -378,6 +422,15 @@ describe("RefundService", () => {
     ]);
     await expect(
       createService().processRefund(refundRequest(), "register-1", 7),
+    ).resolves.toMatchObject({ success: false });
+
+    mockSelectResults([[{ id: 101, totalAmount: 100 }]]);
+    await expect(
+      createService().processRefund(
+        refundRequest({ refundAmount: 19.995 }),
+        "register-1",
+        7,
+      ),
     ).resolves.toMatchObject({ success: false });
 
     expect(mutations.inserted).toHaveLength(0);

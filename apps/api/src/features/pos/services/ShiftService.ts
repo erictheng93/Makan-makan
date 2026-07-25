@@ -8,6 +8,7 @@ import { cashShifts, cashRegisters, cashMovements } from "@makanmakan/database";
 import type { CashShift, StartShiftRequest, EndShiftRequest } from "../types";
 import { startShiftSchema, endShiftSchema } from "../schemas";
 import { fromCents, toRequiredCents } from "../../../shared/utils/money";
+import { generateUUID } from "@makanmakan/utils";
 
 function amountFromCents(
   cents: number | null | undefined,
@@ -81,7 +82,7 @@ export class ShiftService {
         };
       }
 
-      const shiftId = crypto.randomUUID();
+      const shiftId = generateUUID();
       const startedAt = new Date();
 
       await this.db.insert(cashShifts).values({
@@ -165,21 +166,25 @@ export class ShiftService {
       }
 
       // 計算預期金額
-      const startAmount = amountFromCents(shift.startAmountCents) ?? 0;
-      const totalSales = amountFromCents(shift.totalSalesCents) ?? 0;
-      const totalRefunds = amountFromCents(shift.totalRefundsCents) ?? 0;
-      const expectedAmount = startAmount + totalSales - totalRefunds;
-      const differenceAmount = validatedData.actualAmount - expectedAmount;
+      const actualAmountCents = toRequiredCents(validatedData.actualAmount);
+      const expectedAmountCents =
+        (shift.startAmountCents ?? 0) +
+        (shift.totalSalesCents ?? 0) -
+        (shift.totalRefundsCents ?? 0);
+      const differenceAmountCents = actualAmountCents - expectedAmountCents;
+      const actualAmount = fromCents(actualAmountCents);
+      const expectedAmount = fromCents(expectedAmountCents);
+      const differenceAmount = fromCents(differenceAmountCents);
 
       // 更新班次狀態
       const endedAt = new Date();
       await this.db
         .update(cashShifts)
         .set({
-          endAmountCents: toRequiredCents(validatedData.actualAmount),
-          actualAmountCents: toRequiredCents(validatedData.actualAmount),
-          expectedAmountCents: toRequiredCents(expectedAmount),
-          differenceAmountCents: toRequiredCents(differenceAmount),
+          endAmountCents: actualAmountCents,
+          actualAmountCents,
+          expectedAmountCents,
+          differenceAmountCents,
           endedAt,
           status: "closed",
           closingNotes: validatedData.closingNotes || null,
@@ -189,7 +194,7 @@ export class ShiftService {
       // 記錄結班現金操作
       await this.recordCashMovement(shiftId, {
         type: "closing",
-        amount: validatedData.actualAmount,
+        amount: actualAmount,
         description: `結班現金 (差額: ${differenceAmount >= 0 ? "+" : ""}${differenceAmount})`,
         recordedBy: operatorId,
       });
@@ -205,8 +210,8 @@ export class ShiftService {
         data: {
           shift: {
             ...this.mapShift(shift),
-            endAmount: validatedData.actualAmount,
-            actualAmount: validatedData.actualAmount,
+            endAmount: actualAmount,
+            actualAmount,
             expectedAmount,
             differenceAmount,
             status: "closed" as const,
@@ -321,7 +326,7 @@ export class ShiftService {
       denominationBreakdown?: Record<string, number>;
     },
   ): Promise<void> {
-    const movementId = crypto.randomUUID();
+    const movementId = generateUUID();
 
     const [shift] = await this.db
       .select({ registerId: cashShifts.registerId })

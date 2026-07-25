@@ -13,6 +13,7 @@ import type {
   TenantStatus,
   OnboardingPlanId,
 } from "../types";
+import { generateUUID } from "@makanmakan/utils";
 import { generateLicenseKey, randomBase36Upper } from "../utils/random";
 import { createSubdomainBase } from "../utils/subdomain";
 import {
@@ -450,7 +451,7 @@ export class TenantService {
   }
 
   private generateSubscriptionId(): string {
-    return `sub_${crypto.randomUUID()}`;
+    return `sub_${generateUUID()}`;
   }
 
   private toLicenseTier(planId: OnboardingPlanId | null | undefined) {

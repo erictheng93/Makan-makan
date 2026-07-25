@@ -12,6 +12,7 @@ import { orders } from "../orders";
 import { partnerships } from "./partnerships";
 import { partnershipPlans } from "./plans";
 import { verifiedMembers } from "./members";
+import { v7 as uuidv7 } from "uuid";
 
 // ================================================
 // ENUMS & CONSTANTS
@@ -48,7 +49,7 @@ export const partnershipUsageLogs = sqliteTable(
   {
     id: text("id")
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID().replace(/-/g, "")),
+      .$defaultFn(() => uuidv7().replace(/-/g, "")),
 
     // 關聯資訊
     partnershipId: text("partnership_id")

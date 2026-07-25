@@ -7,6 +7,11 @@ import type { Env } from "../types/env";
 const mocks = vi.hoisted(() => ({
   createImage: vi.fn(),
   recordImageView: vi.fn(),
+  uuidv7: vi.fn(),
+}));
+
+vi.mock("uuid", () => ({
+  v7: mocks.uuidv7,
 }));
 
 vi.mock("@makanmakan/database", () => ({
@@ -69,9 +74,7 @@ describe("POST /images/upload success", () => {
     vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
-    vi.spyOn(crypto, "randomUUID").mockImplementation(function randomUUID() {
-      return IMAGE_UUID;
-    });
+    mocks.uuidv7.mockReturnValue(IMAGE_UUID);
     mocks.createImage.mockResolvedValue({ id: IMAGE_UUID });
     mocks.recordImageView.mockResolvedValue(undefined);
   });

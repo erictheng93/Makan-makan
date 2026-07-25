@@ -8,6 +8,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { eq, and, count, isNotNull, desc } from "drizzle-orm";
 import { backupConfigurations, backupRecords } from "@makanmakan/database";
 import type { BackupConfiguration } from "@makanmakan/shared-types";
+import { generateUUID } from "@makanmakan/utils";
 
 export class BackupConfigService {
   private db;
@@ -81,7 +82,7 @@ export class BackupConfigService {
 
       // If no default exists, create one
       const defaultConfig: BackupConfiguration = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         restaurant_id: restaurantId,
         name: "Default Configuration",
         description: "Default backup configuration",
@@ -224,7 +225,7 @@ export class BackupConfigService {
       } else {
         // Create new configuration
         const config: BackupConfiguration = {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           restaurant_id: configInput.restaurant_id!,
           name: configInput.name!,
           description: configInput.description,
@@ -358,7 +359,7 @@ export class BackupConfigService {
 
       const clonedConfig: BackupConfiguration = {
         ...sourceConfig,
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         restaurant_id: targetRestaurantId,
         name: `${sourceConfig.name} (Copy)`,
         created_by: userId,

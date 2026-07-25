@@ -5,7 +5,12 @@
  */
 
 import { Hono } from "hono";
-import { ApiError, badRequest, notFound } from "@makanmakan/utils";
+import {
+  ApiError,
+  badRequest,
+  generateUUID,
+  notFound,
+} from "@makanmakan/utils";
 import type {
   ManagementEnv,
   HealthStatus,
@@ -228,7 +233,7 @@ router.post("/report", async (c) => {
       );
     }
 
-    const checkId = crypto.randomUUID();
+    const checkId = generateUUID();
     const checkedAt = new Date().toISOString();
 
     await c.env.MANAGEMENT_DB.prepare(
@@ -335,7 +340,7 @@ router.post("/check/:tenantId", async (c) => {
     }
 
     // Record the health check
-    const checkId = crypto.randomUUID();
+    const checkId = generateUUID();
     const checkedAt = new Date().toISOString();
 
     await c.env.MANAGEMENT_DB.prepare(

@@ -21,6 +21,7 @@ import {
   strftimeFromUnixMs,
   sumMoneyAmount,
 } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 
 export class ReportService {
   private db;
@@ -150,7 +151,7 @@ export class ReportService {
       };
 
       // 保存報表
-      const reportId = crypto.randomUUID();
+      const reportId = generateUUID();
       const generatedAt = new Date();
       await this.db.insert(shiftReports).values({
         id: reportId,

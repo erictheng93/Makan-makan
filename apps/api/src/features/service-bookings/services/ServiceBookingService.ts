@@ -39,6 +39,7 @@ import {
 import { toCents } from "../../../shared/utils/money";
 import { CreditService } from "../../credits/services/CreditService";
 import { ServiceBookingNotificationService } from "./ServiceBookingNotificationService";
+import { generateUUID } from "@makanmakan/utils";
 
 type ServiceBookingRow = typeof serviceBookings.$inferSelect;
 type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;
@@ -252,7 +253,7 @@ export class ServiceBookingService {
       });
 
       const confirmationCode = generateConfirmationCode();
-      const calendarUid = `${crypto.randomUUID()}@makanmakan.service-bookings`;
+      const calendarUid = `${generateUUID()}@makanmakan.service-bookings`;
       const [row] = await this.db
         .insert(serviceBookings)
         .values({
@@ -341,7 +342,7 @@ export class ServiceBookingService {
       );
     }
 
-    const groupId = crypto.randomUUID();
+    const groupId = generateUUID();
     const bookings: ServiceBookingRow[] = [];
     try {
       for (let index = 1; index <= input.count; index += 1) {
@@ -460,7 +461,7 @@ export class ServiceBookingService {
       input.restaurantId,
     );
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const isAvailable = input.isAvailable === false ? 0 : 1;
     const blockReason = input.blockReason ?? null;
 
@@ -538,7 +539,7 @@ export class ServiceBookingService {
       input.restaurantId,
     );
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     await this.d1
       .prepare(
         `INSERT INTO service_booking_slots (

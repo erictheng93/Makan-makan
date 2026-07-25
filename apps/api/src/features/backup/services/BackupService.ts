@@ -38,6 +38,7 @@ import type {
   BackupAuditLog,
   BackupStatus,
 } from "@makanmakan/shared-types";
+import { generateUUID } from "@makanmakan/utils";
 
 type BackupManifest = {
   rowCounts: Record<string, number>;
@@ -101,7 +102,7 @@ export class BackupService {
     request: CreateBackupRequest,
     userId: string,
   ): Promise<CreateBackupResponse> {
-    const backupId = crypto.randomUUID();
+    const backupId = generateUUID();
     const timestamp = new Date();
     const timestampIso = timestamp.toISOString();
 
@@ -558,7 +559,7 @@ export class BackupService {
     request: RestoreBackupRequest,
     userId: string,
   ): Promise<string | RestoreBackupResult> {
-    const operationId = crypto.randomUUID();
+    const operationId = generateUUID();
 
     try {
       await this.validationService.validateRestoreRequest(request);
@@ -1145,7 +1146,7 @@ export class BackupService {
     log: Omit<BackupAuditLog, "id" | "ip_address" | "user_agent" | "timestamp">,
   ): Promise<void> {
     await this.db.insert(backupAuditLogs).values({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       restaurantId: log.restaurant_id,
       action: log.action,
       details: log.details as Record<string, unknown>,
