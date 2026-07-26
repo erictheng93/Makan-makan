@@ -28,19 +28,23 @@ const ADMIN_UUID = "01890a5d-ac96-774b-bcce-b302099a8057";
 const RESTAURANT_UUID = "01890a5d-ac96-774b-bcce-b302099a8058";
 const IMAGE_UUID = "01890a5d-ac96-774b-bcce-b302099a8059";
 
-async function adminToken(): Promise<string> {
+async function tokenForRole(role: number): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   return sign(
     {
       sub: ADMIN_UUID,
       username: "admin",
-      role: 0,
-      restaurantId: null,
+      role,
+      restaurantId: role === 0 ? null : RESTAURANT_UUID,
       iat: now,
       exp: now + 3600,
     },
     JWT_SECRET,
   );
+}
+
+async function adminToken(): Promise<string> {
+  return tokenForRole(0);
 }
 
 function buildApp() {
@@ -160,5 +164,85 @@ describe("POST /images/upload success", () => {
       expect.stringContaining(`"id":"${IMAGE_UUID}"`),
       { expirationTtl: 3600 },
     );
+  });
+
+  it("still allows shop owner and chef uploads, scoped by their own token", async () => {
+    // Without this the suite only pins role 0, so narrowing the guard to
+    // requireRole([0]) would stay green while locking out shop owners — the
+    // primary users of menu image upload.
+    for (const role of [1, 2]) {
+      vi.clearAllMocks();
+      mocks.uuidv7.mockReturnValue(IMAGE_UUID);
+      mocks.createImage.mockResolvedValue({ id: IMAGE_UUID });
+      const env = buildEnv();
+      const formData = new FormData();
+      formData.set(
+        "file",
+        new File([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], "plate.jpg", {
+          type: "image/jpeg",
+        }),
+      );
+
+      const response = await buildApp().fetch(
+        // Deliberately no ?restaurantId — a non-admin must be scoped by the
+        // restaurant carried in their own token.
+        new Request("https://images.test/images/upload?category=menu", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${await tokenForRole(role)}` },
+          body: formData,
+        }),
+        env,
+        {
+          waitUntil: vi.fn(),
+          passThroughOnException: vi.fn(),
+        } as unknown as ExecutionContext,
+      );
+
+      expect(response.status).toBe(201);
+      expect(mocks.createImage).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: RESTAURANT_UUID }),
+      );
+    }
+  });
+
+  it("rejects service crew and cashier uploads", async () => {
+    const env = buildEnv();
+
+    for (const role of [3, 4]) {
+      const formData = new FormData();
+      formData.set(
+        "file",
+        new File([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], "plate.jpg", {
+          type: "image/jpeg",
+        }),
+      );
+
+      const response = await buildApp().fetch(
+        new Request(
+          `https://images.test/images/upload?restaurantId=${RESTAURANT_UUID}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${await tokenForRole(role)}`,
+            },
+            body: formData,
+          },
+        ),
+        env,
+        {
+          waitUntil: vi.fn(),
+          passThroughOnException: vi.fn(),
+        } as unknown as ExecutionContext,
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: "Insufficient permissions",
+      });
+    }
+
+    expect(env.IMAGES_BUCKET.put).not.toHaveBeenCalled();
+    expect(mocks.createImage).not.toHaveBeenCalled();
   });
 });

@@ -169,6 +169,7 @@ const variantsFromMetadata = (metadata?: ImageMetadata): string[] => {
 app.post(
   "/upload",
   authMiddleware,
+  requireRole([0, 1, 2]), // Admin, Owner, Chef
   (c, next) => uploadRateLimit(c.env)(c, next),
   (c, next) => checkFileSize(parseInt(c.env.MAX_IMAGE_SIZE_MB) || 10)(c, next),
   (c, next) => validateFileType(c.env.ALLOWED_MIME_TYPES.split(","))(c, next),
