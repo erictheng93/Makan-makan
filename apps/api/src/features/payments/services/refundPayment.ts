@@ -13,7 +13,11 @@ import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PaymentAuditService,
 } from "../../billing/services/PaymentAuditService";
-import { fromCents, isCentAlignedAmount } from "../../../shared/utils/money";
+import {
+  fromCents,
+  isCentAlignedAmount,
+  toRequiredCents,
+} from "../../../shared/utils/money";
 
 export interface RefundPaymentInput {
   transactionId: string;
@@ -83,7 +87,7 @@ export async function refundPaymentTransaction(
       400,
     );
   }
-  const refundAmountCents = cents(refundAmount);
+  const refundAmountCents = toRequiredCents(refundAmount);
   const nextRefundTotalCents = currentRefundTotalCents + refundAmountCents;
 
   if (nextRefundTotalCents > paymentTotalCents) {
@@ -268,10 +272,6 @@ function preparePaymentLedgerForRefund(
       completedAt: new Date(data.now),
     })
     .onConflictDoNothing();
-}
-
-function cents(value: number): number {
-  return Math.round(value * 100);
 }
 
 function mutationChanges(result: unknown): number {
