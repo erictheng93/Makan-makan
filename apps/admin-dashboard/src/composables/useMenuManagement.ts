@@ -267,6 +267,11 @@ export function useMenuManagement() {
     menuItems,
     isLoading,
     selectedCategoryId,
+    // The restaurant currently being managed — for a platform admin this is the
+    // one picked in the header selector, not anything carried in their token.
+    // Wrapped in computed() because Pinia unwraps store refs on access, which
+    // would otherwise snapshot the value at composable-call time.
+    restaurantId: computed(() => authStore.restaurantId),
     // Computed
     filteredItemsByCategory,
     // Methods

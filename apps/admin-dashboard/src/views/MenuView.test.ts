@@ -14,6 +14,7 @@ const imageUploadMocks = vi.hoisted(() => ({
   reset: vi.fn(),
 }));
 const routeQuery = {} as Record<string, unknown>;
+const MANAGED_RESTAURANT_ID = "019f9373-397c-7202-99d6-24c61976f3ff";
 const categories = ref([
   { id: 1, name: "主食", sortOrder: 0 },
   { id: 2, name: "飲料", sortOrder: 1 },
@@ -66,6 +67,7 @@ vi.mock("@/composables/useMenuManagement", () => ({
     importMenuItems,
     deleteMenuItem: vi.fn(),
     toggleMenuItemStatus: vi.fn(),
+    restaurantId: computed(() => MANAGED_RESTAURANT_ID),
   }),
 }));
 
@@ -288,7 +290,11 @@ describe("MenuView", () => {
       target: { files: [file], value: "" },
     } as unknown as Event);
 
-    expect(imageUploadMocks.upload).toHaveBeenCalledWith(file);
+    // The managed restaurant must ride along: a platform admin's token has
+    // restaurantId: null, so image-processor 403s without this.
+    expect(imageUploadMocks.upload).toHaveBeenCalledWith(file, {
+      restaurantId: MANAGED_RESTAURANT_ID,
+    });
     expect(wrapper.vm.menuItemForm.imageUrl).toBe(imageVariants.medium);
     expect(wrapper.vm.menuItemForm.imageId).toBe("uploaded-image-id");
     expect(wrapper.vm.menuItemForm.imageVariants).toEqual(imageVariants);

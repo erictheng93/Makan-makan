@@ -131,7 +131,10 @@ export function useImageUpload() {
     result.value = null;
   };
 
-  const upload = async (file: File): Promise<ImageUploadResult | null> => {
+  const upload = async (
+    file: File,
+    options: { restaurantId?: string | null } = {},
+  ): Promise<ImageUploadResult | null> => {
     errorMessage.value = "";
     result.value = null;
 
@@ -150,8 +153,18 @@ export function useImageUpload() {
     try {
       const formData = await buildUploadFormData(file);
 
+      // Platform admins (role 0) carry restaurantId: null in their token, so
+      // apps/image-processor resolves the owning restaurant from this query
+      // param instead. Without it every admin upload is rejected with 403
+      // "Restaurant access is required for image uploads". Shop owners ignore
+      // the param — the worker always trusts their token for role !== 0.
+      const query = new URLSearchParams({ category: "menu" });
+      if (options.restaurantId) {
+        query.set("restaurantId", options.restaurantId);
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_IMAGE_API_URL}/images/upload?category=menu`,
+        `${import.meta.env.VITE_IMAGE_API_URL}/images/upload?${query.toString()}`,
         {
           method: "POST",
           // getAuthToken reads the auth-client storage directly — the Pinia
