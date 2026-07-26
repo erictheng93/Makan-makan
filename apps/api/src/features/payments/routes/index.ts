@@ -19,8 +19,14 @@ import {
   resolveOrderIdentity,
   type OrderIdentity,
 } from "../../../shared/services/order-identity";
+import { isCentAlignedAmount } from "../../../shared/utils/money";
 
 const app = new Hono<{ Bindings: Env }>();
+
+const centAlignedAmount = (schema: z.ZodNumber) =>
+  schema.refine(isCentAlignedAmount, {
+    message: "amount must not have more than two decimal places",
+  });
 
 const createPaymentRequestSchema = z
   .object({
@@ -28,7 +34,7 @@ const createPaymentRequestSchema = z
     restaurantId: z.string().min(1),
     country: z.enum(["TW", "MY", "VN"]),
     currency: z.enum(["TWD", "MYR", "VND"]),
-    amount: z.number().finite().positive(),
+    amount: centAlignedAmount(z.number().finite().positive()),
     method: z.string().min(1).max(50),
     customerInfo: z
       .object({
@@ -50,12 +56,14 @@ const rootPaymentRequestSchema = z
     country: z.enum(["TW", "MY", "VN"]).optional().default("TW"),
     currency: z.enum(["TWD", "MYR", "VND"]).optional().default("TWD"),
     paymentMode: z.enum(["full", "partial"]).optional().default("full"),
-    expectedTotal: z.number().finite().nonnegative().optional(),
+    expectedTotal: centAlignedAmount(
+      z.number().finite().nonnegative(),
+    ).optional(),
     payments: z
       .array(
         z.object({
           method: z.string().min(1).max(50),
-          amount: z.number().finite().nonnegative(),
+          amount: centAlignedAmount(z.number().finite().nonnegative()),
         }),
       )
       .min(1)
@@ -63,7 +71,7 @@ const rootPaymentRequestSchema = z
       .optional(),
     closeOrder: z.boolean().optional(),
     method: z.string().min(1).max(50).optional(),
-    amount: z.number().finite().nonnegative().optional(),
+    amount: centAlignedAmount(z.number().finite().nonnegative()).optional(),
     gateway: z.string().min(1).max(50).optional(),
     customerInfo: z
       .object({
@@ -95,7 +103,7 @@ const rootPaymentRequestSchema = z
 
 const refundSchema = z.object({
   transactionId: z.string().min(1),
-  amount: z.number().finite().positive().optional(),
+  amount: centAlignedAmount(z.number().finite().positive()).optional(),
   reason: z.string().max(500).optional(),
 });
 

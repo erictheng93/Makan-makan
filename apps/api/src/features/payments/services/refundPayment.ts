@@ -5,7 +5,6 @@ import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 import {
-  amountFromCents,
   orders,
   paymentTransactions,
   refundTransactions,
@@ -14,6 +13,7 @@ import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PaymentAuditService,
 } from "../../billing/services/PaymentAuditService";
+import { fromCents, isCentAlignedAmount } from "../../../shared/utils/money";
 
 export interface RefundPaymentInput {
   transactionId: string;
@@ -73,12 +73,20 @@ export async function refundPaymentTransaction(
     );
   }
 
-  const paymentTotal = amountFromCents(row.totalAmountCents) ?? 0;
-  const refundAmount = input.amount ?? paymentTotal;
-  const currentRefundTotal = amountFromCents(row.refundAmountCents) ?? 0;
-  const nextRefundTotal = currentRefundTotal + refundAmount;
+  const paymentTotalCents = row.totalAmountCents ?? 0;
+  const currentRefundTotalCents = row.refundAmountCents ?? 0;
+  const refundAmount = input.amount ?? fromCents(paymentTotalCents);
+  if (!isCentAlignedAmount(refundAmount)) {
+    throw new ApiError(
+      "INVALID_REFUND_AMOUNT",
+      "Refund amount must not have more than two decimal places",
+      400,
+    );
+  }
+  const refundAmountCents = cents(refundAmount);
+  const nextRefundTotalCents = currentRefundTotalCents + refundAmountCents;
 
-  if (cents(nextRefundTotal) > cents(paymentTotal)) {
+  if (nextRefundTotalCents > paymentTotalCents) {
     throw new ApiError(
       "REFUND_AMOUNT_EXCEEDS_PAYMENT",
       "Refund amount exceeds payment total",
@@ -86,12 +94,11 @@ export async function refundPaymentTransaction(
     );
   }
 
-  const isFullRefund = cents(nextRefundTotal) >= cents(paymentTotal);
+  const isFullRefund = nextRefundTotalCents >= paymentTotalCents;
   const paymentStatus = isFullRefund ? "refunded" : "partial_refunded";
   const refundId = `ref_${input.transactionId}_${Date.now()}`;
   const now = Date.now();
   const timestamp = new Date(now);
-  const refundAmountCents = cents(refundAmount);
 
   const currentRefundCentsSql = sql<number>`COALESCE(${orders.refundAmountCents}, 0)`;
   const totalAmountCentsSql = sql<number>`COALESCE(${orders.totalAmountCents}, 0)`;
@@ -132,7 +139,7 @@ export async function refundPaymentTransaction(
       transactionId: input.transactionId,
       orderId: row.id,
       restaurantId: row.restaurantId,
-      amountCents: cents(paymentTotal),
+      amountCents: paymentTotalCents,
       paymentMethod: row.paymentMethod ?? "unknown",
       status: toLedgerPaymentStatus(row.paymentStatus),
       now,
@@ -158,7 +165,7 @@ export async function refundPaymentTransaction(
       paymentTransactionId: input.transactionId,
       eventType: PAYMENT_AUDIT_EVENT_TYPES.REFUND,
       provider: row.paymentMethod ?? "internal",
-      amount: cents(refundAmount),
+      amount: refundAmountCents,
       rawPayload: {
         refundId,
         orderId: row.id,

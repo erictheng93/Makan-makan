@@ -27,6 +27,14 @@ describe("POS validation schemas", () => {
         description: "Bank drop",
       }),
     ).toMatchObject({ type: "deposit", amount: -50 });
+
+    expect(() =>
+      cashMovementSchema.parse({
+        type: "deposit",
+        amount: 19.995,
+        description: "Bank drop",
+      }),
+    ).toThrow();
   });
 
   it("applies receipt and market checkout payment defaults", () => {

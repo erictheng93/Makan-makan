@@ -409,6 +409,36 @@ describe("payments routes", () => {
     );
   });
 
+  it("rejects payment amounts that are not aligned to cents", async () => {
+    let response = await postJson("/create", {
+      orderId: orderId101,
+      restaurantId: "restaurant-1",
+      amount: 19.995,
+      method: "credit_card",
+      country: "TW",
+      currency: "TWD",
+    });
+    let body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body.error?.code).toBe("VALIDATION_ERROR");
+
+    response = await postJson("/", {
+      orderId: orderId303,
+      paymentMode: "partial",
+      expectedTotal: 100,
+      payments: [
+        { method: "cash", amount: 40 },
+        { method: "card", amount: 59.995 },
+      ],
+    });
+    body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body.error?.code).toBe("VALIDATION_ERROR");
+    expect(mocks.paymentService.processPayment).not.toHaveBeenCalled();
+  });
+
   it("returns payment transaction status rows before order fallbacks", async () => {
     const db = createDb({
       transaction: [

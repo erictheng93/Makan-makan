@@ -18,6 +18,12 @@ export function fromCents(cents: number): number {
   return cents / 100;
 }
 
+export function isCentAlignedAmount(amount: number): boolean {
+  if (!Number.isFinite(amount)) return false;
+  const cents = amount * 100;
+  return Math.abs(cents - Math.round(cents)) < 1e-9;
+}
+
 export function percentageFromBps(
   bps: number | null | undefined,
   fallback?: number | null | undefined,
