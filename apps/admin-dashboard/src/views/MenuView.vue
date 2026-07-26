@@ -644,6 +644,7 @@ const {
   importMenuItems,
   deleteMenuItem,
   toggleMenuItemStatus,
+  restaurantId,
 } = useMenuManagement();
 
 // ── Local UI State ──
@@ -877,7 +878,9 @@ const handleImageFileSelected = async (event: Event) => {
   const file = input.files?.[0];
   if (!file) return;
 
-  const uploaded = await uploadImage(file);
+  const uploaded = await uploadImage(file, {
+    restaurantId: restaurantId.value,
+  });
   if (uploaded) {
     menuItemForm.value.imageUrl = uploaded.imageUrl;
     menuItemForm.value.imageId = uploaded.imageId;

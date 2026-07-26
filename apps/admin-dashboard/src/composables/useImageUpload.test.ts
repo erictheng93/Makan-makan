@@ -101,6 +101,49 @@ describe("useImageUpload", () => {
     expect(uploader.state.value).toBe("success");
   });
 
+  it("forwards the managed restaurant id so platform admins are not rejected", async () => {
+    // A role 0 token carries restaurantId: null, so apps/image-processor reads
+    // the target restaurant off this query param; omitting it returns 403
+    // "Restaurant access is required for image uploads".
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: { id: "image-1", variants: { medium: "https://cdn/m.webp" } },
+      }),
+    } as Response);
+    const uploader = useImageUpload();
+    const file = new File(["jpeg bytes"], "menu.jpg", { type: "image/jpeg" });
+
+    await uploader.upload(file, {
+      restaurantId: "019f9373-397c-7202-99d6-24c61976f3ff",
+    });
+
+    const [url] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const query = new URL(String(url)).searchParams;
+    expect(query.get("category")).toBe("menu");
+    expect(query.get("restaurantId")).toBe(
+      "019f9373-397c-7202-99d6-24c61976f3ff",
+    );
+  });
+
+  it("omits restaurantId when no restaurant is in context", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: { id: "image-1", variants: { medium: "https://cdn/m.webp" } },
+      }),
+    } as Response);
+    const uploader = useImageUpload();
+    const file = new File(["jpeg bytes"], "menu.jpg", { type: "image/jpeg" });
+
+    await uploader.upload(file, { restaurantId: null });
+
+    const [url] = vi.mocked(fetch).mock.calls[0] ?? [];
+    expect(new URL(String(url)).searchParams.has("restaurantId")).toBe(false);
+  });
+
   it("enters error state when the upload request fails", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: false,
