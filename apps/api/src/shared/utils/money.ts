@@ -21,7 +21,15 @@ export function fromCents(cents: number): number {
 export function isCentAlignedAmount(amount: number): boolean {
   if (!Number.isFinite(amount)) return false;
   const cents = amount * 100;
-  return Math.abs(cents - Math.round(cents)) < 1e-9;
+  const nearest = Math.round(cents);
+  // The tolerance has to scale with magnitude. A fixed 1e-9 false-rejects
+  // legitimate two-decimal amounts from 131072.14 (2^17) upward, because one
+  // ulp of `cents` already exceeds 1e-9 there — ordinary TWD totals for
+  // catering orders and market checkouts would 400 with no way around it.
+  return (
+    Math.abs(cents - nearest) <=
+    Math.max(1e-9, Math.abs(cents) * Number.EPSILON * 4)
+  );
 }
 
 export function percentageFromBps(
