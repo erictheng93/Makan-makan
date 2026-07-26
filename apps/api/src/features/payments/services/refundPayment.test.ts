@@ -361,6 +361,22 @@ describe("refundPaymentTransaction", () => {
     });
   });
 
+  it("rejects refund amounts that are not aligned to cents", async () => {
+    const setup = createD1(paidOrder());
+
+    await expect(
+      refundPaymentTransaction(
+        env(setup.db),
+        { transactionId: "txn-fractional", amount: 19.995 },
+        { user: cashierUser },
+      ),
+    ).rejects.toMatchObject({
+      code: "INVALID_REFUND_AMOUNT",
+      status: 400,
+    });
+    expect(setup.db.batch).not.toHaveBeenCalled();
+  });
+
   it("enforces role, tenant, and conditional refund caps", async () => {
     await expect(
       refundPaymentTransaction(

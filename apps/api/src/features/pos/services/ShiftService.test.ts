@@ -264,10 +264,53 @@ describe("ShiftService", () => {
         registerId,
         type: "closing",
         amountCents: 56000,
+        description: "結班現金 (差額: +10)",
         recordedBy: 8,
       }),
     ]);
     vi.useRealTimers();
+  });
+
+  it("uses cents for closing reconciliation to avoid float noise", async () => {
+    uuidMocks.generateUUID.mockReturnValue("movement-1");
+    const mutations = mockMutations();
+    mockSelectResults([
+      [
+        shiftRow({
+          registerId,
+          startAmountCents: 10000,
+          totalSalesCents: 4287733,
+          totalRefundsCents: 123456,
+        }),
+      ],
+      [{ registerId }],
+    ]);
+
+    const result = await createService().endShift(
+      "shift-1",
+      { actualAmount: 41742.77 },
+      "operator-1",
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        shift: {
+          expectedAmount: 41742.77,
+          actualAmount: 41742.77,
+          differenceAmount: 0,
+        },
+      },
+    });
+    expect(mutations.updated[0]).toMatchObject({
+      actualAmountCents: 4174277,
+      expectedAmountCents: 4174277,
+      differenceAmountCents: 0,
+    });
+    expect(mutations.inserted[0]).toMatchObject({
+      amountCents: 4174277,
+      description: "結班現金 (差額: +0)",
+    });
   });
 
   it("rejects invalid end payloads and missing active shifts", async () => {
@@ -275,6 +318,14 @@ describe("ShiftService", () => {
 
     let result = await withSuppressedConsoleError(() =>
       createService().endShift("shift-1", { actualAmount: -1 }, 8),
+    );
+
+    expect(result.success).toBe(false);
+    expect(mutations.updated).toHaveLength(0);
+    expect(mocks.db.select).not.toHaveBeenCalled();
+
+    result = await withSuppressedConsoleError(() =>
+      createService().endShift("shift-1", { actualAmount: 19.995 }, 8),
     );
 
     expect(result.success).toBe(false);

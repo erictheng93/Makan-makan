@@ -3182,7 +3182,7 @@ describe("market checkout routes", () => {
             restaurantName: "雞排攤",
             orderId: 1001,
             orderNumber: "A001",
-            totalAmount: 120,
+            totalAmount: 999,
             totalAmountCents: 12000,
             tokenExpiresAt: "2026-06-01T12:00:00.000Z",
           },
@@ -3217,6 +3217,8 @@ describe("market checkout routes", () => {
       data: {
         payment: {
           status: string;
+          totalAmount: number;
+          totalAmountCents: number;
           paidAmountCents: number;
           childPayments: Array<{
             orderId: number;
@@ -3234,6 +3236,8 @@ describe("market checkout routes", () => {
     };
     expect(json.data.payment).toMatchObject({
       status: "failed",
+      totalAmount: 120,
+      totalAmountCents: 12000,
       paidAmountCents: 0,
       childPayments: [
         {

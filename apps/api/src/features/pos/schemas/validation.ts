@@ -3,6 +3,7 @@
  */
 
 import { z } from "zod";
+import { isCentAlignedAmount } from "../../../shared/utils/money";
 
 const idString = z.preprocess((value) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -23,12 +24,16 @@ export const createRegisterSchema = z.object({
 export const startShiftSchema = z.object({
   registerId: z.string().uuid(),
   operatorId: idString,
-  startAmount: z.number().min(0),
+  startAmount: z.number().min(0).refine(isCentAlignedAmount, {
+    message: "startAmount must not have more than two decimal places",
+  }),
   notes: z.string().max(500).optional(),
 });
 
 export const endShiftSchema = z.object({
-  actualAmount: z.number().min(0),
+  actualAmount: z.number().min(0).refine(isCentAlignedAmount, {
+    message: "actualAmount must not have more than two decimal places",
+  }),
   closingNotes: z.string().max(500).optional(),
 });
 
@@ -41,7 +46,9 @@ export const cashMovementSchema = z.object({
     "payout",
     "deposit",
   ]),
-  amount: z.number(),
+  amount: z.number().refine(isCentAlignedAmount, {
+    message: "amount must not have more than two decimal places",
+  }),
   description: z.string().min(1).max(200),
   denominationBreakdown: z.record(z.number()).optional(),
   referenceId: z.number().int().positive().optional(),
@@ -61,7 +68,9 @@ export const printReceiptSchema = z.object({
 export const processRefundSchema = z.object({
   originalOrderId: idString,
   refundType: z.enum(["full", "partial", "item", "service"]),
-  refundAmount: z.number().positive(),
+  refundAmount: z.number().positive().refine(isCentAlignedAmount, {
+    message: "refundAmount must not have more than two decimal places",
+  }),
   refundMethod: z.string().min(1).max(50),
   reasonCode: z.string().min(1).max(50),
   reasonDescription: z.string().max(500).optional(),
