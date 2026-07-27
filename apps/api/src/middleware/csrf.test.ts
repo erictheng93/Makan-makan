@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { csrfProtection, generateCSRFTokenHandler } from "./csrf";
+import {
+  attachCSRFToken,
+  csrfProtection,
+  generateCSRFTokenHandler,
+} from "./csrf";
 
 const CSRF_TOKEN = "a".repeat(64);
 
@@ -67,18 +71,60 @@ describe("csrfProtection", () => {
     expect(response.status).toBe(200);
   });
 
-  it("sets CSRF cookies with host-only HttpOnly attributes", async () => {
+  it("sets a host-only CSRF cookie the browser can read back", async () => {
     const app = new Hono();
     app.get("/csrf", generateCSRFTokenHandler);
 
     const response = await app.fetch(new Request("https://api.test/csrf"), {
       NODE_ENV: "production",
     });
+    const setCookie = response.headers.get("set-cookie") ?? "";
 
-    expect(response.headers.get("set-cookie")).toContain("__Host-mm_csrf=");
-    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(response.headers.get("set-cookie")).toContain("Secure");
-    expect(response.headers.get("set-cookie")).toContain("Path=/");
+    expect(setCookie).toContain("__Host-mm_csrf=");
+    expect(setCookie).toContain("Secure");
+    expect(setCookie).toContain("SameSite=Lax");
+    expect(setCookie).toContain("Path=/");
+
+    // Double-submit needs document.cookie to see this value. Marking it
+    // HttpOnly silently disabled the client's post-reload fallback and left
+    // every state-changing request 403ing after a page load (#66).
+    expect(setCookie).not.toContain("HttpOnly");
+  });
+});
+
+describe("attachCSRFToken", () => {
+  // This is the middleware actually mounted on /auth/*, and it is the only
+  // thing that hands a token to a browser. The header seeds the client's
+  // in-memory cache; the cookie is the fallback after a reload. If the two
+  // ever carry different values, or the cookie stops being readable,
+  // double-submit fails closed and every post-reload write 403s (#66).
+  async function issueToken() {
+    const app = new Hono();
+    app.use("/auth/*", attachCSRFToken());
+    app.post("/auth/login", (c) => c.json({ success: true }));
+
+    return app.fetch(
+      new Request("https://api.test/auth/login", { method: "POST" }),
+      { NODE_ENV: "production" },
+    );
+  }
+
+  it("returns the same token in the header and the cookie", async () => {
+    const response = await issueToken();
+
+    const header = response.headers.get("x-csrf-token");
+    const cookieValue = (response.headers.get("set-cookie") ?? "").match(
+      /__Host-mm_csrf=([^;]+)/,
+    )?.[1];
+
+    expect(header).toMatch(/^[a-f0-9]{64}$/);
+    expect(cookieValue).toBe(header);
+  });
+
+  it("leaves the cookie readable so the post-reload fallback works", async () => {
+    const response = await issueToken();
+
+    expect(response.headers.get("set-cookie")).not.toContain("HttpOnly");
   });
 });
 

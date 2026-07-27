@@ -18,12 +18,21 @@ const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
 
 /**
  * Build CSRF cookie options string.
+ *
+ * Deliberately NOT HttpOnly. The double-submit pattern requires the browser to
+ * read this value back and echo it in the X-CSRF-Token header; an HttpOnly
+ * cookie is invisible to document.cookie, which silently reduced the client to
+ * a single in-memory token that did not survive a page reload (#66).
+ *
+ * This is safe because the value is not a credential: it authorises nothing on
+ * its own, and an attacker who could read it cross-origin could equally read
+ * the header. Secure + SameSite=Lax + the __Host- prefix still prevent it from
+ * being set or read by another origin, which is what the defence relies on.
  */
 function buildCookieOptions(token: string): string {
   const parts = [
     `${CSRF_COOKIE_NAME}=${token}`,
     "Secure",
-    "HttpOnly",
     "SameSite=Lax",
     `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
     "Path=/",
@@ -314,7 +323,8 @@ export function attachCSRFToken() {
         // Add to response headers
         c.res.headers.set("X-CSRF-Token", token);
 
-        // Set an HttpOnly cookie while returning the readable token in a header.
+        // The header seeds the client's in-memory cache; the cookie is what it
+        // falls back to after a reload, so both carry the same token (#66).
         const cookieOptions = buildCookieOptions(token);
         c.res.headers.append("Set-Cookie", cookieOptions);
       }
