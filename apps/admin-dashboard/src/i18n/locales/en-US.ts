@@ -638,6 +638,16 @@ const enUS: Messages = {
     loadFailed: "Failed to load",
     saveFailed: "Failed to save",
     deleteFailed: "Failed to delete",
+    subscription: {
+      subscriptionNotFound:
+        "No subscription was found for this restaurant, so its features are not activated yet. Your sign-in is fine — please contact support to get it set up.",
+      trialExpired:
+        "Your trial period has ended. Upgrade your plan to keep using this feature.",
+      moduleNotEnabled:
+        "This feature is not included in your current plan. Upgrade your plan or contact support to enable it.",
+      noRestaurant:
+        "Your account is not linked to any restaurant yet. Ask your administrator to assign one, then try again.",
+    },
   },
 
   success: {
