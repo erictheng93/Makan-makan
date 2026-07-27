@@ -29,7 +29,6 @@ import {
   healthCheckMiddleware,
   monitoringStatsMiddleware,
 } from "./middleware/monitoring";
-import { tenantContextMiddleware } from "./middleware/tenantContext";
 import { moduleGate } from "./middleware/moduleGate";
 import { usageTracker } from "./middleware/usageTracker";
 // import restaurantsRouter from './routes/restaurants' // Replaced with modular Restaurants feature
@@ -367,10 +366,6 @@ export function createApp(
     app.use("*", errorMonitoringMiddleware()); // Eleventh: Error monitoring
     app.use("*", monitoringStatsMiddleware()); // Twelfth: Monitoring stats
   }
-
-  // 🏢 DEPLOYMENT MODE: Tenant context middleware for hybrid deployment strategy
-  // Sets up tenant context based on deployment mode (SaaS vs Independent)
-  app.use("*", tenantContextMiddleware); // Thirteenth: Tenant context
 
   // Unified error handler — single formatter for ALL thrown errors
   app.onError((err, c) => {

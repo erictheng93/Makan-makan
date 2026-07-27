@@ -646,6 +646,16 @@ export const requireRestaurantAccess = (
       throw unauthorized("Authentication required", "UNAUTHORIZED");
     }
 
+    // Independent（自架單租戶）部署只授權給一家餐廳，任何請求
+    // ——包含 admin——都必須對應到部署設定的 TENANT_ID，不受角色影響。
+    if (c.env.DEPLOYMENT_MODE === "independent") {
+      if (!c.env.TENANT_ID || restaurantId !== c.env.TENANT_ID) {
+        throw forbidden("Access denied to this restaurant", "FORBIDDEN");
+      }
+      await next();
+      return;
+    }
+
     // 管理員可以存取所有餐廳
     if (user.role === 0) {
       await next();

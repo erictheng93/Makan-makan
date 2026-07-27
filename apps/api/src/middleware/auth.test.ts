@@ -8,8 +8,10 @@ import {
   canonicalCustomerAuthMiddleware,
   customerAuthMiddleware,
   optionalCanonicalCustomerAuthMiddleware,
+  requireRestaurantAccess,
   verifyJwtToken,
 } from "./auth";
+import type { AuthUser } from "./auth";
 
 const JWT_SECRET = "test-jwt-secret-with-at-least-32-chars";
 
@@ -328,6 +330,122 @@ describe("authMiddleware", () => {
       user: { id: staffUserId, publicId: staffUserId, role: 5 },
     });
     expect(response.status).toBe(200);
+  });
+});
+
+describe("requireRestaurantAccess", () => {
+  function appWithUser(user: AuthUser) {
+    const app = new Hono();
+    app.onError(apiErrorHandler);
+    app.use("/restaurants/:restaurantId/*", (c, next) => {
+      c.set("user", user);
+      return next();
+    });
+    app.use("/restaurants/:restaurantId/*", requireRestaurantAccess());
+    app.get("/restaurants/:restaurantId/menu", (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it("SaaS mode: allows an owner to access their own restaurant", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/restaurants/rest-1/menu"),
+      { DEPLOYMENT_MODE: "saas" } as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("SaaS mode: denies an owner accessing a different restaurant", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/restaurants/rest-2/menu"),
+      { DEPLOYMENT_MODE: "saas" } as never,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "FORBIDDEN" },
+    });
+  });
+
+  it("SaaS mode: lets a platform admin bypass the restaurant check", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/restaurants/rest-2/menu"),
+      { DEPLOYMENT_MODE: "saas" } as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("independent mode: allows access to the configured tenant only", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/restaurants/tenant-a/menu"),
+      { DEPLOYMENT_MODE: "independent", TENANT_ID: "tenant-a" } as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("independent mode: denies any restaurantId other than the configured tenant, even for an admin", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/restaurants/tenant-b/menu"),
+      { DEPLOYMENT_MODE: "independent", TENANT_ID: "tenant-a" } as never,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "FORBIDDEN" },
+    });
+  });
+
+  it("independent mode: denies every request when TENANT_ID is not configured", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/restaurants/rest-1/menu"),
+      { DEPLOYMENT_MODE: "independent" } as never,
+    );
+
+    expect(response.status).toBe(403);
   });
 });
 

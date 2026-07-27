@@ -14,33 +14,6 @@
 export type DeploymentMode = "saas" | "independent";
 
 /**
- * Tenant context information available in request handlers
- */
-export interface TenantContext {
-  /** Current deployment mode */
-  mode: DeploymentMode;
-
-  /**
-   * Tenant identifier
-   * - In SaaS mode: restaurant's publicId from authenticated user
-   * - In Independent mode: TENANT_ID from environment variable
-   */
-  tenantId: string | null;
-
-  /**
-   * Tenant display name (only in independent mode)
-   */
-  tenantName?: string;
-
-  /**
-   * Whether to enforce single-tenant access
-   * - true in independent mode: All requests must be for the configured tenant
-   * - false in SaaS mode: Requests can access any authorized restaurant
-   */
-  enforceSingleTenant: boolean;
-}
-
-/**
  * License status returned from license validation
  */
 export interface LicenseStatus {
