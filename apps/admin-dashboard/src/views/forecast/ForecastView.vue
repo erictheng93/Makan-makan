@@ -73,7 +73,11 @@
         >
           {{ t("forecast.accuracyTab") }}
         </button>
+        <!-- Hidden without the inventory module: this tab's forecast read and
+             its procurement list both 403 without it. -->
         <button
+          v-if="hasIngredientForecast"
+          data-testid="forecast-ingredient-tab"
           class="pb-3 text-sm font-medium border-b-2 transition-colors"
           :class="
             activeTab === 'ingredients'
@@ -136,6 +140,7 @@ import { ArrowPathIcon } from "@heroicons/vue/24/outline";
 import { forecastApi } from "@/services/forecastApi";
 import { ingredientApi } from "@/services/ingredientApi";
 import { useAuthStore } from "@/stores/auth";
+import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
 import ForecastDatePicker from "@/components/forecast/ForecastDatePicker.vue";
 import ForecastTable from "@/components/forecast/ForecastTable.vue";
 import ForecastAlerts from "@/components/forecast/ForecastAlerts.vue";
@@ -174,6 +179,14 @@ const ingredientDetailsMap = ref(
 
 const restaurantId = computed(() => authStore.restaurantId || "");
 
+// Ingredient forecasting and the procurement list live behind the `inventory`
+// module, while the rest of this view only needs `analytics`. Without this
+// check a pro-tier shop would hit 403s the moment it pressed Generate.
+const moduleAccess = useModuleAccessStore();
+const hasIngredientForecast = computed(
+  () => moduleAccess.effectiveModules?.inventory === true,
+);
+
 async function loadForecast() {
   if (!restaurantId.value) return;
   loading.value = true;
@@ -202,11 +215,15 @@ async function generateForecast() {
       startDate: startDate.value,
       endDate: endDate.value,
     });
-    // Also generate ingredient forecast
-    await forecastApi.generateIngredientForecast(restaurantId.value, {
-      startDate: startDate.value,
-      endDate: endDate.value,
-    });
+    // Ingredient forecasting is a separate (inventory) module — only chain it
+    // when the shop actually has it, otherwise this 403s and takes the whole
+    // demand forecast down with it.
+    if (hasIngredientForecast.value) {
+      await forecastApi.generateIngredientForecast(restaurantId.value, {
+        startDate: startDate.value,
+        endDate: endDate.value,
+      });
+    }
     await loadForecast();
   } catch (error) {
     console.error("Failed to generate forecast:", error);
@@ -235,6 +252,9 @@ async function loadAccuracy() {
 
 async function loadIngredientForecast() {
   if (!restaurantId.value) return;
+  // Guarded for the same reason as generateForecast: both the forecast read
+  // and the procurement list's /ingredients call require the inventory module.
+  if (!hasIngredientForecast.value) return;
   ingredientLoading.value = true;
   try {
     const forecasts = await forecastApi.getIngredientForecast(

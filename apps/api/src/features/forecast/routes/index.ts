@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { Context, Next } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -18,6 +20,28 @@ import type { Env } from "../../../shared/types";
 
 const routes = new Hono<{ Bindings: Env }>();
 
+/**
+ * This feature spans two modules, so it is gated per route rather than with a
+ * blanket gate in app-factory.
+ *
+ * Demand forecasting, accuracy and alerts are reporting — `analytics` (pro).
+ * Ingredient forecasting and the procurement list read ingredient records and
+ * sit alongside `/ingredients/*`, which is gated `inventory` (enterprise).
+ * Gating the whole feature as `analytics` let a pro shop start an ingredient
+ * forecast it could never finish: the procurement list calls `/ingredients`
+ * and got a 403 there instead.
+ */
+type GenerateGateContext = Context<{
+  Bindings: Env;
+  Variables: { validatedBody?: { type?: string } };
+}>;
+
+const generateGate = async (c: GenerateGateContext, next: Next) => {
+  const body = c.get("validatedBody");
+  const module = body?.type === "ingredient_level" ? "inventory" : "analytics";
+  return moduleGate(module)(c as never, next);
+};
+
 // POST /api/v1/forecast/:restaurantId/generate
 routes.post(
   "/:restaurantId/generate",
@@ -25,6 +49,8 @@ routes.post(
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
   validateBody(generateForecastSchema),
+  // Must run after validateBody so the gate can read the requested type.
+  generateGate,
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const body = c.get("validatedBody");
@@ -61,6 +87,7 @@ routes.post(
 routes.get(
   "/:restaurantId",
   authMiddleware,
+  moduleGate("analytics"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
   validateQuery(getForecastQuerySchema),
@@ -87,6 +114,7 @@ routes.get(
 routes.get(
   "/:restaurantId/accuracy",
   authMiddleware,
+  moduleGate("analytics"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
   validateQuery(accuracyQuerySchema),
@@ -109,6 +137,7 @@ routes.get(
 routes.get(
   "/:restaurantId/ingredient-forecast",
   authMiddleware,
+  moduleGate("inventory"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
   validateQuery(ingredientForecastQuerySchema),
@@ -137,6 +166,7 @@ routes.get(
 routes.get(
   "/:restaurantId/alerts",
   authMiddleware,
+  moduleGate("analytics"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
   async (c) => {
