@@ -4681,7 +4681,6 @@ const zhTWCore = {
       coupons: "優惠券",
       reservations: "訂位候位",
       analytics: "數據分析",
-      multi_branch: "多分店",
       ai_analytics: "AI 分析",
       platform_integration: "外送整合",
       loyalty: "忠誠方案",

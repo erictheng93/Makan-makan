@@ -1173,7 +1173,6 @@ export const MODULES = {
   POS: "pos",                              // ← 新增
 
   // Enterprise
-  MULTI_BRANCH: "multi_branch",
   AI_ANALYTICS: "ai_analytics",
   PLATFORM_INTEGRATION: "platform_integration",
   LOYALTY: "loyalty",

@@ -695,6 +695,32 @@ Drizzle queries, middleware order, or cross-service behavior.
 
 ## P3: Feature Completeness And Polish
 
+### Multi-Branch Is Deferred, Not Missing
+
+`multi_branch` was removed from `MODULES` and the Enterprise plan on
+2026-07-27. It had never been enforceable: no route checked it, and the data
+model has no multi-branch concept at all. Advertising it on Enterprise promised
+a capability the platform cannot deliver.
+
+Re-introducing it is a product feature, not a gate. The minimum before the
+module key comes back:
+
+- [ ] Organization / branch-group data model (`restaurants` currently has no
+      parent or grouping relationship).
+- [ ] One owner spanning several restaurants (`users.restaurantId` is a single
+      column today — `packages/database/src/schema/users.ts`).
+- [ ] Branch creation and invitation flow owned by the shop, not the platform
+      (`POST /api/v1/restaurants` is `requireRole([ADMIN])` — platform-admin
+      only).
+- [ ] Cross-branch switching, aggregated reporting, and permission isolation
+      between branches.
+- [ ] Only then re-add `multi_branch` to `MODULES` and gate that whole group of
+      capabilities with it.
+
+Stale `multi_branch` keys left in existing `shop_subscriptions.module_overrides`
+JSON are inert (the gate resolves against `ModuleKey`) and can be ignored or
+swept later; they are not a reason to keep the TypeScript module.
+
 ### Admin Dashboard TODOs In Scheduling, POS, Backup, And Queue
 
 **Priority:** P3

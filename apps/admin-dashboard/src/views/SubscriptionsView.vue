@@ -425,7 +425,6 @@ const allModules = [
   "coupons",
   "reservations",
   "analytics",
-  "multi_branch",
   "ai_analytics",
   "platform_integration",
   "loyalty",
