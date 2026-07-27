@@ -21,7 +21,7 @@
 | [architecture/](./architecture/)                                     | System architecture, technical specs                              |
 | [architecture/database/](./architecture/database/)                   | D1 database design and optimization, incl. the users/orders UUID v7 primary-key migration phases (`GREENFIELD_UUID_PK_RESET_PLAN.md`, `USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md`, `ORDERS_UUID_PK_PHASE_C_DEPENDENCY_MAP.md`, `USERS_UUID_AUTH_PHASE_D_PLAN.md`, `UUID_V7_PK_MIGRATION_DRILL.md`) |
 | [architecture/system-design/](./architecture/system-design/)         | Modular architecture, notification system, queue design           |
-| [architecture/modular-billing.md](./architecture/modular-billing.md) | Module gates, usage meters, quota controls (basic/pro/enterprise) |
+| [architecture/modular-billing.md](./architecture/modular-billing.md) | The 15 feature modules, the 4 plan tiers (trial/basic/pro/enterprise), `module_overrides` per-shop grants and revokes, module gates, usage meters, quota controls |
 | [night-market-vision-roadmap.md](./night-market-vision-roadmap.md)   | Night-market/商圈 platform vision, gap analysis, and roadmap (source of truth for how far the marketplace layer is from vision) |
 | [night-market-scaling-execution.md](./night-market-scaling-execution.md) | Night-market discovery scaling execution record (D1 read replicas, queue fan-out, FTS5 trigram search) |
 
