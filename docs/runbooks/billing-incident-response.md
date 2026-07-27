@@ -14,6 +14,11 @@ notification incidents.
 3. Check `notification_dispatch_log` for skipped provider configuration,
    duplicate suppression, or provider failures.
 4. Confirm the Worker cron `15 2 * * *` ran the billing lifecycle task.
+5. For "shop still blocked / still has access after we changed their plan or
+   modules", check the KV key `subscription:<restaurantId>` before touching the
+   DB — it caches the subscription for 5 minutes and is only invalidated
+   automatically by the admin API routes, not by direct D1 edits. See
+   [architecture/modular-billing.md § Module Overrides](../architecture/modular-billing.md#cache-invalidation-required).
 
 ## Recovery
 
