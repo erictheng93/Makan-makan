@@ -108,6 +108,24 @@ function createPlatformDb() {
       created_at_ms INTEGER NOT NULL
     );
 
+    -- Mirrors packages/database/migrations_fresh/0015_shop-subscriptions.sql.
+    -- apps/api moduleGate reads this table; onboarding must populate it or every
+    -- module-gated endpoint 403s with SUBSCRIPTION_NOT_FOUND.
+    CREATE TABLE shop_subscriptions (
+      id TEXT PRIMARY KEY NOT NULL,
+      restaurant_id TEXT NOT NULL UNIQUE,
+      plan_tier TEXT NOT NULL DEFAULT 'trial',
+      module_overrides TEXT DEFAULT '{}',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      trial_ends_at_ms INTEGER,
+      billing_cycle_start_at_ms INTEGER,
+      billing_cycle_end_at_ms INTEGER,
+      notes TEXT,
+      created_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL,
+      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
+    );
+
     CREATE TABLE onboarding_credential_deliveries (
       id TEXT PRIMARY KEY NOT NULL,
       application_id TEXT NOT NULL,
@@ -440,6 +458,30 @@ describe("Onboarding public API workflow — real integration", () => {
       token_type: "email",
       used_at_ms: null,
     });
+
+    // Regression: without this row apps/api moduleGate throws
+    // forbidden(SUBSCRIPTION_NOT_FOUND) for the freshly-onboarded owner on every
+    // module-gated endpoint. planId "standard" maps to the "basic" tier, matching
+    // the management-side row written by TenantService.
+    const platformSubscriptionRow = platformDb
+      .raw()
+      .prepare(
+        `SELECT restaurant_id, plan_tier, module_overrides, is_active,
+                trial_ends_at_ms, billing_cycle_start_at_ms
+         FROM shop_subscriptions WHERE restaurant_id = ?`,
+      )
+      .get(approveJson.data.ownerAccount.restaurantId);
+    expect(platformSubscriptionRow).toMatchObject({
+      restaurant_id: approveJson.data.ownerAccount.restaurantId,
+      plan_tier: "basic",
+      module_overrides: "{}",
+      is_active: 1,
+      trial_ends_at_ms: null,
+    });
+    expect(
+      (platformSubscriptionRow as { billing_cycle_start_at_ms: number })
+        .billing_cycle_start_at_ms,
+    ).toEqual(expect.any(Number));
 
     const deliveryRow = db
       .raw()
