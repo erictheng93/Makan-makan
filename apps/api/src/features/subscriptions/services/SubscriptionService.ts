@@ -25,8 +25,8 @@ export interface ProvisionDefaultSubscriptionInput {
 }
 
 export interface UpdateModulesInput {
-  /** Partial overrides to merge into existing moduleOverrides */
-  overrides: ModuleMap;
+  /** `null` removes an override so the plan default takes effect. */
+  overrides: Partial<Record<ModuleKey, boolean | null>>;
 }
 
 export class SubscriptionService {
@@ -98,21 +98,23 @@ export class SubscriptionService {
 
   /**
    * Merge the provided overrides into the existing moduleOverrides map.
-   * Set a key to `true` to grant, `false` to revoke, or `undefined` to reset to plan default.
+   * Set a key to `true` to grant, `false` to revoke, or `null` to reset to plan default.
    */
   async updateModules(restaurantId: string, input: UpdateModulesInput) {
     const sub = await this.getByRestaurantId(restaurantId);
     if (!sub)
       throw notFound("Subscription not found", "SUBSCRIPTION_NOT_FOUND");
 
-    const merged: ModuleMap = {
-      ...(sub.moduleOverrides ?? {}),
-      ...input.overrides,
-    };
-
-    // Remove keys explicitly set to undefined (reset to plan default)
-    for (const key of Object.keys(merged) as ModuleKey[]) {
-      if (merged[key] === undefined) delete merged[key];
+    const merged: ModuleMap = { ...(sub.moduleOverrides ?? {}) };
+    for (const [key, value] of Object.entries(input.overrides) as [
+      ModuleKey,
+      boolean | null | undefined,
+    ][]) {
+      if (value === null) {
+        delete merged[key];
+      } else if (typeof value === "boolean") {
+        merged[key] = value;
+      }
     }
 
     const [updated] = await this.db

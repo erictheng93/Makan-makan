@@ -20,7 +20,7 @@ export const createSubscriptionSchema = z.object({
 });
 
 export const updateModulesSchema = z.object({
-  overrides: z.record(moduleKeyEnum, z.boolean().optional()),
+  overrides: z.record(moduleKeyEnum, z.boolean().nullable()),
 });
 
 export const changePlanSchema = z.object({

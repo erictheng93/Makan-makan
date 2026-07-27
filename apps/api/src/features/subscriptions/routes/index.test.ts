@@ -337,6 +337,20 @@ describe("subscription admin routes", () => {
     });
   });
 
+  it("accepts null to reset a module override to its plan default", async () => {
+    const response = await request("/restaurant-1/modules", {
+      method: "PATCH",
+      body: JSON.stringify({ overrides: { pos: null } }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.subscriptionService.updateModules).toHaveBeenCalledWith(
+      "restaurant-1",
+      { overrides: { pos: null } },
+    );
+  });
+
   it("changes plan tiers and active status", async () => {
     let response = await request("/restaurant-1/plan", {
       method: "PATCH",

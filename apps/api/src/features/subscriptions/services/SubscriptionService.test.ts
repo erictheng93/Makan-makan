@@ -131,35 +131,40 @@ describe("SubscriptionService", () => {
     );
   });
 
-  it("merges module overrides and removes undefined keys to restore plan defaults", async () => {
+  it("removes a null override and restores the plan default", async () => {
     await seedRestaurant();
     await service.create({
       restaurantId: "restaurant-1",
       planTier: "basic",
     });
-    await service.updateModules("restaurant-1", {
-      overrides: {
-        [MODULES.POS]: true,
-        [MODULES.ONLINE_ORDERING]: false,
-      },
+
+    const enabled = await service.updateModules("restaurant-1", {
+      overrides: { [MODULES.ONLINE_ORDERING]: true },
+    });
+    expect(enabled.moduleOverrides).toEqual({
+      [MODULES.ONLINE_ORDERING]: true,
+    });
+    expect(service.getEffectiveModules(enabled)[MODULES.ONLINE_ORDERING]).toBe(
+      true,
+    );
+
+    const ignored = await service.updateModules("restaurant-1", {
+      overrides: { [MODULES.ONLINE_ORDERING]: undefined },
+    });
+    expect(ignored.moduleOverrides).toEqual({
+      [MODULES.ONLINE_ORDERING]: true,
     });
 
-    const updated = await service.updateModules("restaurant-1", {
-      overrides: {
-        [MODULES.ONLINE_ORDERING]: undefined,
-        [MODULES.ANALYTICS]: true,
-      },
+    const reset = await service.updateModules("restaurant-1", {
+      overrides: { [MODULES.ONLINE_ORDERING]: null },
     });
 
-    expect(updated.moduleOverrides).toEqual({
-      [MODULES.POS]: true,
-      [MODULES.ANALYTICS]: true,
-    });
+    expect(reset.moduleOverrides).toEqual({});
+    expect(service.getEffectiveModules(reset)[MODULES.ONLINE_ORDERING]).toBe(
+      true,
+    );
     expect(await readSubscription()).toMatchObject({
-      moduleOverrides: {
-        [MODULES.POS]: true,
-        [MODULES.ANALYTICS]: true,
-      },
+      moduleOverrides: {},
     });
   });
 

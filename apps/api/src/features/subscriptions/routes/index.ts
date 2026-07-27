@@ -190,7 +190,7 @@ router.patch(
     const service = new SubscriptionService(c.env.DB);
 
     const updated = await service.updateModules(restaurantId, {
-      overrides: body.overrides as Record<string, boolean | undefined>,
+      overrides: body.overrides,
     });
 
     // Invalidate KV cache so the change takes effect within seconds
