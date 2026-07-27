@@ -67,9 +67,21 @@ const PROTECTED = [
   ],
   ["/leaves/*", "staff_management", "apps/api/src/app-factory.ts"],
   ["/scheduling/*", "staff_management", "apps/api/src/app-factory.ts"],
-  ["/forecast/*", "analytics", "apps/api/src/app-factory.ts"],
+  // /forecast is gated per route, not with a blanket gate: demand forecasting
+  // and alerts are analytics, the ingredient forecast is inventory.
+  [
+    "/forecast/* (demand)",
+    "analytics",
+    "apps/api/src/features/forecast/routes/index.ts",
+  ],
+  [
+    "/forecast/* (ingredient)",
+    "inventory",
+    "apps/api/src/features/forecast/routes/index.ts",
+  ],
   ["/ingredients/*", "inventory", "apps/api/src/app-factory.ts"],
-  ["/feedback/*", "analytics", "apps/api/src/app-factory.ts"],
+  // /feedback is deliberately NOT gated — it is the support-ticket channel and
+  // must never depend on plan tier. See app-factory.ts for the rationale.
 ];
 
 const failures = [];

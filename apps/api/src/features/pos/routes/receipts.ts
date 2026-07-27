@@ -15,6 +15,9 @@ import { printReceiptSchema, receiptParamsSchema } from "../schemas";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { resolveOrderIdentity } from "../../../shared/services/order-identity";
+import { moduleGate } from "../../../middleware/moduleGate";
+import { quotaGate } from "../../../middleware/quotaGate";
+import { meterEmit } from "../../../shared/utils/meter";
 
 const app = new Hono<{ Bindings: Env }>();
 const printReceiptRouteSchema = printReceiptSchema.extend({
@@ -29,6 +32,13 @@ app.post(
   "/print",
   authMiddleware,
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
+  // Physical receipt printing is the "receipt_printing" module (pro tier+),
+  // not "pos" — the two happen to share every plan tier today, but the
+  // separate key exists so an admin can disable printing specifically via a
+  // moduleOverride without disabling the whole POS terminal. It also carries
+  // the same print-job quota metering as orders/:id/receipt.
+  moduleGate("receipt_printing"),
+  quotaGate("print.jobs"),
   validateBody(printReceiptRouteSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -55,6 +65,10 @@ app.post(
       throw badRequest(result.error || "打印收據失敗");
     }
 
+    await meterEmit(c, "print.jobs", {
+      metadata: { orderId: orderIdentity.id, receiptType: data.receiptType },
+    });
+
     return c.json({
       success: true,
       data: result.data
@@ -72,6 +86,8 @@ app.post(
   "/:receiptId/reprint",
   authMiddleware,
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
+  moduleGate("receipt_printing"),
+  quotaGate("print.jobs"),
   validateParams(receiptParamsSchema),
   async (c) => {
     const { receiptId } = c.get("validatedParams");
@@ -85,6 +101,10 @@ app.post(
       }
       throw badRequest(result.error || "重打收據失敗");
     }
+
+    await meterEmit(c, "print.jobs", {
+      metadata: { receiptId },
+    });
 
     return c.json({
       success: true,

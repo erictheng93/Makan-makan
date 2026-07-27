@@ -99,34 +99,6 @@ routes.get(
 );
 
 /**
- * 獲取合作夥伴詳情
- * GET /api/v1/partnerships/:id
- * 需要管理員權限
- */
-routes.get(
-  "/:id",
-  authMiddleware,
-  requireRole([0, 1]),
-  moduleGate("loyalty"),
-  validateParams(idParamSchema),
-  async (c) => {
-    const { id } = c.get("validatedParams");
-    const service = new PartnershipService(c.env.DB, c.env);
-
-    const partnership = await service.getPartnership(id);
-
-    if (!partnership) {
-      throw notFound("Partnership not found");
-    }
-
-    return c.json({
-      success: true,
-      data: partnership,
-    });
-  },
-);
-
-/**
  * 獲取合作夥伴統計
  * GET /api/v1/partnerships/:id/statistics
  * 需要管理員權限
@@ -247,16 +219,28 @@ routes.post(
 /**
  * 獲取方案列表
  * GET /api/v1/partnerships/plans
+ *
+ * Non-admin callers are pinned to their own restaurant regardless of any
+ * restaurantId query param — listPlans() has no built-in scoping, so without
+ * this a basic-tier (or any) authenticated user could enumerate every
+ * partnership plan platform-wide, or read another restaurant's plans by
+ * passing its id.
  */
 routes.get(
   "/plans",
   authMiddleware,
+  moduleGate("loyalty"),
   validateQuery(planFiltersSchema),
   async (c) => {
     const filters = c.get("validatedQuery");
+    const user = c.get("user");
     const service = new PartnershipService(c.env.DB, c.env);
 
     const { page, limit, ...restFilters } = filters;
+    if (user.role !== 0) {
+      restFilters.restaurantId =
+        user.restaurantId == null ? undefined : String(user.restaurantId);
+    }
     const result = await service.listPlans(restFilters, page, limit);
 
     return c.json({
@@ -273,6 +257,7 @@ routes.get(
 routes.get(
   "/plans/:planId",
   authMiddleware,
+  moduleGate("loyalty"),
   validateParams(planIdParamSchema),
   async (c) => {
     const { planId } = c.get("validatedParams");
@@ -299,6 +284,7 @@ routes.get(
 routes.post(
   "/plans/validate",
   authMiddleware,
+  moduleGate("loyalty"),
   validateBody(validatePlanSchema),
   async (c) => {
     const data = c.get("validatedBody");
@@ -654,6 +640,44 @@ routes.post(
       success: true,
       data: usageLog,
       message: "Usage refunded successfully",
+    });
+  },
+);
+
+/**
+ * 獲取合作夥伴詳情
+ * GET /api/v1/partnerships/:id
+ * 需要管理員權限
+ *
+ * Registered LAST (not right after POST/GET "/") deliberately: Hono resolves
+ * a same-depth static-vs-dynamic collision by registration order, not
+ * specificity. If this single-segment "/:id" route were registered before
+ * the other single-segment literal GETs above (/plans, /members, /usage),
+ * every request to those list endpoints would be swallowed by this handler
+ * instead (id="plans" etc.), fail idParamSchema's uuid check, and 400/500 —
+ * making those endpoints permanently unreachable. Two-segment routes
+ * (/plans/:planId, /members/:memberId, /usage/:id/cancel, ...) are unaffected
+ * since they don't share this route's depth.
+ */
+routes.get(
+  "/:id",
+  authMiddleware,
+  requireRole([0, 1]),
+  moduleGate("loyalty"),
+  validateParams(idParamSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const service = new PartnershipService(c.env.DB, c.env);
+
+    const partnership = await service.getPartnership(id);
+
+    if (!partnership) {
+      throw notFound("Partnership not found");
+    }
+
+    return c.json({
+      success: true,
+      data: partnership,
     });
   },
 );

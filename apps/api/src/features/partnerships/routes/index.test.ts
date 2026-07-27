@@ -11,6 +11,7 @@ const getPartnershipStatistics = vi.hoisted(() => vi.fn());
 const updatePartnership = vi.hoisted(() => vi.fn());
 const deletePartnership = vi.hoisted(() => vi.fn());
 const createPlan = vi.hoisted(() => vi.fn());
+const listPlans = vi.hoisted(() => vi.fn());
 const getPlan = vi.hoisted(() => vi.fn());
 const validatePlan = vi.hoisted(() => vi.fn());
 const updatePlan = vi.hoisted(() => vi.fn());
@@ -34,10 +35,14 @@ vi.mock("../../../middleware/auth", () => ({
   }),
 }));
 
-vi.mock("../../../middleware/moduleGate", () => ({
+const gateMocks = vi.hoisted(() => ({
   moduleGate: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
     await next();
   }),
+}));
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: gateMocks.moduleGate,
 }));
 
 vi.mock("@makanmakan/database", () => ({
@@ -49,6 +54,7 @@ vi.mock("@makanmakan/database", () => ({
     updatePartnership = updatePartnership;
     deletePartnership = deletePartnership;
     createPlan = createPlan;
+    listPlans = listPlans;
     getPlan = getPlan;
     validatePlan = validatePlan;
     updatePlan = updatePlan;
@@ -63,6 +69,13 @@ vi.mock("@makanmakan/database", () => ({
     refundUsageLog = refundUsageLog;
   },
 }));
+
+// moduleGate(...) is called once per route at registration (module import
+// time), not per-request — capture the keys now, before any
+// vi.clearAllMocks()-equivalent reset in beforeEach loses the call history.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
 
 const partnershipId = "11111111-1111-4111-8111-111111111111";
 const planId = "22222222-2222-4222-8222-222222222222";
@@ -116,6 +129,7 @@ describe("partnership routes", () => {
     updatePartnership.mockReset();
     deletePartnership.mockReset();
     createPlan.mockReset();
+    listPlans.mockReset();
     getPlan.mockReset();
     validatePlan.mockReset();
     updatePlan.mockReset();
@@ -229,6 +243,51 @@ describe("partnership routes", () => {
     });
   });
 
+  it("lists plans pinned to the caller's own restaurant, ignoring a spoofed restaurantId", async () => {
+    listPlans.mockResolvedValue({
+      data: [{ id: planId, planCode: "UNI10" }],
+      pagination: { page: 1, limit: 20, total: 1 },
+    });
+    const env = createEnv();
+
+    // Non-admin owner of restaurant-1 tries to read another restaurant's
+    // plans (or enumerate platform-wide by supplying someone else's id) —
+    // the route must ignore the query param and pin to their own restaurant.
+    const response = await routes.fetch(
+      new Request("https://test/plans?restaurantId=restaurant-999"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(listPlans).toHaveBeenCalledWith(
+      { restaurantId: "restaurant-1" },
+      1,
+      20,
+    );
+  });
+
+  it("lets an admin list plans across restaurants or filter by an explicit restaurantId", async () => {
+    currentUser.value = { id: 1, role: 0, restaurantId: "restaurant-1" };
+    listPlans.mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0 },
+    });
+    const env = createEnv();
+
+    await routes.fetch(new Request("https://test/plans"), env as never);
+    expect(listPlans).toHaveBeenCalledWith({}, 1, 20);
+
+    await routes.fetch(
+      new Request("https://test/plans?restaurantId=restaurant-999"),
+      env as never,
+    );
+    expect(listPlans).toHaveBeenCalledWith(
+      { restaurantId: "restaurant-999" },
+      1,
+      20,
+    );
+  });
+
   it("creates, reads, validates, updates, and deletes plans", async () => {
     createPlan.mockResolvedValue({ id: planId, planCode: "UNI10" });
     getPlan.mockResolvedValue({ id: planId, planName: "University 10" });
@@ -310,6 +369,16 @@ describe("partnership routes", () => {
     await expect(deleteResponse.json()).resolves.toMatchObject({
       message: "Plan deleted successfully",
     });
+
+    // GET /plans, GET /plans/:planId, and POST /plans/validate must carry
+    // the same "loyalty" gate as the other 18 partnership routes (see
+    // module-gate.test.ts for the real, unmocked-gate proof). POST
+    // /members/verify stays deliberately public/ungated (self-service
+    // applicant flow authenticated by nothing — see its own comment).
+    const loyaltyCount = moduleGateRegistrationKeys.filter(
+      (key) => key === "loyalty",
+    ).length;
+    expect(loyaltyCount).toBeGreaterThanOrEqual(21);
   });
 
   it("submits, reads, approves, rejects, and updates members", async () => {

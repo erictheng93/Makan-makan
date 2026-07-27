@@ -167,8 +167,10 @@ routes.post(
  * GET /models/:provider
  * Get available models for a provider
  */
-routes.get("/models/:provider", (c) => {
+routes.get("/models/:provider", moduleGate("ai_analytics"), (c) => {
   const provider = c.req.param("provider");
+  if (!provider)
+    throw badRequest("Missing provider parameter", "MISSING_PARAM");
   const models = AIAnalyticsService.getAvailableModels(provider);
   const defaultModel = AIAnalyticsService.getDefaultModel(provider);
 

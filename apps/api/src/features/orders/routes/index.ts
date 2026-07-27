@@ -222,6 +222,7 @@ app.post(
 app.post(
   "/batch-sync",
   customerAuthMiddleware,
+  moduleGate("online_ordering"),
   validateBody(orderBatchSyncSchema),
   async (c) => {
     const user: AuthUser = c.get("user");

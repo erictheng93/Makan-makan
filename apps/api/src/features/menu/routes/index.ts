@@ -524,10 +524,13 @@ app.get(
 );
 
 // GET /:restaurantId/popularity - Get popularity metrics
+// Unlike /analytics above (catalogue metadata — item counts, price ranges),
+// this surfaces order-derived sales data (mostOrdered, etc.), which is
+// "analytics" (pro tier), not the always-on "menu_management" module.
 app.get(
   "/:restaurantId/popularity",
   authMiddleware,
-  moduleGate("menu_management"),
+  moduleGate("analytics"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),

@@ -90,7 +90,24 @@ vi.mock("../../discovery/services/SearchIndexSyncService", () => ({
   createSearchIndexSync: vi.fn(() => syncFns),
 }));
 
+const gateMocks = vi.hoisted(() => ({
+  moduleGate: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+}));
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: gateMocks.moduleGate,
+}));
+
 import app from "./index";
+
+// moduleGate(...) is called once per route at registration (module import
+// time), not per-request — capture the keys now, before any
+// vi.clearAllMocks() in beforeEach wipes the call history.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
 import { ApiError } from "../../../shared/utils/api-error";
 
 app.onError((err, c) => {
@@ -277,6 +294,13 @@ describe("restaurants routes", () => {
     res = await request("/rest-1/service-items/1", "DELETE");
     expect(res.status).toBe(200);
     expect(restaurantFns.deleteServiceItem).toHaveBeenCalledWith("rest-1", 1);
+
+    // Service-item writes are the admin half of the booking product and must
+    // require "reservations" (see module-gate.test.ts for the real,
+    // unmocked-gate proof). GET stays public/ungated.
+    expect(
+      moduleGateRegistrationKeys.filter((key) => key === "reservations").length,
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it("blocks owner access to another restaurant for protected resources", async () => {
@@ -381,5 +405,13 @@ describe("restaurants routes", () => {
       displayName: "Makan Stall",
       requirePhone: true,
     });
+
+    // Shop QR + shop mode are the no-table equivalent of table QR management
+    // and must carry the same table_management gate as tables/routes (see
+    // module-gate.test.ts for the real, unmocked-gate proof).
+    expect(
+      moduleGateRegistrationKeys.filter((key) => key === "table_management")
+        .length,
+    ).toBeGreaterThanOrEqual(5);
   });
 });

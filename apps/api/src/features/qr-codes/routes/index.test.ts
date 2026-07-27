@@ -73,7 +73,25 @@ vi.mock("../../restaurants/services/RestaurantsService", () => ({
   },
 }));
 
+const gateMocks = vi.hoisted(() => ({
+  moduleGate: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+}));
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: gateMocks.moduleGate,
+}));
+
 import routes from "./index";
+
+// Routes call moduleGate(...) exactly once each, at registration time (module
+// import), to build their middleware chain — not per-request. beforeEach's
+// vi.clearAllMocks() below wipes call history before the first test runs, so
+// capture which keys each route registered with right after import.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
 
 routes.onError((err, c) => {
   if (err instanceof ApiError) {
@@ -155,6 +173,10 @@ describe("QR code routes", () => {
       7,
       "42",
     );
+    // /bulk is table-QR generation and must carry the same module gate as
+    // tables/routes POST /bulk-qr; /generate is a generic content-based QR
+    // utility (also used for market QR) and is deliberately left ungated.
+    expect(moduleGateRegistrationKeys).toContain("table_management");
   });
 
   it("downloads single and batch QR assets and reports missing assets", async () => {
