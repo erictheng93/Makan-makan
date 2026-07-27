@@ -22,6 +22,16 @@ vi.mock("../../../middleware/auth", () => ({
   ),
 }));
 
+// This file exercises handler/service wiring with a bare env that has no
+// subscription bindings, so the gate is stubbed out here. Which module each
+// route is gated on — analytics for demand, inventory for ingredient — is
+// covered against the real middleware in module-gate.test.ts.
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+}));
+
 vi.mock("../services/ForecastService", () => ({
   ForecastService: class {
     constructor(...args: unknown[]) {
