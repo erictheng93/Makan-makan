@@ -39,4 +39,13 @@ describe("customer-app production config", () => {
     expect(define.__INTLIFY_JIT_COMPILATION__).toBe(true);
     expect(define.__INTLIFY_DROP_MESSAGE_COMPILER__).toBe(false);
   });
+
+  it("keeps console.error in production so fatal errors stay visible", async () => {
+    const { default: viteConfig } = await import("../../vite.config");
+    const drop = (viteConfig as UserConfig).esbuild
+      ? ((viteConfig as UserConfig).esbuild as { drop?: string[] }).drop
+      : undefined;
+
+    expect(drop ?? []).not.toContain("console");
+  });
 });

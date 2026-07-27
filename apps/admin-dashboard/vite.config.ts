@@ -68,7 +68,8 @@ export default defineConfig({
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true,
+        // console.error/console.warn survive production builds on purpose:
+        // dropping every console call is what made #60 invisible in the field.
         drop_debugger: true,
         pure_funcs: ["console.log", "console.info", "console.debug"],
         passes: 2,

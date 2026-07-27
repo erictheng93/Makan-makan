@@ -5,6 +5,8 @@ import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
 import { isTokenExpired } from "@makanmakan/utils";
 
+const FALLBACK_DOCUMENT_TITLE = "MakanMakan";
+
 const routes: RouteRecordRaw[] = [
   {
     path: "/login",
@@ -538,12 +540,25 @@ router.beforeEach(async (to, _, next) => {
   }
 
   // Set page title using i18n
-  const titleKey = to.meta.titleKey as string | undefined;
-  const pageTitle = titleKey ? t(titleKey) : "MakanMakan";
-  document.title = `${pageTitle} - ${t("pages.adminSuffix")}`;
+  document.title = buildDocumentTitle(to.meta.titleKey as string | undefined);
 
   next();
 });
+
+/**
+ * Page titles are cosmetic, but they are translated inside the navigation
+ * guard — so a throwing i18n runtime would abort every navigation and leave a
+ * blank page (#60). Degrade to the untranslated title instead.
+ */
+function buildDocumentTitle(titleKey: string | undefined): string {
+  try {
+    const pageTitle = titleKey ? t(titleKey) : FALLBACK_DOCUMENT_TITLE;
+    return `${pageTitle} - ${t("pages.adminSuffix")}`;
+  } catch (error) {
+    console.error("[i18n] document title translation failed", error);
+    return FALLBACK_DOCUMENT_TITLE;
+  }
+}
 
 function firstQueryString(value: unknown): string | undefined {
   if (Array.isArray(value)) {

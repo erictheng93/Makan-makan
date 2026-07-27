@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { translate } from "@/utils/i18n";
+import { safeTranslate } from "@/utils/i18n";
+
+const FALLBACK_DOCUMENT_TITLE = "MakanMakan";
 
 function firstQueryString(value: unknown) {
   if (Array.isArray(value)) {
@@ -336,9 +338,11 @@ const router = createRouter({
 // 路由守衛
 router.beforeEach(async (to, from, next) => {
   // 設置頁面標題
+  // Cosmetic, and it runs before everything else in the guard — it must never
+  // be able to abort the navigation (#60).
   const titleKey = to.meta?.titleKey as string;
   if (titleKey) {
-    document.title = translate(titleKey);
+    document.title = safeTranslate(titleKey, FALLBACK_DOCUMENT_TITLE);
   }
 
   // 獲取認證狀態
@@ -397,7 +401,10 @@ router.beforeEach(async (to, from, next) => {
         name: "Error",
         query: {
           code: "400",
-          message: translate("errors.invalidRestaurantOrTable"),
+          message: safeTranslate(
+            "errors.invalidRestaurantOrTable",
+            "餐廳或桌號無效",
+          ),
         },
       });
       return;
@@ -414,12 +421,15 @@ router.afterEach(() => {
 
 // 錯誤處理
 router.onError((error) => {
+  // This is the only trace a fatal navigation failure leaves behind, which is
+  // why production builds no longer strip console.error (#60).
   console.error("路由錯誤:", error);
   router.push({
     name: "Error",
     query: {
       code: "500",
-      message: translate("errors.routeLoadFailed"),
+      // The recovery path must not re-run whatever just failed.
+      message: safeTranslate("errors.routeLoadFailed", "頁面載入失敗"),
     },
   });
 });

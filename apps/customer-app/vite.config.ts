@@ -270,7 +270,14 @@ export default defineConfig({
     devSourcemap: process.env.NODE_ENV !== "production", // SECURITY FIX: Disable CSS sourcemaps in production
   },
   esbuild: {
-    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
+    // console.error/console.warn survive production builds on purpose. Dropping
+    // every console call is what let #60 present as a blank page with a clean
+    // console for four days: router.onError's only diagnostic was minified away.
+    drop: process.env.NODE_ENV === "production" ? ["debugger"] : [],
+    pure:
+      process.env.NODE_ENV === "production"
+        ? ["console.log", "console.info", "console.debug"]
+        : [],
     legalComments: "none",
   },
   // 環境變量配置
