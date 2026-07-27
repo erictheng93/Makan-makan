@@ -35,11 +35,13 @@ const VARIANT_KEYS: ImageVariantKey[] = [
 ];
 
 const CLIENT_VARIANT_SPECS: Array<{
-  key: "thumbnail" | "medium";
+  key: ImageVariantKey;
   maxSize: number;
 }> = [
-  { key: "medium", maxSize: 600 },
   { key: "thumbnail", maxSize: 150 },
+  { key: "small", maxSize: 300 },
+  { key: "medium", maxSize: 600 },
+  { key: "large", maxSize: 1200 },
 ];
 
 function pickSupportedVariants(

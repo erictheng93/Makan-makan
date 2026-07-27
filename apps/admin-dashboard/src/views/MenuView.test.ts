@@ -262,7 +262,7 @@ describe("MenuView", () => {
 
   it("writes uploaded image fields to the form and save payload", async () => {
     const wrapper = mountMenuView();
-    const file = new File([new Uint8Array(3 * 1024 * 1024)], "menu.jpg", {
+    const file = new File(["jpeg bytes"], "menu.jpg", {
       type: "image/jpeg",
     });
     const imageVariants = {
