@@ -33,6 +33,16 @@ vi.mock("../../../middleware/rateLimiter", () => ({
     next(),
 }));
 
+// This file exercises restaurant-scope (IDOR) enforcement, not subscription
+// enforcement — bypass the module gate here, matching the sibling
+// reservations/waiting-list/ai-analytics route test convention. The gate's
+// own service-bookings wiring is covered in module-gate.test.ts.
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+}));
+
 // Service stub: getById returns a booking in restaurant "rest-B"; mutations are
 // spies so we can assert they never run when scope denies access.
 const getById = vi.hoisted(() => vi.fn());

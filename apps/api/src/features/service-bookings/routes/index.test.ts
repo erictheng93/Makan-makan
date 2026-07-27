@@ -42,6 +42,18 @@ vi.mock("../../../middleware/rateLimiter", () => ({
   ),
 }));
 
+// This file exercises route/request-shaping behaviour, not subscription
+// enforcement — the module gate itself is covered exhaustively in
+// middleware/moduleGate.test.ts, and the service-bookings wiring (denied vs
+// allowed tiers, public-route bypass) has dedicated coverage in
+// module-gate.test.ts. Bypass it here, matching the sibling reservations/
+// waiting-list/ai-analytics route test convention.
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
+    await next();
+  }),
+}));
+
 vi.mock("../services/ServiceBookingService", () => ({
   MAX_BATCH_SLOT_CREATION_COUNT: 1000,
   ServiceBookingService: vi.fn(function ServiceBookingService() {
