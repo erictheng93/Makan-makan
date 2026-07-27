@@ -77,6 +77,28 @@ describe("Restaurant service items API — real integration", () => {
     await testApp.dispose();
   });
 
+  /**
+   * Service-item config is the admin half of the booking product and is now
+   * gated with moduleGate("reservations"), so an owner needs a subscription
+   * granting it. Mirrors insertActiveSubscription in the coupons suite.
+   */
+  async function insertActiveSubscription(targetRestaurantId: string) {
+    await testApp.env.DB.prepare(
+      `INSERT INTO shop_subscriptions
+        (id, restaurant_id, plan_tier, module_overrides,
+         is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+       VALUES (?, ?, 'trial', '{}', 1, ?, ?, ?)`,
+    )
+      .bind(
+        `sub-${targetRestaurantId}`,
+        targetRestaurantId,
+        Date.now() + 24 * 60 * 60 * 1000,
+        Date.now(),
+        Date.now(),
+      )
+      .run();
+  }
+
   beforeEach(async () => {
     await testApp.testDb.truncateAll();
   });
@@ -85,6 +107,7 @@ describe("Restaurant service items API — real integration", () => {
     const restaurant = await seed.restaurant({
       name: "Service Directory Vendor",
     });
+    await insertActiveSubscription(String(restaurant.id));
     const now = new Date();
     await testApp.testDb.drizzle.insert(restaurantServiceItems).values([
       {
@@ -168,6 +191,7 @@ describe("Restaurant service items API — real integration", () => {
     const restaurant = await seed.restaurant({
       name: "Owner Managed Services",
     });
+    await insertActiveSubscription(String(restaurant.id));
     const owner = await seed.user({
       role: 1,
       restaurantId: String(restaurant.id),
@@ -287,6 +311,7 @@ describe("Restaurant service items API — real integration", () => {
       city: "台中市",
       district: "西屯區",
     });
+    await insertActiveSubscription(String(restaurant.id));
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
       marketId: market.id,
