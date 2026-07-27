@@ -35,11 +35,11 @@ database_name = "makanmakan-local"
 database_id = "local"
 migrations_dir = "../../packages/database/migrations_fresh"
 
-# KV namespace for caching
+# Shared with the API worker so management changes invalidate API-side cache.
 [[kv_namespaces]]
 binding = "CACHE_KV"
-id = "makanmasak-management-cache-dev"
-preview_id = "makanmasak-management-cache-preview"
+id = "makanmasak-cache-dev"
+preview_id = "makanmasak-cache-preview"
 
 # KV namespace for deployment status tracking
 [[kv_namespaces]]
@@ -83,7 +83,7 @@ migrations_dir = "../../packages/database/migrations_fresh"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
-id = "1af1bf5e5421413fbb6f2f31affc4ee8"
+id = "5850dad46b684f2d8b69b3344d146a1d"
 
 [[env.production.kv_namespaces]]
 binding = "DEPLOYMENT_STATUS_KV"
