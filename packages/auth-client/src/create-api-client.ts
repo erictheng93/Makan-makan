@@ -28,6 +28,49 @@ function getCookieValue(name: string): string | undefined {
 }
 
 /**
+ * Where the CSRF token survives a page reload.
+ *
+ * The cookie the API sets carries the `__Host-` prefix, which forces it to be
+ * host-only on the API's own origin. Every front-end here is served from a
+ * different subdomain, so `document.cookie` cannot see it and the cookie
+ * fallback below is structurally dead in production — it only ever works when
+ * the API and the app share an origin, as they do behind the dev proxy.
+ *
+ * Without somewhere to persist it, the token cached from the X-CSRF-Token
+ * response header lived in a module variable that a reload wiped, so restoring
+ * a session sent no token and every state-changing request 403'd (#66).
+ *
+ * Storing it is not a new exposure: the bearer token already sits in the same
+ * storage, so anything able to read this could already act as the user.
+ */
+const CSRF_STORAGE_KEY = "mm_csrf_token";
+
+function readStoredCsrfToken(): string | null {
+  try {
+    return globalThis.localStorage?.getItem(CSRF_STORAGE_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredCsrfToken(token: string): void {
+  try {
+    globalThis.localStorage?.setItem(CSRF_STORAGE_KEY, token);
+  } catch {
+    // Storage can be unavailable (private mode, disabled cookies). The
+    // in-memory cache still covers the current page.
+  }
+}
+
+function clearStoredCsrfToken(): void {
+  try {
+    globalThis.localStorage?.removeItem(CSRF_STORAGE_KEY);
+  } catch {
+    // Same as above — nothing to clean up if storage is unavailable.
+  }
+}
+
+/**
  * Create an authenticated axios-based API client with:
  * - Bearer token from prefixed localStorage
  * - Optional CSRF protection
@@ -46,7 +89,7 @@ export function createAuthenticatedApiClient(
   const csrfConfig = normalizeCsrfConfig(config.csrf);
   const retryOn401 = config.retryOn401 !== false; // default true
 
-  let csrfTokenCache: string | null = null;
+  let csrfTokenCache: string | null = csrfConfig ? readStoredCsrfToken() : null;
 
   const instance = axios.create({
     baseURL: config.baseURL ?? "/api/v1",
@@ -127,6 +170,7 @@ export function createAuthenticatedApiClient(
         const newCsrf = response.headers[csrfConfig.headerName.toLowerCase()];
         if (newCsrf) {
           csrfTokenCache = newCsrf;
+          writeStoredCsrfToken(newCsrf);
         }
       }
       return response;
@@ -150,8 +194,12 @@ export function createAuthenticatedApiClient(
           }
         }
 
-        // Refresh failed or retry disabled — clean up and notify
+        // Refresh failed or retry disabled — clean up and notify. The CSRF
+        // token goes with the session: leaving a stale one behind would make
+        // the next login's first write fail against a rotated cookie.
         storage.clearAll();
+        csrfTokenCache = null;
+        clearStoredCsrfToken();
         if (config.onAuthFailure) await config.onAuthFailure();
         return Promise.reject(error);
       }
