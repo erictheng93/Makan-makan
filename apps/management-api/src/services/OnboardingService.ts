@@ -649,6 +649,8 @@ export class OnboardingService {
         }),
       ]);
 
+      await this.invalidateRestaurantListCache();
+
       await this.env.MANAGEMENT_DB.prepare(
         `UPDATE tenants
          SET platform_restaurant_id = ?, owner_user_id = ?, owner_username = ?,
@@ -865,6 +867,21 @@ export class OnboardingService {
     await this.env.MANAGEMENT_DB.prepare("DELETE FROM tenants WHERE id = ?")
       .bind(tenantId)
       .run();
+  }
+
+  private async invalidateRestaurantListCache(): Promise<void> {
+    const prefix = "restaurants:list";
+    let cursor: string | undefined;
+
+    do {
+      const list = await this.env.CACHE_KV.list({ prefix, cursor });
+      const keys = list.keys.filter(
+        ({ name }) => name === prefix || name.startsWith(`${prefix}:`),
+      );
+
+      await Promise.all(keys.map(({ name }) => this.env.CACHE_KV.delete(name)));
+      cursor = list.list_complete ? undefined : list.cursor;
+    } while (cursor);
   }
 
   private async generateAvailableOwnerUsername(

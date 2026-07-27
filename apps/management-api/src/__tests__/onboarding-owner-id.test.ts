@@ -62,7 +62,7 @@ function buildApplication(
   } as OnboardingApplication;
 }
 
-function buildEnv(): ManagementEnv {
+function buildEnv(cacheKv?: KVNamespace): ManagementEnv {
   const noRowStatement = {
     bind: () => noRowStatement,
     first: async () => null,
@@ -83,7 +83,16 @@ function buildEnv(): ManagementEnv {
     CF_ACCOUNT_ID: "test-account",
     MANAGEMENT_DB: { prepare: () => noRowStatement } as unknown as D1Database,
     PLATFORM_DB: { prepare: () => noRowStatement } as unknown as D1Database,
-    CACHE_KV: {} as KVNamespace,
+    CACHE_KV:
+      cacheKv ??
+      ({
+        list: async () => ({
+          keys: [],
+          list_complete: true,
+          cacheStatus: null,
+        }),
+        delete: async () => undefined,
+      } as unknown as KVNamespace),
     DEPLOYMENT_STATUS_KV: {} as KVNamespace,
     BUNDLE_STORAGE: {} as R2Bucket,
   } as unknown as ManagementEnv;
@@ -143,6 +152,50 @@ describe("onboarding platform owner provisioning", () => {
       }),
     });
     expect(String(userRow?.values.id)).toMatch(UUID_V7_PATTERN);
+  });
+
+  it("invalidates every cached restaurant list after provisioning", async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({
+        keys: [
+          { name: "restaurants:list" },
+          { name: "restaurants:list:limit:20:page:1" },
+          { name: "restaurants:listening" },
+        ],
+        list_complete: false,
+        cursor: "next-page",
+        cacheStatus: null,
+      })
+      .mockResolvedValueOnce({
+        keys: [{ name: "restaurants:list:type:onboarding" }],
+        list_complete: true,
+        cacheStatus: null,
+      });
+    const deleteKey = vi.fn().mockResolvedValue(undefined);
+    const cacheKv = {
+      list,
+      delete: deleteKey,
+    } as unknown as KVNamespace;
+
+    await createPlatformOwnerAccount(buildEnv(cacheKv))(
+      buildApplication(),
+      "tenant-1",
+    );
+
+    expect(list).toHaveBeenNthCalledWith(1, {
+      prefix: "restaurants:list",
+      cursor: undefined,
+    });
+    expect(list).toHaveBeenNthCalledWith(2, {
+      prefix: "restaurants:list",
+      cursor: "next-page",
+    });
+    expect(deleteKey.mock.calls.map(([key]) => key)).toEqual([
+      "restaurants:list",
+      "restaurants:list:limit:20:page:1",
+      "restaurants:list:type:onboarding",
+    ]);
   });
 
   // Regression: TenantService writes shop_subscriptions into the MANAGEMENT db

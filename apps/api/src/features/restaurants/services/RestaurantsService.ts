@@ -894,9 +894,9 @@ export class RestaurantsService {
    */
   private async invalidateListCaches(): Promise<void> {
     const patterns = [
-      "restaurants:list:*",
-      "restaurants:nearby:*",
-      "restaurants:popular:*",
+      "restaurants:list*",
+      "restaurants:nearby*",
+      "restaurants:popular*",
     ];
 
     for (const pattern of patterns) {

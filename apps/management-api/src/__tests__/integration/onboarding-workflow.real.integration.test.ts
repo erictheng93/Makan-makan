@@ -164,7 +164,10 @@ function createEnv(
     CF_ACCOUNT_ID: "test-account",
     MANAGEMENT_DB: db as unknown as D1Database,
     PLATFORM_DB: platformDb as unknown as D1Database,
-    CACHE_KV: {} as KVNamespace,
+    CACHE_KV: {
+      list: async () => ({ keys: [], list_complete: true, cacheStatus: null }),
+      delete: async () => undefined,
+    } as unknown as KVNamespace,
     DEPLOYMENT_STATUS_KV: {} as KVNamespace,
     BUNDLE_STORAGE: {} as R2Bucket,
   };

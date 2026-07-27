@@ -52,14 +52,21 @@ export class KVCacheService implements CacheService {
   async clear(pattern?: string): Promise<void> {
     try {
       if (pattern) {
-        const list = await this.kv.list({ prefix: pattern });
+        const prefix = pattern.endsWith("*") ? pattern.slice(0, -1) : pattern;
         const BATCH_SIZE = 100; // 每批刪除 100 個 key
+        let cursor: string | undefined;
 
-        // 分批並行刪除
-        for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
-          const batch = list.keys.slice(i, i + BATCH_SIZE);
-          await Promise.all(batch.map((key) => this.kv.delete(key.name)));
-        }
+        do {
+          const list = await this.kv.list({ prefix, cursor });
+
+          // 分批並行刪除
+          for (let i = 0; i < list.keys.length; i += BATCH_SIZE) {
+            const batch = list.keys.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map((key) => this.kv.delete(key.name)));
+          }
+
+          cursor = list.list_complete ? undefined : list.cursor;
+        } while (cursor);
       }
     } catch (error) {
       console.error(`Cache clear error:`, error);

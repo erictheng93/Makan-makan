@@ -353,7 +353,7 @@ describe("SystemService", () => {
 
   it("cleans old reports and clears related caches", async () => {
     const kv = createKv({
-      "system:error-stats:*:1": { cached: true },
+      "system:error-stats:all": { cached: true },
       "other:key": { cached: true },
     });
     const { service } = createService({}, kv);
@@ -364,8 +364,11 @@ describe("SystemService", () => {
       data: { deleted_count: 7 },
     });
     expect(errorReportingFns.cleanupOldErrorReports).toHaveBeenCalledWith(45);
-    expect(kv.list).toHaveBeenCalledWith({ prefix: "system:error-stats:*" });
-    expect(kv.delete).toHaveBeenCalledWith("system:error-stats:*:1");
+    expect(kv.list).toHaveBeenCalledWith({
+      prefix: "system:error-stats:",
+      cursor: undefined,
+    });
+    expect(kv.delete).toHaveBeenCalledWith("system:error-stats:all");
   });
 
   it("swallows Slack notification failures and skips missing webhook URLs", async () => {

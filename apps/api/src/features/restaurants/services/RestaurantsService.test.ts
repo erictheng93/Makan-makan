@@ -243,9 +243,9 @@ describe("RestaurantsService", () => {
     ).resolves.toMatchObject({ name: "Updated Makan" });
 
     expect(mocks.cache.delete).toHaveBeenCalledWith("restaurant:restaurant-1");
-    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:list:*");
-    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:nearby:*");
-    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:popular:*");
+    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:list*");
+    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:nearby*");
+    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:popular*");
     expect(mocks.logger.debug).toHaveBeenCalledWith(
       "Emitting restaurant event",
       expect.objectContaining({ type: "RESTAURANT_UPDATED" }),
@@ -296,7 +296,7 @@ describe("RestaurantsService", () => {
       }),
     );
     expect(mocks.db.insert).toHaveBeenCalled();
-    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:list:*");
+    expect(mocks.cache.clear).toHaveBeenCalledWith("restaurants:list*");
     expect(mocks.logger.debug).toHaveBeenCalledWith(
       "Emitting restaurant event",
       expect.objectContaining({ type: "RESTAURANT_CREATED" }),
