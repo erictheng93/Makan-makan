@@ -24,13 +24,18 @@ import {
 } from "@makanmakan/database";
 
 // KV cache TTL: 5 minutes.  Short enough to make kill-switch effective quickly.
-const CACHE_TTL_SECONDS = 300;
+export const CACHE_TTL_SECONDS = 300;
 
-interface CachedSubscription {
+export interface CachedSubscription {
   isActive: boolean;
   planTier: PlanTier;
   moduleOverrides: ModuleMap;
   trialEndsAt: number | null;
+}
+
+/** Single definition of the KV cache key shape shared by every reader/writer. */
+export function subscriptionCacheKey(restaurantId: string): string {
+  return `subscription:${restaurantId}`;
 }
 
 /** Returns the effective access state for a single module given the subscription. */
@@ -58,7 +63,7 @@ async function getSubscription(
   c: Context<{ Bindings: Env }>,
   restaurantId: string,
 ): Promise<CachedSubscription | null> {
-  const cacheKey = `subscription:${restaurantId}`;
+  const cacheKey = subscriptionCacheKey(restaurantId);
 
   // Cache read
   const cached = await c.env.CACHE_KV.get<CachedSubscription>(cacheKey, "json");
@@ -96,13 +101,31 @@ async function getSubscription(
 
 /**
  * Invalidate the subscription cache for a restaurant.
- * Call this after any admin update to subscription/modules.
+ *
+ * This is the core entry point: it only needs the `CACHE_KV` binding, so it
+ * works from any context that holds an `Env` — cron jobs, webhook handlers,
+ * and plain services that only have `this.env`, none of which have a Hono
+ * `Context` to call `invalidateSubscriptionCache(c, ...)` with.
+ *
+ * Call this after any write (admin, billing webhook, cron job, etc.) that
+ * changes `shop_subscriptions.is_active`, `plan_tier`, or `module_overrides`.
+ */
+export async function invalidateSubscriptionCacheForEnv(
+  env: Pick<Env, "CACHE_KV">,
+  restaurantId: string,
+): Promise<void> {
+  await env.CACHE_KV.delete(subscriptionCacheKey(restaurantId));
+}
+
+/**
+ * Context-taking convenience wrapper around {@link invalidateSubscriptionCacheForEnv}.
+ * Call this after any admin update to subscription/modules made from a route handler.
  */
 export async function invalidateSubscriptionCache(
   c: Context<{ Bindings: Env }>,
   restaurantId: string,
 ): Promise<void> {
-  await c.env.CACHE_KV.delete(`subscription:${restaurantId}`);
+  await invalidateSubscriptionCacheForEnv(c.env, restaurantId);
 }
 
 /**

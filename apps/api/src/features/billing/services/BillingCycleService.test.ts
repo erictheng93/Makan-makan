@@ -71,10 +71,16 @@ function createDb(options: FakeDbOptions = {}) {
   return { db, statements, batches };
 }
 
+function createCacheKv() {
+  return {
+    delete: vi.fn(async (_key: string) => undefined),
+  };
+}
+
 function env(overrides: Partial<Env> = {}) {
   return {
     DB: createDb().db,
-    CACHE_KV: {},
+    CACHE_KV: createCacheKv(),
     ...overrides,
   } as Env;
 }
@@ -200,7 +206,7 @@ describe("TrialReaperService", () => {
     vi.unstubAllGlobals();
   });
 
-  it("downgrades expired trials and records the trial-ended notification", async () => {
+  it("downgrades expired trials, invalidates the cache, and records the trial-ended notification", async () => {
     const { db, statements, batches } = createDb({
       trialRows: [
         {
@@ -212,12 +218,18 @@ describe("TrialReaperService", () => {
         },
       ],
     });
+    const cacheKv = createCacheKv();
 
     await expect(
-      new TrialReaperService(env({ DB: db as never })).downgradeExpiredTrials(
-        now,
-      ),
+      new TrialReaperService(
+        env({ DB: db as never, CACHE_KV: cacheKv as never }),
+      ).downgradeExpiredTrials(now),
     ).resolves.toEqual({ downgraded: 1 });
+
+    // The pro/enterprise -> basic downgrade must take effect immediately:
+    // this runs from a cron job, so nothing else can invalidate it.
+    expect(cacheKv.delete).toHaveBeenCalledOnce();
+    expect(cacheKv.delete).toHaveBeenCalledWith("subscription:restaurant-1");
 
     expect(db.batch).toHaveBeenCalledTimes(1);
     expect(batches[0][0].values).toEqual([
@@ -262,5 +274,43 @@ describe("TrialReaperService", () => {
       JSON.stringify({ trialEndsAt }),
       now,
     ]);
+  });
+
+  it("invalidates the cache for each affected restaurant, not just the first", async () => {
+    const { db } = createDb({
+      trialRows: [
+        {
+          id: "subscription-1",
+          restaurant_id: "restaurant-1",
+          restaurant_name: "Tasty Shop",
+          email: "owner@example.test",
+          trial_ends_at_ms: trialEndsAt,
+        },
+        {
+          id: "subscription-2",
+          restaurant_id: "restaurant-2",
+          restaurant_name: "Noodle House",
+          email: "owner2@example.test",
+          trial_ends_at_ms: trialEndsAt,
+        },
+      ],
+    });
+    const cacheKv = createCacheKv();
+
+    await expect(
+      new TrialReaperService(
+        env({ DB: db as never, CACHE_KV: cacheKv as never }),
+      ).downgradeExpiredTrials(now),
+    ).resolves.toEqual({ downgraded: 2 });
+
+    expect(cacheKv.delete).toHaveBeenCalledTimes(2);
+    expect(cacheKv.delete).toHaveBeenNthCalledWith(
+      1,
+      "subscription:restaurant-1",
+    );
+    expect(cacheKv.delete).toHaveBeenNthCalledWith(
+      2,
+      "subscription:restaurant-2",
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
+import { invalidateSubscriptionCacheForEnv } from "../../../middleware/moduleGate";
 import { timingSafeEqual } from "../../../shared/utils/timing-safe-equal";
 import { PaymentAuditService } from "./PaymentAuditService";
 import {
@@ -119,6 +120,9 @@ export class BillingWebhookService {
           now,
         ),
       ]);
+      // is_active flips to 1 above; without invalidation a shop that just
+      // paid could stay locked out of its modules for up to the cache TTL.
+      await invalidateSubscriptionCacheForEnv(this.env, restaurantId);
       return true;
     }
 

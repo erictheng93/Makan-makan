@@ -60,15 +60,24 @@ function createDb() {
   };
 }
 
+function createCacheKv() {
+  return {
+    delete: vi.fn(async (_key: string) => undefined),
+  };
+}
+
 function createEnv(overrides: Partial<Env> = {}) {
   const db = createDb();
+  const cacheKv = createCacheKv();
   return {
     db,
+    cacheKv,
     env: {
       DB: {
         batch: db.batch,
         prepare: db.prepare,
       },
+      CACHE_KV: cacheKv,
       LINEPAY_WEBHOOK_SECRET: "linepay-secret",
       STRIPE_WEBHOOK_SECRET: "stripe-secret",
       ...overrides,
@@ -243,9 +252,9 @@ describe("BillingWebhookService", () => {
     expect(notificationSend).not.toHaveBeenCalled();
   });
 
-  it("reactivates subscriptions and writes success audit on paid invoices", async () => {
+  it("reactivates subscriptions, invalidates the module cache, and writes success audit on paid invoices", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1710000000000);
-    const { db, env } = createEnv();
+    const { db, env, cacheKv } = createEnv();
     const body = raw({
       id: "evt-paid",
       type: "invoice.paid",
@@ -284,11 +293,15 @@ describe("BillingWebhookService", () => {
       JSON.stringify({ source: "webhook_reconcile" }),
       1710000000000,
     ]);
+    // A shop that just paid must not stay locked out of its modules for up
+    // to the 5-minute cache TTL — this is the fail-open-risk case.
+    expect(cacheKv.delete).toHaveBeenCalledOnce();
+    expect(cacheKv.delete).toHaveBeenCalledWith("subscription:restaurant-paid");
   });
 
   it("starts a grace period and sends a Slack notification on failed invoices", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1710000001234);
-    const { env } = createEnv();
+    const { env, cacheKv } = createEnv();
     const body = raw({
       id: "evt-failed",
       type: "invoice.payment_failed",
@@ -335,6 +348,10 @@ describe("BillingWebhookService", () => {
         eventType: "invoice.payment_failed",
       },
     });
+    // is_active is untouched on a failed invoice, so there is nothing to
+    // invalidate — asserted so a future change doesn't silently start
+    // deleting cache entries on every webhook regardless of outcome.
+    expect(cacheKv.delete).not.toHaveBeenCalled();
   });
 
   it("accepts valid LINE Pay signatures and snake_case restaurant metadata", async () => {
