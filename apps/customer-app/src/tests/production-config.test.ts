@@ -23,4 +23,15 @@ describe("customer-app production config", () => {
 
     expect(html).not.toMatch(/http-equiv=["']Content-Security-Policy["']/i);
   });
+
+  it("compiles i18n messages without unsafe-eval", () => {
+    const viteConfig = readFileSync(
+      resolve(appRoot, "vite.config.ts"),
+      "utf-8",
+    );
+
+    expect(viteConfig).toContain("__INTLIFY_JIT_COMPILATION__: true");
+    expect(viteConfig).toContain("__INTLIFY_DROP_MESSAGE_COMPILER__: false");
+    expect(viteConfig).toContain('minify: "esbuild"');
+  });
 });

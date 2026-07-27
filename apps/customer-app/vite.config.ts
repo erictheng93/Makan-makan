@@ -127,6 +127,10 @@ export default defineConfig({
       process.env.APP_VERSION || `dev-${new Date().toISOString().slice(0, 10)}`,
     ),
     __VUE_PROD_DEVTOOLS__: false,
+    // Vue I18n v9 otherwise compiles string messages with new Function, which
+    // is blocked by the production CSP because unsafe-eval is intentionally off.
+    __INTLIFY_JIT_COMPILATION__: true,
+    __INTLIFY_DROP_MESSAGE_COMPILER__: false,
   },
   build: {
     target: "esnext",
@@ -219,22 +223,10 @@ export default defineConfig({
         },
       },
     },
-    // 優化構建性能
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ["console.log", "console.info", "console.debug"],
-        passes: 2,
-      },
-      mangle: {
-        safari10: true,
-      },
-      format: {
-        comments: false,
-      },
-    },
+    // Terser becomes pathologically slow when the CSP-safe Vue I18n JIT
+    // compiler is retained. esbuild preserves the existing production stripping
+    // behavior without making the build impractical.
+    minify: "esbuild",
     cssMinify: true,
     // MapLibre is isolated behind MarketLocationMap's async component. The
     // higher limit keeps the production build warning focused on unexpected
@@ -276,6 +268,10 @@ export default defineConfig({
   },
   css: {
     devSourcemap: process.env.NODE_ENV !== "production", // SECURITY FIX: Disable CSS sourcemaps in production
+  },
+  esbuild: {
+    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
+    legalComments: "none",
   },
   // 環境變量配置
   envPrefix: "VITE_",
