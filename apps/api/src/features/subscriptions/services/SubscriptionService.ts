@@ -4,6 +4,7 @@ import type { D1Database } from "@makanmakan/database";
 import {
   shopSubscriptions,
   PLAN_DEFAULT_MODULES,
+  TRIAL_DURATION_DAYS,
   type ModuleKey,
   type ModuleMap,
   type PlanTier,
@@ -87,7 +88,9 @@ export class SubscriptionService {
     const existing = await this.getByRestaurantId(input.restaurantId);
     if (existing) return existing;
 
-    const trialDays = input.trialDays ?? 30;
+    // Shared with management-api's onboarding path so a shop gets the same
+    // trial regardless of which door it came through.
+    const trialDays = input.trialDays ?? TRIAL_DURATION_DAYS;
     return this.create({
       restaurantId: input.restaurantId,
       planTier: "trial",
