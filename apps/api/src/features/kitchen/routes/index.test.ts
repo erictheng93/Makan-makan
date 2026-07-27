@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { verify } from "hono/jwt";
 import routes from "./index";
 
@@ -21,11 +21,22 @@ vi.mock("../../../middleware/auth", () => ({
   }),
 }));
 
-vi.mock("../../../middleware/moduleGate", () => ({
+const gateMocks = vi.hoisted(() => ({
   moduleGate: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
     await next();
   }),
 }));
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: gateMocks.moduleGate,
+}));
+
+// moduleGate(...) is called once per route at registration (module import
+// time), not per-request — capture the keys now, before the first
+// vi.clearAllMocks() in beforeEach wipes the call history.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
 
 vi.mock("../services/KitchenService", () => ({
   KitchenService: vi.fn(function KitchenService() {
@@ -166,6 +177,18 @@ describe("kitchen routes", () => {
       success: true,
       data: { sound: true, volume: 80 },
     });
+
+    // Notification-settings (GET then PUT) are the first two routes
+    // registered in this file and must carry the same kitchen_display gate
+    // as the other 6 kitchen routes (see module-gate.test.ts for the real,
+    // unmocked-gate proof of denial/allow behavior). Checking by position
+    // (not just "at least N total") ensures this fails if either specific
+    // route's gate is ever dropped, since the other 6 routes already
+    // contribute 6 more "kitchen_display" entries regardless.
+    expect(moduleGateRegistrationKeys.slice(0, 2)).toEqual([
+      "kitchen_display",
+      "kitchen_display",
+    ]);
   });
 
   it("uses a global notification settings key when the user has no restaurant", async () => {

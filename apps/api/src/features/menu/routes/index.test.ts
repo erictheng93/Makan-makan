@@ -99,6 +99,13 @@ vi.mock("../../discovery/services/SearchIndexSyncService", () => ({
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 
+// moduleGate(...) is called once per route at registration (module import
+// time), not per-request — capture the keys now, before any
+// vi.clearAllMocks() in beforeEach wipes the call history.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
+
 routes.onError((err, c) => {
   if (err instanceof ApiError) {
     return c.json(
@@ -406,5 +413,10 @@ describe("menu routes", () => {
 
     expect(response.status).toBe(200);
     expect(serviceFns.getPopularityMetrics).toHaveBeenCalledWith("rest-1");
+
+    // /popularity surfaces order-derived sales data and must require the
+    // "analytics" (pro-tier) module, not "menu_management" (see
+    // module-gate.test.ts for the real, unmocked-gate proof).
+    expect(moduleGateRegistrationKeys).toContain("analytics");
   });
 });

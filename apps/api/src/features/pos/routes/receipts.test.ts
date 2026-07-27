@@ -42,7 +42,39 @@ vi.mock("../../../shared/services/order-identity", () => ({
   ),
 }));
 
+const gateMocks = vi.hoisted(() => ({
+  moduleGate: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+  quotaGate: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => next(),
+  ),
+  meterEmit: vi.fn(),
+}));
+
+vi.mock("../../../middleware/moduleGate", () => ({
+  moduleGate: gateMocks.moduleGate,
+}));
+
+vi.mock("../../../middleware/quotaGate", () => ({
+  quotaGate: gateMocks.quotaGate,
+}));
+
+vi.mock("../../../shared/utils/meter", () => ({
+  meterEmit: gateMocks.meterEmit,
+}));
+
 import routes from "./receipts";
+
+// moduleGate(...)/quotaGate(...) are each called once per route at
+// registration (module import time), not per-request — capture the keys now,
+// before any vi.clearAllMocks() in beforeEach wipes the call history.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
+const quotaGateRegistrationKeys = gateMocks.quotaGate.mock.calls.map(
+  (call) => call[0],
+);
 
 routes.onError((err, c) => {
   if (err instanceof ApiError) {
@@ -161,6 +193,27 @@ describe("POS receipt routes", () => {
         orderPublicId: "018f0000-0000-7000-8000-000000000101",
       },
     });
+    expect(gateMocks.meterEmit).toHaveBeenCalledWith(
+      expect.anything(),
+      "print.jobs",
+      expect.objectContaining({
+        metadata: expect.objectContaining({ orderId: 101 }),
+      }),
+    );
+  });
+
+  it("wires /print and /reprint to receipt_printing + print.jobs quota, not pos", () => {
+    // These routes sit under the app-factory blanket moduleGate("pos") for
+    // all of /pos/*, but printing specifically must ALSO require
+    // "receipt_printing" so an admin can disable printing via a
+    // moduleOverride without disabling the whole POS terminal (see
+    // module-gate.test.ts for the real, unmocked-gate proof).
+    expect(moduleGateRegistrationKeys).toContain("receipt_printing");
+    expect(
+      moduleGateRegistrationKeys.filter((key) => key === "receipt_printing")
+        .length,
+    ).toBe(2); // POST /print and POST /:receiptId/reprint
+    expect(quotaGateRegistrationKeys).toContain("print.jobs");
   });
 
   it("prints receipts for public order ids after route-level resolution", async () => {
@@ -228,6 +281,11 @@ describe("POS receipt routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.receiptService.reprintReceipt).toHaveBeenCalledWith(receiptId);
     expect(body.success).toBe(true);
+    expect(gateMocks.meterEmit).toHaveBeenCalledWith(
+      expect.anything(),
+      "print.jobs",
+      expect.objectContaining({ metadata: { receiptId } }),
+    );
 
     response = await request(`/${receiptId}/cancel`, { method: "POST" });
     body = await json(response);

@@ -69,6 +69,13 @@ vi.mock("../services/OrdersService", () => ({
   },
 }));
 
+// moduleGate(...) is called once per route at registration (module import
+// time), not per-request — capture the keys now, before any
+// vi.clearAllMocks()-equivalent reset in beforeEach loses the call history.
+const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
+  (call) => call[0],
+);
+
 function createEnv() {
   const kv = new Map<string, string>();
   return {
@@ -178,6 +185,19 @@ describe("orders routes", () => {
       expect.stringContaining('"local batch/1"'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
+    // /batch-sync mirrors the real order-creation flow (which requires
+    // online_ordering) for offline-capable clients; gate it the same way so
+    // a deactivated/kill-switched subscription can't keep writing sync data
+    // through this side door (see module-gate.test.ts for the real-gate
+    // proof). online_ordering already appears on 9 other routes in this
+    // file, so this checks the exact total (10 = 9 + /batch-sync) rather
+    // than a bare "array contains online_ordering somewhere" — a plain
+    // .toContain() would stay green even if this route's gate were removed,
+    // since the other 9 registrations still satisfy it.
+    expect(
+      moduleGateRegistrationKeys.filter((key) => key === "online_ordering")
+        .length,
+    ).toBe(10);
   });
 
   it("stores batch sync payloads with global scope and timestamp ids", async () => {

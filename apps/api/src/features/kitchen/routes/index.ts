@@ -140,18 +140,23 @@ async function updateLegacyItemStatus<E extends { Bindings: Env }>(
 /**
  * GET /api/v1/kitchen/notification-settings
  */
-app.get("/notification-settings", authMiddleware, async (c) => {
-  const user = c.get("user");
-  const stored = (await c.env.CACHE_KV.get(
-    createNotificationSettingsKey(user),
-    "json",
-  )) as NotificationSettingsRecord | null;
+app.get(
+  "/notification-settings",
+  authMiddleware,
+  moduleGate("kitchen_display"),
+  async (c) => {
+    const user = c.get("user");
+    const stored = (await c.env.CACHE_KV.get(
+      createNotificationSettingsKey(user),
+      "json",
+    )) as NotificationSettingsRecord | null;
 
-  return c.json({
-    success: true,
-    data: stored?.settings ?? {},
-  });
-});
+    return c.json({
+      success: true,
+      data: stored?.settings ?? {},
+    });
+  },
+);
 
 /**
  * PUT /api/v1/kitchen/notification-settings
@@ -159,6 +164,7 @@ app.get("/notification-settings", authMiddleware, async (c) => {
 app.put(
   "/notification-settings",
   authMiddleware,
+  moduleGate("kitchen_display"),
   validateBody(notificationSettingsSchema),
   async (c) => {
     const user = c.get("user");

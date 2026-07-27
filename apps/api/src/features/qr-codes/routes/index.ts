@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../shared/middleware";
+import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
   validateQuery,
@@ -49,6 +50,14 @@ function qrDownloadCaller(user: {
 }
 
 // POST /generate - Generate single QR code
+//
+// Intentionally NOT moduleGate("table_management"): this is a generic,
+// content-based QR generator (arbitrary `content` string) shared across
+// features — e.g. admin-dashboard's marketsService.generateMarketQr() calls
+// this same endpoint to mint market-entrance QR codes, which has nothing to
+// do with the table_management module. Gating it there would over-gate market
+// QR generation. Only /bulk below is unambiguously table-shaped (its schema
+// requires a `tables` array matching tables/routes bulk-qr).
 app.post(
   "/generate",
   authMiddleware,
@@ -79,10 +88,14 @@ app.post(
 );
 
 // POST /bulk - Generate bulk QR codes
+// This is the table-QR bulk generator (schema requires a `tables` array) —
+// the same capability as tables/routes POST /bulk-qr, which already carries
+// moduleGate("table_management"). Gate it the same way for consistency.
 app.post(
   "/bulk",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("table_management"),
   validateBody(qrCodeSchemas.bulk),
   async (c) => {
     const data = c.get("validatedBody") as BulkQRInput;

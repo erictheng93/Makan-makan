@@ -14,6 +14,7 @@ import {
   requireRole,
   optionalAuth,
 } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
@@ -298,6 +299,7 @@ app.post(
   "/:id/service-items",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("reservations"),
   validateParams(commonSchemas.idParam),
   validateBody(restaurantSchemas.createServiceItem),
   async (c) => {
@@ -334,6 +336,7 @@ app.put(
   "/:id/service-items/:serviceItemId",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("reservations"),
   validateParams(commonSchemas.serviceItemParam),
   validateBody(restaurantSchemas.updateServiceItem),
   async (c) => {
@@ -374,6 +377,7 @@ app.delete(
   "/:id/service-items/:serviceItemId",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("reservations"),
   validateParams(commonSchemas.serviceItemParam),
   async (c) => {
     const { id, serviceItemId } = c.get("validatedParams");
@@ -679,6 +683,7 @@ app.post(
   "/:id/qr/shop/generate",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("table_management"),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Generating shop QR code", {
@@ -719,6 +724,7 @@ app.post(
   "/:id/qr/shop/regenerate",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("table_management"),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Regenerating shop QR code", {
@@ -759,6 +765,7 @@ app.get(
   "/:id/qr/shop",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("table_management"),
   validateParams(commonSchemas.idParam),
   async (c) => {
     logger.debug("Getting shop QR code info", {
@@ -799,6 +806,7 @@ app.post(
   "/:id/qr/shop/upload-image",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("table_management"),
   validateParams(commonSchemas.idParam),
   validateBody(restaurantSchemas.uploadQrImage),
   async (c) => {
@@ -842,6 +850,7 @@ app.put(
   "/:id/shop-mode",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  moduleGate("table_management"),
   validateParams(commonSchemas.idParam),
   validateBody(restaurantSchemas.updateShopMode),
   async (c) => {

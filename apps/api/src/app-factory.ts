@@ -648,11 +648,17 @@ export function createApp(
   apiV1.use("/scheduling/*", authMiddleware);
   apiV1.use("/scheduling/*", moduleGate("staff_management"));
   apiV1.use("/forecast/*", authMiddleware);
-  apiV1.use("/forecast/*", moduleGate("analytics"));
+  // /forecast/* is gated per route: demand forecasting is "analytics",
+  // ingredient forecasting is "inventory" (see features/forecast/routes).
   apiV1.use("/ingredients/*", authMiddleware);
   apiV1.use("/ingredients/*", moduleGate("inventory"));
+  // Feedback is the shop's support-ticket channel (see
+  // features/feedback/routes/index.ts POST /). It must never be gated behind
+  // a paid module — a shop that can't reach support because it's on the
+  // basic plan is a worse failure than a shop reaching support for free.
+  // (Previously gated on "analytics", which 403'd basic-tier owners out of
+  // the only ticket-creation path.)
   apiV1.use("/feedback/*", authMiddleware);
-  apiV1.use("/feedback/*", moduleGate("analytics"));
   apiV1.use("/notifications/*", authMiddleware);
   apiV1.use("/partnerships/*", authMiddleware);
   // Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)
