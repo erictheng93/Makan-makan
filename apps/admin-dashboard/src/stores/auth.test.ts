@@ -167,6 +167,38 @@ describe("useAuthStore", () => {
     expect(authClient.tokens.clearAll).not.toHaveBeenCalled();
   });
 
+  it("keeps the session when revalidation is blocked by a subscription 403", async () => {
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    vi.mocked(getAuthToken).mockReturnValue("stored-token");
+    // api.ts wraps non-401 rejections into ErrorDetails, keeping the axios
+    // error under originalError.
+    vi.mocked(api.get).mockRejectedValue({
+      type: "subscription",
+      code: 403,
+      originalError: {
+        response: {
+          status: 403,
+          data: {
+            success: false,
+            error: {
+              code: "SUBSCRIPTION_NOT_FOUND",
+              message: "Subscription not found. Please contact support.",
+            },
+          },
+        },
+      },
+    });
+    const store = useAuthStore();
+
+    await expect(store.checkAuth()).resolves.toBe(true);
+
+    expect(store.user).toEqual(user());
+    expect(store.isAuthenticated).toBe(true);
+    expect(authClient.tokens.clearAll).not.toHaveBeenCalled();
+    expect(managementAuthClient.tokens.clearAll).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
   it("logs out and clears restaurant context on definitive auth failure", async () => {
     localStorage.setItem("auth_user", JSON.stringify(user()));
     vi.mocked(getAuthToken).mockReturnValue("stored-token");

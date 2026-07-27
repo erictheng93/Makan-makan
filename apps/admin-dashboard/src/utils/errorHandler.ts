@@ -1,5 +1,6 @@
 import { useToast } from "vue-toastification";
 import { apiPath } from "@/services/api-url";
+import { t } from "@/i18n";
 import { getAuthToken } from "@/utils/authTokenProvider";
 
 const toast = useToast();
@@ -19,7 +20,72 @@ export enum ErrorType {
   SSE = "sse",
   VALIDATION = "validation",
   PERMISSION = "permission",
+  // 訂閱 / 方案問題（moduleGate 中介層回的 403）。刻意與 PERMISSION 分開：
+  // 這不是「權限不足或登入已過期」，使用者的登入狀態是好的，該做的是
+  // 升級方案或聯絡客服，因此不可觸發任何登出 / 導向登入頁的流程。
+  SUBSCRIPTION = "subscription",
   UNKNOWN = "unknown",
+}
+
+/**
+ * apps/api/src/middleware/moduleGate.ts 會以 403 + 這些 code 回應。
+ * 它們代表「方案/訂閱」問題，不是授權問題。
+ */
+export const SUBSCRIPTION_ERROR_CODES = [
+  "SUBSCRIPTION_NOT_FOUND",
+  "TRIAL_EXPIRED",
+  "MODULE_NOT_ENABLED",
+  "NO_RESTAURANT",
+] as const;
+
+export type SubscriptionErrorCode = (typeof SUBSCRIPTION_ERROR_CODES)[number];
+
+export function isSubscriptionErrorCode(
+  code: unknown,
+): code is SubscriptionErrorCode {
+  return (
+    typeof code === "string" &&
+    (SUBSCRIPTION_ERROR_CODES as readonly string[]).includes(code)
+  );
+}
+
+/**
+ * 從統一錯誤信封 `{ success: false, error: { code, message } }` 取出
+ * 機器可讀的 error code。舊路由可能還把 error 當字串回，這時沒有 code。
+ *
+ * 同時接受原始 axios error 與本檔案產生的 ErrorDetails（非 401 的錯誤會被
+ * api.ts 的 errorHandler 包成 ErrorDetails 再 reject，原始錯誤放在
+ * originalError）。
+ */
+export function extractApiErrorCode(error: any): string | undefined {
+  for (const candidate of [error, error?.originalError]) {
+    const apiError = candidate?.response?.data?.error;
+    if (
+      typeof apiError === "object" &&
+      apiError !== null &&
+      typeof apiError.code === "string"
+    ) {
+      return apiError.code;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * 每個訂閱錯誤 code 對應一句在地化、可行動的說明。
+ * 刻意用 switch + 字面 key（而非樣板字串）以便 i18n parity 測試能靜態掃到。
+ */
+function subscriptionErrorMessage(code: SubscriptionErrorCode): string {
+  switch (code) {
+    case "SUBSCRIPTION_NOT_FOUND":
+      return t("errors.subscription.subscriptionNotFound");
+    case "TRIAL_EXPIRED":
+      return t("errors.subscription.trialExpired");
+    case "MODULE_NOT_ENABLED":
+      return t("errors.subscription.moduleNotEnabled");
+    case "NO_RESTAURANT":
+      return t("errors.subscription.noRestaurant");
+  }
 }
 
 export enum ErrorSeverity {
@@ -250,8 +316,15 @@ export class ErrorHandler {
         message = "服務器錯誤";
       }
 
+      const apiErrorCode = extractApiErrorCode(error);
+
       if (typeof code === "number" && code >= 500) {
         severity = ErrorSeverity.HIGH;
+      } else if (code === 403 && isSubscriptionErrorCode(apiErrorCode)) {
+        // 訂閱 / 方案問題：登入狀態正常，別誤報成「權限不足或登入已過期」。
+        type = ErrorType.SUBSCRIPTION;
+        severity = ErrorSeverity.MEDIUM;
+        message = subscriptionErrorMessage(apiErrorCode);
       } else if (code === 403 || code === 401) {
         type = ErrorType.PERMISSION;
         severity = ErrorSeverity.MEDIUM;

@@ -671,6 +671,17 @@ const zhTWCore = {
     loadFailed: "載入失敗",
     saveFailed: "儲存失敗",
     deleteFailed: "刪除失敗",
+    // 訂閱 / 方案問題（後端 moduleGate 回的 403）。這些不是權限或登入問題，
+    // 文案必須讓店家知道「登入是好的，要處理的是方案」。
+    subscription: {
+      subscriptionNotFound:
+        "找不到此餐廳的訂閱方案，功能尚未開通。您的登入沒有問題，請聯絡客服協助開通。",
+      trialExpired: "試用期已結束。請升級方案以繼續使用此功能。",
+      moduleNotEnabled:
+        "目前的方案未包含此功能。請升級方案或聯絡客服為您開通。",
+      noRestaurant:
+        "您的帳號尚未綁定任何餐廳，請聯絡系統管理員為您指派餐廳後再試。",
+    },
   },
 
   // 成功訊息

@@ -5,7 +5,11 @@ import type { User } from "@/types";
 import { UserRole } from "@/types";
 import { api, authClient, managementAuthClient } from "@/services/api";
 import { t } from "@/i18n";
-import { setAuthRefreshHandler } from "@/utils/errorHandler";
+import {
+  extractApiErrorCode,
+  isSubscriptionErrorCode,
+  setAuthRefreshHandler,
+} from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean };
@@ -280,6 +284,17 @@ export const useAuthStore = defineStore("auth", () => {
       // NOTE: Don't call refreshToken() here — the axios 401 interceptor
       // in api.ts already attempted a refresh + retry. If we still got
       // an error, the refresh failed. Just logout.
+      //
+      // Exception: a 403 carrying a subscription/plan code (moduleGate) is
+      // NOT an auth failure — the session is perfectly valid, the plan just
+      // doesn't cover the route. Logging the owner out because their trial
+      // expired would be a terrible failure mode. Checked on the code rather
+      // than the status because api.ts rejects non-401s as ErrorDetails.
+      if (isSubscriptionErrorCode(extractApiErrorCode(error))) {
+        console.warn("Auth revalidation blocked by subscription gate");
+        return !!user.value;
+      }
+
       if (status === 401 || status === 403) {
         await logout();
         return false;
