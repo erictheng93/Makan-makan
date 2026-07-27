@@ -198,7 +198,13 @@
             >
               <img
                 v-if="item.imageUrl"
-                :src="getImageUrl(item.imageVariants?.medium || item.imageUrl)"
+                :src="
+                  getImageUrl(
+                    item.imageVariants?.thumbnail ||
+                      item.imageVariants?.medium ||
+                      item.imageUrl,
+                  )
+                "
                 :alt="item.name"
                 loading="lazy"
                 class="w-full h-full object-cover lazy-image"
