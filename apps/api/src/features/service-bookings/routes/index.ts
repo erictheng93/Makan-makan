@@ -10,6 +10,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import type { AuthUser } from "../../../middleware/auth";
+import { moduleGate } from "../../../middleware/moduleGate";
 import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import type { Env } from "../../../types/env";
 import {
@@ -358,6 +359,7 @@ app.post("/verify/:code/cancel", verifyRateLimit, async (c) => {
 // ── Staff / admin ──────────────────────────────────────
 
 app.use("/*", authMiddleware);
+app.use("/*", moduleGate("reservations"));
 
 // Restaurant scope for staff routes: admins (role 0) are unscoped; everyone
 // else is confined to their own restaurant. Without this, role gating alone
