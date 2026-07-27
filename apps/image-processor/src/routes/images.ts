@@ -171,7 +171,12 @@ app.post(
   authMiddleware,
   requireRole([0, 1, 2]), // Admin, Owner, Chef
   (c, next) => uploadRateLimit(c.env)(c, next),
-  (c, next) => checkFileSize(parseInt(c.env.MAX_IMAGE_SIZE_MB) || 10)(c, next),
+  (c, next) => {
+    const maxImageSizeMB = parseInt(c.env.MAX_IMAGE_SIZE_MB) || 10;
+    const maxRequestSizeMB =
+      parseInt(c.env.MAX_UPLOAD_REQUEST_SIZE_MB ?? "") || maxImageSizeMB + 2;
+    return checkFileSize(maxRequestSizeMB)(c, next);
+  },
   (c, next) => validateFileType(c.env.ALLOWED_MIME_TYPES.split(","))(c, next),
   securityScan,
   validateQuery(imageSchemas.uploadParams),

@@ -166,6 +166,42 @@ describe("POST /images/upload success", () => {
     );
   });
 
+  it("allows multipart overhead above the original image size limit", async () => {
+    const token = await adminToken();
+    const env = {
+      ...buildEnv(),
+      MAX_UPLOAD_REQUEST_SIZE_MB: "2",
+    } as Env;
+    const formData = new FormData();
+    formData.set(
+      "file",
+      new File([new Uint8Array([0xff, 0xd8, 0xff, 0x00])], "plate.jpg", {
+        type: "image/jpeg",
+      }),
+    );
+
+    const response = await buildApp().fetch(
+      new Request(
+        `https://images.test/images/upload?restaurantId=${RESTAURANT_UUID}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Length": String(1.5 * 1024 * 1024),
+          },
+          body: formData,
+        },
+      ),
+      env,
+      {
+        waitUntil: vi.fn(),
+        passThroughOnException: vi.fn(),
+      } as unknown as ExecutionContext,
+    );
+
+    expect(response.status).toBe(201);
+  });
+
   it("still allows shop owner and chef uploads, scoped by their own token", async () => {
     // Without this the suite only pins role 0, so narrowing the guard to
     // requireRole([0]) would stay green while locking out shop owners — the

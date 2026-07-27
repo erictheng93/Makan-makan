@@ -26,9 +26,10 @@ async function adminToken(): Promise<string> {
 function buildEnv(): Env {
   return {
     JWT_SECRET,
-    // 1MB limit — the post-parse check must catch a ~1.2MB upload even though
-    // the Content-Length header is absent (so checkFileSize middleware skips).
+    // The post-parse check must still enforce the 1MB image limit even though
+    // the request limit allows multipart overhead.
     MAX_IMAGE_SIZE_MB: "1",
+    MAX_UPLOAD_REQUEST_SIZE_MB: "2",
     ALLOWED_MIME_TYPES: "image/jpeg,image/png,image/webp,image/gif",
     MAX_UPLOADS_PER_MINUTE: "20",
   } as unknown as Env;
@@ -122,6 +123,37 @@ describe("POST /images/upload size enforcement", () => {
     expect(body.success).toBe(false);
     expect(body.error).toContain("File too large");
     expect(body.maxSize).toBe(1);
+  });
+
+  it("rejects a multipart request above the separate request limit", async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/images", imagesRouter);
+    const token = await adminToken();
+    const validJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
+    const formData = new FormData();
+    formData.set("file", imageFile(validJpeg, "original.jpg"));
+
+    const response = await app.fetch(
+      new Request(
+        `https://images.test/images/upload?restaurantId=${RESTAURANT_UUID}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Length": String(2.1 * 1024 * 1024),
+          },
+          body: formData,
+        },
+      ),
+      buildEnv(),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "File too large. Maximum size: 2MB",
+      maxSize: 2,
+    });
   });
 
   it("rejects an upload variant whose field name is not allowlisted", async () => {

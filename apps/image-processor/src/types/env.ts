@@ -14,6 +14,7 @@ export interface Env {
   // Image processing configuration
   IMAGE_API_BASE_URL: string;
   MAX_IMAGE_SIZE_MB: string;
+  MAX_UPLOAD_REQUEST_SIZE_MB?: string;
   ALLOWED_MIME_TYPES: string;
 
   // Image variants
