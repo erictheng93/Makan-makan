@@ -111,6 +111,17 @@ describe("image processor JWT auth (UUID token shape)", () => {
     expect(response.status).toBe(401);
   });
 
+  it("rejects numeric restaurantId claims", async () => {
+    const response = await requestWith({
+      sub: userUuid,
+      username: "owner1",
+      role: 1,
+      restaurantId: 5,
+    });
+
+    expect(response.status).toBe(401);
+  });
+
   it("rejects a token whose sub is not a UUID v7", async () => {
     const response = await requestWith({
       sub: "not-a-uuid",
