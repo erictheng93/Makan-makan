@@ -22,7 +22,9 @@
       >
         <img
           v-if="item.imageUrl"
-          :src="getImageUrl(item.imageVariants?.medium || item.imageUrl)"
+          :src="featuredImageSrc"
+          :srcset="featuredImageSrcset"
+          sizes="(min-width: 1024px) 382px, 334px"
           :alt="item.name"
           loading="lazy"
           class="w-full h-full object-cover lazy-image"
@@ -519,6 +521,22 @@ const listImageSrcset = computed(() => {
   ].filter(Boolean);
 
   // Items uploaded before the variant pipeline have neither; fall back to src.
+  return candidates.length > 0 ? candidates.join(", ") : undefined;
+});
+
+const featuredImageSrc = computed(() => {
+  const url = props.item.imageVariants?.medium || props.item.imageUrl;
+
+  return url ? getImageUrl(url) : undefined;
+});
+
+const featuredImageSrcset = computed(() => {
+  const variants = props.item.imageVariants;
+  const candidates = [
+    variants?.medium && `${getImageUrl(variants.medium)} 600w`,
+    variants?.large && `${getImageUrl(variants.large)} 1200w`,
+  ].filter(Boolean);
+
   return candidates.length > 0 ? candidates.join(", ") : undefined;
 });
 

@@ -116,7 +116,7 @@ describe("MenuItemCard", () => {
     );
   });
 
-  it("keeps the medium variant for the featured large image", () => {
+  it("offers medium and large candidates for the featured large image", () => {
     const wrapper = mount(MenuItemCard, {
       props: {
         item: menuItem(),
@@ -127,6 +127,49 @@ describe("MenuItemCard", () => {
     const img = wrapper.get("img");
 
     expect(img.attributes("src")).toBe("https://images.example.com/medium.jpg");
+    expect(img.attributes("srcset")).toBe(
+      "https://images.example.com/medium.jpg 600w, https://images.example.com/large.jpg 1200w",
+    );
+    expect(img.attributes("sizes")).toBe("(min-width: 1024px) 382px, 334px");
+  });
+
+  it("keeps a featured srcset when only the medium variant exists", () => {
+    const wrapper = mount(MenuItemCard, {
+      props: {
+        item: menuItem({
+          imageVariants: {
+            medium: "https://images.example.com/medium.jpg",
+          },
+        }),
+        isFeatured: true,
+      },
+    });
+
+    const img = wrapper.get("img");
+
+    expect(img.attributes("src")).toBe("https://images.example.com/medium.jpg");
+    expect(img.attributes("srcset")).toBe(
+      "https://images.example.com/medium.jpg 600w",
+    );
+    expect(img.attributes("sizes")).toBe("(min-width: 1024px) 382px, 334px");
+  });
+
+  it("omits the featured srcset when no image variants exist", () => {
+    const wrapper = mount(MenuItemCard, {
+      props: {
+        item: menuItem({
+          imageVariants: undefined,
+        }),
+        isFeatured: true,
+      },
+    });
+
+    const img = wrapper.get("img");
+
+    expect(img.attributes("src")).toBe(
+      "https://images.example.com/original.jpg",
+    );
     expect(img.attributes("srcset")).toBeUndefined();
+    expect(img.attributes("sizes")).toBe("(min-width: 1024px) 382px, 334px");
   });
 });
