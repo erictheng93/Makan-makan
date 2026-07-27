@@ -371,17 +371,28 @@ export class OnboardingService {
       console.error("[OnboardingService] Complete error:", error);
 
       if (credentialDelivery) {
-        await this.rollbackCredentialDelivery(credentialDelivery.id);
+        const deliveryId = credentialDelivery.id;
+        await this.runRollbackStep("credential delivery", () =>
+          this.rollbackCredentialDelivery(deliveryId),
+        );
       }
       if (ownerAccount) {
-        await this.rollbackPlatformOwnerAccount(ownerAccount);
+        const accountToRollback = ownerAccount;
+        await this.runRollbackStep("platform owner account", () =>
+          this.rollbackPlatformOwnerAccount(accountToRollback),
+        );
       }
       if (tenantId) {
-        await this.rollbackTenantProvisioning(tenantId);
+        const tenantIdToRollback = tenantId;
+        await this.runRollbackStep("tenant provisioning", () =>
+          this.rollbackTenantProvisioning(tenantIdToRollback),
+        );
       }
 
       // Rollback status
-      await this.updateApplicationStatus(applicationId, previousStatus);
+      await this.runRollbackStep("application status", () =>
+        this.updateApplicationStatus(applicationId, previousStatus),
+      );
 
       return {
         success: false,
@@ -668,7 +679,9 @@ export class OnboardingService {
 
       return ownerAccount;
     } catch (error) {
-      await this.rollbackPlatformOwnerAccount(ownerAccount);
+      await this.runRollbackStep("platform owner account", () =>
+        this.rollbackPlatformOwnerAccount(ownerAccount),
+      );
       throw error;
     }
   }
@@ -754,29 +767,50 @@ export class OnboardingService {
   ): Promise<void> {
     if (!this.env.PLATFORM_DB) return;
 
-    try {
-      await this.env.PLATFORM_DB.prepare(
-        "DELETE FROM password_reset_tokens WHERE user_id = ?",
-      )
+    await this.runRollbackStep("platform password reset token", () =>
+      this.env
+        .PLATFORM_DB!.prepare(
+          "DELETE FROM password_reset_tokens WHERE user_id = ?",
+        )
         .bind(ownerAccount.userId)
-        .run();
-    } catch {
-      // The failure may be caused by token table provisioning itself. Continue
-      // deleting the records that are guaranteed to exist in platform DB.
-    }
-    await this.env.PLATFORM_DB.prepare("DELETE FROM users WHERE id = ?")
-      .bind(ownerAccount.userId)
-      .run();
+        .run(),
+    );
+    await this.runRollbackStep("platform user", () =>
+      this.env
+        .PLATFORM_DB!.prepare("DELETE FROM users WHERE id = ?")
+        .bind(ownerAccount.userId)
+        .run(),
+    );
     // Must be deleted before the restaurant row: shop_subscriptions.restaurant_id
     // is an FK onto restaurants.id.
-    await this.env.PLATFORM_DB.prepare(
-      "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
-    )
-      .bind(ownerAccount.restaurantId)
-      .run();
-    await this.env.PLATFORM_DB.prepare("DELETE FROM restaurants WHERE id = ?")
-      .bind(ownerAccount.restaurantId)
-      .run();
+    await this.runRollbackStep("platform shop subscription", () =>
+      this.env
+        .PLATFORM_DB!.prepare(
+          "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
+        )
+        .bind(ownerAccount.restaurantId)
+        .run(),
+    );
+    await this.runRollbackStep("platform restaurant", () =>
+      this.env
+        .PLATFORM_DB!.prepare("DELETE FROM restaurants WHERE id = ?")
+        .bind(ownerAccount.restaurantId)
+        .run(),
+    );
+  }
+
+  private async runRollbackStep(
+    step: string,
+    operation: () => Promise<unknown>,
+  ): Promise<void> {
+    try {
+      await operation();
+    } catch (rollbackError) {
+      console.error(
+        `[OnboardingService] Rollback failed during ${step}:`,
+        rollbackError,
+      );
+    }
   }
 
   private async rollbackCredentialDelivery(deliveryId: string): Promise<void> {
@@ -859,14 +893,18 @@ export class OnboardingService {
   }
 
   private async rollbackTenantProvisioning(tenantId: string): Promise<void> {
-    await this.env.MANAGEMENT_DB.prepare(
-      "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
-    )
-      .bind(tenantId)
-      .run();
-    await this.env.MANAGEMENT_DB.prepare("DELETE FROM tenants WHERE id = ?")
-      .bind(tenantId)
-      .run();
+    await this.runRollbackStep("management shop subscription", () =>
+      this.env.MANAGEMENT_DB.prepare(
+        "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
+      )
+        .bind(tenantId)
+        .run(),
+    );
+    await this.runRollbackStep("management tenant", () =>
+      this.env.MANAGEMENT_DB.prepare("DELETE FROM tenants WHERE id = ?")
+        .bind(tenantId)
+        .run(),
+    );
   }
 
   private async invalidateRestaurantListCache(): Promise<void> {

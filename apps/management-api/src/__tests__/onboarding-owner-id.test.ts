@@ -11,6 +11,7 @@ const UUID_V7_PATTERN =
 
 const insertedRows: Array<{ table: string; values: Record<string, unknown> }> =
   [];
+let batchError: Error | undefined;
 
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: () => ({
@@ -20,7 +21,10 @@ vi.mock("drizzle-orm/d1", () => ({
         return { __statement: true };
       },
     }),
-    batch: async () => [],
+    batch: async () => {
+      if (batchError) throw batchError;
+      return [];
+    },
     select: () => ({
       from: () => ({
         where: () => ({ limit: async () => [], get: async () => undefined }),
@@ -101,11 +105,29 @@ function buildEnv(cacheKv?: KVNamespace): ManagementEnv {
 type OwnerAccountFactory = (
   application: OnboardingApplication,
   tenantId: string,
-) => Promise<{
+) => Promise<ProvisionedOwnerAccountForTest>;
+
+interface ProvisionedOwnerAccountForTest {
   restaurantId: string;
   userId: string;
+  username: string;
   setupPasswordToken: string;
-}>;
+  setupPasswordLink: string;
+  setupPasswordExpiresAt: string;
+}
+
+interface ActivationServiceForTest {
+  activateApplication: (
+    applicationId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  getApplication: ReturnType<typeof vi.fn>;
+  updateApplicationStatus: ReturnType<typeof vi.fn>;
+  createTenantWithSubscription: ReturnType<typeof vi.fn>;
+  createPlatformOwnerAccount: ReturnType<typeof vi.fn>;
+  createCredentialDelivery: ReturnType<typeof vi.fn>;
+  rollbackPlatformOwnerAccount: ReturnType<typeof vi.fn>;
+  rollbackTenantProvisioning: ReturnType<typeof vi.fn>;
+}
 
 function createPlatformOwnerAccount(env: ManagementEnv): OwnerAccountFactory {
   const service = new OnboardingService(env) as unknown as {
@@ -117,6 +139,7 @@ function createPlatformOwnerAccount(env: ManagementEnv): OwnerAccountFactory {
 
 beforeEach(() => {
   insertedRows.length = 0;
+  batchError = undefined;
 });
 
 describe("onboarding platform owner provisioning", () => {
@@ -273,6 +296,129 @@ describe("onboarding platform owner provisioning", () => {
     // one-time credential link must not be downgraded to v7 alongside the ids.
     expect(account.setupPasswordToken).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+  });
+
+  it("rethrows the original provisioning error when rollback fails", async () => {
+    const originalError = new Error("platform batch failed");
+    batchError = originalError;
+    const rollbackError = new Error("rollback statement failed");
+    const failingStatement = {
+      bind: () => failingStatement,
+      first: async () => null,
+      run: vi.fn().mockRejectedValue(rollbackError),
+    };
+    const env = buildEnv();
+    env.PLATFORM_DB = {
+      prepare: vi.fn().mockReturnValue(failingStatement),
+    } as unknown as D1Database;
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    await expect(
+      createPlatformOwnerAccount(env)(buildApplication(), "tenant-1"),
+    ).rejects.toBe(originalError);
+
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("Rollback failed"),
+      rollbackError,
+    );
+  });
+
+  it("continues platform rollback after one cleanup statement fails", async () => {
+    const calls: string[] = [];
+    const rollbackError = new Error("users cleanup failed");
+    const env = buildEnv();
+    env.PLATFORM_DB = {
+      prepare: vi.fn((sql: string) => ({
+        bind: () => ({
+          run: async () => {
+            calls.push(sql);
+            if (sql.includes("DELETE FROM users")) {
+              throw rollbackError;
+            }
+            return { success: true };
+          },
+        }),
+      })),
+    } as unknown as D1Database;
+    const service = new OnboardingService(env) as unknown as {
+      rollbackPlatformOwnerAccount: (
+        ownerAccount: ProvisionedOwnerAccountForTest,
+      ) => Promise<void>;
+    };
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    await expect(
+      service.rollbackPlatformOwnerAccount({
+        restaurantId: "restaurant-1",
+        userId: "user-1",
+        username: "owner",
+        setupPasswordToken: "token",
+        setupPasswordLink: "http://localhost/setup",
+        setupPasswordExpiresAt: "2026-07-26T00:00:00.000Z",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(calls).toEqual([
+      "DELETE FROM password_reset_tokens WHERE user_id = ?",
+      "DELETE FROM users WHERE id = ?",
+      "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
+      "DELETE FROM restaurants WHERE id = ?",
+    ]);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("Rollback failed"),
+      rollbackError,
+    );
+  });
+
+  it("returns the original activation error when one rollback step fails", async () => {
+    const originalError = new Error("credential delivery insert failed");
+    const rollbackError = new Error("platform rollback failed");
+    const service = new OnboardingService(
+      buildEnv(),
+    ) as unknown as ActivationServiceForTest;
+    service.getApplication = vi.fn().mockResolvedValue(buildApplication());
+    service.updateApplicationStatus = vi.fn().mockResolvedValue(undefined);
+    service.createTenantWithSubscription = vi
+      .fn()
+      .mockResolvedValue({ id: "tenant-1" });
+    service.createPlatformOwnerAccount = vi.fn().mockResolvedValue({
+      restaurantId: "restaurant-1",
+      userId: "user-1",
+      username: "owner",
+      setupPasswordToken: "token",
+      setupPasswordLink: "http://localhost/setup",
+      setupPasswordExpiresAt: "2026-07-26T00:00:00.000Z",
+    });
+    service.createCredentialDelivery = vi.fn().mockRejectedValue(originalError);
+    service.rollbackPlatformOwnerAccount = vi
+      .fn()
+      .mockRejectedValue(rollbackError);
+    service.rollbackTenantProvisioning = vi.fn().mockResolvedValue(undefined);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    await expect(
+      service.activateApplication("APP-20260725-TEST0001"),
+    ).resolves.toMatchObject({
+      success: false,
+      error: originalError.message,
+    });
+
+    expect(service.rollbackPlatformOwnerAccount).toHaveBeenCalled();
+    expect(service.rollbackTenantProvisioning).toHaveBeenCalledWith("tenant-1");
+    expect(service.updateApplicationStatus).toHaveBeenLastCalledWith(
+      "APP-20260725-TEST0001",
+      "submitted",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("Rollback failed"),
+      rollbackError,
     );
   });
 });
