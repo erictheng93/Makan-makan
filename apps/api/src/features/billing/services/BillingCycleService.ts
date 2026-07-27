@@ -7,6 +7,7 @@ import {
 } from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
 import type { Env } from "../../../types/env";
+import { invalidateSubscriptionCacheForEnv } from "../../../middleware/moduleGate";
 import {
   BILLING_NOTIFICATION_KINDS,
   BillingNotificationService,
@@ -228,6 +229,10 @@ export class TrialReaperService {
         text: `The MakanMasak trial for ${row.restaurant_name} has ended. The subscription has moved to the basic plan.`,
         payload: { trialEndsAt: row.trial_ends_at_ms },
       });
+      // The DB write above (plan_tier -> basic, module_overrides -> {}) must
+      // take effect immediately: this runs from a cron job, not a request,
+      // so it cannot reach the Context-based invalidateSubscriptionCache.
+      await invalidateSubscriptionCacheForEnv(this.env, row.restaurant_id);
       downgraded++;
     }
 

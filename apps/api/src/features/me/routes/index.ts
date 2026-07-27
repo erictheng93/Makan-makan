@@ -1,18 +1,14 @@
 import { Hono } from "hono";
 import type { Env } from "../../../types/env";
 import { staffOrUserCustomerAuthMiddleware } from "../../../middleware/auth";
+import {
+  CACHE_TTL_SECONDS,
+  subscriptionCacheKey,
+  type CachedSubscription,
+} from "../../../middleware/moduleGate";
 import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
 import { UsageService } from "../../billing/services/UsageService";
-import type { ModuleKey, ModuleMap, PlanTier } from "@makanmakan/database";
-
-interface CachedSubscription {
-  isActive: boolean;
-  planTier: PlanTier;
-  moduleOverrides: ModuleMap;
-  trialEndsAt: number | null;
-}
-
-const CACHE_TTL_SECONDS = 300;
+import type { ModuleKey } from "@makanmakan/database";
 
 const router = new Hono<{ Bindings: Env }>();
 
@@ -69,7 +65,7 @@ router.get("/modules", async (c) => {
   const trialEndsAt = sub.trialEndsAt ? sub.trialEndsAt.getTime() : null;
 
   await c.env.CACHE_KV.put(
-    `subscription:${restaurantId}`,
+    subscriptionCacheKey(restaurantId),
     JSON.stringify({
       isActive: sub.isActive,
       planTier: sub.planTier,
@@ -117,7 +113,10 @@ async function readCachedSubscription(
   cache: KVNamespace,
   restaurantId: string,
 ): Promise<CachedSubscription | null> {
-  return cache.get<CachedSubscription>(`subscription:${restaurantId}`, "json");
+  return cache.get<CachedSubscription>(
+    subscriptionCacheKey(restaurantId),
+    "json",
+  );
 }
 
 function emptyModuleAccess(restaurantId: string | null) {
