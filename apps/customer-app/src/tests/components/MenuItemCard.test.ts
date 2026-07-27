@@ -46,9 +46,13 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
 }
 
 describe("MenuItemCard", () => {
-  // The standard list thumbnail sits in a 5rem box: DPR 2 needs ~140 device px
+  // The standard list thumbnail sits in a 70px box: DPR 2 needs ~140 device px
   // and DPR 3 needs ~210, so a single hardcoded size is wrong on one of them
   // (#65). The candidates below let the browser resolve it per device.
+  //
+  // sizes must stay in px. The preload scanner resolves rem against the default
+  // 16px root, before this app's 14px root applies, so "5rem" reads as 80px and
+  // silently costs DPR 2 the smaller candidate.
   it("offers thumbnail and small candidates for the standard list image", () => {
     const wrapper = mount(MenuItemCard, {
       props: {
@@ -61,7 +65,7 @@ describe("MenuItemCard", () => {
     expect(img.attributes("srcset")).toBe(
       "https://images.example.com/thumbnail.jpg 150w, https://images.example.com/small.jpg 300w",
     );
-    expect(img.attributes("sizes")).toBe("5rem");
+    expect(img.attributes("sizes")).toBe("70px");
   });
 
   it("keeps a thumbnail src so srcset-less clients never load medium", () => {

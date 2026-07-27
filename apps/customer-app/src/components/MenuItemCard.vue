@@ -200,7 +200,7 @@
                 v-if="item.imageUrl"
                 :src="listImageSrc"
                 :srcset="listImageSrcset"
-                sizes="5rem"
+                sizes="70px"
                 :alt="item.name"
                 loading="lazy"
                 class="w-full h-full object-cover lazy-image"
@@ -490,10 +490,16 @@ const getImageUrl = (url: string) => {
   return url;
 };
 
-// The standard list thumbnail renders in a 5rem box, so a DPR 2 screen needs
-// ~140 device px and DPR 3 needs ~210. Offering both candidates lets the
-// browser pick per device instead of hardcoding one size and being wrong on
-// half of them (#65).
+// The standard list thumbnail renders in a w-20 box, which is 70px because this
+// app's root font-size is 14px. DPR 2 therefore needs ~140 device px and DPR 3
+// needs ~210, so offering both candidates lets the browser pick per device
+// instead of hardcoding one size and being wrong on half of them (#65).
+//
+// The sizes hint is deliberately "70px" and not "5rem": the preload scanner
+// resolves rem against the default 16px root before this app's CSS applies, so
+// "5rem" reads as 80px there and pushes DPR 2 up to the 300w candidate. Measured
+// in a browser — "5rem" picks small on both DPR 2 and 3, "70px" picks thumbnail
+// on DPR 2 and small on DPR 3.
 const listImageSrc = computed(() => {
   // The template's v-if narrows item.imageUrl, but that narrowing does not
   // reach here, so the empty case is handled explicitly.
