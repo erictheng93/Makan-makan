@@ -2,5 +2,8 @@ import { afterEach, vi } from "vitest";
 
 afterEach(() => {
   vi.restoreAllMocks();
-  localStorage.clear();
+  // Files that opt into `@vitest-environment node` have no DOM storage.
+  if (typeof localStorage !== "undefined") {
+    localStorage.clear();
+  }
 });

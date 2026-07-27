@@ -37,6 +37,10 @@ export default defineConfig({
       process.env.APP_VERSION || `dev-${new Date().toISOString().slice(0, 10)}`,
     ),
     __VUE_PROD_DEVTOOLS__: false,
+    // Vue I18n v9 otherwise compiles string messages with new Function, which
+    // is blocked by the production CSP because unsafe-eval is intentionally off.
+    __INTLIFY_JIT_COMPILATION__: true,
+    __INTLIFY_DROP_MESSAGE_COMPILER__: false,
   },
   server: {
     host: "localhost", // SECURITY FIX: Restrict to localhost only in development

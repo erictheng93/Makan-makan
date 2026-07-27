@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vue-tsc && vite build",
+    "build": "vue-tsc && vite build && node ../../scripts/check-csp-safe-bundle.cjs dist",
     "build:analyze": "ANALYZE=true vue-tsc && vite build",
     "preview": "vite preview --host",
     "typecheck": "vue-tsc --noEmit",
