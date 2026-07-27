@@ -24,7 +24,14 @@ export const MODULES = {
   ANALYTICS: "analytics",
 
   // Enterprise
-  MULTI_BRANCH: "multi_branch",
+  //
+  // NOTE: `multi_branch` was removed. It was advertised on the Enterprise plan
+  // but no multi-branch product exists to gate: `users.restaurantId` is a
+  // single column, `restaurants` has no parent/branch relationship, restaurant
+  // creation is platform-admin-only rather than an owner-driven branch flow,
+  // and no route ever checked the module. Re-introducing it needs an
+  // organization/branch data model, one owner spanning several restaurants,
+  // a branch creation + invitation flow, and cross-branch reporting first.
   AI_ANALYTICS: "ai_analytics",
   PLATFORM_INTEGRATION: "platform_integration", // Uber Eats, Foodpanda, etc.
   LOYALTY: "loyalty",
@@ -58,7 +65,6 @@ export const PLAN_DEFAULT_MODULES: Record<PlanTier, ModuleMap> = {
     coupons: true,
     reservations: true,
     analytics: true,
-    multi_branch: true,
     ai_analytics: true,
     platform_integration: true,
     loyalty: true,
@@ -91,7 +97,6 @@ export const PLAN_DEFAULT_MODULES: Record<PlanTier, ModuleMap> = {
     coupons: true,
     reservations: true,
     analytics: true,
-    multi_branch: true,
     ai_analytics: true,
     platform_integration: true,
     loyalty: true,

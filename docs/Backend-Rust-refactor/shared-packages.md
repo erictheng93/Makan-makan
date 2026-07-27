@@ -197,7 +197,7 @@ All tables are `sqliteTable(...)` calls under `packages/database/src/schema/`. P
 **Subscriptions / usage / billing**
 | Table | PK | Notes |
 |---|---|---|
-| `shop_subscriptions` | TEXT uuid7 | `subscriptions.ts`. Defines `MODULES` (feature-flag keys: menu_management, table_management, online_ordering, pos, kitchen_display, receipt_printing, coupons, reservations, analytics, multi_branch, ai_analytics, platform_integration, loyalty, inventory, staff_management) and `PLAN_TIERS` (trial/basic/pro/enterprise) with `PLAN_DEFAULT_MODULES` per tier. |
+| `shop_subscriptions` | TEXT uuid7 | `subscriptions.ts`. Defines `MODULES` (feature-flag keys: menu_management, table_management, online_ordering, pos, kitchen_display, receipt_printing, coupons, reservations, analytics, ai_analytics, platform_integration, loyalty, inventory, staff_management) and `PLAN_TIERS` (trial/basic/pro/enterprise) with `PLAN_DEFAULT_MODULES` per tier. |
 | `usage_events` | TEXT uuid7 | `usage-events.ts`; defines `MeterKey` type (e.g. `orders.created`, `api.requests`, `print.jobs`, `ai.requests`, `storage.bytes` — used by `plan-quotas.ts`). |
 | `usage_meters` | TEXT uuid7 | |
 | `storage_counters` | **restaurantId (TEXT, PK)** | `storage-counters.ts`. **No `id` column** — PK is `restaurantId` itself, FK → `restaurants.id`. `r2Bytes`, `imagesCount`. |
