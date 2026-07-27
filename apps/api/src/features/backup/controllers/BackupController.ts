@@ -4,9 +4,11 @@
  */
 
 import { Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { BackupService } from "../services/BackupService";
 import { BackupConfigService } from "../services/BackupConfigService";
 import { BackupValidationService } from "../services/BackupValidationService";
+import { ApiError } from "../../../shared/utils/api-error";
 import type {
   CreateBackupRequest,
   ListBackupsQuery,
@@ -14,12 +16,68 @@ import type {
   BackupConfiguration,
 } from "@makanmakan/shared-types";
 
+// Status codes this controller's ApiErrors can legitimately carry today
+// (e.g. `forbidden()` from BackupValidationService.verifyRestaurantAccess).
+// Anything outside this set falls back to 500 rather than passing an
+// unexpected value straight through to Hono's status typing.
+const KNOWN_API_ERROR_STATUS_CODES = new Set([
+  400, 401, 403, 404, 409, 422, 429, 500,
+]);
+
+function toContentfulStatusCode(status: number): ContentfulStatusCode {
+  return (
+    KNOWN_API_ERROR_STATUS_CODES.has(status) ? status : 500
+  ) as ContentfulStatusCode;
+}
+
 export class BackupController {
   constructor(
     private backupService: BackupService,
     private configService: BackupConfigService,
     private validationService: BackupValidationService,
   ) {}
+
+  /**
+   * Format a caught error into an HTTP response.
+   *
+   * `ApiError`s (e.g. the 403 thrown by
+   * `BackupValidationService.verifyRestaurantAccess`) are rendered using
+   * the repo-wide unified error contract — `{ success: false, error: {
+   * code, message } }` with the error's own status — matching the format
+   * produced by the global `app.onError` handler (see CLAUDE.md and
+   * apps/api/src/shared/utils/api-error.ts). Any other thrown value keeps
+   * the legacy flat `{ success: false, error: string }` shape at the
+   * caller-supplied fallback status so existing non-ApiError error paths
+   * (validation errors, service failures, etc.) are unaffected.
+   */
+  private errorResponse(
+    c: Context,
+    error: unknown,
+    fallbackMessage: string,
+    fallbackStatus: 400 | 500 = 400,
+  ): Response {
+    if (error instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message,
+            ...(error.details !== undefined && { details: error.details }),
+          },
+        },
+        toContentfulStatusCode(error.status),
+      );
+    }
+
+    return c.json(
+      {
+        success: false,
+        error: (error as Error).message || fallbackMessage,
+      },
+      fallbackStatus,
+    );
+  }
 
   /**
    * Create a new backup
@@ -52,13 +110,7 @@ export class BackupController {
       );
     } catch (error) {
       console.error("Error creating backup:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to create backup",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to create backup", 400);
     }
   }
 
@@ -83,13 +135,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error listing backups:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to list backups",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to list backups", 400);
     }
   }
 
@@ -133,13 +179,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error fetching backup:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to fetch backup",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to fetch backup", 400);
     }
   }
 
@@ -191,13 +231,7 @@ export class BackupController {
       return downloadResponse;
     } catch (error) {
       console.error("Error downloading backup:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to download backup",
-        },
-        500,
-      );
+      return this.errorResponse(c, error, "Failed to download backup", 500);
     }
   }
 
@@ -258,13 +292,7 @@ export class BackupController {
       );
     } catch (error) {
       console.error("Error initiating restore:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to initiate restore",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to initiate restore", 400);
     }
   }
 
@@ -311,13 +339,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error deleting backup:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to delete backup",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to delete backup", 400);
     }
   }
 
@@ -350,12 +372,10 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error fetching backup configurations:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            (error as Error).message || "Failed to fetch backup configurations",
-        },
+      return this.errorResponse(
+        c,
+        error,
+        "Failed to fetch backup configurations",
         400,
       );
     }
@@ -393,12 +413,10 @@ export class BackupController {
       );
     } catch (error) {
       console.error("Error saving backup configuration:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            (error as Error).message || "Failed to save backup configuration",
-        },
+      return this.errorResponse(
+        c,
+        error,
+        "Failed to save backup configuration",
         400,
       );
     }
@@ -430,13 +448,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error fetching system health:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to fetch system health",
-        },
-        500,
-      );
+      return this.errorResponse(c, error, "Failed to fetch system health", 500);
     }
   }
 
@@ -472,12 +484,10 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error fetching restaurant metrics:", error);
-      return c.json(
-        {
-          success: false,
-          error:
-            (error as Error).message || "Failed to fetch restaurant metrics",
-        },
+      return this.errorResponse(
+        c,
+        error,
+        "Failed to fetch restaurant metrics",
         400,
       );
     }
@@ -515,13 +525,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error fetching alerts:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to fetch alerts",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to fetch alerts", 400);
     }
   }
 
@@ -571,13 +575,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error acknowledging alert:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to acknowledge alert",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to acknowledge alert", 400);
     }
   }
 
@@ -627,13 +625,7 @@ export class BackupController {
       });
     } catch (error) {
       console.error("Error resolving alert:", error);
-      return c.json(
-        {
-          success: false,
-          error: (error as Error).message || "Failed to resolve alert",
-        },
-        400,
-      );
+      return this.errorResponse(c, error, "Failed to resolve alert", 400);
     }
   }
 }

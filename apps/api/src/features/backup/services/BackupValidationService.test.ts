@@ -264,23 +264,98 @@ describe("BackupValidationService", () => {
     ).rejects.toThrow("Invalid minute in cron expression");
   });
 
-  it("verifies restaurant access for admins and restaurant members", async () => {
-    const service = createService();
+  describe("verifyRestaurantAccess", () => {
+    // Regression guard for the original bug: verifyRestaurantAccess used to
+    // run `SELECT ... FROM restaurant_users`, a table that does not exist
+    // in the Drizzle schema (packages/database/src/schema/) or in
+    // production D1. Every db.run/db.select call in this describe block is
+    // wired to reject exactly the way a real D1 query against a missing
+    // table does, so if the implementation ever regresses to querying
+    // `restaurant_users` (or any other table) for this check, the
+    // corresponding assertion below fails loudly instead of the mock
+    // silently "authorizing" the call.
+    beforeEach(() => {
+      const missingTableError = new Error(
+        "D1_ERROR: no such table: restaurant_users",
+      );
+      mocks.db.run.mockRejectedValue(missingTableError);
+      mocks.db.select.mockImplementation(() => {
+        throw missingTableError;
+      });
+    });
 
-    await expect(
-      service.verifyRestaurantAccess(createContext({ id: 1, role: 0 }), restaurantId),
-    ).resolves.toBeUndefined();
-    expect(mocks.db.run).not.toHaveBeenCalled();
+    it("allows admins (role 0) regardless of restaurant match", async () => {
+      const service = createService();
 
-    mocks.db.run.mockResolvedValueOnce({ results: [{ ok: 1 }] });
-    await expect(
-      service.verifyRestaurantAccess(createContext({ id: 2, role: 1 }), restaurantId),
-    ).resolves.toBeUndefined();
+      await expect(
+        service.verifyRestaurantAccess(
+          createContext({ id: 1, role: 0 }),
+          restaurantId,
+        ),
+      ).resolves.toBeUndefined();
+      expect(mocks.db.run).not.toHaveBeenCalled();
+      expect(mocks.db.select).not.toHaveBeenCalled();
+    });
 
-    mocks.db.run.mockResolvedValueOnce({ results: [] });
-    await expect(
-      service.verifyRestaurantAccess(createContext({ id: 3, role: 1 }), restaurantId),
-    ).rejects.toThrow("Access denied");
+    it("allows a restaurant owner (role 1) of the same restaurant", async () => {
+      const service = createService();
+
+      await expect(
+        service.verifyRestaurantAccess(
+          createContext({ id: 2, role: 1, restaurantId }),
+          restaurantId,
+        ),
+      ).resolves.toBeUndefined();
+      expect(mocks.db.run).not.toHaveBeenCalled();
+      expect(mocks.db.select).not.toHaveBeenCalled();
+    });
+
+    it("denies a restaurant owner (role 1) of a DIFFERENT restaurant with a 403 ApiError", async () => {
+      const service = createService();
+      const otherRestaurantId = "019469a0-0004-7000-8000-000000000004";
+
+      await expect(
+        service.verifyRestaurantAccess(
+          createContext({ id: 3, role: 1, restaurantId: otherRestaurantId }),
+          restaurantId,
+        ),
+      ).rejects.toMatchObject({
+        name: "ApiError",
+        code: "FORBIDDEN",
+        status: 403,
+        message: expect.stringContaining("Access denied"),
+      });
+      expect(mocks.db.run).not.toHaveBeenCalled();
+    });
+
+    it("denies an owner with no restaurantId on their session", async () => {
+      const service = createService();
+
+      await expect(
+        service.verifyRestaurantAccess(
+          createContext({ id: 4, role: 1 }),
+          restaurantId,
+        ),
+      ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+    });
+
+    it("denies non-owner staff roles even for their own restaurant (least-privilege role gate)", async () => {
+      const service = createService();
+
+      for (const role of [2, 3, 4, 5]) {
+        await expect(
+          service.verifyRestaurantAccess(
+            createContext({ id: `staff-${role}`, role, restaurantId }),
+            restaurantId,
+          ),
+        ).rejects.toMatchObject({
+          name: "ApiError",
+          code: "BACKUP_ROLE_FORBIDDEN",
+          status: 403,
+        });
+      }
+      expect(mocks.db.run).not.toHaveBeenCalled();
+    });
   });
 
   it("checks backup concurrency and recent attempt limits", async () => {

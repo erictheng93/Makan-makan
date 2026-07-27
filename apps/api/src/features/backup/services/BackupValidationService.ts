@@ -8,6 +8,7 @@ import type { D1Database } from "@cloudflare/workers-types";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, sql, count, inArray } from "drizzle-orm";
 import { backupRecords } from "@makanmakan/database";
+import { forbidden } from "../../../shared/utils/api-error";
 import type {
   CreateBackupRequest,
   RestoreBackupRequest,
@@ -167,7 +168,17 @@ export class BackupValidationService {
   }
 
   /**
-   * Verify restaurant access for the current user
+   * Verify restaurant access for the current user.
+   *
+   * NOTE: this previously queried a `restaurant_users` join table that does
+   * not exist anywhere in the schema (`packages/database/src/schema/`) and
+   * was never created in production D1 — every non-admin call threw, and
+   * the backup feature was unusable for shop owners. Restaurant membership
+   * in this codebase is expressed as a single `restaurantId` column on
+   * `users` (see `packages/database/src/schema/users.ts`), which is exactly
+   * how the canonical `requireRestaurantAccess` middleware
+   * (`apps/api/src/middleware/auth.ts`) checks it. This mirrors that
+   * pattern instead of inventing a new one.
    */
   async verifyRestaurantAccess(
     c: Context,
@@ -180,18 +191,26 @@ export class BackupValidationService {
       return;
     }
 
-    // Check if user belongs to this restaurant - use raw sql for restaurant_users table
-    const result = await this.db.run(sql`
-      SELECT 1 FROM restaurant_users
-      WHERE user_id = ${user.id} AND restaurant_id = ${restaurantId}
-    `);
+    // A completed backup is a full database export (orders, users, payment
+    // metadata, etc.), and restore/delete are destructive. Backup
+    // management is a restaurant-management concern, not something every
+    // authenticated staff member needs: restrict it to the restaurant's
+    // owner (role 1) in addition to admins. Chef/service-crew/cashier/
+    // customer (roles 2-5) are denied even when the restaurant matches —
+    // previously any authenticated non-admin that happened to pass the
+    // (broken) access check could create, download, restore, or delete
+    // backups for their restaurant.
+    if (user.role !== 1) {
+      throw forbidden(
+        "Backup access is restricted to restaurant owners and administrators",
+        "BACKUP_ROLE_FORBIDDEN",
+      );
+    }
 
-    if (
-      !result ||
-      (result as { results?: unknown[] }).results?.length === 0
-    ) {
-      throw new Error(
+    if (!user.restaurantId || String(user.restaurantId) !== restaurantId) {
+      throw forbidden(
         "Access denied: You do not have permission to access this restaurant",
+        "FORBIDDEN",
       );
     }
   }
