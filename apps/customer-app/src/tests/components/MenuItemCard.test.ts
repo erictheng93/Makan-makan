@@ -28,11 +28,12 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     name: "滷肉飯",
     description: "招牌餐點",
     price: 5000,
-    imageUrl: "/images/original.jpg",
+    imageUrl: "https://images.example.com/original.jpg",
     imageVariants: {
-      thumbnail: "/images/thumbnail.jpg",
-      medium: "/images/medium.jpg",
-      large: "/images/large.jpg",
+      thumbnail: "https://images.example.com/thumbnail.jpg",
+      small: "https://images.example.com/small.jpg",
+      medium: "https://images.example.com/medium.jpg",
+      large: "https://images.example.com/large.jpg",
     },
     spiceLevel: 0,
     sortOrder: 0,
@@ -45,14 +46,34 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
 }
 
 describe("MenuItemCard", () => {
-  it("uses the thumbnail variant for the standard list image", () => {
+  // The standard list thumbnail sits in a 5rem box: DPR 2 needs ~140 device px
+  // and DPR 3 needs ~210, so a single hardcoded size is wrong on one of them
+  // (#65). The candidates below let the browser resolve it per device.
+  it("offers thumbnail and small candidates for the standard list image", () => {
     const wrapper = mount(MenuItemCard, {
       props: {
         item: menuItem(),
       },
     });
 
-    expect(wrapper.get("img").attributes("src")).toBe("/images/thumbnail.jpg");
+    const img = wrapper.get("img");
+
+    expect(img.attributes("srcset")).toBe(
+      "https://images.example.com/thumbnail.jpg 150w, https://images.example.com/small.jpg 300w",
+    );
+    expect(img.attributes("sizes")).toBe("5rem");
+  });
+
+  it("keeps a thumbnail src so srcset-less clients never load medium", () => {
+    const wrapper = mount(MenuItemCard, {
+      props: {
+        item: menuItem(),
+      },
+    });
+
+    expect(wrapper.get("img").attributes("src")).toBe(
+      "https://images.example.com/thumbnail.jpg",
+    );
   });
 
   it("falls back to medium for old standard list items without thumbnail", () => {
@@ -60,13 +81,35 @@ describe("MenuItemCard", () => {
       props: {
         item: menuItem({
           imageVariants: {
-            medium: "/images/medium.jpg",
+            medium: "https://images.example.com/medium.jpg",
           },
         }),
       },
     });
 
-    expect(wrapper.get("img").attributes("src")).toBe("/images/medium.jpg");
+    const img = wrapper.get("img");
+
+    expect(img.attributes("src")).toBe("https://images.example.com/medium.jpg");
+    // No candidates exist, so the attribute must be absent rather than empty —
+    // an empty srcset would suppress the src in some browsers.
+    expect(img.attributes("srcset")).toBeUndefined();
+  });
+
+  it("still builds a candidate list when only one variant size exists", () => {
+    const wrapper = mount(MenuItemCard, {
+      props: {
+        item: menuItem({
+          imageVariants: {
+            small: "https://images.example.com/small.jpg",
+            medium: "https://images.example.com/medium.jpg",
+          },
+        }),
+      },
+    });
+
+    expect(wrapper.get("img").attributes("srcset")).toBe(
+      "https://images.example.com/small.jpg 300w",
+    );
   });
 
   it("keeps the medium variant for the featured large image", () => {
@@ -77,6 +120,9 @@ describe("MenuItemCard", () => {
       },
     });
 
-    expect(wrapper.get("img").attributes("src")).toBe("/images/medium.jpg");
+    const img = wrapper.get("img");
+
+    expect(img.attributes("src")).toBe("https://images.example.com/medium.jpg");
+    expect(img.attributes("srcset")).toBeUndefined();
   });
 });

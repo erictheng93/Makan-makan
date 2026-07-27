@@ -198,13 +198,9 @@
             >
               <img
                 v-if="item.imageUrl"
-                :src="
-                  getImageUrl(
-                    item.imageVariants?.thumbnail ||
-                      item.imageVariants?.medium ||
-                      item.imageUrl,
-                  )
-                "
+                :src="listImageSrc"
+                :srcset="listImageSrcset"
+                sizes="5rem"
                 :alt="item.name"
                 loading="lazy"
                 class="w-full h-full object-cover lazy-image"
@@ -493,6 +489,32 @@ const getImageUrl = (url: string) => {
   }
   return url;
 };
+
+// The standard list thumbnail renders in a 5rem box, so a DPR 2 screen needs
+// ~140 device px and DPR 3 needs ~210. Offering both candidates lets the
+// browser pick per device instead of hardcoding one size and being wrong on
+// half of them (#65).
+const listImageSrc = computed(() => {
+  // The template's v-if narrows item.imageUrl, but that narrowing does not
+  // reach here, so the empty case is handled explicitly.
+  const url =
+    props.item.imageVariants?.thumbnail ||
+    props.item.imageVariants?.medium ||
+    props.item.imageUrl;
+
+  return url ? getImageUrl(url) : undefined;
+});
+
+const listImageSrcset = computed(() => {
+  const variants = props.item.imageVariants;
+  const candidates = [
+    variants?.thumbnail && `${getImageUrl(variants.thumbnail)} 150w`,
+    variants?.small && `${getImageUrl(variants.small)} 300w`,
+  ].filter(Boolean);
+
+  // Items uploaded before the variant pipeline have neither; fall back to src.
+  return candidates.length > 0 ? candidates.join(", ") : undefined;
+});
 
 const _handleImageError = (event: Event) => {
   // 圖片載入失敗時的處理
