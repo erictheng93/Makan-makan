@@ -549,6 +549,25 @@ export function createApp(
         "/api/v1/partnerships/members/verify", // Public member verification application
         "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
         "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
+        // Customer self-service flows on features mounted before this
+        // middleware used to bypass CSRF entirely; once the ordering was
+        // fixed they started 403ing. None of them use a session cookie —
+        // they authorise by possession (customer phone in the body, a verify
+        // code, or an optional customer token) — so CSRF adds nothing.
+        //
+        // These are deliberately exact or single-segment patterns. A bare
+        // prefix like "/api/v1/waiting-list" would also exempt the staff
+        // routes under it (POST /:id/call), undoing the protection this
+        // exclusion list exists to preserve.
+        "/api/v1/waiting-list$", // exact: POST / (join)
+        "/api/v1/waiting-list/*/confirm",
+        "/api/v1/reservations$", // exact: POST / (create)
+        "/api/v1/reservations/*/cancel",
+        "/api/v1/service-bookings$", // exact: POST / (create)
+        "/api/v1/service-bookings/recurring",
+        "/api/v1/service-bookings/waitlist",
+        "/api/v1/service-bookings/*/pay",
+        "/api/v1/service-bookings/verify/*/cancel",
         "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
         "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
         "/api/v1/billing/webhooks", // Billing provider webhooks (HMAC/idempotency verified)

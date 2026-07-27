@@ -65,6 +65,14 @@ function getCookieValue(cookieHeader: string | undefined, name: string) {
 }
 
 function isExcludedPath(path: string, excludePath: string): boolean {
+  // A trailing "$" means exact path only — do not exempt anything nested under
+  // it. Needed where a public customer route sits at the root of a feature
+  // whose child routes are staff-only, e.g. POST /waiting-list is public but
+  // POST /waiting-list/:id/call must stay protected.
+  if (excludePath.endsWith("$")) {
+    return path === excludePath.slice(0, -1);
+  }
+
   if (excludePath.includes("*")) {
     const escaped = excludePath
       .split("*")

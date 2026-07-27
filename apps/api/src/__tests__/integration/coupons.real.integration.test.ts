@@ -576,11 +576,19 @@ describe("Coupons API — real integration", () => {
     );
     expect(chefRes.status).toBe(403);
 
+    // A request with neither a CSRF token nor credentials is now rejected by
+    // CSRF (403) before authentication is reached (401). CSRF is a global
+    // middleware and auth is per-route, so once CSRF was registered ahead of
+    // the feature mounts — which is what makes it run at all — it necessarily
+    // runs first. Rejecting a tokenless state-changing request before doing
+    // any auth work is the safer order: it does not reveal whether the
+    // credentials would have been accepted. Real clients send both tokens and
+    // are unaffected.
     const unauthedRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/coupons/${couponA.id}/deactivate`, {
         method: "POST",
       }),
     );
-    expect(unauthedRes.status).toBe(401);
+    expect(unauthedRes.status).toBe(403);
   });
 });
