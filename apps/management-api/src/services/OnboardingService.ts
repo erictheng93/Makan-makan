@@ -14,7 +14,16 @@ import type {
 import { TenantService } from "./TenantService";
 import { randomBase36, randomBase36Upper } from "../utils/random";
 import { createSubdomainBase } from "../utils/subdomain";
-import { passwordResetTokens, restaurants, users } from "@makanmakan/database";
+import {
+  DEFAULT_BILLING_CYCLE_MS,
+  PLAN_TIERS,
+  passwordResetTokens,
+  planIdToTier,
+  restaurants,
+  shopSubscriptions,
+  TRIAL_DURATION_MS,
+  users,
+} from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
 import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
@@ -555,6 +564,14 @@ export class OnboardingService {
     // carries 74 random bits instead of v4's 122, which weakens a setup link.
     const setupPasswordToken = crypto.randomUUID();
     const setupPasswordExpiresAtMs = nowMs + 24 * 60 * 60 * 1000;
+    // The platform API's moduleGate middleware reads shop_subscriptions from the
+    // PLATFORM DB keyed by restaurant_id. TenantService only writes the
+    // management-side row (keyed by tenant id), so without this the owner gets
+    // SUBSCRIPTION_NOT_FOUND on every module-gated endpoint.
+    // Tier mapping is shared with TenantService via planIdToTier so both sides
+    // stay consistent.
+    const planTier = planIdToTier(application.planId);
+    const isTrial = planTier === PLAN_TIERS.TRIAL;
     const ownerAccount: ProvisionedOwnerAccount = {
       restaurantId,
       userId,
@@ -600,6 +617,22 @@ export class OnboardingService {
           totalOrders: 0,
           totalSpent: 0,
           tokenVersion: 1,
+          createdAt: new Date(nowMs),
+          updatedAt: new Date(nowMs),
+        }),
+        // Must come after the restaurants insert: restaurant_id is an FK.
+        platformDb.insert(shopSubscriptions).values({
+          id: generateUUID(),
+          restaurantId,
+          planTier,
+          moduleOverrides: {},
+          isActive: true,
+          trialEndsAt: isTrial ? new Date(nowMs + TRIAL_DURATION_MS) : null,
+          billingCycleStartAt: isTrial ? null : new Date(nowMs),
+          billingCycleEndAt: isTrial
+            ? null
+            : new Date(nowMs + DEFAULT_BILLING_CYCLE_MS),
+          notes: `Provisioned from onboarding application ${application.id}`,
           createdAt: new Date(nowMs),
           updatedAt: new Date(nowMs),
         }),
@@ -731,6 +764,13 @@ export class OnboardingService {
     }
     await this.env.PLATFORM_DB.prepare("DELETE FROM users WHERE id = ?")
       .bind(ownerAccount.userId)
+      .run();
+    // Must be deleted before the restaurant row: shop_subscriptions.restaurant_id
+    // is an FK onto restaurants.id.
+    await this.env.PLATFORM_DB.prepare(
+      "DELETE FROM shop_subscriptions WHERE restaurant_id = ?",
+    )
+      .bind(ownerAccount.restaurantId)
       .run();
     await this.env.PLATFORM_DB.prepare("DELETE FROM restaurants WHERE id = ?")
       .bind(ownerAccount.restaurantId)

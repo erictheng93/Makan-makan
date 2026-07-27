@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { OnboardingService } from "../services/OnboardingService";
+import { planIdToTier } from "@makanmakan/database";
 import type { ManagementEnv, OnboardingApplication } from "../types";
 
 // Mirrors apps/image-processor/src/middleware/auth.ts UUID_V7_PATTERN. Any
@@ -142,6 +143,71 @@ describe("onboarding platform owner provisioning", () => {
       }),
     });
     expect(String(userRow?.values.id)).toMatch(UUID_V7_PATTERN);
+  });
+
+  // Regression: TenantService writes shop_subscriptions into the MANAGEMENT db
+  // keyed by tenant id. apps/api moduleGate reads shop_subscriptions from the
+  // PLATFORM db keyed by restaurant_id — without a platform row every
+  // onboarded owner got 403 SUBSCRIPTION_NOT_FOUND on module-gated endpoints.
+  it("inserts a platform shop_subscriptions row for the new restaurant", async () => {
+    const account = await createPlatformOwnerAccount(buildEnv())(
+      buildApplication({ planId: "trial" }),
+      "tenant-1",
+    );
+
+    const subscriptionRow = insertedRows.find(
+      (row) => row.values.planTier !== undefined,
+    );
+
+    expect(subscriptionRow).toBeDefined();
+    expect(subscriptionRow?.table).toBe("shop_subscriptions");
+    expect(subscriptionRow).toMatchObject({
+      values: expect.objectContaining({
+        id: expect.any(String),
+        restaurantId: account.restaurantId,
+        planTier: "trial",
+        isActive: true,
+      }),
+    });
+    // Domain entity ids are UUID v7 across the platform.
+    expect(String(subscriptionRow?.values.id)).toMatch(UUID_V7_PATTERN);
+    // A trial row without trialEndsAt would never expire; moduleGate reads it.
+    expect(subscriptionRow?.values.trialEndsAt).toBeInstanceOf(Date);
+  });
+
+  it("maps the application plan to the same tier TenantService uses", async () => {
+    await createPlatformOwnerAccount(buildEnv())(
+      buildApplication({ planId: "professional" }),
+      "tenant-1",
+    );
+
+    const subscriptionRow = insertedRows.find(
+      (row) => row.values.planTier !== undefined,
+    );
+
+    expect(subscriptionRow?.values.planTier).toBe(planIdToTier("professional"));
+    expect(subscriptionRow?.values.planTier).toBe("pro");
+    // Non-trial plans get a billing cycle instead of a trial window.
+    expect(subscriptionRow?.values.trialEndsAt).toBeNull();
+    expect(subscriptionRow?.values.billingCycleEndAt).toBeInstanceOf(Date);
+  });
+
+  it("inserts the subscription after the restaurant so the FK resolves", async () => {
+    const account = await createPlatformOwnerAccount(buildEnv())(
+      buildApplication(),
+      "tenant-1",
+    );
+
+    const restaurantIndex = insertedRows.findIndex(
+      (row) => row.table === "restaurants",
+    );
+    const subscriptionIndex = insertedRows.findIndex(
+      (row) => row.table === "shop_subscriptions",
+    );
+
+    expect(restaurantIndex).toBeGreaterThanOrEqual(0);
+    expect(subscriptionIndex).toBeGreaterThan(restaurantIndex);
+    expect(insertedRows[restaurantIndex]?.values.id).toBe(account.restaurantId);
   });
 
   it("keeps the setup-password token on v4 so it stays high-entropy", async () => {
