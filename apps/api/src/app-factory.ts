@@ -527,6 +527,37 @@ export function createApp(
   // 路由註冊
   const apiV1 = new Hono<{ Bindings: Env }>();
 
+  // These must be registered before every mounted feature route. Hono executes
+  // matching middleware in registration order, so registering them later would
+  // silently omit the early public-feature mounts below.
+  apiV1.use("*", usageTracker);
+
+  // Apply CSRF protection to state-changing operations. Protected endpoints
+  // retain their route-level authentication middleware.
+  apiV1.use(
+    "*",
+    csrfProtection({
+      excludePaths: [
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/customer/auth",
+        "/api/v1/monitoring/health",
+        "/api/v1/sse", // SSE connections should not be CSRF protected
+        "/api/v1/queue/public", // Public queue endpoints
+        "/api/v1/qr/scan", // Public QR scanning
+        "/api/v1/coupons/validate", // Public coupon validation
+        "/api/v1/partnerships/members/verify", // Public member verification application
+        "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
+        "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
+        "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
+        "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
+        "/api/v1/billing/webhooks", // Billing provider webhooks (HMAC/idempotency verified)
+        "/api/v1/payments", // Payment requests are protected by auth + idempotency
+        // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
+      ],
+    }),
+  );
+
   // 公開路由（無需認證）
   // Attach CSRF tokens to auth responses
   apiV1.use("/auth/*", attachCSRFToken());
@@ -625,33 +656,6 @@ export function createApp(
   apiV1.use("/notifications/*", authMiddleware);
   apiV1.use("/partnerships/*", authMiddleware);
   // Note: /integrations/* auth is handled internally (webhooks are public with HMAC, admin routes use authMiddleware)
-
-  apiV1.use("*", usageTracker);
-
-  // Apply CSRF protection to state-changing operations after authentication
-  apiV1.use(
-    "*",
-    csrfProtection({
-      excludePaths: [
-        "/api/v1/auth/login",
-        "/api/v1/auth/register",
-        "/api/v1/customer/auth",
-        "/api/v1/monitoring/health",
-        "/api/v1/sse", // SSE connections should not be CSRF protected
-        "/api/v1/queue/public", // Public queue endpoints
-        "/api/v1/qr/scan", // Public QR scanning
-        "/api/v1/coupons/validate", // Public coupon validation
-        "/api/v1/partnerships/members/verify", // Public member verification application
-        "/api/v1/partnerships/plans/validate", // Public plan validation for cashiers
-        "/api/v1/guest-orders", // Guest ordering (no session, uses KV tokens)
-        "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
-        "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
-        "/api/v1/billing/webhooks", // Billing provider webhooks (HMAC/idempotency verified)
-        "/api/v1/payments", // Payment requests are protected by auth + idempotency
-        // SECURITY: Removed testing exclusions for shop QR endpoints - all state-changing operations now require CSRF tokens
-      ],
-    }),
-  );
 
   apiV1.route("/restaurants", restaurantsFeature.routes);
   apiV1.route("/menu", menuFeature.routes);
