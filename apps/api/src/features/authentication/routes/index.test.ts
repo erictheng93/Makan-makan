@@ -332,6 +332,68 @@ describe("authentication routes", () => {
     expect(service.register).not.toHaveBeenCalled();
   });
 
+  // The owner path above is the one that was reported, but a staff row with a
+  // NULL restaurant_id is unmanageable whoever created it — no owner can
+  // administer an account that belongs to no restaurant (#67). The requirement
+  // therefore follows the role being created, not the creator.
+  it("does not let an admin create restaurant-scoped staff with no restaurant", async () => {
+    currentUser.value = { id: 7, role: 0, restaurantId: null };
+
+    const response = await request(
+      "/register-staff",
+      "POST",
+      staffBody({ role: 4, restaurantId: undefined }),
+    ).res;
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "Restaurant ID is required for restaurant-scoped roles",
+    });
+    expect(service.register).not.toHaveBeenCalled();
+  });
+
+  it("lets an admin create restaurant-scoped staff for a named restaurant", async () => {
+    currentUser.value = { id: 7, role: 0, restaurantId: null };
+
+    const response = await request(
+      "/register-staff",
+      "POST",
+      staffBody({
+        role: 4,
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31ff",
+      }),
+    ).res;
+
+    expect(response.status).toBe(201);
+    expect(service.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 4,
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31ff",
+      }),
+      7,
+    );
+  });
+
+  it("keeps a platform admin unbound to any restaurant", async () => {
+    currentUser.value = { id: 7, role: 0, restaurantId: null };
+
+    const response = await request(
+      "/register-staff",
+      "POST",
+      staffBody({
+        role: 0,
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31ff",
+      }),
+    ).res;
+
+    expect(response.status).toBe(201);
+    expect(service.register).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 0, restaurantId: undefined }),
+      7,
+    );
+  });
+
   it("enforces role constraints for staff registration", async () => {
     currentUser.value = { id: 8, role: 2 };
 

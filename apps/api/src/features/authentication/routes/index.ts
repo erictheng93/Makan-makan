@@ -228,18 +228,29 @@ export function createAuthRoutes(
         );
       }
 
-      const effectiveRestaurantId =
-        currentUser.role === 1
+      // Roles 1-4 are restaurant-scoped; role 0 is the platform and owns no
+      // restaurant. Tying the requirement to the role being created — rather
+      // than to who is creating it — is what stops an admin from producing the
+      // same unmanageable orphan an owner used to (#67): a staff row with a
+      // NULL restaurant_id belongs to nobody, so no owner can administer it.
+      const isPlatformRole = requestData.role === 0;
+
+      const effectiveRestaurantId = isPlatformRole
+        ? undefined
+        : currentUser.role === 1
           ? currentUser.restaurantId == null
             ? undefined
             : String(currentUser.restaurantId)
           : requestData.restaurantId;
 
-      if (currentUser.role === 1 && !effectiveRestaurantId) {
+      if (!isPlatformRole && !effectiveRestaurantId) {
         return c.json(
           {
             success: false,
-            error: "Shop owner restaurant id is required",
+            error:
+              currentUser.role === 1
+                ? "Shop owner restaurant id is required"
+                : "Restaurant ID is required for restaurant-scoped roles",
           },
           HTTP_STATUS.BAD_REQUEST,
         );
