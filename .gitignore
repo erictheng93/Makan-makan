@@ -123,7 +123,6 @@ public
 !apps/*/public/
 apps/*/public/*
 !apps/*/public/_headers
-!apps/*/public/_routes.json
 
 # Build outputs
 .out
