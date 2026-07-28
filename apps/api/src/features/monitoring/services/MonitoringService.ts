@@ -430,6 +430,7 @@ export class MonitoringService {
       const metrics: SystemMetrics = {
         ...this.metrics,
         timestamp: Date.now(),
+        measured: { ...this.metrics.measured, api: true },
         apiMetrics: {
           ...this.metrics.apiMetrics,
           totalRequests: aggregate.totalRequests,
@@ -607,6 +608,18 @@ export class MonitoringService {
   private createEmptyMetrics(): SystemMetrics {
     return {
       timestamp: Date.now(),
+      // Nothing populates database, cache, or resource metrics.
+      // recordDatabaseQuery is never called anywhere in the codebase;
+      // cacheMonitoringMiddleware is exported but never registered; and Workers
+      // does not expose memory or CPU to the isolate at all. api flips to true
+      // in getMetrics() once the Analytics Engine aggregate comes back.
+      measured: {
+        api: false,
+        database: false,
+        cache: false,
+        resources: false,
+        errors: true,
+      },
       apiMetrics: {
         totalRequests: 0,
         errorRate: 0,

@@ -9,6 +9,21 @@
 
 export interface SystemMetrics {
   timestamp: number;
+  /**
+   * Which metric groups the API actually measures. Unmeasured groups still
+   * carry zeroes because the shape is fixed, and a zero there is
+   * indistinguishable from a real one — check this before rendering a group.
+   *
+   * Optional so an older API response still typechecks; treat a missing flag
+   * as unmeasured.
+   */
+  measured?: {
+    api: boolean;
+    database: boolean;
+    cache: boolean;
+    resources: boolean;
+    errors: boolean;
+  };
   apiMetrics: ApiMetrics;
   databaseMetrics: DatabaseMetrics;
   cacheMetrics: CacheMetrics;

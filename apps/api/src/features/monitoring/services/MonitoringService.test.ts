@@ -168,6 +168,51 @@ describe("MonitoringService", () => {
     });
   });
 
+  // The dashboard plotted database and cache zeroes next to real API latency,
+  // presenting unmeasured groups as observed. These flags are what stops that,
+  // so they have to track what actually has a data source.
+  it("reports database, cache, and resource metrics as unmeasured", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    const metrics = await service.getMetrics();
+
+    expect(metrics.measured).toMatchObject({
+      database: false,
+      cache: false,
+      resources: false,
+    });
+    // And the zeroes they carry are still zeroes — the flag is the only thing
+    // distinguishing "not measured" from "measured as zero".
+    expect(metrics.databaseMetrics.queryCount).toBe(0);
+    expect(metrics.cacheMetrics.hitRate).toBe(0);
+  });
+
+  it("marks api as measured only once the aggregate comes back", async () => {
+    const { kv } = createKV();
+
+    // No Analytics Engine credentials -> no aggregate -> api stays unmeasured.
+    const withoutAe = await new MonitoringService(kv).getMetrics();
+    expect(withoutAe.measured.api).toBe(false);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          data: [{ totalRequests: "10", p95ResponseTime: "40" }],
+        }),
+      ),
+    );
+    const withAe = await new MonitoringService(createKV().kv, {
+      CLOUDFLARE_ACCOUNT_ID: "acct",
+      CLOUDFLARE_API_TOKEN: "token",
+      ANALYTICS_DATASET: "ds",
+    }).getMetrics();
+
+    expect(withAe.measured.api).toBe(true);
+    expect(withAe.apiMetrics.totalRequests).toBe(10);
+  });
+
   function healthyDb() {
     return {
       prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),

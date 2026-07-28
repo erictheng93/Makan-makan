@@ -6,6 +6,22 @@
 // 監控指標接口
 export interface SystemMetrics {
   timestamp: number;
+  /**
+   * Which metric groups are backed by a real data source.
+   *
+   * A group that is not measured still carries zeroes, because the shape is
+   * fixed — and a zero is indistinguishable from a genuine zero. Consumers must
+   * check this before displaying a group, or they will present "0 queries,
+   * 0ms" as if it had been observed. The monitoring dashboard was plotting
+   * exactly that next to real API latency.
+   */
+  measured: {
+    api: boolean;
+    database: boolean;
+    cache: boolean;
+    resources: boolean;
+    errors: boolean;
+  };
   apiMetrics: {
     totalRequests: number;
     errorRate: number;

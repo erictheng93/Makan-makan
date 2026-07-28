@@ -989,33 +989,49 @@ const performanceChartData = computed(() => {
   ];
 });
 
-const multiMetricChartSeries = computed(() => [
-  {
-    label: t("monitoring.performance.charts.apiResponseTime"),
-    data: performanceChartData.value.map((d) => ({
-      timestamp: d.timestamp,
-      value: d.apiResponseTime,
-    })),
-    color: "#3b82f6",
-    fillColor: "rgba(59, 130, 246, 0.1)",
-  },
-  {
-    label: t("monitoring.performance.charts.dbQueryTime"),
-    data: performanceChartData.value.map((d) => ({
-      timestamp: d.timestamp,
-      value: d.dbQueryTime,
-    })),
-    color: "#10b981",
-    fillColor: "rgba(16, 185, 129, 0.1)",
-  },
-]);
+// Only plot a series the API actually measures. Database and cache metrics
+// have no data source at all — recordDatabaseQuery is never called and
+// cacheMonitoringMiddleware is never registered — so they arrive as zeroes.
+// Charting those next to real API latency presented "0ms queries, 0% hit rate"
+// as observed values.
+const multiMetricChartSeries = computed(() => {
+  const series = [];
 
-const cacheHitRateTrendData = computed(() =>
-  performanceChartData.value.map((d) => ({
+  if (metrics.value?.measured?.api) {
+    series.push({
+      label: t("monitoring.performance.charts.apiResponseTime"),
+      data: performanceChartData.value.map((d) => ({
+        timestamp: d.timestamp,
+        value: d.apiResponseTime,
+      })),
+      color: "#3b82f6",
+      fillColor: "rgba(59, 130, 246, 0.1)",
+    });
+  }
+
+  if (metrics.value?.measured?.database) {
+    series.push({
+      label: t("monitoring.performance.charts.dbQueryTime"),
+      data: performanceChartData.value.map((d) => ({
+        timestamp: d.timestamp,
+        value: d.dbQueryTime,
+      })),
+      color: "#10b981",
+      fillColor: "rgba(16, 185, 129, 0.1)",
+    });
+  }
+
+  return series;
+});
+
+const cacheHitRateTrendData = computed(() => {
+  if (!metrics.value?.measured?.cache) return [];
+
+  return performanceChartData.value.map((d) => ({
     timestamp: d.timestamp,
     value: d.cacheHitRate * 100,
-  })),
-);
+  }));
+});
 
 const errorBarChartData = computed(() => {
   if (!overview.value?.topErrors) return [];
