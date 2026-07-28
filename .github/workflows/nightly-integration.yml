@@ -250,3 +250,62 @@ jobs:
             echo ""
             echo "詳細報告請查看 Artifacts 區域"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  analytics-engine-smoke:
+    name: 📈 Analytics Engine SQL smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Sends the real monitoring aggregate query to the Analytics Engine SQL API.
+    # The unit tests around that query mock fetch, so they only check what the
+    # SQL string looks like — they cannot tell whether Analytics Engine accepts
+    # it. Every syntax bug it has had (backtick-quoted dataset, toUInt32OrZero)
+    # was found from a production 422 instead.
+    #
+    # Needs a token with Account | Account Analytics | Read — deliberately NOT
+    # the deploy token in CLOUDFLARE_API_TOKEN, so this does not widen that
+    # token's scope. Add it as the CLOUDFLARE_ANALYTICS_READ_TOKEN repo secret.
+    steps:
+      - name: 📦 Checkout 程式碼
+        uses: actions/checkout@v7
+
+      - name: 📦 安裝 pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: 🔧 設置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: 📥 安裝依賴
+        run: pnpm install --frozen-lockfile
+
+      - name: 📈 查詢真實 Analytics Engine SQL API
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
+          ANALYTICS_DATASET: makanmasak-metrics-prod
+          # With the secret configured, missing credentials are a hard failure
+          # rather than a silent skip. Without it the suite skips, so adding
+          # this job does not turn the nightly red before the secret exists.
+          REQUIRE_ANALYTICS_ENGINE_SMOKE: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN != '' && '1' || '0' }}
+        run: pnpm exec vitest run --config vitest.real-integration.config.ts analytics-engine-sql
+
+      - name: 📊 摘要
+        if: always()
+        run: |
+          {
+            echo "## 📈 Analytics Engine SQL smoke"
+            echo ""
+            if [ -n "${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}" ]; then
+              echo "Ran against the real SQL API."
+            else
+              echo "⚠️ **Skipped** — \`CLOUDFLARE_ANALYTICS_READ_TOKEN\` is not configured."
+              echo ""
+              echo "The query is therefore unverified against the real API. Create a"
+              echo "token with **Account | Account Analytics | Read** and add it as that"
+              echo "repo secret to enable this check."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
