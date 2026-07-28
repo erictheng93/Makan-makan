@@ -351,11 +351,27 @@ There is no `scripts/check-factory-usage.cjs` gate in this repository.
 ### Debug Tools
 
 - Worker logs: `pnpm wrangler tail`
-- **Public liveness probe**: `GET /info` on the API (returns 200, no auth required) — use this for smoke tests, load balancer health checks, or quick "is it up?" curls.
-- **Health endpoints**:
-  - `/api/v1/monitoring/health` — aggregated monitoring view, public by design (this is also where `/health` redirects to); returns a bare payload, not the unified `{success, data}` envelope
-  - `/api/v1/system/health` — basic health check, public by design (code comment: 公開端點)
-  - `/api/v1/system/health/ready`, `/api/v1/system/health/live` — kubernetes-style probes, **require bearer token**
+- **Health endpoints** — three public ones, and they are not interchangeable:
+
+  | Endpoint | Checks dependencies? | Use for |
+  | --- | --- | --- |
+  | `GET /info` | **No** — returns static metadata (version, deployment mode, endpoint list) | "Is the Worker running?" Smoke tests, LB liveness. Cheapest, no bindings touched |
+  | `GET /api/v1/monitoring/health` | **Yes** — D1 `SELECT 1` + a KV read, plus API latency/error rate from Analytics Engine | "Are the dependencies healthy?" Dashboards, alerting, frequent polling |
+  | `GET /api/v1/system/health` | **Yes** — same D1 probe, but its KV probe does put + get + delete | One-off deep checks. Prefer `monitoring/health` when polling — this one spends a KV **write** per call |
+
+  `/health` redirects to `/api/v1/monitoring/health`. That response is a bare
+  payload (`{overall, components}`), not the unified `{success, data}` envelope.
+
+  `/api/v1/system/health/ready` and `/live` are kubernetes-style probes and
+  **require a bearer token**.
+
+- **Health must come from probes, not counters.** `MonitoringService` keeps
+  per-isolate in-process counters; deriving health from them alone means an
+  isolate that has served no traffic reports perfect health while D1 is down.
+  `getHealthStatus()` therefore probes the dependency and consults the counters:
+  a failed probe is `critical`, a passing one falls through to the
+  counter-derived status so a reachable-but-slow dependency still reads as
+  `warning`. Keep both signals if you touch this — they detect different things.
 - Note: there is **no** unauthenticated `/api/v1/health` route anymore. The old router was replaced by the System/Monitoring features; public smoke checks should use `/info`.
 - Error tracking: Automatic Slack notifications
 
