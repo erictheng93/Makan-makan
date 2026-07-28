@@ -4,6 +4,11 @@ import { UserRole } from "@/types";
 import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
 import { isTokenExpired } from "@makanmakan/utils";
+import {
+  LOGIN_REDIRECT_QUERY,
+  loginRouteFor,
+  readLoginRedirect,
+} from "@/utils/loginRedirect";
 
 const FALLBACK_DOCUMENT_TITLE = "MakanMasak";
 
@@ -486,22 +491,25 @@ router.beforeEach(async (to, _, next) => {
   // 對於不需要認證的路由
   if (to.meta.requiresAuth === false) {
     if (to.name === "Login" && authStore.isAuthenticated) {
-      // 已登入用戶訪問登入頁，重定向到角色默認頁面
-      return next(authStore.getDefaultRoute());
+      // 已登入用戶訪問登入頁，優先回到原本要去的頁面，否則角色默認頁面
+      return next(
+        readLoginRedirect(to.query[LOGIN_REDIRECT_QUERY]) ??
+          authStore.getDefaultRoute(),
+      );
     }
     return next();
   }
 
   // 檢查用戶是否已認證
   if (!authStore.isAuthenticated) {
-    return next("/login");
+    return next(loginRouteFor(to.fullPath));
   }
 
   // Check if token is expired — attempt refresh before proceeding
   if (authStore.token && isTokenExpired(authStore.token, 30)) {
     const refreshed = await authStore.refreshToken();
     if (!refreshed) {
-      return next("/login");
+      return next(loginRouteFor(to.fullPath));
     }
   }
 

@@ -131,8 +131,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { LOGIN_REDIRECT_QUERY, readLoginRedirect } from "@/utils/loginRedirect";
 import { useI18n } from "@/i18n";
 import { UserRole } from "@/types";
 import { Eye, EyeOff, AlertCircle } from "lucide-vue-next";
@@ -144,7 +145,17 @@ const KITCHEN_DISPLAY_URL =
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
+
+/**
+ * Return the user to the page the guard interrupted, falling back to the role's
+ * landing page. Without this an admin whose session lapsed on
+ * /dashboard/monitoring came back at /dashboard/platform.
+ */
+const postLoginTarget = () =>
+  readLoginRedirect(route.query[LOGIN_REDIRECT_QUERY]) ??
+  authStore.getDefaultRoute();
 
 const showPassword = ref(false);
 const isLoading = ref(false);
@@ -201,7 +212,7 @@ const handleSubmit = async () => {
         showChefRedirect.value = true;
         return;
       }
-      router.push(authStore.getDefaultRoute());
+      router.push(postLoginTarget());
     } else {
       error.value = result.error || t("auth.loginFailed");
     }
@@ -228,7 +239,7 @@ onMounted(() => {
       showChefRedirect.value = true;
       return;
     }
-    router.push(authStore.getDefaultRoute());
+    router.push(postLoginTarget());
   }
 });
 </script>
