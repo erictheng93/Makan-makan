@@ -77,8 +77,17 @@ export class AuthService implements IAuthService {
   private logger: ConsoleLogger;
   private performance: SimplePerformanceTracker;
   private env: Env;
+  private waitUntil?: (work: Promise<unknown>) => void;
 
-  constructor(env: Env) {
+  /**
+   * @param waitUntil - Optional ExecutionContext.waitUntil. When supplied,
+   *   bookkeeping the caller does not need to see the result of (session cache
+   *   priming, security-event logging, clearing failed-login counters) is
+   *   handed to the runtime instead of being awaited before the response. Left
+   *   undefined, that work is awaited inline as before, so callers without a
+   *   request context — tests included — keep their existing semantics.
+   */
+  constructor(env: Env, waitUntil?: (work: Promise<unknown>) => void) {
     this.env = env;
     this.db = getDatabaseConnection(env);
     this.dbAuthService = new DatabaseAuthService(env.DB, env);
@@ -86,6 +95,20 @@ export class AuthService implements IAuthService {
     this.cache = new KVCacheService(env.CACHE_KV);
     this.logger = new ConsoleLogger("auth-service");
     this.performance = new SimplePerformanceTracker();
+    this.waitUntil = waitUntil;
+  }
+
+  /**
+   * Run post-response bookkeeping off the critical path when we have a runtime
+   * to hand it to. Each of these already swallows and logs its own errors, so
+   * the combined promise does not reject.
+   */
+  private async runInBackground(work: Promise<unknown>): Promise<void> {
+    if (this.waitUntil) {
+      this.waitUntil(work);
+      return;
+    }
+    await work;
   }
 
   // Core Authentication Methods
@@ -145,24 +168,27 @@ export class AuthService implements IAuthService {
       };
 
       if (result.success && result.user && result.tokens) {
-        // Cache user session information
-        await this.cacheUserSession(result.user.id, result.tokens.accessToken);
-
-        // Log security event
-        await this.logSecurityEvent({
-          type: "LOGIN",
-          userId: result.user.id,
-          username: result.user.username,
-          ipAddress: data.deviceInfo?.ipAddress,
-          userAgent: data.deviceInfo?.userAgent,
-          location: data.location,
-          severity: "LOW",
-        });
-
-        // Clear any previous failed login attempts
-        await this.clearFailedLoginAttempts(
-          result.user.username,
-          data.deviceInfo?.ipAddress,
+        // None of this gates the token we are about to return, and it used to
+        // run as three sequential round trips before the response was written.
+        // Fan it out and, when the runtime gives us a waitUntil, let it finish
+        // after the client already has its answer.
+        await this.runInBackground(
+          Promise.all([
+            this.cacheUserSession(result.user.id, result.tokens.accessToken),
+            this.logSecurityEvent({
+              type: "LOGIN",
+              userId: result.user.id,
+              username: result.user.username,
+              ipAddress: data.deviceInfo?.ipAddress,
+              userAgent: data.deviceInfo?.userAgent,
+              location: data.location,
+              severity: "LOW",
+            }),
+            this.clearFailedLoginAttempts(
+              result.user.username,
+              data.deviceInfo?.ipAddress,
+            ),
+          ]),
         );
 
         this.logger.info("User login successful", {
@@ -173,20 +199,26 @@ export class AuthService implements IAuthService {
 
         this.performance.recordMetric("auth.login.success", 1);
       } else {
-        // Log failed login attempt
-        await this.logFailedLoginAttempt(
-          data.username,
-          data.deviceInfo?.ipAddress,
+        // Same reasoning as the success path. Deferring the counter increment
+        // does not widen the window an attacker gets: waitUntil starts the
+        // write immediately, and KV is eventually consistent across colos
+        // regardless of whether we await it here.
+        await this.runInBackground(
+          Promise.all([
+            this.logFailedLoginAttempt(
+              data.username,
+              data.deviceInfo?.ipAddress,
+            ),
+            this.logSecurityEvent({
+              type: "LOGIN_FAILED",
+              username: data.username,
+              ipAddress: data.deviceInfo?.ipAddress,
+              userAgent: data.deviceInfo?.userAgent,
+              location: data.location,
+              severity: "MEDIUM",
+            }),
+          ]),
         );
-
-        await this.logSecurityEvent({
-          type: "LOGIN_FAILED",
-          username: data.username,
-          ipAddress: data.deviceInfo?.ipAddress,
-          userAgent: data.deviceInfo?.userAgent,
-          location: data.location,
-          severity: "MEDIUM",
-        });
 
         this.performance.recordMetric("auth.login.failed", 1);
       }

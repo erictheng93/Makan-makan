@@ -76,11 +76,14 @@ vi.mock("@makanmakan/database", async (importOriginal) => {
 
 import { AuthService } from "./AuthService";
 
-function createService() {
-  return new AuthService({
-    DB: {} as D1Database,
-    CACHE_KV: {} as KVNamespace,
-  } as any);
+function createService(waitUntil?: (work: Promise<unknown>) => void) {
+  return new AuthService(
+    {
+      DB: {} as D1Database,
+      CACHE_KV: {} as KVNamespace,
+    } as any,
+    waitUntil,
+  );
 }
 
 function mockSelectGet(value: unknown) {
@@ -132,6 +135,62 @@ describe("AuthService", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("hands post-login bookkeeping to waitUntil instead of awaiting it", async () => {
+    mocks.dbAuthService.login.mockResolvedValue({
+      success: true,
+      user: {
+        id: 7,
+        username: "owner",
+        fullName: "Shop Owner",
+        role: 1,
+        restaurantId: null,
+        isActive: true,
+      },
+      tokens: {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+        expiresAt: new Date("2026-06-07T01:00:00.000Z"),
+      },
+    });
+
+    // Hold the bookkeeping open forever. If login awaited it, this test would
+    // never finish — which is precisely the latency the waitUntil hand-off
+    // removes from the response path.
+    const releaseCacheSet: Array<() => void> = [];
+    mocks.cache.set.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseCacheSet.push(resolve);
+        }),
+    );
+
+    const deferred: Promise<unknown>[] = [];
+    const waitUntil = vi.fn((work: Promise<unknown>) => {
+      deferred.push(work);
+    });
+
+    const result = await createService(waitUntil).login({
+      username: "owner",
+      password: "secret",
+      deviceInfo: { ipAddress: "203.0.113.10", userAgent: "Vitest" },
+      location: { country: "TW", city: "Taipei" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.tokens?.accessToken).toBe("access-token");
+    expect(waitUntil).toHaveBeenCalledOnce();
+
+    // The handed-off work is real work, and it completes once unblocked.
+    releaseCacheSet.forEach((release) => release());
+    await Promise.all(deferred);
+    expect(mocks.cache.set).toHaveBeenCalledWith(
+      "user-session:7:access-token",
+      expect.objectContaining({ userId: 7 }),
+      expect.any(Number),
+    );
+    expect(mocks.cache.delete).toHaveBeenCalledWith("failed-login:owner");
   });
 
   it("transforms successful login results and records session/security cache entries", async () => {

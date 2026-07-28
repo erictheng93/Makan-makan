@@ -57,7 +57,10 @@ export type BlacklistTokenFn = (
 /**
  * Service factory type for dependency injection
  */
-export type AuthServiceFactory = (env: Env) => IAuthService;
+export type AuthServiceFactory = (
+  env: Env,
+  waitUntil?: (work: Promise<unknown>) => void,
+) => IAuthService;
 
 /**
  * Dependencies that can be injected for testing
@@ -67,6 +70,23 @@ export interface AuthRouteDependencies {
   requireRole?: RequireRoleFactory;
   blacklistToken?: BlacklistTokenFn;
   AuthService?: AuthServiceFactory;
+}
+
+/**
+ * Hono's executionCtx getter throws outright when the context was built
+ * without one — which is every unit test, and any direct app.fetch() call that
+ * omits the third argument. Optional chaining does not help, since the throw
+ * happens inside the getter. Callers that get undefined back simply run their
+ * background work inline.
+ */
+function getWaitUntil<E extends { Bindings: Env }>(
+  c: Context<E>,
+): ((work: Promise<unknown>) => void) | undefined {
+  try {
+    return c.executionCtx.waitUntil.bind(c.executionCtx);
+  } catch {
+    return undefined;
+  }
 }
 
 function extractRequestInfo<E extends { Bindings: Env }>(
@@ -128,7 +148,9 @@ export function createAuthRoutes(
   const requireRole = deps.requireRole ?? defaultRequireRole;
   const blacklistToken = deps.blacklistToken ?? defaultBlacklistToken;
   const AuthService =
-    deps.AuthService ?? ((env: Env) => new DefaultAuthService(env));
+    deps.AuthService ??
+    ((env: Env, waitUntil?: (work: Promise<unknown>) => void) =>
+      new DefaultAuthService(env, waitUntil));
 
   // Create router
   const authRoutes = new Hono<{ Bindings: Env }>();
@@ -146,8 +168,9 @@ export function createAuthRoutes(
       location,
     };
 
-    // Initialize auth service
-    const authService = AuthService(c.env);
+    // Initialize auth service. Hand it waitUntil so the post-login bookkeeping
+    // settles after the response instead of in front of it.
+    const authService = AuthService(c.env, getWaitUntil(c));
     const result = await authService.login(loginData);
 
     if (!result.success) {
