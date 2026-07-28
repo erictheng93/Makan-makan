@@ -46,9 +46,14 @@ export function buildApiRequestQuery(config: AnalyticsEngineQueryConfig) {
   const windowHours = config.windowHours ?? 1;
   const slowMs = config.slowRequestThresholdMs ?? 1000;
 
-  // The dataset name contains hyphens, so it has to be quoted — and quoted
-  // with double quotes specifically. Backticks are rejected outright:
-  //   422 Input was invalid: sql parser error: Expected identifier, found: `
+  // Two things here came out of production 422s rather than the docs:
+  //
+  //   - The dataset name contains hyphens so it must be quoted, and with
+  //     double quotes. Backticks are rejected:
+  //       sql parser error: Expected identifier, found: `
+  //   - Status codes are matched with LIKE rather than cast to a number.
+  //     toUInt32OrZero does not exist here (`unknown function call`), and the
+  //     one documented cast, toUInt8, tops out at 255 — below the 5xx range.
   return `
     SELECT
       SUM(_sample_interval) AS totalRequests,
@@ -56,8 +61,8 @@ export function buildApiRequestQuery(config: AnalyticsEngineQueryConfig) {
       QUANTILEEXACTWEIGHTED(0.95)(double2, _sample_interval) AS p95ResponseTime,
       QUANTILEEXACTWEIGHTED(0.99)(double2, _sample_interval) AS p99ResponseTime,
       SUM(IF(double2 > ${slowMs}, _sample_interval, 0)) AS slowRequestCount,
-      SUM(IF(toUInt32OrZero(blob10) >= 400, _sample_interval, 0)) AS errorCount,
-      SUM(IF(toUInt32OrZero(blob10) >= 500, _sample_interval, 0)) AS criticalErrorCount
+      SUM(IF(blob10 LIKE '4%' OR blob10 LIKE '5%', _sample_interval, 0)) AS errorCount,
+      SUM(IF(blob10 LIKE '5%', _sample_interval, 0)) AS criticalErrorCount
     FROM "${config.dataset}"
     WHERE blob1 = 'api_request'
       AND timestamp > NOW() - INTERVAL '${windowHours}' HOUR

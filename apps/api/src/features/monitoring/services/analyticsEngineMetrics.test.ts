@@ -37,6 +37,17 @@ describe("buildApiRequestQuery", () => {
     expect(sql).toContain("blob1 = 'api_request'");
   });
 
+  // Regression: this used toUInt32OrZero to compare status codes numerically,
+  // which the SQL API rejects with `unknown function call`. The only documented
+  // cast, toUInt8, cannot represent 5xx. Match on the leading digit instead.
+  it("matches status codes with LIKE rather than a numeric cast", () => {
+    const sql = buildApiRequestQuery(config);
+
+    expect(sql).toContain("blob10 LIKE '4%' OR blob10 LIKE '5%'");
+    expect(sql).toContain("blob10 LIKE '5%'");
+    expect(sql).not.toMatch(/toUInt\d*(OrZero)?\(/i);
+  });
+
   it("honours the window and slow-request threshold", () => {
     const sql = buildApiRequestQuery({
       ...config,
