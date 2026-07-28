@@ -6,6 +6,21 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# Cold starts on this Worker cost ~505ms, and that penalty tracks compressed
+# bundle size almost linearly — measured across three Workers on this account
+# from the same colo: realtime (78 KiB gzip) +82ms, management-api (349 KiB)
+# +284ms, api (657 KiB) +505ms. Roughly a third of requests hit a machine
+# without a warm isolate and pay it, regardless of idle time.
+#
+# Minifying takes the bundle from 3739 KiB raw / 657 KiB gzip to 1792 / 453,
+# which the fit puts at roughly 150ms off that penalty.
+#
+# Safe for this codebase: esbuild's keep_names stays on, so the ApiError
+# subclass names survive, and the `error.name === "TokenExpiredError"` checks
+# compare against string literals set inside jsonwebtoken, which minification
+# does not rewrite.
+minify = true
+
 # Development server configuration
 [dev]
 port = 8787
@@ -279,8 +294,6 @@ index_name = "makanmasak-discovery-prod"
 # Smart placement for production
 [env.production.placement]
 mode = "smart"
-strategy = "closest"
-hints = ["asia-southeast1"]
 
 # Analytics for production
 [[env.production.analytics_engine_datasets]]

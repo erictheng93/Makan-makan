@@ -99,5 +99,3 @@ id = "e442a551aa3f484db44fcdfa1084ff81"
 # Smart placement for production
 [env.production.placement]
 mode = "smart"
-strategy = "closest"
-hints = ["asia-southeast1"]

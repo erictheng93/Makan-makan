@@ -92,5 +92,3 @@ dataset = "makanmasak-backup-metrics-prod"
 # Smart placement for production
 [env.production.placement]
 mode = "smart"
-strategy = "closest"
-hints = ["asia-southeast1"]
