@@ -30,7 +30,10 @@ describe("buildApiRequestQuery", () => {
   it("quotes the hyphenated dataset name and filters to api_request", () => {
     const sql = buildApiRequestQuery(config);
 
-    expect(sql).toContain("FROM `makanmasak-metrics-prod`");
+    // Double quotes, not backticks. The SQL API rejects backticks outright:
+    //   422 Input was invalid: sql parser error: Expected identifier, found: `
+    expect(sql).toContain('FROM "makanmasak-metrics-prod"');
+    expect(sql).not.toContain("`");
     expect(sql).toContain("blob1 = 'api_request'");
   });
 

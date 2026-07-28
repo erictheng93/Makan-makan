@@ -46,7 +46,9 @@ export function buildApiRequestQuery(config: AnalyticsEngineQueryConfig) {
   const windowHours = config.windowHours ?? 1;
   const slowMs = config.slowRequestThresholdMs ?? 1000;
 
-  // The dataset name contains hyphens, so it has to be quoted.
+  // The dataset name contains hyphens, so it has to be quoted — and quoted
+  // with double quotes specifically. Backticks are rejected outright:
+  //   422 Input was invalid: sql parser error: Expected identifier, found: `
   return `
     SELECT
       SUM(_sample_interval) AS totalRequests,
@@ -56,7 +58,7 @@ export function buildApiRequestQuery(config: AnalyticsEngineQueryConfig) {
       SUM(IF(double2 > ${slowMs}, _sample_interval, 0)) AS slowRequestCount,
       SUM(IF(toUInt32OrZero(blob10) >= 400, _sample_interval, 0)) AS errorCount,
       SUM(IF(toUInt32OrZero(blob10) >= 500, _sample_interval, 0)) AS criticalErrorCount
-    FROM \`${config.dataset}\`
+    FROM "${config.dataset}"
     WHERE blob1 = 'api_request'
       AND timestamp > NOW() - INTERVAL '${windowHours}' HOUR
     FORMAT JSON
