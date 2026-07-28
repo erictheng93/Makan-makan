@@ -109,4 +109,53 @@ describe("geoIntelligentRateLimitMiddleware", () => {
     expect(env.RATE_LIMIT_KV.get).toHaveBeenCalled();
     expect(env.RATE_LIMIT_KV.put).toHaveBeenCalled();
   });
+
+  // Regression: the sliding window used to keep one KV key per second and read
+  // every key in the window, so /api/v1/auth/login (a 60s window) cost 60 blocking
+  // KV reads per request. The window is now two fixed buckets, so the read count
+  // must stay flat no matter how long the window is.
+  it("reads a bounded number of counter keys regardless of window length", async () => {
+    const env = createEnv();
+    const app = new Hono<{ Bindings: Env }>();
+    app.use("*", geoIntelligentRateLimitMiddleware());
+    app.post("/api/v1/auth/login", (c) => c.json({ ok: true }));
+
+    await fetchWithContext(app, env, "/api/v1/auth/login", {
+      method: "POST",
+      headers: { "CF-Connecting-IP": "203.0.113.10" },
+    });
+
+    const counterReads = vi
+      .mocked(env.RATE_LIMIT_KV.get)
+      .mock.calls.map(([key]) => key as string)
+      .filter((key) => key.startsWith("rl:"));
+
+    expect(counterReads).toHaveLength(2);
+    // The old per-second key shape must not come back.
+    expect(counterReads.every((key) => key.startsWith("rl:"))).toBe(true);
+  });
+
+  it("weights the previous window so the limit still trips across a boundary", async () => {
+    // login allows 100 requests with a 1.2 burst multiplier => burst limit 120.
+    // Put 200 in the previous window and none in the current one. Even at the
+    // very start of a window the interpolated total must exceed the limit.
+    const env = createEnv();
+    vi.mocked(env.RATE_LIMIT_KV.get).mockImplementation(async (key: string) => {
+      if (!key.startsWith("rl:")) return null;
+      const windowIndex = Number(key.split(":").pop());
+      const currentIndex = Math.floor(Date.now() / 60_000);
+      return windowIndex === currentIndex - 1 ? "200" : "0";
+    });
+
+    const app = new Hono<{ Bindings: Env }>();
+    app.use("*", geoIntelligentRateLimitMiddleware());
+    app.post("/api/v1/auth/login", (c) => c.json({ ok: true }));
+
+    const response = await fetchWithContext(app, env, "/api/v1/auth/login", {
+      method: "POST",
+      headers: { "CF-Connecting-IP": "203.0.113.11" },
+    });
+
+    expect(response.status).toBe(429);
+  });
 });

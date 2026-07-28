@@ -253,23 +253,35 @@ export class GeoIntelligentRateLimiter {
     const now = Date.now();
     const windowStart = now - rateLimit.windowSeconds * 1000;
 
-    // Get current request count using sliding window
-    const requestKey = `rate:${identifier}:${Math.floor(now / 1000)}`;
-    const windowKeys = this.generateWindowKeys(
-      identifier,
-      rateLimit.windowSeconds,
-      now,
-    );
+    // Sliding window over two fixed buckets.
+    //
+    // This used to keep one KV key per second and read every key in the window
+    // (generateWindowKeys), so a 60s window cost 60 KV reads on EVERY request —
+    // and since most of those seconds never saw traffic, nearly all of them were
+    // misses, which is KV's slowest path. On /api/v1/auth/login that alone was
+    // multiple seconds of latency.
+    //
+    // Instead keep one counter per window and interpolate against the previous
+    // window, weighted by how far into the current window we are. Same smoothing
+    // the per-second keys bought us, at 2 reads + 1 write regardless of window
+    // size.
+    const windowMs = rateLimit.windowSeconds * 1000;
+    const windowIndex = Math.floor(now / windowMs);
+    const elapsedFraction = (now % windowMs) / windowMs;
+    const currentKey = `rl:${identifier}:${windowIndex}`;
+    const previousKey = `rl:${identifier}:${windowIndex - 1}`;
 
     try {
-      // Get request counts for the entire sliding window
-      const counts = await Promise.all(
-        windowKeys.map((key) =>
-          this.rateLimitKV.get(key).then((val) => parseInt(val || "0")),
-        ),
-      );
+      const [currentCount, previousCount] = await Promise.all([
+        this.rateLimitKV.get(currentKey).then((val) => parseInt(val || "0")),
+        this.rateLimitKV.get(previousKey).then((val) => parseInt(val || "0")),
+      ]);
 
-      const totalRequests = counts.reduce((sum, count) => sum + count, 0);
+      // The previous window only counts for the portion still inside the
+      // trailing window edge.
+      const totalRequests = Math.round(
+        previousCount * (1 - elapsedFraction) + currentCount,
+      );
       const burstLimit = Math.ceil(
         rateLimit.requests * rateLimit.burstMultiplier,
       );
@@ -293,14 +305,15 @@ export class GeoIntelligentRateLimiter {
         };
       }
 
-      // Increment counter for current second
-      await this.rateLimitKV.put(
-        requestKey,
-        (
-          parseInt((await this.rateLimitKV.get(requestKey)) || "0") + 1
-        ).toString(),
-        { expirationTtl: rateLimit.windowSeconds + 10 },
-      );
+      // Increment the current window. We already read currentCount above, so
+      // there is no need to re-read it here (the old code did a second blocking
+      // get inside the put's argument list).
+      //
+      // TTL spans two windows so the previous-window interpolation above still
+      // has a value to read from.
+      await this.rateLimitKV.put(currentKey, (currentCount + 1).toString(), {
+        expirationTtl: rateLimit.windowSeconds * 2 + 10,
+      });
 
       const remaining = Math.max(0, rateLimit.requests - (totalRequests + 1));
 
@@ -545,24 +558,6 @@ export class GeoIntelligentRateLimiter {
     }
 
     return { multiplier: 1.0, additionalChecks: [] };
-  }
-
-  /**
-   * Generate sliding window keys for rate limiting
-   */
-  private generateWindowKeys(
-    identifier: string,
-    windowSeconds: number,
-    now: number,
-  ): string[] {
-    const keys: string[] = [];
-    const currentSecond = Math.floor(now / 1000);
-
-    for (let i = 0; i < windowSeconds; i++) {
-      keys.push(`rate:${identifier}:${currentSecond - i}`);
-    }
-
-    return keys;
   }
 
   /**
