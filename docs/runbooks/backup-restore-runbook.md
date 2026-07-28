@@ -9,9 +9,18 @@ Configure external uptime monitoring against these production targets:
 
 | Target | URL | Cadence | Expected |
 | --- | --- | --- | --- |
-| Liveness | `https://api.makanmasak.com/api/v1/system/health/live` | 60s | HTTP 200 |
-| Readiness | `https://api.makanmasak.com/api/v1/system/health/ready` | 60s | HTTP 200 |
-| Uptime evidence | `https://api.makanmasak.com/api/v1/system/health/uptime` | 300s | HTTP 200 and `status: "operational"` |
+| Liveness | `https://api.makanmasak.com/info` | 60s | HTTP 200 |
+| Dependency health | `https://api.makanmasak.com/api/v1/monitoring/health` | 60s | HTTP 200 and `overall: "healthy"` |
+| Uptime evidence | `https://api.makanmasak.com/api/v1/system/health/uptime` | 300s | HTTP 200 and `status: "operational"` — **requires a bearer token** |
+
+> `/api/v1/system/health/live`, `/ready`, and `/uptime` all return **401**
+> unauthenticated — they are not usable as plain external uptime targets, which
+> is what this table used to list them as. A monitor pointed at them either
+> alerts forever or, if it was configured to accept 401 as "up", hides a real
+> outage. Use `/info` for liveness (public, touches no bindings) and
+> `/api/v1/monitoring/health` for dependency health (public, probes D1 and KV
+> without spending a KV write). Keep `/health/uptime` only if the monitor can
+> send a bearer token.
 
 The API writes the latest uptime evidence to `CACHE_KV` key
 `system:uptime:last-check` with a 7-day TTL whenever `/health` or
