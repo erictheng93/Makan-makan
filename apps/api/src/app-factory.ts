@@ -15,7 +15,6 @@ import {
   requestIdMiddleware,
   inputSanitizationMiddleware,
   securityMonitoringMiddleware,
-  // securityAwareRateLimitMiddleware
 } from "./middleware/security";
 import {
   smartCacheMiddleware,
@@ -355,8 +354,7 @@ export function createApp(
     app.use("*", cacheWarmingMiddleware());
   }
 
-  // Legacy rate limiting (now replaced by geo-intelligent version)
-  // app.use('*', securityAwareRateLimitMiddleware)
+  // Rate limiting is handled by geoIntelligentRateLimitMiddleware, registered above.
 
   app.use("*", logger()); // Seventh: Logging (after security checks)
   app.use("*", timing()); // Eighth: Performance timing
