@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const idID: Messages = {
   app: {
     footer: {
-      copyright: "© 2024 MakanMakan. Semua hak dilindungi undang-undang.",
+      copyright: "© 2026 MakanMasak. Semua hak dilindungi undang-undang.",
     },
     tagline: {
       selfHosted: "Dihosting Sendiri",

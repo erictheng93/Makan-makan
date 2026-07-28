@@ -1373,7 +1373,7 @@ const idID: Messages = {
 
   // Judul halaman dan navigasi
   header: {
-    title: "Dashboard Admin MakanMakan",
+    title: "Dashboard Admin MakanMasak",
     home: "Beranda",
     realtime: {
       connected: "Terhubung real-time",

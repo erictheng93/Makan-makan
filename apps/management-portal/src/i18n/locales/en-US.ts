@@ -2,7 +2,7 @@ import type { Messages } from "../types";
 
 const enUS: Messages = {
   common: {
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     loading: "Loading...",
     view: "View",
     viewAll: "View All",

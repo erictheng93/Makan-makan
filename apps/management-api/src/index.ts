@@ -158,9 +158,9 @@ app.get("/health", (c) => {
 // API info (public)
 app.get("/info", (c) => {
   return c.json({
-    name: "MakanMakan Management API",
+    name: "MakanMasak Management API",
     version: c.env.API_VERSION || "v1",
-    description: "Central management platform for MakanMakan hybrid deployment",
+    description: "Central management platform for MakanMasak hybrid deployment",
     environment: c.env.NODE_ENV || "development",
     features: [
       "Tenant management",

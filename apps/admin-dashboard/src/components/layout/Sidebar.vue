@@ -17,7 +17,7 @@
             <span class="text-white font-bold text-sm">M</span>
           </div>
           <div v-if="!isCollapsed" class="font-semibold text-gray-900">
-            MakanMakan
+            MakanMasak
           </div>
         </div>
       </div>

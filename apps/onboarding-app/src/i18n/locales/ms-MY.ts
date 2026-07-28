@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const msMY: Messages = {
   app: {
     footer: {
-      copyright: "© 2024 MakanMakan. Semua hak terpelihara.",
+      copyright: "© 2026 MakanMasak. Semua hak terpelihara.",
     },
     tagline: {
       selfHosted: "Dihoskan Sendiri",

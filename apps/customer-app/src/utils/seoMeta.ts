@@ -1,7 +1,7 @@
 import type { MarketDetail } from "@/services/marketsApi";
 import type { Category, MenuItem, Restaurant } from "@makanmakan/shared-types";
 
-const SITE_NAME = "MakanMakan";
+const SITE_NAME = "MakanMasak";
 const DEFAULT_IMAGE = "/og-image.png";
 
 interface MarketSeoMetaInput {

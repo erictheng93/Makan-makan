@@ -1497,7 +1497,7 @@ function renderCalendarInvite(booking: ServiceBookingRow): string {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//MakanMakan//Service Bookings//EN",
+    "PRODID:-//MakanMasak//Service Bookings//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

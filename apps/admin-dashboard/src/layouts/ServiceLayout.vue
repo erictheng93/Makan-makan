@@ -8,7 +8,7 @@
           <div class="flex items-center">
             <div class="flex-shrink-0 flex items-center">
               <ListBulletIcon class="h-8 w-8 text-blue-600 mr-3" />
-              <h1 class="text-xl font-bold text-gray-900">MakanMakan</h1>
+              <h1 class="text-xl font-bold text-gray-900">MakanMasak</h1>
               <span
                 class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium"
               >

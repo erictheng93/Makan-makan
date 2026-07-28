@@ -233,7 +233,7 @@ export class IndexedDBOptimizer {
 
   async initialize(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("MakanMakanCustomerOptimized", 2);
+      const request = indexedDB.open("MakanMasakCustomerOptimized", 2);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {

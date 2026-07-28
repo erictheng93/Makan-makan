@@ -16,7 +16,7 @@ const enUS: Messages = {
       selfHosted: "Self-Hosted",
     },
     footer: {
-      copyright: "© 2024 MakanMakan. All rights reserved.",
+      copyright: "© 2026 MakanMasak. All rights reserved.",
     },
   },
 

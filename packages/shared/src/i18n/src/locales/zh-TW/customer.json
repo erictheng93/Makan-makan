@@ -10,7 +10,7 @@
     "terms": "服務條款",
     "contact": "聯絡我們",
     "help": "幫助中心",
-    "appTitle": "MakanMakan - 智慧點餐",
+    "appTitle": "MakanMasak - 智慧點餐",
     "login": "會員登入",
     "register": "會員註冊",
     "forgotPassword": "忘記密碼",
@@ -33,7 +33,7 @@
     "markets": "夜市與商圈"
   },
   "home": {
-    "title": "歡迎來到 MakanMakan",
+    "title": "歡迎來到 MakanMasak",
     "subtitle": "掃描 QR Code 開始點餐",
     "scanQR": "掃描 QR Code",
     "manualInput": "手動輸入",
@@ -315,7 +315,7 @@
   },
   "about": {
     "title": "關於我們",
-    "description": "MakanMakan 是一個現代化的餐廳管理系統，致力於提供最佳的點餐體驗。我們利用先進的技術，為餐廳和顧客打造無縫的服務體驗。",
+    "description": "MakanMasak 是一個現代化的餐廳管理系統，致力於提供最佳的點餐體驗。我們利用先進的技術，為餐廳和顧客打造無縫的服務體驗。",
     "features": {
       "title": "我們的服務",
       "qrOrder": "QR Code 掃碼點餐",

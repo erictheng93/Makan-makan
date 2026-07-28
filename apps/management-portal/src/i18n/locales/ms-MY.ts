@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const msMY: Messages = {
   common: {
     actions: "Tindakan",
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     cancel: "Batal",
     generate: "Menjana",
     loading: "Memuatkan...",

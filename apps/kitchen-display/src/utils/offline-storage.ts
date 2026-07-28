@@ -70,7 +70,7 @@ export interface OfflineKitchenAction {
 }
 
 class KitchenOfflineStorageManager {
-  private dbName = "MakanMakanKitchen";
+  private dbName = "MakanMasakKitchen";
   private dbVersion = 1;
   private db: IDBDatabase | null = null;
 

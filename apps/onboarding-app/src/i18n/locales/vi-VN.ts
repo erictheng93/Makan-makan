@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const viVN: Messages = {
   app: {
     footer: {
-      copyright: "© 2024 MakanMakan. Mọi quyền được bảo lưu.",
+      copyright: "© 2026 MakanMasak. Mọi quyền được bảo lưu.",
     },
     tagline: {
       selfHosted: "Tự lưu trữ",

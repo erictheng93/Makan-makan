@@ -467,7 +467,7 @@ const idID: Messages = {
     passwordPlaceholder: "Masukkan kata sandi",
     roleNote: "Peran koki saja",
     subtitle: "Sistem Tampilan Dapur",
-    systemInfo: "Sistem Tampilan Dapur MakanMakan v1.0",
+    systemInfo: "Sistem Tampilan Dapur MakanMasak v1.0",
     title: "Sistem Tampilan Dapur",
     username: "Nama pengguna",
     usernamePlaceholder: "Masukkan nama pengguna",

@@ -122,7 +122,7 @@ export interface SMSProvider {
 export class MailChannelsEmailProvider implements EmailProvider {
   constructor(
     private fromEmail: string = "notifications@makanmakan.com",
-    private fromName: string = "MakanMakan",
+    private fromName: string = "MakanMasak",
   ) {}
 
   async sendEmail(params: {
@@ -659,15 +659,15 @@ export const notificationTemplates: Record<
   // ============================================
 
   waiting_list_confirmed: {
-    body: "【MakanMakan】{{customerName}} 您好，您已成功加入候位。排隊號碼：{{queueNumber}}，預計等待 {{estimatedWait}} 分鐘。",
+    body: "【MakanMasak】{{customerName}} 您好，您已成功加入候位。排隊號碼：{{queueNumber}}，預計等待 {{estimatedWait}} 分鐘。",
     variables: ["customerName", "queueNumber", "estimatedWait"],
   },
   waiting_list_called: {
-    body: "【MakanMakan】{{customerName}} 您好，輪到您了！請於 5 分鐘內至櫃檯報到，桌號：{{tableNumber}}。逾時將自動取消。",
+    body: "【MakanMasak】{{customerName}} 您好，輪到您了！請於 5 分鐘內至櫃檯報到，桌號：{{tableNumber}}。逾時將自動取消。",
     variables: ["customerName", "tableNumber"],
   },
   waiting_list_expired: {
-    body: "【MakanMakan】{{customerName}} 您好，您的候位號碼 {{queueNumber}} 已過號。如需重新排隊，請至現場取號。",
+    body: "【MakanMasak】{{customerName}} 您好，您的候位號碼 {{queueNumber}} 已過號。如需重新排隊，請至現場取號。",
     variables: ["customerName", "queueNumber"],
   },
 
@@ -676,11 +676,11 @@ export const notificationTemplates: Record<
   // ============================================
 
   password_reset_request: {
-    subject: "MakanMakan - 密碼重設請求",
+    subject: "MakanMasak - 密碼重設請求",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 24px;">MakanMakan - 密碼重設</h1>
+          <h1 style="margin: 0; font-size: 24px;">MakanMasak - 密碼重設</h1>
         </div>
 
         <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
@@ -722,7 +722,7 @@ export const notificationTemplates: Record<
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
           <p>此郵件由系統自動發送，請勿直接回覆</p>
-          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+          <p>&copy; 2026 MakanMasak. All rights reserved.</p>
         </div>
       </div>
     `,
@@ -730,7 +730,7 @@ export const notificationTemplates: Record<
   },
 
   password_reset_success: {
-    subject: "MakanMakan - 密碼已成功變更",
+    subject: "MakanMasak - 密碼已成功變更",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -768,7 +768,7 @@ export const notificationTemplates: Record<
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
           <p>此郵件由系統自動發送，請勿直接回覆</p>
-          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+          <p>&copy; 2026 MakanMasak. All rights reserved.</p>
         </div>
       </div>
     `,
@@ -776,18 +776,18 @@ export const notificationTemplates: Record<
   },
 
   email_verification: {
-    subject: "🎉 歡迎加入 MakanMakan - 請驗證您的 Email",
+    subject: "🎉 歡迎加入 MakanMasak - 請驗證您的 Email",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 28px;">🎉 歡迎加入 MakanMakan！</h1>
+          <h1 style="margin: 0; font-size: 28px;">🎉 歡迎加入 MakanMasak！</h1>
         </div>
 
         <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
           <p style="font-size: 16px;">親愛的 <strong>{{userName}}</strong>，</p>
 
           <p style="font-size: 14px; line-height: 1.6;">
-            感謝您註冊 MakanMakan！請點擊下方按鈕驗證您的 Email 地址：
+            感謝您註冊 MakanMasak！請點擊下方按鈕驗證您的 Email 地址：
           </p>
 
           <div style="text-align: center; margin: 30px 0;">
@@ -820,7 +820,7 @@ export const notificationTemplates: Record<
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
           <p>如果您沒有註冊此帳號，請忽略此郵件</p>
-          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+          <p>&copy; 2026 MakanMasak. All rights reserved.</p>
         </div>
       </div>
     `,
@@ -828,7 +828,7 @@ export const notificationTemplates: Record<
   },
 
   email_verification_success: {
-    subject: "✅ Email 驗證成功 - MakanMakan",
+    subject: "✅ Email 驗證成功 - MakanMasak",
     body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -839,7 +839,7 @@ export const notificationTemplates: Record<
           <p style="font-size: 16px;">親愛的 <strong>{{userName}}</strong>，</p>
 
           <p style="font-size: 14px; line-height: 1.6;">
-            您的 Email 地址已成功驗證！現在您可以享受 MakanMakan 的完整功能了。
+            您的 Email 地址已成功驗證！現在您可以享受 MakanMasak 的完整功能了。
           </p>
 
           <div style="background: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0;">
@@ -858,7 +858,7 @@ export const notificationTemplates: Record<
         </div>
 
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
-          <p>&copy; 2025 MakanMakan. All rights reserved.</p>
+          <p>&copy; 2026 MakanMasak. All rights reserved.</p>
         </div>
       </div>
     `,
@@ -866,14 +866,14 @@ export const notificationTemplates: Record<
   },
 
   phone_verification: {
-    subject: "MakanMakan - 手機驗證碼",
-    body: `【MakanMakan】您的驗證碼：{{otpCode}}。有效期限 5 分鐘。請勿將驗證碼分享給任何人。`,
+    subject: "MakanMasak - 手機驗證碼",
+    body: `【MakanMasak】您的驗證碼：{{otpCode}}。有效期限 5 分鐘。請勿將驗證碼分享給任何人。`,
     variables: ["otpCode"],
   },
 
   phone_verification_success: {
-    subject: "MakanMakan - 手機驗證成功",
-    body: `【MakanMakan】您的手機號碼 {{phone}} 已成功驗證！感謝您使用 MakanMakan。`,
+    subject: "MakanMasak - 手機驗證成功",
+    body: `【MakanMasak】您的手機號碼 {{phone}} 已成功驗證！感謝您使用 MakanMasak。`,
     variables: ["phone"],
   },
 };
@@ -898,7 +898,7 @@ export class NotificationService extends BaseService {
       // MailChannels is enabled by default (no API key needed!)
       this.emailProvider = new MailChannelsEmailProvider(
         env.NOTIFICATION_FROM_EMAIL || "notifications@makanmakan.com",
-        "MakanMakan",
+        "MakanMasak",
       );
     } else if (env.RESEND_API_KEY) {
       // Fallback to Resend if explicitly disabled MailChannels
@@ -1055,7 +1055,7 @@ export class NotificationService extends BaseService {
         }
         return await this.emailProvider.sendEmail({
           to: recipient,
-          subject: "Test Notification from MakanMakan",
+          subject: "Test Notification from MakanMasak",
           html: "<h2>Test Email</h2><p>Your notification system is working correctly!</p>",
         });
       }
@@ -1066,7 +1066,7 @@ export class NotificationService extends BaseService {
         }
         return await this.smsProvider.sendSMS({
           to: recipient,
-          body: "Test SMS from MakanMakan. Your notification system is working!",
+          body: "Test SMS from MakanMasak. Your notification system is working!",
         });
       }
 

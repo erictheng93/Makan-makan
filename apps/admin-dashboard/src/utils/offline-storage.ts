@@ -53,7 +53,7 @@ export interface OfflineUserAction {
 }
 
 class AdminOfflineStorageManager {
-  private dbName = "MakanMakanAdmin";
+  private dbName = "MakanMasakAdmin";
   private dbVersion = 1;
   private db: IDBDatabase | null = null;
 

@@ -10,7 +10,7 @@
     "terms": "Ketentuan Layanan",
     "contact": "Hubungi Kami",
     "help": "Pusat Bantuan",
-    "appTitle": "MakanMakan - Pemesanan Cerdas",
+    "appTitle": "MakanMasak - Pemesanan Cerdas",
     "login": "Masuk Anggota",
     "register": "Daftar Anggota",
     "forgotPassword": "Lupa Kata Sandi",
@@ -33,7 +33,7 @@
     "markets": "Pasar dan Kawasan Komersial"
   },
   "home": {
-    "title": "Selamat Datang di MakanMakan",
+    "title": "Selamat Datang di MakanMasak",
     "subtitle": "Pindai Kode QR untuk Mulai Memesan",
     "scanQR": "Pindai Kode QR",
     "manualInput": "Input Manual",
@@ -315,7 +315,7 @@
   },
   "about": {
     "title": "Tentang Kami",
-    "description": "MakanMakan adalah sistem manajemen restoran modern yang didedikasikan untuk memberikan pengalaman bersantap terbaik. Kami menggunakan teknologi canggih untuk menciptakan pengalaman layanan yang mulus bagi restoran dan pelanggan.",
+    "description": "MakanMasak adalah sistem manajemen restoran modern yang didedikasikan untuk memberikan pengalaman bersantap terbaik. Kami menggunakan teknologi canggih untuk menciptakan pengalaman layanan yang mulus bagi restoran dan pelanggan.",
     "features": {
       "title": "Layanan Kami",
       "qrOrder": "Pemesanan Kode QR",

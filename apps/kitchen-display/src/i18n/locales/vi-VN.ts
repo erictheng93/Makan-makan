@@ -468,7 +468,7 @@ const viVN: Messages = {
     passwordPlaceholder: "Nhập mật khẩu",
     roleNote: "Chỉ có vai trò đầu bếp",
     subtitle: "Hệ thống hiển thị nhà bếp",
-    systemInfo: "Hệ thống hiển thị nhà bếp MakanMakan v1.0",
+    systemInfo: "Hệ thống hiển thị nhà bếp MakanMasak v1.0",
     title: "Hệ thống hiển thị nhà bếp",
     username: "Tên người dùng",
     usernamePlaceholder: "Nhập tên người dùng",

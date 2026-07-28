@@ -14,7 +14,7 @@ const zhTW = {
       selfHosted: "獨立部署",
     },
     footer: {
-      copyright: "© 2024 MakanMakan. All rights reserved.",
+      copyright: "© 2026 MakanMasak. All rights reserved.",
     },
   },
 

@@ -46,14 +46,14 @@ describe("router resilience against a broken i18n runtime", () => {
 
     await router.push("/");
 
-    expect(document.title).toBe("MakanMakan");
+    expect(document.title).toBe("MakanMasak");
   });
 
   it("safeTranslate returns the fallback rather than propagating", async () => {
     const { safeTranslate } = await import("@/utils/i18n");
 
-    expect(safeTranslate("navigation.appTitle", "MakanMakan")).toBe(
-      "MakanMakan",
+    expect(safeTranslate("navigation.appTitle", "MakanMasak")).toBe(
+      "MakanMasak",
     );
   });
 });

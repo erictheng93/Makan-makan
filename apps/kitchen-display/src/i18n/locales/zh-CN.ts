@@ -461,7 +461,7 @@ const zhCN: Messages = {
     passwordPlaceholder: "请输入密码",
     roleNote: "仅限厨师角色登入",
     subtitle: "Kitchen Display System",
-    systemInfo: "MakanMakan 厨房显示系统 v1.0",
+    systemInfo: "MakanMasak 厨房显示系统 v1.0",
     title: "厨房显示系统",
     username: "用户名称",
     usernamePlaceholder: "请输入用户名称",

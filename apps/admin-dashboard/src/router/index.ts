@@ -5,7 +5,7 @@ import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
 import { isTokenExpired } from "@makanmakan/utils";
 
-const FALLBACK_DOCUMENT_TITLE = "MakanMakan";
+const FALLBACK_DOCUMENT_TITLE = "MakanMasak";
 
 const routes: RouteRecordRaw[] = [
   {

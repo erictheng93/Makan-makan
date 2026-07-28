@@ -63,7 +63,7 @@ const enUS: Messages = {
     loggingIn: "Logging in...",
     loginButton: "Login",
     roleNote: "Chef role only",
-    systemInfo: "MakanMakan Kitchen Display System v1.0",
+    systemInfo: "MakanMasak Kitchen Display System v1.0",
     helpNote: "Need help? Contact your system administrator",
     loginSuccess: "Login successful!",
     fetchRestaurantError: "Failed to fetch restaurant info",

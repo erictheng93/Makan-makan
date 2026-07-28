@@ -322,7 +322,7 @@ export class ReceiptService {
       totalAmount: amountFromCents(order.totalAmountCents) ?? 0,
       paymentMethod: order.paymentMethod,
       timestamp: new Date().toISOString(),
-      footer: "謝謝光臨 MakanMakan",
+      footer: "謝謝光臨 MakanMasak",
     };
   }
 

@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const idID: Messages = {
   common: {
     actions: "Tindakan",
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     cancel: "Batalkan",
     generate: "Hasilkan",
     loading: "Memuat...",

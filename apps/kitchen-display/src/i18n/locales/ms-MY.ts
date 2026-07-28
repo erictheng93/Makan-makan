@@ -467,7 +467,7 @@ const msMY: Messages = {
     passwordPlaceholder: "Masukkan kata laluan",
     roleNote: "Peranan chef sahaja",
     subtitle: "Sistem Paparan Dapur",
-    systemInfo: "Sistem Paparan Dapur MakanMakan v1.0",
+    systemInfo: "Sistem Paparan Dapur MakanMasak v1.0",
     title: "Sistem Paparan Dapur",
     username: "Nama pengguna",
     usernamePlaceholder: "Masukkan nama pengguna",

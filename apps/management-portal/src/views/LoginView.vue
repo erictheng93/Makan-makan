@@ -51,7 +51,7 @@ async function submit() {
   >
     <section class="w-full max-w-md bg-white rounded-lg shadow-card p-6">
       <div class="mb-6">
-        <p class="text-sm font-semibold text-primary-600">MakanMakan</p>
+        <p class="text-sm font-semibold text-primary-600">MakanMasak</p>
         <h1 class="mt-2 text-2xl font-semibold text-gray-900">管理平台登入</h1>
         <p class="mt-2 text-sm text-gray-600">
           使用 API 平台管理員 token 換取管理平台工作階段。

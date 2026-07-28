@@ -31,7 +31,7 @@ export class SlackAlertChannel implements AlertChannel {
     const emoji = this.getSeverityEmoji(alert.severity);
 
     const payload = {
-      username: "MakanMakan Security Bot",
+      username: "MakanMasak Security Bot",
       icon_emoji: ":shield:",
       attachments: [
         {
@@ -45,7 +45,7 @@ export class SlackAlertChannel implements AlertChannel {
                 short: true,
               }))
             : [],
-          footer: "MakanMakan Security System",
+          footer: "MakanMasak Security System",
           ts: Math.floor((alert.timestamp || new Date()).getTime() / 1000),
         },
       ],
@@ -98,7 +98,7 @@ export class EmailAlertChannel implements AlertChannel {
         personalizations: [{ to: [{ email: this.toEmail }] }],
         from: {
           email: this.fromEmail,
-          name: "MakanMakan Security System",
+          name: "MakanMasak Security System",
         },
         subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
         content: [
@@ -167,7 +167,7 @@ export class EmailAlertChannel implements AlertChannel {
               </p>
             </div>
             <div class="footer">
-              <p>MakanMakan Security System</p>
+              <p>MakanMasak Security System</p>
               <p>This is an automated alert. Please do not reply to this email.</p>
             </div>
           </div>

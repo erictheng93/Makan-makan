@@ -449,9 +449,9 @@ export function createApp(
           };
 
     return c.json({
-      name: "MakanMakan API",
+      name: "MakanMasak API",
       version: c.env.API_VERSION || "v1",
-      description: "RESTful API for MakanMakan restaurant management system",
+      description: "RESTful API for MakanMasak restaurant management system",
       environment: c.env.NODE_ENV || "development",
       deployment: deploymentInfo,
       features: [

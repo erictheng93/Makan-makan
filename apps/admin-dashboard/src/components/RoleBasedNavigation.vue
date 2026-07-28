@@ -6,7 +6,7 @@
         <div class="flex">
           <div class="flex-shrink-0 flex items-center">
             <BuildingStorefrontIcon class="h-8 w-8 text-purple-600" />
-            <span class="ml-2 text-xl font-bold text-gray-900">MakanMakan</span>
+            <span class="ml-2 text-xl font-bold text-gray-900">MakanMasak</span>
           </div>
 
           <!-- 主要導航選項 -->

@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const zhCN: Messages = {
   app: {
     footer: {
-      copyright: "© 2024 MakanMakan. All rights reserved.",
+      copyright: "© 2026 MakanMasak. All rights reserved.",
     },
     tagline: {
       selfHosted: "独立部署",

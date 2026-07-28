@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const zhCN: Messages = {
   common: {
     actions: "操作",
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     cancel: "取消",
     generate: "生成",
     loading: "载入中...",

@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { safeTranslate } from "@/utils/i18n";
 
-const FALLBACK_DOCUMENT_TITLE = "MakanMakan";
+const FALLBACK_DOCUMENT_TITLE = "MakanMasak";
 
 function firstQueryString(value: unknown) {
   if (Array.isArray(value)) {

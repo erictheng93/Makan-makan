@@ -127,11 +127,11 @@ describe("applyMarketSeoMeta", () => {
     });
 
     expect(document.title).toBe(
-      "逢甲夜市｜台中市西屯區美食與店家菜單｜MakanMakan",
+      "逢甲夜市｜台中市西屯區美食與店家菜單｜MakanMasak",
     );
     expect(metaByName("description")).toContain("12 間店家");
     expect(metaByProperty("og:title")).toBe(
-      "逢甲夜市｜台中市西屯區美食與店家菜單｜MakanMakan",
+      "逢甲夜市｜台中市西屯區美食與店家菜單｜MakanMasak",
     );
     expect(metaByProperty("og:image")).toBe("https://example.com/banner.jpg");
     expect(metaByProperty("og:url")).toBe(
@@ -253,7 +253,7 @@ describe("applyShopMenuSeoMeta", () => {
       origin: "https://makanmakan.app",
     });
 
-    expect(document.title).toBe("阿明鹽酥雞菜單｜線上點餐｜MakanMakan");
+    expect(document.title).toBe("阿明鹽酥雞菜單｜線上點餐｜MakanMasak");
     expect(metaByName("description")).toContain("2 項可點餐商品");
     expect(metaByProperty("og:type")).toBe("restaurant");
     expect(metaByProperty("og:url")).toBe(

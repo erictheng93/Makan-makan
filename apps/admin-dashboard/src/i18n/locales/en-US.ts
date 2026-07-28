@@ -1452,7 +1452,7 @@ const enUS: Messages = {
 
   // Page title and navigation
   header: {
-    title: "MakanMakan Admin Dashboard",
+    title: "MakanMasak Admin Dashboard",
     home: "Home",
     realtime: {
       connected: "Real-time Connected",

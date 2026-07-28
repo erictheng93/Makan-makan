@@ -1027,16 +1027,16 @@ export class OnboardingService {
           ],
           from: {
             email: fromEmail,
-            name: "MakanMakan Onboarding",
+            name: "MakanMasak Onboarding",
           },
-          subject: "Set up your MakanMakan owner account",
+          subject: "Set up your MakanMasak owner account",
           content: [
             {
               type: "text/plain",
               value: [
                 `Hi ${application.contactName},`,
                 "",
-                `Your MakanMakan owner account for ${application.businessName} is ready.`,
+                `Your MakanMasak owner account for ${application.businessName} is ready.`,
                 `Username: ${ownerAccount.username}`,
                 `Set your password here: ${ownerAccount.setupPasswordLink}`,
                 `This link expires at ${ownerAccount.setupPasswordExpiresAt}.`,

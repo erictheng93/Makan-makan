@@ -1,6 +1,6 @@
 const zhTW = {
   common: {
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     loading: "載入中...",
     view: "查看",
     viewAll: "查看全部",

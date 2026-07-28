@@ -182,7 +182,7 @@ export function integrateOpenAPI(app: Hono) {
     return c.json(
       openApiApp.getOpenAPI31Document({
         openapi: "3.1.0",
-        info: { title: "MakanMakan API", version: "2.0.0" },
+        info: { title: "MakanMasak API", version: "2.0.0" },
         servers: [{ url: "/" }],
       }),
     );

@@ -1,5 +1,5 @@
 /**
- * MakanMakan Print Agent
+ * MakanMasak Print Agent
  *
  * Local print service that connects cloud system to physical printers
  * Integrates with queue-core printing modules
@@ -15,7 +15,7 @@ config();
 
 async function main() {
   try {
-    console.log("🖨️  Starting MakanMakan Print Agent v2.0.0");
+    console.log("🖨️  Starting MakanMasak Print Agent v2.0.0");
 
     // Create configuration
     const printConfig = createDefaultConfig();

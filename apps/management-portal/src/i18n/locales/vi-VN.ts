@@ -3,7 +3,7 @@ import type { Messages } from "../types";
 const viVN: Messages = {
   common: {
     actions: "hành động",
-    appName: "MakanMakan",
+    appName: "MakanMasak",
     cancel: "Hủy bỏ",
     generate: "Tạo",
     loading: "Đang tải...",

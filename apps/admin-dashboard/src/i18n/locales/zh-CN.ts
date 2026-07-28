@@ -1383,7 +1383,7 @@ const zhCN: Messages = {
 
   // 页面标题与导航
   header: {
-    title: "MakanMakan 管理后台",
+    title: "MakanMasak 管理后台",
     home: "首页",
     realtime: {
       connected: "实时连线",

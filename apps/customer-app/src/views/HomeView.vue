@@ -11,7 +11,7 @@
               <span class="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-ios-text">MakanMakan</h1>
+              <h1 class="text-xl font-bold text-ios-text">MakanMasak</h1>
               <p class="text-sm text-ios-secondary">
                 {{ t("home.subtitle") }}
               </p>
