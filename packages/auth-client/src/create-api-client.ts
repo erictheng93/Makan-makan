@@ -42,32 +42,60 @@ function getCookieValue(name: string): string | undefined {
  *
  * Storing it is not a new exposure: the bearer token already sits in the same
  * storage, so anything able to read this could already act as the user.
+ *
+ * The key is namespaced per client, because a front-end builds more than one:
+ * the main API and the management API answer on different hosts, and each host
+ * sets its own host-only `__Host-mm_csrf` cookie. Sharing one key let whichever
+ * client responded last overwrite the other's token, so the next state-changing
+ * request echoed a value that host's cookie could never match — a guaranteed
+ * 403 as soon as both sides start rotating tokens.
  */
-const CSRF_STORAGE_KEY = "mm_csrf_token";
+const LEGACY_CSRF_STORAGE_KEY = "mm_csrf_token";
 
-function readStoredCsrfToken(): string | null {
-  try {
-    return globalThis.localStorage?.getItem(CSRF_STORAGE_KEY) ?? null;
-  } catch {
-    return null;
-  }
-}
+function createCsrfStore(prefix: string) {
+  const key = `mm_csrf_token_${prefix}`;
 
-function writeStoredCsrfToken(token: string): void {
-  try {
-    globalThis.localStorage?.setItem(CSRF_STORAGE_KEY, token);
-  } catch {
-    // Storage can be unavailable (private mode, disabled cookies). The
-    // in-memory cache still covers the current page.
-  }
-}
+  const forget = () => {
+    globalThis.localStorage?.removeItem(key);
+    globalThis.localStorage?.removeItem(LEGACY_CSRF_STORAGE_KEY);
+  };
 
-function clearStoredCsrfToken(): void {
-  try {
-    globalThis.localStorage?.removeItem(CSRF_STORAGE_KEY);
-  } catch {
-    // Same as above — nothing to clean up if storage is unavailable.
-  }
+  return {
+    read(): string | null {
+      try {
+        // Falling back to the pre-namespace key keeps sessions that predate
+        // this change alive: without it, deploying would leave every open tab
+        // with no token to echo, and the reload-time /auth/refresh — which is
+        // CSRF protected — would 403 and sign everyone out at once.
+        return (
+          globalThis.localStorage?.getItem(key) ??
+          globalThis.localStorage?.getItem(LEGACY_CSRF_STORAGE_KEY) ??
+          null
+        );
+      } catch {
+        return null;
+      }
+    },
+
+    write(token: string): void {
+      try {
+        globalThis.localStorage?.setItem(key, token);
+        // The first rotation retires the shared key for good.
+        globalThis.localStorage?.removeItem(LEGACY_CSRF_STORAGE_KEY);
+      } catch {
+        // Storage can be unavailable (private mode, disabled cookies). The
+        // in-memory cache still covers the current page.
+      }
+    },
+
+    clear(): void {
+      try {
+        forget();
+      } catch {
+        // Same as above — nothing to clean up if storage is unavailable.
+      }
+    },
+  };
 }
 
 /**
@@ -87,9 +115,15 @@ export function createAuthenticatedApiClient(
     config.tokenStorage,
   );
   const csrfConfig = normalizeCsrfConfig(config.csrf);
+  const csrfStore = createCsrfStore(config.storageKeyPrefix);
   const retryOn401 = config.retryOn401 !== false; // default true
 
-  let csrfTokenCache: string | null = csrfConfig ? readStoredCsrfToken() : null;
+  let csrfTokenCache: string | null = csrfConfig ? csrfStore.read() : null;
+
+  const forgetCsrfToken = () => {
+    csrfTokenCache = null;
+    csrfStore.clear();
+  };
 
   const instance = axios.create({
     baseURL: config.baseURL ?? "/api/v1",
@@ -170,7 +204,7 @@ export function createAuthenticatedApiClient(
         const newCsrf = response.headers[csrfConfig.headerName.toLowerCase()];
         if (newCsrf) {
           csrfTokenCache = newCsrf;
-          writeStoredCsrfToken(newCsrf);
+          csrfStore.write(newCsrf);
         }
       }
       return response;
@@ -198,8 +232,7 @@ export function createAuthenticatedApiClient(
         // token goes with the session: leaving a stale one behind would make
         // the next login's first write fail against a rotated cookie.
         storage.clearAll();
-        csrfTokenCache = null;
-        clearStoredCsrfToken();
+        forgetCsrfToken();
         if (config.onAuthFailure) await config.onAuthFailure();
         return Promise.reject(error);
       }
@@ -214,7 +247,17 @@ export function createAuthenticatedApiClient(
 
   return {
     instance,
-    tokens: tokenManager,
+    // The CSRF token is part of the session, not a separate thing a caller has
+    // to remember to drop. Logging out used to clear the bearer token and leave
+    // it behind, so the next login's first write raced a token the server had
+    // already rotated away from.
+    tokens: {
+      ...tokenManager,
+      clearAll: () => {
+        tokenManager.clearAll();
+        forgetCsrfToken();
+      },
+    },
 
     get: (url, params) => instance.get(url, { params }),
     post: (url, data, cfg) => instance.post(url, data, cfg),
