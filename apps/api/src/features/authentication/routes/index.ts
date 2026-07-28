@@ -228,6 +228,23 @@ export function createAuthRoutes(
         );
       }
 
+      const effectiveRestaurantId =
+        currentUser.role === 1
+          ? currentUser.restaurantId == null
+            ? undefined
+            : String(currentUser.restaurantId)
+          : requestData.restaurantId;
+
+      if (currentUser.role === 1 && !effectiveRestaurantId) {
+        return c.json(
+          {
+            success: false,
+            error: "Shop owner restaurant id is required",
+          },
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
       // Transform request data to RegisterData format
       const registerData: RegisterData = {
         username: requestData.username,
@@ -236,7 +253,7 @@ export function createAuthRoutes(
         phone: requestData.phone,
         password: requestData.password,
         role: requestData.role as UserRole,
-        restaurantId: requestData.restaurantId,
+        restaurantId: effectiveRestaurantId,
       };
 
       // Initialize auth service

@@ -11,13 +11,30 @@ describe("authentication validation schemas", () => {
         password: "Strong1!",
         confirmPassword: "Strong1!",
         role: 1,
-        restaurantId: "S-20260607-001",
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
       }),
     ).toMatchObject({
       username: "owner_1",
       fullName: "Owner One",
       email: "owner@example.test",
       role: 1,
+    });
+  });
+
+  it("accepts UUID restaurant ids for staff registration", () => {
+    expect(
+      authSchemas.register.parse({
+        username: "chef_1",
+        fullName: "Chef One",
+        phone: "+886912345678",
+        password: "Strong1!",
+        confirmPassword: "Strong1!",
+        role: 2,
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+      }),
+    ).toMatchObject({
+      username: "chef_1",
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
     });
   });
 

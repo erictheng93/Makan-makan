@@ -14,7 +14,11 @@ type TestUser = {
 };
 
 const currentUser: { value: TestUser } = {
-  value: { id: 7, role: 0, restaurantId: "S-20250124-001" },
+  value: {
+    id: 7,
+    role: 0,
+    restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+  },
 };
 
 const service = {
@@ -146,14 +150,18 @@ function staffBody(overrides: Record<string, unknown> = {}) {
     password: "Secret123!",
     confirmPassword: "Secret123!",
     role: 2,
-    restaurantId: "S-20250124-001",
+    restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
     ...overrides,
   };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 7, role: 0, restaurantId: "S-20250124-001" };
+  currentUser.value = {
+    id: 7,
+    role: 0,
+    restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+  };
 
   service.login.mockResolvedValue({ success: true, tokens, user });
   service.register.mockResolvedValue({ success: true, user });
@@ -258,6 +266,70 @@ describe("authentication routes", () => {
       success: false,
       error: "User already exists",
     });
+  });
+
+  it("derives owner-created staff restaurant id from the owner token", async () => {
+    currentUser.value = {
+      id: 9,
+      role: 1,
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+    };
+
+    const response = await request(
+      "/register-staff",
+      "POST",
+      staffBody({
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31ff",
+      }),
+    ).res;
+
+    expect(response.status).toBe(201);
+    expect(service.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 2,
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+      }),
+      9,
+    );
+  });
+
+  it("creates owner staff in the owner restaurant when body omits restaurant id", async () => {
+    currentUser.value = {
+      id: 9,
+      role: 1,
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+    };
+
+    const response = await request(
+      "/register-staff",
+      "POST",
+      staffBody({ restaurantId: undefined }),
+    ).res;
+
+    expect(response.status).toBe(201);
+    expect(service.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+      }),
+      9,
+    );
+  });
+
+  it("does not create owner staff without an owner restaurant id", async () => {
+    currentUser.value = { id: 9, role: 1, restaurantId: null };
+
+    const response = await request(
+      "/register-staff",
+      "POST",
+      staffBody({ restaurantId: undefined }),
+    ).res;
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "Shop owner restaurant id is required",
+    });
+    expect(service.register).not.toHaveBeenCalled();
   });
 
   it("enforces role constraints for staff registration", async () => {

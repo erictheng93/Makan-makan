@@ -121,10 +121,7 @@ const registerSchema = z
     role: roleSchema,
     restaurantId: z
       .string()
-      .regex(
-        /^S-\d{8}-\d{3}$/,
-        "Restaurant ID must be in S-YYYYMMDD-NNN format",
-      )
+      .uuid("Restaurant ID must be a valid UUID")
       .optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
