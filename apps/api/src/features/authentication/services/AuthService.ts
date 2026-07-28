@@ -1177,13 +1177,17 @@ export class AuthService implements IAuthService {
         username,
         ipAddress,
       );
+      // delete(), not clear(): these are three exact keys, and clear() treats
+      // its argument as a prefix — it runs a paginated kv.list() and deletes
+      // whatever comes back. That turned every successful login into three KV
+      // list scans to remove three keys we can already name.
       const clears = [
-        this.cache.clear(usernameKey),
-        this.cache.clear(usernameIpKey),
+        this.cache.delete(usernameKey),
+        this.cache.delete(usernameIpKey),
       ];
 
       if (ipKey) {
-        clears.push(this.cache.clear(ipKey));
+        clears.push(this.cache.delete(ipKey));
       }
 
       await Promise.all(clears);

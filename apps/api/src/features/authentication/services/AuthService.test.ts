@@ -194,7 +194,16 @@ describe("AuthService", () => {
       }),
       expect.any(Number),
     );
-    expect(mocks.cache.clear).toHaveBeenCalledWith("failed-login:owner");
+    // Exact keys, so these must be point deletes. clear() treats its argument
+    // as a prefix and runs a paginated kv.list() to find what to remove.
+    expect(mocks.cache.delete).toHaveBeenCalledWith("failed-login:owner");
+    expect(mocks.cache.delete).toHaveBeenCalledWith(
+      "failed-login:owner:203.0.113.10",
+    );
+    expect(mocks.cache.delete).toHaveBeenCalledWith(
+      "failed-login-ip:203.0.113.10",
+    );
+    expect(mocks.cache.clear).not.toHaveBeenCalledWith("failed-login:owner");
     expect(mocks.performance.recordMetric).toHaveBeenCalledWith(
       "auth.login.success",
       1,
