@@ -3,8 +3,9 @@
  * Core monitoring and alerting service for the monitoring feature module
  */
 
-import type { KVNamespace } from "@cloudflare/workers-types";
+import type { D1Database, KVNamespace } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "../../../core/monitoring";
+import { probeCache, probeDatabase } from "../../../core/health/probe";
 import type {
   SystemMetrics,
   AlertRule,
@@ -17,11 +18,12 @@ import {
   type ApiRequestAggregate,
 } from "./analyticsEngineMetrics";
 
-/** Environment values getMetrics() needs to reach Analytics Engine. */
+/** Environment the service needs for Analytics Engine reads and health probes. */
 export interface MonitoringEnv {
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;
   ANALYTICS_DATASET?: string;
+  DB?: D1Database;
 }
 
 /** Aggregation window for the API metrics reported by getMetrics(). */
@@ -315,31 +317,51 @@ export class MonitoringService {
     try {
       const now = Date.now();
 
-      // API 健康檢查
+      // Probe the dependencies rather than reading counters. Every component
+      // here used to be derived from this.metrics, which is per-isolate
+      // in-process state — an isolate that had served no traffic reported
+      // perfect health no matter what state D1 or KV were actually in, so this
+      // endpoint could not report an outage. Latency was reported as 0 for the
+      // same reason.
+      const [databaseProbe, cacheProbe, apiMetrics] = await Promise.all([
+        probeDatabase(this.env?.DB),
+        probeCache(this.kv),
+        // Real request metrics, aggregated from Analytics Engine. Cached for a
+        // minute, so this does not query on every health check.
+        this.getMetrics().then((m) => m.apiMetrics),
+      ]);
+
       const apiHealth: ComponentHealth = {
         status: this.getApiHealthStatus(),
-        latency: this.metrics.apiMetrics.averageResponseTime,
-        errorRate: this.metrics.apiMetrics.errorRate,
+        latency: apiMetrics.averageResponseTime,
+        errorRate: apiMetrics.errorRate,
         lastCheck: now,
         issues: this.getApiIssues(),
       };
 
-      // 數據庫健康檢查
+      // Probe and counters answer different questions, so both are kept: the
+      // probe catches an outage the counters cannot see, and the counters catch
+      // degradation — a reachable but slow dependency — that the probe cannot.
       const databaseHealth: ComponentHealth = {
-        status: this.getDatabaseHealthStatus(),
-        latency: this.metrics.databaseMetrics.averageQueryTime,
-        errorRate:
-          this.metrics.databaseMetrics.errorCount /
-          Math.max(this.metrics.databaseMetrics.queryCount, 1),
+        status: databaseProbe.healthy
+          ? this.getDatabaseHealthStatus()
+          : "critical",
+        latency: databaseProbe.latencyMs,
+        errorRate: databaseProbe.healthy
+          ? this.metrics.databaseMetrics.errorCount /
+            Math.max(this.metrics.databaseMetrics.queryCount, 1)
+          : 1,
         lastCheck: now,
-        issues: this.getDatabaseIssues(),
+        issues: databaseProbe.error
+          ? [databaseProbe.error]
+          : this.getDatabaseIssues(),
       };
 
-      // 快取健康檢查
       const cacheHealth: ComponentHealth = {
-        status: this.getCacheHealthStatus(),
+        status: cacheProbe.healthy ? this.getCacheHealthStatus() : "critical",
+        latency: cacheProbe.latencyMs,
         lastCheck: now,
-        issues: this.getCacheIssues(),
+        issues: cacheProbe.error ? [cacheProbe.error] : this.getCacheIssues(),
         metrics: {
           hitRate: this.metrics.cacheMetrics.hitRate,
           totalKeys: this.metrics.cacheMetrics.totalKeys,

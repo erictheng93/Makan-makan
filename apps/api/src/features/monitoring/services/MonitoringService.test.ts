@@ -136,9 +136,15 @@ describe("MonitoringService", () => {
     });
   });
 
+  // Counters still drive degradation when the dependency answers its probe —
+  // a reachable but slow database is a warning, not an outage.
   it("derives component health and stores the snapshot", async () => {
     const { kv, values } = createKV();
-    const service = new MonitoringService(kv);
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+      } as never,
+    });
 
     await service.recordApiRequest(700, 200, "/slow");
     await service.recordDatabaseQuery(600, true, "select");
@@ -162,9 +168,15 @@ describe("MonitoringService", () => {
     });
   });
 
-  it("reports healthy status before cache activity and shows critical API issues", async () => {
+  function healthyDb() {
+    return {
+      prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+    } as never;
+  }
+
+  it("reports healthy when both dependencies answer their probes", async () => {
     const { kv } = createKV();
-    const service = new MonitoringService(kv);
+    const service = new MonitoringService(kv, { DB: healthyDb() });
 
     const healthy = await service.getHealthStatus();
     expect(healthy).toMatchObject({
@@ -172,9 +184,46 @@ describe("MonitoringService", () => {
       components: {
         api: { status: "healthy", issues: [] },
         database: { status: "healthy", issues: [] },
+        // Counter-derived note; no cache traffic has been recorded yet.
         cache: { status: "healthy", issues: ["Low hit rate: 0.00%"] },
       },
     });
+  });
+
+  // The reason for probing at all. Health used to be derived from in-process
+  // counters, so an isolate that had served no traffic reported perfect health
+  // no matter what state D1 was in — the endpoint could not report an outage.
+  it("reports critical when the database probe fails", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({
+          first: vi.fn(async () => {
+            throw new Error("D1_ERROR: unreachable");
+          }),
+        })),
+      } as never,
+    });
+
+    const status = await service.getHealthStatus();
+
+    expect(status.overall).toBe("critical");
+    expect(status.components.database).toMatchObject({ status: "critical" });
+    expect(status.components.database.issues?.[0]).toContain("unreachable");
+  });
+
+  it("reports critical when no database binding is configured", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    const status = await service.getHealthStatus();
+
+    expect(status.components.database.status).toBe("critical");
+  });
+
+  it("surfaces critical API issues from recorded traffic", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, { DB: healthyDb() });
 
     await service.recordApiRequest(600, 200, "/slow");
     await service.recordError("rate", "Elevated rate", "warning");
