@@ -627,7 +627,9 @@ export class GeoIntelligentRateLimiter {
             limit,
             parseInt(request.headers.get("CF-Threat-Score") || "0"),
           ],
-          indexes: [currentRequests.toString(), limit.toString()],
+          // One index only — Analytics Engine rejects more, and both values
+          // are already in the doubles above.
+          indexes: [currentRequests.toString()],
         });
       } catch (error) {
         console.error("Analytics error:", error);
@@ -659,10 +661,9 @@ export class GeoIntelligentRateLimiter {
             threatIntel.threatScore,
             blockData.blockedUntil - blockData.blockedAt,
           ],
-          indexes: [
-            blockData.escalationLevel.toString(),
-            threatIntel.threatScore.toString(),
-          ],
+          // One index only — Analytics Engine rejects more, and both values
+          // are already in the doubles above.
+          indexes: [blockData.escalationLevel.toString()],
         });
       } catch (error) {
         console.error("Analytics error:", error);

@@ -139,37 +139,20 @@ export class AdvancedAnalyticsService {
               dataPoint.metrics.tip_amount || 0,
             ],
 
-            // Indexed fields for fast queries - up to 20
-            indexes: [
-              dataPoint.restaurant_id?.toString() || "0",
-              dataPoint.user_id?.toString() || "0",
-              this.getHourOfDay(dataPoint.timestamp || Date.now()).toString(),
-              this.getDayOfWeek(dataPoint.timestamp || Date.now()).toString(),
-              this.getWeekOfYear(dataPoint.timestamp || Date.now()).toString(),
-              Math.floor((dataPoint.timestamp || Date.now()) / 1000).toString(), // Unix timestamp
-              dataPoint.dimensions.status_code || "200",
-              this.hashString(dataPoint.dimensions.endpoint || "").toString(),
-              this.hashString(dataPoint.dimensions.user_agent || "").toString(),
-              dataPoint.metrics.response_time?.toString() || "0",
-              dataPoint.metrics.order_value?.toString() || "0",
-              this.categorizeResponseTime(
-                dataPoint.metrics.response_time || 0,
-              ).toString(),
-              this.categorizeOrderValue(
-                dataPoint.metrics.order_value || 0,
-              ).toString(),
-              this.categorizeUserEngagement(
-                dataPoint.metrics.user_session_duration || 0,
-              ).toString(),
-              (
-                dataPoint.dimensions.ab_test_variant?.charCodeAt(0) || 0
-              ).toString(),
-              "0",
-              "0",
-              "0",
-              "0",
-              "0", // Reserved for future use
-            ],
+            // Analytics Engine accepts exactly ONE index — it is the sampling
+            // key, not a list of queryable dimensions. This used to pass 20,
+            // so writeDataPoint threw `Maximum of 1 indexes supported` on every
+            // request and the dataset never received a single data point.
+            //
+            // Nothing is lost by dropping the rest: those values are either
+            // already carried in the blobs/doubles above, or derivable at query
+            // time (timestamp is a built-in column, and hour/day/week come from
+            // toHour()/toDayOfWeek()/toYYYYMM() in SQL).
+            //
+            // restaurant_id is the right key — it is the dimension we group by
+            // most, so sampling stays representative per tenant instead of
+            // letting one busy restaurant crowd out the rest.
+            indexes: [dataPoint.restaurant_id?.toString() || "0"],
           }),
         ),
       );

@@ -186,8 +186,12 @@ name = "makanmasak-api-prod"
 NODE_ENV = "production"
 API_VERSION = "v1"
 # Dataset behind the ANALYTICS binding below. Writes use the binding; reading
-# aggregates back needs the dataset name plus CLOUDFLARE_API_TOKEN (a secret).
+# aggregates back needs the dataset name, the account id, and a
+# CLOUDFLARE_API_TOKEN secret (Account | Account Analytics | Read).
+# The account id is not a secret — it appears in every dashboard URL and in the
+# SQL API path itself, and other resource ids are already committed here.
 ANALYTICS_DATASET = "makanmasak-metrics-prod"
+CLOUDFLARE_ACCOUNT_ID = "bdddc08c066a9abc285d75fe5947a468"
 API_BASE_URL = "https://api.makanmasak.com"
 CORS_ORIGIN = "https://makanmasak.com,https://admin.makanmasak.com,https://kitchen.makanmasak.com"
 LOG_LEVEL = "warn"
