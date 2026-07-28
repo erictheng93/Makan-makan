@@ -1107,18 +1107,12 @@ export const DEFAULT_ALERT_RULES = [
       interval: 30,
     },
   },
-  {
-    name: "Low Cache Hit Rate",
-    condition: "cacheMetrics.hitRate < 0.3",
-    metric: "cacheMetrics.hitRate",
-    operator: "<" as const,
-    threshold: 0.3,
-    duration: 600,
-    config: {
-      type: "slack" as const,
-      severity: "warning" as const,
-      enabled: true,
-      interval: 60,
-    },
-  },
+  // There was a "Low Cache Hit Rate" rule here, on cacheMetrics.hitRate < 0.3.
+  // Nothing populates cacheMetrics — cacheMonitoringMiddleware is exported but
+  // never registered — so hitRate is always 0 and the condition could never be
+  // anything but true. It never fired only because no evaluator exists: grep
+  // the repo and there is no checkAlerts or evaluateCondition anywhere, so
+  // these rules are stored configuration that nothing acts on. Whoever wires
+  // evaluation up would have been greeted by a warning that fires immediately
+  // and forever. Add it back alongside a real cache metric, not before.
 ] as const;

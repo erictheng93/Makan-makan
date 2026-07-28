@@ -537,7 +537,13 @@ describe("MonitoringService", () => {
   });
 
   it("exposes default rules and singleton factory behavior", () => {
-    expect(DEFAULT_ALERT_RULES).toHaveLength(3);
+    // Two, not three: the "Low Cache Hit Rate" rule was removed because
+    // cacheMetrics has no data source, so its condition could never be false.
+    expect(DEFAULT_ALERT_RULES).toHaveLength(2);
+    // Every remaining rule must target a group that is actually measured.
+    for (const rule of DEFAULT_ALERT_RULES) {
+      expect(rule.metric).toMatch(/^apiMetrics\./);
+    }
 
     const first = createMonitoringService(createKV().kv);
     const second = createMonitoringService(createKV().kv);
