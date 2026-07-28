@@ -84,10 +84,36 @@ describe.each(pagesApps)("Pages asset guard: %s", (appPath) => {
       env: { ASSETS: createAssetsBinding(asset) },
     });
 
-    expect(response).toBe(asset);
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/javascript");
     expect(await response.text()).toBe("console.log('loaded');");
+  });
+
+  // Measured on a preview deployment: routing an asset through the Function
+  // rewrote Cache-Control from Pages' own `max-age=14400` down to `max-age=0`,
+  // which would revalidate every script and stylesheet on every page load. The
+  // filenames carry a content hash, so the Function restates the header itself.
+  it("keeps hashed assets cacheable despite the Function hop", async () => {
+    const onRequest = await loadAssetFunction(appPath);
+    const request = new Request("https://example.com/assets/index-abc123.js");
+    const asset = new Response("console.log('loaded');", {
+      status: 200,
+      headers: {
+        // What Pages hands back once a Function is in the path.
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Type": "application/javascript",
+      },
+    });
+
+    const response = await onRequest({
+      request,
+      env: { ASSETS: createAssetsBinding(asset) },
+    });
+
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+    expect(response.headers.get("Content-Type")).toBe("application/javascript");
   });
 
   it("adds no-store to an asset 404 returned by Pages", async () => {
