@@ -156,6 +156,75 @@ describe("AuthService refresh token rotation", () => {
     expect(refreshPayload).not.toHaveProperty("userId");
   });
 
+  // The four session writes on the login path run as one ordered D1 batch.
+  // Order is the load-bearing part: the deactivate and the expired-session
+  // sweep have to land before the insert, or they would clobber the session
+  // being created.
+  it("deactivates old sessions and sweeps expired ones without touching the new session", async () => {
+    await testDb.drizzle.insert(users).values({
+      id: loginUserId,
+      username: "owner-login",
+      fullName: "Owner Login",
+      passwordHash: await bcrypt.hash("CorrectHorse123!", 10),
+      role: 1,
+      isActive: true,
+      tokenVersion: 3,
+    });
+
+    const hour = 60 * 60 * 1000;
+    await testDb.drizzle.insert(sessions).values([
+      {
+        id: "session-still-valid",
+        userId: loginUserId,
+        token: "old-access",
+        refreshToken: "old-refresh",
+        expiresAt: new Date(Date.now() + hour),
+        isActive: true,
+      },
+      {
+        id: "session-expired",
+        userId: loginUserId,
+        token: "expired-access",
+        refreshToken: "expired-refresh",
+        expiresAt: new Date(Date.now() - hour),
+        isActive: true,
+      },
+    ]);
+
+    const service = new AuthService(testDb.bindings.DB, {
+      JWT_SECRET: jwtSecret,
+      NODE_ENV: "test",
+    });
+
+    const result = await service.login({
+      username: "owner-login",
+      password: "CorrectHorse123!",
+    });
+    expect(result.success).toBe(true);
+
+    const rows = await testDb.drizzle
+      .select()
+      .from(sessions)
+      .where(eq(sessions.userId, loginUserId));
+
+    // Expired one is gone, the previously valid one survives but deactivated,
+    // and the brand new session is the only active one.
+    expect(rows.map((row) => row.id)).not.toContain("session-expired");
+    expect(rows.find((row) => row.id === "session-still-valid")?.isActive).toBe(
+      false,
+    );
+
+    const active = rows.filter((row) => row.isActive);
+    expect(active).toHaveLength(1);
+    expect(active[0].token).toBe(result.tokens!.accessToken);
+
+    const [user] = await testDb.drizzle
+      .select({ lastLoginAt: users.lastLoginAt })
+      .from(users)
+      .where(eq(users.id, loginUserId));
+    expect(user.lastLoginAt).toBeInstanceOf(Date);
+  });
+
   it("validates UUID-principal access tokens through the session user id", async () => {
     await testDb.drizzle.insert(users).values({
       id: validateUserId,

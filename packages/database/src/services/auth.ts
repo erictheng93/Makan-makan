@@ -1,4 +1,5 @@
 import { eq, and, desc, lt, gt, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
 import { users, sessions } from "../schema";
 import * as bcrypt from "bcryptjs";
@@ -213,37 +214,46 @@ export class AuthService extends BaseService {
         expiresIn: "7d",
       });
 
-      // Invalidate any existing sessions to prevent session fixation
-      const logoutSuccess = await this.logout(user.id);
-      if (!logoutSuccess) {
-        return {
-          success: false,
-          error: "Failed to invalidate previous sessions. Please try again.",
-        };
-      }
+      // These four writes used to be four sequential D1 round trips (deactivate
+      // old sessions, sweep expired ones, insert the new session, stamp
+      // lastLoginAt), each awaited before the next began. D1 runs a batch as
+      // one atomic transaction in the order given, so this is both a single
+      // round trip and safer: previously a failure partway through could log a
+      // user out of everything without giving them a new session.
+      //
+      // Order matters — the deactivate and the sweep must precede the insert so
+      // they do not touch the session we are creating.
+      const now = new Date();
+      const writes: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
+        // Invalidate any existing sessions to prevent session fixation
+        this.db
+          .update(sessions)
+          .set({ isActive: false, updatedAt: now })
+          .where(eq(sessions.userId, user.id)) as BatchItem<"sqlite">,
+        this.db
+          .delete(sessions)
+          .where(
+            and(lt(sessions.expiresAt, now), eq(sessions.userId, user.id)),
+          ) as BatchItem<"sqlite">,
+        this.db.insert(sessions).values({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          token: accessToken,
+          refreshToken,
+          userAgent: data.deviceInfo?.userAgent,
+          ipAddress: data.deviceInfo?.ipAddress,
+          deviceInfo: data.deviceInfo,
+          location: data.location,
+          expiresAt: accessTokenExpiry,
+          isActive: true,
+        }) as BatchItem<"sqlite">,
+        this.db
+          .update(users)
+          .set({ lastLoginAt: now, updatedAt: now })
+          .where(eq(users.id, user.id)) as BatchItem<"sqlite">,
+      ];
 
-      // 創建 session 記錄 with new session ID
-      const sessionData: SessionData = {
-        userId: user.id,
-        token: accessToken,
-        refreshToken,
-        userAgent: data.deviceInfo?.userAgent,
-        ipAddress: data.deviceInfo?.ipAddress,
-        deviceInfo: data.deviceInfo,
-        location: data.location,
-        expiresAt: accessTokenExpiry,
-      };
-
-      await this.createSession(sessionData);
-
-      // 更新最後登入時間 - Using Drizzle ORM
-      await this.db
-        .update(users)
-        .set({
-          lastLoginAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, user.id));
+      await this.db.batch(writes);
 
       return {
         success: true,
