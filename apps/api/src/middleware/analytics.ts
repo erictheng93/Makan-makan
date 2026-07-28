@@ -1,6 +1,5 @@
 import { Context, Next } from "hono";
 import type { Env } from "../types/env";
-import { badRequest } from "../shared/utils/api-error";
 
 // Custom AnalyticsEngine interface since it's not exported by @cloudflare/workers-types
 interface AnalyticsEngine {
@@ -26,48 +25,7 @@ export interface AnalyticsDataPoint {
   timestamp?: number;
 }
 
-export interface AnalyticsQuery {
-  metrics: string[];
-  event?: string;
-  restaurant_id?: string;
-  group_by?: string[];
-  order_by?: string;
-  limit?: number;
-}
-
 export class AdvancedAnalyticsService {
-  // Whitelist of allowed Analytics Engine metric expressions
-  private static readonly ALLOWED_METRICS = new Set([
-    "count",
-    "sum(double1)",
-    "avg(double1)",
-    "sum(double2)",
-    "avg(double2)",
-    "quantileWeighted(0.5)(double1)",
-    "min(double1)",
-    "max(double1)",
-    "min(double2)",
-    "max(double2)",
-    "timestamp",
-  ]);
-
-  // Whitelist of allowed Analytics Engine group-by columns
-  private static readonly ALLOWED_GROUP_BY = new Set([
-    "blob1",
-    "blob2",
-    "blob3",
-    "blob4",
-    "blob5",
-    "blob6",
-    "blob7",
-    "blob8",
-    "blob9",
-    "blob10",
-    "double1",
-    "double2",
-    "_sample_interval",
-  ]);
-
   constructor(
     private analyticsEngine: AnalyticsEngine | undefined,
     private context: ExecutionContext,
@@ -220,36 +178,6 @@ export class AdvancedAnalyticsService {
     }
   }
 
-  /**
-   * Query analytics data for real-time insights
-   */
-  async queryAnalytics(query: {
-    event?: string;
-    restaurant_id?: string;
-    time_range: "1h" | "24h" | "7d" | "30d";
-    metrics: string[];
-    group_by?: string[];
-    filters?: Record<string, unknown>;
-  }): Promise<unknown[]> {
-    try {
-      // This would typically use the Analytics Engine SQL API
-      // For now, we'll structure the query parameters
-      const timeRange = this.getTimeRangeMillis(query.time_range);
-      const startTime = Date.now() - timeRange;
-
-      // Build SQL query for Analytics Engine
-      const sql = this.buildAnalyticsQuery(query, startTime);
-
-      // Execute query (would need Analytics Engine SQL API)
-      console.log("Analytics Query:", sql);
-
-      return []; // Placeholder - would return actual results
-    } catch (error) {
-      console.error("Analytics query failed:", error);
-      return [];
-    }
-  }
-
   // Private helper methods
   private categorizePerformance(responseTime: number): string {
     if (responseTime < 100) return "excellent";
@@ -384,76 +312,6 @@ export class AdvancedAnalyticsService {
       console.error("Failed to send security alert:", error);
     }
   }
-
-  private getTimeRangeMillis(range: string): number {
-    switch (range) {
-      case "1h":
-        return 60 * 60 * 1000;
-      case "24h":
-        return 24 * 60 * 60 * 1000;
-      case "7d":
-        return 7 * 24 * 60 * 60 * 1000;
-      case "30d":
-        return 30 * 24 * 60 * 60 * 1000;
-      default:
-        return 60 * 60 * 1000;
-    }
-  }
-
-  private buildAnalyticsQuery(
-    query: AnalyticsQuery,
-    startTime: number,
-  ): string {
-    // Validate metrics against whitelist
-    const safeMetrics = query.metrics.filter((m) =>
-      AdvancedAnalyticsService.ALLOWED_METRICS.has(m),
-    );
-    if (safeMetrics.length === 0) {
-      throw badRequest(
-        "No valid metrics provided. Allowed: " +
-          [...AdvancedAnalyticsService.ALLOWED_METRICS].join(", "),
-        "INVALID_METRICS",
-      );
-    }
-
-    // Validate identifier pattern for event and restaurant_id
-    const identifierPattern = /^[a-zA-Z0-9_-]+$/;
-
-    let sql = `SELECT ${safeMetrics.join(", ")} FROM analytics WHERE timestamp >= ${startTime}`;
-
-    if (query.event) {
-      if (!identifierPattern.test(query.event)) {
-        throw badRequest(
-          "Invalid event name. Only alphanumeric, underscore, and hyphen characters are allowed.",
-          "INVALID_EVENT",
-        );
-      }
-      sql += ` AND blob1 = '${query.event}'`;
-    }
-
-    if (query.restaurant_id) {
-      if (!identifierPattern.test(query.restaurant_id)) {
-        throw badRequest(
-          "Invalid restaurant_id. Only alphanumeric, underscore, and hyphen characters are allowed.",
-          "INVALID_RESTAURANT_ID",
-        );
-      }
-      sql += ` AND blob2 = '${query.restaurant_id}'`;
-    }
-
-    if (query.group_by?.length) {
-      const safeGroupBy = query.group_by.filter((g) =>
-        AdvancedAnalyticsService.ALLOWED_GROUP_BY.has(g),
-      );
-      if (safeGroupBy.length > 0) {
-        sql += ` GROUP BY ${safeGroupBy.join(", ")}`;
-      }
-    }
-
-    sql += ` ORDER BY timestamp DESC LIMIT 1000`;
-
-    return sql;
-  }
 }
 
 /**
@@ -490,8 +348,8 @@ export function advancedAnalyticsMiddleware() {
       user_agent: c.req.header("User-Agent") || "unknown",
       country: c.req.header("CF-IPCountry") || "unknown",
       city: c.req.header("CF-IPCity") || "unknown",
-      device_type: "unknown", // detectDeviceType(c.req.header('User-Agent') || ''),
-      browser: "unknown", // detectBrowser(c.req.header('User-Agent') || ''),
+      device_type: "unknown",
+      browser: "unknown",
       ip_address: c.req.header("CF-Connecting-IP") || "unknown",
       threat_score: parseInt(c.req.header("CF-Threat-Score") || "0"),
     };
@@ -562,21 +420,6 @@ export function advancedAnalyticsMiddleware() {
       });
     }
   };
-
-  // Helper functions for device/browser detection
-  function _detectDeviceType(userAgent: string): string {
-    if (/Mobile|Android|iPhone|iPad/.test(userAgent)) return "mobile";
-    if (/Tablet/.test(userAgent)) return "tablet";
-    return "desktop";
-  }
-
-  function _detectBrowser(userAgent: string): string {
-    if (/Chrome/.test(userAgent)) return "chrome";
-    if (/Firefox/.test(userAgent)) return "firefox";
-    if (/Safari/.test(userAgent)) return "safari";
-    if (/Edge/.test(userAgent)) return "edge";
-    return "other";
-  }
 }
 
 declare module "hono" {
