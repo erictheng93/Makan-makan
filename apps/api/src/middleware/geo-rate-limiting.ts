@@ -1,4 +1,5 @@
 import { Context, Next } from "hono";
+import { verifyJwtToken } from "./auth";
 import type { Env } from "../types/env";
 
 // Custom AnalyticsEngine interface since it's not exported by @cloudflare/workers-types
@@ -64,6 +65,17 @@ interface ThreatIntelligence {
   confidence: number;
 }
 
+interface RateLimitIdentity {
+  identifier: string;
+  role?: number;
+}
+
+interface RateLimitTokenPayload {
+  id?: string;
+  sub?: string;
+  role?: number;
+}
+
 const SENSITIVE_KV_RATE_LIMIT_PATHS = [
   "/api/v1/auth/login",
   "/api/v1/auth/register",
@@ -76,6 +88,50 @@ function shouldUseKvRateLimiter(path: string): boolean {
   return SENSITIVE_KV_RATE_LIMIT_PATHS.some((sensitivePath) =>
     path.includes(sensitivePath),
   );
+}
+
+function pathEndsWithEndpoint(path: string, endpoint: string): boolean {
+  return path === endpoint || path.endsWith(endpoint);
+}
+
+function isStaffRegistrationEndpoint(path: string): boolean {
+  return pathEndsWithEndpoint(path, "/auth/register-staff");
+}
+
+function extractAuthenticatedRateLimitIdentity(
+  request: Request,
+  env: Env,
+): RateLimitIdentity | undefined {
+  const authHeader = request.headers.get("Authorization");
+  if (
+    !authHeader?.startsWith("Bearer ") ||
+    !env.JWT_SECRET ||
+    env.JWT_SECRET.length < 32
+  ) {
+    return undefined;
+  }
+
+  try {
+    const decoded = verifyJwtToken(authHeader.substring(7), env.JWT_SECRET);
+    if (!decoded || typeof decoded !== "object") return undefined;
+
+    const payload = decoded as RateLimitTokenPayload;
+    const principal =
+      typeof payload.sub === "string" && payload.sub.length > 0
+        ? payload.sub
+        : typeof payload.id === "string" && payload.id.length > 0
+          ? payload.id
+          : undefined;
+
+    if (!principal) return undefined;
+
+    return {
+      identifier: `user:${principal}`,
+      role: typeof payload.role === "number" ? payload.role : undefined,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 // High-risk countries requiring stricter limits
@@ -135,7 +191,14 @@ export class GeoIntelligentRateLimiter {
     // Base rate limits by endpoint type
     let baseConfig: RateLimitConfig;
 
-    if (endpoint.includes("/auth/")) {
+    if (isStaffRegistrationEndpoint(endpoint)) {
+      baseConfig = {
+        requests: 30,
+        windowSeconds: 300,
+        burstMultiplier: 1.0,
+        blockDuration: 60,
+      };
+    } else if (endpoint.includes("/auth/")) {
       baseConfig = {
         requests: 5,
         windowSeconds: 60,
@@ -544,8 +607,8 @@ export class GeoIntelligentRateLimiter {
     additionalChecks: string[];
   } {
     if (
-      endpoint.includes("/auth/login") ||
-      endpoint.includes("/auth/register")
+      pathEndsWithEndpoint(endpoint, "/auth/login") ||
+      pathEndsWithEndpoint(endpoint, "/auth/register")
     ) {
       return {
         multiplier: 0.5,
@@ -758,10 +821,18 @@ export function geoIntelligentRateLimitMiddleware(
       c.env,
     );
 
-    // Create identifier (prefer user ID, fallback to IP)
+    // Create identifier (prefer user ID, fallback to IP). This middleware runs
+    // before route-level auth, so authenticated write endpoints need a verified
+    // bearer-token fallback to avoid grouping every actor behind the same NAT IP.
     const user = c.get("user");
+    const tokenIdentity = user
+      ? undefined
+      : extractAuthenticatedRateLimitIdentity(c.req.raw, c.env);
     const ip = c.req.header("CF-Connecting-IP") || "unknown";
-    const identifier = user?.id ? `user:${user.id}` : `ip:${ip}`;
+    const identifier =
+      user?.id != null
+        ? `user:${user.id}`
+        : (tokenIdentity?.identifier ?? `ip:${ip}`);
 
     const nativeLimiter = c.env.GLOBAL_RATE_LIMITER;
     const useKvRateLimiter = !nativeLimiter || shouldUseKvRateLimiter(path);
@@ -788,7 +859,7 @@ export function geoIntelligentRateLimitMiddleware(
     const rateLimit = rateLimiter.calculateDynamicRateLimit(
       c.req.raw,
       path,
-      user?.role,
+      user?.role ?? tokenIdentity?.role,
     );
 
     // Apply custom limits if configured
@@ -827,7 +898,7 @@ export function geoIntelligentRateLimitMiddleware(
       result = await rateLimiter.applyRateLimit(
         c.req.raw,
         rateLimit,
-        identifier,
+        `${identifier}:${path}`,
       );
     }
 

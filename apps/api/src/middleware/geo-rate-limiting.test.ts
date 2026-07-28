@@ -1,7 +1,13 @@
 import { Hono } from "hono";
+import { sign } from "jsonwebtoken";
 import { describe, expect, it, vi } from "vitest";
-import { geoIntelligentRateLimitMiddleware } from "./geo-rate-limiting";
+import {
+  GeoIntelligentRateLimiter,
+  geoIntelligentRateLimitMiddleware,
+} from "./geo-rate-limiting";
 import type { Env } from "../types/env";
+
+const JWT_SECRET = "test-secret-for-rate-limit-identity-32b";
 
 function createEnv(overrides: Partial<Env> = {}): Env {
   const rateLimitKv = {
@@ -17,6 +23,30 @@ function createEnv(overrides: Partial<Env> = {}): Env {
     RATE_LIMIT_KV: rateLimitKv,
     ...overrides,
   } as Env;
+}
+
+class MemoryKV {
+  store = new Map<string, string>();
+
+  get = vi.fn(async (key: string, options?: { type?: string }) => {
+    const value = this.store.get(key) ?? null;
+    return options?.type === "json" && value ? JSON.parse(value) : value;
+  });
+
+  put = vi.fn(async (key: string, value: string) => {
+    this.store.set(key, value);
+  });
+
+  delete = vi.fn(async (key: string) => {
+    this.store.delete(key);
+  });
+}
+
+function createMemoryEnv(kv = new MemoryKV()): Env {
+  return createEnv({
+    JWT_SECRET,
+    RATE_LIMIT_KV: kv as unknown as KVNamespace,
+  });
 }
 
 function createApp(env: Env) {
@@ -44,6 +74,121 @@ function fetchWithContext(
     executionCtx: createExecutionContext(),
   });
 }
+
+function createToken(sub: string, role = 0): string {
+  return sign(
+    {
+      sub,
+      username: `user-${sub.slice(-4)}`,
+      role,
+    },
+    JWT_SECRET,
+    {
+      algorithm: "HS256",
+      expiresIn: "1h",
+    },
+  );
+}
+
+function createRateLimitedApp() {
+  const app = new Hono<{ Bindings: Env }>();
+  app.use(
+    "*",
+    geoIntelligentRateLimitMiddleware({
+      customLimits: {
+        "/api/v1/auth/login": {
+          requests: 1,
+          windowSeconds: 60,
+          burstMultiplier: 1,
+          blockDuration: 60,
+        },
+        "/api/v1/auth/register-staff": {
+          requests: 1,
+          windowSeconds: 60,
+          burstMultiplier: 1,
+          blockDuration: 60,
+        },
+      },
+    }),
+  );
+  app.post("/api/v1/auth/login", (c) => c.json({ ok: true }));
+  app.post("/api/v1/auth/register-staff", (c) => c.json({ ok: true }));
+  return app;
+}
+
+function post(
+  app: Hono<{ Bindings: Env }>,
+  env: Env,
+  path: string,
+  token?: string,
+) {
+  return app.fetch(
+    new Request(`https://api.test${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "CF-Connecting-IP": "203.0.113.10",
+        "User-Agent": "vitest-rate-limit-client",
+      },
+    }),
+    env,
+    createExecutionContext(),
+  );
+}
+
+describe("GeoIntelligentRateLimiter", () => {
+  it("classifies staff registration as authenticated management writes", () => {
+    const limiter = new GeoIntelligentRateLimiter(
+      new MemoryKV() as unknown as KVNamespace,
+      undefined,
+      { waitUntil: vi.fn() },
+      createMemoryEnv(),
+    );
+
+    const request = new Request("https://api.test/api/v1/auth/register-staff", {
+      method: "POST",
+      headers: { "User-Agent": "vitest-rate-limit-client" },
+    });
+
+    const limit = limiter.calculateDynamicRateLimit(
+      request,
+      "/api/v1/auth/register-staff",
+    );
+
+    expect(limit).toMatchObject({
+      requests: 30,
+      windowSeconds: 300,
+      burstMultiplier: 1,
+      blockDuration: 60,
+    });
+  });
+
+  it("keeps anonymous registration on the stricter auth tier", () => {
+    const limiter = new GeoIntelligentRateLimiter(
+      new MemoryKV() as unknown as KVNamespace,
+      undefined,
+      { waitUntil: vi.fn() },
+      createMemoryEnv(),
+    );
+
+    const request = new Request("https://api.test/api/v1/auth/register", {
+      method: "POST",
+      headers: { "User-Agent": "vitest-rate-limit-client" },
+    });
+
+    const limit = limiter.calculateDynamicRateLimit(
+      request,
+      "/api/v1/auth/register",
+    );
+
+    expect(limit).toMatchObject({
+      requests: 2,
+      windowSeconds: 60,
+      burstMultiplier: 1.2,
+      blockDuration: 300,
+    });
+  });
+});
 
 describe("geoIntelligentRateLimitMiddleware", () => {
   it("uses the native Rate Limit binding without KV operations", async () => {
@@ -157,5 +302,35 @@ describe("geoIntelligentRateLimitMiddleware", () => {
     });
 
     expect(response.status).toBe(429);
+  });
+
+  it("uses verified bearer-token identity before route auth runs", async () => {
+    const env = createMemoryEnv();
+    const app = createRateLimitedApp();
+    const firstActor = createToken("01890f3a-1111-7111-8111-111111111111");
+    const secondActor = createToken("01890f3a-2222-7222-8222-222222222222");
+
+    expect(
+      (await post(app, env, "/api/v1/auth/register-staff", firstActor)).status,
+    ).toBe(200);
+    expect(
+      (await post(app, env, "/api/v1/auth/register-staff", firstActor)).status,
+    ).toBe(429);
+    expect(
+      (await post(app, env, "/api/v1/auth/register-staff", secondActor)).status,
+    ).toBe(200);
+  });
+
+  it("scopes KV fallback counters by endpoint path", async () => {
+    const env = createMemoryEnv();
+    const app = createRateLimitedApp();
+    const token = createToken("01890f3a-3333-7333-8333-333333333333");
+
+    expect((await post(app, env, "/api/v1/auth/login", token)).status).toBe(
+      200,
+    );
+    expect(
+      (await post(app, env, "/api/v1/auth/register-staff", token)).status,
+    ).toBe(200);
   });
 });
