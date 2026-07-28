@@ -52,10 +52,6 @@ declare global {
   interface MediaTrackConstraintSet {
     torch?: boolean;
   }
-
-  interface Window {
-    pwaPerformanceManager?: import("@/utils/pwa-performance-optimizer").PWAPerformanceManager;
-  }
 }
 
 declare module "vue-router" {

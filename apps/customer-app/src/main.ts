@@ -8,9 +8,7 @@ import App from "./App.vue";
 import router from "./router";
 import { setupI18n } from "./i18n";
 import "./assets/css/main.css";
-
-// Performance optimizations
-import { PWAPerformanceManager } from "./utils/pwa-performance-optimizer";
+import { cleanupLegacyPWAStorage } from "./utils/legacy-pwa-storage-cleanup";
 
 const app = createApp(App);
 
@@ -52,22 +50,6 @@ app.use(Toast, {
   rtl: false,
 });
 
-// Initialize PWA performance optimizations
-// Note: Service Worker registration is handled by VitePWA plugin (registerType: "autoUpdate")
-async function initializePWAOptimizations() {
-  try {
-    const performanceManager = new PWAPerformanceManager();
-    await performanceManager.initializeOptimizations();
-
-    // Make manager globally available
-    window.pwaPerformanceManager = performanceManager;
-
-    console.log("✅ PWA performance optimizations initialized");
-  } catch (error) {
-    console.error("⚠️ PWA optimization initialization failed:", error);
-  }
-}
-
-initializePWAOptimizations();
-
 app.mount("#app");
+
+void cleanupLegacyPWAStorage();
