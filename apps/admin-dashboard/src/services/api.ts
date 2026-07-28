@@ -11,6 +11,7 @@ import {
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 import { setAuthTokenProvider } from "@/utils/authTokenProvider";
+import { LOGIN_PATH, loginUrlFor } from "@/utils/loginRedirect";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -54,6 +55,7 @@ let loginRedirectRequested = false;
 
 interface AuthFailureLocation {
   pathname: string;
+  search?: string;
   assign(url: string): void;
 }
 
@@ -63,6 +65,11 @@ export function clearAdminAuthStorage(): void {
     sessionStorage.removeItem(key);
   }
 
+  // Sweeping the storage keys is not enough on its own: production keeps the
+  // bearer token in memory, and each client owns a CSRF token that only it
+  // knows the key for. Only clearAll() reaches both.
+  authClient.tokens.clearAll();
+  authClient.setAuthToken(null);
   managementAuthClient.tokens.clearAll();
   managementAuthClient.setAuthToken(null);
 }
@@ -72,12 +79,14 @@ export function handleAdminAuthFailure(
 ): void {
   clearAdminAuthStorage();
 
-  if (loginRedirectRequested || location.pathname === "/login") {
+  if (loginRedirectRequested || location.pathname === LOGIN_PATH) {
     return;
   }
 
   loginRedirectRequested = true;
-  location.assign("/login");
+  // Carry the current page across so a mid-session 401 does not silently
+  // relocate the user to their role's landing page once they log back in.
+  location.assign(loginUrlFor(`${location.pathname}${location.search ?? ""}`));
 }
 
 const authClient = createAuthenticatedApiClient({

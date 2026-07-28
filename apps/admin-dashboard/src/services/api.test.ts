@@ -53,9 +53,10 @@ describe("admin API auth storage", () => {
     }
   });
 
-  it("redirects to login once after refresh failure", () => {
+  it("redirects to login once after refresh failure, keeping the destination", () => {
     const location = {
-      pathname: "/dashboard/platform",
+      pathname: "/dashboard/monitoring",
+      search: "?tab=alerts",
       assign: vi.fn(),
     };
 
@@ -66,7 +67,9 @@ describe("admin API auth storage", () => {
     handleAdminAuthFailure(location);
 
     expect(location.assign).toHaveBeenCalledTimes(1);
-    expect(location.assign).toHaveBeenCalledWith("/login");
+    expect(location.assign).toHaveBeenCalledWith(
+      "/login?redirect=%2Fdashboard%2Fmonitoring%3Ftab%3Dalerts",
+    );
     expect(localStorage.getItem("auth_token")).toBeNull();
     expect(sessionStorage.getItem("auth_token")).toBeNull();
   });
