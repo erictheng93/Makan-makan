@@ -284,7 +284,12 @@ jobs:
       - name: 📈 查詢真實 Analytics Engine SQL API
         working-directory: apps/api
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Not a secret, and deliberately not read from one: the repo has no
+          # CLOUDFLARE_ACCOUNT_ID secret configured, so depending on it made
+          # this job fail with "credentials not all set" even once the token
+          # was in place. The account id appears in every dashboard URL and in
+          # the SQL API path, and already lives in apps/api/wrangler.toml.
+          CLOUDFLARE_ACCOUNT_ID: bdddc08c066a9abc285d75fe5947a468
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}
           ANALYTICS_DATASET: makanmasak-metrics-prod
           # With the secret configured, missing credentials are a hard failure
@@ -295,11 +300,15 @@ jobs:
 
       - name: 📊 摘要
         if: always()
+        env:
+          # Passed through env rather than interpolated into the script text,
+          # so the value never becomes part of the command line.
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN != '' && '1' || '' }}
         run: |
           {
             echo "## 📈 Analytics Engine SQL smoke"
             echo ""
-            if [ -n "${{ secrets.CLOUDFLARE_ANALYTICS_READ_TOKEN }}" ]; then
+            if [ -n "$HAS_TOKEN" ]; then
               echo "Ran against the real SQL API."
             else
               echo "⚠️ **Skipped** — \`CLOUDFLARE_ANALYTICS_READ_TOKEN\` is not configured."
