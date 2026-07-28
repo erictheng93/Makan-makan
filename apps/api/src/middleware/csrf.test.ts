@@ -126,6 +126,19 @@ describe("attachCSRFToken", () => {
 
     expect(response.headers.get("set-cookie")).not.toContain("HttpOnly");
   });
+
+  it("outlives the refresh cookie it has to travel with", async () => {
+    const response = await issueToken();
+
+    // Restoring a session posts to /auth/refresh, which is CSRF protected. A
+    // CSRF cookie shorter-lived than __Host-mm_staff_refresh (7 days) meant a
+    // valid refresh cookie could not be spent after an hour idle (#66).
+    const maxAge = Number(
+      (response.headers.get("set-cookie") ?? "").match(/Max-Age=(\d+)/)?.[1],
+    );
+
+    expect(maxAge).toBeGreaterThanOrEqual(7 * 24 * 60 * 60);
+  });
 });
 
 describe("csrfProtection excludePaths", () => {

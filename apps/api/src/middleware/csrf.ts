@@ -14,7 +14,13 @@ const CSRF_HEADER_NAME = "X-CSRF-Token";
 const CSRF_COOKIE_NAME = "__Host-mm_csrf";
 const LEGACY_CSRF_COOKIE_NAME = "csrf_token";
 const CSRF_TOKEN_LENGTH = 32;
-const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
+const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour — KV-backed validation only
+
+// The cookie must not expire before the session it guards. __Host-mm_staff_refresh
+// lives for 7 days, and restoring a session posts to /auth/refresh, which is CSRF
+// protected — so a 1-hour cookie meant every restore after an hour idle failed
+// with a valid refresh cookie still in hand (#66).
+const CSRF_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 /**
  * Build CSRF cookie options string.
@@ -34,7 +40,7 @@ function buildCookieOptions(token: string): string {
     `${CSRF_COOKIE_NAME}=${token}`,
     "Secure",
     "SameSite=Lax",
-    `Max-Age=${CSRF_TOKEN_EXPIRY / 1000}`,
+    `Max-Age=${CSRF_COOKIE_MAX_AGE_SECONDS}`,
     "Path=/",
   ];
   return parts.join("; ");

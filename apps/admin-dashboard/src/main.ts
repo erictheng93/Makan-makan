@@ -37,6 +37,11 @@ async function bootstrap() {
   app.component("ErrorDisplay", ErrorDisplay);
 
   const authStore = useAuthStore();
+
+  // Runs before the router so a reload never flashes the login page on its way
+  // back to where the user was (#66).
+  await authStore.restoreSession();
+
   if (authStore.isAuthenticated) {
     void useModuleAccessStore().fetch();
   }

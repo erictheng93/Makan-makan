@@ -248,4 +248,47 @@ describe("useAuthStore", () => {
     expect(authClient.tokens.setTokens).toHaveBeenCalledWith("new-token");
     expect(api.setAuthToken).toHaveBeenCalledWith("new-token");
   });
+
+  // #66: production holds the access token in memory, so a reload leaves the
+  // user hydrated but the token gone. isAuthenticated needs both, so without
+  // this the router guard redirected to /login and the 7-day refresh cookie
+  // was never spent.
+  describe("restoreSession", () => {
+    it("spends the refresh cookie when a reload left a user but no token", async () => {
+      localStorage.setItem("auth_user", JSON.stringify(user()));
+      vi.mocked(getAuthToken).mockReturnValue(null);
+      vi.mocked(authClient.instance.post).mockResolvedValue({
+        data: { success: true, data: { token: "restored-token" } },
+      });
+      const store = useAuthStore();
+
+      await expect(store.restoreSession()).resolves.toBe(true);
+
+      expect(authClient.instance.post).toHaveBeenCalledWith(
+        "/auth/refresh",
+        {},
+        expect.objectContaining({ withCredentials: true }),
+      );
+      expect(store.token).toBe("restored-token");
+      expect(store.isAuthenticated).toBe(true);
+    });
+
+    it("does not call the API for a visitor with no stored session", async () => {
+      const store = useAuthStore();
+
+      await expect(store.restoreSession()).resolves.toBe(false);
+
+      expect(authClient.instance.post).not.toHaveBeenCalled();
+    });
+
+    it("does not refresh when the token is still in memory", async () => {
+      localStorage.setItem("auth_user", JSON.stringify(user()));
+      vi.mocked(getAuthToken).mockReturnValue("live-token");
+      const store = useAuthStore();
+
+      await expect(store.restoreSession()).resolves.toBe(true);
+
+      expect(authClient.instance.post).not.toHaveBeenCalled();
+    });
+  });
 });

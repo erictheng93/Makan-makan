@@ -360,6 +360,24 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  /**
+   * Recover a session that a page reload half-destroyed.
+   *
+   * Production stores the access token in memory only, so a reload leaves the
+   * user hydrated from storage but the token gone. isAuthenticated requires
+   * both, so the router guard would redirect to /login without ever spending
+   * the 7-day refresh cookie kept for exactly this case (#66).
+   *
+   * Returns whether a session is usable afterwards. A visitor with no stored
+   * user has nothing to restore and must not pay for a doomed round trip.
+   */
+  const restoreSession = async (): Promise<boolean> => {
+    if (token.value) return true;
+    if (!user.value) return false;
+
+    return refreshToken();
+  };
+
   setAuthRefreshHandler(refreshToken);
 
   return {
@@ -390,5 +408,6 @@ export const useAuthStore = defineStore("auth", () => {
     logout,
     checkAuth,
     refreshToken,
+    restoreSession,
   };
 });
