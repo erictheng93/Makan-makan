@@ -49,21 +49,30 @@ describe("MonitoringService", () => {
     vi.useRealTimers();
   });
 
-  it("records API request metrics and persists response percentiles", async () => {
-    const { kv, values } = createKV();
+  // Regression: recordApiRequest used to end in saveMetrics(), putting the
+  // whole metrics object into one KV key on every API request. That was ~355ms
+  // of blocking KV write on the critical path of every endpoint, it exceeded
+  // KV's 1-write-per-second-per-key limit, and it burned a KV write per
+  // request. The per-request record belongs in Analytics Engine, which
+  // advancedAnalyticsMiddleware already writes inside waitUntil.
+  it("does not touch KV on the request path", async () => {
+    const { kv } = createKV();
     const service = new MonitoringService(kv);
 
     await service.recordApiRequest(100, 200, "/health");
     await service.recordApiRequest(700, 200, "/orders");
 
-    const metrics = JSON.parse(values.get("_system_metrics") ?? "{}");
-    expect(metrics.apiMetrics).toMatchObject({
-      totalRequests: 2,
-      averageResponseTime: 400,
-      p95ResponseTime: 700,
-      p99ResponseTime: 700,
-      slowRequestCount: 1,
-    });
+    expect(kv.put).not.toHaveBeenCalled();
+  });
+
+  it("still records server failures as alerts", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    await service.recordApiRequest(120, 500, "/orders");
+
+    // 5xx still goes through recordError, which is rare enough to persist.
+    expect(kv.put).toHaveBeenCalled();
   });
 
   it("records server API failures as critical alerts", async () => {

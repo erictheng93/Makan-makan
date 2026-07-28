@@ -60,7 +60,7 @@ export function metricsMiddleware(deps: MonitoringMiddlewareDependencies = {}) {
 
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const startTime = Date.now();
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     try {
       await next();
@@ -130,7 +130,7 @@ export function errorMonitoringMiddleware(
     try {
       await next();
     } catch (error) {
-      const monitoringService = createMonitoringService(c.env.CACHE_KV);
+      const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
       // 根據錯誤類型和狀態碼確定嚴重程度
       const statusCode = c.res.status || 500;
@@ -187,7 +187,7 @@ export function healthCheckMiddleware(
       return await next();
     }
 
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     try {
       // 獲取系統健康狀態
@@ -238,7 +238,7 @@ export function performanceMonitoringMiddleware(
     deps.createMonitoringService ?? defaultCreateMonitoringService;
 
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     // 收集請求開始時的資源使用情況
     const startMemory = process.memoryUsage?.()?.heapUsed || 0;
@@ -288,7 +288,7 @@ export function cacheMonitoringMiddleware(
     deps.createMonitoringService ?? defaultCreateMonitoringService;
 
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     // 監控快取操作
     const originalGet = c.env.CACHE_KV.get.bind(c.env.CACHE_KV);
@@ -403,7 +403,10 @@ export function monitoringStatsMiddleware(
     // 在響應頭中添加監控統計（僅開發環境）
     if (c.env.NODE_ENV === "development") {
       try {
-        const monitoringService = createMonitoringService(c.env.CACHE_KV);
+        const monitoringService = createMonitoringService(
+          c.env.CACHE_KV,
+          c.env,
+        );
         const metrics = await monitoringService.getMetrics();
 
         c.header(

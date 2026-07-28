@@ -12,6 +12,27 @@ import type {
   HealthStatus,
   ComponentHealth,
 } from "../types";
+import {
+  queryApiRequestAggregate,
+  type ApiRequestAggregate,
+} from "./analyticsEngineMetrics";
+
+/** Environment values getMetrics() needs to reach Analytics Engine. */
+export interface MonitoringEnv {
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+  ANALYTICS_DATASET?: string;
+}
+
+/** Aggregation window for the API metrics reported by getMetrics(). */
+const METRICS_WINDOW_HOURS = 1;
+
+/**
+ * How long an aggregate is served from KV before Analytics Engine is queried
+ * again. Also the floor on how often METRICS_KEY is written, which has to stay
+ * above KV's 1-write-per-second-per-key limit. KV's own minimum TTL is 60s.
+ */
+const METRICS_CACHE_TTL_SECONDS = 60;
 
 // Performance thresholds
 const PERFORMANCE_THRESHOLDS = {
@@ -53,8 +74,16 @@ export class MonitoringService {
   private readonly MAX_REQUEST_TIMES = 1000;
   private readonly startTime: number;
 
-  constructor(kv: KVNamespace) {
+  private env?: MonitoringEnv;
+
+  /**
+   * @param env - Optional. Supplying it lets getMetrics() aggregate real
+   *   request metrics from Analytics Engine; without it getMetrics() reports
+   *   zeroes rather than failing.
+   */
+  constructor(kv: KVNamespace, env?: MonitoringEnv) {
     this.kv = kv;
+    this.env = env;
     this.metrics = this.createEmptyMetrics();
     this.alertRules = [];
     this.logger = new ConsoleLogger("monitoring");
@@ -102,7 +131,25 @@ export class MonitoringService {
         );
       }
 
-      await this.saveMetrics();
+      // Deliberately does NOT persist. This used to end in saveMetrics(),
+      // which wrote the whole metrics object to one KV key on every single
+      // API request. That cost ~355ms of blocking KV write on the critical
+      // path of every endpoint — it was the largest single latency component
+      // in the API, larger than the login work it was measured alongside.
+      //
+      // It was also wrong three ways over:
+      //   - The counters live on a per-isolate singleton, so each isolate held
+      //     only the slice of traffic it happened to serve, and every one of
+      //     them overwrote the same global key. The stored value was whatever
+      //     the last isolate to write believed, never a global total.
+      //   - Workers KV allows at most 1 write per second to the same key;
+      //     beyond that it returns 429. Above ~1 req/s those writes were
+      //     failing and the catch below was swallowing it.
+      //   - It burned one KV write per API request against the account quota.
+      //
+      // The real per-request record already goes to Analytics Engine, written
+      // from advancedAnalyticsMiddleware inside waitUntil. getMetrics() now
+      // aggregates from there.
     } catch (error) {
       this.logger.error("Record API request error", error as Error);
     }
@@ -345,14 +392,81 @@ export class MonitoringService {
    */
   async getMetrics(): Promise<SystemMetrics> {
     try {
+      // Cached aggregate first. This key is now written at most once per
+      // METRICS_CACHE_TTL_SECONDS instead of once per request, which keeps it
+      // clear of KV's 1-write-per-second-per-key ceiling.
       const saved = await this.kv.get(this.METRICS_KEY);
       if (saved) {
         return JSON.parse(saved);
       }
-      return this.metrics;
+
+      const aggregate = await this.queryRequestAggregate();
+      if (!aggregate) {
+        return this.metrics;
+      }
+
+      const metrics: SystemMetrics = {
+        ...this.metrics,
+        timestamp: Date.now(),
+        apiMetrics: {
+          ...this.metrics.apiMetrics,
+          totalRequests: aggregate.totalRequests,
+          averageResponseTime: aggregate.averageResponseTime,
+          p95ResponseTime: aggregate.p95ResponseTime,
+          p99ResponseTime: aggregate.p99ResponseTime,
+          slowRequestCount: aggregate.slowRequestCount,
+          errorRate:
+            aggregate.totalRequests > 0
+              ? aggregate.errorCount / aggregate.totalRequests
+              : 0,
+          requestsPerSecond:
+            aggregate.totalRequests / (METRICS_WINDOW_HOURS * 3600),
+        },
+        errorMetrics: {
+          ...this.metrics.errorMetrics,
+          totalErrors: aggregate.errorCount,
+          criticalErrors: aggregate.criticalErrorCount,
+        },
+      };
+
+      await this.kv.put(this.METRICS_KEY, JSON.stringify(metrics), {
+        expirationTtl: METRICS_CACHE_TTL_SECONDS,
+      });
+
+      return metrics;
     } catch (error) {
       this.logger.error("Get metrics error", error as Error);
       return this.metrics;
+    }
+  }
+
+  /**
+   * Null whenever the aggregate cannot be produced — no Analytics Engine
+   * credentials configured, or the query failed. Monitoring reporting zeroes
+   * is always preferable to monitoring taking an endpoint down.
+   */
+  private async queryRequestAggregate(): Promise<ApiRequestAggregate | null> {
+    const accountId = this.env?.CLOUDFLARE_ACCOUNT_ID;
+    const apiToken = this.env?.CLOUDFLARE_API_TOKEN;
+    const dataset = this.env?.ANALYTICS_DATASET;
+
+    if (!accountId || !apiToken || !dataset) {
+      this.logger.debug(
+        "Analytics Engine metrics unavailable: missing account id, API token, or dataset name",
+      );
+      return null;
+    }
+
+    try {
+      return await queryApiRequestAggregate({
+        accountId,
+        apiToken,
+        dataset,
+        windowHours: METRICS_WINDOW_HOURS,
+      });
+    } catch (error) {
+      this.logger.error("Analytics Engine query error", error as Error);
+      return null;
     }
   }
 
@@ -918,9 +1032,12 @@ export class MonitoringService {
 // Service factory
 let monitoringServiceInstance: MonitoringService | null = null;
 
-export function createMonitoringService(kv: KVNamespace): MonitoringService {
+export function createMonitoringService(
+  kv: KVNamespace,
+  env?: MonitoringEnv,
+): MonitoringService {
   if (!monitoringServiceInstance) {
-    monitoringServiceInstance = new MonitoringService(kv);
+    monitoringServiceInstance = new MonitoringService(kv, env);
   }
   return monitoringServiceInstance;
 }

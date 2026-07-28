@@ -27,7 +27,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Health check endpoint (public)
 app.get("/health", async (c) => {
-  const monitoringService = createMonitoringService(c.env.CACHE_KV);
+  const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
   const healthStatus = await monitoringService.getHealthStatus();
 
   // Set appropriate status code based on health
@@ -49,7 +49,7 @@ app.get(
   validateQuery(metricsQuerySchema),
   async (c) => {
     const { period, granularity } = c.get("validatedQuery");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
     const metrics = await monitoringService.getMetrics();
 
     const enhancedMetrics = {
@@ -78,7 +78,7 @@ app.get(
 
 // Reset system metrics (admin only - destructive operation)
 app.delete("/metrics", authMiddleware, requireRole([0]), async (c) => {
-  const monitoringService = createMonitoringService(c.env.CACHE_KV);
+  const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
   await monitoringService.resetMetrics();
 
   console.log("System metrics reset by admin");
@@ -98,7 +98,7 @@ app.post(
   validateBody(recordErrorSchema),
   async (c) => {
     const { type, message, severity, metadata } = c.get("validatedBody");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     await monitoringService.recordError(type, message, severity);
 
@@ -132,7 +132,7 @@ app.get(
   validateQuery(paginationSchema),
   async (c) => {
     const { page, limit } = c.get("validatedQuery");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
     const allRules = await monitoringService.getAlertRules();
 
     // Paginate results
@@ -163,7 +163,7 @@ app.post(
   validateBody(alertRuleSchema),
   async (c) => {
     const ruleData = c.get("validatedBody");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     const ruleId = await monitoringService.createAlertRule(ruleData);
 
@@ -193,7 +193,7 @@ app.put(
     const ruleId = c.req.param("id");
     if (!ruleId) throw badRequest("Missing id parameter", "MISSING_PARAM");
     const updates = c.get("validatedBody");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     const success = await monitoringService.updateAlertRule(
       ruleId,
@@ -222,7 +222,7 @@ app.delete(
   async (c) => {
     const ruleId = c.req.param("id");
     if (!ruleId) throw badRequest("Missing id parameter", "MISSING_PARAM");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     const success = await monitoringService.deleteAlertRule(ruleId);
 
@@ -241,7 +241,7 @@ app.delete(
 app.get("/alerts/recent", authMiddleware, requireRole([0, 1]), async (c) => {
   const sinceParam = c.req.query("since");
   const sinceTimestamp = sinceParam ? parseInt(sinceParam, 10) : undefined;
-  const monitoringService = createMonitoringService(c.env.CACHE_KV);
+  const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
   const recentAlerts = await monitoringService.getRecentAlerts(sinceTimestamp);
 
   return c.json({
@@ -273,7 +273,7 @@ app.post(
   validateBody(testAlertSchema),
   async (c) => {
     const { type, severity, webhookUrl } = c.get("validatedBody");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
     // Create test alert rule
     await monitoringService.createAlertRule({
@@ -312,7 +312,7 @@ app.post(
 
 // System overview (admin + owner)
 app.get("/overview", authMiddleware, requireRole([0, 1]), async (c) => {
-  const monitoringService = createMonitoringService(c.env.CACHE_KV);
+  const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
   const [healthStatus, metrics] = await Promise.all([
     monitoringService.getHealthStatus(),
     monitoringService.getMetrics(),
@@ -375,7 +375,7 @@ app.get(
   validateQuery(performanceReportQuerySchema),
   async (c) => {
     const { days } = c.get("validatedQuery");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV);
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
     const metrics = await monitoringService.getMetrics();
 
     const report: PerformanceReport = {

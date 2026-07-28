@@ -124,6 +124,14 @@ export interface Env {
   ALERT_EMAIL_FROM?: string;
   ALERT_EMAIL_TO?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
+  /**
+   * Secret. Needed only to read aggregates back out of Analytics Engine via
+   * its SQL API — writes go through the ANALYTICS binding and need no token.
+   * Without it, monitoring endpoints report zeroes instead of failing.
+   */
+  CLOUDFLARE_API_TOKEN?: string;
+  /** Dataset name behind the ANALYTICS binding, for SQL API queries. */
+  ANALYTICS_DATASET?: string;
   SENTRY_DSN?: string;
 
   // Advanced monitoring and analytics

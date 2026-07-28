@@ -185,6 +185,9 @@ name = "makanmasak-api-prod"
 [env.production.vars]
 NODE_ENV = "production"
 API_VERSION = "v1"
+# Dataset behind the ANALYTICS binding below. Writes use the binding; reading
+# aggregates back needs the dataset name plus CLOUDFLARE_API_TOKEN (a secret).
+ANALYTICS_DATASET = "makanmasak-metrics-prod"
 API_BASE_URL = "https://api.makanmasak.com"
 CORS_ORIGIN = "https://makanmasak.com,https://admin.makanmasak.com,https://kitchen.makanmasak.com"
 LOG_LEVEL = "warn"
