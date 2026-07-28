@@ -26,15 +26,6 @@ export interface AnalyticsDataPoint {
   timestamp?: number;
 }
 
-export interface BusinessMetrics {
-  revenue: number;
-  orders_count: number;
-  average_order_value: number;
-  customer_satisfaction: number;
-  peak_hours: Array<{ hour: number; orders: number }>;
-  popular_items: Array<{ item_id: number; orders: number }>;
-}
-
 export interface AnalyticsQuery {
   metrics: string[];
   event?: string;
@@ -163,96 +154,6 @@ export class AdvancedAnalyticsService {
   }
 
   /**
-   * Record comprehensive business metrics
-   */
-  async recordBusinessMetrics(
-    restaurantId: number,
-    metrics: BusinessMetrics,
-  ): Promise<void> {
-    await this.recordEvent({
-      event: "business_metrics_snapshot",
-      restaurant_id: restaurantId,
-      dimensions: {
-        metric_type: "business_snapshot",
-        period: "hourly",
-        source: "automated",
-      },
-      metrics: {
-        revenue: metrics.revenue,
-        orders_count: metrics.orders_count,
-        average_order_value: metrics.average_order_value,
-        customer_satisfaction: metrics.customer_satisfaction,
-      },
-    });
-
-    // Record peak hours data
-    for (const peak of metrics.peak_hours) {
-      await this.recordEvent({
-        event: "peak_hour_analysis",
-        restaurant_id: restaurantId,
-        dimensions: {
-          hour: peak.hour.toString(),
-          analysis_type: "peak_detection",
-        },
-        metrics: {
-          orders_count: peak.orders,
-          hour_of_day: peak.hour,
-        },
-      });
-    }
-
-    // Record popular items
-    for (const item of metrics.popular_items) {
-      await this.recordEvent({
-        event: "item_popularity",
-        restaurant_id: restaurantId,
-        dimensions: {
-          item_id: item.item_id.toString(),
-          analysis_type: "popularity_ranking",
-        },
-        metrics: {
-          orders_count: item.orders,
-          popularity_score: item.orders / metrics.orders_count,
-        },
-      });
-    }
-  }
-
-  /**
-   * Record user journey analytics
-   */
-  async recordUserJourney(
-    userId: string,
-    restaurantId: number,
-    journey: {
-      event: string;
-      page: string;
-      action: string;
-      duration_ms: number;
-      conversion_step: number;
-      funnel_position: number;
-    },
-  ): Promise<void> {
-    await this.recordEvent({
-      event: "user_journey",
-      user_id: userId,
-      restaurant_id: restaurantId,
-      dimensions: {
-        page: journey.page,
-        action: journey.action,
-        conversion_step: journey.conversion_step.toString(),
-        funnel_position: journey.funnel_position.toString(),
-        journey_type: "user_flow",
-      },
-      metrics: {
-        duration_ms: journey.duration_ms,
-        conversion_step: journey.conversion_step,
-        funnel_position: journey.funnel_position,
-      },
-    });
-  }
-
-  /**
    * Record performance metrics with automatic alerting
    */
   async recordPerformanceMetrics(
@@ -350,61 +251,6 @@ export class AdvancedAnalyticsService {
   }
 
   // Private helper methods
-  private getHourOfDay(timestamp: number): number {
-    return new Date(timestamp).getHours();
-  }
-
-  private getDayOfWeek(timestamp: number): number {
-    return new Date(timestamp).getDay();
-  }
-
-  private getWeekOfYear(timestamp: number): number {
-    const date = new Date(timestamp);
-    const firstDay = new Date(date.getFullYear(), 0, 1);
-    return Math.ceil(
-      ((date.getTime() - firstDay.getTime()) / 86400000 +
-        firstDay.getDay() +
-        1) /
-        7,
-    );
-  }
-
-  private hashString(str: string): number {
-    let hash = 0;
-    if (str.length === 0) return hash;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash);
-  }
-
-  private categorizeResponseTime(responseTime: number): number {
-    if (responseTime < 100) return 1; // Fast
-    if (responseTime < 300) return 2; // Good
-    if (responseTime < 1000) return 3; // Acceptable
-    if (responseTime < 3000) return 4; // Slow
-    return 5; // Critical
-  }
-
-  private categorizeOrderValue(orderValue: number): number {
-    if (orderValue < 10) return 1; // Small
-    if (orderValue < 25) return 2; // Medium
-    if (orderValue < 50) return 3; // Large
-    if (orderValue < 100) return 4; // Premium
-    return 5; // Enterprise
-  }
-
-  private categorizeUserEngagement(sessionDuration: number): number {
-    const minutes = sessionDuration / 60000;
-    if (minutes < 1) return 1; // Bounce
-    if (minutes < 5) return 2; // Brief
-    if (minutes < 15) return 3; // Engaged
-    if (minutes < 30) return 4; // Highly engaged
-    return 5; // Power user
-  }
-
   private categorizePerformance(responseTime: number): string {
     if (responseTime < 100) return "excellent";
     if (responseTime < 300) return "good";
