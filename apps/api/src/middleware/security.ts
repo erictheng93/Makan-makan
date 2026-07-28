@@ -188,6 +188,11 @@ export const securityMonitoringMiddleware = async (
 
 /**
  * Enhanced Rate Limiting with Security Context
+ *
+ * Currently unused — app-factory registers geoIntelligentRateLimitMiddleware
+ * instead and leaves this one commented out. Kept because it is still exported,
+ * and a disabled limiter that misbehaves the moment someone re-enables it is
+ * worse than none at all.
  */
 export const securityAwareRateLimitMiddleware = async (
   c: Context<{ Bindings: Env }>,
@@ -210,18 +215,30 @@ export const securityAwareRateLimitMiddleware = async (
     return next();
   }
 
-  // Create composite key for more sophisticated rate limiting
-  const securityKey = `security_${ip}_${path.split("/")[1]}`;
+  // Stricter limits for sensitive endpoints
+  const isSensitiveEndpoint =
+    path.includes("/auth/") || path.includes("/admin/");
+  const limit = isSensitiveEndpoint ? 10 : 100;
+  const window = 60 * 1000; // 1 minute
+
+  // The counter has to be bucketed the same way the limit is chosen. Keying on
+  // path.split("/")[1] put every /api/* route in one bucket while the limit
+  // still dropped to 10 for /auth/ and /admin/, so a session that had made a
+  // dozen ordinary API calls would get a 429 on its next token refresh.
+  //
+  // The window index is part of the key as well. Without it the counter kept
+  // one TTL that every write pushed another 60s into the future, so any IP
+  // making a request more often than once a minute had a counter that only ever
+  // climbed and never reset.
+  const bucket = isSensitiveEndpoint
+    ? "sensitive"
+    : path.split("/")[1] || "root";
+  const windowIndex = Math.floor(Date.now() / window);
+  const securityKey = `security_${ip}_${bucket}_${windowIndex}`;
 
   if (c.env.CACHE_KV) {
     const current = await c.env.CACHE_KV.get(securityKey);
     const count = current ? parseInt(current) : 0;
-
-    // Stricter limits for sensitive endpoints
-    const isSensitiveEndpoint =
-      path.includes("/auth/") || path.includes("/admin/");
-    const limit = isSensitiveEndpoint ? 10 : 100;
-    const window = 60 * 1000; // 1 minute
 
     if (count >= limit) {
       // Log potential attack
