@@ -19,7 +19,6 @@ async function bootstrap() {
   const pinia = createPinia();
 
   app.use(pinia);
-  app.use(router);
   app.use(Toast, {
     position: "top-right",
     timeout: 3000,
@@ -38,9 +37,19 @@ async function bootstrap() {
 
   const authStore = useAuthStore();
 
-  // Runs before the router so a reload never flashes the login page on its way
-  // back to where the user was (#66).
+  // Restore the session before installing the router, not merely before
+  // mounting. Production holds the access token in memory only, so a reload
+  // starts unauthenticated and `restoreSession()` spends the refresh cookie to
+  // get back. Installing the router kicks off its initial navigation
+  // immediately, so with `app.use(router)` above this await the guard judged
+  // `isAuthenticated` while the refresh was still in flight — it redirected to
+  // /login at ~150ms, the refresh landed at ~1300ms, and LoginView then bounced
+  // the now-authenticated user to their role's default page. Reloading
+  // /dashboard/monitoring as an admin reliably ended on /dashboard/platform
+  // (#66 fixed the token loss; this fixes the ordering that still leaked it).
   await authStore.restoreSession();
+
+  app.use(router);
 
   if (authStore.isAuthenticated) {
     void useModuleAccessStore().fetch();
