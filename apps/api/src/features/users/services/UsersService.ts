@@ -192,8 +192,16 @@ export class UsersService {
     currentUser: CurrentUser,
     userData: CreateUserData,
   ): Promise<FormattedUser> {
-    const effectiveRestaurantId =
-      userData.restaurantId != null
+    // Roles 1-4 are restaurant-scoped; role 0 is the platform and owns no
+    // restaurant. The same rule guards POST /auth/register-staff — both entry
+    // points must enforce it, or an orphan just moves to the other one (#67).
+    // A row with a NULL restaurant_id belongs to nobody, and manageability is
+    // decided by that column, so no owner can ever administer it.
+    const isPlatformRole = userData.role === USER_ROLES.ADMIN;
+
+    const effectiveRestaurantId = isPlatformRole
+      ? undefined
+      : userData.restaurantId != null
         ? String(userData.restaurantId)
         : currentUser.restaurantId == null
           ? undefined
@@ -203,6 +211,15 @@ export class UsersService {
       !this.canManageUser(currentUser, userData.role, effectiveRestaurantId)
     ) {
       throw forbidden("Insufficient permissions to create this type of user");
+    }
+
+    // canManageUser waves an admin through unconditionally, so the check above
+    // does not catch this on its own.
+    if (!isPlatformRole && !effectiveRestaurantId) {
+      throw badRequest(
+        "Restaurant ID is required for restaurant-scoped roles",
+        "RESTAURANT_ID_REQUIRED",
+      );
     }
 
     const dbUserData = {

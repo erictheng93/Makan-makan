@@ -273,6 +273,47 @@ describe("UsersService", () => {
     });
   });
 
+  // #67: canManageUser waves an admin through unconditionally, so an admin
+  // creating a restaurant-scoped user with no restaurant produced a row with a
+  // NULL restaurant_id — an account nobody can administer, because ownership is
+  // decided by that column. POST /auth/register-staff enforces this; this entry
+  // point has to as well, or the orphan just moves here.
+  it("refuses to create restaurant-scoped users with no restaurant", async () => {
+    const service = createService();
+
+    await expect(
+      service.createUser(admin, {
+        username: "cashier",
+        fullName: "Cashier",
+        password: "Secret1!",
+        role: 4,
+      }),
+    ).rejects.toMatchObject({
+      code: "RESTAURANT_ID_REQUIRED",
+      message: "Restaurant ID is required for restaurant-scoped roles",
+    });
+    expect(dbMocks.userServiceFns.createUser).not.toHaveBeenCalled();
+  });
+
+  it("keeps a platform admin unbound to any restaurant", async () => {
+    dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
+      user({ id: 51, username: "admin2", role: 0 }),
+    );
+    const service = createService();
+
+    await service.createUser(admin, {
+      username: "admin2",
+      fullName: "Admin Two",
+      password: "Secret1!",
+      role: 0,
+      restaurantId: "restaurant-1",
+    });
+
+    expect(dbMocks.userServiceFns.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 0, restaurantId: undefined }),
+    );
+  });
+
   it("links newly created owner users back to the management tenant", async () => {
     dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
       user({
