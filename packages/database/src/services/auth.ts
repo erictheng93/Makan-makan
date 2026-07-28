@@ -141,27 +141,15 @@ export interface AuthResult {
 
 export class AuthService extends BaseService {
   // 用戶登入
+  // Failed-attempt lockout is NOT handled here. The only caller is the
+  // feature-layer AuthService, whose checkRateLimit/logFailedLoginAttempt pair
+  // already enforces a strictly wider version of the same control: 5 failures
+  // per username and 10 per IP (and per username+IP), all on a 15 minute TTL.
+  // This service used to keep its own `login_fail:<username>` counter with an
+  // identical 5-per-15-minutes rule, which cost an extra KV read on every login
+  // plus a write on every outcome while changing no decision.
   async login(data: LoginData): Promise<AuthResult> {
     try {
-      // SECURITY: Check for account lockout before proceeding
-      const lockoutKey = `login_fail:${data.username}`;
-      let failedAttempts = 0;
-
-      // Check failed attempts if CACHE_KV is available
-      if (this.env.CACHE_KV) {
-        const failedAttemptsStr = await this.env.CACHE_KV.get(lockoutKey);
-        failedAttempts = failedAttemptsStr ? parseInt(failedAttemptsStr) : 0;
-
-        // Lock account after 5 failed attempts for 15 minutes
-        if (failedAttempts >= 5) {
-          return {
-            success: false,
-            error:
-              "Account temporarily locked due to multiple failed login attempts. Please try again in 15 minutes.",
-          };
-        }
-      }
-
       // 查詢活躍用戶 - Using sql`` to match actual database schema
       const user = await this.db
         .select({
@@ -179,14 +167,6 @@ export class AuthService extends BaseService {
         .get();
 
       if (!user) {
-        // SECURITY: Increment failed attempts even if user not found (prevent username enumeration)
-        if (this.env.CACHE_KV) {
-          await this.env.CACHE_KV.put(
-            lockoutKey,
-            (failedAttempts + 1).toString(),
-            { expirationTtl: 900 }, // 15 minutes
-          );
-        }
         return {
           success: false,
           error: "Invalid username or password",
@@ -207,23 +187,10 @@ export class AuthService extends BaseService {
         user.passwordHash,
       );
       if (!isPasswordValid) {
-        // SECURITY: Increment failed attempts on incorrect password
-        if (this.env.CACHE_KV) {
-          await this.env.CACHE_KV.put(
-            lockoutKey,
-            (failedAttempts + 1).toString(),
-            { expirationTtl: 900 }, // 15 minutes
-          );
-        }
         return {
           success: false,
           error: "Invalid username or password",
         };
-      }
-
-      // SECURITY: Clear failed attempts on successful login
-      if (this.env.CACHE_KV) {
-        await this.env.CACHE_KV.delete(lockoutKey);
       }
 
       // 生成 JWT tokens
