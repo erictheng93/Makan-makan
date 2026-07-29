@@ -122,7 +122,7 @@ export class TablesService {
    */
   async occupyTable(
     id: number,
-    orderId: string,
+    orderId: string | null,
     occupiedBy?: string,
     estimatedMinutes?: number,
   ): Promise<boolean> {

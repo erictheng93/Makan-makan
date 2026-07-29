@@ -70,8 +70,14 @@ export const tableFilterSchema = z.object({
 });
 
 // Table occupation schema
+//
+// `orderId` is optional: staff can mark a table occupied from the floor plan
+// before any order exists (walk-in seated, table held). When it is absent the
+// route skips order resolution and stores a null currentOrderId. A present
+// orderId still has to identify a real order — 0 and "" are rejected rather
+// than silently treated as "no order".
 export const occupyTableSchema = z.object({
-  orderId: z.union([z.number().int().positive(), z.string().min(1)]),
+  orderId: z.union([z.number().int().positive(), z.string().min(1)]).optional(),
   occupiedBy: z.string().max(100).optional(),
   estimatedMinutes: z.number().int().positive().optional(),
 });

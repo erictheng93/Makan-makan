@@ -304,6 +304,29 @@ describe("tables routes", () => {
     );
   });
 
+  it("occupies tables manually without an order id", async () => {
+    const response = await request("/11/occupy", "POST", {
+      occupiedBy: "manual",
+    });
+
+    expect(response.status).toBe(200);
+    // No order to resolve — the lookup must be skipped entirely, not called with a placeholder
+    expect(serviceFns.resolveOrderIdentity).not.toHaveBeenCalled();
+    expect(serviceFns.occupyTable).toHaveBeenCalledWith(
+      11,
+      null,
+      "manual",
+      undefined,
+    );
+  });
+
+  it("rejects a zero order id instead of treating it as absent", async () => {
+    const response = await request("/11/occupy", "POST", { orderId: 0 });
+
+    expect(response.status).toBe(400);
+    expect(serviceFns.occupyTable).not.toHaveBeenCalled();
+  });
+
   it("regenerates single and bulk QR codes", async () => {
     let response = await request("/11/regenerate-qr", "POST", {
       customData: { campaign: "summer" },
