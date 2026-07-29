@@ -423,7 +423,9 @@ export class MonitoringService {
       const metrics: SystemMetrics = {
         ...this.metrics,
         timestamp: Date.now(),
-        measured: { ...this.metrics.measured, api: true },
+        // Both come from this one aggregate, so both become trustworthy at the
+        // same moment and neither may be set without it.
+        measured: { ...this.metrics.measured, api: true, errors: true },
         apiMetrics: {
           ...this.metrics.apiMetrics,
           totalRequests: aggregate.totalRequests,
@@ -609,12 +611,19 @@ export class MonitoringService {
       // cacheMonitoringMiddleware is exported but never registered; and Workers
       // does not expose memory or CPU to the isolate at all. api flips to true
       // in getMetrics() once the Analytics Engine aggregate comes back.
+      // errors is false here, not true. Error counts come from the same
+      // Analytics Engine aggregate as the API metrics, so when that query
+      // fails getMetrics() falls back to this object and the counts are
+      // per-isolate in-process numbers — exactly the kind of data these flags
+      // exist to exclude. Marking errors as measured by default let the
+      // dashboard report a confident 100 out of "errors" while the aggregate
+      // was not running at all. Both flip together in getMetrics().
       measured: {
         api: false,
         database: false,
         cache: false,
         resources: false,
-        errors: true,
+        errors: false,
       },
       apiMetrics: {
         totalRequests: 0,
