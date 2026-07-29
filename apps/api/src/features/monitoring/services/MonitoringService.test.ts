@@ -190,6 +190,57 @@ describe("MonitoringService", () => {
     expect(writtenKeys).not.toContain("_system_health");
   });
 
+  // GET /overview calls getMetrics twice concurrently -- once at the route and
+  // once inside getHealthStatus -- so an uncoalesced load raced two Analytics
+  // Engine queries and two writes to one KV key on every cold-cache refresh.
+  it("shares one load between concurrent getMetrics callers", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    await Promise.all([
+      service.getMetrics(),
+      service.getMetrics(),
+      service.getMetrics(),
+    ]);
+
+    const metricsReads = kv.get.mock.calls.filter(
+      ([key]: [string]) => key === "_system_metrics",
+    );
+    expect(metricsReads).toHaveLength(1);
+  });
+
+  it("shares one load between getHealthStatus and a concurrent getMetrics", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+      } as never,
+    });
+
+    await Promise.all([service.getHealthStatus(), service.getMetrics()]);
+
+    const metricsReads = kv.get.mock.calls.filter(
+      ([key]: [string]) => key === "_system_metrics",
+    );
+    expect(metricsReads).toHaveLength(1);
+  });
+
+  // The coalescing window must close when the load settles. The service is a
+  // module-level singleton that outlives the request, so a retained result
+  // would be served stale for the life of the isolate.
+  it("reloads metrics for callers that do not overlap", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv);
+
+    await service.getMetrics();
+    await service.getMetrics();
+
+    const metricsReads = kv.get.mock.calls.filter(
+      ([key]: [string]) => key === "_system_metrics",
+    );
+    expect(metricsReads).toHaveLength(2);
+  });
+
   // The dashboard plotted database and cache zeroes next to real API latency,
   // presenting unmeasured groups as observed. These flags are what stops that,
   // so they have to track what actually has a data source.

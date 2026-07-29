@@ -75,6 +75,9 @@ export class MonitoringService {
   private readonly MAX_REQUEST_TIMES = 1000;
   private readonly startTime: number;
 
+  /** In-flight getMetrics() load shared by concurrent callers; see getMetrics. */
+  private metricsInFlight: Promise<SystemMetrics> | null = null;
+
   private env?: MonitoringEnv;
 
   /**
@@ -405,6 +408,26 @@ export class MonitoringService {
    * 獲取系統指標
    */
   async getMetrics(): Promise<SystemMetrics> {
+    // Single-flight. GET /overview calls this twice concurrently -- once at the
+    // route and once inside getHealthStatus -- which on a cold cache raced two
+    // Analytics Engine queries and two writes to the same KV key, against KV's
+    // 1-write-per-second-per-key ceiling. Overlapping callers now share one
+    // load.
+    //
+    // Deliberately not a durable memo: createMonitoringService hands back a
+    // module-level singleton that outlives the request, so a retained result
+    // would be served stale for the life of the isolate. The entry is released
+    // as soon as the load settles; KV remains the cross-request cache.
+    const inFlight = (this.metricsInFlight ??= this.loadMetrics().finally(
+      () => {
+        this.metricsInFlight = null;
+      },
+    ));
+
+    return inFlight;
+  }
+
+  private async loadMetrics(): Promise<SystemMetrics> {
     try {
       // Cached aggregate first. This key is now written at most once per
       // METRICS_CACHE_TTL_SECONDS instead of once per request, which keeps it
@@ -494,6 +517,9 @@ export class MonitoringService {
     try {
       this.metrics = this.createEmptyMetrics();
       this.REQUEST_TIMES.length = 0;
+      // Detach any load already running so a caller arriving after the reset
+      // cannot join it and receive pre-reset numbers.
+      this.metricsInFlight = null;
       // Delete rather than write. METRICS_KEY caches the Analytics Engine
       // aggregate; writing this in-process snapshot into it would serve empty
       // counters as if they were the real aggregate until the entry expired.
@@ -835,6 +861,13 @@ export class MonitoringService {
 
   private getDatabaseIssues(): string[] {
     const issues: string[] = [];
+
+    // recordDatabaseQuery is never called anywhere, so queryCount stays 0 and
+    // these thresholds describe nothing. Same guard as the cache issues: an
+    // absent measurement is not a clean bill of health, but it is not a
+    // problem to report either.
+    if (this.metrics.databaseMetrics.queryCount === 0) return issues;
+
     if (
       this.metrics.databaseMetrics.averageQueryTime >
       PERFORMANCE_THRESHOLDS.DATABASE_QUERY_TIME_WARNING
@@ -853,6 +886,15 @@ export class MonitoringService {
 
   private getCacheIssues(): string[] {
     const issues: string[] = [];
+
+    // Nothing populates cacheMetrics — cacheMonitoringMiddleware is exported
+    // and never registered — so hitRate sits at 0 forever. Without this guard
+    // the check below always fired and the dashboard permanently displayed
+    // "Low hit rate: 0.00%" on a component it simultaneously called healthy,
+    // because getCacheHealthStatus() already had the no-data guard and this
+    // did not. There is no cache traffic to report a problem about.
+    if (!this.hasCacheData()) return issues;
+
     if (
       this.metrics.cacheMetrics.hitRate <
       PERFORMANCE_THRESHOLDS.CACHE_HIT_RATE_WARNING
@@ -862,6 +904,14 @@ export class MonitoringService {
       );
     }
     return issues;
+  }
+
+  /** Matches the no-data guard in getCacheHealthStatus so the two agree. */
+  private hasCacheData(): boolean {
+    return (
+      this.metrics.cacheMetrics.totalKeys > 0 ||
+      this.metrics.cacheMetrics.hitRate > 0
+    );
   }
 
   private calculateOverallHealth(
