@@ -213,6 +213,18 @@ describe("MonitoringView refresh cost", () => {
     expect(service.getMetrics).not.toHaveBeenCalled();
   });
 
+  // Alert rules are configuration, not telemetry: they change only when an
+  // operator edits them, and every editing path reloads them itself.
+  it("loads the alert rules once instead of on every refresh", async () => {
+    await mountView();
+    expect(service.getAlertRules).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(REFRESH_MS * 3);
+
+    expect(service.getOverview).toHaveBeenCalledTimes(4);
+    expect(service.getAlertRules).toHaveBeenCalledTimes(1);
+  });
+
   // The API recomputes its Analytics Engine aggregate every 60s, so anything
   // faster spends a D1 probe and KV reads to redisplay identical numbers.
   it("refreshes no faster than the metrics aggregate is recomputed", async () => {

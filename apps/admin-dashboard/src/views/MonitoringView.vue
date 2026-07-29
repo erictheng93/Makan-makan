@@ -1101,7 +1101,12 @@ const errorBarChartData = computed(() => {
 async function refreshAllData() {
   loading.value = true;
   try {
-    await Promise.all([loadOverviewWithMetrics(), loadAlertRules()]);
+    // Alert rules are deliberately not reloaded here. They are configuration,
+    // not telemetry -- they change only when an operator edits them, and every
+    // path that edits them reloads them itself. Polling them alongside the
+    // metrics spent a request and a KV read a minute re-fetching a list that is
+    // identical for days at a time.
+    await loadOverviewWithMetrics();
     lastUpdateTime.value = Date.now();
     toast.success(t("monitoring.notifications.dataUpdated"));
   } catch (error) {
