@@ -1,4 +1,4 @@
-import { eq, and, asc, count, inArray, sql } from "drizzle-orm";
+import { eq, and, asc, count, inArray, isNull, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
 import { buildSignedQRUrl } from "@makanmakan/utils";
@@ -147,7 +147,7 @@ export class SeatService extends BaseService {
         .from(seats)
         .leftJoin(tables, eq(seats.tableId, tables.id))
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
-        .where(eq(seats.id, seatId))
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
         .get();
 
       return seat;
@@ -182,7 +182,13 @@ export class SeatService extends BaseService {
         .from(seats)
         .leftJoin(tables, eq(seats.tableId, tables.id))
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
-        .where(eq(seats.qrCode, qrCode))
+        .where(
+          and(
+            eq(seats.qrCode, qrCode),
+            eq(seats.isActive, true),
+            isNull(seats.deletedAt),
+          ),
+        )
         .get();
 
       return seat;
@@ -213,7 +219,7 @@ export class SeatService extends BaseService {
       const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = [eq(seats.tableId, tableId)];
+      const conditions = [eq(seats.tableId, tableId), isNull(seats.deletedAt)];
 
       if (isOccupied !== undefined) {
         conditions.push(eq(seats.isOccupied, isOccupied));
@@ -281,7 +287,7 @@ export class SeatService extends BaseService {
           ...data,
           updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId))
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
         .returning();
 
       return updatedSeat;
@@ -295,15 +301,18 @@ export class SeatService extends BaseService {
    */
   async deleteSeat(seatId: number): Promise<boolean> {
     try {
-      await this.db
+      const deletedAt = new Date();
+      const result = await this.db
         .update(seats)
         .set({
           isActive: false,
-          updatedAt: new Date(),
+          deletedAt,
+          updatedAt: deletedAt,
         })
-        .where(eq(seats.id, seatId));
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
+        .returning({ id: seats.id });
 
-      return true;
+      return result.length > 0;
     } catch (error) {
       this.handleError(error, "deleteSeat");
     }
@@ -331,7 +340,7 @@ export class SeatService extends BaseService {
     occupiedBy?: string,
   ): Promise<boolean> {
     try {
-      await this.db
+      const result = await this.db
         .update(seats)
         .set({
           isOccupied: true,
@@ -340,9 +349,17 @@ export class SeatService extends BaseService {
           occupiedBy,
           updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId));
+        .where(
+          and(
+            eq(seats.id, seatId),
+            eq(seats.isOccupied, false),
+            eq(seats.isActive, true),
+            isNull(seats.deletedAt),
+          ),
+        )
+        .returning({ id: seats.id });
 
-      return true;
+      return result.length > 0;
     } catch (error) {
       this.handleError(error, "occupySeat");
     }
@@ -353,28 +370,26 @@ export class SeatService extends BaseService {
    */
   async releaseSeat(seatId: number): Promise<boolean> {
     try {
-      const seat = await this.db
-        .select({
-          occupiedAt: seats.occupiedAt,
-          totalUsage: seats.totalUsage,
-        })
-        .from(seats)
-        .where(eq(seats.id, seatId))
-        .get();
-
-      await this.db
+      const result = await this.db
         .update(seats)
         .set({
           isOccupied: false,
           currentOrderId: null,
           occupiedAt: null,
           occupiedBy: null,
-          totalUsage: (seat?.totalUsage || 0) + 1,
+          totalUsage: sql`${seats.totalUsage} + 1`,
           updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId));
+        .where(
+          and(
+            eq(seats.id, seatId),
+            eq(seats.isOccupied, true),
+            isNull(seats.deletedAt),
+          ),
+        )
+        .returning({ id: seats.id });
 
-      return true;
+      return result.length > 0;
     } catch (error) {
       this.handleError(error, "releaseSeat");
     }
@@ -394,7 +409,7 @@ export class SeatService extends BaseService {
           qrCodeVersion: seats.qrCodeVersion,
         })
         .from(seats)
-        .where(eq(seats.id, seatId))
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
         .get();
 
       if (!seat) {
@@ -426,7 +441,7 @@ export class SeatService extends BaseService {
           qrCodeVersion: newVersion,
           updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId));
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
 
       return { success: true, qrCode: newQRCode };
     } catch (error) {
@@ -460,7 +475,7 @@ export class SeatService extends BaseService {
           qrCodeVersion: seats.qrCodeVersion,
         })
         .from(seats)
-        .where(eq(seats.tableId, tableId));
+        .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)));
 
       const qrCodes = [];
 
@@ -480,7 +495,7 @@ export class SeatService extends BaseService {
             qrCodeVersion: newVersion,
             updatedAt: new Date(),
           })
-          .where(eq(seats.id, seat.id));
+          .where(and(eq(seats.id, seat.id), isNull(seats.deletedAt)));
 
         qrCodes.push({
           seatId: seat.id,
@@ -508,7 +523,7 @@ export class SeatService extends BaseService {
           inactiveSeats: sql<number>`SUM(CASE WHEN ${seats.isActive} = 0 THEN 1 ELSE 0 END)`,
         })
         .from(seats)
-        .where(eq(seats.tableId, tableId));
+        .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)));
 
       const totalSeats = stats.totalSeats ?? 0;
       const occupiedSeats = stats.occupiedSeats ?? 0;
@@ -612,19 +627,13 @@ export class SeatService extends BaseService {
    */
   private async updateSeatUsageStats(seatId: number): Promise<void> {
     try {
-      const seat = await this.db
-        .select({ totalUsage: seats.totalUsage })
-        .from(seats)
-        .where(eq(seats.id, seatId))
-        .get();
-
       await this.db
         .update(seats)
         .set({
-          totalUsage: (seat?.totalUsage || 0) + 1,
+          totalUsage: sql`${seats.totalUsage} + 1`,
           updatedAt: new Date(),
         })
-        .where(eq(seats.id, seatId));
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
     } catch (error) {
       // Silent failure for usage stats update - non-critical operation
       // Error will be logged by the parent method's handleError

@@ -386,10 +386,6 @@ app.post(
       throw forbidden("Access denied");
     }
 
-    if (table.isOccupied) {
-      throw badRequest("Table is already occupied");
-    }
-
     // Manual seating has no order yet — skip resolution and store a null
     // currentOrderId rather than inventing a placeholder id.
     const resolvedOrderId =

@@ -1,7 +1,9 @@
 <template>
   <div class="seat-management">
     <!-- 座位管理標題 -->
-    <div class="flex justify-between items-center mb-6">
+    <div
+      class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between"
+    >
       <div>
         <h2 class="text-xl font-bold text-gray-900">
           {{ t("seatManagement.title") }}
@@ -10,7 +12,7 @@
           {{ t("seatManagement.tableInfo", { tableNumber }) }}
         </p>
       </div>
-      <div class="flex space-x-3">
+      <div class="flex flex-wrap gap-3">
         <button
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
           @click="showBatchCreateModal = true"
@@ -24,6 +26,14 @@
         >
           <QRCodeIcon class="h-4 w-4 mr-2" />
           {{ t("seatManagement.regenerateQR") }}
+        </button>
+        <button
+          class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="printableSeats.length === 0"
+          @click="printAllSeatQRCodes"
+        >
+          <PrinterIcon class="h-4 w-4 mr-2" />
+          {{ t("seatManagement.printAllQR") }}
         </button>
       </div>
     </div>
@@ -163,14 +173,30 @@
               <div class="text-center bg-gray-50 rounded-lg p-4">
                 <h4 class="text-sm font-medium text-gray-900 mb-2">QR Code</h4>
                 <div class="inline-block p-3 bg-white rounded-lg border">
-                  <div
-                    class="w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded flex items-center justify-center"
-                  >
-                    <QRCodeIcon class="h-16 w-16 text-gray-400" />
-                  </div>
+                  <QRCodeRenderer
+                    ref="seatQrRef"
+                    :content="selectedSeat?.qrCode || ''"
+                    :label="selectedSeat?.seatNumber"
+                    :size="160"
+                    :padding="8"
+                  />
                 </div>
                 <div class="mt-2 text-xs text-gray-500 break-all">
                   {{ selectedSeat?.qrCode }}
+                </div>
+                <div class="flex justify-center gap-2 mt-3">
+                  <button
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    @click="downloadSeatQRCode"
+                  >
+                    {{ t("tables.qrModal.download") }}
+                  </button>
+                  <button
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    @click="printSeatQRCode"
+                  >
+                    {{ t("tables.qrModal.print") }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -302,17 +328,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import QRCode from "qrcode";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api } from "@/services/api";
-import { PlusIcon, XMarkIcon } from "@heroicons/vue/24/outline";
+import { PlusIcon, PrinterIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
+import QRCodeRenderer from "./QRCodeRenderer.vue";
 import SeatGrid from "./SeatGrid.vue";
 
 interface Seat {
@@ -353,6 +381,10 @@ const emit = defineEmits<Emits>();
 const showSeatModal = ref(false);
 const showBatchCreateModal = ref(false);
 const selectedSeat = ref<Seat | null>(null);
+const seatQrRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
+const printableSeats = computed(() =>
+  props.seats.filter((seat) => seat.isActive && seat.qrCode),
+);
 
 const seatForm = ref({
   seatNumber: "",
@@ -494,6 +526,112 @@ const regenerateSeatQR = async () => {
   } catch (error) {
     console.error("Failed to regenerate QR:", error);
     toast.error(t("seatManagement.alerts.regenerateFailed"));
+  }
+};
+
+const downloadSeatQRCode = () => {
+  const dataUrl = seatQrRef.value?.getDataUrl();
+  if (!dataUrl || !selectedSeat.value) return;
+
+  const link = document.createElement("a");
+  link.download = `QR-${props.tableNumber}-${selectedSeat.value.seatNumber}.png`;
+  link.href = dataUrl;
+  link.click();
+};
+
+interface PrintableQRCode {
+  label: string;
+  dataUrl: string;
+}
+
+const renderQRCodePrintSheet = (
+  printWindow: Window,
+  title: string,
+  qrCodes: PrintableQRCode[],
+) => {
+  const doc = printWindow.document;
+  doc.title = title;
+  doc.body.replaceChildren();
+
+  const style = doc.createElement("style");
+  style.textContent =
+    "@page{size:A4;margin:12mm}" +
+    "body{margin:0;color:#111827;font-family:system-ui,-apple-system,sans-serif}" +
+    "h1{margin:0 0 16px;text-align:center;font-size:24px}" +
+    ".qr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}" +
+    ".qr-card{break-inside:avoid;display:flex;flex-direction:column;align-items:center;border:1px solid #d1d5db;border-radius:12px;padding:16px}" +
+    ".qr-card h2{margin:0 0 10px;font-size:18px}" +
+    ".qr-card img{display:block;width:220px;height:220px}";
+  doc.head.appendChild(style);
+
+  const heading = doc.createElement("h1");
+  heading.textContent = title;
+  doc.body.appendChild(heading);
+
+  const grid = doc.createElement("main");
+  grid.className = "qr-grid";
+  for (const qrCode of qrCodes) {
+    const card = doc.createElement("section");
+    card.className = "qr-card";
+
+    const label = doc.createElement("h2");
+    label.textContent = qrCode.label;
+    card.appendChild(label);
+
+    const image = doc.createElement("img");
+    image.src = qrCode.dataUrl;
+    image.alt = qrCode.label;
+    card.appendChild(image);
+    grid.appendChild(card);
+  }
+  doc.body.appendChild(grid);
+
+  setTimeout(() => printWindow.print(), 300);
+};
+
+const printSeatQRCode = () => {
+  const dataUrl = seatQrRef.value?.getDataUrl();
+  if (!dataUrl || !selectedSeat.value) return;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const label = t("seatManagement.printLabel", {
+    table: props.tableNumber,
+    seat: selectedSeat.value.seatNumber,
+  });
+  renderQRCodePrintSheet(printWindow, label, [{ label, dataUrl }]);
+};
+
+const printAllSeatQRCodes = async () => {
+  if (printableSeats.value.length === 0) return;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  try {
+    const qrCodes = await Promise.all(
+      printableSeats.value.map(async (seat) => ({
+        label: t("seatManagement.printLabel", {
+          table: props.tableNumber,
+          seat: seat.seatNumber,
+        }),
+        dataUrl: await QRCode.toDataURL(seat.qrCode, {
+          width: 220,
+          margin: 1,
+          errorCorrectionLevel: "M",
+        }),
+      })),
+    );
+    renderQRCodePrintSheet(
+      printWindow,
+      t("seatManagement.printAllTitle", { table: props.tableNumber }),
+      qrCodes,
+    );
+  } catch (error) {
+    printWindow.close();
+    console.error("Failed to prepare seat QR codes for printing:", error);
+    toast.error(t("seatManagement.alerts.printFailed"));
   }
 };
 

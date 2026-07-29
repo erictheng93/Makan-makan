@@ -3300,6 +3300,9 @@ const zhTWCore = {
     tableInfo: "桌號: {tableNumber} | 座位模式",
     batchCreate: "批量新增座位",
     regenerateQR: "重新生成 QR",
+    printAllQR: "列印本桌全部座位 QR",
+    printAllTitle: "桌號 {table} 座位 QR",
+    printLabel: "桌號 {table}・座位 {seat}",
     seatDetail: "座位詳情",
     seatNumber: "座位號碼",
     seatName: "座位名稱",
@@ -3339,6 +3342,7 @@ const zhTWCore = {
       batchCreateFailed: "批量創建座位失敗",
       regenerateAllConfirm: "確定要重新生成所有座位的 QR 碼嗎？",
       regenerateAllSuccess: "所有 QR 碼已重新生成",
+      printFailed: "準備座位 QR 列印資料失敗",
     },
   },
 

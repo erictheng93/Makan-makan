@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asc, eq } from "drizzle-orm";
-import { restaurants, seats, tables } from "../schema";
+import { orders, restaurants, seats, tables } from "../schema";
 import {
   createTestDatabase,
   type TestDatabase,
@@ -160,6 +160,127 @@ describe("SeatService.createSeatsForTable", () => {
       .from(seats)
       .where(eq(seats.tableId, tableId));
     expect(persistedSeats).toHaveLength(1);
+  });
+
+  it("allows only the first caller to occupy an available seat", async () => {
+    const service = createService(testDb);
+    const [createdSeat] = await service.createSeatsForTable(tableId, 1);
+    await testDb.drizzle.insert(orders).values({
+      id: "seat-order-1",
+      restaurantId,
+      tableId,
+      orderNumber: "SEAT-ORDER-1",
+    });
+    await testDb.drizzle.insert(orders).values({
+      id: "seat-order-2",
+      restaurantId,
+      tableId,
+      orderNumber: "SEAT-ORDER-2",
+    });
+
+    await expect(
+      service.occupySeat(createdSeat.id, "seat-order-1", "first"),
+    ).resolves.toBe(true);
+    await expect(
+      service.occupySeat(createdSeat.id, "seat-order-2", "second"),
+    ).resolves.toBe(false);
+
+    const persistedSeat = await testDb.drizzle
+      .select({
+        currentOrderId: seats.currentOrderId,
+        occupiedBy: seats.occupiedBy,
+      })
+      .from(seats)
+      .where(eq(seats.id, createdSeat.id))
+      .get();
+    expect(persistedSeat).toEqual({
+      currentOrderId: "seat-order-1",
+      occupiedBy: "first",
+    });
+  });
+
+  it("allows only the first caller to occupy an available table", async () => {
+    const service = createTableService(testDb);
+
+    await expect(service.occupyTable(tableId, null, "first")).resolves.toBe(
+      true,
+    );
+    await expect(service.occupyTable(tableId, null, "second")).resolves.toBe(
+      false,
+    );
+
+    const persistedTable = await testDb.drizzle
+      .select({ occupiedBy: tables.occupiedBy })
+      .from(tables)
+      .where(eq(tables.id, tableId))
+      .get();
+    expect(persistedTable?.occupiedBy).toBe("first");
+  });
+
+  it("increments usage once when an occupied seat is released", async () => {
+    const service = createService(testDb);
+    const [createdSeat] = await service.createSeatsForTable(tableId, 1);
+    await testDb.drizzle
+      .update(seats)
+      .set({ isOccupied: true, totalUsage: 4 })
+      .where(eq(seats.id, createdSeat.id));
+
+    await expect(service.releaseSeat(createdSeat.id)).resolves.toBe(true);
+    await expect(service.releaseSeat(createdSeat.id)).resolves.toBe(false);
+
+    const persistedSeat = await testDb.drizzle
+      .select({
+        isOccupied: seats.isOccupied,
+        totalUsage: seats.totalUsage,
+      })
+      .from(seats)
+      .where(eq(seats.id, createdSeat.id))
+      .get();
+    expect(persistedSeat).toEqual({ isOccupied: false, totalUsage: 5 });
+  });
+
+  it("hides soft-deleted and inactive seats from public lookups", async () => {
+    const service = createService(testDb);
+    const [deletedSeat, inactiveSeat] = await service.createSeatsForTable(
+      tableId,
+      2,
+    );
+
+    await expect(service.deleteSeat(deletedSeat.id)).resolves.toBe(true);
+    await service.updateSeat(inactiveSeat.id, { isActive: false });
+
+    const deletedRow = await testDb.drizzle
+      .select({
+        isActive: seats.isActive,
+        deletedAt: seats.deletedAt,
+      })
+      .from(seats)
+      .where(eq(seats.id, deletedSeat.id))
+      .get();
+    expect(deletedRow?.isActive).toBe(false);
+    expect(deletedRow?.deletedAt).toBeInstanceOf(Date);
+
+    await expect(service.getSeatById(deletedSeat.id)).resolves.toBeUndefined();
+    await expect(
+      service.getSeatByQRCode(deletedSeat.qrCode),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.getSeatByQRCode(inactiveSeat.qrCode),
+    ).resolves.toBeUndefined();
+
+    const listedSeats = await service.getSeatsByTableId(tableId);
+    expect(listedSeats.seats).toEqual([
+      expect.objectContaining({ id: inactiveSeat.id, isActive: false }),
+    ]);
+    expect(listedSeats.total).toBe(1);
+
+    const stats = await service.getSeatStats(tableId);
+    expect(stats).toMatchObject({
+      totalSeats: 1,
+      occupiedSeats: 0,
+      availableSeats: 0,
+      inactiveSeats: 1,
+    });
   });
 });
 

@@ -409,12 +409,8 @@ routes.post(
   async (c) => {
     const { id } = c.get("validatedParams") as { id: number };
     const { orderId, occupiedBy } = c.get("validatedBody") as OccupySeatInput;
-    const seat = await getSeatWithAccessCheck(seatsContext(c), id);
+    await getSeatWithAccessCheck(seatsContext(c), id);
     const seatService = createSeatService(c.env);
-
-    if (seat.isOccupied) {
-      throw badRequest("Seat is already occupied");
-    }
 
     const success = await seatService.occupySeat(id, orderId, occupiedBy);
 

@@ -483,6 +483,7 @@ describe("seats routes", () => {
 
   it("returns route errors for invalid occupy and release workflows", async () => {
     mocks.getSeatById.mockResolvedValueOnce(seat({ isOccupied: true }));
+    mocks.occupySeat.mockResolvedValueOnce(false);
     const occupiedResponse = await withSilencedRouteError(() =>
       routes.fetch(
         jsonRequest("https://test/7/occupy", "POST", { orderId: "42" }),
@@ -490,7 +491,7 @@ describe("seats routes", () => {
       ),
     );
     expect(occupiedResponse.status).toBe(500);
-    expect(mocks.occupySeat).not.toHaveBeenCalled();
+    expect(mocks.occupySeat).toHaveBeenCalledWith(7, "42", undefined);
 
     mocks.getSeatById.mockResolvedValue(seat());
     mocks.occupySeat.mockResolvedValue(false);

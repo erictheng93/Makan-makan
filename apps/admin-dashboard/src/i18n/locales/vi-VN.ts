@@ -2973,6 +2973,9 @@ const viVN: Messages = {
     tableInfo: "Bàn: {tableNumber} | Chế độ ghế",
     batchCreate: "Tạo ghế hàng loạt",
     regenerateQR: "Tạo lại QR",
+    printAllQR: "In tất cả QR ghế",
+    printAllTitle: "Mã QR ghế bàn {table}",
+    printLabel: "Bàn {table} · Ghế {seat}",
     seatDetail: "Chi tiết ghế",
     seatNumber: "Số ghế",
     seatName: "Tên ghế",
@@ -3012,6 +3015,7 @@ const viVN: Messages = {
       batchCreateFailed: "Tạo ghế hàng loạt thất bại",
       regenerateAllConfirm: "Bạn có chắc muốn tạo lại mã QR cho tất cả ghế?",
       regenerateAllSuccess: "Đã tạo lại tất cả mã QR",
+      printFailed: "Không thể chuẩn bị mã QR ghế để in",
     },
   },
 

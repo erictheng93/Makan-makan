@@ -2977,6 +2977,9 @@ const jaJP: Messages = {
     tableInfo: "テーブル: {tableNumber} | 座席モード",
     batchCreate: "座席一括作成",
     regenerateQR: "QR再生成",
+    printAllQR: "全座席のQRを印刷",
+    printAllTitle: "テーブル{table} 座席QRコード",
+    printLabel: "テーブル{table}・座席{seat}",
     seatDetail: "座席詳細",
     seatNumber: "座席番号",
     seatName: "座席名",
@@ -3017,6 +3020,7 @@ const jaJP: Messages = {
       regenerateAllConfirm:
         "すべての座席のQRコードを再生成してもよろしいですか？",
       regenerateAllSuccess: "すべてのQRコードが再生成されました",
+      printFailed: "座席QRコードの印刷準備に失敗しました",
     },
   },
 

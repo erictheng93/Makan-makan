@@ -3051,6 +3051,9 @@ const zhCN: Messages = {
     tableInfo: "桌号: {tableNumber} | 座位模式",
     batchCreate: "批量新增座位",
     regenerateQR: "重新生成 QR",
+    printAllQR: "打印本桌全部座位 QR",
+    printAllTitle: "桌号 {table} 座位 QR",
+    printLabel: "桌号 {table}・座位 {seat}",
     seatDetail: "座位详情",
     seatNumber: "座位号码",
     seatName: "座位名称",
@@ -3090,6 +3093,7 @@ const zhCN: Messages = {
       batchCreateFailed: "批量创建座位失败",
       regenerateAllConfirm: "确定要重新生成所有座位的 QR 码吗？",
       regenerateAllSuccess: "所有 QR 码已重新生成",
+      printFailed: "准备座位 QR 打印数据失败",
     },
   },
 

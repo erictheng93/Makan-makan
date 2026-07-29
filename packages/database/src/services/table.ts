@@ -7,6 +7,7 @@ import {
   or,
   count,
   isNotNull,
+  isNull,
   gte,
   lte,
   sql,
@@ -513,7 +514,14 @@ export class TableService extends BaseService {
           estimatedFreeAt,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId))
+        .where(
+          and(
+            eq(tables.id, tableId),
+            eq(tables.isOccupied, false),
+            eq(tables.isActive, true),
+            isNull(tables.deletedAt),
+          ),
+        )
         .returning({ id: tables.id });
 
       // 更新使用統計

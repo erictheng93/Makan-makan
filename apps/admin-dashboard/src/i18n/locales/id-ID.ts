@@ -2981,6 +2981,9 @@ const idID: Messages = {
     tableInfo: "Meja: {tableNumber} | Mode Kursi",
     batchCreate: "Buat Kursi Massal",
     regenerateQR: "Buat Ulang QR",
+    printAllQR: "Cetak Semua QR Kursi",
+    printAllTitle: "Kode QR Kursi Meja {table}",
+    printLabel: "Meja {table} · Kursi {seat}",
     seatDetail: "Detail Kursi",
     seatNumber: "Nomor Kursi",
     seatName: "Nama Kursi",
@@ -3022,6 +3025,7 @@ const idID: Messages = {
       regenerateAllConfirm:
         "Apakah Anda yakin ingin membuat ulang kode QR untuk semua kursi?",
       regenerateAllSuccess: "Semua kode QR dibuat ulang",
+      printFailed: "Gagal menyiapkan kode QR kursi untuk dicetak",
     },
   },
 

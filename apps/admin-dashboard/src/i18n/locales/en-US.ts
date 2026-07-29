@@ -3264,6 +3264,9 @@ const enUS: Messages = {
     tableInfo: "Table: {tableNumber} | Seat Mode",
     batchCreate: "Batch Create Seats",
     regenerateQR: "Regenerate QR",
+    printAllQR: "Print All Seat QR Codes",
+    printAllTitle: "Table {table} Seat QR Codes",
+    printLabel: "Table {table} · Seat {seat}",
     seatDetail: "Seat Details",
     seatNumber: "Seat Number",
     seatName: "Seat Name",
@@ -3305,6 +3308,7 @@ const enUS: Messages = {
       regenerateAllConfirm:
         "Are you sure you want to regenerate QR codes for all seats?",
       regenerateAllSuccess: "All QR codes regenerated",
+      printFailed: "Failed to prepare seat QR codes for printing",
     },
   },
 

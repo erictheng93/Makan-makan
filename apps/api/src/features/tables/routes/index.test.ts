@@ -305,8 +305,15 @@ describe("tables routes", () => {
       ...table,
       isOccupied: true,
     });
+    serviceFns.occupyTable.mockResolvedValueOnce(false);
     response = await request("/11/occupy", "POST", { orderId: 42 });
     expect(response.status).toBe(400);
+    expect(serviceFns.occupyTable).toHaveBeenLastCalledWith(
+      11,
+      42,
+      undefined,
+      undefined,
+    );
 
     response = await request("/11/release", "POST");
     expect(response.status).toBe(200);
