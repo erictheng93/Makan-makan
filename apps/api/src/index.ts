@@ -112,13 +112,18 @@ export default {
         );
       }
 
-      if (cronMatches(event.cron, "*/5 * * * *")) {
+      // Hourly, not */5: aggregation over a handful of meters gains nothing
+      // from running 288 times a day, and it used to share the reconciliation
+      // tick, which meant neither could be tuned without moving the other.
+      if (cronMatches(event.cron, "0 * * * *")) {
         console.log("[Cron] Running usage aggregation...");
         const { aggregateUsageMeters } =
           await import("./workers/usage-aggregator");
         await aggregateUsageMeters(env);
       }
 
+      // Stays on */5: this settles money, so latency here is worth more than
+      // the invocations it costs.
       if (cronMatches(event.cron, "*/5 * * * *")) {
         console.log("[Cron] Running market checkout payment reconciliation...");
         const { reconcilePendingMarketCheckoutPayments } =

@@ -7,13 +7,25 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 # Cron Triggers for automated scheduling
+#
+# Deliberately empty. Backups here are a per-restaurant product feature: the
+# scheduler reads backup_configurations WHERE schedule_enabled = true, and
+# production has none, so every one of these ran against an empty set. The
+# */5 health check was the worst of it -- 8,640 runs a month monitoring a
+# backup system that had never stored an object.
+#
+# This is NOT the platform's disaster recovery. That is D1 Time Travel, which
+# is enabled on makanmasak-prod and independent of this Worker.
+#
+# Restore the schedules below when a tenant actually enables a backup
+# configuration. An empty array is what clears the triggers on deploy;
+# deleting the block would leave the existing ones running.
 [triggers]
-crons = [
-  "*/5 * * * *",    # Every 5 minutes - Health checks and monitoring
-  "0 */6 * * *",    # Every 6 hours - Process scheduled backups
-  "0 2 * * *",      # Daily at 2 AM - Cleanup and maintenance
-  "0 0 * * SUN"     # Weekly on Sunday - Generate reports and alerts
-]
+crons = []
+# "*/5 * * * *"    # Every 5 minutes - Health checks and monitoring
+# "0 */6 * * *"    # Every 6 hours - Process scheduled backups
+# "0 2 * * *"      # Daily at 2 AM - Cleanup and maintenance
+# "0 0 * * SUN"    # Weekly on Sunday - Generate reports and alerts
 
 # Default variables for development
 [vars]
