@@ -41,12 +41,21 @@ export interface ConnectionStatus {
 type MessageHandler = (data: unknown) => void;
 
 /**
+ * How often /monitoring/alerts/recent is polled. Each poll is one Worker
+ * request and one KV read against a key that only changes when an alert
+ * actually fires, so the previous 15s cadence spent four reads a minute to
+ * observe something that is usually unchanged for hours. 30s keeps alert
+ * latency well inside the operator's reaction time at half the cost.
+ */
+const ALERT_POLL_INTERVAL_MS = 30_000;
+
+/**
  * Monitoring Polling Service Class
- * Polls /monitoring/alerts/recent every 15 seconds
+ * Polls /monitoring/alerts/recent on ALERT_POLL_INTERVAL_MS
  */
 class MonitoringPollingService {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
-  private pollInterval = 15000; // 15 seconds
+  private pollInterval = ALERT_POLL_INTERVAL_MS;
   private lastPollTimestamp = 0;
   private isPolling = false;
 
