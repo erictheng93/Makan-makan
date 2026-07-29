@@ -6,13 +6,13 @@ import { ref } from "vue";
 import MonitoringView from "./MonitoringView.vue";
 import { monitoringService } from "@/services/monitoringService";
 
-vi.mock("vue-toastification", () => ({
-  useToast: () => ({
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-  }),
+const toastMock = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
 }));
+
+vi.mock("vue-toastification", () => ({ useToast: () => toastMock }));
 
 vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: ref("zh-TW") }),
@@ -282,5 +282,95 @@ describe("MonitoringView refresh cost", () => {
     await vi.advanceTimersByTimeAsync(REFRESH_MS * 3);
 
     expect(service.getOverview).toHaveBeenCalledTimes(1);
+  });
+
+  // The swallowed rejection made Promise.all resolve regardless, so the page
+  // reported "updated" and advanced its clock while every request had failed.
+  it("does not claim success when the refresh failed", async () => {
+    await mountView();
+    toastMock.success.mockClear();
+    service.getOverview.mockRejectedValue(new Error("api down"));
+
+    await vi.advanceTimersByTimeAsync(REFRESH_MS);
+
+    expect(toastMock.success).not.toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledTimes(1);
+  });
+
+  // "Last update" ageing on screen is the persistent signal that the numbers
+  // are stale; advancing it on a failed refresh destroyed exactly that.
+  it("leaves the last-update clock alone when the refresh failed", async () => {
+    const mountedAt = Date.now();
+    await mountView();
+    service.getOverview.mockRejectedValue(new Error("api down"));
+
+    await vi.advanceTimersByTimeAsync(REFRESH_MS * 2);
+    await flushPromises();
+
+    // The most recent render must still be formatting the mount timestamp, not
+    // a fresh one -- Date.now() has moved on by two intervals.
+    const lastCall = service.formatRelativeTime.mock.calls.at(-1);
+    expect(lastCall?.[0]).toBe(mountedAt);
+    expect(Date.now()).toBeGreaterThan(mountedAt);
+  });
+
+  it("reports a sustained outage once, not once per interval", async () => {
+    await mountView();
+    service.getOverview.mockRejectedValue(new Error("api down"));
+
+    await vi.advanceTimersByTimeAsync(REFRESH_MS * 4);
+
+    expect(toastMock.error).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports again after recovering and failing a second time", async () => {
+    await mountView();
+    service.getOverview.mockRejectedValue(new Error("api down"));
+    await vi.advanceTimersByTimeAsync(REFRESH_MS);
+    expect(toastMock.error).toHaveBeenCalledTimes(1);
+
+    service.getOverview.mockResolvedValue(buildOverview() as never);
+    await vi.advanceTimersByTimeAsync(REFRESH_MS);
+
+    service.getOverview.mockRejectedValue(new Error("api down again"));
+    await vi.advanceTimersByTimeAsync(REFRESH_MS);
+
+    expect(toastMock.error).toHaveBeenCalledTimes(2);
+  });
+
+  // A background refresh that worked is not news; at one toast a minute it was
+  // pure interruption.
+  it("stays quiet on a successful background refresh", async () => {
+    await mountView();
+    toastMock.success.mockClear();
+
+    await vi.advanceTimersByTimeAsync(REFRESH_MS * 3);
+
+    expect(service.getOverview).toHaveBeenCalledTimes(4);
+    expect(toastMock.success).not.toHaveBeenCalled();
+  });
+
+  it("still confirms a refresh the operator asked for", async () => {
+    const wrapper = await mountView();
+    toastMock.success.mockClear();
+
+    await wrapper.find('[data-testid="manual-refresh"]').trigger("click");
+    await flushPromises();
+
+    // Silence is right for the loop, but a click has to be answered.
+    expect(toastMock.success).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers a manual retry even while an outage is already reported", async () => {
+    const wrapper = await mountView();
+    service.getOverview.mockRejectedValue(new Error("api down"));
+    await vi.advanceTimersByTimeAsync(REFRESH_MS);
+    expect(toastMock.error).toHaveBeenCalledTimes(1);
+
+    await wrapper.find('[data-testid="manual-refresh"]').trigger("click");
+    await flushPromises();
+
+    // The latch suppresses repeat background noise, never a direct request.
+    expect(toastMock.error).toHaveBeenCalledTimes(2);
   });
 });

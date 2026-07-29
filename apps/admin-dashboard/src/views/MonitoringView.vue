@@ -40,7 +40,8 @@
             <button
               :disabled="loading"
               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              @click="refreshAllData"
+              data-testid="manual-refresh"
+              @click="refreshAllData()"
             >
               <ArrowPathIcon
                 :class="['w-4 h-4 mr-2', { 'animate-spin': loading }]"
@@ -876,6 +877,8 @@ const loading = ref(false);
 const initialLoading = ref(true);
 const autoRefresh = ref(true);
 const lastUpdateTime = ref(Date.now());
+/** Latches so an outage does not raise the same toast on every interval. */
+const refreshFailed = ref(false);
 const showCreateAlertDialog = ref(false);
 
 const overview = ref<MonitoringOverview | null>(null);
@@ -898,7 +901,7 @@ const wsConnectionStatus = monitoringWebSocket.connectionStatus;
  */
 const refreshPoller = createVisibilityAwarePoller({
   intervalMs: AUTO_REFRESH_INTERVAL_MS,
-  onTick: () => refreshAllData(),
+  onTick: () => refreshAllData({ silent: true }),
   shouldCatchUp: () =>
     Date.now() - lastUpdateTime.value >= AUTO_REFRESH_INTERVAL_MS,
 });
@@ -1098,7 +1101,13 @@ const errorBarChartData = computed(() => {
 // Methods
 // ============================================================================
 
-async function refreshAllData() {
+/**
+ * @param options.silent Set by the auto-refresh loop. A background refresh that
+ *   worked is not news, and at one toast a minute it was pure interruption; the
+ *   "last update" timestamp and the button spinner already report success.
+ *   Failures are still reported either way.
+ */
+async function refreshAllData(options: { silent?: boolean } = {}) {
   loading.value = true;
   try {
     // Alert rules are deliberately not reloaded here. They are configuration,
@@ -1108,10 +1117,21 @@ async function refreshAllData() {
     // identical for days at a time.
     await loadOverviewWithMetrics();
     lastUpdateTime.value = Date.now();
-    toast.success(t("monitoring.notifications.dataUpdated"));
+    refreshFailed.value = false;
+    if (!options.silent) {
+      toast.success(t("monitoring.notifications.dataUpdated"));
+    }
   } catch (error) {
     console.error("Failed to refresh data:", error);
-    toast.error(t("monitoring.notifications.updateFailed"));
+    // A manual refresh always answers the click. A background one reports only
+    // the transition into failure: during an outage the loop would otherwise
+    // raise the same toast every minute, and "last update" ageing on screen is
+    // already the persistent signal.
+    const shouldReport = !options.silent || !refreshFailed.value;
+    refreshFailed.value = true;
+    if (shouldReport) {
+      toast.error(t("monitoring.notifications.updateFailed"));
+    }
   } finally {
     loading.value = false;
   }
@@ -1125,26 +1145,25 @@ async function refreshAllData() {
  * the summary and the raw numbers could come from different aggregate windows.
  */
 async function loadOverviewWithMetrics() {
-  try {
-    const result = await monitoringService.getOverview({
-      includeMetrics: true,
-    });
-    overview.value = result;
-    if (result.metrics) {
-      metrics.value = result.metrics;
-    }
-  } catch (error) {
-    console.error("Failed to load overview:", error);
+  // Deliberately not caught here. Swallowing the failure made Promise.all
+  // resolve regardless, so refreshAllData reported "updated" and advanced the
+  // "last update" clock while every request had failed -- a monitoring page
+  // claiming the system is fine is the one failure it must never have.
+  const result = await monitoringService.getOverview({
+    includeMetrics: true,
+  });
+  overview.value = result;
+  if (result.metrics) {
+    metrics.value = result.metrics;
   }
 }
 
+// Also uncaught: now that the rules load once rather than on every refresh, a
+// silently swallowed failure would leave an empty rule list on screen for the
+// life of the session with nothing to indicate it was not simply empty.
 async function loadAlertRules() {
-  try {
-    const response = await monitoringService.getAlertRules();
-    alertRules.value = response.rules;
-  } catch (error) {
-    console.error("Failed to load alert rules:", error);
-  }
+  const response = await monitoringService.getAlertRules();
+  alertRules.value = response.rules;
 }
 
 async function loadPerformanceReport() {
@@ -1195,7 +1214,12 @@ async function deleteAlert(id: string) {
 }
 
 async function handleAlertRuleCreated() {
-  await loadAlertRules();
+  try {
+    await loadAlertRules();
+  } catch (error) {
+    console.error("Failed to reload alert rules:", error);
+    toast.error(t("monitoring.notifications.updateFailed"));
+  }
 }
 
 function toggleAutoRefresh() {

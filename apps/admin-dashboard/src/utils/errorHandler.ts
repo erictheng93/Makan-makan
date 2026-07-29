@@ -351,6 +351,13 @@ export class ErrorHandler {
   private static readonly SILENT_ERROR_URL_PATTERNS: readonly string[] = [
     "/monitoring/health",
     "/monitoring/metrics",
+    // The monitoring dashboard's refresh moved from /metrics to /overview and
+    // its alert feed polls /alerts/recent. Both run on a timer, so a global
+    // toast here would fire once a minute for as long as an outage lasts. The
+    // view raises one toast on the transition into failure and then lets its
+    // ageing "last update" clock carry the signal.
+    "/monitoring/overview",
+    "/monitoring/alerts/recent",
     "/analytics/performance",
     "/system/error-report",
   ];
