@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import { authMiddleware } from "../../../middleware/auth";
 
 const mocks = vi.hoisted(() => ({
   currentUser: { id: 1, role: 0, restaurantId: "restaurant-1" },
@@ -57,6 +58,26 @@ vi.mock("../services/MonitoringService", () => ({
     getRecentAlerts: mocks.getRecentAlerts,
   })),
 }));
+
+/**
+ * Minimal Cache API stand-in. Keyed by URL, which is what the real one matches
+ * on for a GET with no Vary.
+ */
+function installEdgeCache() {
+  const store = new Map<string, Response>();
+  const cache = {
+    match: vi.fn(async (request: Request) => {
+      const hit = store.get(request.url);
+      return hit ? hit.clone() : undefined;
+    }),
+    put: vi.fn(async (request: Request, response: Response) => {
+      store.set(request.url, response);
+    }),
+    delete: vi.fn(async () => true),
+  };
+  vi.stubGlobal("caches", { default: cache });
+  return { cache, store };
+}
 
 function createEnv() {
   return {
@@ -183,6 +204,7 @@ describe("monitoring routes", () => {
 
   afterEach(() => {
     vi.mocked(console.log).mockRestore();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -591,5 +613,97 @@ describe("monitoring routes", () => {
         ],
       },
     });
+  });
+
+  // The overview is the dashboard's per-refresh request, so without this its
+  // cost scaled with the number of people watching: every viewer spent its own
+  // KV read and response build for a byte-identical payload.
+  it("serves a repeat overview from the edge without touching the backend", async () => {
+    installEdgeCache();
+
+    const first = await routes.fetch(
+      new Request("https://monitoring.test/overview?include=metrics"),
+      createEnv() as never,
+    );
+    expect(first.status).toBe(200);
+    const firstBody = await first.json();
+    expect(mocks.getMetrics).toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    mocks.getHealthStatus.mockResolvedValue(health());
+    mocks.getMetrics.mockResolvedValue(metrics());
+
+    const second = await routes.fetch(
+      new Request("https://monitoring.test/overview?include=metrics"),
+      createEnv() as never,
+    );
+
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toEqual(firstBody);
+    // No probe, no KV read, no rebuild -- the whole handler was skipped.
+    expect(mocks.getHealthStatus).not.toHaveBeenCalled();
+    expect(mocks.getMetrics).not.toHaveBeenCalled();
+
+    // Without this header a hit is indistinguishable from a miss in production.
+    expect(first.headers.get("x-monitoring-cache")).toBe("miss");
+    expect(second.headers.get("x-monitoring-cache")).toBe("hit");
+    expect(second.headers.get("cache-control")).toBe(
+      first.headers.get("cache-control"),
+    );
+  });
+
+  // The embedded metrics change the body, so the two shapes cannot share an
+  // entry -- a caller asking for metrics must not receive the slim payload.
+  it("keeps the two overview shapes in separate cache entries", async () => {
+    installEdgeCache();
+
+    await routes.fetch(
+      new Request("https://monitoring.test/overview"),
+      createEnv() as never,
+    );
+
+    const withMetrics = await routes.fetch(
+      new Request("https://monitoring.test/overview?include=metrics"),
+      createEnv() as never,
+    );
+
+    const body = await withMetrics.json();
+    expect(body.data.metrics).toBeDefined();
+  });
+
+  it("still answers when the runtime has no Cache API", async () => {
+    // caches is left unstubbed: the handler must not depend on it existing.
+    const response = await routes.fetch(
+      new Request("https://monitoring.test/overview"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ success: true });
+  });
+
+  // The entry is shared and unkeyed, which is only sound because the lookup
+  // sits behind the auth and role middleware. If it ever moves in front, an
+  // anonymous caller reads the system's metrics.
+  it("never serves the shared entry to a caller auth would reject", async () => {
+    const { cache } = installEdgeCache();
+
+    await routes.fetch(
+      new Request("https://monitoring.test/overview"),
+      createEnv() as never,
+    );
+    cache.match.mockClear();
+
+    vi.mocked(authMiddleware).mockImplementationOnce((async (c: {
+      json: (body: unknown, status: number) => Response;
+    }) => c.json({ success: false }, 401)) as never);
+
+    const response = await routes.fetch(
+      new Request("https://monitoring.test/overview"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(401);
+    expect(cache.match).not.toHaveBeenCalled();
   });
 });

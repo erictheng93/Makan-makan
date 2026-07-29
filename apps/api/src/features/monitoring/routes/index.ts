@@ -3,7 +3,7 @@
  * All monitoring and alerting related API endpoints
  */
 
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { validateBody, validateQuery } from "../../../middleware/validation";
 import {
@@ -23,8 +23,29 @@ import {
 import type { Env } from "../../../types/env";
 import type { MonitoringOverview, PerformanceReport } from "../types";
 import { badRequest } from "../../../shared/utils/api-error";
+import {
+  getEdgeCache,
+  overviewCacheHeaders,
+  readCachedOverview,
+  writeCachedOverview,
+} from "./overviewCache";
 
 const app = new Hono<{ Bindings: Env }>();
+
+/**
+ * c.executionCtx throws when the runtime did not supply one, which is the case
+ * in unit tests and some dev paths. Populating the edge cache is best effort,
+ * so fall back to no waitUntil rather than failing a request over it.
+ */
+function getWaitUntil(
+  c: Context,
+): ((promise: Promise<unknown>) => void) | undefined {
+  try {
+    return c.executionCtx.waitUntil.bind(c.executionCtx);
+  } catch {
+    return undefined;
+  }
+}
 
 // Health check endpoint (public)
 app.get("/health", async (c) => {
@@ -319,6 +340,14 @@ app.get(
   validateQuery(overviewQuerySchema),
   async (c) => {
     const { include } = c.get("validatedQuery");
+
+    // After authMiddleware and requireRole on purpose: the entry is shared and
+    // unkeyed, so it must never be reachable by a caller the middleware would
+    // have rejected. See overviewCache.ts.
+    const cache = getEdgeCache();
+    const cached = await readCachedOverview(cache, include);
+    if (cached) return cached;
+
     const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
     const [healthStatus, metrics] = await Promise.all([
       monitoringService.getHealthStatus(),
@@ -379,10 +408,12 @@ app.get(
       ...(include === "metrics" ? { metrics } : {}),
     };
 
-    return c.json({
-      success: true,
-      data: overview,
-    });
+    const body = { success: true, data: overview };
+    writeCachedOverview(cache, getWaitUntil(c), include, body);
+
+    // Same caching headers a hit would carry, so a client cannot end up holding
+    // a miss longer or shorter than the edge holds the hit built from it.
+    return c.json(body, 200, overviewCacheHeaders());
   },
 );
 
