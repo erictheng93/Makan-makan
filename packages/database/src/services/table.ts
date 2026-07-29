@@ -110,8 +110,9 @@ export class TableService extends BaseService {
         throw new Error("Table number already exists in this restaurant");
       }
 
-      // 生成 QR Code 內容（桌子模式）
-      const qrCode = await this.generateQRCodeData(
+      // Insert with a legacy-compatible value first because the v2 signature
+      // binds the auto-incremented table id, which does not exist yet.
+      const legacyQRCode = await this.generateLegacyQRCodeData(
         data.restaurantId,
         data.number,
       );
@@ -136,7 +137,7 @@ export class TableService extends BaseService {
           location: data.location,
           floor: data.floor || 1,
           section: data.section,
-          qrCode,
+          qrCode: legacyQRCode,
           qrCodeVersion: 1,
           qrMode,
           seatCount,
@@ -148,6 +149,16 @@ export class TableService extends BaseService {
         })
         .returning();
 
+      const qrCode = await this.generateQRCodeData(
+        data.restaurantId,
+        newTable.id,
+        data.number,
+      );
+      await this.db
+        .update(tables)
+        .set({ qrCode, updatedAt: new Date() })
+        .where(eq(tables.id, newTable.id));
+
       // 如果是座位模式，自動創建座位
       if (qrMode === "seat" && seatCount > 0) {
         const seatService = new SeatService(this.d1, this.env);
@@ -156,7 +167,7 @@ export class TableService extends BaseService {
         });
       }
 
-      return newTable;
+      return { ...newTable, qrCode };
     } catch (error) {
       this.handleError(error, "createTable");
     }
@@ -593,6 +604,32 @@ export class TableService extends BaseService {
   // 生成 QR Code 資料（HMAC 簽名 URL）
   private async generateQRCodeData(
     restaurantId: string,
+    tableId: number,
+    tableNumber: string,
+    version: number = 1,
+  ): Promise<string> {
+    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
+    const signingKey = this.env.QR_SIGNING_KEY;
+    if (!signingKey || signingKey.length < 32) {
+      throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");
+    }
+
+    return buildSignedQRUrl(
+      baseUrl,
+      {
+        formatVersion: 2,
+        type: "table",
+        restaurantId,
+        tableId,
+        identifier: tableNumber,
+        version,
+      },
+      signingKey,
+    );
+  }
+
+  private async generateLegacyQRCodeData(
+    restaurantId: string,
     tableNumber: string,
     version: number = 1,
   ): Promise<string> {
@@ -637,6 +674,7 @@ export class TableService extends BaseService {
       const newVersion = (table.qrCodeVersion || 0) + 1;
       const newQRCode = await this.generateQRCodeData(
         table.restaurantId,
+        tableId,
         table.number,
         newVersion,
       );
@@ -690,6 +728,7 @@ export class TableService extends BaseService {
             newVersion,
             qrCode: await this.generateQRCodeData(
               restaurantId,
+              table.id,
               table.number,
               newVersion,
             ),

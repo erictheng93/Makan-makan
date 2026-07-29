@@ -539,7 +539,7 @@ export class SeatService extends BaseService {
    */
   private async generateSeatQRCode(
     restaurantId: string,
-    _tableId: number,
+    tableId: number,
     seatNumber: string,
     version: number = 1,
   ): Promise<string> {
@@ -552,8 +552,10 @@ export class SeatService extends BaseService {
     return buildSignedQRUrl(
       baseUrl,
       {
+        formatVersion: 2,
         type: "seat",
         restaurantId,
+        tableId,
         identifier: seatNumber,
         version,
       },

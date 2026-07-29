@@ -1,0 +1,100 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { parseSignedQRUrl } from "@makanmakan/utils";
+import { restaurants, seats } from "../schema";
+import {
+  createTestDatabase,
+  type TestDatabase,
+} from "../testing/create-test-database";
+import { TableService } from "./table";
+
+const restaurantId = "qr-v2-restaurant";
+const signingKey = "qr-v2-test-signing-key-at-least-32-characters";
+
+describe("table and seat QR v2 generation", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: restaurantId,
+      name: "QR V2 Restaurant",
+      type: "restaurant",
+      category: "casual",
+      address: "1 QR Street",
+      district: "Central",
+      city: "Taipei",
+      phone: "0200000000",
+      settings: {},
+      isAvailable: true,
+      isActive: true,
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-29T00:00:00.000Z"),
+    } as never);
+  });
+
+  it("emits table-bound v2 URLs for tables and seats", async () => {
+    const service = new TableService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+      QR_SIGNING_KEY: signingKey,
+      CLIENT_BASE_URL: "https://example.test",
+    });
+
+    const tableOne = await service.createTable({
+      restaurantId,
+      number: "A1",
+      capacity: 1,
+      qrMode: "seat",
+      seatCount: 1,
+    });
+    const tableTwo = await service.createTable({
+      restaurantId,
+      number: "B1",
+      capacity: 1,
+      qrMode: "seat",
+      seatCount: 1,
+    });
+    const [seatOne] = await testDb.drizzle
+      .select({ qrCode: seats.qrCode })
+      .from(seats)
+      .where(eq(seats.tableId, tableOne.id));
+    const [seatTwo] = await testDb.drizzle
+      .select({ qrCode: seats.qrCode })
+      .from(seats)
+      .where(eq(seats.tableId, tableTwo.id));
+
+    expect(parseSignedQRUrl(tableOne.qrCode)).toMatchObject({
+      formatVersion: 2,
+      tableId: tableOne.id,
+      type: "table",
+    });
+    expect(parseSignedQRUrl(tableTwo.qrCode)).toMatchObject({
+      formatVersion: 2,
+      tableId: tableTwo.id,
+      type: "table",
+    });
+    expect(parseSignedQRUrl(seatOne.qrCode)).toMatchObject({
+      formatVersion: 2,
+      tableId: tableOne.id,
+      type: "seat",
+      identifier: "01",
+    });
+    expect(parseSignedQRUrl(seatTwo.qrCode)).toMatchObject({
+      formatVersion: 2,
+      tableId: tableTwo.id,
+      type: "seat",
+      identifier: "01",
+    });
+    expect(parseSignedQRUrl(seatOne.qrCode)?.signature).not.toBe(
+      parseSignedQRUrl(seatTwo.qrCode)?.signature,
+    );
+  });
+});
