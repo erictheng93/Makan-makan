@@ -56,6 +56,17 @@ export const metricsQuerySchema = z.object({
     .default("15m"),
 });
 
+/**
+ * Overview query schema.
+ *
+ * `include=metrics` embeds the full SystemMetrics payload in the response.
+ * /overview already loads it to derive keyMetrics and trends, so embedding
+ * costs the API nothing and saves the caller a second round trip.
+ */
+export const overviewQuerySchema = z.object({
+  include: z.enum(["metrics"]).optional(),
+});
+
 // Performance report query schema
 export const performanceReportQuerySchema = z.object({
   days: z.string().regex(/^\d+$/).transform(Number).optional().default("7"),
@@ -126,6 +137,7 @@ export type AlertRuleCreateRequest = z.infer<typeof alertRuleSchema>;
 export type AlertRuleUpdateRequest = z.infer<typeof updateAlertRuleSchema>;
 export type ErrorRecordRequest = z.infer<typeof recordErrorSchema>;
 export type MetricsQueryParams = z.infer<typeof metricsQuerySchema>;
+export type OverviewQueryParams = z.infer<typeof overviewQuerySchema>;
 export type PerformanceReportQuery = z.infer<
   typeof performanceReportQuerySchema
 >;

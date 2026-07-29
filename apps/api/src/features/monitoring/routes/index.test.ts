@@ -468,6 +468,28 @@ describe("monitoring routes", () => {
         { type: "database_error", count: 3 },
       ]),
     );
+    // Omitted unless asked for, so existing callers keep the payload they had.
+    expect(body.data.metrics).toBeUndefined();
+  });
+
+  // The dashboard needed both /overview and /metrics every refresh, but
+  // /overview already loads the metrics to derive keyMetrics and trends.
+  // Embedding them on request drops one round trip per refresh for free.
+  it("embeds the raw metrics when include=metrics is requested", async () => {
+    const response = await routes.fetch(
+      new Request("https://monitoring.test/overview?include=metrics"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data.metrics).toMatchObject({
+      apiMetrics: { totalRequests: 120 },
+      databaseMetrics: { queryCount: 80 },
+      cacheMetrics: { hitRate: 0.45 },
+    });
+    // The embedded copy has to agree with the summary derived from it.
+    expect(body.data.keyMetrics.cacheHitRate).toBe("45.0%");
   });
 
   it("builds performance report with recommendations", async () => {

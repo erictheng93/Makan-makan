@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   alertRuleSchema,
   monitoringConfigSchema,
+  overviewQuerySchema,
   paginationSchema,
   performanceReportQuerySchema,
   updateAlertRuleSchema,

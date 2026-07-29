@@ -14,6 +14,7 @@ import {
   alertRuleSchema,
   recordErrorSchema,
   metricsQuerySchema,
+  overviewQuerySchema,
   performanceReportQuerySchema,
   testAlertSchema,
   updateAlertRuleSchema,
@@ -311,65 +312,79 @@ app.post(
 );
 
 // System overview (admin + owner)
-app.get("/overview", authMiddleware, requireRole([0, 1]), async (c) => {
-  const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
-  const [healthStatus, metrics] = await Promise.all([
-    monitoringService.getHealthStatus(),
-    monitoringService.getMetrics(),
-  ]);
+app.get(
+  "/overview",
+  authMiddleware,
+  requireRole([0, 1]),
+  validateQuery(overviewQuerySchema),
+  async (c) => {
+    const { include } = c.get("validatedQuery");
+    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
+    const [healthStatus, metrics] = await Promise.all([
+      monitoringService.getHealthStatus(),
+      monitoringService.getMetrics(),
+    ]);
 
-  const overview: MonitoringOverview = {
-    status: healthStatus.overall,
-    uptime: healthStatus.uptime,
-    version: healthStatus.version,
-    timestamp: Date.now(),
+    const overview: MonitoringOverview = {
+      status: healthStatus.overall,
+      uptime: healthStatus.uptime,
+      version: healthStatus.version,
+      timestamp: Date.now(),
 
-    keyMetrics: {
-      requestsPerMinute: Math.round(metrics.apiMetrics.requestsPerSecond * 60),
-      errorRate: `${(metrics.apiMetrics.errorRate * 100).toFixed(2)}%`,
-      averageResponseTime: `${metrics.apiMetrics.averageResponseTime.toFixed(0)}ms`,
-      cacheHitRate: `${(metrics.cacheMetrics.hitRate * 100).toFixed(1)}%`,
-      serverErrors: metrics.errorMetrics.criticalErrors,
-      clientErrors: Math.max(
-        0,
-        metrics.errorMetrics.totalErrors - metrics.errorMetrics.criticalErrors,
+      keyMetrics: {
+        requestsPerMinute: Math.round(
+          metrics.apiMetrics.requestsPerSecond * 60,
+        ),
+        errorRate: `${(metrics.apiMetrics.errorRate * 100).toFixed(2)}%`,
+        averageResponseTime: `${metrics.apiMetrics.averageResponseTime.toFixed(0)}ms`,
+        cacheHitRate: `${(metrics.cacheMetrics.hitRate * 100).toFixed(1)}%`,
+        serverErrors: metrics.errorMetrics.criticalErrors,
+        clientErrors: Math.max(
+          0,
+          metrics.errorMetrics.totalErrors -
+            metrics.errorMetrics.criticalErrors,
+        ),
+      },
+
+      components: Object.entries(healthStatus.components).map(
+        ([name, component]) => ({
+          name,
+          status: component.status,
+          latency: component.latency,
+          issues: component.issues.length,
+          issueDetails: component.issues,
+          lastCheck: component.lastCheck,
+        }),
       ),
-    },
 
-    components: Object.entries(healthStatus.components).map(
-      ([name, component]) => ({
-        name,
-        status: component.status,
-        latency: component.latency,
-        issues: component.issues.length,
-        issueDetails: component.issues,
-        lastCheck: component.lastCheck,
-      }),
-    ),
+      topErrors: Object.entries(metrics.errorMetrics.errorsByType)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([type, count]) => ({ type, count })),
 
-    topErrors: Object.entries(metrics.errorMetrics.errorsByType)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
-      .map(([type, count]) => ({ type, count })),
-
-    trends: {
-      responseTime: {
-        current: metrics.apiMetrics.averageResponseTime,
-        p95: metrics.apiMetrics.p95ResponseTime,
-        p99: metrics.apiMetrics.p99ResponseTime,
+      trends: {
+        responseTime: {
+          current: metrics.apiMetrics.averageResponseTime,
+          p95: metrics.apiMetrics.p95ResponseTime,
+          p99: metrics.apiMetrics.p99ResponseTime,
+        },
+        throughput: {
+          requestsPerSecond: metrics.apiMetrics.requestsPerSecond,
+          totalRequests: metrics.apiMetrics.totalRequests,
+        },
       },
-      throughput: {
-        requestsPerSecond: metrics.apiMetrics.requestsPerSecond,
-        totalRequests: metrics.apiMetrics.totalRequests,
-      },
-    },
-  };
 
-  return c.json({
-    success: true,
-    data: overview,
-  });
-});
+      // Already loaded above to build keyMetrics and trends, so returning it
+      // is free and spares the caller a second request for the same data.
+      ...(include === "metrics" ? { metrics } : {}),
+    };
+
+    return c.json({
+      success: true,
+      data: overview,
+    });
+  },
+);
 
 // Performance report (admin + owner)
 app.get(

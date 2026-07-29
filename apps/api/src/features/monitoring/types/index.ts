@@ -230,4 +230,10 @@ export interface MonitoringOverview {
       totalRequests: number;
     };
   };
+  /**
+   * Present only for `?include=metrics`. keyMetrics and trends above are
+   * derived from this same object, so a caller that needs the raw metrics can
+   * take them from here instead of spending a second request on /metrics.
+   */
+  metrics?: SystemMetrics;
 }
