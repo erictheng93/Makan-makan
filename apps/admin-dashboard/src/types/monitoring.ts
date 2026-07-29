@@ -160,11 +160,18 @@ export interface MonitoringOverview {
   components: ComponentOverview[];
   topErrors: ErrorSummary[];
   trends: PerformanceTrends;
+  /**
+   * Present only when the overview was requested with `include: "metrics"`.
+   * keyMetrics and trends are derived from this same object server-side, so
+   * asking for it costs the API nothing and saves a second round trip.
+   */
+  metrics?: SystemMetrics;
 }
 
 export interface ComponentOverview {
   name: string;
-  status: HealthStatusType;
+  /** Includes "unknown": the overview carries the same component statuses. */
+  status: ComponentStatusType;
   latency?: number;
   issues: number;
   issueDetails?: string[];
