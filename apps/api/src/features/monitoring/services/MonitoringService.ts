@@ -201,8 +201,6 @@ export class MonitoringService {
         );
         return;
       }
-
-      await this.saveMetrics();
     } catch (error) {
       this.logger.error("Record uptime check error", error as Error);
     }
@@ -232,8 +230,6 @@ export class MonitoringService {
       // 更新平均查詢時間
       this.metrics.databaseMetrics.averageQueryTime =
         (this.metrics.databaseMetrics.averageQueryTime + queryTime) / 2;
-
-      await this.saveMetrics();
     } catch (error) {
       this.logger.error("Record database query error", error as Error);
     }
@@ -259,8 +255,6 @@ export class MonitoringService {
           "critical",
         );
       }
-
-      await this.saveMetrics();
     } catch (error) {
       this.logger.error("Record cache metrics error", error as Error);
     }
@@ -303,7 +297,6 @@ export class MonitoringService {
         );
       }
 
-      await this.saveMetrics();
       this.logger.info(`Error recorded: [${severity}] ${type}: ${message}`);
     } catch (error) {
       this.logger.error("Record error failed", error as Error);
@@ -500,7 +493,10 @@ export class MonitoringService {
     try {
       this.metrics = this.createEmptyMetrics();
       this.REQUEST_TIMES.length = 0;
-      await this.saveMetrics();
+      // Delete rather than write. METRICS_KEY caches the Analytics Engine
+      // aggregate; writing this in-process snapshot into it would serve empty
+      // counters as if they were the real aggregate until the entry expired.
+      await this.kv.delete(this.METRICS_KEY);
       this.logger.info("System metrics reset");
     } catch (error) {
       this.logger.error("Reset metrics error", error as Error);
@@ -658,16 +654,21 @@ export class MonitoringService {
     };
   }
 
-  private async saveMetrics(): Promise<void> {
-    try {
-      this.metrics.timestamp = Date.now();
-      await this.kv.put(this.METRICS_KEY, JSON.stringify(this.metrics), {
-        expirationTtl: 86400, // 24小時
-      });
-    } catch (error) {
-      this.logger.error("Save metrics error", error as Error);
-    }
-  }
+  // saveMetrics() lived here and wrote this.metrics into METRICS_KEY with a
+  // 24 hour TTL, from recordUptimeCheck, recordDatabaseQuery,
+  // recordCacheMetrics, recordError and resetMetrics.
+  //
+  // METRICS_KEY is the Analytics Engine aggregate's cache, and getMetrics()
+  // returns early on a hit. So any one of those five paths — a single 5xx
+  // reaching recordError was enough — replaced the aggregate with a per-isolate
+  // in-process snapshot and locked it in for a day. Production was serving a
+  // 20 hour old object with no `measured` block and no AE data, which meant the
+  // dashboard's health score was computed from counters that never left one
+  // isolate, and the AE query had not run since.
+  //
+  // Nothing reads that in-process snapshot: getMetrics() is the only reader of
+  // METRICS_KEY and it wants the aggregate. The writes were pure interference,
+  // so the method is gone rather than moved to its own key.
 
   private async saveAlertRules(): Promise<void> {
     try {

@@ -182,6 +182,62 @@ describe("calculateHealthScore", () => {
   });
 });
 
+describe("sample-size gating", () => {
+  const lowTraffic = (totalRequests: number, p99: number) =>
+    buildMetrics({
+      apiMetrics: {
+        ...buildMetrics().apiMetrics,
+        totalRequests,
+        p99ResponseTime: p99,
+      },
+    });
+
+  // Production ran ~100 requests an hour, so p99 was the second-slowest
+  // response. One cold start moved it from under 300ms to 4567ms and the score
+  // swung between 100 and 56 with nothing about the system having changed.
+  it("does not score p99 latency until there are enough samples for it", () => {
+    const scoreWithTerribleP99 = monitoringService.calculateHealthScore(
+      lowTraffic(101, 4567),
+    );
+    const scoreWithPerfectP99 = monitoringService.calculateHealthScore(
+      lowTraffic(101, 50),
+    );
+
+    // Same score either way: below the sample floor, p99 says nothing.
+    expect(scoreWithTerribleP99).toBe(scoreWithPerfectP99);
+    expect(monitoringService.healthScoreBasis(lowTraffic(101, 4567))).toEqual([
+      "errors",
+    ]);
+  });
+
+  it("scores p99 once the window carries enough requests", () => {
+    const terrible = monitoringService.calculateHealthScore(
+      lowTraffic(1000, 4567),
+    )!;
+    const perfect = monitoringService.calculateHealthScore(
+      lowTraffic(1000, 50),
+    )!;
+
+    expect(terrible).toBeLessThan(perfect);
+    expect(monitoringService.healthScoreBasis(lowTraffic(1000, 50))).toEqual([
+      "api",
+      "errors",
+    ]);
+  });
+
+  it("returns null when traffic is too thin to judge anything", () => {
+    // Below both floors nothing is scoreable, and "unknown" is the honest
+    // answer rather than a flattering 100.
+    expect(
+      monitoringService.calculateHealthScore(lowTraffic(5, 50)),
+    ).toBeNull();
+  });
+
+  it("does not divide by zero on an idle window", () => {
+    expect(monitoringService.calculateHealthScore(lowTraffic(0, 0))).toBeNull();
+  });
+});
+
 describe("healthScoreBasis", () => {
   it("reports only the groups the score actually covers", () => {
     expect(monitoringService.healthScoreBasis(buildMetrics())).toEqual([

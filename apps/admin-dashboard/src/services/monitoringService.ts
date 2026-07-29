@@ -35,7 +35,25 @@ interface HealthRule {
   weight: number;
   /** 0 = meeting target, 1 = at or past the bad bound. */
   severity: (metrics: SystemMetrics) => number;
+  /**
+   * Optional second gate, for when the group is measured but this particular
+   * statistic is not yet trustworthy — too few samples, typically. Excluded
+   * rules drop out of the denominator too, exactly like unmeasured groups.
+   */
+  applies?: (metrics: SystemMetrics) => boolean;
 }
+
+/**
+ * A p99 estimate rests on the slowest 1% of requests, so it needs roughly this
+ * many samples before it stops being one unlucky request. At ~100 requests an
+ * hour, p99 was literally the second-slowest response: a single cold start moved
+ * it from under 300ms to 4567ms and swung the score between 100 and 56 while
+ * nothing about the system had changed.
+ */
+const MIN_SAMPLES_FOR_P99 = 1000;
+
+/** An error *rate* is a mean, so it stabilises far sooner than a tail quantile. */
+const MIN_SAMPLES_FOR_ERROR_RATE = 100;
 
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -433,9 +451,7 @@ class MonitoringService {
    */
   calculateHealthScore(metrics: SystemMetrics): number | null {
     const rules = this.healthRules();
-    const applicable = rules.filter((rule) =>
-      this.isMeasured(metrics, rule.group),
-    );
+    const applicable = rules.filter((rule) => this.isApplicable(metrics, rule));
 
     if (applicable.length === 0) return null;
 
@@ -454,10 +470,15 @@ class MonitoringService {
    * 100 over four.
    */
   healthScoreBasis(metrics: SystemMetrics): HealthMetricGroup[] {
-    const groups = this.healthRules().map((rule) => rule.group);
-    return [...new Set(groups)].filter((group) =>
-      this.isMeasured(metrics, group),
-    );
+    const groups = this.healthRules()
+      .filter((rule) => this.isApplicable(metrics, rule))
+      .map((rule) => rule.group);
+    return [...new Set(groups)];
+  }
+
+  private isApplicable(metrics: SystemMetrics, rule: HealthRule): boolean {
+    if (!this.isMeasured(metrics, rule.group)) return false;
+    return rule.applies ? rule.applies(metrics) : true;
   }
 
   private isMeasured(
@@ -486,6 +507,7 @@ class MonitoringService {
         group: "api",
         weight: 35,
         severity: (m) => ramp(m.apiMetrics.p99ResponseTime, 300, 1500),
+        applies: (m) => m.apiMetrics.totalRequests >= MIN_SAMPLES_FOR_P99,
       },
       {
         // Server errors only. A 401 on an expired session or a 404 for a
@@ -494,13 +516,13 @@ class MonitoringService {
         group: "errors",
         weight: 45,
         severity: (m) =>
-          m.apiMetrics.totalRequests > 0
-            ? ramp(
-                m.errorMetrics.criticalErrors / m.apiMetrics.totalRequests,
-                0.001,
-                0.05,
-              )
-            : 0,
+          ramp(
+            m.errorMetrics.criticalErrors / m.apiMetrics.totalRequests,
+            0.001,
+            0.05,
+          ),
+        applies: (m) =>
+          m.apiMetrics.totalRequests >= MIN_SAMPLES_FOR_ERROR_RATE,
       },
       {
         group: "database",
