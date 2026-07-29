@@ -383,6 +383,10 @@ export class TableService extends BaseService {
           totalUsage: tables.totalUsage,
           lastCleanedAt: tables.lastCleanedAt,
           createdAt: tables.createdAt,
+          // The admin table-setup grid renders each card's QR straight from
+          // this list payload — omitting it blanks every preview, the view
+          // modal, download and print.
+          qrCode: tables.qrCode,
         })
         .from(tables)
         .where(and(...conditions))
@@ -412,7 +416,7 @@ export class TableService extends BaseService {
   // 佔用桌子
   async occupyTable(
     tableId: number,
-    orderId: string,
+    orderId: string | null,
     occupiedBy?: string,
     estimatedMinutes?: number,
   ): Promise<boolean> {
