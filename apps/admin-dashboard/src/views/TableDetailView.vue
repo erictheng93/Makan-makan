@@ -186,6 +186,7 @@
             <QRModeSelector
               v-model="newQRMode"
               v-model:seat-config="newSeatConfig"
+              :max-seat-count="table.capacity"
             />
 
             <div class="flex justify-end space-x-3 mt-6">
@@ -251,12 +252,12 @@ const showModeSwitchModal = ref(false);
 const newQRMode = ref<"table" | "seat">("table");
 const newSeatConfig = ref({
   count: 10,
-  numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+  numberingStyle: "numeric" as "numeric" | "alphabetic",
 });
 
 // 方法
 const goBack = () => {
-  router.push("/tables");
+  router.push({ name: "SeatingTableSetup" });
 };
 
 const getStatusBadgeClass = (status: string) => {
@@ -313,26 +314,13 @@ const switchQRMode = async () => {
   if (!confirmed) return;
 
   try {
-    if (newQRMode.value === "seat") {
-      // Switch to seat mode: batch-create seats
-      await api.post("/seats/batch-create", {
-        tableId: table.value.id,
-        seatCount: newSeatConfig.value.count,
-        numberingStyle: newSeatConfig.value.numberingStyle,
-      });
-    } else {
-      // Switch to table mode: delete all seats for this table
-      await api.delete(`/seats/table/${table.value.id}`);
-    }
-
-    table.value.qrMode = newQRMode.value;
+    await api.put(`/tables/${table.value.id}`, {
+      qrMode: newQRMode.value,
+      seatCount: newQRMode.value === "seat" ? newSeatConfig.value.count : 0,
+      seatNumberingStyle: newSeatConfig.value.numberingStyle,
+    });
     showModeSwitchModal.value = false;
-
-    if (newQRMode.value === "seat") {
-      await loadSeats();
-    } else {
-      seats.value = [];
-    }
+    await loadTableData();
   } catch (error) {
     console.error("Failed to switch QR mode:", error);
     toast.error(t("tableDetail.confirm.switchFailed"));
@@ -415,6 +403,8 @@ const loadTableData = async () => {
         isActive?: boolean;
         isOccupied?: boolean;
         qrMode?: "table" | "seat";
+        seatCount?: number;
+        seatNumberingStyle?: "numeric" | "alphabetic";
         qrCode?: string;
         status?: string;
         totalUsage?: number;
@@ -442,6 +432,10 @@ const loadTableData = async () => {
 
       // 初始化新模式為當前模式
       newQRMode.value = table.value.qrMode;
+      newSeatConfig.value = {
+        count: data.seatCount || data.capacity || 1,
+        numberingStyle: data.seatNumberingStyle || "numeric",
+      };
 
       // 如果是座位模式，載入座位數據
       if (table.value.qrMode === "seat") {

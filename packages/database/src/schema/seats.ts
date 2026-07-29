@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { tables } from "./tables";
@@ -55,7 +61,7 @@ export const seats = sqliteTable(
     // 索引優化
     tableIdIdx: index("seats_table_id_idx").on(table.tableId),
     qrCodeIdx: index("seats_qr_code_idx").on(table.qrCode),
-    tableSeatNumberIdx: index("seats_table_seat_number_idx").on(
+    tableSeatNumberIdx: uniqueIndex("seats_table_seat_number_idx").on(
       table.tableId,
       table.seatNumber,
     ),

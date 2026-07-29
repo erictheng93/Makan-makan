@@ -19,31 +19,73 @@ export const tableFeaturesSchema = z
   .optional();
 
 // Create table schema
-export const createTableSchema = z.object({
-  restaurantId: z.string(),
-  number: z.string().min(1).max(50),
-  name: z.string().min(1).max(50).optional(),
-  capacity: z.number().int().positive(),
-  location: z.string().max(100).optional(),
-  floor: z.number().int().positive().optional().default(1),
-  section: z.string().max(50).optional(),
-  features: tableFeaturesSchema,
-  isReservable: z.boolean().optional().default(true),
-});
+export const createTableSchema = z
+  .object({
+    restaurantId: z.string(),
+    number: z.string().min(1).max(50),
+    name: z.string().min(1).max(50).optional(),
+    capacity: z.number().int().positive(),
+    location: z.string().max(100).optional(),
+    floor: z.number().int().positive().optional().default(1),
+    section: z.string().max(50).optional(),
+    features: tableFeaturesSchema,
+    isReservable: z.boolean().optional().default(true),
+    qrMode: z.enum(["table", "seat"]).optional(),
+    seatCount: z.number().int().positive().max(100).optional(),
+    seatNumberingStyle: z.enum(["numeric", "alphabetic"]).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.qrMode !== "seat") return;
+
+    if (data.seatCount === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["seatCount"],
+        message: "Seat count is required in seat mode",
+      });
+      return;
+    }
+
+    if (data.seatCount > data.capacity) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["seatCount"],
+        message: "Seat count cannot exceed table capacity",
+      });
+    }
+  });
 
 // Update table schema
-export const updateTableSchema = z.object({
-  number: z.string().min(1).max(50).optional(),
-  name: z.string().min(1).max(50).optional(),
-  capacity: z.number().int().positive().optional(),
-  location: z.string().max(100).optional(),
-  floor: z.number().int().positive().optional(),
-  section: z.string().max(50).optional(),
-  features: tableFeaturesSchema,
-  isActive: z.boolean().optional(),
-  isReservable: z.boolean().optional(),
-  maintenanceNotes: z.string().max(500).optional(),
-});
+export const updateTableSchema = z
+  .object({
+    number: z.string().min(1).max(50).optional(),
+    name: z.string().min(1).max(50).optional(),
+    capacity: z.number().int().positive().optional(),
+    location: z.string().max(100).optional(),
+    floor: z.number().int().positive().optional(),
+    section: z.string().max(50).optional(),
+    features: tableFeaturesSchema,
+    isActive: z.boolean().optional(),
+    isReservable: z.boolean().optional(),
+    maintenanceNotes: z.string().max(500).optional(),
+    qrMode: z.enum(["table", "seat"]).optional(),
+    seatCount: z.number().int().nonnegative().max(100).optional(),
+    seatNumberingStyle: z.enum(["numeric", "alphabetic"]).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.qrMode === "seat" &&
+      data.seatCount !== undefined &&
+      data.capacity !== undefined &&
+      data.seatCount > data.capacity
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["seatCount"],
+        message: "Seat count cannot exceed table capacity",
+      });
+    }
+  });
 
 // Table filters schema
 export const tableFilterSchema = z.object({

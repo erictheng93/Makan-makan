@@ -52,6 +52,9 @@ export interface UpdateTableData {
   isActive?: boolean;
   isReservable?: boolean;
   maintenanceNotes?: string;
+  qrMode?: "table" | "seat";
+  seatCount?: number;
+  seatNumberingStyle?: "numeric" | "alphabetic";
 }
 
 export interface TableFilters {
@@ -116,6 +119,12 @@ export class TableService extends BaseService {
       const qrMode = data.qrMode || "table";
       const seatCount = data.seatCount || 0;
       const seatNumberingStyle = data.seatNumberingStyle || "numeric";
+
+      if (qrMode === "seat" && (seatCount <= 0 || seatCount > data.capacity)) {
+        throw new Error(
+          "Seat count must be positive and cannot exceed table capacity",
+        );
+      }
 
       const [newTable] = await this.db
         .insert(tables)
@@ -238,6 +247,60 @@ export class TableService extends BaseService {
   // 更新桌子資訊
   async updateTable(id: number, data: UpdateTableData): Promise<any> {
     try {
+      const currentTable = await this.db
+        .select({
+          id: tables.id,
+          capacity: tables.capacity,
+          qrMode: tables.qrMode,
+          seatCount: tables.seatCount,
+        })
+        .from(tables)
+        .where(eq(tables.id, id))
+        .get();
+
+      if (!currentTable) {
+        throw new Error("Table not found");
+      }
+
+      const nextMode = data.qrMode ?? currentTable.qrMode ?? "table";
+      const nextSeatCount = data.seatCount ?? currentTable.seatCount ?? 0;
+      const nextCapacity = data.capacity ?? currentTable.capacity;
+
+      if (
+        nextMode === "seat" &&
+        (nextSeatCount <= 0 || nextSeatCount > nextCapacity)
+      ) {
+        throw new Error(
+          "Seat count must be positive and cannot exceed table capacity",
+        );
+      }
+
+      if (
+        currentTable.qrMode === "seat" &&
+        nextMode === "seat" &&
+        data.seatCount !== undefined &&
+        data.seatCount !== currentTable.seatCount
+      ) {
+        throw new Error("Change the seat count through seat management");
+      }
+
+      if (nextMode !== (currentTable.qrMode ?? "table")) {
+        const switchResult = await this.switchQRMode(
+          id,
+          nextMode,
+          nextMode === "seat"
+            ? {
+                count: nextSeatCount,
+                numberingStyle: data.seatNumberingStyle ?? "numeric",
+              }
+            : undefined,
+        );
+
+        if (!switchResult.success) {
+          throw new Error(switchResult.message || "Failed to switch QR mode");
+        }
+      }
+
       // 如果更新桌號，檢查是否重複
       if (data.number) {
         const table = await this.db
@@ -269,6 +332,7 @@ export class TableService extends BaseService {
         .update(tables)
         .set({
           ...data,
+          seatCount: nextMode === "table" ? 0 : nextSeatCount,
           updatedAt: new Date(),
         })
         .where(eq(tables.id, id))
@@ -383,6 +447,9 @@ export class TableService extends BaseService {
           totalUsage: tables.totalUsage,
           lastCleanedAt: tables.lastCleanedAt,
           createdAt: tables.createdAt,
+          qrMode: tables.qrMode,
+          seatCount: tables.seatCount,
+          seatNumberingStyle: tables.seatNumberingStyle,
           // The admin table-setup grid renders each card's QR straight from
           // this list payload — omitting it blanks every preview, the view
           // modal, download and print.
@@ -827,6 +894,13 @@ export class TableService extends BaseService {
           return {
             success: false,
             message: "請提供座位數量配置",
+          };
+        }
+
+        if (seatConfig.count > table.capacity) {
+          return {
+            success: false,
+            message: "座位數量不可超過桌台容量",
           };
         }
 

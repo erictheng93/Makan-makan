@@ -249,6 +249,43 @@ describe("tables routes", () => {
     expect(response.status).toBe(400);
   });
 
+  it("passes validated seat mode configuration to table creation", async () => {
+    const response = await request(
+      "/",
+      "POST",
+      createBody({
+        qrMode: "seat",
+        seatCount: 4,
+        seatNumberingStyle: "alphabetic",
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(serviceFns.createTable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        qrMode: "seat",
+        seatCount: 4,
+        seatNumberingStyle: "alphabetic",
+      }),
+    );
+  });
+
+  it("rejects inconsistent table and seat capacities", async () => {
+    const response = await request(
+      "/",
+      "POST",
+      createBody({
+        capacity: 4,
+        qrMode: "seat",
+        seatCount: 5,
+        seatNumberingStyle: "numeric",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(serviceFns.createTable).not.toHaveBeenCalled();
+  });
+
   it("occupies, releases, and cleans tables with state validation", async () => {
     let response = await request("/11/occupy", "POST", {
       orderId: 42,

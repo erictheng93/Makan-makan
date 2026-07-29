@@ -69,6 +69,20 @@ export class SeatService extends BaseService {
         throw new Error("Table not found");
       }
 
+      if (!Number.isInteger(seatCount) || seatCount <= 0) {
+        throw new Error("Seat count must be a positive integer");
+      }
+
+      const existingSeat = await this.db
+        .select({ id: seats.id })
+        .from(seats)
+        .where(eq(seats.tableId, tableId))
+        .get();
+
+      if (existingSeat) {
+        throw new Error("Table already has seats");
+      }
+
       // 生成座位編號
       const seatNumbers = this.generateSeatNumbers(seatCount, options);
 
@@ -556,8 +570,20 @@ export class SeatService extends BaseService {
   ): string[] {
     const { numberingStyle = "numeric", customNumbers, prefix = "" } = options;
 
-    if (customNumbers && customNumbers.length === count) {
-      return customNumbers;
+    if (numberingStyle === "custom") {
+      if (!customNumbers || customNumbers.length !== count) {
+        throw new Error("Custom seat numbers must match seat count");
+      }
+
+      const normalizedNumbers = customNumbers.map((number) => number.trim());
+      if (normalizedNumbers.some((number) => number.length === 0)) {
+        throw new Error("Custom seat numbers cannot be empty");
+      }
+      if (new Set(normalizedNumbers).size !== normalizedNumbers.length) {
+        throw new Error("Custom seat numbers must be unique");
+      }
+
+      return normalizedNumbers;
     }
 
     const numbers: string[] = [];

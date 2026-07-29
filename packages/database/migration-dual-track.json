@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0074_menu_items_image_id.sql",
-    "legacy": "0091_menu_items_image_id.sql"
+    "fresh": "0075_seat_number_unique.sql",
+    "legacy": "0092_seat_number_unique.sql"
   },
   "pairs": [
     {
@@ -50,6 +50,11 @@
       "fresh": "0074_menu_items_image_id.sql",
       "legacy": "0091_menu_items_image_id.sql",
       "reason": "menu_items.image_id records the owning images.id value so menu image replacement can delete the previous image."
+    },
+    {
+      "fresh": "0075_seat_number_unique.sql",
+      "legacy": "0092_seat_number_unique.sql",
+      "reason": "Duplicate seat numbers are reconciled before both migration tracks enforce one seat number per table."
     }
   ],
   "freshOnly": [

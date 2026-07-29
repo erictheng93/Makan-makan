@@ -95,6 +95,78 @@ describe("TableSetupTab", () => {
     expect(toastMock.success).toHaveBeenCalled();
   });
 
+  it("sends seat mode configuration when creating a table", async () => {
+    const wrapper = await mountTab();
+    vi.mocked(api.post).mockResolvedValue({
+      data: {
+        success: true,
+        data: { ...buildTable(), qrMode: "seat", seatCount: 4 },
+      },
+    } as never);
+
+    const vm = wrapper.vm as unknown as {
+      tableForm: {
+        tableNumber: string;
+        capacity: number;
+        qrMode: "table" | "seat";
+        seatConfig: {
+          count: number;
+          numberingStyle: "numeric" | "alphabetic";
+        };
+      };
+      saveTable: () => Promise<void>;
+    };
+    vm.tableForm.tableNumber = "A1";
+    vm.tableForm.capacity = 4;
+    vm.tableForm.qrMode = "seat";
+    vm.tableForm.seatConfig = {
+      count: 4,
+      numberingStyle: "alphabetic",
+    };
+
+    await vm.saveTable();
+    await flushPromises();
+
+    expect(api.post).toHaveBeenCalledWith(
+      "/tables",
+      expect.objectContaining({
+        qrMode: "seat",
+        seatCount: 4,
+        seatNumberingStyle: "alphabetic",
+      }),
+    );
+    expect(api.post).not.toHaveBeenCalledWith(
+      "/seats/batch-create",
+      expect.anything(),
+    );
+  });
+
+  it("maps persisted seat settings back into the edit form", async () => {
+    const wrapper = await mountTab([
+      buildTable({
+        qrMode: "seat",
+        seatCount: 3,
+        seatNumberingStyle: "alphabetic",
+      }),
+    ]);
+
+    const vm = wrapper.vm as unknown as {
+      tables: Array<Record<string, unknown>>;
+      tableForm: {
+        qrMode: "table" | "seat";
+        seatConfig: { count: number; numberingStyle: string };
+      };
+      editTable: (table: Record<string, unknown>) => void;
+    };
+    vm.editTable(vm.tables[0]);
+
+    expect(vm.tableForm.qrMode).toBe("seat");
+    expect(vm.tableForm.seatConfig).toEqual({
+      count: 3,
+      numberingStyle: "alphabetic",
+    });
+  });
+
   it("sends restaurantId as a string when bulk-generating QR codes", async () => {
     const wrapper = await mountTab([buildTable()]);
     vi.mocked(api.post).mockResolvedValue({ data: { success: true } } as never);

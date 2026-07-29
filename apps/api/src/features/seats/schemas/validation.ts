@@ -6,16 +6,37 @@
 import { z } from "zod";
 
 // Batch create seats schema
-export const batchCreateSeatsSchema = z.object({
-  tableId: z.number().int().positive(),
-  seatCount: z.number().int().positive().min(1).max(100),
-  numberingStyle: z
-    .enum(["numeric", "alphabetic", "custom"])
-    .optional()
-    .default("numeric"),
-  customNumbers: z.array(z.string()).optional(),
-  prefix: z.string().max(10).optional(),
-});
+export const batchCreateSeatsSchema = z
+  .object({
+    tableId: z.number().int().positive(),
+    seatCount: z.number().int().positive().min(1).max(100),
+    numberingStyle: z
+      .enum(["numeric", "alphabetic", "custom"])
+      .optional()
+      .default("numeric"),
+    customNumbers: z.array(z.string().trim().min(1).max(50)).optional(),
+    prefix: z.string().max(10).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.numberingStyle !== "custom") return;
+
+    if (data.customNumbers?.length !== data.seatCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customNumbers"],
+        message: "Provide one custom number per seat",
+      });
+      return;
+    }
+
+    if (new Set(data.customNumbers).size !== data.customNumbers.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customNumbers"],
+        message: "Custom seat numbers must be unique",
+      });
+    }
+  });
 
 // Update seat schema
 export const updateSeatSchema = z.object({

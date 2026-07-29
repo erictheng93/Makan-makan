@@ -164,7 +164,7 @@
             :value="seatConfig.count"
             type="number"
             min="1"
-            max="100"
+            :max="maxSeatCount"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             @input="updateSeatCount"
           />
@@ -184,7 +184,6 @@
           >
             <option value="numeric">{{ t("qrMode.numeric") }}</option>
             <option value="alphabetic">{{ t("qrMode.alphabetic") }}</option>
-            <option value="custom">{{ t("qrMode.customNumbering") }}</option>
           </select>
         </div>
       </div>
@@ -248,12 +247,13 @@ const { t } = useI18n();
 
 interface SeatConfig {
   count: number;
-  numberingStyle: "numeric" | "alphabetic" | "custom";
+  numberingStyle: "numeric" | "alphabetic";
 }
 
 interface Props {
   modelValue: "table" | "seat";
   seatConfig: SeatConfig;
+  maxSeatCount?: number;
 }
 
 interface Emits {
@@ -261,7 +261,9 @@ interface Emits {
   (e: "update:seatConfig", value: SeatConfig): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  maxSeatCount: 100,
+});
 const emit = defineEmits<Emits>();
 
 // 選擇模式
@@ -272,7 +274,7 @@ const selectMode = (mode: "table" | "seat") => {
 // 更新座位數量
 const updateSeatCount = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  const count = parseInt(target.value) || 1;
+  const count = Math.min(parseInt(target.value) || 1, props.maxSeatCount);
   emit("update:seatConfig", {
     ...props.seatConfig,
     count,
@@ -282,7 +284,7 @@ const updateSeatCount = (event: Event) => {
 // 更新編號風格
 const updateNumberingStyle = (event: Event) => {
   const target = event.target as HTMLSelectElement;
-  const numberingStyle = target.value as "numeric" | "alphabetic" | "custom";
+  const numberingStyle = target.value as "numeric" | "alphabetic";
   emit("update:seatConfig", {
     ...props.seatConfig,
     numberingStyle,
@@ -302,8 +304,6 @@ const previewNumbers = computed(() => {
       const letter = String.fromCharCode(65 + (i % 26));
       const repeat = Math.floor(i / 26) + 1;
       numbers.push(letter.repeat(repeat));
-    } else {
-      numbers.push(`S${i + 1}`);
     }
   }
 

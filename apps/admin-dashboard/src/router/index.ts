@@ -366,6 +366,14 @@ const routes: RouteRecordRaw[] = [
             },
           },
           {
+            path: "tables/:id",
+            name: "TableDetail",
+            component: () => import("@/views/TableDetailView.vue"),
+            meta: {
+              roles: [UserRole.ADMIN, UserRole.OWNER],
+            },
+          },
+          {
             path: "",
             name: "SeatingReservations",
             component: () => import("@/views/seating/ReservationTab.vue"),

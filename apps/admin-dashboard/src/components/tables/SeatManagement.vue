@@ -257,9 +257,6 @@
                     <option value="alphabetic">
                       {{ t("seatManagement.alphabetic") }}
                     </option>
-                    <option value="custom">
-                      {{ t("seatManagement.custom") }}
-                    </option>
                   </select>
                 </div>
 
@@ -366,7 +363,7 @@ const seatForm = ref({
 
 const batchForm = ref({
   count: 10,
-  numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+  numberingStyle: "numeric" as "numeric" | "alphabetic",
   prefix: "",
 });
 

@@ -123,6 +123,13 @@
               {{ t("tables.viewQR") }}
             </button>
             <button
+              v-if="table.qrMode === 'seat'"
+              class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
+              @click="manageSeats(table)"
+            >
+              {{ t("seatManagement.title") }}
+            </button>
+            <button
               class="px-3 py-2 text-sm bg-[#1C1C1E]/10 text-[#1C1C1E] rounded-full hover:bg-[#1C1C1E]/20 transition-colors"
               @click="editTable(table)"
             >
@@ -275,6 +282,7 @@
                 <QRModeSelector
                   v-model="tableForm.qrMode"
                   v-model:seat-config="tableForm.seatConfig"
+                  :max-seat-count="tableForm.capacity"
                 />
               </div>
 
@@ -356,7 +364,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -378,6 +387,7 @@ const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
+const router = useRouter();
 const qrModalRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
 
 const searchQuery = ref("");
@@ -397,6 +407,9 @@ const mapTable = (t: any) => ({
   location: t.location || "",
   status: !t.isActive ? "maintenance" : t.isOccupied ? "occupied" : "available",
   qrCode: t.qrCode || "",
+  qrMode: t.qrMode || "table",
+  seatCount: t.seatCount ?? 0,
+  seatNumberingStyle: t.seatNumberingStyle || "numeric",
   currentOrderId: t.orderId || null,
 });
 
@@ -410,12 +423,21 @@ const defaultTableForm = () => ({
   status: "available",
   qrMode: "table" as "table" | "seat",
   seatConfig: {
-    count: 10,
-    numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+    count: 4,
+    numberingStyle: "numeric" as "numeric" | "alphabetic",
   },
 });
 
 const tableForm = ref(defaultTableForm());
+
+watch(
+  () => tableForm.value.capacity,
+  (capacity) => {
+    if (tableForm.value.seatConfig.count > capacity) {
+      tableForm.value.seatConfig.count = capacity;
+    }
+  },
+);
 
 const filteredTables = computed(() => {
   const query = searchQuery.value.toLowerCase();
@@ -506,14 +528,21 @@ const viewQRCode = (table: any) => {
   showQRModal.value = true;
 };
 
+const manageSeats = (table: any) => {
+  router.push({
+    name: "TableDetail",
+    params: { id: table.id },
+  });
+};
+
 const editTable = (table: any) => {
   editingTable.value = table;
   tableForm.value = {
     ...table,
     qrMode: table.qrMode || "table",
-    seatConfig: table.seatConfig || {
-      count: table.capacity || 4,
-      numberingStyle: "numeric" as "numeric" | "alphabetic" | "custom",
+    seatConfig: {
+      count: table.seatCount || table.capacity || 4,
+      numberingStyle: table.seatNumberingStyle || "numeric",
     },
   };
   showTableModal.value = true;
@@ -561,6 +590,12 @@ const saveTable = async () => {
         capacity: tableForm.value.capacity,
         location: tableForm.value.location || undefined,
         isActive: tableForm.value.status !== "maintenance",
+        qrMode: tableForm.value.qrMode,
+        seatCount:
+          tableForm.value.qrMode === "seat"
+            ? tableForm.value.seatConfig.count
+            : 0,
+        seatNumberingStyle: tableForm.value.seatConfig.numberingStyle,
       });
     } else {
       await api.post("/tables", {
@@ -569,6 +604,12 @@ const saveTable = async () => {
         name: tableForm.value.tableName || undefined,
         capacity: tableForm.value.capacity,
         location: tableForm.value.location || undefined,
+        qrMode: tableForm.value.qrMode,
+        seatCount:
+          tableForm.value.qrMode === "seat"
+            ? tableForm.value.seatConfig.count
+            : 0,
+        seatNumberingStyle: tableForm.value.seatConfig.numberingStyle,
       });
     }
     closeTableModal();

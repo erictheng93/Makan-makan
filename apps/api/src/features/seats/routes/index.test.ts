@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import { batchCreateSeatsSchema } from "../schemas/validation";
 
 const mocks = vi.hoisted(() => ({
   currentUser: { id: 10, role: 1, restaurantId: "restaurant-1" },
@@ -324,6 +325,40 @@ describe("seats routes", () => {
       message: "Successfully regenerated QR codes for 1 seats",
     });
     expect(mocks.batchGenerateSeatQRCodes).toHaveBeenCalledWith(3);
+  });
+
+  it("rejects custom numbering without one unique number per seat", async () => {
+    const missingNumbers = batchCreateSeatsSchema.safeParse({
+      tableId: 3,
+      seatCount: 2,
+      numberingStyle: "custom",
+    });
+    const duplicateNumbers = batchCreateSeatsSchema.safeParse({
+      tableId: 3,
+      seatCount: 2,
+      numberingStyle: "custom",
+      customNumbers: ["Window", "Window"],
+    });
+
+    expect(missingNumbers.success).toBe(false);
+    expect(duplicateNumbers.success).toBe(false);
+    if (!missingNumbers.success) {
+      expect(missingNumbers.error.issues).toContainEqual(
+        expect.objectContaining({
+          path: ["customNumbers"],
+          message: "Provide one custom number per seat",
+        }),
+      );
+    }
+    if (!duplicateNumbers.success) {
+      expect(duplicateNumbers.error.issues).toContainEqual(
+        expect.objectContaining({
+          path: ["customNumbers"],
+          message: "Custom seat numbers must be unique",
+        }),
+      );
+    }
+    expect(mocks.createSeatsForTable).not.toHaveBeenCalled();
   });
 
   it("returns route errors for batch QR generation failures", async () => {
