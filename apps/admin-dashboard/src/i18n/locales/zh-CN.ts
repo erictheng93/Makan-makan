@@ -2027,6 +2027,12 @@ const zhCN: Messages = {
       qrGenerated: "QR 码生成完成！",
       downloadInProgress: "QR 码下载功能开发中...",
       printInProgress: "QR 码打印功能开发中...",
+      createSuccess: "桌台新增成功",
+      updateSuccess: "桌台更新成功",
+      saveFailed: "桌台保存失败，请稍后再试",
+      loadFailed: "无法加载桌台列表",
+      statusChangeFailed: "桌台状态变更失败",
+      qrGenerateFailed: "QR 码生成失败，请稍后再试",
     },
   },
 

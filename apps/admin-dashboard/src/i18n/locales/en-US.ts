@@ -289,6 +289,12 @@ const enUS: Messages = {
       qrGenerated: "QR codes generated successfully!",
       downloadInProgress: "QR code download feature coming soon...",
       printInProgress: "QR code print feature coming soon...",
+      createSuccess: "Table created successfully",
+      updateSuccess: "Table updated successfully",
+      saveFailed: "Failed to save table, please try again",
+      loadFailed: "Unable to load tables",
+      statusChangeFailed: "Failed to change table status",
+      qrGenerateFailed: "Failed to generate QR codes, please try again",
     },
   },
 

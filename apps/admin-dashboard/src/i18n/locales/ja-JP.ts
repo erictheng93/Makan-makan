@@ -1941,6 +1941,14 @@ const jaJP: Messages = {
       qrGenerated: "QRコードが正常に生成されました",
       downloadInProgress: "QRコードのダウンロード機能は近日公開予定です...",
       printInProgress: "QRコードの印刷機能は近日公開予定です...",
+      createSuccess: "テーブルを作成しました",
+      updateSuccess: "テーブルを更新しました",
+      saveFailed:
+        "テーブルの保存に失敗しました。しばらくしてからお試しください",
+      loadFailed: "テーブル一覧を読み込めませんでした",
+      statusChangeFailed: "テーブルの状態変更に失敗しました",
+      qrGenerateFailed:
+        "QRコードの生成に失敗しました。しばらくしてからお試しください",
     },
   },
 

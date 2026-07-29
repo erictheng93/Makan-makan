@@ -358,6 +358,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api, unwrapApiList } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
@@ -374,6 +375,7 @@ import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
 
 const { t } = useI18n();
+const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 const qrModalRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
@@ -488,12 +490,14 @@ const generateAllQRCodes = async () => {
   try {
     const tableIds = tables.value.map((t) => t.id);
     await api.post("/tables/bulk-qr", {
-      restaurantId: Number(restaurantId),
+      restaurantId,
       tableIds,
     });
     await fetchTables();
+    toast.success(t("tables.alert.qrGenerated"));
   } catch (error) {
     console.error("Failed to generate QR codes:", error);
+    toast.error(t("tables.alert.qrGenerateFailed"));
   }
 };
 
@@ -520,21 +524,19 @@ const changeTableStatus = async (table: any) => {
     if (table.status === "occupied") {
       await api.post(`/tables/${table.id}/release`);
     } else if (table.status === "available") {
-      await api.post(`/tables/${table.id}/occupy`, {
-        orderId: 0,
-        occupiedBy: "manual",
-      });
+      // Manual seating from the floor plan — no order exists yet, so omit orderId
+      await api.post(`/tables/${table.id}/occupy`, { occupiedBy: "manual" });
     } else if (table.status === "maintenance") {
       await api.put(`/tables/${table.id}`, { isActive: true });
     } else if (table.status === "reserved") {
       await api.post(`/tables/${table.id}/occupy`, {
-        orderId: 0,
         occupiedBy: "reservation",
       });
     }
     await fetchTables();
   } catch (error) {
     console.error("Failed to change table status:", error);
+    toast.error(t("tables.alert.statusChangeFailed"));
   }
 };
 
@@ -548,6 +550,9 @@ const saveTable = async () => {
   const restaurantId = authStore.restaurantId;
   if (!restaurantId) return;
 
+  // Captured before closeTableModal() clears editingTable
+  const isEdit = Boolean(editingTable.value);
+
   try {
     if (editingTable.value) {
       await api.put(`/tables/${editingTable.value.id}`, {
@@ -559,7 +564,7 @@ const saveTable = async () => {
       });
     } else {
       await api.post("/tables", {
-        restaurantId: Number(restaurantId),
+        restaurantId,
         number: tableForm.value.tableNumber,
         name: tableForm.value.tableName || undefined,
         capacity: tableForm.value.capacity,
@@ -568,8 +573,14 @@ const saveTable = async () => {
     }
     closeTableModal();
     await fetchTables();
+    toast.success(
+      isEdit
+        ? t("tables.alert.updateSuccess")
+        : t("tables.alert.createSuccess"),
+    );
   } catch (error) {
     console.error("Failed to save table:", error);
+    toast.error(t("tables.alert.saveFailed"));
   }
 };
 
@@ -620,6 +631,7 @@ const fetchTables = async () => {
     }
   } catch (error) {
     console.error("Failed to fetch tables:", error);
+    toast.error(t("tables.alert.loadFailed"));
   }
 };
 

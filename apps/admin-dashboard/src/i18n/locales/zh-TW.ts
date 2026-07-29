@@ -288,6 +288,12 @@ const zhTWCore = {
       qrGenerated: "QR 碼生成完成！",
       downloadInProgress: "QR 碼下載功能開發中...",
       printInProgress: "QR 碼列印功能開發中...",
+      createSuccess: "桌台新增成功",
+      updateSuccess: "桌台更新成功",
+      saveFailed: "桌台儲存失敗，請稍後再試",
+      loadFailed: "無法載入桌台列表",
+      statusChangeFailed: "桌台狀態變更失敗",
+      qrGenerateFailed: "QR 碼生成失敗，請稍後再試",
     },
   },
 
