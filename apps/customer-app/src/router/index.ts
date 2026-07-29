@@ -112,6 +112,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/order",
+    name: "SignedOrderEntry",
+    component: () => import("@/views/SignedOrderEntryView.vue"),
+    meta: {
+      titleKey: "navigation.browseMenu",
+    },
+  },
+  {
     path: "/restaurant/:restaurantId/table/:tableId",
     name: "RestaurantMenu",
     component: () => import("@/views/MenuView.vue"),

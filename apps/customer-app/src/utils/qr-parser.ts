@@ -3,6 +3,8 @@
  * 支援多種 QR Code 格式：market, shop, table, seat
  */
 
+import { parseSignedQRUrl } from "@makanmakan/utils";
+
 export type QRType = "market" | "shop" | "table" | "seat";
 
 interface BaseQRData {
@@ -27,12 +29,16 @@ export interface ShopQRData extends BaseQRData {
 export interface TableQRData extends BaseQRData {
   type: "table";
   tableId?: number;
+  tableNumber?: string;
+  formatVersion?: 1 | 2;
 }
 
 export interface SeatQRData extends BaseQRData {
   type: "seat";
   tableId?: number;
   seatId?: number;
+  seatNumber?: string;
+  formatVersion?: 1 | 2;
 }
 
 export type QRData = MarketQRData | ShopQRData | TableQRData | SeatQRData;
@@ -206,6 +212,31 @@ function parseJSONFormat(content: string): QRData | null {
 function parseURLFormat(content: string): QRData | null {
   try {
     const url = new URL(content);
+    const signedPayload = parseSignedQRUrl(content);
+
+    if (signedPayload) {
+      if (signedPayload.type === "seat") {
+        return {
+          type: "seat",
+          restaurantId: signedPayload.restaurantId,
+          tableId: signedPayload.tableId,
+          seatNumber: signedPayload.identifier,
+          formatVersion: signedPayload.formatVersion,
+          source: "url",
+          raw: content,
+        };
+      }
+
+      return {
+        type: "table",
+        restaurantId: signedPayload.restaurantId,
+        tableId: signedPayload.tableId,
+        tableNumber: signedPayload.identifier,
+        formatVersion: signedPayload.formatVersion,
+        source: "url",
+        raw: content,
+      };
+    }
 
     // 簽名 URL 格式: /order?t=table&r={restaurantId}&n={identifier}&v=1&sig=...
     const sig = url.searchParams.get("sig");
@@ -402,6 +433,16 @@ export function validateQRData(data: QRData): boolean {
       return true;
 
     case "table":
+      if (data.formatVersion !== undefined) {
+        return (
+          typeof data.tableNumber === "string" &&
+          data.tableNumber.trim() !== "" &&
+          (data.formatVersion === 1 ||
+            (typeof data.tableId === "number" &&
+              Number.isInteger(data.tableId) &&
+              data.tableId > 0))
+        );
+      }
       // 桌子模式需要 tableId
       return (
         typeof data.tableId === "number" &&
@@ -410,6 +451,16 @@ export function validateQRData(data: QRData): boolean {
       );
 
     case "seat":
+      if (data.formatVersion !== undefined) {
+        return (
+          typeof data.seatNumber === "string" &&
+          data.seatNumber.trim() !== "" &&
+          (data.formatVersion === 1 ||
+            (typeof data.tableId === "number" &&
+              Number.isInteger(data.tableId) &&
+              data.tableId > 0))
+        );
+      }
       // 座位模式需要 tableId 和 seatId
       return (
         typeof data.tableId === "number" &&

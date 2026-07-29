@@ -33,6 +33,8 @@ const restaurantServiceFns = vi.hoisted(() => ({
 const signedQrServiceFns = vi.hoisted(() => ({
   verifyTable: vi.fn(),
   verifySeat: vi.fn(),
+  verifyTableFromQrCode: vi.fn(),
+  verifySeatFromQrCode: vi.fn(),
 }));
 
 vi.mock("../../../shared/middleware", async (importOriginal) => {
@@ -82,6 +84,8 @@ vi.mock("../services/SignedQrVerificationService", () => ({
   SignedQrVerificationService: class {
     verifyTable = signedQrServiceFns.verifyTable;
     verifySeat = signedQrServiceFns.verifySeat;
+    verifyTableFromQrCode = signedQrServiceFns.verifyTableFromQrCode;
+    verifySeatFromQrCode = signedQrServiceFns.verifySeatFromQrCode;
   },
 }));
 
@@ -445,6 +449,41 @@ describe("QR code routes", () => {
     expect(signedQrServiceFns.verifySeat).toHaveBeenCalledWith(
       "https://example.test/order?sig=abc",
       21,
+    );
+  });
+
+  it("resolves public table and seat QR codes without client-known entity ids", async () => {
+    signedQrServiceFns.verifyTableFromQrCode.mockResolvedValueOnce({
+      valid: true,
+      type: "table",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      tableNumber: "T1",
+      formatVersion: 2,
+    });
+    signedQrServiceFns.verifySeatFromQrCode.mockResolvedValueOnce({
+      valid: true,
+      type: "seat",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      tableNumber: "T1",
+      seatId: 21,
+      seatNumber: "VIP-1",
+      formatVersion: 2,
+    });
+    const rawQrCode = "https://example.test/order?sig=abc";
+    const qrCode = encodeURIComponent(rawQrCode);
+
+    const tableResponse = await request(`/verify/table?qrCode=${qrCode}`);
+    const seatResponse = await request(`/verify/seat?qrCode=${qrCode}`);
+
+    expect(tableResponse.status).toBe(200);
+    expect(seatResponse.status).toBe(200);
+    expect(signedQrServiceFns.verifyTableFromQrCode).toHaveBeenCalledWith(
+      rawQrCode,
+    );
+    expect(signedQrServiceFns.verifySeatFromQrCode).toHaveBeenCalledWith(
+      rawQrCode,
     );
   });
 });

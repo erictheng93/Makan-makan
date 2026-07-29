@@ -100,7 +100,9 @@ describe("SignedQrVerificationService", () => {
       ]) as never,
     );
 
-    await expect(service.verifyTable(legacyQr, 10)).resolves.toMatchObject({
+    await expect(
+      service.verifyTableFromQrCode(legacyQr),
+    ).resolves.toMatchObject({
       valid: true,
       formatVersion: 1,
       tableId: 10,
@@ -140,6 +142,46 @@ describe("SignedQrVerificationService", () => {
 
     await expect(service.verifySeat(qrCode, 21)).resolves.toEqual({
       valid: false,
+    });
+  });
+
+  it("resolves a v2 seat QR from its signed table and seat number", async () => {
+    const qrCode = await buildSignedQRUrl(
+      "https://example.test",
+      {
+        formatVersion: 2,
+        type: "seat",
+        restaurantId: "restaurant-1",
+        tableId: 10,
+        identifier: "VIP-1",
+        version: 3,
+      },
+      signingKey,
+    );
+    const service = new SignedQrVerificationService(
+      { DB: {} as D1Database, QR_SIGNING_KEY: signingKey },
+      createDb([
+        {
+          id: 21,
+          tableId: 10,
+          seatNumber: "VIP-1",
+          qrCodeVersion: 3,
+          isActive: true,
+          deletedAt: null,
+          restaurantId: "restaurant-1",
+          tableNumber: "T1",
+          tableIsActive: true,
+          tableDeletedAt: null,
+        },
+      ]) as never,
+    );
+
+    await expect(service.verifySeatFromQrCode(qrCode)).resolves.toMatchObject({
+      valid: true,
+      type: "seat",
+      tableId: 10,
+      seatId: 21,
+      seatNumber: "VIP-1",
     });
   });
 });

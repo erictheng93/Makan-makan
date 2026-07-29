@@ -325,6 +325,50 @@ app.delete(
 // ==================== Shop QR Code Verification ====================
 
 /**
+ * GET /verify/table - Resolve and verify a signed table QR code (PUBLIC)
+ */
+app.get(
+  "/verify/table",
+  validateQuery(qrCodeSchemas.signedQrQuery),
+  async (c) => {
+    const { qrCode } = c.get("validatedQuery") as SignedQrQueryInput;
+    const service = new SignedQrVerificationService(c.env);
+    const result = await service.verifyTableFromQrCode(qrCode);
+
+    if (!result.valid) {
+      throw notFound("Invalid or expired table QR code", "TABLE_QR_INVALID");
+    }
+
+    return c.json(
+      createSuccessResponse(result, "Table QR code verified successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
+ * GET /verify/seat - Resolve and verify a signed seat QR code (PUBLIC)
+ */
+app.get(
+  "/verify/seat",
+  validateQuery(qrCodeSchemas.signedQrQuery),
+  async (c) => {
+    const { qrCode } = c.get("validatedQuery") as SignedQrQueryInput;
+    const service = new SignedQrVerificationService(c.env);
+    const result = await service.verifySeatFromQrCode(qrCode);
+
+    if (!result.valid) {
+      throw notFound("Invalid or expired seat QR code", "SEAT_QR_INVALID");
+    }
+
+    return c.json(
+      createSuccessResponse(result, "Seat QR code verified successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
  * GET /verify/table/:entityId - Verify a signed table QR code (PUBLIC)
  */
 app.get(

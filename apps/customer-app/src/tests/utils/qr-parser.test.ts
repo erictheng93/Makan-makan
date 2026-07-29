@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildSignedQRUrl } from "@makanmakan/utils";
 import {
   generateQRContent,
   getQRTypeDescription,
@@ -42,5 +43,64 @@ describe("qr-parser market QR support", () => {
       marketSlug: "fengjia",
     });
     expect(getQRTypeDescription("market")).toContain("夜市");
+  });
+});
+
+describe("qr-parser signed table and seat QR support", () => {
+  const signingKey = "test-qr-signing-key-at-least-32-characters";
+
+  it("parses and validates a v2 table URL produced by buildSignedQRUrl", async () => {
+    const qrCode = await buildSignedQRUrl(
+      "https://customer.example.test",
+      {
+        formatVersion: 2,
+        type: "table",
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
+        tableId: 10,
+        identifier: "A1",
+        version: 3,
+      },
+      signingKey,
+    );
+
+    const data = parseQRContent(qrCode);
+
+    expect(data).toMatchObject({
+      type: "table",
+      restaurantId: "019469a0-0001-7000-8000-000000000001",
+      tableId: 10,
+      tableNumber: "A1",
+      formatVersion: 2,
+      source: "url",
+    });
+    expect(data && validateQRData(data)).toBe(true);
+  });
+
+  it("keeps a v2 seat number as a string instead of coercing it to seatId", async () => {
+    const qrCode = await buildSignedQRUrl(
+      "https://customer.example.test",
+      {
+        formatVersion: 2,
+        type: "seat",
+        restaurantId: "019469a0-0001-7000-8000-000000000001",
+        tableId: 10,
+        identifier: "VIP-1",
+        version: 4,
+      },
+      signingKey,
+    );
+
+    const data = parseQRContent(qrCode);
+
+    expect(data).toMatchObject({
+      type: "seat",
+      restaurantId: "019469a0-0001-7000-8000-000000000001",
+      tableId: 10,
+      seatNumber: "VIP-1",
+      formatVersion: 2,
+      source: "url",
+    });
+    expect(data).not.toHaveProperty("seatId");
+    expect(data && validateQRData(data)).toBe(true);
   });
 });

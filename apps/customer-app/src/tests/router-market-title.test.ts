@@ -16,4 +16,10 @@ describe("market route titles", () => {
       "navigation.markets",
     );
   });
+
+  it("recognizes signed QR order entry URLs", async () => {
+    const { default: router } = await import("@/router");
+
+    expect(router.resolve("/order?t=table").name).toBe("SignedOrderEntry");
+  });
 });

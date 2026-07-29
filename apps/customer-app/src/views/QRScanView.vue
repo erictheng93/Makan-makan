@@ -209,7 +209,9 @@ import {
   parseQRContent,
   validateQRData,
   getQRTypeDescription,
+  type QRData,
 } from "@/utils/qr-parser";
+import { signedQrApi } from "@/services/signedQrApi";
 import { useI18n } from "@/composables/useI18n";
 
 interface RecentRestaurant {
@@ -310,7 +312,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
     scanStatus.value = t("qrScanView.processing");
 
     // 使用增強版 QR parser 解析
-    const qrData = parseQRContent(qrContent);
+    let qrData = parseQRContent(qrContent);
 
     if (!qrData) {
       throw new Error(t("toast.invalidQRFormat"));
@@ -319,6 +321,17 @@ const handleQRCodeDetected = async (qrContent: string) => {
     // 驗證 QR 資料
     if (!validateQRData(qrData)) {
       throw new Error(t("toast.qrValidationFailed"));
+    }
+
+    if (
+      (qrData.type === "table" || qrData.type === "seat") &&
+      qrData.formatVersion !== undefined
+    ) {
+      const verified = await signedQrApi.verify(qrData.type, qrContent);
+      qrData = {
+        ...qrData,
+        ...verified,
+      } as QRData;
     }
 
     // 根據 QR 類型進行不同的處理

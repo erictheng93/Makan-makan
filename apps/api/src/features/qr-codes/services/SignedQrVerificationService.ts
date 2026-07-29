@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { seats, tables } from "@makanmakan/database";
 import {
   parseSignedQRUrl,
@@ -49,11 +49,12 @@ export class SignedQrVerificationService {
 
   async verifyTable(
     qrCode: string,
-    tableId: number,
+    tableId?: number,
   ): Promise<TableQrVerification> {
     const payload = await this.parseAndVerify(qrCode, "table");
     if (!payload) return { valid: false };
 
+    const resolvedTableId = tableId ?? payload.tableId;
     const [table] = await this.db
       .select({
         id: tables.id,
@@ -65,7 +66,11 @@ export class SignedQrVerificationService {
         deletedAt: tables.deletedAt,
       })
       .from(tables)
-      .where(eq(tables.id, tableId))
+      .where(
+        resolvedTableId === undefined
+          ? eq(tables.qrCode, qrCode)
+          : eq(tables.id, resolvedTableId),
+      )
       .limit(1);
 
     if (
@@ -93,11 +98,20 @@ export class SignedQrVerificationService {
 
   async verifySeat(
     qrCode: string,
-    seatId: number,
+    seatId?: number,
   ): Promise<SeatQrVerification> {
     const payload = await this.parseAndVerify(qrCode, "seat");
     if (!payload) return { valid: false };
 
+    const seatIdentity =
+      seatId !== undefined
+        ? eq(seats.id, seatId)
+        : payload.formatVersion === 2 && payload.tableId !== undefined
+          ? and(
+              eq(seats.tableId, payload.tableId),
+              eq(seats.seatNumber, payload.identifier),
+            )
+          : eq(seats.qrCode, qrCode);
     const [seat] = await this.db
       .select({
         id: seats.id,
@@ -114,7 +128,7 @@ export class SignedQrVerificationService {
       })
       .from(seats)
       .leftJoin(tables, eq(seats.tableId, tables.id))
-      .where(eq(seats.id, seatId))
+      .where(seatIdentity)
       .limit(1);
 
     if (
@@ -144,6 +158,14 @@ export class SignedQrVerificationService {
       seatNumber: seat.seatNumber,
       formatVersion: payload.formatVersion,
     };
+  }
+
+  verifyTableFromQrCode(qrCode: string): Promise<TableQrVerification> {
+    return this.verifyTable(qrCode);
+  }
+
+  verifySeatFromQrCode(qrCode: string): Promise<SeatQrVerification> {
+    return this.verifySeat(qrCode);
   }
 
   private async parseAndVerify(
