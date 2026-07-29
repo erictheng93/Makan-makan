@@ -390,12 +390,20 @@ app.post(
       throw badRequest("Table is already occupied");
     }
 
-    const orderIdentity = await resolveOrderIdentity(c.env.DB, orderId, {
-      restaurantId: table.restaurantId,
-    });
+    // Manual seating has no order yet — skip resolution and store a null
+    // currentOrderId rather than inventing a placeholder id.
+    const resolvedOrderId =
+      orderId === undefined
+        ? null
+        : (
+            await resolveOrderIdentity(c.env.DB, orderId, {
+              restaurantId: table.restaurantId,
+            })
+          ).id;
+
     const success = await tablesService.occupyTable(
       id,
-      orderIdentity.id,
+      resolvedOrderId,
       occupiedBy,
       estimatedMinutes,
     );
