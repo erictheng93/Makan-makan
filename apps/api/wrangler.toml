@@ -6,14 +6,26 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Cold starts on this Worker cost ~505ms, and that penalty tracks compressed
-# bundle size almost linearly — measured across three Workers on this account
-# from the same colo: realtime (78 KiB gzip) +82ms, management-api (349 KiB)
-# +284ms, api (657 KiB) +505ms. Roughly a third of requests hit a machine
-# without a warm isolate and pay it, regardless of idle time.
+# Halves the bundle: 3739 KiB raw / 657 KiB gzip -> 1792 / 453.
 #
-# Minifying takes the bundle from 3739 KiB raw / 657 KiB gzip to 1792 / 453,
-# which the fit puts at roughly 150ms off that penalty.
+# It does NOT measurably reduce cold starts, despite being enabled for exactly
+# that reason. Slow-mode median before: 620ms; after, once isolates settled:
+# 626ms. Fast mode 97ms -> 99ms. No change.
+#
+# The prediction came from fitting cold-start penalty against compressed size
+# across three Workers on this account (realtime 78 KiB/+82ms, management-api
+# 349 KiB/+284ms, api 657 KiB/+505ms) and extrapolating ~150ms. Three points
+# fit any line, so the R² meant nothing, and the one out-of-sample check was
+# already 70% off. The likely reason it does not hold: minification shrinks
+# identifiers and whitespace, so it cuts bytes transferred but barely changes
+# the AST V8 has to parse and compile — and cold start here looks
+# compile-bound, not fetch-bound.
+#
+# Kept because a smaller upload is still worth having and nothing regressed.
+# Do not roll this out to the other Workers expecting a latency win, and do not
+# reuse that size-to-penalty model. Cloudflare's own advice for startup time is
+# to drop dependencies or split via Service bindings — packages/database alone
+# is 926 KiB of this bundle.
 #
 # Safe for this codebase: esbuild's keep_names stays on, so the ApiError
 # subclass names survive, and the `error.name === "TokenExpiredError"` checks
