@@ -47,6 +47,18 @@ describe("monitoring validation schemas", () => {
     );
   });
 
+  it("accepts an absent or explicit overview include, and nothing else", () => {
+    // Absent stays absent so existing callers keep the payload they had.
+    expect(overviewQuerySchema.parse({})).toEqual({});
+    expect(overviewQuerySchema.parse({ include: "metrics" })).toEqual({
+      include: "metrics",
+    });
+
+    expect(() =>
+      overviewQuerySchema.parse({ include: "everything" }),
+    ).toThrow();
+  });
+
   it("applies monitoring config defaults and validates webhook URLs", () => {
     expect(monitoringConfigSchema.parse({})).toMatchObject({
       enableMetrics: true,

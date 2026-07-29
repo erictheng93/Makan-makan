@@ -1090,7 +1090,7 @@ const errorBarChartData = computed(() => {
 async function refreshAllData() {
   loading.value = true;
   try {
-    await Promise.all([loadOverview(), loadMetrics(), loadAlertRules()]);
+    await Promise.all([loadOverviewWithMetrics(), loadAlertRules()]);
     lastUpdateTime.value = Date.now();
     toast.success(t("monitoring.notifications.dataUpdated"));
   } catch (error) {
@@ -1101,19 +1101,24 @@ async function refreshAllData() {
   }
 }
 
-async function loadOverview() {
+/**
+ * One request for both panels. /overview already loads the metrics to derive
+ * its keyMetrics and trends, so asking it to return them costs the API nothing
+ * and drops a whole round trip -- with it a Worker request and a KV read --
+ * from every refresh. It also removes a skew the two-request version had, where
+ * the summary and the raw numbers could come from different aggregate windows.
+ */
+async function loadOverviewWithMetrics() {
   try {
-    overview.value = await monitoringService.getOverview();
+    const result = await monitoringService.getOverview({
+      includeMetrics: true,
+    });
+    overview.value = result;
+    if (result.metrics) {
+      metrics.value = result.metrics;
+    }
   } catch (error) {
     console.error("Failed to load overview:", error);
-  }
-}
-
-async function loadMetrics() {
-  try {
-    metrics.value = await monitoringService.getMetrics();
-  } catch (error) {
-    console.error("Failed to load metrics:", error);
   }
 }
 
@@ -1391,8 +1396,7 @@ onMounted(async () => {
   initialLoading.value = true;
   try {
     await Promise.all([
-      loadOverview(),
-      loadMetrics(),
+      loadOverviewWithMetrics(),
       loadAlertRules(),
       loadPerformanceReport(),
     ]);

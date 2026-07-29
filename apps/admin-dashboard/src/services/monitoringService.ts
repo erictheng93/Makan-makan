@@ -97,12 +97,18 @@ class MonitoringService {
 
   /**
    * Get monitoring overview
+   * @param options.includeMetrics Embed the raw SystemMetrics in the response.
+   *   The endpoint already loads them to derive keyMetrics and trends, so this
+   *   replaces a separate getMetrics() call rather than adding server work.
    * @returns Comprehensive monitoring overview with key metrics
    */
-  async getOverview(): Promise<MonitoringOverview> {
+  async getOverview(options?: {
+    includeMetrics?: boolean;
+  }): Promise<MonitoringOverview> {
     try {
       const response = await api.get<MonitoringOverview>(
         `${this.baseUrl}/overview`,
+        options?.includeMetrics ? { include: "metrics" } : undefined,
       );
       return response.data.data!;
     } catch (error) {
