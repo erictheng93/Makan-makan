@@ -68,7 +68,6 @@ export class MonitoringService {
   private alertRules: AlertRule[];
   private logger: ConsoleLogger;
   private readonly METRICS_KEY = "_system_metrics";
-  private readonly HEALTH_KEY = "_system_health";
   private readonly ALERT_RULES_KEY = "_alert_rules";
   private readonly RECENT_ALERTS_KEY = "_recent_alerts";
   private readonly UPTIME_PROBE_KEY_PREFIX = "_uptime_probe:";
@@ -390,11 +389,11 @@ export class MonitoringService {
         timestamp: now,
       };
 
-      // 儲存健康狀態
-      await this.kv.put(this.HEALTH_KEY, JSON.stringify(healthStatus), {
-        expirationTtl: 300, // 5分鐘
-      });
-
+      // The health status is deliberately not written back to KV. Nothing ever
+      // read that key, and this method is reachable from the public
+      // /monitoring/health endpoint (which /health redirects to), so the write
+      // handed anonymous callers a KV write per request -- the exact quota-burn
+      // that probeCache() avoids by reading a sentinel instead of writing one.
       return healthStatus;
     } catch (error) {
       this.logger.error("Get health status error", error as Error);

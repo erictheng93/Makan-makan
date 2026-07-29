@@ -138,8 +138,8 @@ describe("MonitoringService", () => {
 
   // Counters still drive degradation when the dependency answers its probe —
   // a reachable but slow database is a warning, not an outage.
-  it("derives component health and stores the snapshot", async () => {
-    const { kv, values } = createKV();
+  it("derives component health from probes and counters", async () => {
+    const { kv } = createKV();
     const service = new MonitoringService(kv, {
       DB: {
         prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
@@ -163,9 +163,31 @@ describe("MonitoringService", () => {
       version: "2.0.0",
       timestamp: Date.now(),
     });
-    expect(JSON.parse(values.get("_system_health") ?? "{}")).toMatchObject({
-      overall: "critical",
+  });
+
+  // Regression: getHealthStatus() used to persist the snapshot under
+  // _system_health on every call. Nothing ever read that key back, and the
+  // method is reachable from the public /monitoring/health endpoint, so any
+  // anonymous caller could spend the account's KV write quota one request at a
+  // time -- the same hole probeCache() sidesteps by reading a sentinel.
+  it("never persists a health snapshot to KV", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+      } as never,
     });
+
+    await service.getHealthStatus();
+
+    // Asserted per-key rather than as "no writes at all": getMetrics() runs
+    // inside getHealthStatus and legitimately refreshes its own cache key once
+    // per METRICS_CACHE_TTL_SECONDS. The health snapshot is the write that has
+    // no reader and must stay gone. Matching on the key alone rather than on a
+    // full argument list so a reintroduced write is caught whatever options it
+    // passes.
+    const writtenKeys = kv.put.mock.calls.map(([key]: [string]) => key);
+    expect(writtenKeys).not.toContain("_system_health");
   });
 
   // The dashboard plotted database and cache zeroes next to real API latency,
