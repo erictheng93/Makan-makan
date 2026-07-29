@@ -843,6 +843,7 @@ import type {
   AlertRule,
   PerformanceReport,
   HealthStatusType,
+  ComponentStatusType,
 } from "@/types/monitoring";
 import HealthScoreGauge from "@/components/monitoring/HealthScoreGauge.vue";
 import MultiMetricChart from "@/components/monitoring/MultiMetricChart.vue";
@@ -1264,22 +1265,26 @@ function getHealthScoreColor(score: number) {
   return "bg-red-500";
 }
 
-function getComponentStatusColor(status: HealthStatusType) {
-  const colorMap = {
+function getComponentStatusColor(status: ComponentStatusType) {
+  const colorMap: Record<ComponentStatusType, string> = {
     healthy: "bg-green-100 text-green-800",
     warning: "bg-yellow-100 text-yellow-800",
     critical: "bg-red-100 text-red-800",
     down: "bg-gray-100 text-gray-800",
+    // Muted rather than red: nothing checks this component, which is not the
+    // same as having checked it and found a fault.
+    unknown: "bg-gray-100 text-gray-500",
   };
   return colorMap[status] || "bg-gray-100 text-gray-800";
 }
 
-function getComponentStatusText(status: HealthStatusType) {
+function getComponentStatusText(status: ComponentStatusType) {
   const keyMap: Record<string, string> = {
     healthy: "monitoring.statusText.healthy",
     warning: "monitoring.statusText.warning",
     critical: "monitoring.statusText.critical",
     down: "monitoring.statusText.stopped",
+    unknown: "monitoring.statusText.unknown",
   };
   return t(keyMap[status] || "monitoring.statusText.unknown");
 }
