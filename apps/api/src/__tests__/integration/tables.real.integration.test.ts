@@ -149,6 +149,23 @@ describe("Tables API - real integration", () => {
     expect(getReleasedJson.data.occupiedBy).toBeNull();
     expect(getReleasedJson.data.totalUsage).toBeGreaterThanOrEqual(1);
 
+    // The list projection must carry qrCode: the admin table-setup grid renders
+    // the QR straight from this payload, and without it every card, the preview
+    // modal, download and print come out blank.
+    const listRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/tables?restaurantId=${encodeURIComponent(String(restaurant.id))}`,
+        { headers: { authorization: `Bearer ${token}` } },
+      ),
+    );
+
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.success).toBe(true);
+    const listed = listJson.data.find((t: any) => t.id === createdTable.id);
+    expect(listed).toBeTruthy();
+    expect(listed.qrCode).toBe(createdTable.qrCode);
+
     expect(admin.id).toBe("01900000-0000-7000-8000-000000000001");
   });
 });
