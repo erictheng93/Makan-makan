@@ -13,6 +13,11 @@ INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-chars-change-this-value
 # Comma-separated local frontend origins allowed by CSRF origin checks
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
 
+# HMAC key for signing table/seat QR codes (minimum 32 characters).
+# REQUIRED — creating a table, regenerating a QR code, or batch-creating seats
+# all throw without it. Generate one the same way as JWT_SECRET.
+QR_SIGNING_KEY=your-secure-qr-signing-key-min-32-chars-change-this-value
+
 # Optional: Add other secrets needed for local development
 # ANTHROPIC_API_KEY=your-anthropic-key
 # OPENAI_API_KEY=your-openai-key
