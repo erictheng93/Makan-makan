@@ -5,7 +5,11 @@
 
 import type { D1Database, KVNamespace } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "../../../core/monitoring";
-import { probeCache, probeDatabase } from "../../../core/health/probe";
+import {
+  probeCache,
+  probeDatabase,
+  type ProbeResult,
+} from "../../../core/health/probe";
 import type {
   SystemMetrics,
   AlertRule,
@@ -35,6 +39,21 @@ const METRICS_WINDOW_HOURS = 1;
  * above KV's 1-write-per-second-per-key limit. KV's own minimum TTL is 60s.
  */
 const METRICS_CACHE_TTL_SECONDS = 60;
+
+/**
+ * How long a dependency probe is reused before D1 and KV are touched again.
+ *
+ * getHealthStatus ran a D1 query and a KV read on every call, so the cost of
+ * the health signal scaled with the number of people watching it -- ten open
+ * dashboards meant ten times the probes for one system's worth of truth. The
+ * probe is about the shared dependency, not about the caller, so one result can
+ * answer everyone inside the window.
+ *
+ * Ten seconds is the trade: an outage is reported at most that late, which is
+ * far inside the cadence of anything that consumes this (the dashboard polls at
+ * 60s), while concurrent viewers collapse onto a single probe.
+ */
+const HEALTH_PROBE_TTL_MS = 10_000;
 
 // Performance thresholds
 const PERFORMANCE_THRESHOLDS = {
@@ -77,6 +96,12 @@ export class MonitoringService {
 
   /** In-flight getMetrics() load shared by concurrent callers; see getMetrics. */
   private metricsInFlight: Promise<SystemMetrics> | null = null;
+
+  /** Dependency probes shared across callers; see probeDependencies. */
+  private probes: {
+    startedAt: number;
+    result: Promise<[ProbeResult, ProbeResult]>;
+  } | null = null;
 
   private env?: MonitoringEnv;
 
@@ -306,6 +331,29 @@ export class MonitoringService {
   }
 
   /**
+   * The D1 and KV liveness probes, reused for HEALTH_PROBE_TTL_MS.
+   *
+   * The promise is cached rather than its result, so concurrent callers that
+   * arrive during a probe share it instead of starting their own. Neither probe
+   * rejects -- both resolve to an unhealthy ProbeResult on failure -- so a
+   * cached entry can never be a rejected promise waiting to resurface.
+   */
+  private probeDependencies(): Promise<[ProbeResult, ProbeResult]> {
+    const now = Date.now();
+    if (this.probes && now - this.probes.startedAt < HEALTH_PROBE_TTL_MS) {
+      return this.probes.result;
+    }
+
+    const result = Promise.all([
+      probeDatabase(this.env?.DB),
+      probeCache(this.kv),
+    ]) as Promise<[ProbeResult, ProbeResult]>;
+
+    this.probes = { startedAt: now, result };
+    return result;
+  }
+
+  /**
    * 獲取系統健康狀態
    */
   async getHealthStatus(): Promise<HealthStatus> {
@@ -318,9 +366,10 @@ export class MonitoringService {
       // perfect health no matter what state D1 or KV were actually in, so this
       // endpoint could not report an outage. Latency was reported as 0 for the
       // same reason.
-      const [databaseProbe, cacheProbe, apiMetrics] = await Promise.all([
-        probeDatabase(this.env?.DB),
-        probeCache(this.kv),
+      const [[databaseProbe, cacheProbe], apiMetrics] = await Promise.all([
+        // Shared for HEALTH_PROBE_TTL_MS across every caller in this isolate,
+        // so the probe cost stops scaling with the number of viewers.
+        this.probeDependencies(),
         // Real request metrics, aggregated from Analytics Engine. Cached for a
         // minute, so this does not query on every health check.
         this.getMetrics().then((m) => m.apiMetrics),

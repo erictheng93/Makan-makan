@@ -31,6 +31,9 @@ function createKV() {
   };
 }
 
+/** Mirrors HEALTH_PROBE_TTL_MS in the service. */
+const HEALTH_PROBE_WINDOW_MS = 10_000;
+
 describe("MonitoringService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -217,6 +220,81 @@ describe("MonitoringService", () => {
     // external is "unknown"; it must neither drag overall down nor prop it up.
     expect(health.components.external.status).toBe("unknown");
     expect(health.overall).toBe("healthy");
+  });
+
+  // The probe asks about the shared dependency, not about the caller, so its
+  // cost must not scale with the number of open dashboards.
+  it("reuses one dependency probe across callers inside the window", async () => {
+    const { kv } = createKV();
+    const prepare = vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) }));
+    const service = new MonitoringService(kv, { DB: { prepare } as never });
+
+    await service.getHealthStatus();
+    await service.getHealthStatus();
+    await service.getHealthStatus();
+
+    expect(prepare).toHaveBeenCalledTimes(1);
+    const probeReads = kv.get.mock.calls.filter(
+      ([key]: [string]) => key === "_health_probe",
+    );
+    expect(probeReads).toHaveLength(1);
+  });
+
+  it("shares one probe between concurrent callers", async () => {
+    const { kv } = createKV();
+    const prepare = vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) }));
+    const service = new MonitoringService(kv, { DB: { prepare } as never });
+
+    await Promise.all([
+      service.getHealthStatus(),
+      service.getHealthStatus(),
+      service.getHealthStatus(),
+    ]);
+
+    expect(prepare).toHaveBeenCalledTimes(1);
+  });
+
+  // The window has to close, or an outage would never surface.
+  it("probes again once the window has passed", async () => {
+    const { kv } = createKV();
+    const prepare = vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) }));
+    const service = new MonitoringService(kv, { DB: { prepare } as never });
+
+    await service.getHealthStatus();
+    expect(prepare).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(9_000);
+    await service.getHealthStatus();
+    expect(prepare).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1_001);
+    await service.getHealthStatus();
+    expect(prepare).toHaveBeenCalledTimes(2);
+  });
+
+  // A cached healthy probe must not outlive the outage that follows it.
+  it("reports the outage on the first probe after the window", async () => {
+    const { kv } = createKV();
+    let healthy = true;
+    const prepare = vi.fn(() => ({
+      first: vi.fn(async () => {
+        if (!healthy) throw new Error("D1 unreachable");
+        return { ok: 1 };
+      }),
+    }));
+    const service = new MonitoringService(kv, { DB: { prepare } as never });
+
+    await expect(service.getHealthStatus()).resolves.toMatchObject({
+      components: { database: { status: "healthy" } },
+    });
+
+    healthy = false;
+    await vi.advanceTimersByTimeAsync(HEALTH_PROBE_WINDOW_MS + 1);
+
+    await expect(service.getHealthStatus()).resolves.toMatchObject({
+      overall: "critical",
+      components: { database: { status: "critical" } },
+    });
   });
 
   // Regression: getHealthStatus() used to persist the snapshot under
