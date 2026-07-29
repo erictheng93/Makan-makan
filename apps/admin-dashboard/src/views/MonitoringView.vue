@@ -857,6 +857,15 @@ const toast = useToast();
 const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();
 
+/**
+ * Matched to METRICS_CACHE_TTL_SECONDS in the API's MonitoringService, which is
+ * how often the Analytics Engine aggregate behind these panels is recomputed.
+ * Polling faster than that cannot surface newer numbers -- the previous 30s
+ * interval meant every other refresh was guaranteed to redisplay identical data
+ * while still spending a D1 probe, five KV reads and three Worker requests.
+ */
+const AUTO_REFRESH_INTERVAL_MS = 60_000;
+
 // ============================================================================
 // State
 // ============================================================================
@@ -1181,7 +1190,7 @@ function toggleAutoRefresh() {
 function startAutoRefresh() {
   refreshInterval = setInterval(() => {
     refreshAllData();
-  }, 30000); // 30 seconds
+  }, AUTO_REFRESH_INTERVAL_MS);
 }
 
 function stopAutoRefresh() {
