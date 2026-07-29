@@ -8,6 +8,7 @@
 import { ref, type Ref } from "vue";
 import type { SystemMetrics } from "@/types/monitoring";
 import { monitoringService } from "@/services/monitoringService";
+import { createVisibilityAwarePoller } from "@/services/visibilityAwarePoller";
 
 export type AlertNotificationType = "info" | "warning" | "critical" | "fatal";
 
@@ -54,8 +55,16 @@ const ALERT_POLL_INTERVAL_MS = 30_000;
  * Polls /monitoring/alerts/recent on ALERT_POLL_INTERVAL_MS
  */
 class MonitoringPollingService {
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
-  private pollInterval = ALERT_POLL_INTERVAL_MS;
+  /**
+   * Owns the interval, the hidden-tab skip and the catch-up on return. No
+   * staleness check: an alert that fired while the tab was hidden is exactly
+   * what the operator needs to see the moment they look back.
+   */
+  private readonly poller = createVisibilityAwarePoller({
+    intervalMs: ALERT_POLL_INTERVAL_MS,
+    onTick: () => this.poll(),
+  });
+
   private lastPollTimestamp = 0;
   private isPolling = false;
 
@@ -73,22 +82,11 @@ class MonitoringPollingService {
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
 
   /**
-   * Bound so add/removeEventListener see the same reference. Polls once on the
-   * way back to the foreground so returning to the tab does not mean waiting
-   * out the remainder of an interval that was skipped while hidden.
-   */
-  private readonly handleVisibilityChange = (): void => {
-    if (!document.hidden) {
-      this.poll();
-    }
-  };
-
-  /**
    * Start polling for alerts
    * @param _token Auth token (not needed — api service handles auth headers)
    */
   connect(_token?: string): void {
-    if (this.pollTimer) {
+    if (this.poller.isRunning) {
       console.log("[MonitoringPolling] Already polling");
       return;
     }
@@ -100,14 +98,11 @@ class MonitoringPollingService {
       reconnectAttempts: 0,
     };
 
-    // Initial fetch
-    this.poll();
-
-    // Start periodic polling
-    this.pollTimer = setInterval(() => this.poll(), this.pollInterval);
-    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    // Initial fetch, subject to the same hidden-tab rule as every other tick.
+    this.poller.tick();
+    this.poller.start();
     console.log(
-      `[MonitoringPolling] Started polling every ${this.pollInterval}ms`,
+      `[MonitoringPolling] Started polling every ${ALERT_POLL_INTERVAL_MS}ms`,
     );
   }
 
@@ -115,15 +110,7 @@ class MonitoringPollingService {
    * Stop polling
    */
   disconnect(): void {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
-
-    document.removeEventListener(
-      "visibilitychange",
-      this.handleVisibilityChange,
-    );
+    this.poller.stop();
     this.connectionStatus.value.connected = false;
     this.connectionStatus.value.reconnecting = false;
     console.log("[MonitoringPolling] Stopped polling");
@@ -165,11 +152,8 @@ class MonitoringPollingService {
    * Poll for recent alerts
    */
   private async poll(): Promise<void> {
-    if (this.isPolling) return; // Guard against overlapping polls
-    // A hidden tab has nobody to show an alert to, and browsers keep firing
-    // the interval (throttled) for as long as it stays open. Skipping costs
-    // nothing: handleVisibilityChange polls immediately on the way back.
-    if (document.hidden) return;
+    // The hidden-tab skip lives in the poller; this only guards overlap.
+    if (this.isPolling) return;
     this.isPolling = true;
 
     try {

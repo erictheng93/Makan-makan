@@ -852,6 +852,7 @@ import MetricTrendChart from "@/components/monitoring/MetricTrendChart.vue";
 import AlertNotificationPanel from "@/components/monitoring/AlertNotificationPanel.vue";
 import CreateAlertRuleModal from "@/components/monitoring/CreateAlertRuleModal.vue";
 import { monitoringWebSocket } from "@/services/monitoringWebSocket";
+import { createVisibilityAwarePoller } from "@/services/visibilityAwarePoller";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 
 const toast = useToast();
@@ -890,7 +891,17 @@ const wsConnected = ref(false);
 const wsAlerts = monitoringWebSocket.alerts;
 const wsConnectionStatus = monitoringWebSocket.connectionStatus;
 
-let refreshInterval: NodeJS.Timeout | null = null;
+/**
+ * Skips its tick while the tab is in the background and catches up on the way
+ * back, but only when a whole interval actually elapsed -- flicking between
+ * tabs should not cost a refresh.
+ */
+const refreshPoller = createVisibilityAwarePoller({
+  intervalMs: AUTO_REFRESH_INTERVAL_MS,
+  onTick: () => refreshAllData(),
+  shouldCatchUp: () =>
+    Date.now() - lastUpdateTime.value >= AUTO_REFRESH_INTERVAL_MS,
+});
 
 // ============================================================================
 // Computed
@@ -1194,30 +1205,11 @@ function toggleAutoRefresh() {
 }
 
 function startAutoRefresh() {
-  refreshInterval = setInterval(() => {
-    // Nobody is reading a backgrounded tab, but the browser keeps firing the
-    // interval for as long as it stays open -- an overnight tab was spending a
-    // D1 probe and five KV reads a minute to redraw panels no one could see.
-    // handleVisibilityChange catches up on the way back.
-    if (document.hidden) return;
-    refreshAllData();
-  }, AUTO_REFRESH_INTERVAL_MS);
-}
-
-function handleVisibilityChange() {
-  if (document.hidden || !autoRefresh.value) return;
-  // Only catch up if an interval actually elapsed while hidden; a quick tab
-  // switch should not cost a full refresh.
-  if (Date.now() - lastUpdateTime.value >= AUTO_REFRESH_INTERVAL_MS) {
-    refreshAllData();
-  }
+  refreshPoller.start();
 }
 
 function stopAutoRefresh() {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
+  refreshPoller.stop();
 }
 
 // ============================================================================
@@ -1411,15 +1403,13 @@ onMounted(async () => {
     startAutoRefresh();
   }
 
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-
   // Connect to WebSocket for real-time alerts
   connectWebSocket();
 });
 
 onUnmounted(() => {
+  // Also detaches the visibilitychange listener the poller owns.
   stopAutoRefresh();
-  document.removeEventListener("visibilitychange", handleVisibilityChange);
   disconnectWebSocket();
 });
 </script>
