@@ -185,6 +185,13 @@ export interface Env {
   AI?: unknown;
   DISCOVERY_VECTORIZE?: unknown;
   DISCOVERY_EMBEDDING_MODEL?: string;
+  /**
+   * "true" switches on semantic discovery. Anything else, including absent,
+   * leaves Vectorize and Workers AI unused -- both bill continuously once the
+   * index is populated, so having the bindings configured must not be the same
+   * as having the feature on. D1 search is unaffected.
+   */
+  DISCOVERY_SEMANTIC_ENABLED?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
 

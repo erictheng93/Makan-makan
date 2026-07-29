@@ -2279,14 +2279,61 @@ export class DiscoveryService {
  * catalog (no read-your-write requirement). No latency change until read
  * replication is enabled on the D1 database in the Cloudflare dashboard.
  */
+/** Env fields that decide whether semantic discovery runs at all. */
+export interface SemanticDiscoveryEnv {
+  AI?: unknown;
+  DISCOVERY_VECTORIZE?: unknown;
+  DISCOVERY_EMBEDDING_MODEL?: string;
+  DISCOVERY_SEMANTIC_ENABLED?: string;
+}
+
+/**
+ * Semantic discovery is opt-in, and off unless explicitly switched on.
+ *
+ * Vectorize bills for stored dimensions and Workers AI for embedding calls, so
+ * this is a feature that costs money continuously once populated, whether or
+ * not anyone searches. The bindings being present in wrangler.toml is not the
+ * same as the feature being wanted -- an index can sit provisioned and empty,
+ * which is what production looked like when this gate was added.
+ *
+ * D1 prefix/FTS search runs independently of this, so with the gate closed
+ * discovery still returns results; it just loses the semantic augmentation.
+ */
+export function isSemanticDiscoveryEnabled(
+  env: Pick<SemanticDiscoveryEnv, "DISCOVERY_SEMANTIC_ENABLED">,
+): boolean {
+  return env.DISCOVERY_SEMANTIC_ENABLED === "true";
+}
+
+/**
+ * The semantic side of discovery, or a service with nothing wired into it.
+ *
+ * Withholding the bindings rather than adding a branch at each call site keeps
+ * the off state on a path SemanticDiscoveryService already handles: it reports
+ * "disabled" and returns no matches when ai or vectorize is absent.
+ */
+export function createSemanticDiscovery(
+  env: SemanticDiscoveryEnv & { CACHE_KV?: KVNamespace },
+  options: { waitUntil?: (promise: Promise<unknown>) => void } = {},
+): SemanticDiscoveryService {
+  if (!isSemanticDiscoveryEnabled(env)) {
+    return new SemanticDiscoveryService({});
+  }
+
+  return new SemanticDiscoveryService({
+    ai: env.AI as never,
+    vectorize: env.DISCOVERY_VECTORIZE as never,
+    embeddingModel: env.DISCOVERY_EMBEDDING_MODEL,
+    embeddingCache: env.CACHE_KV,
+    waitUntil: options.waitUntil,
+  });
+}
+
 export function createDiscoveryRead(
   env: {
     DB: D1Database;
     CACHE_KV: KVNamespace;
-    AI?: unknown;
-    DISCOVERY_VECTORIZE?: unknown;
-    DISCOVERY_EMBEDDING_MODEL?: string;
-  },
+  } & SemanticDiscoveryEnv,
   options: {
     waitUntil?: (promise: Promise<unknown>) => void;
   } = {},
@@ -2295,12 +2342,6 @@ export function createDiscoveryRead(
     env.DB,
     env.CACHE_KV,
     "first-unconstrained",
-    new SemanticDiscoveryService({
-      ai: env.AI as never,
-      vectorize: env.DISCOVERY_VECTORIZE as never,
-      embeddingModel: env.DISCOVERY_EMBEDDING_MODEL,
-      embeddingCache: env.CACHE_KV,
-      waitUntil: options.waitUntil,
-    }),
+    createSemanticDiscovery(env, options),
   );
 }

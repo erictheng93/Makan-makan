@@ -22,7 +22,7 @@ const services = vi.hoisted(() => ({
   discoveryCtor: vi.fn(),
   getIndexStatus: vi.fn(),
   reindex: vi.fn(),
-  semanticCtor: vi.fn(),
+  createSemanticDiscovery: vi.fn(() => ({ semantic: true })),
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -37,21 +37,13 @@ vi.mock("../../../middleware/auth", () => ({
 
 vi.mock("../services/DiscoveryService", () => ({
   createDiscoveryRead: services.createDiscoveryRead,
+  createSemanticDiscovery: services.createSemanticDiscovery,
   DiscoveryService: vi.fn(function DiscoveryService(...args: unknown[]) {
     services.discoveryCtor(...args);
     return {
       getIndexStatus: services.getIndexStatus,
       reindex: services.reindex,
     };
-  }),
-}));
-
-vi.mock("../services/SemanticDiscoveryService", () => ({
-  SemanticDiscoveryService: vi.fn(function SemanticDiscoveryService(
-    ...args: unknown[]
-  ) {
-    services.semanticCtor(...args);
-    return { semantic: true };
   }),
 }));
 
@@ -290,11 +282,15 @@ describe("discovery routes", () => {
       success: true,
       data: { indexed: 10, deleted: 1 },
     });
-    expect(services.semanticCtor).toHaveBeenCalledWith({
-      ai: createEnv().AI,
-      vectorize: createEnv().DISCOVERY_VECTORIZE,
-      embeddingModel: "bge-small",
-    });
+    // Reindex is what populates Vectorize, so it has to go through the gate
+    // rather than wiring the bindings itself -- otherwise one admin call
+    // starts the recurring storage cost the flag exists to hold back.
+    expect(services.createSemanticDiscovery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        AI: createEnv().AI,
+        DISCOVERY_VECTORIZE: createEnv().DISCOVERY_VECTORIZE,
+      }),
+    );
     expect(services.discoveryCtor).toHaveBeenNthCalledWith(
       2,
       createEnv().DB,

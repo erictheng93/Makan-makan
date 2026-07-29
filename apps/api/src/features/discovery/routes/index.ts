@@ -4,8 +4,8 @@ import { validateQuery, validateParams } from "../../../middleware/validation";
 import {
   DiscoveryService,
   createDiscoveryRead,
+  createSemanticDiscovery,
 } from "../services/DiscoveryService";
-import { SemanticDiscoveryService } from "../services/SemanticDiscoveryService";
 import {
   dishCategoryQuerySchema,
   dishSearchQuerySchema,
@@ -156,15 +156,14 @@ routes.get("/popular", async (c) => {
 // POST /api/v1/discovery/reindex — admin only (role 0)
 routes.post("/reindex", authMiddleware, requireRole([0]), async (c) => {
   // Write-heavy rebuild → use primary directly.
+  // Gated like the read path: reindex is what populates Vectorize, so leaving
+  // it ungated would let a single admin call start the recurring storage cost
+  // the flag exists to hold back.
   const service = new DiscoveryService(
     c.env.DB,
     c.env.CACHE_KV,
     undefined,
-    new SemanticDiscoveryService({
-      ai: c.env.AI as never,
-      vectorize: c.env.DISCOVERY_VECTORIZE as never,
-      embeddingModel: c.env.DISCOVERY_EMBEDDING_MODEL,
-    }),
+    createSemanticDiscovery(c.env),
   );
 
   const result = await service.reindex();
