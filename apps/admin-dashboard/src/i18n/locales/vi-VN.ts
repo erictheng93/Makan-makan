@@ -1938,6 +1938,12 @@ const viVN: Messages = {
       qrGenerated: "Đã tạo mã QR thành công!",
       downloadInProgress: "Tính năng tải mã QR sắp ra mắt...",
       printInProgress: "Tính năng in mã QR sắp ra mắt...",
+      createSuccess: "Đã tạo bàn thành công",
+      updateSuccess: "Đã cập nhật bàn thành công",
+      saveFailed: "Lưu bàn thất bại, vui lòng thử lại",
+      loadFailed: "Không thể tải danh sách bàn",
+      statusChangeFailed: "Thay đổi trạng thái bàn thất bại",
+      qrGenerateFailed: "Tạo mã QR thất bại, vui lòng thử lại",
     },
   },
 

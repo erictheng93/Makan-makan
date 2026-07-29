@@ -289,6 +289,12 @@ const idID: Messages = {
       qrGenerated: "Kode QR berhasil dibuat!",
       downloadInProgress: "Fitur unduh kode QR segera hadir...",
       printInProgress: "Fitur cetak kode QR segera hadir...",
+      createSuccess: "Meja berhasil dibuat",
+      updateSuccess: "Meja berhasil diperbarui",
+      saveFailed: "Gagal menyimpan meja, silakan coba lagi",
+      loadFailed: "Tidak dapat memuat daftar meja",
+      statusChangeFailed: "Gagal mengubah status meja",
+      qrGenerateFailed: "Gagal membuat kode QR, silakan coba lagi",
     },
   },
 
