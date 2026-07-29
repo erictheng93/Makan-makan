@@ -145,7 +145,10 @@ export interface MonitoringOverview {
     errorRate: string;
     averageResponseTime: string;
     cacheHitRate: string;
-    activeErrors: number;
+    /** 5xx only — real server faults. */
+    serverErrors: number;
+    /** 4xx — expired sessions, missing records, failed validation. Usually normal. */
+    clientErrors: number;
   };
   components: ComponentOverview[];
   topErrors: ErrorSummary[];

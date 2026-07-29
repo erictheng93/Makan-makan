@@ -882,6 +882,7 @@ const jaJP: Messages = {
     health: {
       overall: "全体的な健全性ステータス",
       score: "健全性スコア",
+      basis: "評価対象: {groups}",
       uptime: "システム稼働時間",
       lastUpdate: "最終更新",
       status: {
@@ -898,7 +899,8 @@ const jaJP: Messages = {
       requestsPerMinute: "毎分リクエスト数",
       averageResponseTime: "平均応答時間",
       cacheHitRate: "キャッシュヒット率",
-      activeErrors: "アクティブエラー",
+      serverErrors: "サーバーエラー",
+      clientErrorsNote: "クライアント 4xx: {count}（通常）",
     },
 
     // コンポーネント状態

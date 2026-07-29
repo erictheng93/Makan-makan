@@ -885,6 +885,7 @@ const zhCN: Messages = {
     health: {
       overall: "整体健康状态",
       score: "健康分数",
+      basis: "评分依据：{groups}",
       uptime: "系统运行时间",
       lastUpdate: "最后更新",
       status: {
@@ -901,7 +902,8 @@ const zhCN: Messages = {
       requestsPerMinute: "每分钟请求数",
       averageResponseTime: "平均响应时间",
       cacheHitRate: "缓存命中率",
-      activeErrors: "活动错误",
+      serverErrors: "服务器错误",
+      clientErrorsNote: "客户端 4xx：{count}（通常正常）",
     },
 
     // 组件状态

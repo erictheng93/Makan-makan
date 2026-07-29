@@ -959,6 +959,7 @@ const enUS: Messages = {
     health: {
       overall: "Overall Health Status",
       score: "Health Score",
+      basis: "Based on: {groups}",
       uptime: "System Uptime",
       lastUpdate: "Last Update",
       status: {
@@ -974,7 +975,8 @@ const enUS: Messages = {
       requestsPerMinute: "Requests Per Minute",
       averageResponseTime: "Average Response Time",
       cacheHitRate: "Cache Hit Rate",
-      activeErrors: "Active Errors",
+      serverErrors: "Server Errors",
+      clientErrorsNote: "{count} client 4xx (normal)",
     },
 
     components: {

@@ -112,9 +112,21 @@
                           </div>
                           <div class="flex items-baseline">
                             <span class="text-4xl font-bold text-gray-900">
-                              {{ healthScore }}
+                              {{ healthScoreDisplay }}
                             </span>
                             <span class="text-xl text-gray-500 ml-1">/100</span>
+                          </div>
+                          <!-- The score only covers groups the API measures;
+                               saying which keeps 100 from overclaiming. -->
+                          <div
+                            v-if="healthScoreBasis.length"
+                            class="text-xs text-gray-400 mt-1"
+                          >
+                            {{
+                              t("monitoring.health.basis", {
+                                groups: healthScoreBasis.join(", "),
+                              })
+                            }}
                           </div>
                         </div>
 
@@ -143,15 +155,15 @@
                           class="flex justify-between text-sm text-gray-600 mb-1"
                         >
                           <span>{{ t("monitoring.misc.systemHealth") }}</span>
-                          <span>{{ healthScore }}%</span>
+                          <span>{{ healthScoreDisplay }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
                           <div
                             :class="[
                               'h-3 rounded-full transition-all duration-500',
-                              getHealthScoreColor(healthScore),
+                              getHealthScoreColor(healthScore ?? 0),
                             ]"
-                            :style="{ width: `${healthScore}%` }"
+                            :style="{ width: `${healthScore ?? 0}%` }"
                           />
                         </div>
                       </div>
@@ -160,7 +172,7 @@
                     <!-- Health Score Gauge Chart -->
                     <div class="flex-shrink-0">
                       <HealthScoreGauge
-                        :score="healthScore"
+                        :score="healthScore ?? 0"
                         :label="t('monitoring.health.score')"
                         :size="200"
                       />
@@ -874,10 +886,22 @@ let refreshInterval: NodeJS.Timeout | null = null;
 // Computed
 // ============================================================================
 
-const healthScore = computed(() => {
-  if (!metrics.value) return 0;
+// null means "not enough measured data to score", which is different from 0.
+// Returning 0 for absent data reported a healthy system as totally broken.
+const healthScore = computed<number | null>(() => {
+  if (!metrics.value) return null;
   return monitoringService.calculateHealthScore(metrics.value);
 });
+
+const healthScoreDisplay = computed(() =>
+  healthScore.value === null ? "—" : String(healthScore.value),
+);
+
+// Which metric groups the score actually covers. 100 across one group is a
+// weaker claim than 100 across four, and the UI should not hide that.
+const healthScoreBasis = computed(() =>
+  metrics.value ? monitoringService.healthScoreBasis(metrics.value) : [],
+);
 
 const tabs = computed(() => [
   {
@@ -938,19 +962,25 @@ const keyMetricsCards = computed(() => {
       bgColor: "bg-purple-50",
     },
     {
+      // 5xx only. Client 4xx is shown as its own subtitle rather than folded in
+      // here: an expired session's 401 is the system working, and counting it
+      // as an active error hides real server faults in routine noise.
       id: "errors",
-      name: t("monitoring.keyMetrics.activeErrors"),
-      value: overview.value.keyMetrics.activeErrors,
+      name: t("monitoring.keyMetrics.serverErrors"),
+      value: overview.value.keyMetrics.serverErrors,
+      subtitle: t("monitoring.keyMetrics.clientErrorsNote", {
+        count: overview.value.keyMetrics.clientErrors,
+      }),
       trend:
-        overview.value.keyMetrics.activeErrors === 0
+        overview.value.keyMetrics.serverErrors === 0
           ? t("monitoring.misc.stable")
           : t("monitoring.misc.live"),
       trendIcon:
-        overview.value.keyMetrics.activeErrors === 0
+        overview.value.keyMetrics.serverErrors === 0
           ? CheckCircleIcon
           : ExclamationTriangleIcon,
       trendColor:
-        overview.value.keyMetrics.activeErrors === 0
+        overview.value.keyMetrics.serverErrors === 0
           ? "text-green-600"
           : "text-red-600",
       icon: ExclamationTriangleIcon,

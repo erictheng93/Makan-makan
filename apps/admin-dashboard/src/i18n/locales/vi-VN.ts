@@ -880,6 +880,7 @@ const viVN: Messages = {
     health: {
       overall: "Tình trạng sức khỏe tổng thể",
       score: "Điểm sức khỏe",
+      basis: "Dựa trên: {groups}",
       uptime: "Thời gian hoạt động",
       lastUpdate: "Cập nhật lần cuối",
       status: {
@@ -896,7 +897,8 @@ const viVN: Messages = {
       requestsPerMinute: "Số yêu cầu mỗi phút",
       averageResponseTime: "Thời gian phản hồi trung bình",
       cacheHitRate: "Tỷ lệ trúng bộ nhớ đệm",
-      activeErrors: "Lỗi đang hoạt động",
+      serverErrors: "Lỗi máy chủ",
+      clientErrorsNote: "4xx phía client: {count} (bình thường)",
     },
 
     // Trạng thái thành phần

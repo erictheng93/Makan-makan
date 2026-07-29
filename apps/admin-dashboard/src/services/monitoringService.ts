@@ -20,6 +20,38 @@ import type {
   PaginatedAlertRulesResponse,
 } from "@/types/monitoring";
 
+/** Metric groups the health score can draw on. Mirrors SystemMetrics.measured. */
+export type HealthMetricGroup =
+  | "api"
+  | "database"
+  | "cache"
+  | "resources"
+  | "errors";
+
+interface HealthRule {
+  /** Required: the group this rule reads. Unmeasured groups are excluded. */
+  group: HealthMetricGroup;
+  /** Points this rule can cost, and its share of the rescaled denominator. */
+  weight: number;
+  /** 0 = meeting target, 1 = at or past the bad bound. */
+  severity: (metrics: SystemMetrics) => number;
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
+ * Linear ramp: `good` or better scores 0, `bad` or worse scores 1, in between
+ * degrades proportionally. Graded rather than stepped so a metric drifting
+ * toward its limit is visible before it crosses one.
+ */
+function ramp(value: number, good: number, bad: number): number {
+  if (bad === good) return value > good ? 1 : 0;
+  return clamp01((value - good) / (bad - good));
+}
+
 /**
  * Monitoring Service Class
  * Handles all monitoring and alerting related API calls
@@ -382,47 +414,106 @@ class MonitoringService {
   }
 
   /**
-   * Calculate health score from metrics
-   * @param metrics System metrics
-   * @returns Health score (0-100)
+   * Calculate health score from metrics.
+   *
+   * Every rule must name the metric group it reads. Groups the API does not
+   * measure are dropped entirely — both the deduction AND its weight — and the
+   * score is rescaled over what remains. Declaring the group is not optional,
+   * so a rule cannot silently score an unmeasured metric.
+   *
+   * That was not a hypothetical. The old version deducted 15 points whenever
+   * cacheMetrics.hitRate < 0.3, and nothing populates cacheMetrics, so hitRate
+   * was always 0 and the condition was always true. The score was permanently
+   * capped at 85 for a reason unrelated to system health, and the same
+   * always-true condition had already been found and removed from the backend's
+   * default alert rules without anyone noticing this copy of it.
+   *
+   * @returns 0-100, or null when no group is measured — "unknown" has to be
+   *   expressible, because reporting 0 for absent data is the same class of lie.
    */
-  calculateHealthScore(metrics: SystemMetrics): number {
-    let score = 100;
+  calculateHealthScore(metrics: SystemMetrics): number | null {
+    const rules = this.healthRules();
+    const applicable = rules.filter((rule) =>
+      this.isMeasured(metrics, rule.group),
+    );
 
-    // API performance impact (max -30 points)
-    if (metrics.apiMetrics.averageResponseTime > 1000) {
-      score -= 30;
-    } else if (metrics.apiMetrics.averageResponseTime > 500) {
-      score -= 15;
-    }
+    if (applicable.length === 0) return null;
 
-    // Error rate impact (max -25 points)
-    if (metrics.apiMetrics.errorRate > 0.1) {
-      score -= 25;
-    } else if (metrics.apiMetrics.errorRate > 0.05) {
-      score -= 15;
-    }
+    const available = applicable.reduce((sum, rule) => sum + rule.weight, 0);
+    const lost = applicable.reduce(
+      (sum, rule) => sum + rule.weight * clamp01(rule.severity(metrics)),
+      0,
+    );
 
-    // Database performance impact (max -20 points)
-    if (metrics.databaseMetrics.averageQueryTime > 500) {
-      score -= 20;
-    } else if (metrics.databaseMetrics.averageQueryTime > 100) {
-      score -= 10;
-    }
+    return Math.round(100 * (1 - lost / available));
+  }
 
-    // Cache performance impact (max -15 points)
-    if (metrics.cacheMetrics.hitRate < 0.3) {
-      score -= 15;
-    } else if (metrics.cacheMetrics.hitRate < 0.6) {
-      score -= 8;
-    }
+  /**
+   * Which metric groups the score is currently based on. Surfaced so the UI can
+   * say what the number covers — 100 over one group is not the same claim as
+   * 100 over four.
+   */
+  healthScoreBasis(metrics: SystemMetrics): HealthMetricGroup[] {
+    const groups = this.healthRules().map((rule) => rule.group);
+    return [...new Set(groups)].filter((group) =>
+      this.isMeasured(metrics, group),
+    );
+  }
 
-    // Critical errors impact (max -10 points)
-    if (metrics.errorMetrics.criticalErrors > 0) {
-      score -= Math.min(10, metrics.errorMetrics.criticalErrors * 2);
-    }
+  private isMeasured(
+    metrics: SystemMetrics,
+    group: HealthMetricGroup,
+  ): boolean {
+    // Absent flags mean an older API response; treat that as unmeasured rather
+    // than assuming the data is real.
+    return metrics.measured?.[group] === true;
+  }
 
-    return Math.max(0, Math.min(100, score));
+  /**
+   * Severity returns 0 (perfect) to 1 (as bad as this rule scores).
+   *
+   * Thresholds come from the performance targets in CLAUDE.md rather than being
+   * invented here, so the score answers "are we meeting our stated targets"
+   * instead of an arbitrary bar.
+   */
+  private healthRules(): HealthRule[] {
+    return [
+      {
+        // CLAUDE.md target: API Response Time P99 < 300ms.
+        // p99 rather than the mean: latency here is bimodal — warm requests
+        // ~100ms, cold starts ~600ms — and a mean over a bimodal distribution
+        // describes neither mode.
+        group: "api",
+        weight: 35,
+        severity: (m) => ramp(m.apiMetrics.p99ResponseTime, 300, 1500),
+      },
+      {
+        // Server errors only. A 401 on an expired session or a 404 for a
+        // missing record is the system behaving correctly; counting those as
+        // ill health buries real 5xx in routine client noise.
+        group: "errors",
+        weight: 45,
+        severity: (m) =>
+          m.apiMetrics.totalRequests > 0
+            ? ramp(
+                m.errorMetrics.criticalErrors / m.apiMetrics.totalRequests,
+                0.001,
+                0.05,
+              )
+            : 0,
+      },
+      {
+        group: "database",
+        // CLAUDE.md target: Database Query Time P95 < 100ms.
+        weight: 20,
+        severity: (m) => ramp(m.databaseMetrics.averageQueryTime, 100, 500),
+      },
+      {
+        group: "cache",
+        weight: 15,
+        severity: (m) => ramp(0.6 - m.cacheMetrics.hitRate, 0, 0.6),
+      },
+    ];
   }
 
   /**

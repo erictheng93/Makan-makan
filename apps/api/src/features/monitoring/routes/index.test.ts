@@ -450,7 +450,11 @@ describe("monitoring routes", () => {
           errorRate: "7.50%",
           averageResponseTime: "1250ms",
           cacheHitRate: "45.0%",
-          activeErrors: 10,
+          // Split from a single activeErrors count: of the 10 total, 2 are 5xx
+          // and the other 8 are client 4xx, which are usually normal traffic
+          // and should not read as system faults.
+          serverErrors: 2,
+          clientErrors: 8,
         },
         components: [
           { name: "api", status: "healthy", issues: 0 },

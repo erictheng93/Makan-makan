@@ -956,6 +956,7 @@ const idID: Messages = {
     health: {
       overall: "Status Kesehatan Keseluruhan",
       score: "Skor Kesehatan",
+      basis: "Berdasarkan: {groups}",
       uptime: "Waktu Aktif Sistem",
       lastUpdate: "Pembaruan Terakhir",
       status: {
@@ -972,7 +973,8 @@ const idID: Messages = {
       requestsPerMinute: "Permintaan per Menit",
       averageResponseTime: "Waktu Respons Rata-rata",
       cacheHitRate: "Tingkat Hit Cache",
-      activeErrors: "Kesalahan Aktif",
+      serverErrors: "Kesalahan Server",
+      clientErrorsNote: "4xx sisi klien: {count} (normal)",
     },
 
     // Status komponen

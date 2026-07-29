@@ -329,7 +329,11 @@ app.get("/overview", authMiddleware, requireRole([0, 1]), async (c) => {
       errorRate: `${(metrics.apiMetrics.errorRate * 100).toFixed(2)}%`,
       averageResponseTime: `${metrics.apiMetrics.averageResponseTime.toFixed(0)}ms`,
       cacheHitRate: `${(metrics.cacheMetrics.hitRate * 100).toFixed(1)}%`,
-      activeErrors: metrics.errorMetrics.totalErrors,
+      serverErrors: metrics.errorMetrics.criticalErrors,
+      clientErrors: Math.max(
+        0,
+        metrics.errorMetrics.totalErrors - metrics.errorMetrics.criticalErrors,
+      ),
     },
 
     components: Object.entries(healthStatus.components).map(

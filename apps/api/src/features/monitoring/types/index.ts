@@ -192,7 +192,15 @@ export interface MonitoringOverview {
     errorRate: string;
     averageResponseTime: string;
     cacheHitRate: string;
-    activeErrors: number;
+    /**
+     * 5xx only. This used to carry every 4xx and 5xx response, so an expired
+     * session's 401 or a 404 for a missing record counted as an active error
+     * and docked the health score — which buries real server faults in routine
+     * client noise.
+     */
+    serverErrors: number;
+    /** 4xx. Reported separately because these are usually normal traffic. */
+    clientErrors: number;
   };
   components: Array<{
     name: string;

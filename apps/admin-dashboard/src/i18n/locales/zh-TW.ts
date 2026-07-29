@@ -999,6 +999,7 @@ const zhTWCore = {
     health: {
       overall: "整體健康狀態",
       score: "健康分數",
+      basis: "評分依據：{groups}",
       uptime: "系統運行時間",
       lastUpdate: "最後更新",
       status: {
@@ -1015,7 +1016,8 @@ const zhTWCore = {
       requestsPerMinute: "每分鐘請求數",
       averageResponseTime: "平均響應時間",
       cacheHitRate: "快取命中率",
-      activeErrors: "活動錯誤",
+      serverErrors: "伺服器錯誤",
+      clientErrorsNote: "客戶端 4xx：{count}（通常正常）",
     },
 
     // 組件狀態
