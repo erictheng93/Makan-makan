@@ -1189,8 +1189,22 @@ function toggleAutoRefresh() {
 
 function startAutoRefresh() {
   refreshInterval = setInterval(() => {
+    // Nobody is reading a backgrounded tab, but the browser keeps firing the
+    // interval for as long as it stays open -- an overnight tab was spending a
+    // D1 probe and five KV reads a minute to redraw panels no one could see.
+    // handleVisibilityChange catches up on the way back.
+    if (document.hidden) return;
     refreshAllData();
   }, AUTO_REFRESH_INTERVAL_MS);
+}
+
+function handleVisibilityChange() {
+  if (document.hidden || !autoRefresh.value) return;
+  // Only catch up if an interval actually elapsed while hidden; a quick tab
+  // switch should not cost a full refresh.
+  if (Date.now() - lastUpdateTime.value >= AUTO_REFRESH_INTERVAL_MS) {
+    refreshAllData();
+  }
 }
 
 function stopAutoRefresh() {
@@ -1388,12 +1402,15 @@ onMounted(async () => {
     startAutoRefresh();
   }
 
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
   // Connect to WebSocket for real-time alerts
   connectWebSocket();
 });
 
 onUnmounted(() => {
   stopAutoRefresh();
+  document.removeEventListener("visibilitychange", handleVisibilityChange);
   disconnectWebSocket();
 });
 </script>

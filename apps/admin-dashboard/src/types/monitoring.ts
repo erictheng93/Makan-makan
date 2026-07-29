@@ -77,6 +77,13 @@ export interface ErrorMetrics {
 
 export type HealthStatusType = "healthy" | "warning" | "critical" | "down";
 
+/**
+ * Component status, which additionally allows "unknown" for a component
+ * nothing actually checks. The overall status never takes this value — unknown
+ * components are excluded from the roll-up rather than counted either way.
+ */
+export type ComponentStatusType = HealthStatusType | "unknown";
+
 export interface HealthStatus {
   overall: HealthStatusType;
   components: {
@@ -91,7 +98,7 @@ export interface HealthStatus {
 }
 
 export interface ComponentHealth {
-  status: HealthStatusType;
+  status: ComponentStatusType;
   latency?: number;
   errorRate?: number;
   lastCheck: number;

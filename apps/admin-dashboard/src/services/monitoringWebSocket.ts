@@ -73,6 +73,17 @@ class MonitoringPollingService {
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
 
   /**
+   * Bound so add/removeEventListener see the same reference. Polls once on the
+   * way back to the foreground so returning to the tab does not mean waiting
+   * out the remainder of an interval that was skipped while hidden.
+   */
+  private readonly handleVisibilityChange = (): void => {
+    if (!document.hidden) {
+      this.poll();
+    }
+  };
+
+  /**
    * Start polling for alerts
    * @param _token Auth token (not needed — api service handles auth headers)
    */
@@ -94,6 +105,7 @@ class MonitoringPollingService {
 
     // Start periodic polling
     this.pollTimer = setInterval(() => this.poll(), this.pollInterval);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
     console.log(
       `[MonitoringPolling] Started polling every ${this.pollInterval}ms`,
     );
@@ -108,6 +120,10 @@ class MonitoringPollingService {
       this.pollTimer = null;
     }
 
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
     this.connectionStatus.value.connected = false;
     this.connectionStatus.value.reconnecting = false;
     console.log("[MonitoringPolling] Stopped polling");
@@ -150,6 +166,10 @@ class MonitoringPollingService {
    */
   private async poll(): Promise<void> {
     if (this.isPolling) return; // Guard against overlapping polls
+    // A hidden tab has nobody to show an alert to, and browsers keep firing
+    // the interval (throttled) for as long as it stays open. Skipping costs
+    // nothing: handleVisibilityChange polls immediately on the way back.
+    if (document.hidden) return;
     this.isPolling = true;
 
     try {
