@@ -740,7 +740,9 @@ describe("RealtimeAuthService", () => {
           id: 10,
           restaurantId: "restaurant-1",
           number: "T1",
+          qrCodeVersion: 1,
           isActive: true,
+          deletedAt: null,
         },
       ],
     ];
@@ -778,6 +780,112 @@ describe("RealtimeAuthService", () => {
     );
   });
 
+  it("rejects a table QR whose database version has been regenerated", async () => {
+    mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
+      type: "table",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      identifier: "T1",
+      version: 1,
+      signature: "signature",
+    });
+    mocks.utils.verifyQRSignature.mockResolvedValue(true);
+    mocks.dbState.selectResults = [
+      [
+        {
+          id: "restaurant-1",
+          settings: { allowGuestOrders: true },
+          isActive: true,
+          isAvailable: true,
+        },
+      ],
+      [
+        {
+          id: 10,
+          restaurantId: "restaurant-1",
+          number: "T1",
+          qrCodeVersion: 2,
+          isActive: true,
+          deletedAt: null,
+        },
+      ],
+    ];
+    const service = createService();
+
+    await expect(
+      service.generateGuestToken({
+        restaurantId: "restaurant-1",
+        tableId: "10",
+        qrCode: "signed-qr",
+      }),
+    ).resolves.toEqual({ error: "QR code version is no longer current" });
+  });
+
+  it("generates guest realtime tokens from signed seat QR codes", async () => {
+    mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
+      type: "seat",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      identifier: "01",
+      version: 3,
+      signature: "signature",
+    });
+    mocks.utils.verifyQRSignature.mockResolvedValue(true);
+    mocks.dbState.selectResults = [
+      [
+        {
+          id: "restaurant-1",
+          settings: { allowGuestOrders: true },
+          isActive: true,
+          isAvailable: true,
+        },
+      ],
+      [
+        {
+          id: 21,
+          tableId: 10,
+          seatNumber: "01",
+          qrCodeVersion: 3,
+          isActive: true,
+          deletedAt: null,
+        },
+      ],
+      [
+        {
+          id: 10,
+          restaurantId: "restaurant-1",
+          number: "T1",
+          qrCodeVersion: 1,
+          isActive: true,
+          deletedAt: null,
+        },
+      ],
+    ];
+    const service = createService();
+
+    const response = await service.generateGuestToken({
+      restaurantId: "restaurant-1",
+      seatId: "21",
+      qrCode: "signed-seat-qr",
+    });
+
+    expect(response).toMatchObject({
+      wsUrl: expect.stringContaining("/customer/customer:10?token="),
+    });
+    await expect(
+      service.verifyWebSocketToken("token" in response ? response.token : ""),
+    ).resolves.toMatchObject({
+      valid: true,
+      payload: {
+        tableId: "10",
+        seatId: "21",
+        roomId: "customer:10",
+      },
+    });
+  });
+
   it("validates signed QR guest order ownership", async () => {
     const publicId = "018f0000-0000-7000-8000-000000000042";
     mocks.utils.parseSignedQRUrl.mockReturnValue({
@@ -802,7 +910,9 @@ describe("RealtimeAuthService", () => {
           id: 10,
           restaurantId: "restaurant-1",
           number: "T1",
+          qrCodeVersion: 1,
           isActive: true,
+          deletedAt: null,
         },
       ],
       [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
@@ -819,7 +929,9 @@ describe("RealtimeAuthService", () => {
           id: 10,
           restaurantId: "restaurant-1",
           number: "T1",
+          qrCodeVersion: 1,
           isActive: true,
+          deletedAt: null,
         },
       ],
       [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
@@ -836,7 +948,9 @@ describe("RealtimeAuthService", () => {
           id: 10,
           restaurantId: "restaurant-1",
           number: "T1",
+          qrCodeVersion: 1,
           isActive: true,
+          deletedAt: null,
         },
       ],
       [{ id: 43, restaurantId: "restaurant-2", tableId: 10 }],
@@ -1021,7 +1135,9 @@ describe("RealtimeAuthService", () => {
           id: 10,
           restaurantId: "restaurant-1",
           number: "T2",
+          qrCodeVersion: 1,
           isActive: true,
+          deletedAt: null,
         },
       ],
     ];

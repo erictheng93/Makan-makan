@@ -215,6 +215,9 @@ export class RealtimeAuthService {
         payload.orderId = validated.orderId;
       } else {
         payload.tableId = String(validated.table!.id);
+        if (validated.seat) {
+          payload.seatId = String(validated.seat.id);
+        }
       }
 
       const token = sign(payload, this.realtimeJwtSecret);
@@ -672,6 +675,7 @@ export class RealtimeAuthService {
     | {
         restaurant: { id: string };
         table?: { id: number; restaurantId: string; number: string };
+        seat?: { id: number; tableId: number; number: string };
         orderId?: string;
       }
     | { error: string }
@@ -699,13 +703,19 @@ export class RealtimeAuthService {
       };
     }
 
-    if (!request.qrCode || !request.tableId) {
+    if (!request.qrCode) {
       return { error: "A guest token or signed table QR code is required" };
     }
 
     const qrPayload = parseSignedQRUrl(request.qrCode);
-    if (!qrPayload || qrPayload.type !== "table") {
+    if (!qrPayload) {
       return { error: "A valid signed table QR code is required" };
+    }
+    if (qrPayload.type === "table" && !request.tableId) {
+      return { error: "A table ID is required for a table QR code" };
+    }
+    if (qrPayload.type === "seat" && !request.seatId) {
+      return { error: "A seat ID is required for a seat QR code" };
     }
 
     const signingKey = this.env.QR_SIGNING_KEY;
@@ -715,13 +725,20 @@ export class RealtimeAuthService {
       };
     }
 
+    const signingParams = {
+      type: qrPayload.type,
+      restaurantId: qrPayload.restaurantId,
+      identifier: qrPayload.identifier,
+      version: qrPayload.version,
+      ...(qrPayload.formatVersion === undefined
+        ? {}
+        : { formatVersion: qrPayload.formatVersion }),
+      ...(qrPayload.tableId === undefined
+        ? {}
+        : { tableId: qrPayload.tableId }),
+    };
     const qrValid = await verifyQRSignature(
-      {
-        type: qrPayload.type,
-        restaurantId: qrPayload.restaurantId,
-        identifier: qrPayload.identifier,
-        version: qrPayload.version,
-      },
+      signingParams,
       qrPayload.signature,
       signingKey,
     );
@@ -756,29 +773,95 @@ export class RealtimeAuthService {
       return { error: "Guest realtime is not enabled for this restaurant" };
     }
 
+    let seat:
+      | {
+          id: number;
+          tableId: number;
+          number: string;
+        }
+      | undefined;
+    let resolvedTableId = request.tableId ? Number(request.tableId) : undefined;
+
+    if (qrPayload.type === "seat") {
+      const seatRows = await this.db
+        .select({
+          id: seats.id,
+          tableId: seats.tableId,
+          seatNumber: seats.seatNumber,
+          qrCode: seats.qrCode,
+          qrCodeVersion: seats.qrCodeVersion,
+          isActive: seats.isActive,
+          deletedAt: seats.deletedAt,
+        })
+        .from(seats)
+        .where(eq(seats.id, Number(request.seatId)))
+        .limit(1);
+      const seatRow = seatRows[0];
+
+      if (!seatRow || seatRow.isActive !== true || seatRow.deletedAt !== null) {
+        return { error: "Seat not found or inactive" };
+      }
+      if (seatRow.seatNumber !== qrPayload.identifier) {
+        return { error: "QR code does not match seat" };
+      }
+      if (seatRow.qrCodeVersion !== qrPayload.version) {
+        return { error: "QR code version is no longer current" };
+      }
+      if (
+        qrPayload.formatVersion === 2 &&
+        qrPayload.tableId !== seatRow.tableId
+      ) {
+        return { error: "QR code does not match table" };
+      }
+      if (qrPayload.formatVersion === 1 && seatRow.qrCode !== request.qrCode) {
+        return { error: "Legacy QR code does not match seat" };
+      }
+
+      resolvedTableId = seatRow.tableId;
+      seat = {
+        id: seatRow.id,
+        tableId: seatRow.tableId,
+        number: seatRow.seatNumber,
+      };
+    }
+
     const tableRows = await this.db
       .select({
         id: tables.id,
         restaurantId: tables.restaurantId,
         number: tables.number,
+        qrCode: tables.qrCode,
+        qrCodeVersion: tables.qrCodeVersion,
         isActive: tables.isActive,
+        deletedAt: tables.deletedAt,
       })
       .from(tables)
       .where(
         and(
-          eq(tables.id, Number(request.tableId)),
+          eq(tables.id, Number(resolvedTableId)),
           eq(tables.restaurantId, request.restaurantId),
         ),
       )
       .limit(1);
     const table = tableRows[0];
 
-    if (!table || table.isActive !== true) {
+    if (!table || table.isActive !== true || table.deletedAt !== null) {
       return { error: "Table not found or inactive" };
     }
 
-    if (table.number !== qrPayload.identifier) {
-      return { error: "QR code does not match table" };
+    if (qrPayload.type === "table") {
+      if (table.number !== qrPayload.identifier) {
+        return { error: "QR code does not match table" };
+      }
+      if (table.qrCodeVersion !== qrPayload.version) {
+        return { error: "QR code version is no longer current" };
+      }
+      if (qrPayload.formatVersion === 2 && qrPayload.tableId !== table.id) {
+        return { error: "QR code does not match table" };
+      }
+      if (qrPayload.formatVersion === 1 && table.qrCode !== request.qrCode) {
+        return { error: "Legacy QR code does not match table" };
+      }
     }
 
     if (request.orderId) {
@@ -814,6 +897,7 @@ export class RealtimeAuthService {
         restaurantId: table.restaurantId,
         number: table.number,
       },
+      seat,
       orderId: request.orderId,
     };
   }

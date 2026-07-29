@@ -99,6 +99,7 @@ export interface GuestRealtimeTokenRequest {
   restaurantId: string;
   guestToken?: string;
   tableId?: string;
+  seatId?: string;
   orderId?: string;
   qrCode?: string;
 }

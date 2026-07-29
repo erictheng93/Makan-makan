@@ -29,12 +29,15 @@ import type {
   QRStatsInput,
   QRTemplateIdParamInput,
   ShopQrCodeParamInput,
+  SignedQrEntityParamInput,
+  SignedQrQueryInput,
   UpdateTemplateInput,
 } from "../schemas/validation";
 import type { QRDownloadCaller } from "../types";
 
 // Import services
 import { QrCodesService } from "../services/QrCodesService";
+import { SignedQrVerificationService } from "../services/SignedQrVerificationService";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -320,6 +323,54 @@ app.delete(
 );
 
 // ==================== Shop QR Code Verification ====================
+
+/**
+ * GET /verify/table/:entityId - Verify a signed table QR code (PUBLIC)
+ */
+app.get(
+  "/verify/table/:entityId",
+  validateParams(qrCodeSchemas.signedQrEntity),
+  validateQuery(qrCodeSchemas.signedQrQuery),
+  async (c) => {
+    const { entityId } = c.get("validatedParams") as SignedQrEntityParamInput;
+    const { qrCode } = c.get("validatedQuery") as SignedQrQueryInput;
+    const service = new SignedQrVerificationService(c.env);
+    const result = await service.verifyTable(qrCode, entityId);
+
+    if (!result.valid) {
+      throw notFound("Invalid or expired table QR code", "TABLE_QR_INVALID");
+    }
+
+    return c.json(
+      createSuccessResponse(result, "Table QR code verified successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
+ * GET /verify/seat/:entityId - Verify a signed seat QR code (PUBLIC)
+ */
+app.get(
+  "/verify/seat/:entityId",
+  validateParams(qrCodeSchemas.signedQrEntity),
+  validateQuery(qrCodeSchemas.signedQrQuery),
+  async (c) => {
+    const { entityId } = c.get("validatedParams") as SignedQrEntityParamInput;
+    const { qrCode } = c.get("validatedQuery") as SignedQrQueryInput;
+    const service = new SignedQrVerificationService(c.env);
+    const result = await service.verifySeat(qrCode, entityId);
+
+    if (!result.valid) {
+      throw notFound("Invalid or expired seat QR code", "SEAT_QR_INVALID");
+    }
+
+    return c.json(
+      createSuccessResponse(result, "Seat QR code verified successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
 
 /**
  * GET /verify/market/:slug - Verify market-level QR code (PUBLIC)

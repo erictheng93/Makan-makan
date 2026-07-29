@@ -70,6 +70,20 @@ describe("realtime validation schemas", () => {
         restaurantId: "restaurant-1",
         tableId: 12,
       }),
-    ).toThrow(/signed table QR details/);
+    ).toThrow(/signed table.*QR details/);
+  });
+
+  it("accepts signed seat QR details without a table id", () => {
+    expect(
+      guestRealtimeTokenRequestSchema.parse({
+        restaurantId: "restaurant-1",
+        seatId: 21,
+        qrCode: "https://shop.example.test/order?t=seat",
+      }),
+    ).toMatchObject({
+      restaurantId: "restaurant-1",
+      seatId: "21",
+      qrCode: "https://shop.example.test/order?t=seat",
+    });
   });
 });

@@ -83,6 +83,14 @@ const shopQrCodeParam = z.object({
     .regex(/^SHOP-[A-Za-z0-9-]+$/, "Invalid shop QR code format"),
 });
 
+const signedQrEntityParam = z.object({
+  entityId: z.coerce.number().int().positive(),
+});
+
+const signedQrQuery = z.object({
+  qrCode: z.string().url().max(4096),
+});
+
 // QR Generation schemas
 const generateQRSchema = z.object({
   content: z
@@ -204,6 +212,8 @@ export const qrCodeSchemas = {
   qrCodeParams: qrCodeIdParam,
   batchParams: batchIdParam,
   shopQrCode: shopQrCodeParam,
+  signedQrEntity: signedQrEntityParam,
+  signedQrQuery,
 
   // QR Generation
   generate: generateQRSchema,
@@ -225,6 +235,8 @@ export type QRCodeIdParamInput = z.infer<typeof qrCodeIdParam>;
 export type QRTemplateIdParamInput = z.infer<typeof idParam>;
 export type QRCodeBatchParamInput = z.infer<typeof batchIdParam>;
 export type ShopQrCodeParamInput = z.infer<typeof shopQrCodeParam>;
+export type SignedQrEntityParamInput = z.infer<typeof signedQrEntityParam>;
+export type SignedQrQueryInput = z.infer<typeof signedQrQuery>;
 export type GenerateQRInput = z.infer<typeof generateQRSchema>;
 export type BulkQRInput = z.infer<typeof bulkQRSchema>;
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;

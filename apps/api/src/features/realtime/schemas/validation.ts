@@ -27,6 +27,7 @@ export const guestRealtimeTokenRequestSchema = z
       .regex(/^gt_[0-9a-f]{64}$/i)
       .optional(),
     tableId: z.coerce.string().min(1, "Table ID is required").optional(),
+    seatId: z.coerce.string().min(1, "Seat ID is required").optional(),
     orderId: z.coerce.string().min(1, "Order ID is required").optional(),
     qrCode: z.string().url("A signed QR URL is required").optional(),
   })
@@ -39,10 +40,11 @@ export const guestRealtimeTokenRequestSchema = z
       });
     }
 
-    if (!data.guestToken && (!data.tableId || !data.qrCode)) {
+    if (!data.guestToken && ((!data.tableId && !data.seatId) || !data.qrCode)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Either guestToken or signed table QR details are required",
+        message:
+          "Either guestToken or signed table/seat QR details are required",
       });
     }
   });

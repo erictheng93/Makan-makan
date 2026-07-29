@@ -30,6 +30,11 @@ const restaurantServiceFns = vi.hoisted(() => ({
   verifyShopQrCode: vi.fn(),
 }));
 
+const signedQrServiceFns = vi.hoisted(() => ({
+  verifyTable: vi.fn(),
+  verifySeat: vi.fn(),
+}));
+
 vi.mock("../../../shared/middleware", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("../../../shared/middleware")>();
@@ -70,6 +75,13 @@ vi.mock("../../markets/services/MarketsService", () => ({
 vi.mock("../../restaurants/services/RestaurantsService", () => ({
   RestaurantsService: class {
     verifyShopQrCode = restaurantServiceFns.verifyShopQrCode;
+  },
+}));
+
+vi.mock("../services/SignedQrVerificationService", () => ({
+  SignedQrVerificationService: class {
+    verifyTable = signedQrServiceFns.verifyTable;
+    verifySeat = signedQrServiceFns.verifySeat;
   },
 }));
 
@@ -392,5 +404,47 @@ describe("QR code routes", () => {
     await expect(shopResponse.json()).resolves.toMatchObject({
       error: { code: "QR_CODE_INVALID" },
     });
+  });
+
+  it("verifies public table and seat QR codes without authentication", async () => {
+    signedQrServiceFns.verifyTable.mockResolvedValueOnce({
+      valid: true,
+      type: "table",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      tableNumber: "T1",
+      formatVersion: 2,
+    });
+    signedQrServiceFns.verifySeat.mockResolvedValueOnce({
+      valid: true,
+      type: "seat",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      tableNumber: "T1",
+      seatId: 21,
+      seatNumber: "01",
+      formatVersion: 2,
+    });
+    const qrCode = encodeURIComponent("https://example.test/order?sig=abc");
+
+    const tableResponse = await request(`/verify/table/10?qrCode=${qrCode}`);
+    const seatResponse = await request(`/verify/seat/21?qrCode=${qrCode}`);
+
+    expect(tableResponse.status).toBe(200);
+    await expect(tableResponse.json()).resolves.toMatchObject({
+      data: { valid: true, tableId: 10, tableNumber: "T1" },
+    });
+    expect(seatResponse.status).toBe(200);
+    await expect(seatResponse.json()).resolves.toMatchObject({
+      data: { valid: true, seatId: 21, seatNumber: "01", tableId: 10 },
+    });
+    expect(signedQrServiceFns.verifyTable).toHaveBeenCalledWith(
+      "https://example.test/order?sig=abc",
+      10,
+    );
+    expect(signedQrServiceFns.verifySeat).toHaveBeenCalledWith(
+      "https://example.test/order?sig=abc",
+      21,
+    );
   });
 });
