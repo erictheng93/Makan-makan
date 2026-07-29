@@ -158,11 +158,65 @@ describe("MonitoringService", () => {
         api: { status: "warning" },
         database: { status: "warning" },
         cache: { status: "critical" },
-        external: { status: "healthy" },
+        // Nothing checks external, so it says so rather than claiming health.
+        external: { status: "unknown" },
       },
       version: "2.0.0",
       timestamp: Date.now(),
     });
+  });
+
+  // Regression: the dashboard permanently showed "Low hit rate: 0.00%" against
+  // a cache component it simultaneously called healthy. getCacheHealthStatus
+  // guarded for "no cache traffic recorded"; getCacheIssues did not, and
+  // nothing populates cacheMetrics because cacheMonitoringMiddleware is
+  // exported and never registered, so hitRate sat at 0 and the check always
+  // fired. An absent measurement is not a problem to report.
+  it("reports no cache or database issues when nothing was recorded", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+      } as never,
+    });
+
+    const health = await service.getHealthStatus();
+
+    expect(health.components.cache.issues).toEqual([]);
+    expect(health.components.database.issues).toEqual([]);
+    // Status and issues have to agree — the contradiction was the symptom.
+    expect(health.components.cache.status).toBe("healthy");
+  });
+
+  it("still reports a low hit rate once cache traffic exists", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+      } as never,
+    });
+
+    await service.recordCacheMetrics(0.2, 12, 2048);
+    const health = await service.getHealthStatus();
+
+    expect(health.components.cache.issues).toEqual([
+      expect.stringContaining("Low hit rate"),
+    ]);
+  });
+
+  it("keeps an unknown component out of the overall roll-up", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      DB: {
+        prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
+      } as never,
+    });
+
+    const health = await service.getHealthStatus();
+
+    // external is "unknown"; it must neither drag overall down nor prop it up.
+    expect(health.components.external.status).toBe("unknown");
+    expect(health.overall).toBe("healthy");
   });
 
   // Regression: getHealthStatus() used to persist the snapshot under
@@ -302,8 +356,12 @@ describe("MonitoringService", () => {
       components: {
         api: { status: "healthy", issues: [] },
         database: { status: "healthy", issues: [] },
-        // Counter-derived note; no cache traffic has been recorded yet.
-        cache: { status: "healthy", issues: ["Low hit rate: 0.00%"] },
+        // No cache traffic recorded, so there is nothing to report. This
+        // previously asserted issues: ["Low hit rate: 0.00%"] — the assertion
+        // was written around the bug rather than against the intent, and
+        // pinned a component that claimed to be healthy while listing a
+        // problem.
+        cache: { status: "healthy", issues: [] },
       },
     });
   });

@@ -101,7 +101,12 @@ export interface HealthStatus {
 }
 
 export interface ComponentHealth {
-  status: "healthy" | "warning" | "critical" | "down";
+  /**
+   * "unknown" means nothing checks this component, which is distinct from
+   * having checked it and found it well. Reporting an unverified component as
+   * healthy is indistinguishable, to a reader, from a real result.
+   */
+  status: "healthy" | "warning" | "critical" | "down" | "unknown";
   latency?: number;
   errorRate?: number;
   lastCheck: number;
@@ -204,7 +209,8 @@ export interface MonitoringOverview {
   };
   components: Array<{
     name: string;
-    status: "healthy" | "warning" | "critical" | "down";
+    /** Mirrors ComponentHealth["status"], including "unknown" for unchecked. */
+    status: "healthy" | "warning" | "critical" | "down" | "unknown";
     latency?: number;
     issues: number;
     lastCheck: number;

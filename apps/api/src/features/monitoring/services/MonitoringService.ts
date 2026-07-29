@@ -363,19 +363,23 @@ export class MonitoringService {
         },
       };
 
-      // 外部服務健康檢查
+      // "external" checks nothing and never has — no probe, no counter, no
+      // dependency behind it. It reported "healthy" unconditionally, which on a
+      // dashboard is a claim, not a placeholder: a reader has no way to tell it
+      // apart from the three components that are genuinely verified. Say
+      // "unknown" until something actually checks an external dependency.
       const externalHealth: ComponentHealth = {
-        status: "healthy",
+        status: "unknown",
         lastCheck: now,
         issues: [],
       };
 
-      // 計算整體健康狀態
+      // 計算整體健康狀態. external is excluded — an unknown must not drag the
+      // overall status down, and must not prop it up either.
       const componentStatuses = [
         apiHealth.status,
         databaseHealth.status,
         cacheHealth.status,
-        externalHealth.status,
       ];
       const overall = this.calculateOverallHealth(componentStatuses);
 
