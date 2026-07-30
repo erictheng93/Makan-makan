@@ -418,6 +418,7 @@ describe("Discovery API — real integration", () => {
     const originalAi = testApp.env.AI;
     const originalVectorize = testApp.env.DISCOVERY_VECTORIZE;
     const originalModel = testApp.env.DISCOVERY_EMBEDDING_MODEL;
+    const originalSemanticFlag = testApp.env.DISCOVERY_SEMANTIC_ENABLED;
     const ai = {
       run: vi.fn(async () => ({ data: [[0.2, 0.4, 0.6]] })),
     };
@@ -431,6 +432,9 @@ describe("Discovery API — real integration", () => {
     testApp.env.AI = ai;
     testApp.env.DISCOVERY_VECTORIZE = vectorize;
     testApp.env.DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3";
+    // Bindings alone no longer switch semantic discovery on: createSemanticDiscovery
+    // withholds them unless the flag is exactly "true".
+    testApp.env.DISCOVERY_SEMANTIC_ENABLED = "true";
 
     try {
       const query = `semantic warmup ${crypto
@@ -484,6 +488,7 @@ describe("Discovery API — real integration", () => {
       testApp.env.AI = originalAi;
       testApp.env.DISCOVERY_VECTORIZE = originalVectorize;
       testApp.env.DISCOVERY_EMBEDDING_MODEL = originalModel;
+      testApp.env.DISCOVERY_SEMANTIC_ENABLED = originalSemanticFlag;
     }
   });
 
@@ -4261,6 +4266,7 @@ describe("Discovery API — real integration", () => {
 
     const originalAi = testApp.env.AI;
     const originalVectorize = testApp.env.DISCOVERY_VECTORIZE;
+    const originalSemanticFlag = testApp.env.DISCOVERY_SEMANTIC_ENABLED;
     const ai = {
       run: vi.fn(async (_model: string, input: any) => {
         const texts = Array.isArray(input.text) ? input.text : [input.text];
@@ -4275,6 +4281,9 @@ describe("Discovery API — real integration", () => {
     };
     testApp.env.AI = ai;
     testApp.env.DISCOVERY_VECTORIZE = vectorize;
+    // Bindings alone no longer switch semantic discovery on: createSemanticDiscovery
+    // withholds them unless the flag is exactly "true".
+    testApp.env.DISCOVERY_SEMANTIC_ENABLED = "true";
 
     try {
       const res = await testApp.app.fetch(
@@ -4303,6 +4312,7 @@ describe("Discovery API — real integration", () => {
     } finally {
       testApp.env.AI = originalAi;
       testApp.env.DISCOVERY_VECTORIZE = originalVectorize;
+      testApp.env.DISCOVERY_SEMANTIC_ENABLED = originalSemanticFlag;
     }
   });
 
