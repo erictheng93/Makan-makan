@@ -759,17 +759,26 @@ export class TableService extends BaseService {
         }),
       );
 
-      // 批量更新 QR codes
-      for (const { tableId, qrCode, newVersion } of qrCodes) {
-        await this.db
-          .update(tables)
-          .set({
-            qrCode,
-            qrCodeVersion: newVersion,
-            updatedAt: new Date(),
-          })
-          .where(eq(tables.id, tableId));
+      if (qrCodes.length === 0) {
+        return { success: true, qrCodes: [] };
       }
+
+      const updatedAt = new Date();
+      const writes = qrCodes.map(({ tableId, qrCode, newVersion }) =>
+        this.db
+          .update(tables)
+          .set({ qrCode, qrCodeVersion: newVersion, updatedAt })
+          .where(eq(tables.id, tableId)),
+      );
+
+      // One transactional batch rather than a statement per table (up to 50 per
+      // request). Regeneration invalidates the printed sticker the moment it
+      // commits, so a partial write would leave a restaurant where some tables
+      // scan and some do not — with no record of which. D1 batch() applies all
+      // or none.
+      await this.db.batch(
+        writes as unknown as Parameters<typeof this.db.batch>[0],
+      );
 
       return { success: true, qrCodes };
     } catch (error) {

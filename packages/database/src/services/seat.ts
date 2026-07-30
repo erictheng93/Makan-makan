@@ -477,34 +477,53 @@ export class SeatService extends BaseService {
         .from(seats)
         .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)));
 
-      const qrCodes = [];
-
-      for (const seat of seatsList) {
-        const newVersion = (seat.qrCodeVersion || 0) + 1;
-        const newQRCode = await this.generateSeatQRCode(
-          table.restaurantId,
-          tableId,
-          seat.seatNumber,
-          newVersion,
-        );
-
-        await this.db
-          .update(seats)
-          .set({
-            qrCode: newQRCode,
-            qrCodeVersion: newVersion,
-            updatedAt: new Date(),
-          })
-          .where(and(eq(seats.id, seat.id), isNull(seats.deletedAt)));
-
-        qrCodes.push({
-          seatId: seat.id,
-          seatNumber: seat.seatNumber,
-          qrCode: newQRCode,
-        });
+      if (seatsList.length === 0) {
+        return { success: true, qrCodes: [] };
       }
 
-      return { success: true, qrCodes };
+      // Sign in parallel: HMAC is CPU-only, so awaiting each one in turn just
+      // serialises work that has no reason to be ordered.
+      const regenerated = await Promise.all(
+        seatsList.map(async (seat) => {
+          const newVersion = (seat.qrCodeVersion || 0) + 1;
+          return {
+            seatId: seat.id,
+            seatNumber: seat.seatNumber,
+            newVersion,
+            qrCode: await this.generateSeatQRCode(
+              table.restaurantId,
+              tableId,
+              seat.seatNumber,
+              newVersion,
+            ),
+          };
+        }),
+      );
+
+      const updatedAt = new Date();
+      const writes = regenerated.map(({ seatId, qrCode, newVersion }) =>
+        this.db
+          .update(seats)
+          .set({ qrCode, qrCodeVersion: newVersion, updatedAt })
+          .where(and(eq(seats.id, seatId), isNull(seats.deletedAt))),
+      );
+
+      // One transactional batch rather than a statement per seat. Regeneration
+      // invalidates the printed sticker the moment it commits, so a partial
+      // write would leave a table where some seats scan and some do not — with
+      // no record of which. D1 batch() applies all or none.
+      await this.db.batch(
+        writes as unknown as Parameters<typeof this.db.batch>[0],
+      );
+
+      return {
+        success: true,
+        qrCodes: regenerated.map(({ seatId, seatNumber, qrCode }) => ({
+          seatId,
+          seatNumber,
+          qrCode,
+        })),
+      };
     } catch (error) {
       return { success: false, error: "Failed to generate QR codes" };
     }
