@@ -329,7 +329,6 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import QRCode from "qrcode";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -340,6 +339,7 @@ const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
+import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
 import QRCodeRenderer from "./QRCodeRenderer.vue";
 import SeatGrid from "./SeatGrid.vue";
 
@@ -539,75 +539,21 @@ const downloadSeatQRCode = () => {
   link.click();
 };
 
-interface PrintableQRCode {
-  label: string;
-  dataUrl: string;
-}
-
-const renderQRCodePrintSheet = (
-  printWindow: Window,
-  title: string,
-  qrCodes: PrintableQRCode[],
-) => {
-  const doc = printWindow.document;
-  doc.title = title;
-  doc.body.replaceChildren();
-
-  const style = doc.createElement("style");
-  style.textContent =
-    "@page{size:A4;margin:12mm}" +
-    "body{margin:0;color:#111827;font-family:system-ui,-apple-system,sans-serif}" +
-    "h1{margin:0 0 16px;text-align:center;font-size:24px}" +
-    ".qr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}" +
-    ".qr-card{break-inside:avoid;display:flex;flex-direction:column;align-items:center;border:1px solid #d1d5db;border-radius:12px;padding:16px}" +
-    ".qr-card h2{margin:0 0 10px;font-size:18px}" +
-    ".qr-card img{display:block;width:220px;height:220px}";
-  doc.head.appendChild(style);
-
-  const heading = doc.createElement("h1");
-  heading.textContent = title;
-  doc.body.appendChild(heading);
-
-  const grid = doc.createElement("main");
-  grid.className = "qr-grid";
-  for (const qrCode of qrCodes) {
-    const card = doc.createElement("section");
-    card.className = "qr-card";
-
-    const label = doc.createElement("h2");
-    label.textContent = qrCode.label;
-    card.appendChild(label);
-
-    const image = doc.createElement("img");
-    image.src = qrCode.dataUrl;
-    image.alt = qrCode.label;
-    card.appendChild(image);
-    grid.appendChild(card);
-  }
-  doc.body.appendChild(grid);
-
-  setTimeout(() => printWindow.print(), 300);
-};
-
 const printSeatQRCode = () => {
   const dataUrl = seatQrRef.value?.getDataUrl();
   if (!dataUrl || !selectedSeat.value) return;
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
 
   const label = t("seatManagement.printLabel", {
     table: props.tableNumber,
     seat: selectedSeat.value.seatNumber,
   });
-  renderQRCodePrintSheet(printWindow, label, [{ label, dataUrl }]);
+  if (!printQRCodeSheet(label, [{ label, dataUrl }])) {
+    toast.error(t("seatManagement.alerts.printFailed"));
+  }
 };
 
 const printAllSeatQRCodes = async () => {
   if (printableSeats.value.length === 0) return;
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
 
   try {
     const qrCodes = await Promise.all(
@@ -616,20 +562,16 @@ const printAllSeatQRCodes = async () => {
           table: props.tableNumber,
           seat: seat.seatNumber,
         }),
-        dataUrl: await QRCode.toDataURL(seat.qrCode, {
-          width: 220,
-          margin: 1,
-          errorCorrectionLevel: "M",
-        }),
+        dataUrl: await toPrintableDataUrl(seat.qrCode),
       })),
     );
-    renderQRCodePrintSheet(
-      printWindow,
-      t("seatManagement.printAllTitle", { table: props.tableNumber }),
-      qrCodes,
-    );
+    const title = t("seatManagement.printAllTitle", {
+      table: props.tableNumber,
+    });
+    if (!printQRCodeSheet(title, qrCodes)) {
+      toast.error(t("seatManagement.alerts.printFailed"));
+    }
   } catch (error) {
-    printWindow.close();
     console.error("Failed to prepare seat QR codes for printing:", error);
     toast.error(t("seatManagement.alerts.printFailed"));
   }

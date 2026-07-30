@@ -280,6 +280,8 @@ const enUS: Messages = {
       preview: "QR Code Preview",
       download: "Download QR",
       print: "Print QR",
+      printAll: "Print all QR codes",
+      printAllTitle: "Table QR codes",
     },
     confirm: {
       regenerateAllQR:
@@ -289,6 +291,8 @@ const enUS: Messages = {
       qrGenerated: "QR codes generated successfully!",
       downloadInProgress: "QR code download feature coming soon...",
       printInProgress: "QR code print feature coming soon...",
+      printFailed: "Printing failed — check that pop-ups are not blocked",
+      nothingToPrint: "No QR codes available to print",
       createSuccess: "Table created successfully",
       updateSuccess: "Table updated successfully",
       saveFailed: "Failed to save table, please try again",

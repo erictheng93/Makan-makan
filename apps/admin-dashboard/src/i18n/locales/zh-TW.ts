@@ -280,6 +280,8 @@ const zhTWCore = {
       preview: "QR 碼預覽",
       download: "下載 QR 碼",
       print: "列印 QR 碼",
+      printAll: "列印全部 QR 碼",
+      printAllTitle: "桌台 QR 碼一覽",
     },
     confirm: {
       regenerateAllQR: "確定要為所有桌台重新生成 QR 碼嗎？",
@@ -288,6 +290,8 @@ const zhTWCore = {
       qrGenerated: "QR 碼生成完成！",
       downloadInProgress: "QR 碼下載功能開發中...",
       printInProgress: "QR 碼列印功能開發中...",
+      printFailed: "列印失敗，請確認瀏覽器未封鎖彈出視窗",
+      nothingToPrint: "沒有可列印的 QR 碼",
       createSuccess: "桌台新增成功",
       updateSuccess: "桌台更新成功",
       saveFailed: "桌台儲存失敗，請稍後再試",

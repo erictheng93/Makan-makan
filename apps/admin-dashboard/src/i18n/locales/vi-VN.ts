@@ -1930,6 +1930,8 @@ const viVN: Messages = {
       preview: "Xem trước mã QR",
       download: "Tải mã QR",
       print: "In mã QR",
+      printAll: "In tất cả mã QR",
+      printAllTitle: "Danh sách mã QR bàn",
     },
     confirm: {
       regenerateAllQR: "Bạn có chắc muốn tạo lại mã QR cho tất cả các bàn?",
@@ -1938,6 +1940,8 @@ const viVN: Messages = {
       qrGenerated: "Đã tạo mã QR thành công!",
       downloadInProgress: "Tính năng tải mã QR sắp ra mắt...",
       printInProgress: "Tính năng in mã QR sắp ra mắt...",
+      printFailed: "In thất bại — kiểm tra xem cửa sổ bật lên có bị chặn không",
+      nothingToPrint: "Không có mã QR nào để in",
       createSuccess: "Đã tạo bàn thành công",
       updateSuccess: "Đã cập nhật bàn thành công",
       saveFailed: "Lưu bàn thất bại, vui lòng thử lại",

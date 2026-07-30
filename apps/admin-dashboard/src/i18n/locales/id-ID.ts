@@ -280,6 +280,8 @@ const idID: Messages = {
       preview: "Pratinjau Kode QR",
       download: "Unduh QR",
       print: "Cetak QR",
+      printAll: "Cetak semua kode QR",
+      printAllTitle: "Daftar kode QR meja",
     },
     confirm: {
       regenerateAllQR:
@@ -289,6 +291,8 @@ const idID: Messages = {
       qrGenerated: "Kode QR berhasil dibuat!",
       downloadInProgress: "Fitur unduh kode QR segera hadir...",
       printInProgress: "Fitur cetak kode QR segera hadir...",
+      printFailed: "Pencetakan gagal — pastikan pop-up tidak diblokir",
+      nothingToPrint: "Tidak ada kode QR untuk dicetak",
       createSuccess: "Meja berhasil dibuat",
       updateSuccess: "Meja berhasil diperbarui",
       saveFailed: "Gagal menyimpan meja, silakan coba lagi",
