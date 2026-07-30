@@ -74,17 +74,19 @@ describe("SignedQrVerificationService", () => {
     });
   });
 
-  it("accepts legacy QR only when it matches the current database row", async () => {
-    const legacyQr = await buildSignedQRUrl(
-      "https://example.test",
-      {
-        type: "table",
-        restaurantId: "restaurant-1",
-        identifier: "T1",
-        version: 1,
-      },
-      signingKey,
-    );
+  it("rejects a legacy QR even when it matches the stored row", async () => {
+    // Phase 3 cutoff: a pre-v2 URL is unparseable now, so it fails before any
+    // database comparison. Matching the stored value must not rescue it —
+    // otherwise the legacy downgrade path would still be reachable for every
+    // table whose code was never regenerated.
+    const legacyUrl = new URL("https://example.test/order");
+    legacyUrl.searchParams.set("t", "table");
+    legacyUrl.searchParams.set("r", "restaurant-1");
+    legacyUrl.searchParams.set("n", "T1");
+    legacyUrl.searchParams.set("v", "1");
+    legacyUrl.searchParams.set("sig", "a".repeat(16));
+    const legacyQr = legacyUrl.toString();
+
     const service = new SignedQrVerificationService(
       { DB: {} as D1Database, QR_SIGNING_KEY: signingKey },
       createDb([
@@ -100,12 +102,8 @@ describe("SignedQrVerificationService", () => {
       ]) as never,
     );
 
-    await expect(
-      service.verifyTableFromQrCode(legacyQr),
-    ).resolves.toMatchObject({
-      valid: true,
-      formatVersion: 1,
-      tableId: 10,
+    await expect(service.verifyTableFromQrCode(legacyQr)).resolves.toEqual({
+      valid: false,
     });
   });
 

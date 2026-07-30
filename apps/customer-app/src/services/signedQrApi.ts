@@ -5,7 +5,7 @@ interface SignedQrVerificationBase {
   restaurantId: string;
   tableId: number;
   tableNumber: string;
-  formatVersion: 1 | 2;
+  formatVersion: 2;
 }
 
 export interface TableQrVerification extends SignedQrVerificationBase {

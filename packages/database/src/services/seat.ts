@@ -586,7 +586,6 @@ export class SeatService extends BaseService {
     return buildSignedQRUrl(
       baseUrl,
       {
-        formatVersion: 2,
         type: "seat",
         restaurantId,
         tableId,

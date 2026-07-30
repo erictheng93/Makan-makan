@@ -18,7 +18,7 @@ export type TableQrVerification =
       restaurantId: string;
       tableId: number;
       tableNumber: string;
-      formatVersion: 1 | 2;
+      formatVersion: 2;
     };
 
 export type SeatQrVerification =
@@ -31,7 +31,7 @@ export type SeatQrVerification =
       tableNumber: string;
       seatId: number;
       seatNumber: string;
-      formatVersion: 1 | 2;
+      formatVersion: 2;
     };
 
 export class SignedQrVerificationService {
@@ -80,8 +80,7 @@ export class SignedQrVerificationService {
       table.restaurantId !== payload.restaurantId ||
       table.number !== payload.identifier ||
       table.qrCodeVersion !== payload.version ||
-      (payload.formatVersion === 1 && table.qrCode !== qrCode) ||
-      (payload.formatVersion === 2 && payload.tableId !== table.id)
+      payload.tableId !== table.id
     ) {
       return { valid: false };
     }
@@ -106,12 +105,10 @@ export class SignedQrVerificationService {
     const seatIdentity =
       seatId !== undefined
         ? eq(seats.id, seatId)
-        : payload.formatVersion === 2 && payload.tableId !== undefined
-          ? and(
-              eq(seats.tableId, payload.tableId),
-              eq(seats.seatNumber, payload.identifier),
-            )
-          : eq(seats.qrCode, qrCode);
+        : and(
+            eq(seats.tableId, payload.tableId),
+            eq(seats.seatNumber, payload.identifier),
+          );
     const [seat] = await this.db
       .select({
         id: seats.id,
@@ -142,8 +139,7 @@ export class SignedQrVerificationService {
       seat.restaurantId !== payload.restaurantId ||
       seat.seatNumber !== payload.identifier ||
       seat.qrCodeVersion !== payload.version ||
-      (payload.formatVersion === 1 && seat.qrCode !== qrCode) ||
-      (payload.formatVersion === 2 && payload.tableId !== seat.tableId)
+      payload.tableId !== seat.tableId
     ) {
       return { valid: false };
     }

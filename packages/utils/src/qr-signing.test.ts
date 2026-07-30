@@ -12,7 +12,6 @@ describe("QR signing v2", () => {
   it("binds seat signatures to the table id", async () => {
     const seatOnTableOne = await signQRPayload(
       {
-        formatVersion: 2,
         type: "seat",
         restaurantId: "restaurant-1",
         tableId: 1,
@@ -23,7 +22,6 @@ describe("QR signing v2", () => {
     );
     const seatOnTableTwo = await signQRPayload(
       {
-        formatVersion: 2,
         type: "seat",
         restaurantId: "restaurant-1",
         tableId: 2,
@@ -40,7 +38,6 @@ describe("QR signing v2", () => {
     const url = await buildSignedQRUrl(
       "https://example.test",
       {
-        formatVersion: 2,
         type: "table",
         restaurantId: "restaurant-1",
         tableId: 42,
@@ -53,7 +50,6 @@ describe("QR signing v2", () => {
     const parsed = parseSignedQRUrl(url);
 
     expect(parsed).toMatchObject({
-      formatVersion: 2,
       type: "table",
       restaurantId: "restaurant-1",
       tableId: 42,
@@ -65,31 +61,44 @@ describe("QR signing v2", () => {
     ).resolves.toBe(true);
   });
 
-  it("continues accepting legacy signatures during phase 1", async () => {
-    const legacyPayload = {
-      type: "table" as const,
-      restaurantId: "restaurant-1",
-      identifier: "A1",
-      version: 1,
-    };
-    const signature = await signQRPayload(legacyPayload, signingKey);
+  it("rejects legacy URLs that omit the format marker", () => {
+    // Pre-v2 codes carried no `f`/`d` and did not bind the table id. Phase 3
+    // stops accepting them; a missing marker must be rejected outright rather
+    // than downgraded to v1, or the cutoff would not actually close anything.
     const legacyUrl = new URL("https://example.test/order");
-    legacyUrl.searchParams.set("t", legacyPayload.type);
-    legacyUrl.searchParams.set("r", legacyPayload.restaurantId);
-    legacyUrl.searchParams.set("n", legacyPayload.identifier);
-    legacyUrl.searchParams.set("v", String(legacyPayload.version));
-    legacyUrl.searchParams.set("sig", signature);
+    legacyUrl.searchParams.set("t", "table");
+    legacyUrl.searchParams.set("r", "restaurant-1");
+    legacyUrl.searchParams.set("n", "A1");
+    legacyUrl.searchParams.set("v", "1");
+    legacyUrl.searchParams.set("sig", "a".repeat(16));
 
-    const parsed = parseSignedQRUrl(legacyUrl.toString());
+    expect(parseSignedQRUrl(legacyUrl.toString())).toBeNull();
+  });
 
-    expect(parsed).toMatchObject({
-      formatVersion: 1,
-      tableId: undefined,
-      ...legacyPayload,
-    });
+  it("rejects a v2 URL whose table id is missing", () => {
+    const url = new URL("https://example.test/order");
+    url.searchParams.set("t", "table");
+    url.searchParams.set("r", "restaurant-1");
+    url.searchParams.set("f", "2");
+    url.searchParams.set("n", "A1");
+    url.searchParams.set("v", "1");
+    url.searchParams.set("sig", "a".repeat(16));
+
+    expect(parseSignedQRUrl(url.toString())).toBeNull();
+  });
+
+  it("refuses to sign without a table id", async () => {
     await expect(
-      verifyQRSignature(parsed!, parsed!.signature, signingKey),
-    ).resolves.toBe(true);
+      signQRPayload(
+        {
+          type: "table",
+          restaurantId: "restaurant-1",
+          identifier: "A1",
+          version: 1,
+        } as never,
+        signingKey,
+      ),
+    ).rejects.toThrow(/tableId/);
   });
 
   it("rejects malformed v2 identity and numeric fields", () => {

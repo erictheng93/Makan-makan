@@ -30,7 +30,7 @@ export interface TableQRData extends BaseQRData {
   type: "table";
   tableId?: number;
   tableNumber?: string;
-  formatVersion?: 1 | 2;
+  formatVersion?: 2;
 }
 
 export interface SeatQRData extends BaseQRData {
@@ -38,7 +38,7 @@ export interface SeatQRData extends BaseQRData {
   tableId?: number;
   seatId?: number;
   seatNumber?: string;
-  formatVersion?: 1 | 2;
+  formatVersion?: 2;
 }
 
 export type QRData = MarketQRData | ShopQRData | TableQRData | SeatQRData;
@@ -434,13 +434,14 @@ export function validateQRData(data: QRData): boolean {
 
     case "table":
       if (data.formatVersion !== undefined) {
+        // Signed URLs are v2-only since #88 phase 3: the table id is always
+        // present and bound into the signature.
         return (
           typeof data.tableNumber === "string" &&
           data.tableNumber.trim() !== "" &&
-          (data.formatVersion === 1 ||
-            (typeof data.tableId === "number" &&
-              Number.isInteger(data.tableId) &&
-              data.tableId > 0))
+          typeof data.tableId === "number" &&
+          Number.isInteger(data.tableId) &&
+          data.tableId > 0
         );
       }
       // 桌子模式需要 tableId
@@ -452,13 +453,13 @@ export function validateQRData(data: QRData): boolean {
 
     case "seat":
       if (data.formatVersion !== undefined) {
+        // Signed URLs are v2-only since #88 phase 3.
         return (
           typeof data.seatNumber === "string" &&
           data.seatNumber.trim() !== "" &&
-          (data.formatVersion === 1 ||
-            (typeof data.tableId === "number" &&
-              Number.isInteger(data.tableId) &&
-              data.tableId > 0))
+          typeof data.tableId === "number" &&
+          Number.isInteger(data.tableId) &&
+          data.tableId > 0
         );
       }
       // 座位模式需要 tableId 和 seatId
