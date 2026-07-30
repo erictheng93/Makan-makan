@@ -6,6 +6,12 @@ pnpm lint-staged
 node scripts/check-visual-baselines.cjs
 node scripts/audit-module-gates.cjs
 
+# wrangler answers the destructive-D1 confirmation itself when stdin is not a
+# terminal, so `d1 time-travel restore` and `d1 delete` must stay out of
+# workflows, scripts, package scripts and hooks. CI checks this too; here it
+# fails before the commit exists.
+node scripts/check-no-automated-d1-restore.cjs
+
 # Factory 使用快速檢查（僅針對測試文件）
 # Use --diff-filter=ACM here too, otherwise a commit that only DELETES a
 # spec file enters this branch (the outer grep matches the deletion) and
