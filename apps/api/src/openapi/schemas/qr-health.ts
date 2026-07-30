@@ -37,7 +37,7 @@ export const QRHealthSchemas = {
     name: z.string(),
     type: QRCodeType,
     design: z.object({
-      logo: z.string().url().optional(),
+      logo: z.url().optional(),
       primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i),
       secondaryColor: z
         .string()
@@ -61,7 +61,7 @@ export const QRHealthSchemas = {
     name: z.string().min(1, "Template name is required"),
     type: QRCodeType,
     design: z.object({
-      logo: z.string().url().optional(),
+      logo: z.url().optional(),
       primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
       secondaryColor: z
         .string()
@@ -93,8 +93,8 @@ export const QRHealthSchemas = {
     qrCode: z.object({
       id: z.string().uuid(),
       type: QRCodeType,
-      url: z.string().url(),
-      imageUrl: z.string().url(),
+      url: z.url(),
+      imageUrl: z.url(),
       metadata: z.record(z.string(), z.string()),
       createdAt: z.string().datetime(),
       expiresAt: z.string().datetime().optional(),
@@ -122,14 +122,14 @@ export const QRHealthSchemas = {
         id: z.string().uuid(),
         targetId: z.string().uuid(),
         type: QRCodeType,
-        url: z.string().url(),
-        imageUrl: z.string().url(),
+        url: z.url(),
+        imageUrl: z.url(),
       }),
     ),
     meta: z.object({
       totalGenerated: z.number().int(),
       totalFailed: z.number().int(),
-      downloadUrl: z.string().url().optional(), // ZIP file for bulk download
+      downloadUrl: z.url().optional(), // ZIP file for bulk download
     }),
   }),
 

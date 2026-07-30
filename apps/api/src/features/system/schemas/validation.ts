@@ -25,7 +25,7 @@ export const errorReportSchema = z.object({
         context: z.record(z.string(), z.any()).optional(),
         timestamp: z.string().datetime("Invalid timestamp format"),
         userAgent: z.string().optional(),
-        url: z.string().url("Invalid URL format").optional().or(z.literal("")),
+        url: z.url("Invalid URL format").optional().or(z.literal("")),
         userId: z.union([z.number(), z.string()]).optional(),
         restaurantId: z.union([z.number(), z.string()]).optional(),
       }),

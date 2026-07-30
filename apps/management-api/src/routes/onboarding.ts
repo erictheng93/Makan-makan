@@ -25,7 +25,7 @@ const router = new Hono<{ Bindings: ManagementEnv }>();
 const createApplicationSchema = z.object({
   businessName: z.string().min(2).max(100),
   contactName: z.string().min(2).max(100),
-  contactEmail: z.string().email(),
+  contactEmail: z.email(),
   contactPhone: z.string().min(8).max(20),
   planId: z
     .enum(["standard", "professional", "enterprise", "trial"])

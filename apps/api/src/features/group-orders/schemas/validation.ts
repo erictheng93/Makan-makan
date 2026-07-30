@@ -64,7 +64,6 @@ export const joinGroupSchema = z.object({
     .regex(/^[+]?[0-9\-\s()]+$/, "Invalid phone number format")
     .optional(),
   email: z
-    .string()
     .email("Invalid email format")
     .max(100, "Email cannot exceed 100 characters")
     .optional(),

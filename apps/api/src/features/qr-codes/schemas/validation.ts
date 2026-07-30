@@ -30,7 +30,7 @@ const qrStyleSchema = z.object({
     .optional(),
   logo: z
     .object({
-      url: z.string().url(),
+      url: z.url(),
       size: z.number().min(0).max(30),
       borderRadius: z.number().min(0).max(50),
       margin: z.number().min(0).max(20),
@@ -88,7 +88,7 @@ const signedQrEntityParam = z.object({
 });
 
 const signedQrQuery = z.object({
-  qrCode: z.string().url().max(4096),
+  qrCode: z.url().max(4096),
 });
 
 // QR Generation schemas

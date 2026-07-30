@@ -22,7 +22,7 @@ const app = new Hono<{ Bindings: Env }>();
 // ========================================
 
 const testNotificationSchema = z.object({
-  recipientEmail: z.string().email(),
+  recipientEmail: z.email(),
   category: z.enum([
     "leave_request_submitted",
     "leave_request_approved",
@@ -48,7 +48,7 @@ const idString = z.preprocess((value) => {
 
 const sendNotificationSchema = z.object({
   recipientId: idString,
-  recipientEmail: z.string().email(),
+  recipientEmail: z.email(),
   category: z.enum([
     "leave_request_submitted",
     "leave_request_approved",

@@ -96,7 +96,7 @@ export const SeatsSchemas = {
   QRCodeResult: z.object({
     seatId: z.number().int(),
     qrCode: z.string(),
-    qrCodeUrl: z.string().url().optional(),
+    qrCodeUrl: z.url().optional(),
   }),
 };
 

@@ -66,7 +66,7 @@ const payMarketCheckoutSchema = z.object({
   customerInfo: z
     .object({
       name: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.email().optional(),
       phone: z.string().optional(),
     })
     .optional(),

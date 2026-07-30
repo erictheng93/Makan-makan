@@ -25,14 +25,14 @@ const strongPasswordSchema = z
 export const createUserSchema = z.object({
   username: z.string().min(3).max(50),
   fullName: z.string().min(1).max(100),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   phone: z.string().max(20).optional(),
   password: strongPasswordSchema,
   role: z.number().int().min(0).max(4),
   restaurantId: restaurantIdInputSchema,
   address: z.string().max(200).optional(),
   dateOfBirth: z.string().optional(),
-  profileImageUrl: z.string().url().optional(),
+  profileImageUrl: z.url().optional(),
   preferences: z.any().optional(),
 });
 
@@ -40,12 +40,12 @@ export const createUserSchema = z.object({
  * User update validation schema
  */
 export const updateUserSchema = z.object({
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   phone: z.string().max(20).optional(),
   fullName: z.string().min(1).max(100).optional(),
   address: z.string().max(200).optional(),
   dateOfBirth: z.string().optional(),
-  profileImageUrl: z.string().url().optional(),
+  profileImageUrl: z.url().optional(),
   preferences: z.any().optional(),
   isActive: z.boolean().optional(),
   isVerified: z.boolean().optional(),

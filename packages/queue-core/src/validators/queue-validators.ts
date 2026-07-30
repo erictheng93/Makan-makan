@@ -23,7 +23,7 @@ export const partySizeSchema = z.number().int().min(1).max(20);
 export const queueNumberSchema = z.number().int().min(1);
 export const customerNameSchema = z.string().min(1).max(100).trim();
 export const customerPhoneSchema = z.string().max(20).optional();
-export const customerEmailSchema = z.string().email().optional();
+export const customerEmailSchema = z.email().optional();
 export const specialRequestsSchema = z.string().max(500).optional();
 export const checkInCodeSchema = z.string().length(6).optional();
 

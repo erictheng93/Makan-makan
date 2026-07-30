@@ -23,7 +23,7 @@ const router = new Hono<{ Bindings: ManagementEnv }>();
 
 const createTenantSchema = z.object({
   businessName: z.string().min(2).max(100),
-  contactEmail: z.string().email(),
+  contactEmail: z.email(),
   contactPhone: z.string().optional(),
   subdomain: z
     .string()
@@ -40,7 +40,7 @@ const createTenantSchema = z.object({
 
 const updateTenantSchema = z.object({
   businessName: z.string().min(2).max(100).optional(),
-  contactEmail: z.string().email().optional(),
+  contactEmail: z.email().optional(),
   contactPhone: z.string().optional(),
   customDomain: z.string().optional(),
   licenseTier: z.enum(["standard", "professional", "enterprise"]).optional(),

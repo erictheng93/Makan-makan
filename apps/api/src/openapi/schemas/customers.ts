@@ -12,7 +12,7 @@ const Customer = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
   phone: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   preferences: z
     .object({
       dietary: z.array(z.string()).optional(),
@@ -42,7 +42,7 @@ export const CustomersSchemas = {
       .string()
       .regex(/^\+?[\d\s-()]+$/, "Invalid phone format")
       .optional(),
-    email: z.string().email("Invalid email format").optional(),
+    email: z.email("Invalid email format").optional(),
     preferences: z
       .object({
         dietary: z.array(z.string()).optional(),
@@ -79,7 +79,7 @@ export const CustomersSchemas = {
   UpdateCustomerRequest: z.object({
     name: z.string().min(1).optional(),
     phone: z.string().optional(),
-    email: z.string().email().optional(),
+    email: z.email().optional(),
     preferences: z
       .object({
         dietary: z.array(z.string()).optional(),

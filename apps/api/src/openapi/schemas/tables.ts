@@ -17,7 +17,7 @@ const Table = z.object({
   status: TableStatus,
   floor: z.string().optional(),
   section: z.string().optional(),
-  qrCodeUrl: z.string().url().optional(),
+  qrCodeUrl: z.url().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -216,7 +216,7 @@ export const generateQRCodeRoute = createRoute({
           schema: z.object({
             success: z.boolean(),
             data: z.object({
-              qrCodeUrl: z.string().url(),
+              qrCodeUrl: z.url(),
               tableId: z.string().uuid(),
               expiresAt: z.string().datetime().optional(),
             }),

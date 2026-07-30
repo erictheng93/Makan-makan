@@ -13,7 +13,7 @@ const configSchema = z.object({
 
   // Authentication settings
   apiKey: z.string().min(10),
-  cloudEndpoint: z.string().url(),
+  cloudEndpoint: z.url(),
 
   // Service settings
   serviceName: z.string().min(1),

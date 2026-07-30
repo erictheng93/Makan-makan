@@ -13,12 +13,12 @@ const UserRole = z
   .describe("0: Admin, 1: Shop Owner, 2: Chef, 3: Service Crew, 4: Cashier");
 const User = z.object({
   id: z.string().uuid(),
-  email: z.string().email(),
+  email: z.email(),
   name: z.string(),
   role: z.number().int().min(0).max(4),
   restaurantId: z.string().uuid().optional(),
   phone: z.string().optional(),
-  avatar: z.string().url().optional(),
+  avatar: z.url().optional(),
   isActive: z.boolean(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -58,7 +58,7 @@ export const UsersSchemas = {
 
   // Create User Request
   CreateUserRequest: z.object({
-    email: z.string().email("Invalid email format"),
+    email: z.email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     name: z.string().min(1, "Name is required"),
     role: z.number().int().min(0).max(4),
@@ -71,7 +71,7 @@ export const UsersSchemas = {
     name: z.string().min(1).optional(),
     role: z.number().int().min(0).max(4).optional(),
     phone: z.string().optional(),
-    avatar: z.string().url().optional(),
+    avatar: z.url().optional(),
     isActive: z.boolean().optional(),
   }),
 

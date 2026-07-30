@@ -229,19 +229,18 @@ const createRestaurantSchema = z.object({
     )
     .regex(/^[\d\s\-+()]+$/, "Invalid phone number format"),
   email: z
-    .string()
     .email("Invalid email format")
     .max(
       VALIDATION_LIMITS.EMAIL_MAX_LENGTH,
       `Email must be less than ${VALIDATION_LIMITS.EMAIL_MAX_LENGTH} characters`,
     )
     .optional(),
-  website: z.string().url("Invalid website URL").optional(),
+  website: z.url("Invalid website URL").optional(),
   businessHours: businessHoursSchema,
   latitude: z.number().min(-90).max(90).nullable().optional(),
   longitude: z.number().min(-180).max(180).nullable().optional(),
-  logoUrl: z.string().url("Invalid logo URL").optional(),
-  bannerUrl: z.string().url("Invalid banner URL").optional(),
+  logoUrl: z.url("Invalid logo URL").optional(),
+  bannerUrl: z.url("Invalid banner URL").optional(),
 });
 
 // Restaurant update schema (all fields optional except validation rules still apply)
@@ -329,7 +328,7 @@ const updateShopModeSchema = z.object({
 });
 
 const uploadQrImageSchema = z.object({
-  imageUrl: z.string().url("Invalid image URL").min(1, "Image URL is required"),
+  imageUrl: z.url("Invalid image URL").min(1, "Image URL is required"),
 });
 
 const qrCodeParam = z.object({

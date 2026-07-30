@@ -424,7 +424,7 @@ export const exportReportRoute = createRoute({
           schema: z.object({
             success: z.boolean(),
             data: z.object({
-              downloadUrl: z.string().url(),
+              downloadUrl: z.url(),
               expiresAt: z.string().datetime(),
               format: AnalyticsSchemas.ExportFormat,
               fileSize: z.number().int(),

@@ -48,7 +48,7 @@ export const LeavesSchemas = {
     reviewerId: z.string().uuid().optional(),
     reviewerNotes: z.string().optional(),
     reviewedAt: z.string().datetime().optional(),
-    attachments: z.array(z.string().url()).optional(),
+    attachments: z.array(z.url()).optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   }),
@@ -62,7 +62,7 @@ export const LeavesSchemas = {
     endDate: z.string().date(),
     halfDayType: HalfDayType.default("none"),
     reason: z.string().min(1, "Reason is required"),
-    attachments: z.array(z.string().url()).optional(),
+    attachments: z.array(z.url()).optional(),
   }),
 
   // Update Leave Status Request

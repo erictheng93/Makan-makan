@@ -13,10 +13,7 @@ const decodeHtmlEntities = (value: string): string =>
     .replace(/&#x3D;/g, "=")
     .replace(/&amp;/g, "&");
 
-const urlSchema = z
-  .string()
-  .transform(decodeHtmlEntities)
-  .pipe(z.string().url());
+const urlSchema = z.string().transform(decodeHtmlEntities).pipe(z.url());
 
 const coordinateSchema = z.tuple([
   z.number().min(-180).max(180),
@@ -188,7 +185,7 @@ const importMarketVendorSchema = z
       .max(30)
       .regex(/^[\d\s\-+()]+$/)
       .optional(),
-    email: z.string().email().optional(),
+    email: z.email().optional(),
     website: urlSchema.optional(),
     stallNumber: z.string().max(80).nullable().optional(),
     locationLabel: z.string().max(160).nullable().optional(),
