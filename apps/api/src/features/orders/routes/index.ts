@@ -157,7 +157,7 @@ import {
 // Create router
 const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("OrdersRoutes");
-const orderBatchSyncSchema = z.object({}).passthrough();
+const orderBatchSyncSchema = z.object({}).loose();
 
 // Optional body for DELETE /orders/:id — carries a human cancellation reason.
 // Both the body and the field are optional; the value is trimmed and capped to

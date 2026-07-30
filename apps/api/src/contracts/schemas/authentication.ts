@@ -67,7 +67,7 @@ export const RegisterResponse = z.object({
       tokens: TokenPairSchema.optional(),
       token: z.string().optional(),
     })
-    .passthrough(),
+    .loose(),
 });
 
 export const RefreshTokenResponse = z.object({

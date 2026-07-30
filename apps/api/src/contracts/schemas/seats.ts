@@ -29,7 +29,7 @@ export const SeatSchema = z
     orderId: z.union([z.number(), z.string()]).optional().nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const PublicSeatInfoSchema = z.object({
   id: z.union([z.number(), z.string()]),
@@ -68,7 +68,7 @@ export const OccupySeatResponse = messageOnlyResponse;
 export const ReleaseSeatResponse = messageOnlyResponse;
 export const RegenerateQRResponse = z.object({
   success: z.literal(true),
-  data: z.object({ qrCode: z.string() }).passthrough(),
+  data: z.object({ qrCode: z.string() }).loose(),
   message: z.string().optional(),
 });
 

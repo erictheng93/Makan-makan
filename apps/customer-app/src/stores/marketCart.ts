@@ -16,7 +16,7 @@ const MenuItemSchema = z
     name: z.string().min(1).max(200),
     price: z.number().min(0),
   })
-  .passthrough();
+  .loose();
 
 const CartItemSchema = z
   .object({
@@ -28,7 +28,7 @@ const CartItemSchema = z
     price: z.number().min(0),
     totalPrice: z.number().min(0),
   })
-  .passthrough();
+  .loose();
 
 const MarketCartVendorSchema = z.object({
   restaurantId: z.string().min(1),

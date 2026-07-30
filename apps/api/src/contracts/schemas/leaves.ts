@@ -23,7 +23,7 @@ export const LeaveTypeSchema = z
     isPaid: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const LeaveBalanceSchema = z
   .object({
@@ -34,7 +34,7 @@ export const LeaveBalanceSchema = z
     used: z.number().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const LeaveRequestSchema = z
   .object({
@@ -47,7 +47,7 @@ export const LeaveRequestSchema = z
     reason: z.string().optional().nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

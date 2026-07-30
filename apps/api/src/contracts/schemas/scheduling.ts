@@ -23,7 +23,7 @@ export const ShiftTemplateSchema = z
     endTime: z.string().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const ScheduleSchema = z
   .object({
@@ -43,7 +43,7 @@ export const ScheduleSchema = z
       .nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const SwapRequestSchema = z
   .object({
@@ -53,7 +53,7 @@ export const SwapRequestSchema = z
     status: z.string(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

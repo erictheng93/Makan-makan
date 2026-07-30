@@ -47,7 +47,7 @@ const createPaymentRequestSchema = z
     returnUrl: z.url().optional(),
     cancelUrl: z.url().optional(),
   })
-  .passthrough();
+  .loose();
 
 const rootPaymentRequestSchema = z
   .object({
@@ -82,7 +82,7 @@ const rootPaymentRequestSchema = z
       .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
-  .passthrough()
+  .loose()
   .superRefine((value, ctx) => {
     if (value.paymentMode === "partial" && !value.payments?.length) {
       ctx.addIssue({

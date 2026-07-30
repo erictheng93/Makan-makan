@@ -25,7 +25,7 @@ export const QRCodeSchema = z
     imageUrl: z.string().optional().nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const QRTemplateSchema = z
   .object({
@@ -34,7 +34,7 @@ export const QRTemplateSchema = z
     config: z.unknown().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -57,5 +57,5 @@ export const VerifyShopQRResponse = successEnvelope(
       restaurantId: z.string().optional(),
       restaurant: z.unknown().optional(),
     })
-    .passthrough(),
+    .loose(),
 );

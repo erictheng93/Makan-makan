@@ -27,7 +27,7 @@ export const CategorySchema = z
     isActive: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const MenuItemSchema = z
   .object({
@@ -49,7 +49,7 @@ export const MenuItemSchema = z
     sortOrder: z.number().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const FullMenuSchema = z
   .object({
@@ -62,7 +62,7 @@ export const FullMenuSchema = z
       .optional(),
     items: z.array(MenuItemSchema).optional(),
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

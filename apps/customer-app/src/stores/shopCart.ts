@@ -14,7 +14,7 @@ const MenuItemSchema = z
     name: z.string().min(1).max(200),
     price: z.number().min(0),
   })
-  .passthrough();
+  .loose();
 
 const CustomizationOptionSchema = z.object({
   id: z.number().int().positive(),
@@ -47,7 +47,7 @@ const CartItemSchema = z
     price: z.number().min(0),
     totalPrice: z.number().min(0),
   })
-  .passthrough();
+  .loose();
 
 const ShopCartDataSchema = z.object({
   items: z.array(CartItemSchema).max(100),

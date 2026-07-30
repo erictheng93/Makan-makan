@@ -15,7 +15,7 @@ const MenuItemSchema = z
     name: z.string().min(1).max(200),
     price: z.number().min(0),
   })
-  .passthrough(); // Allow additional MenuItem fields
+  .loose(); // Allow additional MenuItem fields
 
 const CustomizationOptionSchema = z.object({
   id: z.number().int().positive(),
@@ -48,7 +48,7 @@ const CartItemSchema = z
     price: z.number().min(0),
     totalPrice: z.number().min(0),
   })
-  .passthrough(); // Allow additional CartItem fields
+  .loose(); // Allow additional CartItem fields
 
 const CartDataSchema = z.object({
   items: z.array(CartItemSchema).max(100),

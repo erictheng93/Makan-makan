@@ -36,7 +36,7 @@ export const RestaurantSettingsSchema = z
     currency: z.string().optional(),
     timezone: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const RestaurantSchema = z
   .object({
@@ -54,7 +54,7 @@ export const RestaurantSchema = z
     isActive: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const RestaurantStatsSchema = z
   .object({
@@ -63,7 +63,7 @@ export const RestaurantStatsSchema = z
     averageOrderValue: z.number().optional(),
     totalCustomers: z.number().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const ShopQRCodeSchema = z
   .object({
@@ -75,7 +75,7 @@ export const ShopQRCodeSchema = z
     isActive: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

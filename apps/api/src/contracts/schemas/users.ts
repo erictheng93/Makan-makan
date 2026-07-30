@@ -28,7 +28,7 @@ export const UserSchema = z
     isActive: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -40,7 +40,7 @@ export const ListUsersResponse = z
     data: z.array(UserSchema).optional(),
     meta: PaginationMetaSchema.optional(),
   })
-  .passthrough();
+  .loose();
 
 export const GetUserResponse = successEnvelope(UserSchema);
 export const CreateUserResponse = successEnvelope(UserSchema);
@@ -54,7 +54,7 @@ export const UserStatsResponse = successEnvelope(
       totalUsers: z.number().optional(),
       activeUsers: z.number().optional(),
     })
-    .passthrough(),
+    .loose(),
 );
 
 export const USER_SENSITIVE_FIELDS = [

@@ -77,7 +77,7 @@ export const OrderSchema = z
     items: z.array(OrderItemSchema).optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -113,7 +113,7 @@ export const OrderStatsResponse = successEnvelope(
       totalRevenue: z.number(),
       averageOrderValue: z.number(),
     })
-    .passthrough(),
+    .loose(),
 );
 
 export const OrderReceiptResponse = successEnvelope(
@@ -128,11 +128,11 @@ export const OrderReceiptResponse = successEnvelope(
             quantity: z.number(),
             price: z.number(),
           })
-          .passthrough(),
+          .loose(),
       ),
       totalAmount: z.number(),
     })
-    .passthrough(),
+    .loose(),
 );
 
 export const CouponPreviewResponse = successEnvelope(
@@ -141,5 +141,5 @@ export const CouponPreviewResponse = successEnvelope(
       valid: z.boolean().optional(),
       discount: z.number().optional(),
     })
-    .passthrough(),
+    .loose(),
 );

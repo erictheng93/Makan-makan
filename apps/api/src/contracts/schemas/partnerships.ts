@@ -23,7 +23,7 @@ export const PartnershipSchema = z
     status: z.string(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const PlanSchema = z
   .object({
@@ -34,7 +34,7 @@ export const PlanSchema = z
     discountValue: z.number().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const MemberSchema = z
   .object({
@@ -46,7 +46,7 @@ export const MemberSchema = z
     status: z.string(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const UsageLogSchema = z
   .object({
@@ -55,7 +55,7 @@ export const UsageLogSchema = z
     amount: z.number().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -67,7 +67,7 @@ export const ListPartnershipsResponse = z
     success: z.literal(true),
     data: z.array(PartnershipSchema),
   })
-  .passthrough();
+  .loose();
 export const GetPartnershipResponse = successEnvelope(PartnershipSchema);
 export const UpdatePartnershipResponse = successEnvelope(PartnershipSchema);
 export const DeletePartnershipResponse = messageOnlyResponse;
@@ -79,7 +79,7 @@ export const ListPlansResponse = z
     success: z.literal(true),
     data: z.array(PlanSchema),
   })
-  .passthrough();
+  .loose();
 export const GetPlanResponse = successEnvelope(PlanSchema);
 export const ValidatePlanResponse = successEnvelope(z.unknown());
 
@@ -89,7 +89,7 @@ export const ListMembersResponse = z
     success: z.literal(true),
     data: z.array(MemberSchema),
   })
-  .passthrough();
+  .loose();
 export const ApproveMemberResponse = successWithMessage(MemberSchema);
 export const RejectMemberResponse = successWithMessage(MemberSchema);
 
@@ -99,4 +99,4 @@ export const ListUsageResponse = z
     success: z.literal(true),
     data: z.array(UsageLogSchema),
   })
-  .passthrough();
+  .loose();
