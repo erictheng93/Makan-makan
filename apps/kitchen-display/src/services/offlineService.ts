@@ -21,10 +21,12 @@ export interface OfflineAction {
 }
 
 export interface OfflineData {
-  orders: KitchenOrder[];
+  // Cached orders are NOT stored here — they live in a per-restaurant bucket
+  // (see cacheKeyFor) so a shared device cannot mix tenants.
   actions: OfflineAction[];
   lastSync: number;
   syncInProgress: boolean;
+  restaurantId?: string | null;
 }
 
 export interface SyncConflict {
@@ -37,8 +39,16 @@ export interface SyncConflict {
 
 class OfflineService {
   private readonly STORAGE_KEY = "kitchen-offline-data";
+  // Cached orders live at `<prefix>:<restaurantId>`. The bare prefix was the
+  // pre-tenant-scoping key, so it doubles as the legacy key the constructor
+  // purges on startup.
+  private readonly CACHED_ORDERS_PREFIX = "kitchen-cached-orders";
   private readonly MAX_RETRY_ATTEMPTS = 5;
   private readonly SYNC_INTERVAL = 30000; // 30 seconds
+
+  // Restaurant the cache is currently bound to. Kitchen displays are shared and
+  // re-assigned devices, so every cache read/write must be tenant-scoped.
+  private activeRestaurantId: string | null = null;
 
   // Reactive state
   public isOnline = ref(navigator.onLine);
@@ -54,6 +64,8 @@ class OfflineService {
   constructor() {
     this.initializeOfflineHandling();
     this.loadOfflineData();
+    // Drop any cache written before tenant scoping existed — it has no owner.
+    localStorage.removeItem(this.CACHED_ORDERS_PREFIX);
     this.startPeriodicSync();
   }
 
@@ -110,10 +122,10 @@ class OfflineService {
   // Data persistence
   private saveOfflineData() {
     const data: OfflineData = {
-      orders: this.getCachedOrders(),
       actions: this.pendingActions.value,
       lastSync: this.lastSyncTime.value,
       syncInProgress: this.syncInProgress.value,
+      restaurantId: this.activeRestaurantId,
     };
 
     try {
@@ -130,6 +142,7 @@ class OfflineService {
         const parsed: OfflineData = JSON.parse(data);
         this.pendingActions.value = parsed.actions || [];
         this.lastSyncTime.value = parsed.lastSync || 0;
+        this.activeRestaurantId = parsed.restaurantId ?? null;
 
         // Filter out old actions (older than 24 hours)
         const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -142,18 +155,74 @@ class OfflineService {
     }
   }
 
-  // Order caching
-  public cacheOrders(orders: KitchenOrder[]) {
+  // Order caching (tenant-scoped)
+  private cacheKeyFor(restaurantId: string): string {
+    return `${this.CACHED_ORDERS_PREFIX}:${restaurantId}`;
+  }
+
+  private resolveRestaurantScope(
+    restaurantId?: number | string | null,
+  ): string | null {
+    if (
+      restaurantId === undefined ||
+      restaurantId === null ||
+      restaurantId === ""
+    ) {
+      return this.activeRestaurantId;
+    }
+    return String(restaurantId);
+  }
+
+  /**
+   * 綁定離線快取到目前登入的餐廳。
+   * Switching tenants on the same device (shared or re-assigned kitchen display)
+   * drops the previous tenant's cached orders and queued actions so they can
+   * never be rendered or replayed under the new session's credentials.
+   */
+  public setActiveRestaurant(restaurantId?: number | string | null) {
+    const next =
+      restaurantId === undefined || restaurantId === null || restaurantId === ""
+        ? null
+        : String(restaurantId);
+
+    if (next === this.activeRestaurantId) return;
+
+    const previous = this.activeRestaurantId;
+    this.activeRestaurantId = next;
+
+    if (previous !== null) {
+      localStorage.removeItem(this.cacheKeyFor(previous));
+      this.pendingActions.value = [];
+      this.syncConflicts.value = [];
+    }
+
+    this.saveOfflineData();
+  }
+
+  public get currentRestaurantId(): string | null {
+    return this.activeRestaurantId;
+  }
+
+  public cacheOrders(orders: KitchenOrder[], restaurantId?: number | string) {
+    const scope = this.resolveRestaurantScope(restaurantId);
+    if (!scope) {
+      // No authenticated tenant — refuse to write an unowned cache.
+      return;
+    }
+
     try {
-      localStorage.setItem("kitchen-cached-orders", JSON.stringify(orders));
+      localStorage.setItem(this.cacheKeyFor(scope), JSON.stringify(orders));
     } catch (error) {
       console.error("Failed to cache orders:", error);
     }
   }
 
-  public getCachedOrders(): KitchenOrder[] {
+  public getCachedOrders(restaurantId?: number | string): KitchenOrder[] {
+    const scope = this.resolveRestaurantScope(restaurantId);
+    if (!scope) return [];
+
     try {
-      const cached = localStorage.getItem("kitchen-cached-orders");
+      const cached = localStorage.getItem(this.cacheKeyFor(scope));
       return cached ? JSON.parse(cached) : [];
     } catch (error) {
       console.error("Failed to get cached orders:", error);
@@ -548,8 +617,21 @@ class OfflineService {
   public clearOfflineData() {
     this.pendingActions.value = [];
     this.syncConflicts.value = [];
+    this.activeRestaurantId = null;
     localStorage.removeItem(this.STORAGE_KEY);
-    localStorage.removeItem("kitchen-cached-orders");
+    this.purgeCachedOrders();
+  }
+
+  /** Remove every tenant's cached orders, including the legacy unscoped key. */
+  private purgeCachedOrders() {
+    const keys: string[] = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(this.CACHED_ORDERS_PREFIX)) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((key) => localStorage.removeItem(key));
   }
 
   public destroy() {

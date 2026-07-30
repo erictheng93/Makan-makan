@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { User } from "@/types";
 import { authApi, apiClient } from "@/services/authApi";
+import { offlineService } from "@/services/offlineService";
 import { isTokenExpired } from "@makanmakan/utils";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -35,6 +36,9 @@ export const useAuthStore = defineStore("auth", () => {
         user.value = userData;
         token.value = authToken;
 
+        // 換人登入時丟掉前一間餐廳的離線快取（共用/轉移裝置）
+        offlineService.setActiveRestaurant(userData.restaurantId);
+
         // 保存到 localStorage (via shared auth-client)
         apiClient.tokens.setTokens(authToken);
         apiClient.tokens.setUser(userData);
@@ -64,6 +68,8 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = null;
       token.value = null;
       apiClient.tokens.clearAll();
+      // 離線快取含本餐廳訂單內容，登出後不得留在裝置上
+      offlineService.clearOfflineData();
     }
   };
 
@@ -105,6 +111,7 @@ export const useAuthStore = defineStore("auth", () => {
 
         token.value = savedToken;
         user.value = savedUser;
+        offlineService.setActiveRestaurant(savedUser.restaurantId);
 
         // Only refresh if token is expired or about to expire
         if (isTokenExpired(savedToken, 60)) {

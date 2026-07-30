@@ -21,6 +21,7 @@ vi.mock("@/services/offlineService", () => ({
     queueAction: vi.fn(),
     cacheOrders: vi.fn(),
     getCachedOrders: vi.fn(() => []),
+    setActiveRestaurant: vi.fn(),
   },
 }));
 
@@ -100,7 +101,13 @@ describe("orders store offline workflow", () => {
 
     await store.fetchOrders("restaurant-1");
 
-    expect(offlineService.cacheOrders).toHaveBeenCalledWith([cachedOrder]);
+    expect(offlineService.setActiveRestaurant).toHaveBeenCalledWith(
+      "restaurant-1",
+    );
+    expect(offlineService.cacheOrders).toHaveBeenCalledWith(
+      [cachedOrder],
+      "restaurant-1",
+    );
     expect(store.orders).toEqual([cachedOrder]);
   });
 
@@ -116,8 +123,29 @@ describe("orders store offline workflow", () => {
 
     await store.fetchOrders("restaurant-1");
 
+    expect(offlineService.getCachedOrders).toHaveBeenCalledWith("restaurant-1");
     expect(store.orders).toEqual([cachedOrder]);
     expect(store.error).toBeNull();
+  });
+
+  it("scopes the offline cache to the requested restaurant on every fetch", async () => {
+    const store = useOrdersStore();
+    vi.mocked(kitchenApi.getOrders).mockResolvedValue({
+      success: false,
+      error: "Network Error",
+      timestamp: "2026-06-08T01:00:00.000Z",
+    });
+
+    await store.fetchOrders("restaurant-2");
+
+    // Cache is bound to the tenant before it is read, so a device previously
+    // used by restaurant-1 cannot fall back onto restaurant-1's orders.
+    expect(offlineService.setActiveRestaurant).toHaveBeenCalledWith(
+      "restaurant-2",
+    );
+    expect(offlineService.getCachedOrders).toHaveBeenCalledWith("restaurant-2");
+    expect(offlineService.getCachedOrders).not.toHaveBeenCalledWith();
+    expect(store.orders).toEqual([]);
   });
 
   it("queues start cooking and updates local state while offline", async () => {

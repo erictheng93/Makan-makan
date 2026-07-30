@@ -177,6 +177,9 @@ export const useOrdersStore = defineStore("orders", () => {
     loading.value = true;
     error.value = null;
 
+    // 綁定離線快取到本次請求的餐廳，避免共用裝置讀到其他餐廳的舊訂單
+    offlineService.setActiveRestaurant(restaurantId);
+
     try {
       const response = await kitchenApi.getOrders(restaurantId);
 
@@ -189,7 +192,7 @@ export const useOrdersStore = defineStore("orders", () => {
         ];
 
         orders.value = allOrders;
-        offlineService.cacheOrders(allOrders);
+        offlineService.cacheOrders(allOrders, restaurantId);
         stats.value = response.data.stats;
         lastUpdated.value = new Date();
 
@@ -200,7 +203,7 @@ export const useOrdersStore = defineStore("orders", () => {
         throw new Error(response.error || "載入訂單失敗");
       }
     } catch (err: any) {
-      const cachedOrders = offlineService.getCachedOrders();
+      const cachedOrders = offlineService.getCachedOrders(restaurantId);
       if (shouldQueueOfflineAction() && cachedOrders.length > 0) {
         orders.value = cachedOrders;
         updateStats();
