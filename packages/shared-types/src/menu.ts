@@ -95,12 +95,12 @@ export interface CreateMenuItemRequest {
   options?: MenuItemOptions;
   sortOrder?: number;
   inventoryCount?: number;
-}
-
-export interface UpdateMenuItemRequest extends Partial<CreateMenuItemRequest> {
   isAvailable?: boolean;
   isFeatured?: boolean;
+  isPopular?: boolean;
 }
+
+export interface UpdateMenuItemRequest extends Partial<CreateMenuItemRequest> {}
 
 export interface MenuStructure {
   categories: Category[];

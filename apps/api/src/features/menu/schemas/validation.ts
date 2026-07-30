@@ -148,6 +148,15 @@ const menuItemBaseSchema = z.object({
   availableHours: availableHoursSchema.optional(),
   tags: z.array(z.string()).optional(),
   keywords: z.string().max(200).optional(),
+  // These five must live on the base schema so BOTH create and update accept
+  // them. They used to exist only on updateMenuItemSchema, so create requests
+  // had them silently stripped while the API still answered 201 (#78).
+  // No defaults here — the DB layer owns those (isAvailable=true, sortOrder=0).
+  isAvailable: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  isPopular: z.boolean().optional(),
+  sortOrder: nonNegativeInteger.optional(),
+  inventoryCount: nonNegativeInteger.optional(),
 });
 
 export const createMenuItemSchema = menuItemBaseSchema.extend({
@@ -155,13 +164,7 @@ export const createMenuItemSchema = menuItemBaseSchema.extend({
   preparationTime: positiveInteger.optional().default(15),
 });
 
-export const updateMenuItemSchema = menuItemBaseSchema.partial().extend({
-  isAvailable: z.boolean().optional(),
-  isFeatured: z.boolean().optional(),
-  isPopular: z.boolean().optional(),
-  sortOrder: nonNegativeInteger.optional(),
-  inventoryCount: nonNegativeInteger.optional(),
-});
+export const updateMenuItemSchema = menuItemBaseSchema.partial();
 
 // Category Schemas
 // Defaults live on the create schema only — see menuItemBaseSchema.
