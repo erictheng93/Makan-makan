@@ -39,8 +39,8 @@ type Context = {
 
 // Validation schemas
 const createBackupSchema = z.object({
-  restaurant_id: z.string().uuid("Invalid restaurant ID"),
-  configuration_id: z.string().uuid().optional(),
+  restaurant_id: z.uuid("Invalid restaurant ID"),
+  configuration_id: z.uuid().optional(),
   name: z.string().min(1, "Backup name is required").max(100),
   description: z.string().max(500).optional(),
   backup_type: z.enum(["full", "incremental", "differential"]).default("full"),
@@ -57,7 +57,7 @@ const uploadBackupSchema = z
   .passthrough();
 
 const listBackupsSchema = z.object({
-  restaurant_id: z.string().uuid("Invalid restaurant ID"),
+  restaurant_id: z.uuid("Invalid restaurant ID"),
   status: z
     .enum(["pending", "in_progress", "completed", "failed", "cancelled"])
     .optional(),
@@ -73,8 +73,8 @@ const listBackupsSchema = z.object({
 });
 
 const restoreBackupSchema = z.object({
-  restaurant_id: z.string().uuid("Invalid restaurant ID"),
-  backup_id: z.string().uuid("Invalid backup ID"),
+  restaurant_id: z.uuid("Invalid restaurant ID"),
+  backup_id: z.uuid("Invalid backup ID"),
   restore_type: z.enum(["full", "selective"]),
   target_tables: z.array(z.string()).optional(),
   overwrite_existing: z.boolean().default(false),
@@ -86,7 +86,7 @@ const restoreBackupSchema = z.object({
 });
 
 const configurationSchema = z.object({
-  restaurant_id: z.string().uuid("Invalid restaurant ID"),
+  restaurant_id: z.uuid("Invalid restaurant ID"),
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   backup_type: z.enum(["full", "incremental", "differential"]).default("full"),

@@ -12,11 +12,11 @@ const UserRole = z
   .enum(["admin", "shop_owner", "chef", "service_crew", "cashier"])
   .describe("0: Admin, 1: Shop Owner, 2: Chef, 3: Service Crew, 4: Cashier");
 const User = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   email: z.email(),
   name: z.string(),
   role: z.number().int().min(0).max(4),
-  restaurantId: z.string().uuid().optional(),
+  restaurantId: z.uuid().optional(),
   phone: z.string().optional(),
   avatar: z.url().optional(),
   isActive: z.boolean(),
@@ -36,7 +36,7 @@ export const UsersSchemas = {
 
   // Get Users Request
   GetUsersRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     role: z.number().int().min(0).max(4).optional(),
     isActive: z.boolean().optional(),
     search: z.string().optional(),
@@ -62,7 +62,7 @@ export const UsersSchemas = {
     password: z.string().min(8, "Password must be at least 8 characters"),
     name: z.string().min(1, "Name is required"),
     role: z.number().int().min(0).max(4),
-    restaurantId: z.string().uuid().optional(),
+    restaurantId: z.uuid().optional(),
     phone: z.string().optional(),
   }),
 
@@ -98,7 +98,7 @@ export const getUsersRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       role: z
@@ -171,7 +171,7 @@ export const updateUserRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      userId: z.string().uuid(),
+      userId: z.uuid(),
     }),
     body: {
       content: {
@@ -208,7 +208,7 @@ export const changePasswordRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      userId: z.string().uuid(),
+      userId: z.uuid(),
     }),
     body: {
       content: {
@@ -244,7 +244,7 @@ export const deleteUserRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      userId: z.string().uuid(),
+      userId: z.uuid(),
     }),
   },
   responses: {

@@ -35,9 +35,9 @@ export const LeavesSchemas = {
 
   // Leave Request
   LeaveRequest: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
+    userId: z.uuid(),
     leaveType: LeaveType,
     startDate: z.string().date(),
     endDate: z.string().date(),
@@ -45,7 +45,7 @@ export const LeavesSchemas = {
     totalDays: z.number().positive(),
     reason: z.string(),
     status: LeaveStatus,
-    reviewerId: z.string().uuid().optional(),
+    reviewerId: z.uuid().optional(),
     reviewerNotes: z.string().optional(),
     reviewedAt: z.string().datetime().optional(),
     attachments: z.array(z.url()).optional(),
@@ -55,8 +55,8 @@ export const LeavesSchemas = {
 
   // Create Leave Request
   CreateLeaveRequest: z.object({
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid(),
+    restaurantId: z.uuid(),
+    userId: z.uuid(),
     leaveType: LeaveType,
     startDate: z.string().date(),
     endDate: z.string().date(),
@@ -73,9 +73,9 @@ export const LeavesSchemas = {
 
   // Leave Balance
   LeaveBalance: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
+    userId: z.uuid(),
     leaveType: LeaveType,
     year: z.number().int(),
     totalAllowed: z.number().nonnegative(),
@@ -88,8 +88,8 @@ export const LeavesSchemas = {
 
   // Leave Policy
   LeavePolicy: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     leaveType: LeaveType,
     name: z.string(),
     defaultDays: z.number().nonnegative(),
@@ -105,7 +105,7 @@ export const LeavesSchemas = {
 
   // Leave Statistics
   LeaveStatistics: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     period: z.object({
       startDate: z.string().date(),
       endDate: z.string().date(),
@@ -141,10 +141,10 @@ export const getLeaveRequestsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
-      userId: z.string().uuid().optional(),
+      userId: z.uuid().optional(),
       leaveType: LeavesSchemas.LeaveType.optional(),
       status: LeavesSchemas.LeaveStatus.optional(),
       startDate: z.string().date().optional(),
@@ -218,7 +218,7 @@ export const updateLeaveStatusRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      requestId: z.string().uuid(),
+      requestId: z.uuid(),
     }),
     body: {
       content: {
@@ -255,10 +255,10 @@ export const getLeaveBalancesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
-      userId: z.string().uuid().optional(),
+      userId: z.uuid().optional(),
       year: z
         .string()
         .regex(/^\d{4}$/)
@@ -292,7 +292,7 @@ export const getLeavePoliciesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       isActive: z
@@ -327,7 +327,7 @@ export const getLeaveStatsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().date(),
@@ -360,7 +360,7 @@ export const cancelLeaveRequestRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      requestId: z.string().uuid(),
+      requestId: z.uuid(),
     }),
   },
   responses: {

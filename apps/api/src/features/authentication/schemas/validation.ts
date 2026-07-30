@@ -119,10 +119,7 @@ const registerSchema = z
     password: passwordSchema,
     confirmPassword: z.string().min(1, "Password confirmation is required"),
     role: roleSchema,
-    restaurantId: z
-      .string()
-      .uuid("Restaurant ID must be a valid UUID")
-      .optional(),
+    restaurantId: z.uuid("Restaurant ID must be a valid UUID").optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

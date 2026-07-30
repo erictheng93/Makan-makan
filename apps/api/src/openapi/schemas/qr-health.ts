@@ -32,8 +32,8 @@ export const QRHealthSchemas = {
 
   // QR Code Template
   QRTemplate: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     name: z.string(),
     type: QRCodeType,
     design: z.object({
@@ -57,7 +57,7 @@ export const QRHealthSchemas = {
 
   // Create QR Template Request
   CreateQRTemplateRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     name: z.string().min(1, "Template name is required"),
     type: QRCodeType,
     design: z.object({
@@ -79,9 +79,9 @@ export const QRHealthSchemas = {
   // Generate QR Code Request
   GenerateQRCodeRequest: z.object({
     type: QRCodeType,
-    targetId: z.string().uuid(), // tableId, seatId, restaurantId, etc.
-    restaurantId: z.string().uuid(),
-    templateId: z.string().uuid().optional(),
+    targetId: z.uuid(), // tableId, seatId, restaurantId, etc.
+    restaurantId: z.uuid(),
+    templateId: z.uuid().optional(),
     format: QRCodeFormat.default("png"),
     size: z.number().int().min(128).max(2048).default(512),
     metadata: z.record(z.string(), z.string()).optional(),
@@ -91,7 +91,7 @@ export const QRHealthSchemas = {
   GenerateQRCodeResponse: z.object({
     success: z.boolean(),
     qrCode: z.object({
-      id: z.string().uuid(),
+      id: z.uuid(),
       type: QRCodeType,
       url: z.url(),
       imageUrl: z.url(),
@@ -105,11 +105,11 @@ export const QRHealthSchemas = {
   BulkGenerateQRCodesRequest: z.object({
     type: QRCodeType,
     targetIds: z
-      .array(z.string().uuid())
+      .array(z.uuid())
       .min(1, "At least one target ID required")
       .max(100),
-    restaurantId: z.string().uuid(),
-    templateId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    templateId: z.uuid().optional(),
     format: QRCodeFormat.default("png"),
     size: z.number().int().min(128).max(2048).default(512),
   }),
@@ -119,8 +119,8 @@ export const QRHealthSchemas = {
     success: z.boolean(),
     qrCodes: z.array(
       z.object({
-        id: z.string().uuid(),
-        targetId: z.string().uuid(),
+        id: z.uuid(),
+        targetId: z.uuid(),
         type: QRCodeType,
         url: z.url(),
         imageUrl: z.url(),
@@ -294,7 +294,7 @@ export const getQRTemplatesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       type: QRHealthSchemas.QRCodeType.optional(),

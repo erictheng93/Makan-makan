@@ -244,8 +244,8 @@ export const MenuSchemas = {
 
   // Get Menu Items Request
   GetMenuItemsRequest: z.object({
-    restaurantId: z.string().uuid(),
-    categoryId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    categoryId: z.uuid().optional(),
     available: z.boolean().optional(),
     page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
     pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
@@ -268,7 +268,7 @@ export const MenuSchemas = {
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
     price: z.number().positive("Price must be positive"),
-    categoryId: z.string().uuid("Invalid category ID"),
+    categoryId: z.uuid("Invalid category ID"),
     imageUrl: z.url().optional(),
     tags: z.array(z.string()).optional(),
   }),
@@ -278,7 +278,7 @@ export const MenuSchemas = {
 const OrderStatus = z.enum(ORDER_STATUSES);
 const OrderItem = z.object({
   id: z.string(),
-  menuItemId: z.string().uuid(),
+  menuItemId: z.uuid(),
   name: z.string(),
   quantity: z.number().int().positive(),
   price: z.number().positive(),
@@ -300,9 +300,9 @@ export const OrdersSchemas = {
   Order: z.object({
     id: z.string(),
     orderNumber: z.string(),
-    restaurantId: z.string().uuid(),
-    tableId: z.string().uuid().optional(),
-    customerId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    tableId: z.uuid().optional(),
+    customerId: z.uuid().optional(),
     status: OrderStatus,
     items: z.array(OrderItem),
     subtotal: z.number().nonnegative(),
@@ -314,13 +314,13 @@ export const OrdersSchemas = {
 
   // Create Order Request
   CreateOrderRequest: z.object({
-    restaurantId: z.string().uuid(),
-    tableId: z.string().uuid().optional(),
-    customerId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    tableId: z.uuid().optional(),
+    customerId: z.uuid().optional(),
     items: z
       .array(
         z.object({
-          menuItemId: z.string().uuid(),
+          menuItemId: z.uuid(),
           quantity: z.number().int().positive(),
           notes: z.string().optional(),
         }),
@@ -377,10 +377,10 @@ export const getMenuItemsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
-      categoryId: z.string().uuid().optional(),
+      categoryId: z.uuid().optional(),
       available: z
         .string()
         .transform((val) => val === "true")

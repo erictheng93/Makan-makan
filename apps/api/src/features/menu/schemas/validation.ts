@@ -137,7 +137,7 @@ const menuItemBaseSchema = z.object({
   price: priceSchema,
   originalPrice: priceSchema.optional(),
   imageUrl: imageUrlSchema,
-  imageId: z.string().uuid().nullish(),
+  imageId: z.uuid().nullish(),
   imageVariants: imageVariantsSchema.optional(),
   spiceLevel: z.number().int().min(0).max(5).optional(),
   preparationTime: positiveInteger.optional(),

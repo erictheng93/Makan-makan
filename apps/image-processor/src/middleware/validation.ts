@@ -101,7 +101,7 @@ export const imageSchemas = {
     altText: z.string().max(200).optional(),
     caption: z.string().max(500).optional(),
     tags: z.string().optional(), // comma-separated tags
-    restaurantId: z.string().uuid().optional(),
+    restaurantId: z.uuid().optional(),
   }),
 
   // 圖片處理參數
@@ -143,9 +143,9 @@ export const imageSchemas = {
 
   // 圖片列表查詢
   listQuery: z.object({
-    restaurantId: z.string().uuid().optional(),
+    restaurantId: z.uuid().optional(),
     category: z.string().optional(),
-    uploadedBy: z.string().uuid().optional(),
+    uploadedBy: z.uuid().optional(),
     tags: z.string().optional(), // comma-separated
     page: z.preprocess((val) => (val ? Number(val) : 1), z.number().default(1)),
     limit: z.preprocess(
@@ -197,7 +197,7 @@ export const imageSchemas = {
 
   // 分析查詢參數
   analyticsQuery: z.object({
-    restaurantId: z.string().uuid().optional(),
+    restaurantId: z.uuid().optional(),
     dateFrom: z.string().optional(),
     dateTo: z.string().optional(),
   }),

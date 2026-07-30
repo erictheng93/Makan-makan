@@ -70,7 +70,7 @@ export const joinGroupSchema = z.object({
 });
 
 export const addCartItemSchema = z.object({
-  memberId: z.string().uuid("Invalid member ID format"),
+  memberId: z.uuid("Invalid member ID format"),
   menuItemId: z
     .number()
     .int()
@@ -123,7 +123,7 @@ export const splitBillSchema = z
     customSplits: z
       .array(
         z.object({
-          memberId: z.string().uuid("Invalid member ID format"),
+          memberId: z.uuid("Invalid member ID format"),
           amount: z.number().positive("Amount must be positive"),
           items: z.array(z.any()),
         }),
@@ -132,7 +132,7 @@ export const splitBillSchema = z
     customAmounts: z
       .array(
         z.object({
-          memberId: z.string().uuid("Invalid member ID format"),
+          memberId: z.uuid("Invalid member ID format"),
           amount: z.number().positive("Amount must be positive"),
         }),
       )
@@ -174,7 +174,7 @@ export const processPaymentSchema = z.object({
 
 // Parameter validation schemas
 export const groupOrderIdParamSchema = z.object({
-  groupOrderId: z.string().uuid("Invalid group order ID format"),
+  groupOrderId: z.uuid("Invalid group order ID format"),
 });
 
 export const shareCodeParamSchema = z.object({
@@ -189,11 +189,11 @@ export const shareCodeParamSchema = z.object({
 });
 
 export const memberIdParamSchema = z.object({
-  memberId: z.string().uuid("Invalid member ID format"),
+  memberId: z.uuid("Invalid member ID format"),
 });
 
 export const itemIdParamSchema = z.object({
-  itemId: z.string().uuid("Invalid item ID format"),
+  itemId: z.uuid("Invalid item ID format"),
 });
 
 // Query parameter schemas

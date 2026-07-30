@@ -21,8 +21,8 @@ export const RealtimeSchemas = {
   WebSocketTokenPayload: z.object({
     roomType: RoomType,
     roomId: z.string(),
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    userId: z.uuid().optional(),
     role: z.number().int().min(0).max(4).optional(),
     exp: z.number().int(),
     iat: z.number().int(),
@@ -32,8 +32,8 @@ export const RealtimeSchemas = {
   GenerateTokenRequest: z.object({
     roomType: RoomType,
     roomId: z.string().min(1, "Room ID is required"),
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    userId: z.uuid().optional(),
     expiresIn: z.number().int().min(60).max(86400).default(3600), // 1 min to 24 hours
   }),
 
@@ -58,8 +58,8 @@ export const RealtimeSchemas = {
       .object({
         roomType: RoomType,
         roomId: z.string(),
-        restaurantId: z.string().uuid(),
-        userId: z.string().uuid().optional(),
+        restaurantId: z.uuid(),
+        userId: z.uuid().optional(),
         role: z.number().int().min(0).max(4).optional(),
         exp: z.number().int(),
         iat: z.number().int(),
@@ -330,7 +330,7 @@ export const getActiveRoomsRoute = createRoute({
   request: {
     query: z.object({
       roomType: RealtimeSchemas.RoomType.optional(),
-      restaurantId: z.string().uuid().optional(),
+      restaurantId: z.uuid().optional(),
     }),
   },
   responses: {

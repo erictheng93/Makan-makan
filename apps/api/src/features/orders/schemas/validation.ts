@@ -287,7 +287,7 @@ export const bulkOrderOperationSchema = z.object({
       notes: notesSchema(500).optional(),
     })
     .optional(),
-  batchId: z.string().uuid().optional(),
+  batchId: z.uuid().optional(),
 });
 
 // Analytics and statistics schemas
@@ -390,7 +390,7 @@ export const orderIdParamSchema = z.object({
 });
 
 export const orderBatchIdParamSchema = z.object({
-  batchId: z.string().uuid(),
+  batchId: z.uuid(),
 });
 
 export const orderItemIdParamSchema = z.object({

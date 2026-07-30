@@ -10,8 +10,8 @@ import { errorResponses } from "../config";
 // Define enums first to avoid circular reference
 const TableStatus = z.enum(["available", "occupied", "reserved", "cleaning"]);
 const Table = z.object({
-  id: z.string().uuid(),
-  restaurantId: z.string().uuid(),
+  id: z.uuid(),
+  restaurantId: z.uuid(),
   name: z.string().min(1),
   capacity: z.number().int().positive(),
   status: TableStatus,
@@ -34,7 +34,7 @@ export const TablesSchemas = {
 
   // Get Tables Request
   GetTablesRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     status: TableStatus.optional(),
     floor: z.string().optional(),
     page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
@@ -55,7 +55,7 @@ export const TablesSchemas = {
 
   // Create Table Request
   CreateTableRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     name: z.string().min(1, "Table name is required"),
     capacity: z.number().int().positive("Capacity must be positive"),
     floor: z.string().optional(),
@@ -97,7 +97,7 @@ export const getTablesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       status: TablesSchemas.TableStatus.optional(),
@@ -162,7 +162,7 @@ export const updateTableStatusRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      tableId: z.string().uuid(),
+      tableId: z.uuid(),
     }),
     body: {
       content: {
@@ -198,7 +198,7 @@ export const generateQRCodeRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      tableId: z.string().uuid(),
+      tableId: z.uuid(),
     }),
     body: {
       content: {
@@ -217,7 +217,7 @@ export const generateQRCodeRoute = createRoute({
             success: z.boolean(),
             data: z.object({
               qrCodeUrl: z.url(),
-              tableId: z.string().uuid(),
+              tableId: z.uuid(),
               expiresAt: z.string().datetime().optional(),
             }),
           }),
