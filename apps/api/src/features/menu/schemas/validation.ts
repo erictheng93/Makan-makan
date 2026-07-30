@@ -186,8 +186,8 @@ export const menuFilterSchema = z.object({
     .transform((val) => val === "true")
     .optional(),
   search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 // Bulk Operation Schemas
@@ -243,11 +243,11 @@ export const categoryIdParamSchema = z.object({
 
 // Query Parameter Schemas
 export const featuredItemsQuerySchema = z.object({
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("10"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
 });
 
 export const popularItemsQuerySchema = z.object({
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("10"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
 });
 
 export const analyticsQuerySchema = z.object({
@@ -275,12 +275,12 @@ export const menuExportQuerySchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeAnalytics: z
     .string()
     .transform((val) => val === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   categories: z.string().optional(), // Comma-separated category IDs
 });
 

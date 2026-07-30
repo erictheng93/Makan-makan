@@ -16,9 +16,9 @@ export const createRegisterSchema = z.object({
   name: z.string().min(1).max(100),
   location: z.string().max(100).optional(),
   restaurantId: z.string().min(1),
-  hardwareConfig: z.record(z.any()).optional(),
-  peripherals: z.record(z.any()).optional(),
-  settings: z.record(z.any()).optional(),
+  hardwareConfig: z.record(z.string(), z.any()).optional(),
+  peripherals: z.record(z.string(), z.any()).optional(),
+  settings: z.record(z.string(), z.any()).optional(),
 });
 
 export const startShiftSchema = z.object({
@@ -50,7 +50,7 @@ export const cashMovementSchema = z.object({
     message: "amount must not have more than two decimal places",
   }),
   description: z.string().min(1).max(200),
-  denominationBreakdown: z.record(z.number()).optional(),
+  denominationBreakdown: z.record(z.string(), z.number()).optional(),
   referenceId: z.number().int().positive().optional(),
   referenceType: z.string().optional(),
 });
@@ -99,8 +99,8 @@ export const receiptParamsSchema = z.object({
 });
 
 export const queryPaginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 export const dateRangeQuerySchema = z.object({

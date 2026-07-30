@@ -169,7 +169,6 @@
       "esbuild": "^0.25.0",
       "drizzle-orm": "0.45.2",
       "better-sqlite3": "12.6.0",
-      "zod": "^3.25.76",
       "incur>zod": "^4.3.6",
       "uuid": "^14.0.0",
       "@grpc/grpc-js": "^1.14.4",

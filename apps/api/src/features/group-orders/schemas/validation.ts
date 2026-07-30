@@ -81,7 +81,7 @@ export const addCartItemSchema = z.object({
     .int("Quantity must be an integer")
     .min(1, "Quantity must be at least 1")
     .max(99, "Quantity cannot exceed 99"),
-  customizations: z.record(z.any()).optional(),
+  customizations: z.record(z.string(), z.any()).optional(),
   specialInstructions: notesSchema(200).optional(),
 });
 
@@ -93,7 +93,7 @@ export const updateCartItemSchema = z
       .min(1, "Quantity must be at least 1")
       .max(99, "Quantity cannot exceed 99")
       .optional(),
-    customizations: z.record(z.any()).optional(),
+    customizations: z.record(z.string(), z.any()).optional(),
     specialInstructions: notesSchema(200).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
@@ -105,10 +105,8 @@ export const splitBillSchema = z
     splitType: z.enum(
       ["equal", "proportional", "individual", "by_item", "custom"],
       {
-        errorMap: () => ({
-          message:
-            "Split type must be one of: equal, proportional, individual, by_item, custom",
-        }),
+        error:
+          "Split type must be one of: equal, proportional, individual, by_item, custom",
       },
     ),
     serviceChargeRate: z
@@ -172,7 +170,7 @@ export const processPaymentSchema = z.object({
     .string()
     .max(100, "Transaction ID cannot exceed 100 characters")
     .optional(),
-  paymentDetails: z.record(z.any()).optional(), // Additional payment details (card info, etc.)
+  paymentDetails: z.record(z.string(), z.any()).optional(), // Additional payment details (card info, etc.)
 });
 
 // Parameter validation schemas

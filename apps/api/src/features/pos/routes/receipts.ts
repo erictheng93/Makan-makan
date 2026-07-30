@@ -163,13 +163,18 @@ app.get(
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .optional(),
       receiptType: z.enum(["customer", "kitchen", "merchant"]).optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
+      page: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .optional()
+        .prefault("1"),
       limit: z
         .string()
         .regex(/^\d+$/)
         .transform(Number)
         .optional()
-        .default("20"),
+        .prefault("20"),
     }),
   ),
   async (c) => {

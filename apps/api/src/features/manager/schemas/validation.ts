@@ -17,7 +17,7 @@ export const managerActionSchema = z.object({
   reason: z.string().max(500).optional(),
   // Free-form extension bag for action-specific arguments. The menu
   // availability handler reads { isAvailable: boolean } when present.
-  payload: z.record(z.any()).optional(),
+  payload: z.record(z.string(), z.any()).optional(),
 });
 
 export const auditLogQuerySchema = z.object({
@@ -27,8 +27,8 @@ export const auditLogQuerySchema = z.object({
   onBehalfOfUserId: z.string().trim().min(1).optional(),
   restaurantId: z.string().min(1).optional(),
   action: z.string().min(1).optional(),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("50"),
-  offset: z.string().regex(/^\d+$/).transform(Number).optional().default("0"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
+  offset: z.string().regex(/^\d+$/).transform(Number).optional().prefault("0"),
 });
 
 export type ManagerActionInput = z.infer<typeof managerActionSchema>;

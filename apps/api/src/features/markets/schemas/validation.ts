@@ -129,7 +129,7 @@ export const createMarketSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   boundaryGeojson: boundaryGeojsonSchema.nullable().optional(),
-  openingHours: z.record(z.any()).nullable().optional(),
+  openingHours: z.record(z.string(), z.any()).nullable().optional(),
   mapLayout: marketMapLayoutSchema.nullable().optional(),
   bannerUrl: urlSchema.nullable().optional(),
   logoUrl: urlSchema.nullable().optional(),
@@ -152,7 +152,7 @@ export const addMarketVendorSchema = z.object({
     })
     .nullable()
     .optional(),
-  marketHours: z.record(z.any()).nullable().optional(),
+  marketHours: z.record(z.string(), z.any()).nullable().optional(),
   isPrimary: z.boolean().optional(),
 });
 
@@ -166,7 +166,7 @@ export const updateMarketVendorSchema = z.object({
     })
     .nullable()
     .optional(),
-  marketHours: z.record(z.any()).nullable().optional(),
+  marketHours: z.record(z.string(), z.any()).nullable().optional(),
   isPrimary: z.boolean().optional(),
 });
 
@@ -199,7 +199,7 @@ const importMarketVendorSchema = z
       })
       .nullable()
       .optional(),
-    marketHours: z.record(z.any()).nullable().optional(),
+    marketHours: z.record(z.string(), z.any()).nullable().optional(),
     isPrimary: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
@@ -260,6 +260,6 @@ export const marketJoinRequestIdParamSchema = z.object({
 export const approveMarketJoinRequestSchema = z.object({
   stallNumber: z.string().max(80).nullable().optional(),
   locationLabel: z.string().max(160).nullable().optional(),
-  marketHours: z.record(z.any()).nullable().optional(),
+  marketHours: z.record(z.string(), z.any()).nullable().optional(),
   isPrimary: z.boolean().optional(),
 });

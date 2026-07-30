@@ -10,12 +10,13 @@ import { VALIDATION_LIMITS } from "../../../shared/constants";
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const PASSWORD_STRENGTH_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+const ipAddressSchema = z.union([z.ipv4(), z.ipv6()]);
 
 // Device and Location schemas
 const deviceInfoSchema = z
   .object({
     userAgent: z.string().max(500).optional(),
-    ipAddress: z.string().ip().optional(),
+    ipAddress: ipAddressSchema.optional(),
     platform: z.enum(["mobile", "desktop", "tablet"]).optional(),
     deviceType: z.string().max(100).optional(),
     browser: z.string().max(100).optional(),
@@ -350,7 +351,7 @@ const refreshTokenHeaderSchema = z.object({
 
 // Rate limiting validation
 const rateLimitSchema = z.object({
-  ip: z.string().ip(),
+  ip: ipAddressSchema,
   userAgent: z.string().max(500),
   endpoint: z.string().max(100),
   method: z.string().max(10),
@@ -372,10 +373,10 @@ const securityEventSchema = z.object({
   ]),
   userId: z.number().int().positive().optional(),
   username: z.string().max(50).optional(),
-  ipAddress: z.string().ip().optional(),
+  ipAddress: ipAddressSchema.optional(),
   userAgent: z.string().max(500).optional(),
   location: locationInfoSchema,
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
 });
 

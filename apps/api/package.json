@@ -30,7 +30,7 @@
     "hono": "^4.12.24",
     "jsonwebtoken": "^9.0.2",
     "qrcode": "^1.5.4",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260722.1",

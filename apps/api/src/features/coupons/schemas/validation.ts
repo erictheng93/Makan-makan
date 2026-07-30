@@ -57,8 +57,8 @@ export const couponFiltersSchema = z.object({
   discountType: z.enum(["percentage", "fixed"]).optional(),
   validOnly: z.boolean().optional(),
   search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 export const useCouponSchema = z.object({

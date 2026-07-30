@@ -84,8 +84,8 @@ export const userFilterSchema = z.object({
     .transform((val) => val === "true")
     .optional(),
   search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 /**
@@ -122,7 +122,7 @@ export const userStatsSchema = z.object({
 export const userSearchSchema = z.object({
   query: z.string().min(1),
   restaurantId: restaurantIdQuerySchema,
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("10"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

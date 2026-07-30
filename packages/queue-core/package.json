@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@makanmakan/shared-types": "workspace:*",
-    "zod": "^3.22.0"
+    "zod": "^4.4.3"
   },
   "exports": {
     ".": {

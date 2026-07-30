@@ -73,7 +73,7 @@ routes.get("/reset-password/verify", async (c) => {
     return c.json(
       {
         valid: false,
-        error: validation.error.errors[0].message,
+        error: validation.error.issues[0].message,
       },
       400,
     );
@@ -133,7 +133,7 @@ routes.post(
       return c.json(
         {
           success: false,
-          error: validation.error.errors[0].message,
+          error: validation.error.issues[0].message,
         },
         400,
       );
@@ -186,7 +186,7 @@ routes.get("/verify-email", async (c) => {
     return c.json(
       {
         success: false,
-        error: validation.error.errors[0].message,
+        error: validation.error.issues[0].message,
       },
       400,
     );
@@ -246,7 +246,7 @@ routes.post(
       return c.json(
         {
           success: false,
-          error: validation.error.errors[0].message,
+          error: validation.error.issues[0].message,
         },
         400,
       );
@@ -301,7 +301,7 @@ routes.post("/verify-phone", customerAuthMiddleware, async (c) => {
     return c.json(
       {
         success: false,
-        error: validation.error.errors[0].message,
+        error: validation.error.issues[0].message,
       },
       400,
     );

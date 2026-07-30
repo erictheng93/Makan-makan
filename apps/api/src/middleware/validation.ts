@@ -3,7 +3,7 @@ import { z } from "zod";
 import { badRequest } from "../shared/utils/api-error";
 
 const formatZodDetails = (error: z.ZodError) =>
-  error.errors.map((err) => ({
+  error.issues.map((err) => ({
     field: err.path.join("."),
     message: err.message,
     code: err.code,
@@ -86,8 +86,13 @@ export const commonSchemas = {
   }),
 
   paginationQuery: z.object({
-    page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-    limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+    page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+    limit: z
+      .string()
+      .regex(/^\d+$/)
+      .transform(Number)
+      .optional()
+      .prefault("20"),
     search: z.string().optional(),
   }),
 

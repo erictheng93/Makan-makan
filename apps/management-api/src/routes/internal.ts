@@ -76,7 +76,7 @@ router.post("/platform-restaurants/:restaurantId/tenant", async (c) => {
     return c.json({ success: true, data: { tenant } }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.issues);
     }
     if (error instanceof ApiError) throw error;
 
@@ -112,7 +112,7 @@ router.patch("/platform-restaurants/:restaurantId/owner", async (c) => {
     return c.json({ success: true, data: { tenant } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.issues);
     }
     if (error instanceof ApiError) throw error;
     if (

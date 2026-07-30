@@ -49,7 +49,7 @@ export const createPartnershipSchema = z.object({
   verificationMethod: z
     .enum(["manual", "email_domain", "id_card", "qr_code", "api"])
     .default("manual"),
-  verificationConfig: z.record(z.any()).optional(),
+  verificationConfig: z.record(z.string(), z.any()).optional(),
   allowedEmailDomains: z.array(z.string()).optional(),
 
   // 優惠設定
@@ -61,7 +61,7 @@ export const createPartnershipSchema = z.object({
   description: z.string().max(1000).optional(),
   notes: z.string().max(1000).optional(),
   tags: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -88,8 +88,8 @@ export const partnershipFiltersSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  page: z.string().transform(Number).default("1"),
-  limit: z.string().transform(Number).default("20"),
+  page: z.string().transform(Number).prefault("1"),
+  limit: z.string().transform(Number).prefault("20"),
 });
 
 // ================================================
@@ -154,7 +154,7 @@ export const createPlanSchema = z.object({
   // 額外資訊
   termsAndConditions: z.string().max(2000).optional(),
   notes: z.string().max(1000).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -179,8 +179,8 @@ export const planFiltersSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  page: z.string().transform(Number).default("1"),
-  limit: z.string().transform(Number).default("20"),
+  page: z.string().transform(Number).prefault("1"),
+  limit: z.string().transform(Number).prefault("20"),
 });
 
 /**
@@ -256,7 +256,7 @@ export const updateMemberSchema = z
     department: z.string().max(200).optional(),
     gradeOrPosition: z.string().max(100).optional(),
     notes: z.string().max(1000).optional(),
-    metadata: z.record(z.any()).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
   })
   .partial();
 
@@ -276,8 +276,8 @@ export const memberFiltersSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  page: z.string().transform(Number).default("1"),
-  limit: z.string().transform(Number).default("20"),
+  page: z.string().transform(Number).prefault("1"),
+  limit: z.string().transform(Number).prefault("20"),
 });
 
 // ================================================
@@ -311,7 +311,7 @@ export const logUsageSchema = z.object({
   verifiedByUserId: z.number().int().positive().optional(),
 
   // 額外資訊
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -331,8 +331,8 @@ export const usageLogFiltersSchema = z.object({
     .string()
     .transform((val) => new Date(val).getTime())
     .optional(),
-  page: z.string().transform(Number).default("1"),
-  limit: z.string().transform(Number).default("20"),
+  page: z.string().transform(Number).prefault("1"),
+  limit: z.string().transform(Number).prefault("20"),
 });
 
 /**
@@ -378,8 +378,8 @@ export const memberIdParamSchema = z.object({
  * 分頁Schema
  */
 export const paginationSchema = z.object({
-  page: z.string().transform(Number).default("1"),
-  limit: z.string().transform(Number).default("20"),
+  page: z.string().transform(Number).prefault("1"),
+  limit: z.string().transform(Number).prefault("20"),
 });
 
 // ================================================

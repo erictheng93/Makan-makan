@@ -71,7 +71,7 @@ router.get("/applications", async (c) => {
     throw badRequest(
       "Validation failed",
       "VALIDATION_ERROR",
-      parsed.error.errors,
+      parsed.error.issues,
     );
   }
 

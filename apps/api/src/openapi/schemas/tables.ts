@@ -37,8 +37,8 @@ export const TablesSchemas = {
     restaurantId: z.string().uuid(),
     status: TableStatus.optional(),
     floor: z.string().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+    page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
   }),
 
   // Get Tables Response
@@ -102,8 +102,8 @@ export const getTablesRoute = createRoute({
     query: z.object({
       status: TablesSchemas.TableStatus.optional(),
       floor: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

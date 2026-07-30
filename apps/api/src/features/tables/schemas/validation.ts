@@ -107,8 +107,8 @@ export const tableFilterSchema = z.object({
   minCapacity: z.string().regex(/^\d+$/).transform(Number).optional(),
   maxCapacity: z.string().regex(/^\d+$/).transform(Number).optional(),
   search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 // Table occupation schema

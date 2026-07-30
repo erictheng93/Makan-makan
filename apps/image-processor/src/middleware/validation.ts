@@ -4,7 +4,7 @@ import type { Env } from "../types/env";
 
 // 通用驗證錯誤處理
 export const handleValidationError = (error: z.ZodError) => {
-  const errors = error.errors.map((err) => ({
+  const errors = error.issues.map((err) => ({
     field: err.path.join("."),
     message: err.message,
     code: err.code,
@@ -192,7 +192,7 @@ export const imageSchemas = {
     caption: z.string().max(500).optional(),
     category: z.string().max(50).optional(),
     tags: z.array(z.string()).optional(),
-    variants: z.record(z.string()).optional(),
+    variants: z.record(z.string(), z.string()).optional(),
   }),
 
   // 分析查詢參數
@@ -211,7 +211,7 @@ export const imageSchemas = {
       "update_tags",
       "generate_variants",
     ]),
-    data: z.record(z.any()).optional(),
+    data: z.record(z.string(), z.any()).optional(),
   }),
 };
 

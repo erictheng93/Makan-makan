@@ -120,13 +120,18 @@ app.get(
           return value;
         }, z.string().trim().min(1))
         .optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
+      page: z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .optional()
+        .prefault("1"),
       limit: z
         .string()
         .regex(/^\d+$/)
         .transform(Number)
         .optional()
-        .default("20"),
+        .prefault("20"),
     }),
   ),
   async (c) => {

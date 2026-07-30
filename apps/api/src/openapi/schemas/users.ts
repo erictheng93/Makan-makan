@@ -40,8 +40,8 @@ export const UsersSchemas = {
     role: z.number().int().min(0).max(4).optional(),
     isActive: z.boolean().optional(),
     search: z.string().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+    page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
   }),
 
   // Get Users Response
@@ -111,8 +111,8 @@ export const getUsersRoute = createRoute({
         .transform((val) => val === "true")
         .optional(),
       search: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

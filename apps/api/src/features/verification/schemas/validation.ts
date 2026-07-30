@@ -9,7 +9,7 @@ import { z } from "zod";
 export const forgotPasswordSchema = z.object({
   identifier: z.string().min(1, "請輸入 Email 或手機號碼"),
   method: z.enum(["email", "sms"], {
-    errorMap: () => ({ message: "請選擇 Email 或 SMS 方式" }),
+    error: "請選擇 Email 或 SMS 方式",
   }),
 });
 

@@ -75,7 +75,7 @@ export const AIAnalyticsSchemas = {
     details: z.string(),
     recommendations: z.array(z.string()),
     confidence: z.number().min(0).max(1),
-    dataPoints: z.record(z.any()),
+    dataPoints: z.record(z.string(), z.any()),
     metrics: z.object({
       potentialRevenue: z.number().optional(),
       potentialSavings: z.number().optional(),
@@ -296,8 +296,8 @@ export const getInsightsRoute = createRoute({
         .enum(["new", "acknowledged", "actioned", "dismissed"])
         .optional(),
       minConfidence: z.string().transform(Number).optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

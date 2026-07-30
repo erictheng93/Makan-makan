@@ -84,7 +84,7 @@ export const QRHealthSchemas = {
     templateId: z.string().uuid().optional(),
     format: QRCodeFormat.default("png"),
     size: z.number().int().min(128).max(2048).default(512),
-    metadata: z.record(z.string()).optional(),
+    metadata: z.record(z.string(), z.string()).optional(),
   }),
 
   // Generate QR Code Response
@@ -95,7 +95,7 @@ export const QRHealthSchemas = {
       type: QRCodeType,
       url: z.string().url(),
       imageUrl: z.string().url(),
-      metadata: z.record(z.string()),
+      metadata: z.record(z.string(), z.string()),
       createdAt: z.string().datetime(),
       expiresAt: z.string().datetime().optional(),
     }),

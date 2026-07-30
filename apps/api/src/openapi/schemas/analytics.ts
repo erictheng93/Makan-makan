@@ -262,11 +262,11 @@ export const getSalesReportRoute = createRoute({
       includeTopItems: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
       includeHourlyBreakdown: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
     }),
   },
   responses: {
@@ -303,7 +303,7 @@ export const getCustomerAnalyticsRoute = createRoute({
       includeSegmentation: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
     }),
   },
   responses: {
@@ -373,11 +373,11 @@ export const getInventoryAnalyticsRoute = createRoute({
       includeLowStock: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
       includeWaste: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
     }),
   },
   responses: {

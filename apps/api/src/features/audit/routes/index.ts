@@ -8,7 +8,7 @@ const auditActionSchema = z
   .object({
     action_type: z.string().min(1).max(100),
     target_id: z.union([z.string(), z.number()]).optional(),
-    data: z.record(z.unknown()).default({}),
+    data: z.record(z.string(), z.unknown()).default({}),
     user_id: z.union([z.string(), z.number()]).optional(),
     restaurant_id: z.union([z.string(), z.number()]).optional(),
     timestamp: z.string().optional(),

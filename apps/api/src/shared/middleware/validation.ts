@@ -13,7 +13,7 @@ import { badRequest } from "../utils/api-error";
 
 // Format Zod details for ApiError
 const formatZodDetails = (error: z.ZodError) =>
-  error.errors.map((err) => ({
+  error.issues.map((err) => ({
     field: err.path.join("."),
     message: err.message,
   }));

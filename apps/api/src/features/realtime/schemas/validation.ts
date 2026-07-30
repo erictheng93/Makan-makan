@@ -10,7 +10,7 @@ import { z } from "zod";
  */
 export const webSocketTokenRequestSchema = z.object({
   roomType: z.enum(["customer", "kitchen", "admin", "restaurant"], {
-    errorMap: () => ({ message: "Invalid room type" }),
+    error: "Invalid room type",
   }),
   roomId: z.string().min(1, "Room ID is required"),
   restaurantId: z.string().min(1, "Restaurant ID is required"),

@@ -49,7 +49,7 @@ export const generateAnalyticsSchema = z.object({
 // Product query schema
 export const productQuerySchema = z.object({
   timeRange: z.string().default("30d"),
-  limit: z.string().transform(Number).default("10"),
+  limit: z.string().transform(Number).prefault("10"),
 });
 
 // Usage query schema

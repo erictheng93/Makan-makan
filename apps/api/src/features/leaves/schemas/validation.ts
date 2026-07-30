@@ -236,8 +236,8 @@ export const leaveRequestFiltersSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 export const leaveBalanceQuerySchema = z.object({
@@ -256,11 +256,11 @@ export const statisticsQuerySchema = z.object({
 });
 
 export const upcomingLeavesQuerySchema = z.object({
-  days: z.string().regex(/^\d+$/).transform(Number).default("30"),
+  days: z.string().regex(/^\d+$/).transform(Number).prefault("30"),
 });
 
 export const expiringBalancesQuerySchema = z.object({
-  months: z.string().regex(/^\d+$/).transform(Number).default("3"),
+  months: z.string().regex(/^\d+$/).transform(Number).prefault("3"),
 });
 
 // Parameter Schemas

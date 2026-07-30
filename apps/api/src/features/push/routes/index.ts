@@ -20,7 +20,7 @@ const subscribeSchema = z
     user_type: z.string().min(1).max(50).default("admin"),
     role: z.union([z.string(), z.number()]).optional(),
     restaurant_id: z.union([z.string(), z.number()]).optional(),
-    device_info: z.record(z.unknown()).default({}),
+    device_info: z.record(z.string(), z.unknown()).default({}),
   })
   .passthrough();
 

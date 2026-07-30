@@ -247,8 +247,8 @@ export const MenuSchemas = {
     restaurantId: z.string().uuid(),
     categoryId: z.string().uuid().optional(),
     available: z.boolean().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+    page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
   }),
 
   // Get Menu Items Response
@@ -385,8 +385,8 @@ export const getMenuItemsRoute = createRoute({
         .string()
         .transform((val) => val === "true")
         .optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

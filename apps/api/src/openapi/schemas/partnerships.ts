@@ -279,8 +279,8 @@ export const getPartnershipsRoute = createRoute({
       restaurantId: z.string().optional(),
       status: PartnershipsSchemas.PartnershipStatus.optional(),
       partnerType: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {
@@ -480,8 +480,8 @@ export const getPlansRoute = createRoute({
         .transform((val) => val === "true")
         .optional(),
       discountType: PartnershipsSchemas.DiscountType.optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {
@@ -680,8 +680,8 @@ export const getMembersRoute = createRoute({
     query: z.object({
       partnershipId: z.string().regex(/^\d+$/).transform(Number).optional(),
       verificationStatus: PartnershipsSchemas.MemberStatus.optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {
@@ -901,8 +901,8 @@ export const getUsageLogsRoute = createRoute({
       status: PartnershipsSchemas.UsageLogStatus.optional(),
       startDate: z.string().datetime().optional(),
       endDate: z.string().datetime().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

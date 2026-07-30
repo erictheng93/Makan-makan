@@ -147,8 +147,8 @@ export const getRestaurantsRoute = createRoute({
         .transform((val) => val === "true")
         .optional(),
       search: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {
@@ -290,11 +290,11 @@ export const getRestaurantStatsRoute = createRoute({
       includePopularItems: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
       includePeakHours: z
         .string()
         .transform((val) => val === "true")
-        .default("true"),
+        .prefault("true"),
     }),
   },
   responses: {

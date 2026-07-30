@@ -59,8 +59,8 @@ export const CustomersSchemas = {
       .enum(["name", "totalSpent", "totalOrders", "lastVisit"])
       .optional(),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
-    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+    page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
   }),
 
   // Get Customers Response
@@ -97,8 +97,8 @@ export const CustomersSchemas = {
       .optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-    pageSize: z.string().regex(/^\d+$/).transform(Number).default("10"),
+    page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+    pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("10"),
   }),
 
   // Loyalty Points Transaction
@@ -181,8 +181,8 @@ export const getCustomersRoute = createRoute({
         .enum(["name", "totalSpent", "totalOrders", "lastVisit"])
         .optional(),
       sortOrder: z.enum(["asc", "desc"]).default("desc"),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {
@@ -281,8 +281,8 @@ export const getCustomerOrdersRoute = createRoute({
         .optional(),
       startDate: z.string().datetime().optional(),
       endDate: z.string().datetime().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("10"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("10"),
     }),
   },
   responses: {
@@ -393,8 +393,8 @@ export const getLoyaltyPointsHistoryRoute = createRoute({
     }),
     query: z.object({
       type: z.enum(["earn", "redeem", "expire", "adjust"]).optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

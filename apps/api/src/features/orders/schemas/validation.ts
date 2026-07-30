@@ -31,8 +31,8 @@ const positiveNumberSchema = z.number().positive();
 // const nonNegativeNumberSchema = z.number().min(0) // Available for future use
 const dateStringSchema = z.string().datetime().optional();
 const paginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 // Order status enum matching the shared-types canonical runtime tuple.
@@ -174,7 +174,7 @@ export const updatePaymentStatusSchema = z.object({
   transactionId: z.string().max(100).optional(),
   paymentIntentId: z.string().max(100).optional(),
   chargeId: z.string().max(100).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 // Order filtering and query schemas
@@ -255,7 +255,7 @@ export const orderSearchSchema = z.object({
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   ...orderFilterSchema.shape,
 });
 
@@ -304,12 +304,12 @@ export const orderStatsQuerySchema = z.object({
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeCustomers: z
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
 });
 
 export const popularItemsQuerySchema = z.object({
@@ -318,13 +318,13 @@ export const popularItemsQuerySchema = z.object({
     .enum(["today", "yesterday", "week", "month", "quarter", "year"])
     .optional()
     .default("month"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("10"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
   minQuantity: z
     .string()
     .regex(/^\d+$/)
     .transform(Number)
     .optional()
-    .default("1"),
+    .prefault("1"),
 });
 
 // Export schema
@@ -334,12 +334,12 @@ export const exportOrdersSchema = z.object({
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeCustomerInfo: z
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("true"),
+    .prefault("true"),
   columns: z.array(z.string()).optional(),
   ...orderFilterSchema.omit({ page: true, limit: true }).shape,
 });
@@ -351,7 +351,7 @@ export const generateReceiptSchema = z.object({
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("true"),
+    .prefault("true"),
   language: z.enum(["en", "zh", "ms"]).optional().default("en"),
   template: z.enum(["default", "thermal", "a4"]).optional().default("default"),
 });
@@ -452,7 +452,7 @@ export const kitchenOrderFilterSchema = z.object({
   assignedTo: optionalIdSchema,
   orderType: orderTypeSchema.optional(),
   fulfillmentType: fulfillmentTypeSchema.optional(),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("50"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
 });
 
 // Advanced query validation
@@ -461,27 +461,27 @@ export const advancedOrderQuerySchema = orderFilterSchema.extend({
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeCustomer: z
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeRestaurant: z
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeTable: z
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   includeAnalytics: z
     .string()
     .transform((s) => s === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
   fields: z
     .string()
     .transform((s) => s.split(","))
@@ -512,7 +512,7 @@ export const orderErrorSchema = z.object({
   message: z.string(),
   field: z.string().optional(),
   value: z.any().optional(),
-  details: z.record(z.any()).optional(),
+  details: z.record(z.string(), z.any()).optional(),
 });
 
 // Batch validation for bulk operations
@@ -584,17 +584,17 @@ export const getOrderValidation = {
       .string()
       .transform((s) => s === "true")
       .optional()
-      .default("true"),
+      .prefault("true"),
     includeCustomer: z
       .string()
       .transform((s) => s === "true")
       .optional()
-      .default("false"),
+      .prefault("false"),
     includeRestaurant: z
       .string()
       .transform((s) => s === "true")
       .optional()
-      .default("false"),
+      .prefault("false"),
   }),
 };
 

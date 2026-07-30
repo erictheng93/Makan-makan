@@ -62,8 +62,8 @@ export const setRecipeSchema = z.object({
 });
 
 export const ingredientListQuerySchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("50"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
   category: z.string().optional(),
   search: z.string().optional(),
   includeInactive: z

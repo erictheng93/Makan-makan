@@ -299,8 +299,8 @@ export const scheduleFiltersSchema = z.object({
   status: z
     .enum(["scheduled", "confirmed", "completed", "cancelled", "no_show"])
     .optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 export const conflictFiltersSchema = z.object({
@@ -323,8 +323,8 @@ export const conflictFiltersSchema = z.object({
   employeeId: idString.optional(),
   startDate: dateString.optional(),
   endDate: dateString.optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 export const swapRequestFiltersSchema = z.object({
@@ -342,8 +342,8 @@ export const swapRequestFiltersSchema = z.object({
     ])
     .optional(),
   requestType: z.enum(["swap", "cover", "drop"]).optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 export const statsQuerySchema = z.object({

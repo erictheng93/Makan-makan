@@ -73,7 +73,7 @@ export const RealtimeSchemas = {
     roomType: RoomType,
     roomId: z.string(),
     messageType: z.string(),
-    payload: z.record(z.any()),
+    payload: z.record(z.string(), z.any()),
     excludeSender: z.boolean().default(false),
     senderId: z.string().optional(),
   }),
@@ -105,7 +105,7 @@ export const RealtimeSchemas = {
   // WebSocket Event
   WebSocketEvent: z.object({
     type: z.string(),
-    payload: z.record(z.any()),
+    payload: z.record(z.string(), z.any()),
     timestamp: z.number().int(),
     roomType: RoomType.optional(),
     roomId: z.string().optional(),
@@ -206,7 +206,7 @@ export const broadcastMessageRoute = createRoute({
         "application/json": {
           schema: z.object({
             messageType: z.string(),
-            payload: z.record(z.any()),
+            payload: z.record(z.string(), z.any()),
             excludeSender: z.boolean().optional(),
             senderId: z.string().optional(),
           }),

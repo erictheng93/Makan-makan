@@ -278,7 +278,7 @@ const nearbyQuerySchema = z.object({
     .refine((val) => val > 0 && val <= 50, {
       message: "Limit must be between 1 and 50",
     })
-    .default("10"),
+    .prefault("10"),
 });
 
 // Popular restaurants query parameters
@@ -290,7 +290,7 @@ const popularQuerySchema = z.object({
     .refine((val) => val > 0 && val <= 50, {
       message: "Limit must be between 1 and 50",
     })
-    .default("10"),
+    .prefault("10"),
 });
 
 // Shop QR Code validation schemas

@@ -149,8 +149,8 @@ export const getLeaveRequestsRoute = createRoute({
       status: LeavesSchemas.LeaveStatus.optional(),
       startDate: z.string().date().optional(),
       endDate: z.string().date().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).default("1"),
-      pageSize: z.string().regex(/^\d+$/).transform(Number).default("20"),
+      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
+      pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),
   },
   responses: {

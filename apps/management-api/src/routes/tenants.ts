@@ -158,7 +158,7 @@ router.post("/", async (c) => {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.issues);
     }
     if (error instanceof ApiError) throw error;
 
@@ -194,7 +194,7 @@ router.patch("/:id", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw badRequest("Validation failed", "VALIDATION_ERROR", error.errors);
+      throw badRequest("Validation failed", "VALIDATION_ERROR", error.issues);
     }
     if (error instanceof ApiError) throw error;
 

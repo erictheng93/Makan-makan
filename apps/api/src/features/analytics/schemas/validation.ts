@@ -33,7 +33,7 @@ const analyticsQueryShape = {
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),
   groupBy: z.enum(["day", "week", "month", "year"]).default("day"),
-  limit: z.string().regex(/^\d+$/).transform(Number).default("30"),
+  limit: z.string().regex(/^\d+$/).transform(Number).prefault("30"),
 };
 
 // Base analytics query schema
@@ -50,7 +50,7 @@ export const revenueQuerySchema = queryWithRestaurantId({
   includeComparison: z
     .string()
     .transform((val) => val === "true")
-    .default("false"),
+    .prefault("false"),
 });
 
 // Performance analytics query schema
@@ -79,11 +79,11 @@ export const detailedPerformanceQuerySchema = queryWithRestaurantId({
   includeStaffMetrics: z
     .string()
     .transform((val) => val === "true")
-    .default("false"),
+    .prefault("false"),
   includeItemAnalysis: z
     .string()
     .transform((val) => val === "true")
-    .default("false"),
+    .prefault("false"),
 });
 
 // Owner dashboard query schema

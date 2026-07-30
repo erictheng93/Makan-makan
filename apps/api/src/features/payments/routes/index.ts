@@ -43,7 +43,7 @@ const createPaymentRequestSchema = z
         phone: z.string().optional(),
       })
       .optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
     returnUrl: z.string().url().optional(),
     cancelUrl: z.string().url().optional(),
   })
@@ -80,7 +80,7 @@ const rootPaymentRequestSchema = z
         phone: z.string().optional(),
       })
       .optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .passthrough()
   .superRefine((value, ctx) => {
