@@ -106,7 +106,17 @@ const updateContactProfileSchema = z.object({
   faqs: z.array(restaurantFaqInputSchema).max(50).optional().default([]),
 });
 
-const restaurantServiceItemInputSchema = z.object({
+/**
+ * Field shape without creation defaults.
+ *
+ * The update schema partial()s this rather than the create schema. Zod 4's
+ * .partial() does NOT strip .default(), so partialling a schema carrying
+ * defaults makes those fields materialise on an absent key. updateServiceItem
+ * writes every present key, so that silently overwrote serviceType and
+ * requiresBooking on partial updates, and it also defeated the
+ * "at least one field" refine below (an empty body was never empty).
+ */
+const restaurantServiceItemShapeSchema = z.object({
   name: z
     .string()
     .min(1, "Service name is required")
@@ -118,7 +128,7 @@ const restaurantServiceItemInputSchema = z.object({
     .transform(sanitizeFreeText)
     .nullable()
     .optional(),
-  serviceType: z.enum(RESTAURANT_SERVICE_TYPES).optional().default("general"),
+  serviceType: z.enum(RESTAURANT_SERVICE_TYPES).optional(),
   priceCents: z.number().int().min(0).nullable().optional(),
   priceLabel: z
     .string()
@@ -127,7 +137,7 @@ const restaurantServiceItemInputSchema = z.object({
     .nullable()
     .optional(),
   durationMinutes: z.number().int().min(1).max(1440).nullable().optional(),
-  requiresBooking: z.boolean().optional().default(false),
+  requiresBooking: z.boolean().optional(),
   bookingUrl: httpUrlSchema.nullable().optional(),
   availableHours: z
     .object({
@@ -152,7 +162,13 @@ const restaurantServiceItemInputSchema = z.object({
   isPublic: z.boolean().optional(),
 });
 
-const updateRestaurantServiceItemSchema = restaurantServiceItemInputSchema
+const restaurantServiceItemInputSchema =
+  restaurantServiceItemShapeSchema.extend({
+    serviceType: z.enum(RESTAURANT_SERVICE_TYPES).optional().default("general"),
+    requiresBooking: z.boolean().optional().default(false),
+  });
+
+const updateRestaurantServiceItemSchema = restaurantServiceItemShapeSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required",
