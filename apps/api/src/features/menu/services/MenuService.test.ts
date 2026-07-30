@@ -36,6 +36,14 @@ describe("MenuService", () => {
       getFeaturedItems: vi.fn(),
       getPopularItems: vi.fn(),
       batchUpdateAvailability: vi.fn(),
+      batchUpdatePricesScoped: vi.fn(),
+      batchMoveItemsScoped: vi.fn(),
+      // Ownership gate for the batch endpoints. Defaults to "every id asked
+      // for is owned" so existing tests exercise the happy path; a test that
+      // wants the rejection overrides it.
+      findOwnedMenuItemIds: vi.fn(
+        async (_restaurantId: string, ids: number[]) => new Set(ids),
+      ),
       incrementOrderCount: vi.fn(),
       incrementViewCount: vi.fn(),
       ...options?.dbService,
@@ -441,20 +449,42 @@ describe("MenuService", () => {
     expect(dbService.batchUpdateAvailability).toHaveBeenCalledWith("rest-1", [
       { id: 101, isAvailable: false },
     ]);
-    expect(dbService.updateMenuItem).toHaveBeenNthCalledWith(1, 101, {
-      price: 190,
-      originalPrice: 220,
+
+    // Prices and moves used to loop over updateMenuItem(), whose WHERE matched
+    // on id alone — that was the cross-tenant hole (#77). They now go through
+    // restaurant-scoped batch statements applied in one D1 transaction.
+    expect(dbService.updateMenuItem).not.toHaveBeenCalled();
+    expect(dbService.batchUpdatePricesScoped).toHaveBeenCalledWith("rest-1", [
+      { id: 101, price: 190, originalPrice: 220 },
+      { id: 102, price: 95 },
+    ]);
+    expect(dbService.batchMoveItemsScoped).toHaveBeenCalledWith("rest-1", [
+      { id: 101, categoryId: 8 },
+      { id: 102, categoryId: 8 },
+    ]);
+
+    // Every batch checks ownership before writing anything.
+    expect(dbService.findOwnedMenuItemIds).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects a batch naming an item from another restaurant", async () => {
+    const { service, dbService } = createService({
+      dbService: {
+        getCategory: vi.fn(async () => category({ id: 8 })),
+        // 101 belongs to rest-1; 999 does not.
+        findOwnedMenuItemIds: vi.fn(async () => new Set([101])),
+      },
     });
-    expect(dbService.updateMenuItem).toHaveBeenNthCalledWith(2, 102, {
-      price: 95,
-      originalPrice: undefined,
-    });
-    expect(dbService.updateMenuItem).toHaveBeenNthCalledWith(3, 101, {
-      categoryId: 8,
-    });
-    expect(dbService.updateMenuItem).toHaveBeenNthCalledWith(4, 102, {
-      categoryId: 8,
-    });
+
+    await expect(
+      service.batchUpdatePrices("rest-1", [
+        { id: 101, price: 10 },
+        { id: 999, price: 10 },
+      ] as never),
+    ).rejects.toMatchObject({ code: "MENU_ITEM_RESTAURANT_MISMATCH" });
+
+    // All-or-nothing: the owned id must not be written either.
+    expect(dbService.batchUpdatePricesScoped).not.toHaveBeenCalled();
   });
 
   it("transforms raw category fields used by management views", async () => {

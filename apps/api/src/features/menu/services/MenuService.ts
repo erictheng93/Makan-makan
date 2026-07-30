@@ -361,6 +361,17 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: updates.length,
       });
+
+      // This endpoint was never vulnerable — its WHERE has always carried
+      // restaurantId, so a foreign id silently matched nothing. But silently
+      // is the problem: it answered 200 for items it had not touched, while
+      // the two sibling endpoints now answer 403. Same check, so all three
+      // report the same thing for the same request.
+      await this.assertItemsBelongToRestaurant(
+        updates.map((update) => update.id),
+        restaurantId,
+      );
+
       await this.dbService.batchUpdateAvailability(restaurantId, updates);
       this.logger.info("Batch availability update completed", { restaurantId });
     } catch (error) {
@@ -382,12 +393,14 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: updates.length,
       });
-      for (const update of updates) {
-        await this.dbService.updateMenuItem(update.id, {
-          price: update.price,
-          originalPrice: update.originalPrice,
-        });
-      }
+
+      await this.assertItemsBelongToRestaurant(
+        updates.map((update) => update.id),
+        restaurantId,
+      );
+
+      await this.dbService.batchUpdatePricesScoped(restaurantId, updates);
+
       this.logger.info("Batch price update completed", { restaurantId });
     } catch (error) {
       this.logger.error(
@@ -408,14 +421,19 @@ export class MenuService implements IMenuService {
         restaurantId,
         count: moves.length,
       });
+      // Both halves of the move have to be checked. The destination category
+      // was already validated here; the item itself was not, so an owner could
+      // move another restaurant's item into their own category (#77).
       for (const move of moves) {
         await this.validateCategoryAccess(move.categoryId, restaurantId);
       }
-      for (const move of moves) {
-        await this.dbService.updateMenuItem(move.id, {
-          categoryId: move.categoryId,
-        });
-      }
+      await this.assertItemsBelongToRestaurant(
+        moves.map((move) => move.id),
+        restaurantId,
+      );
+
+      await this.dbService.batchMoveItemsScoped(restaurantId, moves);
+
       this.logger.info("Batch category move completed", { restaurantId });
     } catch (error) {
       this.logger.error(
@@ -583,6 +601,45 @@ export class MenuService implements IMenuService {
 
   async getCategoryById(id: number): Promise<Category | null> {
     return this.getCategory(id);
+  }
+
+  /**
+   * Rejects the whole batch unless every id belongs to this restaurant.
+   *
+   * The batch endpoints only ever validated the restaurantId in the path, which
+   * an owner sets to their own restaurant, and never the ids in the body. The
+   * underlying updateMenuItem() matched on `id` alone, so foreign ids were
+   * updated exactly as readily as your own (#77).
+   *
+   * All-or-nothing on purpose: a partial apply would leave the caller with a
+   * success response and a half-changed menu, and would tell an attacker which
+   * ids exist elsewhere.
+   */
+  private async assertItemsBelongToRestaurant(
+    ids: number[],
+    restaurantId: string,
+  ): Promise<void> {
+    if (ids.length === 0) return;
+
+    const uniqueIds = [...new Set(ids)];
+    const owned = await this.dbService.findOwnedMenuItemIds(
+      restaurantId,
+      uniqueIds,
+    );
+
+    const foreign = uniqueIds.filter((id) => !owned.has(id));
+    if (foreign.length > 0) {
+      this.logger.warn("Rejected batch touching foreign menu items", {
+        restaurantId,
+        foreign,
+      });
+      // Deliberately does not say whether the id exists at all — "not yours"
+      // and "does not exist" must look the same from outside.
+      throw forbidden(
+        "One or more menu items do not belong to the specified restaurant",
+        "MENU_ITEM_RESTAURANT_MISMATCH",
+      );
+    }
   }
 
   private async validateCategoryAccess(

@@ -1,4 +1,5 @@
-import { eq, and, desc, asc, count, sql, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql, isNull, inArray } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
 import { restaurants, categories, menuItems } from "../schema";
 import type {
@@ -419,6 +420,127 @@ export class MenuService extends BaseService {
       );
     } catch (error) {
       this.handleError(error, "batchUpdateAvailability");
+    }
+  }
+
+  /**
+   * Which of `ids` actually belong to `restaurantId`.
+   *
+   * Callers use this to reject a whole batch before touching anything, rather
+   * than relying on a scoped WHERE to silently skip foreign rows — a skip looks
+   * identical to success from the outside, and the caller would report that it
+   * had updated items it never touched.
+   */
+  async findOwnedMenuItemIds(
+    restaurantId: string,
+    ids: number[],
+  ): Promise<Set<number>> {
+    if (ids.length === 0) return new Set();
+
+    try {
+      const rows = await this.db
+        .select({ id: menuItems.id })
+        .from(menuItems)
+        .where(
+          and(
+            eq(menuItems.restaurantId, restaurantId),
+            inArray(menuItems.id, ids),
+          ),
+        );
+
+      return new Set(rows.map((row) => row.id));
+    } catch (error) {
+      this.handleError(error, "findOwnedMenuItemIds");
+      return new Set();
+    }
+  }
+
+  /**
+   * Batch price update, scoped to one restaurant and applied atomically.
+   *
+   * Both the scoping and the atomicity matter. The service layer used to call
+   * updateMenuItem() in a loop, whose WHERE was `eq(menuItems.id, id)` with no
+   * restaurant condition, so any owner could rewrite another restaurant's
+   * prices by putting foreign item ids in the request body (#77). And because
+   * each iteration awaited separately with no transaction, a failure midway
+   * left some prices changed and others not.
+   */
+  async batchUpdatePricesScoped(
+    restaurantId: string,
+    updates: { id: number; price: number; originalPrice?: number | null }[],
+  ): Promise<void> {
+    if (updates.length === 0) return;
+
+    try {
+      const now = new Date();
+      const statements = updates.map(
+        (update) =>
+          this.db
+            .update(menuItems)
+            .set({
+              priceCents: toRequiredCents(update.price),
+              ...(update.originalPrice !== undefined
+                ? { originalPriceCents: toCents(update.originalPrice) }
+                : {}),
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(menuItems.id, update.id),
+                eq(menuItems.restaurantId, restaurantId),
+              ),
+            ) as BatchItem<"sqlite">,
+      ) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]];
+
+      await this.db.batch(statements);
+
+      await this.invalidateCache(
+        [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+        "tag",
+      );
+    } catch (error) {
+      this.handleError(error, "batchUpdatePricesScoped");
+    }
+  }
+
+  /**
+   * Batch category move, scoped and atomic for the same reasons as
+   * batchUpdatePricesScoped.
+   *
+   * getMenu() resolves items through restaurant -> categories -> menuItems and
+   * never reads menuItems.restaurantId, so an unscoped move was enough to make
+   * another restaurant's item appear on your public menu and disappear from
+   * theirs, with no way for them to see or undo it (#77).
+   */
+  async batchMoveItemsScoped(
+    restaurantId: string,
+    moves: { id: number; categoryId: number }[],
+  ): Promise<void> {
+    if (moves.length === 0) return;
+
+    try {
+      const now = new Date();
+      const statements = moves.map(
+        (move) =>
+          this.db
+            .update(menuItems)
+            .set({ categoryId: move.categoryId, updatedAt: now })
+            .where(
+              and(
+                eq(menuItems.id, move.id),
+                eq(menuItems.restaurantId, restaurantId),
+              ),
+            ) as BatchItem<"sqlite">,
+      ) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]];
+
+      await this.db.batch(statements);
+
+      await this.invalidateCache(
+        [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+        "tag",
+      );
+    } catch (error) {
+      this.handleError(error, "batchMoveItemsScoped");
     }
   }
 
