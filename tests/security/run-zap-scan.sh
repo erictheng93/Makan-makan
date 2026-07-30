@@ -16,6 +16,13 @@ ZAP_SESSION_NAME="${ZAP_SESSION_NAME:-makanmakan_${TIMESTAMP}}"
 ZAP_AUTH_USERNAME="${ZAP_AUTH_USERNAME:-${SMOKE_AUTH_USERNAME:-}}"
 ZAP_AUTH_PASSWORD="${ZAP_AUTH_PASSWORD:-${SMOKE_AUTH_PASSWORD:-}}"
 ZAP_API_SEED_PATHS="${ZAP_API_SEED_PATHS:-/api/v1 /api/v1/info /api/v1/orders}"
+# The ZAP daemon port doubles as an HTTP proxy and as a keyless control API
+# (api.disablekey=true below). Publishing it on 0.0.0.0 hands anyone on the LAN
+# an open proxy into this machine's localhost plus full scanner control — which
+# includes reading back the bearer token stored in the replacer rule. Bind
+# loopback by default; set ZAP_BIND_ADDRESS=0.0.0.0 to opt in explicitly.
+ZAP_BIND_ADDRESS="${ZAP_BIND_ADDRESS:-127.0.0.1}"
+ZAP_API_BASE="${ZAP_API_BASE:-http://127.0.0.1:$ZAP_PORT}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -42,27 +49,33 @@ ZAP_API_URL="${ZAP_API_URL:-$(normalize_for_zap "$API_URL")}"
 zap_api() {
     local path=$1
     shift
-    curl -fsS -G "http://localhost:$ZAP_PORT$path" "$@"
+    curl -fsS -G "$ZAP_API_BASE$path" "$@"
 }
 
 zap_api_optional() {
     local path=$1
     shift
-    curl -s -G "http://localhost:$ZAP_PORT$path" "$@" > /dev/null || true
+    curl -s -G "$ZAP_API_BASE$path" "$@" > /dev/null || true
 }
 
 # Check if ZAP is running
 echo "📡 Checking ZAP daemon..."
-if ! curl -s "http://localhost:$ZAP_PORT" > /dev/null 2>&1; then
+if ! curl -s "$ZAP_API_BASE" > /dev/null 2>&1; then
     echo "${YELLOW}⚠️  ZAP daemon not running. Starting...${NC}"
 
     # Check if running in Docker
     if command -v docker &> /dev/null; then
         echo "🐳 Starting ZAP in Docker..."
+        if [ "$ZAP_BIND_ADDRESS" != "127.0.0.1" ] && [ "$ZAP_BIND_ADDRESS" != "localhost" ]; then
+            echo "${RED}⚠️  ZAP_BIND_ADDRESS=$ZAP_BIND_ADDRESS — the keyless ZAP API and proxy will be reachable off-host.${NC}"
+        fi
+        # -host 0.0.0.0 is the *container-internal* bind (required to reach it
+        # through the published port); the host-side exposure is decided by
+        # ZAP_BIND_ADDRESS. Only the report dir is mounted, not the whole repo.
         docker run -d --name zap \
-            -p $ZAP_PORT:$ZAP_PORT \
+            -p "$ZAP_BIND_ADDRESS:$ZAP_PORT:$ZAP_PORT" \
             --add-host=host.docker.internal:host-gateway \
-            -v "$(pwd)":/zap/wrk/:rw \
+            -v "$(pwd)/${REPORT_DIR#./}":/zap/wrk/:rw \
             "$ZAP_IMAGE" \
             zap.sh -daemon -host 0.0.0.0 -port $ZAP_PORT \
             -config api.addrs.addr.name=.* \
@@ -77,7 +90,7 @@ if ! curl -s "http://localhost:$ZAP_PORT" > /dev/null 2>&1; then
 fi
 
 for i in {1..60}; do
-    if curl -fsS "http://localhost:$ZAP_PORT/JSON/core/view/version/" > /dev/null 2>&1; then
+    if curl -fsS "$ZAP_API_BASE/JSON/core/view/version/" > /dev/null 2>&1; then
         break
     fi
 
@@ -197,16 +210,23 @@ configure_auth_header() {
     fi
 
     echo "🔐 Fetching API token for authenticated scan..."
-    local login_response
-    if ! login_response=$(curl -fsS "$API_URL/api/v1/auth/login" \
+    # Credentials and the resulting token are passed through jq's environment and
+    # curl's stdin, never through argv — argv is world-readable via `ps` on both
+    # macOS and Linux, so a shared build host would leak them to any local user.
+    local login_payload login_response
+    login_payload=$(
+        ZAP_AUTH_USERNAME="$ZAP_AUTH_USERNAME" ZAP_AUTH_PASSWORD="$ZAP_AUTH_PASSWORD" \
+            jq -nc '{username: env.ZAP_AUTH_USERNAME, password: env.ZAP_AUTH_PASSWORD}'
+    )
+    if ! login_response=$(printf '%s' "$login_payload" | curl -fsS "$API_URL/api/v1/auth/login" \
         -H "Content-Type: application/json" \
-        --data "{\"username\":\"$ZAP_AUTH_USERNAME\",\"password\":\"$ZAP_AUTH_PASSWORD\"}"); then
+        --data @-); then
         echo "${YELLOW}⚠️  Login failed; continuing unauthenticated ZAP scan.${NC}"
         return
     fi
 
     local token
-    token=$(echo "$login_response" | jq -r '.data.token // .token // empty')
+    token=$(printf '%s' "$login_response" | jq -r '.data.token // .token // empty')
     if [ -z "$token" ]; then
         echo "${YELLOW}⚠️  Login response did not include a token; continuing unauthenticated ZAP scan.${NC}"
         return
@@ -214,15 +234,41 @@ configure_auth_header() {
 
     zap_api_optional "/JSON/replacer/action/removeRule/" \
         --data-urlencode "description=MakanMakan API bearer token"
-    zap_api "/JSON/replacer/action/addRule/" \
+    printf 'Bearer %s' "$token" | zap_api "/JSON/replacer/action/addRule/" \
         --data-urlencode "description=MakanMakan API bearer token" \
         --data-urlencode "enabled=true" \
         --data-urlencode "matchType=REQ_HEADER" \
         --data-urlencode "matchRegex=false" \
         --data-urlencode "matchString=Authorization" \
-        --data-urlencode "replacement=Bearer $token" > /dev/null
+        --data-urlencode "replacement@-" > /dev/null
+
+    # Remembered only so the report files can be checked for accidental leakage.
+    ZAP_BEARER_TOKEN="$token"
 
     echo "${GREEN}✅ Authenticated API scan header configured${NC}"
+}
+
+# ZAP's classic html/xml/json reports carry alert metadata, not request headers,
+# so the bearer token should never reach them. Verify rather than assume — a
+# report template change upstream would otherwise silently publish the token
+# into ./security-reports/.
+redact_bearer_token_in_reports() {
+    if [ -z "${ZAP_BEARER_TOKEN:-}" ]; then
+        return
+    fi
+
+    local report
+    for report in "$@"; do
+        if [ ! -f "$report" ]; then
+            continue
+        fi
+
+        if printf '%s' "$ZAP_BEARER_TOKEN" | grep -qFf - "$report"; then
+            ZAP_BEARER_TOKEN="$ZAP_BEARER_TOKEN" perl -pi \
+                -e 's/\Q$ENV{ZAP_BEARER_TOKEN}\E/[REDACTED]/g' "$report"
+            echo "${YELLOW}⚠️  Redacted bearer token from $(basename "$report")${NC}"
+        fi
+    done
 }
 
 seed_api_urls() {
@@ -325,19 +371,24 @@ assert_scanned_scope
 echo "📄 Generating reports..."
 
 # HTML Report
-curl -fsS "http://localhost:$ZAP_PORT/OTHER/core/other/htmlreport/" > "$REPORT_DIR/zap-report-$TIMESTAMP.html"
+curl -fsS "$ZAP_API_BASE/OTHER/core/other/htmlreport/" > "$REPORT_DIR/zap-report-$TIMESTAMP.html"
 echo "${GREEN}✅ HTML Report: $REPORT_DIR/zap-report-$TIMESTAMP.html${NC}"
 
 # JSON Report
-curl -fsS "http://localhost:$ZAP_PORT/JSON/core/view/alerts/" |
+curl -fsS "$ZAP_API_BASE/JSON/core/view/alerts/" |
     jq --arg dashboard "$ZAP_TARGET_URL" --arg api "$ZAP_API_URL" \
         '{alerts: [.alerts[] | select((.url | startswith($dashboard)) or (.url | startswith($api)))]}' \
         > "$REPORT_DIR/zap-alerts-$TIMESTAMP.json"
 echo "${GREEN}✅ JSON Report: $REPORT_DIR/zap-alerts-$TIMESTAMP.json${NC}"
 
 # XML Report
-curl -fsS "http://localhost:$ZAP_PORT/OTHER/core/other/xmlreport/" > "$REPORT_DIR/zap-report-$TIMESTAMP.xml"
+curl -fsS "$ZAP_API_BASE/OTHER/core/other/xmlreport/" > "$REPORT_DIR/zap-report-$TIMESTAMP.xml"
 echo "${GREEN}✅ XML Report: $REPORT_DIR/zap-report-$TIMESTAMP.xml${NC}"
+
+redact_bearer_token_in_reports \
+    "$REPORT_DIR/zap-report-$TIMESTAMP.html" \
+    "$REPORT_DIR/zap-alerts-$TIMESTAMP.json" \
+    "$REPORT_DIR/zap-report-$TIMESTAMP.xml"
 
 echo ""
 
