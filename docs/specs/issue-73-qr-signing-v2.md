@@ -79,10 +79,17 @@ quotes, trailing commas).
 3. Seat `01` on two different tables produces different signatures.
 4. Regenerating a table or seat makes its previous QR fail DB-backed
    verification.
-5. Public endpoints
-   `GET /qr-codes/verify/table/:tableId?qrCode=...` and
-   `GET /qr-codes/verify/seat/:seatId?qrCode=...` return only validated,
-   minimal identity data.
+5. Public endpoints return only validated, minimal identity data. The feature is
+   mounted at `/qr` (`app-factory.ts`: `apiV1.route("/qr", ...)`), not
+   `/qr-codes`, and there are two forms of each:
+
+   - `GET /api/v1/qr/verify/table?qrCode=...`
+     `GET /api/v1/qr/verify/seat?qrCode=...`
+     Resolve identity from the payload itself. This is what the customer app
+     calls (`signedQrApi.verify`), because a scanner only has the URL.
+   - `GET /api/v1/qr/verify/table/:entityId?qrCode=...`
+     `GET /api/v1/qr/verify/seat/:entityId?qrCode=...`
+     Assert the QR belongs to a specific known row.
 6. Guest realtime token generation supports table and seat QR payloads and
    rejects cross-table, cross-seat, inactive, deleted, or stale-version codes.
 
