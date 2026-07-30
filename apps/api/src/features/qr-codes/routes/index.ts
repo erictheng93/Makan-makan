@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { authMiddleware, requireRole } from "../../../shared/middleware";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import {
   validateBody,
   validateQuery,
@@ -40,6 +41,13 @@ import { QrCodesService } from "../services/QrCodesService";
 import { SignedQrVerificationService } from "../services/SignedQrVerificationService";
 
 const app = new Hono<{ Bindings: Env }>();
+
+const signedQrVerifyRateLimit = rateLimitMiddleware({
+  windowMs: 60 * 1000,
+  maxRequests: 60,
+  keyPrefix: "signed_qr_verify",
+  message: "Too many QR verification attempts. Please try again later.",
+});
 
 function qrDownloadCaller(user: {
   role: number;
@@ -329,6 +337,7 @@ app.delete(
  */
 app.get(
   "/verify/table",
+  signedQrVerifyRateLimit,
   validateQuery(qrCodeSchemas.signedQrQuery),
   async (c) => {
     const { qrCode } = c.get("validatedQuery") as SignedQrQueryInput;
@@ -351,6 +360,7 @@ app.get(
  */
 app.get(
   "/verify/seat",
+  signedQrVerifyRateLimit,
   validateQuery(qrCodeSchemas.signedQrQuery),
   async (c) => {
     const { qrCode } = c.get("validatedQuery") as SignedQrQueryInput;
@@ -373,6 +383,7 @@ app.get(
  */
 app.get(
   "/verify/table/:entityId",
+  signedQrVerifyRateLimit,
   validateParams(qrCodeSchemas.signedQrEntity),
   validateQuery(qrCodeSchemas.signedQrQuery),
   async (c) => {
@@ -397,6 +408,7 @@ app.get(
  */
 app.get(
   "/verify/seat/:entityId",
+  signedQrVerifyRateLimit,
   validateParams(qrCodeSchemas.signedQrEntity),
   validateQuery(qrCodeSchemas.signedQrQuery),
   async (c) => {

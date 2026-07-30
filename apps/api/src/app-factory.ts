@@ -19,6 +19,7 @@ import {
 import {
   smartCacheMiddleware,
   cacheWarmingMiddleware,
+  isPublicApiCacheableRequest,
 } from "./middleware/edge-cache";
 import { advancedAnalyticsMiddleware } from "./middleware/analytics";
 import { geoIntelligentRateLimitMiddleware } from "./middleware/geo-rate-limiting";
@@ -333,19 +334,7 @@ export function createApp(
           return tags;
         },
         shouldCache: (c) => {
-          // Cache GET requests, skip auth endpoints, prioritize menu/restaurant data
-          const method = c.req.method;
-          const path = c.req.path;
-          return (
-            method === "GET" &&
-            !path.includes("/auth/") &&
-            !path.includes("/sse/") &&
-            // Skip SSE streaming endpoints (kitchen, monitoring, etc.) — caching
-            // middleware would read the body and collapse the stream.
-            !path.endsWith("/events") &&
-            !path.includes("/payments/") &&
-            c.res.status < 400
-          );
+          return isPublicApiCacheableRequest(c.req.method, c.req.path);
         },
       }),
     );

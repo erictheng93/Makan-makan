@@ -112,7 +112,11 @@ export class TableService extends BaseService {
       }
 
       // Insert with a legacy-compatible value first because the v2 signature
-      // binds the auto-incremented table id, which does not exist yet.
+      // binds the auto-incremented table id, which does not exist yet. D1
+      // batch() is transactional, but the HMAC cannot be computed until this
+      // INSERT returns its id to JavaScript. If the best-effort v2 upgrade
+      // below fails, v1 remains valid and POST /tables/:id/regenerate-qr is
+      // the explicit repair path.
       const legacyQRCode = await this.generateLegacyQRCodeData(
         data.restaurantId,
         data.number,
@@ -150,15 +154,26 @@ export class TableService extends BaseService {
         })
         .returning();
 
-      const qrCode = await this.generateQRCodeData(
-        data.restaurantId,
-        newTable.id,
-        data.number,
-      );
-      await this.db
-        .update(tables)
-        .set({ qrCode, updatedAt: new Date() })
-        .where(eq(tables.id, newTable.id));
+      let qrCode = legacyQRCode;
+      try {
+        const upgradedQRCode = await this.generateQRCodeData(
+          data.restaurantId,
+          newTable.id,
+          data.number,
+        );
+        await this.db
+          .update(tables)
+          .set({ qrCode: upgradedQRCode, updatedAt: new Date() })
+          .where(eq(tables.id, newTable.id));
+        qrCode = upgradedQRCode;
+      } catch (error) {
+        // Do not report the whole create as failed after the INSERT committed:
+        // callers would retry and collide with the row that already exists.
+        console.warn(
+          `Table ${newTable.id} created with a v1 QR because its v2 upgrade failed; regenerate the QR to repair it.`,
+          error,
+        );
+      }
 
       // 如果是座位模式，自動創建座位
       if (qrMode === "seat" && seatCount > 0) {

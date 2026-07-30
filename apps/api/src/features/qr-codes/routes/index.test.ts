@@ -120,16 +120,33 @@ routes.onError((err, c) => {
   return c.json({ success: false, error: { message: String(err) } }, 500);
 });
 
-function request(path: string, method = "GET", body?: unknown) {
+function request(
+  path: string,
+  method = "GET",
+  body?: unknown,
+  options: {
+    headers?: Record<string, string>;
+    cacheKv?: {
+      get: (key: string, type?: string) => Promise<unknown>;
+      put: (
+        key: string,
+        value: string,
+        options?: { expirationTtl?: number },
+      ) => Promise<void>;
+    };
+  } = {},
+) {
   return routes.request(
     path,
     {
       method,
       body: body === undefined ? undefined : JSON.stringify(body),
-      headers:
-        body === undefined ? undefined : { "Content-Type": "application/json" },
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...options.headers,
+      },
     },
-    { DB: {}, CACHE_KV: {} } as never,
+    { DB: {}, CACHE_KV: options.cacheKv ?? {} } as never,
   );
 }
 
@@ -485,5 +502,44 @@ describe("QR code routes", () => {
     expect(signedQrServiceFns.verifySeatFromQrCode).toHaveBeenCalledWith(
       rawQrCode,
     );
+  });
+
+  it("rate limits public signed QR verification before repeated DB lookups", async () => {
+    const entries = new Map<string, string>();
+    const cacheKv = {
+      async get(key: string, type?: string) {
+        const value = entries.get(key);
+        if (value === undefined) return null;
+        return type === "json" ? JSON.parse(value) : value;
+      },
+      async put(key: string, value: string) {
+        entries.set(key, value);
+      },
+    };
+    signedQrServiceFns.verifyTableFromQrCode.mockResolvedValue({
+      valid: true,
+      type: "table",
+      restaurantId: "restaurant-1",
+      tableId: 10,
+      tableNumber: "T1",
+      formatVersion: 2,
+    });
+    const qrCode = encodeURIComponent("https://example.test/order?sig=abc");
+
+    let response: Response | undefined;
+    for (let attempt = 0; attempt < 61; attempt += 1) {
+      response = await request(
+        `/verify/table?qrCode=${qrCode}`,
+        "GET",
+        undefined,
+        {
+          headers: { "CF-Connecting-IP": "203.0.113.10" },
+          cacheKv,
+        },
+      );
+    }
+
+    expect(response?.status).toBe(429);
+    expect(signedQrServiceFns.verifyTableFromQrCode).toHaveBeenCalledTimes(60);
   });
 });

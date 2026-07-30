@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Completed maintainer-accepted AI-assisted locale copy for the previously stubbed `zh-CN`, `vi-VN`, `ms-MY`, and `id-ID` app locales in kitchen-display, onboarding-app, and management-portal. The approved handoff is recorded in `docs/i18n/locale-approval-manifest.json`, and `pnpm run check:i18n-locales:strict` now confirms all target locales match the `zh-TW` leaf-key coverage.
 
+### Changed
+
+- Seat-number uniqueness migrations `migrations_fresh/0075` and `migrations/0092` reconcile pre-existing duplicate `(table_id, seat_number)` rows by retaining the newest usable row and deleting the others before creating the unique index. Operators should audit or back up duplicate occupied seats before rollout: a discarded duplicate can carry a distinct `current_order_id`, and that seat-to-order pointer cannot be recovered from the migration itself.
+
 ## [2.1.1] - 2026-04-14
 
 ### Added

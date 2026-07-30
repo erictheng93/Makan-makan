@@ -97,4 +97,59 @@ describe("table and seat QR v2 generation", () => {
       parseSignedQRUrl(seatTwo.qrCode)?.signature,
     );
   });
+
+  it("keeps the valid v1 QR when the post-insert v2 upgrade fails", async () => {
+    const service = new TableService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+      QR_SIGNING_KEY: signingKey,
+      CLIENT_BASE_URL: "https://example.test",
+    });
+    const legacyRow = {
+      id: 91,
+      restaurantId,
+      number: "FALLBACK-1",
+      capacity: 2,
+      qrCode: "",
+      qrCodeVersion: 1,
+      qrMode: "table",
+      seatCount: 0,
+    };
+    const selectQuery = {
+      from: () => ({
+        where: () => ({ get: async () => undefined }),
+      }),
+    };
+    const insertQuery = {
+      values: (values: { qrCode: string }) => ({
+        returning: async () => [{ ...legacyRow, qrCode: values.qrCode }],
+      }),
+    };
+    const updateQuery = {
+      set: () => ({
+        where: async () => {
+          throw new Error("simulated D1 update failure");
+        },
+      }),
+    };
+
+    (service as unknown as { db: unknown }).db = {
+      select: () => selectQuery,
+      insert: () => insertQuery,
+      update: () => updateQuery,
+    };
+
+    const created = await service.createTable({
+      restaurantId,
+      number: legacyRow.number,
+      capacity: legacyRow.capacity,
+    });
+
+    expect(created.id).toBe(legacyRow.id);
+    expect(parseSignedQRUrl(created.qrCode)).toMatchObject({
+      formatVersion: 1,
+      type: "table",
+      restaurantId,
+      identifier: legacyRow.number,
+    });
+  });
 });

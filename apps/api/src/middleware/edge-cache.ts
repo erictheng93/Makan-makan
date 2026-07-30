@@ -46,6 +46,37 @@ interface CacheableApiResponse {
   [key: string]: unknown;
 }
 
+/**
+ * Keep the global edge cache fail-closed. Only public GET routes with known
+ * mutation invalidation keys belong here; security-sensitive reads such as
+ * QR/booking verification must opt in explicitly if they ever become safe.
+ */
+export function isPublicApiCacheableRequest(
+  method: string,
+  path: string,
+): boolean {
+  if (method !== "GET") return false;
+
+  const segments = path.split("/").filter(Boolean);
+  if (segments[0] !== "api" || segments[1] !== "v1") return false;
+
+  // These shapes mirror the exact keys invalidated by smartCacheMiddleware
+  // after mutations. Do not broaden them to namespace prefixes: those also
+  // contain authenticated analytics, market, and QR endpoints.
+  const isRestaurantMenu =
+    segments.length === 4 && segments[2] === "menu" && segments[3] !== "items";
+  const isRestaurantDetail =
+    segments.length === 4 &&
+    segments[2] === "restaurants" &&
+    segments[3] !== "popular";
+  const isAvailableCoupons =
+    segments.length === 5 &&
+    segments[2] === "coupons" &&
+    segments[3] === "available";
+
+  return isRestaurantMenu || isRestaurantDetail || isAvailableCoupons;
+}
+
 function isCacheableApiResponse(data: unknown): data is CacheableApiResponse {
   return (
     typeof data === "object" &&
