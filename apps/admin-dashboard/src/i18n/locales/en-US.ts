@@ -282,6 +282,9 @@ const enUS: Messages = {
       print: "Print QR",
       printAll: "Print all QR codes",
       printAllTitle: "Table QR codes",
+      printSelected: "Print selected ({count})",
+      selectAllFiltered: "Select all shown",
+      selectForPrint: "Select table {number} for printing",
     },
     confirm: {
       regenerateAllQR:

@@ -12,6 +12,7 @@ const RESTAURANT_ID = "019469a0-0099-7000-8000-000000000099";
 const toastMock = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
+  warning: vi.fn(),
 }));
 
 const confirmMock = vi.hoisted(() => vi.fn());
@@ -32,6 +33,16 @@ vi.mock("@/composables/useConfirmModal", () => ({
   useConfirmModal: () => ({ confirm: confirmMock }),
 }));
 
+const printQRCodeSheetMock = vi.hoisted(() => vi.fn(() => true));
+const toPrintableDataUrlMock = vi.hoisted(() =>
+  vi.fn(async (content: string) => `data:image/png;base64,${content}`),
+);
+
+vi.mock("@/utils/qrPrintSheet", () => ({
+  printQRCodeSheet: printQRCodeSheetMock,
+  toPrintableDataUrl: toPrintableDataUrlMock,
+}));
+
 vi.mock("@/services/api", () => ({
   api: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
   unwrapApiList: (data: unknown) => (Array.isArray(data) ? data : []),
@@ -46,7 +57,7 @@ function buildTable(overrides: Record<string, unknown> = {}) {
     location: "1F",
     isActive: true,
     isOccupied: false,
-    qrCode: "https://app.test/order?t=table",
+    qrCode: `qr-${(overrides as { id?: number }).id ?? 11}`,
     ...overrides,
   };
 }
@@ -233,5 +244,133 @@ describe("TableSetupTab", () => {
     expect(toastMock.error).toHaveBeenCalledWith(
       "tables.alert.statusChangeFailed",
     );
+  });
+});
+
+describe("TableSetupTab QR print selection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    confirmMock.mockResolvedValue(true);
+  });
+
+  function vmOf(wrapper: Awaited<ReturnType<typeof mountTab>>) {
+    return wrapper.vm as unknown as {
+      selectedTableIds: number[];
+      selectedPrintableCount: number;
+      toggleTableSelection: (id: number) => void;
+      toggleSelectAllFiltered: () => void;
+      allFilteredSelected: boolean;
+      printSelectedTableQRCodes: () => Promise<void>;
+      searchQuery: string;
+    };
+  }
+
+  it("starts with nothing selected", async () => {
+    const vm = vmOf(
+      await mountTab([
+        buildTable({ id: 1, number: "A1" }),
+        buildTable({ id: 2, number: "B1" }),
+      ]),
+    );
+    expect(vm.selectedTableIds).toEqual([]);
+    expect(vm.selectedPrintableCount).toBe(0);
+  });
+
+  it("toggles a single table on and off", async () => {
+    const vm = vmOf(await mountTab([buildTable({ id: 1 })]));
+    vm.toggleTableSelection(1);
+    expect(vm.selectedTableIds).toEqual([1]);
+    vm.toggleTableSelection(1);
+    expect(vm.selectedTableIds).toEqual([]);
+  });
+
+  it("keeps a selection made under one filter when the filter changes", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1, number: "A1", location: "1F" }),
+      buildTable({ id: 2, number: "B1", location: "2F" }),
+    ]);
+    const vm = vmOf(wrapper);
+
+    vm.searchQuery = "1F";
+    await wrapper.vm.$nextTick();
+    vm.toggleTableSelection(1);
+
+    // Filtering to another floor must not silently drop what is already picked:
+    // building a print run across sections is the point of selecting at all.
+    vm.searchQuery = "2F";
+    await wrapper.vm.$nextTick();
+    vm.toggleTableSelection(2);
+
+    expect([...vm.selectedTableIds].sort()).toEqual([1, 2]);
+  });
+
+  it("select-all applies to the filtered set only", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1, number: "A1", location: "1F" }),
+      buildTable({ id: 2, number: "B1", location: "2F" }),
+    ]);
+    const vm = vmOf(wrapper);
+
+    vm.searchQuery = "1F";
+    await wrapper.vm.$nextTick();
+    vm.toggleSelectAllFiltered();
+
+    expect(vm.selectedTableIds).toEqual([1]);
+    expect(vm.allFilteredSelected).toBe(true);
+  });
+
+  it("prints exactly the selected tables, not the filtered ones", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1, number: "A1" }),
+      buildTable({ id: 2, number: "B1" }),
+      buildTable({ id: 3, number: "C1" }),
+    ]);
+    const vm = vmOf(wrapper);
+
+    vm.toggleTableSelection(1);
+    vm.toggleTableSelection(3);
+    await vm.printSelectedTableQRCodes();
+
+    expect(printQRCodeSheetMock).toHaveBeenCalledOnce();
+    const [, codes] = printQRCodeSheetMock.mock.calls[0];
+    expect(codes).toHaveLength(2);
+    expect(codes.map((c: { label: string }) => c.label)).toEqual([
+      "tables.qrModal.title",
+      "tables.qrModal.title",
+    ]);
+    expect(toPrintableDataUrlMock.mock.calls.map((c) => c[0])).toEqual([
+      "qr-1",
+      "qr-3",
+    ]);
+  });
+
+  it("warns instead of opening an empty sheet when nothing is selected", async () => {
+    const vm = vmOf(await mountTab([buildTable({ id: 1 })]));
+    await vm.printSelectedTableQRCodes();
+    expect(printQRCodeSheetMock).not.toHaveBeenCalled();
+    expect(toastMock.warning).toHaveBeenCalledWith(
+      "tables.alert.nothingToPrint",
+    );
+  });
+
+  it("drops selected ids that no longer exist after a refetch", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1 }),
+      buildTable({ id: 2 }),
+    ]);
+    const vm = vmOf(wrapper);
+    vm.toggleTableSelection(1);
+    vm.toggleTableSelection(2);
+
+    // table 2 deleted elsewhere; a stale id would print a QR that no longer exists
+    vi.mocked(api.get).mockResolvedValue({
+      data: { success: true, data: [buildTable({ id: 1 })] },
+    } as never);
+    await (
+      wrapper.vm as unknown as { fetchTables: () => Promise<void> }
+    ).fetchTables();
+    await flushPromises();
+
+    expect(vm.selectedTableIds).toEqual([1]);
   });
 });

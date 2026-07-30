@@ -282,6 +282,9 @@ const idID: Messages = {
       print: "Cetak QR",
       printAll: "Cetak semua kode QR",
       printAllTitle: "Daftar kode QR meja",
+      printSelected: "Cetak yang dipilih ({count})",
+      selectAllFiltered: "Pilih semua yang tampil",
+      selectForPrint: "Pilih meja {number} untuk dicetak",
     },
     confirm: {
       regenerateAllQR:
