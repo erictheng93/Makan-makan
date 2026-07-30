@@ -148,7 +148,7 @@ export interface CreateMenuItemData extends Omit<
   catalogType?: "menu_item" | "product";
   imageUrl?: string | null;
   imageId?: string | null;
-  imageVariants?: ImageVariantsInput;
+  imageVariants?: ImageVariantsInput | null;
   availableHours?: AvailableHours;
   tags?: string[];
   keywords?: string;
