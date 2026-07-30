@@ -13,7 +13,7 @@ const auditActionSchema = z
     restaurant_id: z.union([z.string(), z.number()]).optional(),
     timestamp: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const routes = new Hono<{ Bindings: Env }>();
 

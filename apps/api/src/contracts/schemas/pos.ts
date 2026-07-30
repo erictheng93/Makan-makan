@@ -17,7 +17,7 @@ export const RegisterSchema = z
     status: z.string().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

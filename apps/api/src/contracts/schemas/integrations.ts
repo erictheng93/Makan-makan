@@ -18,7 +18,7 @@ export const IntegrationSchema = z
     config: z.unknown().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -28,34 +28,34 @@ export const ListIntegrationsResponse = z
   .object({
     data: z.array(IntegrationSchema),
   })
-  .passthrough();
+  .loose();
 
 export const GetIntegrationResponse = z
   .object({
     data: IntegrationSchema,
   })
-  .passthrough();
+  .loose();
 
 export const ConnectIntegrationResponse = z
   .object({
     data: IntegrationSchema,
   })
-  .passthrough();
+  .loose();
 
 export const UpdateIntegrationResponse = z
   .object({
     data: IntegrationSchema,
   })
-  .passthrough();
+  .loose();
 
 export const DisconnectIntegrationResponse = z
   .object({
     data: z.unknown().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const WebhookLogsResponse = z
   .object({
     data: z.array(z.unknown()),
   })
-  .passthrough();
+  .loose();

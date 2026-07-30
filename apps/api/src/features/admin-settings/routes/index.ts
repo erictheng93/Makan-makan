@@ -25,14 +25,14 @@ const notificationSettingsSchema = z
       end: timeOfDaySchema,
     }),
   })
-  .passthrough();
+  .loose();
 
 const settingsSyncSchema = z
   .object({
     sync_id: z.string().min(1).max(200).optional(),
     restaurant_id: z.union([z.string(), z.number()]).optional(),
   })
-  .passthrough();
+  .loose();
 
 type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
 type SettingsSyncInput = z.infer<typeof settingsSyncSchema>;

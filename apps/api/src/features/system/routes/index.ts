@@ -19,7 +19,7 @@ import type { ISystemService } from "../types";
 
 // Create feature router
 const routes = new Hono<{ Bindings: Env }>();
-const systemTelemetrySchema = z.object({}).passthrough();
+const systemTelemetrySchema = z.object({}).loose();
 
 function createTelemetryId(payload: Record<string, unknown>): string {
   for (const key of ["report_id", "reportId", "sync_id", "syncId", "id"]) {

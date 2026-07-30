@@ -54,7 +54,7 @@ const uploadBackupSchema = z
     backup_id: z.string().min(1).max(200).optional(),
     restaurant_id: z.union([z.string(), z.number()]).optional(),
   })
-  .passthrough();
+  .loose();
 
 const listBackupsSchema = z.object({
   restaurant_id: z.uuid("Invalid restaurant ID"),

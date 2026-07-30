@@ -35,8 +35,8 @@ type IdParamInput = { id: string };
 const userIdParamSchema = z.object({
   id: z.string().trim().min(1),
 });
-const notificationSettingsSchema = z.object({}).passthrough();
-const userSyncSchema = z.object({}).passthrough();
+const notificationSettingsSchema = z.object({}).loose();
+const userSyncSchema = z.object({}).loose();
 type NotificationSettings = Record<string, unknown>;
 interface NotificationSettingsRecord {
   settings?: NotificationSettings;

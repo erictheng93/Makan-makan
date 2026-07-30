@@ -30,7 +30,7 @@ export const ReservationSchema = z
     notes: z.string().optional().nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

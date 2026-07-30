@@ -37,7 +37,7 @@ export const CouponSchema = z
       .nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -75,6 +75,6 @@ export const BulkCouponResponse = z.object({
       success: z.unknown().optional(),
       failed: z.unknown().optional(),
     })
-    .passthrough(),
+    .loose(),
   message: z.string().optional(),
 });

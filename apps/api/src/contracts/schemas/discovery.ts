@@ -26,7 +26,7 @@ export const GetRestaurantMenuResponse = successEnvelope(
     .object({
       items: z.array(MenuItemSchema).optional(),
     })
-    .passthrough(),
+    .loose(),
 );
 
 export const GetPopularItemsResponse = successEnvelope(z.unknown());

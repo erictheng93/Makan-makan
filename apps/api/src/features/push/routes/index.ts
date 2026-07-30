@@ -22,7 +22,7 @@ const subscribeSchema = z
     restaurant_id: z.union([z.string(), z.number()]).optional(),
     device_info: z.record(z.string(), z.unknown()).default({}),
   })
-  .passthrough();
+  .loose();
 
 const unsubscribeSchema = z
   .object({
@@ -30,7 +30,7 @@ const unsubscribeSchema = z
     subscriptionId: z.string().min(1).max(256).optional(),
     restaurant_id: z.union([z.string(), z.number()]).optional(),
   })
-  .passthrough();
+  .loose();
 
 type PushSubscriptionRecord = {
   id: string;

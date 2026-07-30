@@ -24,7 +24,7 @@ export const CustomerSchema = z
     totalSpent: z.number().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts

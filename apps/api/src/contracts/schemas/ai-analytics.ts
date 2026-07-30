@@ -23,7 +23,7 @@ export const SaveConfigResponse = z.object({
       latencyMs: z.number().optional(),
       model: z.string().optional(),
     })
-    .passthrough()
+    .loose()
     .optional(),
 });
 
@@ -34,7 +34,7 @@ export const TestProviderResponse = z
     latencyMs: z.number().optional(),
     model: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const GenerateReportResponse = z.object({
   success: z.literal(true),

@@ -71,7 +71,7 @@ const restaurantSettingsSchema = z
     estimatedPrepTimeMin: z.number().int().min(1).optional(),
     estimatedPrepTimeMax: z.number().int().min(1).optional(),
   })
-  .passthrough(); // Allow additional properties
+  .loose(); // Allow additional properties
 
 const messagingChannelsSchema = z
   .object({

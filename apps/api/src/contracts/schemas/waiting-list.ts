@@ -27,7 +27,7 @@ export const WaitingListEntrySchema = z
     notes: z.string().optional().nullable(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
@@ -47,7 +47,7 @@ export const QueueStatusResponse = successEnvelope(
       totalWaiting: z.number().optional(),
       estimatedWait: z.number().optional(),
     })
-    .passthrough(),
+    .loose(),
 );
 
 export const EstimateWaitResponse = successEnvelope(z.unknown());

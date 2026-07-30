@@ -22,7 +22,7 @@ export const GroupOrderSchema = z
     status: z.string(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const GroupMemberSchema = z
   .object({
@@ -31,7 +31,7 @@ export const GroupMemberSchema = z
     name: z.string().optional(),
     ...TimestampFields,
   })
-  .passthrough();
+  .loose();
 
 export const CartItemSchema = z
   .object({
@@ -41,7 +41,7 @@ export const CartItemSchema = z
     quantity: z.number(),
     price: z.number().optional(),
   })
-  .passthrough();
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Response Contracts
