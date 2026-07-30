@@ -4,7 +4,51 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-import { categories } from "@makanmakan/database";
+import { categories, menuItems } from "@makanmakan/database";
+import { eq } from "drizzle-orm";
+
+/**
+ * Matches the double-submit contract in apps/api/src/middleware/csrf.ts:
+ * a 64-hex token in both the X-CSRF-Token header and the csrf_token cookie,
+ * with host and origin that agree.
+ */
+function csrfHeaders(bearer: string) {
+  const csrfToken = "a".repeat(64);
+  return {
+    authorization: `Bearer ${bearer}`,
+    "content-type": "application/json",
+    host: "test",
+    origin: "https://test",
+    "x-csrf-token": csrfToken,
+    cookie: `csrf_token=${csrfToken}`,
+  };
+}
+
+/**
+ * POST/PUT /menu items sit behind moduleGate("menu_management"), so a shop
+ * needs an active subscription or the route answers 403 SUBSCRIPTION_NOT_FOUND
+ * before the schema is ever reached.
+ */
+async function insertActiveSubscription(
+  testApp: RealIntegrationTestApp,
+  restaurantId: string,
+) {
+  await testApp.env.DB.prepare(
+    `INSERT INTO shop_subscriptions
+      (id, restaurant_id, plan_tier, module_overrides,
+       is_active, trial_ends_at_ms, created_at_ms, updated_at_ms)
+     VALUES (?, ?, 'trial', '{}', 1, ?, ?, ?)`,
+  )
+    .bind(
+      `sub-${restaurantId}`,
+      restaurantId,
+      Date.now() + 24 * 60 * 60 * 1000,
+      Date.now(),
+      Date.now(),
+    )
+    .run();
+}
+
 describe("Menu API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -425,6 +469,124 @@ describe("Menu API — real integration", () => {
       isAvailable: false,
       isPopular: true,
       sortOrder: 7,
+    });
+  });
+
+  /**
+   * Regression coverage for #78.
+   *
+   * createMenuItemSchema was missing isAvailable / isFeatured / isPopular /
+   * sortOrder / inventoryCount, and validateBody uses schema.parse(), which
+   * silently strips undeclared keys rather than erroring. The API answered 201
+   * while dropping exactly the fields the shop owner had just set — a "sold
+   * out" item went on sale, "featured" never showed, and sortOrder was always 0.
+   *
+   * Every other test in this file seeds rows through seed.menuItem(), which
+   * writes to D1 directly and never exercises the schema. These go through the
+   * real POST/PUT routes so the strip is observable.
+   */
+  it("persists availability, featured and sortOrder sent to POST /items (#78)", async () => {
+    const restaurant = await seed.restaurant();
+    const now = new Date();
+    const [category] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "審計分類",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          name: "審計品項A",
+          categoryId: category.id,
+          price: 100,
+          isFeatured: true,
+          isAvailable: false,
+          sortOrder: 7,
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const json: any = await res.json();
+
+    // The response must not claim defaults the caller did not ask for.
+    expect(json.data).toMatchObject({
+      isAvailable: false,
+      isFeatured: true,
+      sortOrder: 7,
+    });
+
+    // And the values must actually be in D1, not just echoed back.
+    const stored = await testApp.testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, json.data.id));
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      isAvailable: false,
+      isFeatured: true,
+      sortOrder: 7,
+    });
+  });
+
+  it("keeps DB defaults when the create request omits those fields (#78)", async () => {
+    const restaurant = await seed.restaurant();
+    const now = new Date();
+    const [category] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "審計分類",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          name: "審計品項B",
+          categoryId: category.id,
+          price: 100,
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const json: any = await res.json();
+
+    // Adding the fields to the schema must not move the defaults out of the DB
+    // layer: an omitted field still lands on available / not featured / 0.
+    expect(json.data).toMatchObject({
+      isAvailable: true,
+      isFeatured: false,
+      sortOrder: 0,
     });
   });
 });
