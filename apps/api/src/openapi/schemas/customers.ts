@@ -23,9 +23,9 @@ const Customer = z.object({
   loyaltyPoints: z.number().int().min(0).default(0),
   totalOrders: z.number().int().min(0).default(0),
   totalSpent: z.number().min(0).default(0),
-  lastVisit: z.string().datetime().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  lastVisit: z.iso.datetime().optional(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 /**
@@ -95,8 +95,8 @@ export const CustomersSchemas = {
     status: z
       .enum(["pending", "preparing", "ready", "completed", "cancelled"])
       .optional(),
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
+    startDate: z.iso.datetime().optional(),
+    endDate: z.iso.datetime().optional(),
     page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
     pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("10"),
   }),
@@ -109,7 +109,7 @@ export const CustomersSchemas = {
     type: z.enum(["earn", "redeem", "expire", "adjust"]),
     reason: z.string(),
     orderId: z.uuid().optional(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
   }),
 
   // Add Loyalty Points Request
@@ -279,8 +279,8 @@ export const getCustomerOrdersRoute = createRoute({
       status: z
         .enum(["pending", "preparing", "ready", "completed", "cancelled"])
         .optional(),
-      startDate: z.string().datetime().optional(),
-      endDate: z.string().datetime().optional(),
+      startDate: z.iso.datetime().optional(),
+      endDate: z.iso.datetime().optional(),
       page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
       pageSize: z.string().regex(/^\d+$/).transform(Number).prefault("10"),
     }),

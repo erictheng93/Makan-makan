@@ -78,8 +78,8 @@ export const updateQueueSettingsSchema = z.object({
 export const getQueueHistorySchema = z.object({
   restaurantId: restaurantIdSchema,
   status: queueStatusSchema.optional(),
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
+  dateFrom: z.iso.datetime().optional(),
+  dateTo: z.iso.datetime().optional(),
   page: z.number().int().min(1).optional().default(1),
   limit: z.number().int().min(1).max(100).optional().default(20),
 });
@@ -92,8 +92,8 @@ export const getCurrentQueueSchema = z.object({
 
 export const getQueueStatisticsSchema = z.object({
   restaurantId: restaurantIdSchema,
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
+  dateFrom: z.iso.datetime().optional(),
+  dateTo: z.iso.datetime().optional(),
 });
 
 // Query Parameter Validators
@@ -111,8 +111,8 @@ export const paginationQuerySchema = z.object({
 });
 
 export const dateRangeQuerySchema = z.object({
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
+  dateFrom: z.iso.datetime().optional(),
+  dateTo: z.iso.datetime().optional(),
 });
 
 // Response Validators (for testing/validation)

@@ -202,8 +202,8 @@ const statsQuery = z.object({
     })
     .optional(),
   period: z.enum(["day", "week", "month", "year"]).default("month"),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
 });
 
 export const qrCodeSchemas = {

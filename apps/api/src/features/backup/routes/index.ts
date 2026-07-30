@@ -62,8 +62,8 @@ const listBackupsSchema = z.object({
     .enum(["pending", "in_progress", "completed", "failed", "cancelled"])
     .optional(),
   backup_type: z.enum(["full", "incremental", "differential"]).optional(),
-  date_from: z.string().datetime().optional(),
-  date_to: z.string().datetime().optional(),
+  date_from: z.iso.datetime().optional(),
+  date_to: z.iso.datetime().optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
   sort_by: z

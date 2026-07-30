@@ -13,9 +13,9 @@ const moduleKeyEnum = z.enum(Object.values(MODULES) as [string, ...string[]]);
 export const createSubscriptionSchema = z.object({
   restaurantId: z.string().min(1),
   planTier: planTierEnum,
-  trialEndsAt: z.string().datetime().optional(),
-  billingCycleStartAt: z.string().datetime().optional(),
-  billingCycleEndAt: z.string().datetime().optional(),
+  trialEndsAt: z.iso.datetime().optional(),
+  billingCycleStartAt: z.iso.datetime().optional(),
+  billingCycleEndAt: z.iso.datetime().optional(),
   notes: z.string().max(500).optional(),
 });
 

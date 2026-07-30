@@ -18,8 +18,8 @@ const Table = z.object({
   floor: z.string().optional(),
   section: z.string().optional(),
   qrCodeUrl: z.url().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 /**
@@ -218,7 +218,7 @@ export const generateQRCodeRoute = createRoute({
             data: z.object({
               qrCodeUrl: z.url(),
               tableId: z.uuid(),
-              expiresAt: z.string().datetime().optional(),
+              expiresAt: z.iso.datetime().optional(),
             }),
           }),
         },

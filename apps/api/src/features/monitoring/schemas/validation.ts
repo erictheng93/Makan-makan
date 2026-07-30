@@ -117,8 +117,8 @@ export const paginationSchema = z.object({
 
 // Date range schema
 export const dateRangeSchema = z.object({
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
 });
 
 // Monitoring configuration schema

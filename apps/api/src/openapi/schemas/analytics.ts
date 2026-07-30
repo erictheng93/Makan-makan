@@ -25,7 +25,7 @@ const MetricType = z.enum([
   "conversion_rate",
 ]);
 const MetricDataPoint = z.object({
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   value: z.number(),
   label: z.string().optional(),
 });
@@ -49,14 +49,14 @@ export const AnalyticsSchemas = {
     restaurantId: z.uuid(),
     metrics: z.array(MetricType),
     period: TimePeriod,
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
+    startDate: z.iso.datetime().optional(),
+    endDate: z.iso.datetime().optional(),
     groupBy: z.enum(["hour", "day", "week", "month"]).optional(),
   }),
 
   // Metric Data Point
   MetricDataPoint: z.object({
-    timestamp: z.string().datetime(),
+    timestamp: z.iso.datetime(),
     value: z.number(),
     label: z.string().optional(),
   }),
@@ -76,8 +76,8 @@ export const AnalyticsSchemas = {
     success: z.boolean(),
     data: z.array(z.any()),
     period: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
       type: TimePeriod,
     }),
   }),
@@ -114,8 +114,8 @@ export const AnalyticsSchemas = {
       }),
     ),
     period: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   }),
 
@@ -137,8 +137,8 @@ export const AnalyticsSchemas = {
       }),
     ),
     period: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   }),
 
@@ -160,8 +160,8 @@ export const AnalyticsSchemas = {
       averageServiceTime: z.number().min(0),
     }),
     period: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   }),
 
@@ -195,8 +195,8 @@ export const AnalyticsSchemas = {
       }),
     ),
     period: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   }),
 
@@ -204,8 +204,8 @@ export const AnalyticsSchemas = {
   ExportRequest: z.object({
     reportType: z.enum(["sales", "customer", "performance", "inventory"]),
     format: ExportFormat,
-    startDate: z.string().datetime(),
-    endDate: z.string().datetime(),
+    startDate: z.iso.datetime(),
+    endDate: z.iso.datetime(),
     includeCharts: z.boolean().default(false),
   }),
 };
@@ -257,8 +257,8 @@ export const getSalesReportRoute = createRoute({
       restaurantId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
       includeTopItems: z
         .string()
         .transform((val) => val === "true")
@@ -298,8 +298,8 @@ export const getCustomerAnalyticsRoute = createRoute({
       restaurantId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
       includeSegmentation: z
         .string()
         .transform((val) => val === "true")
@@ -335,8 +335,8 @@ export const getPerformanceMetricsRoute = createRoute({
       restaurantId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   },
   responses: {
@@ -368,8 +368,8 @@ export const getInventoryAnalyticsRoute = createRoute({
       restaurantId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
       includeLowStock: z
         .string()
         .transform((val) => val === "true")
@@ -425,7 +425,7 @@ export const exportReportRoute = createRoute({
             success: z.boolean(),
             data: z.object({
               downloadUrl: z.url(),
-              expiresAt: z.string().datetime(),
+              expiresAt: z.iso.datetime(),
               format: AnalyticsSchemas.ExportFormat,
               fileSize: z.number().int(),
             }),

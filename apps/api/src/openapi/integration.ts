@@ -308,8 +308,8 @@ export const OrdersSchemas = {
     subtotal: z.number().nonnegative(),
     tax: z.number().nonnegative(),
     total: z.number().positive(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Order Request

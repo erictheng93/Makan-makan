@@ -42,8 +42,8 @@ export const createCouponSchema = z.object({
   applicableCategories: z.array(z.number().int().positive()).optional(),
   usageLimit: z.number().int().positive().optional(),
   usageLimitPerUser: z.number().int().positive().optional(),
-  validFrom: z.string().datetime(),
-  validTo: z.string().datetime(),
+  validFrom: z.iso.datetime(),
+  validTo: z.iso.datetime(),
   isActive: z.boolean().optional(),
   isVisible: z.boolean().optional(),
 });
@@ -76,7 +76,7 @@ export const distributeCouponSchema = z.object({
   targetType: z.enum(["all", "user", "group", "new_user", "vip"]).optional(),
   targetCriteria: z.any().optional(),
   totalDistributed: z.number().int().positive().optional(),
-  expiresAt: z.string().datetime().optional(),
+  expiresAt: z.iso.datetime().optional(),
   notes: z.string().max(500).optional(),
 });
 
@@ -112,8 +112,8 @@ export const bulkCreateCouponsSchema = z.object({
 
 // Analytics and reporting schemas
 export const statsQuerySchema = z.object({
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
   restaurantId: z.string().optional(),
   discountType: z.enum(["percentage", "fixed"]).optional(),
 });

@@ -44,13 +44,13 @@ export const PartnershipsSchemas = {
     contactName: z.string().optional(),
     contactEmail: z.email().optional(),
     contactPhone: z.string().optional(),
-    contractStart: z.string().datetime().optional(),
-    contractEnd: z.string().datetime().optional(),
+    contractStart: z.iso.datetime().optional(),
+    contractEnd: z.iso.datetime().optional(),
     status: PartnershipStatus,
     notes: z.string().optional(),
     createdBy: z.number().int().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Partnership Request
@@ -61,8 +61,8 @@ export const PartnershipsSchemas = {
     contactName: z.string().optional(),
     contactEmail: z.email("Invalid email format").optional(),
     contactPhone: z.string().optional(),
-    contractStart: z.string().datetime().optional(),
-    contractEnd: z.string().datetime().optional(),
+    contractStart: z.iso.datetime().optional(),
+    contractEnd: z.iso.datetime().optional(),
     status: PartnershipStatus.default("active"),
     notes: z.string().optional(),
   }),
@@ -74,8 +74,8 @@ export const PartnershipsSchemas = {
     contactName: z.string().optional(),
     contactEmail: z.email().optional(),
     contactPhone: z.string().optional(),
-    contractStart: z.string().datetime().optional(),
-    contractEnd: z.string().datetime().optional(),
+    contractStart: z.iso.datetime().optional(),
+    contractEnd: z.iso.datetime().optional(),
     status: PartnershipStatus.optional(),
     notes: z.string().optional(),
   }),
@@ -95,8 +95,8 @@ export const PartnershipsSchemas = {
     validTimeStart: z.string().optional(),
     validTimeEnd: z.string().optional(),
     isActive: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Plan Request
@@ -159,11 +159,11 @@ export const PartnershipsSchemas = {
     verificationStatus: MemberStatus,
     verificationDocument: z.string().optional(),
     verifiedBy: z.number().int().optional(),
-    verificationExpiry: z.string().datetime().optional(),
+    verificationExpiry: z.iso.datetime().optional(),
     rejectionReason: z.string().optional(),
     notes: z.string().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Member Verification Request
@@ -177,7 +177,7 @@ export const PartnershipsSchemas = {
 
   // Approve Member Request
   ApproveMemberRequest: z.object({
-    verificationExpiry: z.string().datetime().optional(),
+    verificationExpiry: z.iso.datetime().optional(),
   }),
 
   // Reject Member Request
@@ -197,8 +197,8 @@ export const PartnershipsSchemas = {
     status: UsageLogStatus,
     verifiedByUserId: z.number().int().optional(),
     cancellationReason: z.string().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Log Usage Request
@@ -828,7 +828,7 @@ export const updateMemberRoute = createRoute({
             memberName: z.string().min(1).optional(),
             memberIdentifier: z.string().optional(),
             notes: z.string().optional(),
-            verificationExpiry: z.string().datetime().optional(),
+            verificationExpiry: z.iso.datetime().optional(),
           }),
         },
       },
@@ -899,8 +899,8 @@ export const getUsageLogsRoute = createRoute({
       memberId: z.string().regex(/^\d+$/).transform(Number).optional(),
       planId: z.string().regex(/^\d+$/).transform(Number).optional(),
       status: PartnershipsSchemas.UsageLogStatus.optional(),
-      startDate: z.string().datetime().optional(),
-      endDate: z.string().datetime().optional(),
+      startDate: z.iso.datetime().optional(),
+      endDate: z.iso.datetime().optional(),
       page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
       limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
     }),

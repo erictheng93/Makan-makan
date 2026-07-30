@@ -270,8 +270,8 @@ export const popularItemsQuerySchema = z.object({
 });
 
 export const analyticsQuerySchema = z.object({
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
   includeDetails: z
     .string()
     .transform((val) => val === "true")

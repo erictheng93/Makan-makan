@@ -47,10 +47,10 @@ export const LeavesSchemas = {
     status: LeaveStatus,
     reviewerId: z.uuid().optional(),
     reviewerNotes: z.string().optional(),
-    reviewedAt: z.string().datetime().optional(),
+    reviewedAt: z.iso.datetime().optional(),
     attachments: z.array(z.url()).optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Leave Request
@@ -83,7 +83,7 @@ export const LeavesSchemas = {
     pending: z.number().nonnegative(),
     remaining: z.number().nonnegative(),
     carried: z.number().nonnegative().default(0), // Carried from previous year
-    updatedAt: z.string().datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Leave Policy
@@ -99,8 +99,8 @@ export const LeavesSchemas = {
     maxConsecutiveDays: z.number().int().positive().optional(),
     description: z.string().optional(),
     isActive: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Leave Statistics

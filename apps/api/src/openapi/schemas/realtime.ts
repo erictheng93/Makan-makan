@@ -41,7 +41,7 @@ export const RealtimeSchemas = {
   GenerateTokenResponse: z.object({
     success: z.boolean(),
     token: z.string(),
-    expiresAt: z.string().datetime(),
+    expiresAt: z.iso.datetime(),
     connectionUrl: z.url(),
   }),
 
@@ -83,7 +83,7 @@ export const RealtimeSchemas = {
     success: z.boolean(),
     messageId: z.string(),
     recipientCount: z.number().int(),
-    timestamp: z.string().datetime(),
+    timestamp: z.iso.datetime(),
   }),
 
   // Connection Statistics
@@ -96,8 +96,8 @@ export const RealtimeSchemas = {
       z.object({
         connectionId: z.string(),
         userId: z.string().optional(),
-        connectedAt: z.string().datetime(),
-        lastActivity: z.string().datetime(),
+        connectedAt: z.iso.datetime(),
+        lastActivity: z.iso.datetime(),
       }),
     ),
   }),
@@ -345,7 +345,7 @@ export const getActiveRoomsRoute = createRoute({
                 roomType: RealtimeSchemas.RoomType,
                 roomId: z.string(),
                 connectionCount: z.number().int(),
-                createdAt: z.string().datetime(),
+                createdAt: z.iso.datetime(),
               }),
             ),
           }),

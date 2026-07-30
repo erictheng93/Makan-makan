@@ -45,8 +45,8 @@ export const AIAnalyticsSchemas = {
       maxTokens: z.number().int().min(100).max(100000).default(2000),
       topP: z.number().min(0).max(1).default(1),
     }),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create/Update AI Configuration Request
@@ -82,15 +82,15 @@ export const AIAnalyticsSchemas = {
       impactScore: z.number().min(0).max(100).optional(),
     }),
     status: z.enum(["new", "acknowledged", "actioned", "dismissed"]),
-    createdAt: z.string().datetime(),
-    expiresAt: z.string().datetime().optional(),
+    createdAt: z.iso.datetime(),
+    expiresAt: z.iso.datetime().optional(),
   }),
 
   // Generate Insights Request
   GenerateInsightsRequest: z.object({
     types: z.array(InsightType).optional(),
-    startDate: z.string().datetime(),
-    endDate: z.string().datetime(),
+    startDate: z.iso.datetime(),
+    endDate: z.iso.datetime(),
     includeHistorical: z.boolean().default(false),
     minConfidence: z.number().min(0).max(1).default(0.7),
   }),
@@ -114,8 +114,8 @@ export const AIAnalyticsSchemas = {
       .object({
         timeRange: z
           .object({
-            startDate: z.string().datetime(),
-            endDate: z.string().datetime(),
+            startDate: z.iso.datetime(),
+            endDate: z.iso.datetime(),
           })
           .optional(),
         includeMetrics: z.array(z.string()).optional(),
@@ -149,7 +149,7 @@ export const AIAnalyticsSchemas = {
     cost: z.number().nonnegative(),
     responseTime: z.number(), // milliseconds
     success: z.boolean(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
   }),
 
   // Product Analytics
@@ -406,8 +406,8 @@ export const getAIUsageRoute = createRoute({
       restaurantId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
       provider: AIAnalyticsSchemas.LLMProvider.optional(),
     }),
   },
@@ -448,8 +448,8 @@ export const getProductAnalyticsRoute = createRoute({
       itemId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   },
   responses: {

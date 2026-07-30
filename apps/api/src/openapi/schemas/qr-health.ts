@@ -51,8 +51,8 @@ export const QRHealthSchemas = {
       errorCorrectionLevel: z.enum(["L", "M", "Q", "H"]).default("M"),
     }),
     isActive: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create QR Template Request
@@ -96,8 +96,8 @@ export const QRHealthSchemas = {
       url: z.url(),
       imageUrl: z.url(),
       metadata: z.record(z.string(), z.string()),
-      createdAt: z.string().datetime(),
-      expiresAt: z.string().datetime().optional(),
+      createdAt: z.iso.datetime(),
+      expiresAt: z.iso.datetime().optional(),
     }),
   }),
 
@@ -136,7 +136,7 @@ export const QRHealthSchemas = {
   // System Health
   SystemHealth: z.object({
     status: HealthStatus,
-    timestamp: z.string().datetime(),
+    timestamp: z.iso.datetime(),
     uptime: z.number().int(), // seconds
     version: z.string(),
     services: z.object({
@@ -171,7 +171,7 @@ export const QRHealthSchemas = {
         service: z.string(),
         severity: z.enum(["low", "medium", "high", "critical"]),
         message: z.string(),
-        timestamp: z.string().datetime(),
+        timestamp: z.iso.datetime(),
       }),
     ),
   }),
@@ -179,8 +179,8 @@ export const QRHealthSchemas = {
   // Performance Metrics
   PerformanceMetrics: z.object({
     period: z.object({
-      startTime: z.string().datetime(),
-      endTime: z.string().datetime(),
+      startTime: z.iso.datetime(),
+      endTime: z.iso.datetime(),
     }),
     requests: z.object({
       total: z.number().int(),
@@ -385,8 +385,8 @@ export const getPerformanceMetricsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      startTime: z.string().datetime(),
-      endTime: z.string().datetime(),
+      startTime: z.iso.datetime(),
+      endTime: z.iso.datetime(),
       granularity: z.enum(["minute", "hour", "day"]).default("hour"),
     }),
   },

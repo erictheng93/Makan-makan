@@ -15,7 +15,7 @@
  *   - POST /coupons/validate is CSRF-EXCLUDED in app-factory.ts:466
  *     (public endpoint).
  *   - createCouponSchema requires validFrom/validTo as
- *     `z.string().datetime()` — full ISO 8601, not YYYY-MM-DD.
+ *     `z.iso.datetime()` — full ISO 8601, not YYYY-MM-DD.
  *     The DB column is TEXT and the service layer stores whatever
  *     the API receives; seed.coupon() writes YYYY-MM-DD directly to
  *     the DB, which is why API-created and seed-created rows differ

@@ -30,8 +30,8 @@ export const SeatsSchemas = {
     capacity: z.number().int().positive().default(1),
     orderId: z.number().int().optional(),
     occupiedBy: z.string().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Public Seat Info (returned for QR code scans)

@@ -56,8 +56,8 @@ export const SchedulingSchemas = {
     maxStaff: z.number().int().positive(),
     color: z.string().optional(), // Hex color for UI display
     isActive: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Shift Template Request
@@ -96,11 +96,11 @@ export const SchedulingSchemas = {
     shiftType: ShiftType,
     status: ShiftStatus,
     notes: z.string().optional(),
-    clockIn: z.string().datetime().optional(),
-    clockOut: z.string().datetime().optional(),
+    clockIn: z.iso.datetime().optional(),
+    clockOut: z.iso.datetime().optional(),
     actualHours: z.number().nonnegative().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Schedule Request
@@ -136,9 +136,9 @@ export const SchedulingSchemas = {
     status: SwapStatus,
     reason: z.string().optional(),
     approvedBy: z.uuid().optional(),
-    approvedAt: z.string().datetime().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    approvedAt: z.iso.datetime().optional(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Swap Request
@@ -153,7 +153,7 @@ export const SchedulingSchemas = {
   ClockInOutRequest: z.object({
     scheduleId: z.uuid(),
     action: z.enum(["clock_in", "clock_out"]),
-    timestamp: z.string().datetime().optional(), // Defaults to now
+    timestamp: z.iso.datetime().optional(), // Defaults to now
     location: z
       .object({
         latitude: z.number(),

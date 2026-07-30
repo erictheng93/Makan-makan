@@ -239,14 +239,12 @@ export const statisticsQuerySchema = z
         if (!val || val.trim() === "") return undefined;
         return val;
       }),
-    startDate: z
-      .string()
+    startDate: z.iso
       .datetime()
       .optional()
       .or(z.literal(""))
       .transform((val) => (val === "" ? undefined : val)),
-    endDate: z
-      .string()
+    endDate: z.iso
       .datetime()
       .optional()
       .or(z.literal(""))

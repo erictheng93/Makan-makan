@@ -20,8 +20,8 @@ const User = z.object({
   phone: z.string().optional(),
   avatar: z.url().optional(),
   isActive: z.boolean(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 /**
