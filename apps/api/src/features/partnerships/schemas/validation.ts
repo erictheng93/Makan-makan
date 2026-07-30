@@ -36,14 +36,14 @@ export const createPartnershipSchema = z.object({
   contactPerson: z.string().min(2).max(100),
   contactTitle: z.string().max(100).optional(),
   contactPhone: z.string().min(8).max(20),
-  contactEmail: z.string().email(),
+  contactEmail: z.email(),
   address: z.string().max(500).optional(),
 
   // 合約資訊
   contractNumber: z.string().max(100).optional(),
   contractStartDate: z.number().int().positive(),
   contractEndDate: z.number().int().positive(),
-  contractDocumentUrl: z.string().url().optional(),
+  contractDocumentUrl: z.url().optional(),
 
   // 認證設定
   verificationMethod: z
@@ -57,7 +57,7 @@ export const createPartnershipSchema = z.object({
   defaultDiscountValue: z.number().nonnegative().optional(),
 
   // 額外資訊
-  logoUrl: z.string().url().optional(),
+  logoUrl: z.url().optional(),
   description: z.string().max(1000).optional(),
   notes: z.string().max(1000).optional(),
   tags: z.array(z.string()).optional(),
@@ -213,7 +213,7 @@ export const memberVerificationSchema = z.object({
     "other",
   ]),
   fullName: z.string().min(2).max(100),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   phone: z.string().min(8).max(20).optional(),
 
   // 認證資訊
@@ -224,12 +224,12 @@ export const memberVerificationSchema = z.object({
     "qr_code",
     "api",
   ]),
-  verificationDocumentUrl: z.string().url().optional(),
+  verificationDocumentUrl: z.url().optional(),
 
   // 額外資訊
   department: z.string().max(200).optional(),
   gradeOrPosition: z.string().max(100).optional(),
-  studentIdPhotoUrl: z.string().url().optional(),
+  studentIdPhotoUrl: z.url().optional(),
 });
 
 /**
@@ -251,7 +251,7 @@ export const rejectMemberSchema = z.object({
  */
 export const updateMemberSchema = z
   .object({
-    email: z.string().email().optional(),
+    email: z.email().optional(),
     phone: z.string().min(8).max(20).optional(),
     department: z.string().max(200).optional(),
     gradeOrPosition: z.string().max(100).optional(),

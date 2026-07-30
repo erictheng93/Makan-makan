@@ -27,7 +27,7 @@ export const configureAISchema = z.object({
   provider: aiProviderSchema,
   apiKey: z.string().min(10),
   model: z.string().optional(),
-  customBaseUrl: z.string().url().optional(),
+  customBaseUrl: z.url().optional(),
 });
 
 // Test provider schema
@@ -35,7 +35,7 @@ export const testProviderSchema = z.object({
   provider: aiProviderSchema,
   apiKey: z.string().min(10),
   model: z.string().optional(),
-  baseUrl: z.string().url().optional(),
+  baseUrl: z.url().optional(),
 });
 
 // Generate analytics schema

@@ -201,7 +201,7 @@ export function integrateOpenAPI(app: Hono) {
 export const AuthSchemas = {
   // Login Request
   LoginRequest: z.object({
-    email: z.string().email("Invalid email format"),
+    email: z.email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   }),
 
@@ -211,7 +211,7 @@ export const AuthSchemas = {
     token: z.string(),
     user: z.object({
       id: z.string(),
-      email: z.string().email(),
+      email: z.email(),
       name: z.string(),
       role: z.number().int().min(0).max(4),
     }),
@@ -230,7 +230,7 @@ const MenuItem = z.object({
   description: z.string().optional(),
   price: z.number().positive(),
   category: z.string(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.url().optional(),
   available: z.boolean(),
   tags: z.array(z.string()).optional(),
 });
@@ -269,7 +269,7 @@ export const MenuSchemas = {
     description: z.string().optional(),
     price: z.number().positive("Price must be positive"),
     categoryId: z.string().uuid("Invalid category ID"),
-    imageUrl: z.string().url().optional(),
+    imageUrl: z.url().optional(),
     tags: z.array(z.string()).optional(),
   }),
 };

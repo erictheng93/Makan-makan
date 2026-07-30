@@ -34,7 +34,7 @@ export const alertRuleSchema = z.object({
     enabled: z.boolean(),
     interval: z.number().int().positive().optional(),
     recipients: z.array(z.string()).optional(),
-    webhookUrl: z.string().url().optional(),
+    webhookUrl: z.url().optional(),
     template: z.string().optional(),
   }),
 });
@@ -76,7 +76,7 @@ export const performanceReportQuerySchema = z.object({
 export const testAlertSchema = z.object({
   type: z.enum(["slack", "webhook"]),
   severity: z.enum(["info", "warning", "critical", "fatal"]),
-  webhookUrl: z.string().url().optional(),
+  webhookUrl: z.url().optional(),
 });
 
 // Alert rule update schema
@@ -94,7 +94,7 @@ export const updateAlertRuleSchema = z.object({
       enabled: z.boolean().optional(),
       interval: z.number().int().positive().optional(),
       recipients: z.array(z.string()).optional(),
-      webhookUrl: z.string().url().optional(),
+      webhookUrl: z.url().optional(),
       template: z.string().optional(),
     })
     .optional(),
@@ -128,7 +128,7 @@ export const monitoringConfigSchema = z.object({
   enablePerformanceTracking: z.boolean().default(true),
   metricsRetentionDays: z.number().int().positive().max(365).default(30),
   alertThrottleDuration: z.number().int().positive().default(300), // 5 minutes
-  defaultSlackWebhook: z.string().url().optional(),
+  defaultSlackWebhook: z.url().optional(),
   enableDebugLogging: z.boolean().default(false),
 });
 

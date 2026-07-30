@@ -7,7 +7,7 @@ import { validateBody } from "../../../middleware/validation";
 const SUBSCRIPTION_TTL_SECONDS = 60 * 60 * 24 * 365;
 
 const pushSubscriptionSchema = z.object({
-  endpoint: z.string().url().max(4096),
+  endpoint: z.url().max(4096),
   keys: z.object({
     p256dh: z.string().min(1).max(2048),
     auth: z.string().min(1).max(2048),
@@ -26,7 +26,7 @@ const subscribeSchema = z
 
 const unsubscribeSchema = z
   .object({
-    endpoint: z.string().url().max(4096).optional(),
+    endpoint: z.url().max(4096).optional(),
     subscriptionId: z.string().min(1).max(256).optional(),
     restaurant_id: z.union([z.string(), z.number()]).optional(),
   })

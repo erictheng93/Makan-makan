@@ -45,7 +45,7 @@ const verifyOtpSchema = z.object({
 
 const profilePatchSchema = z.object({
   displayName: z.string().trim().min(1).max(100).optional(),
-  avatarUrl: z.string().url().max(2048).nullable().optional(),
+  avatarUrl: z.url().max(2048).nullable().optional(),
   locale: z
     .string()
     .regex(/^[a-z]{2,3}(-[A-Z]{2})?$/)
@@ -74,10 +74,7 @@ const preferencesPatchSchema = z.object({
 });
 
 const pushSubscriptionSchema = z.object({
-  endpoint: z
-    .string()
-    .transform(decodeHtmlEntities)
-    .pipe(z.string().url().max(4096)),
+  endpoint: z.string().transform(decodeHtmlEntities).pipe(z.url().max(4096)),
   p256dh: z.string().min(1).max(2048),
   auth: z.string().min(1).max(2048),
   userAgent: z.string().max(1024).optional(),

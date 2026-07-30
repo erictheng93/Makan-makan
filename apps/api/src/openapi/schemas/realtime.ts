@@ -42,7 +42,7 @@ export const RealtimeSchemas = {
     success: z.boolean(),
     token: z.string(),
     expiresAt: z.string().datetime(),
-    connectionUrl: z.string().url(),
+    connectionUrl: z.url(),
   }),
 
   // Verify Token Request

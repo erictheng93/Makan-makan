@@ -35,7 +35,7 @@ export const resetPasswordSchema = z
 
 // Send email verification schema
 export const sendEmailVerificationSchema = z.object({
-  email: z.string().email("無效的 Email 格式"),
+  email: z.email("無效的 Email 格式"),
 });
 
 // Verify email schema

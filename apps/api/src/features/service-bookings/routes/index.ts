@@ -57,7 +57,7 @@ const createSchema = z.object({
   serviceItemId: z.number().int().positive(),
   customerName: z.string().min(1).max(100),
   customerPhone: z.string().min(3).max(30),
-  customerEmail: z.string().email().optional(),
+  customerEmail: z.email().optional(),
   customerId: z.string().optional(),
   bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   bookingTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -97,7 +97,7 @@ const paySchema = z.object({
 const contactProofSchema = z.object({
   requireContact: z.boolean().optional().default(false),
   customerPhone: z.string().min(3).max(30).optional(),
-  customerEmail: z.string().email().optional(),
+  customerEmail: z.email().optional(),
 });
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);

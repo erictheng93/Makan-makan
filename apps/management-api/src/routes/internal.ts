@@ -19,7 +19,7 @@ const router = new Hono<InternalEnv>();
 
 const provisionTenantSchema = z.object({
   businessName: z.string().min(2).max(100),
-  contactEmail: z.string().email(),
+  contactEmail: z.email(),
   contactPhone: z.string().min(8).max(20).optional(),
   planId: z
     .enum(["trial", "standard", "professional", "enterprise"])

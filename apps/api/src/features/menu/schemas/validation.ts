@@ -9,7 +9,7 @@ import { z } from "zod";
 const positiveInteger = z.number().int().positive();
 const nonNegativeInteger = z.number().int().min(0);
 const nonEmptyString = z.string().min(1).trim();
-const optionalUrl = z.string().url().nullish();
+const optionalUrl = z.url().nullish();
 const priceSchema = z.number().positive();
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGE_DATA_URL_CHARS = Math.ceil(MAX_IMAGE_BYTES / 0.75) + 128;

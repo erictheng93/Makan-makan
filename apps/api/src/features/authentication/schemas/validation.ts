@@ -66,7 +66,6 @@ const usernameSchema = z
 
 // Email validation schema
 const emailSchema = z
-  .string()
   .email("Invalid email format")
   .max(
     VALIDATION_LIMITS.EMAIL_MAX_LENGTH,

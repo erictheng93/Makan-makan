@@ -11,7 +11,7 @@ import { ORDER_STATUS_TRANSITIONS } from "../types";
 const idSchema = z.number().int().positive();
 const optionalIdSchema = z.number().int().positive().optional();
 const phoneSchema = z.string().max(20).optional();
-const emailSchema = z.string().email().optional();
+const emailSchema = z.email().optional();
 const idStringSchema = z.preprocess((value) => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return String(value);
@@ -26,7 +26,7 @@ const sanitizeFreeText = (input: string): string => {
 
 const notesSchema = (maxLength: number) =>
   z.string().max(maxLength).transform(sanitizeFreeText);
-// const urlSchema = z.string().url().optional() // Available for future use
+// const urlSchema = z.url().optional() // Available for future use
 const positiveNumberSchema = z.number().positive();
 // const nonNegativeNumberSchema = z.number().min(0) // Available for future use
 const dateStringSchema = z.string().datetime().optional();

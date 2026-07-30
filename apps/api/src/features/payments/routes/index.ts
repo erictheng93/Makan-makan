@@ -39,13 +39,13 @@ const createPaymentRequestSchema = z
     customerInfo: z
       .object({
         name: z.string().optional(),
-        email: z.string().email().optional(),
+        email: z.email().optional(),
         phone: z.string().optional(),
       })
       .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
-    returnUrl: z.string().url().optional(),
-    cancelUrl: z.string().url().optional(),
+    returnUrl: z.url().optional(),
+    cancelUrl: z.url().optional(),
   })
   .passthrough();
 
@@ -76,7 +76,7 @@ const rootPaymentRequestSchema = z
     customerInfo: z
       .object({
         name: z.string().optional(),
-        email: z.string().email().optional(),
+        email: z.email().optional(),
         phone: z.string().optional(),
       })
       .optional(),

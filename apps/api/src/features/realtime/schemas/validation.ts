@@ -29,7 +29,7 @@ export const guestRealtimeTokenRequestSchema = z
     tableId: z.coerce.string().min(1, "Table ID is required").optional(),
     seatId: z.coerce.string().min(1, "Seat ID is required").optional(),
     orderId: z.coerce.string().min(1, "Order ID is required").optional(),
-    qrCode: z.string().url("A signed QR URL is required").optional(),
+    qrCode: z.url("A signed QR URL is required").optional(),
   })
   .superRefine((data, ctx) => {
     if (data.guestToken && !data.orderId) {
