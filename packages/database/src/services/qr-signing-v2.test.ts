@@ -98,7 +98,7 @@ describe("table and seat QR v2 generation", () => {
     );
   });
 
-  it("keeps the valid v1 QR when the post-insert v2 upgrade fails", async () => {
+  it("leaves an unsignable placeholder when the post-insert v2 upgrade fails", async () => {
     const service = new TableService(testDb.bindings.DB, {
       JWT_SECRET: "test",
       QR_SIGNING_KEY: signingKey,
@@ -145,11 +145,12 @@ describe("table and seat QR v2 generation", () => {
     });
 
     expect(created.id).toBe(legacyRow.id);
-    expect(parseSignedQRUrl(created.qrCode)).toMatchObject({
-      formatVersion: 1,
-      type: "table",
-      restaurantId,
-      identifier: legacyRow.number,
-    });
+    // Previously this fell back to a valid v1 signature. That is worse than a
+    // broken one once phase 3 stops accepting v1: the sticker would scan and
+    // then be rejected, leaving a customer unable to order with nothing to
+    // explain why. A placeholder is visibly unusable and audit-qr-format flags
+    // it as unparseable.
+    expect(created.qrCode).toMatch(/^pending:/);
+    expect(parseSignedQRUrl(created.qrCode)).toBeNull();
   });
 });

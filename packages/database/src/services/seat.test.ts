@@ -120,6 +120,34 @@ describe("SeatService.createSeatsForTable", () => {
     );
   });
 
+  it("creates a table with a v2 QR and never persists a legacy one", async () => {
+    const service = createTableService(testDb);
+
+    const createdTable = await service.createTable({
+      restaurantId,
+      number: "V2-1",
+      capacity: 4,
+    });
+
+    const [row] = await testDb.drizzle
+      .select({ qrCode: tables.qrCode, qrCodeVersion: tables.qrCodeVersion })
+      .from(tables)
+      .where(eq(tables.id, createdTable.id));
+
+    // createTable inserts a placeholder before it can sign (the signature binds
+    // the auto-increment id), so assert the row does not keep it, and that what
+    // it does keep is v2 rather than a legacy signature that the phase 3 cutoff
+    // would later reject.
+    expect(row.qrCode).not.toMatch(/^pending:/);
+    expect(row.qrCode).toContain("f=2");
+    expect(row.qrCode).toContain(`d=${createdTable.id}`);
+    expect(row.qrCode).toContain("n=V2-1");
+    expect(row.qrCodeVersion).toBe(1);
+    // The returned object must agree with what was stored, or callers print a
+    // QR that differs from the one the DB will verify.
+    expect(createdTable.qrCode).toBe(row.qrCode);
+  });
+
   it("switches an existing table to seat mode when table settings are updated", async () => {
     const service = createTableService(testDb);
     const createdTable = await service.createTable({
