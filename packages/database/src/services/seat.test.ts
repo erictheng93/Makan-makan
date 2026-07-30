@@ -299,3 +299,107 @@ function createTableService(testDb: TestDatabase) {
     CLIENT_BASE_URL: "https://example.test",
   });
 }
+
+describe("SeatService.batchGenerateSeatQRCodes", () => {
+  let testDb: TestDatabase;
+  let tableId: number;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: restaurantId,
+      name: "Seat Service Restaurant",
+      type: "restaurant",
+      category: "casual",
+      address: "1 Seat St",
+      district: "Central",
+      city: "Taipei",
+      phone: "0200000000",
+      settings: {},
+      isAvailable: true,
+      isActive: true,
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-29T00:00:00.000Z"),
+    } as never);
+    const [table] = await testDb.drizzle
+      .insert(tables)
+      .values({
+        restaurantId,
+        number: "A1",
+        capacity: 8,
+        qrCode: "table-qr-a1",
+        qrMode: "seat",
+        seatCount: 6,
+        createdAt: new Date("2026-07-29T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-29T00:00:00.000Z"),
+      })
+      .returning({ id: tables.id });
+    tableId = table.id;
+  });
+
+  it("advances every seat together, with each QR bound to its own seat", async () => {
+    const service = createService(testDb);
+    await service.createSeatsForTable(tableId, 6);
+
+    const before = await testDb.drizzle
+      .select({
+        id: seats.id,
+        seatNumber: seats.seatNumber,
+        qrCode: seats.qrCode,
+        qrCodeVersion: seats.qrCodeVersion,
+      })
+      .from(seats)
+      .where(eq(seats.tableId, tableId))
+      .orderBy(asc(seats.seatNumber));
+    expect(before).toHaveLength(6);
+
+    const result = await service.batchGenerateSeatQRCodes(tableId);
+    expect(result.success).toBe(true);
+    expect(result.qrCodes).toHaveLength(6);
+
+    const after = await testDb.drizzle
+      .select({
+        id: seats.id,
+        seatNumber: seats.seatNumber,
+        qrCode: seats.qrCode,
+        qrCodeVersion: seats.qrCodeVersion,
+      })
+      .from(seats)
+      .where(eq(seats.tableId, tableId))
+      .orderBy(asc(seats.seatNumber));
+
+    // Every row moved. A partial write would leave a mix of versions, which for
+    // a printed sticker means some seats scan and some do not.
+    for (const [i, row] of after.entries()) {
+      expect(row.qrCodeVersion, `seat ${row.seatNumber} version`).toBe(
+        (before[i].qrCodeVersion ?? 0) + 1,
+      );
+      expect(row.qrCode, `seat ${row.seatNumber} qr`).not.toBe(
+        before[i].qrCode,
+      );
+      // v2 payload carrying this table's id, and this seat's number
+      expect(row.qrCode).toContain(`d=${tableId}`);
+      expect(row.qrCode).toContain("f=2");
+      expect(row.qrCode).toContain(`n=${row.seatNumber}`);
+      expect(row.qrCode).toContain(`v=${row.qrCodeVersion}`);
+    }
+
+    // No two seats share a signature, which was the original #73 defect.
+    const signatures = after.map((r) => r.qrCode?.split("sig=")[1]);
+    expect(new Set(signatures).size).toBe(after.length);
+  });
+
+  it("is a no-op for a table with no seats rather than an error", async () => {
+    const service = createService(testDb);
+    const result = await service.batchGenerateSeatQRCodes(tableId);
+    expect(result).toEqual({ success: true, qrCodes: [] });
+  });
+});
