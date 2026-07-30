@@ -227,6 +227,35 @@ describe("menu routes", () => {
     expect(response.status).toBe(404);
   });
 
+  it("scopes includeAll to the owner's own restaurant", async () => {
+    // An owner of rest-2 must not see rest-1's unavailable items.
+    auth.user = { id: 2, role: 1, restaurantId: "rest-2" };
+    let response = await request("/rest-1?includeAll=true");
+
+    expect(response.status).toBe(200);
+    expect(serviceFns.getMenu).toHaveBeenLastCalledWith("rest-1", {
+      includeUnavailable: false,
+    });
+
+    // An owner with no restaurant on their token is not privileged anywhere.
+    auth.user = { id: 3, role: 1 };
+    response = await request("/rest-1?includeAll=true");
+
+    expect(response.status).toBe(200);
+    expect(serviceFns.getMenu).toHaveBeenLastCalledWith("rest-1", {
+      includeUnavailable: false,
+    });
+
+    // Their own restaurant still works.
+    auth.user = { id: 2, role: 1, restaurantId: "rest-2" };
+    response = await request("/rest-2?includeAll=true");
+
+    expect(response.status).toBe(200);
+    expect(serviceFns.getMenu).toHaveBeenLastCalledWith("rest-2", {
+      includeUnavailable: true,
+    });
+  });
+
   it("serves featured, popular, search, and item detail public endpoints", async () => {
     let response = await request("/rest-1/featured?limit=4");
 

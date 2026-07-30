@@ -54,12 +54,19 @@ app.get(
     const { restaurantId } = c.get("validatedParams");
     const service = new MenuService(c.env);
 
-    // Authenticated admin/owner requests can see all items (including unavailable)
+    // Authenticated admin/owner requests can see all items (including
+    // unavailable). Role alone is not enough — an owner is only privileged on
+    // their OWN restaurant, so the token's restaurantId must match the target.
+    // Platform admins (role 0) are the only cross-tenant readers, matching
+    // requireRestaurantAccess.
     const user = c.get("user");
     const includeAll =
       c.req.query("includeAll") === "true" &&
       user &&
-      (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.OWNER);
+      (user.role === USER_ROLES.ADMIN ||
+        (user.role === USER_ROLES.OWNER &&
+          user.restaurantId != null &&
+          String(user.restaurantId) === restaurantId));
 
     const menu = await service.getMenu(restaurantId, {
       includeUnavailable: !!includeAll,
