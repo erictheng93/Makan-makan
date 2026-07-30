@@ -25,6 +25,6 @@ export const signedQrApi = {
     type: "table" | "seat",
     qrCode: string,
   ): Promise<SignedQrVerification> {
-    return apiClient.get(`/qr-codes/verify/${type}`, { qrCode });
+    return apiClient.get(`/qr/verify/${type}`, { qrCode });
   },
 };

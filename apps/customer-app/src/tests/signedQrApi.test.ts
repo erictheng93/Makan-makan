@@ -32,7 +32,7 @@ describe("signedQrApi", () => {
       tableId: 10,
       seatId: 21,
     });
-    expect(apiClient.get).toHaveBeenCalledWith("/qr-codes/verify/seat", {
+    expect(apiClient.get).toHaveBeenCalledWith("/qr/verify/seat", {
       qrCode,
     });
   });

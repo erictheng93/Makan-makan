@@ -386,7 +386,7 @@
   {
     "tableName": "seats",
     "schemaFile": "packages/database/src/schema/seats.ts",
-    "line": 14,
+    "line": 20,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "rationale": "Seats are floor-plan domain entities referenced by QR and table flows."

@@ -31,6 +31,7 @@ export interface QRSigningParams {
 }
 
 export interface SignedQRUrlParams extends QRSigningParams {
+  formatVersion: 1 | 2;
   timestamp: number;
   signature: string;
 }

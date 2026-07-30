@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { isPublicApiCacheableRequest } from "./edge-cache";
+import { Hono } from "hono";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  isPublicApiCacheableRequest,
+  smartCacheMiddleware,
+} from "./edge-cache";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("isPublicApiCacheableRequest", () => {
   it("only caches explicitly approved public read routes", () => {
@@ -45,5 +53,101 @@ describe("isPublicApiCacheableRequest", () => {
     expect(
       isPublicApiCacheableRequest("POST", "/api/v1/menu/restaurant-1"),
     ).toBe(false);
+  });
+
+  it("keeps QR verification fresh while the edge cache is enabled", async () => {
+    const kvEntries = new Map<string, string>();
+    const cacheEntries = new Map<string, Response>();
+    const cache = {
+      async match(key: RequestInfo | URL) {
+        const response = cacheEntries.get(String(key));
+        return response?.clone();
+      },
+      async put(key: RequestInfo | URL, response: Response) {
+        cacheEntries.set(String(key), response.clone());
+      },
+      async delete(key: RequestInfo | URL) {
+        return cacheEntries.delete(String(key));
+      },
+    };
+    vi.stubGlobal("caches", { default: cache });
+
+    const cacheKv = {
+      async get(key: string, options?: { type?: string }) {
+        const value = kvEntries.get(key);
+        if (value === undefined) return null;
+        return options?.type === "json" ? JSON.parse(value) : value;
+      },
+      async put(key: string, value: string) {
+        kvEntries.set(key, value);
+      },
+      async delete(key: string) {
+        kvEntries.delete(key);
+      },
+    };
+    const app = new Hono();
+    app.use(
+      "*",
+      smartCacheMiddleware({
+        defaultTtl: 300,
+        shouldCache: (c) =>
+          isPublicApiCacheableRequest(c.req.method, c.req.path),
+      }),
+    );
+    let menuGeneration = 0;
+    let verificationGeneration = 0;
+    app.get("/api/v1/menu/restaurant-1", (c) =>
+      c.json({ success: true, data: { generation: ++menuGeneration } }),
+    );
+    app.get("/api/v1/qr/verify/seat", (c) =>
+      c.json({
+        success: true,
+        data: { generation: ++verificationGeneration },
+      }),
+    );
+    const env = { CACHE_KV: cacheKv };
+    const executionCtx = {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    };
+
+    const firstMenu = await app.request(
+      "/api/v1/menu/restaurant-1",
+      undefined,
+      env as never,
+      executionCtx as never,
+    );
+    const secondMenu = await app.request(
+      "/api/v1/menu/restaurant-1",
+      undefined,
+      env as never,
+      executionCtx as never,
+    );
+    const firstVerification = await app.request(
+      "/api/v1/qr/verify/seat?qrCode=old",
+      undefined,
+      env as never,
+      executionCtx as never,
+    );
+    const secondVerification = await app.request(
+      "/api/v1/qr/verify/seat?qrCode=old",
+      undefined,
+      env as never,
+      executionCtx as never,
+    );
+
+    await expect(firstMenu.json()).resolves.toMatchObject({
+      data: { generation: 1 },
+    });
+    await expect(secondMenu.json()).resolves.toMatchObject({
+      data: { generation: 1 },
+      cached: true,
+    });
+    await expect(firstVerification.json()).resolves.toMatchObject({
+      data: { generation: 1 },
+    });
+    await expect(secondVerification.json()).resolves.toMatchObject({
+      data: { generation: 2 },
+    });
   });
 });
