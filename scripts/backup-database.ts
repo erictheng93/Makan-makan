@@ -3,13 +3,14 @@
  * MakanMakan Database Backup Script
  * Cross-platform TypeScript version
  *
- * Usage: npx tsx scripts/backup-database.ts [environment]
+ * Usage: npx tsx scripts/backup-database.ts [environment] [--output <dir>]
  * Example: npx tsx scripts/backup-database.ts production
+ * Example: npx tsx scripts/backup-database.ts production --output ~/db-backups
  */
 
-import { execFileSync, spawnSync } from "child_process";
+import { spawnSync } from "child_process";
 import { existsSync, mkdirSync, writeFileSync, statSync } from "fs";
-import { join } from "path";
+import { basename, isAbsolute, join, relative, resolve } from "path";
 
 // ANSI colors for terminal output
 const colors = {
@@ -20,7 +21,12 @@ const colors = {
 };
 
 // Configuration
-const BACKUP_DIR = "backups";
+//
+// Dumps are plaintext database contents. The default directory is ignored by
+// the repo's .gitignore; the guard in main() refuses to write anywhere inside
+// the working tree that git would still track, so a dump can never be
+// committed by accident. Pass `--output <dir>` to write outside the repo.
+const DEFAULT_BACKUP_DIR = "backups";
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 
 type Environment = "production" | "local";
@@ -62,6 +68,61 @@ function runNpx(args: string[], silent = false): string {
   return runCommand(npxCmd, args, silent);
 }
 
+function parseArgs(argv: string[]): {
+  environment: string;
+  backupDir: string;
+} {
+  let environment: string | undefined;
+  let backupDir = DEFAULT_BACKUP_DIR;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--output" || arg === "-o") {
+      const value = argv[i + 1];
+      if (!value) {
+        console.error(colors.red("--output requires a directory path"));
+        process.exit(1);
+      }
+      backupDir = value;
+      i++;
+    } else if (arg.startsWith("--output=")) {
+      backupDir = arg.slice("--output=".length);
+    } else if (environment === undefined) {
+      environment = arg;
+    } else {
+      console.error(colors.red(`Unexpected argument: ${arg}`));
+      process.exit(1);
+    }
+  }
+
+  return { environment: environment ?? "production", backupDir };
+}
+
+function isInsideGitWorkTree(dir: string): boolean {
+  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+    encoding: "utf-8",
+    stdio: "pipe",
+    shell: false,
+  });
+  if (result.status !== 0) {
+    return false;
+  }
+  const relativeToRoot = relative(resolve(result.stdout.trim()), resolve(dir));
+  return !relativeToRoot.startsWith("..") && !isAbsolute(relativeToRoot);
+}
+
+function isGitIgnored(dir: string): boolean {
+  // The trailing slash tells git to match directory patterns (`backups/`) even
+  // when the directory does not exist on disk yet.
+  const target = dir.endsWith("/") ? dir : `${dir}/`;
+  const result = spawnSync("git", ["check-ignore", "--quiet", target], {
+    encoding: "utf-8",
+    stdio: "pipe",
+    shell: false,
+  });
+  return result.status === 0;
+}
+
 function formatFileSize(bytes: number): string {
   const units = ["B", "KB", "MB", "GB"];
   let size = bytes;
@@ -74,20 +135,38 @@ function formatFileSize(bytes: number): string {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const environment = (args[0] || "production") as Environment;
+  const { environment: environmentArg, backupDir } = parseArgs(
+    process.argv.slice(2),
+  );
+  const environment = environmentArg as Environment;
 
   // Validate environment
   if (!["production", "local"].includes(environment)) {
     console.error(colors.red(`Invalid environment: ${environment}`));
-    console.log("Usage: npx tsx scripts/backup-database.ts [production|local]");
+    console.log(
+      "Usage: npx tsx scripts/backup-database.ts [production|local] [--output <dir>]",
+    );
+    process.exit(1);
+  }
+
+  // A dump is plaintext database content. Never leave it somewhere git would
+  // offer to commit.
+  if (isInsideGitWorkTree(backupDir) && !isGitIgnored(backupDir)) {
+    console.error(colors.red(`Refusing to write backups to: ${backupDir}`));
+    console.error(
+      "That path is inside the git working tree and not covered by .gitignore,",
+    );
+    console.error(
+      "so a plaintext database dump could be committed. Add it to .gitignore,",
+    );
+    console.error("or pass --output <dir> pointing outside the repository.");
     process.exit(1);
   }
 
   const dbConfig = getDatabaseConfig(environment);
-  const backupFile = join(BACKUP_DIR, `${dbConfig.name}_${TIMESTAMP}.sql`);
+  const backupFile = join(backupDir, `${dbConfig.name}_${TIMESTAMP}.sql`);
   const metadataFile = join(
-    BACKUP_DIR,
+    backupDir,
     `${dbConfig.name}_${TIMESTAMP}_metadata.json`,
   );
   const archiveFile = `${backupFile}.tar.gz`;
@@ -111,8 +190,8 @@ async function main() {
   console.log();
 
   // Create backup directory
-  if (!existsSync(BACKUP_DIR)) {
-    mkdirSync(BACKUP_DIR, { recursive: true });
+  if (!existsSync(backupDir)) {
+    mkdirSync(backupDir, { recursive: true });
   }
 
   // Step 1: Export database
@@ -229,7 +308,20 @@ async function main() {
   console.log();
   console.log(colors.blue("Step 5/5: Creating compressed archive..."));
   try {
-    runCommand("tar", ["-czf", archiveFile, backupFile, metadataFile], true);
+    // -C keeps the archive members relative to the backup directory, so an
+    // absolute --output path does not end up baked into the archive.
+    runCommand(
+      "tar",
+      [
+        "-czf",
+        archiveFile,
+        "-C",
+        backupDir,
+        basename(backupFile),
+        basename(metadataFile),
+      ],
+      true,
+    );
     const archiveStats = statSync(archiveFile);
     console.log(
       colors.green(`Archive created: ${formatFileSize(archiveStats.size)}`),

@@ -233,6 +233,13 @@ tmpclaude-*
 tests/e2e/.tmp/
 .claude/scheduled_tasks.lock
 
+# Database dumps from `pnpm db:backup` (plaintext rows, never commit).
+# scripts/backup-database.ts refuses to run if this entry goes missing.
+backups/
+
+# Forensic dumps taken during an incident (see docs/runbooks/backup-restore-runbook.md)
+forensics-*.json
+
 # Staging/prod secret bundles (script-managed, never commit)
 .staging.secrets.env
 .prod.secrets.env
