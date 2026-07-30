@@ -282,6 +282,9 @@ const zhTWCore = {
       print: "列印 QR 碼",
       printAll: "列印全部 QR 碼",
       printAllTitle: "桌台 QR 碼一覽",
+      printSelected: "列印所選 ({count})",
+      selectAllFiltered: "全選目前結果",
+      selectForPrint: "選取桌號 {number} 以列印",
     },
     confirm: {
       regenerateAllQR: "確定要為所有桌台重新生成 QR 碼嗎？",

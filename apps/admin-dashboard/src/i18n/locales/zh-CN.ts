@@ -2021,6 +2021,9 @@ const zhCN: Messages = {
       print: "打印 QR 码",
       printAll: "打印全部 QR 码",
       printAllTitle: "桌台 QR 码一览",
+      printSelected: "打印所选 ({count})",
+      selectAllFiltered: "全选当前结果",
+      selectForPrint: "选取桌号 {number} 以打印",
     },
     confirm: {
       regenerateAllQR: "确定要为所有桌台重新生成 QR 码吗？",

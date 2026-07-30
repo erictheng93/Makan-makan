@@ -1934,6 +1934,9 @@ const jaJP: Messages = {
       print: "QRを印刷",
       printAll: "すべてのQRコードを印刷",
       printAllTitle: "テーブルQRコード一覧",
+      printSelected: "選択分を印刷 ({count})",
+      selectAllFiltered: "表示中をすべて選択",
+      selectForPrint: "テーブル{number}を印刷対象に選択",
     },
     confirm: {
       regenerateAllQR:

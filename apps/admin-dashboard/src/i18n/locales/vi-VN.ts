@@ -1932,6 +1932,9 @@ const viVN: Messages = {
       print: "In mã QR",
       printAll: "In tất cả mã QR",
       printAllTitle: "Danh sách mã QR bàn",
+      printSelected: "In các mục đã chọn ({count})",
+      selectAllFiltered: "Chọn tất cả đang hiển thị",
+      selectForPrint: "Chọn bàn {number} để in",
     },
     confirm: {
       regenerateAllQR: "Bạn có chắc muốn tạo lại mã QR cho tất cả các bàn?",

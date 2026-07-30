@@ -10,6 +10,16 @@
         {{ t("tables.batchGenerateQR") }}
       </button>
       <button
+        v-if="selectedPrintableCount > 0"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#1C1C1E] text-white hover:bg-[#1C1C1E]/85 transition-colors shadow-sm"
+        @click="printSelectedTableQRCodes"
+      >
+        <QrCode class="w-4 h-4 mr-1.5" />
+        {{
+          t("tables.qrModal.printSelected", { count: selectedPrintableCount })
+        }}
+      </button>
+      <button
         class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#1C1C1E]/10 text-[#1C1C1E] hover:bg-[#1C1C1E]/20 transition-colors"
         @click="printAllTableQRCodes"
       >
@@ -49,6 +59,18 @@
             {{ t("tables.status.maintenance") }}
           </option>
         </select>
+        <label
+          v-if="filteredTables.length > 0"
+          class="flex items-center px-3 py-2 text-sm text-[#1C1C1E]/70 cursor-pointer select-none whitespace-nowrap"
+        >
+          <input
+            type="checkbox"
+            class="h-4 w-4 mr-2 rounded border-[#E5E5EA] text-[#007AFF] focus:ring-[#007AFF]/30"
+            :checked="allFilteredSelected"
+            @change="toggleSelectAllFiltered"
+          />
+          {{ t("tables.qrModal.selectAllFiltered") }}
+        </label>
         <select
           v-model="capacityFilter"
           class="px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] bg-[#F2F2F7]/50 text-sm"
@@ -74,6 +96,18 @@
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center">
+              <input
+                type="checkbox"
+                class="h-4 w-4 mr-3 rounded border-[#E5E5EA] text-[#007AFF] focus:ring-[#007AFF]/30 cursor-pointer"
+                :checked="isTableSelected(table.id)"
+                :aria-label="
+                  t('tables.qrModal.selectForPrint', {
+                    number: table.tableNumber,
+                  })
+                "
+                :data-testid="`select-table-${table.id}`"
+                @change="toggleTableSelection(table.id)"
+              />
               <div
                 :class="getStatusColor(table.status)"
                 class="w-3 h-3 rounded-full mr-3"
@@ -473,6 +507,56 @@ const filteredTables = computed(() => {
     .sort((a, b) => a.tableNumber.localeCompare(b.tableNumber));
 });
 
+/**
+ * QR print selection.
+ *
+ * Kept independent of the active filter on purpose: building a print run
+ * section by section (filter to 1F, select, filter to 2F, add more) is the
+ * reason to select at all, so changing the filter must not silently discard
+ * what is already picked. Select-all, by contrast, acts on what is visible.
+ */
+const selectedTableIds = ref<number[]>([]);
+
+const isTableSelected = (id: number) => selectedTableIds.value.includes(id);
+
+const toggleTableSelection = (id: number) => {
+  selectedTableIds.value = isTableSelected(id)
+    ? selectedTableIds.value.filter((selected) => selected !== id)
+    : [...selectedTableIds.value, id];
+};
+
+const allFilteredSelected = computed(
+  () =>
+    filteredTables.value.length > 0 &&
+    filteredTables.value.every((table) => isTableSelected(table.id)),
+);
+
+const toggleSelectAllFiltered = () => {
+  const visibleIds = filteredTables.value.map((table) => table.id);
+  if (allFilteredSelected.value) {
+    selectedTableIds.value = selectedTableIds.value.filter(
+      (id) => !visibleIds.includes(id),
+    );
+    return;
+  }
+  const merged = new Set([...selectedTableIds.value, ...visibleIds]);
+  selectedTableIds.value = [...merged];
+};
+
+const selectedPrintableTables = computed(() =>
+  tables.value.filter(
+    (table) => isTableSelected(table.id) && Boolean(table.qrCode),
+  ),
+);
+
+const selectedPrintableCount = computed(
+  () => selectedPrintableTables.value.length,
+);
+
+const printSelectedTableQRCodes = async () => {
+  await printTableQRCodes(selectedPrintableTables.value);
+};
+
 const STATUS_COLORS: Record<string, string> = {
   available: "bg-[#34C759]",
   occupied: "bg-[#FF3B30]",
@@ -654,19 +738,20 @@ const printQRCode = () => {
 };
 
 /**
- * Re-stickering a venue means printing every table's code at once — one sheet
- * per table is not workable for a rollout (#88 phase 2).
+ * Re-stickering a venue means printing many codes at once — one sheet per table
+ * is not workable for a rollout (#88 phase 2).
  */
-const printAllTableQRCodes = async () => {
-  const printable = filteredTables.value.filter((table) => table.qrCode);
-  if (printable.length === 0) {
+const printTableQRCodes = async (
+  targets: Array<{ tableNumber: string; qrCode: string }>,
+) => {
+  if (targets.length === 0) {
     toast.warning(t("tables.alert.nothingToPrint"));
     return;
   }
 
   try {
     const qrCodes = await Promise.all(
-      printable.map(async (table) => ({
+      targets.map(async (table) => ({
         label: t("tables.qrModal.title", { number: table.tableNumber }),
         dataUrl: await toPrintableDataUrl(table.qrCode),
       })),
@@ -680,6 +765,10 @@ const printAllTableQRCodes = async () => {
   }
 };
 
+const printAllTableQRCodes = async () => {
+  await printTableQRCodes(filteredTables.value.filter((table) => table.qrCode));
+};
+
 const fetchTables = async () => {
   const restaurantId = authStore.restaurantId;
   if (!restaurantId) return;
@@ -688,6 +777,12 @@ const fetchTables = async () => {
     const response = await api.get("/tables", { restaurantId });
     if (response.data.success && response.data.data) {
       tables.value = unwrapApiList(response.data.data).map(mapTable);
+      // A selected id whose table has since been deleted would print a QR that
+      // no longer resolves, so drop anything the server no longer returns.
+      const liveIds = new Set(tables.value.map((table) => table.id));
+      selectedTableIds.value = selectedTableIds.value.filter((id) =>
+        liveIds.has(id),
+      );
     }
   } catch (error) {
     console.error("Failed to fetch tables:", error);
