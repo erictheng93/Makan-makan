@@ -2019,6 +2019,8 @@ const zhCN: Messages = {
       preview: "QR 码预览",
       download: "下载 QR 码",
       print: "打印 QR 码",
+      printAll: "打印全部 QR 码",
+      printAllTitle: "桌台 QR 码一览",
     },
     confirm: {
       regenerateAllQR: "确定要为所有桌台重新生成 QR 码吗？",
@@ -2027,6 +2029,8 @@ const zhCN: Messages = {
       qrGenerated: "QR 码生成完成！",
       downloadInProgress: "QR 码下载功能开发中...",
       printInProgress: "QR 码打印功能开发中...",
+      printFailed: "打印失败，请确认浏览器未拦截弹出窗口",
+      nothingToPrint: "没有可打印的 QR 码",
       createSuccess: "桌台新增成功",
       updateSuccess: "桌台更新成功",
       saveFailed: "桌台保存失败，请稍后再试",

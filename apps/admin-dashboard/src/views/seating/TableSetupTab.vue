@@ -10,6 +10,13 @@
         {{ t("tables.batchGenerateQR") }}
       </button>
       <button
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#1C1C1E]/10 text-[#1C1C1E] hover:bg-[#1C1C1E]/20 transition-colors"
+        @click="printAllTableQRCodes"
+      >
+        <QrCode class="w-4 h-4 mr-1.5" />
+        {{ t("tables.qrModal.printAll") }}
+      </button>
+      <button
         class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
         @click="showTableModal = true"
       >
@@ -382,6 +389,7 @@ import {
 } from "lucide-vue-next";
 import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
+import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -637,28 +645,39 @@ const downloadQRCode = () => {
 const printQRCode = () => {
   const dataUrl = qrModalRef.value?.getDataUrl();
   if (!dataUrl) return;
-  const tableNum = selectedTable.value?.tableNumber || "";
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
+  const label = t("tables.qrModal.title", {
+    number: selectedTable.value?.tableNumber || "",
+  });
+  if (!printQRCodeSheet(label, [{ label, dataUrl }])) {
+    toast.error(t("tables.alert.printFailed"));
+  }
+};
 
-  const doc = printWindow.document;
-  const style = doc.createElement("style");
-  style.textContent =
-    "body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui}" +
-    "h2{margin-bottom:16px;font-size:24px}img{border:1px solid #eee;border-radius:12px}";
-  doc.head.appendChild(style);
+/**
+ * Re-stickering a venue means printing every table's code at once — one sheet
+ * per table is not workable for a rollout (#88 phase 2).
+ */
+const printAllTableQRCodes = async () => {
+  const printable = filteredTables.value.filter((table) => table.qrCode);
+  if (printable.length === 0) {
+    toast.warning(t("tables.alert.nothingToPrint"));
+    return;
+  }
 
-  const heading = doc.createElement("h2");
-  heading.textContent = t("tables.qrModal.title", { number: tableNum });
-  doc.body.appendChild(heading);
-
-  const img = doc.createElement("img");
-  img.src = dataUrl;
-  img.width = 300;
-  img.height = 300;
-  doc.body.appendChild(img);
-
-  setTimeout(() => printWindow.print(), 300);
+  try {
+    const qrCodes = await Promise.all(
+      printable.map(async (table) => ({
+        label: t("tables.qrModal.title", { number: table.tableNumber }),
+        dataUrl: await toPrintableDataUrl(table.qrCode),
+      })),
+    );
+    if (!printQRCodeSheet(t("tables.qrModal.printAllTitle"), qrCodes)) {
+      toast.error(t("tables.alert.printFailed"));
+    }
+  } catch (error) {
+    console.error("Failed to prepare table QR codes for printing:", error);
+    toast.error(t("tables.alert.printFailed"));
+  }
 };
 
 const fetchTables = async () => {

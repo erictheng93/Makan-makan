@@ -1932,6 +1932,8 @@ const jaJP: Messages = {
       preview: "QRコードプレビュー",
       download: "QRをダウンロード",
       print: "QRを印刷",
+      printAll: "すべてのQRコードを印刷",
+      printAllTitle: "テーブルQRコード一覧",
     },
     confirm: {
       regenerateAllQR:
@@ -1941,6 +1943,9 @@ const jaJP: Messages = {
       qrGenerated: "QRコードが正常に生成されました",
       downloadInProgress: "QRコードのダウンロード機能は近日公開予定です...",
       printInProgress: "QRコードの印刷機能は近日公開予定です...",
+      printFailed:
+        "印刷に失敗しました。ポップアップがブロックされていないか確認してください",
+      nothingToPrint: "印刷できるQRコードがありません",
       createSuccess: "テーブルを作成しました",
       updateSuccess: "テーブルを更新しました",
       saveFailed:
