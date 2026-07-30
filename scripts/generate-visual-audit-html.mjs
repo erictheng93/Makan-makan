@@ -78,6 +78,23 @@ const APPS = [
 
 const VIEWPORT_ORDER = ["desktop", "tablet", "mobile"];
 
+/**
+ * Escape a filesystem-derived string for HTML text and double-quoted
+ * attribute contexts. Snapshot filenames are attacker-influenced in the sense
+ * that anything on disk lands in the page — a name containing `"` or `<` would
+ * otherwise break out of the attribute or inject markup. Values consumed by the
+ * inline script travel through `data-*` attributes (never through interpolated
+ * JS), so escaping here is sufficient.
+ */
+function esc(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function main() {
   const sections = [];
   let total = 0;
@@ -129,10 +146,10 @@ async function main() {
                 ? "#34C759"
                 : "#FF9500";
           return `
-          <div class="vp-card" onclick="zoom('${src}', '${pageName} · ${vp}')">
+          <div class="vp-card" data-src="${esc(src)}" data-label="${esc(`${pageName} · ${vp}`)}">
             <div class="vp-tag" style="background: ${viewportColor}1a; color: ${viewportColor}">${vp}</div>
             <div class="imgwrap">
-              <img loading="lazy" src="${src}" alt="${file}" />
+              <img loading="lazy" src="${esc(src)}" alt="${esc(file)}" />
             </div>
           </div>`;
         }),
@@ -141,8 +158,8 @@ async function main() {
       pageBlocks.push(`
         <div class="page-row">
           <div class="page-label">
-            <div class="name">${displayName}</div>
-            <div class="filename">${pageName}</div>
+            <div class="name">${esc(displayName)}</div>
+            <div class="filename">${esc(pageName)}</div>
           </div>
           <div class="vp-grid">${cards}</div>
         </div>`);
@@ -345,11 +362,15 @@ async function main() {
   </div>
 
   <script>
-    function zoom(src, label) {
-      document.getElementById('lbimg').src = src;
-      document.getElementById('lblabel').textContent = label;
+    // Card values arrive via data-* attributes, never interpolated into this
+    // script — keeps snapshot filenames out of the JS parser entirely.
+    document.addEventListener('click', e => {
+      const card = e.target.closest('.vp-card');
+      if (!card) return;
+      document.getElementById('lbimg').src = card.dataset.src;
+      document.getElementById('lblabel').textContent = card.dataset.label;
       document.getElementById('lb').classList.add('active');
-    }
+    });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         document.getElementById('lb').classList.remove('active');
