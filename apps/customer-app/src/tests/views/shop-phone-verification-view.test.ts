@@ -47,6 +47,26 @@ describe("ShopPhoneVerificationView", () => {
     } as never);
   });
 
+  it("verifies the shop QR against the mounted route, not the /qr-codes prefix", async () => {
+    // The qr-codes feature is mounted at /qr (app-factory: apiV1.route("/qr")).
+    // Asserting only that apiClient.get was called let a /qr-codes path ship and
+    // 404 in the shop ordering flow, so pin the path itself.
+    const wrapper = mount(ShopPhoneVerificationView, {
+      props: {
+        restaurantId: "restaurant-1",
+        shopQrCode: "SHOP-1-1760068334",
+      },
+    });
+    await vi.runAllTimersAsync();
+    await wrapper.get("#phone").setValue("123");
+    await wrapper.get('[data-testid="verify-btn"]').trigger("click");
+    await vi.runAllTimersAsync();
+
+    expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith(
+      "/qr/verify/shop/SHOP-1-1760068334",
+    );
+  });
+
   it("preserves market dish deep-link query when verification opens the shop menu", async () => {
     const wrapper = mount(ShopPhoneVerificationView, {
       props: {
