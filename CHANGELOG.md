@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Seat-number uniqueness migrations `migrations_fresh/0075` and `migrations/0092` reconcile pre-existing duplicate `(table_id, seat_number)` rows by retaining the newest usable row and deleting the others before creating the unique index. Operators should audit or back up duplicate occupied seats before rollout: a discarded duplicate can carry a distinct `current_order_id`, and that seat-to-order pointer cannot be recovered from the migration itself.
 
+### Fixed
+
+- `rateLimitMiddleware` no longer returns 500 instead of 429. Its KV counter was written with an `expirationTtl` derived from the remaining window, which drops under Cloudflare's 60-second floor a moment into any one-minute window and made the write throw. Every route on a sub-90-second window was affected — signed QR verification, realtime guest tokens, and the credits endpoints — and the limit never engaged, because each rejected write also failed to persist the count. TTLs are now clamped to the KV floor (the counter's own `resetTime` still bounds the window, so this only affects garbage collection), and a limiter failure now fails open with a warning rather than turning a KV hiccup into an outage of the endpoint it protects.
+
 ## [2.1.1] - 2026-04-14
 
 ### Added
