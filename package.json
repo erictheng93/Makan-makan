@@ -62,6 +62,7 @@
     "script": "npx tsx",
     "check:prod-config": "node scripts/check-production-config.cjs",
     "check:migration-dual-track": "node scripts/check-migration-dual-track.cjs",
+    "audit:qr-format": "npx tsx scripts/audit-qr-format.ts",
     "check:no-test-doubles": "node scripts/check-no-test-doubles.cjs",
     "check:docs-drift": "node scripts/check-docs-drift.cjs",
     "docs:sync": "node scripts/check-docs-drift.cjs --write",
