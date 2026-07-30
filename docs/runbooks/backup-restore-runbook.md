@@ -117,6 +117,12 @@ pnpm wrangler d1 execute makanmasak-prod --remote --json \
 
 ## Restore Drill
 
+**Cadence: quarterly.** `.github/workflows/restore-drill-reminder.yml` opens a
+tracking issue with this checklist four times a year. It does not run the drill
+— the drill creates and deletes throwaway databases, and
+`check-no-automated-d1-restore.cjs` fails the build if those commands appear in
+a workflow, precisely because they auto-confirm.
+
 Never drill on a production database — Time Travel restore overwrites in
 place, and there is no separate staging D1 to practise on. Create a throwaway
 database instead. The export-based drill this section used to describe cannot
