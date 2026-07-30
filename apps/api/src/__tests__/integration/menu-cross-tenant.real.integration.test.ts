@@ -30,7 +30,11 @@ describe("Menu batch endpoints — cross-tenant isolation", () => {
   beforeAll(async () => {
     testApp = await createRealIntegrationTestApp();
     seed = buildSeedHelpers(testApp.testDb);
-  }, 60000);
+    // No per-hook timeout override here: on a cold cache this hook replays the
+    // whole migrations_fresh track to build the shared D1 baseline, which now
+    // exceeds 60s. vitest.real-integration.config.ts sets hookTimeout to the
+    // intended 5-minute bound for exactly this.
+  });
 
   afterAll(async () => {
     await testApp?.dispose();
