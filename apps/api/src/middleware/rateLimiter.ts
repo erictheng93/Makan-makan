@@ -33,6 +33,20 @@ export interface RateLimitResult {
 }
 
 /**
+ * Cloudflare KV rejects any write with expirationTtl below 60 seconds.
+ *
+ * The counter's own `resetTime` is what bounds the logical window, so holding a
+ * key slightly longer than that window is harmless — `checkLimit` starts a new
+ * window whenever `resetTime` has passed. Clamping here only affects garbage
+ * collection, never the limit itself.
+ */
+const KV_MIN_EXPIRATION_TTL = 60;
+
+function kvExpirationTtl(seconds: number): number {
+  return Math.max(KV_MIN_EXPIRATION_TTL, Math.ceil(seconds));
+}
+
+/**
  * Rate limiter using Cloudflare KV
  */
 export class RateLimiter {
@@ -55,7 +69,7 @@ export class RateLimiter {
     if (!data || data.resetTime < now) {
       const resetTime = now + this.config.windowMs;
       await this.kv.put(kvKey, JSON.stringify({ count: 1, resetTime }), {
-        expirationTtl: Math.ceil(this.config.windowMs / 1000),
+        expirationTtl: kvExpirationTtl(this.config.windowMs / 1000),
       });
 
       return {
@@ -81,7 +95,7 @@ export class RateLimiter {
     await this.kv.put(
       kvKey,
       JSON.stringify({ count: data.count + 1, resetTime: data.resetTime }),
-      { expirationTtl: Math.ceil((data.resetTime - now) / 1000) },
+      { expirationTtl: kvExpirationTtl((data.resetTime - now) / 1000) },
     );
 
     return {
@@ -101,6 +115,50 @@ export class RateLimiter {
 /**
  * Rate limiting middleware factory
  */
+/**
+ * Run the limit check for one key.
+ *
+ * Returns a 429 response when the caller is over budget, or null to let the
+ * request continue. A failure inside the limiter itself also returns null: the
+ * limiter is a guard, and a guard being unavailable must not turn every request
+ * into a 500 — that converts a KV hiccup into an outage of the endpoint it was
+ * meant to protect.
+ */
+async function enforceRateLimit(
+  c: Context<{ Bindings: Env }>,
+  kv: KVNamespace,
+  config: RateLimitConfig,
+  key: string,
+): Promise<Response | null> {
+  let result: RateLimitResult;
+  try {
+    result = await new RateLimiter(kv, config).checkLimit(key);
+  } catch (error) {
+    console.warn(
+      `Rate limit check failed for ${config.keyPrefix || "ratelimit"}; allowing request`,
+      error,
+    );
+    return null;
+  }
+
+  c.header("X-RateLimit-Limit", result.limit.toString());
+  c.header("X-RateLimit-Remaining", result.remaining.toString());
+  c.header("X-RateLimit-Reset", new Date(result.resetTime).toISOString());
+
+  if (result.allowed) return null;
+
+  const retryAfter = Math.max(1, result.retryAfter ?? 1);
+  c.header("Retry-After", retryAfter.toString());
+  return c.json(
+    {
+      success: false,
+      error: config.message || "Too many requests. Please try again later.",
+      retryAfter,
+    },
+    429,
+  );
+}
+
 export function rateLimitMiddleware(config: RateLimitConfig) {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const kv = c.env.CACHE_KV;
@@ -123,27 +181,8 @@ export function rateLimitMiddleware(config: RateLimitConfig) {
             : undefined;
 
     if (tenantScopedKey) {
-      const rateLimiter = new RateLimiter(kv, config);
-      const result = await rateLimiter.checkLimit(tenantScopedKey);
-
-      c.header("X-RateLimit-Limit", result.limit.toString());
-      c.header("X-RateLimit-Remaining", result.remaining.toString());
-      c.header("X-RateLimit-Reset", new Date(result.resetTime).toISOString());
-
-      if (!result.allowed) {
-        c.header("Retry-After", result.retryAfter!.toString());
-        return c.json(
-          {
-            success: false,
-            error:
-              config.message || "Too many requests. Please try again later.",
-            retryAfter: result.retryAfter,
-          },
-          429,
-        );
-      }
-
-      return next();
+      const limited = await enforceRateLimit(c, kv, config, tenantScopedKey);
+      return limited ?? next();
     }
 
     // Get client IP
@@ -162,27 +201,8 @@ export function rateLimitMiddleware(config: RateLimitConfig) {
       return next();
     }
 
-    const rateLimiter = new RateLimiter(kv, config);
-    const result = await rateLimiter.checkLimit(ip);
-
-    // Add rate limit headers
-    c.header("X-RateLimit-Limit", result.limit.toString());
-    c.header("X-RateLimit-Remaining", result.remaining.toString());
-    c.header("X-RateLimit-Reset", new Date(result.resetTime).toISOString());
-
-    if (!result.allowed) {
-      c.header("Retry-After", result.retryAfter!.toString());
-      return c.json(
-        {
-          success: false,
-          error: config.message || "Too many requests. Please try again later.",
-          retryAfter: result.retryAfter,
-        },
-        429,
-      );
-    }
-
-    return next();
+    const limited = await enforceRateLimit(c, kv, config, ip);
+    return limited ?? next();
   };
 }
 
