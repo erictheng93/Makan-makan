@@ -111,16 +111,13 @@ export class TableService extends BaseService {
         throw new Error("Table number already exists in this restaurant");
       }
 
-      // Insert with a legacy-compatible value first because the v2 signature
-      // binds the auto-incremented table id, which does not exist yet. D1
-      // batch() is transactional, but the HMAC cannot be computed until this
-      // INSERT returns its id to JavaScript. If the best-effort v2 upgrade
-      // below fails, v1 remains valid and POST /tables/:id/regenerate-qr is
-      // the explicit repair path.
-      const legacyQRCode = await this.generateLegacyQRCodeData(
-        data.restaurantId,
-        data.number,
-      );
+      // The v2 signature binds the auto-incremented table id, which does not
+      // exist until the INSERT returns, so the row is created with a placeholder
+      // and updated immediately after. The placeholder is deliberately not a
+      // signable URL: it cannot be mistaken for a working code, and
+      // audit-qr-format reports it under "unparseable", which is the bucket that
+      // asks for a look rather than a bulk regenerate.
+      const placeholderQRCode = `pending:${crypto.randomUUID()}`;
 
       const qrMode = data.qrMode || "table";
       const seatCount = data.seatCount || 0;
@@ -142,7 +139,7 @@ export class TableService extends BaseService {
           location: data.location,
           floor: data.floor || 1,
           section: data.section,
-          qrCode: legacyQRCode,
+          qrCode: placeholderQRCode,
           qrCodeVersion: 1,
           qrMode,
           seatCount,
@@ -154,23 +151,25 @@ export class TableService extends BaseService {
         })
         .returning();
 
-      let qrCode = legacyQRCode;
+      let qrCode = placeholderQRCode;
       try {
-        const upgradedQRCode = await this.generateQRCodeData(
+        const signedQRCode = await this.generateQRCodeData(
           data.restaurantId,
           newTable.id,
           data.number,
         );
         await this.db
           .update(tables)
-          .set({ qrCode: upgradedQRCode, updatedAt: new Date() })
+          .set({ qrCode: signedQRCode, updatedAt: new Date() })
           .where(eq(tables.id, newTable.id));
-        qrCode = upgradedQRCode;
+        qrCode = signedQRCode;
       } catch (error) {
         // Do not report the whole create as failed after the INSERT committed:
         // callers would retry and collide with the row that already exists.
+        // The table is left with an unusable placeholder rather than a code that
+        // looks valid and is not; POST /tables/:id/regenerate-qr repairs it.
         console.warn(
-          `Table ${newTable.id} created with a v1 QR because its v2 upgrade failed; regenerate the QR to repair it.`,
+          `Table ${newTable.id} created without a signed QR code; regenerate the QR to repair it.`,
           error,
         );
       }
@@ -644,29 +643,6 @@ export class TableService extends BaseService {
         type: "table",
         restaurantId,
         tableId,
-        identifier: tableNumber,
-        version,
-      },
-      signingKey,
-    );
-  }
-
-  private async generateLegacyQRCodeData(
-    restaurantId: string,
-    tableNumber: string,
-    version: number = 1,
-  ): Promise<string> {
-    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
-    const signingKey = this.env.QR_SIGNING_KEY;
-    if (!signingKey || signingKey.length < 32) {
-      throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");
-    }
-
-    return buildSignedQRUrl(
-      baseUrl,
-      {
-        type: "table",
-        restaurantId,
         identifier: tableNumber,
         version,
       },
