@@ -218,18 +218,46 @@
                   data-testid="market-checkout-phone"
                   class="min-w-0 flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 />
+                <!-- Greyed and inert rather than hidden while the API has
+                     market checkouts switched off: hiding the basket's only
+                     action makes the feature look absent, and letting the
+                     request through only produces a refusal. -->
                 <button
                   type="button"
                   data-testid="market-checkout-submit"
-                  class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  :data-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+                  :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+                  :title="
+                    marketCheckoutsDisabled
+                      ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                      : undefined
+                  "
+                  class="rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed"
+                  :class="
+                    marketCheckoutsDisabled
+                      ? 'bg-gray-200 text-gray-400'
+                      : 'bg-emerald-700 text-white disabled:bg-emerald-300'
+                  "
                   :disabled="!canSubmitMarketCheckout"
                   @click="submitMarketCheckout"
                 >
-                  {{ isSubmittingMarketCheckout ? "送出中" : "送出" }}
+                  <template v-if="marketCheckoutsDisabled">
+                    {{ MARKET_CHECKOUT_UNAVAILABLE_LABEL }}
+                  </template>
+                  <template v-else>
+                    {{ isSubmittingMarketCheckout ? "送出中" : "送出" }}
+                  </template>
                 </button>
               </div>
               <p
-                v-if="marketCart.vendors.length < 2"
+                v-if="marketCheckoutsDisabled"
+                data-testid="market-checkout-unavailable-hint"
+                class="text-xs text-emerald-800"
+              >
+                多攤位結帳尚未開放，可先到各攤位分別下單。
+              </p>
+              <p
+                v-else-if="marketCart.vendors.length < 2"
                 class="text-xs text-emerald-800"
               >
                 多攤位結帳需至少選擇 2 個攤位。
@@ -423,7 +451,15 @@ import {
 import { useCurrency } from "@/composables/useCurrency";
 import { useI18n } from "@/composables/useI18n";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
+import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import { orderApi, type MarketCheckoutResponse } from "@/services/orderApi";
+
+/**
+ * TODO(i18n): this view is entirely hard-coded zh-TW, and the customer locale
+ * bundles were being edited in another branch when this landed, so no key was
+ * added. Move to a shared translation key when the locales settle.
+ */
+const MARKET_CHECKOUT_UNAVAILABLE_LABEL = "尚未開放";
 
 const route = useRoute();
 const router = useRouter();
@@ -435,6 +471,8 @@ const { formatPrice } = useCurrency();
 // Chinese, but the item names in the cart summary come from the shop and must
 // follow the visitor's language like every other menu name does.
 const { currentLanguage } = useI18n();
+const { isDisabled } = useFeatureAvailability();
+const marketCheckoutsDisabled = computed(() => isDisabled("marketCheckouts"));
 const MarketLocationMap = defineAsyncComponent(
   () => import("@/components/markets/MarketLocationMap.vue"),
 );
@@ -635,6 +673,7 @@ const marketCartSubtotal = computed(() =>
 );
 const canSubmitMarketCheckout = computed(
   () =>
+    !marketCheckoutsDisabled.value &&
     !!marketCart.value &&
     marketCart.value.vendors.length >= 2 &&
     /^\d{3}$/.test(marketCheckoutPhoneLastDigits.value) &&
