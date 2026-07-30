@@ -32,6 +32,58 @@ describe("menu validation schemas", () => {
     });
   });
 
+  // Issue #78: these fields were absent from createMenuItemSchema, so zod's
+  // default strip mode silently discarded them while the API answered 201.
+  it("preserves availability/featured/sort fields on create (#78)", () => {
+    const parsed = createMenuItemSchema.parse({
+      categoryId: 1,
+      name: "審計品項A",
+      price: 100,
+      isFeatured: true,
+      isAvailable: false,
+      isPopular: true,
+      sortOrder: 7,
+      inventoryCount: 3,
+    });
+
+    expect(parsed).toMatchObject({
+      isFeatured: true,
+      isAvailable: false,
+      isPopular: true,
+      sortOrder: 7,
+      inventoryCount: 3,
+    });
+  });
+
+  it("leaves availability/featured/sort fields absent when not sent, and validates them when sent", () => {
+    const parsed = createMenuItemSchema.parse({
+      categoryId: 1,
+      name: "Plain",
+      price: 10,
+    });
+    // DB layer owns the defaults (isAvailable=true, sortOrder=0); the schema
+    // must not materialise keys the caller never sent.
+    expect(parsed).not.toHaveProperty("isAvailable");
+    expect(parsed).not.toHaveProperty("sortOrder");
+
+    expect(() =>
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "Bad",
+        price: 10,
+        sortOrder: -1,
+      }),
+    ).toThrow();
+    expect(() =>
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "Bad",
+        price: 10,
+        isAvailable: "yes",
+      }),
+    ).toThrow();
+  });
+
   it("rejects unsafe image data URLs and inconsistent prices", () => {
     expect(() =>
       createMenuItemSchema.parse({

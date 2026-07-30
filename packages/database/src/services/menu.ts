@@ -24,6 +24,8 @@ export interface CreateMenuItemData {
   isAvailable?: boolean;
   isFeatured?: boolean;
   isPopular?: boolean;
+  sortOrder?: number;
+  inventoryCount?: number;
   spiceLevel?: number;
   preparationTime?: number;
   calories?: number | null;
