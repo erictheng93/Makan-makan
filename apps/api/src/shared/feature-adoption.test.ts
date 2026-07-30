@@ -21,9 +21,8 @@ describe("feature adoption registry", () => {
   it.each(KEYS)("gates %s at the prefix it declares", (key) => {
     const { prefix } = UNLAUNCHED_FEATURES[key];
 
-    expect(appFactory).toContain(
-      `apiV1.use("${prefix}/*", featureGate("${key}"));`,
-    );
+    // Registered from one table, so assert the entry rather than a call site.
+    expect(appFactory).toContain(`["${prefix}", "${key}"]`);
     expect(appFactory).toContain(`apiV1.route("${prefix}"`);
   });
 

@@ -551,6 +551,26 @@ export function createApp(
   // silently omit the early public-feature mounts below.
   apiV1.use("*", usageTracker);
 
+  // Unlaunched features are refused here, ahead of every auth middleware, so
+  // "this does not exist" does not depend on who is asking. Registered after
+  // usageTracker only because Hono runs matching middleware in registration
+  // order and these must precede the feature mounts below.
+  //
+  // A "/x/*" pattern also matches the bare "/x", which matters: the endpoint
+  // that starts a market checkout is POST /api/v1/market-checkouts itself.
+  for (const [prefix, key] of [
+    ["/market-checkouts", "marketCheckouts"],
+    ["/credits", "storedValueCredits"],
+    ["/backup", "tenantBackups"],
+    ["/push", "webPush"],
+    // Not a prefix of its own feature: customer-app subscribes through the
+    // customer router, so gating only /push would let a customer opt into
+    // notifications that /push then refuses to deliver.
+    ["/customer/push-subscriptions", "webPush"],
+  ] as const) {
+    apiV1.use(`${prefix}/*`, featureGate(key));
+  }
+
   // Apply CSRF protection to state-changing operations. Protected endpoints
   // retain their route-level authentication middleware.
   apiV1.use(
@@ -612,9 +632,7 @@ export function createApp(
   apiV1.route("/realtime", realtimeRoutes); // WebSocket 認證端點為公開
   apiV1.route("/partnerships", partnershipsRoutes); // 特約商店體系 (部分公開端點 + 受保護端點)
   apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest token auth)
-  apiV1.use("/market-checkouts/*", featureGate("marketCheckouts"));
   apiV1.route("/market-checkouts", marketCheckoutsFeature.routes); // 市場多攤位訪客結帳
-  apiV1.use("/credits/*", featureGate("storedValueCredits"));
   apiV1.route("/credits", creditsFeature.routes); // 代幣儲值卡 (查餘額公開限流, 管理端點 admin)
   apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
 
@@ -725,7 +743,6 @@ export function createApp(
   apiV1.route("/system", systemFeature.routes);
   apiV1.route("/cache", cacheFeature);
   apiV1.route("/monitoring", monitoringFeature.routes);
-  apiV1.use("/backup/*", featureGate("tenantBackups"));
   apiV1.route("/backup", BackupRoutes);
   apiV1.route("/customer", customerRouter);
   apiV1.route("/customers", customersRouter);
@@ -739,7 +756,6 @@ export function createApp(
   apiV1.route("/billing", billingFeature.routes);
   apiV1.route("/me", meFeature.routes);
   apiV1.route("/notifications", notificationsRoutes);
-  apiV1.use("/push/*", featureGate("webPush"));
   apiV1.route("/push", pushRoutes);
   apiV1.route("/audit", auditRoutes);
 
