@@ -28,7 +28,16 @@ const restaurantIdString = z
   .uuid("Restaurant ID must be a valid UUID");
 
 // Leave Type Schemas
-export const createLeaveTypeSchema = z.object({
+/**
+ * Field shape without creation defaults.
+ *
+ * updateLeaveTypeSchema partial()s this rather than the create schema. Zod 4's
+ * .partial() does NOT strip .default(), so partialling the create schema made
+ * all eleven defaulted fields materialise on an absent key — including isPaid
+ * and paymentRate — and the update path writes every present key, so editing
+ * one field silently reset the rest.
+ */
+const leaveTypeShapeSchema = z.object({
   restaurantId: restaurantIdString.optional().nullable(),
   code: nonEmptyString
     .max(20)
@@ -39,32 +48,32 @@ export const createLeaveTypeSchema = z.object({
   // Accrual Rules
   accrualType: z.enum(["yearly", "monthly", "none"]),
   accrualAmount: nonNegativeNumber,
-  accrualBasedOnSeniority: z.boolean().default(false),
+  accrualBasedOnSeniority: z.boolean().optional(),
 
   // Usage Rules
-  requiresApproval: z.boolean().default(true),
-  requiredApprovalLevels: positiveInteger.max(5).default(1),
-  minNoticeDays: nonNegativeInteger.default(0),
+  requiresApproval: z.boolean().optional(),
+  requiredApprovalLevels: positiveInteger.max(5).optional(),
+  minNoticeDays: nonNegativeInteger.optional(),
   maxConsecutiveDays: positiveInteger.optional().nullable(),
-  canCarryover: z.boolean().default(false),
+  canCarryover: z.boolean().optional(),
   carryoverMaxDays: nonNegativeNumber.optional().nullable(),
   carryoverExpiryMonths: positiveInteger.optional().nullable(),
 
   // Documentation & Payment
-  requiresDocumentation: z.boolean().default(false),
+  requiresDocumentation: z.boolean().optional(),
   documentationRequiredAfterDays: positiveInteger.optional().nullable(),
-  isPaid: z.boolean().default(true),
-  paymentRate: z.number().min(0).max(1).default(1), // 0.0 to 1.0
+  isPaid: z.boolean().optional(),
+  paymentRate: z.number().min(0).max(1).optional(), // 0.0 to 1.0
 
   // Restrictions
-  allowHalfDay: z.boolean().default(true),
+  allowHalfDay: z.boolean().optional(),
   gender: z.enum(["any", "male", "female"]).optional().nullable(),
   applicableToRoles: z.string().optional().nullable(), // JSON array string
   maxUsagePerYear: nonNegativeNumber.optional().nullable(),
 
   // System Fields
-  isActive: z.boolean().default(true),
-  sortOrder: nonNegativeInteger.default(0),
+  isActive: z.boolean().optional(),
+  sortOrder: nonNegativeInteger.optional(),
   color: z
     .string()
     .max(7)
@@ -74,7 +83,21 @@ export const createLeaveTypeSchema = z.object({
   icon: z.string().max(50).optional().nullable(),
 });
 
-export const updateLeaveTypeSchema = createLeaveTypeSchema.partial();
+export const createLeaveTypeSchema = leaveTypeShapeSchema.extend({
+  accrualBasedOnSeniority: z.boolean().default(false),
+  requiresApproval: z.boolean().default(true),
+  requiredApprovalLevels: positiveInteger.max(5).default(1),
+  minNoticeDays: nonNegativeInteger.default(0),
+  canCarryover: z.boolean().default(false),
+  requiresDocumentation: z.boolean().default(false),
+  isPaid: z.boolean().default(true),
+  paymentRate: z.number().min(0).max(1).default(1),
+  allowHalfDay: z.boolean().default(true),
+  isActive: z.boolean().default(true),
+  sortOrder: nonNegativeInteger.default(0),
+});
+
+export const updateLeaveTypeSchema = leaveTypeShapeSchema.partial();
 
 // Leave Request Schemas
 export const createLeaveRequestSchema = z
@@ -134,7 +157,8 @@ export const accrueLeaveBalancesSchema = z.object({
 });
 
 // Leave Approval Rule Schemas
-const baseLeaveApprovalRuleSchema = z.object({
+// Defaults live on the create schema only — see leaveTypeShapeSchema.
+const leaveApprovalRuleShapeSchema = z.object({
   restaurantId: restaurantIdString,
   leaveTypeId: positiveInteger.optional().nullable(),
   name: nonEmptyString.max(100),
@@ -147,15 +171,22 @@ const baseLeaveApprovalRuleSchema = z.object({
   approverUserIds: z.string().optional().nullable(), // JSON array string
 
   // Auto-approval
-  enableAutoApproval: z.boolean().default(false),
+  enableAutoApproval: z.boolean().optional(),
   autoApprovalConditions: z.string().optional().nullable(), // JSON object string
 
   // Escalation
-  enableAutoEscalation: z.boolean().default(false),
+  enableAutoEscalation: z.boolean().optional(),
   escalationTimeoutHours: positiveInteger.optional().nullable(),
   escalationToUserId: idString.optional().nullable(),
 
   // Priority
+  priority: nonNegativeInteger.optional(),
+  isActive: z.boolean().optional(),
+});
+
+const baseLeaveApprovalRuleSchema = leaveApprovalRuleShapeSchema.extend({
+  enableAutoApproval: z.boolean().default(false),
+  enableAutoEscalation: z.boolean().default(false),
   priority: nonNegativeInteger.default(0),
   isActive: z.boolean().default(true),
 });
@@ -190,10 +221,11 @@ export const createLeaveApprovalRuleSchema = baseLeaveApprovalRuleSchema
   );
 
 export const updateLeaveApprovalRuleSchema =
-  baseLeaveApprovalRuleSchema.partial();
+  leaveApprovalRuleShapeSchema.partial();
 
 // Leave Calendar Event Schemas
-export const createLeaveCalendarEventSchema = z.object({
+// Defaults live on the create schema only — see leaveTypeShapeSchema.
+const leaveCalendarEventShapeSchema = z.object({
   restaurantId: restaurantIdString.optional().nullable(),
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional().nullable(),
@@ -201,11 +233,11 @@ export const createLeaveCalendarEventSchema = z.object({
   eventDate: dateString,
 
   // Recurrence
-  isRecurring: z.boolean().default(false),
+  isRecurring: z.boolean().optional(),
   recurrencePattern: z.string().optional().nullable(), // JSON object string
 
   // Work Day Settings
-  isWorkingDay: z.boolean().default(false),
+  isWorkingDay: z.boolean().optional(),
   compensatoryFor: dateString.optional().nullable(),
 
   // Metadata
@@ -218,8 +250,14 @@ export const createLeaveCalendarEventSchema = z.object({
   icon: z.string().max(50).optional().nullable(),
 });
 
+export const createLeaveCalendarEventSchema =
+  leaveCalendarEventShapeSchema.extend({
+    isRecurring: z.boolean().default(false),
+    isWorkingDay: z.boolean().default(false),
+  });
+
 export const updateLeaveCalendarEventSchema =
-  createLeaveCalendarEventSchema.partial();
+  leaveCalendarEventShapeSchema.partial();
 
 // Query Parameter Schemas
 export const leaveRequestFiltersSchema = z.object({

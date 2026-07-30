@@ -119,7 +119,16 @@ const availableHoursSchema = z.object({
 });
 
 // Menu Item Schemas
-export const createMenuItemSchema = z.object({
+/**
+ * Field shape without creation defaults.
+ *
+ * Update schemas partial() this rather than the create schema. Zod 4's
+ * .partial() does NOT strip .default(), so partialling a schema that carries
+ * defaults makes every field with one materialise on an absent key — and the
+ * update services write whatever keys are present, silently overwriting columns
+ * the caller never mentioned. Keep defaults in createMenuItemSchema only.
+ */
+const menuItemBaseSchema = z.object({
   categoryId: positiveInteger,
   catalogType: z.enum(["menu_item", "product"]).optional(),
   name: nonEmptyString.max(100),
@@ -130,8 +139,8 @@ export const createMenuItemSchema = z.object({
   imageUrl: imageUrlSchema,
   imageId: z.string().uuid().nullish(),
   imageVariants: imageVariantsSchema.optional(),
-  spiceLevel: z.number().int().min(0).max(5).optional().default(0),
-  preparationTime: positiveInteger.optional().default(15),
+  spiceLevel: z.number().int().min(0).max(5).optional(),
+  preparationTime: positiveInteger.optional(),
   calories: positiveInteger.optional(),
   dietaryInfo: dietaryInfoSchema.optional(),
   allergens: z.array(z.string()).optional(),
@@ -141,7 +150,12 @@ export const createMenuItemSchema = z.object({
   keywords: z.string().max(200).optional(),
 });
 
-export const updateMenuItemSchema = createMenuItemSchema.partial().extend({
+export const createMenuItemSchema = menuItemBaseSchema.extend({
+  spiceLevel: z.number().int().min(0).max(5).optional().default(0),
+  preparationTime: positiveInteger.optional().default(15),
+});
+
+export const updateMenuItemSchema = menuItemBaseSchema.partial().extend({
   isAvailable: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   isPopular: z.boolean().optional(),
@@ -150,14 +164,19 @@ export const updateMenuItemSchema = createMenuItemSchema.partial().extend({
 });
 
 // Category Schemas
-export const createCategorySchema = z.object({
+// Defaults live on the create schema only — see menuItemBaseSchema.
+const categoryBaseSchema = z.object({
   name: nonEmptyString.max(50),
   description: z.string().max(200).optional(),
-  sortOrder: nonNegativeInteger.optional().default(0),
+  sortOrder: nonNegativeInteger.optional(),
   imageUrl: imageUrlSchema,
 });
 
-export const updateCategorySchema = createCategorySchema.partial().extend({
+export const createCategorySchema = categoryBaseSchema.extend({
+  sortOrder: nonNegativeInteger.optional().default(0),
+});
+
+export const updateCategorySchema = categoryBaseSchema.partial().extend({
   isActive: z.boolean().optional(),
   isVisible: z.boolean().optional(),
 });
