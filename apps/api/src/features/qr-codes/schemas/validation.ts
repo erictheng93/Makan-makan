@@ -155,7 +155,7 @@ const createTemplateSchema = z.object({
       `Description must be less than ${VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH} characters`,
     ),
   category: z.enum(["modern", "classic", "colorful", "minimalist", "branded"], {
-    required_error: "Category is required",
+    error: "Category is required",
   }),
   style: qrStyleSchema.refine((style) => style !== undefined, {
     message: "Style configuration is required",

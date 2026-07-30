@@ -8,8 +8,7 @@ import { z } from "zod";
 // Order Item Status Update Schema
 export const orderItemStatusUpdateSchema = z.object({
   status: z.enum(["pending", "preparing", "ready", "completed"], {
-    invalid_type_error:
-      "Status must be one of: pending, preparing, ready, completed",
+    error: "Status must be one of: pending, preparing, ready, completed",
   }),
   notes: z.string().optional().default(""),
 });
