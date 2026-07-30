@@ -43,8 +43,8 @@ export const SchedulingSchemas = {
 
   // Shift Template
   ShiftTemplate: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     name: z.string(),
     shiftType: ShiftType,
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/), // HH:MM
@@ -62,7 +62,7 @@ export const SchedulingSchemas = {
 
   // Create Shift Template Request
   CreateShiftTemplateRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     name: z.string().min(1, "Template name is required"),
     shiftType: ShiftType,
     startTime: z
@@ -86,10 +86,10 @@ export const SchedulingSchemas = {
 
   // Employee Schedule
   EmployeeSchedule: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid(),
-    templateId: z.string().uuid().optional(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
+    userId: z.uuid(),
+    templateId: z.uuid().optional(),
     date: z.string().date(), // YYYY-MM-DD
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
@@ -105,9 +105,9 @@ export const SchedulingSchemas = {
 
   // Create Schedule Request
   CreateScheduleRequest: z.object({
-    restaurantId: z.string().uuid(),
-    userId: z.string().uuid(),
-    templateId: z.string().uuid().optional(),
+    restaurantId: z.uuid(),
+    userId: z.uuid(),
+    templateId: z.uuid().optional(),
     date: z.string().date(),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
@@ -117,9 +117,9 @@ export const SchedulingSchemas = {
 
   // Batch Create Schedules Request
   BatchCreateSchedulesRequest: z.object({
-    restaurantId: z.string().uuid(),
-    templateId: z.string().uuid(),
-    userIds: z.array(z.string().uuid()).min(1, "At least one user required"),
+    restaurantId: z.uuid(),
+    templateId: z.uuid(),
+    userIds: z.array(z.uuid()).min(1, "At least one user required"),
     startDate: z.string().date(),
     endDate: z.string().date(),
     daysOfWeek: z.array(DayOfWeek),
@@ -127,15 +127,15 @@ export const SchedulingSchemas = {
 
   // Swap Request
   SwapRequest: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
-    requesterId: z.string().uuid(),
-    requesterScheduleId: z.string().uuid(),
-    targetUserId: z.string().uuid().optional(),
-    targetScheduleId: z.string().uuid().optional(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
+    requesterId: z.uuid(),
+    requesterScheduleId: z.uuid(),
+    targetUserId: z.uuid().optional(),
+    targetScheduleId: z.uuid().optional(),
     status: SwapStatus,
     reason: z.string().optional(),
-    approvedBy: z.string().uuid().optional(),
+    approvedBy: z.uuid().optional(),
     approvedAt: z.string().datetime().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -143,15 +143,15 @@ export const SchedulingSchemas = {
 
   // Create Swap Request
   CreateSwapRequestSchema: z.object({
-    requesterScheduleId: z.string().uuid(),
-    targetUserId: z.string().uuid().optional(),
-    targetScheduleId: z.string().uuid().optional(),
+    requesterScheduleId: z.uuid(),
+    targetUserId: z.uuid().optional(),
+    targetScheduleId: z.uuid().optional(),
     reason: z.string().optional(),
   }),
 
   // Clock In/Out Request
   ClockInOutRequest: z.object({
-    scheduleId: z.string().uuid(),
+    scheduleId: z.uuid(),
     action: z.enum(["clock_in", "clock_out"]),
     timestamp: z.string().datetime().optional(), // Defaults to now
     location: z
@@ -164,7 +164,7 @@ export const SchedulingSchemas = {
 
   // Schedule Statistics
   ScheduleStatistics: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     period: z.object({
       startDate: z.string().date(),
       endDate: z.string().date(),
@@ -177,7 +177,7 @@ export const SchedulingSchemas = {
     averageHoursPerEmployee: z.number(),
     mostActiveEmployee: z
       .object({
-        userId: z.string().uuid(),
+        userId: z.uuid(),
         name: z.string(),
         totalHours: z.number(),
       })
@@ -201,7 +201,7 @@ export const getShiftTemplatesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       shiftType: SchedulingSchemas.ShiftType.optional(),
@@ -270,10 +270,10 @@ export const getEmployeeSchedulesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
-      userId: z.string().uuid().optional(),
+      userId: z.uuid().optional(),
       startDate: z.string().date(),
       endDate: z.string().date(),
       status: SchedulingSchemas.ShiftStatus.optional(),
@@ -407,7 +407,7 @@ export const updateSwapRequestRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      swapId: z.string().uuid(),
+      swapId: z.uuid(),
     }),
     body: {
       content: {
@@ -479,7 +479,7 @@ export const getScheduleStatsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().date(),

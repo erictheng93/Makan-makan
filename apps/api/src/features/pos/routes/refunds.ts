@@ -96,7 +96,7 @@ app.get(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(
     z.object({
-      registerId: z.string().uuid(),
+      registerId: z.uuid(),
     }),
   ),
   validateQuery(
@@ -170,7 +170,7 @@ app.get(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(
     z.object({
-      refundId: z.string().uuid(),
+      refundId: z.uuid(),
     }),
   ),
   async (c) => {
@@ -203,7 +203,7 @@ app.post(
   requireRole([0, 1]), // Admin or Owner only
   validateParams(
     z.object({
-      refundId: z.string().uuid(),
+      refundId: z.uuid(),
     }),
   ),
   async (c) => {
@@ -234,7 +234,7 @@ app.post(
   requireRole([0, 1]), // Admin or Owner only
   validateParams(
     z.object({
-      refundId: z.string().uuid(),
+      refundId: z.uuid(),
     }),
   ),
   validateBody(
@@ -271,7 +271,7 @@ app.post(
   requireRole([0, 1]), // Admin or Owner only
   validateParams(
     z.object({
-      refundId: z.string().uuid(),
+      refundId: z.uuid(),
     }),
   ),
   validateBody(

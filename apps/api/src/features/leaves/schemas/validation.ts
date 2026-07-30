@@ -23,9 +23,7 @@ const dateString = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
 const yearInteger = z.number().int().min(2020).max(2100);
 // Restaurant ID: UUID v7 format
-const restaurantIdString = z
-  .string()
-  .uuid("Restaurant ID must be a valid UUID");
+const restaurantIdString = z.uuid("Restaurant ID must be a valid UUID");
 
 // Leave Type Schemas
 /**

@@ -22,7 +22,7 @@ export const createRegisterSchema = z.object({
 });
 
 export const startShiftSchema = z.object({
-  registerId: z.string().uuid(),
+  registerId: z.uuid(),
   operatorId: idString,
   startAmount: z.number().min(0).refine(isCentAlignedAmount, {
     message: "startAmount must not have more than two decimal places",
@@ -79,23 +79,23 @@ export const processRefundSchema = z.object({
 });
 
 export const marketCheckoutPosPaymentSchema = z.object({
-  registerId: z.string().uuid(),
-  shiftId: z.string().uuid().optional(),
+  registerId: z.uuid(),
+  shiftId: z.uuid().optional(),
   paymentMethod: z.enum(["cash", "card", "digital_wallet"]).default("cash"),
   country: z.enum(["TW", "MY", "VN"]).optional().default("TW"),
   currency: z.enum(["TWD", "MYR", "VND"]).optional().default("TWD"),
 });
 
 export const registerParamsSchema = z.object({
-  registerId: z.string().uuid(),
+  registerId: z.uuid(),
 });
 
 export const shiftParamsSchema = z.object({
-  shiftId: z.string().uuid(),
+  shiftId: z.uuid(),
 });
 
 export const receiptParamsSchema = z.object({
-  receiptId: z.string().uuid(),
+  receiptId: z.uuid(),
 });
 
 export const queryPaginationSchema = z.object({

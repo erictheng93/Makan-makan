@@ -40,7 +40,7 @@ export const RestaurantsSchemas = {
 
   // Restaurant
   Restaurant: z.object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     name: z.string().min(1),
     description: z.string().optional(),
     address: z.string().optional(),
@@ -50,7 +50,7 @@ export const RestaurantsSchemas = {
     coverImageUrl: z.url().optional(),
     operatingHours: z.array(OperatingHours).optional(),
     settings: RestaurantSettings,
-    ownerId: z.string().uuid(),
+    ownerId: z.uuid(),
     isActive: z.boolean(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -84,14 +84,14 @@ export const RestaurantsSchemas = {
 
   // Restaurant Statistics
   RestaurantStatistics: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     totalOrders: z.number().int().min(0),
     totalRevenue: z.number().min(0),
     averageOrderValue: z.number().min(0),
     totalCustomers: z.number().int().min(0),
     popularItems: z.array(
       z.object({
-        itemId: z.string().uuid(),
+        itemId: z.uuid(),
         itemName: z.string(),
         orderCount: z.number().int(),
         revenue: z.number(),
@@ -111,8 +111,8 @@ export const RestaurantsSchemas = {
 
   // Shop QR Code
   ShopQRCode: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     qrCodeUrl: z.url(),
     shortUrl: z.url().optional(),
     isActive: z.boolean(),
@@ -183,7 +183,7 @@ export const getRestaurantRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
   },
   responses: {
@@ -245,7 +245,7 @@ export const updateRestaurantRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {
@@ -282,7 +282,7 @@ export const getRestaurantStatsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),
@@ -323,7 +323,7 @@ export const generateShopQRRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {
@@ -360,7 +360,7 @@ export const getShopQRRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
   },
   responses: {
@@ -389,7 +389,7 @@ export const updateRestaurantSettingsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {

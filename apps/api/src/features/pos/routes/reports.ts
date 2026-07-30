@@ -126,8 +126,8 @@ app.get(
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .optional(),
-      shiftId: z.string().uuid().optional(),
-      registerId: z.string().uuid().optional(),
+      shiftId: z.uuid().optional(),
+      registerId: z.uuid().optional(),
     }),
   ),
   async (c) => {

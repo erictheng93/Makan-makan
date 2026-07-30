@@ -15,13 +15,13 @@ export const forgotPasswordSchema = z.object({
 
 // Verify reset token schema
 export const verifyResetTokenSchema = z.object({
-  token: z.string().uuid("無效的 Token 格式"),
+  token: z.uuid("無效的 Token 格式"),
 });
 
 // Reset password schema
 export const resetPasswordSchema = z
   .object({
-    token: z.string().uuid("無效的 Token 格式"),
+    token: z.uuid("無效的 Token 格式"),
     newPassword: z
       .string()
       .min(6, "密碼至少需要 6 個字符")
@@ -40,7 +40,7 @@ export const sendEmailVerificationSchema = z.object({
 
 // Verify email schema
 export const verifyEmailSchema = z.object({
-  token: z.string().uuid("無效的 Token 格式"),
+  token: z.uuid("無效的 Token 格式"),
 });
 
 // Send phone verification schema

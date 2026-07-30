@@ -100,7 +100,7 @@ export const partnershipFiltersSchema = z.object({
  * 創建方案Schema
  */
 export const createPlanSchema = z.object({
-  partnershipId: z.string().uuid(),
+  partnershipId: z.uuid(),
   restaurantId: z.string().min(1),
 
   // 方案資訊
@@ -169,7 +169,7 @@ export const updatePlanSchema = createPlanSchema.partial().omit({
  * 方案查詢過濾器Schema
  */
 export const planFiltersSchema = z.object({
-  partnershipId: z.string().uuid().optional(),
+  partnershipId: z.uuid().optional(),
   restaurantId: z.string().optional(),
   isActive: z
     .string()
@@ -187,8 +187,8 @@ export const planFiltersSchema = z.object({
  * 驗證方案Schema
  */
 export const validatePlanSchema = z.object({
-  planId: z.string().uuid(),
-  memberId: z.string().uuid(),
+  planId: z.uuid(),
+  memberId: z.uuid(),
   orderAmount: z.number().positive(),
   menuItems: z.array(z.string()).optional(),
   categories: z.array(z.string()).optional(),
@@ -202,7 +202,7 @@ export const validatePlanSchema = z.object({
  * 會員認證申請Schema
  */
 export const memberVerificationSchema = z.object({
-  partnershipId: z.string().uuid(),
+  partnershipId: z.uuid(),
   memberId: z.string().min(2).max(50), // 學號/工號
   memberType: z.enum([
     "student",
@@ -264,7 +264,7 @@ export const updateMemberSchema = z
  * 會員查詢過濾器Schema
  */
 export const memberFiltersSchema = z.object({
-  partnershipId: z.string().uuid().optional(),
+  partnershipId: z.uuid().optional(),
   status: z
     .enum(["pending", "verified", "rejected", "expired", "suspended"])
     .optional(),
@@ -288,9 +288,9 @@ export const memberFiltersSchema = z.object({
  * 記錄使用Schema
  */
 export const logUsageSchema = z.object({
-  partnershipId: z.string().uuid(),
-  planId: z.string().uuid(),
-  memberId: z.string().uuid(),
+  partnershipId: z.uuid(),
+  planId: z.uuid(),
+  memberId: z.uuid(),
   // orders.id is a text UUID/opaque id in the canonical DB schema.
   orderId: idString,
   restaurantId: z.string().min(1),
@@ -318,9 +318,9 @@ export const logUsageSchema = z.object({
  * 使用記錄查詢過濾器Schema
  */
 export const usageLogFiltersSchema = z.object({
-  partnershipId: z.string().uuid().optional(),
-  planId: z.string().uuid().optional(),
-  memberId: z.string().uuid().optional(),
+  partnershipId: z.uuid().optional(),
+  planId: z.uuid().optional(),
+  memberId: z.uuid().optional(),
   restaurantId: z.string().optional(),
   status: z.enum(["pending", "completed", "cancelled", "refunded"]).optional(),
   startDate: z
@@ -350,28 +350,28 @@ export const cancelUsageSchema = z.object({
  * ID參數Schema
  */
 export const idParamSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 /**
  * Partnership ID參數Schema
  */
 export const partnershipIdParamSchema = z.object({
-  partnershipId: z.string().uuid(),
+  partnershipId: z.uuid(),
 });
 
 /**
  * Plan ID參數Schema
  */
 export const planIdParamSchema = z.object({
-  planId: z.string().uuid(),
+  planId: z.uuid(),
 });
 
 /**
  * Member ID參數Schema
  */
 export const memberIdParamSchema = z.object({
-  memberId: z.string().uuid(),
+  memberId: z.uuid(),
 });
 
 /**

@@ -149,7 +149,7 @@ app.get(
   requireRole([0, 1, 4]), // Admin, Owner, Cashier
   validateParams(
     z.object({
-      registerId: z.string().uuid(),
+      registerId: z.uuid(),
     }),
   ),
   validateQuery(

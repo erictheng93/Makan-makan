@@ -9,7 +9,7 @@ import { errorResponses } from "../config";
 
 // Define Customer schema first to avoid circular reference
 const Customer = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1),
   phone: z.string().optional(),
   email: z.email().optional(),
@@ -17,7 +17,7 @@ const Customer = z.object({
     .object({
       dietary: z.array(z.string()).optional(),
       allergies: z.array(z.string()).optional(),
-      favoriteItems: z.array(z.string().uuid()).optional(),
+      favoriteItems: z.array(z.uuid()).optional(),
     })
     .optional(),
   loyaltyPoints: z.number().int().min(0).default(0),
@@ -53,7 +53,7 @@ export const CustomersSchemas = {
 
   // Get Customers Request
   GetCustomersRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     search: z.string().optional(),
     orderBy: z
       .enum(["name", "totalSpent", "totalOrders", "lastVisit"])
@@ -84,14 +84,14 @@ export const CustomersSchemas = {
       .object({
         dietary: z.array(z.string()).optional(),
         allergies: z.array(z.string()).optional(),
-        favoriteItems: z.array(z.string().uuid()).optional(),
+        favoriteItems: z.array(z.uuid()).optional(),
       })
       .optional(),
   }),
 
   // Customer Order History Request
   GetCustomerOrdersRequest: z.object({
-    customerId: z.string().uuid(),
+    customerId: z.uuid(),
     status: z
       .enum(["pending", "preparing", "ready", "completed", "cancelled"])
       .optional(),
@@ -103,12 +103,12 @@ export const CustomersSchemas = {
 
   // Loyalty Points Transaction
   LoyaltyPointsTransaction: z.object({
-    id: z.string().uuid(),
-    customerId: z.string().uuid(),
+    id: z.uuid(),
+    customerId: z.uuid(),
     points: z.number().int(),
     type: z.enum(["earn", "redeem", "expire", "adjust"]),
     reason: z.string(),
-    orderId: z.string().uuid().optional(),
+    orderId: z.uuid().optional(),
     createdAt: z.string().datetime(),
   }),
 
@@ -116,13 +116,13 @@ export const CustomersSchemas = {
   AddLoyaltyPointsRequest: z.object({
     points: z.number().int().positive("Points must be positive"),
     reason: z.string().min(1, "Reason is required"),
-    orderId: z.string().uuid().optional(),
+    orderId: z.uuid().optional(),
   }),
 
   // Redeem Loyalty Points Request
   RedeemLoyaltyPointsRequest: z.object({
     points: z.number().int().positive("Points must be positive"),
-    orderId: z.string().uuid().optional(),
+    orderId: z.uuid().optional(),
   }),
 };
 
@@ -173,7 +173,7 @@ export const getCustomersRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       search: z.string().optional(),
@@ -208,7 +208,7 @@ export const getCustomerRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      customerId: z.string().uuid(),
+      customerId: z.uuid(),
     }),
   },
   responses: {
@@ -237,7 +237,7 @@ export const updateCustomerRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      customerId: z.string().uuid(),
+      customerId: z.uuid(),
     }),
     body: {
       content: {
@@ -273,7 +273,7 @@ export const getCustomerOrdersRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      customerId: z.string().uuid(),
+      customerId: z.uuid(),
     }),
     query: z.object({
       status: z
@@ -317,7 +317,7 @@ export const addLoyaltyPointsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      customerId: z.string().uuid(),
+      customerId: z.uuid(),
     }),
     body: {
       content: {
@@ -353,7 +353,7 @@ export const redeemLoyaltyPointsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      customerId: z.string().uuid(),
+      customerId: z.uuid(),
     }),
     body: {
       content: {
@@ -389,7 +389,7 @@ export const getLoyaltyPointsHistoryRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      customerId: z.string().uuid(),
+      customerId: z.uuid(),
     }),
     query: z.object({
       type: z.enum(["earn", "redeem", "expire", "adjust"]).optional(),

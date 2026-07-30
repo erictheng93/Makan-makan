@@ -34,8 +34,8 @@ export const AIAnalyticsSchemas = {
 
   // AI Configuration
   AIConfiguration: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     provider: LLMProvider,
     model: z.string(),
     apiKey: z.string().optional(), // Encrypted, not returned in responses
@@ -66,8 +66,8 @@ export const AIAnalyticsSchemas = {
 
   // AI Insight
   AIInsight: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     type: InsightType,
     priority: InsightPriority,
     title: z.string(),
@@ -128,7 +128,7 @@ export const AIAnalyticsSchemas = {
   AskAIResponse: z.object({
     success: z.boolean(),
     answer: z.string(),
-    relatedInsights: z.array(z.string().uuid()).optional(),
+    relatedInsights: z.array(z.uuid()).optional(),
     confidence: z.number().min(0).max(1),
     sources: z.array(z.string()).optional(),
     recommendations: z.array(z.string()).optional(),
@@ -136,8 +136,8 @@ export const AIAnalyticsSchemas = {
 
   // AI Usage Log
   AIUsageLog: z.object({
-    id: z.string().uuid(),
-    restaurantId: z.string().uuid(),
+    id: z.uuid(),
+    restaurantId: z.uuid(),
     provider: LLMProvider,
     requestType: z.enum([
       "insight_generation",
@@ -154,7 +154,7 @@ export const AIAnalyticsSchemas = {
 
   // Product Analytics
   ProductAnalytics: z.object({
-    itemId: z.string().uuid(),
+    itemId: z.uuid(),
     itemName: z.string(),
     analysis: z.object({
       salesVelocity: z.number(),
@@ -189,7 +189,7 @@ export const getAIConfigRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
   },
   responses: {
@@ -218,7 +218,7 @@ export const configureAIRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {
@@ -254,7 +254,7 @@ export const generateInsightsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {
@@ -287,7 +287,7 @@ export const getInsightsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       type: AIAnalyticsSchemas.InsightType.optional(),
@@ -332,7 +332,7 @@ export const updateInsightStatusRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      insightId: z.string().uuid(),
+      insightId: z.uuid(),
     }),
     body: {
       content: {
@@ -370,7 +370,7 @@ export const askAIRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {
@@ -403,7 +403,7 @@ export const getAIUsageRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),
@@ -444,8 +444,8 @@ export const getProductAnalyticsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
-      itemId: z.string().uuid(),
+      restaurantId: z.uuid(),
+      itemId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),

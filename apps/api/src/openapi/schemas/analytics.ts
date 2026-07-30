@@ -46,7 +46,7 @@ export const AnalyticsSchemas = {
 
   // Analytics Query Request
   AnalyticsQueryRequest: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     metrics: z.array(MetricType),
     period: TimePeriod,
     startDate: z.string().datetime().optional(),
@@ -84,14 +84,14 @@ export const AnalyticsSchemas = {
 
   // Sales Report
   SalesReport: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     totalRevenue: z.number().min(0),
     totalOrders: z.number().int().min(0),
     averageOrderValue: z.number().min(0),
     totalCustomers: z.number().int().min(0),
     topSellingItems: z.array(
       z.object({
-        itemId: z.string().uuid(),
+        itemId: z.uuid(),
         itemName: z.string(),
         category: z.string(),
         quantitySold: z.number().int(),
@@ -100,7 +100,7 @@ export const AnalyticsSchemas = {
     ),
     revenueByCategory: z.array(
       z.object({
-        categoryId: z.string().uuid(),
+        categoryId: z.uuid(),
         categoryName: z.string(),
         revenue: z.number(),
         percentage: z.number(),
@@ -121,7 +121,7 @@ export const AnalyticsSchemas = {
 
   // Customer Analytics
   CustomerAnalytics: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     totalCustomers: z.number().int().min(0),
     newCustomers: z.number().int().min(0),
     returningCustomers: z.number().int().min(0),
@@ -144,7 +144,7 @@ export const AnalyticsSchemas = {
 
   // Performance Metrics
   PerformanceMetrics: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     averagePreparationTime: z.number().min(0), // minutes
     averageWaitTime: z.number().min(0), // minutes
     orderAccuracy: z.number().min(0).max(1),
@@ -167,10 +167,10 @@ export const AnalyticsSchemas = {
 
   // Inventory Analytics
   InventoryAnalytics: z.object({
-    restaurantId: z.string().uuid(),
+    restaurantId: z.uuid(),
     lowStockItems: z.array(
       z.object({
-        itemId: z.string().uuid(),
+        itemId: z.uuid(),
         itemName: z.string(),
         currentStock: z.number(),
         reorderLevel: z.number(),
@@ -178,7 +178,7 @@ export const AnalyticsSchemas = {
     ),
     wasteItems: z.array(
       z.object({
-        itemId: z.string().uuid(),
+        itemId: z.uuid(),
         itemName: z.string(),
         wasteQuantity: z.number(),
         wasteValue: z.number(),
@@ -187,7 +187,7 @@ export const AnalyticsSchemas = {
     ),
     itemPerformance: z.array(
       z.object({
-        itemId: z.string().uuid(),
+        itemId: z.uuid(),
         itemName: z.string(),
         salesVelocity: z.number(),
         turnoverRate: z.number(),
@@ -254,7 +254,7 @@ export const getSalesReportRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),
@@ -295,7 +295,7 @@ export const getCustomerAnalyticsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),
@@ -332,7 +332,7 @@ export const getPerformanceMetricsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),
@@ -365,7 +365,7 @@ export const getInventoryAnalyticsRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       startDate: z.string().datetime(),
@@ -406,7 +406,7 @@ export const exportReportRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     body: {
       content: {
@@ -448,7 +448,7 @@ export const getDashboardSummaryRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
-      restaurantId: z.string().uuid(),
+      restaurantId: z.uuid(),
     }),
     query: z.object({
       period: AnalyticsSchemas.TimePeriod.default("day"),
@@ -484,7 +484,7 @@ export const getDashboardSummaryRoute = createRoute({
               }),
               topItems: z.array(
                 z.object({
-                  itemId: z.string().uuid(),
+                  itemId: z.uuid(),
                   itemName: z.string(),
                   revenue: z.number(),
                 }),

@@ -18,7 +18,7 @@ export const queueStatusSchema = z.nativeEnum(QueueStatus);
 // Basic Field Validators
 export const restaurantIdSchema = z.number().int().positive();
 export const userIdSchema = z.number().int().positive();
-export const queueIdSchema = z.string().uuid();
+export const queueIdSchema = z.uuid();
 export const partySizeSchema = z.number().int().min(1).max(20);
 export const queueNumberSchema = z.number().int().min(1);
 export const customerNameSchema = z.string().min(1).max(100).trim();
