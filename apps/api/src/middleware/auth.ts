@@ -4,6 +4,7 @@ import type { JwtPayload } from "jsonwebtoken";
 import type { Env } from "../types/env";
 import { ApiError, unauthorized, forbidden } from "../shared/utils/api-error";
 import { resolveStaffPrincipal } from "../shared/services/staff-principal";
+import { USER_ROLES } from "../shared/constants";
 
 export interface AuthUser {
   id: string;
@@ -162,6 +163,109 @@ function isJwtInvalidError(error: unknown): boolean {
   );
 }
 
+/**
+ * 完整驗證 staff/admin bearer token，回傳可信任的 AuthUser。
+ *
+ * 這裡是唯一的 staff token 驗證來源：簽章、claim 形狀、時間 claim（exp/iat/nbf
+ * 與 token 年齡）、角色上限，以及需要打 DB 的撤銷檢查（isActive、tokenVersion、
+ * username/role 漂移）。任何一項失敗都會丟出 ApiError，讓呼叫端自行決定要往外
+ * 拋（必須認證的路由）或吞掉並維持匿名（optional 認證的公開路由）。
+ *
+ * optionalAuth 過去只驗簽章、把時間 claim 一併 defer 掉又從未補驗，導致過期或已
+ * 撤銷的 staff token 仍能在公開路由上取得特權身分——共用這個函式就是為了不讓兩條
+ * 路徑再次漂移。
+ */
+async function authenticateStaffToken(
+  c: Context<{ Bindings: Env }>,
+  token: string,
+  maxRole: number,
+): Promise<{ user: AuthUser; expiresInSeconds: number }> {
+  // 檢查 JWT_SECRET 是否設置且符合安全要求
+  if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
+    console.error(
+      "JWT_SECRET is not set or too short (minimum 32 characters required)",
+    );
+    throw new ApiError(
+      "SERVER_CONFIG_ERROR",
+      "Server configuration error",
+      500,
+    );
+  }
+
+  // 檢查 token 是否在黑名單中 (如果 KV 可用)
+  if (c.env.TOKEN_BLACKLIST) {
+    const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
+    if (blacklisted) {
+      throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
+    }
+  }
+
+  const decoded = verifyJwtToken(
+    token,
+    c.env.JWT_SECRET,
+    DEFER_TIME_CLAIM_VALIDATION,
+  );
+
+  if (!isAuthTokenPayload(decoded)) {
+    throw unauthorized("Invalid token claims", "TOKEN_INVALID");
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  if (decoded.exp <= now) {
+    throw unauthorized("Token has expired", "TOKEN_EXPIRED");
+  }
+
+  if (decoded.iat && decoded.iat > now + 60) {
+    throw unauthorized("Token issued in future", "TOKEN_FUTURE");
+  }
+
+  if (decoded.nbf && decoded.nbf > now + 60) {
+    throw unauthorized("Token not yet valid", "TOKEN_INVALID");
+  }
+
+  if (decoded.role < 0 || decoded.role > maxRole) {
+    throw unauthorized("Invalid role in token", "TOKEN_INVALID");
+  }
+
+  const tokenAge = now - (decoded.iat || 0);
+  if (tokenAge > MAX_ACCESS_TOKEN_AGE_SECONDS) {
+    throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
+  }
+
+  const userRecord = await loadTokenUser(c, tokenPrincipal(decoded));
+  if (!userRecord) {
+    throw unauthorized("User not found or inactive", "USER_INACTIVE");
+  }
+
+  const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
+  if (!userRecord.isActive) {
+    throw unauthorized("User not found or inactive", "USER_INACTIVE");
+  }
+  if (tokenVersion !== userRecord.tokenVersion) {
+    throw unauthorized("Token has been invalidated", "TOKEN_INVALIDATED");
+  }
+  if (
+    userRecord.username !== decoded.username ||
+    userRecord.role !== decoded.role
+  ) {
+    throw unauthorized("Invalid token claims", "TOKEN_INVALID");
+  }
+
+  return {
+    user: {
+      id: userRecord.id,
+      publicId: userRecord.publicId ?? tokenPrincipal(decoded),
+      username: decoded.username,
+      role: decoded.role,
+      restaurantId:
+        userRecord.restaurantId ??
+        normalizeTokenRestaurantId(decoded.restaurantId),
+    },
+    expiresInSeconds: decoded.exp - now,
+  };
+}
+
 // JWT 認證中間件工廠。`maxRole` 界定最大可接受的角色值：
 // staff/admin 路由使用 4，customer-facing 路由使用 5。
 function createAuthMiddleware(maxRole: number) {
@@ -178,98 +282,18 @@ function createAuthMiddleware(maxRole: number) {
 
       const token = authHeader.substring(7); // 移除 "Bearer " 前綴
 
-      // 檢查 JWT_SECRET 是否設置且符合安全要求
-      if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 32) {
-        console.error(
-          "JWT_SECRET is not set or too short (minimum 32 characters required)",
-        );
-        throw new ApiError(
-          "SERVER_CONFIG_ERROR",
-          "Server configuration error",
-          500,
-        );
-      }
-
-      // 檢查 token 是否在黑名單中 (如果 KV 可用)
-      if (c.env.TOKEN_BLACKLIST) {
-        const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
-        if (blacklisted) {
-          throw unauthorized("Token has been invalidated", "TOKEN_BLACKLISTED");
-        }
-      }
-
-      const decoded = verifyJwtToken(
+      const { user, expiresInSeconds } = await authenticateStaffToken(
+        c,
         token,
-        c.env.JWT_SECRET,
-        DEFER_TIME_CLAIM_VALIDATION,
+        maxRole,
       );
 
-      if (!isAuthTokenPayload(decoded)) {
-        throw unauthorized("Invalid token claims", "TOKEN_INVALID");
-      }
-
-      const now = Math.floor(Date.now() / 1000);
-
-      if (decoded.exp <= now) {
-        throw unauthorized("Token has expired", "TOKEN_EXPIRED");
-      }
-
-      if (decoded.iat && decoded.iat > now + 60) {
-        throw unauthorized("Token issued in future", "TOKEN_FUTURE");
-      }
-
-      if (decoded.nbf && decoded.nbf > now + 60) {
-        throw unauthorized("Token not yet valid", "TOKEN_INVALID");
-      }
-
-      if (decoded.role < 0 || decoded.role > maxRole) {
-        throw unauthorized("Invalid role in token", "TOKEN_INVALID");
-      }
-
-      const tokenAge = now - (decoded.iat || 0);
-      if (tokenAge > MAX_ACCESS_TOKEN_AGE_SECONDS) {
-        throw unauthorized("Token too old, please refresh", "TOKEN_EXPIRED");
-      }
-
-      const userRecord = await loadTokenUser(c, tokenPrincipal(decoded));
-      if (!userRecord) {
-        if (decoded.sub) {
-          throw unauthorized("User not found or inactive", "USER_INACTIVE");
-        }
-        if (c.env.NODE_ENV === "production") {
-          throw unauthorized("User not found or inactive", "USER_INACTIVE");
-        }
-      } else {
-        const tokenVersion = typeof decoded.tv === "number" ? decoded.tv : 1;
-        if (!userRecord.isActive) {
-          throw unauthorized("User not found or inactive", "USER_INACTIVE");
-        }
-        if (tokenVersion !== userRecord.tokenVersion) {
-          throw unauthorized("Token has been invalidated", "TOKEN_INVALIDATED");
-        }
-        if (
-          userRecord.username !== decoded.username ||
-          userRecord.role !== decoded.role
-        ) {
-          throw unauthorized("Invalid token claims", "TOKEN_INVALID");
-        }
-      }
-
-      const timeUntilExpiry = decoded.exp - now;
-      if (timeUntilExpiry < 3600) {
+      if (expiresInSeconds < 3600) {
         c.header("X-Token-Refresh-Recommended", "true");
-        c.header("X-Token-Expires-In", timeUntilExpiry.toString());
+        c.header("X-Token-Expires-In", expiresInSeconds.toString());
       }
 
-      c.set("user", {
-        id: userRecord?.id ?? tokenPrincipal(decoded),
-        publicId: userRecord?.publicId ?? tokenPrincipal(decoded),
-        username: decoded.username,
-        role: decoded.role,
-        restaurantId:
-          userRecord?.restaurantId ??
-          normalizeTokenRestaurantId(decoded.restaurantId),
-      });
+      c.set("user", user);
 
       await next();
     } catch (error) {
@@ -693,49 +717,32 @@ export const blacklistToken = async (
   }
 };
 
-// 可選認證中間件（用於公開 API）
+// 可選認證中間件（用於公開 API）。
+//
+// 「可選」只代表缺少或無效的 token 不會讓請求失敗——不代表驗證可以放寬。一旦
+// 附上 staff token 就必須通過與 authMiddleware 完全相同的檢查，否則過期或已撤銷
+// 的 token 會在公開路由上換到特權身分（例如 menu 的 includeAll）。驗不過就維持
+// 匿名，而不是帶著半信任的身分往下走。
 export const optionalAuth = async (
   c: Context<{ Bindings: Env }>,
   next: Next,
 ) => {
-  try {
-    const authHeader = c.req.header("Authorization");
+  const authHeader = c.req.header("Authorization");
 
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-
-      // 檢查黑名單
-      if (c.env.TOKEN_BLACKLIST) {
-        const blacklisted = await c.env.TOKEN_BLACKLIST.get(`token:${token}`);
-        if (blacklisted) {
-          // Token 已被加入黑名單，但這是可選認證，所以繼續執行
-          await next();
-          return;
-        }
-      }
-
-      const decoded = verifyJwtToken(
-        token,
-        c.env.JWT_SECRET,
-        DEFER_TIME_CLAIM_VALIDATION,
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const { user } = await authenticateStaffToken(
+        c,
+        authHeader.substring(7),
+        USER_ROLES.CUSTOMER,
       );
-
-      if (isAuthTokenPayload(decoded)) {
-        c.set("user", {
-          id: tokenPrincipal(decoded),
-          publicId: tokenPrincipal(decoded),
-          username: decoded.username,
-          role: decoded.role,
-          restaurantId: normalizeTokenRestaurantId(decoded.restaurantId),
-        });
-      }
+      c.set("user", user);
+    } catch {
+      // 公開路由對匿名、customer、以及無效／過期／已撤銷的 token 一律維持匿名。
     }
-
-    await next();
-  } catch {
-    // 忽略認證錯誤，繼續執行
-    await next();
   }
+
+  await next();
 };
 
 // 別名為了向後兼容

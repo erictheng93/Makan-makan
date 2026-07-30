@@ -7,6 +7,7 @@ import {
   authMiddleware,
   canonicalCustomerAuthMiddleware,
   customerAuthMiddleware,
+  optionalAuth,
   optionalCanonicalCustomerAuthMiddleware,
   requireRestaurantAccess,
   verifyJwtToken,
@@ -493,6 +494,117 @@ describe("canonicalCustomerAuthMiddleware", () => {
       customer: { id: "customer-1", displayName: "Ada" },
     });
     expect(db.run).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+  });
+});
+
+describe("optionalAuth", () => {
+  function activeStaffRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: staffUserId,
+      username: "role-1",
+      role: 1,
+      restaurant_id: "rest-db",
+      is_active: 1,
+      token_version: 1,
+      ...overrides,
+    };
+  }
+
+  function publicApp() {
+    const app = new Hono();
+    app.use("/public", optionalAuth);
+    app.get("/public", (c) => c.json({ user: c.get("user") ?? null }));
+    return app;
+  }
+
+  async function expiredStaffToken(role: number) {
+    const now = Math.floor(Date.now() / 1000);
+    return sign(
+      {
+        sub: staffUserId,
+        username: `role-${role}`,
+        role,
+        restaurantId: "rest-1",
+        tv: 1,
+        iat: now - 7200,
+        exp: now - 3600,
+      },
+      JWT_SECRET,
+    );
+  }
+
+  async function fetchPublic(
+    token: string,
+    row: Record<string, unknown> | null,
+  ) {
+    const response = await publicApp().fetch(
+      new Request("https://api.test/public", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { JWT_SECRET, DB: createStaffDb(row) } as never,
+    );
+    return { response, body: await response.json() };
+  }
+
+  it("attaches the user for a valid active staff token", async () => {
+    const { response, body } = await fetchPublic(
+      await staffToken(1),
+      activeStaffRow(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(body.user).toMatchObject({
+      id: staffUserId,
+      role: 1,
+      restaurantId: "rest-db",
+    });
+  });
+
+  it("stays anonymous for an expired staff token", async () => {
+    const { response, body } = await fetchPublic(
+      await expiredStaffToken(1),
+      activeStaffRow(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(body.user).toBeNull();
+  });
+
+  it("stays anonymous when the staff account has been deactivated", async () => {
+    const { response, body } = await fetchPublic(
+      await staffToken(1),
+      activeStaffRow({ is_active: 0 }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(body.user).toBeNull();
+  });
+
+  it("stays anonymous when the token version has been revoked", async () => {
+    const { response, body } = await fetchPublic(
+      await staffToken(1),
+      activeStaffRow({ token_version: 2 }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(body.user).toBeNull();
+  });
+
+  it("stays anonymous when the staff principal no longer exists", async () => {
+    const { response, body } = await fetchPublic(await staffToken(1), null);
+
+    expect(response.status).toBe(200);
+    expect(body.user).toBeNull();
+  });
+
+  it("stays anonymous when no Authorization header is present", async () => {
+    const response = await publicApp().fetch(
+      new Request("https://api.test/public"),
+      { JWT_SECRET, DB: createStaffDb(activeStaffRow()) } as never,
+    );
+
+    await expect(response.json()).resolves.toEqual({ user: null });
     expect(response.status).toBe(200);
   });
 });
