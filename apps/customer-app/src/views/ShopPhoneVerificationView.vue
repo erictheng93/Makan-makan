@@ -297,7 +297,7 @@ const loadRestaurant = async () => {
     // Verify shop QR code if provided
     if (props.shopQrCode) {
       const verifyResponse = await apiClient.get<ShopQrVerificationResponse>(
-        `/qr-codes/verify/shop/${props.shopQrCode}`,
+        `/qr/verify/shop/${props.shopQrCode}`,
       );
 
       if (!verifyResponse.valid) {
