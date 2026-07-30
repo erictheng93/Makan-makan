@@ -29,7 +29,7 @@ const notesSchema = (maxLength: number) =>
 // const urlSchema = z.url().optional() // Available for future use
 const positiveNumberSchema = z.number().positive();
 // const nonNegativeNumberSchema = z.number().min(0) // Available for future use
-const dateStringSchema = z.string().datetime().optional();
+const dateStringSchema = z.iso.datetime().optional();
 const paginationSchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
   limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),

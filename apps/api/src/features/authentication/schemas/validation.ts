@@ -314,8 +314,8 @@ const securityEventsQuerySchema = z.object({
       "EMAIL_VERIFIED",
     ])
     .optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
 });
 
 // Parameter validation schemas

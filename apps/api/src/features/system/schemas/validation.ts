@@ -23,7 +23,7 @@ export const errorReportSchema = z.object({
         message: z.string().min(1, "Error message is required"),
         originalError: z.any().optional(),
         context: z.record(z.string(), z.any()).optional(),
-        timestamp: z.string().datetime("Invalid timestamp format"),
+        timestamp: z.iso.datetime("Invalid timestamp format"),
         userAgent: z.string().optional(),
         url: z.url("Invalid URL format").optional().or(z.literal("")),
         userId: z.union([z.number(), z.string()]).optional(),

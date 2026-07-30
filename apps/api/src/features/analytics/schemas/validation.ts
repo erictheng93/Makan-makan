@@ -30,8 +30,8 @@ function queryWithRestaurantId<T extends z.ZodRawShape>(shape: T) {
 }
 
 const analyticsQueryShape = {
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
+  dateFrom: z.iso.datetime().optional(),
+  dateTo: z.iso.datetime().optional(),
   groupBy: z.enum(["day", "week", "month", "year"]).default("day"),
   limit: z.string().regex(/^\d+$/).transform(Number).prefault("30"),
 };
@@ -110,8 +110,8 @@ export const sseQuerySchema = z.object({
 // Date range validation helper
 export const dateRangeSchema = z
   .object({
-    dateFrom: z.string().datetime(),
-    dateTo: z.string().datetime(),
+    dateFrom: z.iso.datetime(),
+    dateTo: z.iso.datetime(),
   })
   .refine((data) => new Date(data.dateFrom) <= new Date(data.dateTo), {
     message: "dateFrom must be before or equal to dateTo",

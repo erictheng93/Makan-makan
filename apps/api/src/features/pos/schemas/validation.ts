@@ -104,8 +104,8 @@ export const queryPaginationSchema = z.object({
 });
 
 export const dateRangeQuerySchema = z.object({
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
+  dateFrom: z.iso.datetime().optional(),
+  dateTo: z.iso.datetime().optional(),
 });
 
 export const registerQuerySchema = z

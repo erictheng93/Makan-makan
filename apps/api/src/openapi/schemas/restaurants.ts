@@ -52,8 +52,8 @@ export const RestaurantsSchemas = {
     settings: RestaurantSettings,
     ownerId: z.uuid(),
     isActive: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
   }),
 
   // Create Restaurant Request
@@ -104,8 +104,8 @@ export const RestaurantsSchemas = {
       }),
     ),
     period: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
     }),
   }),
 
@@ -116,8 +116,8 @@ export const RestaurantsSchemas = {
     qrCodeUrl: z.url(),
     shortUrl: z.url().optional(),
     isActive: z.boolean(),
-    expiresAt: z.string().datetime().optional(),
-    createdAt: z.string().datetime(),
+    expiresAt: z.iso.datetime().optional(),
+    createdAt: z.iso.datetime(),
   }),
 
   // Generate Shop QR Request
@@ -285,8 +285,8 @@ export const getRestaurantStatsRoute = createRoute({
       restaurantId: z.uuid(),
     }),
     query: z.object({
-      startDate: z.string().datetime(),
-      endDate: z.string().datetime(),
+      startDate: z.iso.datetime(),
+      endDate: z.iso.datetime(),
       includePopularItems: z
         .string()
         .transform((val) => val === "true")
