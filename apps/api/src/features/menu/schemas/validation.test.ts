@@ -84,6 +84,31 @@ describe("menu validation schemas", () => {
     ).toThrow();
   });
 
+  // The admin dashboard always sends imageVariants: null when no image is
+  // uploaded (useMenuManagement.ts `form.imageVariants ?? null`) — the schema
+  // must accept null, like imageUrl/imageId already do.
+  it("accepts the exact no-image dashboard create payload (#78)", () => {
+    const parsed = createMenuItemSchema.parse({
+      name: "測試品項",
+      price: 100,
+      categoryId: 1,
+      catalogType: "menu_item",
+      imageUrl: null,
+      imageId: null,
+      imageVariants: null,
+      isFeatured: true,
+      isAvailable: false,
+      sortOrder: 7,
+    });
+
+    expect(parsed).toMatchObject({
+      isFeatured: true,
+      isAvailable: false,
+      sortOrder: 7,
+      imageVariants: null,
+    });
+  });
+
   it("rejects unsafe image data URLs and inconsistent prices", () => {
     expect(() =>
       createMenuItemSchema.parse({

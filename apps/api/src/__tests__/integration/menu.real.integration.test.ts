@@ -339,4 +339,92 @@ describe("Menu API — real integration", () => {
       404, 404, 404, 404, 404, 404,
     ]);
   });
+
+  // Issue #78: createMenuItemSchema silently stripped these fields, so the
+  // API answered 201 while writing none of them. Full round-trip proof:
+  // POST persists them, and a subsequent GET reads the same values back.
+  it("POST /:restaurantId/items persists availability/featured/sort fields (#78)", async () => {
+    const restaurant = await seed.restaurant();
+    await seed.user({
+      id: 1,
+      username: "admin-menu-78",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+    const now = new Date();
+    const [category] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "Issue 78 Category",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: categories.id });
+
+    const csrfToken = "a".repeat(64);
+    const createRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+          host: "test",
+          origin: "https://test",
+          "x-csrf-token": csrfToken,
+          cookie: `csrf_token=${csrfToken}`,
+        },
+        body: JSON.stringify({
+          name: "審計品項A",
+          categoryId: category.id,
+          price: 100,
+          isFeatured: true,
+          isAvailable: false,
+          isPopular: true,
+          sortOrder: 7,
+          inventoryCount: 3,
+          // The dashboard always sends these as null when no image is set;
+          // they used to fail validation outright (imageVariants) — also #78.
+          imageUrl: null,
+          imageId: null,
+          imageVariants: null,
+        }),
+      }),
+    );
+
+    expect(createRes.status).toBe(201);
+    const created: any = await createRes.json();
+    expect(created.success).toBe(true);
+    expect(created.data).toMatchObject({
+      isFeatured: true,
+      isAvailable: false,
+      isPopular: true,
+      sortOrder: 7,
+      inventoryCount: 3,
+    });
+
+    // Read back through the API (includeAll=true lets the admin see the
+    // unavailable item) to prove the values came from the database, not just
+    // the request echo.
+    const getRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}?includeAll=true`, {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    expect(getRes.status).toBe(200);
+    const menu: any = await getRes.json();
+    const item = menu.data.menuItems.find((i: any) => i.id === created.data.id);
+    expect(item).toMatchObject({
+      isFeatured: true,
+      isAvailable: false,
+      isPopular: true,
+      sortOrder: 7,
+    });
+  });
 });

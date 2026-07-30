@@ -138,7 +138,9 @@ const menuItemBaseSchema = z.object({
   originalPrice: priceSchema.optional(),
   imageUrl: imageUrlSchema,
   imageId: z.uuid().nullish(),
-  imageVariants: imageVariantsSchema.optional(),
+  // The admin dashboard sends imageVariants: null for no-image saves, so null
+  // must be accepted here just like imageUrl/imageId (#78).
+  imageVariants: imageVariantsSchema.nullish(),
   spiceLevel: z.number().int().min(0).max(5).optional(),
   preparationTime: positiveInteger.optional(),
   calories: positiveInteger.optional(),
