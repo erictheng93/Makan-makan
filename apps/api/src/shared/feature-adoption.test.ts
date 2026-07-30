@@ -79,15 +79,24 @@ describe("isFeatureEnabled", () => {
     }
   });
 
-  // Money code that has never settled a real transaction is not reachable.
-  it("keeps stored-value credits off unless asked for", () => {
-    expect(UNLAUNCHED_FEATURES.storedValueCredits.enabledByDefault).toBe(false);
+  // Nothing a user can reach calls either of these: credits has no frontend
+  // caller at all, and the backup UI is orphaned -- BackupDashboard.vue has no
+  // router entry and no referrer.
+  it.each(["storedValueCredits", "tenantBackups"] as const)(
+    "keeps %s off unless asked for",
+    (key) => {
+      expect(UNLAUNCHED_FEATURES[key].enabledByDefault).toBe(false);
+      expect(isFeatureEnabled({}, key)).toBe(false);
+    },
+  );
+
+  it("keeps the money path off specifically", () => {
     expect(isFeatureEnabled({}, "storedValueCredits")).toBe(false);
   });
 
-  // These three still have working UI behind them, so switching them off is a
-  // product decision rather than a cleanup.
-  it.each(["tenantBackups", "marketCheckouts", "webPush"] as const)(
+  // These two still have reachable UI behind them, so they stay answering until
+  // that UI shows them as unavailable.
+  it.each(["marketCheckouts", "webPush"] as const)(
     "leaves %s answering until someone turns it off",
     (key) => {
       expect(UNLAUNCHED_FEATURES[key].enabledByDefault).toBe(true);
@@ -104,6 +113,11 @@ describe("disabledFeatures", () => {
         flag: "STORED_VALUE_CREDITS_ENABLED",
         prefix: "/credits",
       },
+      {
+        feature: "tenantBackups",
+        flag: "TENANT_BACKUPS_ENABLED",
+        prefix: "/backup",
+      },
     ]);
   });
 
@@ -113,7 +127,13 @@ describe("disabledFeatures", () => {
       WEB_PUSH_ENABLED: "false",
     });
 
+    // tenantBackups stays in the list: it defaults off and was not flipped.
     expect(reported).toEqual([
+      {
+        feature: "tenantBackups",
+        flag: "TENANT_BACKUPS_ENABLED",
+        prefix: "/backup",
+      },
       { feature: "webPush", flag: "WEB_PUSH_ENABLED", prefix: "/push" },
     ]);
   });
