@@ -639,7 +639,6 @@ export class TableService extends BaseService {
     return buildSignedQRUrl(
       baseUrl,
       {
-        formatVersion: 2,
         type: "table",
         restaurantId,
         tableId,

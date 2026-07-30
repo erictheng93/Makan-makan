@@ -5,25 +5,24 @@
  * Uses Web Crypto API (works in Cloudflare Workers & browsers).
  *
  * Signed URL format:
- *   v1: /order?t={type}&r={restaurantId}&n={identifier}&v={version}&sig={hmac16hex}
- *   v2: /order?t={type}&r={restaurantId}&d={tableId}&n={identifier}&v={version}&f=2&sig={hmac16hex}
+ *   /order?t={type}&r={restaurantId}&d={tableId}&n={identifier}&v={version}&f=2&sig={hmac16hex}
  *
  * HMAC input (deterministic, no timestamp):
- *   v1: {type}|{restaurantId}|{identifier}|{version}
- *   v2: v2|{type}|{restaurantId}|{tableId}|{identifier}|{version}
+ *   v2|{type}|{restaurantId}|{tableId}|{identifier}|{version}
+ *
+ * The pre-v2 format, which omitted `f`/`d` and did not bind the table id, is no
+ * longer produced or accepted (#88 phase 3).
  */
 
 // ── Types ──────────────────────────────────────────────
 
 export interface QRSigningParams {
-  /** Signing format. Omitted means legacy v1 during the transition period. */
-  formatVersion?: 1 | 2;
   /** "table" or "seat" */
   type: "table" | "seat";
   /** Restaurant UUID */
   restaurantId: string;
-  /** Owning table primary key. Required by format v2. */
-  tableId?: number;
+  /** Owning table primary key. Bound into the signature. */
+  tableId: number;
   /** Table number (e.g. "A1") or seat number (e.g. "01") */
   identifier: string;
   /** QR code version — incremented on regeneration to invalidate old codes */
@@ -31,7 +30,8 @@ export interface QRSigningParams {
 }
 
 export interface SignedQRUrlParams extends QRSigningParams {
-  formatVersion: 1 | 2;
+  /** Always 2. Retained so responses stay self-describing if a v3 ever lands. */
+  formatVersion: 2;
   timestamp: number;
   signature: string;
 }
@@ -53,13 +53,10 @@ function uint8ArrayToHex(bytes: Uint8Array): string {
  * Deterministic — does NOT include timestamp so QR codes remain valid until version changes.
  */
 function buildCanonicalString(params: QRSigningParams): string {
-  if (params.formatVersion === 2) {
-    if (!Number.isInteger(params.tableId) || (params.tableId ?? 0) <= 0) {
-      throw new Error("QR signing format v2 requires a positive tableId");
-    }
-    return `v2|${params.type}|${params.restaurantId}|${params.tableId}|${params.identifier}|${params.version}`;
+  if (!Number.isInteger(params.tableId) || params.tableId <= 0) {
+    throw new Error("QR signing requires a positive tableId");
   }
-  return `${params.type}|${params.restaurantId}|${params.identifier}|${params.version}`;
+  return `v2|${params.type}|${params.restaurantId}|${params.tableId}|${params.identifier}|${params.version}`;
 }
 
 // ── Core Signing ───────────────────────────────────────
@@ -129,10 +126,8 @@ export async function buildSignedQRUrl(
   const url = new URL("/order", baseUrl);
   url.searchParams.set("t", params.type);
   url.searchParams.set("r", params.restaurantId);
-  if (params.formatVersion === 2) {
-    url.searchParams.set("d", String(params.tableId));
-    url.searchParams.set("f", "2");
-  }
+  url.searchParams.set("d", String(params.tableId));
+  url.searchParams.set("f", "2");
   url.searchParams.set("n", params.identifier);
   url.searchParams.set("v", String(params.version));
   url.searchParams.set("ts", String(Date.now()));
@@ -158,21 +153,17 @@ export function parseSignedQRUrl(urlString: string): SignedQRUrlParams | null {
 
     if (!t || !r || !n || !v || !sig) return null;
     if (t !== "table" && t !== "seat") return null;
-    if (f !== null && f !== "2") return null;
+    // Legacy v1 URLs carried no `f`/`d`. They are no longer accepted, so a
+    // missing or non-"2" marker is rejected here rather than downgraded.
+    if (f !== "2") return null;
 
-    const formatVersion = f === "2" ? 2 : 1;
     const version = Number(v);
-    const tableId = d === null ? undefined : Number(d);
+    const tableId = d === null ? Number.NaN : Number(d);
     if (!Number.isInteger(version) || version <= 0) return null;
-    if (
-      formatVersion === 2 &&
-      (!Number.isInteger(tableId) || (tableId ?? 0) <= 0)
-    ) {
-      return null;
-    }
+    if (!Number.isInteger(tableId) || tableId <= 0) return null;
 
     return {
-      formatVersion,
+      formatVersion: 2,
       type: t,
       restaurantId: r,
       tableId,

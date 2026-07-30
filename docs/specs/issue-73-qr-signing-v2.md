@@ -3,9 +3,17 @@
 ## Objective
 
 Eliminate table/seat QR identity collisions and make QR regeneration revoke old
-codes without immediately invalidating already printed codes. Phase 1 emits a
-new signed format while validators continue accepting legacy signatures whose
-payload still matches the current database record and `qrCodeVersion`.
+codes.
+
+Phase 1 emitted the v2 format while validators still accepted legacy signatures
+matching the current database row and `qrCodeVersion`. **Phase 3 has landed
+(#88): v2 is now the only format that is produced or accepted.** A URL without
+`f=2` and a positive `d={tableId}` fails at parse time, before any database
+lookup, so there is no longer a downgrade path for codes that were never
+regenerated.
+
+The cutoff was taken while production had no live users, which is why no grace
+window was needed.
 
 ## Tech Stack
 
@@ -63,19 +71,23 @@ quotes, trailing commas).
 
 ## Boundaries
 
-- Always: validate parsed numeric fields, bind v2 signatures to `tableId`,
-  compare QR version with the database, require active/non-deleted records.
-- Ask first: schema migrations, new dependencies, or ending legacy acceptance.
+- Always: validate parsed numeric fields, bind signatures to `tableId`, compare
+  QR version with the database, require active/non-deleted records.
+- Ask first: schema migrations, new dependencies, or reintroducing acceptance of
+  any format other than v2.
 - Never: log signing keys/signatures, trust URL identity without a DB match, or
-  silently accept an unknown signing format.
+  silently accept an unknown signing format. In particular, a missing `f` marker
+  must be rejected rather than treated as legacy — that downgrade is exactly
+  what phase 3 removed.
 
 ## Success Criteria
 
 1. Newly generated table and seat URLs include `f=2` and `d={tableId}` and use
    canonical input
    `v2|{type}|{restaurantId}|{tableId}|{identifier}|{version}`.
-2. Legacy URLs without `f`/`d` remain cryptographically verifiable during
-   phase 1, but only when their identity and version match the active DB row.
+2. Legacy URLs without `f`/`d` are rejected outright. `parseSignedQRUrl` returns
+   null for them, so they never reach a database comparison, and matching the
+   stored value does not rescue them.
 3. Seat `01` on two different tables produces different signatures.
 4. Regenerating a table or seat makes its previous QR fail DB-backed
    verification.
@@ -93,7 +105,11 @@ quotes, trailing commas).
 6. Guest realtime token generation supports table and seat QR payloads and
    rejects cross-table, cross-seat, inactive, deleted, or stale-version codes.
 
-## Open Questions
+## Status
 
-- Phase 2 bulk regeneration/printing and phase 3 legacy cutoff are intentionally
-  outside this change and require an operational rollout date.
+- Phase 1 (v2 format + dual-accept): done.
+- Phase 2 (inventory, atomic bulk regeneration, batch printing): done — see #88.
+  `pnpm audit:qr-format [production]` reports anything still non-v2 and exits
+  non-zero while work remains.
+- Phase 3 (legacy cutoff): done. `generateLegacyQRCodeData` is gone, so nothing
+  can mint a v1 code, and `parseSignedQRUrl` refuses to read one.

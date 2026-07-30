@@ -53,7 +53,6 @@ describe("qr-parser signed table and seat QR support", () => {
     const qrCode = await buildSignedQRUrl(
       "https://customer.example.test",
       {
-        formatVersion: 2,
         type: "table",
         restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableId: 10,
@@ -80,7 +79,6 @@ describe("qr-parser signed table and seat QR support", () => {
     const qrCode = await buildSignedQRUrl(
       "https://customer.example.test",
       {
-        formatVersion: 2,
         type: "seat",
         restaurantId: "019469a0-0001-7000-8000-000000000001",
         tableId: 10,

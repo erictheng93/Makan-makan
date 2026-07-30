@@ -1,6 +1,6 @@
 import { sign, verify } from "jsonwebtoken";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { orders, restaurants, seats, tables } from "@makanmakan/database";
 import { parseSignedQRUrl, verifyQRSignature } from "@makanmakan/utils";
 import type { Env } from "../../../shared/types";
@@ -100,31 +100,24 @@ export class RealtimeAuthService {
     request: RealtimeAuthTokenRequest,
   ): Promise<RealtimeAuthTokenResponse | { error: string }> {
     try {
-      const { roomType, roomId, restaurantId, tableId, seatId, sessionId } =
-        request;
+      const { roomType, roomId, restaurantId, sessionId } = request;
       let authenticatedUser: AuthenticatedRealtimeUser | null = null;
 
       switch (roomType) {
+        // Customer rooms are NOT mintable here. This endpoint is public, so any
+        // authorization it could apply is something an anonymous caller already
+        // supplies: a table/seat ID is a guessable sequential integer, not a
+        // secret, and `roomId` was never bound to it — so a valid table ID
+        // still bought a token for any `customer:*` room (including
+        // `customer:{groupOrderId}`, whose events skip restaurant filtering).
+        // Customer realtime goes through /auth/guest-token, which proves
+        // possession of an HMAC-signed QR or a KV-backed guest token and pins
+        // roomId to `order:{orderId}` / `customer:{tableId}`.
         case "customer":
-          if (tableId) {
-            const tableExists = await this.verifyTableExists(
-              tableId,
-              restaurantId,
-            );
-            if (!tableExists) {
-              return { error: "Invalid table ID" };
-            }
-          }
-          if (seatId) {
-            const seatExists = await this.verifySeatExists(
-              seatId,
-              restaurantId,
-            );
-            if (!seatExists) {
-              return { error: "Invalid seat ID" };
-            }
-          }
-          break;
+          return {
+            error:
+              "Customer realtime tokens must be requested from /realtime/auth/guest-token",
+          };
 
         case "kitchen":
         case "admin":
@@ -166,8 +159,6 @@ export class RealtimeAuthService {
               appRole: authenticatedUser.role,
             }
           : {}),
-        tableId,
-        seatId,
         exp: issuedAt + expiresIn,
         iat: issuedAt,
       };
@@ -414,55 +405,6 @@ export class RealtimeAuthService {
       available: true,
       ...stats,
     };
-  }
-
-  private async verifyTableExists(
-    tableId: string,
-    restaurantId: string,
-  ): Promise<boolean> {
-    try {
-      const result = await this.db
-        .select({ id: tables.id })
-        .from(tables)
-        .where(
-          and(
-            or(eq(tables.id, Number(tableId) || 0), eq(tables.qrCode, tableId)),
-            eq(tables.restaurantId, restaurantId),
-            eq(tables.isActive, true),
-          ),
-        )
-        .limit(1);
-
-      return result.length > 0;
-    } catch (error) {
-      this.logger.error("Failed to verify table", error as Error);
-      return false;
-    }
-  }
-
-  private async verifySeatExists(
-    seatId: string,
-    restaurantId: string,
-  ): Promise<boolean> {
-    try {
-      const result = await this.db
-        .select({ id: seats.id })
-        .from(seats)
-        .innerJoin(tables, eq(seats.tableId, tables.id))
-        .where(
-          and(
-            eq(seats.qrCode, seatId),
-            eq(tables.restaurantId, restaurantId),
-            eq(seats.isActive, true),
-          ),
-        )
-        .limit(1);
-
-      return result.length > 0;
-    } catch (error) {
-      this.logger.error("Failed to verify seat", error as Error);
-      return false;
-    }
   }
 
   private determineRole(
@@ -728,14 +670,9 @@ export class RealtimeAuthService {
     const signingParams = {
       type: qrPayload.type,
       restaurantId: qrPayload.restaurantId,
+      tableId: qrPayload.tableId,
       identifier: qrPayload.identifier,
       version: qrPayload.version,
-      ...(qrPayload.formatVersion === undefined
-        ? {}
-        : { formatVersion: qrPayload.formatVersion }),
-      ...(qrPayload.tableId === undefined
-        ? {}
-        : { tableId: qrPayload.tableId }),
     };
     const qrValid = await verifyQRSignature(
       signingParams,
@@ -807,14 +744,8 @@ export class RealtimeAuthService {
       if (seatRow.qrCodeVersion !== qrPayload.version) {
         return { error: "QR code version is no longer current" };
       }
-      if (
-        qrPayload.formatVersion === 2 &&
-        qrPayload.tableId !== seatRow.tableId
-      ) {
+      if (qrPayload.tableId !== seatRow.tableId) {
         return { error: "QR code does not match table" };
-      }
-      if (qrPayload.formatVersion === 1 && seatRow.qrCode !== request.qrCode) {
-        return { error: "Legacy QR code does not match seat" };
       }
 
       resolvedTableId = seatRow.tableId;
@@ -856,11 +787,8 @@ export class RealtimeAuthService {
       if (table.qrCodeVersion !== qrPayload.version) {
         return { error: "QR code version is no longer current" };
       }
-      if (qrPayload.formatVersion === 2 && qrPayload.tableId !== table.id) {
+      if (qrPayload.tableId !== table.id) {
         return { error: "QR code does not match table" };
-      }
-      if (qrPayload.formatVersion === 1 && table.qrCode !== request.qrCode) {
-        return { error: "Legacy QR code does not match table" };
       }
     }
 

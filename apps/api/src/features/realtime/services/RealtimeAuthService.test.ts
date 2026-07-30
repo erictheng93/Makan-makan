@@ -176,18 +176,23 @@ describe("RealtimeAuthService", () => {
   });
 
   it("falls back to JWT_SECRET for local realtime token signing", async () => {
-    const service = createService({ REALTIME_JWT_SECRET: undefined });
+    const service = createService({
+      REALTIME_JWT_SECRET: undefined,
+      DB: {},
+    });
+    const sessionId = createSessionToken({ role: 2 });
 
     const response = await service.generateWebSocketToken({
-      roomType: "customer",
-      roomId: "customer:table-1",
+      roomType: "kitchen",
+      roomId: "restaurant-1",
       restaurantId: "restaurant-1",
+      sessionId,
     });
 
     expect(response).toMatchObject({
       expiresIn: 300,
       wsUrl: expect.stringMatching(
-        /^wss:\/\/realtime\.example\.test\/customer\/customer:table-1\?token=/,
+        /^wss:\/\/realtime\.example\.test\/kitchen\/restaurant-1\?token=/,
       ),
     });
     await expect(
@@ -195,35 +200,37 @@ describe("RealtimeAuthService", () => {
     ).resolves.toMatchObject({ valid: true });
   });
 
-  it("generates and verifies customer websocket tokens", async () => {
+  it("refuses to mint customer room tokens from the public endpoint", async () => {
     const service = createService();
+    const expected = {
+      error:
+        "Customer realtime tokens must be requested from /realtime/auth/guest-token",
+    };
 
-    const response = await service.generateWebSocketToken({
-      roomType: "customer",
-      roomId: "customer:table-1",
-      restaurantId: "restaurant-1",
-    });
-
-    expect(response).toMatchObject({
-      expiresIn: 300,
-      wsUrl: expect.stringMatching(
-        /^wss:\/\/realtime\.example\.test\/customer\/customer:table-1\?token=/,
-      ),
-    });
-    const verification = await service.verifyWebSocketToken(
-      "token" in response ? response.token : "",
-    );
-    expect(verification).toMatchObject({
-      valid: true,
-      payload: {
+    // No tableId at all — the original vulnerability: an anonymous caller could
+    // name any roomId and receive a signed customer token.
+    await expect(
+      service.generateWebSocketToken({
         roomType: "customer",
-        roomId: "customer:table-1",
+        roomId: "group-order-42",
         restaurantId: "restaurant-1",
-        role: "customer",
-        exp: 1780790700,
-        iat: 1780790400,
-      },
-    });
+      }),
+    ).resolves.toEqual(expected);
+
+    // A table/seat ID must not buy access either — it is not a secret, and it
+    // never constrained which room the token was good for.
+    await expect(
+      service.generateWebSocketToken({
+        roomType: "customer",
+        roomId: "group-order-42",
+        restaurantId: "restaurant-1",
+        tableId: "7",
+        seatId: "3",
+      }),
+    ).resolves.toEqual(expected);
+
+    // Rejected before any DB work, and no token is signed.
+    expect(mocks.db.select).not.toHaveBeenCalled();
   });
 
   it("rejects invalid staff room requests before issuing tokens", async () => {
@@ -246,39 +253,7 @@ describe("RealtimeAuthService", () => {
     ).resolves.toEqual({ error: "Room ID must match restaurant ID" });
   });
 
-  it("validates customer table and seat access before issuing tokens", async () => {
-    mocks.dbState.selectResults = [[{ id: 10 }], [{ id: 21 }], [], []];
-    const service = createService();
-
-    const response = await service.generateWebSocketToken({
-      roomType: "customer",
-      roomId: "customer:10",
-      restaurantId: "restaurant-1",
-      tableId: "10",
-      seatId: "seat-1",
-    });
-
-    expect(response).toMatchObject({ expiresIn: 300 });
-    await expect(
-      service.generateWebSocketToken({
-        roomType: "customer",
-        roomId: "customer:missing-table",
-        restaurantId: "restaurant-1",
-        tableId: "missing-table",
-      }),
-    ).resolves.toEqual({ error: "Invalid table ID" });
-    await expect(
-      service.generateWebSocketToken({
-        roomType: "customer",
-        roomId: "customer:missing-seat",
-        restaurantId: "restaurant-1",
-        seatId: "missing-seat",
-      }),
-    ).resolves.toEqual({ error: "Invalid seat ID" });
-    expect(mocks.db.select).toHaveBeenCalledTimes(4);
-  });
-
-  it("rejects invalid room types and wraps token generation failures", async () => {
+  it("rejects invalid room types", async () => {
     const service = createService();
 
     await expect(
@@ -288,16 +263,6 @@ describe("RealtimeAuthService", () => {
         restaurantId: "restaurant-1",
       }),
     ).resolves.toEqual({ error: "Invalid room type" });
-
-    mocks.dbState.selectError = new Error("table lookup failed");
-    await expect(
-      service.generateWebSocketToken({
-        roomType: "customer",
-        roomId: "customer:1",
-        restaurantId: "restaurant-1",
-        tableId: "1",
-      }),
-    ).resolves.toEqual({ error: "Invalid table ID" });
   });
 
   it("generates staff tokens from valid session JWTs in token-only test mode", async () => {
@@ -719,8 +684,10 @@ describe("RealtimeAuthService", () => {
 
   it("generates guest table tokens from signed QR codes", async () => {
     mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
       type: "table",
       restaurantId: "restaurant-1",
+      tableId: 10,
       identifier: "T1",
       version: 1,
       signature: "signature",
@@ -768,10 +735,14 @@ describe("RealtimeAuthService", () => {
         roomId: "customer:10",
       },
     });
+    // tableId is part of the signed payload, so it must be part of what gets
+    // verified — dropping it here would verify a different string than the one
+    // that was signed.
     expect(mocks.utils.verifyQRSignature).toHaveBeenCalledWith(
       {
         type: "table",
         restaurantId: "restaurant-1",
+        tableId: 10,
         identifier: "T1",
         version: 1,
       },
@@ -889,8 +860,10 @@ describe("RealtimeAuthService", () => {
   it("validates signed QR guest order ownership", async () => {
     const publicId = "018f0000-0000-7000-8000-000000000042";
     mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
       type: "table",
       restaurantId: "restaurant-1",
+      tableId: 10,
       identifier: "T1",
       version: 1,
       signature: "signature",
@@ -1031,8 +1004,10 @@ describe("RealtimeAuthService", () => {
     });
 
     mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
       type: "table",
       restaurantId: "restaurant-1",
+      tableId: 10,
       identifier: "T1",
       version: 1,
       signature: "signature",
@@ -1047,8 +1022,10 @@ describe("RealtimeAuthService", () => {
 
     mocks.utils.verifyQRSignature.mockResolvedValue(true);
     mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
       type: "table",
       restaurantId: "restaurant-2",
+      tableId: 10,
       identifier: "T1",
       version: 1,
       signature: "signature",
@@ -1064,8 +1041,10 @@ describe("RealtimeAuthService", () => {
 
   it("returns guest restaurant and table validation errors", async () => {
     mocks.utils.parseSignedQRUrl.mockReturnValue({
+      formatVersion: 2,
       type: "table",
       restaurantId: "restaurant-1",
+      tableId: 10,
       identifier: "T1",
       version: 1,
       signature: "signature",
