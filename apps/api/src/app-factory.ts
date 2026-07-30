@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { timing } from "hono/timing";
@@ -107,6 +107,11 @@ import discoveryFeature from "./features/discovery";
 import marketsFeature from "./features/markets";
 import marketCheckoutsFeature from "./features/market-checkouts";
 import creditsFeature from "./features/credits";
+import {
+  disabledFeatures,
+  isFeatureEnabled,
+  type UnlaunchedFeatureKey,
+} from "./shared/feature-adoption";
 import feedbackFeature from "./features/feedback";
 import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
@@ -205,6 +210,27 @@ function apiV1RouteNotFound(method: string, path: string) {
       code: "ROUTE_NOT_FOUND",
       message: `API endpoint not found: ${method} ${path}`,
     },
+  };
+}
+
+/**
+ * Blocks an unlaunched feature's routes.
+ *
+ * Has to be middleware rather than a conditional mount: createApp() runs at
+ * module scope, before any request supplies c.env, so the flag cannot be read
+ * while the router is being assembled.
+ *
+ * Answers 404 rather than 503. A feature nobody has launched does not exist
+ * from a caller's point of view, and 503 would advertise it as temporarily
+ * broken -- inviting retries against something that is never coming back up
+ * until someone sets the flag.
+ */
+function featureGate(key: UnlaunchedFeatureKey) {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
+    if (!isFeatureEnabled(c.env as unknown as Record<string, unknown>, key)) {
+      return c.json(apiV1RouteNotFound(c.req.method, c.req.path), 404);
+    }
+    await next();
   };
 }
 
@@ -441,6 +467,12 @@ export function createApp(
       description: "RESTful API for MakanMasak restaurant management system",
       environment: c.env.NODE_ENV || "development",
       deployment: deploymentInfo,
+      // Which built-but-unlaunched features are currently switched off. Served
+      // here so "is this live?" is one public request instead of counting rows
+      // in the production database. See shared/feature-adoption.ts.
+      disabledFeatures: disabledFeatures(
+        c.env as unknown as Record<string, unknown>,
+      ),
       features: [
         "Restaurant management",
         "Menu management",
@@ -580,7 +612,9 @@ export function createApp(
   apiV1.route("/realtime", realtimeRoutes); // WebSocket 認證端點為公開
   apiV1.route("/partnerships", partnershipsRoutes); // 特約商店體系 (部分公開端點 + 受保護端點)
   apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest token auth)
+  apiV1.use("/market-checkouts/*", featureGate("marketCheckouts"));
   apiV1.route("/market-checkouts", marketCheckoutsFeature.routes); // 市場多攤位訪客結帳
+  apiV1.use("/credits/*", featureGate("storedValueCredits"));
   apiV1.route("/credits", creditsFeature.routes); // 代幣儲值卡 (查餘額公開限流, 管理端點 admin)
   apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
 
@@ -691,6 +725,7 @@ export function createApp(
   apiV1.route("/system", systemFeature.routes);
   apiV1.route("/cache", cacheFeature);
   apiV1.route("/monitoring", monitoringFeature.routes);
+  apiV1.use("/backup/*", featureGate("tenantBackups"));
   apiV1.route("/backup", BackupRoutes);
   apiV1.route("/customer", customerRouter);
   apiV1.route("/customers", customersRouter);
@@ -704,6 +739,7 @@ export function createApp(
   apiV1.route("/billing", billingFeature.routes);
   apiV1.route("/me", meFeature.routes);
   apiV1.route("/notifications", notificationsRoutes);
+  apiV1.use("/push/*", featureGate("webPush"));
   apiV1.route("/push", pushRoutes);
   apiV1.route("/audit", auditRoutes);
 
