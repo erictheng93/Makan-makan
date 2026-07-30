@@ -8,6 +8,7 @@ import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import { quotaGate } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
+import { toCsvRow } from "../../../shared/utils/csv";
 import {
   validateBody,
   validateQuery,
@@ -173,10 +174,10 @@ app.get(
       "Total Amount",
       "Created At",
     ];
-    const csvRows = [headers.join(",")];
+    const csvRows = [toCsvRow(headers)];
     for (const order of orders) {
       csvRows.push(
-        [
+        toCsvRow([
           order.id,
           order.shareCode,
           order.status,
@@ -185,7 +186,7 @@ app.get(
           order.itemCount,
           order.totalAmount,
           order.createdAt,
-        ].join(","),
+        ]),
       );
     }
 

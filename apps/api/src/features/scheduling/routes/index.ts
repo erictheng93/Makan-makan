@@ -18,6 +18,7 @@ import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
 import { createSuccessResponse } from "../../../shared/utils";
 import { notFound, forbidden } from "../../../shared/utils/api-error";
+import { toCsvRow } from "../../../shared/utils/csv";
 
 // Import schemas
 import { schedulingSchemas } from "../schemas/validation";
@@ -493,11 +494,9 @@ app.get(
     );
 
     const rows = report.records.map((r) => {
-      // Names are free text — escape embedded quotes for CSV safety.
-      const employeeName = (nameMap.get(r.employeeId) || r.employeeId).replace(
-        /"/g,
-        '""',
-      );
+      // Names are free text — toCsvRow handles quoting and neutralizes cells
+      // that a spreadsheet would otherwise evaluate as a formula.
+      const employeeName = nameMap.get(r.employeeId) || r.employeeId;
       const clockIn = r.clockInTime
         ? new Date(r.clockInTime).toLocaleTimeString("en-US", {
             hour12: false,
@@ -513,21 +512,21 @@ app.get(
           })
         : "";
 
-      return [
-        `"${employeeName}"`,
-        `"${r.workDate}"`,
-        `"${r.startTime}"`,
-        `"${r.endTime}"`,
-        `"${clockIn}"`,
-        `"${clockOut}"`,
-        `"${r.scheduledHours}"`,
-        `"${r.actualHours || 0}"`,
-        `"${r.overtimeHours || 0}"`,
-        `"${r.status}"`,
-      ].join(",");
+      return toCsvRow([
+        employeeName,
+        r.workDate,
+        r.startTime,
+        r.endTime,
+        clockIn,
+        clockOut,
+        r.scheduledHours,
+        r.actualHours || 0,
+        r.overtimeHours || 0,
+        r.status,
+      ]);
     });
 
-    const csv = [headers.join(","), ...rows].join("\n");
+    const csv = [toCsvRow(headers), ...rows].join("\n");
     const filename = `attendance-report-${startDate}-to-${endDate}.csv`;
 
     return new Response(csv, {

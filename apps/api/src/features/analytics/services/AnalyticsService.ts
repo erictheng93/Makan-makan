@@ -10,6 +10,7 @@ import {
   type CacheService,
 } from "../../../core/cache";
 import { notFound } from "../../../shared/utils/api-error";
+import { escapeCsvValue } from "../../../shared/utils/csv";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
@@ -104,20 +105,6 @@ function normalizeCsvRows(data: unknown): Array<Record<string, unknown>> {
   }
 
   return [{ value: data }];
-}
-
-function escapeCsvValue(value: unknown): string {
-  if (value == null) {
-    return "";
-  }
-
-  const text = value instanceof Date ? value.toISOString() : String(value);
-
-  if (/[",\r\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-
-  return text;
 }
 
 function toCsv(data: unknown): string {

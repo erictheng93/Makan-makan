@@ -364,9 +364,11 @@ describe("scheduling routes", () => {
     expect(body).toContain(
       "Employee Name,Date,Scheduled Start,Scheduled End,Clock In,Clock Out",
     );
-    // Resolved display name is emitted, not the raw employee id.
-    expect(body).toContain('"Alice Server"');
-    expect(body).not.toContain('"42"');
+    // Resolved display name is emitted, not the raw employee id. Cells are
+    // only quoted when the content needs it (shared toCsvRow helper).
+    const dataRow = body.trim().split("\n")[1];
+    expect(dataRow).toContain("Alice Server");
+    expect(dataRow).not.toContain("42");
     expect(serviceFns.getEmployeeNames).toHaveBeenCalledWith([42]);
     expect(serviceFns.getAttendanceReport).toHaveBeenCalledWith("rest-1", {
       startDate: "2026-06-10",

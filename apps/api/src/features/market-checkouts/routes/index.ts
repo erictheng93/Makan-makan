@@ -51,6 +51,7 @@ import {
   type AppliedMarketCheckoutVoucher,
 } from "../services/MarketCheckoutVoucherService";
 import { fromCents } from "../../../shared/utils/money";
+import { toCsv } from "../../../shared/utils/csv";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
 import { generateUUID } from "@makanmakan/utils";
@@ -3012,9 +3013,7 @@ function buildMarketCheckoutCsv(items: MarketCheckoutSummaryItem[]) {
     ];
   });
 
-  return [headers, ...rows]
-    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
-    .join("\n");
+  return toCsv([headers, ...rows]);
 }
 
 function buildMarketCheckoutVendorSettlementCsv(
@@ -3055,9 +3054,7 @@ function buildMarketCheckoutVendorSettlementCsv(
     vendor.failedPaymentCount,
   ]);
 
-  return [headers, ...rows]
-    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
-    .join("\n");
+  return toCsv([headers, ...rows]);
 }
 
 function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
@@ -3204,13 +3201,7 @@ function buildMarketCheckoutAccountingCsv(sessions: MarketCheckoutSession[]) {
     }
   }
 
-  return [headers, ...rows]
-    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
-    .join("\n");
-}
-
-function escapeCsvValue(value: string) {
-  return /[",\n\r]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  return toCsv([headers, ...rows]);
 }
 
 async function readPersistedMarketCheckoutSession(

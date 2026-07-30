@@ -15,6 +15,7 @@ import {
   validateParams,
   validateQuery,
 } from "../../../middleware/validation";
+import { toCsv } from "../../../shared/utils/csv";
 import { CreditService } from "../services/CreditService";
 import { CreditTopupService } from "../services/CreditTopupService";
 import { CreditTopupWebhookService } from "../services/CreditTopupWebhookService";
@@ -253,11 +254,5 @@ function buildCreditLedgerCsv(
     e.balanceAfterCents,
     e.idempotencyKey,
   ]);
-  return [headers, ...rows]
-    .map((row) => row.map((value) => escapeCsvValue(String(value))).join(","))
-    .join("\n");
-}
-
-function escapeCsvValue(value: string): string {
-  return /[",\n\r]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  return toCsv([headers, ...rows]);
 }
