@@ -3,6 +3,24 @@
 Use this for D1 corruption, accidental destructive migration, missing critical
 rows, or a DR exercise.
 
+> **Start here: D1 Time Travel is the recovery mechanism.** It is enabled on
+> both production databases, needs no setup, and restores to any bookmark in
+> the last 30 days. Drilled end to end on 2026-07-30 — see
+> [Time Travel](#time-travel-primary-recovery-path).
+>
+> Two things this runbook used to get wrong, both verified against production:
+>
+> - **`wrangler d1 export` does not work on `makanmasak-prod`.** It fails with
+>   `cannot export databases with Virtual Tables (fts5)` because of
+>   `dish_search_fts`. Every procedure below that began with an export was
+>   unexecutable, which is the worst kind of runbook bug: you find out during
+>   the incident.
+> - **The per-restaurant backup feature has never run in production.**
+>   `backup_configurations` is empty and `makanmasak-backups-prod` holds zero
+>   objects, so the scheduler had nothing to back up. Its cron triggers are
+>   stopped. That feature is a tenant-facing product capability, not this
+>   platform's disaster recovery.
+
 ## Uptime Monitoring
 
 Configure external uptime monitoring against these production targets:
@@ -34,83 +52,146 @@ If an internal monitor calls `MonitoringService.recordUptimeCheck`, it stores
 `_uptime_probe:<probe-name>` for 30 days and emits a recent alert with type
 `uptime_check_failed` on non-2xx probe results.
 
-## Backup
+## Time Travel (primary recovery path)
 
-1. Export the affected database before touching it:
+Drilled 2026-07-30 on two throwaway databases seeded with production's exact
+FTS5 shape. Everything below was executed, not inferred.
 
-```bash
-rtk pnpm exec wrangler d1 export makanmasak-prod --remote --env production --config apps/api/wrangler.toml --output backup-$(date +%Y%m%d-%H%M%S).sql
-```
-
-2. Store the export in R2:
+### Before you restore anything
 
 ```bash
-rtk pnpm exec wrangler r2 object put makanmasak-backups-prod/manual/backup-$(date +%Y%m%d-%H%M%S).sql --file <backup-file>.sql
+# 1. Where are we now? Capture this -- it is your way back.
+pnpm wrangler d1 time-travel info makanmasak-prod
+
+# 2. Which bookmark does the target time actually resolve to? PREVIEW FIRST.
+pnpm wrangler d1 time-travel info makanmasak-prod --timestamp=2026-07-30T08:05:30Z
 ```
 
-3. Record file name, size, timestamp, environment, reason, and operator.
+### Restore
+
+Prefer `--bookmark` over `--timestamp`. Preview with `info --timestamp=`, read
+the bookmark it prints, then restore that bookmark explicitly:
+
+```bash
+pnpm wrangler d1 time-travel restore makanmasak-prod --bookmark=<bookmark>
+```
+
+Every restore prints an undo bookmark. **Copy it before running anything
+else** — it is the only route back, and the next command overwrites the
+scrollback in a stressful moment.
+
+### What the drill proved works
+
+- Ordinary rows come back exactly.
+- **The FTS5 index survives and stays queryable.** `dish_search_fts MATCH`
+  returned the right rows after restore with no reindex.
+- **The FTS sync triggers survive and still fire.** A row inserted after the
+  restore appeared in the index, so the triggers are live, not just present in
+  `sqlite_master`.
+- Restores are reversible. Restoring the printed undo bookmark returned the
+  database to the pre-restore state, and printed a fresh undo bookmark, so you
+  can move back and forth while deciding.
+- Restore on a database this size (~2.4 MB) completes in seconds.
+
+### Hazards the drill found
+
+| Hazard | Why it bites | What to do |
+| --- | --- | --- |
+| **The confirmation prompt does not protect a script.** `restore` asks `OK to proceed (y/N)`, but in a non-interactive context wrangler prints `Using fallback value in non-interactive context: yes` and proceeds. | Any CI job, wrapper script, or agent that runs the command destroys data with no gate. | Never put an unguarded `time-travel restore` in automation. Restore from an interactive shell. |
+| **`--timestamp` resolves to the bookmark at or before that time.** Restoring to a timestamp inside the same minute as a write loses that write. Reproduced twice; the state landed on an earlier bookmark than intended. | You ask for "08:01:19, just before the mistake" and silently get 08:01:00, before the work you meant to keep. | Preview with `info --timestamp=`, confirm the bookmark is the one you want, then restore **by bookmark**. |
+| **Time Travel is per database.** Production has two: `makanmasak-prod` and `makanmasak-management-prod`. | Restoring one leaves the other ahead. `shop_subscriptions` in the management DB points at tenants in the platform DB, so a one-sided restore splits them. | Decide up front whether the incident spans both. If it does, capture bookmarks for both before restoring either. |
+| **Time Travel covers D1 only.** KV, R2 and in-flight Queue messages are not rewound. | After a restore, `CACHE_KV` entries, R2 image objects and `makanmasak-search-sync-prod` messages still describe the newer state. Rows can reference R2 objects deleted since, and queue messages can reference IDs that no longer exist. | After restoring: let the short-TTL KV caches expire (metrics is 60s), and treat R2 orphans and queue failures as expected cleanup rather than new incidents. |
+| **`wrangler d1 export` fails on production.** `cannot export databases with Virtual Tables (fts5)`. | You cannot take a logical snapshot as a safety net before restoring. | The undo bookmark is your safety net. For forensics, dump `sqlite_master` and the specific tables you care about with `--command`. |
+
+### Forensics without export
+
+```bash
+# Schema, since export refuses to run.
+pnpm wrangler d1 execute makanmasak-prod --remote --json \
+  --command "SELECT type, name, sql FROM sqlite_master ORDER BY type, name;" \
+  > forensics-schema-$(date +%Y%m%d-%H%M%S).json
+
+# Then the specific tables the incident touched, one statement per call --
+# batched --file execution against D1 fails opaquely with partial writes.
+```
 
 ## Restore Drill
 
-Run this against a temporary restore database first — never restore directly
-onto production. The scheduler helper in
-`apps/api/src/workers/backup-scheduler.ts` provides a dry-run command plan
-that is covered by `apps/api/src/workers/backup-scheduler.test.ts`.
+Never drill on a production database — Time Travel restore overwrites in
+place, and there is no separate staging D1 to practise on. Create a throwaway
+database instead. The export-based drill this section used to describe cannot
+run at all, because export fails on production's FTS5 table.
 
-Dry-run the command plan:
+The `buildRestoreDrillPlan` helper referenced here previously no longer exists
+in `apps/api/src/workers/backup-scheduler.ts`.
 
-```powershell
-rtk pnpm exec tsx -e "import { buildRestoreDrillPlan } from './apps/api/src/workers/backup-scheduler.ts'; console.log(JSON.stringify(buildRestoreDrillPlan({ environment: 'production', backupFile: 'artifacts/restore-drill.sql', restoreDatabase: 'makanmasak-restore-drill-YYYYMMDD' }), null, 2));"
-```
-
-Execute the drill (seeded from a production export, restored into a
-disposable scratch database — production itself is never touched):
+Drill recipe, as executed on 2026-07-30:
 
 ```bash
-rtk pnpm exec wrangler d1 export makanmasak-prod --remote --env production --config apps/api/wrangler.toml --output artifacts/restore-drill-YYYYMMDD.sql
-rtk pnpm exec wrangler d1 create makanmasak-restore-drill-YYYYMMDD
-rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --file artifacts/restore-drill-YYYYMMDD.sql
-rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --command "SELECT COUNT(*) AS count FROM restaurants;"
-rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --command "SELECT COUNT(*) AS count FROM users;"
-rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --command "SELECT COUNT(*) AS count FROM menu_items;"
-rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-YYYYMMDD --remote --command "SELECT COUNT(*) AS count FROM orders;"
+pnpm wrangler d1 create makanmasak-tt-drill
 ```
 
-Then validate:
-
-- Restaurant count is non-zero.
-- Users required for smoke tests exist.
-- Menu and order tables query successfully.
-- The evidence key is `restore-drills/production/makanmasak-restore-drill-YYYYMMDD`.
-- The API can be pointed at the restored DB in a controlled test environment.
-
-The helper refuses production drill execution unless the caller passes
-`productionApproval: "RESTORE DRILL APPROVED"`. Production restore still
-requires the approval process below.
+1. Recreate production's risky shape, not the whole schema. Copy the
+   `dish_search_index` table, the `dish_search_fts` virtual table and its three
+   sync triggers out of `sqlite_master`, plus one plain table. Apply them **one
+   statement per `--command` call**; batched `--file` execution against D1
+   fails opaquely with partial writes.
+2. Seed rows and confirm `dish_search_fts MATCH` returns them. This is the
+   baseline the restore has to reproduce.
+3. `time-travel info` → record the good bookmark.
+4. Cause damage: delete rows, rename a dish so the FTS index diverges.
+5. Restore the good bookmark. **Record the undo bookmark it prints.**
+6. Validate all four together — plain rows, index rows, an actual `MATCH`
+   query, and `COUNT(*) FROM sqlite_master WHERE type='trigger'`. Row counts
+   alone would not have caught a broken index.
+7. Insert a new row and confirm it appears in the index, proving the restored
+   triggers still fire rather than merely existing.
+8. Restore the undo bookmark and confirm you land back on the damaged state.
+9. `pnpm wrangler d1 delete makanmasak-tt-drill`.
 
 ## Production Restore
 
-Production restore requires explicit operator approval.
+Production restore requires explicit operator approval, from an interactive
+shell — the confirmation prompt auto-answers yes when stdin is not a terminal.
 
 1. Freeze writes if possible.
-2. Export the current broken database for forensics.
-3. Restore into a new D1 database first.
-4. Run the validation queries from the restore drill.
-5. Update the Worker D1 binding only after restore validation passes.
-6. Deploy the binding change.
+2. Capture the current bookmark for **both** `makanmasak-prod` and
+   `makanmasak-management-prod`, whether or not you plan to restore both.
+3. Dump `sqlite_master` and the affected tables for forensics. Export does not
+   work; see [Forensics without export](#forensics-without-export).
+4. Preview the target with `time-travel info --timestamp=`, then restore that
+   bookmark explicitly.
+5. Record the undo bookmark from the restore output before doing anything else.
+6. Validate against the restored data: row counts for `restaurants`, `users`,
+   `menu_items`, `orders`, plus a `dish_search_fts MATCH` query to confirm
+   search still works.
 7. Run smoke tests and key order lifecycle checks.
+8. Expect KV/R2/Queue drift — Time Travel did not rewind those. Short-TTL
+   caches self-heal; R2 orphans and queue failures referencing restored-away
+   rows are cleanup, not a new incident.
+
+No binding change is needed: the restore happens in place on the same
+database, which is why step 2 matters more than it looks.
 
 ## RTO/RPO Targets
 
-- Current target RTO: 4 hours.
-- Current target RPO: 24 hours until backup frequency and restore drills prove a tighter value.
+Time Travel sets these, not the backup scheduler.
+
+- **RPO: minutes.** Bookmarks are fine-grained; the practical floor is that a
+  `--timestamp` restore resolves to the bookmark at or before that time, so
+  assume you can lose the work inside the target minute.
+- **RTO: minutes** for the restore itself at current data size (seconds on
+  ~2.4 MB), plus however long triage and validation take. The old 4 hour RTO
+  and 24 hour RPO were sized around a backup pipeline that never ran.
+- **Retention: 30 days**, so an incident discovered later than that is not
+  recoverable this way.
 
 ## Evidence To Keep
 
 - Uptime monitor configuration and latest `system:uptime:last-check` payload.
-- Backup object path.
-- Restore database ID.
-- Restore drill evidence key.
-- Validation query output.
-- Deploy SHA that switched bindings.
+- The bookmark the database was on before the restore, for both databases.
+- The bookmark restored to, and the undo bookmark the restore printed.
+- Forensic `sqlite_master` dump and any affected-table dumps.
+- Validation query output, including the `dish_search_fts MATCH` result.
 - Smoke test output after restore.
+- Anything cleaned up afterwards for KV, R2 or the search-sync queue.
