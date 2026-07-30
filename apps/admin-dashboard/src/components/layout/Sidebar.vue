@@ -32,7 +32,25 @@
           >
             {{ t("nav.restaurantManagement") }}
           </div>
-          <ModuleGate v-if="item.module" :module="item.module">
+          <!-- An unlaunched feature is shown, greyed and inert, rather than
+               hidden: hiding it makes the product look smaller than it is,
+               while linking to it leads to a screen whose requests the API
+               refuses. See composables/useFeatureAvailability.ts. -->
+          <span
+            v-if="item.feature && isDisabled(item.feature)"
+            :data-testid="`nav-item-${item.name}`"
+            data-disabled="true"
+            :title="t('nav.featureUnavailable')"
+            aria-disabled="true"
+            class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed select-none"
+          >
+            <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
+            <span v-if="!isCollapsed" class="ml-3">{{ item.label }}</span>
+            <span v-if="!isCollapsed" class="ml-auto text-xs">{{
+              t("nav.featureUnavailable")
+            }}</span>
+          </span>
+          <ModuleGate v-else-if="item.module" :module="item.module">
             <component
               :is="'router-link'"
               :to="item.path"
@@ -107,6 +125,10 @@ import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { useI18n } from "@/i18n";
+import {
+  useFeatureAvailability,
+  type UnlaunchedFeature,
+} from "@/composables/useFeatureAvailability";
 import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
 import type { ModuleKey } from "@makanmakan/shared/types/module-access";
 import {
@@ -145,6 +167,7 @@ const emit = defineEmits<{
 const route = useRoute();
 const authStore = useAuthStore();
 const { t } = useI18n();
+const { isDisabled } = useFeatureAvailability();
 
 const user = computed(() => authStore.user);
 
@@ -176,6 +199,8 @@ const navigationItems = computed(() => {
     icon: Component;
     visible: boolean;
     module?: ModuleKey;
+    /** Set when this entry leads to a built-but-unlaunched feature. */
+    feature?: UnlaunchedFeature;
     section: "platform" | "restaurant";
   }> = [
     // Platform Overview (admin-only, always at top)
@@ -202,6 +227,7 @@ const navigationItems = computed(() => {
       icon: ReceiptText,
       visible: authStore.isAdminRole,
       section: "platform",
+      feature: "marketCheckouts",
     },
     {
       name: "platform-onboarding",
