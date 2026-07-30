@@ -14,6 +14,7 @@ export interface CreateMenuItemData {
   categoryId: number;
   catalogType?: "menu_item" | "product";
   name: string;
+  nameEn?: string | null;
   description?: string | null;
   ingredients?: string | null;
   price: number;
@@ -63,6 +64,7 @@ const menuItemSelectColumns = {
   categoryId: menuItems.categoryId,
   catalogType: menuItems.catalogType,
   name: menuItems.name,
+  nameEn: menuItems.nameEn,
   description: menuItems.description,
   ingredients: menuItems.ingredients,
   priceCents: menuItems.priceCents,
@@ -150,6 +152,7 @@ export class MenuService extends BaseService {
               id: cat.id,
               restaurantId: cat.restaurantId,
               name: cat.name,
+              nameEn: cat.nameEn ?? null,
               description: cat.description,
               sortOrder: cat.sortOrder,
               status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
@@ -605,6 +608,7 @@ export class MenuService extends BaseService {
   async createCategory(data: {
     restaurantId: string;
     name: string;
+    nameEn?: string | null;
     description?: string | null;
     sortOrder?: number;
     imageUrl?: string | null;
@@ -658,7 +662,7 @@ export class MenuService extends BaseService {
     id: number,
     data: Partial<{
       name: string;
-      nameEn: string;
+      nameEn: string | null;
       description: string;
       sortOrder: number;
       isActive: boolean;
@@ -745,6 +749,7 @@ export class MenuService extends BaseService {
       categoryId: item.categoryId,
       catalogType: item.catalogType ?? "menu_item",
       name: item.name,
+      nameEn: item.nameEn ?? null,
       description: item.description,
       ingredients: item.ingredients,
       price: amountFromCents(item.priceCents),

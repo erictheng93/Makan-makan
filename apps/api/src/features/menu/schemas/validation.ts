@@ -136,6 +136,10 @@ const menuItemBaseSchema = z.object({
   ingredients: z.string().max(200).optional(),
   price: priceSchema,
   originalPrice: priceSchema.optional(),
+  // The admin form has always collected an English name and filters search on
+  // it, but there was no column and no schema field, so it was stripped on
+  // every save. Backed by menu_items.name_en as of migration 0076 (#107).
+  nameEn: z.string().max(200).nullish(),
   imageUrl: imageUrlSchema,
   imageId: z.uuid().nullish(),
   // The admin dashboard sends imageVariants: null for no-image saves, so null
@@ -172,6 +176,9 @@ export const updateMenuItemSchema = menuItemBaseSchema.partial();
 // Defaults live on the create schema only — see menuItemBaseSchema.
 const categoryBaseSchema = z.object({
   name: nonEmptyString.max(50),
+  // Same stripped-field bug as menu items — the form always sent it, no column
+  // existed, zod dropped it (#107). Backed by categories.name_en (0076).
+  nameEn: z.string().max(50).nullish(),
   description: z.string().max(200).optional(),
   sortOrder: nonNegativeInteger.optional(),
   imageUrl: imageUrlSchema,

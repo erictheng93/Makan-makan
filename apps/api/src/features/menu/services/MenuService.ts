@@ -775,6 +775,9 @@ export class MenuService implements IMenuService {
       id: category.id,
       restaurantId: String(category.restaurantId),
       name: category.name,
+      // Unlike transformMenuItem this is an explicit projection, so a new
+      // column is invisible to callers until listed here (#107).
+      nameEn: "nameEn" in category ? (category.nameEn ?? null) : null,
       description: category.description ?? undefined,
       parentId: "parentId" in category ? category.parentId : undefined,
       sortOrder: category.sortOrder,

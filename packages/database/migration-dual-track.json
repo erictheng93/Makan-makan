@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0075_seat_number_unique.sql",
-    "legacy": "0092_seat_number_unique.sql"
+    "fresh": "0076_menu_name_en.sql",
+    "legacy": "0093_menu_name_en.sql"
   },
   "pairs": [
     {
@@ -55,6 +55,11 @@
       "fresh": "0075_seat_number_unique.sql",
       "legacy": "0092_seat_number_unique.sql",
       "reason": "Duplicate seat numbers are reconciled before both migration tracks enforce one seat number per table."
+    },
+    {
+      "fresh": "0076_menu_name_en.sql",
+      "legacy": "0093_menu_name_en.sql",
+      "reason": "menu_items.name_en and categories.name_en back the admin menu forms' English-name inputs, which previously had no columns and were silently discarded (#107)."
     }
   ],
   "freshOnly": [

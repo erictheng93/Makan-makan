@@ -21,6 +21,9 @@ export const menuItems = sqliteTable(
 
     // 基本資訊
     name: text("name").notNull(),
+    // Optional English name shown alongside `name`; the admin menu form has
+    // always collected it and filters search on it (#107).
+    nameEn: text("name_en"),
     description: text("description"),
     ingredients: text("ingredients"), // 食材列表
 

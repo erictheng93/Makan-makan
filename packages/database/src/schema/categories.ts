@@ -11,6 +11,9 @@ export const categories = sqliteTable(
 
     // 基本資訊
     name: text("name").notNull(),
+    // Optional English name; the admin category form has always collected it
+    // (#107).
+    nameEn: text("name_en"),
     description: text("description"),
 
     // 顯示設定

@@ -593,4 +593,146 @@ describe("Menu API — real integration", () => {
       sortOrder: 0,
     });
   });
+
+  /**
+   * Regression coverage for #107 — same root cause as #78.
+   *
+   * The admin item form and category form both have an English-name input, and
+   * the item list filters search on it, but neither `menu_items` nor
+   * `categories` had a `name_en` column and neither request schema declared the
+   * key. Every save returned 2xx with the English name thrown away.
+   *
+   * These go through the real routes and then read the D1 row, so a schema that
+   * strips the field or a missing column both fail here.
+   */
+  it("persists nameEn on menu item create and update (#107)", async () => {
+    const restaurant = await seed.restaurant();
+    const now = new Date();
+    const [category] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "英文名分類",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const createRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+        method: "POST",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          name: "海南雞飯",
+          nameEn: "Hainanese Chicken Rice",
+          categoryId: category.id,
+          price: 120,
+        }),
+      }),
+    );
+
+    expect(createRes.status).toBe(201);
+    const created: any = await createRes.json();
+    expect(created.data).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
+
+    const storedAfterCreate = await testApp.testDb.drizzle
+      .select({ nameEn: menuItems.nameEn })
+      .from(menuItems)
+      .where(eq(menuItems.id, created.data.id));
+    expect(storedAfterCreate).toEqual([{ nameEn: "Hainanese Chicken Rice" }]);
+
+    // The admin GET path builds its items through mapToMenuItem, which had to
+    // be extended too — persisting but not reading back would leave the form
+    // blank on every reopen.
+    const getRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}?includeAll=true`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(getRes.status).toBe(200);
+    const menu: any = await getRes.json();
+    expect(
+      menu.data.menuItems.find((i: any) => i.id === created.data.id),
+    ).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
+
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${created.data.id}`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({ nameEn: "Chicken Rice" }),
+      }),
+    );
+
+    expect(updateRes.status).toBe(200);
+    expect((await updateRes.json()).data).toMatchObject({
+      nameEn: "Chicken Rice",
+    });
+
+    const storedAfterUpdate = await testApp.testDb.drizzle
+      .select({ nameEn: menuItems.nameEn })
+      .from(menuItems)
+      .where(eq(menuItems.id, created.data.id));
+    expect(storedAfterUpdate).toEqual([{ nameEn: "Chicken Rice" }]);
+  });
+
+  it("persists nameEn on category create and update (#107)", async () => {
+    const restaurant = await seed.restaurant();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const createRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/categories`, {
+        method: "POST",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({ name: "主食", nameEn: "Main Dishes" }),
+      }),
+    );
+
+    expect(createRes.status).toBe(201);
+    const created: any = await createRes.json();
+    expect(created.data).toMatchObject({ nameEn: "Main Dishes" });
+
+    // updateCategory's signature accepted nameEn while the column did not
+    // exist, so this request used to reach Drizzle's update builder with a key
+    // it could not resolve.
+    const updateRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/categories/${created.data.id}`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({ nameEn: "Mains" }),
+      }),
+    );
+
+    expect(updateRes.status).toBe(200);
+
+    const stored = await testApp.testDb.drizzle
+      .select({ nameEn: categories.nameEn })
+      .from(categories)
+      .where(eq(categories.id, created.data.id));
+    expect(stored).toEqual([{ nameEn: "Mains" }]);
+
+    // The menu read path projects category fields explicitly, so a missing
+    // entry there would hide the value from the admin form.
+    const getRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}?includeAll=true`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(getRes.status).toBe(200);
+    const menu: any = await getRes.json();
+    expect(
+      menu.data.categories.find((c: any) => c.id === created.data.id),
+    ).toMatchObject({ nameEn: "Mains" });
+  });
 });

@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { getTableColumns } from "drizzle-orm";
+import { categories, menuItems } from "@makanmakan/database";
 import {
+  createCategorySchema,
   createMenuItemSchema,
   menuFilterSchema,
+  updateCategorySchema,
+  updateMenuItemSchema,
   validateCompleteMenuItem,
   validateCustomizationOptions,
   validateMenuItemAvailability,
@@ -197,5 +202,146 @@ describe("menu validation schemas", () => {
       page: 1,
       limit: 20,
     });
+  });
+});
+
+// Issue #107: the admin item form and category form have always had an English
+// name input, and item search filters on it, but no column and no schema field
+// existed — so zod stripped it and every save discarded it while returning 2xx.
+describe("English name round-trips through the request schemas (#107)", () => {
+  it("keeps nameEn on menu item create and update", () => {
+    expect(
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "海南雞飯",
+        nameEn: "Hainanese Chicken Rice",
+        price: 120,
+      }),
+    ).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
+
+    expect(
+      updateMenuItemSchema.parse({ nameEn: "Chicken Rice" }),
+    ).toMatchObject({ nameEn: "Chicken Rice" });
+
+    // Clearing the field has to survive too, otherwise there is no way to
+    // remove an English name once set.
+    expect(updateMenuItemSchema.parse({ nameEn: null })).toMatchObject({
+      nameEn: null,
+    });
+  });
+
+  it("keeps nameEn on category create and update", () => {
+    expect(
+      createCategorySchema.parse({ name: "主食", nameEn: "Main Dishes" }),
+    ).toMatchObject({ nameEn: "Main Dishes" });
+
+    expect(
+      updateCategorySchema.parse({ nameEn: "Mains" }),
+    ).toMatchObject({ nameEn: "Mains" });
+  });
+
+  it("rejects an over-long nameEn instead of silently truncating", () => {
+    expect(() =>
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "x",
+        price: 1,
+        nameEn: "e".repeat(201),
+      }),
+    ).toThrow();
+    expect(() =>
+      createCategorySchema.parse({ name: "x", nameEn: "e".repeat(51) }),
+    ).toThrow();
+  });
+});
+
+/**
+ * Drift guard for the #78 / #107 failure class.
+ *
+ * Both bugs were the same shape: a writable column existed (or was wanted) and
+ * the UI sent it, but the zod schema never declared the key, so `parse()`
+ * stripped it and the API answered 2xx while throwing the value away. Neither
+ * a type error nor a runtime error ever fired.
+ *
+ * These tests make that drift fail in CI. Every column must be either declared
+ * in the request schema or explicitly listed as server-owned — so adding a
+ * column forces a deliberate decision about whether the API exposes it, rather
+ * than defaulting to "silently unreachable".
+ */
+describe("request schemas do not drift from the writable columns", () => {
+  /** zod key -> column property, where the API name differs from the column. */
+  const MENU_ITEM_ALIASES: Record<string, string> = {
+    price: "priceCents",
+    originalPrice: "originalPriceCents",
+  };
+
+  const MENU_ITEM_SERVER_OWNED = new Set([
+    "id",
+    "restaurantId", // comes from the path, not the body
+    "costPriceCents", // internal margin data, never client-set
+    "minInventoryAlert", // no UI yet; add to the schema when one exists
+    "orderCount",
+    "rating",
+    "reviewCount",
+    "viewCount",
+    "createdAt",
+    "updatedAt",
+    "deletedAt",
+  ]);
+
+  const CATEGORY_SERVER_OWNED = new Set([
+    "id",
+    "restaurantId",
+    "iconUrl", // no UI yet
+    "availableHours", // no UI yet
+    "itemCount", // maintained by the service on item mutations
+    "createdAt",
+    "updatedAt",
+    "deletedAt",
+  ]);
+
+  it("declares every client-writable menu_items column", () => {
+    const declared = new Set(
+      Object.keys(createMenuItemSchema.shape).map(
+        (key) => MENU_ITEM_ALIASES[key] ?? key,
+      ),
+    );
+    const undeclared = Object.keys(getTableColumns(menuItems)).filter(
+      (column) => !declared.has(column) && !MENU_ITEM_SERVER_OWNED.has(column),
+    );
+
+    expect(undeclared).toEqual([]);
+  });
+
+  it("declares every client-writable categories column", () => {
+    // isActive / isVisible are update-only by design, so the union is what the
+    // API can accept across both routes.
+    const declared = new Set([
+      ...Object.keys(createCategorySchema.shape),
+      ...Object.keys(updateCategorySchema.shape),
+    ]);
+    const undeclared = Object.keys(getTableColumns(categories)).filter(
+      (column) => !declared.has(column) && !CATEGORY_SERVER_OWNED.has(column),
+    );
+
+    expect(undeclared).toEqual([]);
+  });
+
+  it("has no schema key that maps to a missing column", () => {
+    const menuItemColumns = new Set(Object.keys(getTableColumns(menuItems)));
+    const orphanItemKeys = Object.keys(createMenuItemSchema.shape).filter(
+      (key) => !menuItemColumns.has(MENU_ITEM_ALIASES[key] ?? key),
+    );
+    expect(orphanItemKeys).toEqual([]);
+
+    // updateCategory's service signature accepted `nameEn` for a long time
+    // while the column did not exist — a request that reached it would have
+    // crashed in Drizzle's update builder (#107).
+    const categoryColumns = new Set(Object.keys(getTableColumns(categories)));
+    const orphanCategoryKeys = [
+      ...Object.keys(createCategorySchema.shape),
+      ...Object.keys(updateCategorySchema.shape),
+    ].filter((key) => !categoryColumns.has(key));
+    expect(orphanCategoryKeys).toEqual([]);
   });
 });

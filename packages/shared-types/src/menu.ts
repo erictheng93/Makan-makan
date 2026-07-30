@@ -9,6 +9,8 @@ import {
 export interface Category extends BaseEntity {
   restaurantId: string;
   name: string;
+  /** Optional English name, shown alongside `name` (#107). */
+  nameEn?: string | null;
   description?: string;
   parentId?: number;
   sortOrder: number;
@@ -20,6 +22,8 @@ export interface MenuItem extends BaseEntity {
   categoryId: number;
   catalogType: "menu_item" | "product";
   name: string;
+  /** Optional English name, shown alongside `name` (#107). */
+  nameEn?: string | null;
   description?: string;
   ingredients?: string;
   price: number; // in cents
@@ -75,6 +79,7 @@ export interface MenuItemOptions {
 export interface CreateCategoryRequest {
   restaurantId: string;
   name: string;
+  nameEn?: string | null;
   description?: string;
   parentId?: number;
   sortOrder?: number;
@@ -87,6 +92,7 @@ export interface CreateMenuItemRequest {
   categoryId: number;
   catalogType?: "menu_item" | "product";
   name: string;
+  nameEn?: string | null;
   description?: string;
   price: number; // in cents
   imageId?: string | null;
