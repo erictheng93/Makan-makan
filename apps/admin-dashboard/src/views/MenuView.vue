@@ -1393,8 +1393,8 @@ const handleSaveMenuItem = async () => {
   const outcome = await saveMenuItem(
     {
       name: menuItemForm.value.name,
-      nameEn: menuItemForm.value.nameEn || undefined,
-      description: menuItemForm.value.description || undefined,
+      nameEn: menuItemForm.value.nameEn || null,
+      description: menuItemForm.value.description || null,
       price: Number(menuItemForm.value.price),
       originalPrice: menuItemForm.value.originalPrice || null,
       ingredients: menuItemForm.value.ingredients || null,

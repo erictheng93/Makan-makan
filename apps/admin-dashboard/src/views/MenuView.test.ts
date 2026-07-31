@@ -656,6 +656,11 @@ describe("MenuView", () => {
 
     expect(saveMenuItem).toHaveBeenCalledWith(
       expect.objectContaining({
+        // Empty text fields send null, not undefined: a partial update only
+        // writes the keys it carries, so an omitted key leaves the stored
+        // value in place and the field can never be emptied again.
+        nameEn: null,
+        description: null,
         originalPrice: null,
         calories: null,
         ingredients: null,

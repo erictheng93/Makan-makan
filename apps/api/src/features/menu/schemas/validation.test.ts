@@ -289,6 +289,8 @@ describe("menu validation schemas", () => {
         // a read-modify-write of a form the client rendered earlier — the
         // schema rejects such a body without it (#85).
         updatedAt: 1_700_000_000_000,
+        nameEn: null,
+        description: null,
         originalPrice: null,
         calories: null,
         ingredients: null,
@@ -296,6 +298,8 @@ describe("menu validation schemas", () => {
         options: null,
       }),
     ).toMatchObject({
+      nameEn: null,
+      description: null,
       originalPrice: null,
       calories: null,
       ingredients: null,

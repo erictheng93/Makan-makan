@@ -148,8 +148,9 @@ export interface MenuItemOptionsInput {
  */
 export interface CreateMenuItemData extends Omit<
   SharedCreateMenuItemRequest,
-  "options"
+  "options" | "description"
 > {
+  description?: string | null;
   originalPrice?: number | null;
   catalogType?: "menu_item" | "product";
   imageUrl?: string | null;
@@ -163,9 +164,10 @@ export interface CreateMenuItemData extends Omit<
 
 export interface UpdateMenuItemData extends Omit<
   SharedUpdateMenuItemRequest,
-  "options"
+  "options" | "description"
 > {
   // Nullable for the same reason as CreateMenuItemData — see the note there.
+  description?: string | null;
   originalPrice?: number | null;
   costPrice?: number;
   catalogType?: "menu_item" | "product";

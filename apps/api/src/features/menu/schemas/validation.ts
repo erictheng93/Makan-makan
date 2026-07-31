@@ -152,7 +152,10 @@ const menuItemBaseSchema = z.object({
   categoryId: positiveInteger,
   catalogType: z.enum(["menu_item", "product"]).optional(),
   name: nonEmptyString.max(100),
-  description: z.string().max(500).optional(),
+  // Nullable so an emptied description can be removed. `optional()` alone made
+  // clearing impossible: the form dropped the key and a partial update only
+  // writes the keys it carries, so the stored text survived every save.
+  description: z.string().max(500).nullish(),
   ingredients: z.string().max(200).nullish(),
   price: priceSchema,
   originalPrice: priceSchema.nullish(),

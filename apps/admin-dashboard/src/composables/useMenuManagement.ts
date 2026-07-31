@@ -22,8 +22,8 @@ export interface MenuItemData {
   categoryId: number;
   catalogType: "menu_item" | "product";
   name: string;
-  nameEn?: string;
-  description?: string;
+  nameEn?: string | null;
+  description?: string | null;
   price: number;
   originalPrice?: number | null;
   ingredients?: string | null;
@@ -209,8 +209,8 @@ export function useMenuManagement() {
   const saveMenuItem = async (
     form: {
       name: string;
-      nameEn?: string;
-      description?: string;
+      nameEn?: string | null;
+      description?: string | null;
       price: number;
       originalPrice?: number | null;
       ingredients?: string | null;
