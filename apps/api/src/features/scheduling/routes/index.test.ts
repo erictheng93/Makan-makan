@@ -442,7 +442,7 @@ describe("scheduling routes", () => {
       managerId: 7,
     });
     expect(res.status).toBe(200);
-    expect(serviceFns.approveSwapRequest).toHaveBeenCalledWith(20, "7");
+    expect(serviceFns.approveSwapRequest).toHaveBeenCalledWith(20, "42");
 
     res = await request("/swap-requests/20/reject", "POST", {
       managerId: 7,
@@ -451,7 +451,7 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.rejectSwapRequest).toHaveBeenCalledWith(
       20,
-      "7",
+      "42",
       "coverage unavailable",
     );
 

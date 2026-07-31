@@ -23,6 +23,27 @@ import {
 
 const app = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 
+async function requireReservationAccess(
+  c: { get(key: "user"): AuthUser },
+  service: Pick<ReservationService, "getReservationById">,
+  id: string,
+) {
+  const reservation = await service.getReservationById(id);
+  if (!reservation) {
+    throw notFound("Reservation not found");
+  }
+
+  const user = c.get("user");
+  if (
+    user.role !== 0 &&
+    reservation.restaurantId !== String(user.restaurantId)
+  ) {
+    throw forbidden("Access denied to this reservation");
+  }
+
+  return reservation;
+}
+
 // ==========================================
 // Public Routes - 顧客可使用
 // ==========================================
@@ -257,6 +278,7 @@ app.post("/:id/confirm", requireRole([0, 1, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
+  await requireReservationAccess(c, service, id);
   const confirmed = await service.confirmReservation(id);
 
   return c.json({
@@ -275,6 +297,7 @@ app.post("/:id/arrive", requireRole([0, 1, 3, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
+  await requireReservationAccess(c, service, id);
   const arrived = await service.markArrived(id);
 
   return c.json({
@@ -293,6 +316,7 @@ app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
+  await requireReservationAccess(c, service, id);
   const seated = await service.markSeated(id);
 
   return c.json({
@@ -311,6 +335,7 @@ app.post("/:id/complete", requireRole([0, 1, 3, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
+  await requireReservationAccess(c, service, id);
   const completed = await service.completeReservation(id);
 
   return c.json({
@@ -329,6 +354,7 @@ app.post("/:id/no-show", requireRole([0, 1, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
+  await requireReservationAccess(c, service, id);
   const noShow = await service.markNoShow(id);
 
   return c.json({

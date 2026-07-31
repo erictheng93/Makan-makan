@@ -300,6 +300,7 @@ describe("reservations routes", () => {
   });
 
   it("runs status actions for protected reservations", async () => {
+    getReservationById.mockResolvedValue(reservation());
     confirmReservation.mockResolvedValue(reservation({ status: "confirmed" }));
     markArrived.mockResolvedValue(reservation({ status: "arrived" }));
     markSeated.mockResolvedValue(reservation({ status: "seated" }));
@@ -327,6 +328,32 @@ describe("reservations routes", () => {
         data: { status },
       });
       expect(fn).toHaveBeenCalledWith("reservation-1");
+    }
+  });
+
+  it("denies every status transition for a reservation in another restaurant", async () => {
+    getReservationById.mockResolvedValue(
+      reservation({ restaurantId: "restaurant-2" }),
+    );
+    const cases: Array<[string, typeof confirmReservation]> = [
+      ["confirm", confirmReservation],
+      ["arrive", markArrived],
+      ["seat", markSeated],
+      ["complete", completeReservation],
+      ["no-show", markNoShow],
+    ];
+
+    for (const [action, fn] of cases) {
+      const response = await withSilencedRouteError(() =>
+        app.fetch(
+          new Request(`https://test/reservation-2/${action}`, {
+            method: "POST",
+          }),
+          createEnv() as never,
+        ),
+      );
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(fn).not.toHaveBeenCalled();
     }
   });
 

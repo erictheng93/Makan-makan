@@ -210,7 +210,6 @@ export const resolveConflictSchema = z.object({
 // Swap Request Schemas
 export const createSwapRequestSchema = z.object({
   restaurantId: nonEmptyString.optional(), // Injected by route handler from URL param
-  requesterEmployeeId: idString,
   requesterScheduleId: positiveInteger,
   targetEmployeeId: idString.optional().nullable(),
   targetScheduleId: positiveInteger.optional().nullable(),
@@ -225,12 +224,9 @@ export const acceptSwapRequestSchema = z.object({
   employeeId: idString,
 });
 
-export const approveSwapRequestSchema = z.object({
-  managerId: idString,
-});
+export const approveSwapRequestSchema = z.object({});
 
 export const rejectSwapRequestSchema = z.object({
-  managerId: idString,
   reason: nonEmptyString.max(500),
 });
 

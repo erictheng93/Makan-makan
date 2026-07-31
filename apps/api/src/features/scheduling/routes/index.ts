@@ -620,12 +620,14 @@ app.post(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const data = c.get("validatedBody");
+    const user = c.get("user");
     const service = createService(c.env);
 
     const { expiresAt, ...rest } = data;
     const request = await service.createSwapRequest({
       ...rest,
       restaurantId,
+      requesterEmployeeId: userIdString(user),
       expiresAt: expiresAt == null ? null : new Date(expiresAt),
     });
 
@@ -713,10 +715,10 @@ app.post(
   validateBody(schedulingSchemas.approveSwapRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { managerId } = c.get("validatedBody");
+    const user = c.get("user");
     const service = createService(c.env);
 
-    const request = await service.approveSwapRequest(id, managerId);
+    const request = await service.approveSwapRequest(id, userIdString(user));
 
     return c.json(
       createSuccessResponse(request, "Swap request approved successfully"),
@@ -734,10 +736,15 @@ app.post(
   validateBody(schedulingSchemas.rejectSwapRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { managerId, reason } = c.get("validatedBody");
+    const { reason } = c.get("validatedBody");
+    const user = c.get("user");
     const service = createService(c.env);
 
-    const request = await service.rejectSwapRequest(id, managerId, reason);
+    const request = await service.rejectSwapRequest(
+      id,
+      userIdString(user),
+      reason,
+    );
 
     return c.json(
       createSuccessResponse(request, "Swap request rejected successfully"),

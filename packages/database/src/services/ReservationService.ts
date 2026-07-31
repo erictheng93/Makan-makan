@@ -521,14 +521,19 @@ export class ReservationService extends BaseService {
         throw new Error("訂位不存在");
       }
 
-      await this.db.run(sql`
+      const cancellation = await this.db.run(sql`
         UPDATE reservations
         SET status = 'cancelled',
             cancelled_at = ${now},
             notes = COALESCE(notes || ' ', '') || ${`取消原因: ${reason || "顧客取消"}`},
             updated_at = ${now}
         WHERE id = ${id}
+          AND status IN ('pending', 'confirmed')
       `);
+
+      if ((cancellation.meta?.changes ?? 0) !== 1) {
+        return reservation;
+      }
 
       // 釋放時段容量
       await this.decrementSlotUsage(
