@@ -1036,11 +1036,14 @@ const buildMenuItemForm = (item: MenuItemData): MenuItemFormState => ({
   nameEn: item.nameEn ?? "",
   description: item.description ?? "",
   price: item.price,
-  originalPrice: item.originalPrice,
+  // A cleared field comes back as null, but the form uses undefined for "empty"
+  // — one representation, so the baseline/merge diff cannot report a spurious
+  // change and the number inputs stay blank rather than rendering a null.
+  originalPrice: item.originalPrice ?? undefined,
   ingredients: item.ingredients ?? "",
   spiceLevel: item.spiceLevel ?? 0,
   preparationTime: item.preparationTime ?? 15,
-  calories: item.calories,
+  calories: item.calories ?? undefined,
   tagsText: item.tags?.join(", ") ?? "",
   keywords: item.keywords ?? "",
   allergensText: item.allergens?.join(", ") ?? "",

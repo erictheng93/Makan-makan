@@ -140,26 +140,33 @@ export interface MenuItemOptionsInput {
 }
 
 // Data Transfer Objects (extending shared types)
+/**
+ * `null` is how the admin form clears an optional field: omitting the key means
+ * "leave the stored value alone", so a nullable type is what lets a value ever
+ * be removed again. The request schemas mark these `.nullish()` and the DB layer
+ * writes the NULL — this type is the only layer that used to disagree.
+ */
 export interface CreateMenuItemData extends Omit<
   SharedCreateMenuItemRequest,
   "options"
 > {
-  originalPrice?: number;
+  originalPrice?: number | null;
   catalogType?: "menu_item" | "product";
   imageUrl?: string | null;
   imageId?: string | null;
   imageVariants?: ImageVariantsInput | null;
   availableHours?: AvailableHours;
   tags?: string[];
-  keywords?: string;
-  options?: MenuItemOptionsInput;
+  keywords?: string | null;
+  options?: MenuItemOptionsInput | null;
 }
 
 export interface UpdateMenuItemData extends Omit<
   SharedUpdateMenuItemRequest,
   "options"
 > {
-  originalPrice?: number;
+  // Nullable for the same reason as CreateMenuItemData — see the note there.
+  originalPrice?: number | null;
   costPrice?: number;
   catalogType?: "menu_item" | "product";
   imageId?: string | null;
@@ -171,8 +178,8 @@ export interface UpdateMenuItemData extends Omit<
   reviewCount?: number;
   viewCount?: number;
   tags?: string[];
-  keywords?: string;
-  options?: MenuItemOptionsInput;
+  keywords?: string | null;
+  options?: MenuItemOptionsInput | null;
   /**
    * Optimistic-lock precondition in epoch ms, not a column to write: the
    * `updatedAt` the client last read for this item. MenuService compares it

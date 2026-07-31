@@ -285,6 +285,10 @@ describe("menu validation schemas", () => {
   it("accepts null when clearing optional menu item fields", () => {
     expect(
       updateMenuItemSchema.parse({
+        // Carries the optimistic-lock precondition because clearing a field is
+        // a read-modify-write of a form the client rendered earlier — the
+        // schema rejects such a body without it (#85).
+        updatedAt: 1_700_000_000_000,
         originalPrice: null,
         calories: null,
         ingredients: null,
