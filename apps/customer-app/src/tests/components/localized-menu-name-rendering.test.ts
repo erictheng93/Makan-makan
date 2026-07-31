@@ -78,6 +78,13 @@ describe("menu name rendering follows the visitor's language (#112)", () => {
     expect(wrapper.text()).toContain("海南雞飯");
   });
 
+  it("shows both names for a Latin-alphabet locale with no override of its own", () => {
+    locale.value = "ms-MY";
+    const wrapper = mount(MenuItemCard, { props: { item: menuItem() } });
+
+    expect(wrapper.text()).toContain("Hainanese Chicken Rice（海南雞飯）");
+  });
+
   it("re-renders when the language is switched while mounted", async () => {
     const wrapper = mount(MenuItemCard, { props: { item: menuItem() } });
     expect(wrapper.text()).toContain("海南雞飯");

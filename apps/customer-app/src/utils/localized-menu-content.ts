@@ -8,19 +8,36 @@ export interface SearchableMenuItem extends LocalizedMenuName {
 }
 
 /**
- * Product content currently has an English override only. Keep the fallback
- * here so every customer-facing surface applies the same rule:
- * English -> nameEn when present, otherwise the canonical name; all other
- * locales -> the canonical name.
+ * Product content has exactly two names — the canonical one (Chinese) and an
+ * English override — so three audiences, not two:
+ *
+ * - Chinese locales read the canonical name.
+ * - English locales read nameEn, falling back to the canonical name.
+ * - Everyone else (ms-MY, id-ID, vi-VN) gets BOTH, English first. Those
+ *   languages are written in the Latin alphabet, so nameEn is the half they
+ *   can read; the Chinese half stays because it is what they can point at to
+ *   order, and because dropping it would claim an accuracy the data does not
+ *   have — nameEn is an English name, not a Malay or Vietnamese one.
+ *
+ * The bilingual form is longer than either half, so any surface rendering this
+ * must allow two lines rather than truncate to one.
  */
 export function getLocalizedMenuName(
   item: LocalizedMenuName,
   locale: string,
 ): string {
-  if (locale?.startsWith("en") && item.nameEn?.trim()) {
-    return item.nameEn.trim();
+  const english = item.nameEn?.trim();
+  // An absent locale means "we do not know who is reading" — answer with the
+  // canonical name rather than guessing the widest form.
+  if (!english || !locale || locale.startsWith("zh")) {
+    return item.name;
   }
-  return item.name;
+  if (locale?.startsWith("en")) {
+    return english;
+  }
+  // Full-width parentheses: what they enclose is Chinese, and ASCII ones sit
+  // badly against CJK glyphs.
+  return `${english}（${item.name}）`;
 }
 
 /**

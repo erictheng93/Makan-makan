@@ -34,8 +34,37 @@ describe("getLocalizedMenuName", () => {
     ).toBe("海南雞飯");
   });
 
-  it("keeps the canonical name for non-English locales", () => {
+  it("keeps the canonical name for Chinese locales", () => {
     expect(getLocalizedMenuName(CHICKEN_RICE, "zh-TW")).toBe("海南雞飯");
+    expect(getLocalizedMenuName(CHICKEN_RICE, "zh-CN")).toBe("海南雞飯");
+  });
+
+  // ms-MY / id-ID / vi-VN read the Latin alphabet but nameEn is an English
+  // name, not theirs. Showing both is the honest form: the half they can read,
+  // plus the half they can point at when ordering.
+  it("shows both names for the Latin-alphabet locales that have no override", () => {
+    for (const locale of ["ms-MY", "id-ID", "vi-VN"]) {
+      expect(getLocalizedMenuName(CHICKEN_RICE, locale)).toBe(
+        "Hainanese Chicken Rice（海南雞飯）",
+      );
+    }
+  });
+
+  it("shows one name when there is only one to show", () => {
+    // No English override: the bilingual form would just be "中文（中文）".
+    expect(getLocalizedMenuName({ name: "滷肉飯" }, "ms-MY")).toBe("滷肉飯");
+    expect(
+      getLocalizedMenuName({ name: "滷肉飯", nameEn: null }, "vi-VN"),
+    ).toBe("滷肉飯");
+  });
+
+  it("answers with the canonical name when the locale is unknown", () => {
+    // Callers that have not resolved a locale yet must not get the widest
+    // form by accident.
+    expect(getLocalizedMenuName(CHICKEN_RICE, "")).toBe("海南雞飯");
+    expect(
+      getLocalizedMenuName(CHICKEN_RICE, undefined as unknown as string),
+    ).toBe("海南雞飯");
   });
 });
 

@@ -20,7 +20,9 @@
           <div v-for="item in items" :key="item.id" class="py-3 first:pt-0">
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-ios-text truncate">
+                <!-- line-clamp rather than truncate: see CartItemCard — the
+                     bilingual form must not lose its Chinese half. -->
+                <p class="text-sm font-medium text-ios-text line-clamp-2">
                   {{ getLocalizedMenuName(item.menuItem, currentLanguage) }}
                 </p>
                 <p

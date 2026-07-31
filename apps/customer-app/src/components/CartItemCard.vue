@@ -46,7 +46,10 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between mb-2">
           <div class="flex-1 min-w-0 mr-2">
-            <h3 class="text-base font-semibold text-ios-text truncate">
+            <!-- Two lines, not truncate: a non-Chinese, non-English locale
+                 renders "English（中文）", and one line would ellipsis away the
+                 Chinese half — the half a customer points at to order. -->
+            <h3 class="text-base font-semibold text-ios-text line-clamp-2">
               {{ getLocalizedMenuName(item.menuItem, currentLanguage) }}
             </h3>
 
