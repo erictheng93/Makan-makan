@@ -201,11 +201,30 @@
               >
                 儲存設定
               </button>
+              <!-- Web push is built but unlaunched, and the API answers its
+                   endpoints with 404 while it is switched off. The button stays
+                   visible, greyed and inert, rather than hidden: hiding it makes
+                   the product look smaller than it is, while leaving it live
+                   sends a subscribe request the API refuses. See
+                   composables/useFeatureAvailability.ts. -->
               <button
-                class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                data-testid="enable-push-button"
+                class="flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-lg transition"
+                :class="
+                  pushUnavailable
+                    ? 'border-gray-200 text-gray-400 cursor-not-allowed select-none'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                "
+                :disabled="pushUnavailable"
+                :data-disabled="pushUnavailable ? 'true' : undefined"
+                :aria-disabled="pushUnavailable ? 'true' : undefined"
+                :title="pushUnavailable ? PUSH_UNAVAILABLE_LABEL : undefined"
                 @click="enablePush"
               >
                 啟用推播
+                <span v-if="pushUnavailable" class="text-xs">{{
+                  PUSH_UNAVAILABLE_LABEL
+                }}</span>
               </button>
             </div>
             <p v-if="settingsMessage" class="text-sm text-gray-600">
@@ -309,12 +328,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { customerOrderApi } from "@/services/customerOrderApi";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
 import customerPushService from "@/utils/push-notifications";
+import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import { useI18n } from "@/composables/useI18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { CUSTOMER_CONSENT_VERSIONS } from "@makanmakan/shared-types";
@@ -323,6 +343,17 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();
+const { isDisabled } = useFeatureAvailability();
+
+/**
+ * TODO(i18n): hard-coded zh-TW because the locale files were being edited in a
+ * concurrent change when this landed, and this section already carries
+ * hard-coded zh-TW copy ("通知與同意設定", "啟用推播"). Move to a translation
+ * key alongside the rest of this card.
+ */
+const PUSH_UNAVAILABLE_LABEL = "尚未開放";
+
+const pushUnavailable = computed(() => isDisabled("webPush"));
 
 const isLoading = ref(false);
 const settingsMessage = ref("");
@@ -395,6 +426,13 @@ const savePreferences = async () => {
 
 const enablePush = async () => {
   settingsMessage.value = "";
+  // Guarded here as well as on the button: the disabled attribute is
+  // presentation, and this is what actually keeps the subscribe request --
+  // which the API refuses while web push is unlaunched -- from being sent.
+  if (pushUnavailable.value) {
+    settingsMessage.value = `推播${PUSH_UNAVAILABLE_LABEL}`;
+    return;
+  }
   try {
     const permission = await customerPushService.requestPermission();
     if (permission !== "granted") {

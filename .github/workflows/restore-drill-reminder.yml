@@ -1,0 +1,88 @@
+name: 🗄️ D1 restore drill reminder
+
+# Opens a tracking issue once a quarter so the D1 Time Travel restore procedure
+# gets exercised on a schedule rather than during an incident.
+#
+# It deliberately does not run the drill. The drill creates and deletes throwaway
+# D1 databases, and `wrangler d1 delete` answers its own confirmation prompt with
+# "yes" when stdin is not a terminal -- check-no-automated-d1-restore.cjs fails
+# the build if those commands appear in a workflow at all. So this reminds a
+# human; the human runs it.
+#
+# The 2026-07-30 drill is why this exists: the runbook's first step could not be
+# executed against production at all, and nobody would have found that out until
+# it mattered.
+on:
+  schedule:
+    # 01:00 UTC+8 on the 1st of Jan/Apr/Jul/Oct — 17:00 UTC on the last day of
+    # the preceding month, which is close enough for a quarterly reminder.
+    - cron: "0 17 31 3,12 *"
+    - cron: "0 17 30 6,9 *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remind:
+    name: 🗄️ Open the quarterly drill issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 🗄️ Open or reuse the drill issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          LABEL="restore-drill"
+
+          # Labels are created on demand; --force keeps a rerun from failing.
+          gh label create "$LABEL" -R "$REPO" \
+            --description "Quarterly D1 Time Travel restore drill" \
+            --color "1D76DB" --force
+
+          # One open issue at a time. A quarter where the drill was skipped
+          # should keep nagging on the same issue, not stack up new ones.
+          EXISTING=$(gh issue list -R "$REPO" --label "$LABEL" --state open \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Drill issue #$EXISTING is still open; leaving it alone."
+            exit 0
+          fi
+
+          gh issue create -R "$REPO" --label "$LABEL" \
+            --title "Quarterly D1 restore drill" \
+            --body-file - <<'BODY'
+          Run the D1 Time Travel restore drill. Recipe and hazards:
+          `docs/runbooks/backup-restore-runbook.md`.
+
+          Roughly 15 minutes. Never drill against a production database — create
+          a throwaway one, because a restore overwrites in place.
+
+          - [ ] Throwaway DB created, seeded with production's FTS5 shape
+          - [ ] `dish_search_fts MATCH` returns the seeded rows before any damage
+          - [ ] Good bookmark recorded
+          - [ ] Damage caused, then the good bookmark restored
+          - [ ] Undo bookmark from the restore output recorded
+          - [ ] Plain rows, index rows, a real `MATCH` query and the trigger
+                count all check out — row counts alone would miss a broken index
+          - [ ] A row inserted after the restore reaches the index, proving the
+                restored triggers still fire
+          - [ ] Undo bookmark restored, landing back on the damaged state
+          - [ ] Throwaway DB deleted
+          - [ ] Runbook corrected wherever reality had moved
+
+          Close this issue with the bookmarks used and anything the runbook got
+          wrong. The last drill found its first step was unexecutable against
+          production, so treat "the runbook was fine" as a result worth stating
+          explicitly rather than assuming.
+          BODY

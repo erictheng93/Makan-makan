@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { timing } from "hono/timing";
@@ -107,6 +107,11 @@ import discoveryFeature from "./features/discovery";
 import marketsFeature from "./features/markets";
 import marketCheckoutsFeature from "./features/market-checkouts";
 import creditsFeature from "./features/credits";
+import {
+  disabledFeatures,
+  isFeatureEnabled,
+  type UnlaunchedFeatureKey,
+} from "./shared/feature-adoption";
 import feedbackFeature from "./features/feedback";
 import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
@@ -205,6 +210,27 @@ function apiV1RouteNotFound(method: string, path: string) {
       code: "ROUTE_NOT_FOUND",
       message: `API endpoint not found: ${method} ${path}`,
     },
+  };
+}
+
+/**
+ * Blocks an unlaunched feature's routes.
+ *
+ * Has to be middleware rather than a conditional mount: createApp() runs at
+ * module scope, before any request supplies c.env, so the flag cannot be read
+ * while the router is being assembled.
+ *
+ * Answers 404 rather than 503. A feature nobody has launched does not exist
+ * from a caller's point of view, and 503 would advertise it as temporarily
+ * broken -- inviting retries against something that is never coming back up
+ * until someone sets the flag.
+ */
+function featureGate(key: UnlaunchedFeatureKey) {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
+    if (!isFeatureEnabled(c.env as unknown as Record<string, unknown>, key)) {
+      return c.json(apiV1RouteNotFound(c.req.method, c.req.path), 404);
+    }
+    await next();
   };
 }
 
@@ -441,6 +467,12 @@ export function createApp(
       description: "RESTful API for MakanMasak restaurant management system",
       environment: c.env.NODE_ENV || "development",
       deployment: deploymentInfo,
+      // Which built-but-unlaunched features are currently switched off. Served
+      // here so "is this live?" is one public request instead of counting rows
+      // in the production database. See shared/feature-adoption.ts.
+      disabledFeatures: disabledFeatures(
+        c.env as unknown as Record<string, unknown>,
+      ),
       features: [
         "Restaurant management",
         "Menu management",
@@ -518,6 +550,26 @@ export function createApp(
   // matching middleware in registration order, so registering them later would
   // silently omit the early public-feature mounts below.
   apiV1.use("*", usageTracker);
+
+  // Unlaunched features are refused here, ahead of every auth middleware, so
+  // "this does not exist" does not depend on who is asking. Registered after
+  // usageTracker only because Hono runs matching middleware in registration
+  // order and these must precede the feature mounts below.
+  //
+  // A "/x/*" pattern also matches the bare "/x", which matters: the endpoint
+  // that starts a market checkout is POST /api/v1/market-checkouts itself.
+  for (const [prefix, key] of [
+    ["/market-checkouts", "marketCheckouts"],
+    ["/credits", "storedValueCredits"],
+    ["/backup", "tenantBackups"],
+    ["/push", "webPush"],
+    // Not a prefix of its own feature: customer-app subscribes through the
+    // customer router, so gating only /push would let a customer opt into
+    // notifications that /push then refuses to deliver.
+    ["/customer/push-subscriptions", "webPush"],
+  ] as const) {
+    apiV1.use(`${prefix}/*`, featureGate(key));
+  }
 
   // Apply CSRF protection to state-changing operations. Protected endpoints
   // retain their route-level authentication middleware.

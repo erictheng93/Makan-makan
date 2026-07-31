@@ -84,6 +84,21 @@
             {{ formMessage }}
           </p>
 
+          <!-- Joining silently enrolled the customer in push. While web push is
+               unlaunched that enrollment is skipped, so say so rather than let
+               them assume a notification is coming. There is no control to grey
+               out here -- the opt-in was implicit -- so this is a note, and it
+               carries data-disabled but not aria-disabled, which belongs on
+               widgets rather than static text. -->
+          <p
+            v-if="pushUnavailable"
+            data-testid="waiting-list-push-unavailable"
+            data-disabled="true"
+            class="text-sm text-ios-secondary"
+          >
+            {{ PUSH_UNAVAILABLE_NOTE }}
+          </p>
+
           <div class="space-y-3 pt-2">
             <button
               data-testid="join-button"
@@ -160,6 +175,7 @@ import {
 } from "@/composables/useWaitingTicket";
 import { waitingListApi } from "@/services/waitingListApi";
 import customerPushService from "@/utils/push-notifications";
+import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import type {
   JoinWaitingListRequest,
   QueueStatus,
@@ -173,6 +189,17 @@ const props = defineProps<{
 
 const router = useRouter();
 const { t, tWithParams } = useI18n();
+const { isDisabled } = useFeatureAvailability();
+
+/**
+ * TODO(i18n): hard-coded zh-TW because the customer-app locale files were being
+ * edited in a concurrent change when this landed, and no existing key carries a
+ * "not yet available" string. Move to a `waitingList.*` key with the rest.
+ */
+const PUSH_UNAVAILABLE_NOTE =
+  "推播通知尚未開放，請留在本頁或用手機號碼查詢候位";
+
+const pushUnavailable = computed(() => isDisabled("webPush"));
 
 const customerName = ref("");
 const customerPhone = ref("");
@@ -212,6 +239,13 @@ const routeToTicket = (ticket: WaitingListResponse) => {
 };
 
 const enrollWaitingListPush = async () => {
+  // Web push is built but unlaunched. Joining must not raise a permission
+  // prompt or send a subscribe request for notifications the API cannot
+  // deliver; the note above the buttons is what tells the customer instead.
+  if (pushUnavailable.value) {
+    return;
+  }
+
   try {
     const permission = await customerPushService.requestPermission();
     if (permission === "granted") {

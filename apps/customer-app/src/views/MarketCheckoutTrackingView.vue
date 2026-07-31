@@ -130,8 +130,15 @@
               <button
                 type="button"
                 data-testid="market-checkout-voucher-remove"
-                class="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 disabled:opacity-50"
-                :disabled="isVoucherRemoving"
+                :data-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+                :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+                :title="
+                  marketCheckoutsDisabled
+                    ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                    : undefined
+                "
+                class="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="isVoucherRemoving || marketCheckoutsDisabled"
                 @click="removeVoucher"
               >
                 移除
@@ -149,8 +156,19 @@
               <button
                 type="submit"
                 data-testid="market-checkout-voucher-apply"
-                class="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                :disabled="isVoucherApplying || !voucherCode.trim()"
+                :data-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+                :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+                :title="
+                  marketCheckoutsDisabled
+                    ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                    : undefined
+                "
+                class="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="
+                  isVoucherApplying ||
+                  !voucherCode.trim() ||
+                  marketCheckoutsDisabled
+                "
               >
                 套用
               </button>
@@ -208,16 +226,40 @@
             </ul>
           </div>
 
+          <!-- Greyed and inert rather than hidden while the API has market
+               checkouts switched off: the order on screen is real, so removing
+               its payment control would strand the reader with no explanation,
+               and pressing it would only collect a refusal. -->
           <button
             v-if="canPayCheckout"
             type="button"
             data-testid="market-checkout-pay"
-            class="mt-4 w-full rounded-lg bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300"
-            :disabled="isPaying"
+            :data-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+            :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+            :title="
+              marketCheckoutsDisabled
+                ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                : undefined
+            "
+            class="mt-4 w-full rounded-lg px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed"
+            :class="
+              marketCheckoutsDisabled
+                ? 'bg-gray-200 text-gray-400'
+                : 'bg-ios-blue text-white disabled:bg-blue-300'
+            "
+            :disabled="isPaying || marketCheckoutsDisabled"
             @click="payCheckout"
           >
             {{ payButtonLabel }}
           </button>
+
+          <p
+            v-if="canPayCheckout && marketCheckoutsDisabled"
+            data-testid="market-checkout-unavailable-hint"
+            class="mt-2 text-sm text-gray-500"
+          >
+            市場聯合付款尚未開放，請直接向各攤位結帳。
+          </p>
 
           <p
             v-if="paymentError"
@@ -317,6 +359,7 @@ import {
 } from "@/services/orderApi";
 import type { ApiException } from "@/services/api";
 import { useCurrency } from "@/composables/useCurrency";
+import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import {
   activateMarketCheckoutGuestToken,
   getRecentMarketCheckoutPhoneLastDigits,
@@ -329,8 +372,17 @@ const props = defineProps<{
   checkoutId: string;
 }>();
 
+/**
+ * TODO(i18n): this view is entirely hard-coded zh-TW, and the customer locale
+ * bundles were being edited in another branch when this landed, so no key was
+ * added. Move to a shared translation key when the locales settle.
+ */
+const MARKET_CHECKOUT_UNAVAILABLE_LABEL = "尚未開放";
+
 const router = useRouter();
 const { formatPrice } = useCurrency();
+const { isDisabled } = useFeatureAvailability();
+const marketCheckoutsDisabled = computed(() => isDisabled("marketCheckouts"));
 const checkout = ref<MarketCheckoutSummary | null>(null);
 const isLoading = ref(true);
 const isPaying = ref(false);
@@ -407,6 +459,7 @@ const payableAmount = computed(() => {
 });
 
 const payButtonLabel = computed(() => {
+  if (marketCheckoutsDisabled.value) return MARKET_CHECKOUT_UNAVAILABLE_LABEL;
   if (isPaying.value) return "付款處理中";
   if (checkout.value?.payment?.status === "partial_paid")
     return "重試未完成付款";
@@ -430,6 +483,8 @@ async function loadCheckout() {
 }
 
 async function payCheckout() {
+  if (marketCheckoutsDisabled.value) return;
+
   paymentError.value = null;
   paymentActionMessage.value = null;
   isPaying.value = true;
@@ -455,6 +510,7 @@ async function payCheckout() {
 }
 
 async function applyVoucher() {
+  if (marketCheckoutsDisabled.value) return;
   if (!voucherCode.value.trim()) return;
   voucherError.value = null;
   voucherSuccess.value = null;
@@ -477,6 +533,8 @@ async function applyVoucher() {
 }
 
 async function removeVoucher() {
+  if (marketCheckoutsDisabled.value) return;
+
   voucherError.value = null;
   voucherSuccess.value = null;
   isVoucherRemoving.value = true;

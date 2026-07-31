@@ -52,6 +52,14 @@ vi.mock("@/i18n", () => ({
   }),
 }));
 
+const disabledFeatures = reactive({ value: new Set<string>() });
+
+vi.mock("@/composables/useFeatureAvailability", () => ({
+  useFeatureAvailability: () => ({
+    isDisabled: (feature: string) => disabledFeatures.value.has(feature),
+  }),
+}));
+
 vi.mock("vue-router", () => ({
   useRoute: () => routeState,
   RouterLink: {
@@ -70,6 +78,7 @@ describe("Sidebar", () => {
     authState.canManageOrders = true;
     authState.canManageMenu = true;
     authState.canAccessAdminFeatures = true;
+    disabledFeatures.value = new Set();
   });
 
   function mountSidebar() {
@@ -158,5 +167,47 @@ describe("Sidebar", () => {
     expect(
       wrapper.find('[data-testid="restaurant-context-hint"]').exists(),
     ).toBe(false);
+  });
+
+  // Hiding an unlaunched feature makes the product look smaller than it is;
+  // linking to it leads to a screen the API refuses. Greyed and inert is the
+  // honest middle.
+  it("renders an unlaunched feature as inert rather than hiding or linking it", () => {
+    disabledFeatures.value = new Set(["marketCheckouts"]);
+
+    const wrapper = mountSidebar();
+    const entry = wrapper.find(
+      '[data-testid="nav-item-platform-market-checkouts"]',
+    );
+
+    expect(entry.exists()).toBe(true);
+    expect(entry.attributes("data-disabled")).toBe("true");
+    expect(entry.attributes("aria-disabled")).toBe("true");
+    // A span, not a router-link -- there is nothing to navigate to.
+    expect(entry.element.tagName).toBe("SPAN");
+    expect(entry.text()).toContain("nav.featureUnavailable");
+  });
+
+  it("links the same entry normally once the feature is on", () => {
+    const wrapper = mountSidebar();
+    const entry = wrapper.find(
+      '[data-testid="nav-item-platform-market-checkouts"]',
+    );
+
+    expect(entry.exists()).toBe(true);
+    expect(entry.attributes("data-disabled")).toBeUndefined();
+    expect(entry.element.tagName).not.toBe("SPAN");
+  });
+
+  it("leaves other entries untouched when one feature is off", () => {
+    disabledFeatures.value = new Set(["marketCheckouts"]);
+
+    const wrapper = mountSidebar();
+
+    expect(
+      wrapper
+        .find('[data-testid="nav-item-platform-markets"]')
+        .attributes("data-disabled"),
+    ).toBeUndefined();
   });
 });

@@ -36,9 +36,22 @@ export interface RealIntegrationTestApp {
   dispose(): Promise<void>;
 }
 
-export async function createRealIntegrationTestApp(): Promise<RealIntegrationTestApp> {
+export interface RealIntegrationTestAppOptions {
+  /**
+   * Extra env applied over the defaults. A feature that ships switched off --
+   * see shared/feature-adoption.ts -- answers 404 until its flag is set, so a
+   * suite exercising one has to ask for it here. Making that explicit is the
+   * point: the test states which unlaunched feature it depends on rather than
+   * silently relying on a default that could change.
+   */
+  env?: Partial<Env>;
+}
+
+export async function createRealIntegrationTestApp(
+  options: RealIntegrationTestAppOptions = {},
+): Promise<RealIntegrationTestApp> {
   const testDb = await createTestDatabase();
-  const env = buildTestEnv(testDb);
+  const env = { ...buildTestEnv(testDb), ...options.env } as Env;
   const honoApp = createApp(env, {
     disableEdgeCache: true,
     disableObservability: true,

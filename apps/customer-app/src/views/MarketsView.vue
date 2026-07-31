@@ -132,20 +132,49 @@
 
         <section v-if="recentCheckouts.length > 0" class="space-y-3">
           <h2 class="text-sm font-medium text-gray-700">最近市場訂單</h2>
+          <!-- Kept visible but inert while the API has market checkouts
+               switched off. The tracking screen this opens does nothing but
+               read /market-checkouts, so following the link would land the
+               user on a refusal; dropping the list instead would silently
+               lose orders they already placed. -->
           <button
             v-for="checkout in recentCheckouts"
             :key="checkout.id"
             type="button"
             data-testid="recent-market-checkout"
-            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-left"
+            :data-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+            :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
+            :title="
+              marketCheckoutsDisabled
+                ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                : undefined
+            "
+            :disabled="marketCheckoutsDisabled"
+            class="w-full rounded-xl border border-gray-200 px-4 py-3 text-left disabled:cursor-not-allowed"
+            :class="marketCheckoutsDisabled ? 'bg-gray-50' : 'bg-white'"
             @click="openCheckout(checkout)"
           >
-            <span class="block text-sm font-semibold text-gray-900">
+            <span
+              class="block text-sm font-semibold"
+              :class="
+                marketCheckoutsDisabled ? 'text-gray-400' : 'text-gray-900'
+              "
+            >
               {{ checkout.marketName }}
             </span>
-            <span class="mt-1 block text-xs text-gray-500">
-              {{ checkout.childOrderCount }} 攤 ·
-              {{ marketCheckoutPaymentLabel(checkout.paymentStatus) }}
+            <span
+              class="mt-1 block text-xs"
+              :class="
+                marketCheckoutsDisabled ? 'text-gray-400' : 'text-gray-500'
+              "
+            >
+              <template v-if="marketCheckoutsDisabled">
+                {{ MARKET_CHECKOUT_UNAVAILABLE_LABEL }}
+              </template>
+              <template v-else>
+                {{ checkout.childOrderCount }} 攤 ·
+                {{ marketCheckoutPaymentLabel(checkout.paymentStatus) }}
+              </template>
             </span>
           </button>
         </section>
@@ -234,10 +263,20 @@ import {
   type StoredMarketCheckout,
 } from "@/utils/marketCheckouts";
 import { isMarketType, MARKET_TYPE_OPTIONS } from "@/utils/marketTypes";
+import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
+
+/**
+ * TODO(i18n): this view is entirely hard-coded zh-TW, and the customer locale
+ * bundles were being edited in another branch when this landed, so no key was
+ * added. Move to a shared translation key when the locales settle.
+ */
+const MARKET_CHECKOUT_UNAVAILABLE_LABEL = "尚未開放";
 
 const router = useRouter();
 const route = useRoute();
 const store = useMarketsStore();
+const { isDisabled } = useFeatureAvailability();
+const marketCheckoutsDisabled = computed(() => isDisabled("marketCheckouts"));
 const query = ref(firstQueryString(route.query.q));
 const city = ref(firstQueryString(route.query.city));
 const district = ref(firstQueryString(route.query.district));
@@ -431,6 +470,8 @@ function openMarket(market: MarketListItem) {
 }
 
 function openCheckout(checkout: StoredMarketCheckout) {
+  if (marketCheckoutsDisabled.value) return;
+
   router.push({
     name: "MarketCheckoutTracking",
     params: {
