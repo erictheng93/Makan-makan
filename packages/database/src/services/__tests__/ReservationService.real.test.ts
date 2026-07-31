@@ -84,6 +84,60 @@ async function seedReservation(
     .run();
 }
 
+interface SeedSlotOptions {
+  restaurantId?: string;
+  date?: string;
+  timeSlot?: string;
+  maxCapacity?: number;
+  maxTables?: number;
+  currentReservations?: number;
+  currentCapacity?: number;
+  isAvailable?: number;
+}
+
+async function seedSlot(
+  db: TestDatabase,
+  id: string,
+  opts: SeedSlotOptions = {},
+): Promise<void> {
+  const now = Date.now();
+  await db.db
+    .prepare(
+      `INSERT INTO reservation_slots
+         (id, restaurant_id, date, time_slot, max_capacity, max_tables,
+          current_reservations, current_capacity, is_available, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      id,
+      opts.restaurantId ?? RESTAURANT_ID,
+      opts.date ?? "2026-05-01",
+      opts.timeSlot ?? "18:30",
+      opts.maxCapacity ?? 10,
+      opts.maxTables ?? 5,
+      opts.currentReservations ?? 0,
+      opts.currentCapacity ?? 0,
+      opts.isAvailable ?? 1,
+      now,
+      now,
+    )
+    .run();
+}
+
+async function readSlot(
+  db: TestDatabase,
+  id: string,
+): Promise<{ current_reservations: number; current_capacity: number }> {
+  const row = await db.db
+    .prepare(
+      `SELECT current_reservations, current_capacity FROM reservation_slots WHERE id = ?`,
+    )
+    .bind(id)
+    .first<{ current_reservations: number; current_capacity: number }>();
+  if (!row) throw new Error(`slot ${id} not found`);
+  return row;
+}
+
 let testDb: TestDatabase;
 let service: ReservationService;
 
@@ -467,5 +521,154 @@ describe("ReservationService.getReservationStats — real D1", () => {
       )
       .first();
     expect(tableExists).toBeTruthy();
+  });
+});
+
+/**
+ * Capacity accounting regressions (#100, #104).
+ *
+ * The slot counters are the only thing standing between a full sitting and an
+ * overbooked one, and both holes here corrupt them silently: a lost update
+ * lets two parties claim the same seats, a replayed release hands back seats
+ * that were never taken. Neither surfaces as an error — the number is just
+ * wrong afterwards — so these assert on the counters themselves.
+ */
+describe("ReservationService capacity accounting — real D1", () => {
+  it("releases slot capacity exactly once when a cancellation is replayed", async () => {
+    await seedSlot(testDb, "slot-replay", {
+      currentReservations: 2,
+      currentCapacity: 4,
+    });
+    await seedReservation(testDb, "rsv-cancel-a", {
+      status: "confirmed",
+      partySize: 2,
+    });
+    await seedReservation(testDb, "rsv-cancel-b", {
+      status: "confirmed",
+      partySize: 2,
+    });
+
+    const first = await service.cancelReservation("rsv-cancel-a", "改期");
+    expect(first.status).toBe("cancelled");
+    expect(await readSlot(testDb, "slot-replay")).toEqual({
+      current_reservations: 1,
+      current_capacity: 2,
+    });
+
+    // Replay: idempotent success, and rsv-cancel-b's seats stay claimed.
+    const replay = await service.cancelReservation("rsv-cancel-a", "改期");
+    expect(replay.status).toBe("cancelled");
+    expect(await readSlot(testDb, "slot-replay")).toEqual({
+      current_reservations: 1,
+      current_capacity: 2,
+    });
+  });
+
+  it("releases nothing when cancelling a reservation that already completed", async () => {
+    await seedSlot(testDb, "slot-done", {
+      currentReservations: 1,
+      currentCapacity: 2,
+    });
+    await seedReservation(testDb, "rsv-done", {
+      status: "completed",
+      partySize: 2,
+    });
+
+    // A completed sitting is not cancellable, so the counters must not move.
+    const result = await service.cancelReservation("rsv-done", "too late");
+    expect(result.status).toBe("completed");
+    expect(await readSlot(testDb, "slot-done")).toEqual({
+      current_reservations: 1,
+      current_capacity: 2,
+    });
+  });
+
+  it("marks no-show exactly once under replay", async () => {
+    await seedSlot(testDb, "slot-noshow", {
+      currentReservations: 1,
+      currentCapacity: 3,
+    });
+    await seedReservation(testDb, "rsv-noshow", {
+      status: "confirmed",
+      partySize: 3,
+    });
+
+    await service.markNoShow("rsv-noshow");
+    expect(await readSlot(testDb, "slot-noshow")).toEqual({
+      current_reservations: 0,
+      current_capacity: 0,
+    });
+
+    await service.markNoShow("rsv-noshow");
+    expect(await readSlot(testDb, "slot-noshow")).toEqual({
+      current_reservations: 0,
+      current_capacity: 0,
+    });
+  });
+
+  it("claims slot capacity atomically — concurrent claims cannot overbook", async () => {
+    await seedSlot(testDb, "slot-race", { maxCapacity: 4, maxTables: 5 });
+
+    const claim = (
+      service as unknown as {
+        claimSlotCapacity(
+          restaurantId: string,
+          date: string,
+          timeSlot: string,
+          partySize: number,
+        ): Promise<boolean>;
+      }
+    ).claimSlotCapacity.bind(service);
+
+    // Two parties of 3 racing for max_capacity=4: exactly one may win.
+    const results = await Promise.all([
+      claim(RESTAURANT_ID, "2026-05-01", "18:30", 3),
+      claim(RESTAURANT_ID, "2026-05-01", "18:30", 3),
+    ]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(await readSlot(testDb, "slot-race")).toEqual({
+      current_reservations: 1,
+      current_capacity: 3,
+    });
+
+    // One seat left: a party of 2 is refused, a party of 1 fits.
+    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
+    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 1)).toBe(true);
+  });
+
+  it("refuses to claim capacity on a closed or missing slot", async () => {
+    await seedSlot(testDb, "slot-closed", { isAvailable: 0 });
+
+    const claim = (
+      service as unknown as {
+        claimSlotCapacity(
+          restaurantId: string,
+          date: string,
+          timeSlot: string,
+          partySize: number,
+        ): Promise<boolean>;
+      }
+    ).claimSlotCapacity.bind(service);
+
+    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
+    expect(await claim(RESTAURANT_ID, "2099-01-01", "12:00", 2)).toBe(false);
+  });
+
+  it("enforces max_tables even when capacity remains", async () => {
+    await seedSlot(testDb, "slot-tables", { maxCapacity: 100, maxTables: 1 });
+
+    const claim = (
+      service as unknown as {
+        claimSlotCapacity(
+          restaurantId: string,
+          date: string,
+          timeSlot: string,
+          partySize: number,
+        ): Promise<boolean>;
+      }
+    ).claimSlotCapacity.bind(service);
+
+    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(true);
+    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
   });
 });
