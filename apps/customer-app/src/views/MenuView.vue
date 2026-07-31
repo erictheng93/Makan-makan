@@ -344,7 +344,10 @@ import type {
   MenuItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
-import { getLocalizedMenuName } from "@/utils/localized-menu-content";
+import {
+  getLocalizedMenuName,
+  menuItemMatchesQuery,
+} from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -416,12 +419,7 @@ const filteredCategories = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
   return categories.value.filter((category: any) => {
     const categoryItems = getItemsByCategory(category.id);
-    return categoryItems.some(
-      (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        item.nameEn?.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
-    );
+    return categoryItems.some((item: any) => menuItemMatchesQuery(item, query));
   });
 });
 
@@ -433,12 +431,7 @@ const getItemsByCategory = (categoryId: number) => {
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim();
-    items = items.filter(
-      (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        item.nameEn?.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
-    );
+    items = items.filter((item: any) => menuItemMatchesQuery(item, query));
   }
 
   return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder);

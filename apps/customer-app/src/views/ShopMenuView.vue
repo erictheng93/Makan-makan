@@ -642,7 +642,10 @@ import {
 } from "@/utils/shopMenuDeepLink";
 import { marketTypeLabel } from "@/utils/marketTypes";
 import { safeExternalHref } from "@/utils/safeExternalHref";
-import { getLocalizedMenuName } from "@/utils/localized-menu-content";
+import {
+  getLocalizedMenuName,
+  menuItemMatchesQuery,
+} from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -828,11 +831,8 @@ const filteredProductItems = computed(() => {
   if (!searchQuery.value.trim()) return productItems.value;
 
   const query = searchQuery.value.toLowerCase().trim();
-  return productItems.value.filter(
-    (item: MenuItem) =>
-      item.name.toLowerCase().includes(query) ||
-      item.nameEn?.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query),
+  return productItems.value.filter((item: MenuItem) =>
+    menuItemMatchesQuery(item, query),
   );
 });
 
@@ -844,12 +844,7 @@ const filteredCategories = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
   return categories.value.filter((category: any) => {
     const categoryItems = getItemsByCategory(category.id);
-    return categoryItems.some(
-      (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        item.nameEn?.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
-    );
+    return categoryItems.some((item: any) => menuItemMatchesQuery(item, query));
   });
 });
 
