@@ -564,6 +564,40 @@ describe("ReservationService capacity accounting — real D1", () => {
     });
   });
 
+  it("releases slot capacity exactly once under concurrent cancellations", async () => {
+    await seedSlot(testDb, "slot-race", {
+      currentReservations: 4,
+      currentCapacity: 8,
+    });
+    await seedReservation(testDb, "rsv-race", {
+      status: "confirmed",
+      partySize: 2,
+    });
+
+    // A double-clicked cancel button, not a replayed one: all four requests
+    // read `confirmed` before any of them writes.
+    const results = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        service.cancelReservation("rsv-race", "double click"),
+      ),
+    );
+
+    // Exactly one claim won, so only one release happened.
+    expect(await readSlot(testDb, "slot-race")).toEqual({
+      current_reservations: 3,
+      current_capacity: 6,
+    });
+    // Every caller is told the settled state. The losers read `confirmed`
+    // before the winner committed; returning that stale snapshot would show a
+    // live reservation the customer has already cancelled.
+    expect(results.map((r) => r.status)).toEqual([
+      "cancelled",
+      "cancelled",
+      "cancelled",
+      "cancelled",
+    ]);
+  });
+
   it("releases nothing when cancelling a reservation that already completed", async () => {
     await seedSlot(testDb, "slot-done", {
       currentReservations: 1,

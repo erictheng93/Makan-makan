@@ -594,8 +594,11 @@ export class ReservationService extends BaseService {
           AND status IN ('pending', 'confirmed')
       `);
 
+      // 這次呼叫沒有真的發生轉換 — 不是重播（已經是終態），就是併發競賽輸
+      // 的那一邊。兩種情況都不能再釋放一次容量。回傳重新讀取的狀態而不是動
+      // 作前的快照：輸家讀到的 pending 在贏家寫入後就已經過期了。
       if ((cancellation.meta?.changes ?? 0) !== 1) {
-        return reservation;
+        return (await this.getReservationById(id)) as ReservationResponse;
       }
 
       // 釋放時段容量
@@ -649,8 +652,11 @@ export class ReservationService extends BaseService {
           AND status IN ('pending', 'confirmed', 'arrived')
       `);
 
+      // 這次呼叫沒有真的發生轉換 — 不是重播（已經是終態），就是併發競賽輸
+      // 的那一邊。兩種情況都不能再釋放一次容量。回傳重新讀取的狀態而不是動
+      // 作前的快照：輸家讀到的 pending 在贏家寫入後就已經過期了。
       if (getMutationChanges(transition) !== 1) {
-        return reservation;
+        return (await this.getReservationById(id)) as ReservationResponse;
       }
 
       // 釋放時段容量
