@@ -817,9 +817,9 @@ const filteredProductItems = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
   return productItems.value.filter(
     (item: MenuItem) =>
-      getLocalizedMenuName(item, currentLanguage?.value)
-        .toLowerCase()
-        .includes(query) || item.description?.toLowerCase().includes(query),
+      item.name.toLowerCase().includes(query) ||
+      item.nameEn?.toLowerCase().includes(query) ||
+      item.description?.toLowerCase().includes(query),
   );
 });
 
@@ -833,9 +833,9 @@ const filteredCategories = computed(() => {
     const categoryItems = getItemsByCategory(category.id);
     return categoryItems.some(
       (item: any) =>
-        getLocalizedMenuName(item, currentLanguage?.value)
-          .toLowerCase()
-          .includes(query) || item.description?.toLowerCase().includes(query),
+        item.name.toLowerCase().includes(query) ||
+        item.nameEn?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query),
     );
   });
 });

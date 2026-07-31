@@ -671,3 +671,70 @@ describe("MenuService image ownership", () => {
     );
   });
 });
+
+describe("MenuService menu item metadata", () => {
+  it("preserves tags and keywords when mapping an existing item", () => {
+    const service = createServiceWithDb({});
+    const mapped = (
+      service as unknown as {
+        mapToMenuItem: (item: unknown) => {
+          tags?: string[];
+          keywords?: string;
+        };
+      }
+    ).mapToMenuItem({
+      id: 1,
+      restaurantId: "restaurant-1",
+      categoryId: 1,
+      name: "Laksa",
+      priceCents: 1800,
+      tags: ["spicy"],
+      keywords: "noodle,coconut",
+    });
+
+    expect(mapped).toMatchObject({
+      tags: ["spicy"],
+      keywords: "noodle,coconut",
+    });
+  });
+
+  it("writes null values when optional menu item fields are cleared", async () => {
+    const updateBuilder = {
+      set: vi.fn(() => updateBuilder),
+      where: vi.fn(() => updateBuilder),
+      returning: vi.fn(async () => [
+        {
+          id: 1,
+          restaurantId: "restaurant-1",
+          categoryId: 1,
+          name: "Laksa",
+          priceCents: 1800,
+          originalPriceCents: null,
+        },
+      ]),
+    };
+    const service = createServiceWithDb({ update: vi.fn(() => updateBuilder) });
+    vi.spyOn(
+      service as unknown as { invalidateCache: () => Promise<void> },
+      "invalidateCache",
+    ).mockResolvedValue(undefined);
+
+    await service.updateMenuItem(1, {
+      originalPrice: null,
+      calories: null,
+      ingredients: null,
+      keywords: null,
+      options: null,
+    });
+
+    expect(updateBuilder.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalPriceCents: null,
+        calories: null,
+        ingredients: null,
+        keywords: null,
+        options: null,
+      }),
+    );
+  });
+});

@@ -282,6 +282,24 @@ describe("menu validation schemas", () => {
     ).toMatchObject({ name: "Tea" });
   });
 
+  it("accepts null when clearing optional menu item fields", () => {
+    expect(
+      updateMenuItemSchema.parse({
+        originalPrice: null,
+        calories: null,
+        ingredients: null,
+        keywords: null,
+        options: null,
+      }),
+    ).toMatchObject({
+      originalPrice: null,
+      calories: null,
+      ingredients: null,
+      keywords: null,
+      options: null,
+    });
+  });
+
   it("checks availability windows and query transforms", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 7, 10, 30, 0));

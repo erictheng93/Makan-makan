@@ -1393,11 +1393,13 @@ const handleSaveMenuItem = async () => {
       nameEn: menuItemForm.value.nameEn || undefined,
       description: menuItemForm.value.description || undefined,
       price: Number(menuItemForm.value.price),
-      originalPrice: menuItemForm.value.originalPrice || undefined,
-      ingredients: menuItemForm.value.ingredients || undefined,
+      originalPrice: menuItemForm.value.originalPrice || null,
+      ingredients: menuItemForm.value.ingredients || null,
       spiceLevel: Number(menuItemForm.value.spiceLevel),
-      preparationTime: Number(menuItemForm.value.preparationTime),
-      calories: menuItemForm.value.calories || undefined,
+      preparationTime: menuItemForm.value.preparationTime
+        ? Number(menuItemForm.value.preparationTime)
+        : undefined,
+      calories: menuItemForm.value.calories || null,
       dietaryInfo: Object.fromEntries(
         Object.entries(menuItemForm.value.dietaryInfo).filter(
           ([, value]) => value,
@@ -1411,8 +1413,8 @@ const handleSaveMenuItem = async () => {
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean),
-      keywords: menuItemForm.value.keywords || undefined,
-      options,
+      keywords: menuItemForm.value.keywords || null,
+      options: options ?? null,
       categoryId: Number(menuItemForm.value.categoryId),
       catalogType: menuItemForm.value.catalogType,
       imageUrl: menuItemForm.value.imageUrl || null,

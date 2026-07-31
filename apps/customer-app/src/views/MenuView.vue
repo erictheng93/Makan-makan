@@ -418,9 +418,9 @@ const filteredCategories = computed(() => {
     const categoryItems = getItemsByCategory(category.id);
     return categoryItems.some(
       (item: any) =>
-        getLocalizedMenuName(item, currentLanguage?.value)
-          .toLowerCase()
-          .includes(query) || item.description?.toLowerCase().includes(query),
+        item.name.toLowerCase().includes(query) ||
+        item.nameEn?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query),
     );
   });
 });
@@ -435,9 +435,9 @@ const getItemsByCategory = (categoryId: number) => {
     const query = searchQuery.value.toLowerCase().trim();
     items = items.filter(
       (item: any) =>
-        getLocalizedMenuName(item, currentLanguage?.value)
-          .toLowerCase()
-          .includes(query) || item.description?.toLowerCase().includes(query),
+        item.name.toLowerCase().includes(query) ||
+        item.nameEn?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query),
     );
   }
 

@@ -153,9 +153,9 @@ const menuItemBaseSchema = z.object({
   catalogType: z.enum(["menu_item", "product"]).optional(),
   name: nonEmptyString.max(100),
   description: z.string().max(500).optional(),
-  ingredients: z.string().max(200).optional(),
+  ingredients: z.string().max(200).nullish(),
   price: priceSchema,
-  originalPrice: priceSchema.optional(),
+  originalPrice: priceSchema.nullish(),
   // The admin form has always collected an English name and filters search on
   // it, but there was no column and no schema field, so it was stripped on
   // every save. Backed by menu_items.name_en as of migration 0076 (#107).
@@ -167,13 +167,13 @@ const menuItemBaseSchema = z.object({
   imageVariants: imageVariantsSchema.nullish(),
   spiceLevel: z.number().int().min(0).max(5).optional(),
   preparationTime: positiveInteger.optional(),
-  calories: positiveInteger.optional(),
+  calories: positiveInteger.nullish(),
   dietaryInfo: dietaryInfoSchema.optional(),
   allergens: z.array(z.string()).optional(),
-  options: menuItemOptionsSchema.optional(),
+  options: menuItemOptionsSchema.nullish(),
   availableHours: availableHoursSchema.optional(),
   tags: z.array(z.string()).optional(),
-  keywords: z.string().max(200).optional(),
+  keywords: z.string().max(200).nullish(),
   // These five must live on the base schema so BOTH create and update accept
   // them. They used to exist only on updateMenuItemSchema, so create requests
   // had them silently stripped while the API still answered 201 (#78).

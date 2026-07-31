@@ -638,6 +638,34 @@ describe("MenuView", () => {
       undefined,
     );
   });
+
+  it("sends null for cleared optional fields and omits an empty preparation time", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="menu-item-name-input"]').setValue("Curry");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(1200);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    wrapper.vm.menuItemForm.preparationTime = "";
+
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(saveMenuItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalPrice: null,
+        calories: null,
+        ingredients: null,
+        keywords: null,
+        options: null,
+        preparationTime: undefined,
+      }),
+      undefined,
+    );
+  });
 });
 
 async function flushPromises() {

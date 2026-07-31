@@ -9,6 +9,13 @@ describe("getLocalizedMenuName", () => {
         "en-US",
       ),
     ).toBe("Hainanese Chicken Rice");
+
+    expect(
+      getLocalizedMenuName(
+        { name: "瘚瑕??ㄞ", nameEn: "Hainanese Chicken Rice" },
+        "en-GB",
+      ),
+    ).toBe("Hainanese Chicken Rice");
   });
 
   it("falls back to the canonical name when English is missing or blank", () => {

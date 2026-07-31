@@ -90,7 +90,12 @@ const menuItemSelectColumns = {
   spiceLevel: menuItems.spiceLevel,
   preparationTime: menuItems.preparationTime,
   calories: menuItems.calories,
+  dietaryInfo: menuItems.dietaryInfo,
   allergens: menuItems.allergens,
+  options: menuItems.options,
+  availableHours: menuItems.availableHours,
+  tags: menuItems.tags,
+  keywords: menuItems.keywords,
   orderCount: menuItems.orderCount,
   rating: menuItems.rating,
   // viewCount/reviewCount were never selected, so every consumer saw the
@@ -1105,6 +1110,8 @@ export class MenuService extends BaseService {
       dietaryInfo: item.dietaryInfo,
       allergens: item.allergens,
       options: item.options,
+      tags: item.tags,
+      keywords: item.keywords,
       orderCount: item.orderCount,
       // rating/reviewCount/viewCount were dropped here, so every rating- and
       // view-based ranking upstream saw undefined/0 (#84).

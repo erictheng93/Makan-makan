@@ -721,7 +721,7 @@ export class OrderService extends BaseService {
         items: {
           with: {
             menuItem: {
-              columns: { id: true, name: true, imageUrl: true },
+              columns: { id: true, name: true, nameEn: true, imageUrl: true },
             },
           },
         },
@@ -780,6 +780,7 @@ export class OrderService extends BaseService {
                 columns: {
                   id: true,
                   name: true,
+                  nameEn: true,
                   imageUrl: true,
                 },
               },
@@ -1053,7 +1054,7 @@ export class OrderService extends BaseService {
           items: {
             with: {
               menuItem: {
-                columns: { id: true, name: true, imageUrl: true },
+                columns: { id: true, name: true, nameEn: true, imageUrl: true },
               },
             },
           },

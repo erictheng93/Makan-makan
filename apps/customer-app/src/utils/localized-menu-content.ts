@@ -13,7 +13,7 @@ export function getLocalizedMenuName(
   item: LocalizedMenuName,
   locale: string,
 ): string {
-  if (locale === "en-US" && item.nameEn?.trim()) {
+  if (locale?.startsWith("en") && item.nameEn?.trim()) {
     return item.nameEn.trim();
   }
   return item.name;
