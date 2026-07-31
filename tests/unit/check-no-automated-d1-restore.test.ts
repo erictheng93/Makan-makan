@@ -183,4 +183,42 @@ describe("check-no-automated-d1-restore", () => {
 
     expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
   });
+
+  // Deleting a Worker auto-confirms exactly like the D1 commands do -- seen
+  // while decommissioning makanmasak-backup-scheduler-prod.
+  it("catches a worker deletion", () => {
+    const root = fixture({
+      ".github/workflows/teardown.yml":
+        "      - run: pnpm exec wrangler delete --name makanmasak-api-prod\n",
+    });
+
+    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
+      { file: ".github/workflows/teardown.yml", command: "wrangler delete" },
+    ]);
+  });
+
+  // The two must not be confused: "wrangler d1 delete" is the D1 entry, and a
+  // report naming the wrong command sends the reader to the wrong runbook.
+  it("reports a D1 deletion as D1, not as a worker deletion", () => {
+    const root = fixture({
+      "scripts/reset.sh": "pnpm wrangler d1 delete scratch-db\n",
+    });
+
+    const { violations } = checkNoAutomatedD1Restore({ root });
+    expect(violations).toHaveLength(1);
+    expect(violations[0].command).toBe("wrangler d1 delete");
+  });
+
+  it("leaves non-destructive wrangler commands alone", () => {
+    const root = fixture({
+      "scripts/deploy.sh": [
+        "wrangler deploy --env production",
+        "wrangler pages deploy dist --project-name=x",
+        "wrangler deployments list --name y",
+        "wrangler delete-nothing",
+      ].join("\n"),
+    });
+
+    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+  });
 });

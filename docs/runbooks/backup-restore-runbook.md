@@ -15,11 +15,16 @@ rows, or a DR exercise.
 >   `dish_search_fts`. Every procedure below that began with an export was
 >   unexecutable, which is the worst kind of runbook bug: you find out during
 >   the incident.
-> - **The per-restaurant backup feature has never run in production.**
->   `backup_configurations` is empty and `makanmasak-backups-prod` holds zero
->   objects, so the scheduler had nothing to back up. Its cron triggers are
->   stopped. That feature is a tenant-facing product capability, not this
->   platform's disaster recovery.
+> - **The per-restaurant backup feature has never run in production, and is
+>   now switched off.** `backup_configurations` is empty and
+>   `makanmasak-backups-prod` holds zero objects, so the scheduler had nothing
+>   to back up. As of 2026-07-31 the API answers 404 for `/api/v1/backup`
+>   (`TENANT_BACKUPS_ENABLED`), and the `makanmasak-backup-scheduler-prod`
+>   Worker has been deleted — redeploy with `cd apps/backup-scheduler && pnpm
+>   run deploy:prod`, and uncomment the schedules in its `wrangler.toml` if you
+>   want them back. The R2 bucket and its 90-day retention rule survive. That
+>   feature is a tenant-facing product capability, not this platform's disaster
+>   recovery.
 
 ## Uptime Monitoring
 
@@ -97,7 +102,7 @@ scrollback in a stressful moment.
 
 | Hazard | Why it bites | What to do |
 | --- | --- | --- |
-| **The confirmation prompt does not protect a script.** `restore` asks `OK to proceed (y/N)`, but in a non-interactive context wrangler prints `Using fallback value in non-interactive context: yes` and proceeds. `d1 delete` behaves the same way. | Any CI job, wrapper script, or agent that runs the command destroys data with no gate. | Restore from an interactive shell. `pnpm check:no-automated-d1-restore` enforces this: it fails if either command appears in a workflow, a script, a package script or a git hook, and runs in both pre-commit and CI. Comments naming the commands are fine. |
+| **The confirmation prompt does not protect a script.** `restore` asks `OK to proceed (y/N)`, but in a non-interactive context wrangler prints `Using fallback value in non-interactive context: yes` and proceeds. `d1 delete` behaves the same way. | Any CI job, wrapper script, or agent that runs the command destroys data with no gate. | Restore from an interactive shell. `pnpm check:no-automated-d1-restore` enforces this: it fails if any of them -- `d1 time-travel restore`, `d1 delete`, or `wrangler delete` for a Worker -- appears in a workflow, a script, a package script or a git hook, and runs in both pre-commit and CI. Comments naming the commands are fine. |
 | **`--timestamp` resolves to the bookmark at or before that time.** Restoring to a timestamp inside the same minute as a write loses that write. Reproduced twice; the state landed on an earlier bookmark than intended. | You ask for "08:01:19, just before the mistake" and silently get 08:01:00, before the work you meant to keep. | Preview with `info --timestamp=`, confirm the bookmark is the one you want, then restore **by bookmark**. |
 | **Time Travel is per database.** Production has two: `makanmasak-prod` and `makanmasak-management-prod`. | Restoring one leaves the other ahead. `shop_subscriptions` in the management DB points at tenants in the platform DB, so a one-sided restore splits them. | Decide up front whether the incident spans both. If it does, capture bookmarks for both before restoring either. |
 | **Time Travel covers D1 only.** KV, R2 and in-flight Queue messages are not rewound. | After a restore, `CACHE_KV` entries, R2 image objects and `makanmasak-search-sync-prod` messages still describe the newer state. Rows can reference R2 objects deleted since, and queue messages can reference IDs that no longer exist. | After restoring: let the short-TTL KV caches expire (metrics is 60s), and treat R2 orphans and queue failures as expected cleanup rather than new incidents. |
