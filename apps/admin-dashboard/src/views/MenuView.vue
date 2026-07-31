@@ -382,6 +382,22 @@
                   />
                 </div>
 
+                <!-- Original price -->
+                <div>
+                  <label
+                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                  >
+                    {{ t("menu.form.originalPrice") }}
+                  </label>
+                  <input
+                    v-model.number="menuItemForm.originalPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                  />
+                </div>
+
                 <!-- Price -->
                 <div>
                   <label
@@ -525,6 +541,128 @@
                     rows="3"
                     class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all resize-none"
                   />
+                </div>
+
+                <!-- Product details -->
+                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
+                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
+                    {{ t("menu.form.productDetails") }}
+                  </h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                      {{ t("menu.form.spiceLevel") }}
+                      <input
+                        v-model.number="menuItemForm.spiceLevel"
+                        type="number"
+                        min="0"
+                        max="5"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                      {{ t("menu.form.preparationTime") }}
+                      <input
+                        v-model.number="menuItemForm.preparationTime"
+                        type="number"
+                        min="1"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                      {{ t("menu.form.calories") }}
+                      <input
+                        v-model.number="menuItemForm.calories"
+                        type="number"
+                        min="0"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                    <label
+                      class="md:col-span-3 text-[13px] font-semibold text-[#1C1C1E]"
+                    >
+                      {{ t("menu.form.ingredients") }}
+                      <input
+                        v-model="menuItemForm.ingredients"
+                        type="text"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                    <label
+                      class="md:col-span-3 text-[13px] font-semibold text-[#1C1C1E]"
+                    >
+                      {{ t("menu.form.tags") }}
+                      <input
+                        v-model="menuItemForm.tagsText"
+                        type="text"
+                        :placeholder="t('menu.form.tagsPlaceholder')"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                    <label
+                      class="md:col-span-3 text-[13px] font-semibold text-[#1C1C1E]"
+                    >
+                      {{ t("menu.form.keywords") }}
+                      <input
+                        v-model="menuItemForm.keywords"
+                        type="text"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Dietary information -->
+                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
+                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
+                    {{ t("menu.form.dietaryInfo") }}
+                  </h4>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <label
+                      v-for="diet in dietaryFields"
+                      :key="diet.key"
+                      class="flex items-center gap-2 text-[13px] text-[#1C1C1E]"
+                    >
+                      <input
+                        v-model="menuItemForm.dietaryInfo[diet.key]"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                      />
+                      {{ t(diet.label) }}
+                    </label>
+                  </div>
+                  <label
+                    class="mt-3 block text-[13px] font-semibold text-[#1C1C1E]"
+                  >
+                    {{ t("menu.form.allergens") }}
+                    <input
+                      v-model="menuItemForm.allergensText"
+                      type="text"
+                      :placeholder="t('menu.form.allergensPlaceholder')"
+                      class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                    />
+                  </label>
+                </div>
+
+                <!-- Customization options -->
+                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
+                  <h4 class="mb-1 text-[14px] font-bold text-[#1C1C1E]">
+                    {{ t("menu.form.options") }}
+                  </h4>
+                  <p class="mb-2 text-[12px] text-[#8E8E93]">
+                    {{ t("menu.form.optionsHelp") }}
+                  </p>
+                  <textarea
+                    v-model="menuItemForm.optionsText"
+                    rows="7"
+                    :placeholder="t('menu.form.optionsPlaceholder')"
+                    class="w-full rounded-xl bg-white px-4 py-2.5 font-mono text-[12px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                  />
+                  <p
+                    v-if="optionsError"
+                    class="mt-1.5 text-[12px] text-ios-error"
+                  >
+                    {{ optionsError }}
+                  </p>
                 </div>
 
                 <!-- Sort order -->
@@ -675,6 +813,26 @@ const menuItemForm = ref({
   nameEn: "",
   description: "",
   price: 0,
+  originalPrice: undefined as number | undefined,
+  ingredients: "",
+  spiceLevel: 0,
+  preparationTime: 15,
+  calories: undefined as number | undefined,
+  tagsText: "",
+  keywords: "",
+  allergensText: "",
+  dietaryInfo: {
+    vegetarian: false,
+    vegan: false,
+    halal: false,
+    glutenFree: false,
+    dairyFree: false,
+    nutFree: false,
+    seafoodFree: false,
+    organic: false,
+    localSource: false,
+  },
+  optionsText: "",
   categoryId: "" as string | number,
   catalogType: "menu_item" as "menu_item" | "product",
   imageUrl: "",
@@ -684,6 +842,18 @@ const menuItemForm = ref({
   isAvailable: true,
   sortOrder: 0,
 });
+const optionsError = ref("");
+const dietaryFields = [
+  { key: "vegetarian", label: "menu.form.vegetarian" },
+  { key: "vegan", label: "menu.form.vegan" },
+  { key: "halal", label: "menu.form.halal" },
+  { key: "glutenFree", label: "menu.form.glutenFree" },
+  { key: "dairyFree", label: "menu.form.dairyFree" },
+  { key: "nutFree", label: "menu.form.nutFree" },
+  { key: "seafoodFree", label: "menu.form.seafoodFree" },
+  { key: "organic", label: "menu.form.organic" },
+  { key: "localSource", label: "menu.form.localSource" },
+] as const;
 
 // ── Status filter options ──
 const statusFilters = computed(() => [
@@ -831,6 +1001,26 @@ const openAddItemModal = () => {
     nameEn: "",
     description: "",
     price: 0,
+    originalPrice: undefined,
+    ingredients: "",
+    spiceLevel: 0,
+    preparationTime: 15,
+    calories: undefined,
+    tagsText: "",
+    keywords: "",
+    allergensText: "",
+    dietaryInfo: {
+      vegetarian: false,
+      vegan: false,
+      halal: false,
+      glutenFree: false,
+      dairyFree: false,
+      nutFree: false,
+      seafoodFree: false,
+      organic: false,
+      localSource: false,
+    },
+    optionsText: "",
     categoryId: selectedCategoryId.value ?? "",
     catalogType: "menu_item",
     imageUrl: "",
@@ -853,6 +1043,26 @@ const editMenuItem = (item: MenuItemData) => {
     nameEn: item.nameEn ?? "",
     description: item.description ?? "",
     price: item.price,
+    originalPrice: item.originalPrice,
+    ingredients: item.ingredients ?? "",
+    spiceLevel: item.spiceLevel ?? 0,
+    preparationTime: item.preparationTime ?? 15,
+    calories: item.calories,
+    tagsText: item.tags?.join(", ") ?? "",
+    keywords: item.keywords ?? "",
+    allergensText: item.allergens?.join(", ") ?? "",
+    dietaryInfo: {
+      vegetarian: !!item.dietaryInfo?.vegetarian,
+      vegan: !!item.dietaryInfo?.vegan,
+      halal: !!item.dietaryInfo?.halal,
+      glutenFree: !!item.dietaryInfo?.glutenFree,
+      dairyFree: !!item.dietaryInfo?.dairyFree,
+      nutFree: !!item.dietaryInfo?.nutFree,
+      seafoodFree: !!item.dietaryInfo?.seafoodFree,
+      organic: !!item.dietaryInfo?.organic,
+      localSource: !!item.dietaryInfo?.localSource,
+    },
+    optionsText: item.options ? JSON.stringify(item.options, null, 2) : "",
     categoryId: item.categoryId,
     catalogType: item.catalogType ?? "menu_item",
     imageUrl: item.imageUrl ?? "",
@@ -890,6 +1100,20 @@ const handleImageFileSelected = async (event: Event) => {
 };
 
 const handleSaveMenuItem = async () => {
+  optionsError.value = "";
+  let options: Record<string, unknown> | undefined;
+  if (menuItemForm.value.optionsText.trim()) {
+    try {
+      const parsed = JSON.parse(menuItemForm.value.optionsText);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("options must be a JSON object");
+      }
+      options = parsed as Record<string, unknown>;
+    } catch {
+      optionsError.value = t("menu.form.optionsInvalid");
+      return;
+    }
+  }
   const oldImageId = previousImageId.value;
   const nextImageId = menuItemForm.value.imageId || null;
   const didSave = await saveMenuItem(
@@ -898,6 +1122,26 @@ const handleSaveMenuItem = async () => {
       nameEn: menuItemForm.value.nameEn || undefined,
       description: menuItemForm.value.description || undefined,
       price: Number(menuItemForm.value.price),
+      originalPrice: menuItemForm.value.originalPrice || undefined,
+      ingredients: menuItemForm.value.ingredients || undefined,
+      spiceLevel: Number(menuItemForm.value.spiceLevel),
+      preparationTime: Number(menuItemForm.value.preparationTime),
+      calories: menuItemForm.value.calories || undefined,
+      dietaryInfo: Object.fromEntries(
+        Object.entries(menuItemForm.value.dietaryInfo).filter(
+          ([, value]) => value,
+        ),
+      ),
+      allergens: menuItemForm.value.allergensText
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+      tags: menuItemForm.value.tagsText
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+      keywords: menuItemForm.value.keywords || undefined,
+      options,
       categoryId: Number(menuItemForm.value.categoryId),
       catalogType: menuItemForm.value.catalogType,
       imageUrl: menuItemForm.value.imageUrl || null,

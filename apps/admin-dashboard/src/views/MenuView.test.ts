@@ -404,6 +404,49 @@ describe("MenuView", () => {
 
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("persists advanced product fields from the edit form", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="menu-item-name-input"]').setValue("Curry");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(1200);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    wrapper.vm.menuItemForm.originalPrice = 1500;
+    wrapper.vm.menuItemForm.spiceLevel = 3;
+    wrapper.vm.menuItemForm.preparationTime = 20;
+    wrapper.vm.menuItemForm.calories = 650;
+    wrapper.vm.menuItemForm.ingredients = "chicken, coconut milk";
+    wrapper.vm.menuItemForm.tagsText = "spicy, curry";
+    wrapper.vm.menuItemForm.allergensText = "peanuts, dairy";
+    wrapper.vm.menuItemForm.dietaryInfo.glutenFree = true;
+    wrapper.vm.menuItemForm.optionsText = JSON.stringify({
+      sizes: [{ id: "regular", name: "Regular", priceAdjustment: 0 }],
+    });
+
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(saveMenuItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalPrice: 1500,
+        spiceLevel: 3,
+        preparationTime: 20,
+        calories: 650,
+        ingredients: "chicken, coconut milk",
+        tags: ["spicy", "curry"],
+        allergens: ["peanuts", "dairy"],
+        dietaryInfo: { glutenFree: true },
+        options: {
+          sizes: [{ id: "regular", name: "Regular", priceAdjustment: 0 }],
+        },
+      }),
+      undefined,
+    );
+  });
 });
 
 async function flushPromises() {
