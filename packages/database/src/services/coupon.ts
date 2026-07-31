@@ -25,6 +25,66 @@ export interface CouponValidationResult {
   finalAmount?: number;
 }
 
+// 優惠券資格檢查失敗的穩定錯誤代碼
+export type CouponEligibilityCode =
+  | "COUPON_NOT_FOUND"
+  | "COUPON_NOT_VISIBLE"
+  | "COUPON_WRONG_RESTAURANT"
+  | "COUPON_INACTIVE"
+  | "COUPON_NOT_STARTED"
+  | "COUPON_EXPIRED"
+  | "COUPON_USAGE_LIMIT_REACHED"
+  | "COUPON_MIN_ORDER_NOT_MET"
+  | "COUPON_USER_LIMIT_REACHED"
+  | "COUPON_NOT_APPLICABLE"
+  | "COUPON_ALREADY_USED";
+
+/**
+ * 優惠券資格檢查失敗錯誤。
+ * packages/database 不能依賴 API 層的 ApiError，
+ * 因此擲出帶穩定 code 的一般 Error，由 API 層轉譯成 ApiError。
+ * 可透過 `CouponService.EligibilityError` 取得（免經 package index 再匯出）。
+ */
+export class CouponEligibilityError extends Error {
+  constructor(
+    public readonly code: CouponEligibilityCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "CouponEligibilityError";
+  }
+}
+
+// assertCouponRedeemable 所需的優惠券欄位子集
+export interface RedeemableCouponRow {
+  id: number;
+  restaurantId: string | null;
+  deletedAt: Date | null;
+  isActive: boolean | null;
+  isVisible: boolean | null;
+  validFrom: string;
+  validTo: string;
+  usageLimit: number | null;
+  usedCount: number | null;
+  usageLimitPerUser: number | null;
+  minOrderAmountCents: number | null;
+  applicableMenuItems: number[] | null;
+  applicableCategories: number[] | null;
+}
+
+// 資格檢查的執行情境
+export interface CouponEligibilityContext {
+  restaurantId: string;
+  orderAmountCents: number;
+  userId?: string;
+  menuItems?: Array<{ menuItemId: number; quantity: number }>;
+  /**
+   * - "validate": 顧客探索/預覽路徑 — 額外強制 isVisible
+   * - "redeem":   兌換路徑 — 隱藏但仍啟用中的代碼視為合法，可兌換
+   */
+  mode: "validate" | "redeem";
+}
+
 // 優惠券創建資料接口
 export interface CreateCouponData {
   restaurantId?: string;
@@ -67,6 +127,12 @@ export interface CouponFilters {
 }
 
 export class CouponService extends BaseService {
+  /**
+   * 讓 API 層可經由已匯出的 CouponService 取得錯誤類別
+   * （services/index.ts 未逐一再匯出 coupon.ts 的所有符號）。
+   */
+  static readonly EligibilityError = CouponEligibilityError;
+
   private mapCouponMoneyFields<T extends Record<string, any>>(coupon: T): T {
     const hasDiscountValue =
       "discountPercentageBps" in coupon || "discountValueCents" in coupon;
@@ -126,97 +192,30 @@ export class CouponService extends BaseService {
     menuItems?: Array<{ menuItemId: number; quantity: number }>,
   ): Promise<CouponValidationResult> {
     try {
-      // 查找優惠券
+      // 查找優惠券（code 具唯一約束；所有資格規則統一交給 assertCouponRedeemable）
       const coupon = await this.db.query.coupons.findFirst({
-        where: and(
-          eq(coupons.code, code.toUpperCase()),
-          eq(coupons.isActive, true),
-          eq(coupons.isVisible, true),
-          // 優惠券適用於指定餐廳或全平台
-          sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`,
-        ),
+        where: eq(coupons.code, code.toUpperCase()),
       });
 
       if (!coupon) {
         return { valid: false, error: "優惠券代碼不存在或已失效" };
       }
 
-      // 檢查有效期
-      const now = new Date();
-      const validFrom = new Date(coupon.validFrom);
-      const validTo = new Date(coupon.validTo);
-
-      if (now < validFrom || now > validTo) {
-        return { valid: false, error: "優惠券已過期或尚未生效" };
-      }
-
-      // 檢查使用次數限制
-      if (coupon.usageLimit && (coupon.usedCount || 0) >= coupon.usageLimit) {
-        return { valid: false, error: "優惠券使用次數已達上限" };
-      }
-
       const orderAmountCents = toRequiredCents(orderAmount);
-      const minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
 
-      // 檢查最低訂單金額
-      if (minOrderAmount && orderAmount < minOrderAmount) {
-        return {
-          valid: false,
-          error: `訂單金額需滿 $${minOrderAmount} 才可使用此優惠券`,
-        };
-      }
-
-      // 檢查用戶使用次數限制
-      if (coupon.usageLimitPerUser && userId) {
-        const userUsageCount = await this.db
-          .select({ count: sql<number>`count(*)` })
-          .from(couponUsage)
-          .where(
-            and(
-              eq(couponUsage.couponId, coupon.id),
-              eq(couponUsage.userId, userId),
-              eq(couponUsage.status, "active"),
-            ),
-          );
-
-        if (userUsageCount[0]?.count >= coupon.usageLimitPerUser) {
-          return { valid: false, error: "您已達到此優惠券的使用次數上限" };
-        }
-      }
-
-      // 檢查適用商品限制
-      if (coupon.applicableMenuItems && menuItems) {
-        const applicableItems = coupon.applicableMenuItems as number[];
-        const hasApplicableItem = menuItems.some((item) =>
-          applicableItems.includes(item.menuItemId),
-        );
-
-        if (!hasApplicableItem) {
-          return { valid: false, error: "此優惠券不適用於購物車中的商品" };
-        }
-      }
-
-      // 檢查適用分類限制
-      if (coupon.applicableCategories && menuItems) {
-        const applicableCategories = coupon.applicableCategories as number[];
-
-        // 查詢商品的分類資訊
-        const menuItemIds = menuItems.map((item) => item.menuItemId);
-        const itemCategories = await this.db.query.menuItems.findMany({
-          where: inArray(menuItemsTable.id, menuItemIds),
-          with: {
-            category: true,
-          },
+      try {
+        await this.assertCouponRedeemable(coupon, {
+          restaurantId,
+          orderAmountCents,
+          userId,
+          menuItems,
+          mode: "validate",
         });
-
-        const hasApplicableCategory = itemCategories.some(
-          (item) =>
-            item.category && applicableCategories.includes(item.category.id),
-        );
-
-        if (!hasApplicableCategory) {
-          return { valid: false, error: "此優惠券不適用於購物車中商品的分類" };
+      } catch (error) {
+        if (error instanceof CouponEligibilityError) {
+          return { valid: false, error: error.message };
         }
+        throw error;
       }
 
       // 計算折扣金額
@@ -262,6 +261,143 @@ export class CouponService extends BaseService {
   }
 
   /**
+   * 單一共享的優惠券資格檢查 — /validate 與兌換路徑共用同一份實作。
+   * 任一規則不符即擲出帶穩定 code 的 CouponEligibilityError：
+   * 軟刪除、isVisible（僅 validate 模式）、餐廳歸屬、isActive、
+   * 有效期、總使用上限（advisory）、最低訂單金額、每用戶上限、適用商品/分類。
+   *
+   * 注意：usageLimit 在此僅為提早給出明確錯誤的 advisory 檢查；
+   * 真正的權威判斷是 claimUsageSlot() 的條件式 UPDATE。
+   */
+  async assertCouponRedeemable(
+    coupon: RedeemableCouponRow,
+    context: CouponEligibilityContext,
+  ): Promise<void> {
+    // 軟刪除視同不存在
+    if (coupon.deletedAt) {
+      throw new CouponEligibilityError(
+        "COUPON_NOT_FOUND",
+        "優惠券代碼不存在或已失效",
+      );
+    }
+
+    // 隱藏優惠券只在顧客探索/預覽路徑攔下；
+    // 收銀端兌換「隱藏但啟用中」的代碼是合法情境。
+    // 訊息與「不存在」相同，避免洩漏隱藏代碼的存在。
+    if (context.mode === "validate" && !coupon.isVisible) {
+      throw new CouponEligibilityError(
+        "COUPON_NOT_VISIBLE",
+        "優惠券代碼不存在或已失效",
+      );
+    }
+
+    // 餐廳歸屬：restaurantId 為 NULL 代表全平台通用
+    if (coupon.restaurantId && coupon.restaurantId !== context.restaurantId) {
+      throw new CouponEligibilityError(
+        "COUPON_WRONG_RESTAURANT",
+        "此優惠券不適用於此餐廳",
+      );
+    }
+
+    if (!coupon.isActive) {
+      throw new CouponEligibilityError("COUPON_INACTIVE", "優惠券已停用");
+    }
+
+    // 檢查有效期（validFrom/validTo 為 TEXT 日期字串，維持既有解析方式）
+    const now = new Date();
+    if (now < new Date(coupon.validFrom)) {
+      throw new CouponEligibilityError("COUPON_NOT_STARTED", "優惠券尚未生效");
+    }
+    if (now > new Date(coupon.validTo)) {
+      throw new CouponEligibilityError("COUPON_EXPIRED", "優惠券已過期");
+    }
+
+    // 總使用上限（advisory；權威在 claimUsageSlot 的條件式 UPDATE）
+    if (coupon.usageLimit && (coupon.usedCount || 0) >= coupon.usageLimit) {
+      throw new CouponEligibilityError(
+        "COUPON_USAGE_LIMIT_REACHED",
+        "優惠券使用次數已達上限",
+      );
+    }
+
+    // 檢查最低訂單金額
+    const minOrderAmountCents = coupon.minOrderAmountCents ?? 0;
+    if (
+      minOrderAmountCents > 0 &&
+      context.orderAmountCents < minOrderAmountCents
+    ) {
+      throw new CouponEligibilityError(
+        "COUPON_MIN_ORDER_NOT_MET",
+        `訂單金額需滿 $${amountFromCents(minOrderAmountCents)} 才可使用此優惠券`,
+      );
+    }
+
+    // 檢查每用戶使用上限。
+    // 注意：count-then-insert 存在小競態（兩個併發請求可能同時通過檢查），
+    // D1 沒有交易可用；總量上限仍由 claimUsageSlot 原子保證。
+    if (coupon.usageLimitPerUser && context.userId) {
+      const userUsageCount = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(couponUsage)
+        .where(
+          and(
+            eq(couponUsage.couponId, coupon.id),
+            eq(couponUsage.userId, context.userId),
+            eq(couponUsage.status, "active"),
+          ),
+        );
+
+      if ((userUsageCount[0]?.count ?? 0) >= coupon.usageLimitPerUser) {
+        throw new CouponEligibilityError(
+          "COUPON_USER_LIMIT_REACHED",
+          "您已達到此優惠券的使用次數上限",
+        );
+      }
+    }
+
+    // 檢查適用商品限制（有提供訂單商品時才檢查）
+    if (coupon.applicableMenuItems && context.menuItems) {
+      const applicableItems = coupon.applicableMenuItems;
+      const hasApplicableItem = context.menuItems.some((item) =>
+        applicableItems.includes(item.menuItemId),
+      );
+
+      if (!hasApplicableItem) {
+        throw new CouponEligibilityError(
+          "COUPON_NOT_APPLICABLE",
+          "此優惠券不適用於購物車中的商品",
+        );
+      }
+    }
+
+    // 檢查適用分類限制
+    if (coupon.applicableCategories && context.menuItems) {
+      const applicableCategories = coupon.applicableCategories;
+
+      // 查詢商品的分類資訊
+      const menuItemIds = context.menuItems.map((item) => item.menuItemId);
+      const itemCategories = await this.db.query.menuItems.findMany({
+        where: inArray(menuItemsTable.id, menuItemIds),
+        with: {
+          category: true,
+        },
+      });
+
+      const hasApplicableCategory = itemCategories.some(
+        (item) =>
+          item.category && applicableCategories.includes(item.category.id),
+      );
+
+      if (!hasApplicableCategory) {
+        throw new CouponEligibilityError(
+          "COUPON_NOT_APPLICABLE",
+          "此優惠券不適用於購物車中商品的分類",
+        );
+      }
+    }
+  }
+
+  /**
    * 記錄優惠券使用
    */
   async useCoupon(data: UseCouponData) {
@@ -278,7 +414,10 @@ export class CouponService extends BaseService {
       .limit(1);
 
     if (existingUsage) {
-      throw new Error("Coupon already used for this order");
+      throw new CouponEligibilityError(
+        "COUPON_ALREADY_USED",
+        "Coupon already used for this order",
+      );
     }
 
     await this.claimUsageSlot(data.couponId);
@@ -327,7 +466,10 @@ export class CouponService extends BaseService {
       .run();
 
     if ((claim.meta?.changes ?? 0) === 0) {
-      throw new Error("Coupon usage limit reached");
+      throw new CouponEligibilityError(
+        "COUPON_USAGE_LIMIT_REACHED",
+        "Coupon usage limit reached",
+      );
     }
   }
 

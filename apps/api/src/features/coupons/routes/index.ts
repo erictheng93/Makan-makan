@@ -36,7 +36,6 @@ import {
   notFound,
   forbidden,
   badRequest,
-  conflict,
 } from "../../../shared/utils/api-error";
 import type { CouponFilters, CreateCouponData } from "../types";
 
@@ -468,27 +467,15 @@ routes.post(
     const user = c.get("user");
     const couponsService = createCouponsService(c.env);
 
-    let usageRecord;
-    try {
-      usageRecord = await couponsService.useCouponForOrder({
-        couponId: data.couponId,
-        orderId: data.orderId,
-        userId: data.userId ?? user.id,
-        allowedRestaurantId:
-          user.role === 0 ? undefined : userRestaurantId(user),
-      });
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("Coupon usage limit reached")
-      ) {
-        throw conflict(
-          "Coupon usage limit reached",
-          "COUPON_USAGE_LIMIT_REACHED",
-        );
-      }
-      throw error;
-    }
+    // 所有資格/限制錯誤都由 CouponsService 以 ApiError 擲出
+    // （帶穩定 code，如 COUPON_INACTIVE、COUPON_USAGE_LIMIT_REACHED），
+    // 交給全域錯誤處理器輸出統一格式。
+    const usageRecord = await couponsService.useCouponForOrder({
+      couponId: data.couponId,
+      orderId: data.orderId,
+      userId: data.userId ?? user.id,
+      allowedRestaurantId: user.role === 0 ? undefined : userRestaurantId(user),
+    });
 
     return c.json({
       success: true,

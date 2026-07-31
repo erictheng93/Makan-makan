@@ -179,6 +179,8 @@ export interface ClockInData {
   employeeId: string;
   clockInTime: Date;
   notes?: string;
+  /** Tenant scope — when set, the schedule must belong to this restaurant */
+  restaurantId?: string;
 }
 
 export interface ClockOutData {
@@ -186,6 +188,8 @@ export interface ClockOutData {
   employeeId: string;
   clockOutTime: Date;
   notes?: string;
+  /** Tenant scope — when set, the schedule must belong to this restaurant */
+  restaurantId?: string;
 }
 
 type ShiftTemplateInput = typeof shiftTemplates.$inferInsert & {
@@ -205,6 +209,51 @@ export class SchedulingService extends BaseService {
   }
 
   // ========================================
+  // Tenant Scoping Helpers
+  //
+  // Every ID-addressed read/mutation goes through one of these WHERE
+  // builders. `restaurantId === undefined` means unscoped (platform admin,
+  // role 0); any string value restricts the row to that restaurant so a
+  // caller can never reach another tenant's row by guessing sequential IDs.
+  // ========================================
+
+  private templateWhere(id: number, restaurantId?: string) {
+    return restaurantId === undefined
+      ? eq(shiftTemplates.id, id)
+      : and(
+          eq(shiftTemplates.id, id),
+          eq(shiftTemplates.restaurantId, restaurantId),
+        );
+  }
+
+  private scheduleWhere(id: number, restaurantId?: string) {
+    return restaurantId === undefined
+      ? eq(employeeSchedules.id, id)
+      : and(
+          eq(employeeSchedules.id, id),
+          eq(employeeSchedules.restaurantId, restaurantId),
+        );
+  }
+
+  private conflictWhere(id: number, restaurantId?: string) {
+    return restaurantId === undefined
+      ? eq(schedulingConflicts.id, id)
+      : and(
+          eq(schedulingConflicts.id, id),
+          eq(schedulingConflicts.restaurantId, restaurantId),
+        );
+  }
+
+  private swapRequestWhere(id: number, restaurantId?: string) {
+    return restaurantId === undefined
+      ? eq(scheduleSwapRequests.id, id)
+      : and(
+          eq(scheduleSwapRequests.id, id),
+          eq(scheduleSwapRequests.restaurantId, restaurantId),
+        );
+  }
+
+  // ========================================
   // Shift Template Management
   // ========================================
 
@@ -218,11 +267,14 @@ export class SchedulingService extends BaseService {
     return templates.map((template) => this.mapShiftTemplate(template));
   }
 
-  async getShiftTemplate(id: number): Promise<ShiftTemplate | null> {
+  async getShiftTemplate(
+    id: number,
+    restaurantId?: string,
+  ): Promise<ShiftTemplate | null> {
     const [template] = await this.db
       .select()
       .from(shiftTemplates)
-      .where(eq(shiftTemplates.id, id))
+      .where(this.templateWhere(id, restaurantId))
       .limit(1);
 
     return template ? this.mapShiftTemplate(template) : null;
@@ -249,6 +301,7 @@ export class SchedulingService extends BaseService {
   async updateShiftTemplate(
     id: number,
     data: Partial<ShiftTemplateInput>,
+    restaurantId?: string,
   ): Promise<ShiftTemplate> {
     const { hourlyRate, ...updateData } = data;
     const updates = {
@@ -262,7 +315,7 @@ export class SchedulingService extends BaseService {
     const [updated] = await this.db
       .update(shiftTemplates)
       .set(updates)
-      .where(eq(shiftTemplates.id, id))
+      .where(this.templateWhere(id, restaurantId))
       .returning();
 
     if (!updated) {
@@ -272,11 +325,14 @@ export class SchedulingService extends BaseService {
     return this.mapShiftTemplate(updated);
   }
 
-  async deleteShiftTemplate(id: number): Promise<boolean> {
+  async deleteShiftTemplate(
+    id: number,
+    restaurantId?: string,
+  ): Promise<boolean> {
     const [deleted] = await this.db
       .update(shiftTemplates)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(shiftTemplates.id, id))
+      .where(this.templateWhere(id, restaurantId))
       .returning();
 
     return !!deleted;
@@ -370,7 +426,10 @@ export class SchedulingService extends BaseService {
     return { items, total };
   }
 
-  async getSchedule(id: number): Promise<Record<string, unknown> | null> {
+  async getSchedule(
+    id: number,
+    restaurantId?: string,
+  ): Promise<Record<string, unknown> | null> {
     const [result] = await this.db
       .select({
         schedule: employeeSchedules,
@@ -383,7 +442,7 @@ export class SchedulingService extends BaseService {
         shiftTemplates,
         eq(employeeSchedules.shiftTemplateId, shiftTemplates.id),
       )
-      .where(eq(employeeSchedules.id, id))
+      .where(this.scheduleWhere(id, restaurantId))
       .limit(1);
 
     if (!result) return null;
@@ -448,11 +507,12 @@ export class SchedulingService extends BaseService {
   async updateSchedule(
     id: number,
     data: Partial<EmployeeSchedule>,
+    restaurantId?: string,
   ): Promise<EmployeeSchedule> {
     const [updated] = await this.db
       .update(employeeSchedules)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(employeeSchedules.id, id))
+      .where(this.scheduleWhere(id, restaurantId))
       .returning();
 
     if (!updated) {
@@ -475,11 +535,11 @@ export class SchedulingService extends BaseService {
     return updated as EmployeeSchedule;
   }
 
-  async deleteSchedule(id: number): Promise<boolean> {
+  async deleteSchedule(id: number, restaurantId?: string): Promise<boolean> {
     const [deleted] = await this.db
       .update(employeeSchedules)
       .set({ status: "cancelled", updatedAt: new Date() })
-      .where(eq(employeeSchedules.id, id))
+      .where(this.scheduleWhere(id, restaurantId))
       .returning();
 
     if (deleted) {
@@ -653,11 +713,14 @@ export class SchedulingService extends BaseService {
   // ========================================
 
   /** Lightweight schedule fetch — no JOINs, only the schedule row */
-  async getScheduleById(id: number): Promise<EmployeeSchedule | null> {
+  async getScheduleById(
+    id: number,
+    restaurantId?: string,
+  ): Promise<EmployeeSchedule | null> {
     const [row] = await this.db
       .select()
       .from(employeeSchedules)
-      .where(eq(employeeSchedules.id, id))
+      .where(this.scheduleWhere(id, restaurantId))
       .limit(1);
     return (row as EmployeeSchedule) || null;
   }
@@ -666,7 +729,10 @@ export class SchedulingService extends BaseService {
     data: ClockInData,
     isAdmin?: boolean,
   ): Promise<EmployeeSchedule> {
-    const schedule = await this.getScheduleById(data.scheduleId);
+    const schedule = await this.getScheduleById(
+      data.scheduleId,
+      data.restaurantId,
+    );
     if (!schedule) {
       throw new Error("Schedule not found");
     }
@@ -697,7 +763,10 @@ export class SchedulingService extends BaseService {
     data: ClockOutData,
     isAdmin?: boolean,
   ): Promise<EmployeeSchedule> {
-    const schedule = await this.getScheduleById(data.scheduleId);
+    const schedule = await this.getScheduleById(
+      data.scheduleId,
+      data.restaurantId,
+    );
     if (!schedule) {
       throw new Error("Schedule not found");
     }
@@ -1275,9 +1344,79 @@ export class SchedulingService extends BaseService {
   // Swap Requests (simplified)
   // ========================================
 
+  /** Tenant-scoped swap request fetch — shared by all swap request actions */
+  async getSwapRequest(
+    id: number,
+    restaurantId?: string,
+  ): Promise<ScheduleSwapRequest | null> {
+    const [request] = await this.db
+      .select()
+      .from(scheduleSwapRequests)
+      .where(this.swapRequestWhere(id, restaurantId))
+      .limit(1);
+
+    return (request as ScheduleSwapRequest) || null;
+  }
+
   async createSwapRequest(
     data: typeof scheduleSwapRequests.$inferInsert,
   ): Promise<ScheduleSwapRequest> {
+    // Validate every referenced entity against the request's restaurant
+    // before inserting — caller-supplied IDs must never be trusted.
+    const [requesterSchedule] = await this.db
+      .select()
+      .from(employeeSchedules)
+      .where(
+        and(
+          eq(employeeSchedules.id, data.requesterScheduleId),
+          eq(employeeSchedules.restaurantId, data.restaurantId),
+        ),
+      )
+      .limit(1);
+    if (!requesterSchedule) {
+      throw new Error("Requester schedule not found");
+    }
+    if (requesterSchedule.employeeId !== data.requesterEmployeeId) {
+      throw new Error(
+        "Requester schedule does not belong to the requesting employee",
+      );
+    }
+
+    if (data.targetScheduleId) {
+      const [targetSchedule] = await this.db
+        .select()
+        .from(employeeSchedules)
+        .where(
+          and(
+            eq(employeeSchedules.id, data.targetScheduleId),
+            eq(employeeSchedules.restaurantId, data.restaurantId),
+          ),
+        )
+        .limit(1);
+      if (!targetSchedule) {
+        throw new Error("Target schedule not found");
+      }
+      if (
+        data.targetEmployeeId &&
+        targetSchedule.employeeId !== data.targetEmployeeId
+      ) {
+        throw new Error(
+          "Target schedule does not belong to the target employee",
+        );
+      }
+    }
+
+    if (data.targetEmployeeId) {
+      const [targetUser] = await this.db
+        .select({ id: users.id, restaurantId: users.restaurantId })
+        .from(users)
+        .where(eq(users.id, data.targetEmployeeId))
+        .limit(1);
+      if (!targetUser || targetUser.restaurantId !== data.restaurantId) {
+        throw new Error("Target employee not found in this restaurant");
+      }
+    }
+
     const [request] = await this.db
       .insert(scheduleSwapRequests)
       .values({
@@ -1343,15 +1482,12 @@ export class SchedulingService extends BaseService {
   async approveSwapRequest(
     requestId: number,
     managerId: string,
+    restaurantId?: string,
   ): Promise<ScheduleSwapRequest> {
     // Re-load and validate the swap request. Reads happen up front; the roster
     // reassignment and the approval commit atomically via `db.batch` (D1 does
     // not support interactive `db.transaction` / SQL BEGIN).
-    const [request] = await this.db
-      .select()
-      .from(scheduleSwapRequests)
-      .where(eq(scheduleSwapRequests.id, requestId))
-      .limit(1);
+    const request = await this.getSwapRequest(requestId, restaurantId);
 
     if (!request) {
       throw new Error("Swap request not found");
@@ -1366,11 +1502,17 @@ export class SchedulingService extends BaseService {
 
     const now = new Date();
 
-    // The requester's schedule row is always the shift being changed.
+    // The requester's schedule row is always the shift being changed. It must
+    // still belong to the request's restaurant before any mutation happens.
     const [requesterRow] = await this.db
       .select()
       .from(employeeSchedules)
-      .where(eq(employeeSchedules.id, request.requesterScheduleId))
+      .where(
+        and(
+          eq(employeeSchedules.id, request.requesterScheduleId),
+          eq(employeeSchedules.restaurantId, request.restaurantId),
+        ),
+      )
       .limit(1);
     if (!requesterRow) {
       throw new Error("Requester schedule not found");
@@ -1388,7 +1530,12 @@ export class SchedulingService extends BaseService {
           const [targetRow] = await this.db
             .select()
             .from(employeeSchedules)
-            .where(eq(employeeSchedules.id, request.targetScheduleId))
+            .where(
+              and(
+                eq(employeeSchedules.id, request.targetScheduleId),
+                eq(employeeSchedules.restaurantId, request.restaurantId),
+              ),
+            )
             .limit(1);
           if (!targetRow) {
             throw new Error("Target schedule not found");
@@ -1575,13 +1722,10 @@ export class SchedulingService extends BaseService {
   async acceptSwapRequest(
     requestId: number,
     employeeId: string,
+    restaurantId?: string,
   ): Promise<ScheduleSwapRequest> {
-    // First check if the request exists and is pending
-    const [request] = await this.db
-      .select()
-      .from(scheduleSwapRequests)
-      .where(eq(scheduleSwapRequests.id, requestId))
-      .limit(1);
+    // First check if the request exists (in the caller's tenant) and is pending
+    const request = await this.getSwapRequest(requestId, restaurantId);
 
     if (!request) {
       throw new Error("Swap request not found");
@@ -1614,13 +1758,10 @@ export class SchedulingService extends BaseService {
     requestId: number,
     managerId: string,
     reason: string,
+    restaurantId?: string,
   ): Promise<ScheduleSwapRequest> {
-    // First check if the request exists
-    const [request] = await this.db
-      .select()
-      .from(scheduleSwapRequests)
-      .where(eq(scheduleSwapRequests.id, requestId))
-      .limit(1);
+    // First check if the request exists (in the caller's tenant)
+    const request = await this.getSwapRequest(requestId, restaurantId);
 
     if (!request) {
       throw new Error("Swap request not found");
@@ -1698,13 +1839,11 @@ export class SchedulingService extends BaseService {
   async cancelSwapRequest(
     requestId: number,
     employeeId: string,
+    restaurantId?: string,
   ): Promise<ScheduleSwapRequest> {
-    // First check if the request exists and belongs to the employee
-    const [request] = await this.db
-      .select()
-      .from(scheduleSwapRequests)
-      .where(eq(scheduleSwapRequests.id, requestId))
-      .limit(1);
+    // First check if the request exists (in the caller's tenant) and belongs
+    // to the employee
+    const request = await this.getSwapRequest(requestId, restaurantId);
 
     if (!request) {
       throw new Error("Swap request not found");
@@ -1974,12 +2113,15 @@ export class SchedulingService extends BaseService {
   /**
    * Get a specific conflict by ID
    */
-  async getConflict(id: number): Promise<SchedulingConflict | null> {
+  async getConflict(
+    id: number,
+    restaurantId?: string,
+  ): Promise<SchedulingConflict | null> {
     try {
       const [conflict] = await this.db
         .select()
         .from(schedulingConflicts)
-        .where(eq(schedulingConflicts.id, id))
+        .where(this.conflictWhere(id, restaurantId))
         .limit(1);
 
       return (conflict as SchedulingConflict) || null;
@@ -1996,6 +2138,7 @@ export class SchedulingService extends BaseService {
     id: number,
     userId: string,
     resolutionNotes: string,
+    restaurantId?: string,
   ): Promise<SchedulingConflict> {
     try {
       const [resolved] = await this.db
@@ -2007,7 +2150,7 @@ export class SchedulingService extends BaseService {
           resolutionNotes,
           updatedAt: new Date(),
         })
-        .where(eq(schedulingConflicts.id, id))
+        .where(this.conflictWhere(id, restaurantId))
         .returning();
 
       if (!resolved) {

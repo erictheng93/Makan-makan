@@ -160,6 +160,7 @@ describe("leaves routes", () => {
       env as never,
     );
     expect(detailResponse.status).toBe(200);
+    expect(mocks.getLeaveType).toHaveBeenCalledWith(3, RESTAURANT_ID);
 
     const createResponse = await app.fetch(
       jsonRequest(
@@ -182,17 +183,83 @@ describe("leaves routes", () => {
       env as never,
     );
     expect(updateResponse.status).toBe(200);
-    expect(mocks.updateLeaveType).toHaveBeenCalledWith(3, {
-      name: "Updated",
-      updatedBy: 42,
-    });
+    expect(mocks.updateLeaveType).toHaveBeenCalledWith(
+      3,
+      {
+        name: "Updated",
+        updatedBy: 42,
+      },
+      RESTAURANT_ID,
+    );
 
     const deleteResponse = await app.fetch(
       new Request("https://test/types/3", { method: "DELETE" }),
       env as never,
     );
     expect(deleteResponse.status).toBe(200);
-    expect(mocks.deleteLeaveType).toHaveBeenCalledWith(3);
+    expect(mocks.deleteLeaveType).toHaveBeenCalledWith(3, RESTAURANT_ID);
+  });
+
+  it("lets platform admins operate on leave types without tenant scope", async () => {
+    mocks.currentUser.role = 0;
+    mocks.getLeaveType.mockResolvedValue(leaveType({ restaurantId: null }));
+    mocks.updateLeaveType.mockResolvedValue(leaveType({ restaurantId: null }));
+    const env = createEnv();
+
+    const detailResponse = await app.fetch(
+      new Request("https://test/types/3"),
+      env as never,
+    );
+    expect(detailResponse.status).toBe(200);
+    expect(mocks.getLeaveType).toHaveBeenCalledWith(3, undefined);
+
+    const updateResponse = await app.fetch(
+      jsonRequest("https://test/types/3", "PUT", { name: "Updated" }),
+      env as never,
+    );
+    expect(updateResponse.status).toBe(200);
+    expect(mocks.updateLeaveType).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ name: "Updated" }),
+      undefined,
+    );
+  });
+
+  it("blocks owners from mutating cross-tenant or system leave types", async () => {
+    const env = createEnv();
+
+    // Scoped service lookup misses entirely for another tenant's type
+    mocks.getLeaveType.mockResolvedValue(null);
+    const crossTenantResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/types/3", "PUT", { name: "Hijacked" }),
+        env as never,
+      ),
+    );
+    expect(crossTenantResponse.status).toBe(500);
+    expect(mocks.updateLeaveType).not.toHaveBeenCalled();
+
+    // System-wide types (restaurantId null) are readable but not mutable
+    mocks.getLeaveType.mockResolvedValue(leaveType({ restaurantId: null }));
+    const systemTypeResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/types/3", "PUT", { name: "Hijacked" }),
+        env as never,
+      ),
+    );
+    expect(systemTypeResponse.status).toBe(500);
+    expect(mocks.updateLeaveType).not.toHaveBeenCalled();
+
+    // Delete is scoped to the caller's restaurant at the service layer
+    mocks.deleteLeaveType.mockResolvedValue(false);
+    const deleteResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        new Request("https://test/types/3", { method: "DELETE" }),
+        env as never,
+      ),
+    );
+    expect(deleteResponse.status).toBe(500);
+    expect(mocks.deleteLeaveType).toHaveBeenCalledWith(3, RESTAURANT_ID);
   });
 
   it("returns type not-found errors when reads or deletes miss", async () => {
@@ -225,8 +292,13 @@ describe("leaves routes", () => {
       env as never,
     );
     expect(employeeResponse.status).toBe(200);
-    expect(mocks.getEmployeeLeaveBalances).toHaveBeenCalledWith("7", 2026);
+    expect(mocks.getEmployeeLeaveBalances).toHaveBeenCalledWith(
+      "7",
+      2026,
+      RESTAURANT_ID,
+    );
 
+    // A spoofed adjustedBy in the body must lose to the session identity.
     const adjustResponse = await app.fetch(
       jsonRequest("https://test/balances/adjust", "POST", {
         employeeId: "7",
@@ -234,7 +306,7 @@ describe("leaves routes", () => {
         year: 2026,
         adjustment: 1,
         reason: "Correction",
-        adjustedBy: "42",
+        adjustedBy: "999",
       }),
       env as never,
     );
@@ -246,6 +318,7 @@ describe("leaves routes", () => {
       adjustment: 1,
       reason: "Correction",
       adjustedBy: "42",
+      restaurantId: RESTAURANT_ID,
     });
 
     const restaurantResponse = await app.fetch(
@@ -291,13 +364,19 @@ describe("leaves routes", () => {
     );
     expect(listResponse.status).toBe(200);
     expect(mocks.getLeaveRequests).toHaveBeenCalledWith(
-      expect.objectContaining({ employeeId: "7", page: 2, limit: 5 }),
+      expect.objectContaining({
+        employeeId: "7",
+        restaurantId: RESTAURANT_ID,
+        page: 2,
+        limit: 5,
+      }),
     );
 
     const detailResponse = await withSilencedRouteError(() =>
       app.fetch(new Request("https://test/requests/9"), createEnv() as never),
     );
     expect(detailResponse.status).toBe(500);
+    expect(mocks.getLeaveRequest).toHaveBeenCalledWith(9, RESTAURANT_ID);
   });
 
   it("creates, approves, rejects, and cancels leave requests", async () => {
@@ -305,10 +384,15 @@ describe("leaves routes", () => {
     mocks.createLeaveRequest.mockResolvedValue({ id: 9, totalDays: 1.5 });
     mocks.approveLeaveRequest.mockResolvedValue({ id: 9, status: "approved" });
     mocks.rejectLeaveRequest.mockResolvedValue({ id: 9, status: "rejected" });
-    mocks.getLeaveRequest.mockResolvedValue({ id: 9, employeeId: 42 });
+    mocks.getLeaveRequest.mockResolvedValue({
+      id: 9,
+      employeeId: "7",
+      restaurantId: RESTAURANT_ID,
+    });
     mocks.cancelLeaveRequest.mockResolvedValue({ id: 9, status: "cancelled" });
     const env = createEnv();
 
+    // Owner (role 1) may file for another employee of the same restaurant
     const createResponse = await app.fetch(
       jsonRequest(
         `https://test/${RESTAURANT_ID}/requests`,
@@ -318,6 +402,12 @@ describe("leaves routes", () => {
       env as never,
     );
     expect(createResponse.status).toBe(201);
+    expect(mocks.getLeaveBalance).toHaveBeenCalledWith(
+      "7",
+      3,
+      expect.any(Number),
+      RESTAURANT_ID,
+    );
     expect(mocks.createLeaveRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: RESTAURANT_ID,
@@ -326,19 +416,25 @@ describe("leaves routes", () => {
       }),
     );
 
+    // A spoofed approverId in the body must lose to the session identity.
     const approveResponse = await app.fetch(
       jsonRequest("https://test/requests/9/approve", "POST", {
-        approverId: 42,
+        approverId: "999",
         comments: "Enjoy",
       }),
       env as never,
     );
     expect(approveResponse.status).toBe(200);
-    expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(9, "42", "Enjoy");
+    expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(
+      9,
+      "42",
+      "Enjoy",
+      RESTAURANT_ID,
+    );
 
     const rejectResponse = await app.fetch(
       jsonRequest("https://test/requests/9/reject", "POST", {
-        approverId: 42,
+        approverId: "999",
         reason: "Coverage gap",
       }),
       env as never,
@@ -348,11 +444,12 @@ describe("leaves routes", () => {
       9,
       "42",
       "Coverage gap",
+      RESTAURANT_ID,
     );
 
     const cancelResponse = await app.fetch(
       jsonRequest("https://test/requests/9/cancel", "POST", {
-        userId: 42,
+        userId: "999",
         reason: "Changed plans",
       }),
       env as never,
@@ -362,7 +459,80 @@ describe("leaves routes", () => {
       9,
       "42",
       "Changed plans",
+      RESTAURANT_ID,
     );
+  });
+
+  it("forces self-service leave requests onto the session employee", async () => {
+    // Non-manager (role 3) tries to file leave for someone else
+    mocks.currentUser.id = 7;
+    mocks.currentUser.role = 3;
+    mocks.getLeaveBalance.mockResolvedValue({ remainingDays: 3 });
+    mocks.createLeaveRequest.mockResolvedValue({ id: 9, totalDays: 1.5 });
+
+    const response = await app.fetch(
+      jsonRequest(
+        `https://test/${RESTAURANT_ID}/requests`,
+        "POST",
+        createLeaveRequestBody({ employeeId: "8" }),
+      ),
+      createEnv() as never,
+    );
+    expect(response.status).toBe(201);
+    expect(mocks.createLeaveRequest).toHaveBeenCalledOnce();
+    expect(mocks.createLeaveRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        employeeId: "7",
+        restaurantId: RESTAURANT_ID,
+      }),
+    );
+  });
+
+  it("rejects self-approval and cross-tenant approval attempts", async () => {
+    const env = createEnv();
+
+    // The session user owns request 9 — approving or rejecting it is forbidden
+    mocks.getLeaveRequest.mockResolvedValue({
+      id: 9,
+      employeeId: "42",
+      restaurantId: RESTAURANT_ID,
+    });
+
+    const selfApproveResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/requests/9/approve", "POST", {
+          comments: "Looks fine",
+        }),
+        env as never,
+      ),
+    );
+    expect(selfApproveResponse.status).toBe(500);
+    expect(mocks.approveLeaveRequest).not.toHaveBeenCalled();
+
+    const selfRejectResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/requests/9/reject", "POST", {
+          reason: "No",
+        }),
+        env as never,
+      ),
+    );
+    expect(selfRejectResponse.status).toBe(500);
+    expect(mocks.rejectLeaveRequest).not.toHaveBeenCalled();
+
+    // Cross-tenant request: the scoped lookup misses, so approval 404s
+    mocks.getLeaveRequest.mockResolvedValue(null);
+    const crossTenantResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/requests/9/approve", "POST", {
+          comments: "Enjoy",
+        }),
+        env as never,
+      ),
+    );
+    expect(crossTenantResponse.status).toBe(500);
+    expect(mocks.getLeaveRequest).toHaveBeenLastCalledWith(9, RESTAURANT_ID);
+    expect(mocks.approveLeaveRequest).not.toHaveBeenCalled();
   });
 
   it("rejects invalid leave request creation and missing cancellation targets", async () => {
@@ -379,29 +549,17 @@ describe("leaves routes", () => {
     );
     expect(insufficientResponse.status).toBe(500);
 
-    const missingEmployeeResponse = await withSilencedRouteError(() =>
-      app.fetch(
-        jsonRequest(
-          `https://test/${RESTAURANT_ID}/requests`,
-          "POST",
-          createLeaveRequestBody({ employeeId: undefined }),
-        ),
-        createEnv() as never,
-      ),
-    );
-    expect(missingEmployeeResponse.status).toBe(500);
-
     mocks.getLeaveRequest.mockResolvedValue(null);
     const missingCancelResponse = await withSilencedRouteError(() =>
       app.fetch(
         jsonRequest("https://test/requests/404/cancel", "POST", {
-          userId: 42,
           reason: "Changed plans",
         }),
         createEnv() as never,
       ),
     );
     expect(missingCancelResponse.status).toBe(500);
+    expect(mocks.cancelLeaveRequest).not.toHaveBeenCalled();
   });
 
   it("reads holidays and working-day status", async () => {

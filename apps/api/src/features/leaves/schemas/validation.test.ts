@@ -131,9 +131,11 @@ describe("leave validation schemas", () => {
       limit: 20,
     });
 
-    expect(approveLeaveRequestSchema.parse({ approverId: "3" })).toEqual({
-      approverId: "3",
-    });
+    // Approver identity comes from the session, never from the body — a
+    // client-supplied approverId must be stripped by the schema.
+    expect(
+      approveLeaveRequestSchema.parse({ approverId: "3", comments: "ok" }),
+    ).toEqual({ comments: "ok" });
   });
 
   it("calculates and validates leave helper behavior", () => {

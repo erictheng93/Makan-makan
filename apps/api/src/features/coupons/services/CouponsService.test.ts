@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CouponsService } from "./CouponsService";
 
 function createService() {
@@ -11,6 +11,7 @@ function createSelectChain(result: unknown[]) {
     innerJoin: vi.fn(() => chain),
     where: vi.fn(() => chain),
     groupBy: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
     orderBy: vi.fn(async () => result),
     then: (
       resolve: (value: unknown[]) => unknown,
@@ -18,6 +19,65 @@ function createSelectChain(result: unknown[]) {
     ) => Promise.resolve(result).then(resolve, reject),
   };
   return chain;
+}
+
+function buildOrder(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "order-1",
+    restaurantId: "restaurant-1",
+    subtotalCents: 10000,
+    ...overrides,
+  };
+}
+
+function buildRedeemableCoupon(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 10,
+    restaurantId: "restaurant-1",
+    code: "SAVE10",
+    discountType: "percentage",
+    discountPercentageBps: 1000,
+    discountValueCents: null,
+    maxDiscountAmountCents: null,
+    minOrderAmountCents: null,
+    applicableMenuItems: null,
+    applicableCategories: null,
+    usageLimit: null,
+    usageLimitPerUser: null,
+    usedCount: 0,
+    validFrom: "2026-01-01",
+    validTo: "2026-12-31",
+    isActive: true,
+    isVisible: true,
+    deletedAt: null,
+    ...overrides,
+  };
+}
+
+function setupUseCouponService({
+  order = buildOrder() as Record<string, unknown> | null,
+  coupon = buildRedeemableCoupon() as Record<string, unknown> | null,
+  orderItemRows = [] as Array<{ menuItemId: number; quantity: number }>,
+  userUsageCount = 0,
+} = {}) {
+  const service = createService();
+  // select 呼叫順序鏡射 useCouponForOrder：訂單 → 優惠券 →
+  // （有適用限制時）訂單商品 → （有每用戶上限時）用戶使用次數
+  const select = vi
+    .fn()
+    .mockReturnValueOnce(createSelectChain(order ? [order] : []))
+    .mockReturnValueOnce(createSelectChain(coupon ? [coupon] : []));
+  if (coupon && (coupon.applicableMenuItems || coupon.applicableCategories)) {
+    select.mockReturnValueOnce(createSelectChain(orderItemRows));
+  }
+  if (coupon?.usageLimitPerUser) {
+    select.mockReturnValueOnce(createSelectChain([{ count: userUsageCount }]));
+  }
+  Object.assign(service as unknown as { db: unknown }, { db: { select } });
+  const useCoupon = vi
+    .spyOn(service, "useCoupon")
+    .mockResolvedValue({ id: 77 } as never);
+  return { service, select, useCoupon };
 }
 
 describe("CouponsService", () => {
@@ -355,5 +415,221 @@ describe("CouponsService", () => {
       usageByPeriod: [],
     });
     expect(select).toHaveBeenCalledTimes(3);
+  });
+
+  describe("useCouponForOrder", () => {
+    const input = { couponId: 10, orderId: "order-1", userId: "user-1" };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-07-15T12:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("redeems an eligible coupon and records usage", async () => {
+      const { service, useCoupon } = setupUseCouponService();
+
+      await expect(service.useCouponForOrder(input)).resolves.toEqual({
+        id: 77,
+      });
+      expect(useCoupon).toHaveBeenCalledOnce();
+      expect(useCoupon).toHaveBeenCalledWith(
+        expect.objectContaining({
+          couponId: 10,
+          orderId: "order-1",
+          userId: "user-1",
+          discountAmount: 10,
+          originalAmount: 100,
+          finalAmount: 90,
+        }),
+      );
+    });
+
+    it("redeems hidden-but-active coupons (isVisible is not enforced at redemption)", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ isVisible: false }),
+      });
+
+      await expect(service.useCouponForOrder(input)).resolves.toEqual({
+        id: 77,
+      });
+      expect(useCoupon).toHaveBeenCalledOnce();
+    });
+
+    it("denies an inactive coupon", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ isActive: false }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_INACTIVE",
+        status: 400,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a soft-deleted coupon", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ deletedAt: new Date("2026-07-01") }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_NOT_FOUND",
+        status: 404,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a coupon before its validFrom date", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ validFrom: "2026-08-01" }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_NOT_STARTED",
+        status: 400,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a coupon after its validTo date", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ validTo: "2026-06-30" }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_EXPIRED",
+        status: 400,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies an order below the minimum amount", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ minOrderAmountCents: 20000 }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_MIN_ORDER_NOT_MET",
+        status: 400,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a coupon whose advisory usage limit is exhausted", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ usageLimit: 5, usedCount: 5 }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_USAGE_LIMIT_REACHED",
+        status: 409,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("maps an atomic claim failure (0 rows updated) to a conflict error", async () => {
+      const { service, useCoupon } = setupUseCouponService();
+      useCoupon.mockRejectedValueOnce(
+        new CouponsService.EligibilityError(
+          "COUPON_USAGE_LIMIT_REACHED",
+          "Coupon usage limit reached",
+        ),
+      );
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_USAGE_LIMIT_REACHED",
+        status: 409,
+      });
+      expect(useCoupon).toHaveBeenCalledOnce();
+    });
+
+    it("denies a user who reached the per-user limit", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ usageLimitPerUser: 1 }),
+        userUsageCount: 1,
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_USER_LIMIT_REACHED",
+        status: 409,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a coupon that belongs to another restaurant", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ restaurantId: "restaurant-2" }),
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_WRONG_RESTAURANT",
+        status: 403,
+      });
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a coupon when the order has no applicable items", async () => {
+      const { service, select, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ applicableMenuItems: [99] }),
+        orderItemRows: [{ menuItemId: 1, quantity: 2 }],
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_NOT_APPLICABLE",
+        status: 400,
+      });
+      // 訂單 → 優惠券 → 訂單商品（只有設定了適用限制才查）
+      expect(select).toHaveBeenCalledTimes(3);
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+  });
+
+  it("claimUsageSlot throws a coded error when the conditional UPDATE claims no slot", async () => {
+    const service = createService();
+    const run = vi.fn().mockResolvedValue({ meta: { changes: 0 } });
+    const bind = vi.fn(() => ({ run }));
+    const prepare = vi.fn(() => ({ bind }));
+    Object.assign(service as unknown as { d1: unknown }, { d1: { prepare } });
+
+    await expect(service.claimUsageSlot(10)).rejects.toMatchObject({
+      name: "CouponEligibilityError",
+      code: "COUPON_USAGE_LIMIT_REACHED",
+    });
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(bind).toHaveBeenCalledWith(10);
+  });
+
+  it("rejects soft-deleted coupons in validateCoupon", async () => {
+    const service = createService();
+    const findFirst = vi
+      .fn()
+      .mockResolvedValue(
+        buildRedeemableCoupon({ deletedAt: new Date("2026-07-01") }),
+      );
+    Object.assign(service as unknown as { db: unknown }, {
+      db: { query: { coupons: { findFirst } } },
+    });
+
+    await expect(
+      service.validateCoupon("SAVE10", "restaurant-1", 100, "user-1"),
+    ).resolves.toEqual({
+      valid: false,
+      error: "優惠券代碼不存在或已失效",
+    });
+    expect(findFirst).toHaveBeenCalledOnce();
   });
 });
