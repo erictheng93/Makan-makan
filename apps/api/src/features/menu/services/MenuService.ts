@@ -350,19 +350,28 @@ export class MenuService implements IMenuService {
       if (!existingCategory) {
         return false;
       }
-      const menuItems = await this.dbService.searchMenuItems(
-        String(existingCategory.restaurantId),
-        { categoryId: id },
-        1,
-        1,
-      );
-      if (menuItems.items.length > 0) {
+      // Counted by category id alone. This used to go through
+      // searchMenuItems(), whose WHERE carries publicCategoryConditions —
+      // conditions on the CATEGORY. A category with isVisible:false (a state
+      // #83 made first-class) counted zero items however full it was, so the
+      // guard let an owner delete a category holding on-sale dishes.
+      const itemsInCategory = await this.dbService.countItemsInCategory(id);
+      if (itemsInCategory > 0) {
         throw conflict(
           "Cannot delete category that contains menu items",
           "CATEGORY_HAS_MENU_ITEMS",
         );
       }
-      await this.updateCategory(id, { isActive: false });
+      // Writes deleted_at_ms, the marker the menu reads actually filter on.
+      // Setting only isActive:false left the category visible in the owner's
+      // own dashboard — adminCategoryConditions looks at deletedAt — where it
+      // reappeared badged "hidden" after every delete and could never be
+      // removed. Returns false when the row was already deleted, which the
+      // route reports as 404 rather than a second hollow success.
+      const deleted = await this.dbService.softDeleteCategory(id);
+      if (!deleted) {
+        return false;
+      }
       this.logger.info("Category deleted successfully", { categoryId: id });
       return true;
     } catch (error) {

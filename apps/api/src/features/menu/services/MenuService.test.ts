@@ -34,6 +34,13 @@ describe("MenuService", () => {
       createCategory: vi.fn(),
       updateCategory: vi.fn(),
       getCategory: vi.fn(),
+      // Category deletion writes deleted_at_ms too, for the same reason items
+      // do: the menu reads filter on that column, not on isActive.
+      softDeleteCategory: vi.fn(async () => true),
+      // The "is this category empty?" guard counts by category id alone, not
+      // through searchMenuItems — that query's category-visibility conditions
+      // made a hidden category read as empty. Defaults to empty.
+      countItemsInCategory: vi.fn(async () => 0),
       searchMenuItems: vi.fn(),
       reorderCategories: vi.fn(),
       getFeaturedItems: vi.fn(),
@@ -586,17 +593,32 @@ describe("MenuService", () => {
     const { service, dbService } = createService({
       dbService: {
         getCategory: vi.fn(async () => category()),
-        searchMenuItems: vi.fn(async () => ({
-          items: [menuItem()],
-          pagination: { page: 1, limit: 1, total: 1 },
-        })),
+        countItemsInCategory: vi.fn(async () => 1),
       },
     });
 
     await expect(service.deleteCategory(7)).rejects.toThrow(
       "Cannot delete category that contains menu items",
     );
-    expect(dbService.updateCategory).not.toHaveBeenCalled();
+    expect(dbService.softDeleteCategory).not.toHaveBeenCalled();
+  });
+
+  it("counts the category's items directly rather than through the visibility-filtered search", async () => {
+    // searchMenuItems' WHERE carries publicCategoryConditions, which are
+    // conditions on the category — a hidden one reported zero items whatever
+    // it held, so the emptiness guard passed for a full category.
+    const { service, dbService } = createService({
+      dbService: {
+        getCategory: vi.fn(async () => category({ isVisible: false })),
+        countItemsInCategory: vi.fn(async () => 3),
+      },
+    });
+
+    await expect(service.deleteCategory(7)).rejects.toThrow(
+      "Cannot delete category that contains menu items",
+    );
+    expect(dbService.countItemsInCategory).toHaveBeenCalledWith(7);
+    expect(dbService.searchMenuItems).not.toHaveBeenCalled();
   });
 
   it("reports missing categories as already deleted", async () => {
@@ -607,26 +629,35 @@ describe("MenuService", () => {
     });
 
     await expect(service.deleteCategory(404)).resolves.toBe(false);
-    expect(dbService.searchMenuItems).not.toHaveBeenCalled();
-    expect(dbService.updateCategory).not.toHaveBeenCalled();
+    expect(dbService.countItemsInCategory).not.toHaveBeenCalled();
+    expect(dbService.softDeleteCategory).not.toHaveBeenCalled();
   });
 
-  it("deletes empty categories by marking them inactive", async () => {
+  it("deletes empty categories by writing deleted_at_ms, not just isActive", async () => {
     const { service, dbService } = createService({
       dbService: {
         getCategory: vi.fn(async () => category()),
-        searchMenuItems: vi.fn(async () => ({
-          items: [],
-          pagination: { page: 1, limit: 1, total: 0 },
-        })),
-        updateCategory: vi.fn(async () => category({ isActive: false })),
+        countItemsInCategory: vi.fn(async () => 0),
       },
     });
 
     await expect(service.deleteCategory(7)).resolves.toBe(true);
-    expect(dbService.updateCategory).toHaveBeenCalledWith(7, {
-      isActive: false,
+    expect(dbService.softDeleteCategory).toHaveBeenCalledWith(7);
+    // The admin menu read filters categories on deletedAt alone, so marking
+    // isActive was invisible to it and the category came straight back.
+    expect(dbService.updateCategory).not.toHaveBeenCalled();
+  });
+
+  it("reports an already-deleted category as gone instead of succeeding twice", async () => {
+    const { service } = createService({
+      dbService: {
+        getCategory: vi.fn(async () => category()),
+        countItemsInCategory: vi.fn(async () => 0),
+        softDeleteCategory: vi.fn(async () => false),
+      },
     });
+
+    await expect(service.deleteCategory(7)).resolves.toBe(false);
   });
 
   it("searches, highlights featured and popular items, and performs counters", async () => {
