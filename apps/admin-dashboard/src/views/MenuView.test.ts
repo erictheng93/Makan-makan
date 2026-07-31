@@ -82,7 +82,9 @@ describe("MenuView", () => {
     Object.keys(routeQuery).forEach((key) => delete routeQuery[key]);
     selectedCategoryId.value = null;
     menuItems.value = [];
-    saveMenuItem.mockResolvedValue(true);
+    // saveMenuItem reports "saved" | "failed" | "conflict" — a plain boolean
+    // could not distinguish a lost-update refusal from any other failure (#85).
+    saveMenuItem.mockResolvedValue("saved");
     imageUploadMocks.upload.mockResolvedValue(null);
     vi.stubEnv("VITE_IMAGE_API_URL", "https://images.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null)));
@@ -180,7 +182,11 @@ describe("MenuView", () => {
         keywords: "小吃 招牌",
       }),
     ]);
-    expect(wrapper.text()).toContain("已成功匯入 1 筆商品");
+    // The outcome is reported through t() now, not a hardcoded literal (#85);
+    // the t() stub here renders "<key> <count>".
+    expect(wrapper.get('[data-testid="menu-item-import-success"]').text()).toBe(
+      "menu.import.successBanner 1",
+    );
   });
 
   it("shows a market search reindex next step after importing product gap items", async () => {
@@ -381,7 +387,7 @@ describe("MenuView", () => {
   });
 
   it("does not delete the previous image when saving fails", async () => {
-    saveMenuItem.mockResolvedValue(false);
+    saveMenuItem.mockResolvedValue("failed");
     const wrapper = mountMenuView();
     const item = menuItem({ imageId: "previous-image-id" });
 
@@ -391,6 +397,191 @@ describe("MenuView", () => {
     await flushPromises();
 
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  // Issue #85: the API refuses a save whose version is stale (409
+  // MENU_ITEM_MODIFIED). A generic error toast would leave the owner with no
+  // idea what happened or what to do about it.
+  describe("concurrent edit prompt (#85)", () => {
+    it("offers to reload the item instead of reporting a generic failure", async () => {
+      saveMenuItem.mockResolvedValue("conflict");
+      const wrapper = mountMenuView();
+
+      await editItem(wrapper, menuItem({ name: "牛肉麵" }));
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      const prompt = wrapper.get('[data-testid="menu-item-conflict"]');
+      expect(prompt.text()).toContain("menu.conflict.title");
+      expect(prompt.attributes("role")).toBe("alert");
+      expect(
+        wrapper.find('[data-testid="menu-item-conflict-reload"]').exists(),
+      ).toBe(true);
+      // The modal stays open so the owner still has their edits in front of them.
+      expect(wrapper.find('[data-testid="item-modal"]').exists()).toBe(true);
+      // Nothing was written, so the old image must not be deleted either.
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it("reloads the menu and repopulates the form from the fresh item", async () => {
+      saveMenuItem.mockResolvedValue("conflict");
+      const wrapper = mountMenuView();
+      const stale = menuItem({ name: "牛肉麵", price: 7000 });
+      menuItems.value = [stale] as never;
+
+      await editItem(wrapper, stale);
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      // Someone else's version is what fetchMenu brings back.
+      fetchMenu.mockImplementation(async () => {
+        menuItems.value = [
+          menuItem({ name: "牛肉麵", price: 9000, isAvailable: false }),
+        ] as never;
+      });
+      // onMounted already fetched once; the reload has to fetch again.
+      const fetchesBeforeReload = fetchMenu.mock.calls.length;
+      await wrapper
+        .get('[data-testid="menu-item-conflict-reload"]')
+        .trigger("click");
+      await flushPromises();
+
+      expect(fetchMenu.mock.calls.length).toBe(fetchesBeforeReload + 1);
+      expect(wrapper.vm.menuItemForm.price).toBe(9000);
+      expect(wrapper.vm.menuItemForm.isAvailable).toBe(false);
+      expect(wrapper.find('[data-testid="menu-item-conflict"]').exists()).toBe(
+        false,
+      );
+    });
+
+    it("clears the prompt when the owner chooses to keep editing", async () => {
+      saveMenuItem.mockResolvedValue("conflict");
+      const wrapper = mountMenuView();
+
+      await editItem(wrapper, menuItem());
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+      // onMounted already fetched once; dismissing must not fetch again.
+      const fetchesBeforeDismiss = fetchMenu.mock.calls.length;
+      await wrapper
+        .get('[data-testid="menu-item-conflict-dismiss"]')
+        .trigger("click");
+
+      expect(wrapper.find('[data-testid="menu-item-conflict"]').exists()).toBe(
+        false,
+      );
+      expect(fetchMenu.mock.calls.length).toBe(fetchesBeforeDismiss);
+    });
+
+    // A blanket "take theirs" on reload throws away work the owner may have
+    // spent minutes on; a blanket "keep mine" is the overwrite the 409 exists
+    // to prevent. Only the baseline the form was opened with can tell the two
+    // apart.
+    it("keeps the fields the owner edited and adopts the rest from the fresh row", async () => {
+      saveMenuItem.mockResolvedValue("conflict");
+      const wrapper = mountMenuView();
+      const stale = menuItem({ name: "牛肉麵", price: 7000 });
+      menuItems.value = [stale] as never;
+
+      await editItem(wrapper, stale);
+      // The owner renamed it and never touched the price.
+      wrapper.vm.menuItemForm.name = "紅燒牛肉麵";
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      // Someone else repriced it in the meantime.
+      fetchMenu.mockImplementation(async () => {
+        menuItems.value = [menuItem({ name: "牛肉麵", price: 9000 })] as never;
+      });
+      await wrapper
+        .get('[data-testid="menu-item-conflict-reload"]')
+        .trigger("click");
+      await flushPromises();
+
+      expect(wrapper.vm.menuItemForm.name).toBe("紅燒牛肉麵");
+      expect(wrapper.vm.menuItemForm.price).toBe(9000);
+
+      const summary = wrapper.get('[data-testid="menu-item-merge-summary"]');
+      expect(
+        summary.find('[data-testid="menu-item-merge-kept"]').exists(),
+      ).toBe(true);
+      expect(
+        summary.find('[data-testid="menu-item-merge-applied"]').exists(),
+      ).toBe(true);
+      expect(
+        summary.find('[data-testid="menu-item-merge-overridden"]').exists(),
+      ).toBe(false);
+    });
+
+    it("flags a field both sides changed and shows the owner's value", async () => {
+      saveMenuItem.mockResolvedValue("conflict");
+      const wrapper = mountMenuView();
+      const stale = menuItem({ price: 7000 });
+      menuItems.value = [stale] as never;
+
+      await editItem(wrapper, stale);
+      wrapper.vm.menuItemForm.price = 7500;
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      fetchMenu.mockImplementation(async () => {
+        menuItems.value = [menuItem({ price: 9000 })] as never;
+      });
+      await wrapper
+        .get('[data-testid="menu-item-conflict-reload"]')
+        .trigger("click");
+      await flushPromises();
+
+      // The owner is looking at their own number, so it stays — but they are
+      // told the other value existed rather than losing it silently.
+      expect(wrapper.vm.menuItemForm.price).toBe(7500);
+      expect(
+        wrapper.find('[data-testid="menu-item-merge-overridden"]').exists(),
+      ).toBe(true);
+    });
+
+    it("says the item was deleted rather than closing the modal from under the owner", async () => {
+      saveMenuItem.mockResolvedValue("conflict");
+      const wrapper = mountMenuView();
+      const stale = menuItem();
+      menuItems.value = [stale] as never;
+
+      await editItem(wrapper, stale);
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      fetchMenu.mockImplementation(async () => {
+        menuItems.value = [] as never;
+      });
+      await wrapper
+        .get('[data-testid="menu-item-conflict-reload"]')
+        .trigger("click");
+      await flushPromises();
+
+      const prompt = wrapper.get('[data-testid="menu-item-conflict"]');
+      expect(prompt.text()).toContain("menu.conflict.removed");
+      // Nothing left to merge into, so the reload affordance goes away.
+      expect(
+        wrapper.find('[data-testid="menu-item-conflict-reload"]').exists(),
+      ).toBe(false);
+      expect(wrapper.find('[data-testid="item-modal"]').exists()).toBe(true);
+    });
+
+    it("sends the version the form was loaded with", async () => {
+      const wrapper = mountMenuView();
+
+      await editItem(
+        wrapper,
+        menuItem({ updatedAt: "2026-07-30T08:15:30.250Z" }),
+      );
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      expect(saveMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({ updatedAt: "2026-07-30T08:15:30.250Z" }),
+        1,
+      );
+    });
   });
 
   it("does not delete an image when imageId is unchanged", async () => {

@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTableColumns } from "drizzle-orm";
 import { categories, menuItems } from "@makanmakan/database";
 import {
+  MAX_BULK_CREATE_ITEMS,
+  bulkCreateMenuItemsSchema,
   createCategorySchema,
   createMenuItemSchema,
   featuredItemsQuerySchema,
@@ -15,18 +17,21 @@ import {
   validatePriceConsistency,
 } from "./validation";
 
+/** An `updatedAt` as the API serialises it: ISO-8601, millisecond precision. */
+const ITEM_VERSION = "2026-07-30T08:15:30.250Z";
+
 describe("menu validation schemas", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("parses menu items with defaults and safe image data URLs", () => {
+  it("parses menu items with defaults and an uploaded image URL", () => {
     const parsed = createMenuItemSchema.parse({
       categoryId: 1,
       name: "  Nasi Lemak  ",
       price: 12,
       imageId: "01940000-0000-7000-8000-000000000001",
-      imageUrl: `data:image/png;base64,${Buffer.from("png").toString("base64")}`,
+      imageUrl: "https://images.example.com/nasi-lemak/medium.webp",
     });
 
     expect(parsed).toMatchObject({
@@ -34,6 +39,7 @@ describe("menu validation schemas", () => {
       name: "Nasi Lemak",
       price: 12,
       imageId: "01940000-0000-7000-8000-000000000001",
+      imageUrl: "https://images.example.com/nasi-lemak/medium.webp",
       spiceLevel: 0,
       preparationTime: 15,
     });
@@ -116,7 +122,7 @@ describe("menu validation schemas", () => {
     });
   });
 
-  it("rejects unsafe image data URLs and inconsistent prices", () => {
+  it("rejects unsafe image URLs and inconsistent prices", () => {
     expect(() =>
       createMenuItemSchema.parse({
         categoryId: 1,
@@ -129,6 +135,118 @@ describe("menu validation schemas", () => {
     expect(() => validatePriceConsistency(12, 10)).toThrow(
       /higher than original price/,
     );
+  });
+
+  // Issue #85: imageUrl accepted a base64 data URL of up to ~10MB and the API
+  // wrote it straight into menu_items.image_url, so the unpaginated public menu
+  // response (and its KV cache entry) carried the image bytes on every request.
+  // Images go to R2 through the image-processor; the column holds a reference.
+  describe("imageUrl only accepts a reference to an uploaded image (#85)", () => {
+    const dataUrl = `data:image/png;base64,${Buffer.from(
+      "x".repeat(1024),
+    ).toString("base64")}`;
+
+    it("rejects image data URLs, even well-formed small ones", () => {
+      for (const schema of [createMenuItemSchema, createCategorySchema]) {
+        expect(() =>
+          schema.parse({
+            categoryId: 1,
+            name: "Rendang",
+            price: 15,
+            imageUrl: dataUrl,
+          }),
+        ).toThrow(/imageUrl/);
+      }
+    });
+
+    it("accepts absolute and root-relative image references", () => {
+      expect(
+        createMenuItemSchema.parse({
+          categoryId: 1,
+          name: "Rendang",
+          price: 15,
+          imageUrl: "https://images.example.com/rendang.webp",
+        }),
+      ).toMatchObject({ imageUrl: "https://images.example.com/rendang.webp" });
+
+      expect(
+        createMenuItemSchema.parse({
+          categoryId: 1,
+          name: "Rendang",
+          price: 15,
+          imageUrl: "/uploads/x.png",
+        }),
+      ).toMatchObject({ imageUrl: "/uploads/x.png" });
+
+      expect(
+        createCategorySchema.parse({
+          name: "主食",
+          imageUrl: "/uploads/x.png",
+        }),
+      ).toMatchObject({ imageUrl: "/uploads/x.png" });
+
+      // null stays valid — that is how the dashboard clears an image.
+      // updatedAt rides along because clearing an image is a form save, and
+      // those now carry the optimistic-lock precondition (#85).
+      expect(
+        updateMenuItemSchema.parse({ imageUrl: null, updatedAt: ITEM_VERSION }),
+      ).toMatchObject({
+        imageUrl: null,
+      });
+    });
+
+    it("rejects a URL long enough to be a payload rather than a reference", () => {
+      expect(() =>
+        createMenuItemSchema.parse({
+          categoryId: 1,
+          name: "Rendang",
+          price: 15,
+          imageUrl: `https://images.example.com/${"a".repeat(2100)}.webp`,
+        }),
+      ).toThrow(/imageUrl/);
+    });
+
+    it("rejects protocol-relative URLs that point off-origin", () => {
+      expect(() =>
+        createMenuItemSchema.parse({
+          categoryId: 1,
+          name: "Rendang",
+          price: 15,
+          imageUrl: "//evil.example.com/x.png",
+        }),
+      ).toThrow(/imageUrl/);
+    });
+  });
+
+  // Issue #85: these are public, unauthenticated endpoints — an uncapped limit
+  // let anyone pull an entire catalogue in one query, and page=0 produced a
+  // negative OFFSET.
+  describe("public query limits are bounded (#85)", () => {
+    it("caps search limit at 100 and requires page >= 1", () => {
+      expect(menuFilterSchema.parse({ limit: "100", page: "3" })).toMatchObject(
+        {
+          limit: 100,
+          page: 3,
+        },
+      );
+
+      expect(() => menuFilterSchema.parse({ limit: "101" })).toThrow();
+      expect(() => menuFilterSchema.parse({ limit: "999999" })).toThrow();
+      expect(() => menuFilterSchema.parse({ limit: "0" })).toThrow();
+      expect(() => menuFilterSchema.parse({ page: "0" })).toThrow();
+    });
+
+    it("caps featured and popular limits at 100 while keeping the defaults", () => {
+      for (const schema of [
+        featuredItemsQuerySchema,
+        popularItemsQuerySchema,
+      ]) {
+        expect(schema.parse({})).toMatchObject({ limit: 10 });
+        expect(schema.parse({ limit: "100" })).toMatchObject({ limit: 100 });
+        expect(() => schema.parse({ limit: "999999" })).toThrow();
+        expect(() => schema.parse({ limit: "0" })).toThrow();
+      }
+    });
   });
 
   it("validates required customization and size defaults", () => {
@@ -234,12 +352,17 @@ describe("English name round-trips through the request schemas (#107)", () => {
     ).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
 
     expect(
-      updateMenuItemSchema.parse({ nameEn: "Chicken Rice" }),
+      updateMenuItemSchema.parse({
+        nameEn: "Chicken Rice",
+        updatedAt: ITEM_VERSION,
+      }),
     ).toMatchObject({ nameEn: "Chicken Rice" });
 
     // Clearing the field has to survive too, otherwise there is no way to
     // remove an English name once set.
-    expect(updateMenuItemSchema.parse({ nameEn: null })).toMatchObject({
+    expect(
+      updateMenuItemSchema.parse({ nameEn: null, updatedAt: ITEM_VERSION }),
+    ).toMatchObject({
       nameEn: null,
     });
   });
@@ -266,6 +389,110 @@ describe("English name round-trips through the request schemas (#107)", () => {
     expect(() =>
       createCategorySchema.parse({ name: "x", nameEn: "e".repeat(51) }),
     ).toThrow();
+  });
+});
+
+// Issue #85: PUT /menu/items/:id had no version check while the admin form
+// saved every field it rendered, so an owner changing a price silently reverted
+// a sold-out flag a chef had set in the meantime.
+describe("menu item updates carry an optimistic-lock precondition (#85)", () => {
+  it("normalises both accepted wire formats to epoch ms", () => {
+    // What a JSON round-trip of the API's own response produces...
+    expect(
+      updateMenuItemSchema.parse({ price: 210, updatedAt: ITEM_VERSION }),
+    ).toMatchObject({ updatedAt: Date.parse(ITEM_VERSION) });
+
+    // ...and what a client that parsed the date itself would send.
+    expect(
+      updateMenuItemSchema.parse({
+        price: 210,
+        updatedAt: Date.parse(ITEM_VERSION),
+      }),
+    ).toMatchObject({ updatedAt: Date.parse(ITEM_VERSION) });
+
+    // Same instant written with a numeric offset instead of Z — the reason the
+    // comparison is done on epoch ms and never on the string.
+    expect(
+      updateMenuItemSchema.parse({
+        price: 210,
+        updatedAt: "2026-07-30T10:15:30.250+02:00",
+      }),
+    ).toMatchObject({ updatedAt: Date.parse(ITEM_VERSION) });
+  });
+
+  it("rejects a field-changing update that omits the version", () => {
+    for (const body of [
+      { price: 210 },
+      { name: "Renamed" },
+      { categoryId: 4 },
+      { isAvailable: false, price: 210 },
+    ]) {
+      expect(() => updateMenuItemSchema.parse(body)).toThrow(/updatedAt/);
+    }
+  });
+
+  it("still accepts a stock-only update with no version", () => {
+    // A chef flipping availability has no rendered form to be stale, and the
+    // newest stock decision should win — see STOCK_ONLY_ITEM_FIELDS.
+    expect(updateMenuItemSchema.parse({ isAvailable: false })).toEqual({
+      isAvailable: false,
+    });
+    expect(
+      updateMenuItemSchema.parse({ isAvailable: false, inventoryCount: 0 }),
+    ).toEqual({ isAvailable: false, inventoryCount: 0 });
+  });
+
+  it("rejects a version that is not a timestamp", () => {
+    for (const updatedAt of ["yesterday", "", -1, null]) {
+      expect(() =>
+        updateMenuItemSchema.parse({ price: 210, updatedAt }),
+      ).toThrow();
+    }
+  });
+});
+
+// Issue #85: the CSV importer POSTed one item per row, so the only bound on an
+// import was the operator's patience and each row committed on its own.
+describe("bulk menu item creation is bounded (#85)", () => {
+  function row(overrides: Record<string, unknown> = {}) {
+    return { categoryId: 1, name: "Rendang", price: 15, ...overrides };
+  }
+
+  it("parses a batch and applies the same per-item defaults as a single create", () => {
+    const parsed = bulkCreateMenuItemsSchema.parse({ items: [row(), row()] });
+
+    expect(parsed.items).toHaveLength(2);
+    expect(parsed.items[0]).toMatchObject({
+      name: "Rendang",
+      price: 15,
+      spiceLevel: 0,
+      preparationTime: 15,
+    });
+  });
+
+  it("rejects an empty batch and one over the cap", () => {
+    expect(() => bulkCreateMenuItemsSchema.parse({ items: [] })).toThrow();
+    expect(() =>
+      bulkCreateMenuItemsSchema.parse({
+        items: Array.from({ length: MAX_BULK_CREATE_ITEMS + 1 }, () => row()),
+      }),
+    ).toThrow();
+    expect(
+      bulkCreateMenuItemsSchema.parse({
+        items: Array.from({ length: MAX_BULK_CREATE_ITEMS }, () => row()),
+      }).items,
+    ).toHaveLength(MAX_BULK_CREATE_ITEMS);
+  });
+
+  it("names the offending row index when one item is invalid", () => {
+    const items = Array.from({ length: 10 }, (_, index) =>
+      index === 6 ? row({ price: -1 }) : row(),
+    );
+
+    const result = bulkCreateMenuItemsSchema.safeParse({ items });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["items", 6, "price"]);
   });
 });
 
@@ -308,7 +535,6 @@ describe("request schemas do not drift from the writable columns", () => {
     "restaurantId",
     "iconUrl", // no UI yet
     "availableHours", // no UI yet
-    "itemCount", // maintained by the service on item mutations
     "createdAt",
     "updatedAt",
     "deletedAt",

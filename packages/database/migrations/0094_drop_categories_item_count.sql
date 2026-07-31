@@ -1,0 +1,14 @@
+-- 0094_drop_categories_item_count.sql
+-- categories.item_count was a denormalised counter with exactly one writer:
+-- createMenuItem. Item deletes, availability toggles and cross-category moves
+-- never touched it, and it only ever counted isAvailable rows, so any reader of
+-- the stored column got a stale number while the menu page (which counts live)
+-- looked correct. Item counts are now derived from menu_items at read time.
+-- See issue #84.
+--
+-- Plain DROP COLUMN is safe here: no index, trigger, view or generated column
+-- references categories.item_count (the only categories triggers are the
+-- restaurant_id guards, and the only categories indexes are on
+-- restaurant_id/sort_order/is_active/deleted_at/is_visible), so SQLite does not
+-- need the table-rebuild dance.
+ALTER TABLE categories DROP COLUMN item_count;

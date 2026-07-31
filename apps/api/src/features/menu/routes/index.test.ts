@@ -20,9 +20,9 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
       c.set("user", auth.user ?? { id: 7, role: 0, restaurantId: "rest-1" });
       await next();
     }),
-    requireRole: vi.fn(
-      () => async (_c: unknown, next: () => Promise<void>) => next(),
-    ),
+    // The real role guard, not a stub: the role table on these routes is the
+    // thing under test (#85), so a pass-through mock would assert nothing.
+    requireRole: vi.fn(actual.requireRole),
     requireRestaurantAccess: vi.fn(
       () => async (_c: unknown, next: () => Promise<void>) => next(),
     ),
@@ -48,6 +48,7 @@ const serviceFns = vi.hoisted(() => ({
   getMenuItem: vi.fn(),
   incrementViewCount: vi.fn(),
   createMenuItem: vi.fn(),
+  bulkCreateMenuItems: vi.fn(),
   updateMenuItem: vi.fn(),
   deleteMenuItem: vi.fn(),
   batchUpdateAvailability: vi.fn(),
@@ -72,6 +73,7 @@ vi.mock("../services/MenuService", () => ({
     getMenuItem = serviceFns.getMenuItem;
     incrementViewCount = serviceFns.incrementViewCount;
     createMenuItem = serviceFns.createMenuItem;
+    bulkCreateMenuItems = serviceFns.bulkCreateMenuItems;
     updateMenuItem = serviceFns.updateMenuItem;
     deleteMenuItem = serviceFns.deleteMenuItem;
     batchUpdateAvailability = serviceFns.batchUpdateAvailability;
@@ -152,13 +154,29 @@ const item = {
   categoryId: 3,
   name: "Laksa",
   price: 180,
+  updatedAt: "2026-07-30T08:15:30.250Z",
 };
+
+/**
+ * The optimistic-lock precondition every field-changing PUT now has to carry
+ * (#85) — the `updatedAt` the client last read, in the ISO form the API emits.
+ */
+const ITEM_VERSION = item.updatedAt;
 
 const category = {
   id: 3,
   restaurantId: "rest-1",
   name: "Noodles",
 };
+
+const ROLE = { ADMIN: 0, OWNER: 1, CHEF: 2 } as const;
+
+function buildUser(
+  role: number,
+  overrides: Record<string, unknown> = {},
+): { id: number; role: number; restaurantId?: string | number | null } {
+  return { id: 9, role, restaurantId: "rest-1", ...overrides };
+}
 
 function itemBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -185,6 +203,7 @@ beforeEach(() => {
   serviceFns.getMenuItem.mockResolvedValue(item);
   serviceFns.incrementViewCount.mockResolvedValue(undefined);
   serviceFns.createMenuItem.mockResolvedValue(item);
+  serviceFns.bulkCreateMenuItems.mockResolvedValue([item]);
   serviceFns.updateMenuItem.mockResolvedValue({ ...item, name: "Updated" });
   serviceFns.deleteMenuItem.mockResolvedValue(true);
   serviceFns.batchUpdateAvailability.mockResolvedValue(undefined);
@@ -316,11 +335,18 @@ describe("menu routes", () => {
     response = await request("/items/11", "PUT", {
       name: "Updated",
       isFeatured: true,
+      updatedAt: ITEM_VERSION,
     });
     expect(response.status).toBe(200);
     expect(serviceFns.updateMenuItem).toHaveBeenCalledWith(
       11,
-      { name: "Updated", isFeatured: true },
+      // The route hands the precondition to the service as epoch ms; the
+      // service is what compares and strips it.
+      expect.objectContaining({
+        name: "Updated",
+        isFeatured: true,
+        updatedAt: Date.parse(ITEM_VERSION),
+      }),
       item,
     );
 
@@ -332,7 +358,10 @@ describe("menu routes", () => {
   it("blocks menu item mutation when item access fails", async () => {
     auth.user = { id: 8, role: 1, restaurantId: "other" };
 
-    let response = await request("/items/11", "PUT", { name: "Updated" });
+    let response = await request("/items/11", "PUT", {
+      name: "Updated",
+      updatedAt: ITEM_VERSION,
+    });
 
     expect(response.status).toBe(403);
     expect(serviceFns.updateMenuItem).not.toHaveBeenCalled();
@@ -447,5 +476,432 @@ describe("menu routes", () => {
     // "analytics" (pro-tier) module, not "menu_management" (see
     // module-gate.test.ts for the real, unmocked-gate proof).
     expect(moduleGateRegistrationKeys).toContain("analytics");
+  });
+
+  // Issue #85: bulk price updates were already ADMIN/OWNER-only, yet a chef
+  // could change the very same prices one item at a time — and creating an item
+  // sets its price. A chef's writes are now stock and availability only.
+  describe("chef writes are limited to stock and availability (#85)", () => {
+    it("lets a chef flip availability and inventory on a single item", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      const response = await request("/items/11", "PUT", {
+        isAvailable: false,
+        inventoryCount: 0,
+      });
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.updateMenuItem).toHaveBeenCalledOnce();
+      expect(serviceFns.updateMenuItem).toHaveBeenCalledWith(
+        11,
+        expect.objectContaining({ isAvailable: false, inventoryCount: 0 }),
+        item,
+      );
+    });
+
+    it("rejects a chef PUT carrying a price, naming the refused field", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      // updatedAt is present so the body is schema-valid and the role/field
+      // rule is unambiguously what refuses it — without it the optimistic-lock
+      // refinement would answer 400 first (see the #85 lock tests below).
+      const response = await request("/items/11", "PUT", {
+        isAvailable: false,
+        price: 999,
+        updatedAt: ITEM_VERSION,
+      });
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({
+          code: "CHEF_FIELD_NOT_ALLOWED",
+          message: expect.stringContaining("price"),
+        }),
+      });
+      // Refused on the body alone, before any DB work.
+      expect(serviceFns.getMenuItem).not.toHaveBeenCalled();
+      expect(serviceFns.updateMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("rejects a chef PUT that renames or recategorises an item", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      const response = await request("/items/11", "PUT", {
+        name: "Cheaper Laksa",
+        categoryId: 4,
+        updatedAt: ITEM_VERSION,
+      });
+
+      expect(response.status).toBe(403);
+      expect(serviceFns.updateMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("blocks a chef from creating items, since create sets a price", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      const response = await request("/rest-1/items", "POST", itemBody());
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({ code: "INSUFFICIENT_ROLE" }),
+      });
+      expect(serviceFns.createMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("keeps bulk availability open to a chef and bulk prices closed", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      let response = await request("/rest-1/items/availability", "PATCH", {
+        updates: [{ id: 11, isAvailable: false }],
+      });
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.batchUpdateAvailability).toHaveBeenCalledOnce();
+
+      response = await request("/rest-1/items/prices", "PATCH", {
+        updates: [{ id: 11, price: 190 }],
+      });
+
+      expect(response.status).toBe(403);
+      expect(serviceFns.batchUpdatePrices).not.toHaveBeenCalled();
+    });
+
+    it("leaves owners free to change prices and create items", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      let response = await request("/items/11", "PUT", {
+        price: 210,
+        updatedAt: ITEM_VERSION,
+      });
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.updateMenuItem).toHaveBeenCalledWith(
+        11,
+        expect.objectContaining({ price: 210 }),
+        item,
+      );
+
+      response = await request("/rest-1/items", "POST", itemBody());
+
+      expect(response.status).toBe(201);
+      expect(serviceFns.createMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({ price: 180, restaurantId: "rest-1" }),
+      );
+    });
+  });
+
+  // Issue #85: these three are public and unauthenticated, and the menu has no
+  // pagination ceiling of its own, so an uncapped limit was a free full-catalogue
+  // dump; page=0 produced a negative OFFSET.
+  describe("public list endpoints bound their query limits (#85)", () => {
+    it("rejects limit=999999 on search, featured, and popular", async () => {
+      for (const path of [
+        "/rest-1/search?limit=999999",
+        "/rest-1/featured?limit=999999",
+        "/rest-1/popular?limit=999999",
+      ]) {
+        const response = await request(path);
+        expect(response.status).toBe(400);
+      }
+
+      expect(serviceFns.searchMenuItems).not.toHaveBeenCalled();
+      expect(serviceFns.getFeaturedItems).not.toHaveBeenCalled();
+      expect(serviceFns.getPopularItems).not.toHaveBeenCalled();
+    });
+
+    it("still serves the maximum allowed page size", async () => {
+      let response = await request("/rest-1/search?limit=100");
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.searchMenuItems).toHaveBeenCalledWith(
+        "rest-1",
+        expect.objectContaining({ limit: 100, page: 1 }),
+      );
+
+      response = await request("/rest-1/featured?limit=100");
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.getFeaturedItems).toHaveBeenCalledWith("rest-1", 100);
+    });
+
+    it("rejects page=0 on search", async () => {
+      const response = await request("/rest-1/search?page=0");
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.searchMenuItems).not.toHaveBeenCalled();
+    });
+  });
+
+  // Issue #85: the CSV importer POSTed one item per row from the browser, so a
+  // batch that failed on row 7 left rows 1-6 committed and re-running it
+  // duplicated them.
+  describe("bulk item creation (#85)", () => {
+    beforeEach(() => {
+      serviceFns.bulkCreateMenuItems.mockResolvedValue([
+        { ...item, id: 11 },
+        { ...item, id: 12 },
+      ]);
+    });
+
+    it("creates a whole batch in one call and reports the count", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      const response = await request("/rest-1/items/bulk", "POST", {
+        items: [itemBody(), itemBody({ name: "Rendang" })],
+      });
+
+      expect(response.status).toBe(201);
+      await expect(response.json()).resolves.toMatchObject({
+        success: true,
+        data: expect.objectContaining({ created: 2 }),
+      });
+      // One call for the batch, not one per row.
+      expect(serviceFns.bulkCreateMenuItems).toHaveBeenCalledOnce();
+      expect(serviceFns.bulkCreateMenuItems).toHaveBeenCalledWith("rest-1", [
+        expect.objectContaining({ name: "Laksa", price: 180 }),
+        expect.objectContaining({ name: "Rendang" }),
+      ]);
+      expect(serviceFns.createMenuItem).not.toHaveBeenCalled();
+      expect(syncFns.onMenuItemChanged).toHaveBeenCalledWith(11);
+      expect(syncFns.onMenuItemChanged).toHaveBeenCalledWith(12);
+    });
+
+    it("writes nothing and names the failing row when one item is invalid", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+      const items = Array.from({ length: 10 }, (_, index) =>
+        index === 6 ? itemBody({ price: -5 }) : itemBody(),
+      );
+
+      const response = await request("/rest-1/items/bulk", "POST", { items });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({ code: "VALIDATION_ERROR" }),
+      });
+      expect(serviceFns.bulkCreateMenuItems).not.toHaveBeenCalled();
+    });
+
+    it("rejects a batch over the item cap", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      const response = await request("/rest-1/items/bulk", "POST", {
+        items: Array.from({ length: 101 }, () => itemBody()),
+      });
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.bulkCreateMenuItems).not.toHaveBeenCalled();
+    });
+
+    it("is closed to a chef, like the single create it batches", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      const response = await request("/rest-1/items/bulk", "POST", {
+        items: [itemBody()],
+      });
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({ code: "INSUFFICIENT_ROLE" }),
+      });
+      expect(serviceFns.bulkCreateMenuItems).not.toHaveBeenCalled();
+    });
+
+    it("surfaces the service's per-row rejection details unchanged", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+      serviceFns.bulkCreateMenuItems.mockRejectedValueOnce(
+        new ApiError(
+          "CATEGORY_RESTAURANT_MISMATCH",
+          "One or more categories do not belong to the specified restaurant",
+          403,
+          [{ index: 6, field: "categoryId", message: "Category 99 …" }],
+        ),
+      );
+
+      const response = await request("/rest-1/items/bulk", "POST", {
+        items: [itemBody()],
+      });
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({
+          code: "CATEGORY_RESTAURANT_MISMATCH",
+        }),
+      });
+    });
+  });
+
+  // Issue #85: PUT /menu/items/:id had no version check, and the admin form
+  // saves every field it rendered.
+  describe("single item updates require a version unless they are stock-only (#85)", () => {
+    it("refuses a field-changing PUT with no version, before any DB work", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      const response = await request("/items/11", "PUT", { price: 210 });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({ code: "VALIDATION_ERROR" }),
+      });
+      expect(serviceFns.getMenuItem).not.toHaveBeenCalled();
+      expect(serviceFns.updateMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("passes a 409 from the service through as MENU_ITEM_MODIFIED", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+      serviceFns.updateMenuItem.mockRejectedValueOnce(
+        new ApiError(
+          "MENU_ITEM_MODIFIED",
+          "This menu item was changed by someone else since you loaded it",
+          409,
+        ),
+      );
+
+      const response = await request("/items/11", "PUT", {
+        price: 210,
+        updatedAt: "2026-07-30T07:00:00.000Z",
+      });
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({ code: "MENU_ITEM_MODIFIED" }),
+      });
+    });
+
+    it("lets a chef's stock-only PUT through with no version", async () => {
+      auth.user = buildUser(ROLE.CHEF);
+
+      const response = await request("/items/11", "PUT", {
+        isAvailable: false,
+      });
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.updateMenuItem).toHaveBeenCalledWith(
+        11,
+        { isAvailable: false },
+        item,
+      );
+    });
+  });
+
+  // Issue #85: a base64 data URL used to be stored verbatim in
+  // menu_items.image_url and then re-served on every public menu request.
+  it("refuses a base64 data URL as an item image (#85)", async () => {
+    const response = await request(
+      "/rest-1/items",
+      "POST",
+      itemBody({ imageUrl: `data:image/png;base64,${"A".repeat(2048)}` }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: expect.objectContaining({ code: "VALIDATION_ERROR" }),
+    });
+    expect(serviceFns.createMenuItem).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Issue #81: the price/customization business rules lived only on
+   * `validateCompleteMenuItem`, which no route imported, so their green tests
+   * proved nothing about the API. These go through the real validateBody
+   * middleware to prove the rules now run where requests arrive.
+   */
+  describe("price and customization rules run at the route (#81)", () => {
+    it("refuses creating an item priced above its original price", async () => {
+      const response = await request(
+        "/rest-1/items",
+        "POST",
+        itemBody({ price: 200, originalPrice: 100 }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({ code: "VALIDATION_ERROR" }),
+      });
+      expect(serviceFns.createMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("still accepts a genuine discount", async () => {
+      const response = await request(
+        "/rest-1/items",
+        "POST",
+        itemBody({ price: 100, originalPrice: 200 }),
+      );
+
+      expect(response.status).toBe(201);
+      expect(serviceFns.createMenuItem).toHaveBeenCalledOnce();
+    });
+
+    it("refuses an update whose own body carries a negative discount", async () => {
+      const response = await request("/items/11", "PUT", {
+        price: 300,
+        originalPrice: 150,
+        updatedAt: ITEM_VERSION,
+      });
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.updateMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("refuses a batch price entry above its own original price", async () => {
+      const response = await request("/rest-1/items/prices", "PATCH", {
+        updates: [{ id: 11, price: 300, originalPrice: 100 }],
+      });
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.batchUpdatePrices).not.toHaveBeenCalled();
+    });
+
+    it("refuses a required single-choice customization with no default", async () => {
+      const response = await request(
+        "/rest-1/items",
+        "POST",
+        itemBody({
+          options: {
+            customizations: [
+              {
+                id: "spice",
+                name: "Spice",
+                type: "single",
+                required: true,
+                choices: [
+                  { id: "mild", name: "Mild", priceAdjustment: 0 },
+                  { id: "hot", name: "Hot", priceAdjustment: 0 },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.createMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("refuses multiple sizes without exactly one default", async () => {
+      const response = await request(
+        "/rest-1/items",
+        "POST",
+        itemBody({
+          options: {
+            sizes: [
+              { id: "s", name: "Small", priceAdjustment: 0, isDefault: true },
+              { id: "l", name: "Large", priceAdjustment: 20, isDefault: true },
+            ],
+          },
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.createMenuItem).not.toHaveBeenCalled();
+    });
   });
 });

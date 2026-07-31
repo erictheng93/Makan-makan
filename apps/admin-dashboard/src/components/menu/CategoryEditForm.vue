@@ -85,6 +85,48 @@
               class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
             />
           </div>
+
+          <!--
+            Visibility toggle. Categories could already be hidden through the
+            API, but nothing in the dashboard could turn it back on — and a
+            hidden category took all of its items off the owner's own menu
+            screen with it (#83).
+          -->
+          <div
+            class="flex items-center justify-between gap-4 bg-[#F2F2F7] rounded-xl px-3.5 py-3"
+          >
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-[#1C1C1E]">
+                {{ t("menu.form.categoryVisible") }}
+              </div>
+              <div class="text-xs text-[#8E8E93] mt-0.5">
+                {{
+                  form.isVisible
+                    ? t("menu.form.categoryVisibleHint")
+                    : t("menu.form.categoryHiddenHint")
+                }}
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              data-testid="admin-category-visible-toggle"
+              :aria-checked="form.isVisible ? 'true' : 'false'"
+              :aria-label="t('menu.form.categoryVisible')"
+              :class="[
+                'relative shrink-0 w-[51px] h-[31px] rounded-full transition-colors duration-200 ease-out outline-none focus-visible:shadow-[0_0_0_3px_rgba(0,122,255,0.25)]',
+                form.isVisible ? 'bg-ios-success' : 'bg-[#D8D8DC]',
+              ]"
+              @click="form.isVisible = !form.isVisible"
+            >
+              <span
+                :class="[
+                  'absolute top-[2px] left-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.12)] transition-transform duration-200 ease-out',
+                  form.isVisible ? 'translate-x-[20px]' : 'translate-x-0',
+                ]"
+              />
+            </button>
+          </div>
         </div>
 
         <div class="flex justify-end gap-2 mt-5">
@@ -127,6 +169,7 @@ const emit = defineEmits<{
       nameEn: string;
       description: string;
       sortOrder: number;
+      isVisible: boolean;
     },
     editingId?: number,
   ];
@@ -140,6 +183,7 @@ const form = ref({
   nameEn: "",
   description: "",
   sortOrder: 0,
+  isVisible: true,
 });
 
 const isEditing = ref(false);
@@ -154,10 +198,19 @@ watch(
         nameEn: cat.nameEn || "",
         description: cat.description || "",
         sortOrder: cat.sortOrder,
+        // Only an explicit false means hidden — an older payload that omits the
+        // flag must not silently hide the category on the next save.
+        isVisible: cat.isVisible !== false,
       };
     } else {
       isEditing.value = false;
-      form.value = { name: "", nameEn: "", description: "", sortOrder: 0 };
+      form.value = {
+        name: "",
+        nameEn: "",
+        description: "",
+        sortOrder: 0,
+        isVisible: true,
+      };
     }
     nextTick(() => nameInput.value?.focus());
   },

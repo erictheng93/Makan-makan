@@ -11,40 +11,58 @@ const nonNegativeInteger = z.number().int().min(0);
 const nonEmptyString = z.string().min(1).trim();
 const optionalUrl = z.url().nullish();
 const priceSchema = z.number().positive();
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const MAX_IMAGE_DATA_URL_CHARS = Math.ceil(MAX_IMAGE_BYTES / 0.75) + 128;
-const ALLOWED_IMAGE_MIME = /^image\/(jpeg|jpg|png|webp|gif)$/i;
 const MAX_PAGE = 1000;
-const MAX_PAGE_SIZE = 100;
+
+/**
+ * A reference to an already-uploaded image — never image bytes.
+ *
+ * This used to also accept `data:image/...;base64,...` up to ~10MB, which was
+ * written verbatim into `menu_items.image_url` / `categories.image_url`. Because
+ * the public menu endpoint has no pagination, one such row was re-serialised
+ * into every `GET /menu/:restaurantId` response and into the KV cache entry
+ * (25MB per-value ceiling), and multi-MB payloads simply timed out (#85).
+ *
+ * The real upload path is R2 via the image-processor
+ * (`apps/admin-dashboard/src/composables/useImageUpload.ts`), which returns the
+ * `imageUrl` / `imageId` / `imageVariants` to send here, so the data URL branch
+ * was an unused back door. Rows that already hold a data URL still read back
+ * fine — only new writes are blocked.
+ */
+const MAX_IMAGE_URL_CHARS = 2048;
 
 const imageUrlSchema = z
   .string()
-  .max(MAX_IMAGE_DATA_URL_CHARS)
+  .max(MAX_IMAGE_URL_CHARS)
   .refine(
-    (value) => {
-      if (/^https?:\/\//i.test(value) || value.startsWith("/")) {
-        return true;
-      }
-
-      const dataUrlMatch = value.match(/^data:([^;]+);base64,(.+)$/);
-      if (!dataUrlMatch) {
-        return false;
-      }
-
-      const [, mime, base64] = dataUrlMatch;
-      if (!ALLOWED_IMAGE_MIME.test(mime)) {
-        return false;
-      }
-
-      const approxBytes = Math.floor(base64.length * 0.75);
-      return approxBytes <= MAX_IMAGE_BYTES;
-    },
+    (value) =>
+      // Protocol-relative ("//host/x") is excluded: it is not a path on this
+      // origin, it silently points at a third-party host.
+      /^https?:\/\//i.test(value) ||
+      (value.startsWith("/") && !value.startsWith("//")),
     {
       message:
-        "imageUrl must be a URL or a <=10MB image data URL (jpeg/png/webp/gif)",
+        "imageUrl must be an http(s) URL or a /-relative path — upload the image first and send the returned URL, inline base64 data is not accepted",
     },
   )
   .nullish();
+
+/**
+ * A `?limit=` on a public, unauthenticated endpoint.
+ *
+ * Without the ceiling, `?limit=999999` was a legal way for anyone to pull a
+ * restaurant's whole catalogue in a single query (#85). The cap belongs in the
+ * schema so every route sharing it inherits the bound.
+ */
+const boundedLimitQuery = (defaultValue: string, max: number) =>
+  z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .prefault(defaultValue)
+    .pipe(z.number().int().min(1).max(max));
+
+const MAX_PAGE_SIZE = 100;
 
 // Menu Item Option Schemas
 const menuItemSizeSchema = z.object({
@@ -167,12 +185,120 @@ const menuItemBaseSchema = z.object({
   inventoryCount: nonNegativeInteger.optional(),
 });
 
-export const createMenuItemSchema = menuItemBaseSchema.extend({
-  spiceLevel: z.number().int().min(0).max(5).optional().default(0),
-  preparationTime: positiveInteger.optional().default(15),
-});
+/**
+ * Business rules attached to the schemas the routes actually validate with.
+ *
+ * These rules used to live only on `validateCompleteMenuItem`, which no route
+ * ever imported — the rules had green tests and never executed, so the API
+ * happily created "original $100, special $200" items (#81). They are zod
+ * issues (not thrown Errors) so a violation surfaces as the standard 400
+ * VALIDATION_ERROR envelope instead of a 500.
+ */
+const priceConsistencyRule = (
+  data: { price?: number; originalPrice?: number | null },
+  ctx: z.core.$RefinementCtx,
+) => {
+  if (
+    data.price !== undefined &&
+    data.originalPrice !== undefined &&
+    data.originalPrice !== null &&
+    data.price > data.originalPrice
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["price"],
+      message:
+        "price cannot be higher than originalPrice — the discounted price must not exceed the price it is discounted from",
+    });
+  }
+};
 
-export const updateMenuItemSchema = menuItemBaseSchema.partial();
+const customizationRule = (
+  options: CustomizationOptions | null | undefined,
+  ctx: z.core.$RefinementCtx,
+) => {
+  const failure = findCustomizationProblem(options);
+  if (failure) {
+    ctx.addIssue({ code: "custom", path: ["options"], message: failure });
+  }
+};
+
+export const createMenuItemSchema = menuItemBaseSchema
+  .extend({
+    spiceLevel: z.number().int().min(0).max(5).optional().default(0),
+    preparationTime: positiveInteger.optional().default(15),
+  })
+  .superRefine((data, ctx) => {
+    priceConsistencyRule(data, ctx);
+    customizationRule(data.options, ctx);
+  });
+
+/**
+ * The only fields whose value does not depend on what the client last read.
+ *
+ * A body that writes just these is a stock decision ("we've run out"), and the
+ * newest stock decision is the one that should win — so it needs no optimistic
+ * lock. Anything else is a read-modify-write of a form the client rendered
+ * earlier, which is where the lost update in #85 lives. Deliberately the same
+ * set as CHEF_EDITABLE_ITEM_FIELDS in the routes: both answer "is this request
+ * only about stock?".
+ */
+export const STOCK_ONLY_ITEM_FIELDS = [
+  "isAvailable",
+  "inventoryCount",
+] as const;
+
+/**
+ * The optimistic-lock precondition: the `updatedAt` the client last read.
+ *
+ * Wire format is deliberately either shape, both normalised to epoch
+ * milliseconds here so the service compares integers and never strings:
+ *
+ * - an ISO-8601 instant, which is what a JSON round-trip of the API's own
+ *   response produces (menu_items.updated_at_ms is INTEGER ms, Drizzle hands it
+ *   over as a Date, and `JSON.stringify(Date)` emits
+ *   "2026-07-30T12:34:56.789Z" — ms-precise, so the round-trip is lossless);
+ * - a raw epoch-ms integer, for a client that parsed the date itself.
+ *
+ * String comparison would have been the trap here: "…789Z" and "…789+00:00"
+ * are the same instant and different strings.
+ */
+const updatedAtPrecondition = z
+  .union([z.number().int().min(0), z.iso.datetime({ offset: true })])
+  .transform((value) =>
+    typeof value === "number" ? value : Date.parse(value),
+  );
+
+export const updateMenuItemSchema = menuItemBaseSchema
+  .partial()
+  .extend({
+    // Optional in the schema, mandatory in practice for every body that could
+    // clobber a concurrent edit — see the refinement below. Making it
+    // unconditionally required would reject a chef's stock-only PUT, which is
+    // the one caller that legitimately has no form state to be stale.
+    updatedAt: updatedAtPrecondition.optional(),
+  })
+  .refine(
+    (data) =>
+      data.updatedAt !== undefined ||
+      Object.keys(data).every((field) =>
+        (STOCK_ONLY_ITEM_FIELDS as readonly string[]).includes(field),
+      ),
+    {
+      path: ["updatedAt"],
+      message: `updatedAt is required unless the request only changes ${STOCK_ONLY_ITEM_FIELDS.join(
+        " / ",
+      )} — send back the updatedAt you read for this item so a concurrent edit cannot be silently overwritten`,
+    },
+  )
+  // Same business rules as create, applied to what the body carries. A partial
+  // body that sends only one of price/originalPrice is checked against the
+  // stored other half in MenuService.updateMenuItem — the schema cannot see
+  // the DB (#81).
+  .superRefine((data, ctx) => {
+    priceConsistencyRule(data, ctx);
+    customizationRule(data.options, ctx);
+  });
 
 // Category Schemas
 // Defaults live on the create schema only — see menuItemBaseSchema.
@@ -219,6 +345,8 @@ export const menuFilterSchema = z.object({
     .transform((val) => val === "true")
     .optional(),
   search: z.string().optional(),
+  // page must be >=1 (page=0 produced a negative OFFSET downstream) and
+  // bounded above so a public caller cannot page arbitrarily deep.
   page: z
     .string()
     .regex(/^\d+$/)
@@ -226,16 +354,24 @@ export const menuFilterSchema = z.object({
     .optional()
     .prefault("1")
     .pipe(z.number().int().min(1).max(MAX_PAGE)),
-  limit: z
-    .string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .optional()
-    .prefault("20")
-    .pipe(z.number().int().min(1).max(MAX_PAGE_SIZE)),
+  limit: boundedLimitQuery("20", MAX_PAGE_SIZE),
 });
 
 // Bulk Operation Schemas
+
+/**
+ * Same ceiling as the other bulk endpoints. It is not cosmetic: the CSV import
+ * used to POST one item per row in a loop, so the only bound on a single import
+ * was the operator's patience, and each row was a separate committed write
+ * (#85). One request now carries the whole batch, which makes an explicit cap
+ * the difference between a bounded payload and a new unbounded one.
+ */
+export const MAX_BULK_CREATE_ITEMS = 100;
+
+export const bulkCreateMenuItemsSchema = z.object({
+  items: z.array(createMenuItemSchema).min(1).max(MAX_BULK_CREATE_ITEMS),
+});
+
 export const bulkAvailabilityUpdateSchema = z.object({
   updates: z
     .array(
@@ -251,11 +387,17 @@ export const bulkAvailabilityUpdateSchema = z.object({
 export const bulkPriceUpdateSchema = z.object({
   updates: z
     .array(
-      z.object({
-        id: positiveInteger,
-        price: priceSchema,
-        originalPrice: priceSchema.optional(),
-      }),
+      z
+        .object({
+          id: positiveInteger,
+          price: priceSchema,
+          originalPrice: priceSchema.optional(),
+        })
+        // Same negative-discount gate as the single-item schemas — the batch
+        // endpoint was the second way to create "original $100, special $200"
+        // (#81). Entries that send only `price` are checked against the stored
+        // originalPrice in MenuService.batchUpdatePrices.
+        .superRefine(priceConsistencyRule),
     )
     .min(1)
     .max(100),
@@ -288,23 +430,11 @@ export const categoryIdParamSchema = z.object({
 
 // Query Parameter Schemas
 export const featuredItemsQuerySchema = z.object({
-  limit: z
-    .string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .optional()
-    .prefault("10")
-    .pipe(z.number().int().min(1).max(MAX_PAGE_SIZE)),
+  limit: boundedLimitQuery("10", MAX_PAGE_SIZE),
 });
 
 export const popularItemsQuerySchema = z.object({
-  limit: z
-    .string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .optional()
-    .prefault("10")
-    .pipe(z.number().int().min(1).max(MAX_PAGE_SIZE)),
+  limit: boundedLimitQuery("10", MAX_PAGE_SIZE),
 });
 
 export const analyticsQuerySchema = z.object({
@@ -417,12 +547,18 @@ interface CustomizationOptions {
   sizes?: SizeOption[];
 }
 
-export const validateCustomizationOptions = (
+/**
+ * The customization rules as a lookup, so the schemas can report the problem
+ * as a zod issue while validateCustomizationOptions keeps its throwing
+ * contract for direct callers.
+ */
+function findCustomizationProblem(
   options: CustomizationOptions | null | undefined,
-) => {
-  if (!options) return true;
+): string | null {
+  if (!options) return null;
 
-  // Validate that at least one default option is selected for required customizations
+  // A required single-choice customization must have a default, or the
+  // customer-facing item sheet renders a mandatory group with nothing selected.
   if (options.customizations) {
     for (const customization of options.customizations) {
       if (customization.required && customization.type === "single") {
@@ -430,35 +566,39 @@ export const validateCustomizationOptions = (
           (choice) => choice.isDefault,
         );
         if (!hasDefault) {
-          throw new Error(
-            `Required customization "${customization.name}" must have a default choice`,
-          );
+          return `Required customization "${customization.name}" must have a default choice`;
         }
       }
     }
   }
 
-  // Validate size options
   if (options.sizes && options.sizes.length > 1) {
     const defaultSizes = options.sizes.filter((size) => size.isDefault);
     if (defaultSizes.length !== 1) {
-      throw new Error(
-        "Exactly one size must be marked as default when multiple sizes are available",
-      );
+      return "Exactly one size must be marked as default when multiple sizes are available";
     }
   }
 
+  return null;
+}
+
+export const validateCustomizationOptions = (
+  options: CustomizationOptions | null | undefined,
+) => {
+  const problem = findCustomizationProblem(options);
+  if (problem) {
+    throw new Error(problem);
+  }
   return true;
 };
 
-// Comprehensive menu validation schema
-export const validateCompleteMenuItem = createMenuItemSchema
-  .refine((data) => validatePriceConsistency(data.price, data.originalPrice), {
-    message: "Price validation failed",
-  })
-  .refine((data) => validateCustomizationOptions(data.options), {
-    message: "Customization options validation failed",
-  });
+/**
+ * Kept as an alias: the rules it used to carry are now attached to
+ * createMenuItemSchema itself, which is what the routes validate with — the
+ * standalone version was never imported by any route, so its rules never ran
+ * in production (#81).
+ */
+export const validateCompleteMenuItem = createMenuItemSchema;
 
 // Export all schemas as a single object for easy import
 export const menuSchemas = {
@@ -472,6 +612,7 @@ export const menuSchemas = {
   menuFilter: menuFilterSchema,
 
   // Bulk operation schemas
+  bulkCreateMenuItems: bulkCreateMenuItemsSchema,
   bulkAvailabilityUpdate: bulkAvailabilityUpdateSchema,
   bulkPriceUpdate: bulkPriceUpdateSchema,
   bulkCategoryMove: bulkCategoryMoveSchema,

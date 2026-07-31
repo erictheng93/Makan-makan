@@ -5,7 +5,14 @@
 
 import type { Env } from "../../../shared/types";
 import { ConsoleLogger } from "../../../core/monitoring";
-import { notFound, forbidden, conflict } from "../../../shared/utils/api-error";
+import {
+  ApiError,
+  badRequest,
+  notFound,
+  forbidden,
+  conflict,
+} from "../../../shared/utils/api-error";
+import { HTTP_STATUS } from "../../../shared/constants";
 import {
   MenuService as DatabaseMenuService,
   restaurants,
@@ -38,6 +45,23 @@ import type {
   IMenuService,
 } from "../types";
 
+/**
+ * Normalise whatever shape a timestamp arrived in to epoch milliseconds.
+ *
+ * `menu_items.updated_at_ms` is INTEGER ms and Drizzle hands it back as a Date,
+ * but the same value reaches this layer as an ISO string when it has been
+ * through a JSON round-trip (the KV query cache, a fixture, a re-serialised
+ * response). Comparing epoch ms sidesteps that entirely — comparing strings
+ * would treat "…Z" and "…+00:00" as different instants.
+ */
+function toEpochMs(value: Date | string | number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 export class MenuService implements IMenuService {
   private readonly logger: ConsoleLogger;
   private readonly dbService: DatabaseMenuService;
@@ -65,13 +89,36 @@ export class MenuService implements IMenuService {
     return Boolean(restaurant);
   }
 
+  /**
+   * Existence check for the privileged menu read.
+   *
+   * The public path gates on isActive + not-deleted (isPublicRestaurantAvailable)
+   * and must keep doing so. The admin path must not: an owner whose restaurant
+   * is temporarily inactive still has to be able to read and edit their own
+   * menu and analytics, which used to 404 as MENU_NOT_FOUND (#84). A restaurant
+   * that genuinely does not exist (or was soft-deleted) still 404s.
+   */
+  private async restaurantExists(restaurantId: string): Promise<boolean> {
+    const [restaurant] = await this.db
+      .select({ id: restaurants.id })
+      .from(restaurants)
+      .where(
+        and(eq(restaurants.id, restaurantId), isNull(restaurants.deletedAt)),
+      )
+      .limit(1);
+
+    return Boolean(restaurant);
+  }
+
   async getMenu(
     restaurantId: string,
     options?: { includeUnavailable?: boolean },
   ): Promise<MenuStructure | null> {
     try {
       this.logger.info("Fetching complete menu", { restaurantId });
-      if (!options?.includeUnavailable) {
+      if (options?.includeUnavailable) {
+        if (!(await this.restaurantExists(restaurantId))) return null;
+      } else {
         const isPublic = await this.isPublicRestaurantAvailable(restaurantId);
         if (!isPublic) return null;
       }
@@ -129,6 +176,49 @@ export class MenuService implements IMenuService {
     }
   }
 
+  /**
+   * Create a whole batch of items, or none of them.
+   *
+   * Every referenced category is checked before the first row is written, for
+   * the same reason the batch endpoints check item ownership up front (#77): a
+   * per-row check inside the write loop leaves the earlier rows committed when a
+   * later one is refused. The CSV importer's old per-item POST loop had exactly
+   * that failure mode, plus no way to say which row stopped it (#85).
+   */
+  async bulkCreateMenuItems(
+    restaurantId: string,
+    items: Array<Omit<CreateMenuItemData, "restaurantId">>,
+  ): Promise<MenuItem[]> {
+    try {
+      this.logger.info("Bulk creating menu items", {
+        restaurantId,
+        count: items.length,
+      });
+
+      await this.assertCategoriesBelongToRestaurant(items, restaurantId);
+
+      const created = await this.dbService.bulkCreateMenuItems(
+        items.map((item) => ({
+          ...item,
+          restaurantId: String(restaurantId),
+        })),
+      );
+
+      this.logger.info("Bulk menu item creation completed", {
+        restaurantId,
+        created: created.length,
+      });
+      return created.map((item) => this.transformMenuItem(item));
+    } catch (error) {
+      this.logger.error(
+        "Failed to bulk create menu items",
+        error instanceof Error ? error : undefined,
+        { restaurantId, count: items.length },
+      );
+      throw error;
+    }
+  }
+
   async updateMenuItem(
     id: number,
     data: UpdateMenuItemData,
@@ -136,19 +226,40 @@ export class MenuService implements IMenuService {
   ): Promise<MenuItem> {
     try {
       this.logger.info("Updating menu item", { id, data });
+      // `updatedAt` is a precondition, not a column to write — strip it before
+      // anything reaches the DB layer.
+      const { updatedAt: expectedUpdatedAt, ...fields } = data;
       const existingItem = prefetchedItem ?? (await this.getMenuItem(id));
       if (!existingItem) {
         throw notFound("Menu item not found", "MENU_ITEM_NOT_FOUND");
       }
-      if (data.categoryId && data.categoryId !== existingItem.categoryId) {
+      // Checked here rather than in the route handler because the row is
+      // already loaded here, and because every caller of this method — not just
+      // the HTTP one — should be held to the same precondition.
+      this.assertNotModifiedSince(existingItem, expectedUpdatedAt);
+      // The schema already refuses a body that carries both price and
+      // originalPrice inconsistently; a partial body that sends only one half
+      // has to be compared against the stored other half here — otherwise
+      // lowering originalPrice (or raising price) alone still manufactures a
+      // negative discount (#81).
+      this.assertPriceConsistent(
+        fields.price ?? existingItem.price,
+        "originalPrice" in fields
+          ? fields.originalPrice
+          : existingItem.originalPrice,
+        { itemId: id },
+      );
+      if (fields.categoryId && fields.categoryId !== existingItem.categoryId) {
         await this.validateCategoryAccess(
-          data.categoryId,
+          fields.categoryId,
           existingItem.restaurantId,
         );
       }
       const item = await this.dbService.updateMenuItem(id, {
-        ...data,
-        restaurantId: data.restaurantId ? String(data.restaurantId) : undefined,
+        ...fields,
+        restaurantId: fields.restaurantId
+          ? String(fields.restaurantId)
+          : undefined,
       });
       this.logger.info("Menu item updated successfully", { itemId: id });
       return this.transformMenuItem(item);
@@ -172,10 +283,14 @@ export class MenuService implements IMenuService {
       if (!existingItem) {
         return false;
       }
-      await this.dbService.updateMenuItem(id, {
-        isAvailable: false,
-        sortOrder: -1,
-      });
+      // Soft delete via deleted_at_ms. The old marker was sortOrder: -1, a
+      // convention only the admin list filter knew about — deleteCategory kept
+      // counting deleted items and permanently refused to delete emptied
+      // categories (#80).
+      const deleted = await this.dbService.softDeleteMenuItem(id);
+      if (!deleted) {
+        return false;
+      }
       this.logger.info("Menu item deleted successfully", { itemId: id });
       return true;
     } catch (error) {
@@ -399,6 +514,22 @@ export class MenuService implements IMenuService {
         restaurantId,
       );
 
+      // Entries that send only `price` are judged against the STORED
+      // originalPrice — the schema already handled pairs sent together (#81).
+      const storedPrices = await this.dbService.getMenuItemPrices(
+        restaurantId,
+        updates.map((update) => update.id),
+      );
+      for (const update of updates) {
+        this.assertPriceConsistent(
+          update.price,
+          update.originalPrice !== undefined
+            ? update.originalPrice
+            : storedPrices.get(update.id)?.originalPrice,
+          { itemId: update.id },
+        );
+      }
+
       await this.dbService.batchUpdatePricesScoped(restaurantId, updates);
 
       this.logger.info("Batch price update completed", { restaurantId });
@@ -448,7 +579,15 @@ export class MenuService implements IMenuService {
   async getMenuAnalytics(restaurantId: string): Promise<MenuAnalytics> {
     try {
       this.logger.debug("Fetching menu analytics", { restaurantId });
-      const menu = await this.getMenu(restaurantId);
+      // Analytics must see the whole catalogue. Reading the public menu made
+      // `availableItems` identically equal to `totalItems` (the list was
+      // already filtered to isAvailable), so an owner could never see how many
+      // items were paused, and priceRange / averagePrice / categoryDistribution
+      // / dietaryInfoStats / spiceLevelDistribution were all silently scoped to
+      // on-sale items despite their neutral names (#84).
+      const menu = await this.getMenu(restaurantId, {
+        includeUnavailable: true,
+      });
       if (!menu) {
         throw notFound("Menu not found for restaurant", "MENU_NOT_FOUND");
       }
@@ -642,6 +781,125 @@ export class MenuService implements IMenuService {
     }
   }
 
+  /**
+   * Rejects the whole batch unless every referenced category belongs here.
+   *
+   * Reports the offending array indexes in `details` so the importer can point
+   * at the CSV row that stopped it, instead of the single generic error the old
+   * per-item loop produced. Uses one query for all distinct ids rather than a
+   * lookup per row.
+   *
+   * Like assertItemsBelongToRestaurant, "not yours" and "does not exist" are
+   * deliberately the same answer: the difference would enumerate other
+   * restaurants' category ids.
+   */
+  private async assertCategoriesBelongToRestaurant(
+    items: Array<{ categoryId: number }>,
+    restaurantId: string,
+  ): Promise<void> {
+    if (items.length === 0) return;
+
+    const uniqueIds = [...new Set(items.map((item) => item.categoryId))];
+    const owned = await this.dbService.findOwnedCategoryIds(
+      restaurantId,
+      uniqueIds,
+    );
+
+    const rejected = items
+      .map((item, index) => ({ index, categoryId: item.categoryId }))
+      .filter(({ categoryId }) => !owned.has(categoryId));
+
+    if (rejected.length > 0) {
+      this.logger.warn("Rejected bulk create touching foreign categories", {
+        restaurantId,
+        rejected,
+      });
+      throw new ApiError(
+        "CATEGORY_RESTAURANT_MISMATCH",
+        "One or more categories do not belong to the specified restaurant",
+        HTTP_STATUS.FORBIDDEN,
+        rejected.map(({ index, categoryId }) => ({
+          // 0-based position in the submitted `items` array — the caller knows
+          // how that maps to whatever it parsed the batch from.
+          index,
+          field: "categoryId",
+          message: `Category ${categoryId} does not belong to restaurant ${restaurantId}`,
+        })),
+      );
+    }
+  }
+
+  /**
+   * The optimistic lock for PUT /menu/items/:id (#85).
+   *
+   * The admin form saves every field it rendered, so without this an owner
+   * changing a price silently reverted a sold-out flag a chef had set while the
+   * form was open — and the same in reverse. `expected` is the client's
+   * epoch-ms copy of updated_at_ms (see updatedAtPrecondition in the schemas);
+   * `undefined` means the request is not one that can clobber anything, which
+   * the request schema is what actually enforces.
+   *
+   * Fails closed. If the stored row has no readable timestamp there is nothing
+   * to compare against, and a lock that waves through the case it cannot check
+   * is not a lock — the client asked for its write to be verified, so an
+   * unverifiable write is refused rather than silently applied.
+   */
+  private assertNotModifiedSince(
+    item: MenuItem,
+    expected: number | undefined,
+  ): void {
+    if (expected === undefined) return;
+
+    const current = toEpochMs(item.updatedAt);
+    if (current === expected) return;
+
+    this.logger.warn("Rejected stale menu item update", {
+      itemId: item.id,
+      expected,
+      current,
+      unreadableTimestamp: current === null,
+    });
+    throw conflict(
+      "This menu item was changed by someone else since you loaded it — reload it and reapply your change",
+      "MENU_ITEM_MODIFIED",
+    );
+  }
+
+  /**
+   * The DB-aware half of the negative-discount rule (#81).
+   *
+   * The request schemas refuse a body whose own price/originalPrice pair is
+   * inconsistent, but a partial update that sends only one half can only be
+   * judged against the stored other half — which is what reaches this method.
+   * `originalPrice` null/undefined means "no strikethrough price", which no
+   * price can conflict with.
+   */
+  private assertPriceConsistent(
+    price: number | undefined,
+    originalPrice: number | null | undefined,
+    context: Record<string, unknown>,
+  ): void {
+    if (
+      price === undefined ||
+      originalPrice === undefined ||
+      originalPrice === null ||
+      price <= originalPrice
+    ) {
+      return;
+    }
+
+    this.logger.warn("Rejected price above originalPrice", {
+      ...context,
+      price,
+      originalPrice,
+    });
+    throw badRequest(
+      "price cannot be higher than originalPrice — the discounted price must not exceed the price it is discounted from",
+      "PRICE_ABOVE_ORIGINAL",
+      [{ ...context, price, originalPrice }],
+    );
+  }
+
   private async validateCategoryAccess(
     categoryId: number,
     restaurantId: string,
@@ -675,62 +933,56 @@ export class MenuService implements IMenuService {
     }
   }
 
+  /**
+   * The three Top-N lists below delegate straight to SQL.
+   *
+   * They used to call searchMenuItems(restaurantId, {isAvailable:true}, 1,
+   * limit) — which applies its own ordering (isFeatured, orderCount,
+   * sortOrder) — and then re-sort those `limit` rows in JS. On any menu with
+   * more than `limit` items that ranked the wrong candidate set, and the
+   * rating list additionally filtered `rating > 0` after the slice so it
+   * returned fewer than `limit` rows (#84).
+   */
   private async getMostViewedItems(
     restaurantId: string,
     limit: number,
   ): Promise<MenuItem[]> {
-    const result = await this.dbService.searchMenuItems(
-      restaurantId,
-      { isAvailable: true },
-      1,
-      limit,
-    );
-    return result.items
-      .map((item) => this.transformMenuItem(item))
-      .sort((a, b) => b.viewCount - a.viewCount);
+    const items = await this.dbService.getMostViewedItems(restaurantId, limit);
+    return items.map((item) => this.transformMenuItem(item));
   }
 
   private async getHighestRatedItems(
     restaurantId: string,
     limit: number,
   ): Promise<MenuItem[]> {
-    const result = await this.dbService.searchMenuItems(
+    const items = await this.dbService.getHighestRatedItems(
       restaurantId,
-      { isAvailable: true },
-      1,
       limit,
     );
-    return result.items
-      .map((item) => this.transformMenuItem(item))
-      .filter((item) => item.rating && item.rating > 0)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    return items.map((item) => this.transformMenuItem(item));
   }
 
   private async getRecentlyAddedItems(
     restaurantId: string,
     limit: number,
   ): Promise<MenuItem[]> {
-    const result = await this.dbService.searchMenuItems(
+    const items = await this.dbService.getRecentlyAddedItems(
       restaurantId,
-      { isAvailable: true },
-      1,
       limit,
     );
-    return result.items
-      .map((item) => this.transformMenuItem(item))
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+    return items.map((item) => this.transformMenuItem(item));
   }
 
   /**
    * Promote a shared MenuItem (as returned by DatabaseMenuService) to the
-   * feature MenuItem shape. The DB mapper (mapToMenuItem) does not populate
-   * the feature-only fields (reviewCount/viewCount/rating/tags/keywords/
-   * availableHours), so reviewCount/viewCount default here and the optional
-   * extras are simply absent — matching the previous runtime behaviour, but
-   * now type-checked instead of cast through `unknown`.
+   * feature MenuItem shape.
+   *
+   * reviewCount/viewCount used to be hardcoded to 0 here because the DB mapper
+   * never populated them — which meant the write path (incrementViewCount, run
+   * via waitUntil from GET /menu/items/:id) worked while every read reported 0,
+   * so getMostViewedItems sorted by a constant (#84). They are now selected and
+   * mapped in the DB layer; this only supplies a floor for shapes that predate
+   * the columns. tags/keywords/availableHours remain feature-only extras.
    */
   private transformMenuItem(item: SharedMenuItem): MenuItem {
     return {
@@ -745,8 +997,8 @@ export class MenuService implements IMenuService {
       inventoryCount: item.inventoryCount || 0,
       orderCount: item.orderCount || 0,
       allergens: item.allergens || [],
-      reviewCount: 0,
-      viewCount: 0,
+      reviewCount: item.reviewCount ?? 0,
+      viewCount: item.viewCount ?? 0,
     };
   }
 
@@ -784,8 +1036,15 @@ export class MenuService implements IMenuService {
       status,
       createdAt: toIso(category.createdAt),
       updatedAt: toIso(category.updatedAt),
+      // Both visibility flags reach the admin client. getMenu now carries them
+      // through, so a category hidden via isVisible arrives flagged instead of
+      // being indistinguishable from a visible one (#83).
       isActive,
       isVisible: "isVisible" in category ? category.isVisible : undefined,
+      // Live count when the caller had one (getMenu derives it from the loaded
+      // items); absent on bare create/update rows. Deliberately not defaulted
+      // to 0 — there is no stored categories.item_count any more, and reporting
+      // 0 for "unknown" is what made the old column look plausible (#84).
       itemCount: "itemCount" in category ? category.itemCount : undefined,
     };
   }

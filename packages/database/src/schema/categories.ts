@@ -35,7 +35,11 @@ export const categories = sqliteTable(
     }>(),
 
     // 統計資訊
-    itemCount: integer("item_count").notNull().default(0),
+    // NOTE: there is deliberately no stored item_count. It was only ever
+    // written by createMenuItem, so deletes, availability toggles and
+    // cross-category moves silently drifted, and it only ever counted
+    // isAvailable rows. Item counts are now derived live from menu_items at
+    // read time (#84). Dropped by migrations_fresh/0077 + migrations/0094.
 
     // 時間戳記 (milliseconds)
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })

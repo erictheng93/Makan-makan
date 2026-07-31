@@ -44,7 +44,21 @@ export interface MenuItemData {
   orderCount?: number;
   rating?: number;
   reviewCount?: number;
+  /**
+   * ISO-8601 instant, exactly as the API serialised menu_items.updated_at_ms.
+   * Echoed back on save as the optimistic-lock precondition, so a stale form
+   * cannot overwrite someone else's concurrent edit (#85).
+   */
+  updatedAt?: string;
 }
+
+/**
+ * Outcome of a single-item save.
+ *
+ * "conflict" is separate from "failed" on purpose: the remedy is to reload the
+ * item, not to retry the same body, and the UI has to say so.
+ */
+export type SaveMenuItemOutcome = "saved" | "failed" | "conflict";
 
 // Singleton state — shared across components within the same page
 const categories = ref<CategoryData[]>([]);
@@ -90,15 +104,20 @@ export function useMenuManagement() {
           ...c,
           nameEn: c.nameEn || "",
         }));
-        menuItems.value = payload.menuItems
-          .filter((item: any) => item.sortOrder !== -1) // Exclude soft-deleted items (sortOrder = -1)
-          .map((item: any) => ({
-            ...item,
-            nameEn: item.nameEn || "",
-            catalogType: item.catalogType ?? "menu_item",
-            isFeatured: !!item.isFeatured,
-            isAvailable: !!item.isAvailable,
-          }));
+        // No client-side deleted-item filter: soft-deleted items carry
+        // deleted_at_ms and the API excludes them at the source (#80). The old
+        // sortOrder !== -1 convention is retired.
+        menuItems.value = payload.menuItems.map((item: any) => ({
+          ...item,
+          nameEn: item.nameEn || "",
+          catalogType: item.catalogType ?? "menu_item",
+          isFeatured: !!item.isFeatured,
+          isAvailable: !!item.isAvailable,
+          // Listed explicitly because saveMenuItem depends on it: without a
+          // version to send, an edit cannot be checked against concurrent
+          // changes (#85).
+          updatedAt: item.updatedAt,
+        }));
       }
     } catch (error) {
       console.error("Failed to fetch menu:", error);
@@ -116,16 +135,24 @@ export function useMenuManagement() {
       nameEn?: string;
       description?: string;
       sortOrder: number;
+      isVisible?: boolean;
     },
     editingId?: number,
   ) => {
     if (!authStore.restaurantId) return;
     try {
       if (editingId) {
+        // isVisible is update-only in the API contract (createCategorySchema
+        // does not declare it, so POSTing it would just be stripped). New
+        // categories start visible by DB default.
         await api.put(`/menu/categories/${editingId}`, form);
         toast.success(t("menu.toast.categoryUpdated"));
       } else {
-        await api.post(`/menu/${authStore.restaurantId}/categories`, form);
+        const { isVisible: _isVisible, ...createPayload } = form;
+        await api.post(
+          `/menu/${authStore.restaurantId}/categories`,
+          createPayload,
+        );
         toast.success(t("menu.toast.categoryCreated"));
       }
       await fetchMenu();
@@ -203,10 +230,12 @@ export function useMenuManagement() {
       isFeatured: boolean;
       isAvailable: boolean;
       sortOrder: number;
+      // Set when editing: the updatedAt the form was populated from.
+      updatedAt?: string;
     },
     editingId?: number,
-  ) => {
-    if (!authStore.restaurantId) return false;
+  ): Promise<SaveMenuItemOutcome> => {
+    if (!authStore.restaurantId) return "failed";
     try {
       const payload = {
         ...form,
@@ -217,37 +246,83 @@ export function useMenuManagement() {
         imageVariants: form.imageVariants ?? null,
       };
       if (editingId) {
-        await api.put(`/menu/items/${editingId}`, payload);
+        // The form writes every field it rendered, so it must prove which
+        // version it rendered. A form with no version cannot be saved safely —
+        // treat it as a conflict so the UI offers the same reload remedy
+        // instead of sending a body the API would reject as invalid (#85).
+        if (!form.updatedAt) return "conflict";
+        await api.put(`/menu/items/${editingId}`, {
+          ...payload,
+          updatedAt: form.updatedAt,
+        });
         toast.success(t("menu.toast.itemUpdated"));
       } else {
-        await api.post(`/menu/${authStore.restaurantId}/items`, payload);
+        const { updatedAt: _updatedAt, ...createPayload } = payload;
+        await api.post(`/menu/${authStore.restaurantId}/items`, createPayload);
         toast.success(t("menu.toast.itemCreated"));
       }
       await fetchMenu();
-      return true;
+      return "saved";
     } catch (error: any) {
       console.error("Failed to save menu item:", error);
+      if (error.response?.data?.error?.code === "MENU_ITEM_MODIFIED") {
+        return "conflict";
+      }
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.saveFailed"),
       );
-      return false;
+      return "failed";
     }
+  };
+
+  /**
+   * Turn a failed bulk import into one sentence the owner can act on.
+   *
+   * The API reports per-row problems in `error.details` — zod paths like
+   * "items.6.price" for shape errors, `{ index }` for the cross-tenant category
+   * check — and `index` is the 0-based position in the array we submitted, which
+   * is CSV line `index + 2` (line 1 is the header, matching the wording
+   * parseMenuItemImport already uses).
+   */
+  const describeImportFailure = (error: any): string => {
+    const apiError = error?.response?.data?.error;
+    const details = Array.isArray(apiError?.details) ? apiError.details : [];
+
+    for (const detail of details) {
+      const index =
+        typeof detail?.index === "number"
+          ? detail.index
+          : Number(String(detail?.field ?? "").split(".")[1]);
+      if (Number.isInteger(index)) {
+        return t("menu.errors.importRowFailed", {
+          row: index + 2,
+          reason: detail?.message || apiError?.message || "",
+        });
+      }
+    }
+
+    return apiError?.message || t("menu.errors.importFailed");
   };
 
   const importMenuItems = async (items: MenuItemImportInput[]) => {
     if (!authStore.restaurantId || items.length === 0) return;
     try {
-      for (const item of items) {
-        await api.post(`/menu/${authStore.restaurantId}/items`, item);
-      }
-      toast.success(`已匯入 ${items.length} 個商品`);
+      // One atomic request, not one POST per row: a per-row loop left every
+      // item before the failing one committed, so a retry duplicated them (#85).
+      const response = await api.post<{ created: number }>(
+        `/menu/${authStore.restaurantId}/items/bulk`,
+        { items },
+      );
+      const created = response.data?.data?.created ?? items.length;
+      toast.success(t("menu.toast.itemsImported", { count: created }));
       await fetchMenu();
     } catch (error: any) {
       console.error("Failed to import menu items:", error);
-      toast.error(
-        error.response?.data?.error?.message || t("menu.errors.saveFailed"),
-      );
-      throw error;
+      const message = describeImportFailure(error);
+      toast.error(message);
+      // Nothing was written, so the caller can safely offer a retry — it must
+      // show which row stopped it, hence the message rides on the error.
+      throw new Error(message);
     }
   };
 
@@ -271,6 +346,11 @@ export function useMenuManagement() {
 
   const toggleMenuItemStatus = async (item: MenuItemData) => {
     try {
+      // Deliberately no updatedAt: this writes availability and nothing else,
+      // so it cannot clobber a concurrent price or name edit, and the newest
+      // sold-out decision is the one that should win. Sending a version here
+      // would make the toggle fail whenever anything else about the item had
+      // changed — see STOCK_ONLY_ITEM_FIELDS in the API's menu schemas (#85).
       await api.put(`/menu/items/${item.id}`, {
         isAvailable: !item.isAvailable,
       });

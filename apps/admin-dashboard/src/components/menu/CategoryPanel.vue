@@ -63,6 +63,7 @@
           ]"
           data-testid="category-row"
           :data-category-id="category.id"
+          :data-hidden="isHidden(category) ? 'true' : 'false'"
           @click="emit('select', category.id)"
         >
           <!-- Active indicator bar -->
@@ -86,8 +87,13 @@
           </div>
 
           <!-- Category info -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-1.5">
+          <div
+            :class="[
+              'flex-1 min-w-0 transition-opacity duration-200',
+              isHidden(category) ? 'opacity-50' : '',
+            ]"
+          >
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span
                 :class="[
                   'text-sm font-semibold',
@@ -102,6 +108,17 @@
                 class="text-[11px] font-medium text-[#8E8E93] bg-[#F2F2F7] px-1.5 py-px rounded-full"
               >
                 {{ getItemsInCategory(category.id).length }}
+              </span>
+              <!-- A hidden category is still listed here on purpose: it used to
+                   disappear from the owner's own dashboard along with all of its
+                   items, leaving no way to un-hide it (#83). -->
+              <span
+                v-if="isHidden(category)"
+                data-testid="category-hidden-badge"
+                class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#B25E00] bg-[#FFF4E5] px-2 py-px rounded-full"
+              >
+                <EyeSlashIcon class="h-3 w-3" />
+                {{ t("menu.categoryPanel.hidden") }}
               </span>
             </div>
             <div class="text-xs text-[#8E8E93] mt-0.5">
@@ -147,6 +164,7 @@ import {
   PencilIcon,
   TrashIcon,
   Squares2X2Icon,
+  EyeSlashIcon,
 } from "@heroicons/vue/24/outline";
 import type {
   CategoryData,
@@ -185,7 +203,17 @@ const getItemsInCategory = (categoryId: number) => {
   return props.menuItems.filter((item) => item.categoryId === categoryId);
 };
 
+/**
+ * A category is "hidden" when either flag is off. `isVisible` is what the
+ * category form toggles; `isActive` is set elsewhere but has the same effect on
+ * the customer menu, so both render the same de-emphasised state (#83).
+ * Exposed as `data-hidden` on the row so tests assert state, not styling.
+ */
+const isHidden = (category: CategoryData) =>
+  category.isVisible === false || category.isActive === false;
+
 const getCategoryMeta = (category: CategoryData) => {
+  if (isHidden(category)) return t("menu.categoryPanel.hiddenHint");
   const items = getItemsInCategory(category.id);
   if (items.length === 0) return t("menu.categoryPanel.noItems");
   const available = items.filter((i) => i.isAvailable).length;

@@ -88,6 +88,9 @@ const zhCN: Messages = {
       isAvailable: "供应中",
       categoryNamePlaceholder: "输入分类名称",
       descriptionPlaceholder: "选填描述",
+      categoryVisible: "显示于顾客菜单",
+      categoryVisibleHint: "顾客可以看到此分类",
+      categoryHiddenHint: "顾客看不到此分类，你仍可在此编辑",
     },
     upload: {
       selectFile: "选择文件",
@@ -111,6 +114,8 @@ const zhCN: Messages = {
       noItems: "尚无菜品",
       allAvailable: "全部供应中",
       mixedStatus: "{available} 供应中 · {unavailable} 已停售",
+      hidden: "已隐藏",
+      hiddenHint: "顾客看不到此分类",
     },
     toast: {
       categoryCreated: "分类已新增",
@@ -119,6 +124,7 @@ const zhCN: Messages = {
       itemCreated: "菜品已新增",
       itemUpdated: "菜品已更新",
       itemDeleted: "菜品已删除",
+      itemsImported: "已导入 {count} 个商品",
     },
     errors: {
       fetchFailed: "加载菜单失败",
@@ -126,6 +132,26 @@ const zhCN: Messages = {
       deleteFailed: "删除失败",
       reorderFailed: "排序更新失败",
       toggleFailed: "更新状态失败",
+      importFailed: "导入商品失败",
+      importRowFailed: "第 {row} 行导入失败：{reason}",
+      importInvalid: "请确认导入数据格式后再提交。",
+    },
+    import: {
+      successBanner: "已成功导入 {count} 笔商品。",
+    },
+    conflict: {
+      title: "此菜品已被其他人修改",
+      message:
+        "你在编辑「{name}」期间，有人更新了这个菜品。你的更改尚未保存 —— 加载最新数据后，你改过的字段会被保留。",
+      reload: "加载最新数据（保留我的更改）",
+      keepEditing: "继续编辑",
+      removed: "这个菜品已经被删除了。",
+      mergedTitle: "已加载最新数据",
+      mergedKept: "保留了你的更改：{fields}",
+      mergedApplied: "已应用其他人的更改：{fields}",
+      mergedOverridden:
+        "你和对方都改了：{fields} —— 当前显示的是你的版本，确认后再保存",
+      mergedNoChanges: "你没有未保存的更改，已直接应用最新数据。",
     },
     itemsHeader: {
       filterAll: "全部",
@@ -1417,6 +1443,7 @@ const zhCN: Messages = {
 
   // 导航
   nav: {
+    featureUnavailable: "尚未开放",
     platform: "平台概览",
     dashboard: "仪表板",
     ownerOverview: "店主总览",

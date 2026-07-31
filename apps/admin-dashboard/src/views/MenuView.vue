@@ -188,9 +188,12 @@
           </div>
           <div
             v-if="menuItemImportResult"
+            data-testid="menu-item-import-success"
             class="mt-3 rounded-xl bg-green-50 px-3 py-2 text-[13px] text-green-800"
           >
-            已成功匯入 {{ menuItemImportResult }} 筆商品。
+            {{
+              t("menu.import.successBanner", { count: menuItemImportResult })
+            }}
           </div>
           <div
             v-if="showMarketProductGapNextStep"
@@ -348,6 +351,121 @@
             <h3 class="text-[18px] font-bold text-[#1C1C1E] mb-5">
               {{ editingMenuItem ? t("menu.editItem") : t("menu.addItem") }}
             </h3>
+
+            <!-- Concurrent-edit prompt: someone changed this item while the
+                 form was open, so the save was refused (#85). -->
+            <div
+              v-if="menuItemConflict"
+              data-testid="menu-item-conflict"
+              data-status="conflict"
+              role="alert"
+              aria-live="assertive"
+              class="mb-5 rounded-2xl bg-[#FFF6E5] px-4 py-3.5 shadow-ios-sm transition-all duration-300 ease-out"
+            >
+              <div class="flex items-start gap-2.5">
+                <ExclamationTriangleIcon
+                  class="mt-0.5 h-5 w-5 shrink-0 text-ios-warning"
+                />
+                <div class="flex-1">
+                  <p class="text-[14px] font-semibold text-[#1C1C1E]">
+                    {{ t("menu.conflict.title") }}
+                  </p>
+                  <p class="mt-1 text-[13px] leading-5 text-[#8E8E93]">
+                    {{
+                      menuItemConflict.removed
+                        ? t("menu.conflict.removed")
+                        : t("menu.conflict.message", {
+                            name: menuItemConflict.name,
+                          })
+                    }}
+                  </p>
+                  <div class="mt-3 flex flex-wrap gap-2.5">
+                    <button
+                      v-if="!menuItemConflict.removed"
+                      type="button"
+                      data-testid="menu-item-conflict-reload"
+                      class="rounded-full bg-ios-primary px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(0,122,255,0.25)] transition-colors hover:bg-ios-primary/90"
+                      @click="reloadConflictedMenuItem"
+                    >
+                      {{ t("menu.conflict.reload") }}
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="menu-item-conflict-dismiss"
+                      class="rounded-full bg-white/70 px-4 py-2 text-[13px] font-semibold text-[#1C1C1E] transition-colors hover:bg-white"
+                      @click="
+                        menuItemConflict.removed
+                          ? closeMenuItemModal()
+                          : (menuItemConflict = null)
+                      "
+                    >
+                      {{
+                        menuItemConflict.removed
+                          ? t("common.close")
+                          : t("menu.conflict.keepEditing")
+                      }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- What the merge did, after the owner reloaded (#85). -->
+            <div
+              v-if="menuItemMergeSummary"
+              data-testid="menu-item-merge-summary"
+              data-status="merged"
+              role="status"
+              aria-live="polite"
+              class="mb-5 rounded-2xl bg-[#EAF4FF] px-4 py-3.5 shadow-ios-sm transition-all duration-300 ease-out"
+            >
+              <p class="text-[14px] font-semibold text-[#1C1C1E]">
+                {{ t("menu.conflict.mergedTitle") }}
+              </p>
+              <ul class="mt-1.5 space-y-1 text-[13px] leading-5 text-[#8E8E93]">
+                <li
+                  v-if="menuItemMergeSummary.overridden.length"
+                  data-testid="menu-item-merge-overridden"
+                  class="text-[#B25E00]"
+                >
+                  {{
+                    t("menu.conflict.mergedOverridden", {
+                      fields: menuItemMergeSummary.overridden.join("、"),
+                    })
+                  }}
+                </li>
+                <li
+                  v-if="menuItemMergeSummary.kept.length"
+                  data-testid="menu-item-merge-kept"
+                >
+                  {{
+                    t("menu.conflict.mergedKept", {
+                      fields: menuItemMergeSummary.kept.join("、"),
+                    })
+                  }}
+                </li>
+                <li
+                  v-if="menuItemMergeSummary.applied.length"
+                  data-testid="menu-item-merge-applied"
+                >
+                  {{
+                    t("menu.conflict.mergedApplied", {
+                      fields: menuItemMergeSummary.applied.join("、"),
+                    })
+                  }}
+                </li>
+                <li
+                  v-if="
+                    !menuItemMergeSummary.kept.length &&
+                    !menuItemMergeSummary.applied.length &&
+                    !menuItemMergeSummary.overridden.length
+                  "
+                  data-testid="menu-item-merge-noop"
+                >
+                  {{ t("menu.conflict.mergedNoChanges") }}
+                </li>
+              </ul>
+            </div>
 
             <form @submit.prevent="handleSaveMenuItem">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -841,6 +959,112 @@ const menuItemForm = ref({
   isFeatured: false,
   isAvailable: true,
   sortOrder: 0,
+  // The version this form was populated from; sent back on save so a
+  // concurrent edit is refused instead of silently overwritten (#85).
+  updatedAt: undefined as string | undefined,
+});
+
+type MenuItemFormState = typeof menuItemForm.value;
+
+// Set when the API refuses a save because someone else changed the item first.
+// `removed` is the terminal case: the other editor deleted it, so there is
+// nothing to merge into and the only move left is to close.
+const menuItemConflict = ref<{
+  id: number;
+  name: string;
+  removed?: boolean;
+} | null>(null);
+
+/**
+ * The values the open form was populated from.
+ *
+ * Without it a conflict can only be resolved by throwing the owner's work away,
+ * because "what did *I* change?" is unanswerable from the current form alone —
+ * every field looks different from the newly fetched row, whether the owner
+ * touched it or the other editor did.
+ */
+const menuItemBaseline = ref<MenuItemFormState | null>(null);
+
+// Outcome of the last merge, so the owner can see what was kept and what moved.
+const menuItemMergeSummary = ref<{
+  kept: string[];
+  applied: string[];
+  overridden: string[];
+} | null>(null);
+
+/**
+ * Fields the merge reasons about, grouped by what has to move together.
+ *
+ * Anything not listed (catalogType, updatedAt) always takes the freshly fetched
+ * value: the form does not edit it, so the owner can have no pending change to
+ * preserve.
+ */
+const MENU_ITEM_MERGE_FIELDS = [
+  { keys: ["name"], label: "menu.form.itemName" },
+  { keys: ["nameEn"], label: "menu.form.nameEn" },
+  { keys: ["description"], label: "menu.form.description" },
+  { keys: ["price"], label: "menu.form.price" },
+  { keys: ["originalPrice"], label: "menu.form.originalPrice" },
+  { keys: ["ingredients"], label: "menu.form.ingredients" },
+  { keys: ["spiceLevel"], label: "menu.form.spiceLevel" },
+  { keys: ["preparationTime"], label: "menu.form.preparationTime" },
+  { keys: ["calories"], label: "menu.form.calories" },
+  { keys: ["tagsText"], label: "menu.form.tags" },
+  { keys: ["keywords"], label: "menu.form.keywords" },
+  { keys: ["allergensText"], label: "menu.form.allergens" },
+  { keys: ["dietaryInfo"], label: "menu.form.dietaryInfo" },
+  { keys: ["optionsText"], label: "menu.form.options" },
+  { keys: ["categoryId"], label: "menu.form.category" },
+  // The three image fields are one decision. Keeping a locally chosen imageUrl
+  // while adopting someone else's imageId would pair a URL with the wrong
+  // stored asset, which is worse than either version on its own.
+  { keys: ["imageUrl", "imageId", "imageVariants"], label: "menu.form.image" },
+  { keys: ["isFeatured"], label: "menu.form.featuredItem" },
+  { keys: ["isAvailable"], label: "menu.form.isAvailable" },
+  { keys: ["sortOrder"], label: "menu.form.sortOrder" },
+] as const satisfies ReadonlyArray<{
+  keys: ReadonlyArray<keyof MenuItemFormState>;
+  label: string;
+}>;
+
+/** Structural equality — imageVariants is an object, so `===` would always differ. */
+const isSameFieldValue = (a: unknown, b: unknown) =>
+  JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+const buildMenuItemForm = (item: MenuItemData): MenuItemFormState => ({
+  name: item.name,
+  nameEn: item.nameEn ?? "",
+  description: item.description ?? "",
+  price: item.price,
+  originalPrice: item.originalPrice,
+  ingredients: item.ingredients ?? "",
+  spiceLevel: item.spiceLevel ?? 0,
+  preparationTime: item.preparationTime ?? 15,
+  calories: item.calories,
+  tagsText: item.tags?.join(", ") ?? "",
+  keywords: item.keywords ?? "",
+  allergensText: item.allergens?.join(", ") ?? "",
+  dietaryInfo: {
+    vegetarian: !!item.dietaryInfo?.vegetarian,
+    vegan: !!item.dietaryInfo?.vegan,
+    halal: !!item.dietaryInfo?.halal,
+    glutenFree: !!item.dietaryInfo?.glutenFree,
+    dairyFree: !!item.dietaryInfo?.dairyFree,
+    nutFree: !!item.dietaryInfo?.nutFree,
+    seafoodFree: !!item.dietaryInfo?.seafoodFree,
+    organic: !!item.dietaryInfo?.organic,
+    localSource: !!item.dietaryInfo?.localSource,
+  },
+  optionsText: item.options ? JSON.stringify(item.options, null, 2) : "",
+  categoryId: item.categoryId,
+  catalogType: item.catalogType ?? "menu_item",
+  imageUrl: item.imageUrl ?? "",
+  imageId: item.imageId ?? "",
+  imageVariants: item.imageVariants ?? null,
+  isFeatured: item.isFeatured,
+  isAvailable: item.isAvailable,
+  sortOrder: item.sortOrder,
+  updatedAt: item.updatedAt,
 });
 const optionsError = ref("");
 const dietaryFields = [
@@ -942,6 +1166,7 @@ const handleSaveCategory = async (
     nameEn: string;
     description: string;
     sortOrder: number;
+    isVisible: boolean;
   },
   editingId?: number,
 ) => {
@@ -996,6 +1221,7 @@ const handleDeleteCategory = (category: CategoryData) => {
 // ── Menu Item Handlers ──
 const openAddItemModal = () => {
   editingMenuItem.value = null;
+  menuItemConflict.value = null;
   menuItemForm.value = {
     name: "",
     nameEn: "",
@@ -1029,6 +1255,7 @@ const openAddItemModal = () => {
     isFeatured: false,
     isAvailable: true,
     sortOrder: 0,
+    updatedAt: undefined,
   };
   previousImageId.value = null;
   resetImageUpload();
@@ -1037,41 +1264,12 @@ const openAddItemModal = () => {
 
 const editMenuItem = (item: MenuItemData) => {
   editingMenuItem.value = item;
+  menuItemConflict.value = null;
+  menuItemMergeSummary.value = null;
   previousImageId.value = item.imageId ?? null;
-  menuItemForm.value = {
-    name: item.name,
-    nameEn: item.nameEn ?? "",
-    description: item.description ?? "",
-    price: item.price,
-    originalPrice: item.originalPrice,
-    ingredients: item.ingredients ?? "",
-    spiceLevel: item.spiceLevel ?? 0,
-    preparationTime: item.preparationTime ?? 15,
-    calories: item.calories,
-    tagsText: item.tags?.join(", ") ?? "",
-    keywords: item.keywords ?? "",
-    allergensText: item.allergens?.join(", ") ?? "",
-    dietaryInfo: {
-      vegetarian: !!item.dietaryInfo?.vegetarian,
-      vegan: !!item.dietaryInfo?.vegan,
-      halal: !!item.dietaryInfo?.halal,
-      glutenFree: !!item.dietaryInfo?.glutenFree,
-      dairyFree: !!item.dietaryInfo?.dairyFree,
-      nutFree: !!item.dietaryInfo?.nutFree,
-      seafoodFree: !!item.dietaryInfo?.seafoodFree,
-      organic: !!item.dietaryInfo?.organic,
-      localSource: !!item.dietaryInfo?.localSource,
-    },
-    optionsText: item.options ? JSON.stringify(item.options, null, 2) : "",
-    categoryId: item.categoryId,
-    catalogType: item.catalogType ?? "menu_item",
-    imageUrl: item.imageUrl ?? "",
-    imageId: item.imageId ?? "",
-    imageVariants: item.imageVariants ?? null,
-    isFeatured: item.isFeatured,
-    isAvailable: item.isAvailable,
-    sortOrder: item.sortOrder,
-  };
+  menuItemForm.value = buildMenuItemForm(item);
+  // Snapshot, not a reference to the same object — the form is edited in place.
+  menuItemBaseline.value = { ...menuItemForm.value };
   resetImageUpload();
   showMenuItemModal.value = true;
 };
@@ -1079,7 +1277,78 @@ const editMenuItem = (item: MenuItemData) => {
 const closeMenuItemModal = () => {
   showMenuItemModal.value = false;
   editingMenuItem.value = null;
+  menuItemConflict.value = null;
+  menuItemMergeSummary.value = null;
+  menuItemBaseline.value = null;
   previousImageId.value = null;
+  resetImageUpload();
+};
+
+/**
+ * Reload the item the save was refused on, merging field by field.
+ *
+ * Blanket "keep mine" is the overwrite the 409 exists to prevent, but blanket
+ * "take theirs" throws away work the owner may have spent minutes on. Comparing
+ * both sides against the baseline the form was opened with separates the two:
+ * a field the owner never touched can safely adopt the other editor's value,
+ * and only a field both of them changed is a genuine collision. Those keep the
+ * owner's value — they are looking at it — and are named explicitly so the
+ * choice is theirs to undo before saving again.
+ */
+const reloadConflictedMenuItem = async () => {
+  const conflicted = menuItemConflict.value;
+  menuItemConflict.value = null;
+  if (!conflicted) return;
+
+  await fetchMenu();
+  const fresh = menuItems.value.find((item) => item.id === conflicted.id);
+  if (!fresh) {
+    // Deleted while the form was open. Say so in place rather than closing the
+    // modal from under the owner, which reads as the save having worked.
+    menuItemConflict.value = { ...conflicted, removed: true };
+    return;
+  }
+
+  const baseline = menuItemBaseline.value;
+  const freshForm = buildMenuItemForm(fresh);
+
+  // No baseline means nothing to reason about — take the fresh row wholesale.
+  if (!baseline) {
+    editMenuItem(fresh);
+    return;
+  }
+
+  const mine = menuItemForm.value;
+  const merged: MenuItemFormState = { ...freshForm };
+  const kept: string[] = [];
+  const applied: string[] = [];
+  const overridden: string[] = [];
+
+  for (const group of MENU_ITEM_MERGE_FIELDS) {
+    const iChanged = group.keys.some(
+      (key) => !isSameFieldValue(mine[key], baseline[key]),
+    );
+    const theyChanged = group.keys.some(
+      (key) => !isSameFieldValue(freshForm[key], baseline[key]),
+    );
+
+    if (iChanged) {
+      for (const key of group.keys) {
+        // Same object shape on both sides, so the widening cast is safe.
+        (merged as Record<string, unknown>)[key] = mine[key];
+      }
+      (theyChanged ? overridden : kept).push(t(group.label));
+    } else if (theyChanged) {
+      applied.push(t(group.label));
+    }
+  }
+
+  editingMenuItem.value = fresh;
+  previousImageId.value = fresh.imageId ?? null;
+  // The whole point of the reload: save again against the version we just read.
+  menuItemForm.value = { ...merged, updatedAt: freshForm.updatedAt };
+  menuItemBaseline.value = { ...freshForm };
+  menuItemMergeSummary.value = { kept, applied, overridden };
   resetImageUpload();
 };
 
@@ -1116,7 +1385,9 @@ const handleSaveMenuItem = async () => {
   }
   const oldImageId = previousImageId.value;
   const nextImageId = menuItemForm.value.imageId || null;
-  const didSave = await saveMenuItem(
+  const editingItem = editingMenuItem.value;
+  menuItemConflict.value = null;
+  const outcome = await saveMenuItem(
     {
       name: menuItemForm.value.name,
       nameEn: menuItemForm.value.nameEn || undefined,
@@ -1150,10 +1421,20 @@ const handleSaveMenuItem = async () => {
       isFeatured: menuItemForm.value.isFeatured,
       isAvailable: menuItemForm.value.isAvailable,
       sortOrder: menuItemForm.value.sortOrder,
+      updatedAt: menuItemForm.value.updatedAt,
     },
-    editingMenuItem.value?.id,
+    editingItem?.id,
   );
-  if (!didSave) {
+  // Checked before the generic failure branch: "conflict" is truthy and needs
+  // its own remedy, not the silent return a plain failure gets.
+  if (outcome === "conflict" && editingItem) {
+    menuItemConflict.value = {
+      id: editingItem.id,
+      name: menuItemForm.value.name || editingItem.name,
+    };
+    return;
+  }
+  if (outcome !== "saved") {
     return;
   }
   deletePreviousImageIfChanged(oldImageId, nextImageId);
@@ -1221,7 +1502,7 @@ const importMenuItemsFromCsv = async () => {
   const parsed = menuItemImportPreview.value;
   if (!parsed.items.length || parsed.errors.length) {
     menuItemImportError.value =
-      parsed.errors[0] ?? "請確認匯入資料格式後再送出。";
+      parsed.errors[0] ?? t("menu.errors.importInvalid");
     return;
   }
 
@@ -1234,8 +1515,13 @@ const importMenuItemsFromCsv = async () => {
     hasCompletedMarketProductGap.value = true;
     menuItemImportText.value = "";
   } catch (error) {
+    // importMenuItems already localises the reason (including the failing row)
+    // and puts it on the Error it rethrows; nothing was written, so the owner
+    // can fix that row and resubmit the same CSV without duplicating anything.
     menuItemImportError.value =
-      error instanceof Error ? error.message : "匯入商品失敗";
+      error instanceof Error && error.message
+        ? error.message
+        : t("menu.errors.importFailed");
   } finally {
     isImportingMenuItems.value = false;
   }

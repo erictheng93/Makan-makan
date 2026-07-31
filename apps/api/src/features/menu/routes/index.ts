@@ -43,6 +43,47 @@ async function syncCategoryItems(env: Env, categoryId: number): Promise<void> {
   await sync.onCategoryChanged(categoryId);
 }
 
+/**
+ * The only menu-item fields a CHEF may change.
+ *
+ * A chef's legitimate need is "we've run out of this" — stock and availability.
+ * Prices, names, categories and images are the owner's. Bulk price updates were
+ * already ADMIN/OWNER-only while `PUT /items/:id` let a chef change the very
+ * same prices one item at a time, which is not a boundary (#85).
+ */
+const CHEF_EDITABLE_ITEM_FIELDS = ["isAvailable", "inventoryCount"] as const;
+
+/**
+ * Rejects, rather than silently strips, any field a chef may not change — a
+ * client that sent more than it is allowed to must learn its request was not
+ * applied instead of believing a partial write succeeded.
+ *
+ * Safe to rely on key presence: `updateMenuItemSchema` carries no defaults, so
+ * the validated body contains exactly the keys the caller sent.
+ */
+function assertChefFieldsAllowed(
+  role: number,
+  body: Record<string, unknown>,
+): void {
+  if (role !== USER_ROLES.CHEF) return;
+
+  const allowed = new Set<string>([
+    ...CHEF_EDITABLE_ITEM_FIELDS,
+    // A precondition, not a field write — a chef sending the optimistic-lock
+    // timestamp is asking for its stock flip to be checked, not editing
+    // anything (#85).
+    "updatedAt",
+  ]);
+  const rejected = Object.keys(body).filter((field) => !allowed.has(field));
+
+  if (rejected.length > 0) {
+    throw forbidden(
+      `Chefs may only update ${CHEF_EDITABLE_ITEM_FIELDS.join(", ")}; not allowed: ${rejected.join(", ")}`,
+      "CHEF_FIELD_NOT_ALLOWED",
+    );
+  }
+}
+
 // Public Menu Routes (no authentication required)
 
 // GET /:restaurantId - Get complete menu (public API, optionally includes unavailable items for admins)
@@ -195,11 +236,14 @@ app.get(
 // Protected Menu Management Routes (authentication required)
 
 // POST /:restaurantId/items - Create menu item
+// CHEF is deliberately absent: creating an item sets its price (#85). Chefs
+// change stock through PATCH /:restaurantId/items/availability or a
+// stock-only PUT /items/:id.
 app.post(
   "/:restaurantId/items",
   authMiddleware,
   moduleGate("menu_management"),
-  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER, USER_ROLES.CHEF]),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   requireRestaurantAccess("restaurantId"),
   validateParams(menuSchemas.restaurantIdParam),
   validateBody(menuSchemas.createMenuItem),
@@ -221,7 +265,42 @@ app.post(
   },
 );
 
+// POST /:restaurantId/items/bulk - Create many menu items atomically
+// Same role table as the single create (both set prices), and the same
+// restaurant scoping. The importer used to loop single POSTs from the browser,
+// which committed every row up to the one that failed (#85).
+app.post(
+  "/:restaurantId/items/bulk",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(menuSchemas.restaurantIdParam),
+  validateBody(menuSchemas.bulkCreateMenuItems),
+  async (c) => {
+    const { restaurantId } = c.get("validatedParams");
+    const { items } = c.get("validatedBody");
+    const service = new MenuService(c.env);
+
+    const created = await service.bulkCreateMenuItems(restaurantId, items);
+    await syncMenuItems(
+      c.env,
+      created.map((item) => item.id),
+    );
+
+    return c.json(
+      createSuccessResponse(
+        { created: created.length, items: created },
+        "Menu items created successfully",
+      ),
+      HTTP_STATUS.CREATED,
+    );
+  },
+);
+
 // PUT /items/:id - Update menu item
+// CHEF is admitted by role but restricted by body — see
+// assertChefFieldsAllowed.
 app.put(
   "/items/:id",
   authMiddleware,
@@ -234,6 +313,10 @@ app.put(
     const data = c.get("validatedBody");
     const user = c.get("user");
     const service = new MenuService(c.env);
+
+    // Body-shape check before any DB work: a chef sending price/name is
+    // refused whether or not the item exists.
+    assertChefFieldsAllowed(user.role, data);
 
     // Get existing item to check restaurant access
     const existingItem = await service.getMenuItem(id);

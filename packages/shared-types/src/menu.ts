@@ -15,6 +15,22 @@ export interface Category extends BaseEntity {
   parentId?: number;
   sortOrder: number;
   status: Status;
+  imageUrl?: string | null;
+  /**
+   * Visibility is two independent flags, and `status` only carries `isActive`.
+   * Both are surfaced so an admin client can tell a hidden category apart from
+   * a visible one instead of losing it entirely (#83). Absent on responses
+   * built from shapes that do not carry them.
+   */
+  isActive?: boolean;
+  isVisible?: boolean;
+  /**
+   * Live count of the items in this category. Optional on purpose: there is no
+   * stored categories.item_count any more (#84), so call sites that return a
+   * bare category row — create/update responses — omit it rather than report a
+   * fabricated 0.
+   */
+  itemCount?: number;
 }
 
 export interface MenuItem extends BaseEntity {
@@ -43,6 +59,14 @@ export interface MenuItem extends BaseEntity {
   allergens?: string[]; // allergen information
   inventoryCount: number; // -1 for unlimited
   orderCount: number;
+  /**
+   * Engagement counters. Written by the DB layer (incrementViewCount and the
+   * rating update path) and now actually read back — they used to be dropped in
+   * the mappers, so every consumer saw 0 (#84).
+   */
+  rating?: number;
+  reviewCount?: number;
+  viewCount?: number;
   category?: Category; // populated when needed
 }
 

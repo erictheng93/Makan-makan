@@ -29,6 +29,44 @@ function createQuery(result: unknown, capturedWhere: unknown[]) {
   return builder;
 }
 
+/**
+ * Same shape as createQuery, but also records what was handed to orderBy/limit.
+ * The Top-N regression (#84) is precisely about those two calls existing at all,
+ * so a harness that swallows their arguments cannot catch it.
+ */
+function createRankingQuery(
+  result: unknown,
+  captured: {
+    where: unknown[];
+    orderBy: unknown[][];
+    limit: number[];
+  },
+) {
+  const builder = {
+    from: vi.fn(() => builder),
+    innerJoin: vi.fn(() => builder),
+    where: vi.fn((condition: unknown) => {
+      captured.where.push(condition);
+      return builder;
+    }),
+    orderBy: vi.fn((...args: unknown[]) => {
+      captured.orderBy.push(args);
+      return builder;
+    }),
+    limit: vi.fn((value: number) => {
+      captured.limit.push(value);
+      return builder;
+    }),
+    offset: vi.fn(() => builder),
+    groupBy: vi.fn(() => builder),
+    then: (
+      resolve: (value: unknown) => void,
+      reject?: (reason: unknown) => void,
+    ) => Promise.resolve(result).then(resolve, reject),
+  };
+  return builder;
+}
+
 function collectSqlMetadata(input: unknown): {
   columns: string[];
   numbers: number[];
@@ -86,6 +124,450 @@ describe("MenuService money filters", () => {
     expect(metadata.columns).toContain("price_cents");
     expect(metadata.columns).not.toContain("price");
     expect(metadata.numbers).toEqual(expect.arrayContaining([10000, 30000]));
+  });
+});
+
+/**
+ * Bound parameter values (drizzle `Param` nodes) reachable from a condition.
+ * collectSqlMetadata only picks up numbers written inline in a `sql` template,
+ * which is not how eq()/gt() encode their right-hand side.
+ */
+function collectBoundParams(input: unknown): unknown[] {
+  const values: unknown[] = [];
+  const visit = (value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    const node = value as { value?: unknown; queryChunks?: unknown[] };
+    if ("value" in node && !Array.isArray(node.queryChunks)) {
+      values.push(node.value);
+    }
+    if (Array.isArray(node.queryChunks)) {
+      node.queryChunks.forEach(visit);
+    }
+  };
+  visit(input);
+  return values;
+}
+
+/**
+ * Regression coverage for #84.
+ *
+ * The API layer used to build these three lists by taking a page of
+ * searchMenuItems() results (ordered by isFeatured/orderCount/sortOrder) and
+ * re-sorting them in JS, so a menu with more than `limit` items ranked the
+ * wrong candidate set. These assert the ordering and the limit are actually in
+ * the SQL, that `rating > 0` is a WHERE clause rather than a post-slice filter,
+ * and that the customer-facing category gate is still applied.
+ */
+describe("MenuService top-N rankings", () => {
+  function buildRankingService(rows: unknown[] = []) {
+    const captured = {
+      where: [] as unknown[],
+      orderBy: [] as unknown[][],
+      limit: [] as number[],
+    };
+    const db = {
+      select: vi.fn(() => createRankingQuery(rows, captured)),
+    };
+    return { service: createServiceWithDb(db), captured, db };
+  }
+
+  it("orders most-viewed items by view count in SQL and limits there", async () => {
+    const { service, captured, db } = buildRankingService();
+
+    await service.getMostViewedItems("restaurant-1", 5);
+
+    expect(db.select).toHaveBeenCalledOnce();
+    expect(captured.limit).toEqual([5]);
+    expect(collectSqlMetadata(captured.orderBy[0]).columns).toEqual([
+      "view_count",
+      "order_count",
+    ]);
+    // Customer-facing list: the category visibility gate must still be there.
+    const whereColumns = collectSqlMetadata(captured.where[0]).columns;
+    expect(whereColumns).toEqual(
+      expect.arrayContaining([
+        "is_available",
+        "is_active",
+        "is_visible",
+        "deleted_at_ms",
+      ]),
+    );
+  });
+
+  it("filters rating > 0 in SQL so the limit is honoured", async () => {
+    const { service, captured } = buildRankingService();
+
+    await service.getHighestRatedItems("restaurant-1", 3);
+
+    expect(captured.limit).toEqual([3]);
+    expect(collectSqlMetadata(captured.orderBy[0]).columns).toEqual([
+      "rating",
+      "review_count",
+    ]);
+    // rating appears in the WHERE clause, not only in the ORDER BY — the old
+    // code filtered rating > 0 *after* slicing 10 rows, so the list silently
+    // came back short.
+    expect(collectSqlMetadata(captured.where[0]).columns).toContain("rating");
+    expect(collectBoundParams(captured.where[0])).toContain(0);
+  });
+
+  it("orders recently added items by creation time in SQL", async () => {
+    const { service, captured } = buildRankingService();
+
+    await service.getRecentlyAddedItems("restaurant-1", 4);
+
+    expect(captured.limit).toEqual([4]);
+    expect(collectSqlMetadata(captured.orderBy[0]).columns).toEqual([
+      "created_at_ms",
+      "id",
+    ]);
+  });
+
+  it("maps view and review counts onto the returned items", async () => {
+    const { service } = buildRankingService([
+      {
+        id: 101,
+        restaurantId: "restaurant-1",
+        categoryId: 7,
+        name: "Laksa",
+        priceCents: 18000,
+        viewCount: 42,
+        reviewCount: 7,
+        rating: 4.5,
+      },
+    ]);
+
+    await expect(
+      service.getMostViewedItems("restaurant-1", 5),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: 101,
+        viewCount: 42,
+        reviewCount: 7,
+        rating: 4.5,
+      }),
+    ]);
+  });
+});
+
+/**
+ * Regression coverage for #83.
+ *
+ * `includeUnavailable` only ever relaxed the *item* filter; the category filter
+ * stayed at isActive AND isVisible AND not-deleted. Setting a category
+ * isVisible:false therefore removed the category and all of its items from the
+ * owner's own dashboard, which reads this exact endpoint with includeAll=true,
+ * and the dashboard had no control to put it back.
+ */
+describe("MenuService category visibility", () => {
+  function buildMenuService(categoryRows: Record<string, unknown>[]) {
+    const capturedConfigs: any[] = [];
+    const db = {
+      query: {
+        restaurants: {
+          findFirst: vi.fn(async (config: any) => {
+            capturedConfigs.push(config);
+            return { id: "restaurant-1", categories: categoryRows };
+          }),
+        },
+      },
+    };
+    return { service: createServiceWithDb(db), capturedConfigs, db };
+  }
+
+  function categoryRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 7,
+      restaurantId: "restaurant-1",
+      name: "Noodles",
+      nameEn: null,
+      description: null,
+      sortOrder: 0,
+      isActive: true,
+      isVisible: true,
+      imageUrl: null,
+      createdAt: new Date("2026-07-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+      menuItems: [],
+      ...overrides,
+    };
+  }
+
+  it("keeps the public read gated on isActive and isVisible", async () => {
+    const { service, capturedConfigs, db } = buildMenuService([categoryRow()]);
+
+    await service.getMenu("restaurant-1");
+
+    expect(db.query.restaurants.findFirst).toHaveBeenCalledOnce();
+    const columns = collectSqlMetadata(
+      capturedConfigs[0].with.categories.where,
+    ).columns;
+    expect(columns).toEqual(
+      expect.arrayContaining(["is_active", "is_visible", "deleted_at_ms"]),
+    );
+  });
+
+  it("only excludes soft-deleted categories for the admin read", async () => {
+    const { service, capturedConfigs } = buildMenuService([categoryRow()]);
+
+    await service.getMenu("restaurant-1", { includeUnavailable: true });
+
+    const columns = collectSqlMetadata(
+      capturedConfigs[0].with.categories.where,
+    ).columns;
+    expect(columns).toEqual(["deleted_at_ms"]);
+    expect(columns).not.toContain("is_visible");
+    expect(columns).not.toContain("is_active");
+  });
+
+  it("carries both visibility flags and a live item count to the client", async () => {
+    const { service } = buildMenuService([
+      categoryRow({
+        isVisible: false,
+        menuItems: [
+          { id: 1, restaurantId: "restaurant-1", categoryId: 7, name: "A" },
+          { id: 2, restaurantId: "restaurant-1", categoryId: 7, name: "B" },
+        ],
+      }),
+    ]);
+
+    const menu = await service.getMenu("restaurant-1", {
+      includeUnavailable: true,
+    });
+
+    expect(menu.categories).toEqual([
+      expect.objectContaining({
+        id: 7,
+        isActive: true,
+        isVisible: false,
+        // Derived from the loaded rows, not from a stored counter (#84).
+        itemCount: 2,
+      }),
+    ]);
+  });
+});
+
+/**
+ * Regression coverage for #85.
+ *
+ * The CSV importer used to POST one item per row from the browser, so a batch
+ * that failed on row 7 left rows 1-6 committed and a retry duplicated them
+ * (the menu has no name uniqueness). D1 has no db.transaction(), so atomicity
+ * here means one db.batch() — and one statement per row, because D1 caps bound
+ * parameters per query at 100.
+ */
+describe("MenuService bulk create", () => {
+  function buildBulkService(rowsPerStatement: number[]) {
+    const statements: unknown[] = [];
+    const insertedValues: Record<string, unknown>[] = [];
+    let statementId = 0;
+    const insertBuilder = {
+      values: vi.fn((data: Record<string, unknown>) => {
+        insertedValues.push(data);
+        return insertBuilder;
+      }),
+      returning: vi.fn(() => ({ statement: statementId++ })),
+    };
+    const batch = vi.fn(async (given: unknown[]) => {
+      statements.push(...given);
+      return rowsPerStatement.map((_row, index) => [
+        {
+          id: 300 + index,
+          restaurantId: "restaurant-1",
+          categoryId: 7,
+          name: `Item ${index}`,
+          priceCents: 1000 + index,
+        },
+      ]);
+    });
+    const db = { insert: vi.fn(() => insertBuilder), batch };
+    const service = createServiceWithDb(db);
+    const invalidateCache = vi
+      .spyOn(
+        service as unknown as { invalidateCache: () => void },
+        "invalidateCache",
+      )
+      .mockResolvedValue(undefined);
+    return { service, db, batch, statements, insertedValues, invalidateCache };
+  }
+
+  function row(index: number) {
+    return {
+      restaurantId: "restaurant-1",
+      categoryId: 7,
+      name: `Item ${index}`,
+      price: 10 + index,
+    };
+  }
+
+  it("sends every row through a single batch and maps the returned items", async () => {
+    const { service, batch, statements, insertedValues, invalidateCache } =
+      buildBulkService([1, 1, 1]);
+
+    const created = await service.bulkCreateMenuItems([row(0), row(1), row(2)]);
+
+    expect(batch).toHaveBeenCalledOnce();
+    expect(statements).toHaveLength(3);
+    expect(created).toEqual([
+      expect.objectContaining({ id: 300, price: 10 }),
+      expect.objectContaining({ id: 301 }),
+      expect.objectContaining({ id: 302 }),
+    ]);
+    // Money still goes in as authoritative cents, and the create-time flag
+    // defaults are the same ones createMenuItem applies.
+    expect(insertedValues[0]).toEqual(
+      expect.objectContaining({
+        priceCents: 1000,
+        isAvailable: true,
+        isFeatured: false,
+        isPopular: false,
+      }),
+    );
+    expect(insertedValues[0]).not.toHaveProperty("price");
+    // One invalidation for the one restaurant in the batch, not one per row.
+    expect(invalidateCache).toHaveBeenCalledOnce();
+    expect(invalidateCache).toHaveBeenCalledWith(
+      ["menu:restaurant-1", "restaurant:restaurant-1"],
+      "tag",
+    );
+  });
+
+  it("touches nothing for an empty batch", async () => {
+    const { service, db, batch, invalidateCache } = buildBulkService([]);
+
+    await expect(service.bulkCreateMenuItems([])).resolves.toEqual([]);
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(batch).not.toHaveBeenCalled();
+    expect(invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it("scopes the category ownership lookup to the restaurant and excludes deleted rows", async () => {
+    const capturedWhere: unknown[] = [];
+    const db = {
+      select: vi.fn(() => createQuery([{ id: 7 }, { id: 8 }], capturedWhere)),
+    };
+    const service = createServiceWithDb(db);
+
+    await expect(
+      service.findOwnedCategoryIds("restaurant-1", [7, 8, 99]),
+    ).resolves.toEqual(new Set([7, 8]));
+
+    const columns = collectSqlMetadata(capturedWhere[0]).columns;
+    expect(columns).toEqual(
+      expect.arrayContaining(["restaurant_id", "id", "deleted_at_ms"]),
+    );
+    // No query at all when there is nothing to check.
+    await expect(
+      service.findOwnedCategoryIds("restaurant-1", []),
+    ).resolves.toEqual(new Set());
+    expect(db.select).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * Regression coverage for #80.
+ *
+ * Deletion used to write `sortOrder: -1` while `deleted_at_ms` sat unwritten,
+ * so deleted items still counted in every reader that didn't know the
+ * convention — most visibly deleteCategory's item check, which permanently
+ * refused to delete an emptied category. Deletion now writes deleted_at_ms and
+ * item reads filter on it.
+ */
+describe("MenuService soft delete", () => {
+  function buildDeleteService(returnedRows: Record<string, unknown>[]) {
+    const capturedSet: Record<string, unknown>[] = [];
+    const capturedWhere: unknown[] = [];
+    const updateBuilder = {
+      set: vi.fn((values: Record<string, unknown>) => {
+        capturedSet.push(values);
+        return updateBuilder;
+      }),
+      where: vi.fn((condition: unknown) => {
+        capturedWhere.push(condition);
+        return updateBuilder;
+      }),
+      returning: vi.fn(async () => returnedRows),
+    };
+    const db = { update: vi.fn(() => updateBuilder) };
+    const service = createServiceWithDb(db);
+    const invalidateCache = vi
+      .spyOn(
+        service as unknown as { invalidateCache: () => void },
+        "invalidateCache",
+      )
+      .mockResolvedValue(undefined);
+    return { service, capturedSet, capturedWhere, invalidateCache };
+  }
+
+  it("writes deletedAt (not sortOrder) and invalidates the menu cache", async () => {
+    const { service, capturedSet, capturedWhere, invalidateCache } =
+      buildDeleteService([{ id: 101, restaurantId: "restaurant-1" }]);
+
+    await expect(service.softDeleteMenuItem(101)).resolves.toBe(true);
+
+    expect(capturedSet[0]).toEqual(
+      expect.objectContaining({
+        deletedAt: expect.any(Date),
+        isAvailable: false,
+      }),
+    );
+    // The retired convention must not come back.
+    expect(capturedSet[0]).not.toHaveProperty("sortOrder");
+    // Guarded on deleted_at_ms IS NULL, so a double delete keeps the original
+    // timestamp instead of moving it.
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toEqual(
+      expect.arrayContaining(["id", "deleted_at_ms"]),
+    );
+    expect(invalidateCache).toHaveBeenCalledWith(
+      ["menu:restaurant-1", "restaurant:restaurant-1"],
+      "tag",
+    );
+  });
+
+  it("returns false when the row is missing or already deleted", async () => {
+    const { service, invalidateCache } = buildDeleteService([]);
+
+    await expect(service.softDeleteMenuItem(404)).resolves.toBe(false);
+    expect(invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it("excludes soft-deleted items from item reads", async () => {
+    const capturedWhere: unknown[] = [];
+    const db = {
+      select: vi.fn(() => createQuery([], capturedWhere)),
+    };
+    const service = createServiceWithDb(db);
+
+    await service.searchMenuItems("restaurant-1", {}, 1, 20);
+
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toContain(
+      "deleted_at_ms",
+    );
+  });
+
+  it("excludes soft-deleted items from category item counts", async () => {
+    const capturedWhere: unknown[] = [];
+    const groupResult = [{ categoryId: 7, itemCount: 2 }];
+    const builder = createQuery(groupResult, capturedWhere) as Record<
+      string,
+      unknown
+    >;
+    builder.groupBy = vi.fn(() => builder);
+    const db = { select: vi.fn(() => builder) };
+    const service = createServiceWithDb(db);
+
+    await expect(service.countItemsByCategory("restaurant-1")).resolves.toEqual(
+      new Map([[7, 2]]),
+    );
+    // Counting deleted rows is what produced the "itemCount says 2, the list
+    // is empty" contradiction in the dashboard.
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toContain(
+      "deleted_at_ms",
+    );
   });
 });
 
@@ -159,10 +641,8 @@ describe("MenuService image ownership", () => {
       },
     };
     const service = createServiceWithDb(db);
-    vi.spyOn(
-      service as unknown as { updateCategoryItemCount: (id: number) => void },
-      "updateCategoryItemCount",
-    ).mockResolvedValue(undefined);
+    // createMenuItem used to also write categories.item_count here. That column
+    // is gone (#84) — counts are derived live — so there is nothing to stub.
     vi.spyOn(
       service as unknown as { invalidateCache: () => void },
       "invalidateCache",

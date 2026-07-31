@@ -663,11 +663,17 @@ describe("Menu API — real integration", () => {
       menu.data.menuItems.find((i: any) => i.id === created.data.id),
     ).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
 
+    // updatedAt rides along because renaming is a form save, and those now
+    // carry the optimistic-lock precondition (#85). It comes straight from the
+    // create response, which is exactly what the dashboard has in hand.
     const updateRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/items/${created.data.id}`, {
         method: "PUT",
         headers: csrfHeaders(ownerToken),
-        body: JSON.stringify({ nameEn: "Chicken Rice" }),
+        body: JSON.stringify({
+          nameEn: "Chicken Rice",
+          updatedAt: created.data.updatedAt,
+        }),
       }),
     );
 
@@ -734,5 +740,987 @@ describe("Menu API — real integration", () => {
     expect(
       menu.data.categories.find((c: any) => c.id === created.data.id),
     ).toMatchObject({ nameEn: "Mains" });
+  });
+
+  /**
+   * Regression coverage for #83.
+   *
+   * `includeAll=true` relaxed only the *item* filter. The category filter stayed
+   * at isActive AND isVisible AND not-deleted, so hiding a category removed it
+   * — and every item in it — from the owner's own dashboard, which reads exactly
+   * this endpoint, with nothing in the UI able to put it back.
+   *
+   * The public half of the assertion is the important guardrail: relaxing the
+   * admin read must not leak a hidden category to unauthenticated callers.
+   */
+  it("shows hidden categories to the owner and keeps them off the public menu (#83)", async () => {
+    const restaurant = await seed.restaurant();
+    const now = new Date();
+    const [visibleCategory, hiddenCategory, inactiveCategory, deletedCategory] =
+      await testApp.testDb.drizzle
+        .insert(categories)
+        .values([
+          {
+            restaurantId: String(restaurant.id),
+            name: "常駐分類",
+            sortOrder: 0,
+            isActive: true,
+            isVisible: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "季節限定",
+            sortOrder: 1,
+            isActive: true,
+            isVisible: false,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "已停用分類",
+            sortOrder: 2,
+            isActive: false,
+            isVisible: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            restaurantId: String(restaurant.id),
+            name: "已刪除分類",
+            sortOrder: 3,
+            isActive: true,
+            isVisible: true,
+            deletedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ])
+        .returning();
+
+    // Inserted directly rather than through seed.menuItem, which creates a
+    // throwaway category of its own per call and would pollute the category
+    // assertions below.
+    await testApp.testDb.drizzle.insert(menuItems).values([
+      {
+        restaurantId: String(restaurant.id),
+        categoryId: visibleCategory.id,
+        name: "常駐品項",
+        priceCents: 12000,
+        isAvailable: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        restaurantId: String(restaurant.id),
+        categoryId: hiddenCategory.id,
+        name: "隱藏分類品項",
+        priceCents: 12000,
+        isAvailable: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        restaurantId: String(restaurant.id),
+        categoryId: inactiveCategory.id,
+        name: "停用分類品項",
+        priceCents: 12000,
+        isAvailable: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        restaurantId: String(restaurant.id),
+        categoryId: deletedCategory.id,
+        name: "刪除分類品項",
+        priceCents: 12000,
+        isAvailable: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const adminRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}?includeAll=true`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(adminRes.status).toBe(200);
+    const adminMenu: any = await adminRes.json();
+
+    // Hidden and inactive categories are present; only the soft-deleted one is
+    // withheld, because "deleted" is not a state the editor resurrects.
+    expect(
+      adminMenu.data.categories.map((cat: any) => cat.name).sort(),
+    ).toEqual(["季節限定", "已停用分類", "常駐分類"].sort());
+    expect(
+      adminMenu.data.categories.find(
+        (cat: any) => cat.id === hiddenCategory.id,
+      ),
+    ).toMatchObject({ isVisible: false, isActive: true, itemCount: 1 });
+    expect(
+      adminMenu.data.categories.find(
+        (cat: any) => cat.id === inactiveCategory.id,
+      ),
+    ).toMatchObject({ isActive: false });
+
+    // The items inside the hidden category came back too — they used to vanish
+    // with their category.
+    expect(
+      adminMenu.data.menuItems.map((item: any) => item.name).sort(),
+    ).toEqual(["停用分類品項", "常駐品項", "隱藏分類品項"].sort());
+
+    const publicRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}`),
+    );
+    expect(publicRes.status).toBe(200);
+    const publicMenu: any = await publicRes.json();
+
+    expect(publicMenu.data.categories.map((cat: any) => cat.name)).toEqual([
+      "常駐分類",
+    ]);
+    expect(publicMenu.data.menuItems.map((item: any) => item.name)).toEqual([
+      "常駐品項",
+    ]);
+  });
+
+  /**
+   * Regression coverage for #84.1.
+   *
+   * getMenuAnalytics() read the public menu, which is already filtered to
+   * isAvailable, so `availableItems` was identically equal to `totalItems` and
+   * an owner could never see how many items were paused. priceRange and the
+   * distributions were silently scoped to on-sale items too.
+   */
+  it("counts paused items in analytics so availableItems differs from totalItems (#84)", async () => {
+    const restaurant = await seed.restaurant();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const now = new Date();
+    const [category] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "分析分類",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    await seed.menuItem(restaurant.id, {
+      categoryId: category.id,
+      name: "供應中",
+      isAvailable: true,
+      priceCents: 10000,
+    });
+    await seed.menuItem(restaurant.id, {
+      categoryId: category.id,
+      name: "已暫停",
+      isAvailable: false,
+      priceCents: 50000,
+    });
+
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/analytics`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.data).toMatchObject({
+      totalItems: 2,
+      availableItems: 1,
+      priceRange: { min: 100, max: 500 },
+    });
+    expect(json.data.categoryDistribution).toEqual([
+      expect.objectContaining({ categoryId: category.id, itemCount: 2 }),
+    ]);
+  });
+
+  /**
+   * Regression coverage for #84.1 (second half).
+   *
+   * getMenu() gates on isPublicRestaurantAvailable, which requires isActive, so
+   * an owner whose restaurant was paused got 404 MENU_NOT_FOUND for their own
+   * analytics. The public gate must stay intact — asserted here too.
+   */
+  it("serves owner analytics for an inactive restaurant while the public menu stays 404 (#84)", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Paused Analytics Vendor",
+      isActive: false,
+    });
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    await seed.menuItem(restaurant.id, {
+      name: "暫停營業品項",
+      isAvailable: true,
+      priceCents: 20000,
+    });
+
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const [analyticsRes, adminMenuRes, publicRes] = await Promise.all([
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/analytics`, {
+          headers: { authorization: `Bearer ${ownerToken}` },
+        }),
+      ),
+      testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurant.id}?includeAll=true`,
+          { headers: { authorization: `Bearer ${ownerToken}` } },
+        ),
+      ),
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}`),
+      ),
+    ]);
+
+    expect(analyticsRes.status).toBe(200);
+    expect((await analyticsRes.json()).data).toMatchObject({ totalItems: 1 });
+    expect(adminMenuRes.status).toBe(200);
+    // The public path keeps its isActive gate — no data leak from relaxing the
+    // admin path.
+    expect(publicRes.status).toBe(404);
+  });
+
+  /**
+   * The relaxed admin gate drops isActive but keeps not-deleted, so a restaurant
+   * that is genuinely gone still 404s rather than serving analytics.
+   *
+   * A truly nonexistent id cannot be tested through this route:
+   * shop_subscriptions.restaurant_id is a foreign key, so there is no way to
+   * satisfy moduleGate for an id that has no restaurant row, and the request
+   * would 403 at the gate before reaching the service. The unit test
+   * "still returns null for privileged reads of a restaurant that does not
+   * exist" covers that half.
+   */
+  it("still 404s owner analytics for a soft-deleted restaurant (#84)", async () => {
+    const restaurant = await seed.restaurant({
+      name: "Deleted Analytics Vendor",
+      deletedAt: new Date(),
+    });
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    await seed.menuItem(restaurant.id, { isAvailable: true });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+    );
+
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/analytics`, {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+
+    expect(res.status).toBe(404);
+    expect((await res.json()) as any).toMatchObject({
+      success: false,
+      error: { code: "MENU_NOT_FOUND" },
+    });
+  });
+
+  /**
+   * Regression coverage for #84.2.
+   *
+   * menuItemSelectColumns never selected view_count/review_count and
+   * transformMenuItem hardcoded both to 0, so incrementViewCount's writes were
+   * invisible on every read path.
+   */
+  it("reads back a real view count instead of a hardcoded 0 (#84)", async () => {
+    const restaurant = await seed.restaurant();
+    const viewed = await seed.menuItem(restaurant.id, {
+      name: "被瀏覽的品項",
+      isAvailable: true,
+      viewCount: 37,
+      reviewCount: 4,
+    });
+    // A second item that is never fetched by id, so GET /items/:id's
+    // fire-and-forget incrementViewCount cannot make the menu-read assertion
+    // below racy.
+    const untouched = await seed.menuItem(restaurant.id, {
+      name: "未被瀏覽的品項",
+      isAvailable: true,
+      viewCount: 21,
+      reviewCount: 3,
+    });
+
+    const detailRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${viewed.id}`),
+    );
+    expect(detailRes.status).toBe(200);
+    const detail: any = await detailRes.json();
+    // The response is built before the waitUntil increment, so it carries the
+    // stored value — which used to be reported as 0 regardless.
+    expect(detail.data).toMatchObject({ viewCount: 37, reviewCount: 4 });
+
+    // And the values arrive through the whole-menu read too, which uses a
+    // different query and mapper.
+    const menuRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}`),
+    );
+    const menu: any = await menuRes.json();
+    expect(
+      menu.data.menuItems.find((i: any) => i.id === untouched.id),
+    ).toMatchObject({ viewCount: 21, reviewCount: 3 });
+  });
+
+  /**
+   * Regression coverage for #84.3.
+   *
+   * The Top-N lists fetched `limit` rows through searchMenuItems (ordered by
+   * isFeatured/orderCount/sortOrder) and re-sorted them in JS, so with more
+   * than `limit` items the ranking came from the wrong candidate set. Here the
+   * highest view counts sit on the rows the old ordering would have ranked last,
+   * and `limit` is smaller than the number of items.
+   */
+  it("ranks popularity lists across the whole menu, not just the first page (#84)", async () => {
+    const restaurant = await seed.restaurant();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const now = new Date();
+    const [category] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values({
+        restaurantId: String(restaurant.id),
+        name: "排行分類",
+        sortOrder: 0,
+        isActive: true,
+        isVisible: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    // 12 items. The old ordering (isFeatured DESC, orderCount DESC) puts the
+    // featured/high-orderCount rows first, but the top view counts and ratings
+    // are deliberately on the *unfeatured, low-orderCount* rows.
+    for (let index = 0; index < 12; index += 1) {
+      await seed.menuItem(restaurant.id, {
+        categoryId: category.id,
+        name: `排行品項${String(index).padStart(2, "0")}`,
+        isAvailable: true,
+        isFeatured: index < 10,
+        orderCount: 100 - index,
+        viewCount: index,
+        rating: index === 0 ? 0 : index / 2,
+        reviewCount: index,
+      });
+    }
+
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/popularity`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+
+    // Globally correct top 10 by view count: 11 down to 2.
+    expect(json.data.mostViewed.map((item: any) => item.viewCount)).toEqual([
+      11, 10, 9, 8, 7, 6, 5, 4, 3, 2,
+    ]);
+
+    // rating > 0 is filtered in SQL, so the list is a full 10 rows rather than
+    // being trimmed after the slice. Item 00 (rating 0) is the only exclusion.
+    expect(json.data.highestRated).toHaveLength(10);
+    expect(json.data.highestRated[0].rating).toBe(5.5);
+    expect(json.data.highestRated.every((item: any) => item.rating > 0)).toBe(
+      true,
+    );
+
+    expect(json.data.recentlyAdded).toHaveLength(10);
+  });
+
+  /**
+   * Regression coverage for #84.4.
+   *
+   * The stored categories.item_count was only ever written by createMenuItem,
+   * so moving an item to another category left both categories reporting stale
+   * numbers. The column is gone; counts are derived live from menu_items, so
+   * both sides must report the truth immediately after a move.
+   */
+  it("reports live category item counts after a cross-category move (#84)", async () => {
+    const restaurant = await seed.restaurant();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const now = new Date();
+    const [source, destination] = await testApp.testDb.drizzle
+      .insert(categories)
+      .values([
+        {
+          restaurantId: String(restaurant.id),
+          name: "來源分類",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          restaurantId: String(restaurant.id),
+          name: "目標分類",
+          sortOrder: 1,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ])
+      .returning();
+
+    const moved = await seed.menuItem(restaurant.id, {
+      categoryId: source.id,
+      name: "會被搬走的品項",
+      isAvailable: true,
+    });
+    await seed.menuItem(restaurant.id, {
+      categoryId: source.id,
+      name: "留在來源的品項",
+      isAvailable: true,
+    });
+
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+
+    const readCounts = async () => {
+      const res = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurant.id}?includeAll=true`,
+          { headers: { authorization: `Bearer ${ownerToken}` } },
+        ),
+      );
+      expect(res.status).toBe(200);
+      const json: any = await res.json();
+      return Object.fromEntries(
+        json.data.categories.map((cat: any) => [cat.id, cat.itemCount]),
+      ) as Record<number, number>;
+    };
+
+    expect(await readCounts()).toMatchObject({
+      [source.id]: 2,
+      [destination.id]: 0,
+    });
+
+    // Move through the real route so the menu cache is invalidated the same way
+    // production does it. The old stored counter was never touched by this path.
+    const moveRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/menu/${restaurant.id}/items/categories`,
+        {
+          method: "PATCH",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({
+            updates: [{ id: moved.id, categoryId: destination.id }],
+          }),
+        },
+      ),
+    );
+    expect(moveRes.status).toBe(200);
+
+    expect(await readCounts()).toMatchObject({
+      [source.id]: 1,
+      [destination.id]: 1,
+    });
+
+    // And the stored column really is gone from the table.
+    const columnRows = await testApp.env.DB.prepare(
+      "SELECT name FROM pragma_table_info('categories')",
+    ).all<{ name: string }>();
+    expect((columnRows.results ?? []).map((row) => row.name)).not.toContain(
+      "item_count",
+    );
+  });
+
+  /**
+   * Issue #85 — CSV import used to be a per-item POST loop in the browser.
+   *
+   * A batch that failed on row 7 left rows 1-6 committed, reported one generic
+   * error, and duplicated everything on retry because the menu has no name
+   * uniqueness. These go through the real route and then count rows in D1, so a
+   * non-atomic implementation fails here.
+   */
+  describe("bulk item import is atomic (#85)", () => {
+    async function setupOwner() {
+      const restaurant = await seed.restaurant();
+      const now = new Date();
+      const [category] = await testApp.testDb.drizzle
+        .insert(categories)
+        .values({
+          restaurantId: String(restaurant.id),
+          name: "匯入分類",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      await insertActiveSubscription(testApp, String(restaurant.id));
+      const ownerToken = await testApp.authHelper.ownerToken(
+        1,
+        String(restaurant.id),
+      );
+      return { restaurant, category, ownerToken };
+    }
+
+    function importRequest(
+      restaurantId: string,
+      token: string,
+      items: unknown[],
+    ) {
+      return new Request(
+        `https://test/api/v1/menu/${restaurantId}/items/bulk`,
+        {
+          method: "POST",
+          headers: csrfHeaders(token),
+          body: JSON.stringify({ items }),
+        },
+      );
+    }
+
+    async function countItems(restaurantId: string) {
+      const rows = await testApp.testDb.drizzle
+        .select({ id: menuItems.id })
+        .from(menuItems)
+        .where(eq(menuItems.restaurantId, restaurantId));
+      return rows.length;
+    }
+
+    it("creates exactly N items for a valid batch of N", async () => {
+      const { restaurant, category, ownerToken } = await setupOwner();
+      const items = Array.from({ length: 5 }, (_, index) => ({
+        name: `匯入品項 ${index}`,
+        categoryId: category.id,
+        price: 50 + index,
+      }));
+
+      const res = await testApp.app.fetch(
+        importRequest(String(restaurant.id), ownerToken, items),
+      );
+
+      expect(res.status).toBe(201);
+      const json: any = await res.json();
+      expect(json.data.created).toBe(5);
+      expect(json.data.items).toHaveLength(5);
+      expect(await countItems(String(restaurant.id))).toBe(5);
+    });
+
+    it("writes zero rows and names the failing index when row 7 is invalid", async () => {
+      const { restaurant, category, ownerToken } = await setupOwner();
+      const items = Array.from({ length: 10 }, (_, index) => ({
+        name: `匯入品項 ${index}`,
+        categoryId: category.id,
+        // Row 7 (index 6) carries a price the schema refuses.
+        price: index === 6 ? -1 : 50,
+      }));
+
+      const res = await testApp.app.fetch(
+        importRequest(String(restaurant.id), ownerToken, items),
+      );
+
+      expect(res.status).toBe(400);
+      const json: any = await res.json();
+      expect(json.error.code).toBe("VALIDATION_ERROR");
+      // The client has to be able to point at the row that stopped the import.
+      expect(json.error.details).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ field: "items.6.price" }),
+        ]),
+      );
+      expect(await countItems(String(restaurant.id))).toBe(0);
+    });
+
+    it("rejects a row referencing another restaurant's category and writes nothing", async () => {
+      const { restaurant, category, ownerToken } = await setupOwner();
+      const otherRestaurant = await seed.restaurant({ name: "隔壁攤" });
+      const now = new Date();
+      const [foreignCategory] = await testApp.testDb.drizzle
+        .insert(categories)
+        .values({
+          restaurantId: String(otherRestaurant.id),
+          name: "別人的分類",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      const res = await testApp.app.fetch(
+        importRequest(String(restaurant.id), ownerToken, [
+          { name: "自己的", categoryId: category.id, price: 50 },
+          { name: "偷渡的", categoryId: foreignCategory.id, price: 60 },
+        ]),
+      );
+
+      expect(res.status).toBe(403);
+      const json: any = await res.json();
+      expect(json.error.code).toBe("CATEGORY_RESTAURANT_MISMATCH");
+      expect(json.error.details).toEqual([
+        expect.objectContaining({ index: 1, field: "categoryId" }),
+      ]);
+      // All-or-nothing: the legitimate first row must not have landed either.
+      expect(await countItems(String(restaurant.id))).toBe(0);
+    });
+
+    it("rejects a batch over the 100-item cap", async () => {
+      const { restaurant, category, ownerToken } = await setupOwner();
+      const items = Array.from({ length: 101 }, (_, index) => ({
+        name: `匯入品項 ${index}`,
+        categoryId: category.id,
+        price: 50,
+      }));
+
+      const res = await testApp.app.fetch(
+        importRequest(String(restaurant.id), ownerToken, items),
+      );
+
+      expect(res.status).toBe(400);
+      expect(await countItems(String(restaurant.id))).toBe(0);
+    });
+
+    it("is closed to a chef, like the single create it batches", async () => {
+      const { restaurant, category } = await setupOwner();
+      const chefToken = await testApp.authHelper.staffToken(
+        2,
+        2,
+        String(restaurant.id),
+      );
+
+      const res = await testApp.app.fetch(
+        importRequest(String(restaurant.id), chefToken, [
+          { name: "廚師想新增", categoryId: category.id, price: 50 },
+        ]),
+      );
+
+      expect(res.status).toBe(403);
+      expect(await countItems(String(restaurant.id))).toBe(0);
+    });
+  });
+
+  /**
+   * Issue #85 — PUT /menu/items/:id had no version check while the admin form
+   * saved every field it rendered.
+   *
+   * The wire format is what usually breaks this: the API serialises
+   * menu_items.updated_at_ms (INTEGER ms, a Date in Drizzle) to an ISO string,
+   * and the client echoes that string back. These tests send exactly what a
+   * client reads from the API, without reformatting it.
+   */
+  describe("concurrent edits are refused instead of overwritten (#85)", () => {
+    async function setupItem() {
+      const restaurant = await seed.restaurant();
+      const now = new Date();
+      const [category] = await testApp.testDb.drizzle
+        .insert(categories)
+        .values({
+          restaurantId: String(restaurant.id),
+          name: "併發分類",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      await insertActiveSubscription(testApp, String(restaurant.id));
+      const ownerToken = await testApp.authHelper.ownerToken(
+        1,
+        String(restaurant.id),
+      );
+
+      const createRes = await testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+          method: "POST",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({
+            name: "牛肉麵",
+            categoryId: category.id,
+            price: 180,
+            isAvailable: true,
+          }),
+        }),
+      );
+      expect(createRes.status).toBe(201);
+      const created: any = await createRes.json();
+      return { restaurant, category, ownerToken, item: created.data };
+    }
+
+    function putItem(id: number, token: string, body: unknown) {
+      return new Request(`https://test/api/v1/menu/items/${id}`, {
+        method: "PUT",
+        headers: csrfHeaders(token),
+        body: JSON.stringify(body),
+      });
+    }
+
+    async function readItem(id: number) {
+      const [row] = await testApp.testDb.drizzle
+        .select()
+        .from(menuItems)
+        .where(eq(menuItems.id, id));
+      return row;
+    }
+
+    it("accepts the version the client read and refuses it once stale", async () => {
+      const { ownerToken, item } = await setupItem();
+
+      // The exact ISO string the API handed the client, echoed back unchanged.
+      const firstRes = await testApp.app.fetch(
+        putItem(item.id, ownerToken, {
+          name: "牛肉麵",
+          price: 200,
+          updatedAt: item.updatedAt,
+        }),
+      );
+      expect(firstRes.status).toBe(200);
+      const updated: any = await firstRes.json();
+      expect(updated.data.price).toBe(200);
+      // The write moved the version on, which is what makes the next attempt stale.
+      expect(updated.data.updatedAt).not.toBe(item.updatedAt);
+
+      const staleRes = await testApp.app.fetch(
+        putItem(item.id, ownerToken, {
+          name: "牛肉麵",
+          price: 250,
+          updatedAt: item.updatedAt,
+        }),
+      );
+
+      expect(staleRes.status).toBe(409);
+      const conflictJson: any = await staleRes.json();
+      expect(conflictJson.error.code).toBe("MENU_ITEM_MODIFIED");
+      // Refused, not partially applied.
+      expect((await readItem(item.id)).priceCents).toBe(20000);
+    });
+
+    it("blocks the sold-out scenario from the issue end to end", async () => {
+      const { ownerToken, item } = await setupItem();
+      const chefToken = await testApp.authHelper.staffToken(
+        2,
+        2,
+        String(item.restaurantId),
+      );
+
+      // The owner opens 牛肉麵 to change its price; `item.updatedAt` is the
+      // version their form holds. Meanwhile a chef marks it sold out — a
+      // stock-only PUT, which needs no version of its own.
+      const chefRes = await testApp.app.fetch(
+        putItem(item.id, chefToken, { isAvailable: false }),
+      );
+      expect(chefRes.status).toBe(200);
+      expect((await readItem(item.id)).isAvailable).toBe(false);
+
+      // The owner now saves the whole form, which still says isAvailable: true.
+      const ownerRes = await testApp.app.fetch(
+        putItem(item.id, ownerToken, {
+          name: "牛肉麵",
+          price: 200,
+          isAvailable: true,
+          updatedAt: item.updatedAt,
+        }),
+      );
+
+      expect(ownerRes.status).toBe(409);
+      const stored = await readItem(item.id);
+      // The sold-out item did not go back on sale, and the price did not change.
+      expect(stored.isAvailable).toBe(false);
+      expect(stored.priceCents).toBe(18000);
+    });
+
+    it("refuses a field-changing save that omits the version entirely", async () => {
+      const { ownerToken, item } = await setupItem();
+
+      const res = await testApp.app.fetch(
+        putItem(item.id, ownerToken, { name: "牛肉麵", price: 300 }),
+      );
+
+      expect(res.status).toBe(400);
+      const json: any = await res.json();
+      expect(json.error.code).toBe("VALIDATION_ERROR");
+      expect((await readItem(item.id)).priceCents).toBe(18000);
+    });
+
+    it("accepts an epoch-ms version as well as the ISO one", async () => {
+      const { ownerToken, item } = await setupItem();
+
+      const res = await testApp.app.fetch(
+        putItem(item.id, ownerToken, {
+          price: 210,
+          updatedAt: Date.parse(item.updatedAt),
+        }),
+      );
+
+      expect(res.status).toBe(200);
+      expect((await readItem(item.id)).priceCents).toBe(21000);
+    });
+  });
+
+  /**
+   * Regression coverage for #80 — the issue's exact repro.
+   *
+   * Deleting an item used to write sortOrder: -1 while deleted_at_ms stayed
+   * NULL. deleteCategory counted items through searchMenuItems, which knew
+   * nothing of the convention, so a category whose items had all been deleted
+   * answered 409 CATEGORY_HAS_MENU_ITEMS forever, while the dashboard showed
+   * "itemCount: 2" over an empty list.
+   */
+  describe("soft delete via deleted_at_ms (#80)", () => {
+    async function setupCategoryWithItems() {
+      const restaurant = await seed.restaurant();
+      const now = new Date();
+      const [category] = await testApp.testDb.drizzle
+        .insert(categories)
+        .values({
+          restaurantId: String(restaurant.id),
+          name: "審計測試分類",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      await insertActiveSubscription(testApp, String(restaurant.id));
+      const ownerToken = await testApp.authHelper.ownerToken(
+        1,
+        String(restaurant.id),
+      );
+
+      const itemIds: number[] = [];
+      for (const name of ["審計品項A", "審計品項B"]) {
+        const res = await testApp.app.fetch(
+          new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+            method: "POST",
+            headers: csrfHeaders(ownerToken),
+            body: JSON.stringify({ name, categoryId: category.id, price: 100 }),
+          }),
+        );
+        expect(res.status).toBe(201);
+        itemIds.push(((await res.json()) as any).data.id);
+      }
+      return { restaurant, category, ownerToken, itemIds };
+    }
+
+    function deleteRequest(path: string, token: string) {
+      return new Request(`https://test/api/v1/menu/${path}`, {
+        method: "DELETE",
+        headers: csrfHeaders(token),
+      });
+    }
+
+    it("lets the owner delete a category after deleting all of its items", async () => {
+      const { restaurant, category, ownerToken, itemIds } =
+        await setupCategoryWithItems();
+
+      for (const id of itemIds) {
+        const res = await testApp.app.fetch(
+          deleteRequest(`items/${id}`, ownerToken),
+        );
+        expect(res.status).toBe(200);
+      }
+
+      // The delete wrote the real column, not the sortOrder convention.
+      for (const id of itemIds) {
+        const [row] = await testApp.testDb.drizzle
+          .select({
+            deletedAt: menuItems.deletedAt,
+            sortOrder: menuItems.sortOrder,
+          })
+          .from(menuItems)
+          .where(eq(menuItems.id, id));
+        expect(row.deletedAt).toBeInstanceOf(Date);
+        expect(row.sortOrder).not.toBe(-1);
+      }
+
+      // The admin read no longer shows the contradiction from the issue:
+      // itemCount and the item list agree on "empty".
+      const adminRes = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurant.id}?includeAll=true`,
+          { headers: { authorization: `Bearer ${ownerToken}` } },
+        ),
+      );
+      expect(adminRes.status).toBe(200);
+      const adminMenu: any = await adminRes.json();
+      const adminCategory = adminMenu.data.categories.find(
+        (c: any) => c.id === category.id,
+      );
+      expect(adminCategory).toMatchObject({ itemCount: 0 });
+      expect(
+        adminMenu.data.menuItems.filter((i: any) => itemIds.includes(i.id)),
+      ).toEqual([]);
+
+      // The headline: the emptied category can now actually be deleted.
+      const deleteCategoryRes = await testApp.app.fetch(
+        deleteRequest(`categories/${category.id}`, ownerToken),
+      );
+      expect(deleteCategoryRes.status).toBe(200);
+    });
+
+    it("still refuses to delete a category that has live items", async () => {
+      const { category, ownerToken, itemIds } = await setupCategoryWithItems();
+
+      // Delete only one of the two items — the other keeps the category busy.
+      const res = await testApp.app.fetch(
+        deleteRequest(`items/${itemIds[0]}`, ownerToken),
+      );
+      expect(res.status).toBe(200);
+
+      const deleteCategoryRes = await testApp.app.fetch(
+        deleteRequest(`categories/${category.id}`, ownerToken),
+      );
+      expect(deleteCategoryRes.status).toBe(409);
+      const json: any = await deleteCategoryRes.json();
+      expect(json.error.code).toBe("CATEGORY_HAS_MENU_ITEMS");
+    });
+
+    it("keeps a deleted item out of updates and repeated deletes", async () => {
+      const { ownerToken, itemIds } = await setupCategoryWithItems();
+      const [id] = itemIds;
+
+      const firstDelete = await testApp.app.fetch(
+        deleteRequest(`items/${id}`, ownerToken),
+      );
+      expect(firstDelete.status).toBe(200);
+
+      // A deleted item reads as gone — an update cannot resurrect it, and a
+      // second delete is a 404 rather than a timestamp rewrite.
+      const updateRes = await testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/items/${id}`, {
+          method: "PUT",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({ isAvailable: true }),
+        }),
+      );
+      expect(updateRes.status).toBe(404);
+
+      const secondDelete = await testApp.app.fetch(
+        deleteRequest(`items/${id}`, ownerToken),
+      );
+      expect(secondDelete.status).toBe(404);
+    });
   });
 });

@@ -88,6 +88,10 @@ const idID: Messages = {
       isAvailable: "Tersedia",
       categoryNamePlaceholder: "Enter category name",
       descriptionPlaceholder: "Optional description",
+      categoryVisible: "Tampilkan di menu pelanggan",
+      categoryVisibleHint: "Pelanggan dapat melihat kategori ini",
+      categoryHiddenHint:
+        "Disembunyikan dari pelanggan — tetap bisa diedit di sini",
     },
     upload: {
       selectFile: "Select file",
@@ -111,6 +115,8 @@ const idID: Messages = {
       noItems: "No items yet",
       allAvailable: "All available",
       mixedStatus: "{available} available · {unavailable} unavailable",
+      hidden: "Disembunyikan",
+      hiddenHint: "Tidak ditampilkan ke pelanggan",
     },
     toast: {
       categoryCreated: "Category created",
@@ -119,6 +125,7 @@ const idID: Messages = {
       itemCreated: "Item created",
       itemUpdated: "Item updated",
       itemDeleted: "Item deleted",
+      itemsImported: "Imported {count} items",
     },
     errors: {
       fetchFailed: "Failed to load menu",
@@ -126,6 +133,27 @@ const idID: Messages = {
       deleteFailed: "Delete failed",
       reorderFailed: "Reorder failed",
       toggleFailed: "Status update failed",
+      importFailed: "Import failed",
+      importRowFailed: "Row {row} failed to import: {reason}",
+      importInvalid: "Check the import data format before submitting.",
+    },
+    import: {
+      successBanner: "Successfully imported {count} items.",
+    },
+    conflict: {
+      title: "This item was changed by someone else",
+      message:
+        "Someone updated '{name}' while you were editing it. Your changes were not saved — reload the latest data and the fields you edited will be kept.",
+      reload: "Reload latest data (keep my edits)",
+      keepEditing: "Keep editing",
+      removed: "This item has been deleted.",
+      mergedTitle: "Latest data loaded",
+      mergedKept: "Kept your edits to: {fields}",
+      mergedApplied: "Applied someone else's changes to: {fields}",
+      mergedOverridden:
+        "You and someone else both changed: {fields} — your version is shown, check it before saving",
+      mergedNoChanges:
+        "You had no unsaved edits, so the latest data was applied as-is.",
     },
     itemsHeader: {
       filterAll: "All",
@@ -1420,6 +1448,7 @@ const idID: Messages = {
 
   // Navigasi
   nav: {
+    featureUnavailable: "Belum tersedia",
     platform: "Gambaran Platform",
     dashboard: "Dasbor",
     ownerOverview: "Ringkasan Pemilik",

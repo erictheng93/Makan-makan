@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0076_menu_name_en.sql",
-    "legacy": "0093_menu_name_en.sql"
+    "fresh": "0078_menu_items_soft_delete_backfill.sql",
+    "legacy": "0095_menu_items_soft_delete_backfill.sql"
   },
   "pairs": [
     {
@@ -60,6 +60,16 @@
       "fresh": "0076_menu_name_en.sql",
       "legacy": "0093_menu_name_en.sql",
       "reason": "menu_items.name_en and categories.name_en back the admin menu forms' English-name inputs, which previously had no columns and were silently discarded (#107)."
+    },
+    {
+      "fresh": "0077_drop_categories_item_count.sql",
+      "legacy": "0094_drop_categories_item_count.sql",
+      "reason": "categories.item_count is dropped in both tracks: only createMenuItem ever wrote it, so deletes, availability toggles and category moves left it stale, and item counts are now derived live from menu_items (#84)."
+    },
+    {
+      "fresh": "0078_menu_items_soft_delete_backfill.sql",
+      "legacy": "0095_menu_items_soft_delete_backfill.sql",
+      "reason": "Menu item soft deletion now writes menu_items.deleted_at_ms instead of the sort_order=-1 convention; rows deleted under the old marker are backfilled so they stay deleted once reads filter on deleted_at_ms (#80)."
     }
   ],
   "freshOnly": [

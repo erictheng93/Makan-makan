@@ -173,6 +173,13 @@ export interface UpdateMenuItemData extends Omit<
   tags?: string[];
   keywords?: string;
   options?: MenuItemOptionsInput;
+  /**
+   * Optimistic-lock precondition in epoch ms, not a column to write: the
+   * `updatedAt` the client last read for this item. MenuService compares it
+   * against the stored row and 409s on a mismatch, then strips it before the DB
+   * layer sees the update (#85).
+   */
+  updatedAt?: number;
 }
 
 export interface CreateCategoryData extends SharedCreateCategoryRequest {
@@ -299,6 +306,11 @@ export interface IMenuService {
 
   // Menu items management
   createMenuItem(data: CreateMenuItemData): Promise<MenuItem>;
+  // All-or-nothing counterpart of createMenuItem for the CSV importer (#85).
+  bulkCreateMenuItems(
+    restaurantId: string,
+    items: Array<Omit<CreateMenuItemData, "restaurantId">>,
+  ): Promise<MenuItem[]>;
   updateMenuItem(id: number, data: UpdateMenuItemData): Promise<MenuItem>;
   deleteMenuItem(id: number): Promise<boolean>;
 

@@ -1,4 +1,14 @@
-import { eq, and, desc, asc, count, sql, isNull, inArray } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  count,
+  gt,
+  sql,
+  isNull,
+  inArray,
+} from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
 import { restaurants, categories, menuItems } from "../schema";
@@ -83,6 +93,12 @@ const menuItemSelectColumns = {
   allergens: menuItems.allergens,
   orderCount: menuItems.orderCount,
   rating: menuItems.rating,
+  // viewCount/reviewCount were never selected, so every consumer saw the
+  // hardcoded 0 that transformMenuItem used to supply — which made
+  // getMostViewedItems sort by a constant even though incrementViewCount
+  // writes real values (#84).
+  reviewCount: menuItems.reviewCount,
+  viewCount: menuItems.viewCount,
   createdAt: menuItems.createdAt,
   updatedAt: menuItems.updatedAt,
 } as const;
@@ -104,6 +120,27 @@ const publicCategoryConditions = [
   eq(categories.isVisible, true),
   isNull(categories.deletedAt),
 ];
+
+/**
+ * Category visibility for the admin/owner menu read.
+ *
+ * The owner has to be able to see what they hid, otherwise setting
+ * isVisible:false on a category made it — and every item in it — vanish from
+ * their own dashboard with no way back (#83). Soft-deleted rows stay excluded:
+ * "deleted" is not a state the menu editor is meant to resurrect.
+ */
+const adminCategoryConditions = [isNull(categories.deletedAt)];
+
+/**
+ * A menu item that has not been soft-deleted.
+ *
+ * Deletion used to be signalled by `sortOrder: -1` + `isAvailable: false` while
+ * the real `deleted_at_ms` column sat unwritten and unqueried, so deleted items
+ * still counted everywhere that didn't know the sortOrder convention — most
+ * visibly deleteCategory's "category has items" check, which blocked emptied
+ * categories from ever being deleted (#80). Every item read must carry this.
+ */
+const notDeletedItem = isNull(menuItems.deletedAt);
 
 export class MenuService extends BaseService {
   // 獲取完整菜單結構
@@ -127,13 +164,24 @@ export class MenuService extends BaseService {
             where: eq(restaurants.id, restaurantId),
             with: {
               categories: {
-                where: and(...publicCategoryConditions),
+                // `includeAll` used to relax only item visibility, so hidden
+                // categories were dropped even for the owner (#83). The cache
+                // key above already discriminates "admin" from "full", so the
+                // relaxed result cannot be served to a public reader.
+                where: and(
+                  ...(includeAll
+                    ? adminCategoryConditions
+                    : publicCategoryConditions),
+                ),
                 orderBy: asc(categories.sortOrder),
                 with: {
                   menuItems: {
-                    ...(includeAll
-                      ? {}
-                      : { where: eq(menuItems.isAvailable, true) }),
+                    // Soft-deleted items are invisible to BOTH audiences —
+                    // includeAll widens to unavailable items, never to deleted
+                    // ones (#80).
+                    where: includeAll
+                      ? notDeletedItem
+                      : and(eq(menuItems.isAvailable, true), notDeletedItem),
                     orderBy: [asc(menuItems.sortOrder), asc(menuItems.name)],
                   },
                 },
@@ -145,8 +193,9 @@ export class MenuService extends BaseService {
             throw new Error("Restaurant not found");
           }
 
-          // Item counts are maintained at mutation time (create/update/delete),
-          // so we derive them from the loaded data rather than triggering writes here.
+          // Item counts are derived live from the loaded rows. There is no
+          // stored categories.item_count any more — it only ever tracked
+          // creates, so deletes/toggles/moves left it stale (#84).
           return {
             categories: restaurant.categories.map((cat: any) => ({
               id: cat.id,
@@ -156,6 +205,11 @@ export class MenuService extends BaseService {
               description: cat.description,
               sortOrder: cat.sortOrder,
               status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
+              // `status` alone collapses two independent flags, so a category
+              // hidden via isVisible looked identical to a visible one and the
+              // admin UI had nothing to render a "hidden" state from (#83).
+              isActive: cat.isActive,
+              isVisible: cat.isVisible,
               imageUrl: cat.imageUrl,
               itemCount: cat.menuItems.length,
               createdAt: cat.createdAt,
@@ -167,7 +221,11 @@ export class MenuService extends BaseService {
           };
         },
         {
-          ttl: 3600, // 1 hour cache
+          // 5 minutes, not the old hour: tag invalidation is the primary
+          // freshness mechanism, but when it misses (concurrent write races,
+          // lost tag mappings) the TTL is the ceiling on how long a customer
+          // sees a menu the owner already changed (#82).
+          ttl: 300,
           tags: [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
         },
       );
@@ -191,6 +249,7 @@ export class MenuService extends BaseService {
             eq(menuItems.restaurantId, restaurantId),
             eq(menuItems.isFeatured, true),
             eq(menuItems.isAvailable, true),
+            notDeletedItem,
             ...publicCategoryConditions,
           ),
         )
@@ -217,6 +276,7 @@ export class MenuService extends BaseService {
           and(
             eq(menuItems.restaurantId, restaurantId),
             eq(menuItems.isAvailable, true),
+            notDeletedItem,
             ...publicCategoryConditions,
           ),
         )
@@ -226,6 +286,103 @@ export class MenuService extends BaseService {
       return items.map((item) => this.mapToMenuItem(item));
     } catch (error) {
       this.handleError(error, "getPopularItems");
+    }
+  }
+
+  /**
+   * Top-N by view count.
+   *
+   * The three Top-N lists below exist because the API layer used to fetch a
+   * page of `limit` rows through searchMenuItems() — which applies its own
+   * ordering (isFeatured, orderCount, sortOrder) — and then re-sorted those
+   * rows in JS. On any menu larger than `limit` that produced a Top-N drawn
+   * from the wrong candidate set (#84). ORDER BY / LIMIT must be in SQL.
+   *
+   * These are customer-facing popularity lists, so they keep the same
+   * innerJoin(categories) + publicCategoryConditions gate as
+   * getPopularItems/getFeaturedItems.
+   */
+  async getMostViewedItems(
+    restaurantId: string,
+    limit: number = 10,
+  ): Promise<MenuItem[]> {
+    try {
+      const items = await this.db
+        .select(menuItemSelectColumns)
+        .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
+        .where(
+          and(
+            eq(menuItems.restaurantId, restaurantId),
+            eq(menuItems.isAvailable, true),
+            notDeletedItem,
+            ...publicCategoryConditions,
+          ),
+        )
+        .orderBy(desc(menuItems.viewCount), desc(menuItems.orderCount))
+        .limit(limit);
+
+      return items.map((item) => this.mapToMenuItem(item));
+    } catch (error) {
+      this.handleError(error, "getMostViewedItems");
+    }
+  }
+
+  /**
+   * Top-N by rating. The `rating > 0` filter is applied in SQL so `limit` rows
+   * are actually returned — filtering after the slice silently shrank the list.
+   */
+  async getHighestRatedItems(
+    restaurantId: string,
+    limit: number = 10,
+  ): Promise<MenuItem[]> {
+    try {
+      const items = await this.db
+        .select(menuItemSelectColumns)
+        .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
+        .where(
+          and(
+            eq(menuItems.restaurantId, restaurantId),
+            eq(menuItems.isAvailable, true),
+            notDeletedItem,
+            gt(menuItems.rating, 0),
+            ...publicCategoryConditions,
+          ),
+        )
+        .orderBy(desc(menuItems.rating), desc(menuItems.reviewCount))
+        .limit(limit);
+
+      return items.map((item) => this.mapToMenuItem(item));
+    } catch (error) {
+      this.handleError(error, "getHighestRatedItems");
+    }
+  }
+
+  /** Top-N most recently created items. */
+  async getRecentlyAddedItems(
+    restaurantId: string,
+    limit: number = 10,
+  ): Promise<MenuItem[]> {
+    try {
+      const items = await this.db
+        .select(menuItemSelectColumns)
+        .from(menuItems)
+        .innerJoin(categories, eq(menuItems.categoryId, categories.id))
+        .where(
+          and(
+            eq(menuItems.restaurantId, restaurantId),
+            eq(menuItems.isAvailable, true),
+            notDeletedItem,
+            ...publicCategoryConditions,
+          ),
+        )
+        .orderBy(desc(menuItems.createdAt), desc(menuItems.id))
+        .limit(limit);
+
+      return items.map((item) => this.mapToMenuItem(item));
+    } catch (error) {
+      this.handleError(error, "getRecentlyAddedItems");
     }
   }
 
@@ -240,6 +397,7 @@ export class MenuService extends BaseService {
       const { offset } = this.createPagination(page, limit);
       const conditions = [
         eq(menuItems.restaurantId, restaurantId),
+        notDeletedItem,
         ...publicCategoryConditions,
       ];
 
@@ -328,24 +486,80 @@ export class MenuService extends BaseService {
     }
   }
 
+  /** Row shape for an insert, with the money columns and flag defaults applied. */
+  private toMenuItemInsertValues(data: CreateMenuItemData) {
+    const { price, originalPrice, ...insertData } = data;
+    return {
+      ...insertData,
+      priceCents: toRequiredCents(price),
+      originalPriceCents: toCents(originalPrice),
+      isAvailable: data.isAvailable !== undefined ? data.isAvailable : true, // Default: available
+      isFeatured: data.isFeatured !== undefined ? data.isFeatured : false,
+      isPopular: data.isPopular !== undefined ? data.isPopular : false,
+    };
+  }
+
+  /**
+   * Create many items in one implicit transaction.
+   *
+   * The CSV import used to POST one item at a time from the browser, so a batch
+   * that failed on row 7 left rows 1-6 committed, told the owner only that
+   * "something failed", and duplicated everything on retry because the menu has
+   * no name uniqueness (#85). db.batch() is the atomic primitive available here
+   * — D1 exposes no db.transaction() — so the whole array lands or none of it
+   * does and a retry is safe.
+   *
+   * One statement per row rather than a single multi-row INSERT on purpose: D1
+   * caps bound parameters per query at 100, and 100 rows x ~25 columns would
+   * blow straight through it.
+   */
+  async bulkCreateMenuItems(items: CreateMenuItemData[]): Promise<MenuItem[]> {
+    if (items.length === 0) return [];
+
+    try {
+      const statements = items.map(
+        (item) =>
+          this.db
+            .insert(menuItems)
+            .values(this.toMenuItemInsertValues(item))
+            .returning() as BatchItem<"sqlite">,
+      ) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]];
+
+      // Each statement's result is its own RETURNING row set; the tuple type is
+      // erased by the cast above, so re-assert the runtime shape.
+      const results = (await this.db.batch(statements)) as unknown as Array<
+        Array<typeof menuItems.$inferSelect>
+      >;
+
+      const restaurantIds = new Set(items.map((item) => item.restaurantId));
+      await Promise.all(
+        [...restaurantIds].map((restaurantId) =>
+          this.invalidateCache(
+            [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+            "tag",
+          ),
+        ),
+      );
+
+      return results.flatMap((rows) =>
+        rows.map((row) => this.mapToMenuItem(row)),
+      );
+    } catch (error) {
+      this.handleError(error, "bulkCreateMenuItems");
+    }
+  }
+
   // 創建菜單項目
   async createMenuItem(data: CreateMenuItemData): Promise<MenuItem> {
     try {
-      const { price, originalPrice, ...insertData } = data;
       const [item] = await this.db
         .insert(menuItems)
-        .values({
-          ...insertData,
-          priceCents: toRequiredCents(price),
-          originalPriceCents: toCents(originalPrice),
-          isAvailable: data.isAvailable !== undefined ? data.isAvailable : true, // Default: available
-          isFeatured: data.isFeatured !== undefined ? data.isFeatured : false,
-          isPopular: data.isPopular !== undefined ? data.isPopular : false,
-        })
+        .values(this.toMenuItemInsertValues(data))
         .returning();
 
-      // 更新分類商品數量
-      await this.updateCategoryItemCount(data.categoryId);
+      // No stored category item count to maintain — getMenu derives it live.
+      // The old updateCategoryItemCount() call here was the only writer, which
+      // is exactly why the stored column drifted on every other mutation (#84).
 
       // Invalidate menu cache for this restaurant
       await this.invalidateCache(
@@ -394,6 +608,47 @@ export class MenuService extends BaseService {
       return this.mapToMenuItem(item);
     } catch (error) {
       this.handleError(error, "updateMenuItem");
+    }
+  }
+
+  /**
+   * Soft-delete: write the column that exists for this (#80).
+   *
+   * The old marker was `sortOrder: -1` + `isAvailable: false`, which only the
+   * admin item list knew to filter, which any sort-order write could silently
+   * undo, and which the update schema (sortOrder min 0) could never set back —
+   * while `deleted_at_ms` sat unwritten. isAvailable is still flipped so any
+   * reader that predates the deletedAt filters keeps hiding the row.
+   *
+   * Idempotent: deleting an already-deleted row keeps the original timestamp.
+   */
+  async softDeleteMenuItem(id: number): Promise<boolean> {
+    try {
+      const [item] = await this.db
+        .update(menuItems)
+        .set({
+          deletedAt: new Date(),
+          isAvailable: false,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(menuItems.id, id), notDeletedItem))
+        .returning({
+          id: menuItems.id,
+          restaurantId: menuItems.restaurantId,
+        });
+
+      if (!item) {
+        return false;
+      }
+
+      await this.invalidateCache(
+        [`menu:${item.restaurantId}`, `restaurant:${item.restaurantId}`],
+        "tag",
+      );
+
+      return true;
+    } catch (error) {
+      this.handleError(error, "softDeleteMenuItem");
     }
   }
 
@@ -450,6 +705,9 @@ export class MenuService extends BaseService {
           and(
             eq(menuItems.restaurantId, restaurantId),
             inArray(menuItems.id, ids),
+            // Deleted items are not batch-updatable — a bulk price or
+            // availability write must not touch them (#80).
+            notDeletedItem,
           ),
         );
 
@@ -457,6 +715,80 @@ export class MenuService extends BaseService {
     } catch (error) {
       this.handleError(error, "findOwnedMenuItemIds");
       return new Set();
+    }
+  }
+
+  /**
+   * Current price + originalPrice for a set of items, in one query.
+   *
+   * Exists for the batch price endpoint's negative-discount check (#81): an
+   * update that sends only `price` has to be compared against the STORED
+   * originalPrice, which the request schema cannot see.
+   */
+  async getMenuItemPrices(
+    restaurantId: string,
+    ids: number[],
+  ): Promise<Map<number, { price: number; originalPrice: number | null }>> {
+    if (ids.length === 0) return new Map();
+
+    try {
+      const rows = await this.db
+        .select({
+          id: menuItems.id,
+          priceCents: menuItems.priceCents,
+          originalPriceCents: menuItems.originalPriceCents,
+        })
+        .from(menuItems)
+        .where(
+          and(
+            eq(menuItems.restaurantId, restaurantId),
+            inArray(menuItems.id, ids),
+            notDeletedItem,
+          ),
+        );
+
+      return new Map(
+        rows.map((row) => [
+          row.id,
+          {
+            price: amountFromCents(row.priceCents) ?? 0,
+            originalPrice: amountFromCents(row.originalPriceCents),
+          },
+        ]),
+      );
+    } catch (error) {
+      this.handleError(error, "getMenuItemPrices");
+    }
+  }
+
+  /**
+   * Which of `ids` are categories of `restaurantId` — the category counterpart
+   * of findOwnedMenuItemIds, in one query rather than one per id.
+   *
+   * Soft-deleted categories are excluded: an item must not be filed under a
+   * category the owner has removed.
+   */
+  async findOwnedCategoryIds(
+    restaurantId: string,
+    ids: number[],
+  ): Promise<Set<number>> {
+    if (ids.length === 0) return new Set();
+
+    try {
+      const rows = await this.db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(
+          and(
+            eq(categories.restaurantId, restaurantId),
+            inArray(categories.id, ids),
+            isNull(categories.deletedAt),
+          ),
+        );
+
+      return new Set(rows.map((row) => row.id));
+    } catch (error) {
+      this.handleError(error, "findOwnedCategoryIds");
     }
   }
 
@@ -586,7 +918,9 @@ export class MenuService extends BaseService {
   async getMenuItem(id: number): Promise<MenuItem | null> {
     try {
       const item = await this.db.query.menuItems.findFirst({
-        where: eq(menuItems.id, id),
+        // A deleted item reads as absent — otherwise the update path could
+        // load it and resurrect it (#80).
+        where: and(eq(menuItems.id, id), notDeletedItem),
         with: {
           category: true,
           restaurant: {
@@ -706,38 +1040,41 @@ export class MenuService extends BaseService {
     }
   }
 
-  // 更新分類商品數量
-  private async updateCategoryItemCount(categoryId: number): Promise<void> {
-    const countResult = await this.db
-      .select({ itemCount: count() })
-      .from(menuItems)
-      .where(
-        and(
-          eq(menuItems.categoryId, categoryId),
-          eq(menuItems.isAvailable, true),
-        ),
-      );
+  /**
+   * Live item count per category, keyed by category id.
+   *
+   * Replaces the stored categories.item_count column (dropped in
+   * migrations_fresh/0077 + migrations/0094). Callers that need a count outside
+   * getMenu() can ask for one here instead of trusting a denormalised value
+   * that only ever tracked creates (#84).
+   */
+  async countItemsByCategory(
+    restaurantId: string,
+    options?: { availableOnly?: boolean },
+  ): Promise<Map<number, number>> {
+    try {
+      const conditions = [
+        eq(menuItems.restaurantId, restaurantId),
+        // Deleted items never count — the phantom "itemCount: 2, list: empty"
+        // contradiction in #80 came from counting them.
+        notDeletedItem,
+      ];
+      if (options?.availableOnly) {
+        conditions.push(eq(menuItems.isAvailable, true));
+      }
 
-    const itemCount = countResult?.[0]?.itemCount ?? 0;
+      const rows = await this.db
+        .select({
+          categoryId: menuItems.categoryId,
+          itemCount: count(),
+        })
+        .from(menuItems)
+        .where(and(...conditions))
+        .groupBy(menuItems.categoryId);
 
-    await this.db
-      .update(categories)
-      .set({
-        itemCount,
-        updatedAt: new Date(),
-      })
-      .where(eq(categories.id, categoryId));
-  }
-
-  // 更新所有分類商品數量
-  private async updateCategoryItemCounts(restaurantId: string): Promise<void> {
-    const restaurantCategories = await this.db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(eq(categories.restaurantId, restaurantId));
-
-    for (const category of restaurantCategories) {
-      await this.updateCategoryItemCount(category.id);
+      return new Map(rows.map((row) => [row.categoryId, row.itemCount]));
+    } catch (error) {
+      this.handleError(error, "countItemsByCategory");
     }
   }
 
@@ -769,6 +1106,11 @@ export class MenuService extends BaseService {
       allergens: item.allergens,
       options: item.options,
       orderCount: item.orderCount,
+      // rating/reviewCount/viewCount were dropped here, so every rating- and
+      // view-based ranking upstream saw undefined/0 (#84).
+      rating: item.rating ?? 0,
+      reviewCount: item.reviewCount ?? 0,
+      viewCount: item.viewCount ?? 0,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     } as MenuItem;

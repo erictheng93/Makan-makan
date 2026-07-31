@@ -113,6 +113,9 @@ const zhTWCore = {
       isAvailable: "供應中",
       categoryNamePlaceholder: "輸入分類名稱",
       descriptionPlaceholder: "選填描述",
+      categoryVisible: "顯示於顧客菜單",
+      categoryVisibleHint: "顧客可以看到此分類",
+      categoryHiddenHint: "顧客看不到此分類，你仍可在此編輯",
     },
     upload: {
       selectFile: "選擇檔案",
@@ -136,6 +139,8 @@ const zhTWCore = {
       noItems: "尚無菜品",
       allAvailable: "全部供應中",
       mixedStatus: "{available} 供應中 · {unavailable} 已停售",
+      hidden: "已隱藏",
+      hiddenHint: "顧客看不到此分類",
     },
     toast: {
       categoryCreated: "分類已新增",
@@ -144,6 +149,7 @@ const zhTWCore = {
       itemCreated: "菜品已新增",
       itemUpdated: "菜品已更新",
       itemDeleted: "菜品已刪除",
+      itemsImported: "已匯入 {count} 個商品",
     },
     errors: {
       fetchFailed: "載入菜單失敗",
@@ -151,6 +157,26 @@ const zhTWCore = {
       deleteFailed: "刪除失敗",
       reorderFailed: "排序更新失敗",
       toggleFailed: "更新狀態失敗",
+      importFailed: "匯入商品失敗",
+      importRowFailed: "第 {row} 列匯入失敗：{reason}",
+      importInvalid: "請確認匯入資料格式後再送出。",
+    },
+    import: {
+      successBanner: "已成功匯入 {count} 筆商品。",
+    },
+    conflict: {
+      title: "此菜品已被其他人修改",
+      message:
+        "你在編輯「{name}」期間，有人更新了這個菜品。你的變更尚未儲存 —— 載入最新資料後，你改過的欄位會被保留。",
+      reload: "載入最新資料（保留我的修改）",
+      keepEditing: "繼續編輯",
+      removed: "這個菜品已經被刪除了。",
+      mergedTitle: "已載入最新資料",
+      mergedKept: "保留了你的修改：{fields}",
+      mergedApplied: "已套用其他人的修改：{fields}",
+      mergedOverridden:
+        "你和對方都改了：{fields} —— 目前顯示的是你的版本，確認後再儲存",
+      mergedNoChanges: "你沒有未儲存的修改，已直接套用最新資料。",
     },
     itemsHeader: {
       filterAll: "全部",
@@ -1569,6 +1595,7 @@ const zhTWCore = {
 
   // 導航
   nav: {
+    featureUnavailable: "尚未開放",
     platform: "平台總覽",
     dashboard: "儀表板",
     ownerOverview: "店主總覽",
