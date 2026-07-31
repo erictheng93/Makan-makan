@@ -31,6 +31,27 @@ describe("realtime validation schemas", () => {
     ).toThrow(/Invalid room type|Room ID is required/);
   });
 
+  it("rejects customer room requests so they cannot bypass guest verification", () => {
+    expect(() =>
+      webSocketTokenRequestSchema.parse({
+        roomType: "customer",
+        roomId: "any-room",
+        restaurantId: "restaurant-1",
+      }),
+    ).toThrow(/Invalid room type/);
+
+    // Supplying a table ID must not re-open the customer path either: table IDs
+    // are guessable sequential integers, not proof of presence at a table.
+    expect(() =>
+      webSocketTokenRequestSchema.parse({
+        roomType: "customer",
+        roomId: "any-room",
+        restaurantId: "restaurant-1",
+        tableId: "7",
+      }),
+    ).toThrow(/Invalid room type/);
+  });
+
   it("accepts guest token exchange only with an order id", () => {
     const guestToken = `gt_${"a".repeat(64)}`;
     expect(

@@ -265,6 +265,93 @@ describe("RealtimeAuthService", () => {
     ).resolves.toEqual({ error: "Invalid room type" });
   });
 
+  describe("generateGroupOrderToken", () => {
+    const groupOrderId = "018f0000-0000-7000-8000-000000000099";
+    const memberToken = "018f0000-0000-7000-8000-0000000000aa";
+
+    function activeMembership(overrides: Record<string, unknown> = {}) {
+      return {
+        memberId: "member-1",
+        memberIsActive: true,
+        memberLeftAt: null,
+        restaurantId: "restaurant-1",
+        status: "active",
+        expiresAt: new Date("2026-06-07T06:00:00.000Z"),
+        ...overrides,
+      };
+    }
+
+    it("mints a token pinned to the group order room", async () => {
+      mocks.dbState.selectResults = [[activeMembership()]];
+      const service = createService();
+
+      const response = await service.generateGroupOrderToken({
+        groupOrderId,
+        memberToken,
+      });
+
+      expect(response).toMatchObject({
+        wsUrl: expect.stringContaining(`/customer/${groupOrderId}?token=`),
+      });
+
+      const verification = await service.verifyWebSocketToken(
+        "token" in response ? response.token : "",
+      );
+      expect(verification).toMatchObject({
+        valid: true,
+        payload: {
+          roomType: "customer",
+          // Bare UUID — the room RealtimeBroadcastService targets.
+          roomId: groupOrderId,
+          restaurantId: "restaurant-1",
+          role: "customer",
+          guestFlag: true,
+          scope: "group-order-realtime",
+          groupOrderId,
+        },
+      });
+    });
+
+    it("refuses every membership that is not currently active", async () => {
+      const cases: Array<[string, Record<string, unknown> | null]> = [
+        ["no matching member/token pair", null],
+        ["member deactivated", { memberIsActive: false }],
+        ["member left the group", { memberLeftAt: new Date() }],
+        ["group no longer active", { status: "completed" }],
+        ["group expired", { expiresAt: new Date("2026-06-06T00:00:00.000Z") }],
+      ];
+
+      for (const [label, overrides] of cases) {
+        mocks.dbState.selectResults = [
+          overrides === null ? [] : [activeMembership(overrides)],
+        ];
+        const service = createService();
+
+        await expect(
+          service.generateGroupOrderToken({ groupOrderId, memberToken }),
+          label,
+          // A single opaque message: probing must not reveal which check failed.
+        ).resolves.toEqual({ error: "Invalid group order membership" });
+      }
+    });
+
+    it("scopes channel access to its own group order", async () => {
+      const service = createService();
+      const payload = {
+        scope: "group-order-realtime",
+        groupOrderId,
+      } as any;
+
+      expect(service.verifyChannelAccess(payload, groupOrderId)).toEqual({
+        allowed: true,
+      });
+      expect(service.verifyChannelAccess(payload, "another-group")).toEqual({
+        allowed: false,
+        error: "Token is not scoped to this channel",
+      });
+    });
+  });
+
   it("generates staff tokens from valid session JWTs in token-only test mode", async () => {
     const service = createService({ DB: {} });
     const sessionId = sign(

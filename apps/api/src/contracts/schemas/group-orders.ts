@@ -65,6 +65,9 @@ export const JoinGroupResponse = successEnvelope(
   z.object({
     groupOrder: GroupOrderSchema,
     member: GroupMemberSchema,
+    // Secret membership credential, returned once to the joining member and
+    // exchanged at POST /realtime/auth/group-token. Never present in listings.
+    memberToken: z.string(),
   }),
 );
 

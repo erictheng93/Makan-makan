@@ -81,6 +81,11 @@ export function useGroupOrder(options: {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const isConnected = ref(false);
+  /**
+   * This member's group order credential (`memberToken`), returned exactly once
+   * by create/join. It is what buys a realtime token — keep it in memory only.
+   */
+  const memberToken = ref<string | null>(null);
 
   // WebSocket connection
   const {
@@ -144,19 +149,21 @@ export function useGroupOrder(options: {
     error.value = null;
 
     try {
-      const response = await apiClient.post<{ groupOrderId: string }>(
-        "/group-orders",
-        {
-          restaurantId,
-          tableId,
-          hostId: userId,
-          hostName: userName,
-        },
-      );
+      const response = await apiClient.post<{
+        groupOrderId: string;
+        memberToken: string;
+      }>("/orders/group/create", {
+        restaurantId,
+        tableId,
+        hostName: userName,
+      });
 
       if (response?.groupOrderId) {
+        // The host's credential comes back once, here. Capture it before
+        // anything tries to open the realtime room.
+        memberToken.value = response.memberToken;
         const groupOrderId = response.groupOrderId;
-        await joinGroupOrder(groupOrderId);
+        await loadAndConnect(groupOrderId);
         return groupOrderId;
       } else {
         throw new Error("Failed to create group order");
@@ -169,32 +176,35 @@ export function useGroupOrder(options: {
     }
   }
 
-  async function joinGroupOrder(groupOrderId: string): Promise<boolean> {
+  /**
+   * Join via share code. This is the only way a non-host obtains a
+   * memberToken, so it must run before any realtime connection is attempted.
+   */
+  async function joinGroupOrder(shareCode: string): Promise<boolean> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      // Fetch group order details
-      const response = await apiClient.get<GroupOrder>(
-        `/group-orders/${groupOrderId}`,
-      );
+      const response = await apiClient.post<{
+        groupOrder: GroupOrder;
+        memberToken: string;
+      }>(`/orders/group/join/${shareCode}`, {
+        memberName: userName,
+      });
 
-      if (response) {
-        groupOrder.value = response;
-
-        // Connect to WebSocket for real-time updates
-        await connectToGroupOrder(groupOrderId);
-
-        // Notify others about joining
-        broadcastEvent("member_joined", {
-          memberId: userId,
-          memberName: userName,
-        });
-
-        return true;
-      } else {
+      if (!response?.memberToken) {
         throw new Error("Failed to join group order");
       }
+
+      memberToken.value = response.memberToken;
+      await loadAndConnect(response.groupOrder.id);
+
+      broadcastEvent("member_joined", {
+        memberId: userId,
+        memberName: userName,
+      });
+
+      return true;
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Unknown error";
       return false;
@@ -203,16 +213,34 @@ export function useGroupOrder(options: {
     }
   }
 
+  /** Load the group order snapshot, then open the realtime room. */
+  async function loadAndConnect(groupOrderId: string): Promise<void> {
+    const detail = await apiClient.get<GroupOrder>(
+      `/orders/group/${groupOrderId}`,
+    );
+    if (detail) {
+      groupOrder.value = detail;
+    }
+    await connectToGroupOrder(groupOrderId);
+  }
+
   async function connectToGroupOrder(groupOrderId: string): Promise<void> {
     try {
-      // Get WebSocket token
+      if (!memberToken.value) {
+        // Without a membership credential there is no way to prove this client
+        // belongs in the room. The public token endpoint deliberately refuses
+        // customer rooms — it could not verify the caller, so anyone could read
+        // every member's name, phone, and cart (issue #96).
+        throw new Error(
+          "Not a member of this group order — create or join it first",
+        );
+      }
+
       const tokenResponse = await apiClient.post<{ token: string }>(
-        "/realtime/auth/token",
+        "/realtime/auth/group-token",
         {
-          roomType: "customer",
-          roomId: groupOrderId,
-          restaurantId,
-          tableId,
+          groupOrderId,
+          memberToken: memberToken.value,
         },
       );
 

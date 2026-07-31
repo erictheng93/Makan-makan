@@ -10,12 +10,17 @@ import { errorResponses } from "../config";
 // Define enums first to avoid circular reference
 const RoomType = z.enum(["customer", "admin", "kitchen"]);
 
+// /auth/token mints staff rooms only — customer rooms come from
+// /auth/guest-token, which verifies a signed QR or a guest token.
+const StaffRoomType = z.enum(["admin", "kitchen", "restaurant"]);
+
 /**
  * Realtime API Schemas
  */
 export const RealtimeSchemas = {
   // Room Type
   RoomType,
+  StaffRoomType,
 
   // WebSocket Token Payload
   WebSocketTokenPayload: z.object({
@@ -30,7 +35,7 @@ export const RealtimeSchemas = {
 
   // Generate WebSocket Token Request
   GenerateTokenRequest: z.object({
-    roomType: RoomType,
+    roomType: StaffRoomType,
     roomId: z.string().min(1, "Room ID is required"),
     restaurantId: z.uuid(),
     userId: z.uuid().optional(),

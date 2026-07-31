@@ -1,12 +1,21 @@
 import { sign, verify } from "jsonwebtoken";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and } from "drizzle-orm";
-import { orders, restaurants, seats, tables } from "@makanmakan/database";
+import {
+  groupMembers,
+  groupOrders,
+  orders,
+  restaurants,
+  seats,
+  tables,
+} from "@makanmakan/database";
 import { parseSignedQRUrl, verifyQRSignature } from "@makanmakan/utils";
 import type { Env } from "../../../shared/types";
 import type { GuestTokenData } from "../../../middleware/guestAuth";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type {
+  GroupOrderRealtimeTokenRequest,
+  GroupOrderRealtimeTokenResponse,
   GuestRealtimeTokenRequest,
   GuestRealtimeTokenResponse,
   RealtimeAuthPayload,
@@ -228,6 +237,91 @@ export class RealtimeAuthService {
     }
   }
 
+  /**
+   * Exchange a group order membership credential for a realtime token.
+   *
+   * The credential is `group_members.session_id`, handed to a member exactly
+   * once when they create or join the group. Possession of it is the
+   * authorization — the same shape as the signed QR for table guests. The
+   * minted token's `roomId` is pinned to the group order UUID, so it cannot be
+   * used to reach any other room.
+   */
+  async generateGroupOrderToken(
+    request: GroupOrderRealtimeTokenRequest,
+  ): Promise<GroupOrderRealtimeTokenResponse | { error: string }> {
+    try {
+      const { groupOrderId, memberToken } = request;
+
+      const rows = await this.db
+        .select({
+          memberId: groupMembers.id,
+          memberIsActive: groupMembers.isActive,
+          memberLeftAt: groupMembers.leftAt,
+          restaurantId: groupOrders.restaurantId,
+          status: groupOrders.status,
+          expiresAt: groupOrders.expiresAt,
+        })
+        .from(groupMembers)
+        .innerJoin(groupOrders, eq(groupMembers.groupOrderId, groupOrders.id))
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.sessionId, memberToken),
+          ),
+        )
+        .limit(1);
+
+      const membership = rows[0];
+      // One message for every rejection below: a caller probing group order IDs
+      // must not learn which part was wrong.
+      const denied = { error: "Invalid group order membership" };
+
+      if (!membership) return denied;
+      if (membership.memberIsActive !== true) return denied;
+      if (membership.memberLeftAt !== null) return denied;
+      if (membership.status !== "active") return denied;
+
+      const expiresAtMs =
+        membership.expiresAt instanceof Date
+          ? membership.expiresAt.getTime()
+          : Number(membership.expiresAt);
+      if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+        return denied;
+      }
+
+      const issuedAt = Math.floor(Date.now() / 1000);
+      const expiresAt = issuedAt + 15 * 60;
+      const payload: RealtimeAuthPayload = {
+        roomType: "customer",
+        // Bare UUID: this is the room RealtimeBroadcastService fans group
+        // events out to (`customer:{groupOrderId}`).
+        roomId: groupOrderId,
+        restaurantId: membership.restaurantId,
+        role: "customer",
+        guestFlag: true,
+        scope: "group-order-realtime",
+        groupOrderId,
+        memberId: membership.memberId,
+        exp: expiresAt,
+        iat: issuedAt,
+      };
+
+      const token = sign(payload, this.realtimeJwtSecret);
+
+      return {
+        token,
+        expiresAt: new Date(expiresAt * 1000).toISOString(),
+        wsUrl: this.buildWebSocketUrl("customer", groupOrderId, token),
+      };
+    } catch (error) {
+      this.logger.error(
+        "Failed to generate group order realtime token",
+        error as Error,
+      );
+      return { error: "Failed to generate group order realtime token" };
+    }
+  }
+
   async verifyWebSocketToken(
     token: string,
   ): Promise<WebSocketTokenVerification> {
@@ -270,7 +364,20 @@ export class RealtimeAuthService {
           !!payload.tableId &&
           payload.roomId === `customer:${payload.tableId}`;
 
-        if (!isScopedGuestRealtime && !isLegacyGuestRealtime) {
+        // Group order rooms are addressed by the bare group order UUID, because
+        // that is what RealtimeBroadcastService targets (`customer:{id}`).
+        const isGroupOrderRealtime =
+          payload.scope === "group-order-realtime" &&
+          payload.roomType === "customer" &&
+          payload.role === "customer" &&
+          !!payload.groupOrderId &&
+          payload.roomId === payload.groupOrderId;
+
+        if (
+          !isScopedGuestRealtime &&
+          !isLegacyGuestRealtime &&
+          !isGroupOrderRealtime
+        ) {
           return {
             valid: false,
             error: "Invalid guest token payload",
@@ -313,6 +420,16 @@ export class RealtimeAuthService {
     payload: RealtimeAuthPayload,
     channel: string,
   ): { allowed: boolean; error?: string } {
+    if (payload.scope === "group-order-realtime") {
+      if (!payload.groupOrderId) {
+        return { allowed: false, error: "Invalid group order token payload" };
+      }
+      if (channel !== payload.groupOrderId) {
+        return { allowed: false, error: "Token is not scoped to this channel" };
+      }
+      return { allowed: true };
+    }
+
     if (payload.scope !== "guest-realtime") {
       return { allowed: true };
     }

@@ -357,10 +357,17 @@ export class GroupOrdersService implements IGroupOrderService {
         shareCode,
         expiresAt: new Date(expiresAt * 1000),
         host: this.formatMember(hostMember),
+        memberToken: sessionId,
       };
 
-      // Cache the group order
-      await this.cache.set(`group_order:${groupOrderId}`, response, 3600);
+      // Cache the group order — without memberToken. A membership credential
+      // has no business sitting in a shared cache entry.
+      const { memberToken: _hostToken, ...cacheableResponse } = response;
+      await this.cache.set(
+        `group_order:${groupOrderId}`,
+        cacheableResponse,
+        3600,
+      );
       await this.cache.set(`share_code:${shareCode}`, groupOrderId, 3600);
 
       this.logger.info("Group order created successfully", {
@@ -488,6 +495,7 @@ export class GroupOrdersService implements IGroupOrderService {
       const response: JoinGroupResponse = {
         member: this.formatMember(newMember),
         groupOrder: this.formatGroupOrder(groupOrder),
+        memberToken: sessionId,
       };
 
       // Invalidate cache

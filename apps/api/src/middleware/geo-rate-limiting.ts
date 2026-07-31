@@ -82,6 +82,9 @@ const SENSITIVE_KV_RATE_LIMIT_PATHS = [
   "/api/v1/customers/otp",
   "/api/v1/customer/otp",
   "/api/v1/realtime/auth/guest-token",
+  // Credential-in-body endpoint like guest-token: worth the durable KV counter
+  // so group order IDs cannot be probed from a rotating pool of isolates.
+  "/api/v1/realtime/auth/group-token",
 ];
 
 function shouldUseKvRateLimiter(path: string): boolean {
