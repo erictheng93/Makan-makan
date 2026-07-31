@@ -39,7 +39,13 @@ function call(path: string, init?: RequestInit): Promise<Response> {
 }
 
 beforeAll(async () => {
-  testApp = await createRealIntegrationTestApp();
+  // Stored-value credits ship switched off: zero accounts and no frontend
+  // caller in production, and money code that has never settled a real
+  // transaction should not be reachable. This suite is what exercises it, so
+  // it turns the feature on for itself.
+  testApp = await createRealIntegrationTestApp({
+    env: { STORED_VALUE_CREDITS_ENABLED: "true" } as never,
+  });
 });
 
 afterAll(async () => {
