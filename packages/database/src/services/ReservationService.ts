@@ -60,6 +60,17 @@ interface ReservationDbRow {
 const nullToUndefined = <T>(value: T | null | undefined): T | undefined =>
   value ?? undefined;
 
+// D1 reports how many rows a mutation touched. A conditional UPDATE that
+// matched nothing is how we detect a replay, so the count has to be read
+// defensively rather than assumed present.
+const getMutationChanges = (result: unknown): number => {
+  if (typeof result !== "object" || result === null || !("meta" in result)) {
+    return 0;
+  }
+  const meta = (result as { meta?: { changes?: unknown } }).meta;
+  return typeof meta?.changes === "number" ? meta.changes : 0;
+};
+
 export type ReservationServiceOptions = CloudflareEnv & {
   reservationNotifier?: ReservationNotifier;
 };
@@ -94,7 +105,7 @@ export class ReservationService extends BaseService {
       // 1. 驗證輸入
       this.validateReservationData(data);
 
-      // 2. 檢查時段容量
+      // 2. 檢查時段容量（僅為了給出具體的失敗原因；真正的保證在步驟 4 的原子扣位）
       const slotAvailable = await this.checkSlotAvailability(
         data.restaurantId,
         data.reservationDate,
@@ -118,10 +129,23 @@ export class ReservationService extends BaseService {
         throw new Error("無法分配合適的桌位");
       }
 
-      // 4. 生成確認碼
+      // 4. 原子扣減時段容量。上限檢查寫在 UPDATE 的 WHERE 裡，所以同時
+      //    通過步驟 2 讀取的併發請求，只有容量真的還夠的那些會成功。
+      const claimed = await this.claimSlotCapacity(
+        data.restaurantId,
+        data.reservationDate,
+        data.reservationTime,
+        data.partySize,
+      );
+
+      if (!claimed) {
+        throw new Error("該時段不可用: 容量不足");
+      }
+
+      // 5. 生成確認碼
       const confirmationCode = this.generateConfirmationCode();
 
-      // 5. 建立訂位記錄
+      // 6. 建立訂位記錄
       const reservation: Partial<Reservation> = {
         id: this.generateUUID(),
         restaurantId: data.restaurantId,
@@ -141,29 +165,32 @@ export class ReservationService extends BaseService {
         updatedAt: now,
       };
 
-      // 6. 寫入資料庫
-      await this.db.run(sql`
-        INSERT INTO reservations (
-          id, restaurant_id, customer_id, customer_name, customer_phone, customer_email,
-          party_size, reservation_date, reservation_time, duration_minutes,
-          table_id, special_requests, status, confirmation_code, created_at, updated_at
-        ) VALUES (
-          ${reservation.id}, ${reservation.restaurantId}, ${reservation.customerId},
-          ${reservation.customerName}, ${reservation.customerPhone}, ${reservation.customerEmail},
-          ${reservation.partySize}, ${reservation.reservationDate}, ${reservation.reservationTime},
-          ${reservation.durationMinutes}, ${reservation.tableId}, ${reservation.specialRequests},
-          ${reservation.status}, ${reservation.confirmationCode}, ${reservation.createdAt},
-          ${reservation.updatedAt}
-        )
-      `);
-
-      // 7. 更新時段容量
-      await this.incrementSlotUsage(
-        data.restaurantId,
-        data.reservationDate,
-        data.reservationTime,
-        data.partySize,
-      );
+      try {
+        // 7. 寫入資料庫
+        await this.db.run(sql`
+          INSERT INTO reservations (
+            id, restaurant_id, customer_id, customer_name, customer_phone, customer_email,
+            party_size, reservation_date, reservation_time, duration_minutes,
+            table_id, special_requests, status, confirmation_code, created_at, updated_at
+          ) VALUES (
+            ${reservation.id}, ${reservation.restaurantId}, ${reservation.customerId},
+            ${reservation.customerName}, ${reservation.customerPhone}, ${reservation.customerEmail},
+            ${reservation.partySize}, ${reservation.reservationDate}, ${reservation.reservationTime},
+            ${reservation.durationMinutes}, ${reservation.tableId}, ${reservation.specialRequests},
+            ${reservation.status}, ${reservation.confirmationCode}, ${reservation.createdAt},
+            ${reservation.updatedAt}
+          )
+        `);
+      } catch (error) {
+        // 容量已經扣掉了，插入失敗就得還回去，否則這個時段會永久少一個位子。
+        await this.releaseSlotCapacity(
+          data.restaurantId,
+          data.reservationDate,
+          data.reservationTime,
+          data.partySize,
+        );
+        throw error;
+      }
 
       // 8. 更新桌位狀態
       await this.updateTableStatus(
@@ -576,13 +603,20 @@ export class ReservationService extends BaseService {
         throw new Error("訂位不存在");
       }
 
-      await this.db.run(sql`
+      // 只從仍佔用容量的狀態轉出，且用受影響列數判斷這次是否真的轉換了。
+      // 重放會匹配到零列，於是直接回傳現況而不再釋放一次容量。
+      const transition = await this.db.run(sql`
         UPDATE reservations
         SET status = 'no_show',
             no_show_at = ${now},
             updated_at = ${now}
         WHERE id = ${id}
+          AND status IN ('pending', 'confirmed', 'arrived')
       `);
+
+      if (getMutationChanges(transition) !== 1) {
+        return reservation;
+      }
 
       // 釋放時段容量
       await this.decrementSlotUsage(
@@ -1009,6 +1043,61 @@ export class ReservationService extends BaseService {
   }
 
   /**
+   * 原子扣減時段容量。
+   *
+   * 上限檢查寫在 WHERE 裡，所以「檢查」與「扣減」是同一次 UPDATE：兩個併發
+   * 請求不可能都通過。回傳 false 代表這次沒搶到位子（額滿或時段關閉），
+   * 呼叫端必須據此中止，而不是繼續建立訂位。
+   */
+  private async claimSlotCapacity(
+    restaurantId: string,
+    date: string,
+    timeSlot: string,
+    partySize: number,
+  ): Promise<boolean> {
+    const result = await this.db.run(sql`
+      UPDATE reservation_slots
+      SET current_reservations = current_reservations + 1,
+          current_capacity = current_capacity + ${partySize},
+          updated_at = ${Date.now()}
+      WHERE restaurant_id = ${restaurantId}
+        AND date = ${date}
+        AND time_slot = ${timeSlot}
+        AND is_available = 1
+        AND current_capacity + ${partySize} <= max_capacity
+        AND current_reservations < max_tables
+    `);
+    return getMutationChanges(result) > 0;
+  }
+
+  /**
+   * 歸還時段容量（claimSlotCapacity 的補償操作）。
+   *
+   * 用 MAX(0, ...) 夾住下界：補償路徑寧可少扣也不要把計數器扣成負數，
+   * 負數會讓後續的上限檢查失效。
+   */
+  private async releaseSlotCapacity(
+    restaurantId: string,
+    date: string,
+    timeSlot: string,
+    partySize: number,
+  ): Promise<void> {
+    try {
+      await this.db.run(sql`
+        UPDATE reservation_slots
+        SET current_reservations = MAX(0, current_reservations - 1),
+            current_capacity = MAX(0, current_capacity - ${partySize}),
+            updated_at = ${Date.now()}
+        WHERE restaurant_id = ${restaurantId}
+          AND date = ${date}
+          AND time_slot = ${timeSlot}
+      `);
+    } catch (error) {
+      console.error("Error releasing slot capacity:", error);
+    }
+  }
+
+  /**
    * 增加時段使用量
    */
   private async incrementSlotUsage(
@@ -1121,8 +1210,10 @@ export class ReservationService extends BaseService {
    * 生成 UUID
    */
   private generateUUID(): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(12));
     return (
-      "rsv_" + Date.now().toString(36) + Math.random().toString(36).substr(2, 9)
+      "rsv_" +
+      Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
     );
   }
 
