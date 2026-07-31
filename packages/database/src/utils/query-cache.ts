@@ -16,7 +16,6 @@ export interface CachedQuery<T> {
   data: T;
   cached_at: number;
   expires_at: number;
-  hit_count: number;
 }
 
 /**
@@ -45,11 +44,12 @@ export class QueryCache {
       });
 
       if (cached && Date.now() < cached.expires_at) {
-        // Cache hit - update hit count asynchronously
-        this.incrementHitCount(cacheKey, cached).catch((err) =>
-          console.warn("Failed to increment hit count:", err),
-        );
-
+        // A hit is read-only on purpose. This used to fire an un-awaited
+        // kv.put() writing the whole entry back to bump a hit counter nobody
+        // consumed — and that stray write could land AFTER an invalidation
+        // deleted the key, resurrecting a stale menu for up to the full TTL
+        // (#82). It also cost one KV write (rate-limited to 1/s per key,
+        // ~10x read pricing) on every read of the hottest keys.
         return cached.data;
       }
 
@@ -81,7 +81,6 @@ export class QueryCache {
       data,
       cached_at: Date.now(),
       expires_at: Date.now() + options.ttl * 1000,
-      hit_count: 0,
     };
 
     try {
@@ -168,25 +167,6 @@ export class QueryCache {
       }
     } catch (error) {
       console.error("Failed to update tag mappings:", error);
-    }
-  }
-
-  /**
-   * Increment hit count for cache key
-   */
-  private async incrementHitCount<T>(
-    cacheKey: string,
-    cached: CachedQuery<T>,
-  ): Promise<void> {
-    if (!this.kv) return;
-
-    try {
-      cached.hit_count++;
-      await this.kv.put(cacheKey, JSON.stringify(cached), {
-        expirationTtl: Math.ceil((cached.expires_at - Date.now()) / 1000),
-      });
-    } catch (error) {
-      // Silently fail - hit count is not critical
     }
   }
 
