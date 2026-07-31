@@ -52,9 +52,21 @@ export const guestRealtimeTokenRequestSchema = z
   });
 
 /**
+ * 群組訂單成員憑證兌換即時 token。
+ *
+ * memberToken 是 group_members.session_id（UUID v4），只在建立/加入群組時回傳給
+ * 該成員一次；持有它就是授權，等同桌邊訪客持有簽章 QR。
+ */
+export const groupOrderRealtimeTokenRequestSchema = z.object({
+  groupOrderId: z.uuid("A group order ID is required"),
+  memberToken: z.uuid("A member token is required"),
+});
+
+/**
  * 導出 schemas 集合
  */
 export const realtimeSchemas = {
   webSocketTokenRequest: webSocketTokenRequestSchema,
   guestRealtimeTokenRequest: guestRealtimeTokenRequestSchema,
+  groupOrderRealtimeTokenRequest: groupOrderRealtimeTokenRequestSchema,
 };

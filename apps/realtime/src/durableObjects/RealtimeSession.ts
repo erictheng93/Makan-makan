@@ -802,9 +802,17 @@ export class RealtimeSession implements DurableObject {
       if (authPayload.scope === "guest-realtime" && authPayload.orderId) {
         return { valid: true };
       }
+      // 群組訂單房間沒有桌號：授權來自成員憑證，roomId 已綁定 groupOrderId。
+      if (
+        authPayload.scope === "group-order-realtime" &&
+        authPayload.groupOrderId
+      ) {
+        return { valid: true };
+      }
       return {
         valid: false,
-        error: "Customer rooms require a table/seat or an order-scoped token",
+        error:
+          "Customer rooms require a table/seat, an order-scoped, or a group-order-scoped token",
       };
     }
 

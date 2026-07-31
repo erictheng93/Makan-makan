@@ -623,7 +623,7 @@ Authorization: Bearer <your_jwt_token>
 | POST   | `/integrations/webhooks/uber-eats` | Uber Eats Webhook | HMAC |
 | POST   | `/integrations/webhooks/foodpanda` | Foodpanda Webhook | HMAC |
 
-### Realtime (`/realtime`) — 9 routes
+### Realtime (`/realtime`) — 10 routes
 
 `/api/v1/realtime/auth` sits on the auth-exclusion list in `app-factory.ts`, so
 the two token-minting routes carry **no session middleware**. They authorize from
@@ -633,7 +633,8 @@ requires — do not read "Public" as "unauthenticated callers get a token".
 | Method | Path                                | Description          | Auth                                    |
 | ------ | ----------------------------------- | -------------------- | --------------------------------------- |
 | POST   | `/realtime/auth/token`              | 產生員工 WebSocket Token | Public route; requires a valid staff `sessionId` JWT in the body. Staff rooms only (`kitchen`/`admin`/`restaurant`) |
-| POST   | `/realtime/auth/guest-token`        | 產生訪客 WebSocket Token | Public route + rate limited; requires an HMAC-signed QR or a KV guest token. **The only** source of `customer` room tokens |
+| POST   | `/realtime/auth/guest-token`        | 產生訪客 WebSocket Token | Public route + rate limited; requires an HMAC-signed QR or a KV guest token. Pins roomId to `order:{orderId}` / `customer:{tableId}` |
+| POST   | `/realtime/auth/group-token`        | 群組訂單成員換取 WebSocket Token | Public route + rate limited; requires the `memberToken` (`group_members.session_id`) handed out once at create/join. Pins roomId to the group order UUID |
 | POST   | `/realtime/auth/verify`             | 驗證 Token           | Public route; the token itself is the credential |
 | POST   | `/realtime/auth/revoke`             | 撤銷 Token           | Protected (role 0)                      |
 | POST   | `/realtime/auth/revoke-user`        | 撤銷用戶所有 Token   | Protected (role 0)                      |
@@ -644,7 +645,9 @@ requires — do not read "Public" as "unauthenticated callers get a token".
 
 `/realtime/auth/token` deliberately rejects `roomType: "customer"`. It cannot
 verify a customer, and a table/seat ID is a guessable integer rather than proof
-of presence — see issue #96.
+of presence — see issue #96. Every `customer` room token therefore comes from
+`guest-token` or `group-token`, and both pin `roomId` to whatever they verified,
+so a token can never be replayed against a different room.
 
 ### SSE (`/sse`) — 9 routes
 

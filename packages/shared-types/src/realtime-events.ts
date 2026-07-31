@@ -48,11 +48,15 @@ export interface RealtimeAuthPayload {
   role: "customer" | "staff" | "admin";
   /** 原始應用角色代碼（0=ADMIN, 1=OWNER, ...） */
   appRole?: number;
-  scope?: "guest-realtime";
+  scope?: "guest-realtime" | "group-order-realtime";
   guestFlag?: boolean;
   /** 桌號 ID（顧客連線時使用） */
   tableId?: string;
   orderId?: string;
+  /** 群組訂單 ID（scope=group-order-realtime 時，roomId 即等於此值） */
+  groupOrderId?: string;
+  /** 群組成員 ID（僅供稽核，不作為授權依據） */
+  memberId?: string;
   /** 座位 ID（座位級別連線時使用） */
   seatId?: string;
   /** 使用者 ID（已登入使用者） */
@@ -105,6 +109,21 @@ export interface GuestRealtimeTokenRequest {
 }
 
 export interface GuestRealtimeTokenResponse {
+  token: string;
+  expiresAt: string;
+  wsUrl: string;
+}
+
+/**
+ * 以群組訂單成員憑證換取即時連線 token。
+ * memberToken 即 group_members.session_id，僅在建立/加入群組時回傳給該成員一次。
+ */
+export interface GroupOrderRealtimeTokenRequest {
+  groupOrderId: string;
+  memberToken: string;
+}
+
+export interface GroupOrderRealtimeTokenResponse {
   token: string;
   expiresAt: string;
   wsUrl: string;

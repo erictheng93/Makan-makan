@@ -125,11 +125,17 @@ export async function verifyWebSocketToken(
         !payload.scope &&
         !!payload.tableId &&
         payload.roomId === `customer:${payload.tableId}`;
+      // Group order rooms are addressed by the bare group order UUID — that is
+      // the room RealtimeBroadcastService fans group events out to.
+      const isGroupOrderGuest =
+        payload.scope === "group-order-realtime" &&
+        !!payload.groupOrderId &&
+        payload.roomId === payload.groupOrderId;
 
       if (
         payload.roomType !== "customer" ||
         payload.role !== "customer" ||
-        (!isScopedOrderGuest && !isLegacyTableGuest)
+        (!isScopedOrderGuest && !isLegacyTableGuest && !isGroupOrderGuest)
       ) {
         return {
           valid: false,

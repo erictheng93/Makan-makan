@@ -100,6 +100,15 @@ export interface CreateGroupOrderResponse {
   shareCode: string;
   expiresAt: Date;
   host: GroupOrderMember;
+  /**
+   * The host's own membership credential (`group_members.session_id`).
+   *
+   * Secret, and returned exactly once — to the caller who created the group.
+   * It is the proof exchanged at POST /realtime/auth/group-token for a realtime
+   * token. Never put it on `GroupOrderMember`: that type is used for member
+   * *listings*, which would hand every member everyone else's credential.
+   */
+  memberToken: string;
 }
 
 export interface JoinGroupRequest {
@@ -111,6 +120,8 @@ export interface JoinGroupRequest {
 export interface JoinGroupResponse {
   member: GroupOrderMember;
   groupOrder: GroupOrder;
+  /** See CreateGroupOrderResponse.memberToken — secret, returned once. */
+  memberToken: string;
 }
 
 export interface AddCartItemRequest {

@@ -699,6 +699,88 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     }
   });
 
+  it("accepts group-order scoped websocket rooms addressed by group order id", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const groupOrderId = "018f0000-0000-7000-8000-000000000099";
+    const client = createSocket();
+    const server = createSocket({
+      accept: vi.fn(),
+      addEventListener: vi.fn(),
+    });
+    vi.stubGlobal("WebSocketPair", function WebSocketPair() {
+      return { 0: client, 1: server };
+    });
+    try {
+      const db = createDb([]);
+      const state = createState();
+      const session = createSession(createAuthEnv({ DB: db.DB }), state);
+      const groupToken = tokenFor({
+        roomType: "customer",
+        roomId: groupOrderId,
+        role: "customer",
+        guestFlag: true,
+        scope: "group-order-realtime",
+        groupOrderId,
+        memberId: "member-1",
+      });
+
+      await expect(
+        session.fetch(
+          new Request(
+            `https://do.test/customer/${groupOrderId}?token=${groupToken}`,
+            { headers: { Upgrade: "websocket" } },
+          ),
+        ),
+      ).rejects.toThrow('init["status"] must be in the range');
+
+      // Room is the bare group order id — the same one RealtimeBroadcastService
+      // fans group events out to via `customer:{groupOrderId}`.
+      expect((session as any).roomInfo).toEqual({
+        type: "customer",
+        id: groupOrderId,
+      });
+      expect(server.deserializeAttachment()).toMatchObject({
+        type: "customer",
+        roomId: groupOrderId,
+        auth: expect.objectContaining({
+          scope: "group-order-realtime",
+          groupOrderId,
+        }),
+      });
+      // No table lookup is possible for a group room, so none should happen.
+      expect(db.prepare).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects a group-order token whose roomId is not its group order id", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      // The binding is roomId === groupOrderId. A token naming a different room
+      // must not be usable to reach it.
+      const denied = await createSession(createAuthEnv()).fetch(
+        new Request(
+          `https://do.test/customer/someone-elses-group?token=${tokenFor({
+            roomType: "customer",
+            roomId: "someone-elses-group",
+            role: "customer",
+            guestFlag: true,
+            scope: "group-order-realtime",
+            groupOrderId: "018f0000-0000-7000-8000-000000000099",
+          })}`,
+          { headers: { Upgrade: "websocket" } },
+        ),
+      );
+
+      expect(denied.status).toBe(401);
+      await expect(denied.text()).resolves.toContain("Invalid guest token");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("covers event routing decisions for roles and event families", () => {
     const session = createSession(createEnv());
     const customer = connection();
@@ -1062,11 +1144,12 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   });
 
   it("validates table and seat access including mismatch and DB error paths", async () => {
-    // No tableId used to fail open as "shop mode". It now requires an
-    // order-scoped guest token, whose roomId is pinned to order:{orderId}.
+    // No tableId used to fail open as "shop mode". It now requires a scope that
+    // pins roomId to something verified at mint time.
     const denied = {
       valid: false,
-      error: "Customer rooms require a table/seat or an order-scoped token",
+      error:
+        "Customer rooms require a table/seat, an order-scoped, or a group-order-scoped token",
     };
     const noTableSession = createSession(createEnv());
     await expect(
@@ -1088,6 +1171,23 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       (noTableSession as any).validateTableAccess({
         restaurantId: "restaurant-1",
         scope: "guest-realtime",
+      }),
+    ).resolves.toEqual(denied);
+
+    // Group order members carry no tableId; their binding is groupOrderId.
+    await expect(
+      (noTableSession as any).validateTableAccess({
+        restaurantId: "restaurant-1",
+        scope: "group-order-realtime",
+        groupOrderId: "018f0000-0000-7000-8000-000000000099",
+      }),
+    ).resolves.toEqual({ valid: true });
+
+    // ...and the scope alone is not a binding either.
+    await expect(
+      (noTableSession as any).validateTableAccess({
+        restaurantId: "restaurant-1",
+        scope: "group-order-realtime",
       }),
     ).resolves.toEqual(denied);
 

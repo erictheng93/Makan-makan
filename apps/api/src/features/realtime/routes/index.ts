@@ -143,6 +143,45 @@ realtimeRoutes.post(
 );
 
 /**
+ * 以群組訂單成員憑證換取即時 token
+ * POST /auth/group-token
+ *
+ * 公開端點：授權來自 body 裡的 memberToken（group_members.session_id），
+ * 該憑證只在建立/加入群組時回傳給該成員一次。
+ */
+realtimeRoutes.post(
+  "/auth/group-token",
+  rateLimitMiddleware({
+    windowMs: 60 * 1000,
+    maxRequests: 10,
+    keyPrefix: "realtime_group_token",
+    message: "Too many group order realtime token requests",
+  }),
+  validateBody(realtimeSchemas.groupOrderRealtimeTokenRequest),
+  async (c) => {
+    const requestData = c.get("validatedBody");
+    const authService = new RealtimeAuthService(c.env);
+    const result = await authService.generateGroupOrderToken(requestData);
+
+    if ("error" in result) {
+      logger.warn("Failed to generate group order realtime token", {
+        error: result.error,
+        groupOrderId: requestData.groupOrderId,
+      });
+      throw badRequest(result.error);
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: result,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
  * 驗證 WebSocket Token (用於測試)
  * POST /auth/verify
  */
