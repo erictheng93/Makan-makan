@@ -1106,7 +1106,10 @@ export class ReservationService extends BaseService {
    * 生成確認碼（6位數字）
    */
   private generateConfirmationCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    const bytes = crypto.getRandomValues(new Uint8Array(12));
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"))
+      .join("")
+      .toUpperCase();
   }
 
   /**
