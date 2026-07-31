@@ -292,6 +292,7 @@ export type CreateLeaveRequestData = Omit<
  * Leave Request Filters
  */
 export interface LeaveRequestFilters {
+  restaurantId?: string; // Tenant scope; undefined = platform admin (unscoped)
   employeeId?: string;
   leaveTypeId?: number;
   status?: LeaveRequest["status"];
@@ -311,6 +312,7 @@ export interface LeaveBalanceAdjustment {
   adjustment: number;
   reason: string;
   adjustedBy: string;
+  restaurantId?: string; // Tenant scope; target employee must belong to it
 }
 
 /**
@@ -344,21 +346,29 @@ export interface LeaveStatistics {
  */
 export interface ILeaveService {
   // Leave Types
+  // `restaurantId` params below are the caller's tenant scope; undefined =
+  // platform admin (unscoped).
   getLeaveTypes(restaurantId: string): Promise<LeaveType[]>;
-  getLeaveType(id: number): Promise<LeaveType | null>;
+  getLeaveType(id: number, restaurantId?: string): Promise<LeaveType | null>;
   createLeaveType(data: CreateLeaveTypeData): Promise<LeaveType>;
-  updateLeaveType(id: number, data: UpdateLeaveTypeData): Promise<LeaveType>;
-  deleteLeaveType(id: number): Promise<boolean>;
+  updateLeaveType(
+    id: number,
+    data: UpdateLeaveTypeData,
+    restaurantId?: string,
+  ): Promise<LeaveType>;
+  deleteLeaveType(id: number, restaurantId?: string): Promise<boolean>;
 
   // Leave Balances
   getEmployeeLeaveBalances(
     employeeId: string,
     year: number,
+    restaurantId?: string,
   ): Promise<LeaveBalanceWithType[]>;
   getLeaveBalance(
     employeeId: string,
     leaveTypeId: number,
     year: number,
+    restaurantId?: string,
   ): Promise<EmployeeLeaveBalance | null>;
   adjustLeaveBalance(
     adjustment: LeaveBalanceAdjustment,
@@ -369,22 +379,28 @@ export interface ILeaveService {
   getLeaveRequests(
     filters: LeaveRequestFilters,
   ): Promise<{ items: LeaveRequestWithRelations[]; total: number }>;
-  getLeaveRequest(id: number): Promise<LeaveRequestWithRelations | null>;
+  getLeaveRequest(
+    id: number,
+    restaurantId?: string,
+  ): Promise<LeaveRequestWithRelations | null>;
   createLeaveRequest(data: CreateLeaveRequestData): Promise<LeaveRequest>;
   approveLeaveRequest(
     requestId: number,
     approverId: string,
     comments?: string,
+    restaurantId?: string,
   ): Promise<LeaveRequest>;
   rejectLeaveRequest(
     requestId: number,
     approverId: string,
     reason: string,
+    restaurantId?: string,
   ): Promise<LeaveRequest>;
   cancelLeaveRequest(
     requestId: number,
     userId: string,
     reason: string,
+    restaurantId?: string,
   ): Promise<LeaveRequest>;
 
   // Leave Calendar

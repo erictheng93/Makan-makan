@@ -197,6 +197,7 @@ export type CreateLeaveRequestData = Omit<
 };
 
 export interface LeaveRequestFilters {
+  restaurantId?: string;
   employeeId?: string;
   leaveTypeId?: number;
   status?: LeaveRequest["status"];
@@ -213,6 +214,11 @@ export interface LeaveBalanceAdjustment {
   adjustment: number;
   reason: string;
   adjustedBy: string;
+  /**
+   * Tenant scope of the caller. When set, the target employee must belong to
+   * this restaurant. Undefined = platform admin (unscoped).
+   */
+  restaurantId?: string;
 }
 
 // ========================================
@@ -250,13 +256,30 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Get a specific leave type
+   * Get a specific leave type.
+   *
+   * When `restaurantId` is provided the lookup is tenant-scoped: it matches
+   * the restaurant's own types plus system-wide types (restaurantId NULL).
+   * Omit it only for platform-admin (unscoped) access.
    */
-  async getLeaveType(id: number): Promise<LeaveType | null> {
+  async getLeaveType(
+    id: number,
+    restaurantId?: string,
+  ): Promise<LeaveType | null> {
     const [type] = await this.db
       .select()
       .from(leaveTypes)
-      .where(eq(leaveTypes.id, id))
+      .where(
+        restaurantId === undefined
+          ? eq(leaveTypes.id, id)
+          : and(
+              eq(leaveTypes.id, id),
+              or(
+                eq(leaveTypes.restaurantId, restaurantId),
+                sql`${leaveTypes.restaurantId} IS NULL`, // System-level types
+              ),
+            ),
+      )
       .limit(1);
 
     return (type as LeaveType) || null;
@@ -284,20 +307,37 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Update a leave type
+   * Update a leave type.
+   *
+   * When `restaurantId` is provided the mutation is tenant-scoped: only rows
+   * owned by that restaurant match (system-wide NULL rows are NOT mutable by
+   * tenants). The payload can never re-tenant a row — `restaurantId` in the
+   * update data is always discarded.
    */
   async updateLeaveType(
     id: number,
     data: UpdateLeaveTypeData,
+    restaurantId?: string,
   ): Promise<LeaveType> {
     try {
+      // Strip restaurantId so an update can never move a row across tenants.
+      const updates = { ...data };
+      delete updates.restaurantId;
+
       const [updated] = await this.db
         .update(leaveTypes)
         .set({
-          ...data,
+          ...updates,
           updatedAt: new Date(),
         })
-        .where(eq(leaveTypes.id, id))
+        .where(
+          restaurantId === undefined
+            ? eq(leaveTypes.id, id)
+            : and(
+                eq(leaveTypes.id, id),
+                eq(leaveTypes.restaurantId, restaurantId),
+              ),
+        )
         .returning();
 
       if (!updated) {
@@ -311,15 +351,26 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Delete a leave type (soft delete by marking inactive)
+   * Delete a leave type (soft delete by marking inactive).
+   *
+   * When `restaurantId` is provided only rows owned by that restaurant match;
+   * system-wide (NULL) rows and other tenants' rows report not-found.
    */
-  async deleteLeaveType(id: number): Promise<boolean> {
+  async deleteLeaveType(id: number, restaurantId?: string): Promise<boolean> {
     try {
+      const scopeCondition =
+        restaurantId === undefined
+          ? eq(leaveTypes.id, id)
+          : and(
+              eq(leaveTypes.id, id),
+              eq(leaveTypes.restaurantId, restaurantId),
+            );
+
       // Check if it's a system-defined type
       const [type] = await this.db
         .select()
         .from(leaveTypes)
-        .where(eq(leaveTypes.id, id))
+        .where(scopeCondition)
         .limit(1);
 
       if (!type) {
@@ -334,7 +385,7 @@ export class LeaveService extends BaseService {
       await this.db
         .update(leaveTypes)
         .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(leaveTypes.id, id));
+        .where(scopeCondition);
 
       return true;
     } catch (error) {
@@ -347,11 +398,15 @@ export class LeaveService extends BaseService {
   // ========================================
 
   /**
-   * Get employee leave balances for a specific year
+   * Get employee leave balances for a specific year.
+   *
+   * When `restaurantId` is provided only balances belonging to that
+   * restaurant are returned (tenant scope for owner-level callers).
    */
   async getEmployeeLeaveBalances(
     employeeId: string,
     year: number,
+    restaurantId?: string,
   ): Promise<LeaveBalanceWithType[]> {
     const balances = await this.db
       .select({
@@ -375,6 +430,9 @@ export class LeaveService extends BaseService {
         and(
           eq(employeeLeaveBalances.employeeId, employeeId),
           eq(employeeLeaveBalances.year, year),
+          ...(restaurantId === undefined
+            ? []
+            : [eq(employeeLeaveBalances.restaurantId, restaurantId)]),
         ),
       );
 
@@ -433,12 +491,16 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Get a specific leave balance
+   * Get a specific leave balance.
+   *
+   * When `restaurantId` is provided the lookup is tenant-scoped so callers
+   * cannot probe balances of employees in other restaurants.
    */
   async getLeaveBalance(
     employeeId: string,
     leaveTypeId: number,
     year: number,
+    restaurantId?: string,
   ): Promise<LeaveBalance | null> {
     const [balance] = await this.db
       .select()
@@ -448,6 +510,9 @@ export class LeaveService extends BaseService {
           eq(employeeLeaveBalances.employeeId, employeeId),
           eq(employeeLeaveBalances.leaveTypeId, leaveTypeId),
           eq(employeeLeaveBalances.year, year),
+          ...(restaurantId === undefined
+            ? []
+            : [eq(employeeLeaveBalances.restaurantId, restaurantId)]),
         ),
       )
       .limit(1);
@@ -469,7 +534,25 @@ export class LeaveService extends BaseService {
     adjustment: LeaveBalanceAdjustment,
   ): Promise<LeaveBalance> {
     try {
-      // Read balance and user info outside the transaction
+      // Verify the target employee exists and — when the caller is tenant
+      // scoped — belongs to the caller's restaurant.
+      const [employee] = await this.db
+        .select({ restaurantId: users.restaurantId })
+        .from(users)
+        .where(eq(users.id, adjustment.employeeId))
+        .limit(1);
+
+      if (!employee || !employee.restaurantId) {
+        throw new Error("Employee restaurant not found");
+      }
+      if (
+        adjustment.restaurantId !== undefined &&
+        employee.restaurantId !== adjustment.restaurantId
+      ) {
+        throw new Error("Employee not found in restaurant");
+      }
+
+      // Read balance outside the transaction
       let balance = await this.getLeaveBalance(
         adjustment.employeeId,
         adjustment.leaveTypeId,
@@ -477,20 +560,7 @@ export class LeaveService extends BaseService {
       );
 
       const now = new Date();
-      let restaurantId: string | null = null;
-
-      if (!balance) {
-        const [user] = await this.db
-          .select({ restaurantId: users.restaurantId })
-          .from(users)
-          .where(eq(users.id, adjustment.employeeId))
-          .limit(1);
-
-        if (!user || !user.restaurantId) {
-          throw new Error("Employee restaurant not found");
-        }
-        restaurantId = user.restaurantId;
-      }
+      const restaurantId = employee.restaurantId;
 
       const write = !balance
         ? this.db
@@ -498,7 +568,7 @@ export class LeaveService extends BaseService {
             .values({
               employeeId: adjustment.employeeId,
               leaveTypeId: adjustment.leaveTypeId,
-              restaurantId: restaurantId!,
+              restaurantId,
               year: adjustment.year,
               totalDays: adjustment.adjustment,
               usedDays: 0,
@@ -648,6 +718,11 @@ export class LeaveService extends BaseService {
 
       // Build where conditions
       const conditions = [];
+      if (restFilters.restaurantId) {
+        conditions.push(
+          eq(leaveRequests.restaurantId, restFilters.restaurantId),
+        );
+      }
       if (restFilters.employeeId) {
         conditions.push(eq(leaveRequests.employeeId, restFilters.employeeId));
       }
@@ -717,9 +792,15 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Get a specific leave request with relations
+   * Get a specific leave request with relations.
+   *
+   * When `restaurantId` is provided the lookup is tenant-scoped; requests
+   * belonging to other restaurants read as not-found.
    */
-  async getLeaveRequest(id: number): Promise<LeaveRequestWithRelations | null> {
+  async getLeaveRequest(
+    id: number,
+    restaurantId?: string,
+  ): Promise<LeaveRequestWithRelations | null> {
     const [result] = await this.db
       .select({
         request: leaveRequests,
@@ -740,7 +821,14 @@ export class LeaveService extends BaseService {
       .from(leaveRequests)
       .innerJoin(users, eq(leaveRequests.employeeId, users.id))
       .innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
-      .where(eq(leaveRequests.id, id))
+      .where(
+        restaurantId === undefined
+          ? eq(leaveRequests.id, id)
+          : and(
+              eq(leaveRequests.id, id),
+              eq(leaveRequests.restaurantId, restaurantId),
+            ),
+      )
       .limit(1);
 
     if (!result) {
@@ -761,8 +849,22 @@ export class LeaveService extends BaseService {
     data: CreateLeaveRequestData,
   ): Promise<LeaveRequest> {
     try {
-      // Get leave type to determine approval requirements (read outside transaction)
-      const type = await this.getLeaveType(data.leaveTypeId);
+      // The request must be filed for an employee of the target restaurant —
+      // never accept an employeeId from another tenant.
+      const [employee] = await this.db
+        .select({ restaurantId: users.restaurantId })
+        .from(users)
+        .where(eq(users.id, data.employeeId))
+        .limit(1);
+
+      if (!employee || employee.restaurantId !== data.restaurantId) {
+        throw new Error("Employee not found in restaurant");
+      }
+
+      // Get leave type to determine approval requirements (read outside
+      // transaction). Scoped to the restaurant (or system-wide types) so a
+      // cross-tenant leaveTypeId is rejected.
+      const type = await this.getLeaveType(data.leaveTypeId, data.restaurantId);
       if (!type) {
         throw new Error("Leave type not found");
       }
@@ -851,16 +953,29 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Approve a leave request
+   * Approve a leave request.
+   *
+   * When `restaurantId` is provided, both the initial read and the
+   * compare-and-set status update are tenant-scoped, so approvers can never
+   * act on another restaurant's requests.
    */
   async approveLeaveRequest(
     requestId: number,
     approverId: string,
     comments?: string,
+    restaurantId?: string,
   ): Promise<LeaveRequest> {
     try {
+      const requestScope =
+        restaurantId === undefined
+          ? eq(leaveRequests.id, requestId)
+          : and(
+              eq(leaveRequests.id, requestId),
+              eq(leaveRequests.restaurantId, restaurantId),
+            );
+
       // Read data outside the transaction
-      const request = await this.getLeaveRequest(requestId);
+      const request = await this.getLeaveRequest(requestId, restaurantId);
       if (!request) {
         throw new Error("Leave request not found");
       }
@@ -921,12 +1036,7 @@ export class LeaveService extends BaseService {
               finalApprovedAt: now,
               updatedAt: now,
             })
-            .where(
-              and(
-                eq(leaveRequests.id, requestId),
-                eq(leaveRequests.status, "pending"),
-              ),
-            )
+            .where(and(requestScope, eq(leaveRequests.status, "pending")))
             .returning() as BatchItem<"sqlite">,
         );
 
@@ -1035,7 +1145,7 @@ export class LeaveService extends BaseService {
             currentApprovalLevel: nextLevel,
             updatedAt: now,
           })
-          .where(eq(leaveRequests.id, requestId))
+          .where(requestScope)
           .returning();
 
         return updated as LeaveRequest;
@@ -1046,16 +1156,28 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Reject a leave request
+   * Reject a leave request.
+   *
+   * When `restaurantId` is provided, both the initial read and the
+   * compare-and-set status update are tenant-scoped.
    */
   async rejectLeaveRequest(
     requestId: number,
     approverId: string,
     reason: string,
+    restaurantId?: string,
   ): Promise<LeaveRequest> {
     try {
+      const requestScope =
+        restaurantId === undefined
+          ? eq(leaveRequests.id, requestId)
+          : and(
+              eq(leaveRequests.id, requestId),
+              eq(leaveRequests.restaurantId, restaurantId),
+            );
+
       // Read data outside the transaction
-      const request = await this.getLeaveRequest(requestId);
+      const request = await this.getLeaveRequest(requestId, restaurantId);
       if (!request) {
         throw new Error("Leave request not found");
       }
@@ -1107,12 +1229,7 @@ export class LeaveService extends BaseService {
             rejectionReason: reason,
             updatedAt: now,
           })
-          .where(
-            and(
-              eq(leaveRequests.id, requestId),
-              eq(leaveRequests.status, "pending"),
-            ),
-          )
+          .where(and(requestScope, eq(leaveRequests.status, "pending")))
           .returning() as BatchItem<"sqlite">,
       );
 
@@ -1168,16 +1285,28 @@ export class LeaveService extends BaseService {
   }
 
   /**
-   * Cancel a leave request
+   * Cancel a leave request.
+   *
+   * When `restaurantId` is provided, both the initial read and the
+   * compare-and-set status update are tenant-scoped.
    */
   async cancelLeaveRequest(
     requestId: number,
     userId: string,
     reason: string,
+    restaurantId?: string,
   ): Promise<LeaveRequest> {
     try {
+      const requestScope =
+        restaurantId === undefined
+          ? eq(leaveRequests.id, requestId)
+          : and(
+              eq(leaveRequests.id, requestId),
+              eq(leaveRequests.restaurantId, restaurantId),
+            );
+
       // Read data outside the transaction
-      const request = await this.getLeaveRequest(requestId);
+      const request = await this.getLeaveRequest(requestId, restaurantId);
       if (!request) {
         throw new Error("Leave request not found");
       }
@@ -1252,7 +1381,7 @@ export class LeaveService extends BaseService {
           })
           .where(
             and(
-              eq(leaveRequests.id, requestId),
+              requestScope,
               sql`${leaveRequests.status} IN ('pending', 'approved')`,
             ),
           )

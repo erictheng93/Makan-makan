@@ -5,10 +5,11 @@
  */
 
 import { CouponService as BaseCouponService } from "@makanmakan/database";
-import { coupons, couponUsage, orders } from "@makanmakan/database";
+import { coupons, couponUsage, orderItems, orders } from "@makanmakan/database";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import {
   badRequest,
+  conflict,
   forbidden,
   notFound,
 } from "../../../shared/utils/api-error";
@@ -55,6 +56,31 @@ interface CouponUsageTrendPoint {
   period: string;
   totalUsage: number;
   totalSavings: number;
+}
+
+// packages/database 不能 import API 層的 ApiError，因此基底服務擲出
+// 帶穩定 code 的 CouponEligibilityError；在此統一轉譯成 ApiError，
+// 讓路由層不需要再做字串比對的錯誤映射。
+const CouponEligibilityError = BaseCouponService.EligibilityError;
+
+function toCouponApiError(error: unknown): unknown {
+  if (!(error instanceof CouponEligibilityError)) {
+    return error;
+  }
+
+  switch (error.code) {
+    case "COUPON_NOT_FOUND":
+    case "COUPON_NOT_VISIBLE":
+      return notFound(error.message, "COUPON_NOT_FOUND");
+    case "COUPON_WRONG_RESTAURANT":
+      return forbidden(error.message, error.code);
+    case "COUPON_ALREADY_USED":
+    case "COUPON_USAGE_LIMIT_REACHED":
+    case "COUPON_USER_LIMIT_REACHED":
+      return conflict(error.message, error.code);
+    default:
+      return badRequest(error.message, error.code);
+  }
 }
 
 export class CouponsService extends BaseCouponService {
@@ -327,15 +353,42 @@ export class CouponsService extends BaseCouponService {
       .where(eq(coupons.id, input.couponId))
       .limit(1);
 
-    if (!coupon || coupon.deletedAt) {
+    if (!coupon) {
       throw notFound("Coupon not found", "COUPON_NOT_FOUND");
     }
 
-    if (coupon.restaurantId && coupon.restaurantId !== order.restaurantId) {
-      throw forbidden("Coupon does not belong to this order", "FORBIDDEN");
+    // 只有在優惠券設定了適用商品/分類限制時才載入訂單商品
+    let orderMenuItems:
+      | Array<{ menuItemId: number; quantity: number }>
+      | undefined;
+    if (coupon.applicableMenuItems || coupon.applicableCategories) {
+      orderMenuItems = await this.db
+        .select({
+          menuItemId: orderItems.menuItemId,
+          quantity: orderItems.quantity,
+        })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, input.orderId));
     }
 
     const originalAmountCents = order.subtotalCents ?? 0;
+
+    // 單一共享的資格檢查（與 /validate 同一份實作）：
+    // 軟刪除、餐廳歸屬、啟用狀態、有效期、總量上限（advisory）、
+    // 最低訂單金額、每用戶上限、適用商品/分類。
+    // 兌換模式不強制 isVisible — 隱藏但啟用中的代碼可由收銀端兌換。
+    try {
+      await this.assertCouponRedeemable(coupon, {
+        restaurantId: order.restaurantId,
+        orderAmountCents: originalAmountCents,
+        userId: input.userId,
+        menuItems: orderMenuItems,
+        mode: "redeem",
+      });
+    } catch (error) {
+      throw toCouponApiError(error);
+    }
+
     let discountAmountCents = 0;
 
     if (coupon.discountType === "percentage") {
@@ -361,14 +414,20 @@ export class CouponsService extends BaseCouponService {
     );
     const finalAmountCents = originalAmountCents - discountAmountCents;
 
-    return this.useCoupon({
-      couponId: input.couponId,
-      orderId: input.orderId,
-      userId: input.userId,
-      discountAmount: fromCents(discountAmountCents),
-      originalAmount: fromCents(originalAmountCents),
-      finalAmount: fromCents(finalAmountCents),
-    });
+    // useCoupon 內含重複使用檢查與 claimUsageSlot 的原子名額佔用；
+    // 其擲出的 CouponEligibilityError（已用過/名額已滿）同樣轉譯為 ApiError。
+    try {
+      return await this.useCoupon({
+        couponId: input.couponId,
+        orderId: input.orderId,
+        userId: input.userId,
+        discountAmount: fromCents(discountAmountCents),
+        originalAmount: fromCents(originalAmountCents),
+        finalAmount: fromCents(finalAmountCents),
+      });
+    } catch (error) {
+      throw toCouponApiError(error);
+    }
   }
 
   /**

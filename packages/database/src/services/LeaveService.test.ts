@@ -215,6 +215,211 @@ describe("LeaveService balance concurrency", () => {
   });
 });
 
+describe("LeaveService tenant scoping", () => {
+  let testDb: TestDatabase;
+  const otherRestaurantId = "leave-scope-other";
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+  });
+
+  async function seedOtherRestaurant() {
+    const now = new Date("2026-06-07T12:00:00.000Z");
+    await testDb.drizzle.insert(restaurants).values({
+      id: otherRestaurantId,
+      name: "Other Restaurant",
+      type: "restaurant",
+      category: "casual",
+      address: "2 Leave St",
+      district: "Central",
+      city: "Taipei",
+      phone: "0200000001",
+      settings: {},
+      isAvailable: true,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    } as never);
+  }
+
+  it("scopes leave type reads to the tenant plus system-wide types", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { leaveTypeId } = await seedLeaveFixtures(testDb, {
+      pendingDays: 0,
+      usedDays: 0,
+    });
+    await seedOtherRestaurant();
+
+    // Own tenant sees the type; another tenant reads it as missing
+    await expect(
+      service.getLeaveType(leaveTypeId, restaurantId),
+    ).resolves.toMatchObject({ id: leaveTypeId });
+    await expect(
+      service.getLeaveType(leaveTypeId, otherRestaurantId),
+    ).resolves.toBeNull();
+
+    // System-wide types (restaurantId NULL) stay visible under any scope
+    const now = new Date("2026-06-07T12:00:00.000Z");
+    const [systemType] = await testDb.drizzle
+      .insert(leaveTypes)
+      .values({
+        restaurantId: null,
+        code: "SYS",
+        name: "System Leave",
+        accrualType: "none",
+        accrualAmount: 0,
+        isSystemDefined: true,
+        createdAt: now,
+        updatedAt: now,
+      } as never)
+      .returning({ id: leaveTypes.id });
+    await expect(
+      service.getLeaveType(systemType.id, otherRestaurantId),
+    ).resolves.toMatchObject({ id: systemType.id });
+  });
+
+  it("blocks cross-tenant leave type mutation and re-tenanting", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { leaveTypeId } = await seedLeaveFixtures(testDb, {
+      pendingDays: 0,
+      usedDays: 0,
+    });
+    await seedOtherRestaurant();
+
+    await expect(
+      service.updateLeaveType(
+        leaveTypeId,
+        { name: "Hijacked" },
+        otherRestaurantId,
+      ),
+    ).rejects.toThrow("Leave type not found");
+
+    await expect(
+      service.deleteLeaveType(leaveTypeId, otherRestaurantId),
+    ).resolves.toBe(false);
+
+    const [untouched] = await testDb.drizzle
+      .select()
+      .from(leaveTypes)
+      .where(eq(leaveTypes.id, leaveTypeId));
+    expect(untouched.name).toBe("Annual Leave");
+    expect(untouched.isActive).toBe(true);
+
+    // restaurantId in the update payload is discarded — rows can't move tenant
+    const updated = await service.updateLeaveType(
+      leaveTypeId,
+      { name: "Renamed", restaurantId: otherRestaurantId },
+      restaurantId,
+    );
+    expect(updated.name).toBe("Renamed");
+    expect(updated.restaurantId).toBe(restaurantId);
+  });
+
+  it("rejects leave requests filed for another restaurant's employee", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { leaveTypeId } = await seedLeaveFixtures(testDb, {
+      pendingDays: 0,
+      usedDays: 0,
+    });
+    await seedOtherRestaurant();
+
+    const now = new Date("2026-06-07T12:00:00.000Z");
+    const [outsider] = await testDb.drizzle
+      .insert(users)
+      .values({
+        username: "outside-employee",
+        fullName: "Outside Employee",
+        passwordHash: "hash",
+        role: 3,
+        restaurantId: otherRestaurantId,
+        isActive: true,
+        isVerified: true,
+        createdAt: now,
+        updatedAt: now,
+      } as never)
+      .returning({ id: users.id });
+
+    await expect(
+      service.createLeaveRequest({
+        restaurantId,
+        employeeId: outsider.id,
+        leaveTypeId,
+        startDate: "2026-06-10",
+        endDate: "2026-06-11",
+        startPeriod: "full",
+        endPeriod: "full",
+        totalDays: 2,
+        reason: "impersonation attempt",
+      }),
+    ).rejects.toThrow("Employee not found in restaurant");
+
+    const requests = await testDb.drizzle.select().from(leaveRequests);
+    expect(requests).toHaveLength(0);
+  });
+
+  it("scopes leave request reads and approvals to the tenant", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, approverId, leaveTypeId } = await seedLeaveFixtures(
+      testDb,
+      {
+        pendingDays: 2,
+        usedDays: 0,
+      },
+    );
+    await seedOtherRestaurant();
+    const requestId = await seedLeaveRequest(testDb, {
+      employeeId,
+      leaveTypeId,
+      totalDays: 2,
+    });
+
+    await expect(
+      service.getLeaveRequest(requestId, otherRestaurantId),
+    ).resolves.toBeNull();
+    await expect(
+      service.getLeaveRequest(requestId, restaurantId),
+    ).resolves.toMatchObject({ id: requestId });
+
+    const foreignList = await service.getLeaveRequests({
+      restaurantId: otherRestaurantId,
+    });
+    expect(foreignList.total).toBe(0);
+    const ownList = await service.getLeaveRequests({ restaurantId });
+    expect(ownList.total).toBe(1);
+
+    await expect(
+      service.approveLeaveRequest(
+        requestId,
+        approverId,
+        undefined,
+        otherRestaurantId,
+      ),
+    ).rejects.toThrow("Leave request not found");
+
+    const [row] = await testDb.drizzle
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, requestId));
+    expect(row.status).toBe("pending");
+  });
+});
+
 async function seedLeaveFixtures(
   testDb: TestDatabase,
   balance: { pendingDays: number; usedDays: number },

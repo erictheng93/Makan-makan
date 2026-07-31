@@ -31,6 +31,29 @@ import { LeaveService } from "@makanmakan/database";
 
 const app = new Hono<{ Bindings: Env }>();
 
+interface SessionUser {
+  id: string | number;
+  role: number;
+  restaurantId?: string | number | null;
+}
+
+/**
+ * Tenant scope for the authenticated caller.
+ *
+ * Platform admins (role 0) are unscoped (undefined); every other role is
+ * limited to its own restaurant. A non-admin without a restaurant binding has
+ * no tenant to act in, so access is denied.
+ */
+function callerRestaurantId(user: SessionUser): string | undefined {
+  if (user.role === USER_ROLES.ADMIN) {
+    return undefined;
+  }
+  if (user.restaurantId == null) {
+    throw forbidden("Access denied");
+  }
+  return String(user.restaurantId);
+}
+
 // ========================================
 // Leave Types Management
 // ========================================
@@ -60,9 +83,11 @@ app.get(
   validateParams(leaveSchemas.leaveTypeIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const type = await service.getLeaveType(id);
+    // Tenant-scoped read: own types plus system-wide types.
+    const type = await service.getLeaveType(id, callerRestaurantId(user));
 
     if (!type) {
       throw notFound("Leave type not found");
@@ -112,10 +137,23 @@ app.put(
     const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const type = await service.updateLeaveType(id, {
-      ...data,
-      updatedBy: user.id,
-    });
+    const scope = callerRestaurantId(user);
+
+    // Tenant-scoped existence check. System-wide types (restaurantId null)
+    // are readable by tenants but only mutable by platform admins.
+    const existing = await service.getLeaveType(id, scope);
+    if (!existing || (scope !== undefined && existing.restaurantId !== scope)) {
+      throw notFound("Leave type not found");
+    }
+
+    const type = await service.updateLeaveType(
+      id,
+      {
+        ...data,
+        updatedBy: user.id,
+      },
+      scope,
+    );
 
     return c.json(
       createSuccessResponse(type, "Leave type updated successfully"),
@@ -132,9 +170,11 @@ app.delete(
   validateParams(leaveSchemas.leaveTypeIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const deleted = await service.deleteLeaveType(id);
+    // Tenant-scoped delete: cross-tenant and system-wide types read as missing.
+    const deleted = await service.deleteLeaveType(id, callerRestaurantId(user));
 
     if (!deleted) {
       throw notFound("Leave type not found or cannot be deleted");
@@ -169,9 +209,11 @@ app.get(
     }
 
     const year = query.year || new Date().getFullYear();
+    // Owners are scoped to their restaurant; platform admins are unscoped.
     const balances = await service.getEmployeeLeaveBalances(
       query.employeeId,
       year,
+      callerRestaurantId(user),
     );
 
     return c.json(createSuccessResponse(balances), HTTP_STATUS.OK);
@@ -186,9 +228,16 @@ app.post(
   validateBody(leaveSchemas.adjustLeaveBalance),
   async (c) => {
     const data = c.get("validatedBody");
+    const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const balance = await service.adjustLeaveBalance(data);
+    // adjustedBy always comes from the session; the service verifies the
+    // target employee belongs to the caller's restaurant when scoped.
+    const balance = await service.adjustLeaveBalance({
+      ...data,
+      adjustedBy: String(user.id),
+      restaurantId: callerRestaurantId(user),
+    });
 
     return c.json(
       createSuccessResponse(balance, "Leave balance adjusted successfully"),
@@ -257,13 +306,17 @@ app.get(
   validateParams(leaveSchemas.restaurantIdParam),
   validateQuery(leaveSchemas.leaveRequestFilters),
   async (c) => {
+    const { restaurantId } = c.get("validatedParams");
     const query = c.get("validatedQuery");
     const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    // Employees can only view their own requests
+    // Always scope results to the restaurant in the URL (access already
+    // verified by requireRestaurantAccess); employees can additionally only
+    // view their own requests.
     const filters = {
       ...query,
+      restaurantId,
       employeeId:
         user.role !== USER_ROLES.ADMIN && user.role !== USER_ROLES.OWNER
           ? String(user.id)
@@ -298,7 +351,8 @@ app.get(
     const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const request = await service.getLeaveRequest(id);
+    // Tenant-scoped read: other restaurants' requests read as not-found.
+    const request = await service.getLeaveRequest(id, callerRestaurantId(user));
 
     if (!request) {
       throw notFound("Leave request not found");
@@ -325,6 +379,7 @@ app.post(
   async (c) => {
     const { restaurantId } = c.get("validatedParams");
     const data = c.get("validatedBody");
+    const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
     // Calculate total days
@@ -335,16 +390,22 @@ app.post(
       data.endPeriod,
     );
 
-    if (data.employeeId == null) {
-      throw badRequest("employeeId is required");
-    }
-    const employeeId = data.employeeId;
+    // Identity binding: self-service requests are always filed for the
+    // session user. Only admins/owners may file on behalf of another
+    // employee, and the service verifies that employee belongs to this
+    // restaurant.
+    const isManager =
+      user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.OWNER;
+    const employeeId =
+      isManager && data.employeeId != null ? data.employeeId : String(user.id);
 
-    // Check if employee has sufficient balance
+    // Check if employee has sufficient balance (scoped to this restaurant so
+    // cross-tenant balances cannot be probed)
     const balance = await service.getLeaveBalance(
       employeeId,
       data.leaveTypeId,
       new Date().getFullYear(),
+      restaurantId,
     );
 
     if (balance && balance.remainingDays < totalDays) {
@@ -376,10 +437,30 @@ app.post(
   validateBody(leaveSchemas.approveLeaveRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { approverId, comments } = c.get("validatedBody");
+    const { comments } = c.get("validatedBody");
+    const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const request = await service.approveLeaveRequest(id, approverId, comments);
+    const scope = callerRestaurantId(user);
+
+    // Tenant-scoped lookup: requests from other restaurants read as missing.
+    const target = await service.getLeaveRequest(id, scope);
+    if (!target) {
+      throw notFound("Leave request not found");
+    }
+
+    // Approval authority: nobody approves their own leave request.
+    if (String(target.employeeId) === String(user.id)) {
+      throw forbidden("Cannot approve your own leave request");
+    }
+
+    // Approver identity always comes from the session.
+    const request = await service.approveLeaveRequest(
+      id,
+      String(user.id),
+      comments,
+      scope,
+    );
 
     return c.json(
       createSuccessResponse(request, "Leave request approved successfully"),
@@ -397,10 +478,30 @@ app.post(
   validateBody(leaveSchemas.rejectLeaveRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { approverId, reason } = c.get("validatedBody");
+    const { reason } = c.get("validatedBody");
+    const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
-    const request = await service.rejectLeaveRequest(id, approverId, reason);
+    const scope = callerRestaurantId(user);
+
+    // Tenant-scoped lookup: requests from other restaurants read as missing.
+    const target = await service.getLeaveRequest(id, scope);
+    if (!target) {
+      throw notFound("Leave request not found");
+    }
+
+    // Approval authority: nobody reviews their own leave request.
+    if (String(target.employeeId) === String(user.id)) {
+      throw forbidden("Cannot reject your own leave request");
+    }
+
+    // Reviewer identity always comes from the session.
+    const request = await service.rejectLeaveRequest(
+      id,
+      String(user.id),
+      reason,
+      scope,
+    );
 
     return c.json(
       createSuccessResponse(request, "Leave request rejected"),
@@ -417,12 +518,15 @@ app.post(
   validateBody(leaveSchemas.cancelLeaveRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { userId, reason } = c.get("validatedBody");
+    const { reason } = c.get("validatedBody");
     const user = c.get("user");
     const service = new LeaveService(c.env.DB, c.env);
 
+    const scope = callerRestaurantId(user);
+
     // Check if user is cancelling their own request or is admin/owner
-    const request = await service.getLeaveRequest(id);
+    // (tenant-scoped: other restaurants' requests read as missing)
+    const request = await service.getLeaveRequest(id, scope);
     if (!request) {
       throw notFound("Leave request not found");
     }
@@ -433,10 +537,12 @@ app.post(
       }
     }
 
+    // Canceller identity always comes from the session.
     const cancelledRequest = await service.cancelLeaveRequest(
       id,
-      userId,
+      String(user.id),
       reason,
+      scope,
     );
 
     return c.json(

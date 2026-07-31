@@ -95,7 +95,10 @@ export const createLeaveTypeSchema = leaveTypeShapeSchema.extend({
   sortOrder: nonNegativeInteger.default(0),
 });
 
-export const updateLeaveTypeSchema = leaveTypeShapeSchema.partial();
+// restaurantId is omitted: a leave type can never be re-tenanted via update.
+export const updateLeaveTypeSchema = leaveTypeShapeSchema
+  .omit({ restaurantId: true })
+  .partial();
 
 // Leave Request Schemas
 export const createLeaveRequestSchema = z
@@ -124,18 +127,18 @@ export const createLeaveRequestSchema = z
     { message: "End date must be equal to or after start date" },
   );
 
+// Identity fields (approverId/userId/adjustedBy) are intentionally absent from
+// the bodies below: the acting user is always derived from the authenticated
+// session, never from client input.
 export const approveLeaveRequestSchema = z.object({
-  approverId: idString,
   comments: z.string().max(500).optional(),
 });
 
 export const rejectLeaveRequestSchema = z.object({
-  approverId: idString,
   reason: nonEmptyString.max(500),
 });
 
 export const cancelLeaveRequestSchema = z.object({
-  userId: idString,
   reason: nonEmptyString.max(500),
 });
 
@@ -146,7 +149,6 @@ export const adjustLeaveBalanceSchema = z.object({
   year: yearInteger,
   adjustment: z.number().min(-365).max(365), // Allow both positive and negative adjustments
   reason: nonEmptyString.max(500),
-  adjustedBy: idString,
 });
 
 export const accrueLeaveBalancesSchema = z.object({

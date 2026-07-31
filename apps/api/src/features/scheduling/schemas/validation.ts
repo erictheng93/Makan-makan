@@ -147,9 +147,11 @@ export const bulkCreateSchedulesSchema = z
   );
 
 // Clock In/Out Schema (identical shape for both actions)
+// employeeId is optional: non-managers are always clocked as themselves
+// (session identity); managers may clock a specific employee.
 export const clockActionSchema = z.object({
   scheduleId: positiveInteger,
-  employeeId: idString,
+  employeeId: idString.optional(),
   notes: z.string().max(500).optional(),
 });
 
@@ -202,8 +204,9 @@ export const updateSchedulingRuleSchema = z.object({
 });
 
 // Conflict Resolution Schema
+// The resolving user is always the authenticated session user — never
+// accepted from the request body.
 export const resolveConflictSchema = z.object({
-  userId: idString,
   resolutionNotes: z.string().max(500),
 });
 

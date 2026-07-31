@@ -297,6 +297,133 @@ describe("SchedulingService.approveSwapRequest", () => {
   });
 });
 
+describe("SchedulingService tenant scoping", () => {
+  const outsiderId = "018f0000-0000-7000-8000-000000000009";
+
+  function service() {
+    return new SchedulingService(testDb.bindings.DB, { JWT_SECRET: "test" });
+  }
+
+  beforeEach(async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO restaurants
+           (id, name, type, category, address, district, phone, created_at_ms, updated_at_ms)
+         VALUES
+           ('other-rest', 'Other Restaurant', 'street_food', 'snack', '2 Test Rd', 'East', '0900000001', 1735689600000, 1735689600000)`,
+      )
+      .run();
+    await testDb.db
+      .prepare(
+        `INSERT INTO users
+           (id, username, full_name, password_hash, role, restaurant_id, is_active, is_verified, total_orders, total_spent, token_version, created_at_ms, updated_at_ms)
+         VALUES
+           ('${outsiderId}', 'other-employee', 'Other Employee', 'test', 3, 'other-rest', 1, 1, 0, 0, 1, 1735689600000, 1735689600000)`,
+      )
+      .run();
+    await testDb.db
+      .prepare(
+        `INSERT INTO employee_schedules
+           (id, restaurant_id, employee_id, work_date, start_time, end_time,
+            break_duration_minutes, scheduled_hours, status, created_by,
+            created_at_ms, updated_at_ms)
+         VALUES
+           (70, 'sched-rest', '${employeeId}', '2026-08-01', '09:00', '13:00',
+            0, 4, 'scheduled', '${ownerId}', 1735689600000, 1735689600000)`,
+      )
+      .run();
+  });
+
+  it("hides ID-addressed rows from other tenants but returns them in scope", async () => {
+    const svc = service();
+
+    await expect(svc.getScheduleById(70, "other-rest")).resolves.toBeNull();
+    await expect(svc.getSchedule(70, "other-rest")).resolves.toBeNull();
+    await expect(svc.getScheduleById(70, "sched-rest")).resolves.toMatchObject({
+      id: 70,
+    });
+    // Unscoped (platform admin) still resolves.
+    await expect(svc.getScheduleById(70)).resolves.toMatchObject({ id: 70 });
+
+    await expect(svc.deleteSchedule(70, "other-rest")).resolves.toBe(false);
+    const row = await testDb.db
+      .prepare(`SELECT status FROM employee_schedules WHERE id = 70`)
+      .all<{ status: string }>();
+    expect(row.results[0].status).toBe("scheduled");
+  });
+
+  it("rejects swap request creation with a forged requester identity", async () => {
+    const svc = service();
+
+    // ownerId does not own schedule 70 — impersonation attempt.
+    await expect(
+      svc.createSwapRequest({
+        restaurantId: "sched-rest",
+        requesterEmployeeId: ownerId,
+        requesterScheduleId: 70,
+        requestType: "drop",
+        reason: "forged",
+        urgency: "normal",
+        isOpenRequest: false,
+      }),
+    ).rejects.toThrow(/does not belong to the requesting employee/);
+
+    // Schedule 70 is not visible from other-rest at all.
+    await expect(
+      svc.createSwapRequest({
+        restaurantId: "other-rest",
+        requesterEmployeeId: outsiderId,
+        requesterScheduleId: 70,
+        requestType: "drop",
+        reason: "cross-tenant",
+        urgency: "normal",
+        isOpenRequest: false,
+      }),
+    ).rejects.toThrow(/Requester schedule not found/);
+
+    // A target employee from another restaurant is rejected.
+    await expect(
+      svc.createSwapRequest({
+        restaurantId: "sched-rest",
+        requesterEmployeeId: employeeId,
+        requesterScheduleId: 70,
+        targetEmployeeId: outsiderId,
+        requestType: "cover",
+        reason: "cross-tenant target",
+        urgency: "normal",
+        isOpenRequest: false,
+      }),
+    ).rejects.toThrow(/Target employee not found in this restaurant/);
+  });
+
+  it("scopes swap request approval and cancellation to the tenant", async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO schedule_swap_requests
+           (id, restaurant_id, requester_employee_id, requester_schedule_id,
+            target_employee_id, target_schedule_id, request_type, reason,
+            urgency, status, created_at_ms, updated_at_ms)
+         VALUES
+           (200, 'sched-rest', '${employeeId}', 70, NULL, NULL, 'drop',
+            'test reason', 'normal', 'pending', 1735689600000, 1735689600000)`,
+      )
+      .run();
+    const svc = service();
+
+    await expect(svc.getSwapRequest(200, "other-rest")).resolves.toBeNull();
+    await expect(
+      svc.approveSwapRequest(200, outsiderId, "other-rest"),
+    ).rejects.toThrow(/Swap request not found/);
+    await expect(
+      svc.cancelSwapRequest(200, employeeId, "other-rest"),
+    ).rejects.toThrow(/Swap request not found/);
+
+    // In-scope approval still works.
+    const approved = await svc.approveSwapRequest(200, ownerId, "sched-rest");
+    expect(approved.status).toBe("approved");
+  });
+});
+
 describe("SchedulingService.createSchedule", () => {
   it("rejects overlapping schedules instead of inserting with a warning conflict", async () => {
     await testDb.db

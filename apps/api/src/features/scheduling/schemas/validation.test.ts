@@ -127,6 +127,11 @@ describe("scheduling validation", () => {
       employeeId: "42",
     });
 
+    // employeeId is optional — non-managers are clocked as themselves.
+    expect(clockInSchema.parse({ scheduleId: 1 })).toEqual({
+      scheduleId: 1,
+    });
+
     expect(
       createSchedulingRuleSchema.parse({
         name: "Max daily hours",
@@ -147,13 +152,17 @@ describe("scheduling validation", () => {
       }),
     ).toEqual({ severity: "error", isActive: false });
 
+    // The resolver identity comes from the session — a body userId is
+    // stripped, never parsed into the payload.
     expect(
       resolveConflictSchema.parse({
         userId: 7,
         resolutionNotes: "Adjusted shift",
       }),
-    ).toMatchObject({ userId: "7" });
+    ).toEqual({ resolutionNotes: "Adjusted shift" });
 
+    // The requester comes from the session — a body requesterEmployeeId is
+    // not a schema field and is dropped, never parsed into the payload.
     expect(
       createSwapRequestSchema.parse({
         requesterEmployeeId: 42,
@@ -161,7 +170,10 @@ describe("scheduling validation", () => {
         requestType: "cover",
         reason: "Appointment",
       }),
-    ).toMatchObject({
+    ).toEqual({
+      requesterScheduleId: 10,
+      requestType: "cover",
+      reason: "Appointment",
       urgency: "normal",
       isOpenRequest: false,
     });
@@ -173,6 +185,7 @@ describe("scheduling validation", () => {
     // managerId in the body is not a field the schema knows — it is
     // dropped rather than trusted. Approval carries no body fields at all.
     expect(approveSwapRequestSchema.parse({ managerId: 7 })).toEqual({});
+    // Same for rejection, which carries only the reason.
     expect(
       rejectSwapRequestSchema.parse({ managerId: 7, reason: "No coverage" }),
     ).toEqual({ reason: "No coverage" });

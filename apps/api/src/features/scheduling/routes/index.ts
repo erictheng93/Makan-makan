@@ -42,6 +42,25 @@ function userIdString(user: { id: string | number }): string {
   return String(user.id);
 }
 
+/**
+ * Tenant scope for ID-addressed service calls.
+ * Platform admins (role 0) are unscoped (`undefined`); everyone else is
+ * restricted to their own restaurant. A non-admin without a restaurant
+ * binding has no legitimate scope and is rejected outright.
+ */
+function callerRestaurantId(user: {
+  role: number;
+  restaurantId?: string | number | null;
+}): string | undefined {
+  if (user.role === USER_ROLES.ADMIN) {
+    return undefined;
+  }
+  if (user.restaurantId === undefined || user.restaurantId === null) {
+    throw forbidden("Access denied to this restaurant");
+  }
+  return String(user.restaurantId);
+}
+
 // ========================================
 // Shift Template Management
 // ========================================
@@ -71,9 +90,13 @@ app.get(
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
     const service = createService(c.env);
 
-    const template = await service.getShiftTemplate(id);
+    const template = await service.getShiftTemplate(
+      id,
+      callerRestaurantId(user),
+    );
 
     if (!template) {
       throw notFound("Shift template not found");
@@ -122,11 +145,21 @@ app.put(
     const data = c.get("validatedBody");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const template = await service.updateShiftTemplate(id, {
-      ...data,
-      updatedBy: userIdString(user),
-    });
+    const existing = await service.getShiftTemplate(id, restaurantId);
+    if (!existing) {
+      throw notFound("Shift template not found");
+    }
+
+    const template = await service.updateShiftTemplate(
+      id,
+      {
+        ...data,
+        updatedBy: userIdString(user),
+      },
+      restaurantId,
+    );
 
     return c.json(
       createSuccessResponse(template, "Shift template updated successfully"),
@@ -143,9 +176,13 @@ app.delete(
   validateParams(schedulingSchemas.shiftTemplateIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
     const service = createService(c.env);
 
-    const deleted = await service.deleteShiftTemplate(id);
+    const deleted = await service.deleteShiftTemplate(
+      id,
+      callerRestaurantId(user),
+    );
 
     if (!deleted) {
       throw notFound("Shift template not found");
@@ -210,7 +247,7 @@ app.get(
     const user = c.get("user");
     const service = createService(c.env);
 
-    const schedule = await service.getSchedule(id);
+    const schedule = await service.getSchedule(id, callerRestaurantId(user));
 
     if (!schedule) {
       throw notFound("Schedule not found");
@@ -296,11 +333,21 @@ app.put(
     const data = c.get("validatedBody");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const schedule = await service.updateSchedule(id, {
-      ...data,
-      updatedBy: userIdString(user),
-    });
+    const existing = await service.getScheduleById(id, restaurantId);
+    if (!existing) {
+      throw notFound("Schedule not found");
+    }
+
+    const schedule = await service.updateSchedule(
+      id,
+      {
+        ...data,
+        updatedBy: userIdString(user),
+      },
+      restaurantId,
+    );
 
     return c.json(
       createSuccessResponse(schedule, "Schedule updated successfully"),
@@ -317,9 +364,10 @@ app.delete(
   validateParams(schedulingSchemas.scheduleIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
     const service = createService(c.env);
 
-    const deleted = await service.deleteSchedule(id);
+    const deleted = await service.deleteSchedule(id, callerRestaurantId(user));
 
     if (!deleted) {
       throw notFound("Schedule not found");
@@ -344,15 +392,24 @@ app.post(
   validateBody(schedulingSchemas.clockIn),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { employeeId, notes } = c.get("validatedBody");
+    const { employeeId: bodyEmployeeId, notes } = c.get("validatedBody");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    // Verify user is clocking in for themselves (unless admin)
-    if (!isManager(user.role)) {
-      if (employeeId !== userIdString(user)) {
-        throw forbidden("Access denied");
-      }
+    // Non-managers always clock in as themselves (session identity);
+    // managers may clock in a specific employee within their restaurant.
+    const employeeId =
+      isManager(user.role) && bodyEmployeeId
+        ? bodyEmployeeId
+        : userIdString(user);
+
+    const existing = await service.getScheduleById(id, restaurantId);
+    if (!existing) {
+      throw notFound("Schedule not found");
+    }
+    if (!isManager(user.role) && String(existing.employeeId) !== employeeId) {
+      throw forbidden("Access denied");
     }
 
     const schedule = await service.clockIn({
@@ -360,6 +417,7 @@ app.post(
       employeeId,
       clockInTime: new Date(),
       notes,
+      restaurantId,
     });
 
     return c.json(
@@ -377,15 +435,24 @@ app.post(
   validateBody(schedulingSchemas.clockOut),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { employeeId, notes } = c.get("validatedBody");
+    const { employeeId: bodyEmployeeId, notes } = c.get("validatedBody");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    // Verify user is clocking out for themselves (unless admin)
-    if (!isManager(user.role)) {
-      if (employeeId !== userIdString(user)) {
-        throw forbidden("Access denied");
-      }
+    // Non-managers always clock out as themselves (session identity);
+    // managers may clock out a specific employee within their restaurant.
+    const employeeId =
+      isManager(user.role) && bodyEmployeeId
+        ? bodyEmployeeId
+        : userIdString(user);
+
+    const existing = await service.getScheduleById(id, restaurantId);
+    if (!existing) {
+      throw notFound("Schedule not found");
+    }
+    if (!isManager(user.role) && String(existing.employeeId) !== employeeId) {
+      throw forbidden("Access denied");
     }
 
     const schedule = await service.clockOut({
@@ -393,6 +460,7 @@ app.post(
       employeeId,
       clockOutTime: new Date(),
       notes,
+      restaurantId,
     });
 
     return c.json(
@@ -548,9 +616,11 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { notes } = c.get("validatedBody");
+    const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const existingSchedule = await service.getScheduleById(id);
+    const existingSchedule = await service.getScheduleById(id, restaurantId);
     if (!existingSchedule) {
       throw notFound("Schedule not found");
     }
@@ -561,6 +631,7 @@ app.post(
         employeeId: existingSchedule.employeeId,
         clockInTime: new Date(),
         notes,
+        restaurantId,
       },
       true, // isAdmin
     );
@@ -582,9 +653,11 @@ app.post(
   async (c) => {
     const { id } = c.get("validatedParams");
     const { notes } = c.get("validatedBody");
+    const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const existingSchedule = await service.getScheduleById(id);
+    const existingSchedule = await service.getScheduleById(id, restaurantId);
     if (!existingSchedule) {
       throw notFound("Schedule not found");
     }
@@ -595,6 +668,7 @@ app.post(
         employeeId: existingSchedule.employeeId,
         clockOutTime: new Date(),
         notes,
+        restaurantId,
       },
       true, // isAdmin
     );
@@ -623,7 +697,9 @@ app.post(
     const user = c.get("user");
     const service = createService(c.env);
 
+    // The requester is always the session user — the body cannot name one.
     const { expiresAt, ...rest } = data;
+
     const request = await service.createSwapRequest({
       ...rest,
       restaurantId,
@@ -679,25 +755,27 @@ app.get(
 );
 
 // POST /swap-requests/:id/accept - Accept a swap request (employee)
+// The accepting employee is always the authenticated session user.
 app.post(
   "/swap-requests/:id/accept",
   authMiddleware,
   validateParams(schedulingSchemas.swapRequestIdParam),
-  validateBody(schedulingSchemas.acceptSwapRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { employeeId } = c.get("validatedBody");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    // Verify user is accepting for themselves (unless admin)
-    if (!isManager(user.role)) {
-      if (employeeId !== userIdString(user)) {
-        throw forbidden("Access denied");
-      }
+    const existing = await service.getSwapRequest(id, restaurantId);
+    if (!existing) {
+      throw notFound("Swap request not found");
     }
 
-    const request = await service.acceptSwapRequest(id, employeeId);
+    const request = await service.acceptSwapRequest(
+      id,
+      userIdString(user),
+      restaurantId,
+    );
 
     return c.json(
       createSuccessResponse(request, "Swap request accepted successfully"),
@@ -707,18 +785,28 @@ app.post(
 );
 
 // POST /swap-requests/:id/approve - Approve a swap request (manager)
+// The approving manager is always the authenticated session user.
 app.post(
   "/swap-requests/:id/approve",
   authMiddleware,
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(schedulingSchemas.swapRequestIdParam),
-  validateBody(schedulingSchemas.approveSwapRequest),
   async (c) => {
     const { id } = c.get("validatedParams");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const request = await service.approveSwapRequest(id, userIdString(user));
+    const existing = await service.getSwapRequest(id, restaurantId);
+    if (!existing) {
+      throw notFound("Swap request not found");
+    }
+
+    const request = await service.approveSwapRequest(
+      id,
+      userIdString(user),
+      restaurantId,
+    );
 
     return c.json(
       createSuccessResponse(request, "Swap request approved successfully"),
@@ -728,6 +816,7 @@ app.post(
 );
 
 // POST /swap-requests/:id/reject - Reject a swap request (manager)
+// The rejecting manager is always the authenticated session user.
 app.post(
   "/swap-requests/:id/reject",
   authMiddleware,
@@ -739,11 +828,18 @@ app.post(
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
+
+    const existing = await service.getSwapRequest(id, restaurantId);
+    if (!existing) {
+      throw notFound("Swap request not found");
+    }
 
     const request = await service.rejectSwapRequest(
       id,
       userIdString(user),
       reason,
+      restaurantId,
     );
 
     return c.json(
@@ -762,8 +858,18 @@ app.post(
     const { id } = c.get("validatedParams");
     const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const request = await service.cancelSwapRequest(id, userIdString(user));
+    const existing = await service.getSwapRequest(id, restaurantId);
+    if (!existing) {
+      throw notFound("Swap request not found");
+    }
+
+    const request = await service.cancelSwapRequest(
+      id,
+      userIdString(user),
+      restaurantId,
+    );
 
     return c.json(
       createSuccessResponse(request, "Swap request cancelled successfully"),
@@ -852,9 +958,10 @@ app.get(
   validateParams(schedulingSchemas.conflictIdParam),
   async (c) => {
     const { id } = c.get("validatedParams");
+    const user = c.get("user");
     const service = createService(c.env);
 
-    const conflict = await service.getConflict(id);
+    const conflict = await service.getConflict(id, callerRestaurantId(user));
 
     if (!conflict) {
       throw notFound("Conflict not found");
@@ -865,6 +972,7 @@ app.get(
 );
 
 // POST /conflicts/:id/resolve - Resolve a conflict
+// The resolving user is always the authenticated session user.
 app.post(
   "/conflicts/:id/resolve",
   authMiddleware,
@@ -873,10 +981,22 @@ app.post(
   validateBody(schedulingSchemas.resolveConflict),
   async (c) => {
     const { id } = c.get("validatedParams");
-    const { userId, resolutionNotes } = c.get("validatedBody");
+    const { resolutionNotes } = c.get("validatedBody");
+    const user = c.get("user");
     const service = createService(c.env);
+    const restaurantId = callerRestaurantId(user);
 
-    const conflict = await service.resolveConflict(id, userId, resolutionNotes);
+    const existing = await service.getConflict(id, restaurantId);
+    if (!existing) {
+      throw notFound("Conflict not found");
+    }
+
+    const conflict = await service.resolveConflict(
+      id,
+      userIdString(user),
+      resolutionNotes,
+      restaurantId,
+    );
 
     return c.json(
       createSuccessResponse(conflict, "Conflict resolved successfully"),

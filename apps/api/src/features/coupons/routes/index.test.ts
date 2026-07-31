@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import app from "./index";
+import { ApiError, conflict } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
   currentUser: {
@@ -101,6 +104,29 @@ function createCouponBody(overrides: Record<string, unknown> = {}) {
     validTo: "2026-07-01T00:00:00.000Z",
     ...overrides,
   };
+}
+
+// 模擬 app-factory 全域錯誤處理器的統一錯誤格式，
+// 用於驗證路由擲出的 ApiError 會變成 { success: false, error: { code, message } }
+function createAppWithErrorEnvelope() {
+  const wrapper = new Hono();
+  wrapper.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        { success: false, error: { code: err.code, message: err.message } },
+        err.status as ContentfulStatusCode,
+      );
+    }
+    return c.json(
+      {
+        success: false,
+        error: { code: "INTERNAL_ERROR", message: "Internal server error" },
+      },
+      500,
+    );
+  });
+  wrapper.route("/", app);
+  return wrapper;
 }
 
 async function withSilencedRouteError<T>(callback: () => Promise<T>) {
@@ -340,7 +366,7 @@ describe("coupons routes", () => {
     expect(mocks.bulkDeleteCoupons).toHaveBeenCalledWith([10, 11]);
   });
 
-  it("uses coupons, maps usage-limit conflicts, and returns usage trends", async () => {
+  it("uses coupons and returns usage trends", async () => {
     mocks.useCouponForOrder.mockResolvedValue({ id: "usage-1" });
     mocks.getCouponUsageTrends.mockResolvedValue([{ date: "2026-06-01" }]);
     const env = createEnv();
@@ -364,23 +390,6 @@ describe("coupons routes", () => {
       allowedRestaurantId: "restaurant-1",
     });
 
-    mocks.useCouponForOrder.mockRejectedValueOnce(
-      new Error("Coupon usage limit reached"),
-    );
-    const conflictResponse = await withSilencedRouteError(() =>
-      app.fetch(
-        jsonRequest("https://test/use", "POST", {
-          couponId: 10,
-          orderId: "99",
-          discountAmount: 30,
-          originalAmount: 300,
-          finalAmount: 270,
-        }),
-        env as never,
-      ),
-    );
-    expect(conflictResponse.status).toBe(500);
-
     const trendsResponse = await app.fetch(
       new Request(
         "https://test/analytics/trends?restaurantId=restaurant-1&startDate=2026-06-01&endDate=2026-06-30",
@@ -401,6 +410,34 @@ describe("coupons routes", () => {
       ),
     );
     expect(deniedTrends.status).toBe(500);
+  });
+
+  it("returns the unified error envelope when a redemption is denied", async () => {
+    mocks.useCouponForOrder.mockRejectedValueOnce(
+      conflict("優惠券使用次數已達上限", "COUPON_USAGE_LIMIT_REACHED"),
+    );
+    const wrapped = createAppWithErrorEnvelope();
+
+    const response = await wrapped.fetch(
+      jsonRequest("https://test/use", "POST", {
+        couponId: 10,
+        orderId: "99",
+        discountAmount: 30,
+        originalAmount: 300,
+        finalAmount: 270,
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: {
+        code: "COUPON_USAGE_LIMIT_REACHED",
+        message: "優惠券使用次數已達上限",
+      },
+    });
+    expect(mocks.useCouponForOrder).toHaveBeenCalledOnce();
   });
 
   it("returns not-found errors for missing coupon resources", async () => {
