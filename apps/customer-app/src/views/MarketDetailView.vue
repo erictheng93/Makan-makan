@@ -190,7 +190,11 @@
                 </div>
                 <p class="mt-1 truncate text-sm text-gray-600">
                   {{
-                    vendor.items.map((item) => item.menuItem.name).join("、")
+                    vendor.items
+                      .map((item) =>
+                        getLocalizedMenuName(item.menuItem, currentLanguage),
+                      )
+                      .join("、")
                   }}
                 </p>
               </article>
@@ -417,6 +421,8 @@ import {
   shopMenuServicesQuery,
 } from "@/utils/shopMenuDeepLink";
 import { useCurrency } from "@/composables/useCurrency";
+import { useI18n } from "@/composables/useI18n";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { orderApi, type MarketCheckoutResponse } from "@/services/orderApi";
 
 const route = useRoute();
@@ -425,6 +431,10 @@ const toast = useToast();
 const store = useMarketsStore();
 const marketCartStore = useMarketCartStore();
 const { formatPrice } = useCurrency();
+// Only the locale is needed here: this view's own copy is still hard-coded
+// Chinese, but the item names in the cart summary come from the shop and must
+// follow the visitor's language like every other menu name does.
+const { currentLanguage } = useI18n();
 const MarketLocationMap = defineAsyncComponent(
   () => import("@/components/markets/MarketLocationMap.vue"),
 );

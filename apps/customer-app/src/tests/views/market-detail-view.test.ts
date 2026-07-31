@@ -1,5 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketDetailView from "@/views/MarketDetailView.vue";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
@@ -74,6 +75,18 @@ vi.mock("@/utils/seoMeta", () => ({
 vi.mock("@/composables/useCurrency", () => ({
   useCurrency: () => ({
     formatPrice: (amount: number) => `NT$${amount}`,
+  }),
+}));
+
+// The view reads the locale so vendor item names follow the visitor's language
+// (#112). Mounted without an i18n plugin, the real composable throws "Need to
+// install with `app.use` function".
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
   }),
 }));
 

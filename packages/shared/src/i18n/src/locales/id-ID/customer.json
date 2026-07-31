@@ -683,7 +683,12 @@
     "noResults": "Tidak ada hidangan ditemukan",
     "tryOtherKeywords": "Coba kata kunci lain",
     "viewCart": "Lihat Keranjang",
-    "shopOrdering": "Pemesanan Toko"
+    "shopOrdering": "Pemesanan Toko",
+    "locatedTo": "Menuju ke {target}",
+    "viewingShop": "Melihat menu dan layanan toko ini",
+    "targetService": "Layanan: {name}",
+    "targetProduct": "Produk: {name}",
+    "targetDish": "Hidangan: {name}"
   },
   "phoneVerification": {
     "title": "Verifikasi Telepon",

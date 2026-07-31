@@ -34,8 +34,11 @@ vi.mock("vue-toastification", () => ({
 vi.mock("@/composables/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    // Every param, not just `name`: the entry-context banner nests one
+    // translated label inside another via `target`, so a mock that only
+    // interpolated `name` rendered "undefined" and hid what it was asserting.
     tWithParams: (key: string, params: Record<string, unknown>) =>
-      `${key}:${params.name}`,
+      `${key}:${Object.values(params).join(",")}`,
   }),
 }));
 

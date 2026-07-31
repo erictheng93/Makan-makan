@@ -683,7 +683,12 @@
     "noResults": "Tiada hidangan ditemui",
     "tryOtherKeywords": "Cuba kata kunci lain",
     "viewCart": "Lihat Troli",
-    "shopOrdering": "Pesanan Kedai"
+    "shopOrdering": "Pesanan Kedai",
+    "locatedTo": "Dibawa ke {target}",
+    "viewingShop": "Melihat menu dan perkhidmatan kedai ini",
+    "targetService": "Perkhidmatan: {name}",
+    "targetProduct": "Produk: {name}",
+    "targetDish": "Hidangan: {name}"
   },
   "phoneVerification": {
     "title": "Pengesahan Telefon",

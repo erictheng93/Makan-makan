@@ -683,7 +683,12 @@
     "noResults": "No dishes found",
     "tryOtherKeywords": "Try other keywords",
     "viewCart": "View Cart",
-    "shopOrdering": "Shop Ordering"
+    "shopOrdering": "Shop Ordering",
+    "locatedTo": "Jumped to {target}",
+    "viewingShop": "Viewing this shop's menu and services",
+    "targetService": "Service: {name}",
+    "targetProduct": "Product: {name}",
+    "targetDish": "Dish: {name}"
   },
   "phoneVerification": {
     "title": "Phone Verification",

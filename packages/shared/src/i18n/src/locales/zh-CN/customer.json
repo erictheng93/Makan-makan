@@ -683,7 +683,12 @@
     "noResults": "找不到相关菜品",
     "tryOtherKeywords": "试试其他关键字",
     "viewCart": "查看购物车",
-    "shopOrdering": "店家点餐"
+    "shopOrdering": "店家点餐",
+    "locatedTo": "已定位到 {target}",
+    "viewingShop": "正在查看此店铺菜单与服务",
+    "targetService": "服务：{name}",
+    "targetProduct": "商品：{name}",
+    "targetDish": "餐点：{name}"
   },
   "phoneVerification": {
     "title": "手机验证",

@@ -210,10 +210,12 @@
               v-if="linkedTargetLabel"
               class="text-sm font-medium text-ios-text"
             >
-              已定位到 {{ linkedTargetLabel }}
+              {{
+                tWithParams("shopMenu.locatedTo", { target: linkedTargetLabel })
+              }}
             </p>
             <p v-else class="text-sm font-medium text-ios-text">
-              正在查看此店鋪菜單與服務
+              {{ t("shopMenu.viewingShop") }}
             </p>
             <button
               v-if="returnContext"
@@ -788,12 +790,23 @@ const currentMarketCartSubtotal = computed(() =>
     : 0,
 );
 const linkedTargetLabel = computed(() => {
-  if (linkedService.value) return `服務：${linkedService.value.name}`;
+  // The name was already localised here; the "服務／商品／餐點：" prefix was not,
+  // so an English visitor got the mixed string "餐點：Hainanese Chicken Rice".
+  // Each locale owns the whole label, punctuation included — a shared
+  // "{kind}：{name}" template would impose the CJK colon on every language.
+  if (linkedService.value) {
+    return tWithParams("shopMenu.targetService", {
+      name: linkedService.value.name,
+    });
+  }
   if (linkedMenuItem.value) {
-    return `${isProductCatalogItem(linkedMenuItem.value) ? "商品" : "餐點"}：${getLocalizedMenuName(
+    const name = getLocalizedMenuName(
       linkedMenuItem.value,
       currentLanguage?.value,
-    )}`;
+    );
+    return isProductCatalogItem(linkedMenuItem.value)
+      ? tWithParams("shopMenu.targetProduct", { name })
+      : tWithParams("shopMenu.targetDish", { name });
   }
   return "";
 });

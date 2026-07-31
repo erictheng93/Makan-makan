@@ -683,7 +683,12 @@
     "noResults": "Không tìm thấy món ăn",
     "tryOtherKeywords": "Thử từ khóa khác",
     "viewCart": "Xem giỏ hàng",
-    "shopOrdering": "Đặt hàng tại cửa hàng"
+    "shopOrdering": "Đặt hàng tại cửa hàng",
+    "locatedTo": "Đã chuyển đến {target}",
+    "viewingShop": "Đang xem thực đơn và dịch vụ của cửa hàng này",
+    "targetService": "Dịch vụ: {name}",
+    "targetProduct": "Sản phẩm: {name}",
+    "targetDish": "Món ăn: {name}"
   },
   "phoneVerification": {
     "title": "Xác minh điện thoại",
