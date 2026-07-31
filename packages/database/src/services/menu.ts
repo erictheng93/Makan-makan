@@ -120,10 +120,17 @@ const DIETARY_PREFERENCE_KEYS = [
   "localSource",
 ] as const;
 
+/**
+ * A category that has not been soft-deleted — the single marker every read
+ * agrees on, so the delete path has exactly one column to write
+ * (softDeleteCategory).
+ */
+const notDeletedCategory = isNull(categories.deletedAt);
+
 const publicCategoryConditions = [
   eq(categories.isActive, true),
   eq(categories.isVisible, true),
-  isNull(categories.deletedAt),
+  notDeletedCategory,
 ];
 
 /**
@@ -134,7 +141,7 @@ const publicCategoryConditions = [
  * their own dashboard with no way back (#83). Soft-deleted rows stay excluded:
  * "deleted" is not a state the menu editor is meant to resurrect.
  */
-const adminCategoryConditions = [isNull(categories.deletedAt)];
+const adminCategoryConditions = [notDeletedCategory];
 
 /**
  * A menu item that has not been soft-deleted.
@@ -787,7 +794,7 @@ export class MenuService extends BaseService {
           and(
             eq(categories.restaurantId, restaurantId),
             inArray(categories.id, ids),
-            isNull(categories.deletedAt),
+            notDeletedCategory,
           ),
         );
 
@@ -1036,12 +1043,95 @@ export class MenuService extends BaseService {
   async getCategory(id: number) {
     try {
       const category = await this.db.query.categories.findFirst({
-        where: eq(categories.id, id),
+        // A soft-deleted category reads as absent, exactly as getMenuItem
+        // treats a deleted item. Every caller wants that: the edit and delete
+        // routes should 404 rather than let an owner keep editing something
+        // they removed, and validateCategoryAccess must not let a new item be
+        // filed under it (findOwnedCategoryIds already refuses).
+        where: and(eq(categories.id, id), notDeletedCategory),
       });
 
       return category || null;
     } catch (error) {
       this.handleError(error, "getCategory");
+    }
+  }
+
+  /**
+   * Soft-delete a category by writing the column the read paths filter on.
+   *
+   * deleteCategory used to mark removal with `isActive: false` while the
+   * admin menu read filters categories on `deleted_at_ms` alone
+   * (adminCategoryConditions, added for #83). The two never agreed, so a
+   * deleted category came straight back on the next fetch — badged "hidden",
+   * indistinguishable from one the owner had merely hidden, and impossible to
+   * remove because every repeat delete answered 200 and changed nothing.
+   *
+   * This is the same defect #80 fixed one level down: the delete path has to
+   * write the marker the read path filters on. isActive is still cleared so
+   * publicCategoryConditions keeps hiding the row for any reader that predates
+   * the deletedAt filter.
+   *
+   * Idempotent: deleting an already-deleted category matches nothing and
+   * returns false, which the route turns into a 404.
+   */
+  async softDeleteCategory(id: number): Promise<boolean> {
+    try {
+      const [category] = await this.db
+        .update(categories)
+        .set({
+          deletedAt: new Date(),
+          isActive: false,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(categories.id, id), notDeletedCategory))
+        .returning({
+          id: categories.id,
+          restaurantId: categories.restaurantId,
+        });
+
+      if (!category) {
+        return false;
+      }
+
+      await this.invalidateCache(
+        [
+          `menu:${category.restaurantId}`,
+          `restaurant:${category.restaurantId}`,
+        ],
+        "tag",
+      );
+
+      return true;
+    } catch (error) {
+      this.handleError(error, "softDeleteCategory");
+    }
+  }
+
+  /**
+   * How many live items sit in one category.
+   *
+   * Exists because deleteCategory's "is this category empty?" guard used to ask
+   * searchMenuItems(), which carries publicCategoryConditions — conditions on
+   * the CATEGORY, not the items. A category with isVisible:false (a supported
+   * state since #83) therefore counted zero items no matter what it held, and
+   * the guard waved through the deletion of a category full of on-sale dishes.
+   *
+   * Counts by category id only: the question is "does this category hold
+   * anything", so no visibility or availability condition belongs here, and a
+   * paused item still has to block the delete.
+   */
+  async countItemsInCategory(categoryId: number): Promise<number> {
+    try {
+      const [row] = await this.db
+        .select({ itemCount: count() })
+        .from(menuItems)
+        .where(and(eq(menuItems.categoryId, categoryId), notDeletedItem));
+
+      return row?.itemCount ?? 0;
+    } catch (error) {
+      this.handleError(error, "countItemsInCategory");
+      return 0;
     }
   }
 

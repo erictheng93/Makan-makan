@@ -1723,4 +1723,190 @@ describe("Menu API — real integration", () => {
       expect(secondDelete.status).toBe(404);
     });
   });
+
+  /**
+   * Category deletion had the same shape of defect the item soft delete did,
+   * one level up.
+   *
+   * deleteCategory marked removal with isActive:false, but the owner's menu
+   * read filters categories on deleted_at_ms alone (adminCategoryConditions,
+   * introduced with #83). The delete wrote one column and the read looked at
+   * another, so a deleted category returned on the next fetch wearing the
+   * "hidden" badge — indistinguishable from one the owner had merely hidden,
+   * and unremovable because every repeat delete answered 200 and changed
+   * nothing.
+   *
+   * The emptiness guard had a second, independent hole: it counted items via
+   * searchMenuItems, whose WHERE carries publicCategoryConditions. Those are
+   * conditions on the CATEGORY, so a category with isVisible:false counted
+   * zero items however many it held.
+   */
+  describe("category deletion agrees with the menu read (#80/#83)", () => {
+    async function seedCategory(overrides: { isVisible?: boolean } = {}) {
+      const restaurant = await seed.restaurant();
+      const now = new Date();
+      const [category] = await testApp.testDb.drizzle
+        .insert(categories)
+        .values({
+          restaurantId: String(restaurant.id),
+          name: "要被刪掉的分類",
+          sortOrder: 0,
+          isActive: true,
+          isVisible: overrides.isVisible ?? true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      await insertActiveSubscription(testApp, String(restaurant.id));
+      const ownerToken = await testApp.authHelper.ownerToken(
+        1,
+        String(restaurant.id),
+      );
+      return { restaurant, category, ownerToken };
+    }
+
+    function deleteCategoryRequest(categoryId: number, token: string) {
+      return new Request(`https://test/api/v1/menu/categories/${categoryId}`, {
+        method: "DELETE",
+        headers: csrfHeaders(token),
+      });
+    }
+
+    async function adminCategories(restaurantId: string, token: string) {
+      const res = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/${restaurantId}?includeAll=true`,
+          {
+            headers: { authorization: `Bearer ${token}` },
+          },
+        ),
+      );
+      expect(res.status).toBe(200);
+      const body: any = await res.json();
+      return body.data.categories as Array<{ id: number; name: string }>;
+    }
+
+    it("removes a deleted category from the owner's own dashboard", async () => {
+      const { restaurant, category, ownerToken } = await seedCategory();
+
+      expect(
+        (await adminCategories(String(restaurant.id), ownerToken)).map(
+          (c) => c.id,
+        ),
+      ).toContain(category.id);
+
+      const res = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(res.status).toBe(200);
+
+      // The delete wrote the column the read filters on, not just isActive.
+      const [row] = await testApp.testDb.drizzle
+        .select({
+          deletedAt: categories.deletedAt,
+          isActive: categories.isActive,
+        })
+        .from(categories)
+        .where(eq(categories.id, category.id));
+      expect(row.deletedAt).toBeInstanceOf(Date);
+      expect(row.isActive).toBe(false);
+
+      expect(
+        (await adminCategories(String(restaurant.id), ownerToken)).map(
+          (c) => c.id,
+        ),
+      ).not.toContain(category.id);
+    });
+
+    it("answers 404 for a second delete instead of succeeding again", async () => {
+      const { category, ownerToken } = await seedCategory();
+
+      const first = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(first.status).toBe(200);
+
+      const second = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(second.status).toBe(404);
+    });
+
+    it("refuses to edit a deleted category", async () => {
+      const { category, ownerToken } = await seedCategory();
+
+      const del = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(del.status).toBe(200);
+
+      const res = await testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/categories/${category.id}`, {
+          method: "PUT",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({ name: "復活的分類" }),
+        }),
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it("still refuses to delete a HIDDEN category holding a live item", async () => {
+      const { restaurant, category, ownerToken } = await seedCategory({
+        isVisible: false,
+      });
+
+      const create = await testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+          method: "POST",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({
+            name: "活著的品項",
+            categoryId: category.id,
+            price: 100,
+          }),
+        }),
+      );
+      expect(create.status).toBe(201);
+
+      const res = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as any).error.code).toBe(
+        "CATEGORY_HAS_MENU_ITEMS",
+      );
+    });
+
+    it("blocks the delete for a paused item too, not just an on-sale one", async () => {
+      const { restaurant, category, ownerToken } = await seedCategory();
+
+      const create = await testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
+          method: "POST",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({
+            name: "暫停供應的品項",
+            categoryId: category.id,
+            price: 100,
+            isAvailable: false,
+          }),
+        }),
+      );
+      expect(create.status).toBe(201);
+
+      const res = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(res.status).toBe(409);
+    });
+
+    it("lets a hidden but empty category be deleted", async () => {
+      const { category, ownerToken } = await seedCategory({ isVisible: false });
+
+      const res = await testApp.app.fetch(
+        deleteCategoryRequest(category.id, ownerToken),
+      );
+      expect(res.status).toBe(200);
+    });
+  });
 });
