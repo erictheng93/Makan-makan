@@ -7,15 +7,17 @@ import { z } from "zod";
 
 /**
  * WebSocket 授權 Token 請求 Schema
+ *
+ * Staff rooms only. `customer` is deliberately absent: this endpoint is public,
+ * so it cannot verify a customer. Customer realtime tokens come from
+ * /realtime/auth/guest-token, which requires a signed QR or a guest token.
  */
 export const webSocketTokenRequestSchema = z.object({
-  roomType: z.enum(["customer", "kitchen", "admin", "restaurant"], {
+  roomType: z.enum(["kitchen", "admin", "restaurant"], {
     error: "Invalid room type",
   }),
   roomId: z.string().min(1, "Room ID is required"),
   restaurantId: z.string().min(1, "Restaurant ID is required"),
-  tableId: z.string().optional(),
-  seatId: z.string().optional(),
   sessionId: z.string().optional(),
 });
 

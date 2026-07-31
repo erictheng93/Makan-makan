@@ -188,6 +188,25 @@ export class RealtimeSession implements DurableObject {
 
     // 5. 驗證桌號/座位訪問權限（對於customer房間）
     if (roomType === "customer") {
+      // Customer rooms accept guest-scoped tokens only. verifyWebSocketToken
+      // pins a guestFlag payload to `order:{orderId}` or `customer:{tableId}`,
+      // so requiring the flag is what binds the room to something that was
+      // actually verified when the token was minted. A plain customer-role
+      // token carries no such binding.
+      if (!authPayload.guestFlag) {
+        console.warn(
+          "WebSocket connection rejected: customer room requires a guest-scoped token",
+          {
+            roomId,
+            restaurantId: authPayload.restaurantId,
+          },
+        );
+        return new Response(
+          "Forbidden: Customer rooms require a guest-scoped token",
+          { status: 403 },
+        );
+      }
+
       const tableValidation = await this.validateTableAccess(authPayload);
       if (!tableValidation.valid) {
         console.warn(
@@ -775,9 +794,18 @@ export class RealtimeSession implements DurableObject {
   private async validateTableAccess(
     authPayload: RealtimeAuthPayload,
   ): Promise<{ valid: boolean; error?: string }> {
-    // 如果沒有提供 tableId，則假設是店鋪級別訂單（shop mode）
+    // 沒有 tableId 時，唯一可接受的情況是訂單範圍的訪客 token
+    // （scope=guest-realtime + orderId），該 token 的 roomId 已綁定 order:{orderId}。
+    // 過去這裡直接 return valid，等於「沒帶 tableId 就當店鋪模式放行」，
+    // 讓任何 customer token 都能進入任意房間。
     if (!authPayload.tableId) {
-      return { valid: true };
+      if (authPayload.scope === "guest-realtime" && authPayload.orderId) {
+        return { valid: true };
+      }
+      return {
+        valid: false,
+        error: "Customer rooms require a table/seat or an order-scoped token",
+      };
     }
 
     try {

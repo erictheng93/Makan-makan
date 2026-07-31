@@ -205,7 +205,13 @@ export function useGroupOrder(options: {
 
   async function connectToGroupOrder(groupOrderId: string): Promise<void> {
     try {
-      // Get WebSocket token
+      // NOTE: this call now fails by design. /realtime/auth/token is public and
+      // no longer mints customer-room tokens — it could not verify the caller,
+      // and `roomId` was never bound to `tableId`, so anyone could join
+      // `customer:{groupOrderId}` and read every member's name, phone, and cart
+      // (issue #96). Re-enabling group order realtime needs a membership proof
+      // minted when a member joins, exchanged at a dedicated endpoint.
+      // Do NOT re-add "customer" to webSocketTokenRequestSchema.
       const tokenResponse = await apiClient.post<{ token: string }>(
         "/realtime/auth/token",
         {

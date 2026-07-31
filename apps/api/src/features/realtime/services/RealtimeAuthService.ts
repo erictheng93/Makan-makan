@@ -112,7 +112,8 @@ export class RealtimeAuthService {
         // `customer:{groupOrderId}`, whose events skip restaurant filtering).
         // Customer realtime goes through /auth/guest-token, which proves
         // possession of an HMAC-signed QR or a KV-backed guest token and pins
-        // roomId to `order:{orderId}` / `customer:{tableId}`.
+        // roomId to `order:{orderId}` / `customer:{tableId}`. Group order rooms
+        // need their own membership proof — see the follow-up in useGroupOrder.
         case "customer":
           return {
             error:

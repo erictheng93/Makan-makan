@@ -30,7 +30,7 @@ This module issues, verifies, and revokes the short-lived JWTs that authorize a 
 
 | Method | Full path | Auth | Purpose | Request summary | Response summary |
 |---|---|---|---|---|---|
-| POST | `/api/v1/realtime/auth/token` | public (validated body only) | Issue a room-scoped WS token for staff/customer sessions | `{ roomType: customer\|kitchen\|admin\|restaurant, roomId, restaurantId, tableId?, seatId?, sessionId? }` | `{ success, data: { token, expiresIn, wsUrl } }` |
+| POST | `/api/v1/realtime/auth/token` | public route; the body's `sessionId` staff JWT is the credential | Issue a room-scoped WS token for **staff rooms only** | `{ roomType: kitchen\|admin\|restaurant, roomId, restaurantId, sessionId }` | `{ success, data: { token, expiresIn, wsUrl } }` |
 | POST | `/api/v1/realtime/auth/guest-token` | public, rate-limited (10 req/60s per key `realtime_guest_token`) | Issue a guest (unauthenticated diner) WS token scoped to a table or order | `{ restaurantId, guestToken? \| (tableId+qrCode), orderId? }` | `{ success, data: { token, expiresAt, wsUrl } }` |
 | POST | `/api/v1/realtime/auth/verify` | public | Verify a token (and optional channel) — used by tests/tools, not by the realtime worker itself (it verifies inline) | `{ token, channel? }` | `{ success, data: { valid, payload } }` |
 | POST | `/api/v1/realtime/auth/revoke` | role `0` (`authMiddleware` + `requireRole([0])`) | Blacklist one token (logout, breach, etc.) | `{ token, reason, revokedBy? }` | `{ success, data: { revoked, reason } }` |
@@ -47,9 +47,9 @@ Custom rate limit for `/api/v1/realtime/auth/token` is also set globally in `app
 `RealtimeAuthService` (`apps/api/src/features/realtime/services/RealtimeAuthService.ts`):
 
 1. **`generateWebSocketToken`** — branches on `roomType`:
-   - `customer`: optionally validates `tableId` (matches `tables.id` or `tables.qrCode`, active, same restaurant) and/or `seatId` (`seats.qrCode` joined to `tables`, active).
+   - `customer`: **rejected outright.** This endpoint has no session middleware, so it cannot verify a customer, and `roomId` was never bound to `tableId` — a caller who guessed any active table integer received a token valid for *any* `customer:*` room, including `customer:{groupOrderId}` whose events skip restaurant filtering (issue #96). Re-adding a "validate `tableId` and issue anyway" branch reopens the hole: a table ID is not a secret. Customer rooms come from `generateGuestToken` only.
    - `kitchen`/`admin`/`restaurant`: requires `sessionId` (the caller's existing app JWT) and `roomId === restaurantId`; calls `validateSessionAccess` to re-verify that JWT (signature, `TOKEN_BLACKLIST` KV check, expiry/nbf, role range 0-4, `canAccessRoomType` role gate, DB user lookup + `tokenVersion` match, `canAccessRestaurant` ownership).
-   - Signs a new payload (`roomType, roomId, restaurantId, role, userId?, publicUserId?, appRole?, tableId?, seatId?, exp, iat`) with `jsonwebtoken`'s `sign()`, 5-minute expiry, secret = `REALTIME_JWT_SECRET` or fallback `JWT_SECRET` (must be ≥32 chars or the service throws in the constructor).
+   - Signs a new payload (`roomType, roomId, restaurantId, role, userId, publicUserId, appRole, exp, iat`) with `jsonwebtoken`'s `sign()`, 5-minute expiry, secret = `REALTIME_JWT_SECRET` or fallback `JWT_SECRET` (must be ≥32 chars or the service throws in the constructor).
    - Builds `wsUrl` as `${REALTIME_WS_URL}/${roomType}/${roomId}?token=${token}`.
 2. **`generateGuestToken`** — for unauthenticated diners. Two paths: (a) an existing `guestToken` (format `gt_[0-9a-f]{64}`) looked up in `CACHE_KV` under `guest_token:<token>`, cross-checked against `orderId`/`restaurantId`; (b) a signed table QR code (`parseSignedQRUrl` + `verifyQRSignature` against `QR_SIGNING_KEY`), then DB lookups confirming the restaurant is active/available with `settings.allowGuestOrders===true`, the table is active and its `number` matches the QR payload identifier, and (if `orderId` supplied) the order belongs to that table. Token expiry is 15 minutes; payload sets `guestFlag: true` and, when order-scoped, `scope: "guest-realtime"`.
 3. **`verifyWebSocketToken`** — checks the KV blacklist (SHA-256 token-id lookup via `TokenBlacklistService`), verifies JWT signature/expiry, and for guest tokens enforces that the room/scope/role combination matches one of two accepted shapes (order-scoped `guest-realtime` or legacy table-scoped).
@@ -60,7 +60,7 @@ Custom rate limit for `/api/v1/realtime/auth/token` is also set globally in `app
 
 ### Data
 
-- **D1 reads**: `tables` (id/qrCode/restaurantId/isActive), `seats` joined to `tables`, `restaurants` (id/settings JSON/isActive/isAvailable), `orders` (id/restaurantId/tableId), plus a raw `users` lookup (`id, username, role, restaurant_id, is_active, token_version`) inside `loadSessionUser`.
+- **D1 reads**: `tables`, `seats` joined to `tables`, `restaurants` (id/settings JSON/isActive/isAvailable), `orders` (id/restaurantId/tableId) — all from the guest-token path only — plus a raw `users` lookup (`id, username, role, restaurant_id, is_active, token_version`) inside `loadSessionUser`.
 - **KV**: `CACHE_KV` for guest-token lookup (`guest_token:<token>`, written elsewhere — not in this module); `TOKEN_BLACKLIST` (or `CACHE_KV` fallback) for both the app-session blacklist check and the realtime-token blacklist (two different key prefixes: `token:<sessionId>` for app sessions vs. `token:revoked:sha256:<hash>` for realtime tokens).
 - **No SQL tables owned by this module** — it is entirely a token/crypto layer over other features' tables.
 - **DO bridge**: `fetchRealtimeRoomStats` calls `env.REALTIME_SESSION.idFromName(\`${roomType}:${roomId}\`)` then `durableObjectHandle.fetch("https://realtime-internal/stats")` — same DO addressing scheme (`roomType:roomId` name) used by the write-side bridge (see below), so stats and broadcast always target the same DO instance.

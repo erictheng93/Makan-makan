@@ -156,6 +156,32 @@ describe("realtime routes", () => {
     });
   });
 
+  it("rejects unauthenticated customer room token requests before reaching the service", async () => {
+    for (const body of [
+      // The reported vulnerability: omit tableId and name any room.
+      {
+        roomType: "customer",
+        roomId: "group-order-42",
+        restaurantId: "restaurant-1",
+      },
+      // Supplying a table ID must not re-open the path.
+      {
+        roomType: "customer",
+        roomId: "group-order-42",
+        restaurantId: "restaurant-1",
+        tableId: "7",
+      },
+    ]) {
+      const response = await withSilencedRouteError(() =>
+        routes.fetch(jsonRequest("/auth/token", body), createEnv() as never),
+      );
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+    }
+
+    expect(serviceMethods.generateWebSocketToken).not.toHaveBeenCalled();
+  });
+
   it("maps websocket token service errors and validation failures to route errors", async () => {
     serviceMethods.generateWebSocketToken.mockResolvedValue({
       error: "Room ID must match restaurant ID",
