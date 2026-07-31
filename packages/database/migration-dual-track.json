@@ -2,8 +2,8 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0078_menu_items_soft_delete_backfill.sql",
-    "legacy": "0095_menu_items_soft_delete_backfill.sql"
+    "fresh": "0079_qr_two_phase_rotation.sql",
+    "legacy": "0096_qr_two_phase_rotation.sql"
   },
   "pairs": [
     {
@@ -70,6 +70,11 @@
       "fresh": "0078_menu_items_soft_delete_backfill.sql",
       "legacy": "0095_menu_items_soft_delete_backfill.sql",
       "reason": "Menu item soft deletion now writes menu_items.deleted_at_ms instead of the sort_order=-1 convention; rows deleted under the old marker are backfilled so they stay deleted once reads filter on deleted_at_ms (#80)."
+    },
+    {
+      "fresh": "0079_qr_two_phase_rotation.sql",
+      "legacy": "0096_qr_two_phase_rotation.sql",
+      "reason": "Both tracks add the same pending QR staging columns and partial unique indexes for two-phase rotation."
     }
   ],
   "freshOnly": [

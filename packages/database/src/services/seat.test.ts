@@ -431,3 +431,133 @@ describe("SeatService.batchGenerateSeatQRCodes", () => {
     expect(result).toEqual({ success: true, qrCodes: [] });
   });
 });
+
+describe("TableService two-phase QR rotation", () => {
+  let testDb: TestDatabase;
+  let tableId: number;
+  let liveQrBefore: string;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: restaurantId,
+      name: "Rotation Restaurant",
+      type: "restaurant",
+      category: "casual",
+      address: "1 Rotation St",
+      district: "Central",
+      city: "Taipei",
+      phone: "0200000000",
+      settings: {},
+      isAvailable: true,
+      isActive: true,
+      createdAt: new Date("2026-07-30T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+    } as never);
+    const created = await createTableService(testDb).createTable({
+      restaurantId,
+      number: "R1",
+      capacity: 4,
+    });
+    tableId = created.id;
+    liveQrBefore = created.qrCode;
+    // truncateAll + a full createTable (sign, insert, upgrade) runs close to
+    // vitest's 10s hook default against real D1; give it room rather than let
+    // the first run of the block flake.
+  }, 60_000);
+
+  async function readRow() {
+    const [row] = await testDb.drizzle
+      .select({
+        qrCode: tables.qrCode,
+        qrCodeVersion: tables.qrCodeVersion,
+        pendingQrCode: tables.pendingQrCode,
+        pendingQrCodeVersion: tables.pendingQrCodeVersion,
+        pendingQrPreparedAt: tables.pendingQrPreparedAt,
+      })
+      .from(tables)
+      .where(eq(tables.id, tableId));
+    return row;
+  }
+
+  it("leaves the live code untouched while a rotation is prepared", async () => {
+    const service = createTableService(testDb);
+    const prepared = await service.prepareQRCodeRotation(tableId);
+
+    expect(prepared.success).toBe(true);
+    const row = await readRow();
+    // The whole point: the sticker already on the table keeps working while its
+    // replacement is being printed.
+    expect(row.qrCode).toBe(liveQrBefore);
+    expect(row.qrCodeVersion).toBe(1);
+    expect(row.pendingQrCode).toBe(prepared.qrCode);
+    expect(row.pendingQrCodeVersion).toBe(2);
+    expect(row.pendingQrPreparedAt).toBeInstanceOf(Date);
+    expect(row.pendingQrCode).not.toBe(row.qrCode);
+    expect(row.pendingQrCode).toContain(`d=${tableId}`);
+    expect(row.pendingQrCode).toContain("v=2");
+  });
+
+  it("is idempotent, so re-preparing cannot orphan a printed sticker", async () => {
+    const service = createTableService(testDb);
+    const first = await service.prepareQRCodeRotation(tableId);
+    const second = await service.prepareQRCodeRotation(tableId);
+
+    expect(second.qrCode).toBe(first.qrCode);
+    expect((await readRow()).pendingQrCodeVersion).toBe(2);
+  });
+
+  it("promotes the prepared code on activation and clears the staging columns", async () => {
+    const service = createTableService(testDb);
+    const prepared = await service.prepareQRCodeRotation(tableId);
+    const activated = await service.activateQRCodeRotation(tableId);
+
+    expect(activated).toEqual({ success: true, qrCode: prepared.qrCode });
+    const row = await readRow();
+    expect(row.qrCode).toBe(prepared.qrCode);
+    expect(row.qrCodeVersion).toBe(2);
+    expect(row.pendingQrCode).toBeNull();
+    expect(row.pendingQrCodeVersion).toBeNull();
+    expect(row.pendingQrPreparedAt).toBeNull();
+  });
+
+  it("refuses to activate when nothing was prepared", async () => {
+    const service = createTableService(testDb);
+    await expect(service.activateQRCodeRotation(tableId)).resolves.toEqual({
+      success: false,
+      error: "No prepared QR code to activate",
+    });
+    expect((await readRow()).qrCode).toBe(liveQrBefore);
+  });
+
+  it("discards a rotation without disturbing the live code", async () => {
+    const service = createTableService(testDb);
+    await service.prepareQRCodeRotation(tableId);
+    await service.discardQRCodeRotation(tableId);
+
+    const row = await readRow();
+    expect(row.qrCode).toBe(liveQrBefore);
+    expect(row.qrCodeVersion).toBe(1);
+    expect(row.pendingQrCode).toBeNull();
+  });
+
+  it("allows a fresh rotation after one is discarded", async () => {
+    const service = createTableService(testDb);
+    const first = await service.prepareQRCodeRotation(tableId);
+    await service.discardQRCodeRotation(tableId);
+    const second = await service.prepareQRCodeRotation(tableId);
+
+    expect(second.success).toBe(true);
+    // Same version — the discarded one was never live, so it consumed nothing.
+    expect((await readRow()).pendingQrCodeVersion).toBe(2);
+    expect(second.qrCode).not.toBe(first.qrCode);
+  });
+});

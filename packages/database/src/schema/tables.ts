@@ -24,6 +24,21 @@ export const tables = sqliteTable(
     qrCodeImageUrl: text("qr_code_image_url"), // QR Code 圖片 URL
     qrCodeVersion: integer("qr_code_version").notNull().default(1), // QR Code 版本（用於更新）
 
+    /**
+     * Prepared-but-not-live QR code (#114 two-phase rotation).
+     *
+     * A rotation writes the next signed code here and leaves qr_code alone, so
+     * the sticker still on the table keeps working while new ones are printed.
+     * Activation moves it across. Nothing verifies against these columns — only
+     * one code per table is ever accepted, which is what keeps a rotation from
+     * reopening the dual-accept window phase 3 closed.
+     */
+    pendingQrCode: text("pending_qr_code").unique(),
+    pendingQrCodeVersion: integer("pending_qr_code_version"),
+    pendingQrPreparedAt: integer("pending_qr_prepared_at_ms", {
+      mode: "timestamp_ms",
+    }),
+
     // 座位管理模式（新增）
     qrMode: text("qr_mode").$type<"table" | "seat">().default("table"), // QR 碼管理模式
     seatCount: integer("seat_count").default(0), // 座位數量（座位模式時使用）
