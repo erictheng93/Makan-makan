@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Keeps destructive wrangler D1 commands out of automation.
+ * Keeps destructive wrangler commands out of automation.
  *
- * `wrangler d1 time-travel restore` and `wrangler d1 delete` both ask for
- * confirmation, and both answer it themselves when stdin is not a terminal:
+ * Every command listed below asks for confirmation, and every one of them
+ * answers it itself when stdin is not a terminal:
  *
- *   ? OK to proceed (y/N)
+ *   ? Are you sure you want to delete makanmasak-backup-scheduler-prod?
  *   🤖 Using fallback value in non-interactive context: yes
  *
- * Observed directly during the 2026-07-30 restore drill. There is no flag to
- * invert that default, so the prompt is not a safety mechanism anywhere a
- * human is not watching -- a CI job, a package script, a git hook or an agent
- * wrapper will overwrite or drop a production database with no gate at all.
+ * Observed directly: the D1 pair during the 2026-07-30 restore drill, and
+ * `wrangler delete` while decommissioning the backup scheduler. There is no
+ * flag to invert that default, so the prompt is not a safety mechanism
+ * anywhere a human is not watching -- a CI job, a package script, a git hook
+ * or an agent wrapper will drop a production database or Worker with no gate
+ * at all.
  *
  * The only reliable control is to keep these commands out of the automation
  * surfaces entirely and run them from an interactive shell. This gate is what
@@ -30,6 +32,10 @@ const GUARDED_COMMANDS = [
     pattern: /d1\s+time-travel\s+restore/,
   },
   { label: "wrangler d1 delete", pattern: /d1\s+delete(?![-\w])/ },
+  // Deletes a Worker. Needs the "wrangler" prefix to stay anchored: a bare
+  // /delete/ would match every other subcommand, and "wrangler d1 delete" must
+  // keep reporting as the D1 entry above rather than as this one.
+  { label: "wrangler delete", pattern: /wrangler\s+delete(?![-\w])/ },
 ];
 
 /**
@@ -45,7 +51,7 @@ const SKIP_DIR_NAMES = new Set(["node_modules", "_"]);
  * itself. Skipped by name rather than by a cleverly split literal, which would
  * be harder to read than it is worth.
  */
-const SELF = "check-no-automated-d1-restore.cjs";
+const SELF = "check-no-automated-destructive-wrangler.cjs";
 
 function walk(dir, files) {
   let entries;
@@ -172,7 +178,7 @@ function fileSources(root) {
   });
 }
 
-function checkNoAutomatedD1Restore({ root = process.cwd() } = {}) {
+function checkNoAutomatedDestructiveWrangler({ root = process.cwd() } = {}) {
   const sources = [...fileSources(root), ...packageJsonScriptSources(root)];
   const violations = [];
   const seen = new Set();
@@ -201,14 +207,14 @@ function checkNoAutomatedD1Restore({ root = process.cwd() } = {}) {
   return { violations };
 }
 
-module.exports = { checkNoAutomatedD1Restore, GUARDED_COMMANDS };
+module.exports = { checkNoAutomatedDestructiveWrangler, GUARDED_COMMANDS };
 
 if (require.main === module) {
-  const { violations } = checkNoAutomatedD1Restore();
+  const { violations } = checkNoAutomatedDestructiveWrangler();
 
   if (violations.length > 0) {
     console.error(
-      "[check-no-automated-d1-restore] Destructive D1 commands found in automation:",
+      "[check-no-automated-destructive-wrangler] Destructive wrangler commands found in automation:",
     );
     for (const violation of violations) {
       console.error(
@@ -229,6 +235,6 @@ if (require.main === module) {
   }
 
   console.log(
-    "[check-no-automated-d1-restore] OK: no destructive D1 commands in automation surfaces.",
+    "[check-no-automated-destructive-wrangler] OK: no destructive wrangler commands in automation surfaces.",
   );
 }
