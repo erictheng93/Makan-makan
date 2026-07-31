@@ -5,9 +5,9 @@ import { createRequire } from "node:module";
 import { afterEach, describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
-const { checkNoAutomatedD1Restore } =
-  require("../../scripts/check-no-automated-d1-restore.cjs") as {
-    checkNoAutomatedD1Restore: (options?: { root?: string }) => {
+const { checkNoAutomatedDestructiveWrangler } =
+  require("../../scripts/check-no-automated-destructive-wrangler.cjs") as {
+    checkNoAutomatedDestructiveWrangler: (options?: { root?: string }) => {
       violations: Array<{ file: string; location: string; command: string }>;
     };
   };
@@ -33,9 +33,9 @@ afterEach(() => {
   }
 });
 
-describe("check-no-automated-d1-restore", () => {
+describe("check-no-automated-destructive-wrangler", () => {
   it("passes on the real repository", () => {
-    expect(checkNoAutomatedD1Restore().violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler().violations).toEqual([]);
   });
 
   it("catches a restore in a workflow", () => {
@@ -44,7 +44,7 @@ describe("check-no-automated-d1-restore", () => {
         "jobs:\n  x:\n    steps:\n      - run: wrangler d1 time-travel restore makanmasak-prod --bookmark=abc\n",
     });
 
-    const { violations } = checkNoAutomatedD1Restore({ root });
+    const { violations } = checkNoAutomatedDestructiveWrangler({ root });
 
     expect(violations).toHaveLength(1);
     expect(violations[0]).toMatchObject({
@@ -61,9 +61,9 @@ describe("check-no-automated-d1-restore", () => {
         "      - run: |\n          wrangler d1 time-travel\n            restore makanmasak-prod\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
-      { command: "wrangler d1 time-travel restore" },
-    ]);
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([{ command: "wrangler d1 time-travel restore" }]);
   });
 
   it("catches a restore hidden in a package script", () => {
@@ -73,7 +73,9 @@ describe("check-no-automated-d1-restore", () => {
       }),
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([
       { file: "package.json", location: "scripts.dr:rollback" },
     ]);
   });
@@ -85,7 +87,9 @@ describe("check-no-automated-d1-restore", () => {
       }),
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([
       { file: "apps/api/package.json", command: "wrangler d1 delete" },
     ]);
   });
@@ -95,7 +99,9 @@ describe("check-no-automated-d1-restore", () => {
       ".husky/pre-push": "#!/bin/sh\nwrangler d1 delete scratch-db\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([
       { file: ".husky/pre-push", command: "wrangler d1 delete" },
     ]);
   });
@@ -108,7 +114,9 @@ describe("check-no-automated-d1-restore", () => {
 
     // Both the line scan and the whole-file scan see this; the report must not
     // triple-count it.
-    expect(checkNoAutomatedD1Restore({ root }).violations).toHaveLength(1);
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toHaveLength(1);
   });
 
   it("leaves non-destructive d1 commands alone", () => {
@@ -122,7 +130,9 @@ describe("check-no-automated-d1-restore", () => {
       ].join("\n"),
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler({ root }).violations).toEqual(
+      [],
+    );
   });
 
   // The runbook has to be able to show the command it documents.
@@ -132,7 +142,9 @@ describe("check-no-automated-d1-restore", () => {
         "```bash\nwrangler d1 time-travel restore makanmasak-prod --bookmark=x\n```\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler({ root }).violations).toEqual(
+      [],
+    );
   });
 
   // A gate that fires on its own rationale is a gate people switch off, and
@@ -147,7 +159,9 @@ describe("check-no-automated-d1-restore", () => {
         "/**\n * Do not call wrangler d1 time-travel restore from here.\n */\n// nor wrangler d1 delete\nmodule.exports = {};\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler({ root }).violations).toEqual(
+      [],
+    );
   });
 
   it("still catches a real command in a file that also comments about it", () => {
@@ -156,9 +170,9 @@ describe("check-no-automated-d1-restore", () => {
         "# wrangler d1 time-travel restore is dangerous, which is why we...\nwrangler d1 time-travel restore makanmasak-prod --bookmark=x\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
-      { file: "scripts/dr.sh", location: "line 2" },
-    ]);
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([{ file: "scripts/dr.sh", location: "line 2" }]);
   });
 
   // Dropping comment lines shortens the text the whole-file pass sees, so it
@@ -170,7 +184,9 @@ describe("check-no-automated-d1-restore", () => {
         "echo wrangler d1 time-travel\n# a comment in between\necho restore\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler({ root }).violations).toEqual(
+      [],
+    );
   });
 
   it("does not flag a dependency that merely contains the name", () => {
@@ -181,7 +197,9 @@ describe("check-no-automated-d1-restore", () => {
       }),
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler({ root }).violations).toEqual(
+      [],
+    );
   });
 
   // Deleting a Worker auto-confirms exactly like the D1 commands do -- seen
@@ -192,7 +210,9 @@ describe("check-no-automated-d1-restore", () => {
         "      - run: pnpm exec wrangler delete --name makanmasak-api-prod\n",
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toMatchObject([
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([
       { file: ".github/workflows/teardown.yml", command: "wrangler delete" },
     ]);
   });
@@ -204,7 +224,7 @@ describe("check-no-automated-d1-restore", () => {
       "scripts/reset.sh": "pnpm wrangler d1 delete scratch-db\n",
     });
 
-    const { violations } = checkNoAutomatedD1Restore({ root });
+    const { violations } = checkNoAutomatedDestructiveWrangler({ root });
     expect(violations).toHaveLength(1);
     expect(violations[0].command).toBe("wrangler d1 delete");
   });
@@ -219,6 +239,8 @@ describe("check-no-automated-d1-restore", () => {
       ].join("\n"),
     });
 
-    expect(checkNoAutomatedD1Restore({ root }).violations).toEqual([]);
+    expect(checkNoAutomatedDestructiveWrangler({ root }).violations).toEqual(
+      [],
+    );
   });
 });

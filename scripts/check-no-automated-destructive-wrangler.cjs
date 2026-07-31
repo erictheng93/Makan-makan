@@ -51,7 +51,7 @@ const SKIP_DIR_NAMES = new Set(["node_modules", "_"]);
  * itself. Skipped by name rather than by a cleverly split literal, which would
  * be harder to read than it is worth.
  */
-const SELF = "check-no-automated-d1-restore.cjs";
+const SELF = "check-no-automated-destructive-wrangler.cjs";
 
 function walk(dir, files) {
   let entries;
@@ -178,7 +178,7 @@ function fileSources(root) {
   });
 }
 
-function checkNoAutomatedD1Restore({ root = process.cwd() } = {}) {
+function checkNoAutomatedDestructiveWrangler({ root = process.cwd() } = {}) {
   const sources = [...fileSources(root), ...packageJsonScriptSources(root)];
   const violations = [];
   const seen = new Set();
@@ -207,14 +207,14 @@ function checkNoAutomatedD1Restore({ root = process.cwd() } = {}) {
   return { violations };
 }
 
-module.exports = { checkNoAutomatedD1Restore, GUARDED_COMMANDS };
+module.exports = { checkNoAutomatedDestructiveWrangler, GUARDED_COMMANDS };
 
 if (require.main === module) {
-  const { violations } = checkNoAutomatedD1Restore();
+  const { violations } = checkNoAutomatedDestructiveWrangler();
 
   if (violations.length > 0) {
     console.error(
-      "[check-no-automated-d1-restore] Destructive wrangler commands found in automation:",
+      "[check-no-automated-destructive-wrangler] Destructive wrangler commands found in automation:",
     );
     for (const violation of violations) {
       console.error(
@@ -235,6 +235,6 @@ if (require.main === module) {
   }
 
   console.log(
-    "[check-no-automated-d1-restore] OK: no destructive wrangler commands in automation surfaces.",
+    "[check-no-automated-destructive-wrangler] OK: no destructive wrangler commands in automation surfaces.",
   );
 }

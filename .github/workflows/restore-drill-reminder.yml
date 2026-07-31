@@ -5,7 +5,7 @@ name: 🗄️ D1 restore drill reminder
 #
 # It deliberately does not run the drill. The drill creates and deletes throwaway
 # D1 databases, and `wrangler d1 delete` answers its own confirmation prompt with
-# "yes" when stdin is not a terminal -- check-no-automated-d1-restore.cjs fails
+# "yes" when stdin is not a terminal -- check-no-automated-destructive-wrangler.cjs fails
 # the build if those commands appear in a workflow at all. So this reminds a
 # human; the human runs it.
 #

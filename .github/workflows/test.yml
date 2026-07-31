@@ -184,10 +184,11 @@ jobs:
       - name: 🧭 Migration dual-track guard
         run: pnpm run check:migration-dual-track
 
-      # wrangler auto-answers the destructive-D1 confirmation with "yes" when
-      # stdin is not a terminal, so these commands must never reach automation.
-      - name: 🛑 No destructive D1 commands in automation
-        run: pnpm run check:no-automated-d1-restore
+      # wrangler auto-answers its own destructive-command confirmation with
+      # "yes" when stdin is not a terminal, so d1 time-travel restore, d1 delete
+      # and wrangler delete must never reach automation.
+      - name: 🛑 No destructive wrangler commands in automation
+        run: pnpm run check:no-automated-destructive-wrangler
 
       - name: 🧪 守門腳本回歸測試
         if: needs.changes.outputs.guard_tests == 'true'
