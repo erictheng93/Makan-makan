@@ -4,7 +4,9 @@ import { categories, menuItems } from "@makanmakan/database";
 import {
   createCategorySchema,
   createMenuItemSchema,
+  featuredItemsQuerySchema,
   menuFilterSchema,
+  popularItemsQuerySchema,
   updateCategorySchema,
   updateMenuItemSchema,
   validateCompleteMenuItem,
@@ -202,6 +204,18 @@ describe("menu validation schemas", () => {
       page: 1,
       limit: 20,
     });
+
+    expect(menuFilterSchema.parse({ page: "1000", limit: "100" })).toEqual({
+      page: 1000,
+      limit: 100,
+    });
+    expect(() => menuFilterSchema.parse({ page: "1001" })).toThrow();
+    expect(() => menuFilterSchema.parse({ limit: "101" })).toThrow();
+  });
+
+  it("caps featured and popular item result sizes", () => {
+    expect(() => featuredItemsQuerySchema.parse({ limit: "101" })).toThrow();
+    expect(() => popularItemsQuerySchema.parse({ limit: "101" })).toThrow();
   });
 });
 
@@ -235,9 +249,9 @@ describe("English name round-trips through the request schemas (#107)", () => {
       createCategorySchema.parse({ name: "主食", nameEn: "Main Dishes" }),
     ).toMatchObject({ nameEn: "Main Dishes" });
 
-    expect(
-      updateCategorySchema.parse({ nameEn: "Mains" }),
-    ).toMatchObject({ nameEn: "Mains" });
+    expect(updateCategorySchema.parse({ nameEn: "Mains" })).toMatchObject({
+      nameEn: "Mains",
+    });
   });
 
   it("rejects an over-long nameEn instead of silently truncating", () => {

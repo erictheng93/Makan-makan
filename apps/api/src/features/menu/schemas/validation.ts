@@ -14,6 +14,8 @@ const priceSchema = z.number().positive();
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGE_DATA_URL_CHARS = Math.ceil(MAX_IMAGE_BYTES / 0.75) + 128;
 const ALLOWED_IMAGE_MIME = /^image\/(jpeg|jpg|png|webp|gif)$/i;
+const MAX_PAGE = 1000;
+const MAX_PAGE_SIZE = 100;
 
 const imageUrlSchema = z
   .string()
@@ -217,8 +219,20 @@ export const menuFilterSchema = z.object({
     .transform((val) => val === "true")
     .optional(),
   search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .prefault("1")
+    .pipe(z.number().int().min(1).max(MAX_PAGE)),
+  limit: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .prefault("20")
+    .pipe(z.number().int().min(1).max(MAX_PAGE_SIZE)),
 });
 
 // Bulk Operation Schemas
@@ -274,11 +288,23 @@ export const categoryIdParamSchema = z.object({
 
 // Query Parameter Schemas
 export const featuredItemsQuerySchema = z.object({
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
+  limit: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .prefault("10")
+    .pipe(z.number().int().min(1).max(MAX_PAGE_SIZE)),
 });
 
 export const popularItemsQuerySchema = z.object({
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
+  limit: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .prefault("10")
+    .pipe(z.number().int().min(1).max(MAX_PAGE_SIZE)),
 });
 
 export const analyticsQuerySchema = z.object({

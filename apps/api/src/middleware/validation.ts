@@ -86,13 +86,20 @@ export const commonSchemas = {
   }),
 
   paginationQuery: z.object({
-    page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
+    page: z
+      .string()
+      .regex(/^\d+$/)
+      .transform(Number)
+      .optional()
+      .prefault("1")
+      .pipe(z.number().int().min(1).max(1000)),
     limit: z
       .string()
       .regex(/^\d+$/)
       .transform(Number)
       .optional()
-      .prefault("20"),
+      .prefault("20")
+      .pipe(z.number().int().min(1).max(100)),
     search: z.string().optional(),
   }),
 
