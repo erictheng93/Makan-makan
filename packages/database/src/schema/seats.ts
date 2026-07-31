@@ -34,6 +34,21 @@ export const seats = sqliteTable(
     qrCodeImageUrl: text("qr_code_image_url"), // QR 碼圖片 URL
     qrCodeVersion: integer("qr_code_version").notNull().default(1), // QR 碼版本（用於更新）
 
+    /**
+     * Prepared-but-not-live QR code (#114 two-phase rotation).
+     *
+     * A rotation writes the next signed code here and leaves qr_code alone, so
+     * the sticker still on the seat keeps working while new ones are printed.
+     * Activation moves it across. Nothing verifies against these columns — only
+     * one code per seat is ever accepted, which is what keeps a rotation from
+     * reopening the dual-accept window phase 3 closed.
+     */
+    pendingQrCode: text("pending_qr_code").unique(),
+    pendingQrCodeVersion: integer("pending_qr_code_version"),
+    pendingQrPreparedAt: integer("pending_qr_prepared_at_ms", {
+      mode: "timestamp_ms",
+    }),
+
     // 狀態管理
     isOccupied: integer("is_occupied", { mode: "boolean" })
       .notNull()

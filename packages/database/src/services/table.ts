@@ -692,6 +692,124 @@ export class TableService extends BaseService {
     }
   }
 
+  /**
+   * Two-phase rotation (#114).
+   *
+   * prepare() computes the next signed code and parks it. The live qr_code is
+   * untouched, so the sticker currently on the table keeps working while the
+   * replacement is printed. activate() promotes it, and only then does the old
+   * code stop verifying — which is why a venue can swap stickers gradually
+   * without any table being unscannable and without a code outliving its
+   * revocation.
+   */
+  async prepareQRCodeRotation(
+    tableId: number,
+  ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+    try {
+      const table = await this.db
+        .select({
+          restaurantId: tables.restaurantId,
+          number: tables.number,
+          qrCodeVersion: tables.qrCodeVersion,
+          pendingQrCode: tables.pendingQrCode,
+        })
+        .from(tables)
+        .where(eq(tables.id, tableId))
+        .get();
+
+      if (!table) {
+        return { success: false, error: "Table not found" };
+      }
+      // Re-preparing would mint a second code for the same rotation and
+      // invalidate stickers that may already be printed.
+      if (table.pendingQrCode) {
+        return { success: true, qrCode: table.pendingQrCode };
+      }
+
+      const pendingVersion = (table.qrCodeVersion || 0) + 1;
+      const pendingQrCode = await this.generateQRCodeData(
+        table.restaurantId,
+        tableId,
+        table.number,
+        pendingVersion,
+      );
+
+      await this.db
+        .update(tables)
+        .set({
+          pendingQrCode,
+          pendingQrCodeVersion: pendingVersion,
+          pendingQrPreparedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(tables.id, tableId));
+
+      return { success: true, qrCode: pendingQrCode };
+    } catch (error) {
+      return { success: false, error: "Failed to prepare QR code rotation" };
+    }
+  }
+
+  /** Promote the prepared code and retire the old one, for this table only. */
+  async activateQRCodeRotation(
+    tableId: number,
+  ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+    try {
+      const table = await this.db
+        .select({
+          pendingQrCode: tables.pendingQrCode,
+          pendingQrCodeVersion: tables.pendingQrCodeVersion,
+        })
+        .from(tables)
+        .where(eq(tables.id, tableId))
+        .get();
+
+      if (!table) {
+        return { success: false, error: "Table not found" };
+      }
+      if (!table.pendingQrCode || table.pendingQrCodeVersion == null) {
+        return { success: false, error: "No prepared QR code to activate" };
+      }
+
+      await this.db
+        .update(tables)
+        .set({
+          qrCode: table.pendingQrCode,
+          qrCodeVersion: table.pendingQrCodeVersion,
+          pendingQrCode: null,
+          pendingQrCodeVersion: null,
+          pendingQrPreparedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tables.id, tableId));
+
+      return { success: true, qrCode: table.pendingQrCode };
+    } catch (error) {
+      return { success: false, error: "Failed to activate QR code rotation" };
+    }
+  }
+
+  /** Abandon a prepared rotation. The live code was never touched. */
+  async discardQRCodeRotation(
+    tableId: number,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.db
+        .update(tables)
+        .set({
+          pendingQrCode: null,
+          pendingQrCodeVersion: null,
+          pendingQrPreparedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tables.id, tableId));
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: "Failed to discard QR code rotation" };
+    }
+  }
+
   // 批量生成 QR Codes
   async generateBulkQRCodes(
     restaurantId: string,
