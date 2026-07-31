@@ -8,18 +8,28 @@ import jaJP from "./locales/ja-JP";
 import viVN from "./locales/vi-VN";
 import zhCN from "./locales/zh-CN";
 import zhTW from "./locales/zh-TW";
-import { mergeLocaleMessages } from "./merge-locale-messages";
+import baseline from "./untranslated-baseline.json";
 
 type MessageTree = Record<string, unknown>;
 
-const localeMessages = {
-  "zh-TW": mergeLocaleMessages(zhTW, zhTW),
-  "zh-CN": mergeLocaleMessages(zhTW, zhCN),
-  "en-US": mergeLocaleMessages(zhTW, enUS),
-  "ja-JP": mergeLocaleMessages(zhTW, jaJP),
-  "vi-VN": mergeLocaleMessages(zhTW, viVN),
-  "id-ID": mergeLocaleMessages(zhTW, idID),
+/**
+ * Compared RAW, never merged over the source locale.
+ *
+ * This used to assert on `mergeLocaleMessages(zhTW, locale)` — the same
+ * fallback the app renders with — so a key absent from a locale resolved to its
+ * zh-TW value and the key sets matched by construction. The test passed while
+ * four locales were missing the entire advanced-menu-item form (#113): it was
+ * measuring the fallback, not the translations.
+ */
+const localeMessages: Record<string, unknown> = {
+  "en-US": enUS,
+  "zh-CN": zhCN,
+  "ja-JP": jaJP,
+  "vi-VN": viVN,
+  "id-ID": idID,
 };
+
+const untranslated: Record<string, string[]> = baseline.untranslated;
 
 function flattenMessageKeys(value: unknown, prefix = ""): string[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -44,28 +54,69 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+const sourceKeys = flattenMessageKeys(zhTW);
+
+function missingKeys(messages: unknown): string[] {
+  const present = new Set(flattenMessageKeys(messages));
+  return sourceKeys.filter((key) => !present.has(key)).sort();
+}
+
 describe("admin i18n locale parity", () => {
-  it("keeps every supported locale on the same translation key set", () => {
-    const keySets = Object.fromEntries(
-      Object.entries(localeMessages).map(([locale, messages]) => [
-        locale,
-        new Set(flattenMessageKeys(messages)),
-      ]),
-    );
-    const allKeys = new Set(
-      Object.values(keySets).flatMap((keys) => [...keys]),
+  it("adds no untranslated key that the baseline does not already record", () => {
+    const newlyMissing = Object.fromEntries(
+      Object.entries(localeMessages)
+        .map(([locale, messages]) => {
+          const known = new Set(untranslated[locale] ?? []);
+          return [
+            locale,
+            missingKeys(messages).filter((key) => !known.has(key)),
+          ] as const;
+        })
+        .filter(([, keys]) => keys.length > 0),
     );
 
-    const missingByLocale = Object.fromEntries(
-      Object.entries(keySets)
-        .map(([locale, keys]) => [
+    // Translate the key. Do not append it to untranslated-baseline.json —
+    // that file records the debt that predates this guard, and adding to it
+    // is how the gap this test exists to catch would come back.
+    expect(newlyMissing).toEqual({});
+  });
+
+  it("keeps the baseline free of keys that have since been translated", () => {
+    const stale = Object.fromEntries(
+      Object.entries(localeMessages)
+        .map(([locale, messages]) => {
+          const stillMissing = new Set(missingKeys(messages));
+          return [
+            locale,
+            (untranslated[locale] ?? []).filter(
+              (key) => !stillMissing.has(key),
+            ),
+          ] as const;
+        })
+        .filter(([, keys]) => keys.length > 0),
+    );
+
+    // The baseline can only shrink: translating a key means deleting its
+    // entry, so the file stays an accurate count of what is still owed.
+    expect(stale).toEqual({});
+  });
+
+  it("defines no key that the source locale does not have", () => {
+    const source = new Set(sourceKeys);
+    const unknownByLocale = Object.fromEntries(
+      Object.entries(localeMessages)
+        .map(([locale, messages]) => [
           locale,
-          [...allKeys].filter((key) => !keys.has(key)).sort(),
+          flattenMessageKeys(messages)
+            .filter((key) => !source.has(key))
+            .sort(),
         ])
-        .filter(([, missing]) => missing.length > 0),
+        .filter(([, keys]) => keys.length > 0),
     );
 
-    expect(missingByLocale).toEqual({});
+    // A key no locale falls back from is either a typo or a leftover: the app
+    // renders zh-TW when a lookup misses, so it can never be reached.
+    expect(unknownByLocale).toEqual({});
   });
 
   it("defines every static translation key used in admin-dashboard source", () => {
