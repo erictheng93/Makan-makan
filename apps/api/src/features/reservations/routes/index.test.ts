@@ -213,9 +213,12 @@ describe("reservations routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       data: { id: "reservation-1", status: "cancelled" },
     });
+    // The verified reservation's own restaurantId is passed through so the
+    // write is scoped to the tenant the confirmation code just proved.
     expect(cancelReservation).toHaveBeenCalledWith(
       "reservation-1",
       "changed plans",
+      "restaurant-1",
     );
 
     getReservationById.mockResolvedValueOnce(reservation());
@@ -327,7 +330,9 @@ describe("reservations routes", () => {
       await expect(response.json()).resolves.toMatchObject({
         data: { status },
       });
-      expect(fn).toHaveBeenCalledWith("reservation-1");
+      // Second argument is the tenant the route just authorized — the service
+      // folds it into the UPDATE's WHERE instead of trusting this check alone.
+      expect(fn).toHaveBeenCalledWith("reservation-1", "restaurant-1");
     }
   });
 

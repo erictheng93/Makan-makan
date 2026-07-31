@@ -421,17 +421,53 @@ export class ReservationService extends BaseService {
   }
 
   /**
+   * 租戶條件。呼叫端已授權的 restaurantId 會直接併進 WHERE，讓寫入本身
+   * 保證租戶隔離，而不是只靠呼叫端在前面做過一次檢查（check-then-act）。
+   * 省略時代表平台管理員的跨店操作。
+   */
+  private tenantScope(restaurantId?: string): SQL {
+    return restaurantId
+      ? sql` AND restaurant_id = ${restaurantId}`
+      : sql.empty();
+  }
+
+  /**
+   * 讀取訂位並確認它屬於呼叫端已授權的餐廳。跨租戶一律回報成「不存在」，
+   * 不讓錯誤訊息洩漏別家餐廳確實有這筆訂位。
+   */
+  private async requireReservation(
+    id: string,
+    restaurantId?: string,
+  ): Promise<ReservationResponse> {
+    const reservation = await this.getReservationById(id);
+
+    if (
+      !reservation ||
+      (restaurantId && reservation.restaurantId !== restaurantId)
+    ) {
+      throw new Error("訂位不存在");
+    }
+
+    return reservation;
+  }
+
+  /**
    * 確認訂位
    */
-  async confirmReservation(id: string): Promise<ReservationResponse> {
+  async confirmReservation(
+    id: string,
+    restaurantId?: string,
+  ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
+      await this.requireReservation(id, restaurantId);
+
       await this.db.run(sql`
         UPDATE reservations
         SET status = 'confirmed',
             confirmed_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id}${this.tenantScope(restaurantId)}
       `);
 
       const updated = await this.getReservationById(id);
@@ -449,15 +485,20 @@ export class ReservationService extends BaseService {
   /**
    * 標記到店
    */
-  async markArrived(id: string): Promise<ReservationResponse> {
+  async markArrived(
+    id: string,
+    restaurantId?: string,
+  ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
+      await this.requireReservation(id, restaurantId);
+
       await this.db.run(sql`
         UPDATE reservations
         SET status = 'arrived',
             arrived_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id}${this.tenantScope(restaurantId)}
       `);
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
@@ -470,21 +511,20 @@ export class ReservationService extends BaseService {
   /**
    * 標記入座
    */
-  async markSeated(id: string): Promise<ReservationResponse> {
+  async markSeated(
+    id: string,
+    restaurantId?: string,
+  ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
-      const reservation = await this.getReservationById(id);
-
-      if (!reservation) {
-        throw new Error("訂位不存在");
-      }
+      const reservation = await this.requireReservation(id, restaurantId);
 
       await this.db.run(sql`
         UPDATE reservations
         SET status = 'seated',
             seated_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id}${this.tenantScope(restaurantId)}
       `);
 
       // 更新桌位狀態為 occupied
@@ -504,21 +544,20 @@ export class ReservationService extends BaseService {
   /**
    * 完成訂位
    */
-  async completeReservation(id: string): Promise<ReservationResponse> {
+  async completeReservation(
+    id: string,
+    restaurantId?: string,
+  ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
-      const reservation = await this.getReservationById(id);
-
-      if (!reservation) {
-        throw new Error("訂位不存在");
-      }
+      const reservation = await this.requireReservation(id, restaurantId);
 
       await this.db.run(sql`
         UPDATE reservations
         SET status = 'completed',
             completed_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id}${this.tenantScope(restaurantId)}
       `);
 
       // 釋放桌位
@@ -539,14 +578,11 @@ export class ReservationService extends BaseService {
   async cancelReservation(
     id: string,
     reason?: string,
+    restaurantId?: string,
   ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
-      const reservation = await this.getReservationById(id);
-
-      if (!reservation) {
-        throw new Error("訂位不存在");
-      }
+      const reservation = await this.requireReservation(id, restaurantId);
 
       const cancellation = await this.db.run(sql`
         UPDATE reservations
@@ -554,7 +590,7 @@ export class ReservationService extends BaseService {
             cancelled_at = ${now},
             notes = COALESCE(notes || ' ', '') || ${`取消原因: ${reason || "顧客取消"}`},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id}${this.tenantScope(restaurantId)}
           AND status IN ('pending', 'confirmed')
       `);
 
@@ -594,14 +630,13 @@ export class ReservationService extends BaseService {
   /**
    * 標記 No Show
    */
-  async markNoShow(id: string): Promise<ReservationResponse> {
+  async markNoShow(
+    id: string,
+    restaurantId?: string,
+  ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
-      const reservation = await this.getReservationById(id);
-
-      if (!reservation) {
-        throw new Error("訂位不存在");
-      }
+      const reservation = await this.requireReservation(id, restaurantId);
 
       // 只從仍佔用容量的狀態轉出，且用受影響列數判斷這次是否真的轉換了。
       // 重放會匹配到零列，於是直接回傳現況而不再釋放一次容量。
@@ -610,7 +645,7 @@ export class ReservationService extends BaseService {
         SET status = 'no_show',
             no_show_at = ${now},
             updated_at = ${now}
-        WHERE id = ${id}
+        WHERE id = ${id}${this.tenantScope(restaurantId)}
           AND status IN ('pending', 'confirmed', 'arrived')
       `);
 

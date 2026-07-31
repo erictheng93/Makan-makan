@@ -149,7 +149,13 @@ app.delete("/:id/cancel", async (c) => {
     throw forbidden("確認碼錯誤");
   }
 
-  const cancelled = await service.cancelReservation(id, reason);
+  // 確認碼已經證明呼叫者持有這筆訂位；把該訂位的 restaurantId 一併帶進
+  // 寫入條件，讓取消綁在剛剛驗證過的那一筆上。
+  const cancelled = await service.cancelReservation(
+    id,
+    reason,
+    reservation.restaurantId,
+  );
 
   return c.json({
     success: true,
@@ -278,8 +284,11 @@ app.post("/:id/confirm", requireRole([0, 1, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
-  await requireReservationAccess(c, service, id);
-  const confirmed = await service.confirmReservation(id);
+  const reservation = await requireReservationAccess(c, service, id);
+  const confirmed = await service.confirmReservation(
+    id,
+    reservation.restaurantId,
+  );
 
   return c.json({
     success: true,
@@ -297,8 +306,8 @@ app.post("/:id/arrive", requireRole([0, 1, 3, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
-  await requireReservationAccess(c, service, id);
-  const arrived = await service.markArrived(id);
+  const reservation = await requireReservationAccess(c, service, id);
+  const arrived = await service.markArrived(id, reservation.restaurantId);
 
   return c.json({
     success: true,
@@ -316,8 +325,8 @@ app.post("/:id/seat", requireRole([0, 1, 3, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
-  await requireReservationAccess(c, service, id);
-  const seated = await service.markSeated(id);
+  const reservation = await requireReservationAccess(c, service, id);
+  const seated = await service.markSeated(id, reservation.restaurantId);
 
   return c.json({
     success: true,
@@ -335,8 +344,11 @@ app.post("/:id/complete", requireRole([0, 1, 3, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
-  await requireReservationAccess(c, service, id);
-  const completed = await service.completeReservation(id);
+  const reservation = await requireReservationAccess(c, service, id);
+  const completed = await service.completeReservation(
+    id,
+    reservation.restaurantId,
+  );
 
   return c.json({
     success: true,
@@ -354,8 +366,8 @@ app.post("/:id/no-show", requireRole([0, 1, 4]), async (c) => {
   if (!id) throw badRequest("Missing id parameter", "MISSING_PARAM");
   const service = new ReservationService(c.env.DB, c.env);
 
-  await requireReservationAccess(c, service, id);
-  const noShow = await service.markNoShow(id);
+  const reservation = await requireReservationAccess(c, service, id);
+  const noShow = await service.markNoShow(id, reservation.restaurantId);
 
   return c.json({
     success: true,

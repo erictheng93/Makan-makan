@@ -672,3 +672,94 @@ describe("ReservationService capacity accounting — real D1", () => {
     expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
   });
 });
+
+async function statusOf(
+  testDb: TestDatabase,
+  id: string,
+): Promise<string | undefined> {
+  const rows = await testDb.db
+    .prepare(`SELECT status FROM reservations WHERE id = ?`)
+    .bind(id)
+    .all<{ status: string }>();
+  return rows.results[0]?.status;
+}
+
+/**
+ * Every status transition folds the caller's authorized restaurantId into the
+ * UPDATE's WHERE. The route layer checks ownership too, but that is a
+ * check-then-act; these prove the write itself refuses to cross tenants.
+ */
+describe("ReservationService status transitions are tenant-scoped — real D1", () => {
+  beforeEach(async () => {
+    await seedRestaurant(testDb, OTHER_RESTAURANT_ID);
+    await seedReservation(testDb, "rsv-tenant-a", {
+      restaurantId: RESTAURANT_ID,
+      status: "pending",
+    });
+  });
+
+  const transitions: Array<
+    [string, (id: string, restaurantId?: string) => Promise<unknown>]
+  > = [
+    ["confirmReservation", (id, r) => service.confirmReservation(id, r)],
+    ["markArrived", (id, r) => service.markArrived(id, r)],
+    ["markSeated", (id, r) => service.markSeated(id, r)],
+    ["completeReservation", (id, r) => service.completeReservation(id, r)],
+    ["markNoShow", (id, r) => service.markNoShow(id, r)],
+    [
+      "cancelReservation",
+      (id, r) => service.cancelReservation(id, undefined, r),
+    ],
+  ];
+
+  for (const [name, run] of transitions) {
+    it(`${name} refuses a reservation owned by another restaurant`, async () => {
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      await expect(run("rsv-tenant-a", OTHER_RESTAURANT_ID)).rejects.toThrow(
+        "訂位不存在",
+      );
+
+      // Status is untouched — the write never ran.
+      expect(await statusOf(testDb, "rsv-tenant-a")).toBe("pending");
+      consoleError.mockRestore();
+    });
+  }
+
+  it("refuses the write even when the ownership check passed on stale data", async () => {
+    // The whole point of folding restaurantId into the WHERE clause is that the
+    // pre-check is a check-then-act. Force the window open: the check succeeds,
+    // but the id being written belongs to another restaurant. Without the
+    // predicate on the UPDATE itself this would flip the status.
+    vi.spyOn(
+      service as unknown as {
+        requireReservation: (
+          id: string,
+          restaurantId?: string,
+        ) => Promise<unknown>;
+      },
+      "requireReservation",
+    ).mockResolvedValue({ restaurantId: OTHER_RESTAURANT_ID });
+
+    await service.confirmReservation("rsv-tenant-a", OTHER_RESTAURANT_ID);
+
+    expect(await statusOf(testDb, "rsv-tenant-a")).toBe("pending");
+  });
+
+  it("allows the transition when the authorized restaurant matches", async () => {
+    const confirmed = await service.confirmReservation(
+      "rsv-tenant-a",
+      RESTAURANT_ID,
+    );
+
+    expect(confirmed.status).toBe("confirmed");
+  });
+
+  it("still allows a platform-wide call with no restaurant scope", async () => {
+    const confirmed = await service.confirmReservation("rsv-tenant-a");
+
+    expect(confirmed.status).toBe("confirmed");
+  });
+});
