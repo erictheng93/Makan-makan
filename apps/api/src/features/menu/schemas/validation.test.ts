@@ -282,6 +282,68 @@ describe("menu validation schemas", () => {
     ).toMatchObject({ name: "Tea" });
   });
 
+  it("rejects an unrecognised options key instead of silently dropping it", () => {
+    const withMisspelledSection = {
+      categoryId: 1,
+      name: "Tea",
+      price: 4,
+      // The exact typo that used to be stripped: the item saved with 201 and
+      // no add-ons, and nothing told the owner their JSON never landed.
+      options: { addons: [{ id: "a", name: "Pearl", price: 10 }] },
+    };
+
+    expect(() => createMenuItemSchema.parse(withMisspelledSection)).toThrow(
+      /addons/,
+    );
+
+    expect(() =>
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "Tea",
+        price: 4,
+        options: {
+          sizes: [
+            { id: "s", name: "Small", priceAdjustment: 0, sizeName: "L" },
+          ],
+        },
+      }),
+    ).toThrow(/sizeName/);
+  });
+
+  it("keeps accepting the option fields the storefront already reads", () => {
+    // CustomizationModal falls back to priceModifier, and shared-types declares
+    // available / a per-choice description — strict must not reject these.
+    expect(
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "Tea",
+        price: 4,
+        options: {
+          sizes: [
+            { id: "s", name: "Small", priceAdjustment: 0, priceModifier: 0 },
+          ],
+          customizations: [
+            {
+              id: "c",
+              name: "Ice",
+              type: "single",
+              required: false,
+              choices: [
+                {
+                  id: "c1",
+                  name: "Less",
+                  priceAdjustment: 0,
+                  description: "half ice",
+                },
+              ],
+            },
+          ],
+          addOns: [{ id: "a", name: "Pearl", price: 10, available: true }],
+        },
+      }),
+    ).toMatchObject({ name: "Tea" });
+  });
+
   it("accepts null when clearing optional menu item fields", () => {
     expect(
       updateMenuItemSchema.parse({

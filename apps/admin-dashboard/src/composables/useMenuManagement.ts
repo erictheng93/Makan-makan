@@ -268,11 +268,28 @@ export function useMenuManagement() {
       if (error.response?.data?.error?.code === "MENU_ITEM_MODIFIED") {
         return "conflict";
       }
-      toast.error(
-        error.response?.data?.error?.message || t("menu.errors.saveFailed"),
-      );
+      toast.error(describeSaveFailure(error));
       return "failed";
     }
+  };
+
+  /**
+   * Say which field the API rejected, not just that something was rejected.
+   *
+   * A shape error in the hand-typed `options` JSON surfaced as the envelope's
+   * generic "Validation failed" while `error.details` already carried the zod
+   * issue naming the offending key — the one piece of information the owner
+   * needed to fix it. Same source `describeImportFailure` reads for CSV rows.
+   */
+  const describeSaveFailure = (error: any): string => {
+    const apiError = error?.response?.data?.error;
+    const details = Array.isArray(apiError?.details) ? apiError.details : [];
+    const issue = details.find((detail: any) => detail?.message);
+
+    if (issue) {
+      return issue.field ? `${issue.field}: ${issue.message}` : issue.message;
+    }
+    return apiError?.message || t("menu.errors.saveFailed");
   };
 
   /**

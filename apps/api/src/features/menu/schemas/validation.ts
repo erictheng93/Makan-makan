@@ -65,44 +65,70 @@ const boundedLimitQuery = (defaultValue: string, max: number) =>
 const MAX_PAGE_SIZE = 100;
 
 // Menu Item Option Schemas
-const menuItemSizeSchema = z.object({
-  id: z.string(),
-  name: nonEmptyString.max(50),
-  priceAdjustment: z.number(),
-  description: z.string().max(200).optional(),
-  isDefault: z.boolean().optional(),
-});
+//
+// Every object here is strict. `options` is free-form JSON typed by hand in the
+// admin editor, and a non-strict object silently DROPS what it does not
+// recognise: writing "addons" instead of "addOns" stored `{}` and answered 201,
+// so the owner saw a saved item and the customer saw no add-ons, with nothing
+// anywhere to say why. Strict turns that into a 400 naming the key.
+//
+// The optional fields below are the ones the rest of the system already reads
+// or declares — CustomizationModal falls back to `priceModifier` when
+// `priceAdjustment` is absent, and shared-types declares `available` and a
+// per-choice `description`. They are listed so strict rejects typos without
+// also rejecting configurations that work today.
+const menuItemSizeSchema = z
+  .object({
+    id: z.string(),
+    name: nonEmptyString.max(50),
+    priceAdjustment: z.number(),
+    priceModifier: z.number().optional(),
+    description: z.string().max(200).optional(),
+    isDefault: z.boolean().optional(),
+  })
+  .strict();
 
-const menuItemCustomizationChoiceSchema = z.object({
-  id: z.string(),
-  name: nonEmptyString.max(100),
-  priceAdjustment: z.number().default(0),
-  isDefault: z.boolean().optional(),
-});
+const menuItemCustomizationChoiceSchema = z
+  .object({
+    id: z.string(),
+    name: nonEmptyString.max(100),
+    priceAdjustment: z.number().default(0),
+    priceModifier: z.number().optional(),
+    description: z.string().max(200).optional(),
+    isDefault: z.boolean().optional(),
+  })
+  .strict();
 
-const menuItemCustomizationSchema = z.object({
-  id: z.string(),
-  name: nonEmptyString.max(100),
-  type: z.enum(["single", "multiple"]),
-  required: z.boolean(),
-  maxSelections: positiveInteger.optional(),
-  choices: z.array(menuItemCustomizationChoiceSchema).min(1),
-});
+const menuItemCustomizationSchema = z
+  .object({
+    id: z.string(),
+    name: nonEmptyString.max(100),
+    type: z.enum(["single", "multiple"]),
+    required: z.boolean(),
+    maxSelections: positiveInteger.optional(),
+    choices: z.array(menuItemCustomizationChoiceSchema).min(1),
+  })
+  .strict();
 
-const menuItemAddOnSchema = z.object({
-  id: z.string(),
-  name: nonEmptyString.max(100),
-  price: priceSchema,
-  description: z.string().max(200).optional(),
-  maxQuantity: positiveInteger.optional(),
-  category: z.string().max(50).optional(),
-});
+const menuItemAddOnSchema = z
+  .object({
+    id: z.string(),
+    name: nonEmptyString.max(100),
+    price: priceSchema,
+    available: z.boolean().optional(),
+    description: z.string().max(200).optional(),
+    maxQuantity: positiveInteger.optional(),
+    category: z.string().max(50).optional(),
+  })
+  .strict();
 
-const menuItemOptionsSchema = z.object({
-  sizes: z.array(menuItemSizeSchema).optional(),
-  customizations: z.array(menuItemCustomizationSchema).optional(),
-  addOns: z.array(menuItemAddOnSchema).optional(),
-});
+const menuItemOptionsSchema = z
+  .object({
+    sizes: z.array(menuItemSizeSchema).optional(),
+    customizations: z.array(menuItemCustomizationSchema).optional(),
+    addOns: z.array(menuItemAddOnSchema).optional(),
+  })
+  .strict();
 
 // Dietary Information Schema
 const dietaryInfoSchema = z.object({
