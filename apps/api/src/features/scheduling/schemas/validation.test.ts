@@ -169,12 +169,13 @@ describe("scheduling validation", () => {
     expect(acceptSwapRequestSchema.parse({ employeeId: 42 })).toEqual({
       employeeId: "42",
     });
-    expect(approveSwapRequestSchema.parse({ managerId: 7 })).toEqual({
-      managerId: "7",
-    });
+    // The approver is now taken from the authenticated caller, so a
+    // managerId in the body is not a field the schema knows — it is
+    // dropped rather than trusted. Approval carries no body fields at all.
+    expect(approveSwapRequestSchema.parse({ managerId: 7 })).toEqual({});
     expect(
       rejectSwapRequestSchema.parse({ managerId: 7, reason: "No coverage" }),
-    ).toEqual({ managerId: "7", reason: "No coverage" });
+    ).toEqual({ reason: "No coverage" });
   });
 
   it("refines availability requirements by availability type", () => {
