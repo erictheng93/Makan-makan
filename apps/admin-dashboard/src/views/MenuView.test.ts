@@ -596,7 +596,7 @@ describe("MenuView", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("persists advanced product fields from the edit form", async () => {
+  it("persists advanced product fields when adding an item", async () => {
     const wrapper = mountMenuView();
     await wrapper
       .findAll("button")
@@ -670,6 +670,114 @@ describe("MenuView", () => {
       }),
       undefined,
     );
+  });
+
+  // The path #113 actually broke. Every other advanced-field test opens the
+  // "add" form, which starts empty — so none of them could notice that editing
+  // an existing item loaded blank tags and wrote the blank straight back.
+  describe("editing an existing item (#113)", () => {
+    const stored = () =>
+      menuItem({
+        nameEn: "Oyster Omelette",
+        description: "台南口味",
+        originalPrice: 9000,
+        ingredients: "蚵仔, 蛋",
+        spiceLevel: 2,
+        preparationTime: 20,
+        calories: 650,
+        tags: ["signature", "spicy"],
+        keywords: "oyster,omelette",
+        allergens: ["seafood", "egg"],
+        dietaryInfo: { glutenFree: true },
+        updatedAt: "2026-07-30T08:15:30.250Z",
+      });
+
+    it("loads the stored advanced fields into the form", async () => {
+      const wrapper = mountMenuView();
+      const existing = stored();
+      menuItems.value = [existing] as never;
+
+      await editItem(wrapper, existing);
+
+      expect(wrapper.vm.menuItemForm.tagsText).toBe("signature, spicy");
+      expect(wrapper.vm.menuItemForm.keywords).toBe("oyster,omelette");
+      expect(wrapper.vm.menuItemForm.allergensText).toBe("seafood, egg");
+      expect(wrapper.vm.menuItemForm.originalPrice).toBe(9000);
+      expect(wrapper.vm.menuItemForm.dietaryInfo.glutenFree).toBe(true);
+    });
+
+    it("writes them back untouched when nothing was edited", async () => {
+      const wrapper = mountMenuView();
+      const existing = stored();
+      menuItems.value = [existing] as never;
+
+      await editItem(wrapper, existing);
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      // tags/keywords in particular: the mapper used to omit them, so the form
+      // loaded empty and this save silently replaced the stored values.
+      expect(saveMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nameEn: "Oyster Omelette",
+          description: "台南口味",
+          tags: ["signature", "spicy"],
+          keywords: "oyster,omelette",
+          allergens: ["seafood", "egg"],
+          dietaryInfo: { glutenFree: true },
+          originalPrice: 9000,
+          ingredients: "蚵仔, 蛋",
+          calories: 650,
+          spiceLevel: 2,
+          preparationTime: 20,
+        }),
+        existing.id,
+      );
+    });
+
+    it("clears a stored field instead of leaving the old value behind", async () => {
+      const wrapper = mountMenuView();
+      const existing = stored();
+      menuItems.value = [existing] as never;
+
+      await editItem(wrapper, existing);
+      wrapper.vm.menuItemForm.nameEn = "";
+      wrapper.vm.menuItemForm.description = "";
+      wrapper.vm.menuItemForm.keywords = "";
+      wrapper.vm.menuItemForm.tagsText = "";
+      wrapper.vm.menuItemForm.originalPrice = undefined;
+      await nextTick();
+
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      expect(saveMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nameEn: null,
+          description: null,
+          keywords: null,
+          tags: [],
+          originalPrice: null,
+        }),
+        existing.id,
+      );
+    });
+
+    it("refuses to submit options that are not a JSON object", async () => {
+      const wrapper = mountMenuView();
+      const existing = stored();
+      menuItems.value = [existing] as never;
+
+      await editItem(wrapper, existing);
+      wrapper.vm.menuItemForm.optionsText = "{ not json";
+      await nextTick();
+
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      expect(saveMenuItem).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain("menu.form.optionsInvalid");
+    });
   });
 });
 
