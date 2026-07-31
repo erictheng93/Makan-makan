@@ -396,6 +396,54 @@ describe("SchedulingService tenant scoping", () => {
     ).rejects.toThrow(/Target employee not found in this restaurant/);
   });
 
+  it("lets only the named target accept a directed swap request", async () => {
+    // Directed at employeeId; ownerId is in the same restaurant, so the tenant
+    // predicate cannot be what stops them.
+    await testDb.db
+      .prepare(
+        `INSERT INTO schedule_swap_requests
+           (id, restaurant_id, requester_employee_id, requester_schedule_id,
+            target_employee_id, target_schedule_id, request_type, reason,
+            urgency, is_open_request, status, created_at_ms, updated_at_ms)
+         VALUES
+           (210, 'sched-rest', '${ownerId}', 70, '${employeeId}', NULL, 'cover',
+            'test reason', 'normal', 0, 'pending', 1735689600000, 1735689600000)`,
+      )
+      .run();
+    const svc = service();
+
+    await expect(
+      svc.acceptSwapRequest(210, ownerId, "sched-rest"),
+    ).rejects.toThrow(/Only the target employee/);
+
+    // Still pending, so the real target has not lost their chance to accept.
+    const accepted = await svc.acceptSwapRequest(210, employeeId, "sched-rest");
+    expect(accepted.status).toBe("accepted");
+    expect(accepted.acceptedBy).toBe(employeeId);
+  });
+
+  it("lets anyone in the tenant accept an open swap request", async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO schedule_swap_requests
+           (id, restaurant_id, requester_employee_id, requester_schedule_id,
+            target_employee_id, target_schedule_id, request_type, reason,
+            urgency, is_open_request, status, created_at_ms, updated_at_ms)
+         VALUES
+           (211, 'sched-rest', '${employeeId}', 70, NULL, NULL, 'cover',
+            'test reason', 'normal', 1, 'pending', 1735689600000, 1735689600000)`,
+      )
+      .run();
+
+    const accepted = await service().acceptSwapRequest(
+      211,
+      ownerId,
+      "sched-rest",
+    );
+
+    expect(accepted.status).toBe("accepted");
+  });
+
   it("scopes swap request approval and cancellation to the tenant", async () => {
     await testDb.db
       .prepare(

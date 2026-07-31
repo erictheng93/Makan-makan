@@ -1735,7 +1735,19 @@ export class SchedulingService extends BaseService {
       throw new Error("Swap request is not in pending status");
     }
 
-    // Update the request to accepted status
+    // A request addressed to a specific employee may only be accepted by that
+    // employee. Open requests stay open to the whole (already scoped) tenant.
+    if (
+      !request.isOpenRequest &&
+      request.targetEmployeeId &&
+      request.targetEmployeeId !== employeeId
+    ) {
+      throw new Error("Only the target employee can accept this swap request");
+    }
+
+    // Update the request to accepted status. The tenant predicate is repeated
+    // on the write, not left to the read above -- the same rule the rest of
+    // this file follows.
     const [updated] = await this.db
       .update(scheduleSwapRequests)
       .set({
@@ -1744,7 +1756,7 @@ export class SchedulingService extends BaseService {
         acceptedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(scheduleSwapRequests.id, requestId))
+      .where(this.swapRequestWhere(requestId, restaurantId))
       .returning();
 
     if (!updated) {
