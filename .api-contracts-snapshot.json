@@ -80,8 +80,8 @@
   "group-orders": {
     "ListGroupOrdersResponse": ["expiresAt", "shareCode", "shareUrl"],
     "GenerateShareCodeResponse": ["expiresAt", "shareCode", "shareUrl"],
-    "CreateGroupOrderResponse": ["groupOrder", "member"],
-    "JoinGroupResponse": ["groupOrder", "member"],
+    "CreateGroupOrderResponse": ["groupOrder", "member", "memberToken"],
+    "JoinGroupResponse": ["groupOrder", "member", "memberToken"],
     "GetGroupOrderResponse": ["data", "success"],
     "AddCartItemResponse": ["data", "success"],
     "UpdateCartItemResponse": ["data", "success"],
