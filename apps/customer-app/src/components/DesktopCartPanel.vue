@@ -21,7 +21,7 @@
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-ios-text truncate">
-                  {{ item.menuItem.name }}
+                  {{ getLocalizedMenuName(item.menuItem, currentLanguage) }}
                 </p>
                 <p
                   v-if="item.customizations"
@@ -100,6 +100,7 @@
 <script setup lang="ts">
 import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import type {
   CartItem,
   SelectedCustomizations,
@@ -117,7 +118,7 @@ defineEmits<{
   "update-quantity": [id: string, quantity: number];
 }>();
 
-const { t } = useI18n();
+const { t, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 
 const formatCustomizations = (customizations?: SelectedCustomizations) => {

@@ -625,6 +625,7 @@ import { useRouter } from "vue-router";
 import { useQuery, useMutation } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { useCartStore } from "@/stores/cart";
 import CartItemCard from "@/components/CartItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
@@ -814,7 +815,9 @@ const handleRemoveItem = (itemId: string) => {
   if (item) {
     cartStore.removeItem(itemId);
     toast.success(
-      tWithParams("toast.itemRemoved", { name: item.menuItem.name }),
+      tWithParams("toast.itemRemoved", {
+        name: getLocalizedMenuName(item.menuItem, currentLanguage?.value),
+      }),
     );
   }
 };

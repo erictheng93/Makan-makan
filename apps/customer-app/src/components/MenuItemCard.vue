@@ -25,7 +25,7 @@
           :src="featuredImageSrc"
           :srcset="featuredImageSrcset"
           sizes="(min-width: 1024px) 382px, 334px"
-          :alt="item.name"
+          :alt="getLocalizedMenuName(item, currentLanguage)"
           loading="lazy"
           class="w-full h-full object-cover lazy-image"
         />
@@ -56,7 +56,7 @@
             class="text-base font-bold text-ios-text cursor-pointer"
             @click="$emit('view-details', item)"
           >
-            {{ item.name }}
+            {{ getLocalizedMenuName(item, currentLanguage) }}
           </h3>
           <div class="flex items-center space-x-1 ml-2">
             <!-- 辣度指示器 -->
@@ -203,7 +203,7 @@
                 :src="listImageSrc"
                 :srcset="listImageSrcset"
                 sizes="70px"
-                :alt="item.name"
+                :alt="getLocalizedMenuName(item, currentLanguage)"
                 loading="lazy"
                 class="w-full h-full object-cover lazy-image"
               />
@@ -235,7 +235,7 @@
                 class="text-base font-bold text-ios-text cursor-pointer"
                 @click="$emit('view-details', item)"
               >
-                {{ item.name }}
+                {{ getLocalizedMenuName(item, currentLanguage) }}
               </h3>
               <div class="flex items-center space-x-1 ml-2">
                 <!-- 辣度指示器 -->
@@ -383,6 +383,7 @@ import type {
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -404,7 +405,7 @@ const emits = defineEmits<{
   "view-details": [item: MenuItem];
 }>();
 
-const { t, tWithParams } = useI18n();
+const { t, tWithParams, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 
 // Computed

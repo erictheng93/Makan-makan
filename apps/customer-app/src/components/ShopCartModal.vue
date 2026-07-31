@@ -172,7 +172,9 @@
                     <div class="flex items-start justify-between mb-2">
                       <div class="flex-1">
                         <h3 class="font-semibold text-ios-text">
-                          {{ item.menuItem.name }}
+                          {{
+                            getLocalizedMenuName(item.menuItem, currentLanguage)
+                          }}
                         </h3>
                         <p class="text-sm text-ios-secondary mt-1">
                           {{ formatPrice(item.price) }}
@@ -429,6 +431,7 @@ import { useShopCartStore } from "@/stores/shopCart";
 import { apiClient } from "@/services/api";
 import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { WAITING_LIST_LAST_TICKET_KEY } from "@/composables/useWaitingTicket";
 
 const props = defineProps<{
@@ -444,7 +447,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const toast = useToast();
-const { t } = useI18n();
+const { t, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 const shopCartStore = useShopCartStore();
 const isSubmitting = ref(false);

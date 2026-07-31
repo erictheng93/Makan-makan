@@ -20,7 +20,7 @@
           <img
             v-if="item.imageUrl"
             :src="getImageUrl(item.imageVariants?.large || item.imageUrl)"
-            :alt="item.name"
+            :alt="getLocalizedMenuName(item, currentLanguage)"
             class="w-full h-full object-cover"
             @error="handleImageError"
           />
@@ -79,7 +79,7 @@
           <div>
             <div class="flex items-start justify-between mb-2">
               <h2 class="text-xl font-bold text-ios-text">
-                {{ item.name }}
+                {{ getLocalizedMenuName(item, currentLanguage) }}
               </h2>
               <div class="flex items-center space-x-1">
                 <!-- 辣度指示器 -->
@@ -233,6 +233,7 @@ import type {
 } from "@makanmakan/shared-types";
 import CustomizationOptions from "./CustomizationOptions.vue";
 import { useI18n } from "@/composables/useI18n";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -240,7 +241,7 @@ const props = defineProps<{
   item?: MenuItem;
 }>();
 
-const { t } = useI18n();
+const { t, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 
 // Emits

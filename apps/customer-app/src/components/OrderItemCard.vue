@@ -10,7 +10,7 @@
               item.menuItem.imageVariants?.thumbnail || item.menuItem.imageUrl,
             )
           "
-          :alt="item.menuItem.name"
+          :alt="getLocalizedMenuName(item.menuItem, currentLanguage)"
           class="w-full h-full object-cover"
           loading="lazy"
           @error="handleImageError"
@@ -41,7 +41,11 @@
       <div class="flex items-start justify-between">
         <div class="flex-1 min-w-0 mr-2">
           <h4 class="text-sm font-medium text-ios-text">
-            {{ item.menuItem?.name || t("orderItem.unknownItem") }}
+            {{
+              item.menuItem
+                ? getLocalizedMenuName(item.menuItem, currentLanguage)
+                : t("orderItem.unknownItem")
+            }}
           </h4>
 
           <!-- 客製化資訊 -->
@@ -93,6 +97,7 @@ import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
 import { type OrderItem } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -100,7 +105,7 @@ const props = defineProps<{
   showStatus?: boolean;
 }>();
 
-const { t } = useI18n();
+const { t, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 
 // Computed

@@ -100,7 +100,7 @@
               ]"
               @click="scrollToCategory(category.id)"
             >
-              {{ category.name }}
+              {{ getLocalizedMenuName(category, currentLanguage) }}
             </button>
           </div>
         </div>
@@ -418,7 +418,7 @@
                 :class="visibleCategories.length > 0 ? 'top-32' : 'top-16'"
               >
                 <h3 class="text-lg font-semibold text-ios-text">
-                  {{ category.name }}
+                  {{ getLocalizedMenuName(category, currentLanguage) }}
                 </h3>
                 <p
                   v-if="category.description"
@@ -640,6 +640,7 @@ import {
 } from "@/utils/shopMenuDeepLink";
 import { marketTypeLabel } from "@/utils/marketTypes";
 import { safeExternalHref } from "@/utils/safeExternalHref";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -658,7 +659,7 @@ const props = defineProps<{
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
-const { t, tWithParams } = useI18n();
+const { t, tWithParams, currentLanguage } = useI18n();
 const appStore = useAppStore();
 const marketCartStore = useMarketCartStore();
 const shopCartStore = useShopCartStore();
@@ -789,9 +790,10 @@ const currentMarketCartSubtotal = computed(() =>
 const linkedTargetLabel = computed(() => {
   if (linkedService.value) return `服務：${linkedService.value.name}`;
   if (linkedMenuItem.value) {
-    return `${isProductCatalogItem(linkedMenuItem.value) ? "商品" : "餐點"}：${
-      linkedMenuItem.value.name
-    }`;
+    return `${isProductCatalogItem(linkedMenuItem.value) ? "商品" : "餐點"}：${getLocalizedMenuName(
+      linkedMenuItem.value,
+      currentLanguage?.value,
+    )}`;
   }
   return "";
 });
@@ -815,8 +817,9 @@ const filteredProductItems = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
   return productItems.value.filter(
     (item: MenuItem) =>
-      item.name.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query),
+      getLocalizedMenuName(item, currentLanguage?.value)
+        .toLowerCase()
+        .includes(query) || item.description?.toLowerCase().includes(query),
   );
 });
 
@@ -830,8 +833,9 @@ const filteredCategories = computed(() => {
     const categoryItems = getItemsByCategory(category.id);
     return categoryItems.some(
       (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
+        getLocalizedMenuName(item, currentLanguage?.value)
+          .toLowerCase()
+          .includes(query) || item.description?.toLowerCase().includes(query),
     );
   });
 });
@@ -849,8 +853,9 @@ const getItemsByCategory = (categoryId: number) => {
     const query = searchQuery.value.toLowerCase().trim();
     items = items.filter(
       (item: MenuItem) =>
-        item.name.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
+        getLocalizedMenuName(item, currentLanguage?.value)
+          .toLowerCase()
+          .includes(query) || item.description?.toLowerCase().includes(query),
     );
   }
 
@@ -956,7 +961,7 @@ const handleAddToCart = (data: {
 
   toast.success(
     tWithParams("toast.itemAdded", {
-      name: data.item.name,
+      name: getLocalizedMenuName(data.item, currentLanguage?.value),
       quantity: data.quantity,
     }),
   );

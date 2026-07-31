@@ -84,7 +84,7 @@
               ]"
               @click="scrollToCategory(category.id)"
             >
-              {{ category.name }}
+              {{ getLocalizedMenuName(category, currentLanguage) }}
             </button>
           </div>
         </div>
@@ -198,7 +198,7 @@
               :class="categories.length > 0 ? 'top-32' : 'top-16'"
             >
               <h2 class="text-xl font-semibold text-ios-text">
-                {{ category.name }}
+                {{ getLocalizedMenuName(category, currentLanguage) }}
               </h2>
               <p
                 v-if="category.description"
@@ -344,6 +344,7 @@ import type {
   MenuItem,
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -354,7 +355,7 @@ const props = defineProps<{
 // Composables
 const router = useRouter();
 const toast = useToast();
-const { t, tWithParams } = useI18n();
+const { t, tWithParams, currentLanguage } = useI18n();
 const appStore = useAppStore();
 const cartStore = useCartStore();
 const isDesktop = useIsDesktop();
@@ -417,8 +418,9 @@ const filteredCategories = computed(() => {
     const categoryItems = getItemsByCategory(category.id);
     return categoryItems.some(
       (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
+        getLocalizedMenuName(item, currentLanguage?.value)
+          .toLowerCase()
+          .includes(query) || item.description?.toLowerCase().includes(query),
     );
   });
 });
@@ -433,8 +435,9 @@ const getItemsByCategory = (categoryId: number) => {
     const query = searchQuery.value.toLowerCase().trim();
     items = items.filter(
       (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query),
+        getLocalizedMenuName(item, currentLanguage?.value)
+          .toLowerCase()
+          .includes(query) || item.description?.toLowerCase().includes(query),
     );
   }
 
@@ -462,7 +465,7 @@ const handleAddToCart = (data: {
 
   toast.success(
     tWithParams("toast.itemAdded", {
-      name: data.item.name,
+      name: getLocalizedMenuName(data.item, currentLanguage?.value),
       quantity: data.quantity,
     }),
   );

@@ -16,7 +16,7 @@
                   item.menuItem.imageUrl,
               )
             "
-            :alt="item.menuItem.name"
+            :alt="getLocalizedMenuName(item.menuItem, currentLanguage)"
             class="w-full h-full object-cover"
             loading="lazy"
             @error="handleImageError"
@@ -47,7 +47,7 @@
         <div class="flex items-start justify-between mb-2">
           <div class="flex-1 min-w-0 mr-2">
             <h3 class="text-base font-semibold text-ios-text truncate">
-              {{ item.menuItem.name }}
+              {{ getLocalizedMenuName(item.menuItem, currentLanguage) }}
             </h3>
 
             <!-- 規格資訊 -->
@@ -190,6 +190,7 @@ import { ref, computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
 import type { CartItem } from "@makanmakan/shared-types";
 import { useI18n } from "@/composables/useI18n";
+import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 
 // Props
 const props = defineProps<{
@@ -203,7 +204,7 @@ const emits = defineEmits<{
   remove: [itemId: string];
 }>();
 
-const { t } = useI18n();
+const { t, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 
 // State
