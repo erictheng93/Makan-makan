@@ -562,6 +562,14 @@ app.post(
   },
 );
 
+// Typed at the handler boundary rather than cast at the call site: Hono infers
+// a per-route context carrying only `validatedParams`, so `c as TablesContext`
+// is a conversion TS rejects outright. Declaring the parameter matches how the
+// rest of this file wires handlers (see createTableHandler).
+const tableQrRotationHandler =
+  (operation: "prepare" | "activate" | "discard") => (c: TablesContext) =>
+    runTableQrRotation(c, operation);
+
 async function runTableQrRotation(
   c: TablesContext,
   operation: "prepare" | "activate" | "discard",
@@ -614,7 +622,7 @@ app.post(
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam),
-  async (c) => runTableQrRotation(c as TablesContext, "prepare"),
+  tableQrRotationHandler("prepare"),
 );
 
 /**
@@ -627,7 +635,7 @@ app.post(
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam),
-  async (c) => runTableQrRotation(c as TablesContext, "activate"),
+  tableQrRotationHandler("activate"),
 );
 
 /**
@@ -640,7 +648,7 @@ app.post(
   moduleGate("table_management"),
   requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
   validateParams(tableSchemas.idParam),
-  async (c) => runTableQrRotation(c as TablesContext, "discard"),
+  tableQrRotationHandler("discard"),
 );
 
 /**
