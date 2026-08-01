@@ -163,6 +163,13 @@ const viVN: Messages = {
       importInvalid: "Check the import data format before submitting.",
     },
     import: {
+      title: "Nhập sản phẩm hàng loạt",
+      description:
+        "Dán CSV để thêm cùng lúc các sản phẩm cho tìm kiếm chợ đêm/khu thương mại.",
+      loadExample: "Tải ví dụ",
+      previewReady: "Đã phân tích {count} sản phẩm, sẵn sàng nhập.",
+      submit: "Nhập sản phẩm",
+      submitting: "Đang nhập...",
       successBanner: "Successfully imported {count} items.",
     },
     conflict: {

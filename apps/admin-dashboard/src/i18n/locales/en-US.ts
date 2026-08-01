@@ -163,6 +163,13 @@ const enUS: Messages = {
       importInvalid: "Check the import data format before submitting.",
     },
     import: {
+      title: "Batch import products",
+      description:
+        "Paste CSV to add products for night market and district search in one batch.",
+      loadExample: "Load example",
+      previewReady: "Parsed {count} products, ready to import.",
+      submit: "Import products",
+      submitting: "Importing...",
       successBanner: "Successfully imported {count} items.",
     },
     conflict: {

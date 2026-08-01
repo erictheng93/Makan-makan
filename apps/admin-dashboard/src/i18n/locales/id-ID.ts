@@ -164,6 +164,13 @@ const idID: Messages = {
       importInvalid: "Check the import data format before submitting.",
     },
     import: {
+      title: "Impor produk massal",
+      description:
+        "Tempel CSV untuk menambahkan produk pencarian pasar malam/kawasan sekaligus.",
+      loadExample: "Muat contoh",
+      previewReady: "{count} produk berhasil dibaca, siap diimpor.",
+      submit: "Impor produk",
+      submitting: "Mengimpor...",
       successBanner: "Successfully imported {count} items.",
     },
     conflict: {

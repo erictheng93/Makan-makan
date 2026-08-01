@@ -162,6 +162,12 @@ const zhCN: Messages = {
       importInvalid: "请确认导入数据格式后再提交。",
     },
     import: {
+      title: "批量导入商品",
+      description: "贴上 CSV，一次补齐会进入夜市/商圈搜索的商品数据。",
+      loadExample: "加载示例",
+      previewReady: "已解析 {count} 笔商品，准备导入。",
+      submit: "导入商品",
+      submitting: "导入中...",
       successBanner: "已成功导入 {count} 笔商品。",
     },
     conflict: {

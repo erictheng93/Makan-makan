@@ -164,6 +164,13 @@ const jaJP: Messages = {
       importInvalid: "Check the import data format before submitting.",
     },
     import: {
+      title: "商品を一括インポート",
+      description:
+        "CSV を貼り付けて、夜市/商圏検索に表示する商品情報をまとめて追加します。",
+      loadExample: "例を読み込む",
+      previewReady: "{count} 件の商品を解析しました。インポートできます。",
+      submit: "商品をインポート",
+      submitting: "インポート中...",
       successBanner: "Successfully imported {count} items.",
     },
     conflict: {

@@ -131,7 +131,7 @@ describe("MenuView", () => {
 
     await wrapper
       .findAll("button")
-      .find((button) => button.text() === "載入範例")!
+      .find((button) => button.text() === "menu.import.loadExample")!
       .trigger("click");
 
     expect(
@@ -161,7 +161,7 @@ describe("MenuView", () => {
         ].join("\n"),
       );
 
-    expect(wrapper.text()).toContain("已解析 1 筆商品");
+    expect(wrapper.text()).toContain("menu.import.previewReady 1");
 
     await wrapper
       .get('[data-testid="menu-item-import-submit"]')
@@ -187,6 +187,36 @@ describe("MenuView", () => {
     expect(wrapper.get('[data-testid="menu-item-import-success"]').text()).toBe(
       "menu.import.successBanner 1",
     );
+  });
+
+  it("renders the batch import panel labels through i18n", async () => {
+    const wrapper = mountMenuView();
+    let finishImport!: () => void;
+    importMenuItems.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishImport = resolve;
+      }),
+    );
+
+    expect(wrapper.text()).toContain("menu.import.title");
+    expect(wrapper.text()).toContain("menu.import.description");
+    expect(wrapper.text()).toContain("menu.import.loadExample");
+    expect(wrapper.get('[data-testid="menu-item-import-submit"]').text()).toBe(
+      "menu.import.submit",
+    );
+
+    await wrapper
+      .get('[data-testid="menu-item-import-csv"]')
+      .setValue(["name,category,price", '"蚵仔煎","主食",7000'].join("\n"));
+    await wrapper
+      .get('[data-testid="menu-item-import-submit"]')
+      .trigger("click");
+
+    expect(wrapper.get('[data-testid="menu-item-import-submit"]').text()).toBe(
+      "menu.import.submitting",
+    );
+    finishImport();
+    await flushPromises();
   });
 
   it("shows a market search reindex next step after importing product gap items", async () => {

@@ -162,6 +162,12 @@ const zhTWCore = {
       importInvalid: "請確認匯入資料格式後再送出。",
     },
     import: {
+      title: "批次匯入商品",
+      description: "貼上 CSV，一次補齊會進入夜市/商圈搜尋的商品資料。",
+      loadExample: "載入範例",
+      previewReady: "已解析 {count} 筆商品，準備匯入。",
+      submit: "匯入商品",
+      submitting: "匯入中...",
       successBanner: "已成功匯入 {count} 筆商品。",
     },
     conflict: {

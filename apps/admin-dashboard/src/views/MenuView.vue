@@ -139,9 +139,11 @@
           </div>
           <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
             <div>
-              <h3 class="text-[15px] font-bold text-[#1C1C1E]">批次匯入商品</h3>
+              <h3 class="text-[15px] font-bold text-[#1C1C1E]">
+                {{ t("menu.import.title") }}
+              </h3>
               <p class="mt-1 text-[13px] text-[#8E8E93]">
-                貼上 CSV，一次補齊會進入夜市/商圈搜尋的商品資料。
+                {{ t("menu.import.description") }}
               </p>
             </div>
             <button
@@ -149,7 +151,7 @@
               class="w-fit rounded-full bg-[#F2F2F7] px-3.5 py-2 text-[13px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
               @click="loadMenuItemImportExample"
             >
-              載入範例
+              {{ t("menu.import.loadExample") }}
             </button>
           </div>
 
@@ -184,7 +186,11 @@
             "
             class="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-[13px] text-blue-800"
           >
-            已解析 {{ menuItemImportPreview.items.length }} 筆商品，準備匯入。
+            {{
+              t("menu.import.previewReady", {
+                count: menuItemImportPreview.items.length,
+              })
+            }}
           </div>
           <div
             v-if="menuItemImportResult"
@@ -226,7 +232,11 @@
               "
               @click="importMenuItemsFromCsv"
             >
-              {{ isImportingMenuItems ? "匯入中..." : "匯入商品" }}
+              {{
+                isImportingMenuItems
+                  ? t("menu.import.submitting")
+                  : t("menu.import.submit")
+              }}
             </button>
           </div>
         </section>
