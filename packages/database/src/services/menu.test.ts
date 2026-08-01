@@ -361,7 +361,7 @@ describe("MenuService category visibility", () => {
  * parameters per query at 100.
  */
 describe("MenuService bulk create", () => {
-  function buildBulkService(rowsPerStatement: number[]) {
+  function buildBulkService(batchResult: unknown) {
     const statements: unknown[] = [];
     const insertedValues: Record<string, unknown>[] = [];
     let statementId = 0;
@@ -374,15 +374,7 @@ describe("MenuService bulk create", () => {
     };
     const batch = vi.fn(async (given: unknown[]) => {
       statements.push(...given);
-      return rowsPerStatement.map((_row, index) => [
-        {
-          id: 300 + index,
-          restaurantId: "restaurant-1",
-          categoryId: 7,
-          name: `Item ${index}`,
-          priceCents: 1000 + index,
-        },
-      ]);
+      return batchResult;
     });
     const db = { insert: vi.fn(() => insertBuilder), batch };
     const service = createServiceWithDb(db);
@@ -406,7 +398,35 @@ describe("MenuService bulk create", () => {
 
   it("sends every row through a single batch and maps the returned items", async () => {
     const { service, batch, statements, insertedValues, invalidateCache } =
-      buildBulkService([1, 1, 1]);
+      buildBulkService([
+        [
+          {
+            id: 300,
+            restaurantId: "restaurant-1",
+            categoryId: 7,
+            name: "Item 0",
+            priceCents: 1000,
+          },
+        ],
+        [
+          {
+            id: 301,
+            restaurantId: "restaurant-1",
+            categoryId: 7,
+            name: "Item 1",
+            priceCents: 1001,
+          },
+        ],
+        [
+          {
+            id: 302,
+            restaurantId: "restaurant-1",
+            categoryId: 7,
+            name: "Item 2",
+            priceCents: 1002,
+          },
+        ],
+      ]);
 
     const created = await service.bulkCreateMenuItems([row(0), row(1), row(2)]);
 
@@ -442,6 +462,51 @@ describe("MenuService bulk create", () => {
     await expect(service.bulkCreateMenuItems([])).resolves.toEqual([]);
     expect(db.insert).not.toHaveBeenCalled();
     expect(batch).not.toHaveBeenCalled();
+    expect(invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it("rejects a batch result with the wrong statement count", async () => {
+    const { service, invalidateCache } = buildBulkService([
+      [
+        {
+          id: 300,
+          restaurantId: "restaurant-1",
+          categoryId: 7,
+          name: "Item 0",
+          priceCents: 1000,
+        },
+      ],
+    ]);
+
+    await expect(service.bulkCreateMenuItems([row(0), row(1)])).rejects.toThrow(
+      "Unexpected db.batch returning shape for bulkCreateMenuItems",
+    );
+    expect(invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it("rejects a batch result whose statement output is not a row array", async () => {
+    const { service, invalidateCache } = buildBulkService([
+      {
+        id: 300,
+        restaurantId: "restaurant-1",
+        categoryId: 7,
+        name: "Item 0",
+        priceCents: 1000,
+      },
+    ]);
+
+    await expect(service.bulkCreateMenuItems([row(0)])).rejects.toThrow(
+      "Unexpected db.batch returning shape for bulkCreateMenuItems",
+    );
+    expect(invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it("rejects a batch result with an empty returning row set", async () => {
+    const { service, invalidateCache } = buildBulkService([[]]);
+
+    await expect(service.bulkCreateMenuItems([row(0)])).rejects.toThrow(
+      "Unexpected db.batch returning shape for bulkCreateMenuItems",
+    );
     expect(invalidateCache).not.toHaveBeenCalled();
   });
 

@@ -538,10 +538,11 @@ export class MenuService extends BaseService {
       ) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]];
 
       // Each statement's result is its own RETURNING row set; the tuple type is
-      // erased by the cast above, so re-assert the runtime shape.
-      const results = (await this.db.batch(statements)) as unknown as Array<
-        Array<typeof menuItems.$inferSelect>
-      >;
+      // erased by the cast above, so validate before treating it as data.
+      const results = this.assertBulkCreateBatchResult(
+        await this.db.batch(statements),
+        items.length,
+      );
 
       const restaurantIds = new Set(items.map((item) => item.restaurantId));
       await Promise.all(
@@ -559,6 +560,40 @@ export class MenuService extends BaseService {
     } catch (error) {
       this.handleError(error, "bulkCreateMenuItems");
     }
+  }
+
+  private assertBulkCreateBatchResult(
+    result: unknown,
+    expectedStatementCount: number,
+  ): Array<Array<typeof menuItems.$inferSelect>> {
+    const message =
+      "Unexpected db.batch returning shape for bulkCreateMenuItems";
+
+    if (!Array.isArray(result) || result.length !== expectedStatementCount) {
+      throw new Error(message);
+    }
+
+    for (const rows of result) {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        throw new Error(message);
+      }
+
+      for (const row of rows) {
+        if (
+          row === null ||
+          typeof row !== "object" ||
+          typeof (row as { id?: unknown }).id !== "number" ||
+          typeof (row as { restaurantId?: unknown }).restaurantId !==
+            "string" ||
+          typeof (row as { categoryId?: unknown }).categoryId !== "number" ||
+          typeof (row as { priceCents?: unknown }).priceCents !== "number"
+        ) {
+          throw new Error(message);
+        }
+      }
+    }
+
+    return result as Array<Array<typeof menuItems.$inferSelect>>;
   }
 
   // 創建菜單項目
