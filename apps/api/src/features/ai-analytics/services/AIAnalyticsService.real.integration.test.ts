@@ -87,7 +87,7 @@ async function seedRestaurant(id = "restaurant-1") {
 describe("AIAnalyticsService", () => {
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 120000);
+  });
 
   afterAll(async () => {
     await testDb?.dispose();

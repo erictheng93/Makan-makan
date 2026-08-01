@@ -15,7 +15,7 @@ let testDb: TestDatabase;
 
 beforeAll(async () => {
   testDb = await createTestDatabase();
-}, 120000);
+});
 
 afterAll(async () => {
   await testDb?.dispose();

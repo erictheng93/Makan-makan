@@ -34,10 +34,16 @@ export interface TestDatabase {
 }
 
 const REAL_D1_TEST_DATABASE_ID = "makanmakan-real-d1-test";
+const TEST_DATABASE_STAGE_TIMEOUT_MS = 60_000;
+const TEST_DATABASE_DISPOSE_TIMEOUT_MS = 15_000;
 
 export async function createTestDatabase(): Promise<TestDatabase> {
   if (shouldReuseTestDatabase()) {
-    const baselinePath = await ensureMigratedBaseline();
+    const baselinePath = await withDiagnosticTimeout(
+      ensureMigratedBaseline(),
+      TEST_DATABASE_STAGE_TIMEOUT_MS,
+      "preparing real-D1 migrated baseline",
+    );
     const workPath = fs.mkdtempSync(
       path.join(os.tmpdir(), "makanmakan-real-d1-"),
     );
@@ -85,13 +91,32 @@ async function createFreshTestDatabase(input: {
       r2Buckets: ["IMAGES_BUCKET", "BACKUP_STORAGE"],
     });
     try {
-      const bindings = await mf.getBindings<TestDatabaseBindings>();
+      const bindings = await withDiagnosticTimeout(
+        mf.getBindings<TestDatabaseBindings>(),
+        TEST_DATABASE_STAGE_TIMEOUT_MS,
+        "starting Miniflare D1",
+      );
       if (!input.migrated) {
-        await runMigrations(bindings.DB);
+        await withDiagnosticTimeout(
+          runMigrations(bindings.DB),
+          TEST_DATABASE_STAGE_TIMEOUT_MS,
+          "running real-D1 migrations",
+        );
       }
       return buildTestDatabase(mf, bindings, input);
     } catch (err) {
-      await mf.dispose();
+      try {
+        await withDiagnosticTimeout(
+          mf.dispose(),
+          TEST_DATABASE_DISPOSE_TIMEOUT_MS,
+          "disposing Miniflare D1",
+        );
+      } catch (disposeError) {
+        console.warn(
+          "[createTestDatabase] failed to dispose Miniflare after setup error:",
+          disposeError,
+        );
+      }
       lastErr = err;
       if (!isTransientD1Error(err)) throw err;
       console.warn(
@@ -138,12 +163,40 @@ function buildTestDatabase(
       });
     },
     dispose: async () => {
-      await mf.dispose();
+      await withDiagnosticTimeout(
+        mf.dispose(),
+        TEST_DATABASE_DISPOSE_TIMEOUT_MS,
+        "disposing Miniflare D1",
+      );
       if (options.cleanupPath) {
         fs.rmSync(options.cleanupPath, { recursive: true, force: true });
       }
     },
   };
+}
+
+export async function withDiagnosticTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  operationName: string,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => {
+      reject(
+        new Error(
+          `Timed out ${operationName} after ${Math.ceil(timeoutMs / 1000)}s`,
+        ),
+      );
+    }, timeoutMs);
+    timeout.unref?.();
+  });
+
+  try {
+    return await Promise.race([operation, timeoutPromise]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 async function retryTransientD1Error<T>(

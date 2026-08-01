@@ -276,7 +276,7 @@ beforeAll(async () => {
       idHint: `matrix-${tier}`,
     });
   }
-}, 120000);
+});
 
 afterAll(async () => {
   await testDb?.dispose();

@@ -47,7 +47,7 @@ async function readSubscription(restaurantId = "restaurant-1") {
 describe("SubscriptionService", () => {
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 120000);
+  });
 
   afterAll(async () => {
     await testDb?.dispose();

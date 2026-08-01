@@ -8,7 +8,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     root: resolve(__dirname),
-    include: ["src/__tests__/integration/**/*.real.integration.test.ts"],
+    include: ["src/**/*.real.integration.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
     // The database test helper builds one migrated D1 baseline per migration
     // hash, then copies it into an isolated Miniflare workdir for each file.

@@ -231,12 +231,20 @@ jobs:
 
       - name: 🧪 執行所有單元測試
         if: github.event_name == 'pull_request'
-        run: pnpm exec vitest run
+        run: |
+          mkdir -p test-results
+          pnpm exec vitest run --reporter=default --reporter=json --outputFile.json=./test-results/unit-tests.json
 
       - name: 📊 產生覆蓋率報告
         # On main/manual, coverage is the test run; do not run Vitest twice.
         if: github.event_name != 'pull_request'
-        run: pnpm exec vitest run --coverage
+        run: |
+          mkdir -p test-results
+          pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile.json=./test-results/unit-tests.json
+
+      - name: 🚦 驗證 Vitest suite 結果
+        if: always()
+        run: pnpm run check:vitest-results test-results/unit-tests.json
 
       - name: ☂️ 上傳覆蓋率到 Codecov
         if: github.event_name != 'pull_request'
