@@ -53,24 +53,24 @@ export const RealtimeSchemas = {
   // Verify Token Request
   VerifyTokenRequest: z.object({
     token: z.string().min(1, "Token is required"),
+    channel: z.string().min(1, "Channel is required").optional(),
   }),
 
   // Verify Token Response
   VerifyTokenResponse: z.object({
     success: z.boolean(),
-    valid: z.boolean(),
-    payload: z
-      .object({
-        roomType: RoomType,
-        roomId: z.string(),
-        restaurantId: z.uuid(),
-        userId: z.uuid().optional(),
-        role: z.number().int().min(0).max(4).optional(),
-        exp: z.number().int(),
-        iat: z.number().int(),
-      })
-      .optional(),
-    error: z.string().optional(),
+    data: z.object({
+      valid: z.boolean(),
+      roomType: z
+        .enum(["customer", "admin", "kitchen", "restaurant"])
+        .optional(),
+      expiresAt: z.iso.datetime().optional(),
+      channelAccess: z
+        .object({
+          allowed: z.literal(true),
+        })
+        .optional(),
+    }),
   }),
 
   // Broadcast Message Request

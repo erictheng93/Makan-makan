@@ -18,6 +18,7 @@ import {
   forbidden,
   unauthorized,
 } from "../../../shared/utils/api-error";
+import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
 
 // Import service and validation schemas
 import { RealtimeAuthService } from "../services/RealtimeAuthService";
@@ -63,6 +64,22 @@ function fetchRealtimeRoomStats(
       method: "GET",
     }),
   );
+}
+
+function toPublicVerificationResult(
+  payload: RealtimeAuthPayload | undefined,
+  channelAccessAllowed: boolean | undefined,
+) {
+  return {
+    valid: true,
+    ...(payload && {
+      roomType: payload.roomType,
+      expiresAt: new Date(payload.exp * 1000).toISOString(),
+    }),
+    ...(channelAccessAllowed !== undefined && {
+      channelAccess: { allowed: channelAccessAllowed },
+    }),
+  };
 }
 
 /**
@@ -203,6 +220,7 @@ realtimeRoutes.post(
       throw unauthorized(verification.error || "Invalid token");
     }
 
+    let channelAccessAllowed: boolean | undefined;
     if (channel && verification.payload) {
       const channelAccess = authService.verifyChannelAccess(
         verification.payload,
@@ -212,15 +230,16 @@ realtimeRoutes.post(
       if (!channelAccess.allowed) {
         throw unauthorized(channelAccess.error || "Channel access denied");
       }
+      channelAccessAllowed = true;
     }
 
     return c.json(
       {
         success: true,
-        data: {
-          valid: true,
-          payload: verification.payload,
-        },
+        data: toPublicVerificationResult(
+          verification.payload,
+          channelAccessAllowed,
+        ),
       },
       HTTP_STATUS.OK,
     );

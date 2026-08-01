@@ -58,6 +58,9 @@ function setupUseCouponService({
   order = buildOrder() as Record<string, unknown> | null,
   coupon = buildRedeemableCoupon() as Record<string, unknown> | null,
   orderItemRows = [] as Array<{ menuItemId: number; quantity: number }>,
+  itemCategoryRows = [] as Array<{
+    category: { id: number } | null;
+  }>,
   userUsageCount = 0,
 } = {}) {
   const service = createService();
@@ -73,7 +76,16 @@ function setupUseCouponService({
   if (coupon?.usageLimitPerUser) {
     select.mockReturnValueOnce(createSelectChain([{ count: userUsageCount }]));
   }
-  Object.assign(service as unknown as { db: unknown }, { db: { select } });
+  Object.assign(service as unknown as { db: unknown }, {
+    db: {
+      select,
+      query: {
+        menuItems: {
+          findMany: vi.fn().mockResolvedValue(itemCategoryRows),
+        },
+      },
+    },
+  });
   const useCoupon = vi
     .spyOn(service, "useCoupon")
     .mockResolvedValue({ id: 77 } as never);
@@ -593,6 +605,22 @@ describe("CouponsService", () => {
         status: 400,
       });
       // 訂單 → 優惠券 → 訂單商品（只有設定了適用限制才查）
+      expect(select).toHaveBeenCalledTimes(3);
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("denies a coupon when the order has no applicable categories", async () => {
+      const { service, select, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ applicableCategories: [99] }),
+        orderItemRows: [{ menuItemId: 1, quantity: 2 }],
+        itemCategoryRows: [{ category: { id: 7 } }],
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_NOT_APPLICABLE",
+        status: 400,
+      });
       expect(select).toHaveBeenCalledTimes(3);
       expect(useCoupon).not.toHaveBeenCalled();
     });

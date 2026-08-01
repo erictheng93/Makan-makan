@@ -250,6 +250,13 @@ describe("realtime routes", () => {
       role: "customer",
       scope: "guest-realtime",
       orderId: "100",
+      tableId: "7",
+      seatId: "3",
+      userId: "user-1",
+      publicUserId: "public-user-1",
+      appRole: 5,
+      exp: 1780488000,
+      iat: 1780487100,
     };
     serviceMethods.verifyWebSocketToken.mockResolvedValue({
       valid: true,
@@ -266,10 +273,24 @@ describe("realtime routes", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const body = await response.json();
+    expect(body).toEqual({
       success: true,
-      data: { valid: true, payload },
+      data: {
+        valid: true,
+        roomType: "customer",
+        expiresAt: "2026-06-03T12:00:00.000Z",
+        channelAccess: { allowed: true },
+      },
     });
+    expect(JSON.stringify(body)).not.toContain("order:100");
+    expect(JSON.stringify(body)).not.toContain("restaurant-1");
+    expect(JSON.stringify(body)).not.toContain("user-1");
+    expect(JSON.stringify(body)).not.toContain("public-user-1");
+    expect(JSON.stringify(body)).not.toContain('"tableId"');
+    expect(JSON.stringify(body)).not.toContain('"seatId"');
+    expect(JSON.stringify(body)).not.toContain('"orderId"');
+    expect(JSON.stringify(body)).not.toContain('"payload"');
     expect(serviceMethods.verifyWebSocketToken).toHaveBeenCalledWith("token");
     expect(serviceMethods.verifyChannelAccess).toHaveBeenCalledWith(
       payload,
