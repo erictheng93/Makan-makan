@@ -11,6 +11,7 @@ import {
   setAuthRefreshHandler,
 } from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
+import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
@@ -222,6 +223,15 @@ export const useAuthStore = defineStore("auth", () => {
         api.setAuthToken(token.value!);
         authClient.tokens.scheduleProactiveRefresh(token.value!);
 
+        // Bootstrap only loads module access when the app starts already
+        // authenticated, so logging in from the login page would otherwise
+        // leave `effectiveModules` empty for the rest of the session and hide
+        // every module-gated feature until a manual reload. Forced because a
+        // previous user's entry may still be cached in this page session.
+        // Deliberately not awaited: login must not block on it, and the store
+        // records its own failures.
+        void useModuleAccessStore().fetch({ force: true });
+
         return { success: true };
       }
 
@@ -252,6 +262,9 @@ export const useAuthStore = defineStore("auth", () => {
       authClient.tokens.clearAll();
       managementAuthClient.tokens.clearAll();
       managementAuthClient.setAuthToken(null);
+      // Otherwise the next user to log in on this page sees the previous
+      // user's modules until their own fetch lands.
+      useModuleAccessStore().reset();
     }
   };
 

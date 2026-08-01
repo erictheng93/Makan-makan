@@ -41,6 +41,15 @@ vi.mock("@/utils/authTokenProvider", () => ({
   getAuthToken: vi.fn(() => null),
 }));
 
+const moduleAccess = vi.hoisted(() => ({
+  fetch: vi.fn(async () => {}),
+  reset: vi.fn(),
+}));
+
+vi.mock("@makanmakan/shared/stores/moduleAccess", () => ({
+  useModuleAccessStore: () => moduleAccess,
+}));
+
 const user = (overrides: Partial<User> = {}): User => ({
   id: 1,
   username: "owner",
@@ -115,6 +124,48 @@ describe("useAuthStore", () => {
     expect(authClient.tokens.setTokens).toHaveBeenCalledWith("access-token");
     expect(authClient.tokens.setUser).toHaveBeenCalledWith(user());
     expect(api.setAuthToken).toHaveBeenCalledWith("access-token");
+  });
+
+  it("loads module access on login, since bootstrap already ran", async () => {
+    // Bootstrap only fetches when the app starts authenticated. Without this
+    // the whole session kept an empty `effectiveModules` and every
+    // module-gated feature stayed hidden until a manual reload.
+    vi.mocked(api.post).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          token: "access-token",
+          refreshToken: "refresh-token",
+          user: user(),
+        },
+      },
+    });
+
+    await useAuthStore().login("owner", "secret");
+
+    expect(moduleAccess.fetch).toHaveBeenCalledOnce();
+    expect(moduleAccess.fetch).toHaveBeenCalledWith({ force: true });
+  });
+
+  it("does not load module access when login fails", async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: { success: false, error: { message: "bad credentials" } },
+    });
+
+    await expect(useAuthStore().login("owner", "wrong")).resolves.toEqual({
+      success: false,
+      error: "bad credentials",
+    });
+
+    expect(moduleAccess.fetch).not.toHaveBeenCalled();
+  });
+
+  it("clears module access on logout so the next user starts empty", async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
+
+    await useAuthStore().logout();
+
+    expect(moduleAccess.reset).toHaveBeenCalledOnce();
   });
 
   it("restricts platform market checkout routes to admins", () => {
