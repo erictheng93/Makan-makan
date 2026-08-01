@@ -333,6 +333,7 @@ import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api } from "@/services/api";
+import type { Table } from "@/types";
 import { PlusIcon, PrinterIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
@@ -426,10 +427,10 @@ const loadTableCapacity = async () => {
   if (props.tableCapacity !== undefined) return;
 
   try {
-    const response = await api.get(`/tables/${props.tableId}`);
-    const data = response.data?.data?.data || response.data?.data;
-    if (typeof data?.capacity === "number") {
-      resolvedTableCapacity.value = data.capacity;
+    const response = await api.get<Table>(`/tables/${props.tableId}`);
+    const capacity = response.data?.data?.capacity;
+    if (typeof capacity === "number") {
+      resolvedTableCapacity.value = capacity;
     }
   } catch (error) {
     console.error("Failed to load table capacity:", error);
