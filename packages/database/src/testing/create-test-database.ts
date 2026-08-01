@@ -39,11 +39,7 @@ const TEST_DATABASE_DISPOSE_TIMEOUT_MS = 15_000;
 
 export async function createTestDatabase(): Promise<TestDatabase> {
   if (shouldReuseTestDatabase()) {
-    const baselinePath = await withDiagnosticTimeout(
-      ensureMigratedBaseline(),
-      TEST_DATABASE_STAGE_TIMEOUT_MS,
-      "preparing real-D1 migrated baseline",
-    );
+    const baselinePath = await ensureMigratedBaseline();
     const workPath = fs.mkdtempSync(
       path.join(os.tmpdir(), "makanmakan-real-d1-"),
     );
@@ -189,7 +185,6 @@ export async function withDiagnosticTimeout<T>(
         ),
       );
     }, timeoutMs);
-    timeout.unref?.();
   });
 
   try {
