@@ -398,6 +398,7 @@ app.post(
       user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.OWNER;
     const employeeId =
       isManager && data.employeeId != null ? data.employeeId : String(user.id);
+    const { employeeId: _bodyEmployeeId, ...requestData } = data;
 
     // Check if employee has sufficient balance (scoped to this restaurant so
     // cross-tenant balances cannot be probed)
@@ -414,12 +415,24 @@ app.post(
       );
     }
 
-    const request = await service.createLeaveRequest({
-      ...data,
-      employeeId,
-      restaurantId,
-      totalDays,
-    });
+    let request;
+    try {
+      request = await service.createLeaveRequest({
+        ...requestData,
+        employeeId,
+        restaurantId,
+        totalDays,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === "Employee not found in restaurant" ||
+          error.message === "Leave type not found")
+      ) {
+        throw notFound(error.message);
+      }
+      throw error;
+    }
 
     return c.json(
       createSuccessResponse(request, "Leave request created successfully"),

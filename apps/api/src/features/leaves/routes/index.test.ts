@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "./index";
+import { ApiError } from "../../../shared/utils/api-error";
 
 const RESTAURANT_ID = "01972f31-05a2-7b8c-a4f8-000000000001";
+const OTHER_RESTAURANT_ID = "01972f31-05a2-7b8c-a4f8-000000000002";
 
 const mocks = vi.hoisted(() => ({
   currentUser: {
@@ -74,6 +76,16 @@ vi.mock("@makanmakan/database", () => ({
     };
   }),
 }));
+
+app.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: err.code, message: err.message } },
+      err.status as 400 | 401 | 403 | 404 | 409,
+    );
+  }
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
 
 function createEnv() {
   return { DB: {} };
@@ -154,6 +166,7 @@ describe("leaves routes", () => {
       success: true,
       data: [{ id: 3, code: "ANNUAL" }],
     });
+    expect(mocks.getLeaveTypes).toHaveBeenCalledWith(RESTAURANT_ID);
 
     const detailResponse = await app.fetch(
       new Request("https://test/types/3"),
@@ -166,7 +179,7 @@ describe("leaves routes", () => {
       jsonRequest(
         `https://test/${RESTAURANT_ID}/types`,
         "POST",
-        createLeaveTypeBody(),
+        createLeaveTypeBody({ restaurantId: OTHER_RESTAURANT_ID }),
       ),
       env as never,
     );
@@ -236,7 +249,7 @@ describe("leaves routes", () => {
         env as never,
       ),
     );
-    expect(crossTenantResponse.status).toBe(500);
+    expect(crossTenantResponse.status).toBe(404);
     expect(mocks.updateLeaveType).not.toHaveBeenCalled();
 
     // System-wide types (restaurantId null) are readable but not mutable
@@ -247,7 +260,7 @@ describe("leaves routes", () => {
         env as never,
       ),
     );
-    expect(systemTypeResponse.status).toBe(500);
+    expect(systemTypeResponse.status).toBe(404);
     expect(mocks.updateLeaveType).not.toHaveBeenCalled();
 
     // Delete is scoped to the caller's restaurant at the service layer
@@ -258,7 +271,7 @@ describe("leaves routes", () => {
         env as never,
       ),
     );
-    expect(deleteResponse.status).toBe(500);
+    expect(deleteResponse.status).toBe(404);
     expect(mocks.deleteLeaveType).toHaveBeenCalledWith(3, RESTAURANT_ID);
   });
 
@@ -269,7 +282,7 @@ describe("leaves routes", () => {
     const detailResponse = await withSilencedRouteError(() =>
       app.fetch(new Request("https://test/types/99"), createEnv() as never),
     );
-    expect(detailResponse.status).toBe(500);
+    expect(detailResponse.status).toBe(404);
 
     const deleteResponse = await withSilencedRouteError(() =>
       app.fetch(
@@ -277,7 +290,7 @@ describe("leaves routes", () => {
         createEnv() as never,
       ),
     );
-    expect(deleteResponse.status).toBe(500);
+    expect(deleteResponse.status).toBe(404);
   });
 
   it("reads and adjusts leave balances", async () => {
@@ -354,7 +367,7 @@ describe("leaves routes", () => {
         createEnv() as never,
       ),
     );
-    expect(balanceResponse.status).toBe(500);
+    expect(balanceResponse.status).toBe(403);
 
     const listResponse = await app.fetch(
       new Request(
@@ -375,7 +388,7 @@ describe("leaves routes", () => {
     const detailResponse = await withSilencedRouteError(() =>
       app.fetch(new Request("https://test/requests/9"), createEnv() as never),
     );
-    expect(detailResponse.status).toBe(500);
+    expect(detailResponse.status).toBe(403);
     expect(mocks.getLeaveRequest).toHaveBeenCalledWith(9, RESTAURANT_ID);
   });
 
@@ -488,6 +501,38 @@ describe("leaves routes", () => {
     );
   });
 
+  it("returns not found when a manager files leave for a cross-tenant employee", async () => {
+    mocks.getLeaveBalance.mockResolvedValue(null);
+    mocks.createLeaveRequest.mockRejectedValue(
+      new Error("Employee not found in restaurant"),
+    );
+
+    const response = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest(
+          `https://test/${RESTAURANT_ID}/requests`,
+          "POST",
+          createLeaveRequestBody({ employeeId: "outside-employee" }),
+        ),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(404);
+    expect(mocks.getLeaveBalance).toHaveBeenCalledWith(
+      "outside-employee",
+      3,
+      expect.any(Number),
+      RESTAURANT_ID,
+    );
+    expect(mocks.createLeaveRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        employeeId: "outside-employee",
+        restaurantId: RESTAURANT_ID,
+      }),
+    );
+  });
+
   it("rejects self-approval and cross-tenant approval attempts", async () => {
     const env = createEnv();
 
@@ -506,7 +551,7 @@ describe("leaves routes", () => {
         env as never,
       ),
     );
-    expect(selfApproveResponse.status).toBe(500);
+    expect(selfApproveResponse.status).toBe(403);
     expect(mocks.approveLeaveRequest).not.toHaveBeenCalled();
 
     const selfRejectResponse = await withSilencedRouteError(() =>
@@ -517,7 +562,7 @@ describe("leaves routes", () => {
         env as never,
       ),
     );
-    expect(selfRejectResponse.status).toBe(500);
+    expect(selfRejectResponse.status).toBe(403);
     expect(mocks.rejectLeaveRequest).not.toHaveBeenCalled();
 
     // Cross-tenant request: the scoped lookup misses, so approval 404s
@@ -530,7 +575,7 @@ describe("leaves routes", () => {
         env as never,
       ),
     );
-    expect(crossTenantResponse.status).toBe(500);
+    expect(crossTenantResponse.status).toBe(404);
     expect(mocks.getLeaveRequest).toHaveBeenLastCalledWith(9, RESTAURANT_ID);
     expect(mocks.approveLeaveRequest).not.toHaveBeenCalled();
   });
@@ -547,7 +592,7 @@ describe("leaves routes", () => {
         createEnv() as never,
       ),
     );
-    expect(insufficientResponse.status).toBe(500);
+    expect(insufficientResponse.status).toBe(400);
 
     mocks.getLeaveRequest.mockResolvedValue(null);
     const missingCancelResponse = await withSilencedRouteError(() =>
@@ -558,7 +603,7 @@ describe("leaves routes", () => {
         createEnv() as never,
       ),
     );
-    expect(missingCancelResponse.status).toBe(500);
+    expect(missingCancelResponse.status).toBe(404);
     expect(mocks.cancelLeaveRequest).not.toHaveBeenCalled();
   });
 
