@@ -3190,6 +3190,12 @@ const zhCN: Messages = {
     },
   },
 
+  qrReadiness: {
+    notReady: "QR 未就绪",
+    notReadyDescription: "请先重新生成此 QR 码，再下载或打印。",
+    skippedNotReady: "已跳过 {count} 个尚未就绪、无法打印的 QR 码。",
+  },
+
   qrMode: {
     label: "QR 码管理模式",
     description: "选择如何为此桌台生成 QR 码",

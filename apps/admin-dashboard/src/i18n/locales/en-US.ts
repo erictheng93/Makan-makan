@@ -3422,6 +3422,14 @@ const enUS: Messages = {
     },
   },
 
+  qrReadiness: {
+    notReady: "QR not ready",
+    notReadyDescription:
+      "Regenerate this QR code before downloading or printing.",
+    skippedNotReady:
+      "Skipped {count} QR code(s) that are not ready for printing.",
+  },
+
   // QR Mode Selector
   qrMode: {
     label: "QR Code Management Mode",

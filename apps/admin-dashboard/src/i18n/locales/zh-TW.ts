@@ -3439,6 +3439,12 @@ const zhTWCore = {
     },
   },
 
+  qrReadiness: {
+    notReady: "QR 未就緒",
+    notReadyDescription: "請先重新生成此 QR 碼，再下載或列印。",
+    skippedNotReady: "已略過 {count} 個尚未就緒、無法列印的 QR 碼。",
+  },
+
   qrMode: {
     label: "QR 碼管理模式",
     description: "選擇如何為此桌台生成 QR 碼",

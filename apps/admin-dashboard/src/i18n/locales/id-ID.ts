@@ -3129,6 +3129,13 @@ const idID: Messages = {
     },
   },
 
+  qrReadiness: {
+    notReady: "QR belum siap",
+    notReadyDescription:
+      "Buat ulang kode QR ini sebelum mengunduh atau mencetak.",
+    skippedNotReady: "Melewati {count} kode QR yang belum siap untuk dicetak.",
+  },
+
   qrMode: {
     label: "Mode Manajemen Kode QR",
     description: "Pilih cara membuat kode QR untuk meja ini",

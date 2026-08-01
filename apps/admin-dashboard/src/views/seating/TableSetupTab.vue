@@ -131,12 +131,20 @@
                 {{ t("tables.tableNumber") }} {{ table.tableNumber }}
               </h3>
             </div>
-            <span
-              :class="getStatusBadgeClass(table.status)"
-              class="px-2.5 py-1 text-xs font-medium rounded-full"
-            >
-              {{ getStatusText(table.status) }}
-            </span>
+            <div class="flex flex-wrap justify-end gap-2">
+              <span
+                v-if="!tableQrIsReady(table)"
+                class="px-2.5 py-1 text-xs font-medium rounded-full bg-[#FF3B30]/10 text-[#D70015]"
+              >
+                {{ t("qrReadiness.notReady") }}
+              </span>
+              <span
+                :class="getStatusBadgeClass(table.status)"
+                class="px-2.5 py-1 text-xs font-medium rounded-full"
+              >
+                {{ getStatusText(table.status) }}
+              </span>
+            </div>
           </div>
 
           <div class="space-y-2 mb-4">
@@ -167,16 +175,29 @@
           <div class="mb-4 text-center">
             <div class="inline-block p-2 bg-[#F2F2F7] rounded-xl">
               <QRCodeRenderer
+                v-if="tableQrIsReady(table)"
                 :content="printableTableQrCode(table)"
                 :size="72"
                 :padding="4"
               />
+              <div
+                v-else
+                class="w-[72px] h-[72px] flex items-center justify-center rounded-lg border border-dashed border-[#D1D1D6] bg-white"
+              >
+                <QrCode class="w-8 h-8 text-[#8E8E93]" />
+              </div>
             </div>
             <div
               v-if="tableHasPendingQr(table)"
               class="mt-2 text-xs font-medium text-[#FF9500]"
             >
               {{ t("qrRotation.pending") }}
+            </div>
+            <div
+              v-else-if="!tableQrIsReady(table)"
+              class="mt-2 text-xs font-medium text-[#D70015]"
+            >
+              {{ t("qrReadiness.notReady") }}
             </div>
           </div>
 
@@ -214,6 +235,13 @@
               @click="prepareTableQRCode(table)"
             >
               {{ t("qrRotation.prepare") }}
+            </button>
+            <button
+              v-if="!tableQrIsReady(table)"
+              class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
+              @click="regenerateTableQRCode(table)"
+            >
+              {{ t("tableDetail.qrCode.regenerate") }}
             </button>
             <button
               v-if="tableHasPendingQr(table)"
@@ -411,6 +439,7 @@
             <div class="mb-6">
               <div class="inline-block p-4 bg-[#F2F2F7] rounded-2xl">
                 <QRCodeRenderer
+                  v-if="selectedTable && tableQrIsReady(selectedTable)"
                   ref="qrModalRef"
                   :content="
                     selectedTable ? printableTableQrCode(selectedTable) : ''
@@ -419,24 +448,48 @@
                   :padding="12"
                   container-class="shadow-sm"
                 />
+                <div
+                  v-else
+                  class="w-[200px] h-[200px] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#D1D1D6] bg-white text-[#8E8E93]"
+                >
+                  <QrCode class="w-16 h-16" />
+                  <span class="text-sm font-semibold text-[#D70015]">
+                    {{ t("qrReadiness.notReady") }}
+                  </span>
+                </div>
               </div>
-              <p class="text-xs text-[#1C1C1E]/30 mt-2 font-mono">
+              <p
+                v-if="selectedTable && tableQrIsReady(selectedTable)"
+                class="text-xs text-[#1C1C1E]/30 mt-2 font-mono"
+              >
                 {{ selectedTable ? printableTableQrCode(selectedTable) : "" }}
+              </p>
+              <p v-else class="text-xs text-[#D70015] mt-2">
+                {{ t("qrReadiness.notReadyDescription") }}
               </p>
             </div>
 
             <div class="flex justify-center space-x-3">
               <button
-                class="px-5 py-2.5 bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors text-sm font-semibold"
+                class="px-5 py-2.5 bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!selectedTable || !tableQrIsReady(selectedTable)"
                 @click="downloadQRCode"
               >
                 {{ t("tables.qrModal.download") }}
               </button>
               <button
-                class="px-5 py-2.5 bg-[#007AFF] text-white rounded-full hover:bg-[#0066D6] transition-colors text-sm font-semibold"
+                class="px-5 py-2.5 bg-[#007AFF] text-white rounded-full hover:bg-[#0066D6] transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!selectedTable || !tableQrIsReady(selectedTable)"
                 @click="printQRCode"
               >
                 {{ t("tables.qrModal.print") }}
+              </button>
+              <button
+                v-if="selectedTable && !tableQrIsReady(selectedTable)"
+                class="px-5 py-2.5 bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors text-sm font-semibold"
+                @click="regenerateTableQRCode(selectedTable)"
+              >
+                {{ t("tableDetail.qrCode.regenerate") }}
               </button>
               <button
                 class="px-5 py-2.5 text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors text-sm font-semibold"
@@ -473,6 +526,7 @@ import {
 import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
 import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
+import { getPrintableQrCode, isQrReady } from "@/utils/qrReadiness";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -571,7 +625,8 @@ const selectedTableIds = ref<number[]>([]);
 
 const isTableSelected = (id: number) => selectedTableIds.value.includes(id);
 const printableTableQrCode = (table: any) =>
-  table.pendingQrCode || table.qrCode || "";
+  getPrintableQrCode(table.pendingQrCode, table.qrCode);
+const tableQrIsReady = (table: any) => isQrReady(printableTableQrCode(table));
 const tableHasPendingQr = (table: any) => Boolean(table.pendingQrCode);
 
 const toggleTableSelection = (id: number) => {
@@ -600,8 +655,7 @@ const toggleSelectAllFiltered = () => {
 
 const selectedPrintableTables = computed(() =>
   tables.value.filter(
-    (table) =>
-      isTableSelected(table.id) && Boolean(printableTableQrCode(table)),
+    (table) => isTableSelected(table.id) && tableQrIsReady(table),
   ),
 );
 
@@ -613,7 +667,9 @@ const pendingTableCount = computed(
 );
 
 const printSelectedTableQRCodes = async () => {
-  await printTableQRCodes(selectedPrintableTables.value);
+  await printTableQRCodes(
+    tables.value.filter((table) => isTableSelected(table.id)),
+  );
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -670,6 +726,21 @@ const generateAllQRCodes = async () => {
     toast.success(t("tables.alert.qrGenerated"));
   } catch (error) {
     console.error("Failed to generate QR codes:", error);
+    toast.error(t("tables.alert.qrGenerateFailed"));
+  }
+};
+
+const regenerateTableQRCode = async (table: any) => {
+  try {
+    await api.post(`/tables/${table.id}/regenerate-qr`, {});
+    await fetchTables();
+    if (selectedTable.value?.id === table.id) {
+      selectedTable.value =
+        tables.value.find((candidate) => candidate.id === table.id) || null;
+    }
+    toast.success(t("tables.alert.qrGenerated"));
+  } catch (error) {
+    console.error("Failed to regenerate table QR code:", error);
     toast.error(t("tables.alert.qrGenerateFailed"));
   }
 };
@@ -871,6 +942,11 @@ const saveTable = async () => {
 };
 
 const downloadQRCode = () => {
+  if (!selectedTable.value || !tableQrIsReady(selectedTable.value)) {
+    toast.warning(t("qrReadiness.notReadyDescription"));
+    return;
+  }
+
   const dataUrl = qrModalRef.value?.getDataUrl();
   if (!dataUrl) return;
   const link = document.createElement("a");
@@ -880,6 +956,11 @@ const downloadQRCode = () => {
 };
 
 const printQRCode = () => {
+  if (!selectedTable.value || !tableQrIsReady(selectedTable.value)) {
+    toast.warning(t("qrReadiness.notReadyDescription"));
+    return;
+  }
+
   const dataUrl = qrModalRef.value?.getDataUrl();
   if (!dataUrl) return;
   const label = t("tables.qrModal.title", {
@@ -901,14 +982,20 @@ const printTableQRCodes = async (
     pendingQrCode?: string;
   }>,
 ) => {
-  if (targets.length === 0) {
+  const readyTargets = targets.filter(tableQrIsReady);
+  const skippedCount = targets.length - readyTargets.length;
+  if (skippedCount > 0) {
+    toast.warning(t("qrReadiness.skippedNotReady", { count: skippedCount }));
+  }
+
+  if (readyTargets.length === 0) {
     toast.warning(t("tables.alert.nothingToPrint"));
     return;
   }
 
   try {
     const qrCodes = await Promise.all(
-      targets.map(async (table) => ({
+      readyTargets.map(async (table) => ({
         label: t("tables.qrModal.title", { number: table.tableNumber }),
         dataUrl: await toPrintableDataUrl(printableTableQrCode(table)),
       })),
@@ -923,9 +1010,7 @@ const printTableQRCodes = async (
 };
 
 const printAllTableQRCodes = async () => {
-  await printTableQRCodes(
-    filteredTables.value.filter((table) => printableTableQrCode(table)),
-  );
+  await printTableQRCodes(filteredTables.value);
 };
 
 const fetchTables = async () => {

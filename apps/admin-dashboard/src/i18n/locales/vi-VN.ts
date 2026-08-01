@@ -3117,6 +3117,12 @@ const viVN: Messages = {
     },
   },
 
+  qrReadiness: {
+    notReady: "QR chưa sẵn sàng",
+    notReadyDescription: "Tạo lại mã QR này trước khi tải xuống hoặc in.",
+    skippedNotReady: "Đã bỏ qua {count} mã QR chưa sẵn sàng để in.",
+  },
+
   qrMode: {
     label: "Chế độ quản lý mã QR",
     description: "Chọn cách tạo mã QR cho bàn này",

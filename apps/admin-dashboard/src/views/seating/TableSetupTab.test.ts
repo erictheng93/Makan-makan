@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { defineComponent } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TableSetupTab from "./TableSetupTab.vue";
@@ -48,6 +49,17 @@ vi.mock("@/services/api", () => ({
   unwrapApiList: (data: unknown) => (Array.isArray(data) ? data : []),
 }));
 
+const QRCodeRendererStub = defineComponent({
+  name: "QRCodeRenderer",
+  props: {
+    content: { type: String, required: true },
+    size: { type: Number, default: 0 },
+    padding: { type: Number, default: 0 },
+    containerClass: { type: String, default: "" },
+  },
+  template: `<div data-testid="qr-renderer" :data-content="content" />`,
+});
+
 function buildTable(overrides: Record<string, unknown> = {}) {
   return {
     id: 11,
@@ -68,7 +80,9 @@ async function mountTab(tables: Record<string, unknown>[] = []) {
   } as never);
 
   const wrapper = mount(TableSetupTab, {
-    global: { stubs: { QRModeSelector: true, QRCodeRenderer: true } },
+    global: {
+      stubs: { QRModeSelector: true, QRCodeRenderer: QRCodeRendererStub },
+    },
   });
   await flushPromises();
   return wrapper;
@@ -261,6 +275,7 @@ describe("TableSetupTab QR print selection", () => {
       toggleSelectAllFiltered: () => void;
       allFilteredSelected: boolean;
       printSelectedTableQRCodes: () => Promise<void>;
+      printAllTableQRCodes: () => Promise<void>;
       searchQuery: string;
     };
   }
@@ -359,6 +374,62 @@ describe("TableSetupTab QR print selection", () => {
     await vm.printSelectedTableQRCodes();
 
     expect(toPrintableDataUrlMock).toHaveBeenCalledWith("pending-qr-1");
+  });
+
+  it("excludes placeholder pending table QR codes from selected printing", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1, number: "A1", qrCode: "pending:019469" }),
+      buildTable({ id: 2, number: "B1", qrCode: "qr-2" }),
+    ]);
+    const vm = vmOf(wrapper);
+
+    vm.toggleTableSelection(1);
+    vm.toggleTableSelection(2);
+
+    expect(vm.selectedPrintableCount).toBe(1);
+
+    await vm.printSelectedTableQRCodes();
+
+    expect(toastMock.warning).toHaveBeenCalledWith(
+      "qrReadiness.skippedNotReady",
+    );
+    expect(toPrintableDataUrlMock.mock.calls.map((call) => call[0])).toEqual([
+      "qr-2",
+    ]);
+  });
+
+  it("does not render a scannable QR for placeholder pending codes", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1, number: "A1", qrCode: "pending:019469" }),
+      buildTable({ id: 2, number: "B1", qrCode: "qr-2" }),
+    ]);
+
+    const renderedContents = wrapper
+      .findAllComponents(QRCodeRendererStub)
+      .map((renderer) => renderer.props("content"));
+
+    expect(renderedContents).toEqual(["qr-2"]);
+    expect(wrapper.text()).toContain("qrReadiness.notReady");
+  });
+
+  it("skips placeholder pending codes when printing all filtered tables", async () => {
+    const wrapper = await mountTab([
+      buildTable({ id: 1, number: "A1", location: "1F", qrCode: "pending:1" }),
+      buildTable({ id: 2, number: "A2", location: "1F", qrCode: "qr-2" }),
+      buildTable({ id: 3, number: "B1", location: "2F", qrCode: "qr-3" }),
+    ]);
+    const vm = vmOf(wrapper);
+
+    vm.searchQuery = "1F";
+    await wrapper.vm.$nextTick();
+    await vm.printAllTableQRCodes();
+
+    expect(toastMock.warning).toHaveBeenCalledWith(
+      "qrReadiness.skippedNotReady",
+    );
+    expect(toPrintableDataUrlMock.mock.calls.map((call) => call[0])).toEqual([
+      "qr-2",
+    ]);
   });
 
   it("warns instead of opening an empty sheet when nothing is selected", async () => {

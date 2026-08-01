@@ -189,6 +189,7 @@
                 <h4 class="text-sm font-medium text-gray-900 mb-2">QR Code</h4>
                 <div class="inline-block p-3 bg-white rounded-lg border">
                   <QRCodeRenderer
+                    v-if="selectedSeat && seatQrIsReady(selectedSeat)"
                     ref="seatQrRef"
                     :content="
                       selectedSeat ? printableSeatQrCode(selectedSeat) : ''
@@ -197,6 +198,15 @@
                     :size="160"
                     :padding="8"
                   />
+                  <div
+                    v-else
+                    class="w-40 h-40 flex flex-col items-center justify-center gap-2 text-gray-400"
+                  >
+                    <QRCodeIcon class="h-16 w-16" />
+                    <span class="text-sm font-medium text-red-600">
+                      {{ t("qrReadiness.notReady") }}
+                    </span>
+                  </div>
                 </div>
                 <div
                   v-if="selectedSeat && seatHasPendingQr(selectedSeat)"
@@ -204,18 +214,26 @@
                 >
                   {{ t("qrRotation.pending") }}
                 </div>
-                <div class="mt-2 text-xs text-gray-500 break-all">
+                <div
+                  v-if="selectedSeat && seatQrIsReady(selectedSeat)"
+                  class="mt-2 text-xs text-gray-500 break-all"
+                >
                   {{ selectedSeat ? printableSeatQrCode(selectedSeat) : "" }}
+                </div>
+                <div v-else class="mt-2 text-xs text-red-600">
+                  {{ t("qrReadiness.notReadyDescription") }}
                 </div>
                 <div class="flex justify-center gap-2 mt-3">
                   <button
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="!selectedSeat || !seatQrIsReady(selectedSeat)"
                     @click="downloadSeatQRCode"
                   >
                     {{ t("tables.qrModal.download") }}
                   </button>
                   <button
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="!selectedSeat || !seatQrIsReady(selectedSeat)"
                     @click="printSeatQRCode"
                   >
                     {{ t("tables.qrModal.print") }}
@@ -385,6 +403,7 @@ const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
+import { getPrintableQrCode, isQrReady } from "@/utils/qrReadiness";
 import QRCodeRenderer from "./QRCodeRenderer.vue";
 import SeatGrid from "./SeatGrid.vue";
 
@@ -431,10 +450,12 @@ const showSeatModal = ref(false);
 const showBatchCreateModal = ref(false);
 const selectedSeat = ref<Seat | null>(null);
 const seatQrRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
-const printableSeatQrCode = (seat: Seat) => seat.pendingQrCode || seat.qrCode;
+const printableSeatQrCode = (seat: Seat) =>
+  getPrintableQrCode(seat.pendingQrCode, seat.qrCode);
+const seatQrIsReady = (seat: Seat) => isQrReady(printableSeatQrCode(seat));
 const seatHasPendingQr = (seat: Seat) => Boolean(seat.pendingQrCode);
 const printableSeats = computed(() =>
-  props.seats.filter((seat) => seat.isActive && printableSeatQrCode(seat)),
+  props.seats.filter((seat) => seat.isActive && seatQrIsReady(seat)),
 );
 const pendingSeatCount = computed(
   () => props.seats.filter(seatHasPendingQr).length,
@@ -715,9 +736,13 @@ const discardSeatQR = async () => {
 };
 
 const downloadSeatQRCode = () => {
-  const dataUrl = seatQrRef.value?.getDataUrl();
-  if (!dataUrl || !selectedSeat.value) return;
+  if (!selectedSeat.value || !seatQrIsReady(selectedSeat.value)) {
+    toast.warning(t("qrReadiness.notReadyDescription"));
+    return;
+  }
 
+  const dataUrl = seatQrRef.value?.getDataUrl();
+  if (!dataUrl) return;
   const link = document.createElement("a");
   link.download = `QR-${props.tableNumber}-${selectedSeat.value.seatNumber}.png`;
   link.href = dataUrl;
@@ -725,9 +750,13 @@ const downloadSeatQRCode = () => {
 };
 
 const printSeatQRCode = () => {
-  const dataUrl = seatQrRef.value?.getDataUrl();
-  if (!dataUrl || !selectedSeat.value) return;
+  if (!selectedSeat.value || !seatQrIsReady(selectedSeat.value)) {
+    toast.warning(t("qrReadiness.notReadyDescription"));
+    return;
+  }
 
+  const dataUrl = seatQrRef.value?.getDataUrl();
+  if (!dataUrl) return;
   const label = t("seatManagement.printLabel", {
     table: props.tableNumber,
     seat: selectedSeat.value.seatNumber,
@@ -738,6 +767,12 @@ const printSeatQRCode = () => {
 };
 
 const printAllSeatQRCodes = async () => {
+  const skippedCount =
+    props.seats.filter((seat) => seat.isActive).length -
+    printableSeats.value.length;
+  if (skippedCount > 0) {
+    toast.warning(t("qrReadiness.skippedNotReady", { count: skippedCount }));
+  }
   if (printableSeats.value.length === 0) return;
 
   try {

@@ -3125,6 +3125,14 @@ const jaJP: Messages = {
     },
   },
 
+  qrReadiness: {
+    notReady: "QR未準備",
+    notReadyDescription:
+      "ダウンロードまたは印刷する前に、このQRコードを再生成してください。",
+    skippedNotReady:
+      "印刷準備ができていないQRコードを{count}件スキップしました。",
+  },
+
   qrMode: {
     label: "QRコード管理モード",
     description: "このテーブルのQRコード生成方法を選択",

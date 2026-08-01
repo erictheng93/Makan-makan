@@ -117,10 +117,20 @@
             <div class="text-center">
               <QRCodeIcon class="mx-auto h-24 w-24 text-gray-400 mb-2" />
               <p class="text-sm text-gray-500">
-                {{ t("tableDetail.qrCode.preview") }}
+                {{
+                  isTableQrReady
+                    ? t("tableDetail.qrCode.preview")
+                    : t("qrReadiness.notReady")
+                }}
               </p>
-              <p class="text-xs text-gray-400 mt-2 break-all px-4">
+              <p
+                v-if="isTableQrReady"
+                class="text-xs text-gray-400 mt-2 break-all px-4"
+              >
                 {{ printableTableQrCode }}
+              </p>
+              <p v-else class="text-xs text-red-600 mt-2 px-4">
+                {{ t("qrReadiness.notReadyDescription") }}
               </p>
               <p
                 v-if="table.pendingQrCode"
@@ -134,13 +144,15 @@
 
         <div class="mt-6 flex space-x-3">
           <button
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="!isTableQrReady"
             @click="downloadQRCode"
           >
             {{ t("tableDetail.qrCode.download") }}
           </button>
           <button
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="!isTableQrReady"
             @click="printQRCode"
           >
             {{ t("tableDetail.qrCode.print") }}
@@ -229,6 +241,7 @@ import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatManagement from "../components/tables/SeatManagement.vue";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
+import { getPrintableQrCode, isQrReady } from "@/utils/qrReadiness";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -289,9 +302,10 @@ const getStatusText = (status: string) => {
   return keys[status] ? t(keys[status]) : status;
 };
 
-const printableTableQrCode = computed(
-  () => table.value.pendingQrCode || table.value.qrCode,
+const printableTableQrCode = computed(() =>
+  getPrintableQrCode(table.value.pendingQrCode, table.value.qrCode),
 );
+const isTableQrReady = computed(() => isQrReady(printableTableQrCode.value));
 
 const loadSeats = async () => {
   if (table.value.qrMode !== "seat" || !table.value.id) return;
@@ -341,7 +355,10 @@ const switchQRMode = async () => {
 };
 
 const downloadQRCode = () => {
-  if (!printableTableQrCode.value) return;
+  if (!isTableQrReady.value) {
+    toast.warning(t("qrReadiness.notReadyDescription"));
+    return;
+  }
   // Create a simple text download of the QR code value (the QR image rendering
   // is handled by the QRCodeRenderer component in the parent list view)
   const link = document.createElement("a");
@@ -351,6 +368,11 @@ const downloadQRCode = () => {
 };
 
 const printQRCode = () => {
+  if (!isTableQrReady.value) {
+    toast.warning(t("qrReadiness.notReadyDescription"));
+    return;
+  }
+
   const tableNum = table.value.tableNumber || "";
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
