@@ -2266,6 +2266,15 @@ const enUS: Messages = {
       printingShiftReport: "Printing shift report...",
       shiftEnded: "Shift ended, data saved.",
     },
+    paymentFailed: "Payment failed",
+    refundType: "Refund Type",
+    refundTypes: {
+      full: "Full Refund",
+      partial: "Partial Refund",
+      item: "Item Refund",
+      service: "Service Refund",
+    },
+    refundMethod: "Refund Method",
     prompts: {
       discountPercent: "Enter discount percentage (e.g., 10 for 10% off)",
     },
@@ -2549,8 +2558,12 @@ const enUS: Messages = {
     confirms: {
       resetDefaults:
         "Are you sure you want to reset all settings to defaults? This cannot be undone.",
+      resetDefaultsTitle: "Reset to Defaults",
+      resetDefaultsAction: "Reset",
       regenerateQR:
         "Are you sure you want to regenerate the QR Code? This will update the version number.",
+      regenerateQRTitle: "Regenerate QR Code",
+      regenerateQRAction: "Regenerate",
     },
   },
 
