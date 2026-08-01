@@ -1,5 +1,5 @@
 import { useToast } from "vue-toastification";
-import { apiPath } from "@/services/api-url";
+import { apiUrl } from "@/services/api-url";
 import { t } from "@/i18n";
 import { getAuthToken } from "@/utils/authTokenProvider";
 
@@ -167,7 +167,10 @@ class OfflineManager {
 
 // 錯誤上報服務
 class ErrorReportingService {
-  private readonly REPORT_ENDPOINT = apiPath("/system/error-report");
+  private readonly REPORT_ENDPOINT = apiUrl(
+    "/system/error-report",
+    import.meta.env.VITE_API_BASE_URL,
+  );
   private readonly MAX_RETRIES = 3;
   private readonly MAX_QUEUE_SIZE = 50;
   private reportQueue: ErrorDetails[] = [];

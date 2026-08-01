@@ -174,7 +174,7 @@ describe("TablesService", () => {
           capacity: 4,
         }),
       ),
-    ).rejects.toThrow("Failed to create table");
+    ).rejects.toThrow("Failed to create table: db down");
 
     tableServiceMethods.deleteTable.mockRejectedValue(new Error("db down"));
     await expect(
@@ -249,7 +249,7 @@ describe("TablesService", () => {
       withSilencedErrors(() => createService().regenerateQRCode(11)),
     ).resolves.toEqual({
       success: false,
-      error: "Failed to regenerate QR code",
+      error: "Failed to regenerate QR code: qr down",
     });
 
     tableServiceMethods.generateBulkQRCodes.mockResolvedValue({
@@ -264,7 +264,7 @@ describe("TablesService", () => {
     });
 
     tableServiceMethods.generateBulkQRCodes.mockRejectedValue(
-      new Error("qr down"),
+      new Error("QR_SIGNING_KEY must be set and at least 32 characters"),
     );
     await expect(
       withSilencedErrors(() =>
@@ -272,7 +272,8 @@ describe("TablesService", () => {
       ),
     ).resolves.toEqual({
       success: false,
-      error: "Failed to generate bulk QR codes",
+      error:
+        "Failed to generate bulk QR codes: QR_SIGNING_KEY must be set and at least 32 characters",
     });
   });
 

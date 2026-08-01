@@ -46,6 +46,22 @@ describe("qr-parser market QR support", () => {
   });
 });
 
+describe("qr-parser shop QR support", () => {
+  it("parses production shop QR codes that carry UUID restaurant ids", () => {
+    const data = parseQRContent(
+      "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+    );
+
+    expect(data).toMatchObject({
+      type: "shop",
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+      shopQrCode: "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+      source: "shop",
+    });
+    expect(data && validateQRData(data)).toBe(true);
+  });
+});
+
 describe("qr-parser signed table and seat QR support", () => {
   const signingKey = "test-qr-signing-key-at-least-32-characters";
 

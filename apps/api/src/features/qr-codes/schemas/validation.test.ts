@@ -50,6 +50,13 @@ describe("QR code validation schemas", () => {
     expect(
       qrCodeSchemas.shopQrCode.parse({ qrCode: "SHOP-GRANDMA-001" }),
     ).toEqual({ qrCode: "SHOP-GRANDMA-001" });
+    expect(
+      qrCodeSchemas.shopQrCode.parse({
+        qrCode: "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+      }),
+    ).toEqual({
+      qrCode: "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+    });
     expect(() => qrCodeSchemas.shopQrCode.parse({ qrCode: "TABLE-1" })).toThrow(
       "Invalid shop QR code format",
     );

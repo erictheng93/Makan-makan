@@ -13,7 +13,10 @@ import {
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
 
-type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean };
+type RetryableAxiosRequestConfig = AxiosRequestConfig & {
+  _retry?: boolean;
+  _skipErrorHandler?: boolean;
+};
 
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
@@ -334,6 +337,7 @@ export const useAuthStore = defineStore("auth", () => {
         const refreshConfig: RetryableAxiosRequestConfig = {
           withCredentials: true,
           _retry: true,
+          _skipErrorHandler: true,
         };
         const response = await authClient.instance.post(
           "/auth/refresh",

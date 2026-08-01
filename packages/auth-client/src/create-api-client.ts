@@ -10,6 +10,7 @@ import type { ApiClient, AuthClientConfig, CsrfConfig } from "./types";
 
 interface RetryableRequest extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _skipErrorHandler?: boolean;
 }
 
 function normalizeCsrfConfig(raw: AuthClientConfig["csrf"]): CsrfConfig | null {
@@ -139,8 +140,12 @@ export function createAuthenticatedApiClient(
     storage,
     refreshFn: async () => {
       try {
-        const refreshConfig: AxiosRequestConfig & { _retry?: boolean } = {
+        const refreshConfig: AxiosRequestConfig & {
+          _retry?: boolean;
+          _skipErrorHandler?: boolean;
+        } = {
           _retry: true, // skip 401 interceptor for the refresh call itself
+          _skipErrorHandler: true,
           withCredentials: true,
         };
         const response = await instance.post(
@@ -238,6 +243,10 @@ export function createAuthenticatedApiClient(
       }
 
       // Non-401 errors: delegate to app's error handler if provided
+      if (original?._skipErrorHandler) {
+        return Promise.reject(error);
+      }
+
       if (config.errorHandler) {
         return Promise.reject(config.errorHandler(error));
       }

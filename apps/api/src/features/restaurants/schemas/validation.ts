@@ -335,7 +335,7 @@ const qrCodeParam = z.object({
   qrCode: z
     .string()
     .min(1, "QR code is required")
-    .regex(/^SHOP-\d+-\d+$/, "Invalid shop QR code format"),
+    .regex(/^SHOP-[A-Za-z0-9-]+$/, "Invalid shop QR code format"),
 });
 
 export const restaurantSchemas = {

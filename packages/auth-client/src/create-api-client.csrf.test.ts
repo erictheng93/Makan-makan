@@ -156,3 +156,59 @@ describe("auth client CSRF token lifecycle", () => {
     expect(outgoingHeaders(client, "post")["X-CSRF-Token"]).toBeUndefined();
   });
 });
+
+describe("auth client refresh error handling", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("document", { cookie: "" });
+    installStorage();
+  });
+
+  it("marks refresh calls to skip the app error handler", async () => {
+    const errorHandler = vi.fn((error) => error);
+    const client = createAuthenticatedApiClient({
+      baseURL: "https://api.test/api/v1",
+      storageKeyPrefix: "auth",
+      csrf: true,
+      errorHandler,
+    });
+    const post = vi
+      .spyOn(client.instance, "post")
+      .mockRejectedValueOnce(new Error("Refresh token is required"));
+
+    await expect(client.tokens.refreshToken()).resolves.toBe(false);
+
+    expect(post).toHaveBeenCalledWith(
+      "/auth/refresh",
+      {},
+      expect.objectContaining({
+        _retry: true,
+        _skipErrorHandler: true,
+        withCredentials: true,
+      }),
+    );
+    expect(errorHandler).not.toHaveBeenCalled();
+  });
+
+  it("does not run the app error handler for skipped requests", async () => {
+    const errorHandler = vi.fn((error) => error);
+    const client = createAuthenticatedApiClient({
+      baseURL: "https://api.test/api/v1",
+      storageKeyPrefix: "auth",
+      errorHandler,
+    });
+    const rejected = (
+      client.instance.interceptors.response as unknown as {
+        handlers: Array<{ rejected: (e: unknown) => Promise<unknown> }>;
+      }
+    ).handlers[0].rejected;
+    const error = {
+      response: { status: 400 },
+      config: { _skipErrorHandler: true },
+    };
+
+    await expect(rejected(error)).rejects.toBe(error);
+
+    expect(errorHandler).not.toHaveBeenCalled();
+  });
+});

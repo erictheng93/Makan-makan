@@ -107,7 +107,11 @@ describe("restaurant validation schemas", () => {
 
     expect(restaurantSchemas.nearby.parse({})).toEqual({ limit: 10 });
     expect(
-      restaurantSchemas.qrCodeParams.parse({ qrCode: "SHOP-1-2" }),
-    ).toEqual({ qrCode: "SHOP-1-2" });
+      restaurantSchemas.qrCodeParams.parse({
+        qrCode: "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+      }),
+    ).toEqual({
+      qrCode: "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+    });
   });
 });

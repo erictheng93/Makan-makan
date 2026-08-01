@@ -23,7 +23,7 @@ export interface MarketQRData {
 
 export interface ShopQRData extends BaseQRData {
   type: "shop";
-  shopQrCode?: string; // 店家 QR Code (格式: SHOP-{id}-{timestamp})
+  shopQrCode?: string; // 店家 QR Code (格式: SHOP-{restaurantId}-{timestamp})
 }
 
 export interface TableQRData extends BaseQRData {
@@ -111,10 +111,10 @@ function parseMarketQRFormat(content: string): QRData | null {
 /**
  * 解析店家級別 QR Code
  * 格式: SHOP-{restaurantId}-{timestamp}
- * 例如: SHOP-1-1760068334
+ * 例如: SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580
  */
 function parseShopQRFormat(content: string): QRData | null {
-  const shopQrMatch = content.match(/^SHOP-(\d+)-(\d+)$/);
+  const shopQrMatch = content.match(/^SHOP-(.+)-(\d+)$/);
 
   if (shopQrMatch) {
     return {

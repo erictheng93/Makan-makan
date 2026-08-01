@@ -37,6 +37,11 @@ export class TablesService {
     console.error(`TablesService.${operation} error:`, errorMessage);
   }
 
+  private formatOperationError(operation: string, error: unknown): string {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return errorMessage ? `${operation}: ${errorMessage}` : operation;
+  }
+
   /**
    * Get tables for a restaurant with filtering and pagination
    */
@@ -60,7 +65,9 @@ export class TablesService {
       };
     } catch (error) {
       this.logError("getRestaurantTables", error);
-      throw new Error("Failed to fetch restaurant tables");
+      throw new Error(
+        this.formatOperationError("Failed to fetch restaurant tables", error),
+      );
     }
   }
 
@@ -74,7 +81,9 @@ export class TablesService {
     } catch (error) {
       // 安全地記錄錯誤，避免循環引用
       this.logError("getTableById", error);
-      throw new Error("Failed to fetch table");
+      throw new Error(
+        this.formatOperationError("Failed to fetch table", error),
+      );
     }
   }
 
@@ -87,7 +96,9 @@ export class TablesService {
       return newTable;
     } catch (error) {
       this.logError("createTable", error);
-      throw new Error("Failed to create table");
+      throw new Error(
+        this.formatOperationError("Failed to create table", error),
+      );
     }
   }
 
@@ -100,7 +111,9 @@ export class TablesService {
       return updatedTable;
     } catch (error) {
       this.logError("updateTable", error);
-      throw new Error("Failed to update table");
+      throw new Error(
+        this.formatOperationError("Failed to update table", error),
+      );
     }
   }
 
@@ -113,7 +126,9 @@ export class TablesService {
       return success;
     } catch (error) {
       this.logError("deleteTable", error);
-      throw new Error("Failed to delete table");
+      throw new Error(
+        this.formatOperationError("Failed to delete table", error),
+      );
     }
   }
 
@@ -136,7 +151,9 @@ export class TablesService {
       return success;
     } catch (error) {
       this.logError("occupyTable", error);
-      throw new Error("Failed to occupy table");
+      throw new Error(
+        this.formatOperationError("Failed to occupy table", error),
+      );
     }
   }
 
@@ -149,7 +166,9 @@ export class TablesService {
       return success;
     } catch (error) {
       this.logError("releaseTable", error);
-      throw new Error("Failed to release table");
+      throw new Error(
+        this.formatOperationError("Failed to release table", error),
+      );
     }
   }
 
@@ -162,7 +181,9 @@ export class TablesService {
       return success;
     } catch (error) {
       this.logError("markTableCleaned", error);
-      throw new Error("Failed to mark table as cleaned");
+      throw new Error(
+        this.formatOperationError("Failed to mark table as cleaned", error),
+      );
     }
   }
 
@@ -180,7 +201,7 @@ export class TablesService {
       this.logError("regenerateQRCode", error);
       return {
         success: false,
-        error: "Failed to regenerate QR code",
+        error: this.formatOperationError("Failed to regenerate QR code", error),
       };
     }
   }
@@ -219,7 +240,10 @@ export class TablesService {
       this.logError("generateBulkQRCodes", error);
       return {
         success: false,
-        error: "Failed to generate bulk QR codes",
+        error: this.formatOperationError(
+          "Failed to generate bulk QR codes",
+          error,
+        ),
       };
     }
   }
@@ -239,7 +263,9 @@ export class TablesService {
       return availableTables;
     } catch (error) {
       this.logError("getAvailableTables", error);
-      throw new Error("Failed to fetch available tables");
+      throw new Error(
+        this.formatOperationError("Failed to fetch available tables", error),
+      );
     }
   }
 
@@ -281,7 +307,9 @@ export class TablesService {
       };
     } catch (error) {
       this.logError("getTableStats", error);
-      throw new Error("Failed to fetch table statistics");
+      throw new Error(
+        this.formatOperationError("Failed to fetch table statistics", error),
+      );
     }
   }
 
@@ -294,7 +322,9 @@ export class TablesService {
       return table;
     } catch (error) {
       this.logError("getTableByQRCode", error);
-      throw new Error("Failed to fetch table by QR code");
+      throw new Error(
+        this.formatOperationError("Failed to fetch table by QR code", error),
+      );
     }
   }
 

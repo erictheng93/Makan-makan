@@ -292,6 +292,7 @@ describe("useAuthStore", () => {
       {
         withCredentials: true,
         _retry: true,
+        _skipErrorHandler: true,
       },
     );
     expect(store.token).toBe("new-token");
