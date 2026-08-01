@@ -24,6 +24,7 @@ import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import { OrderService } from "./order";
 import { CustomerWebPushService } from "./CustomerWebPushService";
 import { assertWaitingTransition } from "./ticket-primitives";
+import { DEFAULT_TABLE_OCCUPANCY_MS } from "./table-state";
 import {
   businessDateFromUnixMsSql,
   businessDateSql,
@@ -32,8 +33,6 @@ import { v7 as uuidv7 } from "uuid";
 
 /** Call timeout: 5 minutes */
 const CALL_TIMEOUT_MS = 5 * 60 * 1000;
-/** Default table occupancy estimate: 90 minutes */
-const DEFAULT_OCCUPANCY_MS = 90 * 60 * 1000;
 /** Default turnover estimate when no data: 45 minutes */
 const DEFAULT_TURNOVER_MINUTES = 45;
 /** Default wait estimate on error: 30 minutes */
@@ -623,8 +622,15 @@ export class WaitingListService extends BaseService {
         WHERE ${restaurantTables.id} = ${request.tableId}
           AND ${restaurantTables.restaurantId} = ${entry.restaurantId}
           AND ${restaurantTables.isActive} = 1
-          AND ${restaurantTables.isReservable} = 1
           AND ${restaurantTables.isOccupied} = 0
+          AND NOT EXISTS (
+            SELECT 1
+            FROM ${waitingList}
+            WHERE ${waitingList.restaurantId} = ${entry.restaurantId}
+              AND ${waitingList.tableId} = ${restaurantTables.id}
+              AND ${waitingList.id} != ${id}
+              AND ${waitingList.status} IN ('called', 'confirmed')
+          )
       `);
 
       if (!table) {
@@ -926,9 +932,15 @@ export class WaitingListService extends BaseService {
       FROM ${restaurantTables}
       WHERE ${restaurantTables.restaurantId} = ${restaurantId}
         AND ${restaurantTables.isActive} = 1
-        AND ${restaurantTables.isReservable} = 1
         AND ${restaurantTables.isOccupied} = 0
         AND ${restaurantTables.capacity} >= ${partySize}
+        AND NOT EXISTS (
+          SELECT 1
+          FROM ${waitingList}
+          WHERE ${waitingList.restaurantId} = ${restaurantId}
+            AND ${waitingList.tableId} = ${restaurantTables.id}
+            AND ${waitingList.status} IN ('called', 'confirmed')
+        )
       ORDER BY ${restaurantTables.capacity} ASC, ${restaurantTables.id} ASC
       LIMIT 1
     `);
@@ -1423,7 +1435,7 @@ export class WaitingListService extends BaseService {
         .set({
           isOccupied: true,
           occupiedAt: now,
-          estimatedFreeAt: new Date(now.getTime() + DEFAULT_OCCUPANCY_MS),
+          estimatedFreeAt: new Date(now.getTime() + DEFAULT_TABLE_OCCUPANCY_MS),
           updatedAt: now,
         })
         .where(sql`${restaurantTables.id} = ${tableId}`);

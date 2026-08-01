@@ -5,6 +5,7 @@ import { reservations } from "../schema/reservations";
 import type { NewReservation } from "../schema/reservations";
 import { tables } from "../schema/tables";
 import { orders } from "../schema/orders";
+import { DEFAULT_TABLE_OCCUPANCY_MS } from "./table-state";
 import {
   ReservationNotificationService,
   type ReservationNotificationType,
@@ -72,6 +73,19 @@ const getMutationChanges = (result: unknown): number => {
   return typeof meta?.changes === "number" ? meta.changes : 0;
 };
 
+const DEFAULT_RESERVATION_DURATION_MINUTES = 90;
+
+const timeToMinutes = (time?: string): number | null => {
+  const match = time?.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+type ReservationTableAssignmentRequest = TableAssignmentRequest & {
+  reservationDate?: string;
+  durationMinutes?: number;
+};
+
 export type ReservationServiceOptions = CloudflareEnv & {
   reservationNotifier?: ReservationNotifier;
 };
@@ -122,7 +136,10 @@ export class ReservationService extends BaseService {
       const tableAssignment = await this.assignTable({
         restaurantId: data.restaurantId,
         partySize: data.partySize,
+        reservationDate: data.reservationDate,
         reservationTime: data.reservationTime,
+        durationMinutes:
+          data.durationMinutes ?? DEFAULT_RESERVATION_DURATION_MINUTES,
         specialRequests: data.specialRequests,
       });
 
@@ -157,7 +174,8 @@ export class ReservationService extends BaseService {
         partySize: data.partySize,
         reservationDate: data.reservationDate,
         reservationTime: data.reservationTime,
-        durationMinutes: data.durationMinutes || 90,
+        durationMinutes:
+          data.durationMinutes ?? DEFAULT_RESERVATION_DURATION_MINUTES,
         tableId: tableAssignment.tableId,
         specialRequests: data.specialRequests,
         status: "pending" as ReservationStatus,
@@ -824,10 +842,20 @@ export class ReservationService extends BaseService {
    * 智能桌位分配
    */
   async assignTable(
-    request: TableAssignmentRequest,
+    request: ReservationTableAssignmentRequest,
   ): Promise<TableAssignmentResult | null> {
     try {
-      const { restaurantId, partySize, specialRequests } = request;
+      const {
+        restaurantId,
+        partySize,
+        reservationDate,
+        reservationTime,
+        durationMinutes = DEFAULT_RESERVATION_DURATION_MINUTES,
+        specialRequests,
+      } = request;
+      const requestedStart = timeToMinutes(reservationTime);
+      const requestedEnd =
+        requestedStart === null ? null : requestedStart + durationMinutes;
 
       // 1. 查詢可用桌位
       const availableTables = (await this.db.all(sql`
@@ -851,6 +879,29 @@ export class ReservationService extends BaseService {
           AND ${tables.isReservable} = 1
           AND ${tables.isOccupied} = 0
           AND ${tables.capacity} >= ${partySize}
+          ${
+            reservationDate && requestedStart !== null && requestedEnd !== null
+              ? sql`
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM ${reservations}
+                  WHERE ${reservations.restaurantId} = ${restaurantId}
+                    AND ${reservations.tableId} = ${tables.id}
+                    AND ${reservations.reservationDate} = ${reservationDate}
+                    AND ${reservations.status} IN ('pending', 'confirmed', 'arrived', 'seated')
+                    AND (
+                      CAST(substr(${reservations.reservationTime}, 1, 2) AS INTEGER) * 60
+                      + CAST(substr(${reservations.reservationTime}, 4, 2) AS INTEGER)
+                    ) < ${requestedEnd}
+                    AND (
+                      CAST(substr(${reservations.reservationTime}, 1, 2) AS INTEGER) * 60
+                      + CAST(substr(${reservations.reservationTime}, 4, 2) AS INTEGER)
+                      + ${reservations.durationMinutes}
+                    ) > ${requestedStart}
+                )
+              `
+              : sql``
+          }
       `)) as Array<{
         id: string;
         number: string;
@@ -1222,7 +1273,7 @@ export class ReservationService extends BaseService {
         .set({
           isOccupied: true,
           occupiedAt: now,
-          estimatedFreeAt: new Date(now.getTime() + 90 * 60 * 1000),
+          estimatedFreeAt: new Date(now.getTime() + DEFAULT_TABLE_OCCUPANCY_MS),
           updatedAt: now,
         })
         .where(eq(tables.id, tableId));

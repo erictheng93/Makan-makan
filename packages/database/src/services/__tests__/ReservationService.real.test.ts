@@ -25,7 +25,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "../../testing/create-test-database";
-import { ReservationStatus } from "@makanmakan/shared-types";
+import { ReservationStatus, WaitingStatus } from "@makanmakan/shared-types";
 import { ReservationService } from "../ReservationService";
 import { WaitingListService } from "../WaitingListService";
 import type { CloudflareEnv } from "../base";
@@ -154,6 +154,42 @@ async function seedTable(
       opts.isOccupied ?? 0,
       opts.isActive ?? 1,
       opts.isReservable ?? 1,
+      now,
+      now,
+    )
+    .run();
+}
+
+async function seedWaitingEntry(
+  db: TestDatabase,
+  id: string,
+  opts: {
+    restaurantId?: string;
+    customerPhone?: string;
+    partySize?: number;
+    status?: string;
+    tableId?: number | null;
+    queueNumber?: number;
+  } = {},
+): Promise<void> {
+  const now = Date.now();
+  await db.db
+    .prepare(
+      `INSERT INTO waiting_list
+         (id, restaurant_id, customer_name, customer_phone, party_size,
+          queue_number, queue_date, priority, status, table_id,
+          created_at, updated_at)
+       VALUES (?, ?, '候位客人', ?, ?, ?, '2026-08-01', 0, ?, ?, ?, ?)`,
+    )
+    .bind(
+      id,
+      opts.restaurantId ?? RESTAURANT_ID,
+      opts.customerPhone ??
+        `0912${String(opts.queueNumber ?? 1).padStart(6, "0")}`,
+      opts.partySize ?? 2,
+      opts.queueNumber ?? 1,
+      opts.status ?? WaitingStatus.WAITING,
+      opts.tableId ?? null,
       now,
       now,
     )
@@ -596,6 +632,38 @@ describe("ReservationService capacity accounting — real D1", () => {
     });
   });
 
+  it("does not assign the same table to overlapping reservations", async () => {
+    await seedTable(testDb, 90, { capacity: 2 });
+    await seedTable(testDb, 91, { capacity: 2 });
+    await seedSlot(testDb, "slot-double-book", {
+      date: "2026-08-03",
+      maxCapacity: 4,
+      maxTables: 2,
+    });
+
+    const first = await service.createReservation({
+      restaurantId: RESTAURANT_ID,
+      customerName: "王小明",
+      customerPhone: "0912345678",
+      partySize: 2,
+      reservationDate: "2026-08-03",
+      reservationTime: "18:30",
+      durationMinutes: 90,
+    });
+    const second = await service.createReservation({
+      restaurantId: RESTAURANT_ID,
+      customerName: "陳小華",
+      customerPhone: "0923456789",
+      partySize: 2,
+      reservationDate: "2026-08-03",
+      reservationTime: "18:30",
+      durationMinutes: 90,
+    });
+
+    expect(first.tableId).toBe(90);
+    expect(second.tableId).toBe(91);
+  });
+
   it("finds an available waiting-list table on the fresh schema", async () => {
     await seedTable(testDb, 20, { number: "A1", capacity: 2 });
     await seedTable(testDb, 21, { number: "A2", capacity: 4 });
@@ -610,6 +678,52 @@ describe("ReservationService capacity accounting — real D1", () => {
       expect.objectContaining({
         tableId: 21,
         tableNumber: "A2",
+      }),
+    );
+  });
+
+  it("does not assign a waiting-list table already held by another active ticket", async () => {
+    await seedTable(testDb, 30, { number: "B1", capacity: 2 });
+    await seedTable(testDb, 31, { number: "B2", capacity: 2 });
+    await seedWaitingEntry(testDb, "wait-held-a", {
+      customerPhone: "0912000001",
+      queueNumber: 1,
+    });
+    await seedWaitingEntry(testDb, "wait-held-b", {
+      customerPhone: "0912000002",
+      queueNumber: 2,
+    });
+    const waitingService = new WaitingListService(testDb.db, {
+      JWT_SECRET: "test",
+      NODE_ENV: "test",
+    });
+
+    await waitingService.callWaiting("wait-held-a", { tableId: 30 });
+
+    const next = await waitingService.findAvailableTable(RESTAURANT_ID, 2);
+    expect(next).toEqual(expect.objectContaining({ tableId: 31 }));
+    await expect(
+      waitingService.callWaiting("wait-held-b", { tableId: 30 }),
+    ).rejects.toThrow("桌位不可用");
+  });
+
+  it("allows waiting-list assignment to walk-in-only tables", async () => {
+    await seedTable(testDb, 40, {
+      number: "BAR1",
+      capacity: 2,
+      isReservable: 0,
+    });
+    const waitingService = new WaitingListService(testDb.db, {
+      JWT_SECRET: "test",
+      NODE_ENV: "test",
+    });
+
+    const result = await waitingService.findAvailableTable(RESTAURANT_ID, 2);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        tableId: 40,
+        tableNumber: "BAR1",
       }),
     );
   });
