@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  acceptSwapRequestSchema,
   adminClockSchema,
   approveSwapRequestSchema,
   attendanceReportQuerySchema,
@@ -178,9 +177,6 @@ describe("scheduling validation", () => {
       isOpenRequest: false,
     });
 
-    expect(acceptSwapRequestSchema.parse({ employeeId: 42 })).toEqual({
-      employeeId: "42",
-    });
     // The approver is now taken from the authenticated caller, so a
     // managerId in the body is not a field the schema knows — it is
     // dropped rather than trusted. Approval carries no body fields at all.

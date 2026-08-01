@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
@@ -469,6 +477,38 @@ describe("SchedulingService tenant scoping", () => {
     // In-scope approval still works.
     const approved = await svc.approveSwapRequest(200, ownerId, "sched-rest");
     expect(approved.status).toBe("approved");
+  });
+
+  it("refuses swap request writes when a stale read bypasses tenant scoping", async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO schedule_swap_requests
+           (id, restaurant_id, requester_employee_id, requester_schedule_id,
+            target_employee_id, target_schedule_id, request_type, reason,
+            urgency, status, created_at_ms, updated_at_ms)
+         VALUES
+           (201, 'sched-rest', '${employeeId}', 70, NULL, NULL, 'drop',
+            'test reason', 'normal', 'pending', 1735689600000, 1735689600000)`,
+      )
+      .run();
+    const svc = service();
+    const request = await svc.getSwapRequest(201, "sched-rest");
+    vi.spyOn(svc, "getSwapRequest").mockResolvedValue(request);
+
+    await expect(
+      svc.approveSwapRequest(201, outsiderId, "other-rest"),
+    ).rejects.toThrow(/Swap request not found/);
+    await expect(
+      svc.rejectSwapRequest(201, outsiderId, "Not authorized", "other-rest"),
+    ).rejects.toThrow(/Failed to reject swap request/);
+    await expect(
+      svc.cancelSwapRequest(201, employeeId, "other-rest"),
+    ).rejects.toThrow(/Failed to cancel swap request/);
+
+    const row = await testDb.db
+      .prepare("SELECT status FROM schedule_swap_requests WHERE id = 201")
+      .first<{ status: string }>();
+    expect(row?.status).toBe("pending");
   });
 });
 

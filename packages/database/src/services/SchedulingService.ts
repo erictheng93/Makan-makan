@@ -1625,7 +1625,7 @@ export class SchedulingService extends BaseService {
         approvedAt: now,
         updatedAt: now,
       })
-      .where(eq(scheduleSwapRequests.id, requestId))
+      .where(this.swapRequestWhere(requestId, restaurantId))
       .returning() as BatchItem<"sqlite">;
 
     // Atomic batch: schedule reassignment first, approval last.
@@ -1793,7 +1793,7 @@ export class SchedulingService extends BaseService {
         rejectionReason: reason,
         updatedAt: new Date(),
       })
-      .where(eq(scheduleSwapRequests.id, requestId))
+      .where(this.swapRequestWhere(requestId, restaurantId))
       .returning();
 
     if (!updated) {
@@ -1876,7 +1876,7 @@ export class SchedulingService extends BaseService {
         status: "cancelled",
         updatedAt: new Date(),
       })
-      .where(eq(scheduleSwapRequests.id, requestId))
+      .where(this.swapRequestWhere(requestId, restaurantId))
       .returning();
 
     if (!updated) {

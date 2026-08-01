@@ -223,10 +223,6 @@ export const createSwapRequestSchema = z.object({
   expiresAt: z.number().optional().nullable(),
 });
 
-export const acceptSwapRequestSchema = z.object({
-  employeeId: idString,
-});
-
 export const approveSwapRequestSchema = z.object({});
 
 export const rejectSwapRequestSchema = z.object({
@@ -435,7 +431,6 @@ export const schedulingSchemas = {
 
   // Swap Requests
   createSwapRequest: createSwapRequestSchema,
-  acceptSwapRequest: acceptSwapRequestSchema,
   approveSwapRequest: approveSwapRequestSchema,
   rejectSwapRequest: rejectSwapRequestSchema,
 
