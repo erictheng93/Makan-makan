@@ -1264,12 +1264,12 @@
                 class="w-64 h-64 bg-white border-2 border-gray-200 rounded-lg p-4 flex items-center justify-center"
               >
                 <div
-                  v-if="shopQR.qrCodeImageUrl"
+                  v-if="shopQrPreviewUrl"
                   class="w-full h-full flex items-center justify-center"
                 >
                   <img
-                    :src="shopQR.qrCodeImageUrl"
-                    alt="Shop QR Code"
+                    :src="shopQrPreviewUrl"
+                    :alt="t('settings.qrcode.previewAlt')"
                     class="max-w-full max-h-full"
                   />
                 </div>
@@ -1362,6 +1362,7 @@
               <!-- 操作按鈕 -->
               <div class="flex flex-wrap gap-3 pt-2">
                 <button
+                  data-testid="shop-qr-download"
                   class="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
                   @click="downloadQRCode"
                 >
@@ -1380,6 +1381,29 @@
                       />
                     </svg>
                     {{ t("settings.qrcode.downloadQR") }}
+                  </span>
+                </button>
+
+                <button
+                  data-testid="shop-qr-print"
+                  class="px-4 py-2 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                  @click="printShopQRCode"
+                >
+                  <span class="flex items-center">
+                    <svg
+                      class="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-12 0v4h12v-4H8z"
+                      />
+                    </svg>
+                    {{ t("settings.qrcode.printQR") }}
                   </span>
                 </button>
 
@@ -1794,6 +1818,7 @@ import {
 import { filterMarketJoinRequestOptions } from "@/utils/marketJoinRequestOptions";
 import { formatMarketMembershipLocation } from "@/utils/marketMembershipDisplay";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
+import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
 import type { CurrencyCode } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
@@ -1850,6 +1875,11 @@ const shopQR = reactive({
     requirePhone: true,
   },
 });
+
+const generatedShopQrDataUrl = ref("");
+const shopQrPreviewUrl = computed(
+  () => shopQR.qrCodeImageUrl || generatedShopQrDataUrl.value,
+);
 
 const isGeneratingQR = ref(false);
 const isRegeneratingQR = ref(false);
@@ -1986,6 +2016,23 @@ watch(
 watch(
   () => route.query.section,
   () => focusRequestedSection(),
+);
+
+watch(
+  () => [shopQR.qrCode, shopQR.qrCodeImageUrl] as const,
+  async ([qrCode, qrCodeImageUrl]) => {
+    if (!qrCode || qrCodeImageUrl) {
+      generatedShopQrDataUrl.value = "";
+      return;
+    }
+
+    try {
+      generatedShopQrDataUrl.value = await toPrintableDataUrl(qrCode);
+    } catch (error) {
+      console.error("Failed to prepare shop QR image:", error);
+      generatedShopQrDataUrl.value = "";
+    }
+  },
 );
 
 async function focusRequestedSection() {
@@ -2479,14 +2526,43 @@ const copyQRCode = () => {
   }
 };
 
-const downloadQRCode = () => {
-  if (shopQR.qrCodeImageUrl) {
+const resolveShopQRCodeDataUrl = async () => {
+  if (shopQR.qrCodeImageUrl) return shopQR.qrCodeImageUrl;
+  if (generatedShopQrDataUrl.value) return generatedShopQrDataUrl.value;
+  if (!shopQR.qrCode) return "";
+
+  generatedShopQrDataUrl.value = await toPrintableDataUrl(shopQR.qrCode);
+  return generatedShopQrDataUrl.value;
+};
+
+const downloadQRCode = async () => {
+  try {
+    const dataUrl = await resolveShopQRCodeDataUrl();
+    if (!dataUrl) {
+      toast.error(t("settings.alerts.downloadFailed"));
+      return;
+    }
+
     const link = document.createElement("a");
-    link.href = shopQR.qrCodeImageUrl;
+    link.href = dataUrl;
     link.download = `shop-qr-${shopQR.qrCode}.png`;
     link.click();
-  } else {
+  } catch (error) {
+    console.error("Failed to download shop QR:", error);
     toast.error(t("settings.alerts.downloadFailed"));
+  }
+};
+
+const printShopQRCode = async () => {
+  try {
+    const dataUrl = await resolveShopQRCodeDataUrl();
+    const label = t("settings.qrcode.printTitle");
+    if (!dataUrl || !printQRCodeSheet(label, [{ label, dataUrl }])) {
+      toast.error(t("settings.alerts.printFailed"));
+    }
+  } catch (error) {
+    console.error("Failed to print shop QR:", error);
+    toast.error(t("settings.alerts.printFailed"));
   }
 };
 

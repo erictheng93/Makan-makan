@@ -2282,6 +2282,9 @@ const zhCN: Messages = {
         "顾客扫描此 QR Code 后将进入店家点餐流程，无需选择桌号。订单会以手机号码后3位作为识别。",
       copy: "复制",
       downloadQR: "下载 QR Code",
+      printQR: "打印 QR Code",
+      printTitle: "店家 QR Code",
+      previewAlt: "店家 QR Code 预览",
       regenerate: "重新生成",
       regenerating: "重新生成中...",
       warning: "注意事项",
@@ -2335,6 +2338,7 @@ const zhCN: Messages = {
       regenerateFailed: "重新生成失败，请稍后再试",
       copied: "已复制到剪贴板",
       downloadFailed: "无法下载 QR Code",
+      printFailed: "无法打印 QR Code",
     },
     confirms: {
       resetDefaults: "确定要将所有设置重置为默认值吗？此操作无法恢复。",

@@ -2205,6 +2205,9 @@ const jaJP: Messages = {
         "お客様がこのQRコードをスキャンすると、テーブルを選択せずにショップ注文フローに入ります。注文は電話番号の下3桁で識別されます。",
       copy: "コピー",
       downloadQR: "QRコードをダウンロード",
+      printQR: "QRコードを印刷",
+      printTitle: "店舗 QR コード",
+      previewAlt: "店舗 QR コードのプレビュー",
       regenerate: "再生成",
       regenerating: "再生成中...",
       warning: "重要な注意事項",
@@ -2260,6 +2263,7 @@ const jaJP: Messages = {
       regenerateFailed: "再生成に失敗しました。後でもう一度お試しください",
       copied: "クリップボードにコピーしました",
       downloadFailed: "QRコードをダウンロードできません",
+      printFailed: "QRコードを印刷できません",
     },
     confirms: {
       resetDefaults:

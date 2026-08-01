@@ -82,6 +82,16 @@ vi.mock("@/composables/useCurrency", () => ({
   setRestaurantCurrency: vi.fn(),
 }));
 
+const toPrintableDataUrl = vi.hoisted(() =>
+  vi.fn(async () => "data:image/png;base64,c2hvcA=="),
+);
+const printQRCodeSheet = vi.hoisted(() => vi.fn(() => true));
+
+vi.mock("@/utils/qrPrintSheet", () => ({
+  toPrintableDataUrl,
+  printQRCodeSheet,
+}));
+
 describe("SettingsView market join requests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -201,5 +211,97 @@ describe("SettingsView market join requests", () => {
     expect(marketsService.listJoinRequests).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(wrapper.text()).toContain("settings.markets.requestStatus.pending");
+  });
+});
+
+describe("SettingsView shop QR management", () => {
+  const shopQrCode = "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useAuthStore).mockReturnValue({
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useRoute).mockReturnValue({
+      query: { tab: "qrcode" },
+    } as unknown as ReturnType<typeof useRoute>);
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/qr/shop") {
+        return {
+          data: {
+            data: {
+              enabled: true,
+              qrCode: shopQrCode,
+              qrCodeImageUrl: null,
+              version: 1,
+            },
+          },
+        };
+      }
+      if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1") {
+        return { data: { data: { name: "雞排攤" } } };
+      }
+      if (
+        url ===
+        "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/contact-profile"
+      ) {
+        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+      }
+      if (
+        url ===
+        "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/service-items"
+      ) {
+        return { data: { data: [] } };
+      }
+      if (url === "/service-bookings/slots") {
+        return { data: { data: { slots: [] } } };
+      }
+      return { data: { data: {} } };
+    });
+    vi.mocked(marketsService.listMarkets).mockResolvedValue([]);
+    vi.mocked(marketsService.listRestaurantMemberships).mockResolvedValue([]);
+    vi.mocked(marketsService.listJoinRequests).mockResolvedValue([]);
+  });
+
+  it("renders, downloads, and prints a shop QR even when the API image URL is null", async () => {
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    const wrapper = mount(SettingsView, {
+      global: {
+        stubs: {
+          IntegrationsSettings: true,
+          RestaurantServiceItemsManager: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(toPrintableDataUrl).toHaveBeenCalledWith(shopQrCode);
+    const fallbackImage = wrapper.get(
+      `img[src="data:image/png;base64,c2hvcA=="]`,
+    );
+    expect(fallbackImage.attributes("alt")).toBe("settings.qrcode.previewAlt");
+
+    await wrapper.get('[data-testid="shop-qr-download"]').trigger("click");
+    await flushPromises();
+
+    expect(anchorClick).toHaveBeenCalledOnce();
+    const anchor = anchorClick.mock.instances[0];
+    expect(anchor.download).toBe(`shop-qr-${shopQrCode}.png`);
+    expect(anchor.href).toBe("data:image/png;base64,c2hvcA==");
+
+    await wrapper.get('[data-testid="shop-qr-print"]').trigger("click");
+    await flushPromises();
+
+    expect(printQRCodeSheet).toHaveBeenCalledWith(
+      "settings.qrcode.printTitle",
+      [
+        {
+          label: "settings.qrcode.printTitle",
+          dataUrl: "data:image/png;base64,c2hvcA==",
+        },
+      ],
+    );
   });
 });

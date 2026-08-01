@@ -2208,6 +2208,9 @@ const idID: Messages = {
         "Pelanggan memindai kode QR ini untuk masuk ke alur pemesanan toko tanpa memilih meja. Pesanan diidentifikasi dengan 3 digit terakhir nomor telepon.",
       copy: "Salin",
       downloadQR: "Unduh Kode QR",
+      printQR: "Cetak Kode QR",
+      printTitle: "Kode QR Toko",
+      previewAlt: "Pratinjau Kode QR toko",
       regenerate: "Buat Ulang",
       regenerating: "Membuat ulang...",
       warning: "Catatan Penting",
@@ -2262,6 +2265,7 @@ const idID: Messages = {
       regenerateFailed: "Pembuatan ulang gagal, silakan coba lagi nanti",
       copied: "Disalin ke clipboard",
       downloadFailed: "Tidak dapat mengunduh kode QR",
+      printFailed: "Tidak dapat mencetak kode QR",
     },
     confirms: {
       resetDefaults:

@@ -2201,6 +2201,9 @@ const viVN: Messages = {
         "Khách quét mã QR này để vào quy trình đặt hàng cửa hàng mà không cần chọn bàn. Đơn hàng được nhận dạng bằng 3 số cuối điện thoại.",
       copy: "Sao chép",
       downloadQR: "Tải mã QR",
+      printQR: "In mã QR",
+      printTitle: "Mã QR cửa hàng",
+      previewAlt: "Xem trước mã QR cửa hàng",
       regenerate: "Tạo lại",
       regenerating: "Đang tạo lại...",
       warning: "Lưu ý quan trọng",
@@ -2254,6 +2257,7 @@ const viVN: Messages = {
       regenerateFailed: "Tạo lại thất bại, vui lòng thử lại sau",
       copied: "Đã sao chép vào clipboard",
       downloadFailed: "Không thể tải mã QR",
+      printFailed: "Không thể in mã QR",
     },
     confirms: {
       resetDefaults:

@@ -2438,6 +2438,9 @@ const zhTWCore = {
         "顧客掃描此 QR Code 後將進入店家點餐流程，無需選擇桌號。訂單會以手機號碼後3位作為識別。",
       copy: "複製",
       downloadQR: "下載 QR Code",
+      printQR: "列印 QR Code",
+      printTitle: "店家 QR Code",
+      previewAlt: "店家 QR Code 預覽",
       regenerate: "重新生成",
       regenerating: "重新生成中...",
       warning: "注意事項",
@@ -2582,6 +2585,7 @@ const zhTWCore = {
       regenerateFailed: "重新生成失敗，請稍後再試",
       copied: "已複製到剪貼簿",
       downloadFailed: "無法下載 QR Code",
+      printFailed: "無法列印 QR Code",
     },
     confirms: {
       resetDefaults: "確定要將所有設定重置為預設值嗎？此操作無法恢復。",

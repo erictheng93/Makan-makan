@@ -2402,6 +2402,9 @@ const enUS: Messages = {
         "Customers scan this QR Code to enter the shop ordering flow without selecting a table. Orders are identified by the last 3 digits of the phone number.",
       copy: "Copy",
       downloadQR: "Download QR Code",
+      printQR: "Print QR Code",
+      printTitle: "Shop QR Code",
+      previewAlt: "Shop QR Code preview",
       regenerate: "Regenerate",
       regenerating: "Regenerating...",
       warning: "Important Note",
@@ -2554,6 +2557,7 @@ const enUS: Messages = {
       regenerateFailed: "Regeneration failed, please try again later",
       copied: "Copied to clipboard",
       downloadFailed: "Unable to download QR Code",
+      printFailed: "Unable to print QR Code",
     },
     confirms: {
       resetDefaults:
