@@ -295,6 +295,39 @@ describe("SeatService.createSeatsForTable", () => {
     expect(persistedTable?.occupiedBy).toBe("first");
   });
 
+  it("writes deletedAt when a table is soft-deleted", async () => {
+    const service = createTableService(testDb);
+
+    await expect(service.deleteTable(tableId)).resolves.toBe(true);
+
+    const persistedTable = await testDb.drizzle
+      .select({ isActive: tables.isActive, deletedAt: tables.deletedAt })
+      .from(tables)
+      .where(eq(tables.id, tableId))
+      .get();
+
+    expect(persistedTable?.isActive).toBe(false);
+    expect(persistedTable?.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("hides soft-deleted tables from admin list and detail lookups", async () => {
+    const service = createTableService(testDb);
+
+    await testDb.drizzle
+      .update(tables)
+      .set({
+        deletedAt: new Date("2026-07-30T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+      })
+      .where(eq(tables.id, tableId));
+
+    const listedTables = await service.getRestaurantTables(restaurantId);
+    await expect(service.getTableById(tableId)).resolves.toBeNull();
+
+    expect(listedTables.tables).toEqual([]);
+    expect(listedTables.total).toBe(0);
+  });
+
   it("increments usage once when an occupied seat is released", async () => {
     const service = createService(testDb);
     const [createdSeat] = await service.createSeatsForTable(tableId, 1);

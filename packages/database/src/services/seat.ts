@@ -63,7 +63,7 @@ export class SeatService extends BaseService {
           number: tables.number,
         })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -426,7 +426,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, seat.tableId))
+        .where(and(eq(tables.id, seat.tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -487,7 +487,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, seat.tableId))
+        .where(and(eq(tables.id, seat.tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -585,7 +585,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -685,7 +685,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
