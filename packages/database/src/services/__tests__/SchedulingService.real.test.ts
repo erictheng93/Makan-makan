@@ -554,6 +554,17 @@ describe("SchedulingService tenant scoping", () => {
       .prepare("SELECT status FROM schedule_swap_requests WHERE id = 201")
       .first<{ status: string }>();
     expect(row?.status).toBe("pending");
+
+    // Approval's roster writes are the reason this path matters, and they are
+    // a separate set of statements from the request update above. Request 201
+    // is a 'drop', so an unscoped roster write would cancel schedule 70 —
+    // and it would do so *before* the zero-row request update makes
+    // approveSwapRequest throw, because db.batch commits either way.
+    // Asserting only on schedule_swap_requests cannot see that.
+    const schedule = await testDb.db
+      .prepare("SELECT status FROM employee_schedules WHERE id = 70")
+      .first<{ status: string }>();
+    expect(schedule?.status).toBe("scheduled");
   });
 });
 
