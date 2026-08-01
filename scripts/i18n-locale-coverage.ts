@@ -4,11 +4,21 @@ import path from "node:path";
 
 import type { Messages } from "../apps/kitchen-display/src/i18n/types";
 
-type Locale = "zh-TW" | "en-US" | "zh-CN" | "vi-VN" | "ms-MY" | "id-ID";
+type Locale =
+  | "zh-TW"
+  | "en-US"
+  | "zh-CN"
+  | "ja-JP"
+  | "vi-VN"
+  | "ms-MY"
+  | "id-ID";
 
 interface AppLocaleConfig {
   name: string;
   localeDir: string;
+  sourceLocale?: Locale;
+  secondarySourceLocale?: Locale | null;
+  targetLocales?: Locale[];
 }
 
 interface LeafEntry {
@@ -17,6 +27,12 @@ interface LeafEntry {
 }
 
 const APPS: AppLocaleConfig[] = [
+  {
+    name: "admin-dashboard",
+    localeDir: "apps/admin-dashboard/src/i18n/locales",
+    secondarySourceLocale: null,
+    targetLocales: ["en-US", "zh-CN", "ja-JP", "vi-VN", "id-ID"],
+  },
   {
     name: "kitchen-display",
     localeDir: "apps/kitchen-display/src/i18n/locales",
@@ -34,6 +50,9 @@ const APPS: AppLocaleConfig[] = [
 const SOURCE_LOCALE: Locale = "zh-TW";
 const SECONDARY_SOURCE_LOCALE: Locale = "en-US";
 const TARGET_LOCALES: Locale[] = ["zh-CN", "vi-VN", "ms-MY", "id-ID"];
+const allTargetLocales = [
+  ...new Set(APPS.flatMap((app) => app.targetLocales ?? TARGET_LOCALES)),
+];
 
 const shouldExportHandoff = process.argv.includes("--export-handoff");
 const importHandoffArgIndex = process.argv.findIndex(
@@ -132,21 +151,42 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
-async function loadExistingHandoff(): Promise<Map<string, string[]>> {
+function sourceLocaleFor(app: AppLocaleConfig): Locale {
+  return app.sourceLocale ?? SOURCE_LOCALE;
+}
+
+function secondarySourceLocaleFor(app: AppLocaleConfig): Locale | undefined {
+  if (app.secondarySourceLocale === null) {
+    return undefined;
+  }
+
+  return app.secondarySourceLocale ?? SECONDARY_SOURCE_LOCALE;
+}
+
+function targetLocalesFor(app: AppLocaleConfig): Locale[] {
+  return app.targetLocales ?? TARGET_LOCALES;
+}
+
+async function loadExistingHandoff(): Promise<
+  Map<string, Map<Locale, string>>
+> {
   try {
     const existingCsv = await readFile(handoffPath, "utf8");
     const rows = parseCsv(existingCsv);
     const [header, ...body] = rows;
-    const localeStartIndex = header.indexOf(TARGET_LOCALES[0]);
-
-    if (localeStartIndex < 0) {
-      return new Map();
-    }
+    const localeIndexes = new Map(
+      allTargetLocales.map((locale) => [locale, header.indexOf(locale)]),
+    );
 
     return new Map(
       body.map((row) => [
         `${row[0]}.${row[1]}`,
-        TARGET_LOCALES.map((_, index) => row[localeStartIndex + index] ?? ""),
+        new Map(
+          allTargetLocales.map((locale) => {
+            const index = localeIndexes.get(locale) ?? -1;
+            return [locale, index >= 0 ? (row[index] ?? "") : ""];
+          }),
+        ),
       ]),
     );
   } catch (error) {
@@ -226,15 +266,17 @@ async function validateApprovedHandoff(
   const [header, ...body] = rows;
   const appIndex = header.indexOf("app");
   const keyIndex = header.indexOf("key");
-  const localeIndexes = TARGET_LOCALES.map((locale) => header.indexOf(locale));
+  const localeIndexes = new Map(
+    allTargetLocales.map((locale) => [locale, header.indexOf(locale)]),
+  );
 
   if (
     appIndex < 0 ||
     keyIndex < 0 ||
-    localeIndexes.some((index) => index < 0)
+    allTargetLocales.some((locale) => (localeIndexes.get(locale) ?? -1) < 0)
   ) {
     throw new Error(
-      "Handoff CSV must include app, key, zh-CN, vi-VN, ms-MY, and id-ID columns",
+      `Handoff CSV must include app, key, and ${allTargetLocales.join(", ")} columns`,
     );
   }
 
@@ -242,8 +284,9 @@ async function validateApprovedHandoff(
   const missingTranslations: string[] = [];
 
   for (const app of APPS) {
+    const targetLocales = targetLocalesFor(app);
     const sourceEntries = flattenMessages(
-      await loadMessages(app, SOURCE_LOCALE),
+      await loadMessages(app, sourceLocaleFor(app)),
     );
     const expectedKeys = new Set(sourceEntries.map((entry) => entry.key));
     const appRows = body.filter((row) => row[appIndex] === app.name);
@@ -259,19 +302,21 @@ async function validateApprovedHandoff(
         continue;
       }
 
-      for (const [index, locale] of TARGET_LOCALES.entries()) {
-        if (!row[localeIndexes[index]]?.trim()) {
+      for (const locale of targetLocales) {
+        const localeIndex = localeIndexes.get(locale) ?? -1;
+        if (!row[localeIndex]?.trim()) {
           missingTranslations.push(`${app.name}/${locale}/${key}`);
         }
       }
     }
 
-    for (const [index, locale] of TARGET_LOCALES.entries()) {
+    for (const locale of targetLocales) {
       const messages: Record<string, unknown> = {};
+      const localeIndex = localeIndexes.get(locale) ?? -1;
 
       for (const row of appRows) {
         const key = row[keyIndex];
-        const translation = row[localeIndexes[index]]?.trim();
+        const translation = row[localeIndex]?.trim();
 
         if (expectedKeys.has(key) && translation) {
           setNestedValue(messages, key, translation);
@@ -337,7 +382,8 @@ async function validateApprovalManifest(csvPath: string): Promise<void> {
 
   const appNames = APPS.map((app) => app.name);
   const missingApps = appNames.filter((app) => !manifest.apps?.includes(app));
-  const missingLocales = TARGET_LOCALES.filter(
+  const expectedLocales = [...new Set(APPS.flatMap(targetLocalesFor))];
+  const missingLocales = expectedLocales.filter(
     (locale) => !manifest.locales?.includes(locale),
   );
 
@@ -430,47 +476,48 @@ async function main(): Promise<void> {
 
   const existingHandoff = await loadExistingHandoff();
   const handoffRows = [
-    [
-      "app",
-      "key",
-      "zh-TW source",
-      "en-US source",
-      "zh-CN",
-      "vi-VN",
-      "ms-MY",
-      "id-ID",
-    ],
+    ["app", "key", "source text", "secondary source", ...allTargetLocales],
   ];
   let hasMissingKeys = false;
 
   for (const app of APPS) {
-    const sourceMessages = await loadMessages(app, SOURCE_LOCALE);
-    const englishMessages = await loadMessages(app, SECONDARY_SOURCE_LOCALE);
+    const sourceLocale = sourceLocaleFor(app);
+    const secondarySourceLocale = secondarySourceLocaleFor(app);
+    const targetLocales = targetLocalesFor(app);
+    const sourceMessages = await loadMessages(app, sourceLocale);
+    const secondaryMessages =
+      secondarySourceLocale && secondarySourceLocale !== sourceLocale
+        ? await loadMessages(app, secondarySourceLocale)
+        : undefined;
     const sourceEntries = flattenMessages(sourceMessages).sort((a, b) =>
       a.key.localeCompare(b.key),
     );
     const sourceMap = toEntryMap(sourceEntries);
-    const englishMap = toEntryMap(flattenMessages(englishMessages));
+    const secondaryMap = secondaryMessages
+      ? toEntryMap(flattenMessages(secondaryMessages))
+      : new Map<string, string>();
 
     for (const entry of sourceEntries) {
-      const existingTargets = existingHandoff.get(
-        `${app.name}.${entry.key}`,
-      ) ?? ["", "", "", ""];
+      const existingTargets = existingHandoff.get(`${app.name}.${entry.key}`);
 
       handoffRows.push([
         app.name,
         entry.key,
         entry.value,
-        englishMap.get(entry.key) ?? "",
-        ...existingTargets,
+        secondaryMap.get(entry.key) ?? "",
+        ...allTargetLocales.map((locale) =>
+          targetLocales.includes(locale)
+            ? (existingTargets?.get(locale) ?? "")
+            : "",
+        ),
       ]);
     }
 
     console.log(
-      `${app.name}: ${SOURCE_LOCALE} has ${sourceEntries.length} leaf keys`,
+      `${app.name}: ${sourceLocale} has ${sourceEntries.length} leaf keys`,
     );
 
-    for (const locale of TARGET_LOCALES) {
+    for (const locale of targetLocales) {
       const targetMessages = await loadMessages(app, locale);
       const targetEntries = flattenMessages(targetMessages);
       const targetKeys = new Set(targetEntries.map((entry) => entry.key));
@@ -482,7 +529,7 @@ async function main(): Promise<void> {
         hasMissingKeys = true;
         warning(
           `${app.name}/${locale} is missing ${missingKeys.length} of ` +
-            `${sourceEntries.length} ${SOURCE_LOCALE} leaf keys`,
+            `${sourceEntries.length} ${sourceLocale} leaf keys`,
         );
       } else {
         console.log(`${app.name}/${locale}: complete`);
