@@ -11,12 +11,14 @@ import { z } from "zod";
  * UUID schema - validates standard UUID format
  * Accepts UUID v1-v7 (8-4-4-4-12 hexadecimal format)
  */
-export const uuidSchema = z.uuid("Invalid UUID format");
+export const uuidSchema = z.string().uuid("Invalid UUID format");
 
 /**
  * Restaurant ID schema - validates UUID v7 format
  */
-export const restaurantIdSchema = z.uuid("Invalid restaurant ID format");
+export const restaurantIdSchema = z
+  .string()
+  .uuid("Invalid restaurant ID format");
 
 /**
  * Numeric ID schema - for entity IDs that remain as integers
@@ -39,7 +41,9 @@ export const numericIdParamSchema = z
 /**
  * Restaurant ID param schema - for route parameters
  */
-export const restaurantIdParamSchema = z.uuid("Invalid restaurant ID format");
+export const restaurantIdParamSchema = z
+  .string()
+  .uuid("Invalid restaurant ID format");
 
 /**
  * Optional restaurant ID schema
