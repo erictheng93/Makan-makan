@@ -28,6 +28,7 @@ export interface MonitoringEnv {
   CLOUDFLARE_API_TOKEN?: string;
   ANALYTICS_DATASET?: string;
   DB?: D1Database;
+  QR_SIGNING_KEY?: string;
 }
 
 /** Aggregation window for the API metrics reported by getMetrics(). */
@@ -412,6 +413,8 @@ export class MonitoringService {
         },
       };
 
+      const configHealth = this.getConfigHealthStatus(now);
+
       // "external" checks nothing and never has — no probe, no counter, no
       // dependency behind it. It reported "healthy" unconditionally, which on a
       // dashboard is a claim, not a placeholder: a reader has no way to tell it
@@ -429,6 +432,7 @@ export class MonitoringService {
         apiHealth.status,
         databaseHealth.status,
         cacheHealth.status,
+        configHealth.status,
       ];
       const overall = this.calculateOverallHealth(componentStatuses);
 
@@ -438,6 +442,7 @@ export class MonitoringService {
           api: apiHealth,
           database: databaseHealth,
           cache: cacheHealth,
+          config: configHealth,
           external: externalHealth,
         },
         uptime: now - this.getStartTime(),
@@ -957,6 +962,20 @@ export class MonitoringService {
       );
     }
     return issues;
+  }
+
+  private getConfigHealthStatus(now: number): ComponentHealth {
+    const issues: string[] = [];
+
+    if (!this.env?.QR_SIGNING_KEY || this.env.QR_SIGNING_KEY.length < 32) {
+      issues.push("QR_SIGNING_KEY must be set and at least 32 characters");
+    }
+
+    return {
+      status: issues.length > 0 ? "critical" : "healthy",
+      lastCheck: now,
+      issues,
+    };
   }
 
   /** Matches the no-data guard in getCacheHealthStatus so the two agree. */

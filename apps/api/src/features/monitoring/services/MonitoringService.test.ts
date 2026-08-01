@@ -33,6 +33,7 @@ function createKV() {
 
 /** Mirrors HEALTH_PROBE_TTL_MS in the service. */
 const HEALTH_PROBE_WINDOW_MS = 10_000;
+const VALID_QR_SIGNING_KEY = "test-qr-signing-key-with-32-plus-chars";
 
 describe("MonitoringService", () => {
   beforeEach(() => {
@@ -213,6 +214,7 @@ describe("MonitoringService", () => {
       DB: {
         prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })),
       } as never,
+      QR_SIGNING_KEY: VALID_QR_SIGNING_KEY,
     });
 
     const health = await service.getHealthStatus();
@@ -426,7 +428,10 @@ describe("MonitoringService", () => {
 
   it("reports healthy when both dependencies answer their probes", async () => {
     const { kv } = createKV();
-    const service = new MonitoringService(kv, { DB: healthyDb() });
+    const service = new MonitoringService(kv, {
+      DB: healthyDb(),
+      QR_SIGNING_KEY: VALID_QR_SIGNING_KEY,
+    });
 
     const healthy = await service.getHealthStatus();
     expect(healthy).toMatchObject({
@@ -743,6 +748,26 @@ describe("MonitoringService", () => {
 
     values.set("_alert_rules", "{bad-json");
     await expect(service.getAlertRules()).resolves.toEqual([]);
+  });
+
+  it("reports missing QR signing key as a critical configuration issue", async () => {
+    const { kv } = createKV();
+    const db = {
+      prepare: vi.fn(() => ({
+        first: vi.fn(async () => ({ ok: 1 })),
+      })),
+    } as any;
+    const service = new MonitoringService(kv, { DB: db });
+
+    const health = await service.getHealthStatus();
+
+    expect(health.overall).toBe("critical");
+    expect(health.components.config.status).toBe("critical");
+    expect(health.components.config.issues).toContain(
+      "QR_SIGNING_KEY must be set and at least 32 characters",
+    );
+    expect(health.components.database.status).toBe("healthy");
+    expect(health.components.cache.status).toBe("healthy");
   });
 
   it("exposes default rules and singleton factory behavior", () => {

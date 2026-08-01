@@ -93,6 +93,7 @@ export interface HealthStatus {
     api: ComponentHealth;
     database: ComponentHealth;
     cache: ComponentHealth;
+    config: ComponentHealth;
     external: ComponentHealth;
   };
   uptime: number;
