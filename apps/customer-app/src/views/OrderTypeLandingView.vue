@@ -38,126 +38,141 @@
           <h1 class="text-xl font-bold text-gray-900">
             {{ restaurant?.name }}
           </h1>
-          <p v-if="restaurant?.description" class="text-sm text-gray-500 mt-1">
-            {{ restaurant.description }}
+          <p v-if="restaurantDescription" class="text-sm text-gray-500 mt-1">
+            {{ restaurantDescription }}
           </p>
         </div>
 
-        <p class="text-sm font-semibold text-gray-500 mb-3">
-          {{ t("orderTypeLanding.selectMethod") }}
-        </p>
-        <div class="flex flex-col gap-3">
-          <!-- 內用 -->
-          <button
-            v-if="dineInEnabled"
-            :class="[
-              'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
-              selectedType === 'dine-in'
-                ? 'border-[#007AFF] bg-blue-50'
-                : 'border-gray-200 bg-white hover:border-gray-300',
-            ]"
-            @click="selectedType = 'dine-in'"
-          >
-            <span class="text-3xl">🍽️</span>
-            <div class="flex-1">
-              <div class="font-semibold text-gray-900">
-                {{ t("orderTypeLanding.dineIn") }}
-              </div>
-              <div class="text-xs text-gray-500">
-                {{ t("orderTypeLanding.dineInDesc") }}
-              </div>
-            </div>
-            <svg
-              v-if="selectedType === 'dine-in'"
-              class="w-5 h-5 text-[#007AFF]"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-
-          <!-- 外帶 -->
-          <button
-            v-if="takeawayEnabled"
-            :class="[
-              'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
-              selectedType === 'takeaway'
-                ? 'border-[#007AFF] bg-blue-50'
-                : 'border-gray-200 bg-white hover:border-gray-300',
-            ]"
-            @click="selectedType = 'takeaway'"
-          >
-            <span class="text-3xl">🛍️</span>
-            <div class="flex-1">
-              <div class="font-semibold text-gray-900">
-                {{ t("orderTypeLanding.takeaway") }}
-              </div>
-              <div class="text-xs text-gray-500">
-                {{ t("orderTypeLanding.takeawayDesc") }}
-              </div>
-            </div>
-            <svg
-              v-if="selectedType === 'takeaway'"
-              class="w-5 h-5 text-[#007AFF]"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-
-          <!-- 外送 -->
-          <button
-            v-if="deliveryEnabled"
-            :class="[
-              'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
-              selectedType === 'delivery'
-                ? 'border-[#007AFF] bg-blue-50'
-                : 'border-gray-200 bg-white hover:border-gray-300',
-            ]"
-            @click="selectedType = 'delivery'"
-          >
-            <span class="text-3xl">🛵</span>
-            <div class="flex-1">
-              <div class="font-semibold text-gray-900">
-                {{ t("orderTypeLanding.delivery") }}
-              </div>
-              <div class="text-xs text-gray-500">
-                {{ t("orderTypeLanding.deliveryDesc") }}
-              </div>
-            </div>
-            <svg
-              v-if="selectedType === 'delivery'"
-              class="w-5 h-5 text-[#007AFF]"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
+        <div
+          v-if="!hasFulfillmentMethods"
+          data-testid="order-type-empty-state"
+          class="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-6 text-center"
+        >
+          <h2 class="text-base font-semibold text-gray-900">
+            {{ t("orderTypeLanding.noMethodsTitle") }}
+          </h2>
+          <p class="mt-2 text-sm text-gray-500">
+            {{ t("orderTypeLanding.noMethodsDescription") }}
+          </p>
         </div>
 
-        <button
-          data-testid="continue-btn"
-          :disabled="!selectedType"
-          class="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-xl hover:bg-[#0066DD] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          @click="handleContinue"
-        >
-          {{ t("orderTypeLanding.continue") }}
-        </button>
+        <template v-else>
+          <p class="text-sm font-semibold text-gray-500 mb-3">
+            {{ t("orderTypeLanding.selectMethod") }}
+          </p>
+          <div class="flex flex-col gap-3">
+            <!-- 內用 -->
+            <button
+              v-if="dineInEnabled"
+              :class="[
+                'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
+                selectedType === 'dine-in'
+                  ? 'border-[#007AFF] bg-blue-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300',
+              ]"
+              @click="selectedType = 'dine-in'"
+            >
+              <span class="text-3xl">🍽️</span>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">
+                  {{ t("orderTypeLanding.dineIn") }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ t("orderTypeLanding.dineInDesc") }}
+                </div>
+              </div>
+              <svg
+                v-if="selectedType === 'dine-in'"
+                class="w-5 h-5 text-[#007AFF]"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+
+            <!-- 外帶 -->
+            <button
+              v-if="takeawayEnabled"
+              :class="[
+                'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
+                selectedType === 'takeaway'
+                  ? 'border-[#007AFF] bg-blue-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300',
+              ]"
+              @click="selectedType = 'takeaway'"
+            >
+              <span class="text-3xl">🛍️</span>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">
+                  {{ t("orderTypeLanding.takeaway") }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ t("orderTypeLanding.takeawayDesc") }}
+                </div>
+              </div>
+              <svg
+                v-if="selectedType === 'takeaway'"
+                class="w-5 h-5 text-[#007AFF]"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+
+            <!-- 外送 -->
+            <button
+              v-if="deliveryEnabled"
+              :class="[
+                'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
+                selectedType === 'delivery'
+                  ? 'border-[#007AFF] bg-blue-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300',
+              ]"
+              @click="selectedType = 'delivery'"
+            >
+              <span class="text-3xl">🛵</span>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">
+                  {{ t("orderTypeLanding.delivery") }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ t("orderTypeLanding.deliveryDesc") }}
+                </div>
+              </div>
+              <svg
+                v-if="selectedType === 'delivery'"
+                class="w-5 h-5 text-[#007AFF]"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <button
+            data-testid="continue-btn"
+            :disabled="!selectedType"
+            class="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-xl hover:bg-[#0066DD] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            @click="handleContinue"
+          >
+            {{ t("orderTypeLanding.continue") }}
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -195,6 +210,18 @@ const takeawayEnabled = computed(() => {
 
 const deliveryEnabled = computed(() => {
   return restaurant.value?.settings?.enableDelivery ?? false;
+});
+
+const hasFulfillmentMethods = computed(
+  () => dineInEnabled.value || takeawayEnabled.value || deliveryEnabled.value,
+);
+
+const restaurantDescription = computed(() => {
+  const description = restaurant.value?.description?.trim() ?? "";
+  if (description.startsWith("Provisioned from onboarding application ")) {
+    return "";
+  }
+  return description;
 });
 
 // Auto-select the first available option

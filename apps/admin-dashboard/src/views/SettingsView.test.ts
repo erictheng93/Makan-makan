@@ -304,4 +304,92 @@ describe("SettingsView shop QR management", () => {
       ],
     );
   });
+
+  it("does not show desktop notification controls on the QR Code tab", async () => {
+    const wrapper = mount(SettingsView, {
+      global: {
+        stubs: {
+          IntegrationsSettings: true,
+          RestaurantServiceItemsManager: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    const desktopCheckbox = wrapper
+      .findAll('input[type="checkbox"]')
+      .find((input) =>
+        input.element.parentElement?.parentElement?.textContent?.includes(
+          "settings.notifications.enableDesktop",
+        ),
+      );
+
+    expect(desktopCheckbox?.isVisible()).toBe(false);
+  });
+
+  it("blocks enabling shop mode until at least one fulfillment method is enabled", async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/qr/shop") {
+        return { data: { data: { enabled: false } } };
+      }
+      if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1") {
+        return {
+          data: {
+            data: {
+              name: "雞排攤",
+              supportsTakeaway: false,
+              settings: {
+                enableDineIn: false,
+                enableTakeaway: false,
+                enableDelivery: false,
+              },
+            },
+          },
+        };
+      }
+      if (
+        url ===
+        "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/contact-profile"
+      ) {
+        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+      }
+      if (
+        url ===
+        "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/service-items"
+      ) {
+        return { data: { data: [] } };
+      }
+      if (url === "/service-bookings/slots") {
+        return { data: { data: { slots: [] } } };
+      }
+      return { data: { data: {} } };
+    });
+    const wrapper = mount(SettingsView, {
+      global: {
+        stubs: {
+          IntegrationsSettings: true,
+          RestaurantServiceItemsManager: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    const shopModeCheckbox = wrapper
+      .findAll('input[type="checkbox"]')
+      .find((input) =>
+        input.element.parentElement?.parentElement?.textContent?.includes(
+          "settings.qrcode.enableShopMode",
+        ),
+      );
+    await shopModeCheckbox?.setValue(true);
+    await flushPromises();
+
+    expect(api.put).not.toHaveBeenCalledWith(
+      "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/shop-mode",
+      expect.anything(),
+    );
+    expect(toastError).toHaveBeenCalledWith(
+      "settings.alerts.fulfillmentRequired",
+    );
+  });
 });

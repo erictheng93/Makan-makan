@@ -739,6 +739,8 @@
     "takeawayDesc": "Nhận tại cửa hàng",
     "delivery": "Giao hàng Delivery",
     "deliveryDesc": "Giao đến địa chỉ của bạn",
+    "noMethodsTitle": "Chưa thể đặt món",
+    "noMethodsDescription": "Nhà hàng đang thiết lập các hình thức đặt món. Vui lòng thử lại sau hoặc liên hệ nhà hàng.",
     "continue": "Tiếp tục"
   },
   "group": {

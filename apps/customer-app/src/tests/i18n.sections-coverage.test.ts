@@ -1087,6 +1087,8 @@ describe("i18n Integration Tests", () => {
       "orderTypeLanding.takeawayDesc",
       "orderTypeLanding.delivery",
       "orderTypeLanding.deliveryDesc",
+      "orderTypeLanding.noMethodsTitle",
+      "orderTypeLanding.noMethodsDescription",
       "orderTypeLanding.continue",
     ];
 

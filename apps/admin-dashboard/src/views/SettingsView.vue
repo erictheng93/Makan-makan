@@ -1588,7 +1588,10 @@
     </div>
 
     <!-- 桌面通知 -->
-    <div class="bg-white rounded-lg shadow p-6">
+    <div
+      v-show="activeTab === 'notifications'"
+      class="bg-white rounded-lg shadow p-6"
+    >
       <h3 class="text-lg font-semibold text-gray-900 mb-4">
         {{ t("settings.notifications.desktopTitle") }}
       </h3>
@@ -2104,6 +2107,13 @@ const marketplaceReadinessItems = computed(() => {
   });
 });
 
+const canEnableShopMode = computed(
+  () =>
+    deliverySettings.enableDineIn ||
+    deliverySettings.enableTakeaway ||
+    deliverySettings.enableDelivery,
+);
+
 const selectedMarket = computed(() =>
   availableMarkets.value.find(
     (market) => market.id === marketJoinForm.marketId,
@@ -2423,6 +2433,11 @@ const handleToggleShopMode = async () => {
   try {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
+    if (shopQR.enabled && !canEnableShopMode.value) {
+      shopQR.enabled = false;
+      toast.error(t("settings.alerts.fulfillmentRequired"));
+      return;
+    }
     await api.put(`/restaurants/${restaurantId}/shop-mode`, {
       enabled: shopQR.enabled,
       settings: shopQR.settings,
@@ -2446,6 +2461,10 @@ const saveShopSettings = async () => {
     isSavingShopSettings.value = true;
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
+    if (shopQR.enabled && !canEnableShopMode.value) {
+      toast.error(t("settings.alerts.fulfillmentRequired"));
+      return;
+    }
     await api.put(`/restaurants/${restaurantId}/shop-mode`, {
       enabled: shopQR.enabled,
       settings: shopQR.settings,

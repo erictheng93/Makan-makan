@@ -2577,6 +2577,7 @@ const zhTWCore = {
       saveFailed: "儲存設定失敗，請稍後再試",
       shopModeEnabled: "店家模式已啟用",
       shopModeDisabled: "店家模式已停用",
+      fulfillmentRequired: "請至少啟用一種用餐方式後再啟用店家模式",
       operationFailed: "操作失敗，請稍後再試",
       settingsSaved: "設定已儲存",
       qrGenerated: "QR Code 已生成",

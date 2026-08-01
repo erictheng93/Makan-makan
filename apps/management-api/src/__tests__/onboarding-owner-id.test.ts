@@ -251,6 +251,25 @@ describe("onboarding platform owner provisioning", () => {
     expect(subscriptionRow?.values.trialEndsAt).toBeInstanceOf(Date);
   });
 
+  it("keeps internal provisioning notes out of the public restaurant description", async () => {
+    await createPlatformOwnerAccount(buildEnv())(
+      buildApplication(),
+      "tenant-1",
+    );
+
+    const restaurantRow = insertedRows.find(
+      (row) => row.table === "restaurants",
+    );
+    const subscriptionRow = insertedRows.find(
+      (row) => row.table === "shop_subscriptions",
+    );
+
+    expect(restaurantRow?.values.description).toBeNull();
+    expect(subscriptionRow?.values.notes).toContain(
+      "Provisioned from onboarding application APP-20260725-TEST0001",
+    );
+  });
+
   it("maps the application plan to the same tier TenantService uses", async () => {
     await createPlatformOwnerAccount(buildEnv())(
       buildApplication({ planId: "professional" }),

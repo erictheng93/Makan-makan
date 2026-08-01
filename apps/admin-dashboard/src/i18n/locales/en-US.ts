@@ -2549,6 +2549,8 @@ const enUS: Messages = {
       saveFailed: "Failed to save settings, please try again later",
       shopModeEnabled: "Shop mode enabled",
       shopModeDisabled: "Shop mode disabled",
+      fulfillmentRequired:
+        "Enable at least one order type before enabling shop mode",
       operationFailed: "Operation failed, please try again later",
       settingsSaved: "Settings saved",
       qrGenerated: "QR Code generated",

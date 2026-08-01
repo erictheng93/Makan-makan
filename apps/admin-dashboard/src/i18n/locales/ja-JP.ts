@@ -2255,6 +2255,8 @@ const jaJP: Messages = {
       saveFailed: "設定の保存に失敗しました。後でもう一度お試しください",
       shopModeEnabled: "ショップモードが有効化されました",
       shopModeDisabled: "ショップモードが無効化されました",
+      fulfillmentRequired:
+        "ショップモードを有効にする前に、注文タイプを少なくとも1つ有効にしてください",
       operationFailed: "操作に失敗しました。後でもう一度お試しください",
       settingsSaved: "設定が保存されました",
       qrGenerated: "QRコードが生成されました",

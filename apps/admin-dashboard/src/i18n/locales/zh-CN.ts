@@ -2330,6 +2330,7 @@ const zhCN: Messages = {
       saveFailed: "保存设置失败，请稍后再试",
       shopModeEnabled: "店家模式已启用",
       shopModeDisabled: "店家模式已停用",
+      fulfillmentRequired: "请至少启用一种用餐方式后再启用店家模式",
       operationFailed: "操作失败，请稍后再试",
       settingsSaved: "设置已保存",
       qrGenerated: "QR Code 已生成",

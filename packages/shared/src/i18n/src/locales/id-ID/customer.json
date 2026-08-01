@@ -739,6 +739,8 @@
     "takeawayDesc": "Ambil di toko",
     "delivery": "Pengiriman Delivery",
     "deliveryDesc": "Kirim ke alamat Anda",
+    "noMethodsTitle": "Pemesanan belum tersedia",
+    "noMethodsDescription": "Restoran ini masih menyiapkan jenis pesanan yang tersedia. Silakan coba lagi nanti atau hubungi restoran.",
     "continue": "Lanjutkan"
   },
   "group": {

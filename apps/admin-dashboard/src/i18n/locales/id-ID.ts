@@ -2257,6 +2257,8 @@ const idID: Messages = {
       saveFailed: "Gagal menyimpan pengaturan, silakan coba lagi nanti",
       shopModeEnabled: "Mode toko diaktifkan",
       shopModeDisabled: "Mode toko dinonaktifkan",
+      fulfillmentRequired:
+        "Aktifkan setidaknya satu jenis pesanan sebelum mengaktifkan mode toko",
       operationFailed: "Operasi gagal, silakan coba lagi nanti",
       settingsSaved: "Pengaturan disimpan",
       qrGenerated: "Kode QR dibuat",

@@ -348,7 +348,7 @@ export class RestaurantService extends BaseService {
       // 默认设置
       const defaultSettings = {
         displayName: restaurant.name,
-        instructions: "扫描 QR Code 开始点餐",
+        instructions: "掃描 QR Code 開始點餐",
         requirePhone: true,
       };
 
@@ -481,6 +481,12 @@ export class RestaurantService extends BaseService {
         throw new Error("Restaurant not found");
       }
 
+      if (enabled && !hasEnabledFulfillmentMethod(restaurant)) {
+        throw new Error(
+          "Shop mode requires at least one fulfillment method to be enabled",
+        );
+      }
+
       // 如果启用店家模式但没有 QR Code，先生成一个
       if (enabled && !restaurant.shopQrCode) {
         await this.generateShopQrCode(restaurantId);
@@ -529,7 +535,7 @@ export class RestaurantService extends BaseService {
         version: restaurant.shopQrVersion || 1,
         settings: restaurant.shopQrSettings || {
           displayName: restaurant.name,
-          instructions: "扫描 QR Code 开始点餐",
+          instructions: "掃描 QR Code 開始點餐",
           requirePhone: true,
         },
       };
@@ -598,4 +604,15 @@ export class RestaurantService extends BaseService {
       updatedAt: restaurant.updatedAt,
     } as Restaurant;
   }
+}
+
+function hasEnabledFulfillmentMethod(restaurant: Restaurant): boolean {
+  const settings = restaurant.settings ?? {};
+  return Boolean(
+    settings.enableDineIn ||
+    settings.enableTakeaway ||
+    settings.enableDelivery ||
+    restaurant.supportsTakeaway ||
+    restaurant.supportsDelivery,
+  );
 }

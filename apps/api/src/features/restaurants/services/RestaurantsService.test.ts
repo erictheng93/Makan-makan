@@ -644,6 +644,10 @@ describe("RestaurantsService", () => {
       version: 1,
       settings: { mode: "pickup" },
     });
+    mocks.dbService.getRestaurant.mockResolvedValue({
+      ...restaurant,
+      supportsTakeaway: true,
+    });
     mocks.dbService.verifyShopQrCode.mockResolvedValue({
       valid: true,
       restaurantId: "restaurant-1",
@@ -698,5 +702,28 @@ describe("RestaurantsService", () => {
       "restaurant-1",
       "https://cdn.example/qr.png",
     );
+  });
+
+  it("rejects enabling shop mode when no fulfillment methods are enabled", async () => {
+    mocks.dbService.getRestaurant.mockResolvedValue({
+      ...restaurant,
+      supportsTakeaway: false,
+      supportsDelivery: false,
+      settings: {
+        enableDineIn: false,
+        enableTakeaway: false,
+        enableDelivery: false,
+      },
+    });
+
+    await expect(
+      createService().updateShopMode("restaurant-1", true, {
+        mode: "pickup",
+      }),
+    ).rejects.toMatchObject({
+      code: "SHOP_MODE_REQUIRES_FULFILLMENT",
+      status: 400,
+    });
+    expect(mocks.dbService.updateShopMode).not.toHaveBeenCalled();
   });
 });

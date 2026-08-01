@@ -114,4 +114,30 @@ describe("OrderTypeLandingView", () => {
       },
     });
   });
+
+  it("shows an empty state when no fulfillment methods are enabled", async () => {
+    vi.mocked(menuApi.getRestaurant).mockResolvedValueOnce({
+      id: "restaurant-1",
+      name: "市場入口店",
+      description:
+        "Provisioned from onboarding application APP-20260727-4OG1RRGC; owner must complete the restaurant profile before publishing.",
+      settings: {
+        enableDineIn: false,
+        enableTakeaway: false,
+        enableDelivery: false,
+      },
+    } as never);
+
+    const wrapper = mount(OrderTypeLandingView, {
+      props: { restaurantId: "restaurant-1" },
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("orderTypeLanding.noMethodsTitle");
+    });
+
+    expect(wrapper.text()).toContain("orderTypeLanding.noMethodsDescription");
+    expect(wrapper.text()).not.toContain("Provisioned from onboarding");
+    expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(false);
+  });
 });

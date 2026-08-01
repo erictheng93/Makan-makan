@@ -18,6 +18,7 @@ import { KVCacheService, type CacheService } from "../../../core/cache";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
+import { ApiError, badRequest } from "../../../shared/utils/api-error";
 import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
 import { ManagementTenantClient } from "../../../services/managementTenantClient";
 import type {
@@ -1061,6 +1062,19 @@ export class RestaurantsService {
     try {
       this.logger.debug("Updating shop mode", { id, enabled, settings });
 
+      if (enabled) {
+        const restaurant = await this.getRestaurant(id);
+        if (!restaurant) {
+          throw badRequest("Restaurant not found", "RESTAURANT_NOT_FOUND");
+        }
+        if (!hasEnabledFulfillmentMethod(restaurant)) {
+          throw badRequest(
+            "Enable at least one fulfillment method before enabling shop mode",
+            "SHOP_MODE_REQUIRES_FULFILLMENT",
+          );
+        }
+      }
+
       await this.dbService.updateShopMode(id, enabled, settings);
 
       // Invalidate caches
@@ -1070,6 +1084,9 @@ export class RestaurantsService {
 
       this.logger.info("Shop mode updated successfully", { id, enabled });
     } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
       this.logger.error("Failed to update shop mode", error as Error, {
         id,
         enabled,
@@ -1113,4 +1130,15 @@ function removeEmptyChannels(channels: MessagingChannels): MessagingChannels {
       ([, value]) => typeof value === "string" && value.length > 0,
     ),
   ) as MessagingChannels;
+}
+
+function hasEnabledFulfillmentMethod(restaurant: Restaurant): boolean {
+  const settings = restaurant.settings ?? {};
+  return Boolean(
+    settings.enableDineIn ||
+    settings.enableTakeaway ||
+    settings.enableDelivery ||
+    restaurant.supportsTakeaway ||
+    restaurant.supportsDelivery,
+  );
 }

@@ -2249,6 +2249,8 @@ const viVN: Messages = {
       saveFailed: "Lưu cài đặt thất bại, vui lòng thử lại sau",
       shopModeEnabled: "Đã bật chế độ cửa hàng",
       shopModeDisabled: "Đã tắt chế độ cửa hàng",
+      fulfillmentRequired:
+        "Bật ít nhất một hình thức đặt món trước khi bật chế độ cửa hàng",
       operationFailed: "Thao tác thất bại, vui lòng thử lại sau",
       settingsSaved: "Đã lưu cài đặt",
       qrGenerated: "Đã tạo mã QR",

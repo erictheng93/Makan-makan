@@ -739,6 +739,8 @@
     "takeawayDesc": "Pick up at store",
     "delivery": "Delivery",
     "deliveryDesc": "Deliver to your address",
+    "noMethodsTitle": "Ordering is not available yet",
+    "noMethodsDescription": "This restaurant is still setting up its available order types. Please try again later or contact the restaurant.",
     "continue": "Continue"
   },
   "group": {

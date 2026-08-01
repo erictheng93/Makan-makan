@@ -739,6 +739,8 @@
     "takeawayDesc": "到店自取",
     "delivery": "外送 Delivery",
     "deliveryDesc": "送到指定地址",
+    "noMethodsTitle": "目前尚未開放點餐",
+    "noMethodsDescription": "店家正在設定可用的用餐方式，請稍後再試或洽詢店家。",
     "continue": "繼續"
   },
   "group": {

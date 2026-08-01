@@ -194,7 +194,7 @@
         </router-link>
 
         <router-link
-          to="/dashboard/tables"
+          to="/dashboard/seating"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Table class="w-8 h-8 text-primary-600 mb-2" />
@@ -204,7 +204,7 @@
         </router-link>
 
         <router-link
-          to="/dashboard/users"
+          to="/dashboard/employees"
           class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <Users class="w-8 h-8 text-primary-600 mb-2" />
@@ -234,7 +234,7 @@
         </router-link>
 
         <router-link
-          to="/dashboard/waiting"
+          to="/dashboard/seating"
           class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
         >
           <Clock class="w-8 h-8 text-purple-600 mb-2" />

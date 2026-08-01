@@ -601,7 +601,7 @@ export class OnboardingService {
           name: application.businessName,
           type: "onboarding",
           category: "restaurant",
-          description: `Provisioned from onboarding application ${application.id}; owner must complete the restaurant profile before publishing.`,
+          description: null,
           address: this.initialRestaurantAddress(application),
           district: this.initialRestaurantDistrict(application),
           city: "台中市",
