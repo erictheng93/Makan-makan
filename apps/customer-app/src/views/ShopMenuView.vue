@@ -859,12 +859,7 @@ const getItemsByCategory = (categoryId: number) => {
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim();
-    items = items.filter(
-      (item: MenuItem) =>
-        getLocalizedMenuName(item, currentLanguage?.value)
-          .toLowerCase()
-          .includes(query) || item.description?.toLowerCase().includes(query),
-    );
+    items = items.filter((item: MenuItem) => menuItemMatchesQuery(item, query));
   }
 
   return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder);

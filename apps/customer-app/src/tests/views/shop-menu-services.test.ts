@@ -607,6 +607,75 @@ describe("ShopMenuView service items", () => {
     );
   });
 
+  it("filters dish items by canonical and English names", async () => {
+    menuItemsFixture.items = [
+      {
+        id: 42,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        catalogType: "menu_item",
+        name: "Original Chicken",
+        nameEn: "Hainanese Chicken Rice",
+        price: 8000,
+        spiceLevel: 0,
+        sortOrder: 1,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: 43,
+        restaurantId: "restaurant-1",
+        categoryId: 10,
+        catalogType: "menu_item",
+        name: "Original Noodles",
+        nameEn: "Soup Noodles",
+        price: 9000,
+        spiceLevel: 0,
+        sortOrder: 2,
+        isAvailable: true,
+        isFeatured: false,
+        inventoryCount: -1,
+        orderCount: 0,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+
+    const wrapper = mount(ShopMenuView, {
+      props: { restaurantId: "restaurant-1" },
+      global: {
+        stubs: {
+          MenuItemModal: true,
+          CustomizationModal: true,
+          ShopCartModal: true,
+          DesktopCartPanel: true,
+        },
+      },
+    });
+
+    const searchInput = wrapper.get('input[type="text"]');
+
+    await searchInput.setValue("hainanese");
+    const englishSearchResults = wrapper
+      .findAll('[data-testid="menu-card"]')
+      .map((card) => card.text());
+    expect(englishSearchResults).toHaveLength(1);
+    expect(englishSearchResults[0]).toContain("Original Chicken");
+    expect(englishSearchResults[0]).not.toContain("Original Noodles");
+
+    await searchInput.setValue("Original Noodles");
+    const canonicalSearchResults = wrapper
+      .findAll('[data-testid="menu-card"]')
+      .map((card) => card.text());
+    expect(canonicalSearchResults).toHaveLength(1);
+    expect(canonicalSearchResults[0]).toContain("Original Noodles");
+    expect(canonicalSearchResults[0]).not.toContain("Original Chicken");
+  });
+
   it("separates dish menu items from product catalog items", () => {
     menuItemsFixture.items = [
       {
