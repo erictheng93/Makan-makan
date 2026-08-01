@@ -42,9 +42,14 @@ describe("monitoring validation schemas", () => {
       days: 14,
     });
 
-    expect(() => paginationSchema.parse({ limit: "101" })).toThrow(
-      "Limit must be between 1 and 100",
-    );
+    // Rejected rather than clamped since 49198cde; the assertion used to pin
+    // the old custom "Limit must be between 1 and 100" copy, which that commit
+    // replaced with the shared bounded-query helper's own error.
+    expect(() => paginationSchema.parse({ limit: "101" })).toThrow();
+    expect(paginationSchema.parse({ limit: "100" })).toEqual({
+      page: 1,
+      limit: 100,
+    });
   });
 
   it("accepts an absent or explicit overview include, and nothing else", () => {
