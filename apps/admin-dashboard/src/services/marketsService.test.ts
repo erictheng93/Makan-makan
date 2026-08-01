@@ -17,6 +17,31 @@ describe("marketsService", () => {
     vi.clearAllMocks();
   });
 
+  it("lists markets within the API page-size cap", async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        data: {
+          markets: [
+            {
+              id: "market-1",
+              name: "逢甲夜市",
+              slug: "fengjia",
+              isActive: true,
+            },
+          ],
+          total: 1,
+          page: 1,
+          limit: 50,
+        },
+      },
+    } as never);
+
+    const result = await marketsService.listMarkets();
+
+    expect(api.get).toHaveBeenCalledWith("/markets", { limit: 50 });
+    expect(result).toHaveLength(1);
+  });
+
   it("lists area-level market readiness summaries", async () => {
     vi.mocked(api.get).mockResolvedValueOnce({
       data: {

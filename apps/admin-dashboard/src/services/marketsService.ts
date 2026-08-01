@@ -344,7 +344,7 @@ export const marketsService = {
       total: number;
       page: number;
       limit: number;
-    }>("/markets", { limit: 100 });
+    }>("/markets", { limit: 50 });
     return unwrapApiPayload<{ markets: MarketListItem[] }>(response.data)
       .markets;
   },
