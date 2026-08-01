@@ -32,7 +32,7 @@
                 {{ restaurant?.name || t("common.loading") }}
               </h1>
               <p class="text-sm text-ios-secondary">
-                {{ t("orderTracking.tableNumber") }} {{ tableId }}
+                {{ t("orderTracking.tableNumber") }} {{ tableLabel }}
               </p>
             </div>
 
@@ -408,6 +408,14 @@ const {
 });
 
 const isTableValid = computed(() => tableValidation.value?.isValid === true);
+
+// The route carries the numeric table id, but the diner reads the label printed
+// on the table ("A1"), and staff route food by that label too. Showing the id
+// invites the wrong table being served, so prefer the validated number and only
+// fall back to the id before validation resolves.
+const tableLabel = computed(
+  () => tableValidation.value?.table?.number ?? String(props.tableId),
+);
 
 // API Queries
 const { data: restaurant, isLoading: isLoadingRestaurant } = useQuery({
