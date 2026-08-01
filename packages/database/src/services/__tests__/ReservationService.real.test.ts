@@ -27,6 +27,7 @@ import {
 } from "../../testing/create-test-database";
 import { ReservationStatus } from "@makanmakan/shared-types";
 import { ReservationService } from "../ReservationService";
+import { WaitingListService } from "../WaitingListService";
 import type { CloudflareEnv } from "../base";
 const RESTAURANT_ID = "rest-real-1";
 const OTHER_RESTAURANT_ID = "rest-real-2";
@@ -118,6 +119,41 @@ async function seedSlot(
       opts.currentReservations ?? 0,
       opts.currentCapacity ?? 0,
       opts.isAvailable ?? 1,
+      now,
+      now,
+    )
+    .run();
+}
+
+async function seedTable(
+  db: TestDatabase,
+  id: number,
+  opts: {
+    restaurantId?: string;
+    number?: string;
+    capacity?: number;
+    isOccupied?: number;
+    isActive?: number;
+    isReservable?: number;
+  } = {},
+): Promise<void> {
+  const now = Date.now();
+  await db.db
+    .prepare(
+      `INSERT INTO tables
+         (id, restaurant_id, number, capacity, qr_code, is_occupied,
+          is_active, is_reservable, created_at_ms, updated_at_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      id,
+      opts.restaurantId ?? RESTAURANT_ID,
+      opts.number ?? `T${id}`,
+      opts.capacity ?? 4,
+      `qr-table-${id}`,
+      opts.isOccupied ?? 0,
+      opts.isActive ?? 1,
+      opts.isReservable ?? 1,
       now,
       now,
     )
@@ -534,6 +570,50 @@ describe("ReservationService.getReservationStats — real D1", () => {
  * wrong afterwards — so these assert on the counters themselves.
  */
 describe("ReservationService capacity accounting — real D1", () => {
+  it("creates a reservation with table assignment on the fresh schema", async () => {
+    await seedTable(testDb, 10, { capacity: 4 });
+    await seedSlot(testDb, "slot-create", {
+      date: "2026-08-02",
+      maxCapacity: 4,
+      maxTables: 1,
+    });
+
+    const result = await service.createReservation({
+      restaurantId: RESTAURANT_ID,
+      customerName: "王小明",
+      customerPhone: "0912345678",
+      partySize: 2,
+      reservationDate: "2026-08-02",
+      reservationTime: "18:30",
+      durationMinutes: 90,
+    });
+
+    expect(result.status).toBe(ReservationStatus.CONFIRMED);
+    expect(result.tableId).toBe(10);
+    expect(await readSlot(testDb, "slot-create")).toEqual({
+      current_reservations: 1,
+      current_capacity: 2,
+    });
+  });
+
+  it("finds an available waiting-list table on the fresh schema", async () => {
+    await seedTable(testDb, 20, { number: "A1", capacity: 2 });
+    await seedTable(testDb, 21, { number: "A2", capacity: 4 });
+    const waitingService = new WaitingListService(testDb.db, {
+      JWT_SECRET: "test",
+      NODE_ENV: "test",
+    });
+
+    const result = await waitingService.findAvailableTable(RESTAURANT_ID, 3);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        tableId: 21,
+        tableNumber: "A2",
+      }),
+    );
+  });
+
   it("releases slot capacity exactly once when a cancellation is replayed", async () => {
     await seedSlot(testDb, "slot-replay", {
       currentReservations: 2,

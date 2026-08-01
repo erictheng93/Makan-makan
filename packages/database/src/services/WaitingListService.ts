@@ -614,24 +614,18 @@ export class WaitingListService extends BaseService {
       assertWaitingTransition(entry.status, WaitingStatus.CALLED);
 
       // 驗證桌位
-      const hasWaitingListColumn = await this.tableHasColumn(
-        "tables",
-        "waiting_list_id",
-      );
-      const table = hasWaitingListColumn
-        ? await this.db.get<AvailableTableRow>(sql`
-            SELECT * FROM tables
-            WHERE id = ${request.tableId}
-              AND restaurant_id = ${entry.restaurantId}
-              AND is_occupied = 0
-              AND waiting_list_id IS NULL
-          `)
-        : await this.db.get<AvailableTableRow>(sql`
-            SELECT * FROM tables
-            WHERE id = ${request.tableId}
-              AND restaurant_id = ${entry.restaurantId}
-              AND is_occupied = 0
-          `);
+      const table = await this.db.get<AvailableTableRow>(sql`
+        SELECT
+          ${restaurantTables.id} as id,
+          ${restaurantTables.number} as table_number,
+          ${restaurantTables.capacity} as capacity
+        FROM ${restaurantTables}
+        WHERE ${restaurantTables.id} = ${request.tableId}
+          AND ${restaurantTables.restaurantId} = ${entry.restaurantId}
+          AND ${restaurantTables.isActive} = 1
+          AND ${restaurantTables.isReservable} = 1
+          AND ${restaurantTables.isOccupied} = 0
+      `);
 
       if (!table) {
         throw new Error("桌位不可用");
@@ -917,7 +911,7 @@ export class WaitingListService extends BaseService {
 
   /**
    * 自動尋找最適合的可用桌位（best-fit: 容量最小且 >= partySize）
-   * 排除已被候位預留的桌位（waiting_list_id IS NOT NULL）
+   * 排除不可預約或已占用的桌位
    */
   async findAvailableTable(
     restaurantId: string,
@@ -925,14 +919,17 @@ export class WaitingListService extends BaseService {
     excludeTableIds: number[] = [],
   ): Promise<TableAssignmentResult | null> {
     const table = await this.db.get<AvailableTableRow>(sql`
-      SELECT id, table_number, capacity
-      FROM tables
-      WHERE restaurant_id = ${restaurantId}
-        AND is_active = 1
-        AND is_occupied = 0
-        AND waiting_list_id IS NULL
-        AND capacity >= ${partySize}
-      ORDER BY capacity ASC, id ASC
+      SELECT
+        ${restaurantTables.id} as id,
+        ${restaurantTables.number} as table_number,
+        ${restaurantTables.capacity} as capacity
+      FROM ${restaurantTables}
+      WHERE ${restaurantTables.restaurantId} = ${restaurantId}
+        AND ${restaurantTables.isActive} = 1
+        AND ${restaurantTables.isReservable} = 1
+        AND ${restaurantTables.isOccupied} = 0
+        AND ${restaurantTables.capacity} >= ${partySize}
+      ORDER BY ${restaurantTables.capacity} ASC, ${restaurantTables.id} ASC
       LIMIT 1
     `);
 
@@ -1408,90 +1405,39 @@ export class WaitingListService extends BaseService {
     reservationId?: string | null,
     waitingListId?: string,
   ): Promise<void> {
-    try {
-      const now = Date.now();
-      const hasReservationColumn = await this.tableHasColumn(
-        "tables",
-        "reservation_id",
-      );
-      const hasWaitingListColumn = await this.tableHasColumn(
-        "tables",
-        "waiting_list_id",
-      );
+    void reservationId;
+    void waitingListId;
+    const now = new Date();
 
-      if (status === "reserved") {
-        if (waitingListId && hasWaitingListColumn) {
-          await this.db.run(sql`
-            UPDATE tables
-            SET is_occupied = 0,
-                waiting_list_id = ${waitingListId},
-                updated_at_ms = ${now}
-            WHERE id = ${tableId}
-          `);
-        } else if (reservationId && hasReservationColumn) {
-          await this.db.run(sql`
-            UPDATE tables
-            SET is_occupied = 0,
-                reservation_id = ${reservationId},
-                updated_at_ms = ${now}
-            WHERE id = ${tableId}
-          `);
-        } else {
-          await this.db.run(sql`
-            UPDATE tables
-            SET is_occupied = 0,
-                updated_at_ms = ${now}
-            WHERE id = ${tableId}
-          `);
-        }
-      } else if (status === "occupied") {
-        await this.db.run(sql`
-          UPDATE tables
-          SET is_occupied = 1,
-              occupied_at_ms = ${now},
-              estimated_free_at_ms = ${now + DEFAULT_OCCUPANCY_MS},
-              updated_at_ms = ${now}
-          WHERE id = ${tableId}
-        `);
-      } else if (status === "available") {
-        if (hasReservationColumn && hasWaitingListColumn) {
-          await this.db.run(sql`
-            UPDATE tables
-            SET is_occupied = 0,
-                reservation_id = NULL,
-                waiting_list_id = NULL,
-                occupied_at_ms = NULL,
-                estimated_free_at_ms = NULL,
-                updated_at_ms = ${now}
-            WHERE id = ${tableId}
-          `);
-          return;
-        }
-
-        await this.db.run(sql`
-          UPDATE tables
-          SET is_occupied = 0,
-              occupied_at_ms = NULL,
-              estimated_free_at_ms = NULL,
-              updated_at_ms = ${now}
-          WHERE id = ${tableId}
-        `);
-      }
-    } catch (error) {
-      console.error("Error updating table status:", error);
+    if (status === "reserved") {
+      await this.db
+        .update(restaurantTables)
+        .set({
+          isOccupied: false,
+          updatedAt: now,
+        })
+        .where(sql`${restaurantTables.id} = ${tableId}`);
+    } else if (status === "occupied") {
+      await this.db
+        .update(restaurantTables)
+        .set({
+          isOccupied: true,
+          occupiedAt: now,
+          estimatedFreeAt: new Date(now.getTime() + DEFAULT_OCCUPANCY_MS),
+          updatedAt: now,
+        })
+        .where(sql`${restaurantTables.id} = ${tableId}`);
+    } else if (status === "available") {
+      await this.db
+        .update(restaurantTables)
+        .set({
+          isOccupied: false,
+          occupiedAt: null,
+          estimatedFreeAt: null,
+          updatedAt: now,
+        })
+        .where(sql`${restaurantTables.id} = ${tableId}`);
     }
-  }
-
-  private async tableHasColumn(
-    tableName: string,
-    columnName: string,
-  ): Promise<boolean> {
-    const result = await this.d1
-      .prepare(`PRAGMA table_info(${tableName})`)
-      .all<{
-        name: string;
-      }>();
-    return (result.results ?? []).some((column) => column.name === columnName);
   }
 
   /**

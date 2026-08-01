@@ -4,6 +4,7 @@ import { BaseService, type CloudflareEnv } from "./base";
 import { reservations } from "../schema/reservations";
 import type { NewReservation } from "../schema/reservations";
 import { tables } from "../schema/tables";
+import { orders } from "../schema/orders";
 import {
   ReservationNotificationService,
   type ReservationNotificationType,
@@ -173,10 +174,10 @@ export class ReservationService extends BaseService {
             party_size, reservation_date, reservation_time, duration_minutes,
             table_id, special_requests, status, confirmation_code, created_at, updated_at
           ) VALUES (
-            ${reservation.id}, ${reservation.restaurantId}, ${reservation.customerId},
-            ${reservation.customerName}, ${reservation.customerPhone}, ${reservation.customerEmail},
+            ${reservation.id}, ${reservation.restaurantId}, ${reservation.customerId ?? null},
+            ${reservation.customerName}, ${reservation.customerPhone}, ${reservation.customerEmail ?? null},
             ${reservation.partySize}, ${reservation.reservationDate}, ${reservation.reservationTime},
-            ${reservation.durationMinutes}, ${reservation.tableId}, ${reservation.specialRequests},
+            ${reservation.durationMinutes}, ${reservation.tableId}, ${reservation.specialRequests ?? null},
             ${reservation.status}, ${reservation.confirmationCode}, ${reservation.createdAt},
             ${reservation.updatedAt}
           )
@@ -830,16 +831,26 @@ export class ReservationService extends BaseService {
 
       // 1. 查詢可用桌位
       const availableTables = (await this.db.all(sql`
-        SELECT t.*,
+        SELECT
+          ${tables.id} as id,
+          ${tables.number} as number,
+          ${tables.capacity} as capacity,
+          ${tables.features} as features,
           COALESCE(
-            (SELECT COUNT(*) FROM orders o WHERE o.table_id = t.id AND DATE(o.created_at / 1000, 'unixepoch') = DATE('now')),
+            (
+              SELECT COUNT(*)
+              FROM ${orders}
+              WHERE ${orders.tableId} = ${tables.id}
+                AND DATE(${orders.createdAt} / 1000, 'unixepoch') = DATE('now')
+            ),
             0
           ) as turnover_count
-        FROM tables t
-        WHERE t.restaurant_id = ${restaurantId}
-          AND t.is_active = 1
-          AND t.capacity >= ${partySize}
-          AND t.current_status = 'available'
+        FROM ${tables}
+        WHERE ${tables.restaurantId} = ${restaurantId}
+          AND ${tables.isActive} = 1
+          AND ${tables.isReservable} = 1
+          AND ${tables.isOccupied} = 0
+          AND ${tables.capacity} >= ${partySize}
       `)) as Array<{
         id: string;
         number: string;
@@ -1194,46 +1205,42 @@ export class ReservationService extends BaseService {
     status: string,
     reservationId?: string,
   ): Promise<void> {
-    try {
-      const now = Date.now();
+    const now = new Date();
 
-      if (status === "reserved" && reservationId) {
-        await this.db.run(sql`
-          UPDATE tables
-          SET current_status = ${status},
-              reservation_id = ${reservationId},
-              updated_at = ${now}
-          WHERE id = ${tableId}
-        `);
-      } else if (status === "occupied") {
-        await this.db.run(sql`
-          UPDATE tables
-          SET current_status = ${status},
-              occupied_since = ${now},
-              updated_at = ${now}
-          WHERE id = ${tableId}
-        `);
-      } else if (status === "available") {
-        await this.db.run(sql`
-          UPDATE tables
-          SET current_status = ${status},
-              reservation_id = NULL,
-              waiting_list_id = NULL,
-              occupied_since = NULL,
-              estimated_turnover_at = NULL,
-              updated_at = ${now}
-          WHERE id = ${tableId}
-        `);
-      } else {
-        await this.db.run(sql`
-          UPDATE tables
-          SET current_status = ${status},
-              updated_at = ${now}
-          WHERE id = ${tableId}
-        `);
-      }
-    } catch (error) {
-      console.error("Error updating table status:", error);
+    if (status === "reserved") {
+      void reservationId;
+      await this.db
+        .update(tables)
+        .set({
+          isOccupied: false,
+          updatedAt: now,
+        })
+        .where(eq(tables.id, tableId));
+    } else if (status === "occupied") {
+      await this.db
+        .update(tables)
+        .set({
+          isOccupied: true,
+          occupiedAt: now,
+          estimatedFreeAt: new Date(now.getTime() + 90 * 60 * 1000),
+          updatedAt: now,
+        })
+        .where(eq(tables.id, tableId));
+    } else if (status === "available") {
+      await this.db
+        .update(tables)
+        .set({
+          isOccupied: false,
+          occupiedAt: null,
+          estimatedFreeAt: null,
+          updatedAt: now,
+        })
+        .where(eq(tables.id, tableId));
+    } else {
+      await this.db
+        .update(tables)
+        .set({ updatedAt: now })
+        .where(eq(tables.id, tableId));
     }
   }
 
