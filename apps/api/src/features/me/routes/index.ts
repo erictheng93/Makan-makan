@@ -24,8 +24,13 @@ router.get("/modules", async (c) => {
     });
   }
 
-  const restaurantId =
+  const requestedRestaurantId = c.req.query("restaurantId")?.trim() || null;
+  const tokenRestaurantId =
     user?.restaurantId == null ? null : String(user.restaurantId);
+  const restaurantId =
+    user?.role === 0
+      ? (requestedRestaurantId ?? tokenRestaurantId)
+      : tokenRestaurantId;
 
   if (!restaurantId) {
     return c.json({

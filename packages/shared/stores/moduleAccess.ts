@@ -33,11 +33,14 @@ interface ModuleAccessTransport {
   baseUrl: string;
   /** Bearer token, or null when the host authenticates by cookie only. */
   getToken: () => string | null;
+  /** Optional restaurant context for platform admins previewing one restaurant. */
+  getRestaurantId: () => string | null;
 }
 
 const transport: ModuleAccessTransport = {
   baseUrl: "/api/v1",
   getToken: () => null,
+  getRestaurantId: () => null,
 };
 
 /** Call once during app bootstrap, before the first `fetch()`. */
@@ -46,10 +49,20 @@ export function configureModuleAccess(
 ): void {
   if (options.baseUrl !== undefined) transport.baseUrl = options.baseUrl;
   if (options.getToken !== undefined) transport.getToken = options.getToken;
+  if (options.getRestaurantId !== undefined) {
+    transport.getRestaurantId = options.getRestaurantId;
+  }
 }
 
-function modulesUrl(): string {
-  return `${transport.baseUrl.replace(/\/$/, "")}/me/modules`;
+function selectedRestaurantId(): string | null {
+  return transport.getRestaurantId()?.trim() || null;
+}
+
+function modulesUrl(restaurantId: string | null): string {
+  const url = `${transport.baseUrl.replace(/\/$/, "")}/me/modules`;
+  if (!restaurantId) return url;
+
+  return `${url}?${new URLSearchParams({ restaurantId }).toString()}`;
 }
 
 function requestHeaders(): Record<string, string> {
@@ -73,6 +86,7 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
   const isLoaded = ref(false);
   const error = ref<Error | null>(null);
   const lastFetchedAt = ref<number | null>(null);
+  const lastRequestRestaurantId = ref<string | null>(null);
 
   const effectiveModules = computed(() => data.value.effectiveModules);
   const planTier = computed(() => data.value.planTier);
@@ -80,10 +94,12 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
 
   async function fetchAccess(options: { force?: boolean } = {}) {
     const now = Date.now();
+    const requestRestaurantId = selectedRestaurantId();
     const isFresh =
       lastFetchedAt.value !== null && now - lastFetchedAt.value < CACHE_TTL_MS;
+    const isSameContext = lastRequestRestaurantId.value === requestRestaurantId;
 
-    if (!options.force && isLoaded.value && isFresh) {
+    if (!options.force && isLoaded.value && isFresh && isSameContext) {
       return data.value;
     }
 
@@ -91,7 +107,7 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
     error.value = null;
 
     try {
-      const url = modulesUrl();
+      const url = modulesUrl(requestRestaurantId);
       const response = await fetch(url, {
         credentials: "include",
         headers: requestHeaders(),
@@ -119,6 +135,7 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
       data.value = body.data ?? emptyAccess;
       isLoaded.value = true;
       lastFetchedAt.value = Date.now();
+      lastRequestRestaurantId.value = requestRestaurantId;
       return data.value;
     } catch (caught) {
       error.value =
@@ -133,6 +150,7 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
     data.value = emptyAccess;
     isLoaded.value = false;
     lastFetchedAt.value = null;
+    lastRequestRestaurantId.value = null;
     error.value = null;
   }
 

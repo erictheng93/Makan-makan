@@ -72,6 +72,7 @@ export const useAuthStore = defineStore("auth", () => {
     selectedRestaurantName.value = name;
     sessionStorage.setItem("admin_selected_restaurant_id", id);
     sessionStorage.setItem("admin_selected_restaurant_name", name);
+    void useModuleAccessStore().fetch({ force: true });
   };
 
   const clearRestaurant = () => {
@@ -79,6 +80,7 @@ export const useAuthStore = defineStore("auth", () => {
     selectedRestaurantName.value = null;
     sessionStorage.removeItem("admin_selected_restaurant_id");
     sessionStorage.removeItem("admin_selected_restaurant_name");
+    useModuleAccessStore().reset();
   };
 
   const hasPermission = (requiredRole: UserRole | UserRole[]) => {
@@ -265,9 +267,6 @@ export const useAuthStore = defineStore("auth", () => {
       authClient.tokens.clearAll();
       managementAuthClient.tokens.clearAll();
       managementAuthClient.setAuthToken(null);
-      // Otherwise the next user to log in on this page sees the previous
-      // user's modules until their own fetch lands.
-      useModuleAccessStore().reset();
     }
   };
 

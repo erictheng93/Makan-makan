@@ -40,14 +40,22 @@ describe("moduleAccess store", () => {
     setActivePinia(createPinia());
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    configureModuleAccess({ baseUrl: API_BASE, getToken: () => "token-abc" });
+    configureModuleAccess({
+      baseUrl: API_BASE,
+      getToken: () => "token-abc",
+      getRestaurantId: () => null,
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     // Leave the module-level transport at its default so ordering between
     // files cannot leak configuration.
-    configureModuleAccess({ baseUrl: "/api/v1", getToken: () => null });
+    configureModuleAccess({
+      baseUrl: "/api/v1",
+      getToken: () => null,
+      getRestaurantId: () => null,
+    });
   });
 
   it("requests the configured API origin, not the app's own origin", async () => {
@@ -106,6 +114,53 @@ describe("moduleAccess store", () => {
       `${API_BASE}/me/modules`,
       expect.anything(),
     );
+  });
+
+  it("sends the selected restaurant context when configured", async () => {
+    configureModuleAccess({ getRestaurantId: () => "restaurant-2" });
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, data: buildAccess() }),
+    );
+
+    await useModuleAccessStore().fetch();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_BASE}/me/modules?restaurantId=restaurant-2`,
+      expect.anything(),
+    );
+  });
+
+  it("does not reuse cached module access across selected restaurants", async () => {
+    let selectedRestaurantId: string | null = "restaurant-1";
+    configureModuleAccess({ getRestaurantId: () => selectedRestaurantId });
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: buildAccess({ restaurantId: "restaurant-1" }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: buildAccess({
+            restaurantId: "restaurant-2",
+            effectiveModules: { analytics: true },
+          }),
+        }),
+      );
+
+    const store = useModuleAccessStore();
+    await store.fetch();
+    selectedRestaurantId = "restaurant-2";
+    await store.fetch();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      `${API_BASE}/me/modules?restaurantId=restaurant-2`,
+      expect.anything(),
+    );
+    expect(store.effectiveModules).toEqual({ analytics: true });
   });
 
   it("stores the returned module access", async () => {

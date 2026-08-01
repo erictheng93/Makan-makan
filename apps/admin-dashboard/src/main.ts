@@ -27,6 +27,8 @@ async function bootstrap() {
   configureModuleAccess({
     baseUrl: resolveApiBase(),
     getToken: () => getAuthToken(),
+    getRestaurantId: () =>
+      sessionStorage.getItem("admin_selected_restaurant_id"),
   });
 
   const app = createApp(App);

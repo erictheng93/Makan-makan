@@ -199,10 +199,12 @@ describe("useAuthStore", () => {
       "restaurant-99",
     );
     expect(store.getDefaultRoute()).toBe("/dashboard");
+    expect(moduleAccess.fetch).toHaveBeenCalledWith({ force: true });
 
     store.clearRestaurant();
     expect(store.restaurantId).toBeNull();
     expect(sessionStorage.getItem("admin_selected_restaurant_id")).toBeNull();
+    expect(moduleAccess.reset).toHaveBeenCalledOnce();
   });
 
   it("keeps hydrated sessions on transient auth revalidation failures", async () => {

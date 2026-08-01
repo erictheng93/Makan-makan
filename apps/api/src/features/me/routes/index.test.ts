@@ -152,6 +152,85 @@ describe("me routes", () => {
     expect(usageMocks.getCurrentUsage).not.toHaveBeenCalled();
   });
 
+  it("lets platform admins request modules for a selected restaurant", async () => {
+    authState.user = {
+      id: 44,
+      username: "platform-admin",
+      role: 0,
+      restaurantId: null,
+    };
+    const subscription = {
+      restaurantId: "restaurant-2",
+      isActive: true,
+      planTier: "pro",
+      moduleOverrides: { analytics: true },
+      trialEndsAt: null,
+    };
+    subscriptionMocks.getByRestaurantId.mockResolvedValue(subscription);
+
+    const response = await request("/modules?restaurantId=restaurant-2");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        restaurantId: "restaurant-2",
+        planTier: "pro",
+        isActive: true,
+        effectiveModules: { pos: true, analytics: false },
+      },
+    });
+    expect(subscriptionMocks.getByRestaurantId).toHaveBeenCalledWith(
+      "restaurant-2",
+    );
+  });
+
+  it("returns empty module access for platform admins without a selected restaurant", async () => {
+    authState.user = {
+      id: 45,
+      username: "platform-admin",
+      role: 0,
+      restaurantId: null,
+    };
+
+    const response = await request("/modules");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        restaurantId: null,
+        planTier: null,
+        isActive: false,
+        effectiveModules: {},
+      },
+    });
+    expect(subscriptionMocks.getByRestaurantId).not.toHaveBeenCalled();
+  });
+
+  it("ignores restaurantId query parameters for non-admin users", async () => {
+    subscriptionMocks.getByRestaurantId.mockResolvedValue(null);
+
+    const response = await request("/modules?restaurantId=restaurant-2");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        restaurantId: "restaurant-1",
+        planTier: null,
+        isActive: false,
+        effectiveModules: {},
+      },
+    });
+    expect(subscriptionMocks.getByRestaurantId).toHaveBeenCalledWith(
+      "restaurant-1",
+    );
+    expect(subscriptionMocks.getByRestaurantId).not.toHaveBeenCalledWith(
+      "restaurant-2",
+    );
+  });
+
   it("serves cached subscription modules without touching the database", async () => {
     const env = createEnv(
       new Map([
