@@ -56,7 +56,7 @@ const uploadBackupSchema = z
   })
   .loose();
 
-const listBackupsSchema = z.object({
+export const listBackupsSchema = z.object({
   restaurant_id: z.uuid("Invalid restaurant ID"),
   status: z
     .enum(["pending", "in_progress", "completed", "failed", "cancelled"])
@@ -64,7 +64,7 @@ const listBackupsSchema = z.object({
   backup_type: z.enum(["full", "incremental", "differential"]).optional(),
   date_from: z.iso.datetime().optional(),
   date_to: z.iso.datetime().optional(),
-  page: z.coerce.number().min(1).default(1),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
   sort_by: z
     .enum(["started_at", "completed_at", "file_size", "name"])

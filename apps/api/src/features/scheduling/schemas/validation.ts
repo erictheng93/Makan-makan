@@ -4,6 +4,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 
 // Base validation schemas
 const positiveInteger = z.number().int().positive();
@@ -294,8 +298,8 @@ export const scheduleFiltersSchema = z.object({
   status: z
     .enum(["scheduled", "confirmed", "completed", "cancelled", "no_show"])
     .optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 export const conflictFiltersSchema = z.object({
@@ -318,8 +322,8 @@ export const conflictFiltersSchema = z.object({
   employeeId: idString.optional(),
   startDate: dateString.optional(),
   endDate: dateString.optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 export const swapRequestFiltersSchema = z.object({
@@ -337,8 +341,8 @@ export const swapRequestFiltersSchema = z.object({
     ])
     .optional(),
   requestType: z.enum(["swap", "cover", "drop"]).optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 export const statsQuerySchema = z.object({

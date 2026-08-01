@@ -5,6 +5,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 
 const idString = z.preprocess((value) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -57,8 +61,8 @@ export const couponFiltersSchema = z.object({
   discountType: z.enum(["percentage", "fixed"]).optional(),
   validOnly: z.boolean().optional(),
   search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 export const useCouponSchema = z.object({

@@ -4,6 +4,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 
 // Decode HTML entities that the security middleware may have escaped
 function decodeHtmlEntities(str: string): string {
@@ -103,16 +107,8 @@ export const updateAlertRuleSchema = z.object({
 
 // Common query parameters
 export const paginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z
-    .string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .optional()
-    .prefault("20")
-    .refine((val) => val >= 1 && val <= 100, {
-      message: "Limit must be between 1 and 100",
-    }),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 // Date range schema

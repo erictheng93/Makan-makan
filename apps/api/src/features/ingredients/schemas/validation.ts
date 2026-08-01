@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 
 export const restaurantIdParamSchema = z.object({
   restaurantId: z.string().min(1, "restaurantId is required"),
@@ -62,8 +66,8 @@ export const setRecipeSchema = z.object({
 });
 
 export const ingredientListQuerySchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery("50"),
   category: z.string().optional(),
   search: z.string().optional(),
   includeInactive: z

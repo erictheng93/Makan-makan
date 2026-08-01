@@ -5,6 +5,10 @@
 
 import { ORDER_STATUSES } from "@makanmakan/shared-types";
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 import { ORDER_STATUS_TRANSITIONS } from "../types";
 
 // Common validation patterns
@@ -31,8 +35,8 @@ const positiveNumberSchema = z.number().positive();
 // const nonNegativeNumberSchema = z.number().min(0) // Available for future use
 const dateStringSchema = z.iso.datetime().optional();
 const paginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 // Order status enum matching the shared-types canonical runtime tuple.
@@ -318,7 +322,7 @@ export const popularItemsQuerySchema = z.object({
     .enum(["today", "yesterday", "week", "month", "quarter", "year"])
     .optional()
     .default("month"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
+  limit: boundedLimitQuery("10"),
   minQuantity: z
     .string()
     .regex(/^\d+$/)
@@ -452,7 +456,7 @@ export const kitchenOrderFilterSchema = z.object({
   assignedTo: optionalIdSchema,
   orderType: orderTypeSchema.optional(),
   fulfillmentType: fulfillmentTypeSchema.optional(),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
+  limit: boundedLimitQuery("50"),
 });
 
 // Advanced query validation

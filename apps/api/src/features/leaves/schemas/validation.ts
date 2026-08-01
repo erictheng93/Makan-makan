@@ -4,6 +4,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 import { httpUrlSchema } from "../../../shared/utils/url";
 
 // Base validation schemas
@@ -274,8 +278,8 @@ export const leaveRequestFiltersSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 export const leaveBalanceQuerySchema = z.object({

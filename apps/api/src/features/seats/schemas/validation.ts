@@ -4,6 +4,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 
 // Batch create seats schema
 export const batchCreateSeatsSchema = z
@@ -67,8 +71,8 @@ export const seatFilterSchema = z.object({
     .string()
     .transform((val) => val.split(",").filter(Boolean))
     .optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery("50"),
 });
 
 // ID param schema

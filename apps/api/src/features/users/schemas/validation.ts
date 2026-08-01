@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  commonSchemas,
+} from "../../../middleware/validation";
 
 // SECURITY: Strong password validation regex
 const PASSWORD_STRENGTH_REGEX =
@@ -72,7 +76,7 @@ export const updatePasswordSchema = z
 /**
  * User filter validation schema
  */
-export const userFilterSchema = z.object({
+export const userFilterSchema = commonSchemas.paginationQuery.extend({
   restaurantId: restaurantIdQuerySchema,
   role: z.string().regex(/^\d+$/).transform(Number).optional(),
   isActive: z
@@ -83,9 +87,6 @@ export const userFilterSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 /**
@@ -122,7 +123,7 @@ export const userStatsSchema = z.object({
 export const userSearchSchema = z.object({
   query: z.string().min(1),
   restaurantId: restaurantIdQuerySchema,
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("10"),
+  limit: boundedLimitQuery("10"),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

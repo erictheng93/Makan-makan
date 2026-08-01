@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { boundedLimitQuery } from "../../../middleware/validation";
 
 const restaurantIdSchema = z.string().trim().min(1).max(128).optional();
 
@@ -33,7 +34,7 @@ const analyticsQueryShape = {
   dateFrom: z.iso.datetime().optional(),
   dateTo: z.iso.datetime().optional(),
   groupBy: z.enum(["day", "week", "month", "year"]).default("day"),
-  limit: z.string().regex(/^\d+$/).transform(Number).prefault("30"),
+  limit: boundedLimitQuery("30"),
 };
 
 // Base analytics query schema

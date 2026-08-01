@@ -9,6 +9,8 @@ import {
   validateBody,
   validateQuery,
   validateParams,
+  boundedLimitQuery,
+  boundedPageQuery,
 } from "../../../middleware/validation";
 import { ReceiptService } from "../services/ReceiptService";
 import { printReceiptSchema, receiptParamsSchema } from "../schemas";
@@ -22,6 +24,20 @@ import { meterEmit } from "../../../shared/utils/meter";
 const app = new Hono<{ Bindings: Env }>();
 const printReceiptRouteSchema = printReceiptSchema.extend({
   orderId: z.union([z.number().int().positive(), z.string().min(1)]),
+});
+
+export const receiptListQuerySchema = z.object({
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  receiptType: z.enum(["customer", "kitchen", "merchant"]).optional(),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 /**
@@ -152,31 +168,7 @@ app.get(
       registerId: z.uuid(),
     }),
   ),
-  validateQuery(
-    z.object({
-      startDate: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-      endDate: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-      receiptType: z.enum(["customer", "kitchen", "merchant"]).optional(),
-      page: z
-        .string()
-        .regex(/^\d+$/)
-        .transform(Number)
-        .optional()
-        .prefault("1"),
-      limit: z
-        .string()
-        .regex(/^\d+$/)
-        .transform(Number)
-        .optional()
-        .prefault("20"),
-    }),
-  ),
+  validateQuery(receiptListQuerySchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
     const { startDate, endDate, receiptType, page, limit } =

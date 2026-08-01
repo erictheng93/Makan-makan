@@ -18,6 +18,18 @@ const MemberStatus = z.enum([
   "suspended",
 ]);
 const UsageLogStatus = z.enum(["completed", "cancelled", "refunded"]);
+const boundedOpenApiPage = z
+  .string()
+  .regex(/^\d+$/)
+  .transform(Number)
+  .prefault("1")
+  .pipe(z.number().int().min(1).max(1000));
+const boundedOpenApiLimit = z
+  .string()
+  .regex(/^\d+$/)
+  .transform(Number)
+  .prefault("20")
+  .pipe(z.number().int().min(1).max(100));
 
 /**
  * Partnerships API Schemas
@@ -279,8 +291,8 @@ export const getPartnershipsRoute = createRoute({
       restaurantId: z.string().optional(),
       status: PartnershipsSchemas.PartnershipStatus.optional(),
       partnerType: z.string().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
+      page: boundedOpenApiPage,
+      limit: boundedOpenApiLimit,
     }),
   },
   responses: {
@@ -480,8 +492,8 @@ export const getPlansRoute = createRoute({
         .transform((val) => val === "true")
         .optional(),
       discountType: PartnershipsSchemas.DiscountType.optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
+      page: boundedOpenApiPage,
+      limit: boundedOpenApiLimit,
     }),
   },
   responses: {
@@ -680,8 +692,8 @@ export const getMembersRoute = createRoute({
     query: z.object({
       partnershipId: z.string().regex(/^\d+$/).transform(Number).optional(),
       verificationStatus: PartnershipsSchemas.MemberStatus.optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
+      page: boundedOpenApiPage,
+      limit: boundedOpenApiLimit,
     }),
   },
   responses: {
@@ -901,8 +913,8 @@ export const getUsageLogsRoute = createRoute({
       status: PartnershipsSchemas.UsageLogStatus.optional(),
       startDate: z.iso.datetime().optional(),
       endDate: z.iso.datetime().optional(),
-      page: z.string().regex(/^\d+$/).transform(Number).prefault("1"),
-      limit: z.string().regex(/^\d+$/).transform(Number).prefault("20"),
+      page: boundedOpenApiPage,
+      limit: boundedOpenApiLimit,
     }),
   },
   responses: {

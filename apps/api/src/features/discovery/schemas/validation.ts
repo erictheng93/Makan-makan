@@ -20,7 +20,7 @@ export const dishSearchQuerySchema = z
     sortBy: z
       .enum(["price_asc", "price_desc", "popular", "open_now", "distance"])
       .optional(),
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce.number().int().min(1).max(1000).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
   .superRefine((query, ctx) => {
@@ -89,7 +89,7 @@ export const restaurantBrowseQuerySchema = z
     takeaway: z.coerce.boolean().optional(),
     delivery: z.coerce.boolean().optional(),
     sortBy: z.enum(["rating", "popular", "open_now", "distance"]).optional(),
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce.number().int().min(1).max(1000).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
   .superRefine((query, ctx) => {
@@ -132,7 +132,7 @@ export const serviceSearchQuerySchema = z
     sortBy: z
       .enum(["price_asc", "price_desc", "popular", "open_now", "distance"])
       .optional(),
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce.number().int().min(1).max(1000).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
   .superRefine((query, ctx) => {

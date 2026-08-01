@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { boundedLimitQuery } from "../../../middleware/validation";
 
 // Time range schema
 export const timeRangeSchema = z.object({
@@ -49,7 +50,7 @@ export const generateAnalyticsSchema = z.object({
 // Product query schema
 export const productQuerySchema = z.object({
   timeRange: z.string().default("30d"),
-  limit: z.string().transform(Number).prefault("10"),
+  limit: boundedLimitQuery("10"),
 });
 
 // Usage query schema

@@ -9,6 +9,10 @@ import { OrdersService } from "../../orders/services/OrdersService";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
 import { canonicalCustomerAuthMiddleware } from "../../../middleware/auth";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 import { z } from "zod";
 import type { OrderQueryFilters } from "../../orders/types";
 import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
@@ -18,15 +22,9 @@ const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("CustomersRoutes");
 
 // Validation schema for order query
-const myOrdersSchema = z.object({
-  page: z
-    .string()
-    .optional()
-    .transform((val) => (val ? parseInt(val) : 1)),
-  limit: z
-    .string()
-    .optional()
-    .transform((val) => (val ? parseInt(val) : 20)),
+export const myOrdersSchema = z.object({
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
   status: z.union([z.string(), z.array(z.string())]).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),

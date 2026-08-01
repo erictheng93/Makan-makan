@@ -3,6 +3,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 import { isCentAlignedAmount } from "../../../shared/utils/money";
 
 const idString = z.preprocess((value) => {
@@ -99,8 +103,8 @@ export const receiptParamsSchema = z.object({
 });
 
 export const queryPaginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 export const dateRangeQuerySchema = z.object({

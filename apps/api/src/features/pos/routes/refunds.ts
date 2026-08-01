@@ -9,6 +9,8 @@ import {
   validateBody,
   validateQuery,
   validateParams,
+  boundedLimitQuery,
+  boundedPageQuery,
 } from "../../../middleware/validation";
 import {
   RefundService,
@@ -23,6 +25,30 @@ import { resolveOrderIdentity } from "../../../shared/services/order-identity";
 const app = new Hono<{ Bindings: Env }>();
 const processRefundRouteSchema = processRefundSchema.extend({
   originalOrderId: z.union([z.number().int().positive(), z.string().min(1)]),
+});
+
+export const refundListQuerySchema = z.object({
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  status: z
+    .enum(["pending", "processing", "completed", "failed", "cancelled"])
+    .optional(),
+  orderId: z
+    .preprocess((value) => {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return String(value);
+      }
+      return value;
+    }, z.string().trim().min(1))
+    .optional(),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 function createRefundService(env: Env): RefundService {
@@ -99,41 +125,7 @@ app.get(
       registerId: z.uuid(),
     }),
   ),
-  validateQuery(
-    z.object({
-      startDate: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-      endDate: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-      status: z
-        .enum(["pending", "processing", "completed", "failed", "cancelled"])
-        .optional(),
-      orderId: z
-        .preprocess((value) => {
-          if (typeof value === "number" && Number.isFinite(value)) {
-            return String(value);
-          }
-          return value;
-        }, z.string().trim().min(1))
-        .optional(),
-      page: z
-        .string()
-        .regex(/^\d+$/)
-        .transform(Number)
-        .optional()
-        .prefault("1"),
-      limit: z
-        .string()
-        .regex(/^\d+$/)
-        .transform(Number)
-        .optional()
-        .prefault("20"),
-    }),
-  ),
+  validateQuery(refundListQuerySchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
     const { startDate, endDate, status, orderId, page, limit } =

@@ -9,6 +9,28 @@ const formatZodDetails = (error: z.ZodError) =>
     code: err.code,
   }));
 
+export const boundedPositiveIntegerQuery = (
+  defaultValue: string,
+  max: number,
+) =>
+  z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .prefault(defaultValue)
+    .pipe(z.number().int().min(1).max(max));
+
+export const boundedPageQuery = (defaultValue = "1") =>
+  boundedPositiveIntegerQuery(defaultValue, 1000);
+
+export const boundedLimitQuery = (defaultValue = "20", max = 100) =>
+  boundedPositiveIntegerQuery(defaultValue, max);
+
+// Standard pagination for new query schemas. Prefer commonSchemas.paginationQuery
+// when page/limit/search are the only pagination fields; otherwise compose the
+// boundedPageQuery/boundedLimitQuery helpers into feature-specific schemas.
+
 // Generic validators contribute their inferred output type to the route's
 // Variables, so c.get("validatedBody"|"validatedQuery"|"validatedParams")
 // returns z.infer<typeof schema> in handlers chained after the middleware.
@@ -86,20 +108,8 @@ export const commonSchemas = {
   }),
 
   paginationQuery: z.object({
-    page: z
-      .string()
-      .regex(/^\d+$/)
-      .transform(Number)
-      .optional()
-      .prefault("1")
-      .pipe(z.number().int().min(1).max(1000)),
-    limit: z
-      .string()
-      .regex(/^\d+$/)
-      .transform(Number)
-      .optional()
-      .prefault("20")
-      .pipe(z.number().int().min(1).max(100)),
+    page: boundedPageQuery(),
+    limit: boundedLimitQuery(),
     search: z.string().optional(),
   }),
 

@@ -50,7 +50,7 @@ export const feedbackFiltersSchema = z.object({
   relatedModule: z.enum(FEEDBACK_MODULES).optional(),
   restaurantId: z.string().optional(),
   search: z.string().max(200).optional(),
-  page: z.coerce.number().int().positive().optional().default(1),
+  page: z.coerce.number().int().positive().max(1000).optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
 });
 

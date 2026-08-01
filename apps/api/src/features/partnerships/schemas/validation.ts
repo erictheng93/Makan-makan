@@ -4,6 +4,10 @@
  */
 
 import { z } from "zod";
+import {
+  boundedLimitQuery,
+  boundedPageQuery,
+} from "../../../middleware/validation";
 
 const idString = z.preprocess((value) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -88,8 +92,8 @@ export const partnershipFiltersSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  page: z.string().transform(Number).prefault("1"),
-  limit: z.string().transform(Number).prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 // ================================================
@@ -179,8 +183,8 @@ export const planFiltersSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  page: z.string().transform(Number).prefault("1"),
-  limit: z.string().transform(Number).prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 /**
@@ -276,8 +280,8 @@ export const memberFiltersSchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
-  page: z.string().transform(Number).prefault("1"),
-  limit: z.string().transform(Number).prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 // ================================================
@@ -331,8 +335,8 @@ export const usageLogFiltersSchema = z.object({
     .string()
     .transform((val) => new Date(val).getTime())
     .optional(),
-  page: z.string().transform(Number).prefault("1"),
-  limit: z.string().transform(Number).prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 /**
@@ -378,8 +382,8 @@ export const memberIdParamSchema = z.object({
  * 分頁Schema
  */
 export const paginationSchema = z.object({
-  page: z.string().transform(Number).prefault("1"),
-  limit: z.string().transform(Number).prefault("20"),
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery(),
 });
 
 // ================================================

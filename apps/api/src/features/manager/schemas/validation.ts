@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { boundedLimitQuery } from "../../../middleware/validation";
 
 // Supported proxy actions. Start narrow and grow the enum deliberately;
 // every addition needs a matching handler branch in ManagerActionsService.
@@ -27,7 +28,7 @@ export const auditLogQuerySchema = z.object({
   onBehalfOfUserId: z.string().trim().min(1).optional(),
   restaurantId: z.string().min(1).optional(),
   action: z.string().min(1).optional(),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("50"),
+  limit: boundedLimitQuery("50"),
   offset: z.string().regex(/^\d+$/).transform(Number).optional().prefault("0"),
 });
 

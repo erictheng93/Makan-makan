@@ -56,7 +56,7 @@ export const marketListQuerySchema = z.object({
   type: z
     .enum(["night_market", "commercial_district", "food_court", "event_venue"])
     .optional(),
-  page: z.coerce.number().int().min(1).default(1),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 
@@ -81,7 +81,7 @@ export const marketVendorsQuerySchema = z
     lng: z.coerce.number().min(-180).max(180).optional(),
     radiusKm: z.coerce.number().min(0.1).max(10).optional(),
     sortBy: z.enum(["rating", "popular", "distance"]).optional(),
-    page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce.number().int().min(1).max(1000).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
   })
   .superRefine((query, ctx) => {

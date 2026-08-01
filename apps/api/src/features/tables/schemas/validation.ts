@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { commonSchemas } from "../../../middleware/validation";
 
 // Table features schema
 export const tableFeaturesSchema = z
@@ -88,7 +89,7 @@ export const updateTableSchema = z
   });
 
 // Table filters schema
-export const tableFilterSchema = z.object({
+export const tableFilterSchema = commonSchemas.paginationQuery.extend({
   restaurantId: z.string().optional(),
   floor: z.string().regex(/^\d+$/).transform(Number).optional(),
   section: z.string().optional(),
@@ -106,9 +107,6 @@ export const tableFilterSchema = z.object({
     .optional(),
   minCapacity: z.string().regex(/^\d+$/).transform(Number).optional(),
   maxCapacity: z.string().regex(/^\d+$/).transform(Number).optional(),
-  search: z.string().optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).optional().prefault("1"),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().prefault("20"),
 });
 
 // Table occupation schema

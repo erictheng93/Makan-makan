@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { boundedLimitQuery } from "../../../middleware/validation";
 
 // Order Item Status Update Schema
 export const orderItemStatusUpdateSchema = z.object({
@@ -78,14 +79,7 @@ export const kitchenOrdersQuerySchema = z.object({
     .string()
     .optional()
     .transform((val) => val === "true"),
-  limit: z
-    .string()
-    .optional()
-    .transform((val) => {
-      if (!val) return 50;
-      const num = parseInt(val, 10);
-      return isNaN(num) ? 50 : Math.min(Math.max(num, 1), 200);
-    }),
+  limit: boundedLimitQuery("50", 200),
 });
 
 // Type exports for use in routes
