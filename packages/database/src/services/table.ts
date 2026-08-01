@@ -17,6 +17,7 @@ import { BaseService } from "./base";
 import { tables, restaurants, orders } from "../schema";
 import { SeatService } from "./seat";
 import { buildSignedQRUrl } from "@makanmakan/utils";
+import { resolveAppBaseUrl } from "./app-base-url";
 import { moneyAmountExpression } from "../utils/money-sql";
 
 export interface CreateTableData {
@@ -661,7 +662,7 @@ export class TableService extends BaseService {
     tableNumber: string,
     version: number = 1,
   ): Promise<string> {
-    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
+    const baseUrl = resolveAppBaseUrl(this.env, "table QR codes");
     const signingKey = this.env.QR_SIGNING_KEY;
     if (!signingKey || signingKey.length < 32) {
       throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");

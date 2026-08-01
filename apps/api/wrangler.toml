@@ -220,6 +220,10 @@ API_VERSION = "v1"
 ANALYTICS_DATASET = "makanmasak-metrics-prod"
 CLOUDFLARE_ACCOUNT_ID = "bdddc08c066a9abc285d75fe5947a468"
 API_BASE_URL = "https://api.makanmasak.com"
+# Customer app origin baked into table/seat QR codes and verification links.
+# Set explicitly rather than relying on the CORS_ORIGIN[0] fallback, because
+# reordering CORS_ORIGIN would silently repoint every QR code that gets printed.
+CLIENT_BASE_URL = "https://makanmasak.com"
 CORS_ORIGIN = "https://makanmasak.com,https://admin.makanmasak.com,https://kitchen.makanmasak.com"
 LOG_LEVEL = "warn"
 MAX_REQUEST_SIZE = "5MB"
