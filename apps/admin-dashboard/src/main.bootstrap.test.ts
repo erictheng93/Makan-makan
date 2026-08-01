@@ -35,7 +35,16 @@ vi.mock("@/utils/errorHandler", () => ({
 }));
 
 vi.mock("@makanmakan/shared/stores/moduleAccess", () => ({
+  configureModuleAccess: vi.fn(() => void events.push("configureModuleAccess")),
   useModuleAccessStore: () => ({ fetch: vi.fn(async () => {}) }),
+}));
+
+vi.mock("@/services/api", () => ({
+  resolveApiBase: () => "https://api.makanmasak.com/api/v1",
+}));
+
+vi.mock("@/utils/authTokenProvider", () => ({
+  getAuthToken: () => "token-abc",
 }));
 
 vi.mock("@/stores/auth", () => ({

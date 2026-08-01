@@ -17,6 +17,48 @@ interface ModuleAccessResponse {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * How this store reaches the API. Injected by the host app rather than read
+ * from `import.meta.env` here, because this package is bundled from source by
+ * each consuming app and has no Vite env types of its own.
+ *
+ * The default base only works when the app is served from the same origin as
+ * the API (i.e. dev, behind the Vite `/api` proxy). In production the admin app
+ * is on a different host than the API, so a relative URL lands on the Pages SPA
+ * fallback: 200 with `text/html`, which passes `response.ok` and then fails at
+ * `.json()`. `assertJson` below turns that into a visible error instead.
+ */
+interface ModuleAccessTransport {
+  /** API base, e.g. `https://api.makanmasak.com/api/v1`. */
+  baseUrl: string;
+  /** Bearer token, or null when the host authenticates by cookie only. */
+  getToken: () => string | null;
+}
+
+const transport: ModuleAccessTransport = {
+  baseUrl: "/api/v1",
+  getToken: () => null,
+};
+
+/** Call once during app bootstrap, before the first `fetch()`. */
+export function configureModuleAccess(
+  options: Partial<ModuleAccessTransport>,
+): void {
+  if (options.baseUrl !== undefined) transport.baseUrl = options.baseUrl;
+  if (options.getToken !== undefined) transport.getToken = options.getToken;
+}
+
+function modulesUrl(): string {
+  return `${transport.baseUrl.replace(/\/$/, "")}/me/modules`;
+}
+
+function requestHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = transport.getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 const emptyAccess: ModuleAccessData = {
   restaurantId: null,
   planTier: null,
@@ -49,9 +91,10 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
     error.value = null;
 
     try {
-      const response = await fetch("/api/v1/me/modules", {
+      const url = modulesUrl();
+      const response = await fetch(url, {
         credentials: "include",
-        headers: { Accept: "application/json" },
+        headers: requestHeaders(),
       });
 
       if (response.status === 401 || response.status === 403) {
@@ -61,6 +104,15 @@ export const useModuleAccessStore = defineStore("moduleAccess", () => {
 
       if (!response.ok) {
         throw new Error(`Failed to load module access (${response.status})`);
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        // Almost always a misconfigured base URL: the request reached a static
+        // host's SPA fallback rather than the API.
+        throw new Error(
+          `Expected JSON from ${url} but received "${contentType}"`,
+        );
       }
 
       const body = (await response.json()) as ModuleAccessResponse;

@@ -6,7 +6,12 @@ import { setupGlobalErrorHandler, errorHandler } from "@/utils/errorHandler";
 import ErrorDisplay from "@/components/ErrorDisplay.vue";
 import { initI18n } from "./i18n";
 import { useAuthStore } from "@/stores/auth";
-import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
+import {
+  configureModuleAccess,
+  useModuleAccessStore,
+} from "@makanmakan/shared/stores/moduleAccess";
+import { resolveApiBase } from "@/services/api";
+import { getAuthToken } from "@/utils/authTokenProvider";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 import "./assets/css/main.css";
@@ -14,6 +19,15 @@ import "./assets/css/main.css";
 async function bootstrap() {
   // Load translations before creating the app so t() works on first render
   await initI18n();
+
+  // The shared store defaults to a same-origin base, which is only correct in
+  // dev behind the Vite proxy. Production serves the admin app from a different
+  // host than the API, and the access token lives in memory (not a cookie), so
+  // both the origin and the bearer header have to come from this app.
+  configureModuleAccess({
+    baseUrl: resolveApiBase(),
+    getToken: () => getAuthToken(),
+  });
 
   const app = createApp(App);
   const pinia = createPinia();

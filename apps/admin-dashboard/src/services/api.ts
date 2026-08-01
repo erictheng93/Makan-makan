@@ -116,7 +116,7 @@ const authClient = createAuthenticatedApiClient({
 
 setAuthTokenProvider(() => authClient.tokens.getToken());
 
-function resolveApiBase(): string {
+export function resolveApiBase(): string {
   return import.meta.env.VITE_API_BASE_URL || "/api/v1";
 }
 
