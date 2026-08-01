@@ -121,7 +121,24 @@ export class RealtimeBroadcastService {
   async broadcastOrderStatusUpdate(
     event: OrderStatusUpdateEvent,
   ): Promise<BroadcastResult> {
-    return this.broadcastRestaurantAndKitchen(event);
+    const results = await Promise.all([
+      this.broadcastRestaurantAndKitchen(event),
+      this.broadcastEvent("customer", `order:${event.data.orderId}`, event),
+    ]);
+
+    const failed = results.find((result) => !result.success);
+    if (failed) {
+      return failed;
+    }
+
+    return {
+      success: true,
+      eventId: results[0]?.eventId ?? event.eventId,
+      recipientCount: results.reduce(
+        (sum, result) => sum + (result.recipientCount ?? 0),
+        0,
+      ),
+    };
   }
 
   async broadcastOrderItemStatusUpdate(

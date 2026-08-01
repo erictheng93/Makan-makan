@@ -395,7 +395,11 @@ const readGuestRealtimeCache = () => {
   }
 
   try {
-    const parsed = JSON.parse(raw) as { token: string; expiresAt: string };
+    const parsed = JSON.parse(raw) as {
+      token: string;
+      expiresAt: string;
+      wsUrl?: string;
+    };
     if (new Date(parsed.expiresAt).getTime() <= Date.now()) {
       localStorage.removeItem(guestRealtimeCacheKey);
       return null;
@@ -413,8 +417,8 @@ const clearGuestRealtimeCache = () => {
 
 const getGuestRealtimeUrl = async () => {
   const cached = readGuestRealtimeCache();
-  if (cached?.token) {
-    return `${import.meta.env.VITE_WS_BASE_URL}/customer/${props.tableId}?token=${encodeURIComponent(cached.token)}`;
+  if (cached?.wsUrl) {
+    return cached.wsUrl;
   }
 
   const qrCode = localStorage.getItem(guestQrCacheKey);
@@ -434,10 +438,11 @@ const getGuestRealtimeUrl = async () => {
     JSON.stringify({
       token: response.token,
       expiresAt: response.expiresAt,
+      wsUrl: response.wsUrl,
     }),
   );
 
-  return `${import.meta.env.VITE_WS_BASE_URL}/customer/${props.tableId}?token=${encodeURIComponent(response.token)}`;
+  return response.wsUrl;
 };
 
 const handleWebSocketMessage = (message: RealtimeEvent) => {

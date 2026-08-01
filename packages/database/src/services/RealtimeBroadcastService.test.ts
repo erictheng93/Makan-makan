@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { RealtimeEventType } from "@makanmakan/shared-types";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
-import type { NewOrderEvent } from "@makanmakan/shared-types";
+import type {
+  NewOrderEvent,
+  OrderStatusUpdateEvent,
+} from "@makanmakan/shared-types";
 
 function createRealtimeEnv() {
   const fetch = vi.fn().mockImplementation(() =>
@@ -57,6 +60,25 @@ function newOrderEvent(): NewOrderEvent {
   };
 }
 
+function orderStatusUpdateEvent(): OrderStatusUpdateEvent {
+  return {
+    type: RealtimeEventType.ORDER_STATUS_UPDATE,
+    eventId: "evt-status-1",
+    timestamp: 1780308000000,
+    restaurantId: "restaurant-1",
+    data: {
+      orderId: 1001,
+      orderNumber: "A001",
+      status: "ready",
+      updatedBy: {
+        userId: "staff-1",
+        userName: "Staff",
+        role: "staff",
+      },
+    },
+  };
+}
+
 describe("RealtimeBroadcastService", () => {
   it("fans out new order events to restaurant, kitchen, and admin rooms", async () => {
     const { env, idFromName, fetch } = createRealtimeEnv();
@@ -82,5 +104,22 @@ describe("RealtimeBroadcastService", () => {
         body: expect.stringContaining('"orderSource":"market_checkout"'),
       }),
     );
+  });
+
+  it("fans out order status updates to the order-scoped customer room", async () => {
+    const { env, idFromName, fetch } = createRealtimeEnv();
+    const service = new RealtimeBroadcastService(env);
+
+    const result = await service.broadcastOrderStatusUpdate(
+      orderStatusUpdateEvent(),
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      eventId: "evt-market-1",
+      recipientCount: 8,
+    });
+    expect(idFromName).toHaveBeenCalledWith("customer:order:1001");
+    expect(fetch).toHaveBeenCalledTimes(4);
   });
 });
