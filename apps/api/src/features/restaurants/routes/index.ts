@@ -25,6 +25,7 @@ import { restaurantSchemas } from "../schemas/validation";
 import { MarketsService } from "../../markets/services/MarketsService";
 import { createMarketJoinRequestSchema } from "../../markets/schemas/validation";
 import { createSearchIndexSync } from "../../discovery/services/SearchIndexSyncService";
+import { TablesService } from "../../tables/services/TablesService";
 
 const app = new Hono<{ Bindings: Env }>();
 const logger = new ConsoleLogger("RestaurantsRoutes");
@@ -286,6 +287,51 @@ app.get(
       {
         success: true,
         data: serviceItems,
+      },
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+/**
+ * GET /:id/tables/:tableId/validate - Validate a public table menu entry
+ */
+app.get(
+  "/:id/tables/:tableId/validate",
+  validateParams(restaurantSchemas.tableValidationParams),
+  async (c) => {
+    const { id, tableId } = c.get("validatedParams");
+    const tablesService = new TablesService(c.env);
+    const table = await tablesService.getTableById(tableId);
+
+    if (
+      !table ||
+      String(table.restaurantId) !== id ||
+      table.isActive === false
+    ) {
+      return c.json(
+        {
+          success: true,
+          data: {
+            isValid: false,
+          },
+        },
+        HTTP_STATUS.OK,
+      );
+    }
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          isValid: true,
+          table: {
+            id: table.id,
+            number: table.number,
+            seats: table.capacity,
+            status: table.isOccupied ? "occupied" : "available",
+          },
+        },
       },
       HTTP_STATUS.OK,
     );

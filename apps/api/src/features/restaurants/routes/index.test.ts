@@ -82,6 +82,16 @@ vi.mock("../../markets/services/MarketsService", () => ({
   },
 }));
 
+const tableFns = vi.hoisted(() => ({
+  getTableById: vi.fn(),
+}));
+
+vi.mock("../../tables/services/TablesService", () => ({
+  TablesService: class {
+    getTableById = tableFns.getTableById;
+  },
+}));
+
 const syncFns = vi.hoisted(() => ({
   onRestaurantChanged: vi.fn(),
 }));
@@ -197,6 +207,14 @@ beforeEach(() => {
     status: "created",
     request: { id: 10 },
   });
+  tableFns.getTableById.mockResolvedValue({
+    id: 11,
+    restaurantId: "rest-1",
+    number: "A1",
+    capacity: 4,
+    isActive: true,
+    isOccupied: false,
+  });
 });
 
 describe("restaurants routes", () => {
@@ -225,6 +243,40 @@ describe("restaurants routes", () => {
       "Central",
       4,
     );
+  });
+
+  it("validates public table menu entry links", async () => {
+    let res = await request("/rest-1/tables/11/validate");
+
+    expect(res.status).toBe(200);
+    expect(tableFns.getTableById).toHaveBeenCalledWith(11);
+    await expect(res.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        isValid: true,
+        table: {
+          id: 11,
+          number: "A1",
+          seats: 4,
+          status: "available",
+        },
+      },
+    });
+
+    tableFns.getTableById.mockResolvedValueOnce({
+      id: 12,
+      restaurantId: "rest-2",
+      number: "B1",
+      capacity: 2,
+      isActive: true,
+    });
+    res = await request("/rest-1/tables/12/validate");
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      success: true,
+      data: { isValid: false },
+    });
   });
 
   it("creates restaurants and returns detail not-found errors", async () => {

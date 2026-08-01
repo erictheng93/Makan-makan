@@ -183,6 +183,10 @@ const serviceItemParam = idParam.extend({
   serviceItemId: z.coerce.number().int().min(1),
 });
 
+const tableValidationParam = idParam.extend({
+  tableId: z.coerce.number().int().min(1),
+});
+
 const districtParam = z.object({
   district: z.string().min(1, "District is required"),
 });
@@ -342,6 +346,7 @@ export const restaurantSchemas = {
   // Parameters
   params: idParam,
   serviceItemParams: serviceItemParam,
+  tableValidationParams: tableValidationParam,
   districtParams: districtParam,
   qrCodeParams: qrCodeParam,
 

@@ -262,7 +262,7 @@
                     v-model.number="batchForm.count"
                     type="number"
                     min="1"
-                    max="100"
+                    :max="batchSeatLimit"
                     required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -328,7 +328,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -360,6 +360,7 @@ interface Seat {
 interface Props {
   tableId: number;
   tableNumber: string;
+  tableCapacity?: number;
   seats: Seat[];
   gridColumns?: number;
 }
@@ -398,6 +399,79 @@ const batchForm = ref({
   numberingStyle: "numeric" as "numeric" | "alphabetic",
   prefix: "",
 });
+const resolvedTableCapacity = ref<number | undefined>(props.tableCapacity);
+
+const activeSeatCount = computed(
+  () => props.seats.filter((seat) => seat.isActive).length,
+);
+const tableCapacityLimit = computed(() =>
+  Math.max(resolvedTableCapacity.value ?? 100, 1),
+);
+const remainingSeatCapacity = computed(() =>
+  Math.max(tableCapacityLimit.value - activeSeatCount.value, 0),
+);
+const batchSeatLimit = computed(() => Math.max(remainingSeatCapacity.value, 1));
+const batchSeatDefault = computed(() =>
+  Math.min(Math.max(remainingSeatCapacity.value, 1), tableCapacityLimit.value),
+);
+
+watch(
+  () => props.tableCapacity,
+  (capacity) => {
+    resolvedTableCapacity.value = capacity;
+  },
+);
+
+const loadTableCapacity = async () => {
+  if (props.tableCapacity !== undefined) return;
+
+  try {
+    const response = await api.get(`/tables/${props.tableId}`);
+    const data = response.data?.data?.data || response.data?.data;
+    if (typeof data?.capacity === "number") {
+      resolvedTableCapacity.value = data.capacity;
+    }
+  } catch (error) {
+    console.error("Failed to load table capacity:", error);
+  }
+};
+
+watch(showBatchCreateModal, async (isOpen) => {
+  if (isOpen) {
+    await loadTableCapacity();
+    batchForm.value.count = batchSeatDefault.value;
+  }
+});
+
+const extractApiErrorMessage = (error: unknown): string | undefined => {
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as {
+      message?: unknown;
+      response?: { data?: { error?: unknown; message?: unknown } };
+    };
+    const apiError = candidate.response?.data?.error;
+
+    if (typeof apiError === "string" && apiError.trim()) {
+      return apiError;
+    }
+    if (
+      typeof apiError === "object" &&
+      apiError !== null &&
+      "message" in apiError &&
+      typeof (apiError as { message?: unknown }).message === "string"
+    ) {
+      return (apiError as { message: string }).message;
+    }
+    if (typeof candidate.response?.data?.message === "string") {
+      return candidate.response.data.message;
+    }
+    if (typeof candidate.message === "string") {
+      return candidate.message;
+    }
+  }
+
+  return undefined;
+};
 
 // 處理座位點擊
 const handleSeatClick = (seat: Seat) => {
@@ -598,7 +672,10 @@ const batchCreateSeats = async () => {
     );
   } catch (error) {
     console.error("Failed to batch create seats:", error);
-    toast.error(t("seatManagement.alerts.batchCreateFailed"));
+    toast.error(
+      extractApiErrorMessage(error) ||
+        t("seatManagement.alerts.batchCreateFailed"),
+    );
   }
 };
 

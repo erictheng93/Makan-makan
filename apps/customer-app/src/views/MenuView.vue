@@ -371,16 +371,49 @@ const selectedItem = ref<MenuItem | null>(null);
 const customizingItem = ref<MenuItem | null>(null);
 const showItemModal = ref(false);
 const showCustomizationModal = ref(false);
+const hasRedirectedInvalidTable = ref(false);
 
-// 初始化購物車
-onMounted(() => {
-  cartStore.initializeCart(props.restaurantId, props.tableId);
+const invalidTableMessage = "此桌號無效或已停用，請重新掃描 QR Code。";
+const isValidTableId = computed(
+  () => Number.isInteger(props.tableId) && props.tableId > 0,
+);
+
+const redirectInvalidTable = () => {
+  if (hasRedirectedInvalidTable.value) return;
+
+  hasRedirectedInvalidTable.value = true;
+  router.replace({
+    name: "Error",
+    query: {
+      code: "INVALID_TABLE",
+      message: invalidTableMessage,
+    },
+  });
+};
+
+const {
+  data: tableValidation,
+  isLoading: isLoadingTableValidation,
+  error: tableValidationError,
+} = useQuery({
+  queryKey: ["table-validation", props.restaurantId, props.tableId],
+  queryFn: async () => {
+    if (!isValidTableId.value) {
+      return { isValid: false };
+    }
+    return menuApi.validateTable(props.restaurantId, props.tableId);
+  },
+  retry: false,
+  staleTime: 0,
 });
+
+const isTableValid = computed(() => tableValidation.value?.isValid === true);
 
 // API Queries
 const { data: restaurant, isLoading: isLoadingRestaurant } = useQuery({
   queryKey: ["restaurant", props.restaurantId],
   queryFn: () => menuApi.getRestaurant(props.restaurantId),
+  enabled: isTableValid,
   staleTime: 5 * 60 * 1000, // 5分鐘
 });
 
@@ -390,17 +423,23 @@ const {
   error: menuError,
   refetch,
 } = useQuery({
-  queryKey: ["menu", props.restaurantId],
-  queryFn: () => menuApi.getMenu(props.restaurantId),
+  queryKey: ["menu", props.restaurantId, props.tableId],
+  queryFn: () => menuApi.getMenu(props.restaurantId, props.tableId),
+  enabled: isTableValid,
   staleTime: 2 * 60 * 1000, // 2分鐘
   refetchOnWindowFocus: true,
 });
 
 // Computed
 const isLoading = computed(
-  () => isLoadingRestaurant.value || isLoadingMenu.value,
+  () =>
+    isLoadingTableValidation.value ||
+    isLoadingRestaurant.value ||
+    isLoadingMenu.value,
 );
-const error = computed(() => menuError.value?.message || null);
+const error = computed(
+  () => tableValidationError.value?.message || menuError.value?.message || null,
+);
 
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
@@ -516,6 +555,26 @@ watch(restaurant, (newRestaurant) => {
     appStore.setRestaurantContext(newRestaurant, props.tableId);
   }
 });
+
+watch(
+  [tableValidation, tableValidationError],
+  ([validation, validationError]) => {
+    if (validationError || validation?.isValid === false) {
+      redirectInvalidTable();
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  isTableValid,
+  (valid) => {
+    if (valid) {
+      cartStore.initializeCart(props.restaurantId, props.tableId);
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

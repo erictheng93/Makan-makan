@@ -42,6 +42,7 @@ import {
   type UpdateSeatInput,
 } from "../schemas/validation";
 import { TablesService } from "../../tables/services/TablesService";
+import type { Table } from "../../tables/types";
 
 const routes = new Hono<{ Bindings: Env }>();
 
@@ -68,21 +69,20 @@ function seatsContext(c: Context): SeatsContext {
   return c as unknown as SeatsContext;
 }
 
-async function ensureTableAccess(
+async function getTableWithAccessCheck(
   c: SeatsContext,
   tableId: number,
-): Promise<void> {
+): Promise<Table> {
   const currentUser = c.get("user");
-
-  if (currentUser.role === USER_ROLES.ADMIN) {
-    return;
-  }
-
   const tablesService = createTablesService(c.env);
   const table = await tablesService.getTableById(tableId);
 
   if (!table) {
     throw notFound("Table not found");
+  }
+
+  if (currentUser.role === USER_ROLES.ADMIN) {
+    return table;
   }
 
   const ownsRestaurant = tablesService.validateRestaurantAccess(
@@ -94,6 +94,15 @@ async function ensureTableAccess(
   if (!ownsRestaurant) {
     throw forbidden("Access denied");
   }
+
+  return table;
+}
+
+async function ensureTableAccess(
+  c: SeatsContext,
+  tableId: number,
+): Promise<void> {
+  await getTableWithAccessCheck(c, tableId);
 }
 
 async function getSeatWithAccessCheck(
@@ -252,11 +261,20 @@ routes.post(
   async (c) => {
     const data = c.get("validatedBody") as BatchCreateSeatsInput;
     const { tableId } = data;
-    await ensureTableAccess(seatsContext(c), tableId);
+    const table = await getTableWithAccessCheck(seatsContext(c), tableId);
 
     const seatService = createSeatService(c.env);
 
     const { seatCount, numberingStyle, customNumbers, prefix } = data;
+    const existingSeats = await seatService.getSeatsByTableId(tableId, {
+      limit: Math.max(table.capacity, 1),
+    });
+
+    if (existingSeats.total + seatCount > table.capacity) {
+      throw badRequest(
+        "Seat count must be positive and cannot exceed table capacity",
+      );
+    }
 
     const seats = await seatService.createSeatsForTable(tableId, seatCount, {
       numberingStyle,

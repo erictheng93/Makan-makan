@@ -899,7 +899,13 @@ export class TableService extends BaseService {
 
       return { success: true, qrCodes };
     } catch (error) {
-      return { success: false, error: "Failed to generate bulk QR codes" };
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: message
+          ? `Failed to generate bulk QR codes: ${message}`
+          : "Failed to generate bulk QR codes",
+      };
     }
   }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { defineComponent, nextTick } from "vue";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SeatManagement from "./SeatManagement.vue";
 
@@ -9,6 +9,13 @@ const qrDataUrl = "data:image/png;base64,c2VhdA==";
 const qrToDataUrl = vi.hoisted(() =>
   vi.fn(async (content: string) => `data:image/png;base64,${btoa(content)}`),
 );
+const toastError = vi.hoisted(() => vi.fn());
+const apiMocks = vi.hoisted(() => ({
+  delete: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+}));
 
 vi.mock("qrcode", () => ({
   default: {
@@ -26,7 +33,7 @@ vi.mock("@/i18n", () => ({
 vi.mock("vue-toastification", () => ({
   useToast: () => ({
     success: vi.fn(),
-    error: vi.fn(),
+    error: toastError,
     warning: vi.fn(),
   }),
 }));
@@ -36,11 +43,7 @@ vi.mock("@/composables/useConfirmModal", () => ({
 }));
 
 vi.mock("@/services/api", () => ({
-  api: {
-    delete: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-  },
+  api: apiMocks,
 }));
 
 const QRCodeRendererStub = defineComponent({
@@ -95,6 +98,15 @@ function createPrintWindow() {
 describe("SeatManagement QR output", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    apiMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 11,
+          capacity: 4,
+        },
+      },
+    });
   });
 
   afterEach(() => {
@@ -145,5 +157,41 @@ describe("SeatManagement QR output", () => {
     expect(printWindow.document.body.textContent).toContain("01");
     expect(printWindow.document.body.textContent).toContain("02");
     expect(printWindow.print).toHaveBeenCalledOnce();
+  });
+
+  it("loads table capacity before batch creation and shows API errors", async () => {
+    apiMocks.post.mockRejectedValue({
+      response: {
+        data: {
+          error: {
+            message:
+              "Seat count must be positive and cannot exceed table capacity",
+          },
+        },
+      },
+    });
+    const wrapper = mountSeatManagement();
+
+    (
+      wrapper.vm as unknown as {
+        showBatchCreateModal: boolean;
+      }
+    ).showBatchCreateModal = true;
+    await nextTick();
+    await flushPromises();
+
+    expect(apiMocks.get).toHaveBeenCalledWith("/tables/11");
+    expect(
+      (wrapper.vm as unknown as { batchForm: { count: number } }).batchForm
+        .count,
+    ).toBe(2);
+
+    await (
+      wrapper.vm as unknown as { batchCreateSeats: () => Promise<void> }
+    ).batchCreateSeats();
+
+    expect(toastError).toHaveBeenCalledWith(
+      "Seat count must be positive and cannot exceed table capacity",
+    );
   });
 });

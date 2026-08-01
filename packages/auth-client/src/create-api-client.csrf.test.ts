@@ -172,6 +172,7 @@ describe("auth client refresh error handling", () => {
       csrf: true,
       errorHandler,
     });
+    client.tokens.setUser({ id: 7 });
     const post = vi
       .spyOn(client.instance, "post")
       .mockRejectedValueOnce(new Error("Refresh token is required"));

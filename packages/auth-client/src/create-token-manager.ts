@@ -23,6 +23,12 @@ export function createTokenManager(config: TokenManagerConfig): TokenManager {
   const refreshToken = async (): Promise<boolean> => {
     if (!refreshFn) return false;
 
+    const hasRefreshableSession =
+      !!storage.getToken() ||
+      !!storage.getRefreshToken() ||
+      !!storage.getUser();
+    if (!hasRefreshableSession) return false;
+
     // Deduplicate: if a refresh is already in flight, reuse it
     if (sharedRefreshPromise) return sharedRefreshPromise;
 

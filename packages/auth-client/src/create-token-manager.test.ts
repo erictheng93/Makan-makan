@@ -44,6 +44,7 @@ describe("createTokenManager", () => {
 
   it("deduplicates concurrent refreshes without persisting refreshed refresh tokens", async () => {
     const storage = createMemoryStorage();
+    storage.setUser({ id: 7 });
     const onTokenRefreshed = vi.fn();
     const refreshFn = vi.fn(async () => ({
       token: "next-token",
@@ -66,6 +67,25 @@ describe("createTokenManager", () => {
       token: "next-token",
       refreshToken: "next-refresh",
     });
+  });
+
+  it("does not call the refresh endpoint for an anonymous visitor", async () => {
+    const storage = createMemoryStorage();
+    const refreshFn = vi.fn(async () => ({
+      token: "next-token",
+    }));
+    const onRefreshFailure = vi.fn();
+    const manager = createTokenManager({
+      storage,
+      refreshFn,
+      onRefreshFailure,
+    });
+
+    await expect(manager.refreshToken()).resolves.toBe(false);
+
+    expect(refreshFn).not.toHaveBeenCalled();
+    expect(onRefreshFailure).not.toHaveBeenCalled();
+    expect(manager.getToken()).toBeNull();
   });
 
   it("reports refresh failure and clears scheduled timers", async () => {

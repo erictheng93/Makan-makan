@@ -123,8 +123,14 @@ describe("seats routes", () => {
     mocks.getTableById.mockResolvedValue({
       id: 3,
       restaurantId: "restaurant-1",
+      capacity: 4,
     });
     mocks.validateRestaurantAccess.mockReturnValue(true);
+    mocks.getSeatsByTableId.mockResolvedValue({
+      seats: [],
+      total: 0,
+      pagination: { page: 1, limit: 50, totalPages: 0 },
+    });
   });
 
   it("lists seats and returns table statistics after table access checks", async () => {
@@ -169,7 +175,7 @@ describe("seats routes", () => {
     expect(mocks.getSeatStats).toHaveBeenCalledWith(3);
   });
 
-  it("allows admins through table access without loading table ownership", async () => {
+  it("allows admins through table access without ownership comparison", async () => {
     mocks.currentUser.role = 0;
     mocks.getSeatsByTableId.mockResolvedValue({
       seats: [],
@@ -183,7 +189,8 @@ describe("seats routes", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.getTableById).not.toHaveBeenCalled();
+    expect(mocks.getTableById).toHaveBeenCalledWith(3);
+    expect(mocks.validateRestaurantAccess).not.toHaveBeenCalled();
   });
 
   it("blocks table-scoped access when the table is missing or cross-restaurant", async () => {
@@ -325,6 +332,33 @@ describe("seats routes", () => {
       message: "Successfully regenerated QR codes for 1 seats",
     });
     expect(mocks.batchGenerateSeatQRCodes).toHaveBeenCalledWith(3);
+  });
+
+  it("rejects batch-created seats that exceed table capacity", async () => {
+    mocks.getTableById.mockResolvedValueOnce({
+      id: 3,
+      restaurantId: "restaurant-1",
+      capacity: 4,
+    });
+    mocks.getSeatsByTableId.mockResolvedValueOnce({
+      seats: [seat({ id: 1 }), seat({ id: 2 }), seat({ id: 3 })],
+      total: 3,
+      pagination: { page: 1, limit: 4, totalPages: 1 },
+    });
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        jsonRequest("https://test/batch-create", "POST", {
+          tableId: 3,
+          seatCount: 2,
+          numberingStyle: "numeric",
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(mocks.createSeatsForTable).not.toHaveBeenCalled();
   });
 
   it("rejects custom numbering without one unique number per seat", async () => {
