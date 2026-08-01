@@ -1,10 +1,9 @@
 import type { Messages } from "../types";
 
 /**
- * Terjemahan Bahasa Indonesia
+ * Indonesian Translation
  */
 const idID: Messages = {
-  // Kosakata umum
   common: {
     save: "Simpan",
     cancel: "Batal",
@@ -45,9 +44,8 @@ const idID: Messages = {
     update: "Perbarui",
     loadFailed: "Gagal memuat",
     retry: "Coba lagi",
+    processing: "Pengolahan",
   },
-
-  // Manajemen Menu
   menu: {
     title: "Manajemen Menu",
     subtitle: "Kelola hidangan dan kategori restoran",
@@ -202,8 +200,6 @@ const idID: Messages = {
       available: "available",
     },
   },
-
-  // Manajemen Pesanan
   orders: {
     stats: {
       pending: "Menunggu",
@@ -227,6 +223,7 @@ const idID: Messages = {
       served: "Disajikan",
       completed: "Selesai",
       cancelled: "Dibatalkan",
+      refunded: "Dikembalikan",
     },
     type: {
       dineIn: "Makan di Tempat",
@@ -280,8 +277,6 @@ const idID: Messages = {
     defaultCustomer: "Pelanggan Anonim",
     updateFailed: "Gagal memperbarui status pesanan",
   },
-
-  // Manajemen Meja
   tables: {
     title: "Manajemen Meja",
     subtitle: "Kelola meja restoran dan kode QR",
@@ -350,6 +345,8 @@ const idID: Messages = {
     confirm: {
       regenerateAllQR:
         "Apakah Anda yakin ingin membuat ulang kode QR untuk semua meja?",
+      regenerateAllQRAction: "Regenerasi Semua QR",
+      regenerateAllQRTitle: "Regenerasi Semua Tabel QR",
     },
     alert: {
       qrGenerated: "Kode QR berhasil dibuat!",
@@ -365,8 +362,6 @@ const idID: Messages = {
       qrGenerateFailed: "Gagal membuat kode QR, silakan coba lagi",
     },
   },
-
-  // Sistem jadwal kerja
   scheduling: {
     title: "Jadwal Kerja Karyawan",
     calendar: "Tampilan Kalender",
@@ -384,7 +379,6 @@ const idID: Messages = {
     editSchedule: "Edit Jadwal",
     deleteSchedule: "Hapus Jadwal",
     scheduleDetails: "Detail Jadwal",
-
     filters: {
       searchEmployee: "Cari nama karyawan...",
       dateRange: "Rentang Tanggal",
@@ -396,7 +390,6 @@ const idID: Messages = {
       allShifts: "Semua Shift",
       to: "sampai",
     },
-
     columns: {
       date: "Tanggal",
       weekday: "Hari",
@@ -412,7 +405,6 @@ const idID: Messages = {
       status: "Status",
       notes: "Catatan",
     },
-
     form: {
       selectEmployee: "Pilih Karyawan",
       selectShift: "Pilih Shift",
@@ -425,7 +417,6 @@ const idID: Messages = {
       repeatDays: "Jumlah Hari Pengulangan",
       repeatUntil: "Ulangi Sampai",
     },
-
     batch: {
       title: "Operasi Massal",
       selected: "{count} terpilih",
@@ -436,8 +427,9 @@ const idID: Messages = {
       confirmAction:
         "Apakah Anda yakin ingin melakukan operasi ini pada {count} jadwal?",
       cancelConfirm: "Apakah Anda yakin ingin membatalkan {count} jadwal?",
+      cancel: "Membatalkan",
+      confirm: "Mengonfirmasi",
     },
-
     pagination: {
       showing: "Menampilkan {start}-{end} dari {total}",
       itemsPerPage: "item/halaman",
@@ -447,7 +439,6 @@ const idID: Messages = {
       nextPage: "Halaman Selanjutnya",
       page: "halaman",
     },
-
     conflicts: {
       title: "Konflik Jadwal",
       detected: "Terdeteksi {count} konflik",
@@ -461,7 +452,6 @@ const idID: Messages = {
       ignore: "Abaikan",
       details: "Detail Konflik",
     },
-
     stats: {
       totalSchedules: "Total Jadwal",
       totalHours: "Total Jam",
@@ -471,7 +461,6 @@ const idID: Messages = {
       thisMonth: "Bulan Ini",
       today: "Hari Ini",
     },
-
     exportReport: "Ekspor Laporan",
     loadingList: "Memuat daftar jadwal...",
     noData: "Tidak Ada Data Jadwal",
@@ -480,16 +469,40 @@ const idID: Messages = {
     noExportData: "Tidak ada data untuk diekspor",
     exportFilename: "data_jadwal",
     exportSelected: "terpilih",
+    approveSwapFailed: "Setujui Swap Gagal",
+    addTemplate: "Tambahkan Templat",
+    confirmDeleteSchedule: "Konfirmasi Hapus Jadwal",
+    confirmDeleteTemplate: "Konfirmasi Hapus Templat",
+    cannotGetUserInfo: "Tidak Dapat Mendapatkan Info Pengguna",
+    cannotGetManagerInfo: "Tidak Dapat Mendapatkan Info Manajer",
+    conflictWarnings: "Peringatan Konflik",
+    deleteScheduleFailed: "Hapus Jadwal Gagal",
+    currentlyWorking: "Sedang Bekerja",
+    listView: "Tampilan Daftar",
+    deleteTemplate: "Hapus Templat",
+    enterResolutionNotes: "Masukkan Catatan Resolusi",
+    managementSubtitle: "Subjudul Manajemen",
+    managementTitle: "Penjadwalan Manajemen",
+    enterRejectReason: "Masukkan Alasan Penolakan",
+    employeeNumber: "Nomor Karyawan",
+    peopleCount: "Jumlah Orang",
+    deleteTemplateFailed: "Hapus Templat Gagal",
+    pendingSwaps: "Swap yang Tertunda",
+    pendingConflicts: "Konflik yang Tertunda",
+    monthlySchedules: "Jadwal Bulanan",
+    noEmployeesWorking: "Tidak Ada Karyawan yang Bekerja",
+    since: "Sejak",
+    resolveConflictFailed: "Penyelesaian Konflik Gagal",
+    rejectSwapFailed: "Tolak Tukar Gagal",
+    saveTemplateFailed: "Simpan Templat Gagal",
+    saveScheduleFailed: "Simpan Jadwal Gagal",
   },
-
-  // Template shift
   shiftTemplates: {
     title: "Template Shift",
     create: "Buat Template",
     edit: "Edit Template",
     delete: "Hapus Template",
     duplicate: "Duplikat Template",
-
     form: {
       name: "Nama Template",
       nameRequired: "Silakan masukkan nama template",
@@ -516,7 +529,6 @@ const idID: Messages = {
       icon: "Ikon (opsional)",
       preview: "Pratinjau",
     },
-
     sections: {
       basicInfo: "Info Dasar",
       workTime: "Waktu Kerja",
@@ -525,32 +537,27 @@ const idID: Messages = {
       payRate: "Tarif Gaji (Opsional)",
       appearance: "Tampilan",
     },
-
     shiftTypes: {
       regular: "Reguler",
       split: "Shift Terpisah",
       overnight: "Malam",
     },
-
     overtime: {
       normal: "Normal",
       weekday: "Lembur Hari Kerja",
       restDay: "Lembur Hari Libur",
       holiday: "Hari Libur Nasional",
     },
-
     errors: {
       minExceedsMax: "Min karyawan tidak boleh melebihi maks karyawan",
       noDaysSelected: "Pilih minimal satu hari berlaku",
     },
-
     usage: {
       title: "Statistik Penggunaan",
       timesUsed: "Kali Digunakan",
       lastUsed: "Terakhir Digunakan",
       never: "Belum Pernah Digunakan",
     },
-
     colors: {
       blue: "Biru",
       green: "Hijau",
@@ -561,7 +568,6 @@ const idID: Messages = {
       cyan: "Cyan",
       gray: "Abu-abu",
     },
-
     presets: {
       morning: "Shift Pagi",
       afternoon: "Shift Siang",
@@ -569,7 +575,6 @@ const idID: Messages = {
       night: "Shift Malam",
       fullDay: "Seharian",
     },
-
     management: "Manajemen Template Shift",
     totalCount: "{count} template shift total",
     addTemplate: "Tambah Template",
@@ -592,8 +597,6 @@ const idID: Messages = {
         'Apakah Anda yakin ingin menghapus template shift "{name}"? Tindakan ini tidak dapat dibatalkan.',
     },
   },
-
-  // Permintaan tukar shift
   swapRequests: {
     title: "Permintaan Tukar Shift",
     create: "Ajukan Tukar Shift",
@@ -614,14 +617,12 @@ const idID: Messages = {
     switchFilterHint: "Ganti filter untuk melihat status lain",
     responseNote: "Tanggapan",
     processedBy: "Diproses oleh {name}",
-
     status: {
       pending: "Menunggu",
       approved: "Disetujui",
       rejected: "Ditolak",
       cancelled: "Dibatalkan",
     },
-
     form: {
       requester: "Pemohon",
       target: "Karyawan Tujuan",
@@ -633,7 +634,6 @@ const idID: Messages = {
       selectTarget: "Pilih shift lawan",
       noAvailableShifts: "Tidak ada shift yang tersedia",
     },
-
     details: {
       requestedBy: "Diminta Oleh",
       requestedAt: "Waktu Permintaan",
@@ -647,7 +647,6 @@ const idID: Messages = {
       rejectedAt: "Waktu Penolakan",
       rejectionReason: "Alasan Penolakan",
     },
-
     actions: {
       viewDetails: "Lihat Detail",
       approveConfirm:
@@ -656,9 +655,10 @@ const idID: Messages = {
         "Apakah Anda yakin ingin menolak permintaan tukar shift ini?",
       cancelConfirm:
         "Apakah Anda yakin ingin membatalkan permintaan tukar shift ini?",
+      approve: "Menyetujui",
+      reject: "Menolak",
     },
   },
-
   status: {
     scheduled: "Terjadwal",
     confirmed: "Dikonfirmasi",
@@ -669,7 +669,6 @@ const idID: Messages = {
     inactive: "Tidak Aktif",
     no_show: "Tidak Hadir",
   },
-
   weekdays: {
     short: {
       sunday: "Min",
@@ -699,7 +698,6 @@ const idID: Messages = {
       saturday: "Sb",
     },
   },
-
   errors: {
     generic: "Operasi gagal, silakan coba lagi",
     networkError: "Kesalahan jaringan, silakan periksa koneksi Anda",
@@ -715,8 +713,17 @@ const idID: Messages = {
     loadFailed: "Gagal memuat",
     saveFailed: "Gagal menyimpan",
     deleteFailed: "Gagal menghapus",
+    subscription: {
+      trialExpired:
+        "Masa uji coba Anda telah berakhir. Tingkatkan paket Anda untuk terus menggunakan fitur ini.",
+      moduleNotEnabled:
+        "Fitur ini tidak termasuk dalam paket Anda saat ini. Tingkatkan paket Anda atau hubungi dukungan untuk mengaktifkannya.",
+      subscriptionNotFound:
+        "Tidak ada langganan yang ditemukan untuk restoran ini, sehingga fitur-fiturnya belum diaktifkan. Proses masuk Anda baik-baik saja — harap hubungi dukungan untuk menyiapkannya.",
+      noRestaurant:
+        "Akun Anda belum tertaut ke restoran mana pun. Minta administrator Anda untuk menetapkannya, lalu coba lagi.",
+    },
   },
-
   success: {
     saved: "Berhasil disimpan",
     deleted: "Berhasil dihapus",
@@ -730,7 +737,6 @@ const idID: Messages = {
     exported: "Berhasil diekspor",
     imported: "Berhasil diimpor",
   },
-
   confirmations: {
     delete: "Apakah Anda yakin ingin menghapus?",
     deleteSchedule: "Apakah Anda yakin ingin menghapus jadwal ini?",
@@ -740,8 +746,6 @@ const idID: Messages = {
       "Ada perubahan yang belum disimpan, apakah Anda yakin ingin keluar?",
     batchDelete: "Apakah Anda yakin ingin menghapus {count} item yang dipilih?",
   },
-
-  // Komponen grafik
   charts: {
     workHours: {
       title: "Statistik Total Jam Kerja",
@@ -811,8 +815,6 @@ const idID: Messages = {
       totalValue: "{quantity} porsi / ${revenue}",
     },
   },
-
-  // Sistem reservasi
   reservation: {
     title: "Manajemen Reservasi",
     create: "Reservasi Baru",
@@ -864,6 +866,8 @@ const idID: Messages = {
       confirmed: "Dikonfirmasi",
       completed: "Selesai",
       noShowRate: "Tingkat Tidak Hadir",
+      pending: "Tertunda",
+      seated: "Duduk",
     },
     statusText: {
       pending: "Menunggu",
@@ -894,9 +898,12 @@ const idID: Messages = {
       next: "Selanjutnya",
       showing: "Menampilkan {start} sampai {end} dari {total} hasil",
     },
+    confirmAction: "Mengonfirmasi",
+    cancelAction: "Membatalkan",
+    cancelTitle: "Batalkan Reservasi",
+    seatedSuccess: "Ditandai sebagai berhasil duduk",
+    confirmTitle: "Konfirmasi Reservasi",
   },
-
-  // Sistem daftar tunggu
   waitingList: {
     title: "Manajemen Daftar Tunggu",
     subtitle: "Kelola antrian tunggu restoran",
@@ -985,9 +992,11 @@ const idID: Messages = {
     pagination: {
       showing: "Menampilkan {start} sampai {end} dari {total} hasil",
     },
+    expireAction: "Berakhir",
+    cancelTitle: "Batalkan Daftar Tunggu",
+    cancelAction: "Membatalkan",
+    expireTitle: "Daftar Tunggu Kedaluwarsa",
   },
-
-  // Manajemen tempat duduk
   seating: {
     title: "Manajemen Tempat Duduk",
     subtitle: "Kelola reservasi, daftar tunggu, dan antrean",
@@ -1007,14 +1016,10 @@ const idID: Messages = {
       todayServed: "Dilayani Hari Ini",
     },
   },
-
-  // Pemantauan sistem
   monitoring: {
     title: "Pemantauan Sistem",
     subtitle:
       "Pantau kesehatan sistem, metrik kinerja, dan peringatan secara real-time",
-
-    // Tombol dan aksi
     actions: {
       refresh: "Perbarui Sekarang",
       refreshing: "Memperbarui...",
@@ -1025,8 +1030,6 @@ const idID: Messages = {
       resetMetrics: "Setel Ulang Metrik",
       exportReport: "Ekspor Laporan",
     },
-
-    // Status kesehatan
     health: {
       overall: "Status Kesehatan Keseluruhan",
       score: "Skor Kesehatan",
@@ -1040,8 +1043,6 @@ const idID: Messages = {
         down: "Mati",
       },
     },
-
-    // Metrik kunci
     keyMetrics: {
       title: "Metrik Kunci",
       requestsPerMinute: "Permintaan per Menit",
@@ -1050,8 +1051,6 @@ const idID: Messages = {
       serverErrors: "Kesalahan Server",
       clientErrorsNote: "4xx sisi klien: {count} (normal)",
     },
-
-    // Status komponen
     components: {
       title: "Status Komponen Sistem",
       api: "Layanan API",
@@ -1067,8 +1066,10 @@ const idID: Messages = {
       issueCount: "Masalah: {count}",
       lastCheck: "Pemeriksaan Terakhir",
       issuesFound: "Masalah Ditemukan:",
+      queue: "Antre",
+      storage: "Penyimpanan",
+      websocket: "soket web",
     },
-
     statusText: {
       healthy: "Sehat",
       warning: "Peringatan",
@@ -1077,15 +1078,11 @@ const idID: Messages = {
       unknown: "Tidak Diketahui",
       stopped: "Berhenti",
     },
-
-    // Tab
     tabs: {
       alerts: "Aturan Peringatan",
       performance: "Laporan Kinerja",
       errors: "Analisis Kesalahan",
     },
-
-    // Aturan peringatan
     alerts: {
       title: "Aturan Peringatan",
       noAlerts: "Tidak ada aturan peringatan",
@@ -1121,16 +1118,19 @@ const idID: Messages = {
         deleteConfirm:
           "Apakah Anda yakin ingin menghapus aturan peringatan ini?",
       },
+      status: {
+        acknowledged: "Diakui",
+        active: "Aktif",
+        muted: "Meredam",
+        resolved: "Terselesaikan",
+      },
     },
-
-    // Laporan kinerja
     performance: {
       title: "Laporan Kinerja",
       selectPeriod: "Pilih Rentang Waktu",
       last1Day: "1 Hari Terakhir",
       last7Days: "7 Hari Terakhir",
       last30Days: "30 Hari Terakhir",
-
       api: {
         title: "Kinerja API",
         totalRequests: "Total Permintaan",
@@ -1138,7 +1138,6 @@ const idID: Messages = {
         p95ResponseTime: "Waktu Respons P95",
         errorRate: "Tingkat Kesalahan",
       },
-
       database: {
         title: "Kinerja Basis Data",
         totalQueries: "Total Query",
@@ -1146,7 +1145,6 @@ const idID: Messages = {
         slowQueries: "Query Lambat",
         queryErrorRate: "Tingkat Kesalahan Query",
       },
-
       cache: {
         title: "Kinerja Cache",
         hitRate: "Tingkat Hit",
@@ -1154,21 +1152,21 @@ const idID: Messages = {
         totalSize: "Total Ukuran",
         expiringKeys: "Key Akan Kedaluwarsa",
       },
-
       charts: {
         trendComparison: "Perbandingan Tren Kinerja (24 Jam Terakhir)",
         cacheHitRate: "Tren Tingkat Hit Cache (24 Jam Terakhir)",
         apiResponseTime: "Waktu Respons API",
         dbQueryTime: "Waktu Query Basis Data",
       },
-
       recommendations: {
         title: "Rekomendasi Optimasi",
         loading: "Memuat laporan kinerja...",
       },
+      custom: "Kebiasaan",
+      last24Hours: "24 Jam Terakhir",
+      last15Minutes: "15 Menit Terakhir",
+      lastHour: "Jam Terakhir",
     },
-
-    // Analisis kesalahan
     errors: {
       title: "Analisis Kesalahan",
       statistics: "Statistik Tipe Kesalahan",
@@ -1178,8 +1176,6 @@ const idID: Messages = {
       occurredTimes: "Jumlah Kejadian",
       errorCount: "Jumlah Kesalahan",
     },
-
-    // Peringatan real-time
     realtime: {
       title: "Peringatan Real-time",
       connectionStatus: {
@@ -1200,7 +1196,6 @@ const idID: Messages = {
       minutesAgo: "{count} menit yang lalu",
       hoursAgo: "{count} jam yang lalu",
     },
-
     misc: {
       loadingData: "Memuat data pemantauan...",
       systemHealth: "Kesehatan Sistem",
@@ -1218,9 +1213,9 @@ const idID: Messages = {
       close: "Tutup",
       chartUnit: "kali",
       responseTimeUnit: "Waktu Respons (ms)",
+      live: "Hidup",
+      stable: "Stabil",
     },
-
-    // Notifikasi
     notifications: {
       dataUpdated: "Data pemantauan diperbarui",
       updateFailed: "Gagal memperbarui data pemantauan",
@@ -1233,8 +1228,6 @@ const idID: Messages = {
       autoRefreshEnabled: "Perbarui otomatis diaktifkan",
       autoRefreshDisabled: "Perbarui otomatis dinonaktifkan",
     },
-
-    // Filter lanjutan
     filters: {
       title: "Filter Lanjutan",
       quickFilters: "Filter Cepat",
@@ -1284,8 +1277,6 @@ const idID: Messages = {
         filterDeleted: "Filter dihapus",
       },
     },
-
-    // Ekspor laporan
     export: {
       title: "Ekspor Laporan",
       exportReport: "Ekspor Laporan",
@@ -1346,8 +1337,6 @@ const idID: Messages = {
           "Gambaran status kesehatan sistem dan metrik kunci tingkat tinggi",
       },
     },
-
-    // Tata letak kustom
     layout: {
       title: "Tata Letak Dasbor",
       editMode: "Mode Edit",
@@ -1425,8 +1414,6 @@ const idID: Messages = {
         confirmDelete: "Apakah Anda yakin ingin menghapus tata letak ini?",
       },
     },
-
-    // Panel Notifikasi Peringatan
     alertPanel: {
       title: "Peringatan Langsung",
       reconnect: "Sambung Ulang",
@@ -1445,9 +1432,93 @@ const idID: Messages = {
       minutesAgo: "{count} menit yang lalu",
       hoursAgo: "{count} jam yang lalu",
     },
+    createRule: {
+      alertTypes: {
+        email: "E-mail",
+        slack: "Kendur",
+        webhook: "kait web",
+        sms: "SMS",
+      },
+      cancel: "Membatalkan",
+      conditionPreview: "Pratinjau Kondisi",
+      alertType: "Jenis Pemberitahuan",
+      metric: "Metrik",
+      duration: "Durasi (detik)",
+      metricGroups: {
+        database: "Metrik Basis Data",
+        cache: "Metrik Cache",
+        resource: "Metrik Sumber Daya",
+        api: "Metrik API",
+        error: "Metrik Kesalahan",
+      },
+      durationHint:
+        "Peringatan dipicu setelah kondisi berlanjut selama durasi ini",
+      metrics: {
+        apiMetrics: {
+          averageResponseTime: "Waktu Respons Rata-rata (md)",
+          p95ResponseTime: "Waktu Respons P95 (mdtk)",
+          slowRequestCount: "Jumlah Permintaan Lambat",
+          requestsPerSecond: "Permintaan/Kedua",
+          errorRate: "Tingkat Kesalahan",
+          p99ResponseTime: "Waktu Respons P99 (mdtk)",
+          totalRequests: "Jumlah Permintaan",
+        },
+        cacheMetrics: {
+          totalKeys: "Jumlah Kunci",
+          totalSize: "Ukuran Cache (byte)",
+          hitRate: "Tingkat Hit",
+        },
+        databaseMetrics: {
+          errorCount: "Jumlah Kesalahan Kueri",
+          averageQueryTime: "Rata-rata Waktu Kueri (md)",
+          queryCount: "Jumlah Pertanyaan",
+          slowQueryCount: "Jumlah Kueri Lambat",
+        },
+        errorMetrics: {
+          criticalErrors: "Kesalahan Kritis",
+          totalErrors: "Jumlah Kesalahan",
+          warningCount: "Jumlah Peringatan",
+        },
+        resourceMetrics: {
+          memoryUsage: "Penggunaan Memori",
+          cpuUsage: "Penggunaan CPU",
+          activeConnections: "Koneksi Aktif",
+        },
+      },
+      enabled: "Aktifkan Aturan",
+      failed: "Gagal membuat aturan pemberitahuan",
+      operator: "Operator",
+      name: "Nama Aturan",
+      severities: {
+        fatal: "Fatal",
+        info: "Informasi",
+        critical: "Kritis",
+        warning: "Peringatan",
+      },
+      submitting: "Membuat...",
+      severity: "Kerasnya",
+      threshold: "Ambang",
+      namePlaceholder: "misalnya, Tingkat Kesalahan API Tinggi",
+      success: "Aturan pemberitahuan berhasil dibuat",
+      selectMetric: "Pilih metrik",
+      submit: "Buat Aturan",
+      title: "Buat Aturan Peringatan",
+      validation: {
+        durationRange: "Durasi harus antara 1-3600 detik",
+        metricRequired: "Silakan pilih metrik",
+        webhookRequired: "URL webhook diperlukan untuk tipe Slack atau Webhook",
+        nameRequired: "Nama aturan wajib diisi",
+        thresholdRequired: "Ambang batas diperlukan",
+      },
+      webhookUrl: "URL kait web",
+      thresholdPlaceholder: "misalnya, 0,1",
+      webhookUrlPlaceholder: "https://hooks.slack.com/...",
+    },
+    polling: {
+      connected: "Pemantauan (Polling)",
+      disconnected: "Pemungutan suara dihentikan",
+    },
   },
-
-  // Judul halaman dan navigasi
   header: {
     title: "Dashboard Admin MakanMasak",
     home: "Beranda",
@@ -1478,8 +1549,6 @@ const idID: Messages = {
       cashier: "Kasir",
     },
   },
-
-  // Navigasi
   nav: {
     featureUnavailable: "Belum tersedia",
     platform: "Gambaran Platform",
@@ -1512,8 +1581,13 @@ const idID: Messages = {
       "Pilih toko untuk mengelola pesanan, menu, POS, dan staf.",
     restaurantManagement: "Manajemen Toko",
     feedback: "Umpan Balik",
+    accountManagement: "Akun",
+    waitingTabs: {
+      list: "Daftar tunggu",
+      dashboard: "Dasbor Langsung",
+    },
+    waitingManagement: "Manajemen Menunggu",
   },
-
   pages: {
     login: "Masuk",
     forgotPassword: "Lupa Kata Sandi",
@@ -1553,9 +1627,11 @@ const idID: Messages = {
     ingredients: "Manajemen Bahan",
     feedback: "Umpan Balik",
     feedbackDetail: "Detail Umpan Balik",
+    accountManagement: "Manajemen Akun",
+    waitingManagement: "Manajemen Menunggu",
+    subscriptions: "Langganan",
+    platformMarketCheckouts: "Pembayaran Pasar",
   },
-
-  // Ikhtisar Platform
   platform: {
     title: "Ikhtisar Platform",
     description:
@@ -1571,7 +1647,6 @@ const idID: Messages = {
     loading: "Memuat...",
     noResults: "Restoran tidak ditemukan",
   },
-
   auth: {
     adminLogin: "Masuk Dasbor Admin",
     username: "Nama Pengguna",
@@ -1642,7 +1717,6 @@ const idID: Messages = {
     tokenVerifyError: "Kesalahan saat memverifikasi token",
     missingToken: "Token atur ulang tidak ditemukan",
   },
-
   dashboard: {
     title: "Dasbor",
     welcome: "Selamat datang kembali, {username}",
@@ -1688,7 +1762,6 @@ const idID: Messages = {
       },
     },
   },
-
   notFound: {
     title: "Halaman Tidak Ditemukan",
     description: "Maaf, halaman yang Anda cari tidak ada atau telah dihapus",
@@ -1709,7 +1782,6 @@ const idID: Messages = {
       'Tidak ditemukan fitur terkait "{query}". Silakan coba kata kunci lain atau gunakan navigasi cepat di atas.',
     errorCode: "Kode Error",
   },
-
   unauthorized: {
     title: "Akses Ditolak",
     description: "Maaf, Anda tidak memiliki izin untuk mengakses halaman ini",
@@ -1741,6 +1813,8 @@ const idID: Messages = {
       orderCheckout: "Checkout Pesanan",
       paymentProcessing: "Pemrosesan Pembayaran",
       basicFeatures: "Fitur Dasar",
+      cashier: "Kasir",
+      orderProcessing: "Pemrosesan Pesanan",
     },
     roles: {
       admin: "Administrator Sistem",
@@ -1751,13 +1825,11 @@ const idID: Messages = {
       unknown: "Peran Tidak Dikenal",
     },
   },
-
   kitchenLayout: {
     title: "Sistem Tampilan Dapur",
     pendingOrders: "Pesanan Menunggu",
     backToAdmin: "Kembali ke Admin",
   },
-
   cashierLayout: {
     title: "Sistem Kasir",
     cashier: "Kasir: {name}",
@@ -1767,7 +1839,6 @@ const idID: Messages = {
     online: "Online",
     offline: "Offline",
   },
-
   serviceLayout: {
     roleBadge: "Pelayan",
     pendingDelivery: "Menunggu: {count}",
@@ -1789,7 +1860,6 @@ const idID: Messages = {
     hoursAgo: "{count} jam lalu",
     daysAgo: "{count} hari lalu",
   },
-
   serviceBookings: {
     title: "Manajemen Reservasi Layanan",
     subtitle:
@@ -1842,8 +1912,6 @@ const idID: Messages = {
       cancelSuccess: "Reservasi dibatalkan.",
     },
   },
-
-  // Dasbor pemilik
   owner: {
     kpi: {
       todayRevenue: "Pendapatan Hari Ini",
@@ -1851,6 +1919,8 @@ const idID: Messages = {
       onlineStaff: "Staf Online",
       overallEfficiency: "Efisiensi Keseluruhan",
       normal: "Normal",
+      available: "tersedia",
+      tableUtilization: "Pemanfaatan Tabel",
     },
     actions: {
       addStaff: "Tambah Staf",
@@ -1900,8 +1970,32 @@ const idID: Messages = {
     statusOnline: "Online",
     statusBusy: "Sibuk",
     statusOffline: "Offline",
+    fetchError: "Gagal memuat data dasbor",
+    loading: "Memuat...",
+    noData: "Tidak ada data yang tersedia",
+    retry: "Mencoba kembali",
+    roles: {
+      cashier: "Kasir",
+      chef: "Koki",
+      owner: "Pemilik",
+      staff: "Staf",
+      service: "Kru Layanan",
+    },
+    systemDescriptions: {
+      database: "Penyimpanan data",
+      realtime: "Koneksi WebSocket",
+      api: "Layanan ujung belakang",
+    },
+    systemNames: {
+      api: "Layanan API",
+      database: "Basis data",
+      realtime: "Sistem Waktu Nyata",
+    },
+    timeAgo: {
+      justNow: "Baru saja",
+      minutesAgo: "{count} menit yang lalu",
+    },
   },
-
   notification: {
     title: "Notifikasi",
     markAllRead: "Tandai Semua Dibaca",
@@ -1920,7 +2014,6 @@ const idID: Messages = {
     minutesAgo: "{count} menit lalu",
     hoursAgo: "{count} jam lalu",
   },
-
   leaves: {
     title: "Manajemen Cuti",
     subtitle: "Kelola pengajuan cuti dan sisa cuti karyawan",
@@ -1963,6 +2056,7 @@ const idID: Messages = {
       uploadPrompt: "Klik atau seret file untuk mengunggah",
       formatNote: "Format yang didukung: PDF, JPG, PNG",
       submit: "Kirim Pengajuan",
+      period: "Periode",
     },
     balance: {
       title: "Sisa Cuti",
@@ -1987,6 +2081,12 @@ const idID: Messages = {
       pending: "Menunggu",
       approved: "Disetujui",
       rejected: "Ditolak",
+      approve: "Menyetujui",
+      reject: "Menolak",
+      noPending: "Tidak ada permintaan cuti yang tertunda",
+      pendingRequests: "Permintaan yang Tertunda",
+      reviewer: "pengulas",
+      unknownEmployee: "Karyawan Tidak Dikenal",
     },
     errors: {
       endBeforeStart: "Tanggal selesai tidak boleh sebelum tanggal mulai",
@@ -2022,7 +2122,6 @@ const idID: Messages = {
       rejectFailed: "Gagal menolak",
     },
   },
-  // Kasir
   cashier: {
     title: "Kasir",
     subtitle: "Proses pembayaran dan pengembalian pesanan",
@@ -2060,6 +2159,8 @@ const idID: Messages = {
       wrongOrder: "Pesanan Salah",
       customerCancel: "Pelanggan Membatalkan",
       other: "Alasan Lain",
+      customerChange: "Pelanggan Berubah Pikiran",
+      serviceIssue: "Masalah Layanan",
     },
     confirmRefund: "Konfirmasi Pengembalian",
     cancel: "Batal",
@@ -2087,9 +2188,67 @@ const idID: Messages = {
       endShift:
         "Apakah Anda yakin ingin mengakhiri shift saat ini? Tidak dapat diubah setelah diakhiri.",
     },
+    actualAmount: "Jumlah Sebenarnya",
+    card: "Kartu",
+    cash: "Uang tunai",
+    amountDue: "Jumlah yang Harus Dibayar",
+    amountReceived: "Jumlah yang Diterima",
+    avgOrderValue: "Rata-rata Nilai Pesanan",
+    applyDiscount: "Terapkan Diskon",
+    cashCount: "Hitungan Tunai",
+    cashierName: "Kasir",
+    coupon: "Kupon",
+    cashOver: "Pembayaran tunai paling lambat {amount}",
+    cashShort: "Uang tunai berkurang pada {amount}",
+    allOrdersCompleted: "Semua pesanan telah selesai",
+    customer: "Pelanggan",
+    discount: "Diskon",
+    confirmPayment: "Konfirmasi Pembayaran",
+    currentTime: "Waktu Saat Ini",
+    cashMatch: "Uang tunai sangat cocok",
+    done: "Selesai",
+    itemList: "Barang",
+    notes: "Catatan",
+    optionalNotes: "Catatan opsional...",
+    enterOrderNumber: "Masukkan nomor pesanan",
+    noPendingOrders: "Tidak Ada Pesanan yang Tertunda",
+    itemCount: "{count} item",
+    orderDetails: "Detail Pesanan",
+    paymentFailed: "Pembayaran gagal",
+    paymentSuccess: "Pembayaran Berhasil!",
+    orderCompleted: "Pesanan {orderNumber} selesai",
+    digitalPayment: "Pembayaran Digital",
+    endShift: "Akhiri Pergeseran",
+    received: "Diterima",
+    pleaseSelectOrder: "Silakan pilih pesanan yang akan diproses",
+    refundMethod: "Metode Pengembalian Dana",
+    refundCount: "Pengembalian dana",
+    orderTime: "Waktu Pemesanan",
+    refundProcess: "Pengembalian dana",
+    refundType: "Jenis Pengembalian Dana",
+    printReport: "Cetak Laporan",
+    refundTypes: {
+      partial: "Pengembalian Dana Sebagian",
+      full: "Pengembalian Dana Penuh",
+      item: "Pengembalian Barang",
+      service: "Pengembalian Dana Layanan",
+    },
+    selectReason: "Pilih alasan",
+    serviceCharge: "Biaya Layanan",
+    selectOrder: "Pilih Pesan",
+    revenueTotal: "Jumlah Pendapatan",
+    searchPlaceholder: "Telusuri pesanan...",
+    tax: "Pajak",
+    time: "Waktu",
+    total: "Total",
+    todayPerformance: "Pertunjukan Hari Ini",
+    shiftInfo: "Pergeseran Info",
+    totalOrders: "Jumlah Pesanan",
+    subtotal: "Subtotal",
+    shiftReport: "Laporan Pergeseran",
+    systemAmount: "Jumlah Sistem",
+    transactionDetails: "Detail Transaksi",
   },
-
-  // Pengaturan
   settings: {
     title: "Pengaturan",
     subtitle: "Kelola preferensi sistem restoran",
@@ -2106,6 +2265,8 @@ const idID: Messages = {
       notifications: "Notifikasi",
       security: "Keamanan",
       integrations: "Integrasi",
+      contact: "Kontak",
+      markets: "Pasar",
     },
     general: {
       restaurantInfo: "Informasi Restoran",
@@ -2274,10 +2435,113 @@ const idID: Messages = {
         "Apakah Anda yakin ingin mengembalikan semua pengaturan ke default? Tindakan ini tidak dapat dibatalkan.",
       regenerateQR:
         "Apakah Anda yakin ingin membuat ulang kode QR? Ini akan memperbarui nomor versi.",
+      regenerateQRAction: "Diperbarui",
+      resetDefaultsAction: "Mengatur ulang",
+      regenerateQRTitle: "Buat ulang Kode QR",
+      resetDefaultsTitle: "Atur Ulang ke Default",
+    },
+    contact: {
+      active: "Bisa dilihat",
+      answer: "Menjawab",
+      displayOrder: "Memesan",
+      faqTitle: "Pertanyaan yang Sering Diajukan",
+      keywords: "Kata kunci",
+      emptyFaq: "Belum ada FAQ.",
+      addFaq: "Tambahkan FAQ",
+      removeFaq: "Menghapus",
+      question: "Pertanyaan",
+      loadFailed: "Gagal memuat profil kontak",
+      keywordsPlaceholder: "praorder, pengambilan, vegetarian",
+      saving: "Penghematan...",
+      loading: "Memuat profil kontak...",
+      saveFailed: "Gagal menyimpan profil kontak",
+      subtitle:
+        "Publikasikan tautan dalam vendor dan jawaban umum untuk pelanggan.",
+      save: "Simpan Profil Kontak",
+      saveSuccess: "Profil kontak disimpan",
+      title: "Saluran Kontak & FAQ",
+    },
+    markets: {
+      completed: "Menyelesaikan",
+      area: "Daerah",
+      empty: "Toko ini belum bergabung dengan pasar atau distrik mana pun.",
+      market: "Pasar",
+      no: "TIDAK",
+      noMatchingMarkets:
+        "Tidak ada pasar yang dapat digabungkan yang cocok dengan penelusuran saat ini.",
+      noRequests: "Belum ada permintaan bergabung yang dikirimkan.",
+      notSet: "Tidak disetel",
+      primary: "Utama",
+      messagePlaceholder: "misalnya lokasi kios, jam buka, item utama",
+      loadFailed: "Gagal memuat data pasar",
+      readiness: {
+        contact: {
+          description:
+            "Tetapkan setidaknya satu tautan LINE, WhatsApp, Instagram, atau Telegram.",
+          title: "Saluran Kontak Publik",
+        },
+        faq: {
+          title: "Pertanyaan Umum",
+          description:
+            "Tambahkan jawaban umum pengambilan, pembayaran, pemesanan di muka, atau layanan.",
+        },
+        fulfillment: {
+          title: "Membawa pergi",
+          description:
+            "Takeaway harus diaktifkan sebelum pelanggan dapat memesan dari penemuan.",
+        },
+        location: {
+          description:
+            "Kota, distrik, alamat, garis lintang, dan garis bujur diperlukan untuk penemuan terdekat.",
+          title: "Alamat & GPS",
+        },
+        market: {
+          description:
+            "Bergabunglah dengan setidaknya satu pasar atau distrik untuk muncul di halaman pasar tersebut.",
+          title: "Keanggotaan Pasar",
+        },
+        shopMode: {
+          title: "Modus Toko QR",
+          description:
+            "Mode toko dan token QR diperlukan untuk pemesanan takeaway langsung.",
+        },
+      },
+      notReady: "Perlu pengaturan",
+      loading: "Memuat data pasar...",
+      message: "Catatan Permintaan",
+      ready: "Siap",
+      refresh: "Menyegarkan",
+      recommended: "Direkomendasikan",
+      requestStatus: {
+        approved: "Disetujui",
+        pending: "Tertunda",
+        rejected: "Ditolak",
+      },
+      readinessTitle: "Kesiapan Data Pasar",
+      requestSubtitle:
+        "Admin platform meninjau permintaan dan melampirkan toko.",
+      readinessSubtitle:
+        "Lengkapi lokasi, takeaway, mode toko, kontak, FAQ, dan data keanggotaan pasar sehingga pelanggan dapat menemukan dan menggunakan vendor ini dari halaman pasar.",
+      required: "Diperlukan",
+      requestFailed:
+        "Permintaan gagal. Permintaan yang tertunda mungkin sudah ada.",
+      searchPlaceholder: "Cari nama pasar, kota, distrik, atau tag",
+      requestsTitle: "Status Permintaan Gabung",
+      requestTitle: "Minta Akses Pasar",
+      stall: "Macet",
+      requestSuccess: "Permintaan bergabung telah dikirimkan",
+      selectMarket: "Pilih Pasar",
+      requestsSubtitle:
+        "Lacak permintaan bergabung pasar atau distrik yang diajukan dan status tinjauan.",
+      yes: "Ya",
+      selectPlaceholder: "Pilih pasar atau distrik",
+      subtitle:
+        "Lihat pasar malam, distrik, atau kelompok makanan yang ada di toko ini.",
+      submitting: "Mengirimkan...",
+      title: "Keanggotaan Pasar",
+      submit: "Kirim Permintaan",
     },
   },
-
-  // Pesanan Grup
   groupOrders: {
     title: "Pesanan Grup",
     subtitle: "Kelola pesanan bersama dan pembagian tagihan",
@@ -2370,8 +2634,6 @@ const idID: Messages = {
     whatsappMessage:
       "Mari pesan bersama!\nKode berbagi: {shareCode}\nTautan: {shareUrl}",
   },
-
-  // Tampilan Layanan
   serviceView: {
     title: "Stasiun Layanan",
     subtitle: "Kelola pengiriman makanan dan layanan meja",
@@ -2438,8 +2700,6 @@ const idID: Messages = {
         "Masalah dilaporkan:\nJenis: {type}\nDeskripsi: {description}",
     },
   },
-
-  // Sistem POS
   pos: {
     title: "Sistem POS",
     subtitle: "Sistem manajemen titik penjualan lengkap",
@@ -2547,6 +2807,8 @@ const idID: Messages = {
       registerName: "Masukkan nama mesin kasir baru:",
       startingCash: "Masukkan jumlah kas awal:",
       promotionName: "Masukkan nama promosi:",
+      registerNamePlaceholder: "Masukkan nama daftar",
+      promotionNamePlaceholder: "Masukkan nama promosi",
     },
     confirms: {
       endShift: "Konfirmasi akhiri shift saat ini?",
@@ -2557,9 +2819,9 @@ const idID: Messages = {
       orderPayment: "Pembayaran pesanan {orderNumber}",
       newPromotion: "Promosi baru",
     },
+    createPromotion: "Buat Promosi",
+    createRegister: "Buat Daftar",
   },
-
-  // Manajemen Antrean
   queue: {
     title: "Manajemen Antrean",
     subtitle: "Manajemen antrean cerdas dan penempatan kursi",
@@ -2671,8 +2933,6 @@ const idID: Messages = {
       displayInDev: "Pengaturan tampilan sedang dalam pengembangan..",
     },
   },
-
-  // Manajemen Kupon
   coupons: {
     title: "Manajemen Kupon",
     subtitle: "Buat dan kelola kupon dan promosi",
@@ -2745,10 +3005,9 @@ const idID: Messages = {
         'Apakah Anda yakin ingin menghapus kupon "{name}"? Tindakan ini tidak dapat dibatalkan.',
       deleteSuccess: "Kupon dihapus",
       deleteFailed: "Gagal menghapus",
+      deleteConfirmTitle: "Hapus Konfirmasi Kupon",
     },
   },
-
-  // Analitik
   analytics: {
     title: "Analitik",
     subtitle: "Data bisnis restoran dan analisis tren",
@@ -2796,9 +3055,12 @@ const idID: Messages = {
       averageOrder: "Rata-rata Pesanan",
       tableUtilization: "Utilisasi Meja",
     },
+    loading: "Memuat...",
+    noData: "Tidak ada data yang tersedia",
+    retry: "Mencoba kembali",
+    fetchError: "Gagal memuat data, silakan coba lagi",
+    exporting: "Mengekspor...",
   },
-
-  // Manajemen Karyawan
   users: {
     title: "Manajemen Karyawan",
     subtitle: "Kelola akun dan izin staf restoran",
@@ -2878,8 +3140,6 @@ const idID: Messages = {
       toggleFailed: "Gagal mengubah status",
     },
   },
-
-  // Manajemen Karyawan (halaman baru)
   employees: {
     title: "Manajemen Karyawan",
     subtitle: "Kelola info staf, penjadwalan, dan cuti",
@@ -3001,8 +3261,6 @@ const idID: Messages = {
       withdrawn: "Ditarik",
     },
   },
-
-  // Detail Meja
   tableDetail: {
     backToList: "Kembali ke Daftar Meja",
     tableNumber: "Meja {number}",
@@ -3047,10 +3305,12 @@ const idID: Messages = {
       regenerateConfirm: "Apakah Anda yakin ingin membuat ulang kode QR?",
       regenerateSuccess: "Kode QR dibuat ulang",
       regenerateFailed: "Gagal membuat ulang kode QR",
+      regenerateAction: "Diperbarui",
+      switchModeAction: "Beralih Modus",
+      switchModeTitle: "Detail Tabel Mode Pengalihan",
+      regenerateTitle: "Regenerasi Detail Tabel",
     },
   },
-
-  // Manajemen Kursi
   seatManagement: {
     title: "Manajemen Kursi",
     tableInfo: "Meja: {tableNumber} | Mode Kursi",
@@ -3103,8 +3363,6 @@ const idID: Messages = {
       printFailed: "Gagal menyiapkan kode QR kursi untuk dicetak",
     },
   },
-
-  // Pemilih Mode QR
   qrRotation: {
     pending: "Siap diaktifkan",
     prepare: "Siapkan",
@@ -3128,14 +3386,12 @@ const idID: Messages = {
       noneToPrepare: "Tidak ada kode QR yang perlu disiapkan",
     },
   },
-
   qrReadiness: {
     notReady: "QR belum siap",
     notReadyDescription:
       "Buat ulang kode QR ini sebelum mengunduh atau mencetak.",
     skippedNotReady: "Melewati {count} kode QR yang belum siap untuk dicetak.",
   },
-
   qrMode: {
     label: "Mode Manajemen Kode QR",
     description: "Pilih cara membuat kode QR untuk meja ini",
@@ -3169,8 +3425,6 @@ const idID: Messages = {
       "Beralih ke mode kursi akan otomatis membuat jumlah kursi yang ditentukan",
     noticeItem3: "Meja dengan pesanan aktif tidak dapat mengganti mode",
   },
-
-  // Grid Kursi
   seatGrid: {
     title: "Tampilan Kursi",
     available: "Tersedia",
@@ -3183,8 +3437,6 @@ const idID: Messages = {
     noSeatsHint: "Meja ini belum memiliki konfigurasi kursi",
     availableSeats: "Kursi Tersedia",
   },
-
-  // Formulir Kupon
   couponForm: {
     editTitle: "Edit Kupon",
     createTitle: "Buat Kupon",
@@ -3227,8 +3479,6 @@ const idID: Messages = {
     update: "Perbarui",
     createBtn: "Buat",
   },
-
-  // Statistik Kupon
   couponStats: {
     title: "Statistik Kupon",
     couponInfo: "Informasi Kupon",
@@ -3281,8 +3531,6 @@ const idID: Messages = {
         "Rata-rata diskon rendah. Pertimbangkan meningkatkan nilai diskon agar lebih menarik",
     },
   },
-
-  // Integrasi
   integrations: {
     title: "Integrasi Platform Pengiriman",
     subtitle:
@@ -3342,8 +3590,6 @@ const idID: Messages = {
       disconnectFailed: "Gagal memutuskan",
     },
   },
-
-  // Dasbor Statistik
   statisticsDashboard: {
     title: "Dasbor Statistik",
     subtitle:
@@ -3406,8 +3652,6 @@ const idID: Messages = {
     statusCompleted: "Selesai",
     statusCancelled: "Dibatalkan",
   },
-
-  // Aksi Cuti
   leaveActions: {
     submitSuccess: "Pengajuan cuti berhasil dikirim!",
     submitFailed: "Gagal mengirim pengajuan cuti",
@@ -3420,9 +3664,9 @@ const idID: Messages = {
     rejectPrompt: "Masukkan alasan penolakan:",
     rejectSuccess: "Pengajuan cuti ditolak",
     rejectFailed: "Penolakan gagal",
+    approve: "Menyetujui",
+    cancelReasonPrompt: "Batalkan Alasan Prompt",
   },
-
-  // Sistem Pembayaran
   payment: {
     recommended: "Direkomendasikan",
     noMethodsTitle: "Tidak ada metode pembayaran tersedia",
@@ -3739,8 +3983,6 @@ const idID: Messages = {
       copied: "Disalin ke clipboard",
     },
   },
-
-  // Tampilan Kesalahan
   errorDisplay: {
     pendingRequestsCount: "{count} permintaan tertunda",
     reconnect: "Sambung Ulang",
@@ -3770,8 +4012,6 @@ const idID: Messages = {
     reportNotImplemented:
       "Pelaporan kesalahan belum tersedia. Silakan hubungi dukungan teknis.",
   },
-
-  // Navigasi Peran
   roleNav: {
     dashboard: "Dasbor",
     ownerCenter: "Pusat Pemilik",
@@ -3802,8 +4042,6 @@ const idID: Messages = {
       unknown: "Peran Tidak Diketahui",
     },
   },
-
-  // Store Pembayaran
   paymentStore: {
     initFailed: "Inisialisasi pembayaran gagal",
     loadMethodsFailed: "Gagal memuat metode pembayaran",
@@ -3817,22 +4055,16 @@ const idID: Messages = {
       emailInvalid: "Format email tidak valid",
     },
   },
-
-  // Store Pesanan
   orderStore: {
     fetchFailed: "Gagal mengambil pesanan",
     updateStatusFailed: "Gagal memperbarui status pesanan",
     cancelFailed: "Gagal membatalkan pesanan",
   },
-
-  // Store Dasbor
   dashboardStore: {
     restaurantIdMissing: "ID Restoran tidak ditemukan",
     fetchDataFailed: "Gagal mengambil data",
     fetchDashboardFailed: "Gagal mengambil data dasbor",
   },
-
-  // Sistem Absensi
   clockInOut: {
     title: "Absensi Masuk/Keluar",
     today: "Hari Ini",
@@ -3859,8 +4091,6 @@ const idID: Messages = {
     clockOutSuccess: "Berhasil pulang kerja!",
     clockFailed: "Aksi absensi gagal, silakan coba lagi",
   },
-
-  // Ekspor Laporan
   exportReport: {
     title: "Ekspor Laporan Pemantauan",
     quickTemplates: "Template Cepat",
@@ -3897,8 +4127,6 @@ const idID: Messages = {
     dataTypeHealth: "Status Kesehatan",
     dataTypeAll: "Data Lengkap",
   },
-
-  // Konflik Jadwal
   schedulingConflicts: {
     title: "Peringatan Konflik Jadwal",
     conflictCount: "{count} konflik perlu perhatian",
@@ -3926,8 +4154,6 @@ const idID: Messages = {
     statusResolved: "Diselesaikan",
     statusIgnored: "Diabaikan",
   },
-
-  // Formulir Jadwal
   scheduleForm: {
     editTitle: "Edit Jadwal",
     addTitle: "Tambah Jadwal",
@@ -3954,8 +4180,6 @@ const idID: Messages = {
     errorPositiveHours: "Jam terjadwal harus lebih dari 0",
     submitError: "Pengiriman formulir gagal",
   },
-
-  // Panel Notifikasi Real-time
   realtimeNotification: {
     mute: "Bisukan",
     unmute: "Bunyikan",
@@ -3990,8 +4214,6 @@ const idID: Messages = {
     minutesAgo: "{count} mnt lalu",
     hoursAgo: "{count}j lalu",
   },
-
-  // Panel Filter Lanjutan
   advancedFilter: {
     quickFilter: "Filter Cepat",
     resetFilter: "Reset Filter",
@@ -4022,8 +4244,6 @@ const idID: Messages = {
     descriptionOptional: "Deskripsi (opsional)",
     descriptionPlaceholder: "Jelaskan tujuan filter ini...",
   },
-
-  // Grafik Tren Kinerja
   performanceChart: {
     title: "Tren Kinerja",
     lineChart: "Garis",
@@ -4047,8 +4267,6 @@ const idID: Messages = {
     trendDown: "Turun",
     trendStable: "Stabil",
   },
-
-  // Editor Tata Letak Dasbor
   dashboardEditor: {
     addWidget: "Tambah Widget",
     loadPreset: "Muat Preset",
@@ -4069,8 +4287,6 @@ const idID: Messages = {
     categoryMetrics: "Metrik",
     categoryCharts: "Grafik",
   },
-
-  // Ringkasan Pesanan
   orderSummary: {
     title: "Ringkasan Pesanan",
     restaurant: "Restoran",
@@ -4097,8 +4313,6 @@ const idID: Messages = {
       unipay: "UniPay",
     },
   },
-
-  // Contoh Penggunaan (Demo Penanganan Kesalahan)
   exampleUsage: {
     title: "Demo Sistem Penanganan Kesalahan",
     apiErrorTest: "Uji Penanganan Kesalahan API",
@@ -4128,8 +4342,6 @@ const idID: Messages = {
     offlineRequestQueued: "Permintaan offline dalam antrean",
     currentlyOnline: "Saat ini online",
   },
-
-  // Manajemen Bahan
   ingredients: {
     title: "Manajemen Bahan",
     subtitle: "Kelola bahan, resep, dan stok",
@@ -4156,8 +4368,6 @@ const idID: Messages = {
     optional: "Opsional",
     noRecipeEntries: "Belum ada bahan. Cari dan tambahkan bahan di atas.",
   },
-
-  // Prakiraan Permintaan
   forecast: {
     title: "Prakiraan Permintaan",
     subtitle: "Prakiraan permintaan menu dan bahan berbasis AI",
@@ -4189,9 +4399,12 @@ const idID: Messages = {
     noSupplier: "Tanpa Pemasok",
     subtotal: "Subtotal",
     totalEstimatedCost: "Estimasi Total Biaya",
+    actual: "Sebenarnya",
+    deviation: "Deviasi",
+    accuracyDescription: "Deskripsi akurasi",
+    accuracyReport: "Laporan Akurasi",
+    noAccuracyData: "Tidak Ada Data Akurasi",
   },
-
-  // Analisis AI
   aiAnalytics: {
     title: "Analisis AI",
     subtitle:
@@ -4240,8 +4453,6 @@ const idID: Messages = {
     navProducts: "Analisis Produk",
     navConfig: "Konfigurasi AI",
   },
-
-  // Konfigurasi AI
   aiConfig: {
     title: "Konfigurasi Layanan AI",
     subtitle: "Atur penyedia AI dan API key untuk layanan analisis",
@@ -4279,8 +4490,6 @@ const idID: Messages = {
     infoCachingDesc:
       "Kueri serupa di-cache secara otomatis untuk menghemat biaya API",
   },
-
-  // Analisis Produk
   productAnalytics: {
     title: "Analisis Produk",
     subtitle: "Analisis mendalam performa menu untuk mengoptimalkan strategi",
@@ -4328,7 +4537,6 @@ const idID: Messages = {
     actionProfit:
       "Analisis dan tiru strategi penetapan harga menu profit tinggi",
   },
-
   feedback: {
     title: "Umpan Balik",
     ownerSubtitle: "Kirimkan masalah penggunaan atau saran fitur",
@@ -4422,6 +4630,299 @@ const idID: Messages = {
       inProgress: "Sedang Diproses",
       resolved: "Terselesaikan",
     },
+  },
+  accountManagement: {
+    adminName: "Admin",
+    createdAtCol: "Dibuat",
+    email: "E-mail",
+    emailCol: "E-mail",
+    createNewRestaurant: "+ Restoran Baru",
+    accountInfo: "Informasi Akun",
+    emailInvalid: "Silakan masukkan email yang valid",
+    createOwnerSuccess: "Akun pemilik berhasil dibuat",
+    createAdminSuccess: "Akun admin berhasil dibuat",
+    emailPlaceholder: "pengguna{'@'}example.com",
+    createError: "Pembuatan gagal, coba lagi",
+    fullName: "Nama Lengkap",
+    newRestaurantDistrictRequired: "Distrik diperlukan",
+    fullNamePlaceholder: "Nama lengkap",
+    emailRequired: "Email diperlukan",
+    fullNameRequired: "Nama lengkap wajib diisi",
+    existingAdmins: "Admin yang ada",
+    existingOwners: "Pemilik yang Ada",
+    ownerName: "Pemilik",
+    newRestaurantNameRequired: "Nama restoran wajib diisi",
+    noAdmins: "Belum ada akun admin lain",
+    newRestaurantTypeRequired: "Jenis restoran wajib diisi",
+    newRestaurantPhoneRequired: "Telepon restoran diperlukan",
+    ownerPermissions: {
+      manageEmployees: "Kelola karyawan (Koki, Layanan, Kasir)",
+      manageOrders: "Lihat dan kelola pesanan",
+      viewAnalytics: "Lihat analisis bisnis",
+      manageMenu: "Kelola menu restoran",
+      manageSettings: "Kelola pengaturan restoran",
+    },
+    password: "Kata sandi",
+    noOwners: "Belum ada akun pemilik",
+    passwordRequired: "Kata sandi diperlukan",
+    phone: "Telepon",
+    restaurant: "Restoran",
+    phonePlaceholder: "Opsional",
+    passwordStrength:
+      "Kata sandi harus terdiri dari 8+ karakter dengan huruf besar, huruf kecil, angka, karakter khusus",
+    passwordPlaceholder:
+      "Minimal 8 karakter, huruf besar, huruf kecil, angka, karakter khusus",
+    restaurantCol: "Restoran",
+    permissionNote: "Akun ini akan memiliki izin berikut:",
+    restaurantDistrictPlaceholder: "misalnya Distrik Barat",
+    restaurantDistrict: "Daerah",
+    restaurantAddress: "Alamat Restoran",
+    restaurantAddressPlaceholder: "Alamat restoran",
+    restaurantBinding: "Pengikatan Restoran",
+    restaurantName: "Nama Restoran",
+    restaurantNamePlaceholder: "Nama restoran baru",
+    restaurantPhone: "Telepon Restoran",
+    permissionConfirm: "Konfirmasi Izin",
+    statusActive: "Aktif",
+    statusCol: "Status",
+    statusInactive: "Tidak aktif",
+    restaurantRequired: "Silakan pilih atau buat restoran",
+    restaurantTypePlaceholder: "misalnya Masakan Jepang",
+    selectRestaurant: "Pilih restoran",
+    restaurantPhonePlaceholder: "misalnya 0912345678",
+    submitting: "Membuat...",
+    title: "Manajemen Akun",
+    username: "Nama belakang",
+    submitOwner: "Buat Akun Pemilik",
+    tabOwners: "Akun Pemilik",
+    tabAdmins: "Akun Admin",
+    restaurantType: "Tipe Restoran",
+    submitAdmin: "Buat Akun Admin",
+    usernameLength: "Nama pengguna harus terdiri dari 3-50 karakter",
+    usernamePlaceholder: "3-50 karakter",
+    usernameRequired: "Nama pengguna diperlukan",
+  },
+  backup: {
+    actions: {
+      delete: "Menghapus",
+      details: "Detail",
+      download: "Unduh",
+      refresh: "Menyegarkan",
+      restore: "Memulihkan",
+      create: "Membuat",
+    },
+    alerts: {
+      acknowledge: "Mengakui",
+      resolve: "Menyelesaikan",
+      title: "Peringatan Cadangan",
+    },
+    create: {
+      basicInfo: "Informasi Dasar",
+      configuration: "Konfigurasi",
+      create: "Membuat",
+      creating: "Membuat...",
+      description: "Keterangan",
+      advancedOptions: "Opsi Lanjutan",
+      execution: "Eksekusi",
+      forceImmediate: "Jalankan Segera",
+      manualConfig: "Konfigurasi Manual",
+      name: "Nama",
+      forceImmediateDescription:
+        "Lewati jadwal dan mulai pencadangan sekarang.",
+      includeTables: "Sertakan Tabel",
+      namePlaceholder: "Masukkan nama cadangan",
+      allTables: "Semua Tabel",
+      excludeTables: "Kecualikan Tabel",
+      descriptionPlaceholder: "Masukkan deskripsi cadangan",
+      title: "Buat Cadangan",
+      selectConfig: "Pilih Konfigurasi",
+      type: "Jenis",
+      tableSelection: "Pemilihan Meja",
+      tablesToExclude: "Tabel yang Harus Dikecualikan",
+      tablesToInclude: "Tabel untuk Disertakan",
+      selectConfigPlaceholder: "Pilih konfigurasi cadangan",
+      useExisting: "Gunakan Konfigurasi yang Ada",
+      useConfiguration: "Gunakan Konfigurasi",
+    },
+    confirm: {
+      delete: "Apakah Anda yakin ingin menghapus cadangan ini?",
+      deleteTitle: "Hapus Cadangan",
+    },
+    details: {
+      configuration: "Konfigurasi",
+      encrypted: "Terenkripsi",
+      manual: "petunjuk",
+      performance: "Pertunjukan",
+      recordsCount: "Jumlah Rekam",
+      id: "PENGENAL",
+      tables: "Tabel",
+      storage: "Penyimpanan",
+      checksum: "Jumlah pemeriksaan",
+    },
+    empty: {
+      createFirst: "Buat Cadangan Pertama",
+      description: "Buat cadangan pertama Anda untuk melindungi data restoran.",
+      title: "Belum Ada Cadangan",
+    },
+    dashboard: {
+      title: "Dasbor Cadangan",
+    },
+    health: {
+      allSystemsNormal: "Semua Sistem Normal",
+      failuresDetected: "Kegagalan Terdeteksi",
+      backupsRunning: "Cadangan Berjalan",
+      loading: "Memuat...",
+    },
+    errors: {
+      nameTooLong: "Nama Terlalu Panjang",
+      nameRequired: "Nama Diperlukan",
+    },
+    metrics: {
+      duration: "Lamanya",
+      running: "Berlari",
+      compression: "Kompresi",
+      failed24h: "Gagal dalam 24 jam",
+      uploadSpeed: "Kecepatan Unggah",
+    },
+    monitoring: {
+      acknowledge: "Mengakui",
+      activeConfigs: "Konfigurasi Aktif",
+      allRestaurants: "Semua Restoran",
+      failed24h: "Gagal dalam 24 jam",
+      justNow: "Baru saja",
+      last30days: "30 Hari Terakhir",
+      healthyOnly: "Hanya Sehat",
+      hoursAgo: "beberapa jam yang lalu",
+      last7days: "7 Hari Terakhir",
+      criticalAlerts: "Peringatan Kritis",
+      resolve: "Menyelesaikan",
+      last24h: "24 Jam Terakhir",
+      runningBackups: "Menjalankan Pencadangan",
+      lastBackup: "Cadangan Terakhir",
+      performanceTrends: "Tren Kinerja",
+      noPerformanceData: "Tidak ada data kinerja",
+      systemHealth: "Kesehatan Sistem",
+      restaurantStatus: "Status Restoran",
+      storageUsed: "Penyimpanan Digunakan",
+      relatedBackup: "Cadangan Terkait",
+      storageUsage: "Penggunaan Penyimpanan",
+      viewDetails: "Lihat Detail",
+      withIssues: "Dengan Masalah",
+      yesterday: "Kemarin",
+      totalRestaurants: "Jumlah Restoran",
+      title: "Judul",
+      successRate: "Tingkat Keberhasilan",
+      totalBackups: "Total Cadangan",
+    },
+    recent: {
+      viewAll: "Lihat Semua",
+      title: "Judul",
+    },
+    restore: {
+      confirm: "Mengonfirmasi",
+      restoring: "Memulihkan",
+      createdAt: "Dibuat Pada",
+      title: "Judul",
+      size: "Ukuran",
+      warning: "Peringatan",
+      warningMessage: "Pesan Peringatan",
+      error: "Kesalahan",
+      overwriteExisting: "Timpa Yang Ada",
+    },
+    stats: {
+      storageUsed: "Penyimpanan Digunakan",
+      totalBackups: "Total Cadangan",
+      successful: "Berhasil",
+      estimatedCost: "Perkiraan Biaya",
+    },
+    status: {
+      processing: "Pengolahan",
+    },
+    types: {
+      full: "Penuh",
+      differential: "Diferensial",
+      incremental: "tambahan",
+    },
+  },
+  realtime: {
+    loading: "Memuat...",
+    rooms: {
+      customer: "Pelanggan",
+      kitchen: "Dapur",
+      admin: "Admin",
+    },
+    status: {
+      active: "Aktif",
+      inactive: "Tidak aktif",
+    },
+    autoRefresh: "Segarkan Otomatis",
+    lastUpdate: "Pembaruan Terakhir",
+    title: "Judul",
+    totalConnections: "Jumlah Koneksi",
+  },
+  schedulingAnalytics: {
+    activeEmployees: "Karyawan Aktif",
+    currentlyOnDuty: "Saat ini sedang bertugas",
+    exportReport: "Ekspor Laporan",
+    dataInsights: "Wawasan Data",
+    insightAbsenceTitle: "Analisis Penjadwalan Absennya Wawasan",
+    insightAllGoodTitle: "Wawasan Semua Analisis Penjadwalan yang Baik",
+    insightCancelledTitle: "Analisis Penjadwalan Insight Dibatalkan",
+    insightAllGoodDesc: "Wawasan Semua Deskripsi bagus",
+    refreshData: "Segarkan Data",
+    insightOvertimeTitle: "Analisis Penjadwalan Lembur Wawasan",
+    title: "Judul",
+    viewDetails: "Lihat Detail",
+    insightAbsenceDesc: "Deskripsi Ketiadaan Wawasan",
+    totalScheduledHours: "Total Jam yang Dijadwalkan",
+    insightCancelledDesc: "Deskripsi Wawasan Dibatalkan",
+    viewInsightDetail: "Lihat Detail Wawasan",
+    weeklySchedules: "Jadwal Mingguan",
+    insightOvertimeDesc: "Deskripsi Wawasan Lembur",
+    subtitle: "Subjudul",
+  },
+  subscriptions: {
+    active: "Aktif",
+    addSubscription: "Tambahkan Langganan",
+    billingUntil: "Penagihan Sampai",
+    confirmDeactivateTitle: "Konfirmasi Nonaktifkan Langganan",
+    confirmDeactivateMessage: "Konfirmasi Nonaktifkan Pesan",
+    empty: "Kosong",
+    form: {
+      planTier: "Tingkat Paket",
+      create: "Membuat",
+      restaurantId: "ID Restoran",
+      createError: "Buat Kesalahan",
+      restaurantIdPlaceholder: "Masukkan id restoran",
+      trialEndsAt: "Uji Coba Berakhir Pada",
+      restaurantIdRequired: "ID Restoran Diperlukan",
+    },
+    deactivate: "Menonaktifkan",
+    inactive: "Tidak aktif",
+    loadError: "Kesalahan Muat",
+    moduleNames: {
+      coupons: "Kupon",
+      analytics: "Analisis",
+      ai_analytics: "Analisis AI",
+      platform_integration: "Integrasi Platform",
+      receipt_printing: "Pencetakan Resi",
+      kitchen_display: "Tampilan Dapur",
+      online_ordering: "Pemesanan Daring",
+      menu_management: "Manajemen Menu",
+      loyalty: "Loyalitas",
+      reservations: "Reservasi",
+      table_management: "Manajemen Meja",
+    },
+    modules: "Modul",
+    plans: {
+      pro: "Pro",
+      enterprise: "Perusahaan",
+      basic: "Dasar",
+      trial: "Uji coba",
+    },
+    title: "Judul",
+    subtitle: "Subjudul",
+    trialEndsAt: "Uji Coba Berakhir Pada",
   },
 };
 

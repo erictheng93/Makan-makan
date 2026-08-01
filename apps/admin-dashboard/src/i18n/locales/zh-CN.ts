@@ -1,10 +1,9 @@
 import type { Messages } from "../types";
 
 /**
- * 简体中文
+ * Simplified Chinese Translation
  */
 const zhCN: Messages = {
-  // 通用词汇
   common: {
     save: "保存",
     cancel: "取消",
@@ -45,9 +44,8 @@ const zhCN: Messages = {
     update: "更新",
     loadFailed: "加载失败",
     retry: "重试",
+    processing: "处理中...",
   },
-
-  // 菜单管理
   menu: {
     title: "菜单管理",
     subtitle: "管理餐厅菜品与分类",
@@ -198,8 +196,6 @@ const zhCN: Messages = {
       available: "供应中",
     },
   },
-
-  // 订单管理
   orders: {
     stats: {
       pending: "待处理",
@@ -223,6 +219,7 @@ const zhCN: Messages = {
       served: "已出餐",
       completed: "已完成",
       cancelled: "已取消",
+      refunded: "已退款",
     },
     type: {
       dineIn: "堂食",
@@ -276,8 +273,6 @@ const zhCN: Messages = {
     defaultCustomer: "匿名客户",
     updateFailed: "订单状态更新失败",
   },
-
-  // 排班系统
   scheduling: {
     title: "员工排班",
     calendar: "日历视图",
@@ -295,7 +290,6 @@ const zhCN: Messages = {
     editSchedule: "编辑排班",
     deleteSchedule: "删除排班",
     scheduleDetails: "排班详情",
-
     filters: {
       searchEmployee: "搜索员工姓名...",
       dateRange: "日期范围",
@@ -307,7 +301,6 @@ const zhCN: Messages = {
       allShifts: "全部班次",
       to: "至",
     },
-
     columns: {
       date: "日期",
       weekday: "星期",
@@ -323,7 +316,6 @@ const zhCN: Messages = {
       status: "状态",
       notes: "备注",
     },
-
     form: {
       selectEmployee: "选择员工",
       selectShift: "选择班次",
@@ -336,7 +328,6 @@ const zhCN: Messages = {
       repeatDays: "重复天数",
       repeatUntil: "重复至",
     },
-
     batch: {
       title: "批量操作",
       selected: "已选择 {count} 项",
@@ -346,8 +337,9 @@ const zhCN: Messages = {
       exportSelected: "导出选中",
       confirmAction: "确定要将 {count} 条排班标记为已确认吗？",
       cancelConfirm: "确定要取消 {count} 条排班吗？",
+      confirm: "确认批次操作",
+      cancel: "取消批次操作",
     },
-
     pagination: {
       showing: "显示 {start}-{end} 共 {total} 项",
       itemsPerPage: "每页",
@@ -357,7 +349,6 @@ const zhCN: Messages = {
       nextPage: "下一页",
       page: "页",
     },
-
     conflicts: {
       title: "排班冲突",
       detected: "检测到 {count} 个冲突",
@@ -371,7 +362,6 @@ const zhCN: Messages = {
       ignore: "忽略",
       details: "冲突详情",
     },
-
     stats: {
       totalSchedules: "总排班数",
       totalHours: "总时长",
@@ -381,7 +371,6 @@ const zhCN: Messages = {
       thisMonth: "本月",
       today: "今天",
     },
-
     exportReport: "导出报表",
     loadingList: "加载排班列表中...",
     noData: "暂无排班数据",
@@ -390,16 +379,40 @@ const zhCN: Messages = {
     noExportData: "没有数据可导出",
     exportFilename: "排班数据",
     exportSelected: "选中",
+    addTemplate: "新增班次范本",
+    approveSwapFailed: "核准换班失败",
+    cannotGetManagerInfo: "无法取得管理者资讯",
+    cannotGetUserInfo: "无法取得使用者资讯",
+    confirmDeleteTemplate: "确定要删除此班次范本吗？",
+    currentlyWorking: "目前上班中",
+    confirmDeleteSchedule: "确定要删除此排班吗？",
+    deleteScheduleFailed: "删除排班失败",
+    deleteTemplate: "删除模板",
+    deleteTemplateFailed: "删除班次范本失败",
+    enterResolutionNotes: "请输入处理备注",
+    enterRejectReason: "请输入拒绝原因",
+    listView: "列表检视",
+    managementSubtitle: "管理员工班次与排班表",
+    managementTitle: "员工排班管理",
+    conflictWarnings: "冲突警告",
+    noEmployeesWorking: "目前没有员工上班",
+    monthlySchedules: "本月排班数",
+    pendingConflicts: "待处理冲突",
+    pendingSwaps: "待处理换班",
+    peopleCount: "人",
+    employeeNumber: "员工编号",
+    rejectSwapFailed: "拒绝换班失败",
+    resolveConflictFailed: "解决冲突失败",
+    saveTemplateFailed: "储存班次范本失败",
+    since: "自",
+    saveScheduleFailed: "储存排班失败",
   },
-
-  // 班次模板
   shiftTemplates: {
     title: "班次模板",
     create: "创建模板",
     edit: "编辑模板",
     delete: "删除模板",
     duplicate: "复制模板",
-
     form: {
       name: "模板名称",
       nameRequired: "请输入模板名称",
@@ -426,7 +439,6 @@ const zhCN: Messages = {
       icon: "图标 (选填)",
       preview: "预览",
     },
-
     sections: {
       basicInfo: "基本信息",
       workTime: "工作时间",
@@ -435,32 +447,27 @@ const zhCN: Messages = {
       payRate: "薪资设置 (选填)",
       appearance: "外观设置",
     },
-
     shiftTypes: {
       regular: "一般班",
       split: "分段班",
       overnight: "跨夜班",
     },
-
     overtime: {
       normal: "正常",
       weekday: "平日加班",
       restDay: "休息日加班",
       holiday: "法定假日",
     },
-
     errors: {
       minExceedsMax: "最少人数不能大于最多人数",
       noDaysSelected: "请至少选择一个适用日期",
     },
-
     usage: {
       title: "使用情况",
       timesUsed: "使用次数",
       lastUsed: "最后使用",
       never: "从未使用",
     },
-
     colors: {
       blue: "蓝色",
       green: "绿色",
@@ -471,7 +478,6 @@ const zhCN: Messages = {
       cyan: "青色",
       gray: "灰色",
     },
-
     presets: {
       morning: "早班",
       afternoon: "午班",
@@ -479,8 +485,6 @@ const zhCN: Messages = {
       night: "夜班",
       fullDay: "全天",
     },
-
-    // ShiftTemplatesList component keys
     management: "班别模板管理",
     totalCount: "共 {count} 个班别模板",
     addTemplate: "新增模板",
@@ -502,8 +506,6 @@ const zhCN: Messages = {
       delete: "确定要删除班别模板「{name}」吗？此操作无法恢复。",
     },
   },
-
-  // 换班申请
   swapRequests: {
     title: "换班申请管理",
     create: "申请换班",
@@ -523,14 +525,12 @@ const zhCN: Messages = {
     switchFilterHint: "切换筛选器查看其他状态的申请",
     responseNote: "处理回复",
     processedBy: "由 {name} 处理",
-
     status: {
       pending: "待审核",
       approved: "已批准",
       rejected: "已拒绝",
       cancelled: "已取消",
     },
-
     form: {
       requester: "申请人",
       target: "目标员工",
@@ -542,7 +542,6 @@ const zhCN: Messages = {
       selectTarget: "选择目标班次",
       noAvailableShifts: "暂无可用班次",
     },
-
     details: {
       requestedBy: "申请人",
       requestedAt: "申请时间",
@@ -556,15 +555,15 @@ const zhCN: Messages = {
       rejectedAt: "拒绝时间",
       rejectionReason: "拒绝原因",
     },
-
     actions: {
       viewDetails: "查看详情",
       approveConfirm: "确定要批准这个换班申请吗？",
       rejectConfirm: "确定要拒绝这个换班申请吗？",
       cancelConfirm: "确定要取消这个换班申请吗？",
+      approve: "核准",
+      reject: "拒绝",
     },
   },
-
   status: {
     scheduled: "已排班",
     confirmed: "已确认",
@@ -575,7 +574,6 @@ const zhCN: Messages = {
     inactive: "未激活",
     no_show: "缺席",
   },
-
   weekdays: {
     short: {
       sunday: "周日",
@@ -605,7 +603,6 @@ const zhCN: Messages = {
       saturday: "六",
     },
   },
-
   errors: {
     generic: "操作失败，请重试",
     networkError: "网络错误，请检查网络连接",
@@ -630,7 +627,6 @@ const zhCN: Messages = {
         "您的账号尚未绑定任何餐厅，请联系系统管理员为您指派餐厅后再试。",
     },
   },
-
   success: {
     saved: "保存成功",
     deleted: "删除成功",
@@ -644,7 +640,6 @@ const zhCN: Messages = {
     exported: "导出成功",
     imported: "导入成功",
   },
-
   confirmations: {
     delete: "确定要删除吗？",
     deleteSchedule: "确定要删除这个排班吗？",
@@ -653,8 +648,6 @@ const zhCN: Messages = {
     unsavedChanges: "有未保存的更改，确定要离开吗？",
     batchDelete: "确定要删除选中的 {count} 项吗？",
   },
-
-  // 图表组件
   charts: {
     workHours: {
       title: "总工时统计",
@@ -724,8 +717,6 @@ const zhCN: Messages = {
       totalValue: "{quantity} 份 / ${revenue}",
     },
   },
-
-  // 订位系统
   reservation: {
     title: "订位管理",
     subtitle: "管理餐厅订位与预约",
@@ -777,6 +768,8 @@ const zhCN: Messages = {
       confirmed: "已确认",
       completed: "已完成",
       noShowRate: "未到店率",
+      pending: "待确认",
+      seated: "已入座",
     },
     statusText: {
       pending: "待确认",
@@ -807,9 +800,11 @@ const zhCN: Messages = {
       next: "下一页",
       showing: "显示第 {start} 到 {end} 条，共 {total} 条结果",
     },
+    confirmAction: "确认",
+    cancelAction: "取消订位",
+    confirmTitle: "确认订位",
+    cancelTitle: "取消订位",
   },
-
-  // 候位系统
   waitingList: {
     title: "候位管理",
     subtitle: "管理餐厅候位队列",
@@ -898,9 +893,11 @@ const zhCN: Messages = {
     pagination: {
       showing: "显示第 {start} 到 {end} 条，共 {total} 条结果",
     },
+    cancelAction: "取消候位",
+    expireAction: "标记过期",
+    cancelTitle: "取消候位",
+    expireTitle: "标记候位过期",
   },
-
-  // 座位管理
   seating: {
     title: "座位管理",
     subtitle: "统一管理预订、候位与排队",
@@ -920,13 +917,9 @@ const zhCN: Messages = {
       todayServed: "今日已服务",
     },
   },
-
-  // 系统监控
   monitoring: {
     title: "系统监控",
     subtitle: "实时监控系统健康状态、性能指标与警报",
-
-    // 按钮与操作
     actions: {
       refresh: "立即更新",
       refreshing: "更新中...",
@@ -937,8 +930,6 @@ const zhCN: Messages = {
       resetMetrics: "重置指标",
       exportReport: "导出报告",
     },
-
-    // 健康状态
     health: {
       overall: "整体健康状态",
       score: "健康分数",
@@ -952,8 +943,6 @@ const zhCN: Messages = {
         down: "离线",
       },
     },
-
-    // 关键指标
     keyMetrics: {
       title: "关键指标",
       requestsPerMinute: "每分钟请求数",
@@ -962,8 +951,6 @@ const zhCN: Messages = {
       serverErrors: "服务器错误",
       clientErrorsNote: "客户端 4xx：{count}（通常正常）",
     },
-
-    // 组件状态
     components: {
       title: "系统组件状态",
       api: "API 服务",
@@ -979,9 +966,10 @@ const zhCN: Messages = {
       issueCount: "问题: {count} 个",
       lastCheck: "最后检查",
       issuesFound: "发现问题:",
+      storage: "储存",
+      websocket: "WebSocket",
+      queue: "伫列",
     },
-
-    // 通用状态标签
     statusText: {
       healthy: "健康",
       warning: "警告",
@@ -990,15 +978,11 @@ const zhCN: Messages = {
       unknown: "未知",
       stopped: "停机",
     },
-
-    // 标签页
     tabs: {
       alerts: "警报规则",
       performance: "性能报告",
       errors: "错误分析",
     },
-
-    // 警报规则
     alerts: {
       title: "警报规则",
       noAlerts: "暂无警报规则",
@@ -1032,16 +1016,19 @@ const zhCN: Messages = {
         deleted: "警报规则已删除",
         deleteConfirm: "确定要删除这个警报规则吗？",
       },
+      status: {
+        active: "启用",
+        muted: "已静音",
+        resolved: "已解决",
+        acknowledged: "已确认",
+      },
     },
-
-    // 性能报告
     performance: {
       title: "性能报告",
       selectPeriod: "选择时间范围",
       last1Day: "最近 1 天",
       last7Days: "最近 7 天",
       last30Days: "最近 30 天",
-
       api: {
         title: "API 性能",
         totalRequests: "总请求数",
@@ -1049,7 +1036,6 @@ const zhCN: Messages = {
         p95ResponseTime: "P95 响应时间",
         errorRate: "错误率",
       },
-
       database: {
         title: "数据库性能",
         totalQueries: "总查询数",
@@ -1057,7 +1043,6 @@ const zhCN: Messages = {
         slowQueries: "慢查询数",
         queryErrorRate: "查询错误率",
       },
-
       cache: {
         title: "缓存性能",
         hitRate: "命中率",
@@ -1065,21 +1050,21 @@ const zhCN: Messages = {
         totalSize: "缓存大小",
         expiringKeys: "即将过期",
       },
-
       charts: {
         trendComparison: "性能趋势对比（最近24小时）",
         cacheHitRate: "缓存命中率趋势（最近24小时）",
         apiResponseTime: "API 响应时间",
         dbQueryTime: "数据库查询时间",
       },
-
       recommendations: {
         title: "优化建议",
         loading: "加载性能报告中...",
       },
+      last24Hours: "近 24 小时",
+      last15Minutes: "近 15 分钟",
+      lastHour: "近 1 小时",
+      custom: "自订",
     },
-
-    // 错误分析
     errors: {
       title: "错误分析",
       statistics: "错误类型统计",
@@ -1089,8 +1074,6 @@ const zhCN: Messages = {
       occurredTimes: "发生次数",
       errorCount: "错误次数",
     },
-
-    // 实时警报
     realtime: {
       title: "实时警报",
       connectionStatus: {
@@ -1111,8 +1094,6 @@ const zhCN: Messages = {
       minutesAgo: "{count} 分钟前",
       hoursAgo: "{count} 小时前",
     },
-
-    // 其他文本
     misc: {
       loadingData: "加载监控数据中...",
       systemHealth: "系统健康度",
@@ -1132,8 +1113,6 @@ const zhCN: Messages = {
       live: "即时",
       stable: "稳定",
     },
-
-    // 新增警报规则表单
     createRule: {
       title: "新增警报规则",
       name: "规则名称",
@@ -1215,14 +1194,10 @@ const zhCN: Messages = {
         fatal: "致命",
       },
     },
-
-    // 轮询状态
     polling: {
       connected: "监控中（轮询）",
       disconnected: "轮询已停止",
     },
-
-    // 通知消息
     notifications: {
       dataUpdated: "监控数据已更新",
       updateFailed: "更新监控数据失败",
@@ -1235,8 +1210,6 @@ const zhCN: Messages = {
       autoRefreshEnabled: "已启用自动更新",
       autoRefreshDisabled: "已停用自动更新",
     },
-
-    // 高级筛选器
     filters: {
       title: "高级筛选",
       quickFilters: "快速筛选",
@@ -1286,8 +1259,6 @@ const zhCN: Messages = {
         filterDeleted: "筛选器已删除",
       },
     },
-
-    // 导出报告
     export: {
       title: "导出报告",
       exportReport: "导出报告",
@@ -1344,8 +1315,6 @@ const zhCN: Messages = {
         executiveSummaryDesc: "高层次的系统健康状态和关键指标概览",
       },
     },
-
-    // 自定义布局
     layout: {
       title: "仪表板布局",
       editMode: "编辑模式",
@@ -1418,8 +1387,6 @@ const zhCN: Messages = {
         confirmDelete: "确定要删除此布局吗？",
       },
     },
-
-    // Alert Notification Panel
     alertPanel: {
       title: "实时警报",
       reconnect: "重新连接",
@@ -1439,8 +1406,6 @@ const zhCN: Messages = {
       hoursAgo: "{count} 小时前",
     },
   },
-
-  // 页面标题与导航
   header: {
     title: "MakanMasak 管理后台",
     home: "首页",
@@ -1471,8 +1436,6 @@ const zhCN: Messages = {
       cashier: "收银员",
     },
   },
-
-  // 导航
   nav: {
     featureUnavailable: "尚未开放",
     platform: "平台概览",
@@ -1509,8 +1472,8 @@ const zhCN: Messages = {
     restaurantContextHint: "选择店铺后可管理订单、菜单、POS 与员工。",
     restaurantManagement: "店铺管理",
     feedback: "意见反馈",
+    accountManagement: "帐号管理",
   },
-
   pages: {
     login: "登录",
     forgotPassword: "忘记密码",
@@ -1551,9 +1514,10 @@ const zhCN: Messages = {
     ingredients: "食材管理",
     feedback: "意见反馈",
     feedbackDetail: "反馈详情",
+    accountManagement: "帐号管理",
+    platformMarketCheckouts: "市场结帐纪录",
+    subscriptions: "订阅管理",
   },
-
-  // 平台总览
   platform: {
     title: "平台总览",
     description: "从单一仪表板管理所有餐厅。选择餐厅以进入其完整管理界面。",
@@ -1568,7 +1532,6 @@ const zhCN: Messages = {
     loading: "加载中...",
     noResults: "找不到餐厅",
   },
-
   auth: {
     adminLogin: "管理后台登录",
     username: "账号",
@@ -1638,7 +1601,6 @@ const zhCN: Messages = {
     tokenVerifyError: "验证 Token 时发生错误",
     missingToken: "缺少重设 Token",
   },
-
   dashboard: {
     title: "仪表板",
     welcome: "欢迎回来，{username}",
@@ -1684,7 +1646,6 @@ const zhCN: Messages = {
       },
     },
   },
-
   notFound: {
     title: "页面不存在",
     description: "抱歉，您要找的页面不存在或已被移除",
@@ -1704,7 +1665,6 @@ const zhCN: Messages = {
       "没有找到与「{query}」相关的功能，请尝试其他关键字或使用上方的快速导航。",
     errorCode: "错误代码",
   },
-
   unauthorized: {
     title: "访问被拒绝",
     description: "抱歉，您没有权限访问此页面",
@@ -1736,6 +1696,8 @@ const zhCN: Messages = {
       orderCheckout: "订单结账",
       paymentProcessing: "付款处理",
       basicFeatures: "基本功能",
+      cashier: "收银",
+      orderProcessing: "订单处理",
     },
     roles: {
       admin: "系统管理员",
@@ -1746,13 +1708,11 @@ const zhCN: Messages = {
       unknown: "未知角色",
     },
   },
-
   kitchenLayout: {
     title: "厨房显示系统",
     pendingOrders: "待处理订单",
     backToAdmin: "返回管理界面",
   },
-
   cashierLayout: {
     title: "收银系统",
     cashier: "收银员: {name}",
@@ -1762,7 +1722,6 @@ const zhCN: Messages = {
     online: "已连线",
     offline: "离线",
   },
-
   serviceLayout: {
     roleBadge: "送菜员",
     pendingDelivery: "待配送: {count}",
@@ -1784,7 +1743,6 @@ const zhCN: Messages = {
     hoursAgo: "{count}小时前",
     daysAgo: "{count}天前",
   },
-
   serviceBookings: {
     title: "服务预约管理",
     subtitle: "查看服务预约并处理现金确认、完成、未到与取消。",
@@ -1836,8 +1794,6 @@ const zhCN: Messages = {
       cancelSuccess: "预约已取消。",
     },
   },
-
-  // 店主仪表板
   owner: {
     kpi: {
       todayRevenue: "今日营收",
@@ -1845,6 +1801,8 @@ const zhCN: Messages = {
       onlineStaff: "在线员工",
       overallEfficiency: "整体效率",
       normal: "正常",
+      available: "空闲",
+      tableUtilization: "桌位使用率",
     },
     actions: {
       addStaff: "新增员工",
@@ -1894,8 +1852,32 @@ const zhCN: Messages = {
     statusOnline: "在线",
     statusBusy: "忙碌",
     statusOffline: "离线",
+    loading: "加载中...",
+    retry: "重试",
+    roles: {
+      cashier: "收银员",
+      owner: "店主",
+      service: "送菜员",
+      chef: "厨师",
+      staff: "员工",
+    },
+    fetchError: "无法载入仪表板资料",
+    noData: "暂无资料",
+    systemDescriptions: {
+      api: "后端服务",
+      database: "资料存储",
+      realtime: "WebSocket 连线",
+    },
+    timeAgo: {
+      justNow: "刚刚",
+      minutesAgo: "{count} 分钟前",
+    },
+    systemNames: {
+      database: "数据库",
+      realtime: "即时系统",
+      api: "API 服务",
+    },
   },
-
   notification: {
     title: "通知",
     markAllRead: "全部已读",
@@ -1914,7 +1896,6 @@ const zhCN: Messages = {
     minutesAgo: "{count}分钟前",
     hoursAgo: "{count}小时前",
   },
-
   leaves: {
     title: "请假管理",
     subtitle: "管理员工请假申请与假期余额",
@@ -1957,6 +1938,7 @@ const zhCN: Messages = {
       uploadPrompt: "点击或拖拽文件上传",
       formatNote: "支持 PDF、JPG、PNG 格式",
       submit: "提交申请",
+      period: "期间",
     },
     balance: {
       title: "假期余额",
@@ -1981,6 +1963,12 @@ const zhCN: Messages = {
       pending: "待审核",
       approved: "已批准",
       rejected: "已拒绝",
+      approve: "批准",
+      reject: "拒绝",
+      noPending: "目前没有待审核的请假申请",
+      reviewer: "审核人",
+      unknownEmployee: "未知员工",
+      pendingRequests: "待审核申请",
     },
     errors: {
       endBeforeStart: "结束日期不能早于开始日期",
@@ -2016,8 +2004,6 @@ const zhCN: Messages = {
       rejectFailed: "拒绝失败",
     },
   },
-
-  // 桌台管理
   tables: {
     title: "桌台管理",
     subtitle: "管理餐厅桌台与 QR 码",
@@ -2085,6 +2071,8 @@ const zhCN: Messages = {
     },
     confirm: {
       regenerateAllQR: "确定要为所有桌台重新生成 QR 码吗？",
+      regenerateAllQRAction: "重新产生",
+      regenerateAllQRTitle: "重新产生所有 QR 码",
     },
     alert: {
       qrGenerated: "QR 码生成完成！",
@@ -2100,8 +2088,6 @@ const zhCN: Messages = {
       qrGenerateFailed: "QR 码生成失败，请稍后再试",
     },
   },
-
-  // 收银台
   cashier: {
     title: "收银台",
     subtitle: "处理订单付款与退款",
@@ -2139,6 +2125,8 @@ const zhCN: Messages = {
       wrongOrder: "订单错误",
       customerCancel: "客户取消",
       other: "其他原因",
+      customerChange: "顾客改变主意",
+      serviceIssue: "服务问题",
     },
     confirmRefund: "确认退款",
     cancel: "取消",
@@ -2165,9 +2153,67 @@ const zhCN: Messages = {
     confirms: {
       endShift: "确定要结束当前班次吗？结束后将无法再进行修改。",
     },
+    actualAmount: "实际金额",
+    allOrdersCompleted: "所有订单已完成处理",
+    amountReceived: "收到金额",
+    amountDue: "应付金额",
+    applyDiscount: "套用折扣",
+    card: "信用卡",
+    cash: "现金",
+    avgOrderValue: "平均客单价",
+    cashCount: "现金盘点",
+    cashMatch: "现金金额吻合",
+    cashOver: "现金溢出 {amount}",
+    cashShort: "现金短缺 {amount}",
+    cashierName: "收银员",
+    confirmPayment: "确认付款",
+    coupon: "优惠券",
+    currentTime: "目前时间",
+    endShift: "结束班次",
+    digitalPayment: "电子支付",
+    done: "完成",
+    discount: "折扣",
+    customer: "顾客",
+    enterOrderNumber: "输入订单编号",
+    noPendingOrders: "没有待处理订单",
+    itemCount: "{count} 项商品",
+    itemList: "品项清单",
+    notes: "备注",
+    optionalNotes: "选填备注...",
+    paymentFailed: "付款失败",
+    orderTime: "下单时间",
+    orderCompleted: "订单 {orderNumber} 已完成",
+    paymentSuccess: "付款成功！",
+    orderDetails: "订单详情",
+    pleaseSelectOrder: "请选择一个订单进行结帐",
+    printReport: "列印报告",
+    received: "已收",
+    refundCount: "退款笔数",
+    refundProcess: "退款处理",
+    refundType: "退款类型",
+    refundTypes: {
+      full: "全额退款",
+      item: "单品退款",
+      partial: "部分退款",
+      service: "服务退款",
+    },
+    revenueTotal: "营收合计",
+    selectOrder: "选择订单",
+    searchPlaceholder: "搜寻订单...",
+    selectReason: "请选择原因",
+    refundMethod: "退款方式",
+    serviceCharge: "服务费",
+    shiftInfo: "班次资讯",
+    shiftReport: "班次报告",
+    systemAmount: "系统金额",
+    time: "时间",
+    todayPerformance: "今日业绩",
+    tax: "税额",
+    subtotal: "小计",
+    total: "总计",
+    totalOrders: "订单总数",
+    transactionDetails: "交易明细",
   },
-
-  // 系统设置
   settings: {
     title: "系统设置",
     subtitle: "管理餐厅系统偏好设置",
@@ -2184,6 +2230,8 @@ const zhCN: Messages = {
       notifications: "通知设置",
       security: "安全设置",
       integrations: "外送平台对接",
+      contact: "联络与 FAQ",
+      markets: "市场 / 商圈",
     },
     general: {
       restaurantInfo: "餐厅信息",
@@ -2344,10 +2392,103 @@ const zhCN: Messages = {
     confirms: {
       resetDefaults: "确定要将所有设置重置为默认值吗？此操作无法恢复。",
       regenerateQR: "确定要重新生成 QR Code 吗？这将更新版本号。",
+      regenerateQRTitle: "重新产生 QR 码",
+      regenerateQRAction: "重新产生",
+      resetDefaultsAction: "重置",
+      resetDefaultsTitle: "重置为预设值",
+    },
+    contact: {
+      addFaq: "新增 FAQ",
+      active: "公开显示",
+      answer: "回答",
+      emptyFaq: "尚未建立 FAQ。",
+      displayOrder: "排序",
+      loadFailed: "载入联络资料失败",
+      faqTitle: "常见问题",
+      keywordsPlaceholder: "预订, 取餐, 素食",
+      keywords: "关键字",
+      question: "问题",
+      saveFailed: "储存联络资料失败",
+      save: "储存联络资料",
+      saveSuccess: "联络资料已储存",
+      removeFaq: "移除",
+      loading: "载入联络资料中...",
+      saving: "储存中...",
+      subtitle: "设定顾客可开启的 LINE、WhatsApp、IG、Telegram 与常见问答。",
+      title: "联络渠道与常见问题",
+    },
+    markets: {
+      completed: "已完成",
+      area: "区域",
+      empty: "尚未加入任何市场或商圈。",
+      loadFailed: "载入市场资料失败",
+      market: "市场",
+      loading: "载入市场资料中...",
+      messagePlaceholder: "例如：摊位位置、营业时段、主要贩售品项",
+      message: "申请备注",
+      no: "否",
+      noMatchingMarkets: "没有可申请或符合搜寻条件的市场。",
+      notReady: "尚需补齐",
+      primary: "主要市场",
+      readiness: {
+        faq: {
+          title: "常见问题",
+          description: "提供取餐、付款、预订等常见回答，降低顾客询问成本。",
+        },
+        contact: {
+          description:
+            "至少设定一个 LINE、WhatsApp、Instagram 或 Telegram 连结。",
+          title: "公开联络渠道",
+        },
+        fulfillment: {
+          description: "需启用外带，顾客才可从商圈探索直接开始订购。",
+          title: "外带能力",
+        },
+        location: {
+          description: "需有城市、行政区、地址、经纬度，才能支援附近搜寻。",
+          title: "地址与 GPS",
+        },
+        market: {
+          description: "至少加入一个市场或商圈，才会出现在该场域页面。",
+          title: "市场 / 商圈归属",
+        },
+        shopMode: {
+          title: "店家模式 QR",
+          description:
+            "需启用店家模式并生成 QR token，才能承接免扫码外带流程。",
+        },
+      },
+      notSet: "未设定",
+      noRequests: "尚未送出任何加入申请。",
+      readinessSubtitle:
+        "补齐定位、外带、店家模式、联络资料与市场归属后，顾客才能在夜市 / 商圈中顺利找到并使用服务。",
+      refresh: "刷新",
+      recommended: "建议",
+      readinessTitle: "Marketplace 资料完整度",
+      ready: "可上架",
+      requestFailed: "申请送出失败，可能已存在待审申请",
+      requestStatus: {
+        approved: "已通过",
+        pending: "审核中",
+        rejected: "已拒绝",
+      },
+      requestTitle: "申请加入市场",
+      requestSuccess: "已送出加入申请",
+      requestsTitle: "加入申请状态",
+      requestsSubtitle: "追踪已送出的市场 / 商圈加入申请与审核状态。",
+      required: "必要",
+      selectMarket: "选择市场",
+      searchPlaceholder: "搜寻市场名称、城市、行政区或标签",
+      requestSubtitle: "送出后由平台管理员审核并挂载店家。",
+      selectPlaceholder: "请选择市场或商圈",
+      stall: "摊位",
+      submit: "送出申请",
+      subtitle: "查看目前已加入的夜市、商圈或美食聚落。",
+      submitting: "送出中...",
+      title: "所属市场 / 商圈",
+      yes: "是",
     },
   },
-
-  // 团体订单
   groupOrders: {
     title: "团体订单",
     subtitle: "管理多人共享订单与分账功能",
@@ -2439,8 +2580,6 @@ const zhCN: Messages = {
     },
     whatsappMessage: "一起来点餐！\n订单分享码: {shareCode}\n链接: {shareUrl}",
   },
-
-  // 送菜服务台
   serviceView: {
     title: "送菜服务台",
     subtitle: "管理餐点配送和桌台服务",
@@ -2506,8 +2645,6 @@ const zhCN: Messages = {
       issueReported: "问题已回报：\n类型：{type}\n描述：{description}",
     },
   },
-
-  // POS 系统
   pos: {
     title: "POS 系统",
     subtitle: "完整收银售点管理系统",
@@ -2614,6 +2751,8 @@ const zhCN: Messages = {
       registerName: "输入新现金柜名称:",
       startingCash: "输入起始现金金额:",
       promotionName: "输入促销活动名称:",
+      promotionNamePlaceholder: "例如：周末特惠",
+      registerNamePlaceholder: "例如：一号收银柜",
     },
     confirms: {
       endShift: "确认结束当前班次?",
@@ -2624,9 +2763,9 @@ const zhCN: Messages = {
       orderPayment: "订单 {orderNumber} 付款",
       newPromotion: "新增活动",
     },
+    createPromotion: "新增促销活动",
+    createRegister: "新增收银柜",
   },
-
-  // 候位管理
   queue: {
     title: "候位管理系统",
     subtitle: "智能候位管理与座位分配",
@@ -2737,8 +2876,6 @@ const zhCN: Messages = {
       displayInDev: "显示设置功能开发中..",
     },
   },
-
-  // 优惠券管理
   coupons: {
     title: "优惠券管理",
     subtitle: "创建和管理优惠券与促销活动",
@@ -2810,10 +2947,9 @@ const zhCN: Messages = {
       deleteConfirm: '确定要删除优惠券 "{name}" 吗？此操作无法恢复。',
       deleteSuccess: "优惠券已删除",
       deleteFailed: "删除失败",
+      deleteConfirmTitle: "删除优惠券",
     },
   },
-
-  // 数据分析
   analytics: {
     title: "数据分析",
     subtitle: "餐厅经营数据和趋势分析",
@@ -2861,9 +2997,12 @@ const zhCN: Messages = {
       averageOrder: "平均客单价",
       tableUtilization: "桌台使用率",
     },
+    exporting: "汇出中...",
+    fetchError: "载入数据失败，请重试",
+    noData: "暂无数据",
+    retry: "重试",
+    loading: "加载中...",
   },
-
-  // 员工管理
   users: {
     title: "员工管理",
     subtitle: "管理餐厅员工账户和权限",
@@ -2943,8 +3082,6 @@ const zhCN: Messages = {
       toggleFailed: "状态切换失败",
     },
   },
-
-  // 员工管理（新页面）
   employees: {
     title: "员工管理",
     subtitle: "管理员工信息、排班与请假",
@@ -3066,8 +3203,6 @@ const zhCN: Messages = {
       withdrawn: "已撤回",
     },
   },
-
-  // 桌台详情
   tableDetail: {
     backToList: "返回桌台列表",
     tableNumber: "桌号 {number}",
@@ -3112,10 +3247,12 @@ const zhCN: Messages = {
       regenerateConfirm: "确定要重新生成 QR 码吗？",
       regenerateSuccess: "QR 码已重新生成",
       regenerateFailed: "重新生成 QR 码失败",
+      regenerateAction: "重新产生",
+      regenerateTitle: "重新产生 QR 码",
+      switchModeAction: "切换",
+      switchModeTitle: "切换桌台模式",
     },
   },
-
-  // 座位管理
   seatManagement: {
     title: "座位管理",
     tableInfo: "桌号: {tableNumber} | 座位模式",
@@ -3166,8 +3303,6 @@ const zhCN: Messages = {
       printFailed: "准备座位 QR 打印数据失败",
     },
   },
-
-  // QR 模式选择
   qrRotation: {
     pending: "已备妥待启用",
     prepare: "备妥",
@@ -3189,13 +3324,11 @@ const zhCN: Messages = {
       noneToPrepare: "没有需要备妥的 QR 码",
     },
   },
-
   qrReadiness: {
     notReady: "QR 未就绪",
     notReadyDescription: "请先重新生成此 QR 码，再下载或打印。",
     skippedNotReady: "已跳过 {count} 个尚未就绪、无法打印的 QR 码。",
   },
-
   qrMode: {
     label: "QR 码管理模式",
     description: "选择如何为此桌台生成 QR 码",
@@ -3225,8 +3358,6 @@ const zhCN: Messages = {
     noticeItem2: "切换到座位模式后，将自动创建指定数量的座位",
     noticeItem3: "已有订单的桌台无法切换模式",
   },
-
-  // 座位网格
   seatGrid: {
     title: "座位视图",
     available: "可用",
@@ -3239,8 +3370,6 @@ const zhCN: Messages = {
     noSeatsHint: "此桌台尚未配置座位",
     availableSeats: "可用座位",
   },
-
-  // 优惠券表单
   couponForm: {
     editTitle: "编辑优惠券",
     createTitle: "创建优惠券",
@@ -3283,8 +3412,6 @@ const zhCN: Messages = {
     update: "更新",
     createBtn: "创建",
   },
-
-  // 优惠券统计
   couponStats: {
     title: "优惠券统计",
     couponInfo: "优惠券信息",
@@ -3332,8 +3459,6 @@ const zhCN: Messages = {
       lowDiscount: "平均折扣金额较低，可考虑提高折扣值以增加吸引力",
     },
   },
-
-  // 外送平台对接
   integrations: {
     title: "外送平台对接",
     subtitle: "连接外送平台以统一管理来自不同平台的订单和菜单",
@@ -3391,8 +3516,6 @@ const zhCN: Messages = {
       disconnectFailed: "断开连接失败",
     },
   },
-
-  // 统计面板
   statisticsDashboard: {
     title: "统计面板",
     subtitle: "实时统计数据、平均制作时间、完成率统计和绩效趋势",
@@ -3454,8 +3577,6 @@ const zhCN: Messages = {
     statusCompleted: "已完成",
     statusCancelled: "已取消",
   },
-
-  // 请假操作
   leaveActions: {
     submitSuccess: "请假申请提交成功！",
     submitFailed: "请假申请提交失败",
@@ -3468,9 +3589,9 @@ const zhCN: Messages = {
     rejectPrompt: "请输入拒绝原因：",
     rejectSuccess: "已拒绝请假申请",
     rejectFailed: "拒绝失败",
+    cancelReasonPrompt: "请输入取消原因",
+    approve: "核准",
   },
-
-  // 支付系统
   payment: {
     recommended: "推荐",
     noMethodsTitle: "暂无可用的支付方式",
@@ -3766,8 +3887,6 @@ const zhCN: Messages = {
       copied: "已复制到剪贴板",
     },
   },
-
-  // 错误显示
   errorDisplay: {
     pendingRequestsCount: "{count} 个待处理请求",
     reconnect: "重连",
@@ -3794,8 +3913,6 @@ const zhCN: Messages = {
       "确定要重置所有设置吗？这将清除您的偏好设置但不会影响登录状态。",
     reportNotImplemented: "错误报告功能尚未实现。请联系技术支持。",
   },
-
-  // 角色导航
   roleNav: {
     dashboard: "总览",
     ownerCenter: "店主中心",
@@ -3826,8 +3943,6 @@ const zhCN: Messages = {
       unknown: "未知角色",
     },
   },
-
-  // 支付 Store
   paymentStore: {
     initFailed: "初始化支付失败",
     loadMethodsFailed: "加载支付方式失败",
@@ -3841,22 +3956,16 @@ const zhCN: Messages = {
       emailInvalid: "电子邮件格式无效",
     },
   },
-
-  // 订单 Store
   orderStore: {
     fetchFailed: "获取订单失败",
     updateStatusFailed: "更新订单状态失败",
     cancelFailed: "取消订单失败",
   },
-
-  // 仪表板 Store
   dashboardStore: {
     restaurantIdMissing: "餐厅 ID 不存在",
     fetchDataFailed: "获取数据失败",
     fetchDashboardFailed: "获取仪表板数据失败",
   },
-
-  // 打卡系统
   clockInOut: {
     title: "打卡系统",
     today: "今天",
@@ -3883,8 +3992,6 @@ const zhCN: Messages = {
     clockOutSuccess: "下班打卡成功！",
     clockFailed: "打卡失败，请稍后再试",
   },
-
-  // 导出报告
   exportReport: {
     title: "导出监控报告",
     quickTemplates: "快速模板",
@@ -3921,8 +4028,6 @@ const zhCN: Messages = {
     dataTypeHealth: "健康状态",
     dataTypeAll: "完整数据",
   },
-
-  // 排班冲突
   schedulingConflicts: {
     title: "排班冲突警告",
     conflictCount: "共 {count} 个冲突需要处理",
@@ -3950,8 +4055,6 @@ const zhCN: Messages = {
     statusResolved: "已解决",
     statusIgnored: "已忽略",
   },
-
-  // 排班表单
   scheduleForm: {
     editTitle: "编辑排班",
     addTitle: "新增排班",
@@ -3978,8 +4081,6 @@ const zhCN: Messages = {
     errorPositiveHours: "预计工时必须大于 0",
     submitError: "表单提交失败",
   },
-
-  // 实时通知面板
   realtimeNotification: {
     mute: "静音",
     unmute: "开启音效",
@@ -4014,8 +4115,6 @@ const zhCN: Messages = {
     minutesAgo: "{count}分钟前",
     hoursAgo: "{count}小时前",
   },
-
-  // 高级筛选面板
   advancedFilter: {
     quickFilter: "快速筛选",
     resetFilter: "重置筛选",
@@ -4046,8 +4145,6 @@ const zhCN: Messages = {
     descriptionOptional: "描述（可选）",
     descriptionPlaceholder: "说明此筛选器的用途...",
   },
-
-  // 绩效趋势图表
   performanceChart: {
     title: "绩效趋势图",
     lineChart: "线图",
@@ -4071,8 +4168,6 @@ const zhCN: Messages = {
     trendDown: "下降",
     trendStable: "稳定",
   },
-
-  // 仪表板布局编辑器
   dashboardEditor: {
     addWidget: "新增小部件",
     loadPreset: "加载预设",
@@ -4093,8 +4188,6 @@ const zhCN: Messages = {
     categoryMetrics: "指标",
     categoryCharts: "图表",
   },
-
-  // 订单摘要
   orderSummary: {
     title: "订单摘要",
     restaurant: "餐厅",
@@ -4121,8 +4214,6 @@ const zhCN: Messages = {
       unipay: "统一支付",
     },
   },
-
-  // 错误处理示例
   exampleUsage: {
     title: "错误处理系统示例",
     apiErrorTest: "API 错误处理测试",
@@ -4152,8 +4243,6 @@ const zhCN: Messages = {
     offlineRequestQueued: "离线请求已排队",
     currentlyOnline: "当前处于在线状态",
   },
-
-  // 食材管理
   ingredients: {
     title: "食材管理",
     subtitle: "管理食材、配方与库存",
@@ -4180,8 +4269,6 @@ const zhCN: Messages = {
     optional: "可选",
     noRecipeEntries: "尚未添加食材。请在上方搜索并添加食材。",
   },
-
-  // 需求预测
   forecast: {
     title: "需求预测",
     subtitle: "AI 驱动的菜品与食材需求预测",
@@ -4212,9 +4299,12 @@ const zhCN: Messages = {
     noSupplier: "无供应商",
     subtotal: "小计",
     totalEstimatedCost: "预估总成本",
+    accuracyDescription: "比较预测值与实际用量，追踪预测表现。",
+    accuracyReport: "准确率报告",
+    noAccuracyData: "暂无准确率资料",
+    actual: "实际",
+    deviation: "偏差",
   },
-
-  // AI 分析
   aiAnalytics: {
     title: "AI 智能分析",
     subtitle: "利用 AI 分析餐厅经营数据，提供洞察与建议",
@@ -4261,8 +4351,6 @@ const zhCN: Messages = {
     navProducts: "产品分析",
     navConfig: "AI 设定",
   },
-
-  // AI 设定
   aiConfig: {
     title: "AI 服务设定",
     subtitle: "设定 AI 分析服务的供应商与 API 密钥",
@@ -4297,8 +4385,6 @@ const zhCN: Messages = {
     infoCaching: "智能缓存",
     infoCachingDesc: "相似查询自动缓存以节省 API 费用",
   },
-
-  // 产品分析
   productAnalytics: {
     title: "产品分析",
     subtitle: "深入分析菜品表现，优化菜单策略",
@@ -4337,7 +4423,6 @@ const zhCN: Messages = {
     actionBestsellers: "确保畅销菜品的备料充足，避免缺货",
     actionProfit: "分析并复制高利润菜品的定价策略",
   },
-
   feedback: {
     title: "意见反馈",
     ownerSubtitle: "提交您的使用问题或功能建议",
@@ -4429,6 +4514,296 @@ const zhCN: Messages = {
       inProgress: "处理中",
       resolved: "已解决",
     },
+  },
+  accountManagement: {
+    accountInfo: "帐号资讯",
+    adminName: "管理员",
+    createOwnerSuccess: "店主帐号建立成功",
+    createNewRestaurant: "＋ 新增餐厅",
+    createError: "建立失败，请稍后再试",
+    createAdminSuccess: "管理员帐号建立成功",
+    email: "Email",
+    emailCol: "Email",
+    emailPlaceholder: "user{'@'}example.com",
+    emailRequired: "请输入 Email",
+    createdAtCol: "建立日期",
+    emailInvalid: "请输入有效的 Email",
+    existingAdmins: "现有管理员列表",
+    fullName: "全名",
+    existingOwners: "现有店主列表",
+    fullNameRequired: "请输入全名",
+    newRestaurantDistrictRequired: "请输入行政区",
+    fullNamePlaceholder: "姓名",
+    newRestaurantNameRequired: "请输入餐厅名称",
+    newRestaurantPhoneRequired: "请输入餐厅电话",
+    noAdmins: "尚无其他管理员帐号",
+    newRestaurantTypeRequired: "请输入餐厅类型",
+    noOwners: "尚无店主帐号",
+    ownerName: "店主",
+    ownerPermissions: {
+      manageMenu: "管理餐厅菜单",
+      manageEmployees: "管理员工（厨师、服务员、收银员）",
+      manageOrders: "查看及管理订单",
+      manageSettings: "管理餐厅设定",
+      viewAnalytics: "查看营业数据分析",
+    },
+    passwordPlaceholder: "至少 8 个字元，包含大小写、数字及特殊字元",
+    passwordRequired: "请输入密码",
+    passwordStrength: "密码需至少 8 个字元，包含大小写字母、数字及特殊字元",
+    permissionNote: "此帐号建立后将拥有以下权限：",
+    permissionConfirm: "权限确认",
+    password: "密码",
+    phone: "联络电话",
+    phonePlaceholder: "选填",
+    restaurant: "所属餐厅",
+    restaurantAddress: "餐厅地址",
+    restaurantAddressPlaceholder: "餐厅地址",
+    restaurantBinding: "餐厅绑定",
+    restaurantCol: "餐厅",
+    restaurantDistrict: "行政区",
+    restaurantDistrictPlaceholder: "例如：西区",
+    restaurantNamePlaceholder: "新餐厅名称",
+    restaurantPhone: "餐厅电话",
+    restaurantRequired: "请选择或新增餐厅",
+    restaurantPhonePlaceholder: "例如：0912345678",
+    restaurantType: "餐厅类型",
+    restaurantName: "餐厅名称",
+    restaurantTypePlaceholder: "例如：日式料理",
+    selectRestaurant: "选择餐厅",
+    statusActive: "启用",
+    statusCol: "状态",
+    statusInactive: "停用",
+    submitAdmin: "建立管理员帐号",
+    submitOwner: "建立店主帐号",
+    submitting: "建立中...",
+    tabAdmins: "管理员帐号",
+    username: "用户名",
+    title: "帐号管理",
+    usernameLength: "用户名需 3-50 个字元",
+    tabOwners: "店主帐号",
+    usernamePlaceholder: "3-50 个字元",
+    usernameRequired: "请输入用户名",
+  },
+  backup: {
+    actions: {
+      delete: "删除",
+      download: "下载",
+      details: "详情",
+      restore: "还原",
+      create: "建立备份",
+      refresh: "刷新",
+    },
+    alerts: {
+      acknowledge: "确认",
+      title: "备份警示",
+      resolve: "解决",
+    },
+    create: {
+      allTables: "所有资料表",
+      creating: "建立中...",
+      basicInfo: "基本资讯",
+      configuration: "设置",
+      advancedOptions: "进阶选项",
+      description: "描述",
+      descriptionPlaceholder: "输入备份描述",
+      execution: "执行",
+      excludeTables: "排除资料表",
+      forceImmediate: "立即执行",
+      forceImmediateDescription: "略过排程并立即开始备份",
+      includeTables: "包含资料表",
+      create: "建立",
+      name: "名称",
+      namePlaceholder: "输入备份名称",
+      manualConfig: "手动设定",
+      title: "建立备份",
+      selectConfig: "选择设定",
+      selectConfigPlaceholder: "选择备份设定",
+      tablesToExclude: "要排除的资料表",
+      tableSelection: "资料表选择",
+      tablesToInclude: "要包含的资料表",
+      type: "备份类型",
+      useConfiguration: "使用设定",
+      useExisting: "使用现有设定",
+    },
+    confirm: {
+      deleteTitle: "删除备份",
+      delete: "确定要删除此备份吗？",
+    },
+    details: {
+      configuration: "设置",
+      checksum: "校验码",
+      manual: "手动",
+      encrypted: "已加密",
+      id: "备份 ID",
+      performance: "效能",
+      recordsCount: "资料笔数",
+      tables: "资料表",
+      storage: "储存空间",
+    },
+    dashboard: {
+      title: "备份仪表板",
+    },
+    empty: {
+      description: "建立第一个备份以保护餐厅资料。",
+      createFirst: "建立第一个备份",
+      title: "尚无备份",
+    },
+    errors: {
+      nameRequired: "请输入备份名称",
+      nameTooLong: "备份名称过长",
+    },
+    health: {
+      allSystemsNormal: "所有系统正常",
+      backupsRunning: "备份执行中",
+      failuresDetected: "侦测到备份失败",
+      loading: "载入健康状态中...",
+    },
+    metrics: {
+      duration: "耗时",
+      compression: "压缩率",
+      failed24h: "24 小时失败",
+      running: "执行中",
+      uploadSpeed: "上传速度",
+    },
+    monitoring: {
+      acknowledge: "确认",
+      failed24h: "24 小时失败",
+      activeConfigs: "激活",
+      allRestaurants: "所有餐厅",
+      criticalAlerts: "重大警示",
+      healthyOnly: "仅健康",
+      hoursAgo: "{count} 小时前",
+      justNow: "刚刚",
+      last30days: "近 30 天",
+      last7days: "近 7 天",
+      resolve: "解决",
+      last24h: "近 24 小时",
+      lastBackup: "上次备份",
+      performanceTrends: "效能趋势",
+      noPerformanceData: "暂无效能资料",
+      relatedBackup: "相关备份",
+      runningBackups: "执行中备份",
+      restaurantStatus: "餐厅状态",
+      storageUsage: "储存使用量",
+      storageUsed: "已用储存空间",
+      title: "备份监控",
+      totalBackups: "备份总数",
+      systemHealth: "系统健康",
+      successRate: "成功率",
+      totalRestaurants: "餐厅总数",
+      viewDetails: "查看详情",
+      yesterday: "昨天",
+      withIssues: "有问题",
+    },
+    recent: {
+      title: "近期备份",
+      viewAll: "查看全部",
+    },
+    restore: {
+      confirm: "确认还原",
+      createdAt: "建立时间",
+      restoring: "还原中...",
+      size: "大小",
+      title: "还原备份",
+      error: "还原失败",
+      warning: "注意",
+      warningMessage: "还原会覆盖目前资料，请确认后再继续。",
+      overwriteExisting: "覆盖现有资料",
+    },
+    stats: {
+      storageUsed: "已用储存空间",
+      totalBackups: "备份总数",
+      estimatedCost: "预估成本",
+      successful: "成功",
+    },
+    status: {
+      processing: "处理中",
+    },
+    types: {
+      differential: "差异备份",
+      full: "完整备份",
+      incremental: "增量备份",
+    },
+  },
+  realtime: {
+    autoRefresh: "自动重新整理",
+    status: {
+      active: "启用",
+      inactive: "未启用",
+    },
+    lastUpdate: "最后更新",
+    loading: "载入即时状态中...",
+    rooms: {
+      admin: "管理端",
+      kitchen: "厨房",
+      customer: "顾客端",
+    },
+    title: "即时连线",
+    totalConnections: "总连线数",
+  },
+  schedulingAnalytics: {
+    activeEmployees: "活跃员工",
+    dataInsights: "资料洞察",
+    currentlyOnDuty: "目前在班",
+    exportReport: "汇出报告",
+    insightAllGoodDesc: "目前未侦测到重大排班风险。",
+    insightAbsenceDesc: "近期缺勤状况需要关注。",
+    insightAbsenceTitle: "缺勤趋势",
+    insightAllGoodTitle: "排班状态良好",
+    insightCancelledDesc: "近期有取消排班纪录。",
+    insightOvertimeDesc: "部分员工工时接近上限。",
+    insightCancelledTitle: "取消排班",
+    viewDetails: "查看详情",
+    insightOvertimeTitle: "加班提醒",
+    subtitle: "分析工时、出勤与排班效率",
+    refreshData: "重新整理资料",
+    title: "排班分析",
+    totalScheduledHours: "总排班时数",
+    weeklySchedules: "本周排班",
+    viewInsightDetail: "查看洞察详情",
+  },
+  subscriptions: {
+    addSubscription: "新增订阅",
+    active: "启用中",
+    billingUntil: "计费周期至：",
+    form: {
+      create: "建立订阅",
+      planTier: "订阅方案",
+      restaurantId: "店家 ID",
+      createError: "建立订阅失败，请再试一次",
+      restaurantIdPlaceholder: "输入店家 UUID",
+      restaurantIdRequired: "请输入店家 ID",
+      trialEndsAt: "试用到期日",
+    },
+    empty: "目前尚无订阅资料",
+    deactivate: "确认停用",
+    confirmDeactivateMessage: "停用后，该店家将无法使用系统功能。确定要停用",
+    confirmDeactivateTitle: "确认停用订阅",
+    moduleNames: {
+      coupons: "优惠券",
+      analytics: "数据分析",
+      ai_analytics: "AI 分析",
+      menu_management: "菜单管理",
+      loyalty: "忠诚方案",
+      online_ordering: "线上点餐",
+      platform_integration: "外送整合",
+      receipt_printing: "出单列印",
+      reservations: "订位候位",
+      kitchen_display: "厨房显示",
+      table_management: "桌位管理",
+    },
+    inactive: "已停用",
+    loadError: "载入订阅资料失败",
+    modules: "功能模组",
+    title: "订阅管理",
+    plans: {
+      basic: "基础版",
+      enterprise: "企业版",
+      pro: "专业版",
+      trial: "试用版",
+    },
+    subtitle: "管理平台各店家的订阅方案与模组权限",
+    trialEndsAt: "试用到期：",
   },
 };
 

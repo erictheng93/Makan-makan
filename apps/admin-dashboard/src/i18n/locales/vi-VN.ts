@@ -1,10 +1,9 @@
 import type { Messages } from "../types";
 
 /**
- * Bản dịch tiếng Việt
+ * Vietnamese Translation
  */
 const viVN: Messages = {
-  // Từ vựng chung
   common: {
     save: "Lưu",
     cancel: "Hủy",
@@ -45,9 +44,8 @@ const viVN: Messages = {
     update: "Cập nhật",
     loadFailed: "Tải thất bại",
     retry: "Thử lại",
+    processing: "Xử lý",
   },
-
-  // Quản lý thực đơn
   menu: {
     title: "Quản Lý Thực Đơn",
     subtitle: "Quản lý món ăn và danh mục nhà hàng",
@@ -201,8 +199,6 @@ const viVN: Messages = {
       available: "available",
     },
   },
-
-  // Quản lý đơn hàng
   orders: {
     stats: {
       pending: "Chờ xử lý",
@@ -226,6 +222,7 @@ const viVN: Messages = {
       served: "Đã phục vụ",
       completed: "Hoàn thành",
       cancelled: "Đã hủy",
+      refunded: "Đã hoàn tiền",
     },
     type: {
       dineIn: "Tại chỗ",
@@ -279,8 +276,6 @@ const viVN: Messages = {
     defaultCustomer: "Khách ẩn danh",
     updateFailed: "Cập nhật trạng thái đơn hàng thất bại",
   },
-
-  // Hệ thống lịch làm việc
   scheduling: {
     title: "Lịch Làm Việc Nhân Viên",
     calendar: "Xem lịch",
@@ -298,7 +293,6 @@ const viVN: Messages = {
     editSchedule: "Chỉnh sửa lịch",
     deleteSchedule: "Xóa lịch",
     scheduleDetails: "Chi tiết lịch làm việc",
-
     filters: {
       searchEmployee: "Tìm tên nhân viên...",
       dateRange: "Khoảng thời gian",
@@ -310,7 +304,6 @@ const viVN: Messages = {
       allShifts: "Tất cả ca làm",
       to: "đến",
     },
-
     columns: {
       date: "Ngày",
       weekday: "Thứ",
@@ -326,7 +319,6 @@ const viVN: Messages = {
       status: "Trạng thái",
       notes: "Ghi chú",
     },
-
     form: {
       selectEmployee: "Chọn nhân viên",
       selectShift: "Chọn ca làm",
@@ -339,7 +331,6 @@ const viVN: Messages = {
       repeatDays: "Số ngày lặp lại",
       repeatUntil: "Lặp lại đến",
     },
-
     batch: {
       title: "Thao tác hàng loạt",
       selected: "Đã chọn {count}",
@@ -350,8 +341,9 @@ const viVN: Messages = {
       confirmAction:
         "Bạn có chắc muốn thực hiện thao tác này trên {count} lịch làm việc?",
       cancelConfirm: "Bạn có chắc muốn hủy {count} lịch làm việc?",
+      confirm: "Xác nhận",
+      cancel: "Hủy bỏ",
     },
-
     pagination: {
       showing: "Hiển thị {start}-{end} trong tổng số {total}",
       itemsPerPage: "mục/trang",
@@ -361,7 +353,6 @@ const viVN: Messages = {
       nextPage: "Trang sau",
       page: "trang",
     },
-
     conflicts: {
       title: "Xung đột lịch làm việc",
       detected: "Phát hiện {count} xung đột",
@@ -375,7 +366,6 @@ const viVN: Messages = {
       ignore: "Bỏ qua",
       details: "Chi tiết xung đột",
     },
-
     stats: {
       totalSchedules: "Tổng số lịch",
       totalHours: "Tổng số giờ",
@@ -385,7 +375,6 @@ const viVN: Messages = {
       thisMonth: "Tháng này",
       today: "Hôm nay",
     },
-
     exportReport: "Xuất báo cáo",
     loadingList: "Đang tải danh sách lịch...",
     noData: "Không có dữ liệu lịch",
@@ -394,16 +383,40 @@ const viVN: Messages = {
     noExportData: "Không có dữ liệu để xuất",
     exportFilename: "du_lieu_lich",
     exportSelected: "đã chọn",
+    approveSwapFailed: "Phê duyệt Hoán đổi không thành công",
+    cannotGetManagerInfo: "Không thể lấy thông tin người quản lý",
+    confirmDeleteSchedule: "Xác nhận Xóa lịch biểu",
+    cannotGetUserInfo: "Không thể lấy thông tin người dùng",
+    currentlyWorking: "Hiện đang làm việc",
+    addTemplate: "Thêm mẫu",
+    deleteScheduleFailed: "Xóa lịch trình không thành công",
+    employeeNumber: "Mã số nhân viên",
+    conflictWarnings: "Cảnh báo xung đột",
+    deleteTemplate: "Xóa mẫu",
+    listView: "Xem danh sách",
+    confirmDeleteTemplate: "Xác nhận Xóa mẫu",
+    enterRejectReason: "Nhập lý do từ chối",
+    deleteTemplateFailed: "Xóa mẫu không thành công",
+    enterResolutionNotes: "Nhập ghi chú giải quyết",
+    managementSubtitle: "Phụ đề quản lý",
+    managementTitle: "Lập kế hoạch quản lý",
+    peopleCount: "Đếm người",
+    noEmployeesWorking: "Không có nhân viên làm việc",
+    monthlySchedules: "Lịch trình hàng tháng",
+    saveTemplateFailed: "Lưu mẫu không thành công",
+    resolveConflictFailed: "Giải quyết xung đột không thành công",
+    rejectSwapFailed: "Từ chối Hoán đổi Không thành công",
+    since: "Từ",
+    pendingConflicts: "Xung đột đang chờ xử lý",
+    pendingSwaps: "Hoán đổi đang chờ xử lý",
+    saveScheduleFailed: "Lưu lịch trình không thành công",
   },
-
-  // Mẫu ca làm việc
   shiftTemplates: {
     title: "Mẫu Ca Làm",
     create: "Tạo mẫu",
     edit: "Chỉnh sửa mẫu",
     delete: "Xóa mẫu",
     duplicate: "Sao chép mẫu",
-
     form: {
       name: "Tên mẫu",
       nameRequired: "Vui lòng nhập tên mẫu",
@@ -430,7 +443,6 @@ const viVN: Messages = {
       icon: "Biểu tượng (tùy chọn)",
       preview: "Xem trước",
     },
-
     sections: {
       basicInfo: "Thông tin cơ bản",
       workTime: "Thời gian làm việc",
@@ -439,32 +451,27 @@ const viVN: Messages = {
       payRate: "Mức lương (Tùy chọn)",
       appearance: "Giao diện",
     },
-
     shiftTypes: {
       regular: "Bình thường",
       split: "Ca chia",
       overnight: "Ca đêm",
     },
-
     overtime: {
       normal: "Bình thường",
       weekday: "Tăng ca ngày thường",
       restDay: "Tăng ca ngày nghỉ",
       holiday: "Ngày lễ",
     },
-
     errors: {
       minExceedsMax: "Số nhân viên tối thiểu không được vượt quá tối đa",
       noDaysSelected: "Vui lòng chọn ít nhất một ngày áp dụng",
     },
-
     usage: {
       title: "Thống kê sử dụng",
       timesUsed: "Số lần sử dụng",
       lastUsed: "Lần sử dụng cuối",
       never: "Chưa sử dụng",
     },
-
     colors: {
       blue: "Xanh dương",
       green: "Xanh lá",
@@ -475,7 +482,6 @@ const viVN: Messages = {
       cyan: "Xanh lơ",
       gray: "Xám",
     },
-
     presets: {
       morning: "Ca sáng",
       afternoon: "Ca chiều",
@@ -483,7 +489,6 @@ const viVN: Messages = {
       night: "Ca đêm",
       fullDay: "Cả ngày",
     },
-
     management: "Quản lý mẫu ca làm",
     totalCount: "Tổng cộng {count} mẫu ca làm",
     addTemplate: "Thêm mẫu",
@@ -506,8 +511,6 @@ const viVN: Messages = {
         'Bạn có chắc muốn xóa mẫu ca làm "{name}"? Thao tác này không thể hoàn tác.',
     },
   },
-
-  // Yêu cầu đổi ca
   swapRequests: {
     title: "Quản Lý Yêu Cầu Đổi Ca",
     create: "Yêu cầu đổi ca",
@@ -527,14 +530,12 @@ const viVN: Messages = {
     switchFilterHint: "Chuyển bộ lọc để xem trạng thái khác",
     responseNote: "Phản hồi",
     processedBy: "Xử lý bởi {name}",
-
     status: {
       pending: "Đang chờ",
       approved: "Đã phê duyệt",
       rejected: "Đã từ chối",
       cancelled: "Đã hủy",
     },
-
     form: {
       requester: "Người yêu cầu",
       target: "Nhân viên đổi ca",
@@ -546,7 +547,6 @@ const viVN: Messages = {
       selectTarget: "Chọn ca của đối tác",
       noAvailableShifts: "Không có ca nào khả dụng",
     },
-
     details: {
       requestedBy: "Người yêu cầu",
       requestedAt: "Thời gian yêu cầu",
@@ -560,15 +560,15 @@ const viVN: Messages = {
       rejectedAt: "Thời gian từ chối",
       rejectionReason: "Lý do từ chối",
     },
-
     actions: {
       viewDetails: "Xem chi tiết",
       approveConfirm: "Bạn có chắc muốn phê duyệt yêu cầu đổi ca này?",
       rejectConfirm: "Bạn có chắc muốn từ chối yêu cầu đổi ca này?",
       cancelConfirm: "Bạn có chắc muốn hủy yêu cầu đổi ca này?",
+      approve: "Chấp thuận",
+      reject: "Từ chối",
     },
   },
-
   status: {
     scheduled: "Đã xếp lịch",
     confirmed: "Đã xác nhận",
@@ -579,7 +579,6 @@ const viVN: Messages = {
     inactive: "Không hoạt động",
     no_show: "Vắng mặt",
   },
-
   weekdays: {
     short: {
       sunday: "CN",
@@ -609,7 +608,6 @@ const viVN: Messages = {
       saturday: "B",
     },
   },
-
   errors: {
     generic: "Thao tác thất bại, vui lòng thử lại",
     networkError: "Lỗi mạng, vui lòng kiểm tra kết nối",
@@ -625,8 +623,17 @@ const viVN: Messages = {
     loadFailed: "Tải thất bại",
     saveFailed: "Lưu thất bại",
     deleteFailed: "Xóa thất bại",
+    subscription: {
+      noRestaurant:
+        "Tài khoản của bạn chưa được liên kết với bất kỳ nhà hàng nào. Hãy yêu cầu quản trị viên của bạn chỉ định một địa chỉ rồi thử lại.",
+      moduleNotEnabled:
+        "Tính năng này không có trong gói hiện tại của bạn. Hãy nâng cấp gói của bạn hoặc liên hệ với bộ phận hỗ trợ để kích hoạt gói đó.",
+      subscriptionNotFound:
+        "Không tìm thấy đăng ký nào cho nhà hàng này nên các tính năng của nó chưa được kích hoạt. Đăng nhập của bạn vẫn ổn — vui lòng liên hệ với bộ phận hỗ trợ để thiết lập.",
+      trialExpired:
+        "Thời gian dùng thử của bạn đã kết thúc. Hãy nâng cấp gói của bạn để tiếp tục sử dụng tính năng này.",
+    },
   },
-
   success: {
     saved: "Đã lưu thành công",
     deleted: "Đã xóa thành công",
@@ -640,7 +647,6 @@ const viVN: Messages = {
     exported: "Đã xuất thành công",
     imported: "Đã nhập thành công",
   },
-
   confirmations: {
     delete: "Bạn có chắc muốn xóa?",
     deleteSchedule: "Bạn có chắc muốn xóa lịch làm việc này?",
@@ -649,8 +655,6 @@ const viVN: Messages = {
     unsavedChanges: "Có thay đổi chưa được lưu, bạn có chắc muốn rời đi?",
     batchDelete: "Bạn có chắc muốn xóa {count} mục đã chọn?",
   },
-
-  // Biểu đồ
   charts: {
     workHours: {
       title: "Thống kê Tổng Giờ Làm",
@@ -720,8 +724,6 @@ const viVN: Messages = {
       totalValue: "{quantity} phần / ${revenue}",
     },
   },
-
-  // Hệ thống đặt bàn
   reservation: {
     title: "Quản Lý Đặt Bàn",
     subtitle: "Quản lý đặt bàn và đặt chỗ nhà hàng",
@@ -774,6 +776,8 @@ const viVN: Messages = {
       confirmed: "Đã xác nhận",
       completed: "Hoàn thành",
       noShowRate: "Tỷ lệ vắng mặt",
+      pending: "Chưa giải quyết",
+      seated: "Ngồi",
     },
     statusText: {
       pending: "Đang chờ",
@@ -804,9 +808,11 @@ const viVN: Messages = {
       next: "Sau",
       showing: "Hiển thị {start} đến {end} trong tổng {total} kết quả",
     },
+    cancelAction: "Hủy bỏ",
+    cancelTitle: "Hủy đặt chỗ",
+    confirmAction: "Xác nhận",
+    confirmTitle: "Xác nhận đặt chỗ",
   },
-
-  // Hệ thống xếp hàng chờ
   waitingList: {
     title: "Quản Lý Xếp Hàng",
     subtitle: "Quản lý hàng đợi nhà hàng",
@@ -895,9 +901,11 @@ const viVN: Messages = {
     pagination: {
       showing: "Hiển thị {start} đến {end} trong tổng {total} kết quả",
     },
+    cancelTitle: "Hủy danh sách chờ",
+    cancelAction: "Hủy bỏ",
+    expireTitle: "Danh sách chờ hết hạn",
+    expireAction: "Hết hạn",
   },
-
-  // Quản lý chỗ ngồi
   seating: {
     title: "Quản lý chỗ ngồi",
     subtitle: "Quản lý đặt bàn, danh sách chờ và hàng đợi",
@@ -917,14 +925,10 @@ const viVN: Messages = {
       todayServed: "Đã phục vụ hôm nay",
     },
   },
-
-  // Giám sát hệ thống
   monitoring: {
     title: "Giám sát hệ thống",
     subtitle:
       "Theo dõi tình trạng, chỉ số hiệu suất và cảnh báo hệ thống theo thời gian thực",
-
-    // Nút và thao tác
     actions: {
       refresh: "Làm mới ngay",
       refreshing: "Đang làm mới...",
@@ -935,8 +939,6 @@ const viVN: Messages = {
       resetMetrics: "Đặt lại chỉ số",
       exportReport: "Xuất báo cáo",
     },
-
-    // Tình trạng sức khỏe
     health: {
       overall: "Tình trạng sức khỏe tổng thể",
       score: "Điểm sức khỏe",
@@ -950,8 +952,6 @@ const viVN: Messages = {
         down: "Ngừng hoạt động",
       },
     },
-
-    // Chỉ số chính
     keyMetrics: {
       title: "Chỉ số chính",
       requestsPerMinute: "Số yêu cầu mỗi phút",
@@ -960,8 +960,6 @@ const viVN: Messages = {
       serverErrors: "Lỗi máy chủ",
       clientErrorsNote: "4xx phía client: {count} (bình thường)",
     },
-
-    // Trạng thái thành phần
     components: {
       title: "Trạng thái thành phần hệ thống",
       api: "Dịch vụ API",
@@ -977,8 +975,10 @@ const viVN: Messages = {
       issueCount: "Vấn đề: {count}",
       lastCheck: "Kiểm tra lần cuối",
       issuesFound: "Các vấn đề phát hiện:",
+      queue: "Hàng đợi",
+      storage: "Kho",
+      websocket: "Websocket",
     },
-
     statusText: {
       healthy: "Bình thường",
       warning: "Cảnh báo",
@@ -987,15 +987,11 @@ const viVN: Messages = {
       unknown: "Không xác định",
       stopped: "Đã dừng",
     },
-
-    // Tab
     tabs: {
       alerts: "Quy tắc cảnh báo",
       performance: "Báo cáo hiệu suất",
       errors: "Phân tích lỗi",
     },
-
-    // Quy tắc cảnh báo
     alerts: {
       title: "Quy tắc cảnh báo",
       noAlerts: "Không có quy tắc cảnh báo",
@@ -1030,16 +1026,19 @@ const viVN: Messages = {
         deleted: "Đã xóa quy tắc cảnh báo",
         deleteConfirm: "Bạn có chắc muốn xóa quy tắc cảnh báo này?",
       },
+      status: {
+        acknowledged: "Được công nhận",
+        active: "Tích cực",
+        muted: "Đã tắt tiếng",
+        resolved: "Đã giải quyết",
+      },
     },
-
-    // Báo cáo hiệu suất
     performance: {
       title: "Báo cáo hiệu suất",
       selectPeriod: "Chọn khoảng thời gian",
       last1Day: "1 ngày qua",
       last7Days: "7 ngày qua",
       last30Days: "30 ngày qua",
-
       api: {
         title: "Hiệu suất API",
         totalRequests: "Tổng số yêu cầu",
@@ -1047,7 +1046,6 @@ const viVN: Messages = {
         p95ResponseTime: "Thời gian phản hồi P95",
         errorRate: "Tỷ lệ lỗi",
       },
-
       database: {
         title: "Hiệu suất cơ sở dữ liệu",
         totalQueries: "Tổng số truy vấn",
@@ -1055,7 +1053,6 @@ const viVN: Messages = {
         slowQueries: "Truy vấn chậm",
         queryErrorRate: "Tỷ lệ lỗi truy vấn",
       },
-
       cache: {
         title: "Hiệu suất bộ nhớ đệm",
         hitRate: "Tỷ lệ trúng",
@@ -1063,21 +1060,21 @@ const viVN: Messages = {
         totalSize: "Tổng dung lượng",
         expiringKeys: "Sắp hết hạn",
       },
-
       charts: {
         trendComparison: "So sánh xu hướng hiệu suất (24 giờ qua)",
         cacheHitRate: "Xu hướng tỷ lệ trúng bộ nhớ đệm (24 giờ qua)",
         apiResponseTime: "Thời gian phản hồi API",
         dbQueryTime: "Thời gian truy vấn cơ sở dữ liệu",
       },
-
       recommendations: {
         title: "Đề xuất tối ưu hóa",
         loading: "Đang tải báo cáo hiệu suất...",
       },
+      custom: "Phong tục",
+      last24Hours: "24 giờ qua",
+      lastHour: "Giờ trước",
+      last15Minutes: "15 phút cuối cùng",
     },
-
-    // Phân tích lỗi
     errors: {
       title: "Phân tích lỗi",
       statistics: "Thống kê loại lỗi",
@@ -1087,8 +1084,6 @@ const viVN: Messages = {
       occurredTimes: "Số lần xảy ra",
       errorCount: "Số lỗi",
     },
-
-    // Cảnh báo thời gian thực
     realtime: {
       title: "Cảnh báo thời gian thực",
       connectionStatus: {
@@ -1109,8 +1104,6 @@ const viVN: Messages = {
       minutesAgo: "{count} phút trước",
       hoursAgo: "{count} giờ trước",
     },
-
-    // Thông báo
     notifications: {
       dataUpdated: "Đã cập nhật dữ liệu giám sát",
       updateFailed: "Cập nhật dữ liệu giám sát thất bại",
@@ -1123,7 +1116,6 @@ const viVN: Messages = {
       autoRefreshEnabled: "Đã bật tự động làm mới",
       autoRefreshDisabled: "Đã tắt tự động làm mới",
     },
-
     misc: {
       loadingData: "Đang tải dữ liệu giám sát...",
       systemHealth: "Sức khỏe hệ thống",
@@ -1141,9 +1133,9 @@ const viVN: Messages = {
       close: "Đóng",
       chartUnit: "lần",
       responseTimeUnit: "Thời gian phản hồi (ms)",
+      live: "Sống",
+      stable: "Ổn định",
     },
-
-    // Bộ lọc nâng cao
     filters: {
       title: "Bộ lọc nâng cao",
       quickFilters: "Bộ lọc nhanh",
@@ -1194,8 +1186,6 @@ const viVN: Messages = {
         filterDeleted: "Bộ lọc đã bị xóa",
       },
     },
-
-    // Xuất báo cáo
     export: {
       title: "Xuất báo cáo",
       exportReport: "Xuất báo cáo",
@@ -1256,8 +1246,6 @@ const viVN: Messages = {
           "Tổng quan trạng thái sức khỏe hệ thống và các chỉ số chính ở mức cao",
       },
     },
-
-    // Bố cục tùy chỉnh
     layout: {
       title: "Bố cục bảng điều khiển",
       editMode: "Chế độ chỉnh sửa",
@@ -1333,7 +1321,6 @@ const viVN: Messages = {
         confirmDelete: "Bạn có chắc muốn xóa bố cục này?",
       },
     },
-
     alertPanel: {
       title: "Cảnh báo trực tiếp",
       reconnect: "Kết nối lại",
@@ -1352,9 +1339,94 @@ const viVN: Messages = {
       minutesAgo: "{count} phút trước",
       hoursAgo: "{count} giờ trước",
     },
+    createRule: {
+      alertTypes: {
+        email: "E-mail",
+        slack: "chùng xuống",
+        sms: "tin nhắn SMS",
+        webhook: "Webhook",
+      },
+      cancel: "Hủy bỏ",
+      duration: "Thời lượng (giây)",
+      enabled: "Bật quy tắc",
+      conditionPreview: "Xem trước tình trạng",
+      metric: "Số liệu",
+      failed: "Không tạo được quy tắc cảnh báo",
+      alertType: "Loại thông báo",
+      metricGroups: {
+        api: "Chỉ số API",
+        cache: "Số liệu bộ đệm",
+        resource: "Số liệu tài nguyên",
+        database: "Số liệu cơ sở dữ liệu",
+        error: "Số liệu lỗi",
+      },
+      durationHint:
+        "Kích hoạt cảnh báo sau khi tình trạng này vẫn tồn tại trong khoảng thời gian này",
+      metrics: {
+        apiMetrics: {
+          errorRate: "Tỷ lệ lỗi",
+          p99ResponseTime: "Thời gian phản hồi P99 (ms)",
+          averageResponseTime: "Thời gian phản hồi trung bình (ms)",
+          p95ResponseTime: "Thời gian phản hồi P95 (ms)",
+          requestsPerSecond: "Yêu cầu/Thứ hai",
+          totalRequests: "Tổng số yêu cầu",
+          slowRequestCount: "Số lượng yêu cầu chậm",
+        },
+        cacheMetrics: {
+          hitRate: "Tỷ lệ trúng",
+          totalSize: "Kích thước bộ đệm (byte)",
+          totalKeys: "Tổng số phím",
+        },
+        databaseMetrics: {
+          averageQueryTime: "Thời gian truy vấn trung bình (ms)",
+          errorCount: "Số lỗi truy vấn",
+          queryCount: "Tổng số truy vấn",
+          slowQueryCount: "Số lượng truy vấn chậm",
+        },
+        errorMetrics: {
+          criticalErrors: "Lỗi nghiêm trọng",
+          totalErrors: "Tổng số lỗi",
+          warningCount: "Số lượng cảnh báo",
+        },
+        resourceMetrics: {
+          memoryUsage: "Sử dụng bộ nhớ",
+          activeConnections: "Kết nối đang hoạt động",
+          cpuUsage: "Sử dụng CPU",
+        },
+      },
+      name: "Tên quy tắc",
+      operator: "Toán tử",
+      severities: {
+        critical: "Phê bình",
+        fatal: "Gây tử vong",
+        info: "Thông tin",
+        warning: "Cảnh báo",
+      },
+      severity: "Mức độ nghiêm trọng",
+      submitting: "Đang tạo...",
+      selectMetric: "Chọn một số liệu",
+      threshold: "Ngưỡng",
+      namePlaceholder: "ví dụ: Tỷ lệ lỗi API cao",
+      success: "Đã tạo thành công quy tắc cảnh báo",
+      validation: {
+        durationRange: "Thời lượng phải từ 1-3600 giây",
+        metricRequired: "Vui lòng chọn một số liệu",
+        nameRequired: "Tên quy tắc là bắt buộc",
+        webhookRequired:
+          "URL Webhook là bắt buộc đối với loại Slack hoặc Webhook",
+        thresholdRequired: "Ngưỡng là bắt buộc",
+      },
+      title: "Tạo quy tắc cảnh báo",
+      webhookUrl: "URL webhook",
+      thresholdPlaceholder: "ví dụ: 0,1",
+      submit: "Tạo quy tắc",
+      webhookUrlPlaceholder: "https://hooks.slack.com/...",
+    },
+    polling: {
+      connected: "Giám sát (Bỏ phiếu)",
+      disconnected: "Đã dừng bỏ phiếu",
+    },
   },
-
-  // Tiêu đề trang và điều hướng
   header: {
     title: "Trang Quản Trị MakanMasak",
     home: "Trang chủ",
@@ -1385,8 +1457,6 @@ const viVN: Messages = {
       cashier: "Thu ngân",
     },
   },
-
-  // Điều hướng
   nav: {
     featureUnavailable: "Chưa khả dụng",
     platform: "Tổng quan nền tảng",
@@ -1419,8 +1489,13 @@ const viVN: Messages = {
       "Chọn cửa hàng để quản lý đơn hàng, thực đơn, POS và nhân viên.",
     restaurantManagement: "Quản lý cửa hàng",
     feedback: "Phản hồi",
+    accountManagement: "Tài khoản",
+    waitingManagement: "Quản lý chờ đợi",
+    waitingTabs: {
+      list: "Danh sách chờ",
+      dashboard: "Trang tổng quan trực tiếp",
+    },
   },
-
   pages: {
     login: "Đăng nhập",
     forgotPassword: "Quên mật khẩu",
@@ -1460,9 +1535,11 @@ const viVN: Messages = {
     ingredients: "Quản lý nguyên liệu",
     feedback: "Phản hồi",
     feedbackDetail: "Chi tiết phản hồi",
+    accountManagement: "Quản lý tài khoản",
+    subscriptions: "Đăng ký",
+    waitingManagement: "Quản lý chờ đợi",
+    platformMarketCheckouts: "Kiểm tra thị trường",
   },
-
-  // Tổng quan nền tảng
   platform: {
     title: "Tổng quan nền tảng",
     description:
@@ -1478,7 +1555,6 @@ const viVN: Messages = {
     loading: "Đang tải...",
     noResults: "Không tìm thấy nhà hàng",
   },
-
   auth: {
     adminLogin: "Đăng nhập quản trị",
     username: "Tên đăng nhập",
@@ -1549,7 +1625,6 @@ const viVN: Messages = {
     tokenVerifyError: "Lỗi khi xác minh token",
     missingToken: "Thiếu token đặt lại",
   },
-
   dashboard: {
     title: "Bảng điều khiển",
     welcome: "Chào mừng trở lại, {username}",
@@ -1595,7 +1670,6 @@ const viVN: Messages = {
       },
     },
   },
-
   notFound: {
     title: "Không tìm thấy trang",
     description: "Xin lỗi, trang bạn tìm kiếm không tồn tại hoặc đã bị xóa",
@@ -1617,7 +1691,6 @@ const viVN: Messages = {
       'Không tìm thấy tính năng liên quan đến "{query}". Vui lòng thử từ khóa khác hoặc sử dụng điều hướng nhanh ở trên.',
     errorCode: "Mã lỗi",
   },
-
   unauthorized: {
     title: "Truy cập bị từ chối",
     description: "Xin lỗi, bạn không có quyền truy cập trang này",
@@ -1649,6 +1722,8 @@ const viVN: Messages = {
       orderCheckout: "Thanh toán đơn hàng",
       paymentProcessing: "Xử lý thanh toán",
       basicFeatures: "Tính năng cơ bản",
+      cashier: "Thu ngân",
+      orderProcessing: "Xử lý đơn hàng",
     },
     roles: {
       admin: "Quản trị viên hệ thống",
@@ -1659,13 +1734,11 @@ const viVN: Messages = {
       unknown: "Vai trò không xác định",
     },
   },
-
   kitchenLayout: {
     title: "Hệ thống hiển thị bếp",
     pendingOrders: "Đơn hàng chờ xử lý",
     backToAdmin: "Quay lại quản trị",
   },
-
   cashierLayout: {
     title: "Hệ thống thu ngân",
     cashier: "Thu ngân: {name}",
@@ -1675,7 +1748,6 @@ const viVN: Messages = {
     online: "Trực tuyến",
     offline: "Ngoại tuyến",
   },
-
   serviceLayout: {
     roleBadge: "Nhân viên phục vụ",
     pendingDelivery: "Chờ phục vụ: {count}",
@@ -1697,7 +1769,6 @@ const viVN: Messages = {
     hoursAgo: "{count} giờ trước",
     daysAgo: "{count} ngày trước",
   },
-
   serviceBookings: {
     title: "Quản lý đặt dịch vụ",
     subtitle:
@@ -1750,8 +1821,6 @@ const viVN: Messages = {
       cancelSuccess: "Đặt dịch vụ đã hủy.",
     },
   },
-
-  // Bảng điều khiển chủ cửa hàng
   owner: {
     kpi: {
       todayRevenue: "Doanh thu hôm nay",
@@ -1759,6 +1828,8 @@ const viVN: Messages = {
       onlineStaff: "Nhân viên trực tuyến",
       overallEfficiency: "Hiệu suất tổng thể",
       normal: "Bình thường",
+      available: "có sẵn",
+      tableUtilization: "Sử dụng bảng",
     },
     actions: {
       addStaff: "Thêm nhân viên",
@@ -1808,8 +1879,32 @@ const viVN: Messages = {
     statusOnline: "Trực tuyến",
     statusBusy: "Bận",
     statusOffline: "Ngoại tuyến",
+    loading: "Đang tải...",
+    noData: "Không có sẵn dữ liệu",
+    retry: "Thử lại",
+    roles: {
+      cashier: "Thu ngân",
+      owner: "Người sở hữu",
+      chef: "đầu bếp",
+      staff: "Nhân viên",
+      service: "Đội ngũ dịch vụ",
+    },
+    systemDescriptions: {
+      database: "Lưu trữ dữ liệu",
+      api: "Dịch vụ phụ trợ",
+      realtime: "Kết nối WebSocket",
+    },
+    timeAgo: {
+      justNow: "Vừa rồi",
+      minutesAgo: "{count} phút trước",
+    },
+    systemNames: {
+      database: "Cơ sở dữ liệu",
+      realtime: "Hệ thống thời gian thực",
+      api: "Dịch vụ API",
+    },
+    fetchError: "Không tải được dữ liệu trang tổng quan",
   },
-
   notification: {
     title: "Thông báo",
     markAllRead: "Đánh dấu tất cả đã đọc",
@@ -1828,7 +1923,6 @@ const viVN: Messages = {
     minutesAgo: "{count} phút trước",
     hoursAgo: "{count} giờ trước",
   },
-
   leaves: {
     title: "Quản lý nghỉ phép",
     subtitle: "Quản lý yêu cầu nghỉ phép và số ngày nghỉ",
@@ -1871,6 +1965,7 @@ const viVN: Messages = {
       uploadPrompt: "Nhấp hoặc kéo tệp để tải lên",
       formatNote: "Định dạng hỗ trợ: PDF, JPG, PNG",
       submit: "Gửi yêu cầu",
+      period: "Giai đoạn",
     },
     balance: {
       title: "Số ngày nghỉ còn lại",
@@ -1895,6 +1990,12 @@ const viVN: Messages = {
       pending: "Đang chờ",
       approved: "Đã duyệt",
       rejected: "Bị từ chối",
+      approve: "Chấp thuận",
+      reject: "Từ chối",
+      reviewer: "Người đánh giá",
+      pendingRequests: "Yêu cầu đang chờ xử lý",
+      noPending: "Không có yêu cầu nghỉ phép đang chờ xử lý",
+      unknownEmployee: "Nhân viên không xác định",
     },
     errors: {
       endBeforeStart: "Ngày kết thúc không thể trước ngày bắt đầu",
@@ -1930,8 +2031,6 @@ const viVN: Messages = {
       rejectFailed: "Từ chối thất bại",
     },
   },
-
-  // Quản lý bàn
   tables: {
     title: "Quản lý bàn",
     subtitle: "Quản lý bàn và mã QR nhà hàng",
@@ -1999,6 +2098,8 @@ const viVN: Messages = {
     },
     confirm: {
       regenerateAllQR: "Bạn có chắc muốn tạo lại mã QR cho tất cả các bàn?",
+      regenerateAllQRAction: "Tạo lại tất cả QR",
+      regenerateAllQRTitle: "Tạo lại tất cả các bảng QR",
     },
     alert: {
       qrGenerated: "Đã tạo mã QR thành công!",
@@ -2014,8 +2115,6 @@ const viVN: Messages = {
       qrGenerateFailed: "Tạo mã QR thất bại, vui lòng thử lại",
     },
   },
-
-  // Thu ngân
   cashier: {
     title: "Thu ngân",
     subtitle: "Xử lý thanh toán và hoàn tiền đơn hàng",
@@ -2053,6 +2152,8 @@ const viVN: Messages = {
       wrongOrder: "Sai đơn hàng",
       customerCancel: "Khách hủy",
       other: "Lý do khác",
+      customerChange: "Khách hàng đã thay đổi ý định",
+      serviceIssue: "Sự cố dịch vụ",
     },
     confirmRefund: "Xác nhận hoàn tiền",
     cancel: "Hủy",
@@ -2080,9 +2181,67 @@ const viVN: Messages = {
       endShift:
         "Bạn có chắc muốn kết thúc ca hiện tại? Không thể chỉnh sửa sau khi kết thúc.",
     },
+    allOrdersCompleted: "Tất cả các đơn đặt hàng đã được hoàn thành",
+    amountReceived: "Số tiền nhận được",
+    card: "Thẻ",
+    cash: "Tiền mặt",
+    actualAmount: "Số tiền thực tế",
+    cashCount: "Đếm tiền mặt",
+    amountDue: "Số tiền đến hạn",
+    cashierName: "Thu ngân",
+    confirmPayment: "Xác nhận thanh toán",
+    coupon: "Phiếu giảm giá",
+    currentTime: "Thời gian hiện tại",
+    customer: "Khách hàng",
+    digitalPayment: "Thanh toán kỹ thuật số",
+    discount: "Giảm giá",
+    done: "Xong",
+    applyDiscount: "Áp dụng giảm giá",
+    avgOrderValue: "Trung bình Giá trị đơn hàng",
+    endShift: "Kết thúc ca",
+    itemList: "Mặt hàng",
+    cashOver: "Chuyển tiền bằng {amount}",
+    notes: "Ghi chú",
+    cashMatch: "Tiền mặt hoàn toàn phù hợp",
+    optionalNotes: "Ghi chú tùy chọn...",
+    orderDetails: "Chi tiết đặt hàng",
+    orderTime: "Thời gian đặt hàng",
+    paymentFailed: "Thanh toán không thành công",
+    paymentSuccess: "Thanh toán thành công!",
+    orderCompleted: "Đơn hàng {orderNumber} đã hoàn thành",
+    cashShort: "Thiếu tiền mặt {amount}",
+    printReport: "In báo cáo",
+    noPendingOrders: "Không có lệnh chờ xử lý",
+    received: "Đã nhận",
+    refundCount: "Hoàn tiền",
+    pleaseSelectOrder: "Vui lòng chọn đơn hàng để xử lý",
+    refundProcess: "Đền bù",
+    refundType: "Loại hoàn tiền",
+    enterOrderNumber: "Nhập số đơn hàng",
+    itemCount: "{count} mục",
+    refundTypes: {
+      item: "Hoàn tiền mặt hàng",
+      partial: "Hoàn tiền một phần",
+      service: "Hoàn tiền dịch vụ",
+      full: "Hoàn trả đầy đủ",
+    },
+    refundMethod: "Phương thức hoàn tiền",
+    selectOrder: "Chọn đơn hàng",
+    searchPlaceholder: "Tìm kiếm đơn hàng...",
+    revenueTotal: "Tổng doanh thu",
+    subtotal: "Tổng phụ",
+    shiftReport: "Báo cáo ca làm việc",
+    tax: "Thuế",
+    time: "Thời gian",
+    total: "Tổng cộng",
+    totalOrders: "Tổng số đơn đặt hàng",
+    transactionDetails: "Chi tiết giao dịch",
+    shiftInfo: "Thông tin ca",
+    todayPerformance: "Hiệu suất ngày hôm nay",
+    systemAmount: "Số tiền hệ thống",
+    serviceCharge: "Phí dịch vụ",
+    selectReason: "Chọn một lý do",
   },
-
-  // Cài đặt
   settings: {
     title: "Cài đặt",
     subtitle: "Quản lý cài đặt hệ thống nhà hàng",
@@ -2099,6 +2258,8 @@ const viVN: Messages = {
       notifications: "Thông báo",
       security: "Bảo mật",
       integrations: "Tích hợp",
+      contact: "Liên hệ",
+      markets: "Thị trường",
     },
     general: {
       restaurantInfo: "Thông tin nhà hàng",
@@ -2266,10 +2427,113 @@ const viVN: Messages = {
         "Bạn có chắc muốn đặt lại tất cả cài đặt về mặc định? Không thể hoàn tác.",
       regenerateQR:
         "Bạn có chắc muốn tạo lại mã QR? Số phiên bản sẽ được cập nhật.",
+      resetDefaultsAction: "Cài lại",
+      regenerateQRAction: "tái sinh",
+      resetDefaultsTitle: "Đặt lại về mặc định",
+      regenerateQRTitle: "Tạo lại mã QR",
+    },
+    contact: {
+      active: "Dễ thấy",
+      answer: "Trả lời",
+      displayOrder: "Đặt hàng",
+      faqTitle: "Câu hỏi thường gặp",
+      keywords: "Từ khóa",
+      emptyFaq: "Chưa có câu hỏi thường gặp nào.",
+      keywordsPlaceholder: "đặt trước, nhận hàng, ăn chay",
+      loadFailed: "Không tải được hồ sơ liên hệ",
+      addFaq: "Thêm câu hỏi thường gặp",
+      question: "Câu hỏi",
+      removeFaq: "Di dời",
+      saving: "Đang lưu...",
+      subtitle:
+        "Xuất bản các liên kết sâu của nhà cung cấp và câu trả lời chung cho khách hàng.",
+      saveFailed: "Không lưu được hồ sơ liên hệ",
+      loading: "Đang tải hồ sơ liên hệ...",
+      saveSuccess: "Đã lưu hồ sơ liên hệ",
+      save: "Lưu hồ sơ liên hệ",
+      title: "Kênh liên hệ & Câu hỏi thường gặp",
+    },
+    markets: {
+      area: "Khu vực",
+      completed: "Hoàn thành",
+      market: "Chợ",
+      no: "KHÔNG",
+      loadFailed: "Không tải được dữ liệu thị trường",
+      noRequests: "Chưa có yêu cầu tham gia nào được gửi.",
+      messagePlaceholder: "ví dụ. vị trí gian hàng, giờ mở cửa, mặt hàng chính",
+      noMatchingMarkets:
+        "Không có thị trường có thể tham gia nào phù hợp với tìm kiếm hiện tại.",
+      primary: "Sơ đẳng",
+      loading: "Đang tải dữ liệu thị trường...",
+      notSet: "Chưa đặt",
+      message: "Yêu cầu ghi chú",
+      readiness: {
+        faq: {
+          title: "Câu hỏi thường gặp",
+          description:
+            "Thêm các câu trả lời chung về nhận hàng, thanh toán, đặt hàng trước hoặc dịch vụ.",
+        },
+        contact: {
+          description:
+            "Đặt ít nhất một liên kết LINE, WhatsApp, Instagram hoặc Telegram.",
+          title: "Kênh liên hệ công khai",
+        },
+        fulfillment: {
+          title: "Mua mang về",
+          description:
+            "Takeaway phải được kích hoạt trước khi khách hàng có thể đặt hàng từ khám phá.",
+        },
+        market: {
+          description:
+            "Tham gia ít nhất một thị trường hoặc quận để xuất hiện trên trang thị trường đó.",
+          title: "Thành viên thị trường",
+        },
+        shopMode: {
+          description:
+            "Cần có chế độ cửa hàng và mã thông báo QR để đặt hàng mang đi trực tiếp.",
+          title: "Chế độ mua sắm QR",
+        },
+        location: {
+          description:
+            "Thành phố, quận, địa chỉ, vĩ độ và kinh độ là bắt buộc để khám phá vùng lân cận.",
+          title: "Địa chỉ & GPS",
+        },
+      },
+      empty: "Cửa hàng này chưa tham gia bất kỳ thị trường hoặc quận nào.",
+      notReady: "Cần thiết lập",
+      readinessSubtitle:
+        "Hoàn thành dữ liệu về vị trí, địa điểm mua hàng, chế độ cửa hàng, liên hệ, Câu hỏi thường gặp và thành viên thị trường để khách hàng có thể tìm và sử dụng nhà cung cấp này từ trang thị trường.",
+      ready: "Sẵn sàng",
+      recommended: "Khuyến khích",
+      refresh: "Làm cho khỏe lại",
+      requestStatus: {
+        approved: "Tán thành",
+        pending: "Chưa giải quyết",
+        rejected: "Vật bị loại bỏ",
+      },
+      readinessTitle: "Sự sẵn sàng của dữ liệu thị trường",
+      requestFailed:
+        "Yêu cầu không thành công. Một yêu cầu đang chờ xử lý có thể đã tồn tại.",
+      required: "Yêu cầu",
+      requestsSubtitle:
+        "Theo dõi các yêu cầu tham gia thị trường hoặc quận đã gửi và trạng thái xem xét.",
+      requestSuccess: "Đã gửi yêu cầu tham gia",
+      requestsTitle: "Trạng thái yêu cầu tham gia",
+      stall: "Quầy hàng",
+      submit: "Gửi yêu cầu",
+      submitting: "Đang gửi...",
+      searchPlaceholder: "Tìm kiếm tên thị trường, thành phố, quận hoặc thẻ",
+      subtitle:
+        "Xem các chợ đêm, quận hoặc cụm ẩm thực mà cửa hàng này thuộc về.",
+      requestSubtitle:
+        "Quản trị viên nền tảng xem xét yêu cầu và đính kèm cửa hàng.",
+      requestTitle: "Yêu cầu tiếp cận thị trường",
+      yes: "Đúng",
+      selectPlaceholder: "Chọn thị trường hoặc quận",
+      selectMarket: "Chọn thị trường",
+      title: "Tư cách thành viên thị trường",
     },
   },
-
-  // Đơn hàng nhóm
   groupOrders: {
     title: "Đơn hàng nhóm",
     subtitle: "Quản lý đơn hàng chung và chia hóa đơn",
@@ -2362,8 +2626,6 @@ const viVN: Messages = {
     whatsappMessage:
       "Cùng đặt hàng nhé!\nMã chia sẻ: {shareCode}\nLiên kết: {shareUrl}",
   },
-
-  // Giao diện phục vụ
   serviceView: {
     title: "Trạm phục vụ",
     subtitle: "Quản lý phục vụ món và dịch vụ bàn",
@@ -2429,8 +2691,6 @@ const viVN: Messages = {
       issueReported: "Đã báo cáo sự cố:\nLoại: {type}\nMô tả: {description}",
     },
   },
-
-  // Hệ thống POS
   pos: {
     title: "Hệ thống POS",
     subtitle: "Hệ thống quản lý điểm bán hàng toàn diện",
@@ -2538,6 +2798,8 @@ const viVN: Messages = {
       registerName: "Nhập tên máy tính tiền mới:",
       startingCash: "Nhập số tiền mặt ban đầu:",
       promotionName: "Nhập tên khuyến mãi:",
+      registerNamePlaceholder: "Nhập tên đăng ký",
+      promotionNamePlaceholder: "Nhập tên khuyến mãi",
     },
     confirms: {
       endShift: "Xác nhận kết thúc ca hiện tại?",
@@ -2548,9 +2810,9 @@ const viVN: Messages = {
       orderPayment: "Thanh toán đơn hàng {orderNumber}",
       newPromotion: "Khuyến mãi mới",
     },
+    createPromotion: "Tạo khuyến mãi",
+    createRegister: "Tạo Đăng ký",
   },
-
-  // Quản lý hàng đợi
   queue: {
     title: "Quản lý hàng đợi",
     subtitle: "Quản lý hàng đợi thông minh và phân bổ chỗ ngồi",
@@ -2662,8 +2924,6 @@ const viVN: Messages = {
       displayInDev: "Cài đặt hiển thị đang phát triển...",
     },
   },
-
-  // Quản lý phiếu giảm giá
   coupons: {
     title: "Quản lý phiếu giảm giá",
     subtitle: "Tạo và quản lý phiếu giảm giá và khuyến mãi",
@@ -2736,10 +2996,9 @@ const viVN: Messages = {
         'Bạn có chắc muốn xóa phiếu "{name}"? Thao tác này không thể hoàn tác.',
       deleteSuccess: "Đã xóa phiếu giảm giá",
       deleteFailed: "Xóa thất bại",
+      deleteConfirmTitle: "Xóa phiếu xác nhận",
     },
   },
-
-  // Phân tích dữ liệu
   analytics: {
     title: "Phân tích dữ liệu",
     subtitle: "Dữ liệu kinh doanh và phân tích xu hướng nhà hàng",
@@ -2787,9 +3046,12 @@ const viVN: Messages = {
       averageOrder: "Giá trị đơn hàng TB",
       tableUtilization: "Tỷ lệ sử dụng bàn",
     },
+    exporting: "Đang xuất...",
+    loading: "Đang tải...",
+    noData: "Không có sẵn dữ liệu",
+    retry: "Thử lại",
+    fetchError: "Không tải được dữ liệu, vui lòng thử lại",
   },
-
-  // Quản lý nhân viên
   users: {
     title: "Quản lý nhân viên",
     subtitle: "Quản lý tài khoản và quyền hạn nhân viên nhà hàng",
@@ -2869,8 +3131,6 @@ const viVN: Messages = {
       toggleFailed: "Chuyển đổi trạng thái thất bại",
     },
   },
-
-  // Quản lý nhân viên (trang mới)
   employees: {
     title: "Quản lý nhân viên",
     subtitle: "Quản lý thông tin nhân viên, lịch làm việc và nghỉ phép",
@@ -2992,8 +3252,6 @@ const viVN: Messages = {
       withdrawn: "Đã rút",
     },
   },
-
-  // Chi tiết bàn
   tableDetail: {
     backToList: "Quay lại danh sách bàn",
     tableNumber: "Bàn {number}",
@@ -3038,10 +3296,12 @@ const viVN: Messages = {
       regenerateConfirm: "Bạn có chắc muốn tạo lại mã QR?",
       regenerateSuccess: "Đã tạo lại mã QR",
       regenerateFailed: "Tạo lại mã QR thất bại",
+      regenerateAction: "tái sinh",
+      switchModeAction: "Chuyển đổi chế độ",
+      switchModeTitle: "Chi tiết bảng chuyển đổi chế độ",
+      regenerateTitle: "Tạo lại chi tiết bảng",
     },
   },
-
-  // Quản lý ghế
   seatManagement: {
     title: "Quản lý ghế",
     tableInfo: "Bàn: {tableNumber} | Chế độ ghế",
@@ -3092,8 +3352,6 @@ const viVN: Messages = {
       printFailed: "Không thể chuẩn bị mã QR ghế để in",
     },
   },
-
-  // Chế độ QR
   qrRotation: {
     pending: "Đã chuẩn bị để kích hoạt",
     prepare: "Chuẩn bị",
@@ -3116,13 +3374,11 @@ const viVN: Messages = {
       noneToPrepare: "Không có mã QR nào cần chuẩn bị",
     },
   },
-
   qrReadiness: {
     notReady: "QR chưa sẵn sàng",
     notReadyDescription: "Tạo lại mã QR này trước khi tải xuống hoặc in.",
     skippedNotReady: "Đã bỏ qua {count} mã QR chưa sẵn sàng để in.",
   },
-
   qrMode: {
     label: "Chế độ quản lý mã QR",
     description: "Chọn cách tạo mã QR cho bàn này",
@@ -3154,8 +3410,6 @@ const viVN: Messages = {
     noticeItem2: "Chuyển sang chế độ ghế sẽ tự động tạo số ghế được chỉ định",
     noticeItem3: "Bàn có đơn hàng đang hoạt động không thể chuyển chế độ",
   },
-
-  // Lưới ghế
   seatGrid: {
     title: "Xem ghế",
     available: "Trống",
@@ -3168,8 +3422,6 @@ const viVN: Messages = {
     noSeatsHint: "Bàn này chưa cấu hình ghế",
     availableSeats: "Ghế trống",
   },
-
-  // Form phiếu giảm giá
   couponForm: {
     editTitle: "Chỉnh sửa phiếu giảm giá",
     createTitle: "Tạo phiếu giảm giá",
@@ -3212,8 +3464,6 @@ const viVN: Messages = {
     update: "Cập nhật",
     createBtn: "Tạo",
   },
-
-  // Thống kê phiếu giảm giá
   couponStats: {
     title: "Thống kê phiếu giảm giá",
     couponInfo: "Thông tin phiếu",
@@ -3263,8 +3513,6 @@ const viVN: Messages = {
         "Giảm giá trung bình thấp. Cân nhắc tăng giá trị giảm để hấp dẫn hơn",
     },
   },
-
-  // Tích hợp
   integrations: {
     title: "Tích hợp nền tảng giao hàng",
     subtitle:
@@ -3324,8 +3572,6 @@ const viVN: Messages = {
       disconnectFailed: "Ngắt kết nối thất bại",
     },
   },
-
-  // Bảng thống kê
   statisticsDashboard: {
     title: "Bảng thống kê",
     subtitle:
@@ -3388,8 +3634,6 @@ const viVN: Messages = {
     statusCompleted: "Hoàn thành",
     statusCancelled: "Đã hủy",
   },
-
-  // Thao tác nghỉ phép
   leaveActions: {
     submitSuccess: "Gửi yêu cầu nghỉ phép thành công!",
     submitFailed: "Gửi yêu cầu nghỉ phép thất bại",
@@ -3402,9 +3646,9 @@ const viVN: Messages = {
     rejectPrompt: "Vui lòng nhập lý do từ chối:",
     rejectSuccess: "Đã từ chối yêu cầu nghỉ phép",
     rejectFailed: "Từ chối thất bại",
+    approve: "Chấp thuận",
+    cancelReasonPrompt: "Hủy lý do nhắc nhở",
   },
-
-  // Hệ thống thanh toán
   payment: {
     recommended: "Đề xuất",
     noMethodsTitle: "Không có phương thức thanh toán",
@@ -3721,8 +3965,6 @@ const viVN: Messages = {
       copied: "Đã sao chép vào clipboard",
     },
   },
-
-  // Hiển thị lỗi
   errorDisplay: {
     pendingRequestsCount: "{count} yêu cầu đang chờ",
     reconnect: "Kết nối lại",
@@ -3752,8 +3994,6 @@ const viVN: Messages = {
     reportNotImplemented:
       "Báo cáo lỗi chưa được triển khai. Vui lòng liên hệ hỗ trợ kỹ thuật.",
   },
-
-  // Điều hướng theo vai trò
   roleNav: {
     dashboard: "Bảng điều khiển",
     ownerCenter: "Trung tâm chủ cửa hàng",
@@ -3784,8 +4024,6 @@ const viVN: Messages = {
       unknown: "Vai trò không xác định",
     },
   },
-
-  // Store thanh toán
   paymentStore: {
     initFailed: "Khởi tạo thanh toán thất bại",
     loadMethodsFailed: "Tải phương thức thanh toán thất bại",
@@ -3799,22 +4037,16 @@ const viVN: Messages = {
       emailInvalid: "Định dạng email không hợp lệ",
     },
   },
-
-  // Store đơn hàng
   orderStore: {
     fetchFailed: "Tải đơn hàng thất bại",
     updateStatusFailed: "Cập nhật trạng thái đơn hàng thất bại",
     cancelFailed: "Hủy đơn hàng thất bại",
   },
-
-  // Store bảng điều khiển
   dashboardStore: {
     restaurantIdMissing: "Không tìm thấy mã nhà hàng",
     fetchDataFailed: "Tải dữ liệu thất bại",
     fetchDashboardFailed: "Tải dữ liệu bảng điều khiển thất bại",
   },
-
-  // Hệ thống chấm công
   clockInOut: {
     title: "Chấm công",
     today: "Hôm nay",
@@ -3841,8 +4073,6 @@ const viVN: Messages = {
     clockOutSuccess: "Chấm công ra thành công!",
     clockFailed: "Chấm công thất bại, vui lòng thử lại",
   },
-
-  // Xuất báo cáo
   exportReport: {
     title: "Xuất báo cáo giám sát",
     quickTemplates: "Mẫu nhanh",
@@ -3879,8 +4109,6 @@ const viVN: Messages = {
     dataTypeHealth: "Trạng thái sức khỏe",
     dataTypeAll: "Dữ liệu đầy đủ",
   },
-
-  // Xung đột lịch
   schedulingConflicts: {
     title: "Cảnh báo xung đột lịch",
     conflictCount: "{count} xung đột cần xem xét",
@@ -3908,8 +4136,6 @@ const viVN: Messages = {
     statusResolved: "Đã giải quyết",
     statusIgnored: "Đã bỏ qua",
   },
-
-  // Form lịch làm việc
   scheduleForm: {
     editTitle: "Chỉnh sửa lịch",
     addTitle: "Thêm lịch",
@@ -3936,8 +4162,6 @@ const viVN: Messages = {
     errorPositiveHours: "Giờ theo lịch phải lớn hơn 0",
     submitError: "Gửi form thất bại",
   },
-
-  // Bảng thông báo thời gian thực
   realtimeNotification: {
     mute: "Tắt tiếng",
     unmute: "Bật tiếng",
@@ -3972,8 +4196,6 @@ const viVN: Messages = {
     minutesAgo: "{count} phút trước",
     hoursAgo: "{count} giờ trước",
   },
-
-  // Bộ lọc nâng cao
   advancedFilter: {
     quickFilter: "Lọc nhanh",
     resetFilter: "Đặt lại bộ lọc",
@@ -4004,8 +4226,6 @@ const viVN: Messages = {
     descriptionOptional: "Mô tả (tùy chọn)",
     descriptionPlaceholder: "Mô tả mục đích của bộ lọc này...",
   },
-
-  // Biểu đồ xu hướng hiệu suất
   performanceChart: {
     title: "Xu hướng hiệu suất",
     lineChart: "Đường",
@@ -4029,8 +4249,6 @@ const viVN: Messages = {
     trendDown: "Giảm",
     trendStable: "Ổn định",
   },
-
-  // Trình chỉnh sửa bố cục bảng điều khiển
   dashboardEditor: {
     addWidget: "Thêm widget",
     loadPreset: "Tải bố cục có sẵn",
@@ -4051,8 +4269,6 @@ const viVN: Messages = {
     categoryMetrics: "Chỉ số",
     categoryCharts: "Biểu đồ",
   },
-
-  // Tóm tắt đơn hàng
   orderSummary: {
     title: "Tóm tắt đơn hàng",
     restaurant: "Nhà hàng",
@@ -4079,8 +4295,6 @@ const viVN: Messages = {
       unipay: "UniPay",
     },
   },
-
-  // Ví dụ sử dụng (Demo xử lý lỗi)
   exampleUsage: {
     title: "Demo hệ thống xử lý lỗi",
     apiErrorTest: "Kiểm tra xử lý lỗi API",
@@ -4110,8 +4324,6 @@ const viVN: Messages = {
     offlineRequestQueued: "Yêu cầu ngoại tuyến đã xếp hàng",
     currentlyOnline: "Đang trực tuyến",
   },
-
-  // Quản lý nguyên liệu
   ingredients: {
     title: "Quản lý nguyên liệu",
     subtitle: "Quản lý nguyên liệu, công thức và tồn kho",
@@ -4138,8 +4350,6 @@ const viVN: Messages = {
     optional: "Tùy chọn",
     noRecipeEntries: "Chưa thêm nguyên liệu. Tìm và thêm nguyên liệu ở trên.",
   },
-
-  // Dự báo nhu cầu
   forecast: {
     title: "Dự báo nhu cầu",
     subtitle: "Dự báo nhu cầu món ăn và nguyên liệu bằng AI",
@@ -4170,9 +4380,12 @@ const viVN: Messages = {
     noSupplier: "Không có NCC",
     subtotal: "Tạm tính",
     totalEstimatedCost: "Tổng chi phí ước tính",
+    actual: "Thật sự",
+    deviation: "Độ lệch",
+    accuracyDescription: "Mô tả độ chính xác",
+    noAccuracyData: "Không có dữ liệu chính xác",
+    accuracyReport: "Báo cáo chính xác",
   },
-
-  // Phân tích AI
   aiAnalytics: {
     title: "Phân tích AI",
     subtitle:
@@ -4220,8 +4433,6 @@ const viVN: Messages = {
     navProducts: "Phân tích sản phẩm",
     navConfig: "Cấu hình AI",
   },
-
-  // Cấu hình AI
   aiConfig: {
     title: "Cấu hình dịch vụ AI",
     subtitle: "Cấu hình nhà cung cấp AI và API key",
@@ -4258,8 +4469,6 @@ const viVN: Messages = {
     infoCachingDesc:
       "Truy vấn tương tự được cache tự động để tiết kiệm chi phí API",
   },
-
-  // Phân tích sản phẩm
   productAnalytics: {
     title: "Phân tích sản phẩm",
     subtitle: "Phân tích sâu hiệu suất món ăn, tối ưu hóa chiến lược thực đơn",
@@ -4305,7 +4514,6 @@ const viVN: Messages = {
       "Đảm bảo đủ nguyên liệu cho món bán chạy, tránh hết hàng",
     actionProfit: "Phân tích và nhân rộng chiến lược giá của món lợi nhuận cao",
   },
-
   feedback: {
     title: "Phản hồi",
     ownerSubtitle: "Gửi vấn đề sử dụng hoặc đề xuất tính năng",
@@ -4397,6 +4605,301 @@ const viVN: Messages = {
       inProgress: "Đang xử lý",
       resolved: "Đã giải quyết",
     },
+  },
+  accountManagement: {
+    accountInfo: "Thông tin tài khoản",
+    adminName: "Quản trị viên",
+    createdAtCol: "Tạo",
+    email: "E-mail",
+    emailCol: "E-mail",
+    emailPlaceholder: "user{'@'}example.com",
+    createError: "Tạo không thành công, vui lòng thử lại",
+    emailInvalid: "Vui lòng nhập email hợp lệ",
+    createAdminSuccess: "Tài khoản quản trị viên được tạo thành công",
+    emailRequired: "Email là bắt buộc",
+    fullName: "Tên đầy đủ",
+    createOwnerSuccess: "Tài khoản chủ sở hữu được tạo thành công",
+    fullNamePlaceholder: "Tên đầy đủ",
+    fullNameRequired: "Tên đầy đủ là bắt buộc",
+    newRestaurantDistrictRequired: "Quận là bắt buộc",
+    existingOwners: "Chủ sở hữu hiện tại",
+    noAdmins: "Chưa có tài khoản quản trị viên nào khác",
+    newRestaurantPhoneRequired: "Cần có điện thoại nhà hàng",
+    ownerName: "Người sở hữu",
+    newRestaurantNameRequired: "Tên nhà hàng là bắt buộc",
+    newRestaurantTypeRequired: "Loại nhà hàng là bắt buộc",
+    noOwners: "Chưa có tài khoản chủ sở hữu",
+    existingAdmins: "Quản trị viên hiện tại",
+    ownerPermissions: {
+      manageOrders: "Xem và quản lý đơn hàng",
+      manageEmployees: "Quản lý nhân viên (Đầu bếp, Phục vụ, Thu ngân)",
+      manageSettings: "Quản lý cài đặt nhà hàng",
+      manageMenu: "Quản lý thực đơn nhà hàng",
+      viewAnalytics: "Xem phân tích kinh doanh",
+    },
+    createNewRestaurant: "+ Nhà Hàng Mới",
+    password: "Mật khẩu",
+    passwordRequired: "Cần có mật khẩu",
+    passwordStrength:
+      "Mật khẩu phải có trên 8 ký tự bao gồm chữ hoa, chữ thường, chữ số, ký tự đặc biệt",
+    phone: "Điện thoại",
+    phonePlaceholder: "Không bắt buộc",
+    restaurant: "Nhà hàng",
+    permissionConfirm: "Xác nhận quyền",
+    restaurantAddress: "Địa chỉ nhà hàng",
+    restaurantCol: "Nhà hàng",
+    restaurantDistrict: "Huyện",
+    restaurantName: "Tên nhà hàng",
+    restaurantAddressPlaceholder: "Địa chỉ nhà hàng",
+    restaurantBinding: "Ràng buộc nhà hàng",
+    restaurantPhone: "Điện thoại nhà hàng",
+    passwordPlaceholder:
+      "Tối thiểu 8 ký tự, chữ hoa, chữ thường, chữ số, ký tự đặc biệt",
+    permissionNote: "Tài khoản này sẽ có các quyền sau:",
+    restaurantPhonePlaceholder: "ví dụ. 0912345678",
+    restaurantNamePlaceholder: "Tên nhà hàng mới",
+    statusActive: "Tích cực",
+    restaurantRequired: "Vui lòng chọn hoặc tạo một nhà hàng",
+    statusCol: "Trạng thái",
+    statusInactive: "Không hoạt động",
+    submitAdmin: "Tạo tài khoản quản trị",
+    submitOwner: "Tạo tài khoản chủ sở hữu",
+    restaurantType: "Loại nhà hàng",
+    restaurantDistrictPlaceholder: "ví dụ. Quận Tây",
+    title: "Quản lý tài khoản",
+    username: "Tên người dùng",
+    submitting: "Đang tạo...",
+    tabAdmins: "Tài khoản quản trị viên",
+    selectRestaurant: "Chọn nhà hàng",
+    restaurantTypePlaceholder: "ví dụ. ẩm thực nhật bản",
+    usernameRequired: "Tên người dùng là bắt buộc",
+    usernameLength: "Tên người dùng phải có 3-50 ký tự",
+    tabOwners: "Tài khoản chủ sở hữu",
+    usernamePlaceholder: "3-50 ký tự",
+  },
+  backup: {
+    actions: {
+      delete: "Xóa bỏ",
+      details: "Chi tiết",
+      download: "Tải xuống",
+      refresh: "Làm cho khỏe lại",
+      restore: "Khôi phục",
+      create: "Tạo nên",
+    },
+    alerts: {
+      resolve: "Giải quyết",
+      acknowledge: "Thừa nhận",
+      title: "Cảnh báo dự phòng",
+    },
+    confirm: {
+      deleteTitle: "Xóa bản sao lưu",
+      delete: "Bạn có chắc chắn muốn xóa bản sao lưu này không?",
+    },
+    create: {
+      advancedOptions: "Tùy chọn nâng cao",
+      basicInfo: "Thông tin cơ bản",
+      allTables: "Tất cả các bàn",
+      configuration: "Cấu hình",
+      create: "Tạo nên",
+      creating: "Đang tạo...",
+      description: "Sự miêu tả",
+      execution: "Thi hành",
+      manualConfig: "Cấu hình thủ công",
+      name: "Tên",
+      forceImmediateDescription:
+        "Bỏ qua lịch trình và bắt đầu sao lưu ngay bây giờ.",
+      descriptionPlaceholder: "Nhập mô tả dự phòng",
+      namePlaceholder: "Nhập tên dự phòng",
+      excludeTables: "Loại trừ bảng",
+      includeTables: "Bao gồm các bảng",
+      tablesToInclude: "Các bảng cần bao gồm",
+      title: "Tạo bản sao lưu",
+      forceImmediate: "Chạy ngay lập tức",
+      tablesToExclude: "Bảng cần loại trừ",
+      selectConfig: "Chọn cấu hình",
+      type: "Kiểu",
+      useExisting: "Sử dụng cấu hình hiện có",
+      tableSelection: "Lựa chọn bảng",
+      selectConfigPlaceholder: "Chọn cấu hình dự phòng",
+      useConfiguration: "Sử dụng cấu hình",
+    },
+    details: {
+      configuration: "Cấu hình",
+      encrypted: "Đã mã hóa",
+      checksum: "Tổng kiểm tra",
+      manual: "Thủ công",
+      performance: "Hiệu suất",
+      recordsCount: "Số lượng bản ghi",
+      tables: "Bàn",
+      storage: "Kho",
+      id: "NHẬN DẠNG",
+    },
+    dashboard: {
+      title: "Trang tổng quan dự phòng",
+    },
+    empty: {
+      title: "Chưa có bản sao lưu nào",
+      createFirst: "Tạo bản sao lưu đầu tiên",
+      description:
+        "Tạo bản sao lưu đầu tiên của bạn để bảo vệ dữ liệu nhà hàng.",
+    },
+    errors: {
+      nameTooLong: "Tên quá dài",
+      nameRequired: "Tên bắt buộc",
+    },
+    health: {
+      backupsRunning: "Sao lưu đang chạy",
+      loading: "Đang tải...",
+      failuresDetected: "Đã phát hiện lỗi",
+      allSystemsNormal: "Tất cả các hệ thống Bình thường",
+    },
+    metrics: {
+      duration: "Khoảng thời gian",
+      compression: "nén",
+      failed24h: "Thất bại trong 24h",
+      running: "Đang chạy",
+      uploadSpeed: "Tốc độ tải lên",
+    },
+    monitoring: {
+      acknowledge: "Thừa nhận",
+      activeConfigs: "Cấu hình hoạt động",
+      failed24h: "Thất bại trong 24h",
+      allRestaurants: "Tất cả nhà hàng",
+      justNow: "Vừa rồi",
+      criticalAlerts: "Cảnh báo quan trọng",
+      healthyOnly: "Chỉ khỏe mạnh",
+      last24h: "24 giờ qua",
+      hoursAgo: "giờ trước",
+      noPerformanceData: "Không có dữ liệu hiệu suất",
+      resolve: "Giải quyết",
+      last7days: "7 ngày qua",
+      runningBackups: "Chạy sao lưu",
+      last30days: "30 ngày qua",
+      lastBackup: "Sao lưu lần cuối",
+      successRate: "Tỷ lệ thành công",
+      performanceTrends: "Xu hướng Hiệu suất",
+      relatedBackup: "Sao lưu liên quan",
+      storageUsed: "Bộ nhớ đã sử dụng",
+      restaurantStatus: "Tình trạng nhà hàng",
+      viewDetails: "Xem chi tiết",
+      withIssues: "Có vấn đề",
+      yesterday: "Hôm qua",
+      systemHealth: "Tình trạng hệ thống",
+      totalRestaurants: "Tổng số nhà hàng",
+      title: "Tiêu đề",
+      totalBackups: "Tổng số bản sao lưu",
+      storageUsage: "Sử dụng bộ nhớ",
+    },
+    recent: {
+      viewAll: "Xem tất cả",
+      title: "Tiêu đề",
+    },
+    restore: {
+      createdAt: "Được tạo tại",
+      error: "Lỗi",
+      size: "Kích cỡ",
+      restoring: "Đang khôi phục",
+      title: "Tiêu đề",
+      warning: "Cảnh báo",
+      warningMessage: "Thông báo cảnh báo",
+      overwriteExisting: "Ghi đè hiện có",
+      confirm: "Xác nhận",
+    },
+    stats: {
+      storageUsed: "Bộ nhớ đã sử dụng",
+      estimatedCost: "Chi phí ước tính",
+      totalBackups: "Tổng số bản sao lưu",
+      successful: "Thành công",
+    },
+    status: {
+      processing: "Xử lý",
+    },
+    types: {
+      differential: "vi phân",
+      incremental: "Tăng dần",
+      full: "Đầy",
+    },
+  },
+  realtime: {
+    rooms: {
+      customer: "Khách hàng",
+      kitchen: "Phòng bếp",
+      admin: "Quản trị viên",
+    },
+    status: {
+      active: "Tích cực",
+      inactive: "Không hoạt động",
+    },
+    loading: "Đang tải...",
+    autoRefresh: "Tự động làm mới",
+    lastUpdate: "Cập nhật lần cuối",
+    totalConnections: "Tổng số kết nối",
+    title: "Tiêu đề",
+  },
+  schedulingAnalytics: {
+    exportReport: "Xuất báo cáo",
+    insightAbsenceDesc: "Mô tả sự vắng mặt của Insight",
+    currentlyOnDuty: "Hiện đang làm nhiệm vụ",
+    dataInsights: "Thông tin chi tiết về dữ liệu",
+    activeEmployees: "Nhân viên tích cực",
+    insightAbsenceTitle: "Phân tích lập kế hoạch vắng mặt chuyên sâu",
+    insightCancelledTitle: "Phân tích lập kế hoạch đã hủy Insight",
+    insightAllGoodDesc: "Cái nhìn sâu sắc Tất cả Mô tả tốt",
+    insightAllGoodTitle:
+      "Thông tin chi tiết Tất cả các phân tích lập kế hoạch tốt",
+    insightCancelledDesc: "Thông tin chi tiết Đã hủy mô tả",
+    subtitle: "Phụ đề",
+    viewDetails: "Xem chi tiết",
+    insightOvertimeDesc: "Thông tin chi tiết Mô tả làm thêm giờ",
+    refreshData: "Làm mới dữ liệu",
+    viewInsightDetail: "Xem chi tiết thông tin chi tiết",
+    insightOvertimeTitle: "Phân tích lập lịch làm thêm giờ chuyên sâu",
+    title: "Tiêu đề",
+    totalScheduledHours: "Tổng số giờ đã lên lịch",
+    weeklySchedules: "Lịch trình hàng tuần",
+  },
+  subscriptions: {
+    active: "Tích cực",
+    billingUntil: "Thanh toán cho đến khi",
+    confirmDeactivateMessage: "Xác nhận tin nhắn hủy kích hoạt",
+    addSubscription: "Thêm đăng ký",
+    empty: "Trống",
+    deactivate: "Vô hiệu hóa",
+    confirmDeactivateTitle: "Xác nhận hủy kích hoạt đăng ký",
+    form: {
+      createError: "Tạo lỗi",
+      create: "Tạo nên",
+      restaurantId: "Mã nhà hàng",
+      planTier: "Cấp gói",
+      restaurantIdPlaceholder: "Nhập id nhà hàng",
+      trialEndsAt: "Thử nghiệm kết thúc lúc",
+      restaurantIdRequired: "Yêu cầu ID nhà hàng",
+    },
+    inactive: "Không hoạt động",
+    moduleNames: {
+      analytics: "Phân tích",
+      coupons: "Phiếu giảm giá",
+      loyalty: "Lòng trung thành",
+      platform_integration: "Tích hợp nền tảng",
+      online_ordering: "Đặt hàng trực tuyến",
+      menu_management: "Quản lý thực đơn",
+      table_management: "Quản lý bảng",
+      ai_analytics: "Phân tích AI",
+      kitchen_display: "trưng bày nhà bếp",
+      receipt_printing: "In biên lai",
+      reservations: "Đặt chỗ",
+    },
+    loadError: "Lỗi tải",
+    modules: "Mô-đun",
+    plans: {
+      basic: "Nền tảng",
+      trial: "Sự thử nghiệm",
+      pro: "chuyên nghiệp",
+      enterprise: "Doanh nghiệp",
+    },
+    title: "Tiêu đề",
+    trialEndsAt: "Thử nghiệm kết thúc lúc",
+    subtitle: "Phụ đề",
   },
 };
 

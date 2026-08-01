@@ -4,7 +4,6 @@ import type { Messages } from "../types";
  * English Translation
  */
 const enUS: Messages = {
-  // Common vocabulary
   common: {
     save: "Save",
     cancel: "Cancel",
@@ -45,9 +44,8 @@ const enUS: Messages = {
     update: "Update",
     loadFailed: "Load Failed",
     retry: "Retry",
+    processing: "Processing",
   },
-
-  // Menu Management
   menu: {
     title: "Menu Management",
     subtitle: "Manage restaurant dishes and categories",
@@ -201,8 +199,6 @@ const enUS: Messages = {
       available: "available",
     },
   },
-
-  // Order Management
   orders: {
     stats: {
       pending: "Pending",
@@ -226,6 +222,7 @@ const enUS: Messages = {
       served: "Served",
       completed: "Completed",
       cancelled: "Cancelled",
+      refunded: "Refunded",
     },
     type: {
       dineIn: "Dine In",
@@ -279,8 +276,6 @@ const enUS: Messages = {
     defaultCustomer: "Anonymous",
     updateFailed: "Failed to update order status",
   },
-
-  // Table Management
   tables: {
     title: "Table Management",
     subtitle: "Manage restaurant tables and QR codes",
@@ -349,6 +344,8 @@ const enUS: Messages = {
     confirm: {
       regenerateAllQR:
         "Are you sure you want to regenerate QR codes for all tables?",
+      regenerateAllQRAction: "Regenerate All QR",
+      regenerateAllQRTitle: "Regenerate All QR Tables",
     },
     alert: {
       qrGenerated: "QR codes generated successfully!",
@@ -364,8 +361,6 @@ const enUS: Messages = {
       qrGenerateFailed: "Failed to generate QR codes, please try again",
     },
   },
-
-  // Scheduling system
   scheduling: {
     title: "Employee Scheduling",
     calendar: "Calendar View",
@@ -383,7 +378,6 @@ const enUS: Messages = {
     editSchedule: "Edit Schedule",
     deleteSchedule: "Delete Schedule",
     scheduleDetails: "Schedule Details",
-
     filters: {
       searchEmployee: "Search employee name...",
       dateRange: "Date Range",
@@ -395,7 +389,6 @@ const enUS: Messages = {
       allShifts: "All Shifts",
       to: "to",
     },
-
     columns: {
       date: "Date",
       weekday: "Day",
@@ -411,7 +404,6 @@ const enUS: Messages = {
       status: "Status",
       notes: "Notes",
     },
-
     form: {
       selectEmployee: "Select Employee",
       selectShift: "Select Shift",
@@ -424,7 +416,6 @@ const enUS: Messages = {
       repeatDays: "Repeat Days",
       repeatUntil: "Repeat Until",
     },
-
     batch: {
       title: "Batch Operations",
       selected: "{count} selected",
@@ -434,8 +425,9 @@ const enUS: Messages = {
       exportSelected: "Export Selected",
       confirmAction: "Are you sure you want to confirm {count} schedules?",
       cancelConfirm: "Are you sure you want to cancel {count} schedules?",
+      cancel: "Cancel",
+      confirm: "Confirm",
     },
-
     pagination: {
       showing: "Showing {start}-{end} of {total}",
       itemsPerPage: "per page",
@@ -445,7 +437,6 @@ const enUS: Messages = {
       nextPage: "Next",
       page: "page",
     },
-
     conflicts: {
       title: "Schedule Conflicts",
       detected: "{count} conflicts detected",
@@ -459,7 +450,6 @@ const enUS: Messages = {
       ignore: "Ignore",
       details: "Conflict Details",
     },
-
     stats: {
       totalSchedules: "Total Schedules",
       totalHours: "Total Hours",
@@ -469,7 +459,6 @@ const enUS: Messages = {
       thisMonth: "This Month",
       today: "Today",
     },
-
     exportReport: "Export Report",
     loadingList: "Loading schedule list...",
     noData: "No Schedule Data",
@@ -478,16 +467,40 @@ const enUS: Messages = {
     noExportData: "No data to export",
     exportFilename: "schedule_data",
     exportSelected: "selected",
+    approveSwapFailed: "Approve Swap Failed",
+    addTemplate: "Add Template",
+    cannotGetManagerInfo: "Cannot Get Manager Info",
+    currentlyWorking: "Currently Working",
+    deleteTemplate: "Delete Template",
+    conflictWarnings: "Conflict Warnings",
+    deleteScheduleFailed: "Delete Schedule Failed",
+    enterRejectReason: "Enter Reject Reason",
+    confirmDeleteSchedule: "Confirm Delete Schedule",
+    confirmDeleteTemplate: "Confirm Delete Template",
+    cannotGetUserInfo: "Cannot Get User Info",
+    managementTitle: "Management Scheduling",
+    employeeNumber: "Employee Number",
+    listView: "List View",
+    deleteTemplateFailed: "Delete Template Failed",
+    pendingSwaps: "Pending Swaps",
+    enterResolutionNotes: "Enter Resolution Notes",
+    pendingConflicts: "Pending Conflicts",
+    monthlySchedules: "Monthly Schedules",
+    noEmployeesWorking: "No Employees Working",
+    peopleCount: "People Count",
+    since: "Since",
+    managementSubtitle: "Management Subtitle",
+    saveTemplateFailed: "Save Template Failed",
+    resolveConflictFailed: "Resolve Conflict Failed",
+    rejectSwapFailed: "Reject Swap Failed",
+    saveScheduleFailed: "Save Schedule Failed",
   },
-
-  // Shift templates
   shiftTemplates: {
     title: "Shift Templates",
     create: "Create Template",
     edit: "Edit Template",
     delete: "Delete Template",
     duplicate: "Duplicate Template",
-
     form: {
       name: "Template Name",
       nameRequired: "Please enter template name",
@@ -514,7 +527,6 @@ const enUS: Messages = {
       icon: "Icon (optional)",
       preview: "Preview",
     },
-
     sections: {
       basicInfo: "Basic Info",
       workTime: "Work Time",
@@ -523,32 +535,27 @@ const enUS: Messages = {
       payRate: "Pay Rate (Optional)",
       appearance: "Appearance",
     },
-
     shiftTypes: {
       regular: "Regular",
       split: "Split Shift",
       overnight: "Overnight",
     },
-
     overtime: {
       normal: "Normal",
       weekday: "Weekday OT",
       restDay: "Rest Day OT",
       holiday: "Public Holiday",
     },
-
     errors: {
       minExceedsMax: "Min employees cannot exceed max employees",
       noDaysSelected: "Please select at least one applicable day",
     },
-
     usage: {
       title: "Usage Stats",
       timesUsed: "Times Used",
       lastUsed: "Last Used",
       never: "Never Used",
     },
-
     colors: {
       blue: "Blue",
       green: "Green",
@@ -559,7 +566,6 @@ const enUS: Messages = {
       cyan: "Cyan",
       gray: "Gray",
     },
-
     presets: {
       morning: "Morning",
       afternoon: "Afternoon",
@@ -567,8 +573,6 @@ const enUS: Messages = {
       night: "Night",
       fullDay: "Full Day",
     },
-
-    // ShiftTemplatesList component keys
     management: "Shift Template Management",
     totalCount: "{count} shift templates total",
     addTemplate: "Add Template",
@@ -591,8 +595,6 @@ const enUS: Messages = {
         'Are you sure you want to delete the shift template "{name}"? This action cannot be undone.',
     },
   },
-
-  // Swap requests
   swapRequests: {
     title: "Swap Request Management",
     create: "Request Swap",
@@ -613,14 +615,12 @@ const enUS: Messages = {
     switchFilterHint: "Switch filter to view other status",
     responseNote: "Response",
     processedBy: "Processed by {name}",
-
     status: {
       pending: "Pending",
       approved: "Approved",
       rejected: "Rejected",
       cancelled: "Cancelled",
     },
-
     form: {
       requester: "Requester",
       target: "Target Employee",
@@ -632,7 +632,6 @@ const enUS: Messages = {
       selectTarget: "Select target shift",
       noAvailableShifts: "No available shifts",
     },
-
     details: {
       requestedBy: "Requested By",
       requestedAt: "Requested At",
@@ -646,15 +645,15 @@ const enUS: Messages = {
       rejectedAt: "Rejected At",
       rejectionReason: "Rejection Reason",
     },
-
     actions: {
       viewDetails: "View Details",
       approveConfirm: "Are you sure you want to approve this swap request?",
       rejectConfirm: "Are you sure you want to reject this swap request?",
       cancelConfirm: "Are you sure you want to cancel this swap request?",
+      approve: "Approve",
+      reject: "Reject",
     },
   },
-
   status: {
     scheduled: "Scheduled",
     confirmed: "Confirmed",
@@ -665,7 +664,6 @@ const enUS: Messages = {
     inactive: "Inactive",
     no_show: "No Show",
   },
-
   weekdays: {
     short: {
       sunday: "Sun",
@@ -695,7 +693,6 @@ const enUS: Messages = {
       saturday: "Sa",
     },
   },
-
   errors: {
     generic: "Operation failed, please try again",
     networkError: "Network error, please check your connection",
@@ -722,7 +719,6 @@ const enUS: Messages = {
         "Your account is not linked to any restaurant yet. Ask your administrator to assign one, then try again.",
     },
   },
-
   success: {
     saved: "Saved successfully",
     deleted: "Deleted successfully",
@@ -736,7 +732,6 @@ const enUS: Messages = {
     exported: "Exported successfully",
     imported: "Imported successfully",
   },
-
   confirmations: {
     delete: "Are you sure you want to delete?",
     deleteSchedule: "Are you sure you want to delete this schedule?",
@@ -745,8 +740,6 @@ const enUS: Messages = {
     unsavedChanges: "You have unsaved changes, are you sure you want to leave?",
     batchDelete: "Are you sure you want to delete the selected {count} items?",
   },
-
-  // Chart components
   charts: {
     workHours: {
       title: "Total Work Hours",
@@ -816,8 +809,6 @@ const enUS: Messages = {
       totalValue: "{quantity} servings / ${revenue}",
     },
   },
-
-  // Reservation system
   reservation: {
     title: "Reservation Management",
     subtitle: "Manage restaurant reservations and bookings",
@@ -869,6 +860,8 @@ const enUS: Messages = {
       confirmed: "Confirmed",
       completed: "Completed",
       noShowRate: "No Show Rate",
+      pending: "Pending",
+      seated: "Seated",
     },
     statusText: {
       pending: "Pending",
@@ -899,9 +892,11 @@ const enUS: Messages = {
       next: "Next",
       showing: "Showing {start} to {end} of {total} results",
     },
+    confirmAction: "Confirm",
+    cancelAction: "Cancel",
+    cancelTitle: "Cancel Reservation",
+    confirmTitle: "Confirm Reservation",
   },
-
-  // Waiting list system
   waitingList: {
     title: "Waiting List Management",
     subtitle: "Manage restaurant waiting queue",
@@ -990,9 +985,11 @@ const enUS: Messages = {
     pagination: {
       showing: "Showing {start} to {end} of {total} results",
     },
+    cancelAction: "Cancel",
+    expireAction: "Expire",
+    expireTitle: "Expire Waiting List",
+    cancelTitle: "Cancel Waiting List",
   },
-
-  // Seating management
   seating: {
     title: "Seating Management",
     subtitle: "Manage reservations, waiting list, and queue",
@@ -1012,12 +1009,9 @@ const enUS: Messages = {
       todayServed: "Today Served",
     },
   },
-
-  // System Monitoring
   monitoring: {
     title: "System Monitoring",
     subtitle: "Real-time system health, performance metrics and alerts",
-
     actions: {
       refresh: "Refresh Now",
       refreshing: "Refreshing...",
@@ -1028,7 +1022,6 @@ const enUS: Messages = {
       resetMetrics: "Reset Metrics",
       exportReport: "Export Report",
     },
-
     health: {
       overall: "Overall Health Status",
       score: "Health Score",
@@ -1042,7 +1035,6 @@ const enUS: Messages = {
         down: "Down",
       },
     },
-
     keyMetrics: {
       title: "Key Metrics",
       requestsPerMinute: "Requests Per Minute",
@@ -1051,7 +1043,6 @@ const enUS: Messages = {
       serverErrors: "Server Errors",
       clientErrorsNote: "{count} client 4xx (normal)",
     },
-
     components: {
       title: "System Components Status",
       api: "API Service",
@@ -1067,8 +1058,10 @@ const enUS: Messages = {
       issueCount: "Issues: {count}",
       lastCheck: "Last Check",
       issuesFound: "Issues Found:",
+      queue: "Queue",
+      storage: "Storage",
+      websocket: "Websocket",
     },
-
     statusText: {
       healthy: "Healthy",
       warning: "Warning",
@@ -1077,13 +1070,11 @@ const enUS: Messages = {
       unknown: "Unknown",
       stopped: "Stopped",
     },
-
     tabs: {
       alerts: "Alert Rules",
       performance: "Performance Report",
       errors: "Error Analysis",
     },
-
     alerts: {
       title: "Alert Rules",
       noAlerts: "No alert rules",
@@ -1117,15 +1108,19 @@ const enUS: Messages = {
         deleted: "Alert rule deleted",
         deleteConfirm: "Are you sure you want to delete this alert rule?",
       },
+      status: {
+        acknowledged: "Acknowledged",
+        muted: "Muted",
+        active: "Active",
+        resolved: "Resolved",
+      },
     },
-
     performance: {
       title: "Performance Report",
       selectPeriod: "Select Time Period",
       last1Day: "Last 1 Day",
       last7Days: "Last 7 Days",
       last30Days: "Last 30 Days",
-
       api: {
         title: "API Performance",
         totalRequests: "Total Requests",
@@ -1133,7 +1128,6 @@ const enUS: Messages = {
         p95ResponseTime: "P95 Response Time",
         errorRate: "Error Rate",
       },
-
       database: {
         title: "Database Performance",
         totalQueries: "Total Queries",
@@ -1141,7 +1135,6 @@ const enUS: Messages = {
         slowQueries: "Slow Queries",
         queryErrorRate: "Query Error Rate",
       },
-
       cache: {
         title: "Cache Performance",
         hitRate: "Hit Rate",
@@ -1149,20 +1142,21 @@ const enUS: Messages = {
         totalSize: "Total Size",
         expiringKeys: "Expiring Keys",
       },
-
       charts: {
         trendComparison: "Performance Trend Comparison (Last 24 Hours)",
         cacheHitRate: "Cache Hit Rate Trend (Last 24 Hours)",
         apiResponseTime: "API Response Time",
         dbQueryTime: "Database Query Time",
       },
-
       recommendations: {
         title: "Optimization Recommendations",
         loading: "Loading performance report...",
       },
+      custom: "Custom",
+      last24Hours: "Last24 Hours",
+      lastHour: "Last Hour",
+      last15Minutes: "Last15 Minutes",
     },
-
     errors: {
       title: "Error Analysis",
       statistics: "Error Type Statistics",
@@ -1172,7 +1166,6 @@ const enUS: Messages = {
       occurredTimes: "Occurred Times",
       errorCount: "Error Count",
     },
-
     realtime: {
       title: "Real-time Alerts",
       connectionStatus: {
@@ -1193,7 +1186,6 @@ const enUS: Messages = {
       minutesAgo: "{count} minutes ago",
       hoursAgo: "{count} hours ago",
     },
-
     misc: {
       loadingData: "Loading monitoring data...",
       systemHealth: "System Health",
@@ -1214,7 +1206,6 @@ const enUS: Messages = {
       live: "Live",
       stable: "Stable",
     },
-
     createRule: {
       title: "Create Alert Rule",
       name: "Rule Name",
@@ -1296,12 +1287,10 @@ const enUS: Messages = {
         fatal: "Fatal",
       },
     },
-
     polling: {
       connected: "Monitoring (Polling)",
       disconnected: "Polling stopped",
     },
-
     notifications: {
       dataUpdated: "Monitoring data updated",
       updateFailed: "Failed to update monitoring data",
@@ -1314,8 +1303,6 @@ const enUS: Messages = {
       autoRefreshEnabled: "Auto refresh enabled",
       autoRefreshDisabled: "Auto refresh disabled",
     },
-
-    // Advanced filters
     filters: {
       title: "Advanced Filters",
       quickFilters: "Quick Filters",
@@ -1365,8 +1352,6 @@ const enUS: Messages = {
         filterDeleted: "Filter deleted",
       },
     },
-
-    // Export report
     export: {
       title: "Export Report",
       exportReport: "Export Report",
@@ -1427,8 +1412,6 @@ const enUS: Messages = {
           "High-level system health status and key metrics overview",
       },
     },
-
-    // Custom layout
     layout: {
       title: "Dashboard Layout",
       editMode: "Edit Mode",
@@ -1503,8 +1486,6 @@ const enUS: Messages = {
         confirmDelete: "Are you sure you want to delete this layout?",
       },
     },
-
-    // Alert Notification Panel
     alertPanel: {
       title: "Live Alerts",
       reconnect: "Reconnect",
@@ -1524,8 +1505,6 @@ const enUS: Messages = {
       hoursAgo: "{count} hours ago",
     },
   },
-
-  // Page title and navigation
   header: {
     title: "MakanMasak Admin Dashboard",
     home: "Home",
@@ -1556,8 +1535,6 @@ const enUS: Messages = {
       cashier: "Cashier",
     },
   },
-
-  // Navigation
   nav: {
     featureUnavailable: "Not yet available",
     platform: "Platform Overview",
@@ -1597,8 +1574,6 @@ const enUS: Messages = {
     accountManagement: "Accounts",
     feedback: "Feedback",
   },
-
-  // Page titles
   pages: {
     login: "Login",
     forgotPassword: "Forgot Password",
@@ -1641,9 +1616,8 @@ const enUS: Messages = {
     ingredients: "Ingredients",
     feedback: "Feedback",
     feedbackDetail: "Feedback Detail",
+    subscriptions: "Subscriptions",
   },
-
-  // Platform Overview
   platform: {
     title: "Platform Overview",
     description:
@@ -1659,8 +1633,6 @@ const enUS: Messages = {
     loading: "Loading...",
     noResults: "No restaurants found",
   },
-
-  // Authentication
   auth: {
     adminLogin: "Admin Dashboard Login",
     username: "Username",
@@ -1731,8 +1703,6 @@ const enUS: Messages = {
     tokenVerifyError: "Error verifying token",
     missingToken: "Missing reset token",
   },
-
-  // Dashboard
   dashboard: {
     title: "Dashboard",
     welcome: "Welcome back, {username}",
@@ -1778,8 +1748,6 @@ const enUS: Messages = {
       },
     },
   },
-
-  // Not Found page
   notFound: {
     title: "Page Not Found",
     description:
@@ -1801,8 +1769,6 @@ const enUS: Messages = {
       'No results found for "{query}". Please try other keywords or use the quick navigation above.',
     errorCode: "Error Code",
   },
-
-  // Unauthorized page
   unauthorized: {
     title: "Access Denied",
     description: "Sorry, you don't have permission to access this page",
@@ -1835,6 +1801,8 @@ const enUS: Messages = {
       orderCheckout: "Order Checkout",
       paymentProcessing: "Payment Processing",
       basicFeatures: "Basic Features",
+      cashier: "Cashier",
+      orderProcessing: "Order Processing",
     },
     roles: {
       admin: "System Administrator",
@@ -1845,15 +1813,11 @@ const enUS: Messages = {
       unknown: "Unknown Role",
     },
   },
-
-  // Kitchen layout
   kitchenLayout: {
     title: "Kitchen Display System",
     pendingOrders: "Pending Orders",
     backToAdmin: "Back to Admin",
   },
-
-  // Cashier layout
   cashierLayout: {
     title: "Cashier System",
     cashier: "Cashier: {name}",
@@ -1863,8 +1827,6 @@ const enUS: Messages = {
     online: "Online",
     offline: "Offline",
   },
-
-  // Service layout
   serviceLayout: {
     roleBadge: "Server",
     pendingDelivery: "Pending: {count}",
@@ -1886,7 +1848,6 @@ const enUS: Messages = {
     hoursAgo: "{count} hours ago",
     daysAgo: "{count} days ago",
   },
-
   serviceBookings: {
     title: "Service Bookings",
     subtitle:
@@ -1939,8 +1900,6 @@ const enUS: Messages = {
       cancelSuccess: "Booking cancelled.",
     },
   },
-
-  // Owner dashboard
   owner: {
     kpi: {
       todayRevenue: "Today's Revenue",
@@ -2025,8 +1984,6 @@ const enUS: Messages = {
     statusBusy: "Busy",
     statusOffline: "Offline",
   },
-
-  // Notification panel
   notification: {
     title: "Notifications",
     markAllRead: "Mark All Read",
@@ -2045,8 +2002,6 @@ const enUS: Messages = {
     minutesAgo: "{count} min ago",
     hoursAgo: "{count} hours ago",
   },
-
-  // Leave management
   leaves: {
     title: "Leave Management",
     subtitle: "Manage employee leave requests and balances",
@@ -2089,6 +2044,7 @@ const enUS: Messages = {
       uploadPrompt: "Click or drag files to upload",
       formatNote: "Supported formats: PDF, JPG, PNG",
       submit: "Submit Request",
+      period: "Period",
     },
     balance: {
       title: "Leave Balance",
@@ -2154,8 +2110,6 @@ const enUS: Messages = {
       rejectFailed: "Failed to reject",
     },
   },
-
-  // Cashier
   cashier: {
     title: "Cashier",
     subtitle: "Process order payments and refunds",
@@ -2283,8 +2237,6 @@ const enUS: Messages = {
         "Are you sure you want to end the current shift? This cannot be modified after ending.",
     },
   },
-
-  // Settings
   settings: {
     title: "Settings",
     subtitle: "Manage restaurant system preferences",
@@ -2572,8 +2524,6 @@ const enUS: Messages = {
       regenerateQRAction: "Regenerate",
     },
   },
-
-  // Group Orders
   groupOrders: {
     title: "Group Orders",
     subtitle: "Manage shared orders and split billing",
@@ -2666,8 +2616,6 @@ const enUS: Messages = {
     whatsappMessage:
       "Let's order together!\nShare code: {shareCode}\nLink: {shareUrl}",
   },
-
-  // Service View
   serviceView: {
     title: "Service Station",
     subtitle: "Manage food delivery and table service",
@@ -2734,8 +2682,6 @@ const enUS: Messages = {
         "Issue reported:\nType: {type}\nDescription: {description}",
     },
   },
-
-  // POS System
   pos: {
     title: "POS System",
     subtitle: "Complete point-of-sale management system",
@@ -2843,6 +2789,8 @@ const enUS: Messages = {
       registerName: "Enter new register name:",
       startingCash: "Enter starting cash amount:",
       promotionName: "Enter promotion name:",
+      registerNamePlaceholder: "Enter register name",
+      promotionNamePlaceholder: "Enter promotion name",
     },
     confirms: {
       endShift: "Confirm end current shift?",
@@ -2853,9 +2801,9 @@ const enUS: Messages = {
       orderPayment: "Order {orderNumber} payment",
       newPromotion: "New promotion",
     },
+    createRegister: "Create Register",
+    createPromotion: "Create Promotion",
   },
-
-  // Queue Management
   queue: {
     title: "Queue Management",
     subtitle: "Smart queue management and seat assignment",
@@ -2968,8 +2916,6 @@ const enUS: Messages = {
       displayInDev: "Display settings is under development..",
     },
   },
-
-  // Coupon management
   coupons: {
     title: "Coupon Management",
     subtitle: "Create and manage coupons and promotions",
@@ -3042,10 +2988,9 @@ const enUS: Messages = {
         'Are you sure you want to delete coupon "{name}"? This action cannot be undone.',
       deleteSuccess: "Coupon deleted",
       deleteFailed: "Deletion failed",
+      deleteConfirmTitle: "Delete Confirm Coupons",
     },
   },
-
-  // Analytics
   analytics: {
     title: "Analytics",
     subtitle: "Restaurant business data and trend analysis",
@@ -3343,9 +3288,12 @@ const enUS: Messages = {
       regenerateConfirm: "Are you sure you want to regenerate the QR code?",
       regenerateSuccess: "QR code regenerated",
       regenerateFailed: "Failed to regenerate QR code",
+      regenerateAction: "Regenerate",
+      switchModeAction: "Switch Mode",
+      regenerateTitle: "Regenerate Table Detail",
+      switchModeTitle: "Switch Mode Table Detail",
     },
   },
-  // Seat Management
   seatManagement: {
     title: "Seat Management",
     tableInfo: "Table: {tableNumber} | Seat Mode",
@@ -3398,7 +3346,6 @@ const enUS: Messages = {
       printFailed: "Failed to prepare seat QR codes for printing",
     },
   },
-
   qrRotation: {
     pending: "Prepared for activation",
     prepare: "Prepare",
@@ -3421,7 +3368,6 @@ const enUS: Messages = {
       noneToPrepare: "No QR codes need preparation",
     },
   },
-
   qrReadiness: {
     notReady: "QR not ready",
     notReadyDescription:
@@ -3429,8 +3375,6 @@ const enUS: Messages = {
     skippedNotReady:
       "Skipped {count} QR code(s) that are not ready for printing.",
   },
-
-  // QR Mode Selector
   qrMode: {
     label: "QR Code Management Mode",
     description: "Choose how to generate QR codes for this table",
@@ -3464,8 +3408,6 @@ const enUS: Messages = {
       "Switching to seat mode will automatically create the specified number of seats",
     noticeItem3: "Tables with active orders cannot switch modes",
   },
-
-  // Seat Grid
   seatGrid: {
     title: "Seat View",
     available: "Available",
@@ -3478,8 +3420,6 @@ const enUS: Messages = {
     noSeatsHint: "This table has no seats configured",
     availableSeats: "Available Seats",
   },
-
-  // Coupon Form
   couponForm: {
     editTitle: "Edit Coupon",
     createTitle: "Create Coupon",
@@ -3522,8 +3462,6 @@ const enUS: Messages = {
     update: "Update",
     createBtn: "Create",
   },
-
-  // Coupon Stats
   couponStats: {
     title: "Coupon Statistics",
     couponInfo: "Coupon Information",
@@ -3574,8 +3512,6 @@ const enUS: Messages = {
         "Low average discount. Consider increasing discount value for better appeal",
     },
   },
-
-  // Integrations
   integrations: {
     title: "Delivery Platform Integration",
     subtitle:
@@ -3635,8 +3571,6 @@ const enUS: Messages = {
       disconnectFailed: "Failed to disconnect",
     },
   },
-
-  // Statistics Dashboard
   statisticsDashboard: {
     title: "Statistics Dashboard",
     subtitle:
@@ -3699,7 +3633,6 @@ const enUS: Messages = {
     statusCompleted: "Completed",
     statusCancelled: "Cancelled",
   },
-
   leaveActions: {
     submitSuccess: "Leave request submitted successfully!",
     submitFailed: "Failed to submit leave request",
@@ -3712,9 +3645,9 @@ const enUS: Messages = {
     rejectPrompt: "Please enter the reason for rejection:",
     rejectSuccess: "Leave request rejected",
     rejectFailed: "Rejection failed",
+    approve: "Approve",
+    cancelReasonPrompt: "Cancel Reason Prompt",
   },
-
-  // Payment system
   payment: {
     recommended: "Recommended",
     noMethodsTitle: "No payment methods available",
@@ -4030,8 +3963,6 @@ const enUS: Messages = {
       copied: "Copied to clipboard",
     },
   },
-
-  // Error display
   errorDisplay: {
     pendingRequestsCount: "{count} pending requests",
     reconnect: "Reconnect",
@@ -4061,8 +3992,6 @@ const enUS: Messages = {
     reportNotImplemented:
       "Error reporting is not yet implemented. Please contact technical support.",
   },
-
-  // Role navigation
   roleNav: {
     dashboard: "Dashboard",
     ownerCenter: "Owner Center",
@@ -4093,8 +4022,6 @@ const enUS: Messages = {
       unknown: "Unknown Role",
     },
   },
-
-  // Payment Store
   paymentStore: {
     initFailed: "Payment initialization failed",
     loadMethodsFailed: "Failed to load payment methods",
@@ -4108,22 +4035,16 @@ const enUS: Messages = {
       emailInvalid: "Invalid email format",
     },
   },
-
-  // Order Store
   orderStore: {
     fetchFailed: "Failed to fetch orders",
     updateStatusFailed: "Failed to update order status",
     cancelFailed: "Failed to cancel order",
   },
-
-  // Dashboard Store
   dashboardStore: {
     restaurantIdMissing: "Restaurant ID not found",
     fetchDataFailed: "Failed to fetch data",
     fetchDashboardFailed: "Failed to fetch dashboard data",
   },
-
-  // Clock In/Out system
   clockInOut: {
     title: "Clock In/Out",
     today: "Today",
@@ -4150,8 +4071,6 @@ const enUS: Messages = {
     clockOutSuccess: "Clock out successful!",
     clockFailed: "Clock action failed, please try again",
   },
-
-  // Export Report
   exportReport: {
     title: "Export Monitoring Report",
     quickTemplates: "Quick Templates",
@@ -4188,8 +4107,6 @@ const enUS: Messages = {
     dataTypeHealth: "Health Status",
     dataTypeAll: "Complete Data",
   },
-
-  // Scheduling Conflicts
   schedulingConflicts: {
     title: "Scheduling Conflict Alerts",
     conflictCount: "{count} conflicts need attention",
@@ -4217,8 +4134,6 @@ const enUS: Messages = {
     statusResolved: "Resolved",
     statusIgnored: "Ignored",
   },
-
-  // Schedule Form
   scheduleForm: {
     editTitle: "Edit Schedule",
     addTitle: "Add Schedule",
@@ -4245,8 +4160,6 @@ const enUS: Messages = {
     errorPositiveHours: "Scheduled hours must be greater than 0",
     submitError: "Form submission failed",
   },
-
-  // Realtime Notification Panel
   realtimeNotification: {
     mute: "Mute",
     unmute: "Unmute",
@@ -4281,8 +4194,6 @@ const enUS: Messages = {
     minutesAgo: "{count} min ago",
     hoursAgo: "{count}h ago",
   },
-
-  // Advanced Filter Panel
   advancedFilter: {
     quickFilter: "Quick Filter",
     resetFilter: "Reset Filter",
@@ -4313,8 +4224,6 @@ const enUS: Messages = {
     descriptionOptional: "Description (optional)",
     descriptionPlaceholder: "Describe the purpose of this filter...",
   },
-
-  // Performance Trend Chart
   performanceChart: {
     title: "Performance Trend",
     lineChart: "Line",
@@ -4338,8 +4247,6 @@ const enUS: Messages = {
     trendDown: "Down",
     trendStable: "Stable",
   },
-
-  // Dashboard Layout Editor
   dashboardEditor: {
     addWidget: "Add Widget",
     loadPreset: "Load Preset",
@@ -4360,8 +4267,6 @@ const enUS: Messages = {
     categoryMetrics: "Metrics",
     categoryCharts: "Charts",
   },
-
-  // Order Summary
   orderSummary: {
     title: "Order Summary",
     restaurant: "Restaurant",
@@ -4388,8 +4293,6 @@ const enUS: Messages = {
       unipay: "UniPay",
     },
   },
-
-  // Example Usage (Error Handling Demo)
   exampleUsage: {
     title: "Error Handling System Demo",
     apiErrorTest: "API Error Handling Test",
@@ -4419,8 +4322,6 @@ const enUS: Messages = {
     offlineRequestQueued: "Offline request queued",
     currentlyOnline: "Currently online",
   },
-
-  // Account Management
   accountManagement: {
     title: "Account Management",
     tabOwners: "Owner Accounts",
@@ -4492,8 +4393,6 @@ const enUS: Messages = {
     newRestaurantDistrictRequired: "District is required",
     newRestaurantPhoneRequired: "Restaurant phone is required",
   },
-
-  // Ingredient Management
   ingredients: {
     title: "Ingredient Management",
     subtitle: "Manage ingredients, recipes, and inventory",
@@ -4521,8 +4420,6 @@ const enUS: Messages = {
     noRecipeEntries:
       "No ingredients added yet. Search and add ingredients above.",
   },
-
-  // Forecast
   forecast: {
     title: "Demand Forecast",
     subtitle: "AI-powered demand prediction for menu items and ingredients",
@@ -4553,9 +4450,12 @@ const enUS: Messages = {
     noSupplier: "No Supplier",
     subtotal: "Subtotal",
     totalEstimatedCost: "Total Estimated Cost",
+    accuracyReport: "Accuracy Report",
+    actual: "Actual",
+    deviation: "Deviation",
+    accuracyDescription: "Accuracy description",
+    noAccuracyData: "No Accuracy Data",
   },
-
-  // AI Analytics
   aiAnalytics: {
     title: "AI Analytics",
     subtitle: "AI-powered insights and recommendations for your restaurant",
@@ -4603,8 +4503,6 @@ const enUS: Messages = {
     navProducts: "Product Analytics",
     navConfig: "AI Config",
   },
-
-  // AI Config
   aiConfig: {
     title: "AI Service Configuration",
     subtitle: "Configure AI analytics provider and API keys",
@@ -4640,8 +4538,6 @@ const enUS: Messages = {
     infoCaching: "Smart Caching",
     infoCachingDesc: "Similar queries are cached to save API costs",
   },
-
-  // Product Analytics
   productAnalytics: {
     title: "Product Analytics",
     subtitle: "Deep analysis of dish performance to optimize menu strategy",
@@ -4689,8 +4585,6 @@ const enUS: Messages = {
     actionProfit:
       "Analyze and replicate pricing strategies of high-profit dishes.",
   },
-
-  // Feedback
   feedback: {
     title: "Feedback",
     ownerSubtitle: "Submit usage issues or feature suggestions",
@@ -4784,6 +4678,227 @@ const enUS: Messages = {
       inProgress: "In Progress",
       resolved: "Resolved",
     },
+  },
+  backup: {
+    actions: {
+      details: "Details",
+      refresh: "Refresh",
+      download: "Download",
+      delete: "Delete",
+      restore: "Restore",
+      create: "Create",
+    },
+    alerts: {
+      acknowledge: "Acknowledge",
+      resolve: "Resolve",
+      title: "Backup Alerts",
+    },
+    create: {
+      advancedOptions: "Advanced Options",
+      basicInfo: "Basic Information",
+      configuration: "Configuration",
+      create: "Create",
+      description: "Description",
+      allTables: "All Tables",
+      execution: "Execution",
+      forceImmediate: "Run Immediately",
+      descriptionPlaceholder: "Enter a backup description",
+      creating: "Creating...",
+      name: "Name",
+      includeTables: "Include Tables",
+      selectConfig: "Select Configuration",
+      manualConfig: "Manual Configuration",
+      excludeTables: "Exclude Tables",
+      forceImmediateDescription: "Skip the schedule and start the backup now.",
+      title: "Create Backup",
+      tablesToExclude: "Tables to Exclude",
+      type: "Type",
+      tableSelection: "Table Selection",
+      useConfiguration: "Use Configuration",
+      tablesToInclude: "Tables to Include",
+      selectConfigPlaceholder: "Select a backup configuration",
+      namePlaceholder: "Enter a backup name",
+      useExisting: "Use Existing Configuration",
+    },
+    confirm: {
+      deleteTitle: "Delete Backup",
+      delete: "Are you sure you want to delete this backup?",
+    },
+    details: {
+      configuration: "Configuration",
+      encrypted: "Encrypted",
+      manual: "Manual",
+      performance: "Performance",
+      storage: "Storage",
+      tables: "Tables",
+      checksum: "Checksum",
+      id: "ID",
+      recordsCount: "Record Count",
+    },
+    errors: {
+      nameRequired: "Name Required",
+      nameTooLong: "Name Too Long",
+    },
+    dashboard: {
+      title: "Backup Dashboard",
+    },
+    empty: {
+      createFirst: "Create First Backup",
+      title: "No Backups Yet",
+      description: "Create your first backup to protect restaurant data.",
+    },
+    health: {
+      allSystemsNormal: "All Systems Normal",
+      backupsRunning: "Backups Running",
+      failuresDetected: "Failures Detected",
+      loading: "Loading...",
+    },
+    metrics: {
+      compression: "Compression",
+      duration: "Duration",
+      running: "Running",
+      uploadSpeed: "Upload Speed",
+      failed24h: "Failed in 24h",
+    },
+    monitoring: {
+      acknowledge: "Acknowledge",
+      activeConfigs: "Active Configurations",
+      allRestaurants: "All Restaurants",
+      justNow: "Just now",
+      failed24h: "Failed in 24h",
+      last7days: "Last 7 Days",
+      healthyOnly: "Healthy Only",
+      criticalAlerts: "Critical Alerts",
+      lastBackup: "Last Backup",
+      last30days: "Last 30 Days",
+      resolve: "Resolve",
+      last24h: "Last 24 Hours",
+      hoursAgo: "hours ago",
+      restaurantStatus: "Restaurant Status",
+      noPerformanceData: "No performance data",
+      successRate: "Success Rate",
+      systemHealth: "System Health",
+      storageUsage: "Storage Usage",
+      storageUsed: "Storage Used",
+      runningBackups: "Running Backups",
+      performanceTrends: "Performance Trends",
+      withIssues: "With Issues",
+      viewDetails: "View Details",
+      relatedBackup: "Related Backup",
+      yesterday: "Yesterday",
+      title: "Title",
+      totalRestaurants: "Total Restaurants",
+      totalBackups: "Total Backups",
+    },
+    recent: {
+      viewAll: "View All",
+      title: "Title",
+    },
+    restore: {
+      createdAt: "Created At",
+      confirm: "Confirm",
+      size: "Size",
+      restoring: "Restoring",
+      title: "Title",
+      error: "Error",
+      warning: "Warning",
+      warningMessage: "Warning Message",
+      overwriteExisting: "Overwrite Existing",
+    },
+    stats: {
+      storageUsed: "Storage Used",
+      totalBackups: "Total Backups",
+      successful: "Successful",
+      estimatedCost: "Estimated Cost",
+    },
+    status: {
+      processing: "Processing",
+    },
+    types: {
+      differential: "Differential",
+      incremental: "Incremental",
+      full: "Full",
+    },
+  },
+  realtime: {
+    rooms: {
+      admin: "Admin",
+      kitchen: "Kitchen",
+      customer: "Customer",
+    },
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+    },
+    loading: "Loading...",
+    totalConnections: "Total Connections",
+    title: "Title",
+    lastUpdate: "Last Update",
+    autoRefresh: "Auto Refresh",
+  },
+  schedulingAnalytics: {
+    insightAbsenceDesc: "Insight Absence description",
+    activeEmployees: "Active Employees",
+    dataInsights: "Data Insights",
+    currentlyOnDuty: "Currently On Duty",
+    exportReport: "Export Report",
+    insightCancelledDesc: "Insight Cancelled description",
+    insightAbsenceTitle: "Insight Absence Scheduling Analytics",
+    insightCancelledTitle: "Insight Cancelled Scheduling Analytics",
+    insightOvertimeTitle: "Insight Overtime Scheduling Analytics",
+    insightAllGoodTitle: "Insight All Good Scheduling Analytics",
+    insightAllGoodDesc: "Insight All Good description",
+    viewDetails: "View Details",
+    insightOvertimeDesc: "Insight Overtime description",
+    subtitle: "Subtitle",
+    weeklySchedules: "Weekly Schedules",
+    refreshData: "Refresh Data",
+    title: "Title",
+    viewInsightDetail: "View Insight Detail",
+    totalScheduledHours: "Total Scheduled Hours",
+  },
+  subscriptions: {
+    active: "Active",
+    addSubscription: "Add Subscription",
+    billingUntil: "Billing Until",
+    confirmDeactivateMessage: "Confirm Deactivate Message",
+    form: {
+      createError: "Create Error",
+      planTier: "Plan Tier",
+      restaurantIdRequired: "Restaurant ID Required",
+      create: "Create",
+      restaurantId: "Restaurant ID",
+      trialEndsAt: "Trial Ends At",
+      restaurantIdPlaceholder: "Enter restaurant id",
+    },
+    confirmDeactivateTitle: "Confirm Deactivate Subscriptions",
+    empty: "Empty",
+    deactivate: "Deactivate",
+    inactive: "Inactive",
+    moduleNames: {
+      analytics: "Analytics",
+      coupons: "Coupons",
+      menu_management: "Menu Management",
+      online_ordering: "Online Ordering",
+      platform_integration: "Platform Integration",
+      kitchen_display: "Kitchen Display",
+      ai_analytics: "AI Analytics",
+      loyalty: "Loyalty",
+      receipt_printing: "Receipt Printing",
+      reservations: "Reservations",
+      table_management: "Table Management",
+    },
+    loadError: "Load Error",
+    plans: {
+      basic: "Basic",
+      enterprise: "Enterprise",
+      trial: "Trial",
+      pro: "Pro",
+    },
+    title: "Title",
+    subtitle: "Subtitle",
+    trialEndsAt: "Trial Ends At",
+    modules: "Modules",
   },
 };
 

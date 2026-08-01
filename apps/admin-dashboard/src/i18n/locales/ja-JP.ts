@@ -1,10 +1,9 @@
 import type { Messages } from "../types";
 
 /**
- * 日本語翻訳
+ * Japanese Translation
  */
 const jaJP: Messages = {
-  // 共通語彙
   common: {
     save: "保存",
     cancel: "キャンセル",
@@ -45,9 +44,8 @@ const jaJP: Messages = {
     update: "更新",
     loadFailed: "読み込み失敗",
     retry: "再試行",
+    processing: "処理",
   },
-
-  // メニュー管理
   menu: {
     title: "メニュー管理",
     subtitle: "レストランの料理とカテゴリを管理",
@@ -202,8 +200,6 @@ const jaJP: Messages = {
       available: "available",
     },
   },
-
-  // 注文管理
   orders: {
     stats: {
       pending: "未処理",
@@ -227,6 +223,7 @@ const jaJP: Messages = {
       served: "提供済み",
       completed: "完了",
       cancelled: "キャンセル",
+      refunded: "返金されました",
     },
     type: {
       dineIn: "店内飲食",
@@ -280,8 +277,6 @@ const jaJP: Messages = {
     defaultCustomer: "匿名のお客様",
     updateFailed: "注文ステータスの更新に失敗しました",
   },
-
-  // スケジュールシステム
   scheduling: {
     title: "従業員シフト",
     calendar: "カレンダー表示",
@@ -299,7 +294,6 @@ const jaJP: Messages = {
     editSchedule: "シフト編集",
     deleteSchedule: "シフト削除",
     scheduleDetails: "シフト詳細",
-
     filters: {
       searchEmployee: "従業員名を検索...",
       dateRange: "日付範囲",
@@ -311,7 +305,6 @@ const jaJP: Messages = {
       allShifts: "すべてのシフト",
       to: "から",
     },
-
     columns: {
       date: "日付",
       weekday: "曜日",
@@ -327,7 +320,6 @@ const jaJP: Messages = {
       status: "ステータス",
       notes: "備考",
     },
-
     form: {
       selectEmployee: "従業員を選択",
       selectShift: "シフトを選択",
@@ -340,7 +332,6 @@ const jaJP: Messages = {
       repeatDays: "繰り返し日数",
       repeatUntil: "繰り返し終了日",
     },
-
     batch: {
       title: "一括操作",
       selected: "{count}件選択中",
@@ -350,8 +341,9 @@ const jaJP: Messages = {
       exportSelected: "選択項目をエクスポート",
       confirmAction: "{count}件のシフトにこの操作を実行しますか？",
       cancelConfirm: "{count}件のシフトをキャンセルしてもよろしいですか？",
+      confirm: "確認する",
+      cancel: "キャンセル",
     },
-
     pagination: {
       showing: "{total}件中{start}-{end}件を表示",
       itemsPerPage: "件/ページ",
@@ -361,7 +353,6 @@ const jaJP: Messages = {
       nextPage: "次へ",
       page: "ページ",
     },
-
     conflicts: {
       title: "シフト競合",
       detected: "{count}件の競合を検出",
@@ -375,7 +366,6 @@ const jaJP: Messages = {
       ignore: "無視",
       details: "競合詳細",
     },
-
     stats: {
       totalSchedules: "総シフト数",
       totalHours: "総時間数",
@@ -385,7 +375,6 @@ const jaJP: Messages = {
       thisMonth: "今月",
       today: "今日",
     },
-
     exportReport: "レポートをエクスポート",
     loadingList: "シフト一覧を読み込み中...",
     noData: "シフトデータなし",
@@ -394,16 +383,40 @@ const jaJP: Messages = {
     noExportData: "エクスポートするデータがありません",
     exportFilename: "シフトデータ",
     exportSelected: "選択済み",
+    addTemplate: "テンプレートの追加",
+    cannotGetManagerInfo: "マネージャー情報を取得できません",
+    cannotGetUserInfo: "ユーザー情報を取得できません",
+    approveSwapFailed: "スワップの承認に失敗しました",
+    deleteTemplate: "テンプレートの削除",
+    conflictWarnings: "競合の警告",
+    confirmDeleteSchedule: "削除スケジュールの確認",
+    currentlyWorking: "現在働いています",
+    employeeNumber: "従業員番号",
+    listView: "リストビュー",
+    deleteTemplateFailed: "テンプレートの削除に失敗しました",
+    deleteScheduleFailed: "スケジュールの削除に失敗しました",
+    enterResolutionNotes: "解決メモを入力してください",
+    enterRejectReason: "拒否理由を入力してください",
+    confirmDeleteTemplate: "テンプレートの削除の確認",
+    managementSubtitle: "管理サブタイトル",
+    monthlySchedules: "月間スケジュール",
+    noEmployeesWorking: "従業員が働いていない",
+    peopleCount: "人数カウント",
+    managementTitle: "管理スケジューリング",
+    rejectSwapFailed: "スワップの拒否に失敗しました",
+    since: "以来",
+    pendingSwaps: "保留中のスワップ",
+    pendingConflicts: "保留中の競合",
+    resolveConflictFailed: "競合の解決に失敗しました",
+    saveTemplateFailed: "テンプレートの保存に失敗しました",
+    saveScheduleFailed: "スケジュールの保存に失敗しました",
   },
-
-  // シフトテンプレート
   shiftTemplates: {
     title: "シフトテンプレート",
     create: "テンプレート作成",
     edit: "テンプレート編集",
     delete: "テンプレート削除",
     duplicate: "テンプレート複製",
-
     form: {
       name: "テンプレート名",
       nameRequired: "テンプレート名を入力してください",
@@ -430,7 +443,6 @@ const jaJP: Messages = {
       icon: "アイコン（任意）",
       preview: "プレビュー",
     },
-
     sections: {
       basicInfo: "基本情報",
       workTime: "勤務時間",
@@ -439,32 +451,27 @@ const jaJP: Messages = {
       payRate: "給与（任意）",
       appearance: "外観",
     },
-
     shiftTypes: {
       regular: "通常",
       split: "分割シフト",
       overnight: "夜勤",
     },
-
     overtime: {
       normal: "通常",
       weekday: "平日残業",
       restDay: "休日出勤",
       holiday: "祝日出勤",
     },
-
     errors: {
       minExceedsMax: "最少人数は最大人数を超えることはできません",
       noDaysSelected: "少なくとも1つの適用曜日を選択してください",
     },
-
     usage: {
       title: "使用状況",
       timesUsed: "使用回数",
       lastUsed: "最終使用",
       never: "未使用",
     },
-
     colors: {
       blue: "青",
       green: "緑",
@@ -475,7 +482,6 @@ const jaJP: Messages = {
       cyan: "シアン",
       gray: "グレー",
     },
-
     presets: {
       morning: "朝",
       afternoon: "午後",
@@ -483,8 +489,6 @@ const jaJP: Messages = {
       night: "夜",
       fullDay: "終日",
     },
-
-    // ShiftTemplatesList コンポーネント
     management: "シフトテンプレート管理",
     totalCount: "シフトテンプレート合計{count}件",
     addTemplate: "テンプレート追加",
@@ -507,8 +511,6 @@ const jaJP: Messages = {
         "シフトテンプレート「{name}」を削除してもよろしいですか？この操作は取り消せません。",
     },
   },
-
-  // シフト交換申請
   swapRequests: {
     title: "シフト交換申請",
     create: "シフト交換申請",
@@ -529,14 +531,12 @@ const jaJP: Messages = {
       "他のステータスを表示するにはフィルターを切り替えてください",
     responseNote: "対応コメント",
     processedBy: "{name}が処理",
-
     status: {
       pending: "承認待ち",
       approved: "承認済み",
       rejected: "拒否済み",
       cancelled: "キャンセル済み",
     },
-
     form: {
       requester: "申請者",
       target: "対象従業員",
@@ -548,7 +548,6 @@ const jaJP: Messages = {
       selectTarget: "相手のシフトを選択",
       noAvailableShifts: "利用可能なシフトがありません",
     },
-
     details: {
       requestedBy: "申請者",
       requestedAt: "申請日時",
@@ -562,15 +561,15 @@ const jaJP: Messages = {
       rejectedAt: "拒否日時",
       rejectionReason: "拒否理由",
     },
-
     actions: {
       viewDetails: "詳細を表示",
       approveConfirm: "このシフト交換申請を承認しますか？",
       rejectConfirm: "このシフト交換申請を拒否しますか？",
       cancelConfirm: "このシフト交換申請をキャンセルしますか？",
+      approve: "承認する",
+      reject: "拒否する",
     },
   },
-
   status: {
     scheduled: "スケジュール済み",
     confirmed: "確認済み",
@@ -581,7 +580,6 @@ const jaJP: Messages = {
     inactive: "非アクティブ",
     no_show: "無断欠席",
   },
-
   weekdays: {
     short: {
       sunday: "日",
@@ -611,7 +609,6 @@ const jaJP: Messages = {
       saturday: "土",
     },
   },
-
   errors: {
     generic: "操作に失敗しました。もう一度お試しください",
     networkError: "ネットワークエラー。接続を確認してください",
@@ -627,8 +624,17 @@ const jaJP: Messages = {
     loadFailed: "読み込みに失敗しました",
     saveFailed: "保存に失敗しました",
     deleteFailed: "削除に失敗しました",
+    subscription: {
+      moduleNotEnabled:
+        "この機能は現在のプランには含まれていません。プランをアップグレードするか、サポートに問い合わせて有効にしてください。",
+      noRestaurant:
+        "あなたのアカウントはまだどのレストランにもリンクされていません。管理者に割り当てを依頼してから、再試行してください。",
+      subscriptionNotFound:
+        "このレストランのサブスクリプションが見つからなかったため、その機能はまだ有効化されていません。サインインは問題ありません。セットアップするにはサポートにお問い合わせください。",
+      trialExpired:
+        "試用期間は終了しました。この機能を引き続き使用するには、プランをアップグレードしてください。",
+    },
   },
-
   success: {
     saved: "保存しました",
     deleted: "削除しました",
@@ -642,7 +648,6 @@ const jaJP: Messages = {
     exported: "エクスポートしました",
     imported: "インポートしました",
   },
-
   confirmations: {
     delete: "削除してもよろしいですか？",
     deleteSchedule: "このシフトを削除してもよろしいですか？",
@@ -651,8 +656,6 @@ const jaJP: Messages = {
     unsavedChanges: "未保存の変更があります。本当に離脱しますか？",
     batchDelete: "選択した{count}件を削除してもよろしいですか？",
   },
-
-  // グラフコンポーネント
   charts: {
     workHours: {
       title: "総労働時間統計",
@@ -722,8 +725,6 @@ const jaJP: Messages = {
       totalValue: "{quantity} 食 / ${revenue}",
     },
   },
-
-  // 予約システム
   reservation: {
     title: "予約管理",
     subtitle: "レストランの予約を管理",
@@ -807,9 +808,11 @@ const jaJP: Messages = {
       next: "次へ",
       showing: "{total}件中{start}〜{end}件を表示",
     },
+    cancelAction: "キャンセル",
+    cancelTitle: "予約をキャンセルする",
+    confirmAction: "確認する",
+    confirmTitle: "予約を確認する",
   },
-
-  // 待機リストシステム
   waitingList: {
     title: "待機リスト管理",
     subtitle: "レストランの待機列を管理",
@@ -898,9 +901,11 @@ const jaJP: Messages = {
     pagination: {
       showing: "{total}件中{start}〜{end}件を表示",
     },
+    cancelAction: "キャンセル",
+    cancelTitle: "キャンセル待ちリストをキャンセルする",
+    expireAction: "期限切れ",
+    expireTitle: "待機リストの期限切れ",
   },
-
-  // 座席管理
   seating: {
     title: "座席管理",
     subtitle: "予約・ウェイティング・順番待ちを一元管理",
@@ -920,14 +925,10 @@ const jaJP: Messages = {
       todayServed: "本日対応済み",
     },
   },
-
-  // システム監視
   monitoring: {
     title: "システム監視",
     subtitle:
       "リアルタイムでシステムの健全性、パフォーマンス指標、アラートを監視",
-
-    // ボタンと操作
     actions: {
       refresh: "今すぐ更新",
       refreshing: "更新中...",
@@ -938,8 +939,6 @@ const jaJP: Messages = {
       resetMetrics: "メトリクスをリセット",
       exportReport: "レポートをエクスポート",
     },
-
-    // 健康状態
     health: {
       overall: "全体的な健全性ステータス",
       score: "健全性スコア",
@@ -953,8 +952,6 @@ const jaJP: Messages = {
         down: "ダウン",
       },
     },
-
-    // 主要指標
     keyMetrics: {
       title: "主要指標",
       requestsPerMinute: "毎分リクエスト数",
@@ -963,8 +960,6 @@ const jaJP: Messages = {
       serverErrors: "サーバーエラー",
       clientErrorsNote: "クライアント 4xx: {count}（通常）",
     },
-
-    // コンポーネント状態
     components: {
       title: "システムコンポーネント状態",
       api: "APIサービス",
@@ -980,8 +975,10 @@ const jaJP: Messages = {
       issueCount: "問題: {count}",
       lastCheck: "最終チェック",
       issuesFound: "検出された問題:",
+      queue: "列",
+      storage: "ストレージ",
+      websocket: "ウェブソケット",
     },
-
     statusText: {
       healthy: "正常",
       warning: "警告",
@@ -990,15 +987,11 @@ const jaJP: Messages = {
       unknown: "不明",
       stopped: "停止",
     },
-
-    // タブ
     tabs: {
       alerts: "アラートルール",
       performance: "パフォーマンスレポート",
       errors: "エラー分析",
     },
-
-    // アラートルール
     alerts: {
       title: "アラートルール",
       noAlerts: "アラートルールがありません",
@@ -1033,16 +1026,19 @@ const jaJP: Messages = {
         deleted: "アラートルールが削除されました",
         deleteConfirm: "このアラートルールを削除してもよろしいですか？",
       },
+      status: {
+        acknowledged: "了承しました",
+        active: "アクティブ",
+        muted: "ミュート",
+        resolved: "解決済み",
+      },
     },
-
-    // パフォーマンスレポート
     performance: {
       title: "パフォーマンスレポート",
       selectPeriod: "期間を選択",
       last1Day: "過去1日",
       last7Days: "過去7日",
       last30Days: "過去30日",
-
       api: {
         title: "APIパフォーマンス",
         totalRequests: "総リクエスト数",
@@ -1050,7 +1046,6 @@ const jaJP: Messages = {
         p95ResponseTime: "P95応答時間",
         errorRate: "エラー率",
       },
-
       database: {
         title: "データベースパフォーマンス",
         totalQueries: "総クエリ数",
@@ -1058,7 +1053,6 @@ const jaJP: Messages = {
         slowQueries: "スロークエリ数",
         queryErrorRate: "クエリエラー率",
       },
-
       cache: {
         title: "キャッシュパフォーマンス",
         hitRate: "ヒット率",
@@ -1066,21 +1060,21 @@ const jaJP: Messages = {
         totalSize: "総サイズ",
         expiringKeys: "期限切れ間近",
       },
-
       charts: {
         trendComparison: "パフォーマンストレンド比較（過去24時間）",
         cacheHitRate: "キャッシュヒット率トレンド（過去24時間）",
         apiResponseTime: "API応答時間",
         dbQueryTime: "データベースクエリ時間",
       },
-
       recommendations: {
         title: "最適化の推奨事項",
         loading: "パフォーマンスレポートを読み込み中...",
       },
+      custom: "カスタム",
+      last24Hours: "過去 24 時間",
+      last15Minutes: "最後の15分間",
+      lastHour: "最後の1時間",
     },
-
-    // エラー分析
     errors: {
       title: "エラー分析",
       statistics: "エラータイプ統計",
@@ -1090,8 +1084,6 @@ const jaJP: Messages = {
       occurredTimes: "発生回数",
       errorCount: "エラー数",
     },
-
-    // リアルタイムアラート
     realtime: {
       title: "リアルタイムアラート",
       connectionStatus: {
@@ -1112,8 +1104,6 @@ const jaJP: Messages = {
       minutesAgo: "{count}分前",
       hoursAgo: "{count}時間前",
     },
-
-    // 通知メッセージ
     notifications: {
       dataUpdated: "監視データが更新されました",
       updateFailed: "監視データの更新に失敗しました",
@@ -1126,8 +1116,6 @@ const jaJP: Messages = {
       autoRefreshEnabled: "自動更新が有効化されました",
       autoRefreshDisabled: "自動更新が無効化されました",
     },
-
-    // 高度なフィルター
     filters: {
       title: "高度なフィルター",
       quickFilters: "クイックフィルター",
@@ -1177,8 +1165,6 @@ const jaJP: Messages = {
         filterDeleted: "フィルターが削除されました",
       },
     },
-
-    // エクスポートレポート
     export: {
       title: "レポートをエクスポート",
       exportReport: "レポートをエクスポート",
@@ -1238,7 +1224,6 @@ const jaJP: Messages = {
           "ハイレベルなシステム健全性ステータスと主要指標の概要",
       },
     },
-
     misc: {
       loadingData: "監視データを読み込み中...",
       systemHealth: "システム健全性",
@@ -1256,9 +1241,9 @@ const jaJP: Messages = {
       close: "閉じる",
       chartUnit: "回",
       responseTimeUnit: "応答時間 (ms)",
+      live: "ライブ",
+      stable: "安定した",
     },
-
-    // アラート通知パネル
     alertPanel: {
       title: "ライブアラート",
       reconnect: "再接続",
@@ -1277,8 +1262,6 @@ const jaJP: Messages = {
       minutesAgo: "{count}分前",
       hoursAgo: "{count}時間前",
     },
-
-    // カスタムレイアウト
     layout: {
       title: "ダッシュボードレイアウト",
       editMode: "編集モード",
@@ -1354,9 +1337,93 @@ const jaJP: Messages = {
         confirmDelete: "このレイアウトを削除してもよろしいですか？",
       },
     },
+    createRule: {
+      alertTypes: {
+        email: "電子メール",
+        slack: "スラック",
+        sms: "SMS",
+        webhook: "Webhook",
+      },
+      cancel: "キャンセル",
+      duration: "継続時間 (秒)",
+      alertType: "通知の種類",
+      metric: "メトリック",
+      metricGroups: {
+        api: "APIメトリクス",
+        error: "エラーメトリクス",
+        database: "データベースのメトリクス",
+        resource: "リソースメトリクス",
+        cache: "キャッシュメトリクス",
+      },
+      conditionPreview: "状態のプレビュー",
+      failed: "アラート ルールの作成に失敗しました",
+      durationHint: "条件がこの期間継続するとアラートがトリガーされます",
+      metrics: {
+        apiMetrics: {
+          averageResponseTime: "平均応答時間 (ミリ秒)",
+          p99ResponseTime: "P99 応答時間 (ミリ秒)",
+          p95ResponseTime: "P95 応答時間 (ミリ秒)",
+          totalRequests: "総リクエスト数",
+          errorRate: "エラー率",
+          slowRequestCount: "スローリクエスト数",
+          requestsPerSecond: "リクエスト/秒",
+        },
+        cacheMetrics: {
+          hitRate: "命中率",
+          totalKeys: "キーの総数",
+          totalSize: "キャッシュ サイズ (バイト)",
+        },
+        databaseMetrics: {
+          errorCount: "クエリエラー数",
+          queryCount: "合計クエリ数",
+          slowQueryCount: "スロークエリ数",
+          averageQueryTime: "平均クエリ時間 (ミリ秒)",
+        },
+        errorMetrics: {
+          warningCount: "警告数",
+          criticalErrors: "重大なエラー",
+          totalErrors: "合計エラー数",
+        },
+        resourceMetrics: {
+          cpuUsage: "CPU使用率",
+          memoryUsage: "メモリ使用量",
+          activeConnections: "アクティブな接続",
+        },
+      },
+      enabled: "ルールを有効にする",
+      name: "ルール名",
+      operator: "オペレーター",
+      severities: {
+        critical: "致命的",
+        fatal: "致命的",
+        info: "情報",
+        warning: "警告",
+      },
+      submitting: "作成...",
+      severity: "重大度",
+      threshold: "しきい値",
+      namePlaceholder: "例: API エラー率が高い",
+      thresholdPlaceholder: "例: 0.1",
+      success: "アラート ルールが正常に作成されました",
+      validation: {
+        durationRange: "期間は 1 ～ 3600 秒の間である必要があります",
+        webhookRequired:
+          "Slack または Webhook タイプの場合は Webhook URL が必要です",
+        metricRequired: "指標を選択してください",
+        thresholdRequired: "しきい値は必須です",
+        nameRequired: "ルール名は必須です",
+      },
+      submit: "ルールの作成",
+      title: "アラートルールの作成",
+      selectMetric: "指標を選択してください",
+      webhookUrl: "Webhook URL",
+      webhookUrlPlaceholder: "https://hooks.slack.com/...",
+    },
+    polling: {
+      connected: "モニタリング（ポーリング）",
+      disconnected: "ポーリングが停止しました",
+    },
   },
-
-  // ページタイトルとナビゲーション
   header: {
     title: "MakanMasak 管理ダッシュボード",
     home: "ホーム",
@@ -1387,8 +1454,6 @@ const jaJP: Messages = {
       cashier: "レジ係",
     },
   },
-
-  // ナビゲーション
   nav: {
     featureUnavailable: "未提供",
     platform: "プラットフォーム概要",
@@ -1421,8 +1486,13 @@ const jaJP: Messages = {
       "店舗を選択すると、注文、メニュー、POS、スタッフを管理できます。",
     restaurantManagement: "店舗管理",
     feedback: "フィードバック",
+    waitingTabs: {
+      dashboard: "ライブダッシュボード",
+      list: "待機リスト",
+    },
+    accountManagement: "アカウント",
+    waitingManagement: "待機管理",
   },
-
   pages: {
     login: "ログイン",
     forgotPassword: "パスワード忘れ",
@@ -1462,9 +1532,11 @@ const jaJP: Messages = {
     ingredients: "食材管理",
     feedback: "フィードバック",
     feedbackDetail: "フィードバック詳細",
+    accountManagement: "アカウント管理",
+    subscriptions: "定期購入",
+    waitingManagement: "待機管理",
+    platformMarketCheckouts: "マーケットチェックアウト",
   },
-
-  // プラットフォーム概要
   platform: {
     title: "プラットフォーム概要",
     description:
@@ -1480,7 +1552,6 @@ const jaJP: Messages = {
     loading: "読み込み中...",
     noResults: "レストランが見つかりません",
   },
-
   auth: {
     adminLogin: "管理ダッシュボードログイン",
     username: "ユーザー名",
@@ -1551,7 +1622,6 @@ const jaJP: Messages = {
     tokenVerifyError: "トークンの検証中にエラーが発生しました",
     missingToken: "リセットトークンがありません",
   },
-
   dashboard: {
     title: "ダッシュボード",
     welcome: "おかえりなさい、{username}",
@@ -1597,7 +1667,6 @@ const jaJP: Messages = {
       },
     },
   },
-
   notFound: {
     title: "ページが見つかりません",
     description:
@@ -1620,7 +1689,6 @@ const jaJP: Messages = {
       "「{query}」に関連する機能が見つかりませんでした。他のキーワードを試すか、上のクイックナビゲーションをご利用ください。",
     errorCode: "エラーコード",
   },
-
   unauthorized: {
     title: "アクセス拒否",
     description: "申し訳ございません。このページにアクセスする権限がありません",
@@ -1652,6 +1720,8 @@ const jaJP: Messages = {
       orderCheckout: "注文決済",
       paymentProcessing: "支払い処理",
       basicFeatures: "基本機能",
+      cashier: "キャッシャー",
+      orderProcessing: "注文処理",
     },
     roles: {
       admin: "システム管理者",
@@ -1662,13 +1732,11 @@ const jaJP: Messages = {
       unknown: "不明な役割",
     },
   },
-
   kitchenLayout: {
     title: "キッチンディスプレイ",
     pendingOrders: "未処理の注文",
     backToAdmin: "管理画面に戻る",
   },
-
   cashierLayout: {
     title: "レジシステム",
     cashier: "レジ担当: {name}",
@@ -1678,7 +1746,6 @@ const jaJP: Messages = {
     online: "オンライン",
     offline: "オフライン",
   },
-
   serviceLayout: {
     roleBadge: "配膳スタッフ",
     pendingDelivery: "配膳待ち: {count}",
@@ -1700,7 +1767,6 @@ const jaJP: Messages = {
     hoursAgo: "{count}時間前",
     daysAgo: "{count}日前",
   },
-
   serviceBookings: {
     title: "サービス予約管理",
     subtitle:
@@ -1753,8 +1819,6 @@ const jaJP: Messages = {
       cancelSuccess: "予約を取消しました。",
     },
   },
-
-  // オーナーダッシュボード
   owner: {
     kpi: {
       todayRevenue: "本日の売上",
@@ -1762,6 +1826,8 @@ const jaJP: Messages = {
       onlineStaff: "オンラインスタッフ",
       overallEfficiency: "全体効率",
       normal: "正常",
+      available: "利用可能",
+      tableUtilization: "テーブルの使用率",
     },
     actions: {
       addStaff: "スタッフ追加",
@@ -1811,8 +1877,32 @@ const jaJP: Messages = {
     statusOnline: "オンライン",
     statusBusy: "対応中",
     statusOffline: "オフライン",
+    loading: "読み込み中...",
+    noData: "利用可能なデータがありません",
+    retry: "リトライ",
+    roles: {
+      cashier: "キャッシャー",
+      owner: "所有者",
+      chef: "シェフ",
+      staff: "スタッフ",
+      service: "サービスクルー",
+    },
+    systemDescriptions: {
+      api: "バックエンドサービス",
+      database: "データストレージ",
+      realtime: "WebSocket接続",
+    },
+    timeAgo: {
+      justNow: "ちょうど今",
+      minutesAgo: "{count} 分前",
+    },
+    systemNames: {
+      database: "データベース",
+      realtime: "リアルタイムシステム",
+      api: "APIサービス",
+    },
+    fetchError: "ダッシュボードデータのロードに失敗しました",
   },
-
   notification: {
     title: "通知",
     markAllRead: "すべて既読",
@@ -1831,7 +1921,6 @@ const jaJP: Messages = {
     minutesAgo: "{count}分前",
     hoursAgo: "{count}時間前",
   },
-
   leaves: {
     title: "休暇管理",
     subtitle: "従業員の休暇申請と残高を管理",
@@ -1874,6 +1963,7 @@ const jaJP: Messages = {
       uploadPrompt: "クリックまたはドラッグでファイルをアップロード",
       formatNote: "対応形式: PDF, JPG, PNG",
       submit: "申請を送信",
+      period: "期間",
     },
     balance: {
       title: "休暇残高",
@@ -1898,6 +1988,12 @@ const jaJP: Messages = {
       pending: "審査中",
       approved: "承認済み",
       rejected: "却下",
+      approve: "承認する",
+      reject: "拒否する",
+      reviewer: "査読者",
+      noPending: "保留中の休暇申請はありません",
+      pendingRequests: "保留中のリクエスト",
+      unknownEmployee: "不明な従業員",
     },
     errors: {
       endBeforeStart: "終了日は開始日より前にできません",
@@ -1933,8 +2029,6 @@ const jaJP: Messages = {
       rejectFailed: "却下に失敗しました",
     },
   },
-
-  // テーブル管理
   tables: {
     title: "テーブル管理",
     subtitle: "レストランのテーブルとQRコードを管理",
@@ -2003,6 +2097,8 @@ const jaJP: Messages = {
     confirm: {
       regenerateAllQR:
         "すべてのテーブルのQRコードを再生成してもよろしいですか？",
+      regenerateAllQRAction: "すべての QR を再生成",
+      regenerateAllQRTitle: "すべての QR テーブルを再生成",
     },
     alert: {
       qrGenerated: "QRコードが正常に生成されました",
@@ -2021,8 +2117,6 @@ const jaJP: Messages = {
         "QRコードの生成に失敗しました。しばらくしてからお試しください",
     },
   },
-
-  // レジ
   cashier: {
     title: "レジ",
     subtitle: "注文の支払いと返金を処理",
@@ -2060,6 +2154,8 @@ const jaJP: Messages = {
       wrongOrder: "注文ミス",
       customerCancel: "お客様キャンセル",
       other: "その他の理由",
+      serviceIssue: "サービスの問題",
+      customerChange: "顧客の考えが変わった",
     },
     confirmRefund: "返金を確認",
     cancel: "キャンセル",
@@ -2087,9 +2183,67 @@ const jaJP: Messages = {
       endShift:
         "現在のシフトを終了してもよろしいですか？終了後は変更できません。",
     },
+    amountDue: "未払い額",
+    actualAmount: "実際の金額",
+    applyDiscount: "割引を適用する",
+    avgOrderValue: "平均注文金額",
+    cash: "現金",
+    card: "カード",
+    allOrdersCompleted: "すべての注文が完了しました",
+    cashierName: "キャッシャー",
+    amountReceived: "受取額",
+    cashMatch: "現金は完璧に一致します",
+    currentTime: "現在の時刻",
+    coupon: "クーポン",
+    cashCount: "現金数",
+    discount: "割引",
+    digitalPayment: "デジタル決済",
+    customer: "お客様",
+    done: "終わり",
+    cashOver: "{amount} までに現金を受け取ります",
+    itemList: "アイテム",
+    confirmPayment: "支払いの確認",
+    enterOrderNumber: "注文番号を入力してください",
+    notes: "注意事項",
+    optionalNotes: "オプションのメモ...",
+    orderDetails: "注文の詳細",
+    cashShort: "{amount} による現金不足",
+    paymentFailed: "支払いに失敗しました",
+    paymentSuccess: "支払いが成功しました！",
+    orderTime: "注文時間",
+    orderCompleted: "注文{orderNumber}が完了しました",
+    endShift: "エンドシフト",
+    noPendingOrders: "未決注文はありません",
+    itemCount: "{count} 個のアイテム",
+    received: "受け取った",
+    refundCount: "払い戻し",
+    refundProcess: "返金",
+    pleaseSelectOrder: "処理する注文を選択してください",
+    refundMethod: "返金方法",
+    refundTypes: {
+      full: "全額返金",
+      item: "アイテムの払い戻し",
+      partial: "一部返金",
+      service: "サービスの払い戻し",
+    },
+    printReport: "レポートの印刷",
+    refundType: "返金タイプ",
+    serviceCharge: "サービス料",
+    selectOrder: "注文を選択してください",
+    searchPlaceholder: "注文を検索...",
+    subtotal: "小計",
+    tax: "税",
+    time: "時間",
+    revenueTotal: "収益合計",
+    systemAmount: "システム金額",
+    shiftInfo: "シフト情報",
+    selectReason: "理由を選択してください",
+    total: "合計",
+    transactionDetails: "取引詳細",
+    shiftReport: "シフトレポート",
+    todayPerformance: "本日のパフォーマンス",
+    totalOrders: "総注文数",
   },
-
-  // 設定
   settings: {
     title: "設定",
     subtitle: "レストランのシステム設定を管理",
@@ -2106,6 +2260,8 @@ const jaJP: Messages = {
       notifications: "通知",
       security: "セキュリティ",
       integrations: "連携",
+      contact: "接触",
+      markets: "市場",
     },
     general: {
       restaurantInfo: "レストラン情報",
@@ -2272,10 +2428,113 @@ const jaJP: Messages = {
         "すべての設定をデフォルトにリセットしてもよろしいですか？この操作は取り消せません。",
       regenerateQR:
         "QRコードを再生成してもよろしいですか？バージョン番号が更新されます。",
+      regenerateQRAction: "再生する",
+      resetDefaultsAction: "リセット",
+      resetDefaultsTitle: "デフォルトにリセット",
+      regenerateQRTitle: "QRコードを再生成",
+    },
+    contact: {
+      active: "見える",
+      answer: "答え",
+      displayOrder: "注文",
+      faqTitle: "よくある質問",
+      keywords: "キーワード",
+      emptyFaq: "FAQはまだありません。",
+      keywordsPlaceholder: "予約注文、ピックアップ、ベジタリアン",
+      question: "質問",
+      removeFaq: "取り除く",
+      addFaq: "よくある質問を追加",
+      saving: "保存中...",
+      save: "連絡先プロフィールの保存",
+      loading: "連絡先プロファイルを読み込んでいます...",
+      loadFailed: "連絡先プロファイルのロードに失敗しました",
+      saveFailed: "連絡先プロファイルの保存に失敗しました",
+      saveSuccess: "連絡先プロフィールが保存されました",
+      title: "お問い合わせチャネルとよくある質問",
+      subtitle:
+        "ベンダーのディープリンクと顧客向けの一般的な回答を公開します。",
+    },
+    markets: {
+      area: "エリア",
+      completed: "完了",
+      market: "市場",
+      loading: "市場データを読み込み中...",
+      messagePlaceholder: "例えば出店場所、営業時間、主な取り扱い商品",
+      no: "いいえ",
+      loadFailed: "市場データの読み込みに失敗しました",
+      notReady: "セットアップが必要です",
+      notSet: "未設定",
+      primary: "主要な",
+      empty: "このショップはまだどの市場や地区にも参加していません。",
+      readiness: {
+        contact: {
+          title: "パブリックコンタクトチャンネル",
+          description:
+            "LINE、WhatsApp、Instagram、または Telegram のリンクを少なくとも 1 つ設定します。",
+        },
+        faq: {
+          title: "よくある質問",
+          description:
+            "一般的な受け取り、支払い、予約注文、またはサービスの回答を追加します。",
+        },
+        fulfillment: {
+          title: "取り除く",
+          description:
+            "お客様がディスカバリーから注文できるようにするには、テイクアウトを有効にする必要があります。",
+        },
+        location: {
+          title: "住所とGPS",
+          description:
+            "近くの場所を見つけるには、市、地区、住所、緯度、経度が必要です。",
+        },
+        market: {
+          description:
+            "少なくとも 1 つのマーケットまたは地区に参加して、そのマーケット ページに表示されます。",
+          title: "マーケットメンバーシップ",
+        },
+        shopMode: {
+          description:
+            "直接お持ち帰りのご注文にはショップモードとQRトークンが必要です。",
+          title: "ショップモードQR",
+        },
+      },
+      message: "リクエストメモ",
+      noRequests: "まだ参加リクエストは送信されていません。",
+      noMatchingMarkets:
+        "現在の検索に一致する参加可能なマーケットはありません。",
+      ready: "準備ができて",
+      recommended: "推奨",
+      refresh: "リフレッシュ",
+      readinessTitle: "マーケットプレイスデータの準備状況",
+      requestStatus: {
+        pending: "保留中",
+        rejected: "拒否されました",
+        approved: "承認された",
+      },
+      requestFailed:
+        "リクエストは失敗しました。保留中のリクエストがすでに存在している可能性があります。",
+      requestSuccess: "参加リクエストが送信されました",
+      requestsTitle: "参加リクエストのステータス",
+      requestTitle: "マーケットアクセスのリクエスト",
+      required: "必須",
+      requestsSubtitle:
+        "提出された市場または地区の参加リクエストを追跡し、ステータスを確認します。",
+      readinessSubtitle:
+        "完全な場所、テイクアウト、ショップ モード、連絡先、よくある質問、およびマーケット メンバーシップ データにより、顧客はマーケット ページからこのベンダーを見つけて使用できます。",
+      stall: "ストール",
+      submit: "リクエストの送信",
+      submitting: "送信中...",
+      selectPlaceholder: "市場または地区を選択してください",
+      searchPlaceholder: "市場名、都市、地区、またはタグを検索",
+      yes: "はい",
+      requestSubtitle:
+        "プラットフォーム管理者はリクエストを確認し、ショップを追加します。",
+      subtitle:
+        "このショップが属する夜市、地区、または食品クラスターを表示します。",
+      title: "マーケットメンバーシップ",
+      selectMarket: "マーケットの選択",
     },
   },
-
-  // グループ注文
   groupOrders: {
     title: "グループ注文",
     subtitle: "共有注文と割り勘を管理",
@@ -2368,8 +2627,6 @@ const jaJP: Messages = {
     whatsappMessage:
       "一緒に注文しましょう！\nシェアコード: {shareCode}\nリンク: {shareUrl}",
   },
-
-  // 配膳ビュー
   serviceView: {
     title: "サービスステーション",
     subtitle: "料理の配膳とテーブルサービスを管理",
@@ -2436,8 +2693,6 @@ const jaJP: Messages = {
         "問題が報告されました:\nタイプ: {type}\n説明: {description}",
     },
   },
-
-  // POSシステム
   pos: {
     title: "POSシステム",
     subtitle: "総合POS管理システム",
@@ -2544,6 +2799,8 @@ const jaJP: Messages = {
       registerName: "新しいレジスター名を入力してください:",
       startingCash: "開始時の現金額を入力してください:",
       promotionName: "プロモーション名を入力してください:",
+      promotionNamePlaceholder: "プロモーション名を入力してください",
+      registerNamePlaceholder: "レジスタ名を入力してください",
     },
     confirms: {
       endShift: "現在のシフトを終了してもよろしいですか？",
@@ -2554,9 +2811,9 @@ const jaJP: Messages = {
       orderPayment: "注文{orderNumber}の支払い",
       newPromotion: "新規プロモーション",
     },
+    createPromotion: "プロモーションの作成",
+    createRegister: "レジスターの作成",
   },
-
-  // キュー管理
   queue: {
     title: "キュー管理",
     subtitle: "スマートキュー管理と座席割り当て",
@@ -2668,8 +2925,6 @@ const jaJP: Messages = {
       displayInDev: "表示設定は開発中です...",
     },
   },
-
-  // クーポン管理
   coupons: {
     title: "クーポン管理",
     subtitle: "クーポンとプロモーションを作成・管理",
@@ -2742,10 +2997,9 @@ const jaJP: Messages = {
         "クーポン「{name}」を削除してもよろしいですか？この操作は取り消せません。",
       deleteSuccess: "クーポンが削除されました",
       deleteFailed: "削除に失敗しました",
+      deleteConfirmTitle: "クーポンの削除確認",
     },
   },
-
-  // データ分析
   analytics: {
     title: "データ分析",
     subtitle: "レストランの業績データとトレンド分析",
@@ -2793,9 +3047,12 @@ const jaJP: Messages = {
       averageOrder: "平均注文額",
       tableUtilization: "テーブル稼働率",
     },
+    exporting: "エクスポート中...",
+    loading: "読み込み中...",
+    retry: "リトライ",
+    noData: "利用可能なデータがありません",
+    fetchError: "データのロードに失敗しました。再試行してください",
   },
-
-  // 従業員管理
   users: {
     title: "従業員管理",
     subtitle: "レストランスタッフのアカウントと権限を管理",
@@ -2875,8 +3132,6 @@ const jaJP: Messages = {
       toggleFailed: "ステータスの切り替えに失敗しました",
     },
   },
-
-  // 従業員管理（新ページ）
   employees: {
     title: "従業員管理",
     subtitle: "スタッフ情報、シフト、休暇を管理",
@@ -2998,8 +3253,6 @@ const jaJP: Messages = {
       withdrawn: "取り下げ",
     },
   },
-
-  // テーブル詳細
   tableDetail: {
     backToList: "テーブル一覧に戻る",
     tableNumber: "テーブル{number}",
@@ -3044,10 +3297,12 @@ const jaJP: Messages = {
       regenerateConfirm: "QRコードを再生成してもよろしいですか？",
       regenerateSuccess: "QRコードが再生成されました",
       regenerateFailed: "QRコードの再生成に失敗しました",
+      switchModeAction: "スイッチモード",
+      regenerateAction: "再生する",
+      regenerateTitle: "テーブルの詳細を再生成",
+      switchModeTitle: "スイッチモードテーブルの詳細",
     },
   },
-
-  // 座席管理
   seatManagement: {
     title: "座席管理",
     tableInfo: "テーブル: {tableNumber} | 座席モード",
@@ -3099,8 +3354,6 @@ const jaJP: Messages = {
       printFailed: "座席QRコードの印刷準備に失敗しました",
     },
   },
-
-  // QRモードセレクター
   qrRotation: {
     pending: "有効化待ち",
     prepare: "準備",
@@ -3124,7 +3377,6 @@ const jaJP: Messages = {
       noneToPrepare: "準備が必要なQRコードはありません",
     },
   },
-
   qrReadiness: {
     notReady: "QR未準備",
     notReadyDescription:
@@ -3132,7 +3384,6 @@ const jaJP: Messages = {
     skippedNotReady:
       "印刷準備ができていないQRコードを{count}件スキップしました。",
   },
-
   qrMode: {
     label: "QRコード管理モード",
     description: "このテーブルのQRコード生成方法を選択",
@@ -3163,8 +3414,6 @@ const jaJP: Messages = {
     noticeItem2: "座席モードに切り替えると指定数の座席が自動作成されます",
     noticeItem3: "アクティブな注文があるテーブルはモード切替できません",
   },
-
-  // 座席グリッド
   seatGrid: {
     title: "座席ビュー",
     available: "空席",
@@ -3177,8 +3426,6 @@ const jaJP: Messages = {
     noSeatsHint: "このテーブルには座席が設定されていません",
     availableSeats: "空席数",
   },
-
-  // クーポンフォーム
   couponForm: {
     editTitle: "クーポン編集",
     createTitle: "クーポン作成",
@@ -3221,8 +3468,6 @@ const jaJP: Messages = {
     update: "更新",
     createBtn: "作成",
   },
-
-  // クーポン統計
   couponStats: {
     title: "クーポン統計",
     couponInfo: "クーポン情報",
@@ -3274,8 +3519,6 @@ const jaJP: Messages = {
         "平均割引額が低いです。より魅力的にするために割引値の引き上げを検討してください",
     },
   },
-
-  // 連携
   integrations: {
     title: "デリバリープラットフォーム連携",
     subtitle:
@@ -3334,8 +3577,6 @@ const jaJP: Messages = {
       disconnectFailed: "切断に失敗しました",
     },
   },
-
-  // 統計ダッシュボード
   statisticsDashboard: {
     title: "統計ダッシュボード",
     subtitle: "リアルタイム統計、平均調理時間、完了率、パフォーマンストレンド",
@@ -3397,8 +3638,6 @@ const jaJP: Messages = {
     statusCompleted: "完了",
     statusCancelled: "キャンセル済み",
   },
-
-  // 休暇アクション
   leaveActions: {
     submitSuccess: "休暇申請が送信されました",
     submitFailed: "休暇申請の送信に失敗しました",
@@ -3411,9 +3650,9 @@ const jaJP: Messages = {
     rejectPrompt: "却下理由を入力してください：",
     rejectSuccess: "休暇申請が却下されました",
     rejectFailed: "却下に失敗しました",
+    approve: "承認する",
+    cancelReasonPrompt: "キャンセル理由のプロンプト",
   },
-
-  // 支払いシステム
   payment: {
     recommended: "おすすめ",
     noMethodsTitle: "利用可能な支払い方法がありません",
@@ -3727,8 +3966,6 @@ const jaJP: Messages = {
       copied: "クリップボードにコピーしました",
     },
   },
-
-  // エラー表示
   errorDisplay: {
     pendingRequestsCount: "{count}件の保留中のリクエスト",
     reconnect: "再接続",
@@ -3758,8 +3995,6 @@ const jaJP: Messages = {
     reportNotImplemented:
       "エラー報告はまだ実装されていません。テクニカルサポートにお問い合わせください。",
   },
-
-  // ロールナビゲーション
   roleNav: {
     dashboard: "ダッシュボード",
     ownerCenter: "オーナーセンター",
@@ -3790,8 +4025,6 @@ const jaJP: Messages = {
       unknown: "不明な役割",
     },
   },
-
-  // 支払いストア
   paymentStore: {
     initFailed: "支払いの初期化に失敗しました",
     loadMethodsFailed: "支払い方法の読み込みに失敗しました",
@@ -3805,22 +4038,16 @@ const jaJP: Messages = {
       emailInvalid: "無効なメールアドレス形式です",
     },
   },
-
-  // 注文ストア
   orderStore: {
     fetchFailed: "注文の取得に失敗しました",
     updateStatusFailed: "注文ステータスの更新に失敗しました",
     cancelFailed: "注文のキャンセルに失敗しました",
   },
-
-  // ダッシュボードストア
   dashboardStore: {
     restaurantIdMissing: "レストランIDが見つかりません",
     fetchDataFailed: "データの取得に失敗しました",
     fetchDashboardFailed: "ダッシュボードデータの取得に失敗しました",
   },
-
-  // 出退勤システム
   clockInOut: {
     title: "出退勤",
     today: "今日",
@@ -3847,8 +4074,6 @@ const jaJP: Messages = {
     clockOutSuccess: "退勤打刻が完了しました",
     clockFailed: "打刻に失敗しました。再試行してください",
   },
-
-  // エクスポートレポート
   exportReport: {
     title: "監視レポートをエクスポート",
     quickTemplates: "クイックテンプレート",
@@ -3885,8 +4110,6 @@ const jaJP: Messages = {
     dataTypeHealth: "健全性ステータス",
     dataTypeAll: "完全なデータ",
   },
-
-  // スケジュール競合
   schedulingConflicts: {
     title: "スケジュール競合アラート",
     conflictCount: "{count}件の競合に対応が必要です",
@@ -3914,8 +4137,6 @@ const jaJP: Messages = {
     statusResolved: "解決済み",
     statusIgnored: "無視済み",
   },
-
-  // スケジュールフォーム
   scheduleForm: {
     editTitle: "スケジュール編集",
     addTitle: "スケジュール追加",
@@ -3942,8 +4163,6 @@ const jaJP: Messages = {
     errorPositiveHours: "予定時間は0より大きい必要があります",
     submitError: "フォームの送信に失敗しました",
   },
-
-  // リアルタイム通知パネル
   realtimeNotification: {
     mute: "ミュート",
     unmute: "ミュート解除",
@@ -3978,8 +4197,6 @@ const jaJP: Messages = {
     minutesAgo: "{count}分前",
     hoursAgo: "{count}時間前",
   },
-
-  // 高度なフィルターパネル
   advancedFilter: {
     quickFilter: "クイックフィルター",
     resetFilter: "フィルターをリセット",
@@ -4010,8 +4227,6 @@ const jaJP: Messages = {
     descriptionOptional: "説明（任意）",
     descriptionPlaceholder: "このフィルターの目的を説明...",
   },
-
-  // パフォーマンストレンドチャート
   performanceChart: {
     title: "パフォーマンストレンド",
     lineChart: "折れ線",
@@ -4035,8 +4250,6 @@ const jaJP: Messages = {
     trendDown: "下降",
     trendStable: "安定",
   },
-
-  // ダッシュボードレイアウトエディター
   dashboardEditor: {
     addWidget: "ウィジェット追加",
     loadPreset: "プリセットを読み込み",
@@ -4058,8 +4271,6 @@ const jaJP: Messages = {
     categoryMetrics: "指標",
     categoryCharts: "チャート",
   },
-
-  // 注文サマリー
   orderSummary: {
     title: "注文サマリー",
     restaurant: "レストラン",
@@ -4086,8 +4297,6 @@ const jaJP: Messages = {
       unipay: "UniPay",
     },
   },
-
-  // サンプル使用例（エラーハンドリングデモ）
   exampleUsage: {
     title: "エラーハンドリングシステムデモ",
     apiErrorTest: "APIエラーハンドリングテスト",
@@ -4117,8 +4326,6 @@ const jaJP: Messages = {
     offlineRequestQueued: "オフラインリクエストがキューに追加されました",
     currentlyOnline: "現在オンラインです",
   },
-
-  // 食材管理
   ingredients: {
     title: "食材管理",
     subtitle: "食材・レシピ・在庫の管理",
@@ -4146,8 +4353,6 @@ const jaJP: Messages = {
     noRecipeEntries:
       "食材がまだ追加されていません。上から検索して追加してください。",
   },
-
-  // 需要予測
   forecast: {
     title: "需要予測",
     subtitle: "AIによるメニューと食材の需要予測",
@@ -4179,9 +4384,12 @@ const jaJP: Messages = {
     noSupplier: "仕入先なし",
     subtotal: "小計",
     totalEstimatedCost: "推定総コスト",
+    actual: "実際の",
+    deviation: "偏差",
+    accuracyReport: "精度レポート",
+    accuracyDescription: "精度の説明",
+    noAccuracyData: "精度データなし",
   },
-
-  // AI分析
   aiAnalytics: {
     title: "AI分析",
     subtitle:
@@ -4229,8 +4437,6 @@ const jaJP: Messages = {
     navProducts: "商品分析",
     navConfig: "AI設定",
   },
-
-  // AI設定
   aiConfig: {
     title: "AIサービス設定",
     subtitle: "AI分析サービスのプロバイダーとAPIキーを設定",
@@ -4266,8 +4472,6 @@ const jaJP: Messages = {
     infoCaching: "スマートキャッシュ",
     infoCachingDesc: "類似クエリを自動キャッシュしてAPIコストを節約",
   },
-
-  // 商品分析
   productAnalytics: {
     title: "商品分析",
     subtitle:
@@ -4312,7 +4516,6 @@ const jaJP: Messages = {
     actionBestsellers: "ベストセラーの食材在庫を十分に確保し、品切れを防止",
     actionProfit: "高利益メニューの価格戦略を分析・展開",
   },
-
   feedback: {
     title: "フィードバック",
     ownerSubtitle: "使用上の問題や機能の提案を送信してください",
@@ -4404,6 +4607,299 @@ const jaJP: Messages = {
       inProgress: "対応中",
       resolved: "解決済み",
     },
+  },
+  accountManagement: {
+    accountInfo: "アカウント情報",
+    adminName: "管理者",
+    createdAtCol: "作成されました",
+    email: "電子メール",
+    emailCol: "電子メール",
+    createError: "作成に失敗しました。もう一度お試しください。",
+    emailPlaceholder: "user{'@'}example.com",
+    createAdminSuccess: "管理者アカウントが正常に作成されました",
+    emailInvalid: "有効なメールアドレスを入力してください",
+    emailRequired: "メールアドレスは必須です",
+    fullNamePlaceholder: "フルネーム",
+    fullName: "フルネーム",
+    createNewRestaurant: "+ 新しいレストラン",
+    createOwnerSuccess: "所有者アカウントが正常に作成されました",
+    newRestaurantNameRequired: "レストラン名は必須です",
+    newRestaurantPhoneRequired: "レストランへの電話は必須です",
+    existingAdmins: "既存の管理者",
+    fullNameRequired: "フルネームは必須です",
+    existingOwners: "既存の所有者",
+    newRestaurantDistrictRequired: "地区は必須です",
+    ownerName: "所有者",
+    newRestaurantTypeRequired: "レストランの種類は必須です",
+    ownerPermissions: {
+      manageEmployees: "従業員の管理 (シェフ、サービス、レジ係)",
+      manageSettings: "レストランの設定を管理する",
+      manageMenu: "レストランのメニューを管理する",
+      manageOrders: "注文の表示と管理",
+      viewAnalytics: "ビジネス分析を表示する",
+    },
+    noAdmins: "他に管理者アカウントはまだありません",
+    password: "パスワード",
+    passwordRequired: "パスワードが必要です",
+    noOwners: "オーナーアカウントはまだありません",
+    phonePlaceholder: "オプション",
+    phone: "電話",
+    restaurant: "レストラン",
+    passwordPlaceholder: "8 文字以上、大文字、小文字、数字、特殊文字",
+    passwordStrength:
+      "パスワードは、大文字、小文字、数字、特殊文字を含む 8 文字以上である必要があります",
+    restaurantCol: "レストラン",
+    restaurantDistrict: "地区",
+    restaurantDistrictPlaceholder: "例えば西地区",
+    restaurantAddressPlaceholder: "レストランの住所",
+    restaurantName: "レストラン名",
+    permissionConfirm: "許可の確認",
+    restaurantAddress: "レストランの住所",
+    restaurantBinding: "レストランの装丁",
+    permissionNote: "このアカウントには次の権限が与えられます。",
+    restaurantTypePlaceholder: "例えば日本料理",
+    restaurantRequired: "レストランを選択または作成してください",
+    statusActive: "アクティブ",
+    statusCol: "状態",
+    statusInactive: "非アクティブ",
+    restaurantPhonePlaceholder: "例えば0912345678",
+    restaurantPhone: "レストランの電話",
+    submitAdmin: "管理者アカウントの作成",
+    submitting: "作成...",
+    restaurantType: "レストランの種類",
+    selectRestaurant: "レストランを選択",
+    restaurantNamePlaceholder: "新しいレストラン名",
+    username: "ユーザー名",
+    tabAdmins: "管理者アカウント",
+    title: "アカウント管理",
+    submitOwner: "所有者アカウントの作成",
+    usernameRequired: "ユーザー名は必須です",
+    tabOwners: "所有者のアカウント",
+    usernamePlaceholder: "3～50文字",
+    usernameLength: "ユーザー名は 3 ～ 50 文字である必要があります",
+  },
+  backup: {
+    actions: {
+      create: "作成する",
+      download: "ダウンロード",
+      details: "詳細",
+      delete: "消去",
+      refresh: "リフレッシュ",
+      restore: "復元する",
+    },
+    alerts: {
+      resolve: "解決する",
+      acknowledge: "認める",
+      title: "バックアップアラート",
+    },
+    create: {
+      advancedOptions: "詳細オプション",
+      basicInfo: "基本情報",
+      configuration: "構成",
+      create: "作成する",
+      creating: "作成...",
+      description: "説明",
+      allTables: "すべてのテーブル",
+      execution: "実行",
+      forceImmediate: "すぐに実行",
+      descriptionPlaceholder: "バックアップの説明を入力します",
+      excludeTables: "テーブルの除外",
+      name: "名前",
+      manualConfig: "手動構成",
+      selectConfig: "構成の選択",
+      forceImmediateDescription:
+        "スケジュールをスキップして、今すぐバックアップを開始してください。",
+      namePlaceholder: "バックアップ名を入力してください",
+      title: "バックアップの作成",
+      includeTables: "テーブルを含める",
+      tableSelection: "テーブルの選択",
+      selectConfigPlaceholder: "バックアップ構成を選択します",
+      useConfiguration: "構成を使用する",
+      tablesToInclude: "含めるテーブル",
+      tablesToExclude: "除外するテーブル",
+      useExisting: "既存の構成を使用する",
+      type: "タイプ",
+    },
+    confirm: {
+      deleteTitle: "バックアップの削除",
+      delete: "このバックアップを削除してもよろしいですか?",
+    },
+    details: {
+      configuration: "構成",
+      encrypted: "暗号化された",
+      checksum: "チェックサム",
+      manual: "マニュアル",
+      storage: "ストレージ",
+      performance: "パフォーマンス",
+      tables: "テーブル",
+      recordsCount: "レコード数",
+      id: "ID",
+    },
+    dashboard: {
+      title: "バックアップダッシュボード",
+    },
+    empty: {
+      description:
+        "レストランのデータを保護するために最初のバックアップを作成します。",
+      createFirst: "最初のバックアップを作成する",
+      title: "まだバックアップはありません",
+    },
+    errors: {
+      nameRequired: "名前は必須です",
+      nameTooLong: "名前が長すぎます",
+    },
+    metrics: {
+      compression: "圧縮",
+      running: "ランニング",
+      duration: "間隔",
+      uploadSpeed: "アップロード速度",
+      failed24h: "24時間以内に失敗しました",
+    },
+    health: {
+      backupsRunning: "バックアップの実行中",
+      failuresDetected: "検出された障害",
+      allSystemsNormal: "すべてのシステムが正常",
+      loading: "読み込み中...",
+    },
+    monitoring: {
+      acknowledge: "認める",
+      activeConfigs: "アクティブな構成",
+      allRestaurants: "すべてのレストラン",
+      criticalAlerts: "重大なアラート",
+      failed24h: "24時間以内に失敗しました",
+      justNow: "ちょうど今",
+      healthyOnly: "健康のみ",
+      hoursAgo: "数時間前",
+      last30days: "過去 30 日間",
+      lastBackup: "最後のバックアップ",
+      resolve: "解決する",
+      last24h: "過去 24 時間",
+      runningBackups: "バックアップの実行",
+      performanceTrends: "パフォーマンスの傾向",
+      last7days: "過去 7 日間",
+      restaurantStatus: "レストランのステータス",
+      successRate: "成功率",
+      noPerformanceData: "パフォーマンスデータがありません",
+      systemHealth: "システムの健全性",
+      storageUsed: "使用済みストレージ",
+      title: "タイトル",
+      relatedBackup: "関連するバックアップ",
+      storageUsage: "ストレージの使用量",
+      yesterday: "昨日",
+      totalBackups: "合計バックアップ数",
+      totalRestaurants: "レストラン総数",
+      viewDetails: "詳細を見る",
+      withIssues: "問題あり",
+    },
+    recent: {
+      viewAll: "すべて見る",
+      title: "タイトル",
+    },
+    restore: {
+      createdAt: "作成日",
+      confirm: "確認する",
+      error: "エラー",
+      warning: "警告",
+      title: "タイトル",
+      restoring: "復元中",
+      size: "サイズ",
+      warningMessage: "警告メッセージ",
+      overwriteExisting: "既存の上書き",
+    },
+    stats: {
+      storageUsed: "使用済みストレージ",
+      totalBackups: "合計バックアップ数",
+      estimatedCost: "推定コスト",
+      successful: "成功",
+    },
+    status: {
+      processing: "処理",
+    },
+    types: {
+      incremental: "増分",
+      differential: "ディファレンシャル",
+      full: "満杯",
+    },
+  },
+  realtime: {
+    rooms: {
+      admin: "管理者",
+      customer: "お客様",
+      kitchen: "台所",
+    },
+    status: {
+      active: "アクティブ",
+      inactive: "非アクティブ",
+    },
+    loading: "読み込み中...",
+    lastUpdate: "最終更新",
+    autoRefresh: "自動更新",
+    totalConnections: "総接続数",
+    title: "タイトル",
+  },
+  schedulingAnalytics: {
+    exportReport: "レポートのエクスポート",
+    dataInsights: "データ洞察",
+    currentlyOnDuty: "現在勤務中",
+    activeEmployees: "活躍する従業員",
+    insightAbsenceTitle: "インサイト欠勤スケジュール分析",
+    insightAllGoodDesc: "インサイトオールグッドの説明",
+    insightAbsenceDesc: "インサイト不在の説明",
+    insightCancelledDesc: "インサイトの説明がキャンセルされました",
+    insightAllGoodTitle: "Insight All Good スケジューリング分析",
+    refreshData: "データを更新する",
+    insightOvertimeDesc: "インサイトの残業時間の説明",
+    viewDetails: "詳細を見る",
+    subtitle: "字幕",
+    insightCancelledTitle: "Insight キャンセルされたスケジュール分析",
+    insightOvertimeTitle: "Insight 残業スケジュール分析",
+    title: "タイトル",
+    totalScheduledHours: "合計予定時間",
+    viewInsightDetail: "インサイトの詳細を表示",
+    weeklySchedules: "週間スケジュール",
+  },
+  subscriptions: {
+    addSubscription: "サブスクリプションの追加",
+    active: "アクティブ",
+    billingUntil: "請求期限",
+    confirmDeactivateMessage: "非アクティブ化メッセージの確認",
+    form: {
+      createError: "エラーの作成",
+      restaurantId: "レストランID",
+      create: "作成する",
+      restaurantIdPlaceholder: "レストランIDを入力してください",
+      planTier: "プラン階層",
+      restaurantIdRequired: "レストランIDが必要です",
+      trialEndsAt: "トライアル終了日",
+    },
+    confirmDeactivateTitle: "サブスクリプションの非アクティブ化の確認",
+    empty: "空の",
+    deactivate: "非アクティブ化",
+    inactive: "非アクティブ",
+    moduleNames: {
+      coupons: "クーポン",
+      analytics: "分析",
+      ai_analytics: "AI分析",
+      loyalty: "忠誠心",
+      online_ordering: "オンライン注文",
+      kitchen_display: "キッチンディスプレイ",
+      platform_integration: "プラットフォームの統合",
+      menu_management: "メニュー管理",
+      reservations: "予約",
+      table_management: "テーブル管理",
+      receipt_printing: "レシート印刷",
+    },
+    loadError: "ロードエラー",
+    plans: {
+      enterprise: "企業",
+      basic: "基本",
+      trial: "トライアル",
+      pro: "プロ",
+    },
+    title: "タイトル",
+    subtitle: "字幕",
+    modules: "モジュール",
+    trialEndsAt: "トライアル終了日",
   },
 };
 
