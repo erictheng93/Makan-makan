@@ -10,6 +10,21 @@
         {{ t("tables.batchGenerateQR") }}
       </button>
       <button
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#0A84FF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        @click="prepareFilteredTableQRCodes"
+      >
+        <QrCode class="w-4 h-4 mr-1.5" />
+        {{ t("qrRotation.prepareShown") }}
+      </button>
+      <button
+        v-if="pendingTableCount > 0"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#FF9500] text-white hover:bg-[#E08600] transition-colors shadow-sm"
+        @click="discardAllPreparedTableQRCodes"
+      >
+        <XCircle class="w-4 h-4 mr-1.5" />
+        {{ t("qrRotation.discardAll") }}
+      </button>
+      <button
         v-if="selectedPrintableCount > 0"
         class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#1C1C1E] text-white hover:bg-[#1C1C1E]/85 transition-colors shadow-sm"
         @click="printSelectedTableQRCodes"
@@ -151,7 +166,17 @@
           <!-- QR Code Preview -->
           <div class="mb-4 text-center">
             <div class="inline-block p-2 bg-[#F2F2F7] rounded-xl">
-              <QRCodeRenderer :content="table.qrCode" :size="72" :padding="4" />
+              <QRCodeRenderer
+                :content="printableTableQrCode(table)"
+                :size="72"
+                :padding="4"
+              />
+            </div>
+            <div
+              v-if="tableHasPendingQr(table)"
+              class="mt-2 text-xs font-medium text-[#FF9500]"
+            >
+              {{ t("qrRotation.pending") }}
             </div>
           </div>
 
@@ -182,6 +207,27 @@
               @click="changeTableStatus(table)"
             >
               {{ getStatusButtonText(table.status) }}
+            </button>
+            <button
+              v-if="!tableHasPendingQr(table)"
+              class="px-3 py-2 text-sm bg-[#0A84FF] text-white rounded-full hover:bg-[#0066D6] transition-colors"
+              @click="prepareTableQRCode(table)"
+            >
+              {{ t("qrRotation.prepare") }}
+            </button>
+            <button
+              v-if="tableHasPendingQr(table)"
+              class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
+              @click="activateTableQRCode(table)"
+            >
+              {{ t("qrRotation.activate") }}
+            </button>
+            <button
+              v-if="tableHasPendingQr(table)"
+              class="px-3 py-2 text-sm bg-[#FF3B30] text-white rounded-full hover:bg-[#E0352B] transition-colors"
+              @click="discardTableQRCode(table)"
+            >
+              {{ t("qrRotation.discard") }}
             </button>
           </div>
         </div>
@@ -366,14 +412,16 @@
               <div class="inline-block p-4 bg-[#F2F2F7] rounded-2xl">
                 <QRCodeRenderer
                   ref="qrModalRef"
-                  :content="selectedTable?.qrCode || ''"
+                  :content="
+                    selectedTable ? printableTableQrCode(selectedTable) : ''
+                  "
                   :size="200"
                   :padding="12"
                   container-class="shadow-sm"
                 />
               </div>
               <p class="text-xs text-[#1C1C1E]/30 mt-2 font-mono">
-                {{ selectedTable?.qrCode }}
+                {{ selectedTable ? printableTableQrCode(selectedTable) : "" }}
               </p>
             </div>
 
@@ -420,6 +468,7 @@ import {
   MapPin,
   FileText,
   TableProperties,
+  XCircle,
 } from "lucide-vue-next";
 import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
@@ -449,6 +498,9 @@ const mapTable = (t: any) => ({
   location: t.location || "",
   status: !t.isActive ? "maintenance" : t.isOccupied ? "occupied" : "available",
   qrCode: t.qrCode || "",
+  pendingQrCode: t.pendingQrCode || "",
+  pendingQrCodeVersion: t.pendingQrCodeVersion ?? null,
+  pendingQrPreparedAt: t.pendingQrPreparedAt ?? null,
   qrMode: t.qrMode || "table",
   seatCount: t.seatCount ?? 0,
   seatNumberingStyle: t.seatNumberingStyle || "numeric",
@@ -518,6 +570,9 @@ const filteredTables = computed(() => {
 const selectedTableIds = ref<number[]>([]);
 
 const isTableSelected = (id: number) => selectedTableIds.value.includes(id);
+const printableTableQrCode = (table: any) =>
+  table.pendingQrCode || table.qrCode || "";
+const tableHasPendingQr = (table: any) => Boolean(table.pendingQrCode);
 
 const toggleTableSelection = (id: number) => {
   selectedTableIds.value = isTableSelected(id)
@@ -545,12 +600,16 @@ const toggleSelectAllFiltered = () => {
 
 const selectedPrintableTables = computed(() =>
   tables.value.filter(
-    (table) => isTableSelected(table.id) && Boolean(table.qrCode),
+    (table) =>
+      isTableSelected(table.id) && Boolean(printableTableQrCode(table)),
   ),
 );
 
 const selectedPrintableCount = computed(
   () => selectedPrintableTables.value.length,
+);
+const pendingTableCount = computed(
+  () => tables.value.filter(tableHasPendingQr).length,
 );
 
 const printSelectedTableQRCodes = async () => {
@@ -612,6 +671,100 @@ const generateAllQRCodes = async () => {
   } catch (error) {
     console.error("Failed to generate QR codes:", error);
     toast.error(t("tables.alert.qrGenerateFailed"));
+  }
+};
+
+const prepareTableQRCode = async (table: any) => {
+  try {
+    await api.post(`/tables/${table.id}/qr/prepare`);
+    await fetchTables();
+    toast.success(t("qrRotation.alerts.prepared"));
+  } catch (error) {
+    console.error("Failed to prepare QR rotation:", error);
+    toast.error(t("qrRotation.alerts.prepareFailed"));
+  }
+};
+
+const activateTableQRCode = async (table: any) => {
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("qrRotation.activate"),
+    message: t("qrRotation.confirmActivate"),
+    confirmLabel: t("qrRotation.activate"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await api.post(`/tables/${table.id}/qr/activate`);
+    await fetchTables();
+    toast.success(t("qrRotation.alerts.activated"));
+  } catch (error) {
+    console.error("Failed to activate QR rotation:", error);
+    toast.error(t("qrRotation.alerts.activateFailed"));
+  }
+};
+
+const discardTableQRCode = async (table: any) => {
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("qrRotation.discard"),
+    message: t("qrRotation.confirmDiscard"),
+    confirmLabel: t("qrRotation.discard"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await api.post(`/tables/${table.id}/qr/discard`);
+    await fetchTables();
+    toast.success(t("qrRotation.alerts.discarded"));
+  } catch (error) {
+    console.error("Failed to discard QR rotation:", error);
+    toast.error(t("qrRotation.alerts.discardFailed"));
+  }
+};
+
+const prepareFilteredTableQRCodes = async () => {
+  const targets = filteredTables.value.filter(
+    (table) => !tableHasPendingQr(table),
+  );
+  if (targets.length === 0) {
+    toast.warning(t("qrRotation.alerts.noneToPrepare"));
+    return;
+  }
+
+  try {
+    await Promise.all(
+      targets.map((table) => api.post(`/tables/${table.id}/qr/prepare`)),
+    );
+    await fetchTables();
+    toast.success(t("qrRotation.alerts.prepared"));
+  } catch (error) {
+    console.error("Failed to prepare table QR rotations:", error);
+    toast.error(t("qrRotation.alerts.prepareFailed"));
+  }
+};
+
+const discardAllPreparedTableQRCodes = async () => {
+  const targets = tables.value.filter(tableHasPendingQr);
+  if (targets.length === 0) return;
+
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("qrRotation.discardAll"),
+    message: t("qrRotation.confirmDiscardAll"),
+    confirmLabel: t("qrRotation.discardAll"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await Promise.all(
+      targets.map((table) => api.post(`/tables/${table.id}/qr/discard`)),
+    );
+    await fetchTables();
+    toast.success(t("qrRotation.alerts.discarded"));
+  } catch (error) {
+    console.error("Failed to discard table QR rotations:", error);
+    toast.error(t("qrRotation.alerts.discardFailed"));
   }
 };
 
@@ -742,7 +895,11 @@ const printQRCode = () => {
  * is not workable for a rollout (#88 phase 2).
  */
 const printTableQRCodes = async (
-  targets: Array<{ tableNumber: string; qrCode: string }>,
+  targets: Array<{
+    tableNumber: string;
+    qrCode?: string;
+    pendingQrCode?: string;
+  }>,
 ) => {
   if (targets.length === 0) {
     toast.warning(t("tables.alert.nothingToPrint"));
@@ -753,7 +910,7 @@ const printTableQRCodes = async (
     const qrCodes = await Promise.all(
       targets.map(async (table) => ({
         label: t("tables.qrModal.title", { number: table.tableNumber }),
-        dataUrl: await toPrintableDataUrl(table.qrCode),
+        dataUrl: await toPrintableDataUrl(printableTableQrCode(table)),
       })),
     );
     if (!printQRCodeSheet(t("tables.qrModal.printAllTitle"), qrCodes)) {
@@ -766,7 +923,9 @@ const printTableQRCodes = async (
 };
 
 const printAllTableQRCodes = async () => {
-  await printTableQRCodes(filteredTables.value.filter((table) => table.qrCode));
+  await printTableQRCodes(
+    filteredTables.value.filter((table) => printableTableQrCode(table)),
+  );
 };
 
 const fetchTables = async () => {

@@ -130,6 +130,9 @@ export class SeatService extends BaseService {
           qrCode: seats.qrCode,
           qrCodeImageUrl: seats.qrCodeImageUrl,
           qrCodeVersion: seats.qrCodeVersion,
+          pendingQrCode: seats.pendingQrCode,
+          pendingQrCodeVersion: seats.pendingQrCodeVersion,
+          pendingQrPreparedAt: seats.pendingQrPreparedAt,
           isOccupied: seats.isOccupied,
           isActive: seats.isActive,
           currentOrderId: seats.currentOrderId,
@@ -244,6 +247,9 @@ export class SeatService extends BaseService {
           qrCode: seats.qrCode,
           qrCodeImageUrl: seats.qrCodeImageUrl,
           qrCodeVersion: seats.qrCodeVersion,
+          pendingQrCode: seats.pendingQrCode,
+          pendingQrCodeVersion: seats.pendingQrCodeVersion,
+          pendingQrPreparedAt: seats.pendingQrPreparedAt,
           isOccupied: seats.isOccupied,
           isActive: seats.isActive,
           currentOrderId: seats.currentOrderId,
@@ -439,6 +445,9 @@ export class SeatService extends BaseService {
         .set({
           qrCode: newQRCode,
           qrCodeVersion: newVersion,
+          pendingQrCode: null,
+          pendingQrCodeVersion: null,
+          pendingQrPreparedAt: null,
           updatedAt: new Date(),
         })
         .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
@@ -452,6 +461,220 @@ export class SeatService extends BaseService {
   /**
    * 批量生成座位 QR Codes
    */
+  async prepareSeatQRCodeRotation(
+    seatId: number,
+  ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+    try {
+      const seat = await this.db
+        .select({
+          tableId: seats.tableId,
+          seatNumber: seats.seatNumber,
+          qrCodeVersion: seats.qrCodeVersion,
+          pendingQrCode: seats.pendingQrCode,
+        })
+        .from(seats)
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
+        .get();
+
+      if (!seat) {
+        return { success: false, error: "Seat not found" };
+      }
+      if (seat.pendingQrCode) {
+        return { success: true, qrCode: seat.pendingQrCode };
+      }
+
+      const table = await this.db
+        .select({ restaurantId: tables.restaurantId })
+        .from(tables)
+        .where(eq(tables.id, seat.tableId))
+        .get();
+
+      if (!table) {
+        return { success: false, error: "Table not found" };
+      }
+
+      const pendingVersion = (seat.qrCodeVersion || 0) + 1;
+      const pendingQrCode = await this.generateSeatQRCode(
+        table.restaurantId,
+        seat.tableId,
+        seat.seatNumber,
+        pendingVersion,
+      );
+
+      await this.db
+        .update(seats)
+        .set({
+          pendingQrCode,
+          pendingQrCodeVersion: pendingVersion,
+          pendingQrPreparedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
+
+      return { success: true, qrCode: pendingQrCode };
+    } catch (error) {
+      return { success: false, error: "Failed to prepare QR code rotation" };
+    }
+  }
+
+  async activateSeatQRCodeRotation(
+    seatId: number,
+  ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
+    try {
+      const seat = await this.db
+        .select({
+          pendingQrCode: seats.pendingQrCode,
+          pendingQrCodeVersion: seats.pendingQrCodeVersion,
+        })
+        .from(seats)
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
+        .get();
+
+      if (!seat) {
+        return { success: false, error: "Seat not found" };
+      }
+      if (!seat.pendingQrCode || seat.pendingQrCodeVersion == null) {
+        return { success: false, error: "No prepared QR code to activate" };
+      }
+
+      await this.db
+        .update(seats)
+        .set({
+          qrCode: seat.pendingQrCode,
+          qrCodeVersion: seat.pendingQrCodeVersion,
+          pendingQrCode: null,
+          pendingQrCodeVersion: null,
+          pendingQrPreparedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
+
+      return { success: true, qrCode: seat.pendingQrCode };
+    } catch (error) {
+      return { success: false, error: "Failed to activate QR code rotation" };
+    }
+  }
+
+  async discardSeatQRCodeRotation(
+    seatId: number,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.db
+        .update(seats)
+        .set({
+          pendingQrCode: null,
+          pendingQrCodeVersion: null,
+          pendingQrPreparedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: "Failed to discard QR code rotation" };
+    }
+  }
+
+  async batchPrepareSeatQRCodeRotations(tableId: number): Promise<{
+    success: boolean;
+    qrCodes?: Array<{ seatId: number; qrCode: string; seatNumber: string }>;
+    error?: string;
+  }> {
+    try {
+      const table = await this.db
+        .select({ restaurantId: tables.restaurantId })
+        .from(tables)
+        .where(eq(tables.id, tableId))
+        .get();
+
+      if (!table) {
+        return { success: false, error: "Table not found" };
+      }
+
+      const seatsList = await this.db
+        .select({
+          id: seats.id,
+          seatNumber: seats.seatNumber,
+          qrCodeVersion: seats.qrCodeVersion,
+          pendingQrCode: seats.pendingQrCode,
+        })
+        .from(seats)
+        .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)))
+        .orderBy(asc(seats.seatNumber));
+
+      if (seatsList.length === 0) {
+        return { success: true, qrCodes: [] };
+      }
+
+      const prepared = await Promise.all(
+        seatsList.map(async (seat) => {
+          if (seat.pendingQrCode) {
+            return {
+              seatId: seat.id,
+              seatNumber: seat.seatNumber,
+              pendingVersion: null,
+              qrCode: seat.pendingQrCode,
+            };
+          }
+
+          const pendingVersion = (seat.qrCodeVersion || 0) + 1;
+          return {
+            seatId: seat.id,
+            seatNumber: seat.seatNumber,
+            pendingVersion,
+            qrCode: await this.generateSeatQRCode(
+              table.restaurantId,
+              tableId,
+              seat.seatNumber,
+              pendingVersion,
+            ),
+          };
+        }),
+      );
+
+      const updatedAt = new Date();
+      const writes = prepared
+        .filter(
+          (
+            preparedSeat,
+          ): preparedSeat is {
+            seatId: number;
+            seatNumber: string;
+            pendingVersion: number;
+            qrCode: string;
+          } => preparedSeat.pendingVersion !== null,
+        )
+        .map(({ seatId, qrCode, pendingVersion }) =>
+          this.db
+            .update(seats)
+            .set({
+              pendingQrCode: qrCode,
+              pendingQrCodeVersion: pendingVersion,
+              pendingQrPreparedAt: updatedAt,
+              updatedAt,
+            })
+            .where(and(eq(seats.id, seatId), isNull(seats.deletedAt))),
+        );
+
+      if (writes.length > 0) {
+        await this.db.batch(
+          writes as unknown as Parameters<typeof this.db.batch>[0],
+        );
+      }
+
+      return {
+        success: true,
+        qrCodes: prepared.map(({ seatId, seatNumber, qrCode }) => ({
+          seatId,
+          seatNumber,
+          qrCode,
+        })),
+      };
+    } catch (error) {
+      return { success: false, error: "Failed to prepare QR code rotation" };
+    }
+  }
+
   async batchGenerateSeatQRCodes(tableId: number): Promise<{
     success: boolean;
     qrCodes?: Array<{ seatId: number; qrCode: string; seatNumber: string }>;
@@ -504,7 +727,14 @@ export class SeatService extends BaseService {
       const writes = regenerated.map(({ seatId, qrCode, newVersion }) =>
         this.db
           .update(seats)
-          .set({ qrCode, qrCodeVersion: newVersion, updatedAt })
+          .set({
+            qrCode,
+            qrCodeVersion: newVersion,
+            pendingQrCode: null,
+            pendingQrCodeVersion: null,
+            pendingQrPreparedAt: null,
+            updatedAt,
+          })
           .where(and(eq(seats.id, seatId), isNull(seats.deletedAt))),
       );
 

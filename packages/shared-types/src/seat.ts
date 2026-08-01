@@ -48,6 +48,9 @@ export interface Seat {
   qrCode: string;
   qrCodeImageUrl?: string;
   qrCodeVersion: number;
+  pendingQrCode?: string | null;
+  pendingQrCodeVersion?: number | null;
+  pendingQrPreparedAt?: Date | string | null;
 
   // 狀態
   isOccupied: boolean;

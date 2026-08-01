@@ -6,6 +6,10 @@ export interface Table extends BaseEntity {
   tableName?: string;
   capacity: number;
   qrCode: string;
+  qrCodeVersion?: number;
+  pendingQrCode?: string | null;
+  pendingQrCodeVersion?: number | null;
+  pendingQrPreparedAt?: Date | string | null;
   status: TableStatus;
 }
 

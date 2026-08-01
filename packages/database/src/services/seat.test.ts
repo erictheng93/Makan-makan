@@ -482,6 +482,148 @@ describe("SeatService.batchGenerateSeatQRCodes", () => {
   });
 });
 
+describe("SeatService two-phase QR rotation", () => {
+  let testDb: TestDatabase;
+  let tableId: number;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, 180_000);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: restaurantId,
+      name: "Seat Rotation Restaurant",
+      type: "restaurant",
+      category: "casual",
+      address: "1 Seat Rotation St",
+      district: "Central",
+      city: "Taipei",
+      phone: "0200000000",
+      settings: {},
+      isAvailable: true,
+      isActive: true,
+      createdAt: new Date("2026-07-31T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-31T00:00:00.000Z"),
+    } as never);
+    const [table] = await testDb.drizzle
+      .insert(tables)
+      .values({
+        restaurantId,
+        number: "S1",
+        capacity: 4,
+        qrCode: "table-qr-s1",
+        qrMode: "seat",
+        seatCount: 2,
+        createdAt: new Date("2026-07-31T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-31T00:00:00.000Z"),
+      })
+      .returning({ id: tables.id });
+    tableId = table.id;
+    await createService(testDb).createSeatsForTable(tableId, 2);
+  }, 60_000);
+
+  async function readSeats() {
+    return testDb.drizzle
+      .select({
+        id: seats.id,
+        seatNumber: seats.seatNumber,
+        qrCode: seats.qrCode,
+        qrCodeVersion: seats.qrCodeVersion,
+        pendingQrCode: seats.pendingQrCode,
+        pendingQrCodeVersion: seats.pendingQrCodeVersion,
+        pendingQrPreparedAt: seats.pendingQrPreparedAt,
+      })
+      .from(seats)
+      .where(eq(seats.tableId, tableId))
+      .orderBy(asc(seats.seatNumber));
+  }
+
+  it("prepares a seat without touching its live QR code", async () => {
+    const service = createService(testDb);
+    const [seat] = await readSeats();
+
+    const prepared = await service.prepareSeatQRCodeRotation(seat.id);
+    const second = await service.prepareSeatQRCodeRotation(seat.id);
+    const [row] = await readSeats();
+
+    expect(prepared.success).toBe(true);
+    expect(second.qrCode).toBe(prepared.qrCode);
+    expect(row.qrCode).toBe(seat.qrCode);
+    expect(row.qrCodeVersion).toBe(1);
+    expect(row.pendingQrCode).toBe(prepared.qrCode);
+    expect(row.pendingQrCodeVersion).toBe(2);
+    expect(row.pendingQrPreparedAt).toBeInstanceOf(Date);
+  });
+
+  it("activates and discards prepared seat QR codes", async () => {
+    const service = createService(testDb);
+    const [firstSeat, secondSeat] = await readSeats();
+
+    const prepared = await service.prepareSeatQRCodeRotation(firstSeat.id);
+    await expect(
+      service.activateSeatQRCodeRotation(firstSeat.id),
+    ).resolves.toEqual({ success: true, qrCode: prepared.qrCode });
+    await expect(
+      service.activateSeatQRCodeRotation(secondSeat.id),
+    ).resolves.toEqual({
+      success: false,
+      error: "No prepared QR code to activate",
+    });
+
+    await service.prepareSeatQRCodeRotation(secondSeat.id);
+    await service.discardSeatQRCodeRotation(secondSeat.id);
+
+    const [activated, discarded] = await readSeats();
+    expect(activated.qrCode).toBe(prepared.qrCode);
+    expect(activated.qrCodeVersion).toBe(2);
+    expect(activated.pendingQrCode).toBeNull();
+    expect(discarded.qrCode).toBe(secondSeat.qrCode);
+    expect(discarded.qrCodeVersion).toBe(1);
+    expect(discarded.pendingQrCode).toBeNull();
+  });
+
+  it("batch-prepares all seats without invalidating live stickers", async () => {
+    const service = createService(testDb);
+    const before = await readSeats();
+
+    const prepared = await service.batchPrepareSeatQRCodeRotations(tableId);
+    const second = await service.batchPrepareSeatQRCodeRotations(tableId);
+    const after = await readSeats();
+
+    expect(prepared.success).toBe(true);
+    expect(prepared.qrCodes).toHaveLength(2);
+    expect(second.qrCodes).toEqual(prepared.qrCodes);
+    for (const [i, row] of after.entries()) {
+      expect(row.qrCode).toBe(before[i].qrCode);
+      expect(row.qrCodeVersion).toBe(1);
+      expect(row.pendingQrCode).toBe(prepared.qrCodes?.[i].qrCode);
+      expect(row.pendingQrCodeVersion).toBe(2);
+    }
+  });
+
+  it("clears a prepared rotation when immediate regeneration is used", async () => {
+    const service = createService(testDb);
+    const [seat] = await readSeats();
+    await service.prepareSeatQRCodeRotation(seat.id);
+
+    const regenerated = await service.regenerateSeatQRCode(seat.id);
+    const [row] = await readSeats();
+
+    expect(regenerated.success).toBe(true);
+    expect(row.qrCode).toBe(regenerated.qrCode);
+    expect(row.qrCodeVersion).toBe(2);
+    expect(row.pendingQrCode).toBeNull();
+    expect(row.pendingQrCodeVersion).toBeNull();
+    expect(row.pendingQrPreparedAt).toBeNull();
+  });
+});
+
 describe("TableService two-phase QR rotation", () => {
   let testDb: TestDatabase;
   let tableId: number;

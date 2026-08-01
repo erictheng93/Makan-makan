@@ -120,7 +120,13 @@
                 {{ t("tableDetail.qrCode.preview") }}
               </p>
               <p class="text-xs text-gray-400 mt-2 break-all px-4">
-                {{ table.qrCode }}
+                {{ printableTableQrCode }}
+              </p>
+              <p
+                v-if="table.pendingQrCode"
+                class="text-xs font-medium text-orange-600 mt-2"
+              >
+                {{ t("qrRotation.pending") }}
               </p>
             </div>
           </div>
@@ -213,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -242,6 +248,9 @@ const table = ref({
   status: "available",
   qrMode: "table" as "table" | "seat",
   qrCode: "",
+  pendingQrCode: "",
+  pendingQrCodeVersion: null as number | null,
+  pendingQrPreparedAt: null as string | null,
   totalUsage: 0,
 });
 
@@ -279,6 +288,10 @@ const getStatusText = (status: string) => {
   };
   return keys[status] ? t(keys[status]) : status;
 };
+
+const printableTableQrCode = computed(
+  () => table.value.pendingQrCode || table.value.qrCode,
+);
 
 const loadSeats = async () => {
   if (table.value.qrMode !== "seat" || !table.value.id) return;
@@ -328,12 +341,12 @@ const switchQRMode = async () => {
 };
 
 const downloadQRCode = () => {
-  if (!table.value.qrCode) return;
+  if (!printableTableQrCode.value) return;
   // Create a simple text download of the QR code value (the QR image rendering
   // is handled by the QRCodeRenderer component in the parent list view)
   const link = document.createElement("a");
   link.download = `QR-${table.value.tableNumber || "table"}.txt`;
-  link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(table.value.qrCode)}`;
+  link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(printableTableQrCode.value)}`;
   link.click();
 };
 
@@ -354,7 +367,7 @@ const printQRCode = () => {
   doc.body.appendChild(heading);
 
   const code = doc.createElement("p");
-  code.textContent = table.value.qrCode;
+  code.textContent = printableTableQrCode.value;
   doc.body.appendChild(code);
 
   setTimeout(() => printWindow.print(), 300);
@@ -377,6 +390,9 @@ const regenerateQRCode = async () => {
     if (response.data.success && response.data.data) {
       const result = response.data.data as { qrCode: string };
       table.value.qrCode = result.qrCode;
+      table.value.pendingQrCode = "";
+      table.value.pendingQrCodeVersion = null;
+      table.value.pendingQrPreparedAt = null;
     }
   } catch (error) {
     console.error("Failed to regenerate QR code:", error);
@@ -406,6 +422,9 @@ const loadTableData = async () => {
         seatCount?: number;
         seatNumberingStyle?: "numeric" | "alphabetic";
         qrCode?: string;
+        pendingQrCode?: string | null;
+        pendingQrCodeVersion?: number | null;
+        pendingQrPreparedAt?: string | null;
         status?: string;
         totalUsage?: number;
         createdAt?: string;
@@ -427,6 +446,9 @@ const loadTableData = async () => {
             : "available",
         qrMode: data.qrMode || "table",
         qrCode: data.qrCode || "",
+        pendingQrCode: data.pendingQrCode || "",
+        pendingQrCodeVersion: data.pendingQrCodeVersion ?? null,
+        pendingQrPreparedAt: data.pendingQrPreparedAt ?? null,
         totalUsage: data.totalUsage || 0,
       };
 

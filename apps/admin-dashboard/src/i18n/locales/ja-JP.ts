@@ -3101,6 +3101,30 @@ const jaJP: Messages = {
   },
 
   // QRモードセレクター
+  qrRotation: {
+    pending: "有効化待ち",
+    prepare: "準備",
+    prepareAll: "すべて準備",
+    prepareShown: "表示中を準備",
+    activate: "有効化",
+    discard: "破棄",
+    discardAll: "準備済みをすべて破棄",
+    confirmActivate:
+      "新しいステッカーを貼り付けた後、準備済みのQRコードを有効化します。",
+    confirmDiscard: "準備済みのQRコードを破棄し、現在のコードを維持します。",
+    confirmDiscardAll:
+      "準備済みのQRコードをすべて破棄し、現在のコードを維持します。",
+    alerts: {
+      prepared: "QRローテーションを準備しました",
+      prepareFailed: "QRローテーションの準備に失敗しました",
+      activated: "QRコードを有効化しました",
+      activateFailed: "QRコードの有効化に失敗しました",
+      discarded: "準備済みQRコードを破棄しました",
+      discardFailed: "準備済みQRコードの破棄に失敗しました",
+      noneToPrepare: "準備が必要なQRコードはありません",
+    },
+  },
+
   qrMode: {
     label: "QRコード管理モード",
     description: "このテーブルのQRコード生成方法を選択",

@@ -3094,6 +3094,29 @@ const viVN: Messages = {
   },
 
   // Chế độ QR
+  qrRotation: {
+    pending: "Đã chuẩn bị để kích hoạt",
+    prepare: "Chuẩn bị",
+    prepareAll: "Chuẩn bị tất cả",
+    prepareShown: "Chuẩn bị mục đang hiển thị",
+    activate: "Kích hoạt",
+    discard: "Hủy",
+    discardAll: "Hủy tất cả mã đã chuẩn bị",
+    confirmActivate: "Kích hoạt mã QR đã chuẩn bị sau khi dán nhãn mới.",
+    confirmDiscard: "Hủy mã QR đã chuẩn bị và giữ mã đang hoạt động.",
+    confirmDiscardAll:
+      "Hủy tất cả mã QR đã chuẩn bị và giữ các mã đang hoạt động.",
+    alerts: {
+      prepared: "Đã chuẩn bị xoay vòng QR",
+      prepareFailed: "Không thể chuẩn bị xoay vòng QR",
+      activated: "Đã kích hoạt mã QR",
+      activateFailed: "Không thể kích hoạt mã QR",
+      discarded: "Đã hủy mã QR đã chuẩn bị",
+      discardFailed: "Không thể hủy mã QR đã chuẩn bị",
+      noneToPrepare: "Không có mã QR nào cần chuẩn bị",
+    },
+  },
+
   qrMode: {
     label: "Chế độ quản lý mã QR",
     description: "Chọn cách tạo mã QR cho bàn này",

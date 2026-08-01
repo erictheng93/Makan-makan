@@ -58,7 +58,11 @@ const QRCodeRendererStub = defineComponent({
   },
 });
 
-function buildSeat(id: number, seatNumber: string) {
+function buildSeat(
+  id: number,
+  seatNumber: string,
+  overrides: Record<string, unknown> = {},
+) {
   return {
     id,
     tableId: 11,
@@ -67,15 +71,16 @@ function buildSeat(id: number, seatNumber: string) {
     isOccupied: false,
     isActive: true,
     totalUsage: 0,
+    ...overrides,
   };
 }
 
-function mountSeatManagement() {
+function mountSeatManagement(seats = [buildSeat(1, "01"), buildSeat(2, "02")]) {
   return mount(SeatManagement, {
     props: {
       tableId: 11,
       tableNumber: "A1",
-      seats: [buildSeat(1, "01"), buildSeat(2, "02")],
+      seats,
     },
     global: {
       stubs: {
@@ -157,6 +162,22 @@ describe("SeatManagement QR output", () => {
     expect(printWindow.document.body.textContent).toContain("01");
     expect(printWindow.document.body.textContent).toContain("02");
     expect(printWindow.print).toHaveBeenCalledOnce();
+  });
+
+  it("prints prepared pending seat QR codes before live codes", async () => {
+    const wrapper = mountSeatManagement([
+      buildSeat(1, "01", { pendingQrCode: "pending-seat-01" }),
+      buildSeat(2, "02"),
+    ]);
+
+    await (
+      wrapper.vm as unknown as { printAllSeatQRCodes: () => Promise<void> }
+    ).printAllSeatQRCodes();
+
+    expect(qrToDataUrl.mock.calls.map((call) => call[0])).toEqual([
+      "pending-seat-01",
+      "https://app.test/order?seat=02",
+    ]);
   });
 
   it("loads table capacity before batch creation and shows API errors", async () => {

@@ -3105,6 +3105,30 @@ const idID: Messages = {
   },
 
   // Pemilih Mode QR
+  qrRotation: {
+    pending: "Siap diaktifkan",
+    prepare: "Siapkan",
+    prepareAll: "Siapkan semua",
+    prepareShown: "Siapkan yang tampil",
+    activate: "Aktifkan",
+    discard: "Buang",
+    discardAll: "Buang semua yang siap",
+    confirmActivate:
+      "Aktifkan kode QR yang sudah disiapkan setelah stiker baru ditempel.",
+    confirmDiscard: "Buang kode QR yang disiapkan dan pertahankan kode aktif.",
+    confirmDiscardAll:
+      "Buang semua kode QR yang disiapkan dan pertahankan kode aktif.",
+    alerts: {
+      prepared: "Rotasi QR disiapkan",
+      prepareFailed: "Gagal menyiapkan rotasi QR",
+      activated: "Kode QR diaktifkan",
+      activateFailed: "Gagal mengaktifkan kode QR",
+      discarded: "Kode QR yang disiapkan dibuang",
+      discardFailed: "Gagal membuang kode QR yang disiapkan",
+      noneToPrepare: "Tidak ada kode QR yang perlu disiapkan",
+    },
+  },
+
   qrMode: {
     label: "Mode Manajemen Kode QR",
     description: "Pilih cara membuat kode QR untuk meja ini",

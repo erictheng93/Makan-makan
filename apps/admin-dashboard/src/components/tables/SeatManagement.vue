@@ -21,6 +21,21 @@
           {{ t("seatManagement.batchCreate") }}
         </button>
         <button
+          class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors flex items-center"
+          @click="prepareAllSeatQR"
+        >
+          <QRCodeIcon class="h-4 w-4 mr-2" />
+          {{ t("qrRotation.prepareAll") }}
+        </button>
+        <button
+          v-if="pendingSeatCount > 0"
+          class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center"
+          @click="discardAllSeatQR"
+        >
+          <XMarkIcon class="h-4 w-4 mr-2" />
+          {{ t("qrRotation.discardAll") }}
+        </button>
+        <button
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
           @click="regenerateAllQR"
         >
@@ -175,14 +190,22 @@
                 <div class="inline-block p-3 bg-white rounded-lg border">
                   <QRCodeRenderer
                     ref="seatQrRef"
-                    :content="selectedSeat?.qrCode || ''"
+                    :content="
+                      selectedSeat ? printableSeatQrCode(selectedSeat) : ''
+                    "
                     :label="selectedSeat?.seatNumber"
                     :size="160"
                     :padding="8"
                   />
                 </div>
+                <div
+                  v-if="selectedSeat && seatHasPendingQr(selectedSeat)"
+                  class="mt-2 text-xs font-medium text-orange-600"
+                >
+                  {{ t("qrRotation.pending") }}
+                </div>
                 <div class="mt-2 text-xs text-gray-500 break-all">
-                  {{ selectedSeat?.qrCode }}
+                  {{ selectedSeat ? printableSeatQrCode(selectedSeat) : "" }}
                 </div>
                 <div class="flex justify-center gap-2 mt-3">
                   <button
@@ -216,6 +239,27 @@
                   @click="regenerateSeatQR"
                 >
                   {{ t("seatManagement.regenerateQR") }}
+                </button>
+                <button
+                  v-if="selectedSeat && !seatHasPendingQr(selectedSeat)"
+                  class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                  @click="prepareSeatQR"
+                >
+                  {{ t("qrRotation.prepare") }}
+                </button>
+                <button
+                  v-if="selectedSeat && seatHasPendingQr(selectedSeat)"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  @click="activateSeatQR"
+                >
+                  {{ t("qrRotation.activate") }}
+                </button>
+                <button
+                  v-if="selectedSeat && seatHasPendingQr(selectedSeat)"
+                  class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  @click="discardSeatQR"
+                >
+                  {{ t("qrRotation.discard") }}
                 </button>
               </div>
               <div class="space-x-2">
@@ -351,6 +395,9 @@ interface Seat {
   seatName?: string;
   position?: string;
   qrCode: string;
+  pendingQrCode?: string | null;
+  pendingQrCodeVersion?: number | null;
+  pendingQrPreparedAt?: string | Date | null;
   isOccupied: boolean;
   isActive: boolean;
   currentOrderId?: number;
@@ -384,8 +431,13 @@ const showSeatModal = ref(false);
 const showBatchCreateModal = ref(false);
 const selectedSeat = ref<Seat | null>(null);
 const seatQrRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
+const printableSeatQrCode = (seat: Seat) => seat.pendingQrCode || seat.qrCode;
+const seatHasPendingQr = (seat: Seat) => Boolean(seat.pendingQrCode);
 const printableSeats = computed(() =>
-  props.seats.filter((seat) => seat.isActive && seat.qrCode),
+  props.seats.filter((seat) => seat.isActive && printableSeatQrCode(seat)),
+);
+const pendingSeatCount = computed(
+  () => props.seats.filter(seatHasPendingQr).length,
 );
 
 const seatForm = ref({
@@ -604,6 +656,64 @@ const regenerateSeatQR = async () => {
   }
 };
 
+const prepareSeatQR = async () => {
+  if (!selectedSeat.value) return;
+
+  try {
+    await api.post(`/seats/${selectedSeat.value.id}/qr/prepare`);
+    emit("update");
+    closeSeatModal();
+    toast.success(t("qrRotation.alerts.prepared"));
+  } catch (error) {
+    console.error("Failed to prepare seat QR rotation:", error);
+    toast.error(t("qrRotation.alerts.prepareFailed"));
+  }
+};
+
+const activateSeatQR = async () => {
+  if (!selectedSeat.value) return;
+
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("qrRotation.activate"),
+    message: t("qrRotation.confirmActivate"),
+    confirmLabel: t("qrRotation.activate"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await api.post(`/seats/${selectedSeat.value.id}/qr/activate`);
+    emit("update");
+    closeSeatModal();
+    toast.success(t("qrRotation.alerts.activated"));
+  } catch (error) {
+    console.error("Failed to activate seat QR rotation:", error);
+    toast.error(t("qrRotation.alerts.activateFailed"));
+  }
+};
+
+const discardSeatQR = async () => {
+  if (!selectedSeat.value) return;
+
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("qrRotation.discard"),
+    message: t("qrRotation.confirmDiscard"),
+    confirmLabel: t("qrRotation.discard"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await api.post(`/seats/${selectedSeat.value.id}/qr/discard`);
+    emit("update");
+    closeSeatModal();
+    toast.success(t("qrRotation.alerts.discarded"));
+  } catch (error) {
+    console.error("Failed to discard seat QR rotation:", error);
+    toast.error(t("qrRotation.alerts.discardFailed"));
+  }
+};
+
 const downloadSeatQRCode = () => {
   const dataUrl = seatQrRef.value?.getDataUrl();
   if (!dataUrl || !selectedSeat.value) return;
@@ -637,7 +747,7 @@ const printAllSeatQRCodes = async () => {
           table: props.tableNumber,
           seat: seat.seatNumber,
         }),
-        dataUrl: await toPrintableDataUrl(seat.qrCode),
+        dataUrl: await toPrintableDataUrl(printableSeatQrCode(seat)),
       })),
     );
     const title = t("seatManagement.printAllTitle", {
@@ -700,6 +810,44 @@ const regenerateAllQR = async () => {
   } catch (error) {
     console.error("Failed to regenerate all QR codes:", error);
     toast.error(t("seatManagement.alerts.regenerateFailed"));
+  }
+};
+
+const prepareAllSeatQR = async () => {
+  try {
+    await api.post("/seats/batch-prepare-qr", {
+      tableId: props.tableId,
+    });
+
+    emit("update");
+    toast.success(t("qrRotation.alerts.prepared"));
+  } catch (error) {
+    console.error("Failed to prepare all seat QR rotations:", error);
+    toast.error(t("qrRotation.alerts.prepareFailed"));
+  }
+};
+
+const discardAllSeatQR = async () => {
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("qrRotation.discardAll"),
+    message: t("qrRotation.confirmDiscardAll"),
+    confirmLabel: t("qrRotation.discardAll"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await Promise.all(
+      props.seats
+        .filter(seatHasPendingQr)
+        .map((seat) => api.post(`/seats/${seat.id}/qr/discard`)),
+    );
+
+    emit("update");
+    toast.success(t("qrRotation.alerts.discarded"));
+  } catch (error) {
+    console.error("Failed to discard all seat QR rotations:", error);
+    toast.error(t("qrRotation.alerts.discardFailed"));
   }
 };
 </script>

@@ -35,6 +35,10 @@ export interface Table {
   cleaningNotes?: string;
   maintenanceNotes?: string;
   qrCode?: string;
+  qrCodeVersion?: number;
+  pendingQrCode?: string | null;
+  pendingQrCodeVersion?: number | null;
+  pendingQrPreparedAt?: Date | null;
   qrMode?: "table" | "seat";
   seatCount?: number;
   seatNumberingStyle?: "numeric" | "alphabetic" | "custom";

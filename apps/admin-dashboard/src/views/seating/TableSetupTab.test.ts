@@ -344,6 +344,23 @@ describe("TableSetupTab QR print selection", () => {
     ]);
   });
 
+  it("prints prepared pending table QR codes before live codes", async () => {
+    const wrapper = await mountTab([
+      buildTable({
+        id: 1,
+        number: "A1",
+        qrCode: "live-qr-1",
+        pendingQrCode: "pending-qr-1",
+      }),
+    ]);
+    const vm = vmOf(wrapper);
+
+    vm.toggleTableSelection(1);
+    await vm.printSelectedTableQRCodes();
+
+    expect(toPrintableDataUrlMock).toHaveBeenCalledWith("pending-qr-1");
+  });
+
   it("warns instead of opening an empty sheet when nothing is selected", async () => {
     const vm = vmOf(await mountTab([buildTable({ id: 1 })]));
     await vm.printSelectedTableQRCodes();

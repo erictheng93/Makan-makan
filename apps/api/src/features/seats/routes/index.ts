@@ -324,6 +324,35 @@ routes.post(
 );
 
 /**
+ * POST /batch-prepare-qr
+ * Prepare QR rotations for all seats of a table.
+ */
+routes.post(
+  "/batch-prepare-qr",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateBody(batchRegenerateQRSchema),
+  async (c) => {
+    const { tableId } = c.get("validatedBody") as BatchRegenerateQRInput;
+    await ensureTableAccess(seatsContext(c), tableId);
+
+    const seatService = createSeatService(c.env);
+    const result = await seatService.batchPrepareSeatQRCodeRotations(tableId);
+
+    if (!result.success) {
+      throw badRequest(result.error || "Failed to prepare QR code rotation");
+    }
+
+    return c.json({
+      success: true,
+      data: result.qrCodes,
+      message: `Successfully prepared QR rotations for ${result.qrCodes?.length || 0} seats`,
+    });
+  },
+);
+
+/**
  * PUT /:id
  * Update seat information
  */
@@ -507,6 +536,71 @@ routes.post(
       message: "Seat QR code regenerated successfully",
     });
   },
+);
+
+async function runSeatQrRotation(
+  c: SeatsContext,
+  operation: "prepare" | "activate" | "discard",
+) {
+  const { id } = c.get("validatedParams") as { id: number };
+  await getSeatWithAccessCheck(c, id);
+
+  const seatService = createSeatService(c.env);
+  const result =
+    operation === "prepare"
+      ? await seatService.prepareSeatQRCodeRotation(id)
+      : operation === "activate"
+        ? await seatService.activateSeatQRCodeRotation(id)
+        : await seatService.discardSeatQRCodeRotation(id);
+
+  if (!result.success) {
+    throw badRequest(result.error || `Failed to ${operation} QR rotation`);
+  }
+
+  return c.json({
+    success: true,
+    data: "qrCode" in result ? { qrCode: result.qrCode } : undefined,
+    message: `Seat QR code rotation ${operation} completed successfully`,
+  });
+}
+
+/**
+ * POST /:id/qr/prepare
+ * Prepare a seat QR code rotation without invalidating the live code.
+ */
+routes.post(
+  "/:id/qr/prepare",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => runSeatQrRotation(seatsContext(c), "prepare"),
+);
+
+/**
+ * POST /:id/qr/activate
+ * Promote a prepared seat QR code.
+ */
+routes.post(
+  "/:id/qr/activate",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => runSeatQrRotation(seatsContext(c), "activate"),
+);
+
+/**
+ * POST /:id/qr/discard
+ * Discard a prepared seat QR code.
+ */
+routes.post(
+  "/:id/qr/discard",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(commonSchemas.idParam),
+  async (c) => runSeatQrRotation(seatsContext(c), "discard"),
 );
 
 export default routes;

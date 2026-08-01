@@ -206,6 +206,53 @@ export class TablesService {
     }
   }
 
+  async prepareQRCodeRotation(id: number): Promise<QRRegenerateResult> {
+    try {
+      return await this.tableService.prepareQRCodeRotation(id);
+    } catch (error) {
+      this.logError("prepareQRCodeRotation", error);
+      return {
+        success: false,
+        error: this.formatOperationError(
+          "Failed to prepare QR code rotation",
+          error,
+        ),
+      };
+    }
+  }
+
+  async activateQRCodeRotation(id: number): Promise<QRRegenerateResult> {
+    try {
+      return await this.tableService.activateQRCodeRotation(id);
+    } catch (error) {
+      this.logError("activateQRCodeRotation", error);
+      return {
+        success: false,
+        error: this.formatOperationError(
+          "Failed to activate QR code rotation",
+          error,
+        ),
+      };
+    }
+  }
+
+  async discardQRCodeRotation(
+    id: number,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await this.tableService.discardQRCodeRotation(id);
+    } catch (error) {
+      this.logError("discardQRCodeRotation", error);
+      return {
+        success: false,
+        error: this.formatOperationError(
+          "Failed to discard QR code rotation",
+          error,
+        ),
+      };
+    }
+  }
+
   /**
    * Generate QR codes for multiple tables
    */

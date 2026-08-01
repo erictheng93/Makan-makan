@@ -228,6 +228,9 @@ export class TableService extends BaseService {
           qrCode: tables.qrCode,
           qrCodeImageUrl: tables.qrCodeImageUrl,
           qrCodeVersion: tables.qrCodeVersion,
+          pendingQrCode: tables.pendingQrCode,
+          pendingQrCodeVersion: tables.pendingQrCodeVersion,
+          pendingQrPreparedAt: tables.pendingQrPreparedAt,
           qrMode: tables.qrMode,
           seatCount: tables.seatCount,
           seatNumberingStyle: tables.seatNumberingStyle,
@@ -504,6 +507,10 @@ export class TableService extends BaseService {
           // this list payload — omitting it blanks every preview, the view
           // modal, download and print.
           qrCode: tables.qrCode,
+          qrCodeVersion: tables.qrCodeVersion,
+          pendingQrCode: tables.pendingQrCode,
+          pendingQrCodeVersion: tables.pendingQrCodeVersion,
+          pendingQrPreparedAt: tables.pendingQrPreparedAt,
         })
         .from(tables)
         .where(and(...conditions))
@@ -706,6 +713,9 @@ export class TableService extends BaseService {
         .set({
           qrCode: newQRCode,
           qrCodeVersion: newVersion,
+          pendingQrCode: null,
+          pendingQrCodeVersion: null,
+          pendingQrPreparedAt: null,
           updatedAt: new Date(),
         })
         .where(eq(tables.id, tableId));
@@ -884,7 +894,14 @@ export class TableService extends BaseService {
       const writes = qrCodes.map(({ tableId, qrCode, newVersion }) =>
         this.db
           .update(tables)
-          .set({ qrCode, qrCodeVersion: newVersion, updatedAt })
+          .set({
+            qrCode,
+            qrCodeVersion: newVersion,
+            pendingQrCode: null,
+            pendingQrCodeVersion: null,
+            pendingQrPreparedAt: null,
+            updatedAt,
+          })
           .where(eq(tables.id, tableId)),
       );
 

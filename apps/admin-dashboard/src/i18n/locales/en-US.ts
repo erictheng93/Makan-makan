@@ -3399,6 +3399,29 @@ const enUS: Messages = {
     },
   },
 
+  qrRotation: {
+    pending: "Prepared for activation",
+    prepare: "Prepare",
+    prepareAll: "Prepare all",
+    prepareShown: "Prepare shown",
+    activate: "Activate",
+    discard: "Discard",
+    discardAll: "Discard all prepared",
+    confirmActivate:
+      "Activate the prepared QR code after the new sticker has been placed.",
+    confirmDiscard: "Discard the prepared QR code and keep the live code.",
+    confirmDiscardAll: "Discard all prepared QR codes and keep live codes.",
+    alerts: {
+      prepared: "QR rotation prepared",
+      prepareFailed: "Failed to prepare QR rotation",
+      activated: "QR code activated",
+      activateFailed: "Failed to activate QR code",
+      discarded: "Prepared QR code discarded",
+      discardFailed: "Failed to discard prepared QR code",
+      noneToPrepare: "No QR codes need preparation",
+    },
+  },
+
   // QR Mode Selector
   qrMode: {
     label: "QR Code Management Mode",

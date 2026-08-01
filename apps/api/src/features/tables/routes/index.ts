@@ -562,6 +562,87 @@ app.post(
   },
 );
 
+async function runTableQrRotation(
+  c: TablesContext,
+  operation: "prepare" | "activate" | "discard",
+) {
+  const { id } = c.get("validatedParams") as IdParamInput;
+  const currentUser = c.get("user");
+  const tablesService = new TablesService(c.env);
+
+  const table = await tablesService.getTableById(id);
+
+  if (!table) {
+    throw notFound("Table not found");
+  }
+
+  if (
+    !tablesService.validateTableAccess(
+      table,
+      String(currentUser.restaurantId ?? ""),
+      currentUser.role === USER_ROLES.ADMIN,
+    )
+  ) {
+    throw forbidden("Access denied");
+  }
+
+  const result =
+    operation === "prepare"
+      ? await tablesService.prepareQRCodeRotation(id)
+      : operation === "activate"
+        ? await tablesService.activateQRCodeRotation(id)
+        : await tablesService.discardQRCodeRotation(id);
+
+  if (!result.success) {
+    throw badRequest(result.error || `Failed to ${operation} QR rotation`);
+  }
+
+  return c.json({
+    success: true,
+    data: "qrCode" in result ? { qrCode: result.qrCode } : undefined,
+    message: `QR code rotation ${operation} completed successfully`,
+  });
+}
+
+/**
+ * Prepare a table QR code rotation without invalidating the live code.
+ * POST /tables/:id/qr/prepare
+ */
+app.post(
+  "/:id/qr/prepare",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(tableSchemas.idParam),
+  async (c) => runTableQrRotation(c as TablesContext, "prepare"),
+);
+
+/**
+ * Promote a prepared table QR code.
+ * POST /tables/:id/qr/activate
+ */
+app.post(
+  "/:id/qr/activate",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(tableSchemas.idParam),
+  async (c) => runTableQrRotation(c as TablesContext, "activate"),
+);
+
+/**
+ * Discard a prepared table QR code.
+ * POST /tables/:id/qr/discard
+ */
+app.post(
+  "/:id/qr/discard",
+  authMiddleware,
+  moduleGate("table_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(tableSchemas.idParam),
+  async (c) => runTableQrRotation(c as TablesContext, "discard"),
+);
+
 /**
  * Bulk generate QR codes
  * POST /tables/bulk-qr

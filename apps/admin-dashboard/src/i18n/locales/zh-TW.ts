@@ -3417,6 +3417,28 @@ const zhTWCore = {
   },
 
   // QR 模式選擇
+  qrRotation: {
+    pending: "已備妥待啟用",
+    prepare: "備妥",
+    prepareAll: "全部備妥",
+    prepareShown: "備妥目前顯示",
+    activate: "啟用",
+    discard: "捨棄",
+    discardAll: "捨棄所有已備妥",
+    confirmActivate: "新貼紙貼上後，啟用已備妥的 QR 碼。",
+    confirmDiscard: "捨棄已備妥的 QR 碼，保留目前有效碼。",
+    confirmDiscardAll: "捨棄所有已備妥的 QR 碼，保留目前有效碼。",
+    alerts: {
+      prepared: "QR 輪替已備妥",
+      prepareFailed: "QR 輪替備妥失敗",
+      activated: "QR 碼已啟用",
+      activateFailed: "QR 碼啟用失敗",
+      discarded: "已捨棄備妥 QR 碼",
+      discardFailed: "捨棄備妥 QR 碼失敗",
+      noneToPrepare: "沒有需要備妥的 QR 碼",
+    },
+  },
+
   qrMode: {
     label: "QR 碼管理模式",
     description: "選擇如何為此桌台生成 QR 碼",

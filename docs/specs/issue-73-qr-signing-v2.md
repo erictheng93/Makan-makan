@@ -73,6 +73,10 @@ quotes, trailing commas).
 
 - Always: validate parsed numeric fields, bind signatures to `tableId`, compare
   QR version with the database, require active/non-deleted records.
+- Two-phase rotation (#114) stores replacement codes only in
+  `pendingQrCode`/`pendingQrCodeVersion`/`pendingQrPreparedAt`. Validators must
+  never read those fields. A pending code becomes valid only after an explicit
+  per-table or per-seat activate operation promotes it into `qrCode`.
 - Ask first: schema migrations, new dependencies, or reintroducing acceptance of
   any format other than v2.
 - Never: log signing keys/signatures, trust URL identity without a DB match, or
@@ -104,6 +108,23 @@ quotes, trailing commas).
      Assert the QR belongs to a specific known row.
 6. Guest realtime token generation supports table and seat QR payloads and
    rejects cross-table, cross-seat, inactive, deleted, or stale-version codes.
+7. QR replacement for live venues uses two-phase rotation:
+
+   - `POST /api/v1/tables/:id/qr/prepare`
+     `POST /api/v1/seats/:id/qr/prepare`
+     generate the next signed code into pending columns without invalidating
+     the sticker currently on the entity.
+   - `POST /api/v1/tables/:id/qr/activate`
+     `POST /api/v1/seats/:id/qr/activate`
+     promote the prepared code for the single entity whose sticker has just
+     been replaced.
+   - `POST /api/v1/tables/:id/qr/discard`
+     `POST /api/v1/seats/:id/qr/discard`
+     abandon a prepared rotation without touching the live code.
+   - `POST /api/v1/seats/batch-prepare-qr` prepares every seat for a table.
+
+   Existing regenerate endpoints remain immediate-revocation paths and clear
+   pending rotation state when used.
 
 ## Status
 
@@ -113,3 +134,6 @@ quotes, trailing commas).
   non-zero while work remains.
 - Phase 3 (legacy cutoff): done. `generateLegacyQRCodeData` is gone, so nothing
   can mint a v1 code, and `parseSignedQRUrl` refuses to read one.
+- Phase 4 (#114 two-phase rotation): done. Admin prepare/print/activate/discard
+  uses pending QR codes for replacement stickers while DB-backed verification
+  continues to accept only the live `qrCode`/`qrCodeVersion`.

@@ -3168,6 +3168,28 @@ const zhCN: Messages = {
   },
 
   // QR 模式选择
+  qrRotation: {
+    pending: "已备妥待启用",
+    prepare: "备妥",
+    prepareAll: "全部备妥",
+    prepareShown: "备妥当前显示",
+    activate: "启用",
+    discard: "舍弃",
+    discardAll: "舍弃所有已备妥",
+    confirmActivate: "新贴纸贴上后，启用已备妥的 QR 码。",
+    confirmDiscard: "舍弃已备妥的 QR 码，保留当前有效码。",
+    confirmDiscardAll: "舍弃所有已备妥的 QR 码，保留当前有效码。",
+    alerts: {
+      prepared: "QR 轮替已备妥",
+      prepareFailed: "QR 轮替备妥失败",
+      activated: "QR 码已启用",
+      activateFailed: "QR 码启用失败",
+      discarded: "已舍弃备妥 QR 码",
+      discardFailed: "舍弃备妥 QR 码失败",
+      noneToPrepare: "没有需要备妥的 QR 码",
+    },
+  },
+
   qrMode: {
     label: "QR 码管理模式",
     description: "选择如何为此桌台生成 QR 码",

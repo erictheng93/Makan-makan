@@ -23,6 +23,12 @@ export const SeatSchema = z
     seatNumber: z.number(),
     seatName: z.string().optional().nullable(),
     qrCode: z.string().optional().nullable(),
+    pendingQrCode: z.string().optional().nullable(),
+    pendingQrCodeVersion: z.number().optional().nullable(),
+    pendingQrPreparedAt: z
+      .union([z.string(), z.number()])
+      .optional()
+      .nullable(),
     isActive: z.union([z.boolean(), z.number()]).optional(),
     isOccupied: z.union([z.boolean(), z.number()]).optional(),
     capacity: z.number().optional(),
@@ -78,6 +84,9 @@ export const SEAT_SENSITIVE_FIELDS = [
   "qrCode",
   "qrCodeImageUrl",
   "qrCodeVersion",
+  "pendingQrCode",
+  "pendingQrCodeVersion",
+  "pendingQrPreparedAt",
   "currentOrderId",
   "occupiedAt",
   "occupiedBy",

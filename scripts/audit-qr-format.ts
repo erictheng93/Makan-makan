@@ -39,11 +39,13 @@ interface QrRow {
   label: string;
   restaurant_id: string;
   qr_code: string | null;
+  prepared_at_ms?: number | null;
 }
 
 // tables.qr_code and seats.qr_code are both NOT NULL, so there is no
 // "missing" bucket to report — an empty value would be unparseable anyway.
 type Bucket = "v1" | "v2" | "unparseable";
+const PENDING_STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 function query(env: Environment, sql: string): QrRow[] {
   const db = DATABASES[env];
@@ -122,6 +124,50 @@ function printBuckets(kind: string, buckets: Record<Bucket, QrRow[]>): void {
   }
 }
 
+function printPending(
+  kind: string,
+  buckets: Record<Bucket, QrRow[]>,
+  staleRows: QrRow[],
+): void {
+  const total = Object.values(buckets).reduce((n, b) => n + b.length, 0);
+  console.log(`\n${kind} pending (${total} rows)`);
+  console.log(`  ${colors.green("v2")}           ${buckets.v2.length}`);
+  console.log(
+    `  ${buckets.v1.length ? colors.yellow("v1 (legacy)") : "v1 (legacy)"}  ${buckets.v1.length}`,
+  );
+  console.log(
+    `  ${buckets.unparseable.length ? colors.red("unparseable") : "unparseable"}  ${buckets.unparseable.length}`,
+  );
+  console.log(
+    `  ${staleRows.length ? colors.yellow("prepared >7d") : "prepared >7d"}  ${staleRows.length}`,
+  );
+
+  if (staleRows.length === 0) return;
+
+  const byRestaurant = new Map<string, string[]>();
+  for (const row of staleRows) {
+    const list = byRestaurant.get(row.restaurant_id) ?? [];
+    list.push(row.label);
+    byRestaurant.set(row.restaurant_id, list);
+  }
+  console.log(colors.dim("\n  stale prepared QR codes:"));
+  for (const [restaurantId, labels] of byRestaurant) {
+    const shown = labels.slice(0, 12).join(", ");
+    const more = labels.length > 12 ? ` ??+${labels.length - 12} more` : "";
+    console.log(
+      colors.dim(`    ${restaurantId}  (${labels.length})  ${shown}${more}`),
+    );
+  }
+}
+
+function stalePendingRows(rows: QrRow[], now = Date.now()): QrRow[] {
+  return rows.filter(
+    (row) =>
+      typeof row.prepared_at_ms === "number" &&
+      now - row.prepared_at_ms > PENDING_STALE_AFTER_MS,
+  );
+}
+
 const env = (
   process.argv[2] === "production" ? "production" : "local"
 ) as Environment;
@@ -131,15 +177,36 @@ const tableRows = query(
   env,
   "SELECT id, number AS label, restaurant_id, qr_code FROM tables WHERE deleted_at_ms IS NULL",
 );
+const pendingTableRows = query(
+  env,
+  `SELECT id, number AS label, restaurant_id, pending_qr_code AS qr_code,
+          pending_qr_prepared_at_ms AS prepared_at_ms
+     FROM tables
+    WHERE deleted_at_ms IS NULL AND pending_qr_code IS NOT NULL`,
+);
 const seatRows = query(
   env,
   `SELECT s.id, s.seat_number AS label, t.restaurant_id, s.qr_code
      FROM seats s JOIN tables t ON t.id = s.table_id
     WHERE s.deleted_at_ms IS NULL AND t.deleted_at_ms IS NULL`,
 );
+const pendingSeatRows = query(
+  env,
+  `SELECT s.id, t.number || '-' || s.seat_number AS label, t.restaurant_id,
+          s.pending_qr_code AS qr_code,
+          s.pending_qr_prepared_at_ms AS prepared_at_ms
+     FROM seats s JOIN tables t ON t.id = s.table_id
+    WHERE s.deleted_at_ms IS NULL
+      AND t.deleted_at_ms IS NULL
+      AND s.pending_qr_code IS NOT NULL`,
+);
 
 const tables = report("table", tableRows);
 const seats = report("seat", seatRows);
+const pendingTables = report("table", pendingTableRows);
+const pendingSeats = report("seat", pendingSeatRows);
+const stalePendingTables = stalePendingRows(pendingTableRows);
+const stalePendingSeats = stalePendingRows(pendingSeatRows);
 
 if (asJson) {
   console.log(
@@ -156,6 +223,17 @@ if (asJson) {
             })),
           ]),
         ),
+        pendingTables: Object.fromEntries(
+          Object.entries(pendingTables).map(([k, v]) => [
+            k,
+            v.map((r) => ({
+              id: r.id,
+              label: r.label,
+              restaurantId: r.restaurant_id,
+              preparedAtMs: r.prepared_at_ms,
+            })),
+          ]),
+        ),
         seats: Object.fromEntries(
           Object.entries(seats).map(([k, v]) => [
             k,
@@ -166,6 +244,31 @@ if (asJson) {
             })),
           ]),
         ),
+        pendingSeats: Object.fromEntries(
+          Object.entries(pendingSeats).map(([k, v]) => [
+            k,
+            v.map((r) => ({
+              id: r.id,
+              label: r.label,
+              restaurantId: r.restaurant_id,
+              preparedAtMs: r.prepared_at_ms,
+            })),
+          ]),
+        ),
+        stalePending: {
+          tables: stalePendingTables.map((r) => ({
+            id: r.id,
+            label: r.label,
+            restaurantId: r.restaurant_id,
+            preparedAtMs: r.prepared_at_ms,
+          })),
+          seats: stalePendingSeats.map((r) => ({
+            id: r.id,
+            label: r.label,
+            restaurantId: r.restaurant_id,
+            preparedAtMs: r.prepared_at_ms,
+          })),
+        },
       },
       null,
       2,
@@ -175,16 +278,24 @@ if (asJson) {
   console.log(`QR signing format audit — ${env} D1`);
   printBuckets("tables", tables);
   printBuckets("seats", seats);
+  printPending("tables", pendingTables, stalePendingTables);
+  printPending("seats", pendingSeats, stalePendingSeats);
 
   const pending =
     tables.v1.length +
     seats.v1.length +
     tables.unparseable.length +
-    seats.unparseable.length;
+    seats.unparseable.length +
+    pendingTables.v1.length +
+    pendingSeats.v1.length +
+    pendingTables.unparseable.length +
+    pendingSeats.unparseable.length +
+    stalePendingTables.length +
+    stalePendingSeats.length;
   console.log(
     pending === 0
-      ? `\n${colors.green("No legacy or unparseable QR codes. Phase 3 legacy cutoff is unblocked.")}`
-      : `\n${colors.yellow(`${pending} row(s) still need regenerating before the phase 3 cutoff.`)}`,
+      ? `\n${colors.green("No legacy, unparseable, or stale pending QR codes.")}`
+      : `\n${colors.yellow(`${pending} row(s) still need attention.`)}`,
   );
 }
 
@@ -193,7 +304,13 @@ process.exit(
   tables.v1.length +
     seats.v1.length +
     tables.unparseable.length +
-    seats.unparseable.length >
+    seats.unparseable.length +
+    pendingTables.v1.length +
+    pendingSeats.v1.length +
+    pendingTables.unparseable.length +
+    pendingSeats.unparseable.length +
+    stalePendingTables.length +
+    stalePendingSeats.length >
     0
     ? 1
     : 0,
