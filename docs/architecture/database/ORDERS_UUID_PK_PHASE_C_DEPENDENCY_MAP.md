@@ -18,39 +18,39 @@ authorize a production destructive migration.
 ## Commands
 
 - Print review SQL:
-  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --print-sql`
+  `node scripts/phase-c-orders-pk-dry-run.cjs --print-sql`
 - Run local rollback rehearsal:
-  `rtk pnpm db:orders-pk-dry-run`
+  `pnpm db:orders-pk-dry-run`
 - Save local rehearsal evidence:
-  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json`
+  `node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json`
 - Save synthetic fixture evidence:
-  `rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json`
+  `node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json`
 - Require representative rehearsal data:
-  `rtk pnpm db:orders-pk-dry-run:representative`
+  `pnpm db:orders-pk-dry-run:representative`
 - Require full dependency-surface fixture coverage:
-  `rtk pnpm db:orders-pk-dry-run:fixture-full-surface`
+  `pnpm db:orders-pk-dry-run:fixture-full-surface`
 - Validate archived rehearsal evidence before migration drafting:
-  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json --role representative`
+  `pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-representative.json --role representative`
 - Validate local full-surface fixture evidence before migration drafting:
-  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-fixture-full-surface.json --role fixture`
+  `pnpm db:pk-rehearsal:validate -- --phase orders --artifact /tmp/orders-pk-fixture-full-surface.json --role fixture`
 - Verify the paired evidence manifest before migration drafting:
-  `rtk pnpm db:orders-pk-readiness:verify -- --manifest artifacts/pk/orders-phase-c-readiness.json`
+  `pnpm db:orders-pk-readiness:verify -- --manifest artifacts/pk/orders-phase-c-readiness.json`
 - Unit test the rehearsal generator:
-  `rtk pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
+  `pnpm exec vitest run tests/unit/phase-c-orders-pk-dry-run.test.ts`
 
 ## Local Rehearsal Evidence
 
 Commands run on 2026-06-23:
 
 ```sh
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/orders-pk-baseline-require-representative.json
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-representative.json
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --json-output /tmp/orders-pk-fixture-gated.json
-rtk node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --json-output /tmp/orders-pk-baseline.json
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --json-output /tmp/orders-pk-fixture.json
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/orders-pk-baseline-require-representative.json
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-representative.json
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --json-output /tmp/orders-pk-fixture-gated.json
+node scripts/phase-c-orders-pk-dry-run.cjs --execute-local --with-fixture --require-representative-data --require-complete-surface-coverage --json-output /tmp/orders-pk-fixture-full-surface.json
 ```
 
 Local database:
@@ -71,7 +71,7 @@ Baseline result:
   because `orders` has zero rows and no checked dependency has non-null order
   references. This is expected and prevents treating the empty local database
   as conversion-ready evidence.
-- `rtk pnpm db:orders-pk-dry-run:representative` intentionally does not use
+- `pnpm db:orders-pk-dry-run:representative` intentionally does not use
   `--with-fixture`; it is only valid when the selected database already has real
   representative order data.
 
@@ -94,7 +94,7 @@ Synthetic fixture result:
   when every existing dependency surface has at least one non-null order
   reference and includes `schemaObjects` metadata for the indexes/triggers that
   the paired migration must preserve.
-- `rtk pnpm db:orders-pk-dry-run:fixture-full-surface` is the local synthetic
+- `pnpm db:orders-pk-dry-run:fixture-full-surface` is the local synthetic
   full-surface coverage command. Its artifact must be validated with
   `--role fixture`, not `--role representative`.
 - The fixture artifact records `appCompatibility` bridge checks: one legacy
@@ -199,7 +199,7 @@ both required artifacts:
 }
 ```
 
-`rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>` is the
+`pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>` is the
 single Phase C conversion gate. It imports the single-artifact validator,
 requires the representative artifact to be restored-production evidence
 without fixture data, requires the rollback fixture artifact to use
@@ -223,18 +223,18 @@ Do not create paired Phase C migrations until all of these are true:
   lookup mismatches, missing shadow public ids, and shadow public-id resolution
   mismatches.
 - `PRAGMA foreign_key_check` returns zero rows.
-- `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
+- `pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
   returns `exitCode = 0` for the archived restored-production evidence.
   This role gate rejects rollback fixture artifacts so synthetic local data
   cannot be substituted for real representative data.
-- `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
+- `pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
   returns `exitCode = 0` for the local full-surface rollback fixture artifact.
   The validator recomputes dependency-surface and non-null reference coverage
   from the artifact and requires `ordersBridge.order_rows > 0` instead of
   trusting `dataCoverage` alone. It also verifies the archived artifact records
   `artifactPhase = "orders"`, `artifactSchemaVersion = 1`, and the required
   strict `rehearsalOptions`.
-- `rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>`
+- `pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>`
   returns `exitCode = 0`, proving the representative and fixture artifacts
   both pass their role gates and have matching dependency surfaces and schema
   metadata.

@@ -94,7 +94,7 @@ it("does not roll back cancellation when notification dispatch fails", async () 
 
 - [ ] **Step 2: Run tests to verify red**
 
-Run: `rtk pnpm --filter @makanmakan/database test:run -- ReservationService.real.test.ts`
+Run: `pnpm --filter @makanmakan/database test:run -- ReservationService.real.test.ts`
 
 Expected: the new tests fail because `ReservationService` does not accept or call a notifier.
 
@@ -267,14 +267,14 @@ private async notifyReservation(
 - [ ] **Step 5: Run tests and commit**
 
 Run:
-- `rtk pnpm --filter @makanmakan/database test:run -- ReservationService.real.test.ts`
-- `rtk pnpm --filter @makanmakan/database typecheck`
+- `pnpm --filter @makanmakan/database test:run -- ReservationService.real.test.ts`
+- `pnpm --filter @makanmakan/database typecheck`
 
 Commit:
 
 ```bash
-rtk git add packages/database/src/services/ReservationNotificationService.ts packages/database/src/services/ReservationService.ts packages/database/src/services/__tests__/ReservationService.real.test.ts
-rtk git commit -m "fix(reservations): dispatch reservation status notifications"
+git add packages/database/src/services/ReservationNotificationService.ts packages/database/src/services/ReservationService.ts packages/database/src/services/__tests__/ReservationService.real.test.ts
+git commit -m "fix(reservations): dispatch reservation status notifications"
 ```
 
 ---
@@ -330,7 +330,7 @@ If there is no test seam for `generateExcel`, add one minimal public wrapper onl
 - [ ] **Step 3: Run tests to verify red**
 
 Run:
-- `rtk pnpm --filter @makanmakan/database test:run -- PrinterService ExportService`
+- `pnpm --filter @makanmakan/database test:run -- PrinterService ExportService`
 
 Expected: tests fail on current fabricated stats and `.xlsx` relabeling.
 
@@ -378,14 +378,14 @@ If product requires real XLSX, add a package dependency and assert the ZIP magic
 - [ ] **Step 6: Run tests and commit**
 
 Run:
-- `rtk pnpm --filter @makanmakan/database test:run -- PrinterService ExportService`
-- `rtk pnpm --filter @makanmakan/database typecheck`
+- `pnpm --filter @makanmakan/database test:run -- PrinterService ExportService`
+- `pnpm --filter @makanmakan/database typecheck`
 
 Commit:
 
 ```bash
-rtk git add packages/database/src/services/PrinterService.ts packages/database/src/services/ExportService.ts packages/database/src/services/PrinterService.test.ts packages/database/src/services/ExportService.test.ts
-rtk git commit -m "fix(database): remove fabricated printer and export metadata"
+git add packages/database/src/services/PrinterService.ts packages/database/src/services/ExportService.ts packages/database/src/services/PrinterService.test.ts packages/database/src/services/ExportService.test.ts
+git commit -m "fix(database): remove fabricated printer and export metadata"
 ```
 
 ---
@@ -446,16 +446,16 @@ Keep non-security sampling uses of `Math.random()` in monitoring/performance uti
 - [ ] **Step 4: Run tests and commit**
 
 Run:
-- `rtk pnpm --filter @makanmakan/database test:run -- qrcode POSService ReceiptFormatter`
-- `rtk pnpm --filter @makanmakan/api test -- QrCodesService ReceiptService RefundService`
-- `rtk pnpm --filter @makanmakan/database typecheck`
-- `rtk pnpm --filter @makanmakan/api typecheck`
+- `pnpm --filter @makanmakan/database test:run -- qrcode POSService ReceiptFormatter`
+- `pnpm --filter @makanmakan/api test -- QrCodesService ReceiptService RefundService`
+- `pnpm --filter @makanmakan/database typecheck`
+- `pnpm --filter @makanmakan/api typecheck`
 
 Commit:
 
 ```bash
-rtk git add packages/database/src/services/id-generation.ts apps/api/src/features/qr-codes/services/QrCodesService.ts apps/api/src/services/qrCodeService.ts packages/database/src/services/qrcode.ts packages/database/src/services/POSService.ts apps/api/src/features/pos/services/ReceiptService.ts apps/api/src/features/pos/services/RefundService.ts packages/database/src/services/printer/ReceiptFormatter.ts
-rtk git commit -m "fix(ids): replace random production identifiers"
+git add packages/database/src/services/id-generation.ts apps/api/src/features/qr-codes/services/QrCodesService.ts apps/api/src/services/qrCodeService.ts packages/database/src/services/qrcode.ts packages/database/src/services/POSService.ts apps/api/src/features/pos/services/ReceiptService.ts apps/api/src/features/pos/services/RefundService.ts packages/database/src/services/printer/ReceiptFormatter.ts
+git commit -m "fix(ids): replace random production identifiers"
 ```
 
 ---
@@ -476,7 +476,7 @@ rtk git commit -m "fix(ids): replace random production identifiers"
 Before editing, inspect the current uncommitted diff:
 
 ```bash
-rtk git diff -- packages/database/src/services/order.ts packages/database/src/services/order.test.ts
+git diff -- packages/database/src/services/order.ts packages/database/src/services/order.test.ts
 ```
 
 If the diff already passes tests, preserve it and build the remaining money-path work on top. Do not rewrite it.
@@ -549,16 +549,16 @@ For Drizzle D1 services, follow the current `OrderService.createOrder` pattern: 
 - [ ] **Step 4: Run focused money-path tests**
 
 Run:
-- `rtk pnpm --filter @makanmakan/database test:run -- order.test.ts POSService`
-- `rtk pnpm --filter @makanmakan/api test -- refundPayment PaymentService RefundService`
-- `rtk pnpm --filter @makanmakan/database typecheck`
-- `rtk pnpm --filter @makanmakan/api typecheck`
+- `pnpm --filter @makanmakan/database test:run -- order.test.ts POSService`
+- `pnpm --filter @makanmakan/api test -- refundPayment PaymentService RefundService`
+- `pnpm --filter @makanmakan/database typecheck`
+- `pnpm --filter @makanmakan/api typecheck`
 
 - [ ] **Step 5: Commit**
 
 ```bash
-rtk git add packages/database/src/services/order.ts packages/database/src/services/order.test.ts packages/database/src/services/POSService.ts apps/api/src/features/payments/services/refundPayment.ts apps/api/src/features/payments/services/PaymentService.ts apps/api/src/features/pos/services/RefundService.ts
-rtk git commit -m "fix(payments): make money writes atomic on D1"
+git add packages/database/src/services/order.ts packages/database/src/services/order.test.ts packages/database/src/services/POSService.ts apps/api/src/features/payments/services/refundPayment.ts apps/api/src/features/payments/services/PaymentService.ts apps/api/src/features/pos/services/RefundService.ts
+git commit -m "fix(payments): make money writes atomic on D1"
 ```
 
 ---
@@ -606,14 +606,14 @@ it("reports isolate uptime based on service start time", async () => {
 - [ ] **Step 3: Run tests and commit**
 
 Run:
-- `rtk pnpm --filter @makanmakan/api test -- system/routes monitoring/services/MonitoringService`
-- `rtk pnpm --filter @makanmakan/api typecheck`
+- `pnpm --filter @makanmakan/api test -- system/routes monitoring/services/MonitoringService`
+- `pnpm --filter @makanmakan/api typecheck`
 
 Commit:
 
 ```bash
-rtk git add apps/api/src/features/system/routes/index.test.ts apps/api/src/features/monitoring/services/MonitoringService.test.ts
-rtk git commit -m "test(monitoring): guard health endpoints against fabricated data"
+git add apps/api/src/features/system/routes/index.test.ts apps/api/src/features/monitoring/services/MonitoringService.test.ts
+git commit -m "test(monitoring): guard health endpoints against fabricated data"
 ```
 
 ---
@@ -644,15 +644,15 @@ it("handles the weekly report cron literal configured in wrangler.toml", async (
 
 - [ ] **Step 2: Run test to verify current state**
 
-Run: `rtk pnpm --filter @makanmakan/api test -- backup-scheduler`
+Run: `pnpm --filter @makanmakan/api test -- backup-scheduler`
 
 Expected current result: pass, because code and wrangler config both use `"0 0 * * SUN"`. If it fails, make the switch case match the exact configured cron literal.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-rtk git add apps/api/src/workers/backup-scheduler.test.ts apps/api/src/workers/backup-scheduler.ts apps/backup-scheduler/wrangler.toml
-rtk git commit -m "test(backups): guard weekly cron trigger dispatch"
+git add apps/api/src/workers/backup-scheduler.test.ts apps/api/src/workers/backup-scheduler.ts apps/backup-scheduler/wrangler.toml
+git commit -m "test(backups): guard weekly cron trigger dispatch"
 ```
 
 ---
@@ -662,9 +662,9 @@ rtk git commit -m "test(backups): guard weekly cron trigger dispatch"
 Run the focused checks from each task, then run:
 
 ```bash
-rtk pnpm lint
-rtk pnpm typecheck
-rtk pnpm test
+pnpm lint
+pnpm typecheck
+pnpm test
 ```
 
 If the full suite is too slow or blocked by unrelated failures, record the exact focused commands that passed and the exact unrelated failures. Do not claim global green without a fresh successful full run.

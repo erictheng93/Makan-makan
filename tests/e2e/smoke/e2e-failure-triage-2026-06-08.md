@@ -5,13 +5,13 @@
 ```powershell
 $env:SMOKE_AUTH_USERNAME='grandmaShop'
 $env:SMOKE_AUTH_PASSWORD='password123'
-rtk pnpm test:e2e
+pnpm test:e2e
 ```
 
 Before the full run, Playwright browsers were installed with:
 
 ```powershell
-rtk pnpm exec playwright install
+pnpm exec playwright install
 ```
 
 ## Result

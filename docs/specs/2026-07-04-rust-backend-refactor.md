@@ -158,8 +158,8 @@ should be treated as the route prefix source of truth:
 Commands run on 2026-07-04:
 
 ```bash
-rtk pnpm run check:docs-drift
-rtk pnpm run contract:report
+pnpm run check:docs-drift
+pnpm run contract:report
 ```
 
 Results:
@@ -189,15 +189,15 @@ Results:
   for agents, but the Rust migration should not depend on an agent-specific
   file as the only canonical backend architecture reference. Move the relevant
   backend sections into architecture/spec docs or link this spec prominently.
-- `docs/architecture/project-architecture.md` has useful topology, but its
-  development commands omit the local `rtk` convention and the document is still
-  TypeScript/Hono-specific. It should be updated after Rust scaffolding exists.
+- `docs/architecture/project-architecture.md` has useful topology, but the
+  document is still TypeScript/Hono-specific. It should be updated after Rust
+  scaffolding exists.
 - `docs/architecture/system-design/MODULAR_ARCHITECTURE_GUIDE.md` describes an
   earlier migration model and still references legacy `routes/` migration steps.
   Treat it as historical context, not a Rust implementation guide.
 - `apps/image-processor/README.md` uses `npm install` / `npm run` examples,
-  while repository rules require `pnpm` and local commands should use `rtk`.
-  Update before using it as an onboarding guide.
+  while repository rules require `pnpm`. Update before using it as an
+  onboarding guide.
 - `packages/database/README.md` still contains examples with integer
   `restaurantId`/`tableId` in places. That is acceptable historical context but
   not a new Rust schema guide; use actual Drizzle schema and migration files as
@@ -362,29 +362,29 @@ Required behavior parity for every feature:
 Existing verification commands:
 
 ```bash
-rtk pnpm run check:docs-drift
-rtk pnpm run contract:report
-rtk pnpm run check:migration-dual-track
-rtk pnpm run check:workers
-rtk pnpm run test:api
-rtk pnpm run test:real-integration
-rtk pnpm run test:e2e
-rtk pnpm run lint
-rtk pnpm run typecheck
+pnpm run check:docs-drift
+pnpm run contract:report
+pnpm run check:migration-dual-track
+pnpm run check:workers
+pnpm run test:api
+pnpm run test:real-integration
+pnpm run test:e2e
+pnpm run lint
+pnpm run typecheck
 ```
 
 Rust bootstrap commands to add:
 
 ```bash
-rtk rustup target add wasm32-unknown-unknown
-rtk cargo install cargo-generate
-rtk cargo generate cloudflare/workers-rs --name api-rust
-rtk cargo fmt --all -- --check
-rtk cargo clippy --workspace --all-targets -- -D warnings
-rtk cargo test --workspace
-rtk cargo audit
-rtk pnpm --filter @makanmakan/api-rust run build
-rtk pnpm --filter @makanmakan/api-rust run dev
+rustup target add wasm32-unknown-unknown
+cargo install cargo-generate
+cargo generate cloudflare/workers-rs --name api-rust
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo audit
+pnpm --filter @makanmakan/api-rust run build
+pnpm --filter @makanmakan/api-rust run dev
 ```
 
 Add package scripts per Rust Worker:
@@ -461,16 +461,16 @@ Conventions:
 Every migration phase must pass:
 
 ```bash
-rtk pnpm run check:docs-drift
-rtk pnpm run contract:report
-rtk pnpm run check:migration-dual-track
-rtk pnpm run check:workers
-rtk pnpm run test:api
-rtk pnpm run test:real-integration
-rtk pnpm run test:e2e
-rtk cargo fmt --all -- --check
-rtk cargo clippy --workspace --all-targets -- -D warnings
-rtk cargo test --workspace
+pnpm run check:docs-drift
+pnpm run contract:report
+pnpm run check:migration-dual-track
+pnpm run check:workers
+pnpm run test:api
+pnpm run test:real-integration
+pnpm run test:e2e
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 ```
 
 ### Required New Tests
@@ -697,8 +697,8 @@ Exit criteria:
 
 - All backend route contracts are complete and versioned.
 - Rust backend passes all existing backend and e2e tests, plus new parity tests.
-- `rtk pnpm run check:docs-drift` and contract checks pass after migration.
-- `rtk pnpm run check:migration-dual-track` passes for any SQL changes.
+- `pnpm run check:docs-drift` and contract checks pass after migration.
+- `pnpm run check:migration-dual-track` passes for any SQL changes.
 - Rust fmt, clippy, cargo tests, and audit pass.
 - Production latency and error rates are no worse than current baselines:
   API P99 < 300ms, DB query P95 < 100ms, WebSocket latency < 50ms where
@@ -726,15 +726,15 @@ Exit criteria:
 - [ ] Task: Generate complete route and side-effect inventory.
   - Acceptance: Every backend route has method, path, auth, schema, side
     effects, and owner.
-  - Verify: `rtk pnpm run contract:report` shows full route coverage.
+  - Verify: `pnpm run contract:report` shows full route coverage.
   - Files: `scripts/check-api-contracts.cjs`, `packages/backend-contracts/**`,
     `docs/api/README.md`.
 
 - [ ] Task: Create Rust Worker spike for `/health`, `/info`, and one public
   read route.
   - Acceptance: Rust Worker runs locally and deploy dry-run succeeds.
-  - Verify: `rtk pnpm --filter @makanmakan/api-rust run build`,
-    `rtk cargo test --workspace`.
+  - Verify: `pnpm --filter @makanmakan/api-rust run build`,
+    `cargo test --workspace`.
   - Files: `apps/api-rust/**`, `Cargo.toml`, `pnpm-workspace.yaml`,
     `package.json`.
 

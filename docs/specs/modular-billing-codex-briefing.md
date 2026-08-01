@@ -86,10 +86,10 @@
 
 執行並貼結果到 PR description：
 ```
-rtk pnpm typecheck
-rtk pnpm test:unit -- moduleGate subscriptions
+pnpm typecheck
+pnpm test:unit -- moduleGate subscriptions
 ```
-（**注意**：CLAUDE.md memory 記錄 `rtk` 在 typecheck 時可能隱藏錯誤——若懷疑出錯，再裸跑一次 `pnpm typecheck` 確認）
+（**注意**：若懷疑 typecheck 出錯，直接重跑一次 `pnpm typecheck` 確認）
 
 ---
 
@@ -103,7 +103,7 @@ rtk pnpm test:unit -- moduleGate subscriptions
 | **API error 一律 throw `ApiError`**（用 `notFound()`/`badRequest()`/`forbidden()` factory），route handler 不寫 try/catch 包成 response | CLAUDE.md「Error Response Format」 |
 | **測試一律用 `@makanmakan/testing-utils` factory**，禁止 CSS class assertion，每個 mock 都要 `expect.toHaveBeenCalledWith(...)` 驗證 | CLAUDE.md「Testing Standards」 |
 | **UI 必符合 Apple-Native Soft Minimalism**（`#F2F2F7` bg、`rounded-2xl`、無硬邊框、ios-* tokens） | CLAUDE.md「UI/UX Design System」 |
-| **commit / shell 一律加 `rtk` prefix**（節省 token） | global CLAUDE.md「RTK」 |
+| **commit / shell 使用 repo 原生命令**（例如 `git`、`pnpm`） | AGENTS.md「Build, Test, and Development Commands」 |
 | **不寫 emoji**、不寫多段 docstring、不為「未來可能用到」加抽象 | system prompt |
 | **不在 wrangler.toml 寫 `inspector_port`**（Windows workerd 會 crash） | CLAUDE.md「Common Issues #5」 |
 
@@ -139,10 +139,10 @@ PR description 必含這四段：
 - [x] ...
 
 ## Verification
-$ rtk pnpm typecheck
+$ pnpm typecheck
 [paste 結果]
 
-$ rtk pnpm test:unit -- <relevant>
+$ pnpm test:unit -- <relevant>
 [paste 結果]
 
 ## ⚠️ Questions / Deviations

@@ -167,12 +167,12 @@ as the baseline contract.
 Run these commands after the adapter is wired:
 
 ```bash
-rtk pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentProvider.test.ts
-rtk pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentWebhookService.test.ts
-rtk pnpm exec vitest run apps/api/src/workers/market-checkout-reconciliation.test.ts
-rtk pnpm exec vitest run apps/api/src/features/market-checkouts/routes/index.test.ts
-rtk pnpm exec vitest run apps/customer-app/src/tests/views/market-checkout-tracking-view.test.ts
-rtk pnpm exec vitest run apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.test.ts
+pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentProvider.test.ts
+pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentWebhookService.test.ts
+pnpm exec vitest run apps/api/src/workers/market-checkout-reconciliation.test.ts
+pnpm exec vitest run apps/api/src/features/market-checkouts/routes/index.test.ts
+pnpm exec vitest run apps/customer-app/src/tests/views/market-checkout-tracking-view.test.ts
+pnpm exec vitest run apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.test.ts
 ```
 
 Production enablement is allowed only when:

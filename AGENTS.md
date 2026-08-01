@@ -8,16 +8,16 @@ This repository is a `pnpm` workspace monorepo. Application code lives in `apps/
 
 Use `pnpm` only. Key commands:
 
-- `rtk pnpm dev`: run the full Turbo dev graph.
-- `rtk pnpm dev:customer` / `rtk pnpm dev:api`: run one app locally.
-- `rtk pnpm build`: build all workspaces.
-- `rtk pnpm lint` and `rtk pnpm typecheck`: required before opening a PR.
-- `rtk pnpm test`, `rtk pnpm test:coverage`, `rtk pnpm test:e2e`: unit/integration, coverage, and Playwright suites.
-- `rtk pnpm db:migrate:local`: apply local D1 migrations.
+- `pnpm dev`: run the full Turbo dev graph.
+- `pnpm dev:customer` / `pnpm dev:api`: run one app locally.
+- `pnpm build`: build all workspaces.
+- `pnpm lint` and `pnpm typecheck`: required before opening a PR.
+- `pnpm test`, `pnpm test:coverage`, `pnpm test:e2e`: unit/integration, coverage, and Playwright suites.
+- `pnpm db:migrate:local`: apply local D1 migrations.
 
 ## Coding Style & Naming Conventions
 
-The codebase is TypeScript-first with Vue 3 and Cloudflare Workers. Prettier enforces 2-space indentation, semicolons, double quotes, trailing commas, and 80-column wrapping. Run `rtk pnpm lint:fix` before submitting. Use `PascalCase` for Vue components and types, `camelCase` for variables/functions, `UPPER_SNAKE_CASE` for constants, and `kebab-case` for filenames such as `order-service.ts`.
+The codebase is TypeScript-first with Vue 3 and Cloudflare Workers. Prettier enforces 2-space indentation, semicolons, double quotes, trailing commas, and 80-column wrapping. Run `pnpm lint:fix` before submitting. Use `PascalCase` for Vue components and types, `camelCase` for variables/functions, `UPPER_SNAKE_CASE` for constants, and `kebab-case` for filenames such as `order-service.ts`.
 
 ## Testing Guidelines
 
@@ -25,7 +25,7 @@ Vitest is the primary test runner; Playwright covers end-to-end and visual flows
 
 ## Database Schema & Migration Guidelines
 
-Drizzle schema files in `packages/database/src/schema/` are the source of truth. When schema changes require SQL, keep both migration tracks current: `packages/database/migrations_fresh/` for the generated/fresh baseline and `packages/database/migrations/` for the Wrangler deployment track. Any migration after the reviewed checkpoint must be paired or explicitly marked in `packages/database/migration-dual-track.json`; verify with `rtk pnpm run check:migration-dual-track`.
+Drizzle schema files in `packages/database/src/schema/` are the source of truth. When schema changes require SQL, keep both migration tracks current: `packages/database/migrations_fresh/` for the generated/fresh baseline and `packages/database/migrations/` for the Wrangler deployment track. Any migration after the reviewed checkpoint must be paired or explicitly marked in `packages/database/migration-dual-track.json`; verify with `pnpm run check:migration-dual-track`.
 
 Use `INTEGER` Unix milliseconds with Drizzle `{ mode: "timestamp_ms" }` for new or migrated timestamp columns. Avoid new `TEXT` timestamp columns unless there is a documented interoperability reason.
 
@@ -38,22 +38,6 @@ Do not store OAuth tokens, client secrets, webhook secrets, or provider credenti
 Recent history follows Conventional Commits, for example `feat(tests): ...`, `fix(kitchen): ...`, and `docs(testing): ...`. Use `<type>(<scope>): <subject>` with clear scopes like `api`, `customer`, `kitchen`, `database`, or `tests`. PRs should include a short problem/solution summary, linked issues, screenshots for UI changes, and the exact verification commands you ran.
 
 Unless the user explicitly asks to create a new branch or open a pull request, make atomic commits for completed work and push them directly to `main`. Each commit should contain only the intended related changes.
-
-## Agent-Specific Notes
-
-Per local tooling rules, prefix shell commands with `rtk` when running repo commands (for example `rtk git status`, `rtk pnpm test`).
-
-## RTK Command Preference
-
-When invoking external CLI commands from Codex for this repository, prefer the `rtk` prefix for tools such as `git`, `pnpm`, `npm`, `node`, `php`, `composer`, `pytest`, `python`, `cargo`, `bash`, and `sh`.
-
-Examples:
-
-- `rtk git status`
-- `rtk pnpm test`
-- `rtk node scripts/check-production-config.cjs`
-
-PowerShell builtins and simple read-only inspection commands do not need the `rtk` prefix.
 
 ## Multi-Role Access System
 

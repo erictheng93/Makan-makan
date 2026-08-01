@@ -20,13 +20,13 @@ remaining work is to turn those primitives into a scalable marketplace product.
 ## Commands
 
 - Focused API verification:
-  `rtk pnpm exec vitest run --config apps/api/vitest.real-integration.config.ts apps/api/src/__tests__/integration/markets.real.integration.test.ts`
+  `pnpm exec vitest run --config apps/api/vitest.real-integration.config.ts apps/api/src/__tests__/integration/markets.real.integration.test.ts`
 - Customer app focused tests:
-  `rtk pnpm exec vitest run apps/customer-app/src/tests`
+  `pnpm exec vitest run apps/customer-app/src/tests`
 - Customer app typecheck:
-  `rtk pnpm --filter @makanmakan/customer-app typecheck`
+  `pnpm --filter @makanmakan/customer-app typecheck`
 - Full pre-PR gates:
-  `rtk pnpm lint && rtk pnpm typecheck && rtk pnpm test`
+  `pnpm lint && pnpm typecheck && pnpm test`
 
 ## Project Structure
 

@@ -42,13 +42,13 @@ verified D1 table-rebuild plan before the integer primary key is retired.
 ## Commands
 
 - Inventory guard:
-  `rtk pnpm exec vitest run tests/unit/database-primary-key-policy.test.ts`
+  `pnpm exec vitest run tests/unit/database-primary-key-policy.test.ts`
 - Database typecheck:
-  `rtk pnpm --filter @makanmakan/database run typecheck`
+  `pnpm --filter @makanmakan/database run typecheck`
 - API typecheck:
-  `rtk pnpm --filter @makanmakan/api run typecheck`
+  `pnpm --filter @makanmakan/api run typecheck`
 - Full migration rehearsal later:
-  `rtk pnpm db:migrate:local`
+  `pnpm db:migrate:local`
 
 ## Project Structure
 

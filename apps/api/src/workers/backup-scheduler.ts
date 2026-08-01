@@ -114,15 +114,15 @@ export function buildRestoreDrillPlan(
   const commands: RestoreDrillCommand[] = [
     {
       name: "create_restore_database",
-      command: `rtk pnpm exec wrangler d1 create ${restoreDatabase}`,
+      command: `pnpm exec wrangler d1 create ${restoreDatabase}`,
     },
     {
       name: "import_backup",
-      command: `rtk pnpm exec wrangler d1 execute ${restoreDatabase} ${locationFlag} --file ${backupFile}`,
+      command: `pnpm exec wrangler d1 execute ${restoreDatabase} ${locationFlag} --file ${backupFile}`,
     },
     ...validationTables.map((table) => ({
       name: `validate_${table}`,
-      command: `rtk pnpm exec wrangler d1 execute ${restoreDatabase} ${locationFlag} --command "SELECT COUNT(*) AS count FROM ${table};"`,
+      command: `pnpm exec wrangler d1 execute ${restoreDatabase} ${locationFlag} --command "SELECT COUNT(*) AS count FROM ${table};"`,
     })),
   ];
 

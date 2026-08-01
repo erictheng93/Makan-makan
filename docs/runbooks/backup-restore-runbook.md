@@ -50,7 +50,7 @@ The API writes the latest uptime evidence to `CACHE_KV` key
 `/health/uptime` runs. Pull the latest production evidence with:
 
 ```bash
-rtk pnpm exec wrangler kv key get "system:uptime:last-check" --binding=CACHE_KV --env production --config apps/api/wrangler.toml
+pnpm exec wrangler kv key get "system:uptime:last-check" --binding=CACHE_KV --env production --config apps/api/wrangler.toml
 ```
 
 If an internal monitor calls `MonitoringService.recordUptimeCheck`, it stores

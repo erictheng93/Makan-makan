@@ -388,12 +388,12 @@ describe("backup scheduler", () => {
         "restore-drills/production/makanmasak-restore-drill-20260612",
     });
     expect(plan.commands.map((step) => step.command)).toEqual([
-      "rtk pnpm exec wrangler d1 create makanmasak-restore-drill-20260612",
-      "rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --file artifacts/backup.sql",
-      'rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM restaurants;"',
-      'rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM users;"',
-      'rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM menu_items;"',
-      'rtk pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM orders;"',
+      "pnpm exec wrangler d1 create makanmasak-restore-drill-20260612",
+      "pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --file artifacts/backup.sql",
+      'pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM restaurants;"',
+      'pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM users;"',
+      'pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM menu_items;"',
+      'pnpm exec wrangler d1 execute makanmasak-restore-drill-20260612 --remote --command "SELECT COUNT(*) AS count FROM orders;"',
     ]);
   });
 

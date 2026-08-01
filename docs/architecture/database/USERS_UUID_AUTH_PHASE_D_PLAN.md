@@ -207,7 +207,7 @@ Progress:
   destructive migration. Added
   `docs/architecture/database/USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md`,
   `scripts/phase-e-users-pk-dry-run.cjs`, and
-  `rtk pnpm db:users-pk-dry-run`. The verifier checks local `users.public_id`
+  `pnpm db:users-pk-dry-run`. The verifier checks local `users.public_id`
   bridge health, creates rollback-only shadow copies for 60 existing user
   dependency surfaces, discovers actual SQLite FKs to `users(id)`, and fails if
   any actual FK is missing from the explicit inventory.

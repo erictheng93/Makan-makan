@@ -8,7 +8,7 @@ Scope: repository-level review of the current working tree, focused on pilot/lim
 
 ## Executive Summary
 
-Verdict after remediation: the report findings R-001 through R-008 have been remediated in the working tree and the repository-level release gates run in this pass now pass: `rtk pnpm typecheck`, `rtk pnpm lint`, `rtk pnpm test`, and `rtk pnpm build`. Broad production still requires the deployment-environment gates that cannot be proven from this local workspace alone, including dependency/security scans, authenticated staging smoke, and any required ZAP/Snyk checks against the actual release candidate.
+Verdict after remediation: the report findings R-001 through R-008 have been remediated in the working tree and the repository-level release gates run in this pass now pass: `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm build`. Broad production still requires the deployment-environment gates that cannot be proven from this local workspace alone, including dependency/security scans, authenticated staging smoke, and any required ZAP/Snyk checks against the actual release candidate.
 
 The codebase has several mature controls: Cloudflare Workers deployment separation, production resource checks, JWT secret length checks, token-version invalidation, CSRF middleware, security headers, strict production CORS origins, idempotency middleware for payment retries, and route-level restaurant scoping in major API modules. The material pilot gaps identified in this report have been addressed: staff login rate limiting now enforces per-IP and per-username limits, high-risk admin/management bearer tokens no longer persist in `localStorage`, customer access tokens moved to `sessionStorage`, admin payment redirects are validated before navigation, payment idempotency keys are mandatory, frontend CSP is served from Pages headers without `unsafe-eval`, E2E/coverage gates are blocking, and smoke/real workflow suites support strict mode that fails on missing staging credentials or fixtures.
 
@@ -51,7 +51,7 @@ Evidence after remediation: `login()` checks rate limits before calling the data
 
 Impact: staff, owner, and admin passwords can be brute-forced at application level unless an external Cloudflare rule is configured and verified. This is especially risky for a restaurant pilot where shared devices and weak operational passwords are common.
 
-Verification: `rtk pnpm exec vitest run apps/api/src/features/authentication/services/AuthService.test.ts`.
+Verification: `pnpm exec vitest run apps/api/src/features/authentication/services/AuthService.test.ts`.
 
 ## High Priority
 
@@ -70,7 +70,7 @@ Evidence after remediation: the shared auth client supports memory-only access t
 
 Impact: any XSS in the same origin can exfiltrate admin/customer/session tokens. The current CSP also permits `unsafe-inline`/`unsafe-eval` in frontend HTML, reducing defense-in-depth.
 
-Verification: `rtk pnpm exec vitest run packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`; `rtk pnpm --filter @makanmakan/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`; customer auth/market tests.
+Verification: `pnpm exec vitest run packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`; `pnpm --filter @makanmakan/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`; customer auth/market tests.
 
 ### R-004: Admin Payment Redirect Uses Backend URL Without Client-Side URL Validation
 
@@ -82,7 +82,7 @@ Evidence after remediation: admin payment redirects now call `safeExternalHref()
 
 Impact: a compromised or incorrectly validated backend/provider response could drive an open redirect or a `javascript:`/non-web scheme navigation. Payment flows are high-trust UX surfaces.
 
-Verification: `rtk pnpm exec vitest run apps/admin-dashboard/src/utils/safeExternalHref.test.ts`.
+Verification: `pnpm exec vitest run apps/admin-dashboard/src/utils/safeExternalHref.test.ts`.
 
 ### R-005: Payment Idempotency Key Is Optional
 
@@ -94,7 +94,7 @@ Evidence after remediation: both payment creation routes use `idempotencyMiddlew
 
 Impact: retry, double-click, mobile reconnect, or Cloudflare retry scenarios can create duplicate payment attempts unless downstream provider idempotency fully compensates.
 
-Verification: `rtk pnpm exec vitest run apps/api/src/features/payments/routes/index.test.ts apps/admin-dashboard/src/stores/payment.test.ts`.
+Verification: `pnpm exec vitest run apps/api/src/features/payments/routes/index.test.ts apps/admin-dashboard/src/stores/payment.test.ts`.
 
 ## Medium Priority
 
@@ -163,14 +163,14 @@ Recommended decision after remediation: report remediation is complete for the r
 
 ## Verification Performed
 
-- `rtk pnpm exec vitest run apps/api/src/features/authentication/services/AuthService.test.ts apps/api/src/features/payments/routes/index.test.ts apps/admin-dashboard/src/stores/payment.test.ts apps/admin-dashboard/src/utils/safeExternalHref.test.ts apps/admin-dashboard/src/tests/production-config.test.ts apps/customer-app/src/tests/production-config.test.ts apps/kitchen-display/tests/production-config.test.ts packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`
-- `rtk pnpm --filter @makanmakan/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`
-- `rtk pnpm exec vitest run apps/customer-app/src/tests/stores/auth.test.ts apps/customer-app/src/tests/utils/market-engagement.test.ts apps/customer-app/src/tests/views/markets-view.test.ts apps/customer-app/src/tests/views/market-detail-view.test.ts`
-- `rtk pnpm exec vitest run tests/unit/database-primary-key-policy.test.ts apps/api/src/middleware/auth.test.ts apps/api/src/features/realtime/routes/index.test.ts apps/api/src/features/payments/schemas/validation.test.ts packages/database/src/customer-identity-preflight.test.ts packages/database/src/schema/markets.test.ts packages/database/src/services/POSService.test.ts packages/database/src/services/order.test.ts packages/database/src/services/__tests__/SchedulingService.real.test.ts apps/api/src/features/leaves/index.test.ts apps/api/src/features/scheduling/index.test.ts apps/api/src/features/system/index.test.ts apps/api/src/features/tables/index.test.ts`
-- `rtk pnpm typecheck`
-- `rtk pnpm lint`
-- `rtk pnpm test` (342 files / 2284 tests passed)
-- `rtk pnpm build`
+- `pnpm exec vitest run apps/api/src/features/authentication/services/AuthService.test.ts apps/api/src/features/payments/routes/index.test.ts apps/admin-dashboard/src/stores/payment.test.ts apps/admin-dashboard/src/utils/safeExternalHref.test.ts apps/admin-dashboard/src/tests/production-config.test.ts apps/customer-app/src/tests/production-config.test.ts apps/kitchen-display/tests/production-config.test.ts packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`
+- `pnpm --filter @makanmakan/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`
+- `pnpm exec vitest run apps/customer-app/src/tests/stores/auth.test.ts apps/customer-app/src/tests/utils/market-engagement.test.ts apps/customer-app/src/tests/views/markets-view.test.ts apps/customer-app/src/tests/views/market-detail-view.test.ts`
+- `pnpm exec vitest run tests/unit/database-primary-key-policy.test.ts apps/api/src/middleware/auth.test.ts apps/api/src/features/realtime/routes/index.test.ts apps/api/src/features/payments/schemas/validation.test.ts packages/database/src/customer-identity-preflight.test.ts packages/database/src/schema/markets.test.ts packages/database/src/services/POSService.test.ts packages/database/src/services/order.test.ts packages/database/src/services/__tests__/SchedulingService.real.test.ts apps/api/src/features/leaves/index.test.ts apps/api/src/features/scheduling/index.test.ts apps/api/src/features/system/index.test.ts apps/api/src/features/tables/index.test.ts`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm test` (342 files / 2284 tests passed)
+- `pnpm build`
 - Static verification that the old report evidence no longer exists for payments `requireKey: false`, admin raw payment redirect, frontend CSP meta tags / `unsafe-eval`, CI `continue-on-error`, and admin/customer/management access-token `localStorage` reads/writes.
 
 Not run in this remediation pass: Playwright smoke against a live staging deployment, Snyk, OSV, or ZAP. Those remain release-candidate gates before promoting a real deployment.

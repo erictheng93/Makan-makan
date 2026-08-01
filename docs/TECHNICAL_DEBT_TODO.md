@@ -41,8 +41,8 @@ PRs.
   components, then split users root rebuild across `0037`/`0038`/`0039` to
   stay under D1 local migration payload limits. Migration inventory now has no
   pending physical `restaurant_id` FK tables.
-- 2026-04-21: `rtk pnpm typecheck` passed.
-- 2026-04-21: `rtk pnpm lint` timed out after 120s, so lint status is unknown.
+- 2026-04-21: `pnpm typecheck` passed.
+- 2026-04-21: `pnpm lint` timed out after 120s, so lint status is unknown.
 - Existing untracked file was left untouched:
   `docs/testing/PERSONA_TEST_CHECKLIST_AUDIT.md` (since moved to
   `docs/archive/deprecated/PERSONA_TEST_CHECKLIST_AUDIT.md` — see that file's
@@ -682,7 +682,7 @@ Drizzle queries, middleware order, or cross-service behavior.
 
 **Priority:** P2
 
-**Evidence:** `rtk pnpm lint` did not finish within 120 seconds.
+**Evidence:** `pnpm lint` did not finish within 120 seconds.
 
 **Impact:** Developers may skip lint locally, and CI feedback can be slow.
 

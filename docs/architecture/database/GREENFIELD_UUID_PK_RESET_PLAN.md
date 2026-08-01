@@ -60,11 +60,11 @@ Required before committing:
 
 - UUID-native schema tests for `orders`, `users`, and `platform_orders` pass.
 - Bridge migration tests prove the bridge files and package aliases are gone.
-- `rtk pnpm db:reset:local` succeeds against a clean local D1 state.
-- `rtk pnpm db:seed:local` succeeds or any seed failure is fixed for UUID ids.
+- `pnpm db:reset:local` succeeds against a clean local D1 state.
+- `pnpm db:seed:local` succeeds or any seed failure is fixed for UUID ids.
 - Focused API/database tests for auth, order identity, staff principal,
   realtime order rooms, and money/order FK paths pass.
-- `rtk pnpm typecheck` passes or remaining failures are documented as
+- `pnpm typecheck` passes or remaining failures are documented as
   pre-existing and unrelated.
 
 ## Progress Log
@@ -94,18 +94,18 @@ Completed in the working tree:
 
 Verified so far:
 
-- `rtk pnpm db:reset:local`
-- `rtk pnpm db:seed:local`
-- `rtk pnpm --filter @makanmakan/database run typecheck`
-- `rtk pnpm typecheck`
-- `rtk pnpm check:migration-dual-track`
-- `rtk pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts`
-- `rtk pnpm exec vitest run apps/api/src/shared/services/order-identity.test.ts apps/api/src/shared/services/staff-principal.test.ts packages/database/src/services/auth.test.ts`
-- `rtk pnpm exec vitest run apps/api/src/features/payments/routes/index.test.ts apps/api/src/features/realtime/services/RealtimeAuthService.test.ts packages/database/src/services/realtime.test.ts`
-- `rtk pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts apps/api/src/shared/services/order-identity.test.ts apps/api/src/shared/services/staff-principal.test.ts packages/database/src/services/auth.test.ts apps/api/src/features/payments/services/PaymentService.test.ts apps/api/src/features/payments/services/refundPayment.test.ts`
-- `rtk pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts apps/api/src/shared/services/order-identity.test.ts apps/api/src/shared/services/staff-principal.test.ts packages/database/src/services/auth.test.ts apps/api/src/features/payments/routes/index.test.ts apps/api/src/features/payments/services/PaymentService.test.ts apps/api/src/features/payments/services/refundPayment.test.ts apps/api/src/features/realtime/services/RealtimeAuthService.test.ts packages/database/src/services/realtime.test.ts`
-- `rtk pnpm lint`
-- `rtk git diff --check`
+- `pnpm db:reset:local`
+- `pnpm db:seed:local`
+- `pnpm --filter @makanmakan/database run typecheck`
+- `pnpm typecheck`
+- `pnpm check:migration-dual-track`
+- `pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts`
+- `pnpm exec vitest run apps/api/src/shared/services/order-identity.test.ts apps/api/src/shared/services/staff-principal.test.ts packages/database/src/services/auth.test.ts`
+- `pnpm exec vitest run apps/api/src/features/payments/routes/index.test.ts apps/api/src/features/realtime/services/RealtimeAuthService.test.ts packages/database/src/services/realtime.test.ts`
+- `pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts apps/api/src/shared/services/order-identity.test.ts apps/api/src/shared/services/staff-principal.test.ts packages/database/src/services/auth.test.ts apps/api/src/features/payments/services/PaymentService.test.ts apps/api/src/features/payments/services/refundPayment.test.ts`
+- `pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts apps/api/src/shared/services/order-identity.test.ts apps/api/src/shared/services/staff-principal.test.ts packages/database/src/services/auth.test.ts apps/api/src/features/payments/routes/index.test.ts apps/api/src/features/payments/services/PaymentService.test.ts apps/api/src/features/payments/services/refundPayment.test.ts apps/api/src/features/realtime/services/RealtimeAuthService.test.ts packages/database/src/services/realtime.test.ts`
+- `pnpm lint`
+- `git diff --check`
 
 Pending:
 

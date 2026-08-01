@@ -129,14 +129,14 @@ only rollback-friendly comparison source.
 Run the guard through the normal migration commands:
 
 ```bash
-rtk pnpm check:migration-dual-track
-rtk pnpm db:migrate:prod
+pnpm check:migration-dual-track
+pnpm db:migrate:prod
 ```
 
 Before a destructive cutover migration is generated, inspect the rollout rows:
 
 ```bash
-rtk pnpm exec wrangler d1 execute makanmasak-prod \
+pnpm exec wrangler d1 execute makanmasak-prod \
   --remote \
   --env production \
   --config=./apps/api/wrangler.toml \
@@ -361,9 +361,9 @@ PRAGMA foreign_key_check;
 Before opening the retirement PR:
 
 ```bash
-rtk pnpm typecheck
-rtk pnpm test -- --run packages/database
-rtk pnpm db:migrate:local
+pnpm typecheck
+pnpm test -- --run packages/database
+pnpm db:migrate:local
 ```
 
 Run any added migration test directly if the workspace test command supports

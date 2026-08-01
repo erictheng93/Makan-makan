@@ -14,12 +14,12 @@ route navigation for all five Pages applications.
 
 ## Commands
 
-- Test: `rtk pnpm exec vitest run tests/unit/pages-asset-guard.test.ts`
-- Build: `rtk pnpm --filter <app-package> run build`
+- Test: `pnpm exec vitest run tests/unit/pages-asset-guard.test.ts`
+- Build: `pnpm --filter <app-package> run build`
 - Local runtime:
-  `rtk pnpm exec wrangler pages dev <app-dist> --port <port>`
+  `pnpm exec wrangler pages dev <app-dist> --port <port>`
 - Preview deploy:
-  `rtk pnpm exec wrangler pages deploy <app-dist> --project-name <name> --branch issue-69-validation`
+  `pnpm exec wrangler pages deploy <app-dist> --project-name <name> --branch issue-69-validation`
 
 ## Project Structure
 

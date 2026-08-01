@@ -43,12 +43,12 @@ split payment orchestration is specified separately in
 
 ## Commands
 
-- Typecheck: `rtk pnpm typecheck`
-- Lint: `rtk pnpm lint`
+- Typecheck: `pnpm typecheck`
+- Lint: `pnpm lint`
 - Targeted tests:
-  `rtk pnpm --filter customer-app test -- src/tests/stores/market-cart.test.ts src/tests/views/shop-menu-services.test.ts src/tests/views/market-detail-view.test.ts`
+  `pnpm --filter customer-app test -- src/tests/stores/market-cart.test.ts src/tests/views/shop-menu-services.test.ts src/tests/views/market-detail-view.test.ts`
 - API validation tests:
-  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/schemas/validation.test.ts`
+  `pnpm exec vitest run apps/api/src/features/market-checkouts/schemas/validation.test.ts`
 
 ## Project Structure
 

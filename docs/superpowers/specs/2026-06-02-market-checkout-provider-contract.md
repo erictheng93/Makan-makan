@@ -31,19 +31,19 @@ Success means the platform can:
 ## Commands
 
 - Provider service tests:
-  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentProvider.test.ts`
+  `pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentProvider.test.ts`
 - Webhook service tests:
-  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentWebhookService.test.ts`
+  `pnpm exec vitest run apps/api/src/features/market-checkouts/services/MarketCheckoutPaymentWebhookService.test.ts`
 - Market checkout route tests:
-  `rtk pnpm exec vitest run apps/api/src/features/market-checkouts/routes/index.test.ts`
+  `pnpm exec vitest run apps/api/src/features/market-checkouts/routes/index.test.ts`
 - Customer tracking tests:
-  `rtk pnpm exec vitest run apps/customer-app/src/tests/views/market-checkout-tracking-view.test.ts`
+  `pnpm exec vitest run apps/customer-app/src/tests/views/market-checkout-tracking-view.test.ts`
 - Admin provider status tests:
-  `rtk pnpm exec vitest run apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.test.ts`
+  `pnpm exec vitest run apps/admin-dashboard/src/views/PlatformMarketCheckoutsView.test.ts`
 - Typecheck:
-  `rtk pnpm typecheck`
+  `pnpm typecheck`
 - Lint:
-  `rtk pnpm lint`
+  `pnpm lint`
 
 ## Project Structure
 

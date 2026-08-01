@@ -111,9 +111,9 @@ Progress:
 Verification commands:
 
 ```bash
-rtk pnpm check:migration-dual-track
-rtk pnpm exec vitest run packages/database/src/schema/money-cents-cutover.test.ts
-rtk pnpm db:migrate:local
+pnpm check:migration-dual-track
+pnpm exec vitest run packages/database/src/schema/money-cents-cutover.test.ts
+pnpm db:migrate:local
 ```
 
 Production requires the remote audit queries from
@@ -264,7 +264,7 @@ Progress:
   `order_status_history.order_id` / `customer_reviews.order_id` as legacy
   migration surfaces to introspect when present.
 - 2026-06-23: Added `scripts/phase-c-orders-pk-dry-run.cjs` and
-  `rtk pnpm db:orders-pk-dry-run`. The script prints review SQL and runs a
+  `pnpm db:orders-pk-dry-run`. The script prints review SQL and runs a
   local SQLite transaction rehearsal using TEMP shadow tables, row-count
   parity checks, `orders.public_id` bridge checks, `PRAGMA foreign_key_check`,
   and rollback.
@@ -289,7 +289,7 @@ Progress:
   foreign-key-check rows.
 - 2026-06-23: Added `--require-complete-surface-coverage` to the Phase C
   dry-run and exposed the synthetic full-surface command as
-  `rtk pnpm db:orders-pk-dry-run:fixture-full-surface`. The rollback fixture
+  `pnpm db:orders-pk-dry-run:fixture-full-surface`. The rollback fixture
   now fails unless every existing dependency surface has at least one non-null
   order reference and emits `schemaObjects` metadata for preserving
   indexes/triggers in the paired migration draft.
@@ -299,7 +299,7 @@ Progress:
   `order_public_id` resolves back to the source order row before migration
   drafting starts.
 - 2026-06-23: Added `scripts/validate-pk-rehearsal-artifact.cjs` and
-  `rtk pnpm db:pk-rehearsal:validate` so archived Phase C rehearsal evidence is
+  `pnpm db:pk-rehearsal:validate` so archived Phase C rehearsal evidence is
   machine-gated before paired migrations are drafted.
 - 2026-06-23: Hardened the shared artifact validator so it recomputes
   root-table row counts, dependency-surface coverage, and non-null reference
@@ -319,14 +319,14 @@ Progress:
   rollback full-surface artifact, preventing synthetic fixture data from being
   substituted for representative data.
 - 2026-06-24: Added `scripts/verify-phase-c-orders-pk-readiness-manifest.cjs`
-  and `rtk pnpm db:orders-pk-readiness:verify`. The verifier reads one
+  and `pnpm db:orders-pk-readiness:verify`. The verifier reads one
   manifest, validates the representative and full-surface fixture artifacts via
   their role gates, and blocks Phase C migration drafting if dependency
   surfaces or schema metadata drift between the two evidence files.
 - 2026-06-24: Corrected Phase C package-script naming so
-  `rtk pnpm db:orders-pk-dry-run:representative` no longer generates fixture
+  `pnpm db:orders-pk-dry-run:representative` no longer generates fixture
   data. The synthetic local full-surface run is now explicitly named
-  `rtk pnpm db:orders-pk-dry-run:fixture-full-surface`.
+  `pnpm db:orders-pk-dry-run:fixture-full-surface`.
 
 Current blocker before paired Phase C migrations:
 
@@ -337,16 +337,16 @@ Current blocker before paired Phase C migrations:
   bridge violations, zero unmapped refs, zero `appCompatibility` mismatches,
   and zero `foreignKeyCheck` rows.
 - Run
-  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
+  `pnpm db:pk-rehearsal:validate -- --phase orders --artifact <archived-json> --role representative`
   and require validator `exitCode = 0`.
 - Keep the full-surface rollback fixture artifact alongside the
   restored-production artifact so migration reviewers can verify every checked
   dependency surface has copy coverage and schema preservation metadata.
 - Run
-  `rtk pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
+  `pnpm db:pk-rehearsal:validate -- --phase orders --artifact <fixture-json> --role fixture`
   against that local full-surface fixture artifact.
 - Create the Phase C readiness manifest and run
-  `rtk pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>`;
+  `pnpm db:orders-pk-readiness:verify -- --manifest <manifest-json>`;
   require validator `exitCode = 0`.
 - Only then draft paired Phase C rebuild migrations from the dry-run plan.
 
@@ -427,7 +427,7 @@ Progress:
   only a restored-production artifact with
   `assessment.exitCode = 0` and `dataCoverage.isRepresentative = true` can
   unblock paired Phase E migration drafting.
-- 2026-06-24: Added `rtk pnpm db:users-pk-dry-run:representative` and taught
+- 2026-06-24: Added `pnpm db:users-pk-dry-run:representative` and taught
   the users PK parser to ignore pnpm-forwarded `--`, matching the Phase C
   orders rehearsal CLI behavior.
 

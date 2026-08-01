@@ -20,25 +20,25 @@ a production destructive migration.
 ## Commands
 
 - Print the current inventory:
-  `rtk node scripts/phase-e-users-pk-dry-run.cjs --print-inventory`
+  `node scripts/phase-e-users-pk-dry-run.cjs --print-inventory`
 - Run local rollback rehearsal:
-  `rtk pnpm db:users-pk-dry-run`
+  `pnpm db:users-pk-dry-run`
 - Save local rehearsal evidence:
-  `rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json`
+  `node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json`
 - Require representative rehearsal data:
-  `rtk pnpm db:users-pk-dry-run:representative -- --json-output /tmp/users-pk-representative.json`
+  `pnpm db:users-pk-dry-run:representative -- --json-output /tmp/users-pk-representative.json`
 - Validate archived rehearsal evidence before migration drafting:
-  `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact /tmp/users-pk-representative.json --role representative`
+  `pnpm db:pk-rehearsal:validate -- --phase users --artifact /tmp/users-pk-representative.json --role representative`
 - Unit test the rehearsal verifier:
-  `rtk pnpm exec vitest run tests/unit/phase-e-users-pk-dry-run.test.ts`
+  `pnpm exec vitest run tests/unit/phase-e-users-pk-dry-run.test.ts`
 
 ## Local Rehearsal Evidence
 
 Command run on 2026-06-23:
 
 ```sh
-rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json
-rtk node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-baseline-require-representative.json
+node scripts/phase-e-users-pk-dry-run.cjs --execute-local --json-output /tmp/users-pk-baseline.json
+node scripts/phase-e-users-pk-dry-run.cjs --execute-local --require-representative-data --json-output /tmp/users-pk-baseline-require-representative.json
 ```
 
 Local database:
@@ -128,7 +128,7 @@ Do not create paired Phase E users PK migrations until all of these are true:
 - `users.public_id` has zero missing, duplicate, or malformed values.
 - `uninventoriedUserForeignKeys` is empty.
 - `PRAGMA foreign_key_check` returns zero rows.
-- `rtk pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json> --role representative`
+- `pnpm db:pk-rehearsal:validate -- --phase users --artifact <archived-json> --role representative`
   returns `exitCode = 0` for the archived restored-production evidence.
   This role gate rejects any fixture-generated artifact if a fixture mode is
   later added to the users drill.
