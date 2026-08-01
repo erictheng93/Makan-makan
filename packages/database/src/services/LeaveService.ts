@@ -1028,10 +1028,6 @@ export class LeaveService extends BaseService {
         restaurantId,
       );
 
-      if (String(request.employeeId) === String(approverId)) {
-        throw new Error("Approver is not authorized");
-      }
-
       const type = await this.getLeaveType(
         request.leaveTypeId,
         request.restaurantId,
@@ -1249,10 +1245,6 @@ export class LeaveService extends BaseService {
         request.restaurantId,
         restaurantId,
       );
-
-      if (String(request.employeeId) === String(approverId)) {
-        throw new Error("Approver is not authorized");
-      }
 
       // Pre-fetch balance for the pending days update
       const year = new Date().getFullYear();

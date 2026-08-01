@@ -533,37 +533,48 @@ describe("leaves routes", () => {
     );
   });
 
-  it("rejects self-approval and cross-tenant approval attempts", async () => {
+  it("allows owners to approve and reject their own leave requests", async () => {
     const env = createEnv();
 
-    // The session user owns request 9 — approving or rejecting it is forbidden
+    mocks.approveLeaveRequest.mockResolvedValue({ id: 9, status: "approved" });
+    mocks.rejectLeaveRequest.mockResolvedValue({ id: 9, status: "rejected" });
     mocks.getLeaveRequest.mockResolvedValue({
       id: 9,
       employeeId: "42",
       restaurantId: RESTAURANT_ID,
     });
 
-    const selfApproveResponse = await withSilencedRouteError(() =>
-      app.fetch(
-        jsonRequest("https://test/requests/9/approve", "POST", {
-          comments: "Looks fine",
-        }),
-        env as never,
-      ),
+    const selfApproveResponse = await app.fetch(
+      jsonRequest("https://test/requests/9/approve", "POST", {
+        comments: "Looks fine",
+      }),
+      env as never,
     );
-    expect(selfApproveResponse.status).toBe(403);
-    expect(mocks.approveLeaveRequest).not.toHaveBeenCalled();
+    expect(selfApproveResponse.status).toBe(200);
+    expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(
+      9,
+      "42",
+      "Looks fine",
+      RESTAURANT_ID,
+    );
 
-    const selfRejectResponse = await withSilencedRouteError(() =>
-      app.fetch(
-        jsonRequest("https://test/requests/9/reject", "POST", {
-          reason: "No",
-        }),
-        env as never,
-      ),
+    const selfRejectResponse = await app.fetch(
+      jsonRequest("https://test/requests/9/reject", "POST", {
+        reason: "No",
+      }),
+      env as never,
     );
-    expect(selfRejectResponse.status).toBe(403);
-    expect(mocks.rejectLeaveRequest).not.toHaveBeenCalled();
+    expect(selfRejectResponse.status).toBe(200);
+    expect(mocks.rejectLeaveRequest).toHaveBeenCalledWith(
+      9,
+      "42",
+      "No",
+      RESTAURANT_ID,
+    );
+  });
+
+  it("rejects cross-tenant approval attempts", async () => {
+    const env = createEnv();
 
     // Cross-tenant request: the scoped lookup misses, so approval 404s
     mocks.getLeaveRequest.mockResolvedValue(null);

@@ -462,11 +462,6 @@ app.post(
       throw notFound("Leave request not found");
     }
 
-    // Approval authority: nobody approves their own leave request.
-    if (String(target.employeeId) === String(user.id)) {
-      throw forbidden("Cannot approve your own leave request");
-    }
-
     // Approver identity always comes from the session.
     const request = await service.approveLeaveRequest(
       id,
@@ -501,11 +496,6 @@ app.post(
     const target = await service.getLeaveRequest(id, scope);
     if (!target) {
       throw notFound("Leave request not found");
-    }
-
-    // Approval authority: nobody reviews their own leave request.
-    if (String(target.employeeId) === String(user.id)) {
-      throw forbidden("Cannot reject your own leave request");
     }
 
     // Reviewer identity always comes from the session.

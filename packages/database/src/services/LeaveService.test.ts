@@ -448,6 +448,44 @@ describe("LeaveService tenant scoping", () => {
     expect(row.finalApproverId).toBeNull();
     expect(row.rejectedBy).toBeNull();
   });
+
+  it("allows owners to approve and reject their own leave requests", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { approverId, leaveTypeId } = await seedLeaveFixtures(testDb, {
+      pendingDays: 0,
+      usedDays: 0,
+    });
+    const approvalRequestId = await seedLeaveRequest(testDb, {
+      employeeId: approverId,
+      leaveTypeId,
+      totalDays: 1,
+    });
+    const rejectionRequestId = await seedLeaveRequest(testDb, {
+      employeeId: approverId,
+      leaveTypeId,
+      totalDays: 1,
+    });
+
+    const approved = await service.approveLeaveRequest(
+      approvalRequestId,
+      approverId,
+      "self-approved",
+      restaurantId,
+    );
+    const rejected = await service.rejectLeaveRequest(
+      rejectionRequestId,
+      approverId,
+      "self-rejected",
+      restaurantId,
+    );
+
+    expect(approved.status).toBe("approved");
+    expect(approved.finalApproverId).toBe(approverId);
+    expect(rejected.status).toBe("rejected");
+    expect(rejected.rejectedBy).toBe(approverId);
+  });
 });
 
 async function seedLeaveFixtures(
