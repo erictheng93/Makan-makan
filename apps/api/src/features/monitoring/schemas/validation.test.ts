@@ -42,9 +42,13 @@ describe("monitoring validation schemas", () => {
       days: 14,
     });
 
-    expect(() => paginationSchema.parse({ limit: "101" })).toThrow(
-      "Limit must be between 1 and 100",
-    );
+    // Pin the bound itself, not Zod's message wording, so the shared
+    // boundedLimitQuery helper stays free to phrase the error however it likes.
+    expect(paginationSchema.parse({ limit: "100" })).toEqual({
+      page: 1,
+      limit: 100,
+    });
+    expect(() => paginationSchema.parse({ limit: "101" })).toThrow();
   });
 
   it("accepts an absent or explicit overview include, and nothing else", () => {
