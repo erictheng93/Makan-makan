@@ -120,6 +120,56 @@ describe("SeatService.createSeatsForTable", () => {
     );
   });
 
+  it("reports seat-mode table creation as successful when post-insert seat creation fails", async () => {
+    const service = new TableService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+      CLIENT_BASE_URL: "https://example.test",
+    });
+
+    const createdTable = await service.createTable({
+      restaurantId,
+      number: "B1-PARTIAL",
+      capacity: 4,
+      qrMode: "seat",
+      seatCount: 4,
+      seatNumberingStyle: "numeric",
+    });
+    const persistedTable = await testDb.drizzle
+      .select({
+        id: tables.id,
+        qrCode: tables.qrCode,
+        qrMode: tables.qrMode,
+        seatCount: tables.seatCount,
+      })
+      .from(tables)
+      .where(eq(tables.id, createdTable.id))
+      .get();
+    const createdSeats = await testDb.drizzle
+      .select({ id: seats.id })
+      .from(seats)
+      .where(eq(seats.tableId, createdTable.id));
+
+    expect(createdTable).toMatchObject({
+      id: persistedTable?.id,
+      qrMode: "seat",
+      seatCount: 4,
+      qrCode: expect.stringMatching(/^pending:/),
+      warnings: [
+        {
+          code: "SEATS_NOT_CREATED",
+          message:
+            "Table was created, but seats were not created. Use batch seat creation to repair this table.",
+        },
+      ],
+    });
+    expect(persistedTable).toMatchObject({
+      qrMode: "seat",
+      seatCount: 4,
+      qrCode: expect.stringMatching(/^pending:/),
+    });
+    expect(createdSeats).toHaveLength(0);
+  });
+
   it("creates a table with a v2 QR and never persists a legacy one", async () => {
     const service = createTableService(testDb);
 

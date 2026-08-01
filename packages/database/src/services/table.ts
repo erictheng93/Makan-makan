@@ -42,6 +42,11 @@ export interface CreateTableData {
   seatNumberingStyle?: "numeric" | "alphabetic" | "custom";
 }
 
+export interface CreateTableWarning {
+  code: "SEATS_NOT_CREATED";
+  message: string;
+}
+
 export interface UpdateTableData {
   number?: string;
   name?: string;
@@ -174,15 +179,34 @@ export class TableService extends BaseService {
         );
       }
 
+      const warnings: CreateTableWarning[] = [];
+
       // 如果是座位模式，自動創建座位
       if (qrMode === "seat" && seatCount > 0) {
         const seatService = new SeatService(this.d1, this.env);
-        await seatService.createSeatsForTable(newTable.id, seatCount, {
-          numberingStyle: seatNumberingStyle,
-        });
+        try {
+          await seatService.createSeatsForTable(newTable.id, seatCount, {
+            numberingStyle: seatNumberingStyle,
+          });
+        } catch (error) {
+          // The table row has already committed. Match the QR repair path: do
+          // not surface the entire create as failed and trigger a duplicate
+          // retry loop. Seats can be repaired through batch seat creation.
+          console.warn(
+            `Table ${newTable.id} created without seats; use batch seat creation to repair it.`,
+            error,
+          );
+          warnings.push({
+            code: "SEATS_NOT_CREATED",
+            message:
+              "Table was created, but seats were not created. Use batch seat creation to repair this table.",
+          });
+        }
       }
 
-      return { ...newTable, qrCode };
+      return warnings.length > 0
+        ? { ...newTable, qrCode, warnings }
+        : { ...newTable, qrCode };
     } catch (error) {
       this.handleError(error, "createTable");
     }
