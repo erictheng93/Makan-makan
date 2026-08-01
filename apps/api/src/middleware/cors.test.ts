@@ -50,4 +50,24 @@ describe("corsMiddleware", () => {
     expect(allowedHeaders).toContain("x-restaurant-id");
     expect(allowedHeaders).toContain("x-table-id");
   });
+
+  it("does not send a browser policy that disables same-origin QR scanning", async () => {
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request("https://api.test/api/v1/menu/restaurant-1", {
+        headers: {
+          Origin: "https://makanmasak.com",
+        },
+      }),
+      {
+        NODE_ENV: "production",
+      },
+    );
+
+    const permissionsPolicy = response.headers.get("Permissions-Policy");
+
+    expect(permissionsPolicy).toContain("camera=(self)");
+    expect(permissionsPolicy).not.toContain("camera=()");
+  });
 });

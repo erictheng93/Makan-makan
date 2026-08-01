@@ -22,6 +22,14 @@ describe("customer-app production config", () => {
     expect(headers).not.toContain("ws://localhost");
   });
 
+  it("allows the customer QR scanner to request the same-origin camera", () => {
+    const headers = readFileSync(resolve(appRoot, "public/_headers"), "utf-8");
+
+    expect(headers).toContain("Permissions-Policy:");
+    expect(headers).toContain("camera=(self)");
+    expect(headers).not.toContain("camera=()");
+  });
+
   it("does not ship a looser CSP meta tag in the HTML template", () => {
     const html = readFileSync(resolve(appRoot, "index.html"), "utf-8");
 

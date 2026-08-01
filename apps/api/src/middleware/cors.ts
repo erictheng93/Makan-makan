@@ -107,7 +107,7 @@ export const corsMiddleware = async (
   c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   c.res.headers.set(
     "Permissions-Policy",
-    "geolocation=(), microphone=(), camera=(), payment=(), usb=()",
+    "geolocation=(), microphone=(), camera=(self), payment=(), usb=()",
   );
 
   // SECURITY ENHANCEMENT: Add comprehensive Content Security Policy

@@ -28,7 +28,7 @@ export const securityHeadersMiddleware = async (
     // Restrict permissions for browser features
     c.res.headers.set(
       "Permissions-Policy",
-      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), autoplay=(), encrypted-media=(), picture-in-picture=()",
+      "geolocation=(), microphone=(), camera=(self), payment=(), usb=(), autoplay=(), encrypted-media=(), picture-in-picture=()",
     );
 
     // Prevent DNS prefetching to avoid information leakage
