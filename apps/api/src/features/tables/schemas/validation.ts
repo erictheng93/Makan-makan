@@ -32,7 +32,7 @@ export const createTableSchema = z
     features: tableFeaturesSchema,
     isReservable: z.boolean().optional().default(true),
     qrMode: z.enum(["table", "seat"]).optional(),
-    seatCount: z.number().int().positive().max(100).optional(),
+    seatCount: z.number().int().nonnegative().max(100).optional(),
     seatNumberingStyle: z.enum(["numeric", "alphabetic"]).optional(),
   })
   .superRefine((data, ctx) => {
@@ -43,6 +43,15 @@ export const createTableSchema = z
         code: z.ZodIssueCode.custom,
         path: ["seatCount"],
         message: "Seat count is required in seat mode",
+      });
+      return;
+    }
+
+    if (data.seatCount === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["seatCount"],
+        message: "Seat count must be greater than 0 in seat mode",
       });
       return;
     }

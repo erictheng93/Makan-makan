@@ -270,6 +270,37 @@ describe("tables routes", () => {
     );
   });
 
+  it("creates table mode tables when the admin UI sends zero seat count", async () => {
+    const body = createBody({
+      qrMode: "table",
+      seatCount: 0,
+      seatNumberingStyle: "numeric",
+    });
+
+    const response = await request("/", "POST", body);
+
+    expect(response.status).toBe(201);
+    expect(serviceFns.createTable).toHaveBeenCalledWith({
+      ...body,
+      isReservable: true,
+    });
+  });
+
+  it("rejects zero seat count in seat mode", async () => {
+    const response = await request(
+      "/",
+      "POST",
+      createBody({
+        qrMode: "seat",
+        seatCount: 0,
+        seatNumberingStyle: "numeric",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(serviceFns.createTable).not.toHaveBeenCalled();
+  });
+
   it("rejects inconsistent table and seat capacities", async () => {
     const response = await request(
       "/",
