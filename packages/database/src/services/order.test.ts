@@ -7,7 +7,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import {
   categories,
@@ -23,11 +23,83 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "../testing/create-test-database";
-import { OrderService } from "./order";
+import { orderMenuItemSummaryColumns, OrderService } from "./order";
 
 const restaurantId = "restaurant-price-test";
 const menuItemId = 101;
 const couponUserId = "018f0000-0000-7000-8000-000000000077";
+
+function findUncoveredProjectionColumns(
+  tableColumns: string[],
+  projectedColumns: Iterable<string>,
+  exemptColumns: Iterable<string>,
+): string[] {
+  const projected = new Set(projectedColumns);
+  const exempt = new Set(exemptColumns);
+  return tableColumns.filter(
+    (column) => !projected.has(column) && !exempt.has(column),
+  );
+}
+
+describe("OrderService projection drift guards", () => {
+  const menuItemColumns = Object.keys(getTableColumns(menuItems));
+  const orderMenuItemSummaryExemptColumns = [
+    "restaurantId",
+    "categoryId",
+    "catalogType",
+    "description",
+    "ingredients",
+    "priceCents",
+    "originalPriceCents",
+    "costPriceCents",
+    "imageVariants",
+    "imageId",
+    "isAvailable",
+    "isFeatured",
+    "isPopular",
+    "sortOrder",
+    "inventoryCount",
+    "minInventoryAlert",
+    "spiceLevel",
+    "preparationTime",
+    "calories",
+    "dietaryInfo",
+    "allergens",
+    "options",
+    "availableHours",
+    "orderCount",
+    "rating",
+    "reviewCount",
+    "viewCount",
+    "tags",
+    "keywords",
+    "createdAt",
+    "updatedAt",
+    "deletedAt",
+  ];
+
+  it("keeps order menu item summaries explicit about included/exempt fields", () => {
+    expect(
+      findUncoveredProjectionColumns(
+        menuItemColumns,
+        Object.keys(orderMenuItemSummaryColumns),
+        orderMenuItemSummaryExemptColumns,
+      ),
+    ).toEqual([]);
+  });
+
+  it("fails closed when a new menu item column is neither projected nor exempted", () => {
+    const futureColumn = "__futureColumn";
+
+    expect(
+      findUncoveredProjectionColumns(
+        [...menuItemColumns, futureColumn],
+        Object.keys(orderMenuItemSummaryColumns),
+        orderMenuItemSummaryExemptColumns,
+      ),
+    ).toContain(futureColumn);
+  });
+});
 
 describe("OrderService order pricing", () => {
   let testDb: TestDatabase;

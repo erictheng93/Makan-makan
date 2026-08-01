@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+import { getTableColumns } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
-import { MenuService } from "./menu";
+import { categories, menuItems } from "../schema";
+import {
+  mapDatabaseMenuItem,
+  mapMenuCategoryRow,
+  MenuService,
+  menuItemSelectColumns,
+} from "./menu";
 
 function createServiceWithDb<TDb extends object>(db: TDb): MenuService {
   const service = new MenuService({} as D1Database, {
@@ -102,6 +109,121 @@ function collectSqlMetadata(input: unknown): {
   visit(input);
   return { columns, numbers };
 }
+
+function findUncoveredProjectionColumns(
+  tableColumns: string[],
+  projectedColumns: Iterable<string>,
+  exemptColumns: Iterable<string>,
+): string[] {
+  const projected = new Set(projectedColumns);
+  const exempt = new Set(exemptColumns);
+  return tableColumns.filter(
+    (column) => !projected.has(column) && !exempt.has(column),
+  );
+}
+
+const MENU_ITEM_OUTPUT_ALIASES: Record<string, string> = {
+  price: "priceCents",
+  originalPrice: "originalPriceCents",
+  costPrice: "costPriceCents",
+};
+
+function mappedMenuItemColumnKeys(row: Record<string, unknown>): string[] {
+  return Object.keys(mapDatabaseMenuItem(row)).map(
+    (key) => MENU_ITEM_OUTPUT_ALIASES[key] ?? key,
+  );
+}
+
+describe("MenuService projection drift guards", () => {
+  const menuItemColumns = Object.keys(getTableColumns(menuItems));
+  const categoryColumns = Object.keys(getTableColumns(categories));
+
+  it("keeps shared menu item select columns explicit for every DB column", () => {
+    expect(
+      findUncoveredProjectionColumns(
+        menuItemColumns,
+        Object.keys(menuItemSelectColumns),
+        ["deletedAt"],
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps mapDatabaseMenuItem explicit for every DB column", () => {
+    const row = Object.fromEntries(
+      menuItemColumns.map((column) => [column, column]),
+    );
+
+    expect(
+      findUncoveredProjectionColumns(
+        menuItemColumns,
+        mappedMenuItemColumnKeys(row),
+        ["deletedAt"],
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps getMenu category mapping explicit for every surfaced DB column", () => {
+    const row = Object.fromEntries(
+      categoryColumns.map((column) => [column, column]),
+    );
+    const mapped = mapMenuCategoryRow({
+      ...row,
+      isActive: true,
+      isVisible: true,
+      menuItems: [],
+    });
+
+    expect(
+      findUncoveredProjectionColumns(categoryColumns, Object.keys(mapped), [
+        "iconUrl",
+        "availableHours",
+        "deletedAt",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("fails closed when a new DB column is neither projected nor exempted", () => {
+    const futureColumn = "__futureColumn";
+    const subjects = [
+      {
+        tableColumns: [...menuItemColumns, futureColumn],
+        projectedColumns: Object.keys(menuItemSelectColumns),
+        exemptColumns: ["deletedAt"],
+      },
+      {
+        tableColumns: [...menuItemColumns, futureColumn],
+        projectedColumns: mappedMenuItemColumnKeys(
+          Object.fromEntries(menuItemColumns.map((column) => [column, column])),
+        ),
+        exemptColumns: ["deletedAt"],
+      },
+      {
+        tableColumns: [...categoryColumns, futureColumn],
+        projectedColumns: Object.keys(
+          mapMenuCategoryRow({
+            ...Object.fromEntries(
+              categoryColumns.map((column) => [column, column]),
+            ),
+            isActive: true,
+            isVisible: true,
+            menuItems: [],
+          }),
+        ),
+        exemptColumns: ["iconUrl", "availableHours", "deletedAt"],
+      },
+    ];
+
+    for (const subject of subjects) {
+      expect(
+        findUncoveredProjectionColumns(
+          subject.tableColumns,
+          subject.projectedColumns,
+          subject.exemptColumns,
+        ),
+      ).toContain(futureColumn);
+    }
+  });
+});
 
 describe("MenuService money filters", () => {
   it("filters price ranges against authoritative cents", async () => {

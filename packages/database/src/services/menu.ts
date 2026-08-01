@@ -68,7 +68,7 @@ export interface MenuFilters {
 }
 
 /** Shared select columns for menu item queries — avoids triplicating the 20-column list */
-const menuItemSelectColumns = {
+export const menuItemSelectColumns = {
   id: menuItems.id,
   restaurantId: menuItems.restaurantId,
   categoryId: menuItems.categoryId,
@@ -79,6 +79,7 @@ const menuItemSelectColumns = {
   ingredients: menuItems.ingredients,
   priceCents: menuItems.priceCents,
   originalPriceCents: menuItems.originalPriceCents,
+  costPriceCents: menuItems.costPriceCents,
   imageUrl: menuItems.imageUrl,
   imageVariants: menuItems.imageVariants,
   imageId: menuItems.imageId,
@@ -87,6 +88,7 @@ const menuItemSelectColumns = {
   isPopular: menuItems.isPopular,
   sortOrder: menuItems.sortOrder,
   inventoryCount: menuItems.inventoryCount,
+  minInventoryAlert: menuItems.minInventoryAlert,
   spiceLevel: menuItems.spiceLevel,
   preparationTime: menuItems.preparationTime,
   calories: menuItems.calories,
@@ -107,6 +109,74 @@ const menuItemSelectColumns = {
   createdAt: menuItems.createdAt,
   updatedAt: menuItems.updatedAt,
 } as const;
+
+export function mapMenuCategoryRow(cat: any): Category {
+  return {
+    id: cat.id,
+    restaurantId: cat.restaurantId,
+    name: cat.name,
+    nameEn: cat.nameEn ?? null,
+    description: cat.description,
+    sortOrder: cat.sortOrder,
+    status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
+    // `status` alone collapses two independent flags, so a category hidden via
+    // isVisible looked identical to a visible one and the admin UI had nothing
+    // to render a "hidden" state from (#83).
+    isActive: cat.isActive,
+    isVisible: cat.isVisible,
+    imageUrl: cat.imageUrl,
+    itemCount:
+      "itemCount" in cat
+        ? cat.itemCount
+        : Array.isArray(cat.menuItems)
+          ? cat.menuItems.length
+          : undefined,
+    createdAt: cat.createdAt,
+    updatedAt: cat.updatedAt,
+  };
+}
+
+export function mapDatabaseMenuItem(item: any): MenuItem {
+  return {
+    id: item.id,
+    restaurantId: item.restaurantId,
+    categoryId: item.categoryId,
+    catalogType: item.catalogType ?? "menu_item",
+    name: item.name,
+    nameEn: item.nameEn ?? null,
+    description: item.description,
+    ingredients: item.ingredients,
+    price: amountFromCents(item.priceCents),
+    originalPrice: amountFromCents(item.originalPriceCents),
+    costPrice: amountFromCents(item.costPriceCents),
+    imageUrl: item.imageUrl,
+    imageVariants: item.imageVariants,
+    imageId: item.imageId,
+    isAvailable: item.isAvailable,
+    isFeatured: item.isFeatured,
+    isPopular: item.isPopular,
+    sortOrder: item.sortOrder,
+    inventoryCount: item.inventoryCount,
+    minInventoryAlert: item.minInventoryAlert,
+    spiceLevel: item.spiceLevel,
+    preparationTime: item.preparationTime,
+    calories: item.calories,
+    dietaryInfo: item.dietaryInfo,
+    allergens: item.allergens,
+    options: item.options,
+    availableHours: item.availableHours,
+    tags: item.tags,
+    keywords: item.keywords,
+    orderCount: item.orderCount,
+    // rating/reviewCount/viewCount were dropped here, so every rating- and
+    // view-based ranking upstream saw undefined/0 (#84).
+    rating: item.rating ?? 0,
+    reviewCount: item.reviewCount ?? 0,
+    viewCount: item.viewCount ?? 0,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  } as MenuItem;
+}
 
 const DIETARY_PREFERENCE_KEYS = [
   "vegetarian",
@@ -209,24 +279,9 @@ export class MenuService extends BaseService {
           // stored categories.item_count any more — it only ever tracked
           // creates, so deletes/toggles/moves left it stale (#84).
           return {
-            categories: restaurant.categories.map((cat: any) => ({
-              id: cat.id,
-              restaurantId: cat.restaurantId,
-              name: cat.name,
-              nameEn: cat.nameEn ?? null,
-              description: cat.description,
-              sortOrder: cat.sortOrder,
-              status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
-              // `status` alone collapses two independent flags, so a category
-              // hidden via isVisible looked identical to a visible one and the
-              // admin UI had nothing to render a "hidden" state from (#83).
-              isActive: cat.isActive,
-              isVisible: cat.isVisible,
-              imageUrl: cat.imageUrl,
-              itemCount: cat.menuItems.length,
-              createdAt: cat.createdAt,
-              updatedAt: cat.updatedAt,
-            })),
+            categories: restaurant.categories.map((cat: any) =>
+              mapMenuCategoryRow(cat),
+            ),
             menuItems: restaurant.categories.flatMap((cat: any) =>
               cat.menuItems.map((item: any) => this.mapToMenuItem(item)),
             ),
@@ -1210,41 +1265,6 @@ export class MenuService extends BaseService {
 
   // 資料轉換
   private mapToMenuItem(item: any): MenuItem {
-    return {
-      id: item.id,
-      restaurantId: item.restaurantId,
-      categoryId: item.categoryId,
-      catalogType: item.catalogType ?? "menu_item",
-      name: item.name,
-      nameEn: item.nameEn ?? null,
-      description: item.description,
-      ingredients: item.ingredients,
-      price: amountFromCents(item.priceCents),
-      originalPrice: amountFromCents(item.originalPriceCents),
-      imageUrl: item.imageUrl,
-      imageVariants: item.imageVariants,
-      imageId: item.imageId,
-      isAvailable: item.isAvailable,
-      isFeatured: item.isFeatured,
-      isPopular: item.isPopular,
-      sortOrder: item.sortOrder,
-      inventoryCount: item.inventoryCount,
-      spiceLevel: item.spiceLevel,
-      preparationTime: item.preparationTime,
-      calories: item.calories,
-      dietaryInfo: item.dietaryInfo,
-      allergens: item.allergens,
-      options: item.options,
-      tags: item.tags,
-      keywords: item.keywords,
-      orderCount: item.orderCount,
-      // rating/reviewCount/viewCount were dropped here, so every rating- and
-      // view-based ranking upstream saw undefined/0 (#84).
-      rating: item.rating ?? 0,
-      reviewCount: item.reviewCount ?? 0,
-      viewCount: item.viewCount ?? 0,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    } as MenuItem;
+    return mapDatabaseMenuItem(item);
   }
 }

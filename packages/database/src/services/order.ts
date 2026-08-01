@@ -30,6 +30,13 @@ const cancellableOrderStatuses: readonly string[] = [
   ORDER_STATUS.CONFIRMED,
 ];
 
+export const orderMenuItemSummaryColumns = {
+  id: true,
+  name: true,
+  nameEn: true,
+  imageUrl: true,
+} as const;
+
 export interface CreateOrderData {
   restaurantId: string;
   tableId?: number;
@@ -721,7 +728,7 @@ export class OrderService extends BaseService {
         items: {
           with: {
             menuItem: {
-              columns: { id: true, name: true, nameEn: true, imageUrl: true },
+              columns: orderMenuItemSummaryColumns,
             },
           },
         },
@@ -777,12 +784,7 @@ export class OrderService extends BaseService {
           items: {
             with: {
               menuItem: {
-                columns: {
-                  id: true,
-                  name: true,
-                  nameEn: true,
-                  imageUrl: true,
-                },
+                columns: orderMenuItemSummaryColumns,
               },
             },
           },
@@ -1054,7 +1056,7 @@ export class OrderService extends BaseService {
           items: {
             with: {
               menuItem: {
-                columns: { id: true, name: true, nameEn: true, imageUrl: true },
+                columns: orderMenuItemSummaryColumns,
               },
             },
           },

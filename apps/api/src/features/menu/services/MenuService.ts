@@ -1043,6 +1043,7 @@ export class MenuService implements IMenuService {
       parentId: "parentId" in category ? category.parentId : undefined,
       sortOrder: category.sortOrder,
       status,
+      imageUrl: "imageUrl" in category ? (category.imageUrl ?? null) : null,
       createdAt: toIso(category.createdAt),
       updatedAt: toIso(category.updatedAt),
       // Both visibility flags reach the admin client. getMenu now carries them

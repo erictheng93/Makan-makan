@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { getTableColumns } from "drizzle-orm";
+import { categories as categoriesTable } from "@makanmakan/database";
 import { Status } from "@makanmakan/shared-types";
 import { MenuService } from "./MenuService";
 
@@ -121,6 +123,71 @@ describe("MenuService", () => {
       ...overrides,
     };
   }
+
+  function findUncoveredProjectionColumns(
+    tableColumns: string[],
+    projectedColumns: Iterable<string>,
+    exemptColumns: Iterable<string>,
+  ): string[] {
+    const projected = new Set(projectedColumns);
+    const exempt = new Set(exemptColumns);
+    return tableColumns.filter(
+      (column) => !projected.has(column) && !exempt.has(column),
+    );
+  }
+
+  it("keeps category transforms explicit for every surfaced DB column", () => {
+    const tableColumns = Object.keys(getTableColumns(categoriesTable));
+    const { service } = createService();
+    const transformed = (
+      service as unknown as {
+        transformCategory: (
+          category: Record<string, unknown>,
+        ) => Record<string, unknown>;
+      }
+    ).transformCategory({
+      ...Object.fromEntries(tableColumns.map((column) => [column, column])),
+      isActive: true,
+      isVisible: true,
+      createdAt: new Date("2026-06-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-02T00:00:00.000Z"),
+    });
+
+    expect(
+      findUncoveredProjectionColumns(tableColumns, Object.keys(transformed), [
+        "iconUrl",
+        "availableHours",
+        "deletedAt",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("fails closed when a new category column is neither transformed nor exempted", () => {
+    const tableColumns = Object.keys(getTableColumns(categoriesTable));
+    const futureColumn = "__futureColumn";
+    const { service } = createService();
+    const transformed = (
+      service as unknown as {
+        transformCategory: (
+          category: Record<string, unknown>,
+        ) => Record<string, unknown>;
+      }
+    ).transformCategory({
+      ...Object.fromEntries(tableColumns.map((column) => [column, column])),
+      isActive: true,
+      isVisible: true,
+      createdAt: new Date("2026-06-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-02T00:00:00.000Z"),
+    });
+
+    expect(
+      findUncoveredProjectionColumns(
+        [...tableColumns, futureColumn],
+        Object.keys(transformed),
+        ["iconUrl", "availableHours", "deletedAt"],
+      ),
+    ).toContain(futureColumn);
+  });
 
   it("returns null for public menu reads when the restaurant is unavailable", async () => {
     const { service, dbService } = createService({ db: createPublicDb([]) });
