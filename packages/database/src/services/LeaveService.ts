@@ -13,6 +13,7 @@ import {
   leaveRequests,
   leaveCalendarEvents,
   users,
+  USER_ROLES,
 } from "../schema";
 import { SchedulingService } from "./SchedulingService";
 import { NotificationService } from "./NotificationService";
@@ -231,6 +232,42 @@ export class LeaveService extends BaseService {
   constructor(d1: D1Database, env: CloudflareEnv) {
     super(d1, env);
     this.notificationService = new NotificationService(d1, env);
+  }
+
+  private async assertApprovalAuthority(
+    approverId: string,
+    requestRestaurantId: string,
+    restaurantId?: string,
+  ): Promise<void> {
+    if (restaurantId !== undefined && restaurantId !== requestRestaurantId) {
+      throw new Error("Leave request not found");
+    }
+
+    const [approver] = await this.db
+      .select({
+        id: users.id,
+        role: users.role,
+        restaurantId: users.restaurantId,
+        isActive: users.isActive,
+      })
+      .from(users)
+      .where(eq(users.id, approverId))
+      .limit(1);
+
+    if (
+      !approver ||
+      !approver.isActive ||
+      (approver.role !== USER_ROLES.ADMIN && approver.role !== USER_ROLES.OWNER)
+    ) {
+      throw new Error("Approver is not authorized");
+    }
+
+    if (
+      approver.role !== USER_ROLES.ADMIN &&
+      approver.restaurantId !== requestRestaurantId
+    ) {
+      throw new Error("Approver is not authorized");
+    }
   }
 
   // ========================================
@@ -882,6 +919,7 @@ export class LeaveService extends BaseService {
         data.employeeId,
         data.leaveTypeId,
         year,
+        data.restaurantId,
       );
 
       const writes: BatchItem<"sqlite">[] = [
@@ -984,7 +1022,20 @@ export class LeaveService extends BaseService {
         throw new Error("Leave request is not in pending status");
       }
 
-      const type = await this.getLeaveType(request.leaveTypeId);
+      await this.assertApprovalAuthority(
+        approverId,
+        request.restaurantId,
+        restaurantId,
+      );
+
+      if (String(request.employeeId) === String(approverId)) {
+        throw new Error("Approver is not authorized");
+      }
+
+      const type = await this.getLeaveType(
+        request.leaveTypeId,
+        request.restaurantId,
+      );
       if (!type) {
         throw new Error("Leave type not found");
       }
@@ -1000,6 +1051,7 @@ export class LeaveService extends BaseService {
           request.employeeId,
           request.leaveTypeId,
           year,
+          request.restaurantId,
         );
 
         const writes: BatchItem<"sqlite">[] = [];
@@ -1019,6 +1071,7 @@ export class LeaveService extends BaseService {
                   sql`EXISTS (
                     SELECT 1 FROM ${leaveRequests}
                     WHERE ${leaveRequests.id} = ${requestId}
+                      AND ${leaveRequests.restaurantId} = ${request.restaurantId}
                       AND ${leaveRequests.status} = 'pending'
                   )`,
                 ),
@@ -1062,6 +1115,7 @@ export class LeaveService extends BaseService {
               endDate: request.endDate,
               reason: `請假核准: ${type.name} (${request.startDate} ~ ${request.endDate})`,
               cancelledBy: approverId,
+              restaurantId: request.restaurantId,
             });
 
           // Store affected schedule IDs in leave request for audit trail
@@ -1072,7 +1126,7 @@ export class LeaveService extends BaseService {
                 affectedScheduleIds: JSON.stringify(cancelResult.scheduleIds),
                 updatedAt: new Date(),
               })
-              .where(eq(leaveRequests.id, requestId));
+              .where(requestScope);
 
             console.log(
               `Leave approved - Auto-cancelled ${cancelResult.cancelledCount} schedules`,
@@ -1145,8 +1199,12 @@ export class LeaveService extends BaseService {
             currentApprovalLevel: nextLevel,
             updatedAt: now,
           })
-          .where(requestScope)
+          .where(and(requestScope, eq(leaveRequests.status, "pending")))
           .returning();
+
+        if (!updated) {
+          throw new Error("Leave request is not in pending status");
+        }
 
         return updated as LeaveRequest;
       }
@@ -1186,12 +1244,23 @@ export class LeaveService extends BaseService {
         throw new Error("Leave request is not in pending status");
       }
 
+      await this.assertApprovalAuthority(
+        approverId,
+        request.restaurantId,
+        restaurantId,
+      );
+
+      if (String(request.employeeId) === String(approverId)) {
+        throw new Error("Approver is not authorized");
+      }
+
       // Pre-fetch balance for the pending days update
       const year = new Date().getFullYear();
       const balance = await this.getLeaveBalance(
         request.employeeId,
         request.leaveTypeId,
         year,
+        request.restaurantId,
       );
 
       const now = new Date();
@@ -1212,6 +1281,7 @@ export class LeaveService extends BaseService {
                 sql`EXISTS (
                   SELECT 1 FROM ${leaveRequests}
                   WHERE ${leaveRequests.id} = ${requestId}
+                    AND ${leaveRequests.restaurantId} = ${request.restaurantId}
                     AND ${leaveRequests.status} = 'pending'
                 )`,
               ),
@@ -1252,7 +1322,10 @@ export class LeaveService extends BaseService {
           .where(eq(users.id, request.employeeId))
           .limit(1);
 
-        const type = await this.getLeaveType(request.leaveTypeId);
+        const type = await this.getLeaveType(
+          request.leaveTypeId,
+          request.restaurantId,
+        );
 
         if (employee[0]?.email && type) {
           await this.notificationService.sendNotification({

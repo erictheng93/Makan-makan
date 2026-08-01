@@ -253,6 +253,29 @@ export class SchedulingService extends BaseService {
         );
   }
 
+  private async assertEmployeesInRestaurant(
+    employeeIds: string[],
+    restaurantId: string,
+  ): Promise<void> {
+    const uniqueIds = [...new Set(employeeIds)];
+    if (uniqueIds.length === 0) return;
+
+    const rows = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          inArray(users.id, uniqueIds),
+          eq(users.restaurantId, restaurantId),
+          eq(users.isActive, true),
+        ),
+      );
+
+    if (rows.length !== uniqueIds.length) {
+      throw new Error("Employee not found in restaurant");
+    }
+  }
+
   // ========================================
   // Shift Template Management
   // ========================================
@@ -464,6 +487,21 @@ export class SchedulingService extends BaseService {
       scheduledHours: number;
     },
   ): Promise<EmployeeSchedule> {
+    await this.assertEmployeesInRestaurant(
+      [data.employeeId],
+      data.restaurantId,
+    );
+
+    if (data.shiftTemplateId != null) {
+      const template = await this.getShiftTemplate(
+        data.shiftTemplateId,
+        data.restaurantId,
+      );
+      if (!template) {
+        throw new Error("Shift template not found");
+      }
+    }
+
     // Check for conflicts (read operation — outside transaction)
     const conflicts = await this.checkScheduleConflicts(data);
     if (conflicts.conflicts.length > 0) {
@@ -567,8 +605,13 @@ export class SchedulingService extends BaseService {
     const startDate = new Date(data.dateRange.startDate);
     const endDate = new Date(data.dateRange.endDate);
 
+    await this.assertEmployeesInRestaurant(data.employeeIds, data.restaurantId);
+
     // Read operation — outside transaction
-    const template = await this.getShiftTemplate(data.shiftTemplateId);
+    const template = await this.getShiftTemplate(
+      data.shiftTemplateId,
+      data.restaurantId,
+    );
     if (!template) {
       throw new Error("Shift template not found");
     }
@@ -753,7 +796,7 @@ export class SchedulingService extends BaseService {
         notes: data.notes || schedule.notes,
         updatedAt: new Date(),
       })
-      .where(eq(employeeSchedules.id, data.scheduleId))
+      .where(this.scheduleWhere(data.scheduleId, data.restaurantId))
       .returning();
 
     return updated as EmployeeSchedule;
@@ -798,7 +841,7 @@ export class SchedulingService extends BaseService {
         notes: data.notes || schedule.notes,
         updatedAt: new Date(),
       })
-      .where(eq(employeeSchedules.id, data.scheduleId))
+      .where(this.scheduleWhere(data.scheduleId, data.restaurantId))
       .returning();
 
     return updated as EmployeeSchedule;
@@ -1437,6 +1480,7 @@ export class SchedulingService extends BaseService {
 
       const requesterSchedule = await this.getSchedule(
         data.requesterScheduleId,
+        data.restaurantId,
       );
 
       // If there's a specific target employee, notify them
@@ -1550,7 +1594,7 @@ export class SchedulingService extends BaseService {
                 updatedAt: now,
               })
               .where(
-                eq(employeeSchedules.id, request.requesterScheduleId),
+                this.scheduleWhere(request.requesterScheduleId, restaurantId),
               ) as BatchItem<"sqlite">,
             this.db
               .update(employeeSchedules)
@@ -1560,7 +1604,7 @@ export class SchedulingService extends BaseService {
                 updatedAt: now,
               })
               .where(
-                eq(employeeSchedules.id, request.targetScheduleId),
+                this.scheduleWhere(request.targetScheduleId, restaurantId),
               ) as BatchItem<"sqlite">,
           );
         } else {
@@ -1574,7 +1618,7 @@ export class SchedulingService extends BaseService {
                 updatedAt: now,
               })
               .where(
-                eq(employeeSchedules.id, request.requesterScheduleId),
+                this.scheduleWhere(request.requesterScheduleId, restaurantId),
               ) as BatchItem<"sqlite">,
           );
         }
@@ -1594,7 +1638,7 @@ export class SchedulingService extends BaseService {
               updatedAt: now,
             })
             .where(
-              eq(employeeSchedules.id, request.requesterScheduleId),
+              this.scheduleWhere(request.requesterScheduleId, restaurantId),
             ) as BatchItem<"sqlite">,
         );
         break;
@@ -1610,7 +1654,7 @@ export class SchedulingService extends BaseService {
               updatedAt: now,
             })
             .where(
-              eq(employeeSchedules.id, request.requesterScheduleId),
+              this.scheduleWhere(request.requesterScheduleId, restaurantId),
             ) as BatchItem<"sqlite">,
         );
         break;
@@ -1658,6 +1702,7 @@ export class SchedulingService extends BaseService {
 
       const requesterSchedule = await this.getSchedule(
         updated.requesterScheduleId,
+        updated.restaurantId,
       );
 
       if (requester[0]?.email) {
@@ -1816,6 +1861,7 @@ export class SchedulingService extends BaseService {
 
       const requesterSchedule = await this.getSchedule(
         updated.requesterScheduleId,
+        updated.restaurantId,
       );
 
       if (requester[0]?.email) {
@@ -1963,6 +2009,7 @@ export class SchedulingService extends BaseService {
     endDate: string;
     reason: string;
     cancelledBy: string;
+    restaurantId?: string;
   }): Promise<{ cancelledCount: number; scheduleIds: number[] }> {
     try {
       const [cancelledRows] = await this.db.batch([
@@ -1977,6 +2024,9 @@ export class SchedulingService extends BaseService {
           .where(
             and(
               eq(employeeSchedules.employeeId, params.employeeId),
+              ...(params.restaurantId === undefined
+                ? []
+                : [eq(employeeSchedules.restaurantId, params.restaurantId)]),
               between(
                 employeeSchedules.workDate,
                 params.startDate,
@@ -2032,6 +2082,7 @@ export class SchedulingService extends BaseService {
         .from(leaveRequests)
         .where(
           and(
+            eq(leaveRequests.restaurantId, params.restaurantId),
             eq(leaveRequests.status, "approved"),
             lte(leaveRequests.startDate, params.date),
             gte(leaveRequests.endDate, params.date),
@@ -2046,6 +2097,7 @@ export class SchedulingService extends BaseService {
         .from(employeeSchedules)
         .where(
           and(
+            eq(employeeSchedules.restaurantId, params.restaurantId),
             eq(employeeSchedules.workDate, params.date),
             sql`${employeeSchedules.status} != 'cancelled'`,
           ),

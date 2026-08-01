@@ -360,6 +360,51 @@ describe("SchedulingService tenant scoping", () => {
     expect(row.results[0].status).toBe("scheduled");
   });
 
+  it("rejects schedule creation for cross-tenant employees and templates", async () => {
+    const svc = service();
+
+    await expect(
+      svc.createSchedule({
+        restaurantId: "sched-rest",
+        employeeId: outsiderId,
+        workDate: "2026-08-02",
+        startTime: "09:00",
+        endTime: "13:00",
+        scheduledHours: 4,
+        createdBy: ownerId,
+      }),
+    ).rejects.toThrow(/Employee not found in restaurant/);
+
+    await testDb.db
+      .prepare(
+        `INSERT INTO shift_templates
+           (id, restaurant_id, name, start_time, end_time, duration_minutes,
+            break_duration_minutes, created_by, created_at_ms, updated_at_ms)
+         VALUES
+           (700, 'other-rest', 'Other Morning', '09:00', '13:00', 240,
+            0, '${ownerId}', 1735689600000, 1735689600000)`,
+      )
+      .run();
+
+    await expect(
+      svc.bulkCreateSchedules({
+        restaurantId: "sched-rest",
+        shiftTemplateId: 700,
+        employeeIds: [employeeId],
+        dateRange: { startDate: "2026-08-03", endDate: "2026-08-03" },
+        daysOfWeek: [1],
+        createdBy: ownerId,
+      }),
+    ).rejects.toThrow(/Shift template not found/);
+
+    const schedules = await testDb.db
+      .prepare(
+        `SELECT id FROM employee_schedules WHERE shift_template_id = 700`,
+      )
+      .all<{ id: number }>();
+    expect(schedules.results).toEqual([]);
+  });
+
   it("rejects swap request creation with a forged requester identity", async () => {
     const svc = service();
 

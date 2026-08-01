@@ -418,6 +418,36 @@ describe("LeaveService tenant scoping", () => {
       .where(eq(leaveRequests.id, requestId));
     expect(row.status).toBe("pending");
   });
+
+  it("rejects approval and rejection from unauthorized approver ids", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, leaveTypeId } = await seedLeaveFixtures(testDb, {
+      pendingDays: 2,
+      usedDays: 0,
+    });
+    const requestId = await seedLeaveRequest(testDb, {
+      employeeId,
+      leaveTypeId,
+      totalDays: 2,
+    });
+
+    await expect(
+      service.approveLeaveRequest(requestId, employeeId, "spoof", restaurantId),
+    ).rejects.toThrow(/Approver is not authorized/);
+    await expect(
+      service.rejectLeaveRequest(requestId, employeeId, "spoof", restaurantId),
+    ).rejects.toThrow(/Approver is not authorized/);
+
+    const [row] = await testDb.drizzle
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, requestId));
+    expect(row.status).toBe("pending");
+    expect(row.finalApproverId).toBeNull();
+    expect(row.rejectedBy).toBeNull();
+  });
 });
 
 async function seedLeaveFixtures(
