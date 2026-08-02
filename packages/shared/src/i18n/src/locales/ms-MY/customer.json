@@ -80,7 +80,8 @@
     "halal": "Halal",
     "addToCart": "Tambah ke Troli",
     "customize": "Sesuaikan",
-    "itemDetails": "Butiran Item"
+    "itemDetails": "Butiran Item",
+    "seatContext": "{table} · Tempat {seat}"
   },
   "menuItem": {
     "title": "Butiran Item",

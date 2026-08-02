@@ -108,7 +108,9 @@ vi.mock("@/components/CouponRecommendation.vue", () => ({
 describe("CartView seat orders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    routeQuery.current = { seatId: "6" };
+    // Row id and printed number deliberately differ: seat "02" on this table
+    // is row 6. The header must show "02".
+    routeQuery.current = { seatId: "6", seatNumber: "02" };
     sessionStorage.clear();
   });
 
@@ -127,7 +129,7 @@ describe("CartView seat orders", () => {
 
     await flushPromises();
     expect(initializeCart).toHaveBeenCalledWith("restaurant-1", 4, 6);
-    expect(wrapper.text()).toContain("06 號座");
+    expect(wrapper.text()).toContain("menu.seatContext");
 
     await wrapper.find("button[data-testid='confirm']").trigger("click");
 
@@ -138,6 +140,28 @@ describe("CartView seat orders", () => {
         tableId: 4,
         seatId: 6,
       }),
+    );
+  });
+
+  it("omits the seat label when only the row id is known", async () => {
+    // Older links carry just seatId. Showing String(seatId).padStart(2,"0")
+    // told a diner at sticker "02" they were at "06", so the label is dropped
+    // rather than invented — the order still carries the id.
+    routeQuery.current = { seatId: "6" };
+
+    const wrapper = mount(CartView, {
+      props: { restaurantId: "restaurant-1", tableId: 4 },
+      global: { stubs: { RouterLink: true } },
+    });
+
+    await flushPromises();
+    expect(initializeCart).toHaveBeenCalledWith("restaurant-1", 4, 6);
+    expect(wrapper.text()).not.toContain("menu.seatContext");
+    expect(wrapper.text()).not.toContain("06");
+
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    expect(createGuestOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ orderType: "seat", tableId: 4, seatId: 6 }),
     );
   });
 });

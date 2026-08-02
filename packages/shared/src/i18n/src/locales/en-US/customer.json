@@ -80,7 +80,8 @@
     "halal": "Halal",
     "addToCart": "Add to Cart",
     "customize": "Customize",
-    "itemDetails": "Item Details"
+    "itemDetails": "Item Details",
+    "seatContext": "{table} · Seat {seat}"
   },
   "menuItem": {
     "title": "Item Details",

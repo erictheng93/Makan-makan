@@ -321,10 +321,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
+import { useSeatContext } from "@/composables/useSeatContext";
 import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import MenuItemCard from "@/components/MenuItemCard.vue";
@@ -351,7 +352,6 @@ const props = defineProps<{
 
 // Composables
 const router = useRouter();
-const route = useRoute();
 const toast = useToast();
 const { t, tWithParams, currentLanguage } = useI18n();
 const appStore = useAppStore();
@@ -412,23 +412,14 @@ const tableLabel = computed(
   () => tableValidation.value?.table?.number ?? String(props.tableId),
 );
 
-const seatId = computed(() => {
-  const rawSeatId = Array.isArray(route.query.seatId)
-    ? route.query.seatId[0]
-    : route.query.seatId;
-  const parsedSeatId = Number(rawSeatId);
-  return Number.isInteger(parsedSeatId) && parsedSeatId > 0
-    ? parsedSeatId
-    : null;
-});
-
-const seatLabel = computed(() =>
-  seatId.value ? String(seatId.value).padStart(2, "0") : null,
-);
+const { seatId, seatLabel, seatQuery } = useSeatContext();
 
 const orderContextLabel = computed(() =>
   seatLabel.value
-    ? `${tableLabel.value} · ${seatLabel.value} 號座`
+    ? tWithParams("menu.seatContext", {
+        table: tableLabel.value,
+        seat: seatLabel.value,
+      })
     : tableLabel.value,
 );
 
@@ -438,7 +429,7 @@ const cartRoute = computed(() => ({
     restaurantId: props.restaurantId,
     tableId: props.tableId,
   },
-  query: seatId.value ? { seatId: String(seatId.value) } : undefined,
+  query: seatQuery.value,
 }));
 
 // API Queries

@@ -80,7 +80,8 @@
     "halal": "Halal",
     "addToCart": "Tambah ke Keranjang",
     "customize": "Sesuaikan",
-    "itemDetails": "Detail Item"
+    "itemDetails": "Detail Item",
+    "seatContext": "{table} · Kursi {seat}"
   },
   "menuItem": {
     "title": "Detail Item",

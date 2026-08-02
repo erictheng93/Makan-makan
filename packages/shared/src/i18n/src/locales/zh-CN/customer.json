@@ -80,7 +80,8 @@
     "halal": "清真",
     "addToCart": "加入购物车",
     "customize": "定制",
-    "itemDetails": "商品详情"
+    "itemDetails": "商品详情",
+    "seatContext": "{table} · {seat} 号座"
   },
   "menuItem": {
     "title": "商品详情",
