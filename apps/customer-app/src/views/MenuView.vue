@@ -32,16 +32,14 @@
                 {{ restaurant?.name || t("common.loading") }}
               </h1>
               <p class="text-sm text-ios-secondary">
-                {{ t("orderTracking.tableNumber") }} {{ tableLabel }}
+                {{ t("orderTracking.tableNumber") }} {{ orderContextLabel }}
               </p>
             </div>
 
             <button
               data-testid="cart-btn"
               class="relative w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
-              @click="
-                router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
-              "
+              @click="router.push(cartRoute)"
             >
               <svg
                 class="w-5 h-5"
@@ -270,9 +268,7 @@
             :items="cartStore.items"
             :item-count="cartStore.itemCount"
             :subtotal="cartStore.subtotal"
-            @checkout="
-              router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
-            "
+            @checkout="router.push(cartRoute)"
             @remove-item="cartStore.removeItem($event)"
             @update-quantity="(id, qty) => cartStore.updateQuantity(id, qty)"
           />
@@ -287,9 +283,7 @@
     >
       <button
         class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full shadow-card-lg active:scale-[0.98] transition-transform duration-150 flex items-center justify-between"
-        @click="
-          router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
-        "
+        @click="router.push(cartRoute)"
       >
         <div class="flex items-center space-x-3">
           <div
@@ -327,7 +321,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
@@ -357,6 +351,7 @@ const props = defineProps<{
 
 // Composables
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const { t, tWithParams, currentLanguage } = useI18n();
 const appStore = useAppStore();
@@ -416,6 +411,35 @@ const isTableValid = computed(() => tableValidation.value?.isValid === true);
 const tableLabel = computed(
   () => tableValidation.value?.table?.number ?? String(props.tableId),
 );
+
+const seatId = computed(() => {
+  const rawSeatId = Array.isArray(route.query.seatId)
+    ? route.query.seatId[0]
+    : route.query.seatId;
+  const parsedSeatId = Number(rawSeatId);
+  return Number.isInteger(parsedSeatId) && parsedSeatId > 0
+    ? parsedSeatId
+    : null;
+});
+
+const seatLabel = computed(() =>
+  seatId.value ? String(seatId.value).padStart(2, "0") : null,
+);
+
+const orderContextLabel = computed(() =>
+  seatLabel.value
+    ? `${tableLabel.value} · ${seatLabel.value} 號座`
+    : tableLabel.value,
+);
+
+const cartRoute = computed(() => ({
+  name: "Cart",
+  params: {
+    restaurantId: props.restaurantId,
+    tableId: props.tableId,
+  },
+  query: seatId.value ? { seatId: String(seatId.value) } : undefined,
+}));
 
 // API Queries
 const { data: restaurant, isLoading: isLoadingRestaurant } = useQuery({
@@ -575,10 +599,14 @@ watch(
 );
 
 watch(
-  isTableValid,
-  (valid) => {
+  [isTableValid, seatId],
+  ([valid, currentSeatId]) => {
     if (valid) {
-      cartStore.initializeCart(props.restaurantId, props.tableId);
+      cartStore.initializeCart(
+        props.restaurantId,
+        props.tableId,
+        currentSeatId,
+      );
     }
   },
   { immediate: true },
