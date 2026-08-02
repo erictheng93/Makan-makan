@@ -2389,6 +2389,8 @@ const zhTWCore = {
     },
     orders: {
       title: "訂單流程設定",
+      acceptGuestOrders: "接受顧客掃碼點餐",
+      acceptGuestOrdersDesc: "允許顧客透過桌台與店家 QR Code 送出訂單",
       autoConfirm: "自動確認訂單",
       autoConfirmDesc: "新訂單自動確認，無需人工審核",
       prepTimeAlert: "訂單準備時間提醒",

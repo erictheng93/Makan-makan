@@ -52,6 +52,7 @@ export interface RestaurantSettings {
   currency?: string;
   timezone?: string;
   language?: string;
+  allowGuestOrders?: boolean;
   autoAcceptOrders?: boolean;
   estimatedPrepTime?: number; // minutes
   maxTablesPerQR?: number;

@@ -730,6 +730,27 @@
           <div class="flex items-center justify-between">
             <div>
               <label class="text-sm font-medium text-gray-900">{{
+                t("settings.orders.acceptGuestOrders")
+              }}</label>
+              <p class="text-sm text-gray-500">
+                {{ t("settings.orders.acceptGuestOrdersDesc") }}
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                v-model="settings.orders.acceptGuestOrders"
+                type="checkbox"
+                class="sr-only peer"
+              />
+              <div
+                class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+              />
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="text-sm font-medium text-gray-900">{{
                 t("settings.orders.autoConfirm")
               }}</label>
               <p class="text-sm text-gray-500">
@@ -1968,6 +1989,7 @@ const settings = reactive({
     autoLogoutMinutes: 60,
   },
   orders: {
+    acceptGuestOrders: false,
     autoConfirm: true,
     preparationTimeAlert: true,
     defaultPreparationTime: 15,
@@ -2155,9 +2177,11 @@ const saveSettings = async () => {
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
       await api.put(`/restaurants/${restaurantId}`, {
+        isAvailable: settings.orders.acceptGuestOrders,
         supportsTakeaway: deliverySettings.enableTakeaway,
         supportsDelivery: deliverySettings.enableDelivery,
         settings: {
+          allowGuestOrders: settings.orders.acceptGuestOrders,
           currency: settings.system.currency,
           enableDineIn: deliverySettings.enableDineIn,
           enableTakeaway: deliverySettings.enableTakeaway,
@@ -2204,8 +2228,10 @@ const loadSettings = async () => {
         district?: string;
         latitude?: number | null;
         longitude?: number | null;
+        isAvailable?: boolean;
         supportsTakeaway?: boolean;
         settings?: {
+          allowGuestOrders?: boolean;
           currency?: string;
           enableDineIn?: boolean;
           enableTakeaway?: boolean;
@@ -2228,6 +2254,9 @@ const loadSettings = async () => {
         if (data.longitude !== undefined) {
           settings.restaurant.longitude = data.longitude;
         }
+        settings.orders.acceptGuestOrders =
+          data.settings?.allowGuestOrders === true &&
+          data.isAvailable !== false;
         if (data.supportsTakeaway !== undefined) {
           deliverySettings.enableTakeaway = data.supportsTakeaway;
         }

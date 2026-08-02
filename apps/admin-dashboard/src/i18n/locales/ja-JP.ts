@@ -2311,6 +2311,9 @@ const jaJP: Messages = {
     },
     orders: {
       title: "注文ワークフロー",
+      acceptGuestOrders: "顧客のQR注文を受け付ける",
+      acceptGuestOrdersDesc:
+        "お客様がテーブルおよび店舗QRコードから注文を送信できるようにします",
       autoConfirm: "注文の自動確認",
       autoConfirmDesc: "新しい注文を手動確認なしで自動確認",
       prepTimeAlert: "調理時間アラート",

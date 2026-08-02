@@ -2304,6 +2304,9 @@ const enUS: Messages = {
     },
     orders: {
       title: "Order Workflow",
+      acceptGuestOrders: "Accept customer QR orders",
+      acceptGuestOrdersDesc:
+        "Allow customers to submit orders from table and shop QR codes",
       autoConfirm: "Auto-Confirm Orders",
       autoConfirmDesc: "Automatically confirm new orders without manual review",
       prepTimeAlert: "Preparation Time Alert",

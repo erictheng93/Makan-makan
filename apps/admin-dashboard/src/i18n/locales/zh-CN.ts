@@ -2281,6 +2281,8 @@ const zhCN: Messages = {
     },
     orders: {
       title: "订单流程设置",
+      acceptGuestOrders: "接受顾客扫码点餐",
+      acceptGuestOrdersDesc: "允许顾客通过桌台与店家 QR Code 提交订单",
       autoConfirm: "自动确认订单",
       autoConfirmDesc: "新订单自动确认，无需人工审核",
       prepTimeAlert: "订单准备时间提醒",

@@ -2317,6 +2317,9 @@ const idID: Messages = {
     },
     orders: {
       title: "Alur Pesanan",
+      acceptGuestOrders: "Terima pesanan QR pelanggan",
+      acceptGuestOrdersDesc:
+        "Izinkan pelanggan mengirim pesanan dari kode QR meja dan toko",
       autoConfirm: "Konfirmasi Pesanan Otomatis",
       autoConfirmDesc: "Otomatis konfirmasi pesanan baru tanpa tinjauan manual",
       prepTimeAlert: "Peringatan Waktu Persiapan",
