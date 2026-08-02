@@ -25,6 +25,7 @@ import {
 } from "../schemas/validation";
 import { OrdersService } from "../../orders/services/OrdersService";
 import {
+  ApiError,
   notFound,
   forbidden,
   badRequest,
@@ -32,26 +33,13 @@ import {
 } from "../../../shared/utils/api-error";
 import { enforceQuota } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
+import { validateBody } from "../../../shared/middleware";
 
 const app = new Hono<{ Bindings: Env }>();
 
 // ─── POST / ─── Create guest order (no auth, rate limited) ───
-app.post("/", async (c) => {
-  // Parse and validate body
-  const body = await c.req.json();
-  const parsed = createGuestOrderSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
-    );
-  }
-
-  const data = parsed.data;
+app.post("/", validateBody(createGuestOrderSchema), async (c) => {
+  const data = c.get("validatedBody");
   await enforceQuota(c, "orders.created", {
     restaurantId: data.restaurantId,
   });
@@ -109,12 +97,9 @@ app.post("/", async (c) => {
       }
     }
 
-    return c.json(
-      {
-        success: false,
-        error:
-          "You already have an active order at this restaurant. Please wait for it to complete.",
-      },
+    throw new ApiError(
+      "ACTIVE_GUEST_ORDER_EXISTS",
+      "You already have an active order at this restaurant. Please wait for it to complete.",
       429,
     );
   }
@@ -268,53 +253,46 @@ app.get("/:id", guestTokenAuth, async (c) => {
 });
 
 // ─── POST /:id/items ─── Add items to guest order (guest token required) ───
-app.post("/:id/items", guestTokenAuth, async (c) => {
-  const orderId = c.req.param("id");
-  if (!orderId) throw badRequest("Missing order id");
+app.post(
+  "/:id/items",
+  guestTokenAuth,
+  validateBody(addGuestOrderItemsSchema),
+  async (c) => {
+    const orderId = c.req.param("id");
+    if (!orderId) throw badRequest("Missing order id");
+    const data = c.get("validatedBody");
 
-  const body = await c.req.json();
-  const parsed = addGuestOrderItemsSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    const ordersService = new OrdersService(c.env);
+    const order = await ordersService.getOrder(orderId, true);
+
+    if (!order) {
+      throw notFound("Order not found");
+    }
+
+    // Only allow adding items to pending or confirmed orders
+    const status = String(order.status).toLowerCase();
+    if (status !== "pending" && status !== "confirmed") {
+      throw badRequest(`Cannot add items to an order with status: ${status}`);
+    }
+
+    // Enforce guest item limit (20 total)
+    const existingItemCount = order.items?.length ?? 0;
+    if (existingItemCount + data.items.length > 20) {
+      throw badRequest("Guest orders cannot exceed 20 items total");
+    }
+
+    const updatedOrder = await ordersService.addItemsToOrder(
+      orderId,
+      data.items,
     );
-  }
 
-  const ordersService = new OrdersService(c.env);
-  const order = await ordersService.getOrder(orderId, true);
-
-  if (!order) {
-    throw notFound("Order not found");
-  }
-
-  // Only allow adding items to pending or confirmed orders
-  const status = String(order.status).toLowerCase();
-  if (status !== "pending" && status !== "confirmed") {
-    throw badRequest(`Cannot add items to an order with status: ${status}`);
-  }
-
-  // Enforce guest item limit (20 total)
-  const existingItemCount = order.items?.length ?? 0;
-  if (existingItemCount + parsed.data.items.length > 20) {
-    throw badRequest("Guest orders cannot exceed 20 items total");
-  }
-
-  const updatedOrder = await ordersService.addItemsToOrder(
-    orderId,
-    parsed.data.items,
-  );
-
-  return c.json({
-    success: true,
-    data: { order: updatedOrder },
-    message: "Items added successfully",
-  });
-});
+    return c.json({
+      success: true,
+      data: { order: updatedOrder },
+      message: "Items added successfully",
+    });
+  },
+);
 
 // ─── POST /:id/cancel ─── Cancel guest order (guest token required) ───
 app.post("/:id/cancel", guestTokenAuth, async (c) => {

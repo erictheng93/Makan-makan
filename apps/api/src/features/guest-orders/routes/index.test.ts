@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Hono } from "hono";
 import routes from "./index";
+import { ApiError } from "../../../shared/utils/api-error";
 
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
@@ -113,6 +115,28 @@ async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
   }
 }
 
+function createRoutesWithApiErrorHandler() {
+  const app = new Hono();
+  app.route("/", routes);
+  app.onError((error, c) => {
+    if (error instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message,
+            ...(error.details !== undefined && { details: error.details }),
+          },
+        },
+        error.status as never,
+      );
+    }
+    throw error;
+  });
+  return app;
+}
+
 describe("guest order routes", () => {
   beforeEach(() => {
     databaseMocks.selectQueue.length = 0;
@@ -198,7 +222,8 @@ describe("guest order routes", () => {
 
   it("rejects invalid create requests and active duplicate guest orders", async () => {
     const invalidEnv = createEnv();
-    const invalidResponse = await routes.fetch(
+    const app = createRoutesWithApiErrorHandler();
+    const invalidResponse = await app.fetch(
       new Request("https://test/", {
         method: "POST",
         body: JSON.stringify(validGuestOrderBody({ items: [] })),
@@ -207,6 +232,19 @@ describe("guest order routes", () => {
     );
 
     expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: [
+          {
+            field: "items",
+            code: "too_small",
+          },
+        ],
+      },
+    });
     expect(enforceQuota).not.toHaveBeenCalled();
 
     const duplicateEnv = createEnv();
@@ -220,7 +258,7 @@ describe("guest order routes", () => {
       },
     });
 
-    const duplicateResponse = await routes.fetch(
+    const duplicateResponse = await app.fetch(
       new Request("https://test/", {
         method: "POST",
         body: JSON.stringify(validGuestOrderBody()),
@@ -231,6 +269,11 @@ describe("guest order routes", () => {
     expect(duplicateResponse.status).toBe(429);
     await expect(duplicateResponse.json()).resolves.toMatchObject({
       success: false,
+      error: {
+        code: "ACTIVE_GUEST_ORDER_EXISTS",
+        message:
+          "You already have an active order at this restaurant. Please wait for it to complete.",
+      },
     });
     expect(createOrder).not.toHaveBeenCalled();
   });
@@ -359,7 +402,7 @@ describe("guest order routes", () => {
   });
 
   it("validates guest item additions and order state", async () => {
-    const invalidResponse = await routes.fetch(
+    const invalidResponse = await createRoutesWithApiErrorHandler().fetch(
       new Request("https://test/501/items", {
         method: "POST",
         body: JSON.stringify({ items: [] }),
@@ -367,6 +410,19 @@ describe("guest order routes", () => {
       createEnv() as never,
     );
     expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: [
+          {
+            field: "items",
+            code: "too_small",
+          },
+        ],
+      },
+    });
 
     getOrder.mockResolvedValueOnce({
       id: 501,

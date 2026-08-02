@@ -2,6 +2,7 @@ import { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Env } from "../types/env";
 import { buildAllowedOrigins } from "./cors";
+import { forbidden } from "../shared/utils/api-error";
 
 /**
  * CSRF Protection Middleware
@@ -190,13 +191,9 @@ export function csrfProtection(options: CSRFOptions = {}) {
 
       // === DEFENSE LAYER 1: Origin/Referer Validation ===
       if (!validateOrigin(c)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid request origin",
-            message: "Request origin does not match expected host",
-          },
-          403,
+        throw forbidden(
+          "Request origin does not match expected host",
+          "INVALID_REQUEST_ORIGIN",
         );
       }
 
@@ -205,25 +202,17 @@ export function csrfProtection(options: CSRFOptions = {}) {
       const tokenFromHeader = c.req.header(CSRF_HEADER_NAME);
 
       if (!tokenFromHeader) {
-        return c.json(
-          {
-            success: false,
-            error: "CSRF token missing",
-            message: "CSRF token is required for this request",
-          },
-          403,
+        throw forbidden(
+          "CSRF token is required for this request",
+          "CSRF_TOKEN_MISSING",
         );
       }
 
       // Validate token format (must be 64 hex characters)
       if (!/^[a-f0-9]{64}$/.test(tokenFromHeader)) {
-        return c.json(
-          {
-            success: false,
-            error: "CSRF token invalid format",
-            message: "CSRF token must be a valid hexadecimal string",
-          },
-          403,
+        throw forbidden(
+          "CSRF token must be a valid hexadecimal string",
+          "CSRF_TOKEN_INVALID_FORMAT",
         );
       }
 
@@ -235,14 +224,7 @@ export function csrfProtection(options: CSRFOptions = {}) {
           getCookieValue(cookieHeader, LEGACY_CSRF_COOKIE_NAME);
 
         if (!tokenFromCookie || tokenFromCookie !== tokenFromHeader) {
-          return c.json(
-            {
-              success: false,
-              error: "CSRF token invalid",
-              message: "CSRF token validation failed",
-            },
-            403,
-          );
+          throw forbidden("CSRF token validation failed", "CSRF_TOKEN_INVALID");
         }
       } else {
         // Server-side validation: check token from KV store
@@ -252,13 +234,9 @@ export function csrfProtection(options: CSRFOptions = {}) {
           );
 
           if (!storedToken) {
-            return c.json(
-              {
-                success: false,
-                error: "CSRF token expired or invalid",
-                message: "CSRF token validation failed",
-              },
-              403,
+            throw forbidden(
+              "CSRF token validation failed",
+              "CSRF_TOKEN_EXPIRED_OR_INVALID",
             );
           }
         }

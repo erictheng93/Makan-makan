@@ -5,8 +5,27 @@ import {
   csrfProtection,
   generateCSRFTokenHandler,
 } from "./csrf";
+import { ApiError } from "../shared/utils/api-error";
 
 const CSRF_TOKEN = "a".repeat(64);
+
+function installApiErrorHandler(app: Hono) {
+  app.onError((error, c) => {
+    if (error instanceof ApiError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        },
+        error.status as never,
+      );
+    }
+    throw error;
+  });
+}
 
 function createApp() {
   const app = new Hono();
@@ -14,6 +33,7 @@ function createApp() {
   app.put("/api/v1/orders/:id/status", (c) =>
     c.json({ success: true, orderId: c.req.param("id") }),
   );
+  installApiErrorHandler(app);
   return app;
 }
 
@@ -89,6 +109,60 @@ describe("csrfProtection", () => {
     // HttpOnly silently disabled the client's post-reload fallback and left
     // every state-changing request 403ing after a page load (#66).
     expect(setCookie).not.toContain("HttpOnly");
+  });
+
+  it("returns the unified error envelope when a CSRF token is missing", async () => {
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request("https://api.test/api/v1/orders/42/status", {
+        method: "PUT",
+        headers: {
+          Host: "api.test",
+          Origin: "https://api.test",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "confirmed" }),
+      }),
+      { NODE_ENV: "production" },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: {
+        code: "CSRF_TOKEN_MISSING",
+        message: "CSRF token is required for this request",
+      },
+    });
+  });
+
+  it("returns the unified error envelope for invalid request origins", async () => {
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request("https://api.test/api/v1/orders/42/status", {
+        method: "PUT",
+        headers: {
+          Host: "api.test",
+          Origin: "https://evil.test",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": CSRF_TOKEN,
+          Cookie: `csrf_token=${CSRF_TOKEN}`,
+        },
+        body: JSON.stringify({ status: "confirmed" }),
+      }),
+      { NODE_ENV: "production" },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: {
+        code: "INVALID_REQUEST_ORIGIN",
+        message: "Request origin does not match expected host",
+      },
+    });
   });
 });
 
@@ -166,6 +240,7 @@ describe("csrfProtection excludePaths", () => {
       c.json({ ok: "confirm" }),
     );
     app.post("/api/v1/waiting-list/:id/call", (c) => c.json({ ok: "call" }));
+    installApiErrorHandler(app);
     return app;
   }
 
