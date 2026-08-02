@@ -31,6 +31,9 @@ import { WaitingListService } from "../WaitingListService";
 import type { CloudflareEnv } from "../base";
 const RESTAURANT_ID = "rest-real-1";
 const OTHER_RESTAURANT_ID = "rest-real-2";
+const FUTURE_RESERVATION_DATE = new Date(Date.now() + 86_400_000)
+  .toISOString()
+  .slice(0, 10);
 
 async function seedRestaurant(testDb: TestDatabase, id: string): Promise<void> {
   await testDb.db
@@ -72,7 +75,7 @@ async function seedReservation(
       opts.restaurantId ?? RESTAURANT_ID,
       opts.customerPhone ?? "0912345678",
       opts.partySize ?? 2,
-      opts.reservationDate ?? "2026-05-01",
+      opts.reservationDate ?? FUTURE_RESERVATION_DATE,
       opts.reservationTime ?? "18:30",
       opts.status ?? "pending",
       // Use full id as confirmation code so seed never collides on the
@@ -112,7 +115,7 @@ async function seedSlot(
     .bind(
       id,
       opts.restaurantId ?? RESTAURANT_ID,
-      opts.date ?? "2026-05-01",
+      opts.date ?? FUTURE_RESERVATION_DATE,
       opts.timeSlot ?? "18:30",
       opts.maxCapacity ?? 10,
       opts.maxTables ?? 5,
@@ -328,7 +331,7 @@ describe("ReservationService status notifications — real D1", () => {
       } as CloudflareEnv,
     );
     await seedReservation(testDb, "rsv-confirm-notify", {
-      reservationDate: "2026-07-01",
+      reservationDate: FUTURE_RESERVATION_DATE,
       reservationTime: "18:30",
     });
 
@@ -401,7 +404,7 @@ describe("ReservationService status notifications — real D1", () => {
       } as CloudflareEnv,
     );
     await seedReservation(testDb, "rsv-no-show-notify", {
-      reservationDate: "2026-07-02",
+      reservationDate: FUTURE_RESERVATION_DATE,
       reservationTime: "19:00",
     });
 
@@ -609,7 +612,7 @@ describe("ReservationService capacity accounting — real D1", () => {
   it("creates a reservation with table assignment on the fresh schema", async () => {
     await seedTable(testDb, 10, { capacity: 4 });
     await seedSlot(testDb, "slot-create", {
-      date: "2026-08-02",
+      date: FUTURE_RESERVATION_DATE,
       maxCapacity: 4,
       maxTables: 1,
     });
@@ -619,7 +622,7 @@ describe("ReservationService capacity accounting — real D1", () => {
       customerName: "王小明",
       customerPhone: "0912345678",
       partySize: 2,
-      reservationDate: "2026-08-02",
+      reservationDate: FUTURE_RESERVATION_DATE,
       reservationTime: "18:30",
       durationMinutes: 90,
     });
@@ -636,7 +639,7 @@ describe("ReservationService capacity accounting — real D1", () => {
     await seedTable(testDb, 90, { capacity: 2 });
     await seedTable(testDb, 91, { capacity: 2 });
     await seedSlot(testDb, "slot-double-book", {
-      date: "2026-08-03",
+      date: FUTURE_RESERVATION_DATE,
       maxCapacity: 4,
       maxTables: 2,
     });
@@ -646,7 +649,7 @@ describe("ReservationService capacity accounting — real D1", () => {
       customerName: "王小明",
       customerPhone: "0912345678",
       partySize: 2,
-      reservationDate: "2026-08-03",
+      reservationDate: FUTURE_RESERVATION_DATE,
       reservationTime: "18:30",
       durationMinutes: 90,
     });
@@ -655,7 +658,7 @@ describe("ReservationService capacity accounting — real D1", () => {
       customerName: "陳小華",
       customerPhone: "0923456789",
       partySize: 2,
-      reservationDate: "2026-08-03",
+      reservationDate: FUTURE_RESERVATION_DATE,
       reservationTime: "18:30",
       durationMinutes: 90,
     });
@@ -850,8 +853,8 @@ describe("ReservationService capacity accounting — real D1", () => {
 
     // Two parties of 3 racing for max_capacity=4: exactly one may win.
     const results = await Promise.all([
-      claim(RESTAURANT_ID, "2026-05-01", "18:30", 3),
-      claim(RESTAURANT_ID, "2026-05-01", "18:30", 3),
+      claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 3),
+      claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 3),
     ]);
     expect(results.filter(Boolean)).toHaveLength(1);
     expect(await readSlot(testDb, "slot-race")).toEqual({
@@ -860,8 +863,12 @@ describe("ReservationService capacity accounting — real D1", () => {
     });
 
     // One seat left: a party of 2 is refused, a party of 1 fits.
-    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
-    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 1)).toBe(true);
+    expect(
+      await claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 2),
+    ).toBe(false);
+    expect(
+      await claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 1),
+    ).toBe(true);
   });
 
   it("refuses to claim capacity on a closed or missing slot", async () => {
@@ -878,7 +885,9 @@ describe("ReservationService capacity accounting — real D1", () => {
       }
     ).claimSlotCapacity.bind(service);
 
-    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
+    expect(
+      await claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 2),
+    ).toBe(false);
     expect(await claim(RESTAURANT_ID, "2099-01-01", "12:00", 2)).toBe(false);
   });
 
@@ -896,8 +905,12 @@ describe("ReservationService capacity accounting — real D1", () => {
       }
     ).claimSlotCapacity.bind(service);
 
-    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(true);
-    expect(await claim(RESTAURANT_ID, "2026-05-01", "18:30", 2)).toBe(false);
+    expect(
+      await claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 2),
+    ).toBe(true);
+    expect(
+      await claim(RESTAURANT_ID, FUTURE_RESERVATION_DATE, "18:30", 2),
+    ).toBe(false);
   });
 });
 
