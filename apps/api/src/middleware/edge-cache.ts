@@ -585,9 +585,22 @@ export function smartCacheMiddleware(
       if (restaurantId) {
         const kv = c.env.CACHE_KV;
         if (kv) {
-          // Build the list of cache keys that this mutation should invalidate.
-          // Each entry mirrors a public GET endpoint that smartCacheMiddleware
-          // serves out of cache for unauthenticated readers.
+          // Two passes, because neither alone is sufficient.
+          //
+          // The cache key is `${method}:${path}:${rawQueryString}`, so every
+          // distinct query string is its own entry. The key list below can only
+          // name query strings someone thought to enumerate, and it never named
+          // the one customers actually read: `GET:/api/v1/menu/{id}:tableId=N`,
+          // written by every QR scan. An owner could add, reprice or 86 a dish
+          // and diners kept ordering off the stale menu until it aged out.
+          //
+          // Tag invalidation closes that gap — `cacheTags` stamps
+          // `restaurant:{id}` on every cacheable public GET for this restaurant
+          // (menu, restaurant detail, available coupons) and `set()` records
+          // each key under `tag:*`, so it reaches variants nobody listed. But it
+          // is only as good as the `cacheTags` option: a caller that omits it
+          // stores no tag mapping and would silently invalidate nothing. So the
+          // explicit keys stay as the floor and the tag sweep rides on top.
           const keys: string[] = [];
 
           if (path.includes("/menu")) {
@@ -604,9 +617,10 @@ export function smartCacheMiddleware(
           }
 
           if (keys.length > 0) {
-            await Promise.allSettled(
-              keys.map((key) => cacheManager.invalidate(key)),
-            );
+            await Promise.allSettled([
+              ...keys.map((key) => cacheManager.invalidate(key)),
+              cacheManager.invalidate([`restaurant:${restaurantId}`], "tag"),
+            ]);
           }
         }
       }

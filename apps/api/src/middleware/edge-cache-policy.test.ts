@@ -249,4 +249,100 @@ describe("isPublicApiCacheableRequest", () => {
       data: { settings: { currency: "TWD" } },
     });
   });
+
+  // The cache key embeds the raw query string, and the customer app always
+  // reads the menu as `?tableId=N` after a QR scan. Invalidation used to name
+  // only the bare and `includeAll=true` keys, so the diner-facing entry was
+  // never dropped: an owner added a dish and diners kept ordering off the old
+  // menu. Tag invalidation is what reaches the query variants.
+  it("invalidates the query-string menu variant a QR scan reads", async () => {
+    const cacheEntries = new Map<string, Response>();
+    vi.stubGlobal("caches", {
+      default: {
+        async match(key: RequestInfo | URL) {
+          return cacheEntries.get(String(key))?.clone();
+        },
+        async put(key: RequestInfo | URL, response: Response) {
+          cacheEntries.set(String(key), response.clone());
+        },
+        async delete(key: RequestInfo | URL) {
+          return cacheEntries.delete(String(key));
+        },
+      },
+    });
+
+    const kvEntries = new Map<string, string>();
+    const cacheKv = {
+      async get(key: string, options?: { type?: string }) {
+        const value = kvEntries.get(key);
+        if (value === undefined) return null;
+        return options?.type === "json" ? JSON.parse(value) : value;
+      },
+      async put(key: string, value: string) {
+        kvEntries.set(key, value);
+      },
+      async delete(key: string) {
+        kvEntries.delete(key);
+      },
+    };
+
+    const app = new Hono();
+    app.use(
+      "*",
+      smartCacheMiddleware({
+        defaultTtl: 300,
+        cacheTags: (c) => {
+          const id = c.req.param("restaurantId");
+          return id ? ["api", `restaurant:${id}`] : ["api"];
+        },
+        shouldCache: (c) =>
+          isPublicApiCacheableRequest(c.req.method, c.req.path),
+      }),
+    );
+
+    let dishes = ["congee"];
+    app.get("/api/v1/menu/:restaurantId", (c) =>
+      c.json({ success: true, data: { dishes } }),
+    );
+    app.put("/api/v1/menu/:restaurantId", (c) => {
+      dishes = ["congee", "noodles"];
+      return c.json({ success: true });
+    });
+
+    const env = { CACHE_KV: cacheKv };
+    const executionCtx = {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    };
+    // The diner-facing URL: same path as the bare key, different query string.
+    const dinerUrl = "/api/v1/menu/restaurant-1?tableId=2";
+
+    await app.request(dinerUrl, undefined, env as never, executionCtx as never);
+    const cachedBefore = await app.request(
+      dinerUrl,
+      undefined,
+      env as never,
+      executionCtx as never,
+    );
+    await app.request(
+      "/api/v1/menu/restaurant-1",
+      { method: "PUT" },
+      env as never,
+      executionCtx as never,
+    );
+    const afterWrite = await app.request(
+      dinerUrl,
+      undefined,
+      env as never,
+      executionCtx as never,
+    );
+
+    await expect(cachedBefore.json()).resolves.toMatchObject({
+      data: { dishes: ["congee"] },
+      cached: true,
+    });
+    await expect(afterWrite.json()).resolves.toMatchObject({
+      data: { dishes: ["congee", "noodles"] },
+    });
+  });
 });
