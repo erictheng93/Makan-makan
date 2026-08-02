@@ -377,6 +377,61 @@ describe("MenuService top-N rankings", () => {
 });
 
 /**
+ * Regression coverage for #153.
+ *
+ * Engagement counters are written from public/customer flows. They must not
+ * advance updated_at_ms, because the API uses that column as the optimistic-lock
+ * version for owner edits.
+ */
+describe("MenuService engagement counters", () => {
+  function buildCounterService() {
+    const capturedSet: Record<string, unknown>[] = [];
+    const capturedWhere: unknown[] = [];
+    const updateBuilder = {
+      set: vi.fn((values: Record<string, unknown>) => {
+        capturedSet.push(values);
+        return updateBuilder;
+      }),
+      where: vi.fn((condition: unknown) => {
+        capturedWhere.push(condition);
+        return updateBuilder;
+      }),
+    };
+    const db = { update: vi.fn(() => updateBuilder) };
+    return {
+      service: createServiceWithDb(db),
+      capturedSet,
+      capturedWhere,
+      db,
+    };
+  }
+
+  it("increments view count without changing the optimistic-lock timestamp", async () => {
+    const { service, capturedSet, capturedWhere, db } = buildCounterService();
+
+    await service.incrementViewCount(101);
+
+    expect(db.update).toHaveBeenCalledWith(menuItems);
+    expect(capturedSet[0]).toHaveProperty("viewCount");
+    expect(capturedSet[0]).not.toHaveProperty("updatedAt");
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toContain("id");
+    expect(collectBoundParams(capturedWhere[0])).toContain(101);
+  });
+
+  it("increments order count without changing the optimistic-lock timestamp", async () => {
+    const { service, capturedSet, capturedWhere, db } = buildCounterService();
+
+    await service.incrementOrderCount(101, 3);
+
+    expect(db.update).toHaveBeenCalledWith(menuItems);
+    expect(capturedSet[0]).toHaveProperty("orderCount");
+    expect(capturedSet[0]).not.toHaveProperty("updatedAt");
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toContain("id");
+    expect(collectBoundParams(capturedWhere[0])).toContain(101);
+  });
+});
+
+/**
  * Regression coverage for #83.
  *
  * `includeUnavailable` only ever relaxed the *item* filter; the category filter
