@@ -56,6 +56,8 @@ const idID: Messages = {
     allStatus: "Semua Status",
     statusActive: "Aktif",
     statusInactive: "Nonaktif",
+    actionUnpublish: "Hentikan penjualan",
+    actionPublish: "Jual kembali",
     available: "Tersedia",
     soldOut: "Habis",
     metrics: {

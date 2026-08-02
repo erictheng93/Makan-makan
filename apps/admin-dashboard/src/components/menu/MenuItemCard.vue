@@ -100,13 +100,16 @@
           >
             <PencilIcon class="h-[15px] w-[15px]" />
           </button>
+          <!-- Action labels, not status labels: reusing the status strings put
+               "已下架" on an item that is currently on sale, which reads as the
+               item's state rather than as what the click will do. -->
           <button
             :data-testid="`admin-menu-item-toggle-${item.id}`"
             class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
             :title="
               item.isAvailable
-                ? t('menu.statusInactive')
-                : t('menu.statusActive')
+                ? t('menu.actionUnpublish')
+                : t('menu.actionPublish')
             "
             @click.stop="$emit('toggle-status', item)"
           >

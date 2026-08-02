@@ -56,6 +56,8 @@ const zhCN: Messages = {
     allStatus: "全部状态",
     statusActive: "上架中",
     statusInactive: "已下架",
+    actionUnpublish: "下架",
+    actionPublish: "上架",
     available: "供应中",
     soldOut: "已售完",
     metrics: {

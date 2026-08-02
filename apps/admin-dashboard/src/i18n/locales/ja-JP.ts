@@ -56,6 +56,8 @@ const jaJP: Messages = {
     allStatus: "全ステータス",
     statusActive: "提供中",
     statusInactive: "非公開",
+    actionUnpublish: "販売停止",
+    actionPublish: "販売再開",
     available: "提供中",
     soldOut: "売り切れ",
     metrics: {

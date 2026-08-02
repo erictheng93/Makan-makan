@@ -56,6 +56,8 @@ const viVN: Messages = {
     allStatus: "Tất cả trạng thái",
     statusActive: "Đang bán",
     statusInactive: "Ngừng bán",
+    actionUnpublish: "Ngừng bán",
+    actionPublish: "Mở bán",
     available: "Còn hàng",
     soldOut: "Hết hàng",
     metrics: {

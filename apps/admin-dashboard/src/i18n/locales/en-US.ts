@@ -56,6 +56,8 @@ const enUS: Messages = {
     allStatus: "All Status",
     statusActive: "Active",
     statusInactive: "Inactive",
+    actionUnpublish: "Take off sale",
+    actionPublish: "Put on sale",
     available: "Available",
     soldOut: "Sold Out",
     metrics: {
