@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 import { categories, menuItems } from "../schema";
 import {
@@ -274,6 +275,19 @@ function collectBoundParams(input: unknown): unknown[] {
   return values;
 }
 
+function assertSelfAssignsUpdatedAtInGeneratedSql(
+  query: { toSQL: () => { sql: string; params: unknown[] } },
+  expectedParams: unknown[],
+) {
+  const generated = query.toSQL();
+
+  expect(generated.sql).toContain(
+    '"updated_at_ms" = "menu_items"."updated_at_ms"',
+  );
+  expect(generated.sql).not.toContain('"updated_at_ms" = ?');
+  expect(generated.params).toEqual(expectedParams);
+}
+
 /**
  * Regression coverage for #84.
  *
@@ -413,9 +427,25 @@ describe("MenuService engagement counters", () => {
 
     expect(db.update).toHaveBeenCalledWith(menuItems);
     expect(capturedSet[0]).toHaveProperty("viewCount");
-    expect(capturedSet[0]).not.toHaveProperty("updatedAt");
+    expect(capturedSet[0]).toHaveProperty("updatedAt");
+    expect(collectSqlMetadata(capturedSet[0].updatedAt).columns).toEqual([
+      "updated_at_ms",
+    ]);
     expect(collectSqlMetadata(capturedWhere[0]).columns).toContain("id");
     expect(collectBoundParams(capturedWhere[0])).toContain(101);
+  });
+
+  it("pins generated view-count SQL to the existing timestamp column", () => {
+    const db = drizzle({} as D1Database);
+    const query = db
+      .update(menuItems)
+      .set({
+        viewCount: sql`${menuItems.viewCount} + 1`,
+        updatedAt: sql`${menuItems.updatedAt}`,
+      })
+      .where(eq(menuItems.id, 101));
+
+    assertSelfAssignsUpdatedAtInGeneratedSql(query, [101]);
   });
 
   it("increments order count without changing the optimistic-lock timestamp", async () => {
@@ -425,9 +455,25 @@ describe("MenuService engagement counters", () => {
 
     expect(db.update).toHaveBeenCalledWith(menuItems);
     expect(capturedSet[0]).toHaveProperty("orderCount");
-    expect(capturedSet[0]).not.toHaveProperty("updatedAt");
+    expect(capturedSet[0]).toHaveProperty("updatedAt");
+    expect(collectSqlMetadata(capturedSet[0].updatedAt).columns).toEqual([
+      "updated_at_ms",
+    ]);
     expect(collectSqlMetadata(capturedWhere[0]).columns).toContain("id");
     expect(collectBoundParams(capturedWhere[0])).toContain(101);
+  });
+
+  it("pins generated order-count SQL to the existing timestamp column", () => {
+    const db = drizzle({} as D1Database);
+    const query = db
+      .update(menuItems)
+      .set({
+        orderCount: sql`${menuItems.orderCount} + ${3}`,
+        updatedAt: sql`${menuItems.updatedAt}`,
+      })
+      .where(eq(menuItems.id, 101));
+
+    assertSelfAssignsUpdatedAtInGeneratedSql(query, [3, 101]);
   });
 });
 
