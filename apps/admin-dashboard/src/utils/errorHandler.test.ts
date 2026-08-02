@@ -29,10 +29,12 @@ vi.mock("@/utils/authTokenProvider", () => ({
 
 import { t } from "@/i18n";
 import {
+  DEDICATED_UI_ERROR_CODES,
   ErrorSeverity,
   ErrorType,
   KitchenErrorHandler,
   SUBSCRIPTION_ERROR_CODES,
+  isDedicatedUiErrorCode,
   extractApiErrorCode,
   isSubscriptionErrorCode,
   setAuthRefreshHandler,
@@ -179,6 +181,31 @@ describe("KitchenErrorHandler.handleAPIError — subscription vs permission 403s
     );
   });
 
+  it.each(DEDICATED_UI_ERROR_CODES)(
+    "suppresses the global toast for %s because the view owns the recovery UI",
+    (code) => {
+      const details = KitchenErrorHandler.handleAPIError(
+        buildApiError({
+          status: 409,
+          code,
+          message: "Menu item was modified by another user",
+        }),
+        { url: "/menu/items/11" },
+      );
+
+      expect(details).toEqual(
+        expect.objectContaining({
+          type: ErrorType.API,
+          severity: ErrorSeverity.MEDIUM,
+          code: 409,
+          message: "Menu item was modified by another user",
+        }),
+      );
+      expect(toastError).not.toHaveBeenCalled();
+      expect(toastWarning).not.toHaveBeenCalled();
+    },
+  );
+
   it("never routes a subscription 403 into the token-refresh / logout path", async () => {
     const refreshHandler = vi.fn(async () => false);
     setAuthRefreshHandler(refreshHandler);
@@ -221,5 +248,14 @@ describe("subscription error code helpers", () => {
     );
     expect(extractApiErrorCode(buildApiError())).toBeUndefined();
     expect(extractApiErrorCode(undefined)).toBeUndefined();
+  });
+});
+
+describe("dedicated UI error code helpers", () => {
+  it("recognises only error codes with their own visible recovery panel", () => {
+    expect(isDedicatedUiErrorCode("MENU_ITEM_MODIFIED")).toBe(true);
+    expect(isDedicatedUiErrorCode("FORBIDDEN")).toBe(false);
+    expect(isDedicatedUiErrorCode(undefined)).toBe(false);
+    expect(isDedicatedUiErrorCode(409)).toBe(false);
   });
 });

@@ -27,6 +27,10 @@ export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
   settings?: any;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export class RestaurantService extends BaseService {
   // 創建餐廳
   async createRestaurant(data: CreateRestaurantData): Promise<Restaurant> {
@@ -188,10 +192,30 @@ export class RestaurantService extends BaseService {
     data: UpdateRestaurantData,
   ): Promise<Restaurant> {
     try {
+      const updateData: UpdateRestaurantData = { ...data };
+
+      if (data.settings !== undefined) {
+        const existing = await this.db.query.restaurants.findFirst({
+          columns: { settings: true },
+          where: eq(restaurants.id, id),
+        });
+        const existingSettings = isPlainRecord(existing?.settings)
+          ? existing.settings
+          : {};
+        const incomingSettings = isPlainRecord(data.settings)
+          ? data.settings
+          : {};
+
+        updateData.settings = {
+          ...existingSettings,
+          ...incomingSettings,
+        };
+      }
+
       const [restaurant] = await this.db
         .update(restaurants)
         .set({
-          ...data,
+          ...updateData,
           updatedAt: new Date(),
         })
         .where(eq(restaurants.id, id))

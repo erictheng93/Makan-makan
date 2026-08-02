@@ -50,6 +50,24 @@ export function isSubscriptionErrorCode(
 }
 
 /**
+ * Error codes whose recovery is already rendered by a view-level panel.
+ * The global interceptor still logs/parses them, but it must not add a second
+ * generic toast on top of that dedicated UI.
+ */
+export const DEDICATED_UI_ERROR_CODES = ["MENU_ITEM_MODIFIED"] as const;
+
+export type DedicatedUiErrorCode = (typeof DEDICATED_UI_ERROR_CODES)[number];
+
+export function isDedicatedUiErrorCode(
+  code: unknown,
+): code is DedicatedUiErrorCode {
+  return (
+    typeof code === "string" &&
+    (DEDICATED_UI_ERROR_CODES as readonly string[]).includes(code)
+  );
+}
+
+/**
  * 從統一錯誤信封 `{ success: false, error: { code, message } }` 取出
  * 機器可讀的 error code。舊路由可能還把 error 當字串回，這時沒有 code。
  *
@@ -372,9 +390,16 @@ export class ErrorHandler {
     );
   }
 
+  private hasDedicatedRecoveryUi(error: ErrorDetails): boolean {
+    return isDedicatedUiErrorCode(extractApiErrorCode(error));
+  }
+
   // 顯示用戶提示
   private showUserNotification(error: ErrorDetails) {
-    if (this.isSilentTelemetryError(error)) {
+    if (
+      this.isSilentTelemetryError(error) ||
+      this.hasDedicatedRecoveryUi(error)
+    ) {
       return;
     }
 
