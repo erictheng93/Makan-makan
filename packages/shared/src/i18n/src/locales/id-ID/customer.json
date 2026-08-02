@@ -156,11 +156,13 @@
     "recommendedForYou": "Direkomendasikan untuk Anda",
     "potentialSaving": "Potensi Penghematan",
     "use": "Gunakan",
-    "minimumOrderShortfall": "Tambahkan ${amount} lagi untuk memesan",
+    "minimumOrderShortfall": "Tambahkan {amount} lagi untuk memesan",
     "minimumOrderMet": "Jumlah pesanan minimum tercapai ✓",
-    "minimumOrderNote": "Pesanan minimum: ${amount}",
-    "couponSaving": "Kupon diterapkan! Hemat ${amount}",
-    "confirmOrderMessage": "Anda akan mengirim pesanan senilai ${amount}. Apakah Anda ingin melanjutkan?"
+    "minimumOrderNote": "Pesanan minimum: {amount}",
+    "couponSaving": "Kupon diterapkan! Hemat {amount}",
+    "confirmOrderMessage": "Anda akan mengirim pesanan senilai {amount}. Apakah Anda ingin melanjutkan?",
+    "legalPrefix": "Dengan mengirim pesanan ini, Anda menyetujui",
+    "legalConjunction": "dan"
   },
   "order": {
     "title": "Konfirmasi Pesanan",

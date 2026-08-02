@@ -589,11 +589,15 @@
 
         <div class="mt-3 text-center">
           <p class="text-sm text-ios-secondary">
-            {{ t("common.confirm") }}
+            <!-- These connectives need their own keys. Borrowing the generic
+                 button labels rendered the consent line as "確認 服務條款 下一步
+                 隱私權政策" — four unrelated words where a sentence saying what
+                 the diner is agreeing to should be. -->
+            {{ t("cart.legalPrefix") }}
             <router-link to="/terms" class="text-ios-blue">
               {{ t("terms.title") }}
             </router-link>
-            {{ t("common.next") }}
+            {{ t("cart.legalConjunction") }}
             <router-link to="/privacy" class="text-ios-blue">
               {{ t("privacy.title") }}
             </router-link>
@@ -665,10 +669,16 @@ const seatLabel = computed(() =>
   seatId.value ? String(seatId.value).padStart(2, "0") : null,
 );
 
+// Staff route food by the label printed on the table, not by the row id, so the
+// cart header must agree with the menu header and with the physical table.
+const tableLabel = computed(
+  () => tableValidation.value?.table?.number ?? String(props.tableId),
+);
+
 const orderContextLabel = computed(() =>
   seatLabel.value
-    ? `${props.tableId} · ${seatLabel.value} 號座`
-    : props.tableId,
+    ? `${tableLabel.value} · ${seatLabel.value} 號座`
+    : tableLabel.value,
 );
 
 const menuRoute = computed(() => ({
@@ -711,6 +721,18 @@ const minimumOrderEnabled = ref(false);
 const { data: restaurant } = useQuery({
   queryKey: ["restaurant", props.restaurantId],
   queryFn: () => menuApi.getRestaurant(props.restaurantId),
+  staleTime: 5 * 60 * 1000,
+});
+
+// Same query key MenuView uses, so arriving from the menu reads its cache and
+// costs no extra request. Needed because the route only carries the numeric
+// table id and the header must show the label printed on the table (#f7e47cc
+// fixed this on the menu screen but not here, so a diner at "A1" watched the
+// header flip to "桌號 2" the moment they opened the cart).
+const { data: tableValidation } = useQuery({
+  queryKey: ["table-validation", props.restaurantId, props.tableId],
+  queryFn: () => menuApi.validateTable(props.restaurantId, props.tableId),
+  enabled: computed(() => Number.isFinite(Number(props.tableId))),
   staleTime: 5 * 60 * 1000,
 });
 

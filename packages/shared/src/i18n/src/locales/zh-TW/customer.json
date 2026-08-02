@@ -156,11 +156,13 @@
     "recommendedForYou": "為您推薦",
     "potentialSaving": "預計節省",
     "use": "使用",
-    "minimumOrderShortfall": "還需加點 ${amount} 才能下單",
+    "minimumOrderShortfall": "還需加點 {amount} 才能下單",
     "minimumOrderMet": "已達到最低消費標準 ✓",
-    "minimumOrderNote": "最低消費：${amount}",
-    "couponSaving": "優惠券已套用！節省 ${amount}",
-    "confirmOrderMessage": "您即將提交總額 ${amount} 的訂單，確定要繼續嗎？"
+    "minimumOrderNote": "最低消費：{amount}",
+    "couponSaving": "優惠券已套用！節省 {amount}",
+    "confirmOrderMessage": "您即將提交總額 {amount} 的訂單，確定要繼續嗎？",
+    "legalPrefix": "送出訂單即表示您同意",
+    "legalConjunction": "與"
   },
   "order": {
     "title": "訂單確認",

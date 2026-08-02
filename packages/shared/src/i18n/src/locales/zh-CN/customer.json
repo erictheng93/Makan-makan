@@ -156,11 +156,13 @@
     "recommendedForYou": "为您推荐",
     "potentialSaving": "预计节省",
     "use": "使用",
-    "minimumOrderShortfall": "还需加点 ${amount} 才能下单",
+    "minimumOrderShortfall": "还需加点 {amount} 才能下单",
     "minimumOrderMet": "已达到最低消费标准 ✓",
-    "minimumOrderNote": "最低消费：${amount}",
-    "couponSaving": "优惠券已套用！节省 ${amount}",
-    "confirmOrderMessage": "您即将提交总额 ${amount} 的订单，确定要继续吗？"
+    "minimumOrderNote": "最低消费：{amount}",
+    "couponSaving": "优惠券已套用！节省 {amount}",
+    "confirmOrderMessage": "您即将提交总额 {amount} 的订单，确定要继续吗？",
+    "legalPrefix": "提交订单即表示您同意",
+    "legalConjunction": "与"
   },
   "order": {
     "title": "订单确认",

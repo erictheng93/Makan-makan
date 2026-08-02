@@ -156,11 +156,13 @@
     "recommendedForYou": "Recommended for You",
     "potentialSaving": "Potential Saving",
     "use": "Use",
-    "minimumOrderShortfall": "Add ${amount} more to place your order",
+    "minimumOrderShortfall": "Add {amount} more to place your order",
     "minimumOrderMet": "Minimum order amount met ✓",
-    "minimumOrderNote": "Minimum order: ${amount}",
-    "couponSaving": "Coupon applied! Saving ${amount}",
-    "confirmOrderMessage": "You are about to submit an order totaling ${amount}. Do you want to continue?"
+    "minimumOrderNote": "Minimum order: {amount}",
+    "couponSaving": "Coupon applied! Saving {amount}",
+    "confirmOrderMessage": "You are about to submit an order totaling {amount}. Do you want to continue?",
+    "legalPrefix": "By placing this order you agree to our",
+    "legalConjunction": "and"
   },
   "order": {
     "title": "Order Confirmation",
