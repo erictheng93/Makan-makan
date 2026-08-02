@@ -32,7 +32,11 @@ describe("createApp API middleware registration", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
-      error: "CSRF token missing",
+      success: false,
+      error: {
+        code: "CSRF_TOKEN_MISSING",
+        message: "CSRF token is required for this request",
+      },
     });
     expect(meterEmit).toHaveBeenCalledWith(
       expect.anything(),
