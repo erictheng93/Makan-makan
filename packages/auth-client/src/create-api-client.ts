@@ -180,11 +180,25 @@ export function createAuthenticatedApiClient(
         reqConfig.headers.Authorization = `Bearer ${token}`;
       }
 
-      // Attach CSRF token for state-changing methods
+      // Attach CSRF token for state-changing methods.
+      //
+      // Read the store first, not the module variable. The API rotates the
+      // token on every /auth/* response and sets a new cookie; the header it
+      // returns is echoed back to the store by the response interceptor. But
+      // `csrfTokenCache` is per-JS-context, so a second tab that refreshed its
+      // session updated the shared cookie and localStorage while this tab kept
+      // echoing the token it happened to see last. The server compares the
+      // header to the cookie, so every write from the stale tab 403'd — and the
+      // admin maps that to "權限不足或登入已過期", sending owners to re-login
+      // for a session that was never expired. Two open tabs is the normal way a
+      // restaurant runs the dashboard, so this fired constantly.
       if (csrfConfig) {
         const method = (reqConfig.method || "").toUpperCase();
         if (csrfConfig.protectedMethods.includes(method)) {
-          const csrf = csrfTokenCache || getCookieValue(csrfConfig.cookieName);
+          const csrf =
+            csrfStore.read() ||
+            csrfTokenCache ||
+            getCookieValue(csrfConfig.cookieName);
           if (csrf) {
             reqConfig.headers[csrfConfig.headerName] = csrf;
           }
@@ -247,8 +261,15 @@ export function createAuthenticatedApiClient(
         return Promise.reject(error);
       }
 
+      // The handler reports the error (logging, telemetry, a toast); it does not
+      // get to replace it. Rejecting with its return value swapped the axios
+      // error for the handler's own summary object, which has no `response`, so
+      // every `catch` that branches on `error.response.data.error.code` saw
+      // undefined. That silently disabled per-code recovery across the admin —
+      // including the whole MENU_ITEM_MODIFIED conflict flow, whose reload/merge
+      // UI could never render because the code it keys off never arrived.
       if (config.errorHandler) {
-        return Promise.reject(config.errorHandler(error));
+        config.errorHandler(error);
       }
       return Promise.reject(error);
     },
