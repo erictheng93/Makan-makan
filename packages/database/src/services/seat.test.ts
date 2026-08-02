@@ -310,6 +310,31 @@ describe("SeatService.createSeatsForTable", () => {
     expect(persistedTable?.deletedAt).toBeInstanceOf(Date);
   });
 
+  it("soft-deletes seats when a seat-mode table is deleted", async () => {
+    const service = createTableService(testDb);
+    await createService(testDb).createSeatsForTable(tableId, 2, {
+      numberingStyle: "numeric",
+    });
+
+    await expect(service.deleteTable(tableId)).resolves.toBe(true);
+
+    const persistedSeats = await testDb.drizzle
+      .select({ isActive: seats.isActive, deletedAt: seats.deletedAt })
+      .from(seats)
+      .where(eq(seats.tableId, tableId))
+      .orderBy(asc(seats.seatNumber));
+
+    expect(persistedSeats).toHaveLength(2);
+    for (const seat of persistedSeats) {
+      expect(seat.isActive).toBe(false);
+      expect(seat.deletedAt).toBeInstanceOf(Date);
+    }
+
+    const listedSeats = await createService(testDb).getSeatsByTableId(tableId);
+    expect(listedSeats.seats).toEqual([]);
+    expect(listedSeats.total).toBe(0);
+  });
+
   it("hides soft-deleted tables from admin list and detail lookups", async () => {
     const service = createTableService(testDb);
 

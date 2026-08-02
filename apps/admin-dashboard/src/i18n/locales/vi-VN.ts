@@ -2045,6 +2045,7 @@ const viVN: Messages = {
     notSet: "Chưa đặt",
     order: "Đơn hàng",
     viewQR: "Xem mã QR",
+    deleteBlocked: "Không thể xóa bàn đang có khách hoặc đơn hàng đang xử lý",
     stats: {
       available: "Trống",
       occupied: "Đang dùng",
@@ -2100,6 +2101,10 @@ const viVN: Messages = {
       regenerateAllQR: "Bạn có chắc muốn tạo lại mã QR cho tất cả các bàn?",
       regenerateAllQRAction: "Tạo lại tất cả QR",
       regenerateAllQRTitle: "Tạo lại tất cả các bảng QR",
+      deleteTitle: "Xóa bàn",
+      delete:
+        "Xóa bàn {number}? Các nhãn QR đã in cho bàn này sẽ ngừng hoạt động ngay lập tức. Không thể hoàn tác thao tác này.",
+      deleteAction: "Xóa bàn",
     },
     alert: {
       qrGenerated: "Đã tạo mã QR thành công!",
@@ -2113,6 +2118,8 @@ const viVN: Messages = {
       loadFailed: "Không thể tải danh sách bàn",
       statusChangeFailed: "Thay đổi trạng thái bàn thất bại",
       qrGenerateFailed: "Tạo mã QR thất bại, vui lòng thử lại",
+      deleteSuccess: "Đã xóa bàn thành công",
+      deleteFailed: "Xóa bàn thất bại",
     },
   },
   cashier: {

@@ -292,6 +292,7 @@ const zhTWCore = {
     notSet: "未設定",
     order: "訂單",
     viewQR: "查看 QR 碼",
+    deleteBlocked: "使用中或有進行中訂單的桌台不能刪除",
     stats: {
       available: "可用",
       occupied: "使用中",
@@ -345,6 +346,10 @@ const zhTWCore = {
     },
     confirm: {
       regenerateAllQR: "確定要為所有桌台重新生成 QR 碼嗎？",
+      deleteTitle: "刪除桌台",
+      delete:
+        "確定要刪除桌號 {number} 嗎？已印出的 QR 貼紙會立刻失效，且此操作無法復原。",
+      deleteAction: "刪除桌台",
     },
     alert: {
       qrGenerated: "QR 碼生成完成！",
@@ -358,6 +363,8 @@ const zhTWCore = {
       loadFailed: "無法載入桌台列表",
       statusChangeFailed: "桌台狀態變更失敗",
       qrGenerateFailed: "QR 碼生成失敗，請稍後再試",
+      deleteSuccess: "桌台已刪除",
+      deleteFailed: "桌台刪除失敗",
     },
   },
 

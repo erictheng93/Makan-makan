@@ -290,6 +290,7 @@ const enUS: Messages = {
     notSet: "Not set",
     order: "Order",
     viewQR: "View QR Code",
+    deleteBlocked: "Tables with active occupancy or orders cannot be deleted",
     stats: {
       available: "Available",
       occupied: "Occupied",
@@ -346,6 +347,10 @@ const enUS: Messages = {
         "Are you sure you want to regenerate QR codes for all tables?",
       regenerateAllQRAction: "Regenerate All QR",
       regenerateAllQRTitle: "Regenerate All QR Tables",
+      deleteTitle: "Delete table",
+      delete:
+        "Delete table {number}? Printed QR stickers for this table will stop working immediately. This action cannot be undone.",
+      deleteAction: "Delete Table",
     },
     alert: {
       qrGenerated: "QR codes generated successfully!",
@@ -359,6 +364,8 @@ const enUS: Messages = {
       loadFailed: "Unable to load tables",
       statusChangeFailed: "Failed to change table status",
       qrGenerateFailed: "Failed to generate QR codes, please try again",
+      deleteSuccess: "Table deleted successfully",
+      deleteFailed: "Failed to delete table",
     },
   },
   scheduling: {

@@ -14,7 +14,7 @@ import {
   inArray,
 } from "drizzle-orm";
 import { BaseService } from "./base";
-import { tables, restaurants, orders } from "../schema";
+import { tables, restaurants, orders, seats } from "../schema";
 import { SeatService } from "./seat";
 import { buildSignedQRUrl } from "@makanmakan/utils";
 import { resolveAppBaseUrl } from "./app-base-url";
@@ -413,7 +413,20 @@ export class TableService extends BaseService {
         .where(and(eq(tables.id, id), isNull(tables.deletedAt)))
         .returning({ id: tables.id });
 
-      return result.length > 0;
+      if (result.length === 0) {
+        return false;
+      }
+
+      await this.db
+        .update(seats)
+        .set({
+          isActive: false,
+          deletedAt,
+          updatedAt: deletedAt,
+        })
+        .where(and(eq(seats.tableId, id), isNull(seats.deletedAt)));
+
+      return true;
     } catch (error) {
       console.error("Delete table error:", error);
       return false;

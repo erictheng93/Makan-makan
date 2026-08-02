@@ -223,6 +223,16 @@
               {{ t("common.edit") }}
             </button>
             <button
+              class="px-3 py-2 text-sm bg-[#FF3B30] text-white rounded-full hover:bg-[#E0352B] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="!canDeleteTable(table)"
+              :title="
+                canDeleteTable(table) ? undefined : t('tables.deleteBlocked')
+              "
+              @click="deleteTable(table)"
+            >
+              {{ t("common.delete") }}
+            </button>
+            <button
               :class="getStatusButtonClass(table.status)"
               class="px-3 py-2 text-sm rounded-full transition-colors"
               @click="changeTableStatus(table)"
@@ -558,7 +568,7 @@ const mapTable = (t: any) => ({
   qrMode: t.qrMode || "table",
   seatCount: t.seatCount ?? 0,
   seatNumberingStyle: t.seatNumberingStyle || "numeric",
-  currentOrderId: t.orderId || null,
+  currentOrderId: t.currentOrderId || t.orderId || null,
 });
 
 const tables = ref<any[]>([]);
@@ -862,6 +872,40 @@ const editTable = (table: any) => {
     },
   };
   showTableModal.value = true;
+};
+
+const canDeleteTable = (table: any) =>
+  table.status !== "occupied" && !table.currentOrderId;
+
+const deleteTable = async (table: any) => {
+  if (!canDeleteTable(table)) {
+    toast.error(t("tables.deleteBlocked"));
+    return;
+  }
+
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("tables.confirm.deleteTitle"),
+    message: t("tables.confirm.delete", { number: table.tableNumber }),
+    confirmLabel: t("tables.confirm.deleteAction"),
+  });
+  if (!confirmed) return;
+
+  try {
+    await api.delete(`/tables/${table.id}`);
+    if (selectedTable.value?.id === table.id) {
+      selectedTable.value = null;
+      showQRModal.value = false;
+    }
+    selectedTableIds.value = selectedTableIds.value.filter(
+      (id) => id !== table.id,
+    );
+    await fetchTables();
+    toast.success(t("tables.alert.deleteSuccess"));
+  } catch (error) {
+    console.error("Failed to delete table:", error);
+    toast.error(t("tables.alert.deleteFailed"));
+  }
 };
 
 const changeTableStatus = async (table: any) => {

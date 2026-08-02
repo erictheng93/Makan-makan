@@ -334,6 +334,10 @@ app.delete(
       throw forbidden("Access denied");
     }
 
+    if (existingTable.isOccupied || existingTable.currentOrderId) {
+      throw badRequest("Occupied tables cannot be deleted");
+    }
+
     const success = await tablesService.deleteTable(id);
 
     if (!success) {

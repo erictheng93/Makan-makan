@@ -2018,6 +2018,7 @@ const zhCN: Messages = {
     notSet: "未设置",
     order: "订单",
     viewQR: "查看 QR 码",
+    deleteBlocked: "使用中或有进行中订单的桌台不能删除",
     stats: {
       available: "可用",
       occupied: "使用中",
@@ -2073,6 +2074,10 @@ const zhCN: Messages = {
       regenerateAllQR: "确定要为所有桌台重新生成 QR 码吗？",
       regenerateAllQRAction: "重新产生",
       regenerateAllQRTitle: "重新产生所有 QR 码",
+      deleteTitle: "删除桌台",
+      delete:
+        "确定要删除桌号 {number} 吗？已打印的 QR 贴纸会立即失效，且此操作无法撤销。",
+      deleteAction: "删除桌台",
     },
     alert: {
       qrGenerated: "QR 码生成完成！",
@@ -2086,6 +2091,8 @@ const zhCN: Messages = {
       loadFailed: "无法加载桌台列表",
       statusChangeFailed: "桌台状态变更失败",
       qrGenerateFailed: "QR 码生成失败，请稍后再试",
+      deleteSuccess: "桌台已删除",
+      deleteFailed: "桌台删除失败",
     },
   },
   cashier: {

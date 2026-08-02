@@ -45,7 +45,7 @@ vi.mock("@/utils/qrPrintSheet", () => ({
 }));
 
 vi.mock("@/services/api", () => ({
-  api: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
   unwrapApiList: (data: unknown) => (Array.isArray(data) ? data : []),
 }));
 
@@ -258,6 +258,50 @@ describe("TableSetupTab", () => {
     expect(toastMock.error).toHaveBeenCalledWith(
       "tables.alert.statusChangeFailed",
     );
+  });
+
+  it("deletes an available table after confirmation", async () => {
+    const wrapper = await mountTab([buildTable()]);
+    vi.mocked(api.delete).mockResolvedValue({
+      data: { success: true },
+    } as never);
+
+    await (
+      wrapper.vm as unknown as {
+        deleteTable: (table: Record<string, unknown>) => Promise<void>;
+      }
+    ).deleteTable({
+      id: 11,
+      tableNumber: "A1",
+      status: "available",
+      currentOrderId: null,
+    });
+    await flushPromises();
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "danger",
+        title: "tables.confirm.deleteTitle",
+        confirmLabel: "tables.confirm.deleteAction",
+      }),
+    );
+    expect(api.delete).toHaveBeenCalledWith("/tables/11");
+    expect(toastMock.success).toHaveBeenCalledWith(
+      "tables.alert.deleteSuccess",
+    );
+  });
+
+  it("disables deleting an occupied table from the table card", async () => {
+    const wrapper = await mountTab([
+      buildTable({ isOccupied: true, currentOrderId: "order-1" }),
+    ]);
+
+    const deleteButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "common.delete");
+
+    expect(deleteButton?.attributes("disabled")).toBeDefined();
+    expect(deleteButton?.attributes("title")).toBe("tables.deleteBlocked");
   });
 });
 

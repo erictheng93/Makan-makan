@@ -236,6 +236,22 @@ describe("tables routes", () => {
     expect(response.status).toBe(200);
     expect(serviceFns.deleteTable).toHaveBeenCalledWith(11);
 
+    serviceFns.getTableById.mockResolvedValueOnce({
+      ...table,
+      isOccupied: true,
+    });
+    response = await request("/11", "DELETE");
+    expect(response.status).toBe(400);
+    expect(serviceFns.deleteTable).toHaveBeenCalledTimes(1);
+
+    serviceFns.getTableById.mockResolvedValueOnce({
+      ...table,
+      currentOrderId: "order-1",
+    });
+    response = await request("/11", "DELETE");
+    expect(response.status).toBe(400);
+    expect(serviceFns.deleteTable).toHaveBeenCalledTimes(1);
+
     serviceFns.validateRestaurantAccess.mockReturnValueOnce(false);
     response = await request(
       "/",
