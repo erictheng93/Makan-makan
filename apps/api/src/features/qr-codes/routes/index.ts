@@ -38,7 +38,10 @@ import type { QRDownloadCaller } from "../types";
 
 // Import services
 import { QrCodesService } from "../services/QrCodesService";
-import { SignedQrVerificationService } from "../services/SignedQrVerificationService";
+import {
+  SignedQrVerificationService,
+  type SignedQrVerificationFailureReason,
+} from "../services/SignedQrVerificationService";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -58,6 +61,37 @@ function qrDownloadCaller(user: {
     userRestaurantId:
       user.restaurantId == null ? undefined : String(user.restaurantId),
   };
+}
+
+function signedQrFailure(
+  type: "table" | "seat",
+  reason: SignedQrVerificationFailureReason,
+) {
+  const label = type === "table" ? "Table" : "Seat";
+  const prefix = type === "table" ? "TABLE_QR" : "SEAT_QR";
+  const suffixByReason: Record<SignedQrVerificationFailureReason, string> = {
+    malformed: "MALFORMED",
+    wrong_type: "WRONG_TYPE",
+    signature_invalid: "SIGNATURE_INVALID",
+    not_found: "NOT_FOUND",
+    inactive: "INACTIVE",
+    stale: "STALE",
+    mismatch: "MISMATCH",
+  };
+  const messageByReason: Record<SignedQrVerificationFailureReason, string> = {
+    malformed: `${label} QR code format is invalid`,
+    wrong_type: `${label} QR code type does not match this endpoint`,
+    signature_invalid: `${label} QR code signature is invalid`,
+    not_found: `${label} QR code target was not found`,
+    inactive: `${label} QR code is inactive or deleted`,
+    stale: `${label} QR code has been regenerated`,
+    mismatch: `${label} QR code does not match its target`,
+  };
+
+  return notFound(
+    messageByReason[reason],
+    `${prefix}_${suffixByReason[reason]}`,
+  );
 }
 
 // POST /generate - Generate single QR code
@@ -345,7 +379,7 @@ app.get(
     const result = await service.verifyTableFromQrCode(qrCode);
 
     if (!result.valid) {
-      throw notFound("Invalid or expired table QR code", "TABLE_QR_INVALID");
+      throw signedQrFailure("table", result.reason);
     }
 
     return c.json(
@@ -368,7 +402,7 @@ app.get(
     const result = await service.verifySeatFromQrCode(qrCode);
 
     if (!result.valid) {
-      throw notFound("Invalid or expired seat QR code", "SEAT_QR_INVALID");
+      throw signedQrFailure("seat", result.reason);
     }
 
     return c.json(
@@ -393,7 +427,7 @@ app.get(
     const result = await service.verifyTable(qrCode, entityId);
 
     if (!result.valid) {
-      throw notFound("Invalid or expired table QR code", "TABLE_QR_INVALID");
+      throw signedQrFailure("table", result.reason);
     }
 
     return c.json(
@@ -418,7 +452,7 @@ app.get(
     const result = await service.verifySeat(qrCode, entityId);
 
     if (!result.valid) {
-      throw notFound("Invalid or expired seat QR code", "SEAT_QR_INVALID");
+      throw signedQrFailure("seat", result.reason);
     }
 
     return c.json(

@@ -71,6 +71,47 @@ describe("SignedQrVerificationService", () => {
     });
     await expect(service.verifyTable(staleQr, 10)).resolves.toEqual({
       valid: false,
+      reason: "stale",
+    });
+  });
+
+  it("distinguishes inactive or deleted tables from missing tables", async () => {
+    const qrCode = await buildSignedQRUrl(
+      "https://example.test",
+      {
+        formatVersion: 2,
+        type: "table",
+        restaurantId: "restaurant-1",
+        tableId: 10,
+        identifier: "T1",
+        version: 2,
+      },
+      signingKey,
+    );
+    const service = new SignedQrVerificationService(
+      { DB: {} as D1Database, QR_SIGNING_KEY: signingKey },
+      createDb(
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            number: "T1",
+            qrCodeVersion: 2,
+            isActive: false,
+            deletedAt: null,
+          },
+        ],
+        [],
+      ) as never,
+    );
+
+    await expect(service.verifyTable(qrCode, 10)).resolves.toEqual({
+      valid: false,
+      reason: "inactive",
+    });
+    await expect(service.verifyTable(qrCode, 10)).resolves.toEqual({
+      valid: false,
+      reason: "not_found",
     });
   });
 
@@ -104,6 +145,7 @@ describe("SignedQrVerificationService", () => {
 
     await expect(service.verifyTableFromQrCode(legacyQr)).resolves.toEqual({
       valid: false,
+      reason: "malformed",
     });
   });
 
@@ -140,6 +182,7 @@ describe("SignedQrVerificationService", () => {
 
     await expect(service.verifySeat(qrCode, 21)).resolves.toEqual({
       valid: false,
+      reason: "mismatch",
     });
   });
 
