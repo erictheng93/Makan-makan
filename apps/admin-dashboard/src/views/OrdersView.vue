@@ -198,7 +198,10 @@
                   <div class="text-sm font-medium text-gray-900 truncate">
                     {{ getOrderNumber(order) }}
                   </div>
-                  <div class="text-sm text-gray-500">
+                  <div
+                    class="text-sm text-gray-500"
+                    :data-testid="`admin-order-table-${order.id}`"
+                  >
                     {{ getTableNumber(order) }}
                   </div>
                   <div class="text-sm text-gray-500 truncate">
@@ -306,7 +309,10 @@
                 <div class="text-gray-500">
                   {{ t("orders.columns.tableNumber") }}
                 </div>
-                <div class="text-gray-900 text-right">
+                <div
+                  class="text-gray-900 text-right"
+                  :data-testid="`admin-order-table-${order.id}`"
+                >
                   {{ getTableNumber(order) }}
                 </div>
 

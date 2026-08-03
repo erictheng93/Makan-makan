@@ -66,7 +66,7 @@ describe("OrdersView", () => {
     orderStore.error = null;
   });
 
-  it("renders API order numbers and table numbers, and searches by real order number", async () => {
+  it("renders API order numbers", () => {
     orderStore.orders = [makeOrder()];
 
     const wrapper = mount(OrdersView);
@@ -74,7 +74,26 @@ describe("OrdersView", () => {
     expect(wrapper.text()).toContain(
       "019FA136-CFE3-709F-A2AB-F8A3EBCD31A1-MSBYTLO8-DCV5",
     );
-    expect(wrapper.text()).toContain("A1");
+  });
+
+  it("renders API table numbers in the table-number cells", () => {
+    const order = makeOrder();
+    orderStore.orders = [order];
+
+    const wrapper = mount(OrdersView);
+
+    const tableCells = wrapper.findAll(
+      `[data-testid="admin-order-table-${order.id}"]`,
+    );
+
+    expect(tableCells.length).toBeGreaterThan(0);
+    expect(tableCells.every((cell) => cell.text() === "A1")).toBe(true);
+  });
+
+  it("searches by real order number", async () => {
+    orderStore.orders = [makeOrder()];
+
+    const wrapper = mount(OrdersView);
 
     await wrapper
       .get('[data-testid="admin-orders-search"]')
@@ -83,6 +102,20 @@ describe("OrdersView", () => {
     expect(wrapper.text()).toContain(
       "019FA136-CFE3-709F-A2AB-F8A3EBCD31A1-MSBYTLO8-DCV5",
     );
-    expect(wrapper.text()).toContain("A1");
+  });
+
+  it("hides orders that do not match the search query", async () => {
+    const order = makeOrder();
+    orderStore.orders = [order];
+
+    const wrapper = mount(OrdersView);
+
+    await wrapper
+      .get('[data-testid="admin-orders-search"]')
+      .setValue("NO-SUCH-ORDER");
+
+    expect(
+      wrapper.findAll(`[data-testid="admin-order-table-${order.id}"]`),
+    ).toHaveLength(0);
   });
 });
