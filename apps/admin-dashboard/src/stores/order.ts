@@ -86,7 +86,7 @@ export const useOrderStore = defineStore("order", () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: number, status: OrderStatus) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     try {
       const response = await api.put(`/orders/${orderId}/status`, { status });
 
@@ -123,14 +123,14 @@ export const useOrderStore = defineStore("order", () => {
     }
   };
 
-  const removeOrder = (orderId: number) => {
+  const removeOrder = (orderId: string) => {
     const index = orders.value.findIndex((order) => order.id === orderId);
     if (index > -1) {
       orders.value.splice(index, 1);
     }
   };
 
-  const getOrderById = (orderId: number) => {
+  const getOrderById = (orderId: string) => {
     return orders.value.find((order) => order.id === orderId);
   };
 
@@ -159,23 +159,23 @@ export const useOrderStore = defineStore("order", () => {
   };
 
   // Kitchen specific actions
-  const confirmOrder = (orderId: number) => {
+  const confirmOrder = (orderId: string) => {
     return updateOrderStatus(orderId, "confirmed");
   };
 
-  const startPreparing = (orderId: number) => {
+  const startPreparing = (orderId: string) => {
     return updateOrderStatus(orderId, "preparing");
   };
 
-  const markReady = (orderId: number) => {
+  const markReady = (orderId: string) => {
     return updateOrderStatus(orderId, "ready");
   };
 
-  const completeOrder = (orderId: number) => {
+  const completeOrder = (orderId: string) => {
     return updateOrderStatus(orderId, "delivered");
   };
 
-  const cancelOrder = async (orderId: number, reason?: string) => {
+  const cancelOrder = async (orderId: string, reason?: string) => {
     try {
       // ApiServiceCompat.delete(url, data) already wraps `data` into the axios
       // `{ data }` config, so pass the raw payload — passing `{ data: {...} }`

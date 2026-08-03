@@ -79,6 +79,7 @@
             <input
               v-model="searchQuery"
               type="text"
+              data-testid="admin-orders-search"
               :placeholder="t('orders.searchPlaceholder')"
               class="w-full pl-10 pr-4 py-2 bg-white border-0 rounded-xl shadow-ios-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             />
@@ -619,16 +620,27 @@ const sourceFilter = ref("");
 const selectedOrder = ref<Order | null>(null);
 const isLoading = ref(false);
 
-// Helper functions for missing properties
-const getOrderNumber = (order: Order) =>
-  `ORD-${order.id.toString().padStart(6, "0")}`;
+const getOrderNumber = (order: Order) => order.orderNumber ?? order.id;
 const getTableNumber = (order: Order) =>
-  order.tableId
-    ? `T${order.tableId.toString().padStart(2, "0")}`
-    : t("orders.type.takeaway");
+  order.table?.number ??
+  (order.tableId ? String(order.tableId) : t("orders.type.takeaway"));
 const getCustomerName = (order: Order) =>
   order.customerInfo?.name || t("orders.defaultCustomer");
-const getOrderType = (order: Order) => (order.tableId ? "dine_in" : "takeaway");
+const getOrderType = (order: Order) => {
+  if (order.deliveryInfo?.type) {
+    return order.deliveryInfo.type;
+  }
+
+  if (order.orderType === "table" || order.orderType === "seat") {
+    return "dine_in";
+  }
+
+  if (order.orderType === "shop") {
+    return "takeaway";
+  }
+
+  return order.tableId ? "dine_in" : "takeaway";
+};
 
 const getSourceClass = (source: string) => {
   const classes: Record<string, string> = {

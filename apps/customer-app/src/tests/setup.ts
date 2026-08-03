@@ -1,4 +1,14 @@
-import { afterEach, vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
+
+beforeEach(() => {
+  if (typeof window !== "undefined") {
+    Object.defineProperty(window, "scrollTo", {
+      value: vi.fn(),
+      writable: true,
+      configurable: true,
+    });
+  }
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
