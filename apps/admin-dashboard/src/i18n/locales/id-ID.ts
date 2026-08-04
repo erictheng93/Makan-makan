@@ -292,7 +292,10 @@ const idID: Messages = {
     location: "Lokasi",
     notSet: "Belum diatur",
     order: "Pesanan",
-    viewQR: "Lihat Kode QR",
+    qrPreview: {
+      hint: "Ketuk untuk memperbesar",
+      enlarge: "Perbesar kode QR meja {number}",
+    },
     deleteBlocked:
       "Meja yang sedang terisi atau memiliki pesanan aktif tidak dapat dihapus",
     stats: {

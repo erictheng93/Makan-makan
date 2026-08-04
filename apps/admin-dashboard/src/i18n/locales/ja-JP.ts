@@ -2044,7 +2044,10 @@ const jaJP: Messages = {
     location: "場所",
     notSet: "未設定",
     order: "注文",
-    viewQR: "QRコードを表示",
+    qrPreview: {
+      hint: "タップで拡大",
+      enlarge: "テーブル {number} のQRコードを拡大表示",
+    },
     deleteBlocked: "使用中または進行中の注文があるテーブルは削除できません",
     stats: {
       available: "空席",

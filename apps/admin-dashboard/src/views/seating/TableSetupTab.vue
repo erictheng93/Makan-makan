@@ -171,9 +171,17 @@
             </div>
           </div>
 
-          <!-- QR Code Preview -->
-          <div class="mb-4 text-center">
-            <div class="inline-block p-2 bg-[#F2F2F7] rounded-xl">
+          <!-- QR Code Preview — the code itself is the affordance for enlarging -->
+          <div class="mb-4 flex flex-col items-center">
+            <button
+              type="button"
+              class="group relative rounded-2xl bg-[#F2F2F7] p-2 transition-all duration-200 hover:bg-[#E5E5EA] hover:scale-[1.03] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/40"
+              :aria-label="
+                t('tables.qrPreview.enlarge', { number: table.tableNumber })
+              "
+              :data-testid="`open-qr-${table.id}`"
+              @click="viewQRCode(table)"
+            >
               <QRCodeRenderer
                 v-if="tableQrIsReady(table)"
                 :content="printableTableQrCode(table)"
@@ -186,7 +194,12 @@
               >
                 <QrCode class="w-8 h-8 text-[#8E8E93]" />
               </div>
-            </div>
+              <span
+                class="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#007AFF] shadow-[0_2px_6px_rgba(0,0,0,0.14)] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+              >
+                <Maximize2 class="h-3.5 w-3.5" />
+              </span>
+            </button>
             <div
               v-if="tableHasPendingQr(table)"
               class="mt-2 text-xs font-medium text-[#FF9500]"
@@ -199,16 +212,13 @@
             >
               {{ t("qrReadiness.notReady") }}
             </div>
+            <div v-else class="mt-2 text-[11px] text-[#1C1C1E]/40">
+              {{ t("tables.qrPreview.hint") }}
+            </div>
           </div>
 
           <!-- Actions -->
           <div class="flex flex-wrap gap-2">
-            <button
-              class="flex-1 px-3 py-2 text-sm bg-[#007AFF] text-white rounded-full hover:bg-[#0066D6] transition-colors"
-              @click="viewQRCode(table)"
-            >
-              {{ t("tables.viewQR") }}
-            </button>
             <button
               v-if="table.qrMode === 'seat'"
               class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
@@ -532,6 +542,7 @@ import {
   FileText,
   TableProperties,
   XCircle,
+  Maximize2,
 } from "lucide-vue-next";
 import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";

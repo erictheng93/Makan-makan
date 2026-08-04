@@ -2046,7 +2046,10 @@ const viVN: Messages = {
     location: "Vị trí",
     notSet: "Chưa đặt",
     order: "Đơn hàng",
-    viewQR: "Xem mã QR",
+    qrPreview: {
+      hint: "Nhấn để phóng to",
+      enlarge: "Phóng to mã QR của bàn {number}",
+    },
     deleteBlocked: "Không thể xóa bàn đang có khách hoặc đơn hàng đang xử lý",
     stats: {
       available: "Trống",

@@ -2019,7 +2019,10 @@ const zhCN: Messages = {
     location: "位置",
     notSet: "未设置",
     order: "订单",
-    viewQR: "查看 QR 码",
+    qrPreview: {
+      hint: "点击放大",
+      enlarge: "放大查看桌台 {number} 的 QR 码",
+    },
     deleteBlocked: "使用中或有进行中订单的桌台不能删除",
     stats: {
       available: "可用",

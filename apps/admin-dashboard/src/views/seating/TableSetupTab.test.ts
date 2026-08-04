@@ -291,6 +291,38 @@ describe("TableSetupTab", () => {
     );
   });
 
+  it("opens the QR modal by clicking the QR preview itself", async () => {
+    const wrapper = await mountTab([buildTable({ id: 11 })]);
+
+    // The dedicated "view QR" button is gone — the code is the affordance.
+    expect(
+      wrapper.findAll("button").some((b) => b.text() === "tables.viewQR"),
+    ).toBe(false);
+
+    await wrapper.get('[data-testid="open-qr-11"]').trigger("click");
+
+    const vm = wrapper.vm as unknown as {
+      showQRModal: boolean;
+      selectedTable: { id: number } | null;
+    };
+    expect(vm.showQRModal).toBe(true);
+    expect(vm.selectedTable?.id).toBe(11);
+  });
+
+  it("still opens the QR modal for a table whose code is not ready", async () => {
+    // The modal is the only place to regenerate, so a not-ready code must not
+    // make the preview inert.
+    const wrapper = await mountTab([
+      buildTable({ id: 11, qrCode: "pending:019469" }),
+    ]);
+
+    await wrapper.get('[data-testid="open-qr-11"]').trigger("click");
+
+    expect(
+      (wrapper.vm as unknown as { showQRModal: boolean }).showQRModal,
+    ).toBe(true);
+  });
+
   it("disables deleting an occupied table from the table card", async () => {
     const wrapper = await mountTab([
       buildTable({ isOccupied: true, currentOrderId: "order-1" }),
