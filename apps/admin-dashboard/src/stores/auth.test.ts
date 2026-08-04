@@ -342,6 +342,66 @@ describe("useAuthStore", () => {
     expect(managementAuthClient.tokens.clearAll).not.toHaveBeenCalled();
   });
 
+  it("does not clear a piggybacked refresh caller on transient failures", async () => {
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    vi.mocked(getAuthToken).mockReturnValue("expired-token");
+
+    let rejectRefresh!: (error: unknown) => void;
+    vi.mocked(authClient.instance.post).mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRefresh = reject;
+        }),
+    );
+    const store = useAuthStore();
+
+    const backgroundRefresh = store.refreshToken({
+      clearOnAuthFailure: false,
+    });
+    const piggybackedRefresh = store.refreshToken();
+
+    rejectRefresh({ response: { status: 500 } });
+
+    await expect(backgroundRefresh).resolves.toBe(false);
+    await expect(piggybackedRefresh).resolves.toBe(false);
+
+    expect(store.user).toEqual(user());
+    expect(store.token).toBe("expired-token");
+    expect(localStorage.getItem("auth_user")).toEqual(JSON.stringify(user()));
+    expect(api.setAuthToken).not.toHaveBeenCalledWith(null);
+    expect(authClient.tokens.clearAll).not.toHaveBeenCalled();
+  });
+
+  it("clears a piggybacked refresh caller on shared auth failures", async () => {
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    vi.mocked(getAuthToken).mockReturnValue("expired-token");
+
+    let rejectRefresh!: (error: unknown) => void;
+    vi.mocked(authClient.instance.post).mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRefresh = reject;
+        }),
+    );
+    const store = useAuthStore();
+
+    const backgroundRefresh = store.refreshToken({
+      clearOnAuthFailure: false,
+    });
+    const piggybackedRefresh = store.refreshToken();
+
+    rejectRefresh({ response: { status: 401 } });
+
+    await expect(backgroundRefresh).resolves.toBe(false);
+    await expect(piggybackedRefresh).resolves.toBe(false);
+
+    expect(store.user).toBeNull();
+    expect(store.token).toBeNull();
+    expect(localStorage.getItem("auth_user")).toBeNull();
+    expect(api.setAuthToken).toHaveBeenCalledWith(null);
+    expect(authClient.tokens.clearAll).toHaveBeenCalled();
+  });
+
   // #66: production holds the access token in memory, so a reload leaves the
   // user hydrated but the token gone. isAuthenticated needs both, so without
   // this the router guard redirected to /login and the 7-day refresh cookie

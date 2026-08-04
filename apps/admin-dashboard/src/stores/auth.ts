@@ -22,6 +22,11 @@ interface RefreshTokenOptions {
   clearOnAuthFailure?: boolean;
 }
 
+interface RefreshTokenAttempt {
+  refreshed: boolean;
+  authFailure: boolean;
+}
+
 const AUTH_CSRF_STORAGE_KEY = "mm_csrf_token_auth";
 const LEGACY_CSRF_STORAGE_KEY = "mm_csrf_token";
 const CSRF_COOKIE_NAME = "__Host-mm_csrf";
@@ -80,7 +85,7 @@ const clearStoredSessionState = () => {
 };
 
 // Module-level deduplication: all callers share the same in-flight refresh
-let sharedRefreshPromise: Promise<boolean> | null = null;
+let sharedRefreshPromise: Promise<RefreshTokenAttempt> | null = null;
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(hydrateUser());
@@ -384,11 +389,11 @@ export const useAuthStore = defineStore("auth", () => {
 
     // Deduplicate: if a refresh is already in flight, reuse its promise
     if (sharedRefreshPromise) {
-      const refreshed = await sharedRefreshPromise;
-      if (!refreshed && clearOnAuthFailure) {
+      const attempt = await sharedRefreshPromise;
+      if (!attempt.refreshed && attempt.authFailure && clearOnAuthFailure) {
         clearLocalSessionState();
       }
-      return refreshed;
+      return attempt.refreshed;
     }
 
     sharedRefreshPromise = (async () => {
@@ -418,28 +423,27 @@ export const useAuthStore = defineStore("auth", () => {
           }
 
           authClient.tokens.scheduleProactiveRefresh(token.value!);
-          return true;
+          return { refreshed: true, authFailure: false };
         }
       } catch (error: any) {
         const status = error?.response?.status ?? error?.status;
-        if (
-          clearOnAuthFailure &&
-          (status === 400 || status === 401 || status === 403)
-        ) {
+        const authFailure = status === 400 || status === 401 || status === 403;
+        if (clearOnAuthFailure && authFailure) {
           clearLocalSessionState();
         }
         console.warn("Proactive refresh failed, falling back to reactive mode");
-        return false;
+        return { refreshed: false, authFailure };
       }
 
       console.warn(
         "Refresh returned non-success, falling back to reactive mode",
       );
-      return false;
+      return { refreshed: false, authFailure: false };
     })();
 
     try {
-      return await sharedRefreshPromise;
+      const attempt = await sharedRefreshPromise;
+      return attempt.refreshed;
     } finally {
       sharedRefreshPromise = null;
     }

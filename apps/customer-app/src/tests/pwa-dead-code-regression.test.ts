@@ -11,27 +11,28 @@ const removedPwaModules = [
   "src/utils/offline-storage.ts",
 ] as const;
 
+const viteConfigFiles = ["vite.config.ts", "vite.config.optimized.ts"] as const;
+
 describe("customer-app PWA dead code regression", () => {
   it("ships the PNG icons referenced by the web app manifest", () => {
-    const manifestSource = readFileSync(
-      resolve(appRoot, "vite.config.ts"),
-      "utf8",
-    );
-    const referencedPngIcons = [
-      ...manifestSource.matchAll(/src: "\/(pwa-\d+x\d+\.png)"/g),
-    ].map((match) => match[1]);
+    for (const configFile of viteConfigFiles) {
+      const manifestSource = readFileSync(resolve(appRoot, configFile), "utf8");
+      const referencedPngIcons = [
+        ...manifestSource.matchAll(/src: "\/(pwa-\d+x\d+\.png)"/g),
+      ].map((match) => match[1]);
 
-    expect(new Set(referencedPngIcons)).toEqual(
-      new Set(["pwa-192x192.png", "pwa-512x512.png"]),
-    );
-
-    for (const icon of referencedPngIcons) {
-      const iconPath = resolve(appRoot, "public", icon);
-
-      expect(existsSync(iconPath), icon).toBe(true);
-      expect(readFileSync(iconPath).subarray(0, 8)).toEqual(
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      expect(new Set(referencedPngIcons)).toEqual(
+        new Set(["pwa-192x192.png", "pwa-512x512.png"]),
       );
+
+      for (const icon of referencedPngIcons) {
+        const iconPath = resolve(appRoot, "public", icon);
+
+        expect(existsSync(iconPath), `${configFile}: ${icon}`).toBe(true);
+        expect(readFileSync(iconPath).subarray(0, 8)).toEqual(
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        );
+      }
     }
   });
 
