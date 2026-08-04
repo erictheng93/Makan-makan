@@ -6,8 +6,10 @@ import CartView from "@/views/CartView.vue";
 const routeQuery = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
 }));
+const createOrder = vi.hoisted(() => vi.fn());
 const createGuestOrder = vi.hoisted(() => vi.fn());
 const initializeCart = vi.hoisted(() => vi.fn());
+const toastError = vi.hoisted(() => vi.fn());
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({ query: routeQuery.current }),
@@ -19,7 +21,7 @@ vi.mock("vue-router", () => ({
 }));
 
 vi.mock("vue-toastification", () => ({
-  useToast: () => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn() }),
+  useToast: () => ({ success: vi.fn(), error: toastError, warning: vi.fn() }),
 }));
 
 vi.mock("@/composables/useI18n", () => ({
@@ -62,8 +64,8 @@ vi.mock("@/stores/cart", () => ({
 
 vi.mock("@/services/orderApi", () => ({
   orderApi: {
-    createOrder: vi.fn(),
-    createGuestOrder: vi.fn(),
+    createOrder,
+    createGuestOrder,
   },
 }));
 
@@ -84,10 +86,16 @@ vi.mock("@tanstack/vue-query", () => ({
   useQuery: () => ({
     data: ref({ name: "Demo Restaurant", settings: {} }),
   }),
-  useMutation: (options: { mutationFn: (data: unknown) => unknown }) => ({
-    mutate: (data: unknown) => {
-      options.mutationFn(data);
-      createGuestOrder(data);
+  useMutation: (options: {
+    mutationFn: (data: unknown) => unknown;
+    onError?: (error: unknown) => void;
+  }) => ({
+    mutate: async (data: unknown) => {
+      try {
+        await options.mutationFn(data);
+      } catch (error) {
+        options.onError?.(error);
+      }
     },
   }),
 }));
@@ -112,6 +120,8 @@ describe("CartView seat orders", () => {
     // is row 6. The header must show "02".
     routeQuery.current = { seatId: "6", seatNumber: "02" };
     sessionStorage.clear();
+    createOrder.mockResolvedValue({ id: 123 });
+    createGuestOrder.mockResolvedValue({ order: { id: 123 } });
   });
 
   it("initializes the cart for the seat and submits a seat guest order", async () => {
@@ -163,5 +173,44 @@ describe("CartView seat orders", () => {
     expect(createGuestOrder).toHaveBeenCalledWith(
       expect.objectContaining({ orderType: "seat", tableId: 4, seatId: 6 }),
     );
+  });
+
+  it("shows the generic submit failure toast for network errors", async () => {
+    createGuestOrder.mockRejectedValue(
+      Object.assign(new Error("Network Error"), {
+        code: "NETWORK_ERROR",
+      }),
+    );
+
+    const wrapper = mount(CartView, {
+      props: { restaurantId: "restaurant-1", tableId: 4 },
+      global: { stubs: { RouterLink: true } },
+    });
+
+    await flushPromises();
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+
+    expect(toastError).toHaveBeenCalledWith("toast.orderSubmitFailed");
+  });
+
+  it("keeps explicit API error messages for rate limits", async () => {
+    createGuestOrder.mockRejectedValue(
+      Object.assign(new Error("Too many requests"), {
+        code: "RATE_LIMIT_EXCEEDED",
+        status: 429,
+      }),
+    );
+
+    const wrapper = mount(CartView, {
+      props: { restaurantId: "restaurant-1", tableId: 4 },
+      global: { stubs: { RouterLink: true } },
+    });
+
+    await flushPromises();
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+
+    expect(toastError).toHaveBeenCalledWith("Too many requests");
   });
 });

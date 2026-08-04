@@ -741,6 +741,18 @@ watch(
   { immediate: true },
 );
 
+const getOrderSubmitErrorMessage = (error: any) => {
+  if (
+    error?.code === "NETWORK_ERROR" ||
+    error?.code === "ERR_NETWORK" ||
+    (!error?.response && error?.request)
+  ) {
+    return t("toast.orderSubmitFailed");
+  }
+
+  return error?.message || t("toast.orderSubmitFailed");
+};
+
 // 提交訂單 Mutation (authenticated)
 const { mutate: createOrder } = useMutation({
   mutationFn: (orderData: CreateOrderRequest) =>
@@ -753,7 +765,7 @@ const { mutate: createOrder } = useMutation({
     );
   },
   onError: (error: any) => {
-    toast.error(error?.message || t("toast.orderSubmitFailed"));
+    toast.error(getOrderSubmitErrorMessage(error));
     isSubmitting.value = false;
   },
 });
@@ -770,7 +782,7 @@ const { mutate: createGuestOrder } = useMutation({
     );
   },
   onError: (error: any) => {
-    toast.error(error?.message || t("toast.orderSubmitFailed"));
+    toast.error(getOrderSubmitErrorMessage(error));
     isSubmitting.value = false;
   },
 });
