@@ -227,6 +227,7 @@ describe("i18n Integration Tests", () => {
       "toast.scanFailed",
       "toast.invalidQRFormat",
       "toast.qrValidationFailed",
+      "toast.qrSignatureInvalid",
       "toast.unsupportedQRType",
       "toast.qrProcessError",
       "toast.cameraAccessFailed",

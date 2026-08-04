@@ -500,6 +500,7 @@
     "scanFailed": "Fungsi imbasan gagal dimulakan",
     "invalidQRFormat": "Format kod QR tidak sah",
     "qrValidationFailed": "Pengesahan data kod QR gagal",
+    "qrSignatureInvalid": "Kod QR ini telah tamat tempoh atau tandatangannya tidak sah. Sila imbas semula kod QR di meja.",
     "unsupportedQRType": "Jenis kod QR tidak disokong",
     "qrProcessError": "Ralat berlaku semasa memproses kod QR",
     "cameraAccessFailed": "Akses kamera gagal",

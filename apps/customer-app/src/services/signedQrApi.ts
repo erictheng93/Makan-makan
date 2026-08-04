@@ -1,4 +1,5 @@
 import { apiClient } from "./api";
+import { translate } from "@/utils/i18n";
 
 interface SignedQrVerificationBase {
   valid: true;
@@ -21,10 +22,14 @@ export interface SeatQrVerification extends SignedQrVerificationBase {
 export type SignedQrVerification = TableQrVerification | SeatQrVerification;
 
 export const signedQrApi = {
-  verify(
+  async verify(
     type: "table" | "seat",
     qrCode: string,
   ): Promise<SignedQrVerification> {
-    return apiClient.get(`/qr/verify/${type}`, { qrCode });
+    try {
+      return await apiClient.get(`/qr/verify/${type}`, { qrCode });
+    } catch {
+      throw new Error(translate("toast.qrSignatureInvalid"));
+    }
   },
 };
