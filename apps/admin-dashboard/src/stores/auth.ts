@@ -18,6 +18,10 @@ type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _skipErrorHandler?: boolean;
 };
 
+const AUTH_CSRF_STORAGE_KEY = "mm_csrf_token_auth";
+const LEGACY_CSRF_STORAGE_KEY = "mm_csrf_token";
+const AUTH_REFRESH_TOKEN_KEY = "auth_refresh_token";
+
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
   try {
@@ -34,6 +38,31 @@ const persistUser = (u: User | null) => {
     localStorage.setItem("auth_user", JSON.stringify(u));
   } else {
     localStorage.removeItem("auth_user");
+  }
+};
+
+const hasStoredSessionMarker = () => {
+  try {
+    return (
+      !!localStorage.getItem(AUTH_CSRF_STORAGE_KEY) ||
+      !!localStorage.getItem(LEGACY_CSRF_STORAGE_KEY) ||
+      !!localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) ||
+      !!sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const clearStoredSessionState = () => {
+  try {
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem(AUTH_CSRF_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_CSRF_STORAGE_KEY);
+    localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+  } catch {
+    // Storage may be unavailable; in-memory refs are still cleared below.
   }
 };
 
@@ -81,6 +110,17 @@ export const useAuthStore = defineStore("auth", () => {
     sessionStorage.removeItem("admin_selected_restaurant_id");
     sessionStorage.removeItem("admin_selected_restaurant_name");
     useModuleAccessStore().reset();
+  };
+
+  const clearLocalSessionState = () => {
+    user.value = null;
+    token.value = null;
+    clearStoredSessionState();
+    clearRestaurant();
+    api.setAuthToken(null);
+    authClient.tokens.clearAll();
+    managementAuthClient.tokens.clearAll();
+    managementAuthClient.setAuthToken(null);
   };
 
   const hasPermission = (requiredRole: UserRole | UserRole[]) => {
@@ -260,18 +300,17 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (error) {
       console.warn("Logout request failed:", error);
     } finally {
-      user.value = null;
-      token.value = null;
-      clearRestaurant();
-      api.setAuthToken(null);
-      authClient.tokens.clearAll();
-      managementAuthClient.tokens.clearAll();
-      managementAuthClient.setAuthToken(null);
+      clearLocalSessionState();
     }
   };
 
   const checkAuth = async () => {
     if (!token.value && user.value) {
+      if (!hasStoredSessionMarker()) {
+        clearLocalSessionState();
+        return false;
+      }
+
       const refreshed = await refreshToken();
       if (!refreshed) return false;
     }
@@ -358,7 +397,11 @@ export const useAuthStore = defineStore("auth", () => {
           authClient.tokens.scheduleProactiveRefresh(token.value!);
           return true;
         }
-      } catch {
+      } catch (error: any) {
+        const status = error?.response?.status ?? error?.status;
+        if (status === 400 || status === 401 || status === 403) {
+          clearLocalSessionState();
+        }
         console.warn("Proactive refresh failed, falling back to reactive mode");
         return false;
       }
@@ -390,6 +433,10 @@ export const useAuthStore = defineStore("auth", () => {
   const restoreSession = async (): Promise<boolean> => {
     if (token.value) return true;
     if (!user.value) return false;
+    if (!hasStoredSessionMarker()) {
+      clearLocalSessionState();
+      return false;
+    }
 
     return refreshToken();
   };

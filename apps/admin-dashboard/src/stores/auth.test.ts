@@ -303,6 +303,25 @@ describe("useAuthStore", () => {
     expect(api.setAuthToken).toHaveBeenCalledWith("new-token");
   });
 
+  it("clears stale local session state when refresh has no server session", async () => {
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    localStorage.setItem("mm_csrf_token_auth", "stale-csrf");
+    vi.mocked(getAuthToken).mockReturnValue(null);
+    vi.mocked(authClient.instance.post).mockRejectedValue({
+      response: { status: 401 },
+    });
+    const store = useAuthStore();
+
+    await expect(store.refreshToken()).resolves.toBe(false);
+
+    expect(store.user).toBeNull();
+    expect(store.token).toBeNull();
+    expect(localStorage.getItem("auth_user")).toBeNull();
+    expect(localStorage.getItem("mm_csrf_token_auth")).toBeNull();
+    expect(api.setAuthToken).toHaveBeenCalledWith(null);
+    expect(managementAuthClient.tokens.clearAll).toHaveBeenCalled();
+  });
+
   // #66: production holds the access token in memory, so a reload leaves the
   // user hydrated but the token gone. isAuthenticated needs both, so without
   // this the router guard redirected to /login and the 7-day refresh cookie
@@ -310,6 +329,7 @@ describe("useAuthStore", () => {
   describe("restoreSession", () => {
     it("spends the refresh cookie when a reload left a user but no token", async () => {
       localStorage.setItem("auth_user", JSON.stringify(user()));
+      localStorage.setItem("mm_csrf_token_auth", "csrf-token");
       vi.mocked(getAuthToken).mockReturnValue(null);
       vi.mocked(authClient.instance.post).mockResolvedValue({
         data: { success: true, data: { token: "restored-token" } },
@@ -333,6 +353,30 @@ describe("useAuthStore", () => {
       await expect(store.restoreSession()).resolves.toBe(false);
 
       expect(authClient.instance.post).not.toHaveBeenCalled();
+    });
+
+    it("does not call refresh for a stale stored user without session marker", async () => {
+      localStorage.setItem("auth_user", JSON.stringify(user()));
+      vi.mocked(getAuthToken).mockReturnValue(null);
+      const store = useAuthStore();
+
+      await expect(store.restoreSession()).resolves.toBe(false);
+
+      expect(authClient.instance.post).not.toHaveBeenCalled();
+      expect(store.user).toBeNull();
+      expect(localStorage.getItem("auth_user")).toBeNull();
+    });
+
+    it("does not refresh during auth check for a stale stored user without session marker", async () => {
+      localStorage.setItem("auth_user", JSON.stringify(user()));
+      vi.mocked(getAuthToken).mockReturnValue(null);
+      const store = useAuthStore();
+
+      await expect(store.checkAuth()).resolves.toBe(false);
+
+      expect(authClient.instance.post).not.toHaveBeenCalled();
+      expect(store.user).toBeNull();
+      expect(localStorage.getItem("auth_user")).toBeNull();
     });
 
     it("does not refresh when the token is still in memory", async () => {
