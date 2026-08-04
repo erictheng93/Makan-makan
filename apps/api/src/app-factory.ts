@@ -246,6 +246,7 @@ export function createApp(
 
   // 🚀 ENHANCED 全域中間件 FOR 100/100 SCORE - CLOUDFLARE OPTIMIZATIONS
   app.use("*", requestIdMiddleware); // First: Generate request ID for tracking
+  app.use("*", corsMiddleware); // Second: CORS headers must survive early error responses
 
   // 🔒 CRITICAL SECURITY: Advanced geo-intelligent rate limiting (+0.5 points)
   app.use(
@@ -323,8 +324,7 @@ export function createApp(
     }),
   );
 
-  app.use("*", securityMonitoringMiddleware); // Second: Monitor security events
-  app.use("*", corsMiddleware); // Third: CORS validation
+  app.use("*", securityMonitoringMiddleware); // Third: Monitor security events
   app.use("*", securityHeadersMiddleware); // Fourth: Security headers
   app.use("*", inputSanitizationMiddleware); // Fifth: Sanitize inputs before processing
 

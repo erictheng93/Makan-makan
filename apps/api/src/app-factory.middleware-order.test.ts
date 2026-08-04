@@ -6,6 +6,14 @@ vi.mock("./shared/utils/meter", () => ({ meterEmit }));
 
 import { createApp } from "./app-factory";
 
+function createExecutionContext(): ExecutionContext {
+  return {
+    waitUntil: vi.fn(),
+    passThroughOnException: vi.fn(),
+    props: {},
+  } as unknown as ExecutionContext;
+}
+
 describe("createApp API middleware registration", () => {
   beforeEach(() => {
     meterEmit.mockClear();
@@ -45,5 +53,44 @@ describe("createApp API middleware registration", () => {
         metadata: expect.objectContaining({ path: "/api/v1/coupons" }),
       }),
     );
+  });
+
+  it("keeps CORS headers on global rate limit 429 responses", async () => {
+    const app = createApp(undefined, {
+      disableEdgeCache: true,
+      disableObservability: true,
+    });
+    const origin = "https://customer.makanmakan.app";
+    const nativeLimiter = {
+      limit: vi.fn(async () => ({ success: false })),
+    } as unknown as RateLimit;
+
+    const response = await app.fetch(
+      new Request("https://api.test/api/v1/menu", {
+        headers: {
+          Origin: origin,
+          "CF-Connecting-IP": "203.0.113.10",
+        },
+      }),
+      {
+        NODE_ENV: "production",
+        CORS_ORIGIN: origin,
+        GLOBAL_RATE_LIMITER: nativeLimiter,
+      } as never,
+      createExecutionContext(),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
+      "true",
+    );
+    expect(response.headers.get("Access-Control-Expose-Headers")).toContain(
+      "X-RateLimit-Remaining",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: "Rate limit exceeded",
+    });
   });
 });
