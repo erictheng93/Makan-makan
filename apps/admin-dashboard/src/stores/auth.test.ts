@@ -322,6 +322,26 @@ describe("useAuthStore", () => {
     expect(managementAuthClient.tokens.clearAll).toHaveBeenCalled();
   });
 
+  it("can leave local session state intact when a background refresh fails", async () => {
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    vi.mocked(getAuthToken).mockReturnValue("expired-token");
+    vi.mocked(authClient.instance.post).mockRejectedValue({
+      response: { status: 401 },
+    });
+    const store = useAuthStore();
+
+    await expect(
+      store.refreshToken({ clearOnAuthFailure: false }),
+    ).resolves.toBe(false);
+
+    expect(store.user).toEqual(user());
+    expect(store.token).toBe("expired-token");
+    expect(localStorage.getItem("auth_user")).toEqual(JSON.stringify(user()));
+    expect(api.setAuthToken).not.toHaveBeenCalledWith(null);
+    expect(authClient.tokens.clearAll).not.toHaveBeenCalled();
+    expect(managementAuthClient.tokens.clearAll).not.toHaveBeenCalled();
+  });
+
   // #66: production holds the access token in memory, so a reload leaves the
   // user hydrated but the token gone. isAuthenticated needs both, so without
   // this the router guard redirected to /login and the 7-day refresh cookie
@@ -345,6 +365,27 @@ describe("useAuthStore", () => {
       );
       expect(store.token).toBe("restored-token");
       expect(store.isAuthenticated).toBe(true);
+    });
+
+    it("accepts the visible CSRF cookie as a stored session marker", async () => {
+      localStorage.setItem("auth_user", JSON.stringify(user()));
+      vi.spyOn(document, "cookie", "get").mockReturnValue(
+        "__Host-mm_csrf=csrf-cookie",
+      );
+      vi.mocked(getAuthToken).mockReturnValue(null);
+      vi.mocked(authClient.instance.post).mockResolvedValue({
+        data: { success: true, data: { token: "restored-token" } },
+      });
+      const store = useAuthStore();
+
+      await expect(store.restoreSession()).resolves.toBe(true);
+
+      expect(authClient.instance.post).toHaveBeenCalledWith(
+        "/auth/refresh",
+        {},
+        expect.objectContaining({ withCredentials: true }),
+      );
+      expect(store.token).toBe("restored-token");
     });
 
     it("does not call the API for a visitor with no stored session", async () => {

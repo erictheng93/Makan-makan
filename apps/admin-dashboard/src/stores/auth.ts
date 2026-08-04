@@ -18,8 +18,13 @@ type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _skipErrorHandler?: boolean;
 };
 
+interface RefreshTokenOptions {
+  clearOnAuthFailure?: boolean;
+}
+
 const AUTH_CSRF_STORAGE_KEY = "mm_csrf_token_auth";
 const LEGACY_CSRF_STORAGE_KEY = "mm_csrf_token";
+const CSRF_COOKIE_NAME = "__Host-mm_csrf";
 const AUTH_REFRESH_TOKEN_KEY = "auth_refresh_token";
 
 // Hydrate user from localStorage for instant restore on refresh
@@ -41,11 +46,19 @@ const persistUser = (u: User | null) => {
   }
 };
 
+const getCookieValue = (name: string): string | null => {
+  const cookie = globalThis.document?.cookie;
+  if (!cookie) return null;
+
+  return cookie.match(new RegExp(`${name}=([^;]+)`))?.[1] ?? null;
+};
+
 const hasStoredSessionMarker = () => {
   try {
     return (
       !!localStorage.getItem(AUTH_CSRF_STORAGE_KEY) ||
       !!localStorage.getItem(LEGACY_CSRF_STORAGE_KEY) ||
+      !!getCookieValue(CSRF_COOKIE_NAME) ||
       !!localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) ||
       !!sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
     );
@@ -364,9 +377,19 @@ export const useAuthStore = defineStore("auth", () => {
     return false;
   };
 
-  const refreshToken = async (): Promise<boolean> => {
+  const refreshToken = async (
+    options: RefreshTokenOptions = {},
+  ): Promise<boolean> => {
+    const clearOnAuthFailure = options.clearOnAuthFailure !== false;
+
     // Deduplicate: if a refresh is already in flight, reuse its promise
-    if (sharedRefreshPromise) return sharedRefreshPromise;
+    if (sharedRefreshPromise) {
+      const refreshed = await sharedRefreshPromise;
+      if (!refreshed && clearOnAuthFailure) {
+        clearLocalSessionState();
+      }
+      return refreshed;
+    }
 
     sharedRefreshPromise = (async () => {
       try {
@@ -399,7 +422,10 @@ export const useAuthStore = defineStore("auth", () => {
         }
       } catch (error: any) {
         const status = error?.response?.status ?? error?.status;
-        if (status === 400 || status === 401 || status === 403) {
+        if (
+          clearOnAuthFailure &&
+          (status === 400 || status === 401 || status === 403)
+        ) {
           clearLocalSessionState();
         }
         console.warn("Proactive refresh failed, falling back to reactive mode");

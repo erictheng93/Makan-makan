@@ -58,7 +58,9 @@ export function useRealtimeConnection() {
     }
 
     if (isTokenExpired(token, 30)) {
-      const refreshed = await authStore.refreshToken();
+      const refreshed = await authStore.refreshToken({
+        clearOnAuthFailure: false,
+      });
       if (!refreshed) {
         console.warn(
           "Realtime: Token expired and refresh failed, skipping connection",
