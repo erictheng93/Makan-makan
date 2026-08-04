@@ -47,7 +47,7 @@ import { eq } from "drizzle-orm";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "../../../../packages/database/src/testing/create-test-database";
+} from "@makanmakan/database/testing";
 import {
   restaurants,
   shopSubscriptions,
@@ -57,14 +57,14 @@ import {
   type ModuleMap,
   type PlanTier,
 } from "@makanmakan/database";
-import { ApiError } from "../shared/utils/api-error";
-import type { Env } from "../types/env";
+import { ApiError } from "../../shared/utils/api-error";
+import type { Env } from "../../types/env";
 import {
   invalidateSubscriptionCache,
   invalidateSubscriptionCacheForEnv,
   moduleGate,
   subscriptionCacheKey,
-} from "./moduleGate";
+} from "../../middleware/moduleGate";
 
 // ─── Independent oracle (source of truth #1) ─────────────────────────────────
 // Hand-transcribed from the product spec. Deliberately NOT derived from
