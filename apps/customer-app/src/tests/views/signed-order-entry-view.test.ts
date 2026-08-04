@@ -30,6 +30,7 @@ describe("SignedOrderEntryView", () => {
   beforeEach(() => {
     routerReplace.mockReset();
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("verifies the signed QR and redirects a seat to its table menu", async () => {
@@ -68,5 +69,25 @@ describe("SignedOrderEntryView", () => {
         seatNumber: "VIP-1",
       },
     });
+  });
+
+  it("blocks a tampered signed QR link and shows the error screen", async () => {
+    vi.mocked(signedQrApi.verify).mockRejectedValue(
+      new Error("Invalid QR signature"),
+    );
+
+    const wrapper = mount(SignedOrderEntryView);
+    await flushPromises();
+
+    expect(signedQrApi.verify).toHaveBeenCalledWith(
+      "seat",
+      `${window.location.origin}${route.fullPath}`,
+    );
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(
+      localStorage.getItem("makanmakan_table_qr:restaurant-1:10"),
+    ).toBeNull();
+    expect(wrapper.text()).toContain("toast.qrValidationFailed");
+    expect(wrapper.text()).toContain("Invalid QR signature");
   });
 });
