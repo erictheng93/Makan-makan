@@ -127,7 +127,11 @@
                 :class="getStatusColor(table.status)"
                 class="w-3 h-3 rounded-full mr-3"
               />
-              <h3 class="text-lg font-semibold text-[#1C1C1E]">
+              <!-- The badges wrap; the table number must not — it is the card's
+                   identity and reads as broken when it breaks across lines. -->
+              <h3
+                class="text-lg font-semibold text-[#1C1C1E] whitespace-nowrap"
+              >
                 {{ t("tables.tableNumber") }} {{ table.tableNumber }}
               </h3>
             </div>
@@ -218,65 +222,85 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex flex-wrap gap-2">
+          <div class="space-y-3">
+            <!-- Everyday operations: the status change leads, edit/delete pair -->
             <button
-              v-if="table.qrMode === 'seat'"
-              class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
-              @click="manageSeats(table)"
-            >
-              {{ t("seatManagement.title") }}
-            </button>
-            <button
-              class="px-3 py-2 text-sm bg-[#1C1C1E]/10 text-[#1C1C1E] rounded-full hover:bg-[#1C1C1E]/20 transition-colors"
-              @click="editTable(table)"
-            >
-              {{ t("common.edit") }}
-            </button>
-            <button
-              class="px-3 py-2 text-sm bg-[#FF3B30] text-white rounded-full hover:bg-[#E0352B] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="!canDeleteTable(table)"
-              :title="
-                canDeleteTable(table) ? undefined : t('tables.deleteBlocked')
-              "
-              @click="deleteTable(table)"
-            >
-              {{ t("common.delete") }}
-            </button>
-            <button
-              :class="getStatusButtonClass(table.status)"
-              class="px-3 py-2 text-sm rounded-full transition-colors"
+              :class="[ACTION_PILL, getStatusButtonClass(table.status)]"
+              class="w-full shadow-sm"
               @click="changeTableStatus(table)"
             >
+              <ArrowLeftRight class="h-3.5 w-3.5" />
               {{ getStatusButtonText(table.status) }}
             </button>
-            <button
-              v-if="!tableHasPendingQr(table)"
-              class="px-3 py-2 text-sm bg-[#0A84FF] text-white rounded-full hover:bg-[#0066D6] transition-colors"
-              @click="prepareTableQRCode(table)"
-            >
-              {{ t("qrRotation.prepare") }}
-            </button>
-            <button
-              v-if="!tableQrIsReady(table)"
-              class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
-              @click="regenerateTableQRCode(table)"
-            >
-              {{ t("tableDetail.qrCode.regenerate") }}
-            </button>
-            <button
-              v-if="tableHasPendingQr(table)"
-              class="px-3 py-2 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors"
-              @click="activateTableQRCode(table)"
-            >
-              {{ t("qrRotation.activate") }}
-            </button>
-            <button
-              v-if="tableHasPendingQr(table)"
-              class="px-3 py-2 text-sm bg-[#FF3B30] text-white rounded-full hover:bg-[#E0352B] transition-colors"
-              @click="discardTableQRCode(table)"
-            >
-              {{ t("qrRotation.discard") }}
-            </button>
+            <div class="flex gap-2">
+              <button
+                :class="[ACTION_PILL, TONAL.neutral]"
+                class="flex-1"
+                @click="editTable(table)"
+              >
+                <Pencil class="h-3.5 w-3.5" />
+                {{ t("common.edit") }}
+              </button>
+              <button
+                :class="[ACTION_PILL, TONAL.red]"
+                class="flex-1"
+                :disabled="!canDeleteTable(table)"
+                :title="
+                  canDeleteTable(table) ? undefined : t('tables.deleteBlocked')
+                "
+                @click="deleteTable(table)"
+              >
+                <Trash2 class="h-3.5 w-3.5" />
+                {{ t("common.delete") }}
+              </button>
+            </div>
+
+            <div class="h-px bg-[#F2F2F7]" />
+
+            <!-- Setup: seat layout and QR lifecycle. Wrapping is required here —
+                 a nowrap pill in a nowrap row overflows the card and clips. -->
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="table.qrMode === 'seat'"
+                :class="[ACTION_PILL, TONAL.neutral]"
+                @click="manageSeats(table)"
+              >
+                <Armchair class="h-3.5 w-3.5" />
+                {{ t("seatManagement.title") }}
+              </button>
+              <button
+                v-if="!tableHasPendingQr(table)"
+                :class="[ACTION_PILL, TONAL.blue]"
+                @click="prepareTableQRCode(table)"
+              >
+                <Sparkles class="h-3.5 w-3.5" />
+                {{ t("qrRotation.prepare") }}
+              </button>
+              <button
+                v-if="!tableQrIsReady(table)"
+                :class="[ACTION_PILL, TONAL.green]"
+                @click="regenerateTableQRCode(table)"
+              >
+                <RefreshCw class="h-3.5 w-3.5" />
+                {{ t("tableDetail.qrCode.regenerate") }}
+              </button>
+              <button
+                v-if="tableHasPendingQr(table)"
+                :class="[ACTION_PILL, SOLID_GREEN]"
+                @click="activateTableQRCode(table)"
+              >
+                <CheckCircle2 class="h-3.5 w-3.5" />
+                {{ t("qrRotation.activate") }}
+              </button>
+              <button
+                v-if="tableHasPendingQr(table)"
+                :class="[ACTION_PILL, TONAL.red]"
+                @click="discardTableQRCode(table)"
+              >
+                <XCircle class="h-3.5 w-3.5" />
+                {{ t("qrRotation.discard") }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -543,6 +567,13 @@ import {
   TableProperties,
   XCircle,
   Maximize2,
+  Pencil,
+  Trash2,
+  Armchair,
+  RefreshCw,
+  CheckCircle2,
+  ArrowLeftRight,
+  Sparkles,
 } from "lucide-vue-next";
 import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
@@ -713,6 +744,30 @@ const STATUS_BUTTON_CLASSES: Record<string, string> = {
   reserved: "bg-[#007AFF] text-white hover:bg-[#0066D6]",
   maintenance: "bg-[#FF9500] text-white hover:bg-[#E08600]",
 };
+
+/**
+ * One shared pill geometry for every card action. The fixed height plus
+ * `whitespace-nowrap` is the point: a label that wraps inside a `rounded-full`
+ * pill turns into a blob that no longer reads as a button. Since the pills never
+ * shrink, any row holding several of them has to either wrap or split them into
+ * fixed slots, or the last one overflows the card and clips.
+ */
+const ACTION_PILL =
+  "inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/40 disabled:cursor-not-allowed disabled:opacity-40";
+
+/**
+ * Only the status change and QR activation stay solid fills. Everything else is
+ * tonal, so a card carrying five actions reads as one hierarchy rather than
+ * five competing alarms.
+ */
+const TONAL = {
+  neutral: "bg-[#1C1C1E]/10 text-[#1C1C1E] hover:bg-[#1C1C1E]/20",
+  blue: "bg-[#007AFF]/10 text-[#0066D6] hover:bg-[#007AFF]/20",
+  green: "bg-[#34C759]/15 text-[#248A3D] hover:bg-[#34C759]/25",
+  red: "bg-[#FF3B30]/10 text-[#D70015] hover:bg-[#FF3B30]/20",
+};
+
+const SOLID_GREEN = "bg-[#34C759] text-white hover:bg-[#2DB84D] shadow-sm";
 
 const getStatusColor = (status: string) =>
   STATUS_COLORS[status] || STATUS_COLORS.maintenance;
