@@ -113,6 +113,7 @@ import type {
   PaymentStatus,
   ActivityType,
   GroupOrderPermissions,
+  GroupOrderJoinPreview,
 } from "../types";
 
 /**
@@ -264,7 +265,7 @@ export class GroupOrdersService implements IGroupOrderService {
    */
   async createGroupOrder(
     data: CreateGroupOrderRequest,
-    hostId: string,
+    hostId: string | null,
   ): Promise<{
     success: boolean;
     data?: CreateGroupOrderResponse;
@@ -281,8 +282,11 @@ export class GroupOrdersService implements IGroupOrderService {
       // Generate unique identifiers
       const groupOrderId = randomUUID();
       const shareCode = this.generateShareCode();
-      const expiresAt =
-        Math.floor(Date.now() / 1000) + (data.expirationHours || 24) * 60 * 60;
+      const recoveryCode = randomUUID();
+      const expirationSeconds = data.expirationMinutes
+        ? data.expirationMinutes * 60
+        : (data.expirationHours ?? 45 / 60) * 3600;
+      const expiresAt = Math.floor(Date.now() / 1000) + expirationSeconds;
 
       // Default permissions
       const defaultPermissions = {
@@ -290,7 +294,7 @@ export class GroupOrdersService implements IGroupOrderService {
         ...data.permissions,
       };
 
-      const effectiveMaxMembers = data.maxMembers || data.expectedMembers || 8;
+      const effectiveMaxMembers = data.maxMembers || data.expectedMembers || 30;
 
       const now = new Date();
 
@@ -301,6 +305,7 @@ export class GroupOrdersService implements IGroupOrderService {
         tableId: data.tableId || null,
         shareCode,
         createdBy: hostId,
+        recoveryCode,
         status: "active",
         expiresAt: new Date(expiresAt * 1000),
         settings: {
@@ -308,6 +313,10 @@ export class GroupOrdersService implements IGroupOrderService {
           permissions: defaultPermissions,
           notes: data.notes || null,
           tableNumber: data.tableNumber || null,
+          fulfillmentType: data.fulfillmentType || "dine_in",
+          deliveryAddress: data.deliveryAddress,
+          pickupAt: data.pickupAt,
+          autoSubmitOnExpiry: data.autoSubmitOnExpiry ?? true,
         },
         totalAmountCents: 0,
         taxAmountCents: 0,
@@ -340,7 +349,7 @@ export class GroupOrdersService implements IGroupOrderService {
         {
           shareCode,
           expiresAt,
-          maxMembers: data.maxMembers || 8,
+          maxMembers: effectiveMaxMembers,
         },
       );
 
@@ -358,11 +367,15 @@ export class GroupOrdersService implements IGroupOrderService {
         expiresAt: new Date(expiresAt * 1000),
         host: this.formatMember(hostMember),
         memberToken: sessionId,
+        recoveryCode,
       };
 
-      // Cache the group order — without memberToken. A membership credential
-      // has no business sitting in a shared cache entry.
-      const { memberToken: _hostToken, ...cacheableResponse } = response;
+      // Cache the group order without host-only secrets.
+      const {
+        memberToken: _hostToken,
+        recoveryCode: _recoveryCode,
+        ...cacheableResponse
+      } = response;
       await this.cache.set(
         `group_order:${groupOrderId}`,
         cacheableResponse,
@@ -384,6 +397,114 @@ export class GroupOrdersService implements IGroupOrderService {
       return { success: false, error: "Failed to create group order" };
     } finally {
       this.performance.endTimer(timer);
+    }
+  }
+
+  async previewGroupByShareCode(
+    shareCode: string,
+  ): Promise<{ found: boolean; data?: GroupOrderJoinPreview }> {
+    const groupOrderRows = await this.db
+      .select()
+      .from(groupOrders)
+      .where(
+        and(
+          eq(groupOrders.shareCode, shareCode),
+          eq(groupOrders.status, "active"),
+          gte(groupOrders.expiresAt, new Date()),
+        ),
+      );
+
+    const groupOrder = groupOrderRows[0];
+    if (!groupOrder) return { found: false };
+
+    const memberRows = await this.db
+      .select()
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupOrderId, groupOrder.id),
+          isNull(groupMembers.leftAt),
+        ),
+      );
+
+    const host = memberRows.find((member) => member.role === "creator");
+    const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+
+    return {
+      found: true,
+      data: {
+        groupOrderId: groupOrder.id,
+        restaurantId: groupOrder.restaurantId,
+        hostName: host?.name || "Host",
+        memberCount: memberRows.length,
+        fulfillmentType: settings.fulfillmentType || "dine_in",
+        expiresAt: groupOrder.expiresAt,
+        status: groupOrder.status,
+      },
+    };
+  }
+
+  async recoverHost(
+    groupOrderId: string,
+    recoveryCode: string,
+  ): Promise<{
+    success: boolean;
+    data?: { memberToken: string };
+    error?: string;
+  }> {
+    try {
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(
+          and(
+            eq(groupOrders.id, groupOrderId),
+            eq(groupOrders.recoveryCode, recoveryCode),
+            eq(groupOrders.status, "active"),
+            gte(groupOrders.expiresAt, new Date()),
+          ),
+        );
+
+      const groupOrder = groupOrderRows[0];
+      if (!groupOrder) {
+        return { success: false, error: "Invalid recovery code" };
+      }
+
+      const creatorRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.role, "creator"),
+          ),
+        );
+
+      const creator = creatorRows[0];
+      if (!creator) {
+        return { success: false, error: "Invalid recovery code" };
+      }
+
+      const newSessionId = randomUUID();
+      await this.db
+        .update(groupMembers)
+        .set({ sessionId: newSessionId, lastActiveAt: new Date() })
+        .where(eq(groupMembers.id, creator.id));
+
+      await this.logActivity(
+        groupOrderId,
+        creator.id,
+        "member_joined",
+        "Host reconnected from a new device",
+        { recovered: true },
+      );
+
+      return { success: true, data: { memberToken: newSessionId } };
+    } catch (error) {
+      this.errorTracker.logError("recoverHost", error as Error, {
+        groupOrderId,
+      });
+      return { success: false, error: "Failed to recover host session" };
     }
   }
 

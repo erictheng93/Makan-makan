@@ -17,7 +17,7 @@ export interface GroupOrder extends Omit<BaseEntity, "id"> {
   restaurantId: string;
   tableId?: number;
   shareCode: string;
-  createdBy: string;
+  createdBy: string | null;
   status: GroupOrderStatus;
   expiresAt: Date;
   maxMembers: number;
@@ -87,12 +87,22 @@ export interface CreateGroupOrderRequest {
   restaurantId: string;
   tableId?: number;
   expirationHours?: number;
+  expirationMinutes?: number;
   maxMembers?: number;
   expectedMembers?: number;
   hostName?: string;
   notes?: string;
   tableNumber?: string;
   permissions?: Partial<GroupOrderPermissions>;
+  fulfillmentType?: "dine_in" | "delivery" | "pickup";
+  deliveryAddress?: {
+    line1: string;
+    line2?: string;
+    contactPhone?: string;
+    notes?: string;
+  };
+  pickupAt?: string;
+  autoSubmitOnExpiry?: boolean;
 }
 
 export interface CreateGroupOrderResponse {
@@ -109,6 +119,17 @@ export interface CreateGroupOrderResponse {
    * *listings*, which would hand every member everyone else's credential.
    */
   memberToken: string;
+  recoveryCode: string;
+}
+
+export interface GroupOrderJoinPreview {
+  groupOrderId: string;
+  restaurantId: string;
+  hostName: string;
+  memberCount: number;
+  fulfillmentType: "dine_in" | "delivery" | "pickup";
+  expiresAt: Date;
+  status: string;
 }
 
 export interface JoinGroupRequest {
@@ -221,7 +242,7 @@ export interface IGroupOrderService {
   // Core operations
   createGroupOrder(
     data: CreateGroupOrderRequest,
-    hostId: string,
+    hostId: string | null,
   ): Promise<{
     success: boolean;
     data?: CreateGroupOrderResponse;

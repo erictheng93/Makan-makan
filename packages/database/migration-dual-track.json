@@ -75,6 +75,11 @@
       "fresh": "0079_qr_two_phase_rotation.sql",
       "legacy": "0096_qr_two_phase_rotation.sql",
       "reason": "Both tracks add the same pending QR staging columns and partial unique indexes for two-phase rotation."
+    },
+    {
+      "fresh": "0080_group_orders_guest_host.sql",
+      "legacy": "0097_group_orders_guest_host.sql",
+      "reason": "group_orders.created_by becomes nullable and recovery_code is added so group orders can be hosted and recovered by guests without accounts."
     }
   ],
   "freshOnly": [

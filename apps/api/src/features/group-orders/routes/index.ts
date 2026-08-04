@@ -4,9 +4,17 @@
  */
 
 import { Hono } from "hono";
-import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  authMiddleware,
+  optionalAuth,
+  requireRole,
+} from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import { quotaGate } from "../../../middleware/quotaGate";
+import {
+  publicRateLimit,
+  strictRateLimit,
+} from "../../../middleware/rateLimit";
 import { meterEmit } from "../../../shared/utils/meter";
 import { toCsvRow } from "../../../shared/utils/csv";
 import {
@@ -58,6 +66,22 @@ async function broadcastGroupOrderEvent(
   } catch (broadcastError) {
     console.warn(`Failed to broadcast ${eventType}:`, broadcastError);
   }
+}
+
+async function resolveRestaurantIdFromJsonBody(c: {
+  req: { raw: Request };
+}): Promise<string | undefined> {
+  const body = await c.req.raw
+    .clone()
+    .json()
+    .catch(() => {
+      throw badRequest("Invalid JSON body", "INVALID_JSON");
+    });
+  if (!body || typeof body !== "object") return undefined;
+  const restaurantId = (body as Record<string, unknown>).restaurantId;
+  return typeof restaurantId === "string" || typeof restaurantId === "number"
+    ? String(restaurantId)
+    : undefined;
 }
 
 /**
@@ -205,17 +229,19 @@ app.get(
  */
 app.post(
   "/create",
-  authMiddleware,
-  requireRole([0, 1, 2, 3, 4]), // All authenticated users can create group orders
-  moduleGate("online_ordering"),
-  quotaGate("orders.created"),
+  optionalAuth,
+  moduleGate("online_ordering", resolveRestaurantIdFromJsonBody),
+  quotaGate("orders.created", resolveRestaurantIdFromJsonBody),
   validateBody(groupOrderSchemas.createGroupOrder),
   async (c) => {
     const data = c.get("validatedBody");
     const user = c.get("user");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
-    const result = await groupOrderService.createGroupOrder(data, user.id);
+    const result = await groupOrderService.createGroupOrder(
+      data,
+      user?.id ?? null,
+    );
 
     if (!result.success) {
       throw badRequest(result.error ?? "Failed to create group order");
@@ -240,6 +266,31 @@ app.post(
       success: true,
       data: result.data,
     });
+  },
+);
+
+/**
+ * Preview a group order before joining (no side effects)
+ * GET /api/v1/orders/group/join/{shareCode}
+ */
+app.get(
+  "/join/:shareCode",
+  publicRateLimit,
+  validateParams(groupOrderSchemas.shareCodeParam),
+  async (c) => {
+    const { shareCode } = c.get("validatedParams");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const result = await groupOrderService.previewGroupByShareCode(shareCode);
+
+    if (!result.found) {
+      throw notFound(
+        "Group order not found or expired",
+        "GROUP_ORDER_NOT_FOUND",
+      );
+    }
+
+    return c.json({ success: true, data: result.data });
   },
 );
 
@@ -276,6 +327,33 @@ app.post(
       success: true,
       data: result.data,
     });
+  },
+);
+
+/**
+ * Recover host control of a group order using the recovery code
+ * POST /api/v1/orders/group/{groupOrderId}/recover
+ */
+app.post(
+  "/:groupOrderId/recover",
+  strictRateLimit,
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateBody(groupOrderSchemas.recoverHost),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const { recoveryCode } = c.get("validatedBody");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const result = await groupOrderService.recoverHost(
+      groupOrderId,
+      recoveryCode,
+    );
+
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to recover host session");
+    }
+
+    return c.json({ success: true, data: result.data });
   },
 );
 

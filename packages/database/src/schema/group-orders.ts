@@ -35,9 +35,8 @@ export const groupOrders = sqliteTable(
     id: text("id").primaryKey(), // UUID
     shareCode: text("share_code").notNull().unique(),
     masterOrderId: text("master_order_id"), // 關聯到主訂單（最終下單時創建）
-    createdBy: text("created_by")
-      .notNull()
-      .references(() => users.id),
+    createdBy: text("created_by").references(() => users.id),
+    recoveryCode: text("recovery_code").notNull().unique(),
     restaurantId: text("restaurant_id").notNull(), // 引用 restaurants.public_id (TEXT)
     tableId: integer("table_id").references(() => tables.id),
 
