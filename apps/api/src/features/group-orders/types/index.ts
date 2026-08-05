@@ -60,13 +60,40 @@ export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {
 }
 
 // Enums
-export type GroupOrderStatus =
-  | "active" // 活躍，可以加入和修改
-  | "locked" // 鎖定，不能修改但可以付款
-  | "finalized" // 最終確認，準備下單
-  | "completed" // 已完成
-  | "cancelled" // 已取消
-  | "expired"; // 已過期
+
+/**
+ * The only status values `group_orders.status` is ever written with.
+ *
+ * `"locked"`, `"finalized"` and `"expired"` were removed: nothing ever wrote
+ * them, and a status type that lists values the service cannot produce sends
+ * every reader looking for handling that doesn't exist. `"ordering"` was in
+ * the same category — read in two places, written nowhere — and was removed
+ * from those reads rather than added here (production `group_orders` was
+ * confirmed empty, so no row carries it).
+ */
+export const GROUP_ORDER_STATUSES = [
+  "active", // 活躍，可以加入和修改
+  "checkout", // 分帳中，已鎖定不能再改購物車
+  "completed", // 已完成
+  "cancelled", // 已取消
+] as const;
+
+export type GroupOrderStatus = (typeof GROUP_ORDER_STATUSES)[number];
+
+/**
+ * Narrow a raw `group_orders.status` string from the database.
+ *
+ * The column is plain `text`, so a bare `as GroupOrderStatus` compiles no
+ * matter what the row actually holds — the assertion would simply lie. This
+ * checks, and callers decide what to do with an unexpected value.
+ */
+export function parseGroupOrderStatus(
+  value: string,
+): GroupOrderStatus | undefined {
+  return (GROUP_ORDER_STATUSES as readonly string[]).includes(value)
+    ? (value as GroupOrderStatus)
+    : undefined;
+}
 
 export type PaymentStatus =
   | "pending" // 等待付款

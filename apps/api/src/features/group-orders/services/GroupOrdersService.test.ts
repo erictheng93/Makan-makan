@@ -622,6 +622,30 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     );
   });
 
+  it("narrows a known group order status straight through", () => {
+    const service = createService();
+    for (const status of ["active", "checkout", "completed", "cancelled"]) {
+      expect(service.narrowStatus(status, "go-1")).toBe(status);
+    }
+  });
+
+  it("falls back to active and reports a status the service never writes", () => {
+    const service = createService();
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+
+    // "ordering" was a valid value under the legacy CHECK constraint. The
+    // column is plain TEXT, so a bare `as GroupOrderStatus` would have let it
+    // through wearing a type it does not satisfy.
+    expect(service.narrowStatus("ordering", "go-1")).toBe("active");
+
+    expect(logError).toHaveBeenCalledWith(
+      "formatGroupOrder",
+      expect.any(Error),
+      expect.objectContaining({ groupOrderId: "go-1", status: "ordering" }),
+    );
+  });
+
   it("recovers the host session and replaces the previous member token", async () => {
     const service = createService();
     const db = createDb([

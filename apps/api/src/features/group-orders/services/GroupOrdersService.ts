@@ -115,6 +115,7 @@ import type {
   GroupOrderPermissions,
   GroupOrderJoinPreview,
 } from "../types";
+import { parseGroupOrderStatus } from "../types";
 
 /**
  * Default member permissions applied to a new group order and used as the
@@ -1551,7 +1552,7 @@ export class GroupOrdersService implements IGroupOrderService {
         return { success: false, error: "Group order not found" };
       }
 
-      if (groupOrder.status !== "active" && groupOrder.status !== "ordering") {
+      if (groupOrder.status !== "active") {
         return {
           success: false,
           error: "Cannot leave a group order after checkout has started",
@@ -1671,7 +1672,7 @@ export class GroupOrdersService implements IGroupOrderService {
         .from(groupOrders)
         .where(
           and(
-            inArray(groupOrders.status, ["active", "ordering", "checkout"]),
+            inArray(groupOrders.status, ["active", "checkout"]),
             sql`${groupOrders.expiresAt} < ${nowMs}`,
           ),
         )
@@ -2003,6 +2004,27 @@ export class GroupOrdersService implements IGroupOrderService {
     });
   }
 
+  /**
+   * `group_orders.status` is a plain TEXT column, so Drizzle types it as
+   * `string`. Asserting it into `GroupOrderStatus` would compile against any
+   * value the row happens to hold, including one this service never writes.
+   * Check instead, and make an unexpected value loud rather than letting it
+   * travel onward wearing a type it doesn't satisfy.
+   */
+  private narrowStatus(value: string, groupOrderId: string): GroupOrderStatus {
+    const status = parseGroupOrderStatus(value);
+    if (status) return status;
+
+    this.errorTracker.logError(
+      "formatGroupOrder",
+      new Error("UNKNOWN_GROUP_ORDER_STATUS"),
+      { groupOrderId, status: value },
+    );
+    // "active" is the safest fallback: it is the most restrictive state for
+    // reads and the default the column itself carries.
+    return "active";
+  }
+
   private formatGroupOrder(data: typeof groupOrders.$inferSelect): GroupOrder {
     // Drizzle returns camelCase properties and handles JSON/timestamp_ms automatically
     const settings = (data.settings || {}) as GroupOrderSettings;
@@ -2039,7 +2061,7 @@ export class GroupOrdersService implements IGroupOrderService {
       tableId: data.tableId ?? undefined,
       shareCode: data.shareCode,
       createdBy: data.createdBy,
-      status: data.status as GroupOrderStatus,
+      status: this.narrowStatus(data.status, data.id),
       expiresAt,
       maxMembers: settings.maxMembers || 8,
       permissions: {
