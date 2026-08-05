@@ -146,6 +146,7 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
 - [ ] **F-10** 金額全程遵循既有慣例：`splitBill` 內以浮點計算、僅在 DB 寫入邊界經 `toRequiredCents` 轉換，不新增第二條 cents-native 路徑。新增的 `*Cents` 輸入在函式入口**一次**轉為元，其後不再出現分/元混用。
 - [ ] **F-11（安全閥）** 差額超出「每位成員 1 分」的界限時，`splitBill` 回傳失敗並記錄 `SPLIT_TOTAL_MISMATCH`，**不得**把差額塞給主辦人。若 Step 3a 沒把共同費用分配出去，未設界限的對帳會讓主辦人默默吃下整筆稅費 — 這是本階段最容易造成真實金錢損失的單一路徑。需有測試證明超界時失敗、界內時正常吸收。
 - [ ] **F-12** 絕對金額與費率同時傳入時，以絕對金額為準、費率被忽略，有測試證明不會重複計費。既有 `/split` 路由（純費率）的行為完全不變 — 以現有測試全綠為證。
+- [ ] **F-13（自 Gate E 併入）** 兩條繞過 `formatGroupOrder` 的原始 status 出口收斂：`GroupOrdersService.ts:240`（`listGroupOrders`）與 `:444`（`previewGroupByShareCode`）改走 `narrowStatus`，其目標欄位型別（`types/index.ts:159` 的 `status: string`、`GroupOrderJoinPreview.status`）改為 `GroupOrderStatus`。收斂後 union 才真正是這兩個端點的契約。需有測試證明非預期的資料庫值不會原樣送達客戶端。
 
 ## Stage 3：Finalize（C Task 2 + D Task 3）
 
