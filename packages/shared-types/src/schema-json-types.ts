@@ -18,6 +18,32 @@ export interface GroupOrderDeliveryAddress {
 }
 
 /**
+ * Recorded when a group order's real order was created but splitting the bill
+ * afterwards failed, leaving the group in `finalizing_failed`.
+ *
+ * This is the payload a human needs to resolve that state by hand: the order
+ * that already exists, and the two totals that disagreed. It lives in
+ * `settings` rather than its own column because it is rare, unindexed, and
+ * read only during manual intervention — but it is typed, because untyped
+ * recovery data is data nobody can find when they need it.
+ */
+export interface GroupOrderFinalizeFailure {
+  /** e.g. "SPLIT_TOTAL_MISMATCH", or "SPLIT_BILL_FAILED" when unclassified. */
+  code: string;
+  /** The real order that was already created — never discard this. */
+  masterOrderId: string;
+  orderTotalCents: number;
+  serviceChargeCents: number;
+  taxAmountCents: number;
+  /** Present for SPLIT_TOTAL_MISMATCH: the two figures that disagreed. */
+  expectedTotalCents?: number;
+  roundedTotalCents?: number;
+  splitError: string;
+  /** ISO 8601. */
+  failedAt: string;
+}
+
+/**
  * Group order settings configuration
  */
 export interface GroupOrderSettings {
@@ -40,6 +66,8 @@ export interface GroupOrderSettings {
   deliveryAddress?: GroupOrderDeliveryAddress;
   pickupAt?: string;
   autoSubmitOnExpiry?: boolean;
+  /** Set only when status is `finalizing_failed`. See the interface docs. */
+  finalizeFailure?: GroupOrderFinalizeFailure;
 }
 
 /**

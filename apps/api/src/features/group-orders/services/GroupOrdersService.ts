@@ -22,6 +22,7 @@ import { menuItems } from "@makanmakan/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
+  GroupOrderFinalizeFailure,
   GroupOrderSettings,
   SplitBillItem,
 } from "@makanmakan/shared-types";
@@ -1359,7 +1360,7 @@ export class GroupOrdersService implements IGroupOrderService {
       });
 
       if (!splitResult.success) {
-        const failure = {
+        const failure: GroupOrderFinalizeFailure = {
           code: splitResult.errorDetails?.code ?? "SPLIT_BILL_FAILED",
           masterOrderId,
           orderTotalCents,
@@ -1379,7 +1380,7 @@ export class GroupOrdersService implements IGroupOrderService {
             settings: {
               ...settings,
               finalizeFailure: failure,
-            } as unknown as GroupOrderSettings,
+            },
             updatedAt: new Date(),
           })
           .where(eq(groupOrders.id, groupOrderId));
