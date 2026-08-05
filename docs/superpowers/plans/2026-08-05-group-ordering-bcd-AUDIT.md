@@ -148,6 +148,24 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
 - [ ] **F-12** 絕對金額與費率同時傳入時，以絕對金額為準、費率被忽略，有測試證明不會重複計費。既有 `/split` 路由（純費率）的行為完全不變 — 以現有測試全綠為證。
 - [ ] **F-13（自 Gate E 併入）** 兩條繞過 `formatGroupOrder` 的原始 status 出口收斂：`GroupOrdersService.ts:240`（`listGroupOrders`）與 `:444`（`previewGroupByShareCode`）改走 `narrowStatus`，其目標欄位型別（`types/index.ts:159` 的 `status: string`、`GroupOrderJoinPreview.status`）改為 `GroupOrderStatus`。收斂後 union 才真正是這兩個端點的契約。需有測試證明非預期的資料庫值不會原樣送達客戶端。
 
+### Gate F 稽核結果（2026-08-05）：**通過**
+
+實作 commit `d2a1f86b`（使用者實作，稽核方獨立驗證）。稽核方重跑：group-orders 66 tests passed、typecheck、lint 皆通過。
+
+F-1 ~ F-13 全數達標。四個分支的定額費用分攤都有非零測試（individual 見「absolute shared cents」、proportional 見「external order total」、custom 見「custom amount ratio」、equal 見餘數測試中的三人 10000 cents 人頭均分）；F-11 兩側齊備且斷言了 `SPLIT_TOTAL_MISMATCH` 代碼；F-7 用實際 creator id，無 `find(() => true)`。
+
+實作有兩處優於 plan：餘數吸收以 `fromCents(toRequiredCents(x) + remainder)` 在分的領域完成，避免 plan 原稿 `+= remainder/100` 的浮點再入；`finalAmountCents` 改為逐筆進位後加總，與 `split_bills` 實際寫入值一致。
+
+**三項發現（皆不阻斷）**
+
+1. **F-4 的 tripwire 已失效。** `proportional` 被併入 `by_item || individual || proportional` 同一個條件，而非 Plan D Step 3b 所寫的獨立 `else if`。結構上這樣更好（兩者不會漂移），但 F-4 的測試現在比較的是**同一段程式碼的兩個名字**，恆真、永遠不會失敗。它原本的用途是在有人加入非比例型共同費用時觸發警報；分支合併後，定額費用會被同樣套用到兩者，測試依舊通過，沒有人會被提醒 proportional 此時應該要不同。建議把警告移到分支條件本身，讓下一個編輯該處的人被告知「加入非比例型費用時必須拆開這個分支」。
+2. **`allocateSharedAmount` 的零值退路除以 `members.length`，但 `custom` 分支是對 `customAmounts` 逐筆發放。** 當 custom 名單少於成員數且金額加總為 0 時，共同費用會分配不足。它會撞上 `SPLIT_TOTAL_MISMATCH` 而失敗，屬 fail-safe 而非靜默少收；現有測試兩者數量相同，未涵蓋此情境。退路的除數應與該分支實際發放的對象數一致。
+3. **餘數吸收後 `group_orders` 自身的金額欄位不再自洽。** `finalAmountCents` 是調整後的目標值，但 `totalAmountCents` / `taxAmountCents` / `serviceChargeCents` 來自未調整的逐筆加總，因此 subtotal + tax + service 與 final 會相差數分。目前沒有程式同時讀這四個欄位，但對帳報表或會計流程會抓到。
+
+**帶往 Stage 3 的注意事項**：`SPLIT_TOTAL_MISMATCH` 觸發時，Phase C 的 finalize **已經建立了真實訂單**。若 `totalCartAmount` 與 `OrderService` 算出的金額出現非進位級的落差（例如加入購物車到 finalize 之間菜單價格變動），splitBill 會失敗而訂單已成立。Gate G 需涵蓋此路徑的處置，見 G-9。
+
+---
+
 ## Stage 3：Finalize（C Task 2 + D Task 3）
 
 - [ ] **G-1** `finalizeGroupOrder` 委派 `OrderService.createOrder`，**不自行產生訂單編號、稅費計算、優惠券或庫存扣減**。
@@ -158,6 +176,7 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
 - [ ] **G-6** `this.db.session.client` 依 plan Step 3 的指示查證過；若不可用，改以建構子既有的 `D1Database` 建立 `OrderService`，**不得靠 Drizzle 內部結構取得**。驗收時說明實際採用哪一種。
 - [ ] **G-7** 空購物車、已 `completed`、已 `cancelled` 的群組單呼叫 finalize 的行為有定義且有測試。
 - [ ] **G-8** finalize 成功後 `masterOrderId` 已寫入，且 `status` 的最終值與 `processPayment` 既有的收斂邏輯不衝突（plan Task 1 Step 3 有註記，驗收要看到證明兩者收斂到相同狀態的測試）。
+- [ ] **G-9（自 Gate F 帶入）** `splitBill` 回傳 `SPLIT_TOTAL_MISMATCH` 時，真實訂單**已經建立**。finalize 必須對此有明確處置並有測試：不得回報成功、不得靜默吞掉、且需留下足以人工介入的紀錄（至少 `masterOrderId` 與兩邊金額）。同時要決定 `group_orders.status` 停在哪個狀態 — 訂單已成立但分帳未產生，這個中間狀態目前的 union 沒有對應值，若需要新增則回到 Gate E 的型別收斂一併處理。
 
 ## Stage 4：對外介面（C Task 3-4）→ API 部署
 
