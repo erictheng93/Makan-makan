@@ -1544,8 +1544,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       taxRate: 5,
     });
 
-    // Tripwire: this equivalence only holds while there are no fixed shared
-    // fees such as delivery fees. Adding one requires extending the formula.
+    // This equivalence only holds while every shared fee is proportional to
+    // subtotal. A flat fee (delivery) would require the two to diverge.
+    //
+    // Read this as documentation, not as a tripwire: both split types now
+    // route through the same branch in splitBill, so the assertion compares
+    // one code path against itself and cannot fail. The warning that actually
+    // has to be seen lives at that branch condition, next to the code someone
+    // would be editing.
     expect(proportional.data).toEqual(individual.data);
   });
 
@@ -1620,6 +1626,32 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(negative.data.find((bill) => bill.memberId === "member-1")).toEqual(
       expect.objectContaining({ totalAmount: 0 }),
     );
+  });
+
+  it("keeps every split bill internally consistent after absorbing a remainder", async () => {
+    const service = createService();
+    service.db = createSplitDb({
+      members: [hostMember, secondMember, thirdMember],
+    });
+
+    // $100 across three members does not divide evenly, so the creator absorbs
+    // the leftover cent. split_bills stores subtotal, service charge and tax
+    // as separate columns, so the adjustment has to reach a component too —
+    // otherwise the creator receives a bill whose lines do not sum to what
+    // they are charged.
+    const result = await service.splitBill("group-1", {
+      splitType: "equal",
+      sharedTaxCents: 10000,
+      orderTotalCents: 10000,
+    });
+
+    expect(result.success).toBe(true);
+    for (const bill of result.data) {
+      expect(
+        Math.round((bill.subtotal + bill.serviceCharge + bill.taxAmount) * 100),
+      ).toBe(Math.round(bill.totalAmount * 100));
+    }
+    expect(totalCents(result.data)).toBe(10000);
   });
 
   it("uses the external order total as the reconciliation baseline", async () => {

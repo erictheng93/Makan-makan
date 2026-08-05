@@ -1131,18 +1131,24 @@ export class GroupOrdersService implements IGroupOrderService {
       const taxRate = hasSharedAmounts ? 0 : (splitData.taxRate ?? 0);
 
       const splitBillsData: SplitBillData[] = [];
+      // `recipientCount` is the number of bills this branch will actually
+      // produce, which is not always members.length — a custom split covers
+      // only the members named in customAmounts. Dividing the fallback by the
+      // wrong population under-distributes the shared cost.
       const allocateSharedAmount = (
         amount: number,
         baseAmount: number,
         totalBaseAmount: number,
+        recipientCount: number,
       ) =>
         totalBaseAmount > 0
           ? (amount * baseAmount) / totalBaseAmount
-          : amount / members.length;
+          : amount / recipientCount;
       const calculateCharges = (
         subtotal: number,
         baseAmount: number,
         totalBaseAmount: number,
+        recipientCount: number,
       ) => {
         if (hasSharedAmounts) {
           return {
@@ -1150,11 +1156,13 @@ export class GroupOrdersService implements IGroupOrderService {
               sharedServiceCharge,
               baseAmount,
               totalBaseAmount,
+              recipientCount,
             ),
             taxAmount: allocateSharedAmount(
               sharedTax,
               baseAmount,
               totalBaseAmount,
+              recipientCount,
             ),
           };
         }
@@ -1164,7 +1172,21 @@ export class GroupOrdersService implements IGroupOrderService {
         return { serviceCharge, taxAmount };
       };
 
-      // Calculate splits based on splitType
+      // Calculate splits based on splitType.
+      //
+      // "proportional" shares this branch with "individual"/"by_item" on
+      // purpose: every shared cost the system can currently produce (tax,
+      // service charge) is itself proportional to subtotal, so distributing it
+      // by subtotal share and charging each member their own rate give the
+      // same number. Merging them keeps the two from drifting apart while they
+      // are genuinely the same calculation.
+      //
+      // IF YOU ADD A SHARED COST THAT IS NOT PROPORTIONAL TO SUBTOTAL — a flat
+      // delivery fee is the expected first one — the two stop being the same
+      // calculation and this branch must be split: "proportional" distributes
+      // it by each member's share of the total, "individual" does not. The
+      // equivalence test in GroupOrdersService.test.ts cannot warn you about
+      // this, because once merged it compares one code path against itself.
       if (
         splitData.splitType === "by_item" ||
         splitData.splitType === "individual" ||
@@ -1183,6 +1205,7 @@ export class GroupOrdersService implements IGroupOrderService {
             subtotal,
             subtotal,
             totalCartAmount,
+            members.length,
           );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
@@ -1209,7 +1232,7 @@ export class GroupOrdersService implements IGroupOrderService {
         const {
           serviceCharge: serviceChargePerMember,
           taxAmount: taxPerMember,
-        } = calculateCharges(subtotalPerMember, 1, memberCount);
+        } = calculateCharges(subtotalPerMember, 1, memberCount, memberCount);
         const totalPerMember =
           subtotalPerMember + serviceChargePerMember + taxPerMember;
 
@@ -1250,6 +1273,7 @@ export class GroupOrdersService implements IGroupOrderService {
             subtotal,
             subtotal,
             totalCustomAmount,
+            splitData.customAmounts.length,
           );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
@@ -1304,6 +1328,17 @@ export class GroupOrdersService implements IGroupOrderService {
         const creatorBill =
           splitBillsData.find((bill) => bill.memberId === creatorId) ??
           splitBillsData[0];
+        // The remainder lands on the subtotal as well as the total. split_bills
+        // stores subtotal, service charge and tax as separate columns, so
+        // moving only the total would leave the creator holding a bill whose
+        // own line items do not add up to what they are asked to pay.
+        //
+        // Subtotal is the component that absorbs it: service charge and tax
+        // are the real order's absolute amounts, and adjusting either would
+        // make the split disagree with what the restaurant actually charged.
+        creatorBill.subtotal = fromCents(
+          toRequiredCents(creatorBill.subtotal) + remainderCents,
+        );
         creatorBill.totalAmount = fromCents(
           toRequiredCents(creatorBill.totalAmount) + remainderCents,
         );
