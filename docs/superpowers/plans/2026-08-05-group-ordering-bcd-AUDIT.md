@@ -162,6 +162,10 @@ F-1 ~ F-13 全數達標。四個分支的定額費用分攤都有非零測試（
 2. **`allocateSharedAmount` 的零值退路除以 `members.length`，但 `custom` 分支是對 `customAmounts` 逐筆發放。** 當 custom 名單少於成員數且金額加總為 0 時，共同費用會分配不足。它會撞上 `SPLIT_TOTAL_MISMATCH` 而失敗，屬 fail-safe 而非靜默少收；現有測試兩者數量相同，未涵蓋此情境。退路的除數應與該分支實際發放的對象數一致。
 3. **餘數吸收後 `group_orders` 自身的金額欄位不再自洽。** `finalAmountCents` 是調整後的目標值，但 `totalAmountCents` / `taxAmountCents` / `serviceChargeCents` 來自未調整的逐筆加總，因此 subtotal + tax + service 與 final 會相差數分。目前沒有程式同時讀這四個欄位，但對帳報表或會計流程會抓到。
 
+**三項發現已於 `122ddd27` 全部關閉**：警告移至分支條件本身（測試端同步改寫為「這是文件不是絆線」）；`allocateSharedAmount` 改收 `recipientCount`，custom 分支傳入 `customAmounts.length`；餘數同時調整 creator 的 `subtotal` 與 `totalAmount`，並新增測試斷言每筆帳單 `subtotal + serviceCharge + taxAmount === totalAmount`。67 tests passed。
+
+`group_orders.totalAmountCents` 與 final 之間的差額**維持現狀未動**：該欄位有兩處讀取點都當作群組顯示總額，把它從「購物車總額」改為「已開帳單小計加總」會改變 custom 分帳時使用者看到的數字 — 那是語意決策，不該混在缺陷修正裡。若日後要做對帳報表再一併處理。
+
 **帶往 Stage 3 的注意事項**：`SPLIT_TOTAL_MISMATCH` 觸發時，Phase C 的 finalize **已經建立了真實訂單**。若 `totalCartAmount` 與 `OrderService` 算出的金額出現非進位級的落差（例如加入購物車到 finalize 之間菜單價格變動），splitBill 會失敗而訂單已成立。Gate G 需涵蓋此路徑的處置，見 G-9。
 
 ---
