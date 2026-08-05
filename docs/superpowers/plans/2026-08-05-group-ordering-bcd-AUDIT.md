@@ -101,6 +101,30 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
   若確實存在該狀態的列，E-3 的刪除方案需改為先行資料遷移，不可直接縮小型別 — 否則 E-2b 的斷言會對一個實際存在的執行期值說謊。
 - [ ] **E-4** `pnpm --filter @makanmakan/api typecheck` 通過，且既有 group-orders 測試全綠。注意 E-2b：本項通過**不足以**證明 E-2b 通過。
 
+### Gate E 稽核結果（2026-08-05）：**通過**
+
+實作 commit `9729c4c3`。**注意：本階段由稽核方自行實作，故 Gate E 為自我稽核，強度低於 Phase A 那種實作／稽核分離的關卡。**
+
+| 項目 | 結果 | 證據 |
+| --- | --- | --- |
+| E-1 | 通過 | union 為 `active / checkout / completed / cancelled`，以 `GROUP_ORDER_STATUSES` 常數推導 |
+| E-2 | 通過 | `locked` / `finalized` / `expired` 僅存在於說明註解，無程式碼引用 |
+| E-2b | 通過 | `as GroupOrderStatus` 已自 service/routes 消失；改為 `parseGroupOrderStatus()` + `narrowStatus()`，未知值落回 `"active"` 並記錄 `UNKNOWN_GROUP_ORDER_STATUS`；兩條測試涵蓋（含以 `"ordering"` 為輸入） |
+| E-3 | 通過 | 兩處讀取已移除，schema 註解已更新；`"ordering"` 僅殘留於測試 fixture |
+| E-3b | 通過 | 正式 D1：`SELECT count(*) FROM group_orders` → `0`，`GROUP BY status` → 空集合。無資料遷移需求 |
+| E-4 | 通過 | typecheck、lint 通過；group-orders 50 tests passed |
+
+額外查核（原標準未列，稽核方主動檢查）：`schemas/validation.ts` 無 status enum、路由層無硬編碼狀態值、前端未依賴被移除的值 — 皆無命中，確認 E-2 的「單純刪除」判斷成立。
+
+**新發現（不阻斷本關，列為後續）**：有兩條回應路徑繞過 `formatGroupOrder`，直接輸出原始 `status`：
+
+- `GroupOrdersService.ts:240`（`listGroupOrders`）→ 目標型別 `types/index.ts:159` 的 `status: string`
+- `GroupOrdersService.ts:444`（`previewGroupByShareCode`）→ `GroupOrderJoinPreview.status: string`
+
+兩者的目標型別都宣告為 `string`，因此不構成型別謊言，E-2b 成立。但這代表 union 在這兩個端點上不是實際契約，`narrowStatus` 不會執行，資料庫裡任何非預期值可直達客戶端。若要讓型別真正成為契約，這兩處應改用 `GroupOrderStatus` 並經 `narrowStatus`。範圍小，可併入 Stage 2 或獨立處理。
+
+---
+
 ## Stage 2：分帳數學（D Task 1-2）
 
 **前置**：X-1 已決定並寫回 plan。以下標準假設選 (a)；若選 (b)，F-3／F-6 依該決議改寫。
