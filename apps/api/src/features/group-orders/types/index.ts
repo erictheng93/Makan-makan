@@ -73,6 +73,8 @@ export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {
  */
 export const GROUP_ORDER_STATUSES = [
   "active", // 活躍，可以加入和修改
+  "finalizing", // 正在轉成真實訂單，作為 finalize 互斥鎖
+  "finalizing_failed", // 真實訂單已成立但分帳/收斂失敗，需人工介入
   "checkout", // 分帳中，已鎖定不能再改購物車
   "completed", // 已完成
   "cancelled", // 已取消
@@ -305,6 +307,11 @@ export interface IGroupOrderService {
     groupOrderId: string,
     splitData: SplitBillRequest,
   ): Promise<{ success: boolean; data?: unknown; error?: string }>;
+  finalizeGroupOrder(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: { masterOrderId: string; status: "completed" };
+    error?: string;
+  }>;
   processPayment(
     groupOrderId: string,
     memberId: string,

@@ -61,7 +61,10 @@ function createQuery(result: unknown) {
   return builder;
 }
 
-function createDb(selectResults: unknown[] = []) {
+function createDb(
+  selectResults: unknown[] = [],
+  updateResults: unknown[] = [],
+) {
   const inserts: Array<{ table: unknown; payload: unknown }> = [];
   const updates: Array<{ table: unknown; payload: unknown }> = [];
   const deletes: unknown[] = [];
@@ -83,7 +86,8 @@ function createDb(selectResults: unknown[] = []) {
           updates.push({ table, payload });
           return builder;
         }),
-        where: vi.fn(async () => undefined),
+        where: vi.fn(() => builder),
+        returning: vi.fn(async () => updateResults.shift() ?? []),
       };
       return builder;
     }),
@@ -132,6 +136,16 @@ const hostMember = {
 
 const secondMember = { ...hostMember, id: "member-2", role: "member" };
 const thirdMember = { ...hostMember, id: "member-3", role: "member" };
+
+const finalizedOrder = {
+  id: "order-1",
+  subtotal: 30,
+  serviceCharge: 6,
+  taxAmount: 3,
+  totalAmount: 39,
+  status: "pending",
+  paymentStatus: "pending",
+};
 
 function cartItem(
   id: string,
@@ -1694,9 +1708,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         splitType: "proportional",
         orderTotalCents: 3900,
       }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       success: false,
       error: "Split total does not match order total",
+      errorDetails: {
+        code: "SPLIT_TOTAL_MISMATCH",
+        expectedTotalCents: 3900,
+        roundedTotalCents: 3000,
+      },
     });
     expect(logError).toHaveBeenCalledWith(
       "splitBill",
@@ -1733,6 +1752,295 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         { memberId: "member-1", serviceCharge: 2, taxAmount: 1 },
         { memberId: "member-2", serviceCharge: 4, taxAmount: 2 },
       ],
+    });
+  });
+
+  describe("finalizeGroupOrder", () => {
+    function createFinalizeService({
+      groupOrder = baseGroupOrder,
+      cartItems = [
+        {
+          ...cartItem("cart-10", "member-1", 1000, 2),
+          specialInstructions: "No chili",
+          customizations: { spice: "mild" },
+        },
+      ],
+      claimRows = [{ id: "group-1" }],
+      order = finalizedOrder,
+      existingOrderRows = [],
+    }: {
+      groupOrder?: unknown;
+      cartItems?: unknown[];
+      claimRows?: unknown[];
+      order?: Record<string, unknown>;
+      existingOrderRows?: unknown[];
+    } = {}) {
+      const service = createService();
+      const createOrder = vi.fn(async () => order);
+      service.createOrderService = vi.fn(() => ({ createOrder }));
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      service.db = createDb(
+        [[groupOrder], cartItems, existingOrderRows],
+        [claimRows],
+      );
+      return { service, createOrder, db: service.db };
+    }
+
+    it("claims the finalizing mutex, creates a real order, records masterOrderId, and splits with real amounts", async () => {
+      const { service, createOrder, db } = createFinalizeService({
+        groupOrder: {
+          ...baseGroupOrder,
+          tableId: 5,
+          splitType: "proportional",
+          settings: { fulfillmentType: "dine_in", notes: "Table note" },
+        },
+      });
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+
+      expect(createOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          restaurantId: "restaurant-1",
+          tableId: 5,
+          orderType: "table",
+          notes: "Table note",
+          clientMutationId: "group-order:group-1",
+          items: [
+            {
+              menuItemId: 10,
+              quantity: 2,
+              notes: "No chili",
+            },
+          ],
+        }),
+      );
+      expect(createOrder.mock.calls[0][0].items[0]).not.toHaveProperty(
+        "customizations",
+      );
+      expect(service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "proportional",
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ status: "finalizing" }),
+          expect.objectContaining({
+            masterOrderId: "order-1",
+            status: "finalizing",
+          }),
+          expect.objectContaining({
+            masterOrderId: "order-1",
+            status: "completed",
+          }),
+        ]),
+      );
+    });
+
+    it("is idempotent across sequential calls and duplicate client mutations", async () => {
+      const { service, createOrder, db } = createFinalizeService({
+        groupOrder: { ...baseGroupOrder, splitType: "individual" },
+      });
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+
+      service.db = createDb([
+        [{ ...baseGroupOrder, status: "completed", masterOrderId: "order-1" }],
+      ]);
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(createOrder).toHaveBeenCalledTimes(1);
+      expect(db.updates[0].payload).toEqual(
+        expect.objectContaining({ status: "finalizing" }),
+      );
+
+      const duplicate = createFinalizeService({
+        existingOrderRows: [
+          {
+            id: "order-1",
+            serviceChargeCents: 600,
+            taxAmountCents: 300,
+            totalAmountCents: 3900,
+          },
+        ],
+      });
+      duplicate.createOrder.mockRejectedValueOnce(
+        new Error("CLIENT_MUTATION_DUPLICATE"),
+      );
+
+      await expect(
+        duplicate.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(duplicate.service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "individual",
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+    });
+
+    it("prevents concurrent finalizers from creating a second real order", async () => {
+      const service = createService();
+      const createOrder = vi.fn(async () => finalizedOrder);
+      service.createOrderService = vi.fn(() => ({ createOrder }));
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      service.db = createDb(
+        [
+          [baseGroupOrder],
+          [baseGroupOrder],
+          [cartItem("cart-1", "member-1", 1000)],
+          [cartItem("cart-1", "member-1", 1000)],
+          [{ ...baseGroupOrder, status: "finalizing" }],
+        ],
+        [[{ id: "group-1" }], []],
+      );
+
+      const [first, second] = await Promise.all([
+        service.finalizeGroupOrder("group-1"),
+        service.finalizeGroupOrder("group-1"),
+      ]);
+
+      expect(first).toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(second).toEqual({
+        success: false,
+        error: "Group order is already being finalized",
+      });
+      expect(createOrder).toHaveBeenCalledTimes(1);
+    });
+
+    it("defines finalize boundaries for empty, completed, and cancelled groups", async () => {
+      const empty = createFinalizeService({ cartItems: [] });
+      await expect(
+        empty.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: false,
+        error: "Cannot finalize an empty group order",
+      });
+      expect(empty.createOrder).not.toHaveBeenCalled();
+
+      const completed = createFinalizeService({
+        groupOrder: {
+          ...baseGroupOrder,
+          status: "completed",
+          masterOrderId: "order-1",
+        },
+      });
+      await expect(
+        completed.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(completed.createOrder).not.toHaveBeenCalled();
+
+      const cancelled = createFinalizeService({
+        groupOrder: { ...baseGroupOrder, status: "cancelled" },
+      });
+      await expect(
+        cancelled.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: false,
+        error: "Group order is cancelled, cannot finalize",
+      });
+      expect(cancelled.createOrder).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        fulfillmentType: "pickup",
+        expectedOrderType: "shop",
+        expectedDeliveryType: "takeaway",
+      },
+      {
+        fulfillmentType: "delivery",
+        expectedOrderType: "shop",
+        expectedDeliveryType: "delivery",
+      },
+    ])(
+      "maps $fulfillmentType fulfillment when creating the real order",
+      async ({ fulfillmentType, expectedOrderType, expectedDeliveryType }) => {
+        const { service, createOrder } = createFinalizeService({
+          groupOrder: {
+            ...baseGroupOrder,
+            tableId: null,
+            settings: {
+              fulfillmentType,
+              pickupAt: "2026-06-07T12:30:00.000Z",
+              deliveryAddress: {
+                line1: "1 Main St",
+                line2: "Unit 2",
+                contactPhone: "+886912345678",
+                notes: "Ring bell",
+              },
+            },
+          },
+        });
+
+        await service.finalizeGroupOrder("group-1");
+
+        expect(createOrder).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orderType: expectedOrderType,
+            deliveryInfo: expect.objectContaining({
+              type: expectedDeliveryType,
+              address: "1 Main St, Unit 2",
+              phone: "+886912345678",
+            }),
+          }),
+        );
+      },
+    );
+
+    it("keeps the master order id and marks finalizing_failed when split billing fails after order creation", async () => {
+      const { service, db } = createFinalizeService();
+      service.splitBill = vi.fn(async () => ({
+        success: false,
+        error: "Split total does not match order total",
+        errorDetails: {
+          code: "SPLIT_TOTAL_MISMATCH",
+          expectedTotalCents: 3900,
+          roundedTotalCents: 3000,
+        },
+      }));
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: false,
+        error: "Split total does not match order total",
+      });
+
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            masterOrderId: "order-1",
+            status: "finalizing_failed",
+            settings: expect.objectContaining({
+              finalizeFailure: expect.objectContaining({
+                masterOrderId: "order-1",
+                orderTotalCents: 3900,
+                expectedTotalCents: 3900,
+                roundedTotalCents: 3000,
+                splitError: "Split total does not match order total",
+              }),
+            }),
+          }),
+        ]),
+      );
     });
   });
 

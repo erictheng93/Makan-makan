@@ -15,6 +15,8 @@ import {
   groupCartItems,
   splitBills,
   groupActivityLogs,
+  orders,
+  OrderService as DatabaseOrderService,
 } from "@makanmakan/database";
 import { menuItems } from "@makanmakan/database";
 import type {
@@ -139,6 +141,19 @@ interface SplitBillData {
   items: SplitBillItem[];
 }
 
+interface SplitBillFailureDetails {
+  code?: string;
+  expectedTotalCents?: number;
+  roundedTotalCents?: number;
+}
+
+interface SplitBillResult {
+  success: boolean;
+  data?: SplitBillData[];
+  error?: string;
+  errorDetails?: SplitBillFailureDetails;
+}
+
 interface GroupOrderListItem {
   id: string;
   shareCode: string;
@@ -160,6 +175,8 @@ interface GroupOrderListItem {
 
 export class GroupOrdersService implements IGroupOrderService {
   private db;
+  private rawDb: D1Database;
+  private rawCacheKV?: KVNamespace;
   private cache: KVCacheService;
   private logger: ConsoleLogger;
   private performance: PerformanceMonitor;
@@ -170,11 +187,45 @@ export class GroupOrdersService implements IGroupOrderService {
     cacheKV?: KVNamespace,
     logLevel: string = "info",
   ) {
+    this.rawDb = database;
+    this.rawCacheKV = cacheKV;
     this.db = drizzle(database);
     this.cache = new KVCacheService(cacheKV);
     this.logger = new ConsoleLogger("group-orders", logLevel);
     this.performance = new PerformanceMonitor("group-orders");
     this.errorTracker = new ErrorTracker("group-orders");
+  }
+
+  private createOrderService() {
+    return new DatabaseOrderService(this.rawDb, {
+      JWT_SECRET: "",
+      NODE_ENV: "production",
+      CACHE_KV: this.rawCacheKV,
+    });
+  }
+
+  private centsFromOrderValue(
+    order: Record<string, unknown>,
+    centsKey: string,
+    amountKey: string,
+  ): number {
+    const cents = order[centsKey];
+    if (typeof cents === "number") return cents;
+
+    const amount = order[amountKey];
+    return typeof amount === "number" ? toRequiredCents(amount) : 0;
+  }
+
+  private splitTypeFromStoredValue(
+    value: string,
+  ): SplitBillRequest["splitType"] {
+    return value === "equal" ||
+      value === "proportional" ||
+      value === "individual" ||
+      value === "by_item" ||
+      value === "custom"
+      ? value
+      : "individual";
   }
 
   /**
@@ -1047,16 +1098,358 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   /**
+   * Finalize a group order into the canonical orders flow.
+   *
+   * This method deliberately stays thin: it claims the group-order mutex, maps
+   * the group cart into `OrderService.createOrder`, records the master order,
+   * then delegates member allocation to `splitBill`.
+   */
+  async finalizeGroupOrder(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: { masterOrderId: string; status: "completed" };
+    error?: string;
+  }> {
+    const timer = this.performance.startTimer("finalizeGroupOrder");
+    let claimed = false;
+
+    try {
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId));
+      const groupOrder = groupOrderRows[0];
+
+      if (!groupOrder) {
+        return { success: false, error: "Group order not found" };
+      }
+
+      if (groupOrder.masterOrderId) {
+        return {
+          success: true,
+          data: {
+            masterOrderId: groupOrder.masterOrderId,
+            status: "completed",
+          },
+        };
+      }
+
+      if (groupOrder.status === "cancelled") {
+        return {
+          success: false,
+          error: "Group order is cancelled, cannot finalize",
+        };
+      }
+      if (groupOrder.status === "completed") {
+        return {
+          success: false,
+          error: "Group order is completed, cannot finalize",
+        };
+      }
+      if (
+        groupOrder.status === "finalizing" ||
+        groupOrder.status === "checkout"
+      ) {
+        return {
+          success: false,
+          error: "Group order is already being finalized",
+        };
+      }
+      if (groupOrder.status === "finalizing_failed") {
+        return {
+          success: false,
+          error: "Group order finalization previously failed",
+        };
+      }
+      if (groupOrder.status !== "active") {
+        return {
+          success: false,
+          error: `Group order is ${groupOrder.status}, cannot finalize`,
+        };
+      }
+
+      const cartItems = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.status, "active"),
+          ),
+        );
+
+      if (cartItems.length === 0) {
+        return {
+          success: false,
+          error: "Cannot finalize an empty group order",
+        };
+      }
+
+      const now = new Date();
+      const claimedRows = await this.db
+        .update(groupOrders)
+        .set({ status: "finalizing", lockedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(groupOrders.id, groupOrderId),
+            eq(groupOrders.status, "active"),
+            isNull(groupOrders.masterOrderId),
+          ),
+        )
+        .returning({ id: groupOrders.id });
+
+      if (claimedRows.length === 0) {
+        const currentRows = await this.db
+          .select()
+          .from(groupOrders)
+          .where(eq(groupOrders.id, groupOrderId));
+        const current = currentRows[0];
+
+        if (current?.masterOrderId) {
+          return {
+            success: true,
+            data: {
+              masterOrderId: current.masterOrderId,
+              status: "completed",
+            },
+          };
+        }
+
+        if (
+          current?.status === "finalizing" ||
+          current?.status === "checkout"
+        ) {
+          return {
+            success: false,
+            error: "Group order is already being finalized",
+          };
+        }
+
+        return {
+          success: false,
+          error: current
+            ? `Group order is ${current.status}, cannot finalize`
+            : "Group order not found",
+        };
+      }
+      claimed = true;
+
+      const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+      const fulfillmentType = settings.fulfillmentType || "dine_in";
+      const deliveryInfo =
+        fulfillmentType === "dine_in"
+          ? undefined
+          : {
+              type:
+                fulfillmentType === "pickup"
+                  ? ("takeaway" as const)
+                  : ("delivery" as const),
+              address: settings.deliveryAddress
+                ? [
+                    settings.deliveryAddress.line1,
+                    settings.deliveryAddress.line2,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                : undefined,
+              phone: settings.deliveryAddress?.contactPhone,
+              instructions:
+                fulfillmentType === "pickup" && settings.pickupAt
+                  ? `Pickup requested at ${settings.pickupAt}${
+                      settings.deliveryAddress?.notes
+                        ? ` - ${settings.deliveryAddress.notes}`
+                        : ""
+                    }`
+                  : settings.deliveryAddress?.notes,
+            };
+      const clientMutationId = `group-order:${groupOrderId}`;
+      const createOrderData = {
+        restaurantId: groupOrder.restaurantId,
+        tableId:
+          fulfillmentType === "dine_in"
+            ? (groupOrder.tableId ?? undefined)
+            : undefined,
+        orderType:
+          fulfillmentType === "dine_in" && groupOrder.tableId
+            ? ("table" as const)
+            : ("shop" as const),
+        items: cartItems.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          notes: item.specialInstructions ?? undefined,
+        })),
+        notes: settings.notes ?? undefined,
+        clientMutationId,
+        deliveryInfo,
+      };
+
+      let order: Record<string, unknown>;
+      try {
+        order = (await this.createOrderService().createOrder(
+          createOrderData,
+        )) as unknown as Record<string, unknown>;
+      } catch (error) {
+        if (
+          !(error instanceof Error) ||
+          error.message !== "CLIENT_MUTATION_DUPLICATE"
+        ) {
+          throw error;
+        }
+
+        const existingRows = await this.db
+          .select({
+            id: orders.id,
+            serviceChargeCents: orders.serviceChargeCents,
+            taxAmountCents: orders.taxAmountCents,
+            totalAmountCents: orders.totalAmountCents,
+          })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.restaurantId, groupOrder.restaurantId),
+              eq(orders.clientMutationId, clientMutationId),
+            ),
+          );
+        const existing = existingRows[0];
+        if (!existing) throw error;
+
+        order = {
+          id: existing.id,
+          serviceChargeCents: existing.serviceChargeCents ?? 0,
+          taxAmountCents: existing.taxAmountCents ?? 0,
+          totalAmountCents: existing.totalAmountCents ?? 0,
+        };
+      }
+
+      if (!order.id || typeof order.id !== "string") {
+        throw new Error("FINALIZE_ORDER_ID_MISSING");
+      }
+
+      const masterOrderId = order.id;
+      const serviceChargeCents = this.centsFromOrderValue(
+        order,
+        "serviceChargeCents",
+        "serviceCharge",
+      );
+      const taxAmountCents = this.centsFromOrderValue(
+        order,
+        "taxAmountCents",
+        "taxAmount",
+      );
+      const orderTotalCents =
+        this.centsFromOrderValue(order, "finalAmountCents", "finalAmount") ||
+        this.centsFromOrderValue(order, "totalAmountCents", "totalAmount");
+
+      await this.db
+        .update(groupOrders)
+        .set({
+          masterOrderId,
+          status: "finalizing",
+          serviceChargeCents,
+          taxAmountCents,
+          finalAmountCents: orderTotalCents,
+          updatedAt: new Date(),
+        })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      const splitResult = await this.splitBill(groupOrderId, {
+        splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
+        sharedServiceChargeCents: serviceChargeCents,
+        sharedTaxCents: taxAmountCents,
+        orderTotalCents,
+      });
+
+      if (!splitResult.success) {
+        const failure = {
+          code: splitResult.errorDetails?.code ?? "SPLIT_BILL_FAILED",
+          masterOrderId,
+          orderTotalCents,
+          serviceChargeCents,
+          taxAmountCents,
+          expectedTotalCents: splitResult.errorDetails?.expectedTotalCents,
+          roundedTotalCents: splitResult.errorDetails?.roundedTotalCents,
+          splitError: splitResult.error ?? "Failed to split bill",
+          failedAt: new Date().toISOString(),
+        };
+
+        await this.db
+          .update(groupOrders)
+          .set({
+            masterOrderId,
+            status: "finalizing_failed",
+            settings: {
+              ...settings,
+              finalizeFailure: failure,
+            } as unknown as GroupOrderSettings,
+            updatedAt: new Date(),
+          })
+          .where(eq(groupOrders.id, groupOrderId));
+
+        this.errorTracker.logError(
+          "finalizeGroupOrder:splitBill",
+          new Error(failure.code),
+          { groupOrderId, ...failure },
+        );
+
+        return {
+          success: false,
+          error: splitResult.error ?? "Failed to split bill",
+        };
+      }
+
+      const completedAt = new Date();
+      await this.db
+        .update(groupOrders)
+        .set({
+          masterOrderId,
+          status: "completed",
+          completedAt,
+          updatedAt: completedAt,
+        })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      await this.logActivity(
+        groupOrderId,
+        null,
+        "order_finalized",
+        "Group order finalized into a real order",
+        { masterOrderId, orderTotalCents },
+      );
+
+      await this.cache.delete(`group_order:${groupOrderId}`);
+      await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+      return { success: true, data: { masterOrderId, status: "completed" } };
+    } catch (error) {
+      if (claimed) {
+        await this.db
+          .update(groupOrders)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(
+            and(
+              eq(groupOrders.id, groupOrderId),
+              eq(groupOrders.status, "finalizing"),
+              isNull(groupOrders.masterOrderId),
+            ),
+          );
+      }
+
+      this.errorTracker.logError("finalizeGroupOrder", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to finalize group order", error);
+      return { success: false, error: "Failed to finalize group order" };
+    } finally {
+      this.performance.endTimer(timer);
+    }
+  }
+
+  /**
    * Split bill among members
    */
   async splitBill(
     groupOrderId: string,
     splitData: SplitBillRequest,
-  ): Promise<{
-    success: boolean;
-    data?: SplitBillData[];
-    error?: string;
-  }> {
+  ): Promise<SplitBillResult> {
     const timer = this.performance.startTimer("splitBill");
 
     try {
@@ -1318,6 +1711,11 @@ export class GroupOrdersService implements IGroupOrderService {
         return {
           success: false,
           error: "Split total does not match order total",
+          errorDetails: {
+            code: "SPLIT_TOTAL_MISMATCH",
+            expectedTotalCents: targetTotalCents,
+            roundedTotalCents,
+          },
         };
       }
 
