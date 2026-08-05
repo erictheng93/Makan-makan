@@ -34,10 +34,13 @@ Plan C 第 351 行明載這是刻意的，並把「按比例分攤餐廳的稅�
 
 **淨結果**：B/C/D 全部做完之後，所有成員的 `split_bills` 加總 = 品項小計；餐廳實際收取 = 小計 + 稅 + 服務費。差額是整筆稅與服務費，且不會有任何測試失敗來提醒。兩份 plan 的 self-review 都沒抓到，因為各自指向對方。
 
-**必須決定**（擇一，並在動工前寫回對應的 plan）：
+**決議：採 (a)，已於 2026-08-05 寫回 Plan C Task 2 與 Plan D Task 1-2。**
 
-- **(a) finalize 把真實金額傳給 splitBill** — `splitBill` 增加吸收絕對金額的輸入（例如 `sharedServiceChargeCents` / `sharedTaxCents`），由 finalize 從 `createOrder` 回傳的訂單填入，proportional 依各成員小計佔比分配。這同時讓 proportional **第一次有了與 individual 不同的行為**，也就順帶解決了 D 原本「無法驗證」的問題。稽核方建議此案。
-- **(b) 明確承認分帳只涵蓋小計** — 若採此案，必須是產品決策而非預設值：`split_bills` 必須有欄位或顯示層明示「未含稅與服務費」，且 D Task 2 的對帳基準必須改寫為小計而非訂單總額。使用者端看到的金額與實收金額不一致，這件事不能只存在於 plan 註解裡。
+`splitBill` 新增 `sharedServiceChargeCents` / `sharedTaxCents` / `orderTotalCents`（皆為選用，`/split` 路由的費率呼叫不受影響），由 `finalizeGroupOrder` 從 `createOrder` 回傳的訂單填入。絕對金額存在時**優先於**費率，避免重複計費。
+
+**稽核方先前的一項說法在此更正**：原本寫「(a) 會順帶讓 proportional 第一次與 individual 不同」，這是錯的。稅與服務費本身即依小計比例計算，按小計佔比分配它們，等同於對各自小計套用同一組費率 — 也就是 individual 現行的做法。**(a) 買到的是「分帳總額等於訂單總額」，不是讓 proportional 產生差異。** 若照原說法寫進驗收標準，等於逼實作者發明一個假的差異，正是 Plan D Global Constraints 明文禁止的事。F-3 已依此重寫。
+
+範圍比原本 Task 1 想像的大：**每個分支都要定義如何吸收這筆共同費用**，不只是 proportional。以 `splitType: "equal"` 完成的團購單一樣會少收，而 equal 才是多數群組實際會用的。
 
 ### X-2（P1）D Task 2 的對帳基準未定義
 
@@ -48,7 +51,9 @@ const trueTotalCents  = toRequiredCents(splitBillsData.reduce((s, b) => s + b.to
 const roundedTotalCents = splitBillsData.reduce((s, b) => s + toRequiredCents(b.totalAmount), 0);
 ```
 
-兩邊都源自 `splitBillsData` 自己，只對齊了「逐筆進位」與「先加總再進位」的差異，**沒有對齊真實訂單的 `finalAmountCents`**。在 X-1 未解決的前提下，這個對帳即使完全通過，分帳總額仍然與餐廳實收金額不符。X-1 選 (a) 時，此處的基準必須改為真實訂單總額。
+兩邊都源自 `splitBillsData` 自己，只對齊了「逐筆進位」與「先加總再進位」的差異，**沒有對齊真實訂單的 `finalAmountCents`**。在 X-1 未解決的前提下，這個對帳即使完全通過，分帳總額仍然與餐廳實收金額不符。
+
+**已隨 X-1 (a) 解決**：對帳基準改為 `splitData.orderTotalCents ?? （內部加總）` — finalize 供給真實訂單總額，`/split` 路由（此時尚無真實訂單）沿用內部加總。已寫回 Plan D Task 2。同時補上 F-11 的界限檢查，因為改用外部基準之後，這段程式碼會把**任何**差異都算到主辦人頭上。
 
 ### X-3（P2）D Task 2 測試草稿的 creator 判定無效
 
@@ -92,14 +97,21 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
 
 - [ ] **F-1** `splitType: "proportional"` 不再回傳 `Unsupported split type`。
 - [ ] **F-2** proportional 的每位成員金額符合明確的預期數值（測試寫死期望值，不是只比對「與 individual 相同」）。
-- [ ] **F-3** **存在一組定額共同費用不為零的測試，證明 proportional 與 individual 算出不同結果**，且成員小計不均。這是 proportional 分支唯一真正被驗證的方式 — 沒有這條，該分支等同未測試的死碼。
+- [ ] **F-3** **四個分支各有一條「共同費用不為零」的測試**，成員小計不均，且期望值寫死：
+  - `individual` / `proportional` → 依小計佔比分攤
+  - `equal` → 均分（人頭）
+  - `custom` → 依 custom 金額佔比
+  這取代了原本「證明 proportional 與 individual 不同」的要求 — 該差異在目前只有比例型共同費用的前提下並不存在，硬要求它只會逼出一個發明出來的假差異。真正要驗證的是**每個分支都把共同費用分光**，四條加總都回到訂單總額。
+- [ ] **F-3b** `totalCartAmount === 0`（以及 custom 金額加總為 0）時不產生 `NaN`，退回人頭均分。`NaN` 會直接寫進資料庫。
 - [ ] **F-4（tripwire）** 保留一條在定額費用為零時斷言 proportional === individual 的特徵測試，並在測試中註明「此等價關係只在無定額共同費用時成立」。目的是讓未來有人加入定額費用（例如外送費）卻忘記擴充 proportional 公式時，這條測試**會失敗**。它不是文件，是絆線。
 - [ ] **F-5** 餘數對帳後，`sum(所有成員 totalAmountCents)` 與對帳基準**完全相等**，至少涵蓋：3 人均分 $100、2 人均分 $0.01、成員數 > 金額分數的退化情境。
 - [ ] **F-6** 對帳基準是**真實訂單總額**（X-1 (a)）而非 `splitBillsData` 自身加總。測試必須以一個與 `splitBillsData` 不同來源的總額作為期望值，否則 X-2 的問題原封不動。
 - [ ] **F-7** 餘數確實落在 `role: "creator"` 的成員身上，測試以實際 seed 的 creator id 斷言，**不得出現 `find(() => true)`**（X-3）。
 - [ ] **F-8** 餘數為負（逐筆進位後總和超過真實總額）的情境有測試涵蓋 — plan 的實作允許負餘數，但草稿測試只涵蓋短少的方向。
 - [ ] **F-9** D Task 3 若失敗，依 plan Step 2 的指示改為「修 `processPayment`」而非改測試遷就；驗收時需說明實際結果是哪一種。
-- [ ] **F-10** 金額全程遵循既有慣例：`splitBill` 內以浮點計算、僅在 DB 寫入邊界經 `toRequiredCents` 轉換，不新增第二條 cents-native 路徑。
+- [ ] **F-10** 金額全程遵循既有慣例：`splitBill` 內以浮點計算、僅在 DB 寫入邊界經 `toRequiredCents` 轉換，不新增第二條 cents-native 路徑。新增的 `*Cents` 輸入在函式入口**一次**轉為元，其後不再出現分/元混用。
+- [ ] **F-11（安全閥）** 差額超出「每位成員 1 分」的界限時，`splitBill` 回傳失敗並記錄 `SPLIT_TOTAL_MISMATCH`，**不得**把差額塞給主辦人。若 Step 3a 沒把共同費用分配出去，未設界限的對帳會讓主辦人默默吃下整筆稅費 — 這是本階段最容易造成真實金錢損失的單一路徑。需有測試證明超界時失敗、界內時正常吸收。
+- [ ] **F-12** 絕對金額與費率同時傳入時，以絕對金額為準、費率被忽略，有測試證明不會重複計費。既有 `/split` 路由（純費率）的行為完全不變 — 以現有測試全綠為證。
 
 ## Stage 3：Finalize（C Task 2 + D Task 3）
 
