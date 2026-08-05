@@ -85,11 +85,21 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
 
 ## Stage 1：型別對齊（C Task 1）
 
+> **稽核方前置調查（2026-08-05）** — 以下事實已查證，實作時不必重查：
+>
+> - `GroupOrderStatus` 全 repo 只有 5 個引用點，全在 group-orders 內：`types/index.ts:21`（`GroupOrder.status`）、`types/index.ts:63`（定義）、`GroupOrdersService.ts:112`（import）、`GroupOrdersService.ts:2042`（唯一實際套用處）、`index.ts:33`（re-export）。
+> - `"locked"` / `"finalized"` / `"expired"` 在 group-orders 內**只出現在型別定義本身**。repo 其他地方的同名字串屬於 idempotency middleware、scheduling、coupons、partnerships、verification 等無關領域，移除不影響它們。
+> - `groupOrders.status` 的**寫入**只有四個值：`"active"`（:309、:807）、`"checkout"`（:1281）、`"completed"`（:1479）、`"cancelled"`（:1687）。（:1607 的 `"removed"` 屬 `group_cart_items.status`，不同表。）
+> - **`"ordering"` 從未被寫入任何地方**，只有兩處讀取：`:1554` 的 `status !== "active" && status !== "ordering"`，與 `:1674` 的 `inArray(status, ["active","ordering","checkout"])`。兩處都是無效條件。
+
 - [ ] **E-1** `GroupOrderStatus` 改為 `"active" | "checkout" | "completed" | "cancelled"`，與服務實際讀寫的值一致。
-- [ ] **E-2** 原型別中的 `"locked"` / `"finalized"` / `"expired"` 移除後，**所有引用點都已處理**，不是用 `as` 斷言掩蓋。
-  證據：`grep -rn '"locked"\|"finalized"\|"expired"' apps/api/src/features/group-orders/` 的輸出，每一處都能說明為何合理。
-- [ ] **E-3** `"ordering"` 這個只在到期查詢中出現的值有明確歸屬 — 要嘛納入 union，要嘛證明該查詢是死路徑。不可留在型別外繼續被字串比對。
-- [ ] **E-4** `pnpm --filter @makanmakan/api typecheck` 通過，且既有 group-orders 測試全綠。
+- [ ] **E-2** `"locked"` / `"finalized"` / `"expired"` 自 union 移除。依上述調查，除型別定義外無其他引用點，故本項應為單純刪除；若實作時發現任何額外引用點，需逐一說明。
+- [ ] **E-2b（陷阱，最容易漏）** `GroupOrdersService.ts:2042` 的 `status: data.status as GroupOrderStatus` 是型別**唯一**實際套用之處，而它是斷言。Drizzle 欄位是純 `text`，所以縮小 union **不會**在此產生任何編譯錯誤 — typecheck 全綠不代表這裡安全。必須改為具備驗證的收斂（未知值落到安全預設並記錄），或明確說明為何斷言可接受。單純留著斷言不予處理即為不通過。
+- [ ] **E-3** `"ordering"` 依調查為死值：從 `:1554` 與 `:1674` 兩處讀取中移除，**不納入** union。同時更新 `packages/database/src/schema/group-orders.ts:44` 的欄位註解（現為 `// active, ordering, checkout, completed, cancelled`），否則註解會繼續誤導下一個人。
+- [ ] **E-3b（正式資料確認）** legacy migration 的 CHECK 約束曾允許 `'ordering'`，本機 D1 目前 `group_orders` 無資料列，無法據此排除正式環境。合併前需確認正式資料庫沒有 `status = 'ordering'` 的列：
+  `wrangler d1 execute makanmasak-prod --remote --env production --config=./apps/api/wrangler.toml --command "SELECT status, count(*) FROM group_orders GROUP BY status;"`
+  若確實存在該狀態的列，E-3 的刪除方案需改為先行資料遷移，不可直接縮小型別 — 否則 E-2b 的斷言會對一個實際存在的執行期值說謊。
+- [ ] **E-4** `pnpm --filter @makanmakan/api typecheck` 通過，且既有 group-orders 測試全綠。注意 E-2b：本項通過**不足以**證明 E-2b 通過。
 
 ## Stage 2：分帳數學（D Task 1-2）
 
