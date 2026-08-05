@@ -21,11 +21,16 @@ interface SubscriptionRow {
   created_at_ms: number;
 }
 
-interface QuotaCheckOptions {
-  restaurantId?: string;
-}
-
 type QuotaContext<E extends { Bindings: Env } = { Bindings: Env }> = Context<E>;
+
+type GuestRestaurantResolver<E extends { Bindings: Env }> = (
+  c: QuotaContext<E>,
+) => string | undefined | Promise<string | undefined>;
+
+interface QuotaCheckOptions<E extends { Bindings: Env } = { Bindings: Env }> {
+  restaurantId?: string;
+  resolveGuestRestaurantId?: GuestRestaurantResolver<E>;
+}
 
 interface QuotaUser {
   role?: number;
@@ -199,7 +204,7 @@ async function notifyHardQuotaExceeded<E extends { Bindings: Env }>(
 export async function enforceQuota<E extends { Bindings: Env }>(
   c: QuotaContext<E>,
   meterKey: MeterKey,
-  options: QuotaCheckOptions = {},
+  options: QuotaCheckOptions<E> = {},
 ): Promise<void> {
   const mode = getMode(c.env);
   if (mode === "disabled") return;
@@ -209,7 +214,9 @@ export async function enforceQuota<E extends { Bindings: Env }>(
 
   const restaurantId =
     options.restaurantId ??
-    (user?.restaurantId == null ? undefined : String(user.restaurantId));
+    (user?.restaurantId == null
+      ? await options.resolveGuestRestaurantId?.(c)
+      : String(user.restaurantId));
   if (!restaurantId) return;
 
   const subscription = await getSubscription(c, restaurantId);
@@ -249,12 +256,19 @@ export async function enforceQuota<E extends { Bindings: Env }>(
   }
 }
 
-export function quotaGate(meterKey: MeterKey) {
+export function quotaGate(
+  meterKey: MeterKey,
+  resolveGuestRestaurantId?: GuestRestaurantResolver<{ Bindings: Env }>,
+) {
   return async <E extends { Bindings: Env }>(
     c: QuotaContext<E>,
     next: Next,
   ) => {
-    await enforceQuota(c, meterKey);
+    await enforceQuota(c, meterKey, {
+      resolveGuestRestaurantId: resolveGuestRestaurantId as
+        | GuestRestaurantResolver<E>
+        | undefined,
+    });
     await next();
   };
 }

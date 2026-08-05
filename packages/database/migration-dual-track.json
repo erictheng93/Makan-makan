@@ -81,6 +81,10 @@
     {
       "fresh": "0065_service_booking_employee_overlap_guard.sql",
       "reason": "Fresh baseline owns the service_bookings overlap guard; the legacy migration track does not currently carry the service_bookings table migration."
+    },
+    {
+      "fresh": "0080_group_orders_guest_host.sql",
+      "reason": "Fresh API D1 owns group_orders for guest-hosted group orders; the local management/legacy D1 does not carry group_orders, and the packages/database legacy track has incompatible historical group_orders definitions rather than a verified live schema."
     }
   ],
   "legacyOnly": [

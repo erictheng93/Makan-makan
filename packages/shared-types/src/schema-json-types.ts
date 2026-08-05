@@ -8,6 +8,16 @@
 // ================================================
 
 /**
+ * Delivery address for a fulfillmentType: "delivery" group order.
+ */
+export interface GroupOrderDeliveryAddress {
+  line1: string;
+  line2?: string;
+  contactPhone?: string;
+  notes?: string;
+}
+
+/**
  * Group order settings configuration
  */
 export interface GroupOrderSettings {
@@ -26,6 +36,10 @@ export interface GroupOrderSettings {
   };
   notes?: string | null;
   tableNumber?: string | null;
+  fulfillmentType?: "dine_in" | "delivery" | "pickup";
+  deliveryAddress?: GroupOrderDeliveryAddress;
+  pickupAt?: string;
+  autoSubmitOnExpiry?: boolean;
 }
 
 /**
