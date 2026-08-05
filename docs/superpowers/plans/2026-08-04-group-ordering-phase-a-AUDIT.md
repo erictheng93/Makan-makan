@@ -270,7 +270,11 @@ Plan B 的 grounding 較口頭摘要更精確：明載 create/join/detail 三個
 
 ## 需處理的四點
 
-1. **`recoveryCode` 在 B/C/D 全無消費者。** grep 三份 plan，`recoveryCode` 僅出現於測試 fixture，`/recover` 端點無任何前端 plan 呼叫。Phase A 的主辦人復原機制目前是死碼 — 前端不儲存創建時回傳的 code，使用者亦無輸入入口。應補進 Plan B（其 Task 3 已在做 join-preview view，順路），或明確聲明該機制為更後期階段預備。**此為三份 plan 最實質的覆蓋缺口。**
+1. ~~**`recoveryCode` 在 B/C/D 全無消費者。**~~ **已於 2026-08-05 補入 Plan B Task 4。** 原始發現：grep 三份 plan，`recoveryCode` 僅出現於測試 fixture，`/recover` 端點無任何前端 plan 呼叫；前端不儲存創建時回傳的 code，使用者亦無輸入入口，Phase A 的主辦人復原機制實為死碼。此為三份 plan 最實質的覆蓋缺口。
+
+   補入內容涵蓋：`utils/groupOrderHost.ts` 憑證持久化（比照既有的 `utils/marketCheckouts.ts` guest-token 慣例）、`createGroup` 不再丟棄 `recoveryCode`、重新整理時由 storage 回填 `sessionToken`（此路徑才是日常情境，復原是例外情境）、`recoverHost()` 與 `HostRecoveryPanel.vue`、以及「`recoveryCode` 不得進入分享連結／URL／QR／log」的硬性約束與對應測試。
+
+   實作時額外注意兩點：(a) `/recover` 的 `strictRateLimit` 是 15 分鐘 5 次，配上 36 字元 UUID 手動輸入極易鎖死，Plan B 已要求 429 與 400 分開提示，但根本解（較短的可輸入碼，或給該端點單獨的限制值）屬 Phase A 的 schema／設定決策，已列為 Plan B 的 open question，不在 Phase B 內逕行更動；(b) 復原成功後舊裝置的 `memberToken` 會失效，Tasks 1-3 沒有處理 token 失效的狀態，Plan B Task 4 Step 7 的雙情境煙霧測試第 5 步就是為了逼出這個缺口。
 
 2. **Plan B 單獨上線會形成死路。** B Task 1 Step 3 將 `submitOrder` 留為拋錯 stub，實際接線在 C Task 5。B 若先上 production，使用者可建立群組與購物車但無法送出。建議 B 與 C 綁定發布，或 B 的 UI 在 C 落地前隱藏送出入口。
 

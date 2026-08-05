@@ -12,7 +12,9 @@
 
 - `GroupCartPanel.vue`'s prop contract (`GroupCartItem`, `GroupMember`, `SplitBillConfig` — all currently exported from `useGroupOrder.ts`) does **not** change in this phase — it's a working, presentational component. The composable's job is to keep producing those same shapes while sourcing them correctly.
 - No client-to-client peer broadcasting of cart mutations. The server is the only source of truth; the client mutates via REST and receives confirmation/fan-out via the server-pushed realtime event, never by echoing its own optimistic broadcast to "other clients" over the socket directly.
-- Every REST call in the rewritten composable must hit a path that actually exists: `/orders/group/create`, `/orders/group/join/:shareCode`, `/orders/group/join/:shareCode` (GET, preview — Phase A), `/orders/group/:id`, `/orders/group/:id/cart`, `/orders/group/:id/cart/:itemId` (PUT/DELETE), `/realtime/auth/group-token`. Never `/group-orders/...` (that prefix 404s).
+- Every REST call in the rewritten composable must hit a path that actually exists: `/orders/group/create`, `/orders/group/join/:shareCode`, `/orders/group/join/:shareCode` (GET, preview — Phase A), `/orders/group/:id`, `/orders/group/:id/cart`, `/orders/group/:id/cart/:itemId` (PUT/DELETE), `/orders/group/:id/recover` (Phase A), `/realtime/auth/group-token`. Never `/group-orders/...` (that prefix 404s).
+- **`recoveryCode` is a host-only bearer secret and must never reach a member.** It goes in no share link, no QR payload, no route param, no query string, no log line, and no analytics event. A URL is the worst possible carrier — it leaks through `Referer`, browser history, and any link preview. The only things a member ever receives are the `shareCode` and the join URL built from it.
+- `memberToken` and `recoveryCode` both persist client-side, but they solve different failures: `memberToken` survives a page refresh, `recoveryCode` survives losing the device. Because both live in the same `localStorage`, storage loss takes both — which is exactly why the recovery code must also be **displayed to the host at creation** so it can be saved outside the browser. A recovery code that only ever exists in the storage it is meant to recover from is not a recovery mechanism.
 - Follow existing test conventions: local builders, `data-testid`/text-content assertions (never CSS class assertions), verify mock calls with `toHaveBeenCalledWith(expect.objectContaining(...))`.
 
 ---
@@ -31,6 +33,10 @@
   - `GroupOrderCartItem`: `{ id, itemId, groupOrderId, memberId, menuItemId: number, quantity, unitPrice, totalPrice, customizations, specialInstructions? }` plus (per `GroupOrdersService.getGroupOrder`) a nested `menuItem: { id, name, price, imageUrl? }` on cart items returned from `GET /orders/group/:id`.
   - `GroupOrderSummary` (the body of `GET /orders/group/:id`): `{ groupOrder: GroupOrder, members: GroupOrderMember[], cartItems: (GroupOrderCartItem & { menuItem })[], activities }`.
   - `GroupOrderJoinPreview` (Phase A, `GET /orders/group/join/:shareCode`): `{ groupOrderId, restaurantId, hostName, memberCount, fulfillmentType, expiresAt, status }`.
+  - `CreateGroupOrderResponse` (Phase A, `POST /orders/group/create`): `{ groupOrderId, shareCode, expiresAt, host, memberToken, recoveryCode }`. **`recoveryCode` is returned exactly once, here, and by no other endpoint** — if the client drops it on the floor at creation it is unrecoverable, which is the state the frontend is in today (see Task 4).
+  - `POST /orders/group/:groupOrderId/recover` (Phase A) — body `{ recoveryCode }`, returns `{ success: true, data: { memberToken } }`. Rebinds the creator's `group_members` row to a fresh `sessionId`, so **the previous host device's `memberToken` stops working**. Wrong code, unknown group order, and missing creator all return the same `400 "Invalid recovery code"` by design (group order ids must not be enumerable). Rejects completed/cancelled/expired groups the same way.
+- `apps/api/src/middleware/rateLimit.ts:129` — the recover endpoint is behind `strictRateLimit`: **5 requests per 15-minute window**. This is the tightest limit in the codebase and it materially shapes the UX (see Task 4, Step 5).
+- `apps/customer-app/src/utils/marketCheckouts.ts` — the established pattern for persisting guest-order credentials in this app: a `makanmakan_*`-prefixed `localStorage` key, a TTL constant, prune-on-read, and exported typed accessors (`TOKEN_STORAGE_KEY = "makanmakan_market_checkout_guest_tokens"` is the direct analogue of what Task 4 needs). **Follow this module's shape; do not invent a new storage abstraction.**
   - Realtime events land as `RealtimeEventType.GROUP_MEMBER_JOINED | GROUP_CART_ITEM_ADDED | GROUP_CART_ITEM_UPDATED | GROUP_CART_ITEM_REMOVED` with `data: { groupOrderId, ...eventSpecificFields }` (see `broadcastGroupOrderEvent` call sites in `routes/index.ts`).
 
 ---
@@ -335,6 +341,8 @@ async function submitOrder(): Promise<never> {
 ```
 
 (`handleCartItemAdded`/`handleCartItemUpdated`/`handleCartItemRemoved` are the existing local-state mutators already in the file — reuse them, don't duplicate their logic. Remove the old `broadcastEvent`/`sendMessage` calls from every cart mutation function; realtime consumption is wired in Task 2, not here.)
+
+**`createGroup` is deliberately incomplete after this task.** The snippet above discards `recoveryCode` and keeps `sessionToken` in a module-level variable that a page refresh destroys. Task 4 extends this same function to persist both — do not treat `createGroup` as done until Task 4 lands, and do not "helpfully" add ad-hoc `localStorage` writes here.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -691,9 +699,443 @@ git commit -m "feat(customer-app): add reachable group-order join and cart views
 
 ---
 
+### Task 4: Host credential persistence + recovery entry point
+
+**Why this task exists:** Phase A shipped a complete host-recovery backend — `recoveryCode` on every group order, a rate-limited `POST /orders/group/:id/recover` — and **nothing consumes it**. The frontend receives `recoveryCode` at creation and discards it, never displays it, and never calls `/recover`. Worse, `sessionToken` currently lives in a module-level variable, so a plain page refresh already costs the host their session with no way back. Until this task lands, Phase A's recovery mechanism is dead code and the host role is one refresh away from being permanently orphaned.
+
+**Files:**
+- Create: `apps/customer-app/src/utils/groupOrderHost.ts`
+- Create: `apps/customer-app/src/components/group/HostRecoveryPanel.vue`
+- Modify: `apps/customer-app/src/composables/useGroupOrder.ts`
+- Modify: `apps/customer-app/src/views/GroupOrderView.vue` (from Task 3)
+- Test: `apps/customer-app/src/utils/groupOrderHost.test.ts` (new), `apps/customer-app/src/composables/useGroupOrder.test.ts` (extend), `apps/customer-app/src/components/group/HostRecoveryPanel.test.ts` (new)
+
+**Interfaces:**
+- Consumes: `CreateGroupOrderResponse.recoveryCode`, `POST /orders/group/:groupOrderId/recover` (both Phase A).
+- Produces: `saveHostCredentials` / `readHostCredentials` / `updateHostMemberToken` / `clearHostCredentials` from `utils/groupOrderHost.ts`; `useGroupOrder()` additionally returns `recoverHost(groupOrderId, recoveryCode)`, `hostRecoveryCode` (a `Ref<string | null>`), and `hasStoredHostSession(groupOrderId)`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```typescript
+// apps/customer-app/src/utils/groupOrderHost.test.ts
+import { describe, expect, it, beforeEach } from "vitest";
+import {
+  saveHostCredentials,
+  readHostCredentials,
+  updateHostMemberToken,
+  clearHostCredentials,
+} from "./groupOrderHost";
+
+describe("groupOrderHost storage", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("round-trips credentials for a group order", () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "s-1",
+      recoveryCode: "r-1",
+    });
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "s-1",
+      recoveryCode: "r-1",
+    });
+  });
+
+  it("keeps the recovery code when only the member token is rotated", () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "s-1",
+      recoveryCode: "r-1",
+    });
+    updateHostMemberToken("go-1", "s-2");
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "s-2",
+      recoveryCode: "r-1",
+    });
+  });
+
+  it("does not return credentials past the TTL", () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "s-1",
+      recoveryCode: "r-1",
+    });
+    const raw = JSON.parse(
+      localStorage.getItem("makanmakan_group_order_host_credentials") ?? "{}",
+    );
+    raw["go-1"].savedAt = Date.now() - 25 * 60 * 60 * 1000;
+    localStorage.setItem(
+      "makanmakan_group_order_host_credentials",
+      JSON.stringify(raw),
+    );
+    expect(readHostCredentials("go-1")).toBeNull();
+  });
+
+  it("survives unavailable localStorage without throwing", () => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    expect(() =>
+      saveHostCredentials({
+        groupOrderId: "go-2",
+        memberToken: "s",
+        recoveryCode: "r",
+      }),
+    ).not.toThrow();
+    Storage.prototype.setItem = original;
+  });
+
+  it("clears only the requested group order", () => {
+    saveHostCredentials({ groupOrderId: "a", memberToken: "1", recoveryCode: "x" });
+    saveHostCredentials({ groupOrderId: "b", memberToken: "2", recoveryCode: "y" });
+    clearHostCredentials("a");
+    expect(readHostCredentials("a")).toBeNull();
+    expect(readHostCredentials("b")).not.toBeNull();
+  });
+});
+```
+
+Add to `useGroupOrder.test.ts`:
+
+```typescript
+describe("useGroupOrder — host credentials", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it("persists memberToken and recoveryCode on create, and exposes the code once", async () => {
+    const { createGroup, hostRecoveryCode } = useGroupOrder();
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          groupOrderId: "go-1",
+          shareCode: "ABC12345",
+          expiresAt: new Date().toISOString(),
+          host: { id: "m-1", memberId: "m-1", memberName: "Alex", isHost: true },
+          memberToken: "s-1",
+          recoveryCode: "r-1",
+        },
+      },
+    });
+
+    await createGroup({ restaurantId: "rest-1", hostName: "Alex" } as never);
+
+    expect(hostRecoveryCode.value).toBe("r-1");
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "s-1",
+      recoveryCode: "r-1",
+    });
+  });
+
+  it("never places the recovery code in the shareable link", async () => {
+    const { createGroup, shareUrl } = useGroupOrder();
+    // ...same mocked create response as above...
+    await createGroup({ restaurantId: "rest-1" } as never);
+
+    expect(shareUrl.value).toBeTruthy();
+    expect(shareUrl.value).not.toContain("r-1");
+    expect(shareUrl.value).not.toContain("recovery");
+  });
+
+  it("recoverHost swaps in the new memberToken and keeps the recovery code", async () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "old-token",
+      recoveryCode: "r-1",
+    });
+    const { recoverHost } = useGroupOrder();
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      data: { success: true, data: { memberToken: "new-token" } },
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: { success: true, data: { groupOrder: { id: "go-1", restaurantId: "r", status: "active", expiresAt: new Date().toISOString() }, members: [], cartItems: [] } },
+    });
+
+    await recoverHost("go-1", "r-1");
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/orders/group/go-1/recover",
+      expect.objectContaining({ recoveryCode: "r-1" }),
+    );
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "new-token",
+      recoveryCode: "r-1",
+    });
+  });
+
+  it("rehydrates the host session from storage instead of requiring recovery on refresh", async () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "stored-token",
+      recoveryCode: "r-1",
+    });
+    const { fetchGroupOrder, connectRealtime } = useGroupOrder();
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: { success: true, data: { groupOrder: { id: "go-1", restaurantId: "r", status: "active", expiresAt: new Date().toISOString() }, members: [], cartItems: [] } },
+    });
+    await fetchGroupOrder("go-1");
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      data: { success: true, data: { token: "rt-1" } },
+    });
+    await connectRealtime();
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/realtime/auth/group-token",
+      expect.objectContaining({ memberToken: "stored-token" }),
+    );
+  });
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pnpm --filter customer-app exec vitest run src/utils/groupOrderHost.test.ts src/composables/useGroupOrder.test.ts`
+Expected: FAIL — `utils/groupOrderHost.ts` doesn't exist; `useGroupOrder()` exposes neither `hostRecoveryCode` nor `recoverHost`; `createGroup` discards `recoveryCode`; nothing rehydrates `sessionToken`.
+
+- [ ] **Step 3: Implement the storage module**
+
+Read `apps/customer-app/src/utils/marketCheckouts.ts` first and mirror its structure — same `makanmakan_*` key convention, same TTL-constant + prune-on-read approach, and **the same defensive handling for a `localStorage` that throws** (Safari private mode, quota exceeded). Do not introduce a different storage abstraction alongside it.
+
+```typescript
+// apps/customer-app/src/utils/groupOrderHost.ts
+const STORAGE_KEY = "makanmakan_group_order_host_credentials";
+const CREDENTIAL_TTL_MS = 24 * 60 * 60 * 1000;
+
+export interface StoredHostCredentials {
+  groupOrderId: string;
+  memberToken: string;
+  recoveryCode: string;
+  savedAt: number;
+}
+
+function readAll(): Record<string, StoredHostCredentials> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<
+      string,
+      StoredHostCredentials
+    >;
+    const cutoff = Date.now() - CREDENTIAL_TTL_MS;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => value?.savedAt > cutoff),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeAll(all: Record<string, StoredHostCredentials>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  } catch {
+    // Storage unavailable or full — the in-memory session still works for this
+    // page load; recovery falls back to the code the host saved manually.
+  }
+}
+
+export function saveHostCredentials(
+  credentials: Omit<StoredHostCredentials, "savedAt">,
+): void {
+  const all = readAll();
+  all[credentials.groupOrderId] = { ...credentials, savedAt: Date.now() };
+  writeAll(all);
+}
+
+export function readHostCredentials(
+  groupOrderId: string,
+): StoredHostCredentials | null {
+  return readAll()[groupOrderId] ?? null;
+}
+
+export function updateHostMemberToken(
+  groupOrderId: string,
+  memberToken: string,
+): void {
+  const existing = readHostCredentials(groupOrderId);
+  if (!existing) return;
+  saveHostCredentials({ ...existing, memberToken });
+}
+
+export function clearHostCredentials(groupOrderId: string): void {
+  const all = readAll();
+  delete all[groupOrderId];
+  writeAll(all);
+}
+```
+
+- [ ] **Step 4: Wire the composable**
+
+Extend the `createGroup` written in Task 1 to stop discarding `recoveryCode`, add rehydration, and add `recoverHost`:
+
+```typescript
+const hostRecoveryCode = ref<string | null>(null);
+
+// --- inside createGroup, replacing Task 1's destructure ---
+const { groupOrderId, shareCode, expiresAt, host, memberToken, recoveryCode } =
+  response.data.data;
+sessionToken = memberToken;
+saveHostCredentials({ groupOrderId, memberToken, recoveryCode });
+// Populated only in the session that created the group. Any later visit reads
+// it from storage on explicit request (Step 5), never automatically.
+hostRecoveryCode.value = recoveryCode;
+
+// --- inside fetchGroupOrder, before returning ---
+if (!sessionToken) {
+  const stored = readHostCredentials(groupOrderId);
+  if (stored) sessionToken = stored.memberToken;
+}
+
+async function recoverHost(groupOrderId: string, recoveryCode: string) {
+  const normalized = recoveryCode.trim().toLowerCase();
+  const response = await apiClient.post(`/orders/group/${groupOrderId}/recover`, {
+    recoveryCode: normalized,
+  });
+  sessionToken = response.data.data.memberToken;
+  saveHostCredentials({
+    groupOrderId,
+    memberToken: sessionToken,
+    recoveryCode: normalized,
+  });
+  await fetchGroupOrder(groupOrderId);
+  // The server rebound the creator row to a new sessionId, so any socket
+  // authorised with the old token is now invalid — reconnect, don't reuse.
+  disconnectRealtime();
+  await connectRealtime();
+}
+
+function hasStoredHostSession(groupOrderId: string): boolean {
+  return readHostCredentials(groupOrderId) !== null;
+}
+```
+
+Normalising to lowercase is safe and worth doing: the backend generates the code with `randomUUID()`, which always emits lowercase hex, and compares with an exact `eq()`. A code pasted from a screenshot or an autocapitalising mobile keyboard would otherwise fail against a code that is actually correct — and each failure costs one of only five attempts.
+
+Return `recoverHost`, `hostRecoveryCode`, and `hasStoredHostSession` from `useGroupOrder()`.
+
+- [ ] **Step 5: Implement `HostRecoveryPanel.vue` and wire it into `GroupOrderView.vue`**
+
+Two responsibilities in one component, selected by whether this device already holds credentials for the group order:
+
+1. **Host, credentials present** — a collapsed "顯示恢復碼" control that reveals the code with a copy-to-clipboard button and a plain warning that it is the only way back in from another device, and must not be shared with members. Collapsed by default: this runs on phones at a shared table, and a recovery code left on screen is a recovery code anyone at the table can photograph.
+2. **No credentials for this group order** — a "我是主辦人，恢復控制權" entry that takes the code and calls `recoverHost`.
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue";
+import { useGroupOrder } from "@/composables/useGroupOrder";
+import { readHostCredentials } from "@/utils/groupOrderHost";
+
+const props = defineProps<{ groupOrderId: string }>();
+const { recoverHost } = useGroupOrder();
+
+const stored = ref(readHostCredentials(props.groupOrderId));
+const revealed = ref(false);
+const input = ref("");
+const submitting = ref(false);
+const errorMessage = ref("");
+
+async function submit() {
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await recoverHost(props.groupOrderId, input.value);
+    stored.value = readHostCredentials(props.groupOrderId);
+  } catch (error: unknown) {
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    errorMessage.value =
+      status === 429
+        ? "嘗試次數過多，請等 15 分鐘後再試"
+        : status === 400
+          ? "恢復碼不正確"
+          : "恢復失敗，請稍後再試";
+  } finally {
+    submitting.value = false;
+  }
+}
+</script>
+
+<template>
+  <div v-if="stored">
+    <button
+      v-if="!revealed"
+      data-testid="reveal-recovery-code"
+      @click="revealed = true"
+    >
+      顯示恢復碼
+    </button>
+    <div v-else data-testid="recovery-code-value">
+      {{ stored.recoveryCode }}
+      <p>換裝置時需要這組碼才能取回主辦權，請自行保存，不要傳給其他成員。</p>
+    </div>
+  </div>
+  <div v-else>
+    <label for="recovery-code-input">我是主辦人，恢復控制權</label>
+    <input
+      id="recovery-code-input"
+      v-model="input"
+      data-testid="recovery-code-input"
+      autocomplete="off"
+    />
+    <button
+      data-testid="recovery-submit"
+      :disabled="submitting || !input.trim()"
+      @click="submit"
+    >
+      恢復
+    </button>
+    <p v-if="errorMessage" data-testid="recovery-error">{{ errorMessage }}</p>
+  </div>
+</template>
+```
+
+The `429` branch is not defensive padding. `/recover` sits behind `strictRateLimit` — **5 attempts per 15 minutes**, the tightest limit in the codebase — and the code is a 36-character UUID. A host who mistypes it a few times will be locked out, and a generic "recovery failed" message would leave them retrying into a wall. Distinguishing the two states is the difference between a recoverable and an unrecoverable experience.
+
+Mount it in `GroupOrderView.vue` alongside `GroupCartPanel`, passing `:group-order-id="props.groupOrderId"`.
+
+Component test (`HostRecoveryPanel.test.ts`) must cover: the code is not rendered until the reveal control is tapped; a `400` renders the wrong-code message; a `429` renders the 15-minute message; and the panel renders the recovery *input* (not the code) when storage holds nothing for that group order.
+
+- [ ] **Step 6: Run tests to verify they pass**
+
+Run: `pnpm --filter customer-app exec vitest run src/utils/groupOrderHost.test.ts src/composables/useGroupOrder.test.ts src/components/group/HostRecoveryPanel.test.ts`
+Expected: PASS
+
+- [ ] **Step 7: Typecheck and a real two-context smoke test**
+
+Run: `pnpm --filter customer-app typecheck`
+
+Then prove the mechanism end to end — a single-browser check cannot, because the failure it guards against is losing the device:
+
+1. In browser context A, create a group order. Confirm the recovery code is revealed only after tapping the control, and copy it.
+2. Refresh A. The host session must survive **without** using the recovery code — that is the rehydration path, and if it fails here the recovery flow is being asked to do a job persistence should have done.
+3. Open a private window B on the same group order URL. It must show the recovery *input*, not the code.
+4. Recover in B with the copied code. B becomes the host.
+5. Back in A, attempt a cart mutation. It must now fail — Phase A's `recoverHost` rebinds the creator row to a new `sessionId`, so A's token is dead. Confirm the app surfaces this as a clear "session no longer valid" state rather than a silent no-op.
+
+Step 5 is the one most likely to expose a gap, because nothing in Tasks 1-3 handles an invalidated `memberToken`. If A fails silently, add the handling here rather than deferring it.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add apps/customer-app/src/utils/groupOrderHost.ts \
+  apps/customer-app/src/utils/groupOrderHost.test.ts \
+  apps/customer-app/src/components/group/HostRecoveryPanel.vue \
+  apps/customer-app/src/components/group/HostRecoveryPanel.test.ts \
+  apps/customer-app/src/composables/useGroupOrder.ts \
+  apps/customer-app/src/composables/useGroupOrder.test.ts \
+  apps/customer-app/src/views/GroupOrderView.vue
+git commit -m "feat(customer-app): persist and recover group-order host credentials"
+```
+
+---
+
 ## Self-review notes
 
-- **Spec coverage:** design decision 2 (join preview before entering the cart, Task 3), the realtime sync half of the "collaborative cart" section (Tasks 1-2). Decision 4's "same shareCode for URL and manual entry" is already satisfied by Phase A's backend; this phase only needed to make the URL path actually load something.
+- **Spec coverage:** design decision 2 (join preview before entering the cart, Task 3), decision 3 (host recovery — Task 4 gives Phase A's backend its first and only consumer), the realtime sync half of the "collaborative cart" section (Tasks 1-2). Decision 4's "same shareCode for URL and manual entry" is already satisfied by Phase A's backend; this phase only needed to make the URL path actually load something.
 - **Placeholder scan:** Task 3's `GroupOrderJoinView.vue` skeleton is explicitly flagged as functional-not-final and the `router.push` placeholder is called out with an explicit fix-it instruction in Step 5, not left as a silent gap.
 - **Type consistency:** `GroupCartItem`/`GroupMember`/`SplitBillConfig`/`GroupOrder` are defined once (pre-existing, unchanged) and every mapping function in Tasks 1-2 targets those exact shapes; `GroupOrderView.vue`'s props to `GroupCartPanel` match that component's existing `Props` interface read directly from its source.
 - **Known gap carried forward, not silently dropped:** `submitOrder()` is a hard-fail stub in this phase (Task 1, Step 3) — Phase C must replace it with a real call to the new finalize endpoint; this is the explicit handoff point between the two plans.
+- **Open question raised, not silently resolved:** a 36-character UUID recovery code paired with `strictRateLimit`'s 5-attempts-per-15-minutes is a poor combination for anything hand-entered. Task 4 mitigates it on the client (copy-to-clipboard as the primary path, lowercase normalisation, an explicit 429 message) but cannot fix the underlying pairing. The two real fixes both live on the backend and belong to a later phase, not here: either issue a shorter human-enterable code alongside the UUID, or give `/recover` its own limit between `strictRateLimit` (5) and `authRateLimit` (20). **Do not change Phase A's schema or rate limit as part of this phase** — surface the trade-off and let it be decided deliberately.
+- **Secret handling:** `recoveryCode` is written to exactly one place (`utils/groupOrderHost.ts`), rendered in exactly one place behind an explicit reveal (`HostRecoveryPanel.vue`), and asserted to be absent from the share link by a dedicated test in Task 4, Step 1. It never enters a route param, query string, QR payload, or log line — see Global Constraints.
