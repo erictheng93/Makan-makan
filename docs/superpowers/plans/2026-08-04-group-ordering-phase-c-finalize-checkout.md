@@ -16,6 +16,21 @@
 - `SelectedCustomizations` (real orders) and `CartItemCustomizations` (group cart items) are structurally different types (confirmed 2026-08-04: `modifiers`/`addOns`/`removedIngredients`/`size: string` vs `size: {id,name,priceAdjustment}`/`options[]`/`addOns[]` with a different shape). This phase does **not** attempt automatic translation between them — silently mistranslating a customization is worse than dropping it. `specialInstructions` carries through as `notes`; `customizations` is intentionally omitted on the finalized order line items, flagged in "Out of scope" below, not silently papered over.
 - Tests: local builders, verify mock calls with `objectContaining`, no CSS assertions — matching every other task in this plan set.
 
+## Release binding — Task 5 is tied to Phase B (decided 2026-08-05)
+
+This phase splits across the deployment boundary, and the two halves ship differently:
+
+| | ships when | why |
+| --- | --- | --- |
+| **Tasks 1-4** (API: `GroupOrderStatus` fix, `finalizeGroupOrder`, `/lock` route, expiry cron) | **independently, and first** | a finalize endpoint with no caller is inert, and landing the cron early makes the riskiest piece of this plan observable before anything depends on it |
+| **Task 5** (customer-app: wire `submitOrder()`) | **with all of Phase B, on one integration branch, one Pages deploy** | Phase B makes group ordering reachable while `submitOrder()` is a throwing stub; shipping that to users without Task 5 means a table can build a shared cart and then find they cannot order |
+
+So the sequence is: Tasks 1-4 → `main` → deploy API. Then Phase B's four tasks and this phase's Task 5 accumulate on a shared integration branch (e.g. `feat/group-ordering-cart-checkout`) and merge as one.
+
+Task 5 must not be started before Tasks 1-4 are merged — it calls the endpoint Task 3 creates.
+
+One consequence worth stating plainly: **Task 4's cron will be live in production before any user can reach a group order.** That is deliberate and safe — with no group orders being created through the UI there is nothing for the sweep to act on — but it also means the cron's first real exercise happens the moment Phase B ships. Treat the combined B+C-Task-5 release as the point where Task 4 needs monitoring, not the API deploy that merely introduced it.
+
 ---
 
 ## Current code this phase touches (verified 2026-08-04)

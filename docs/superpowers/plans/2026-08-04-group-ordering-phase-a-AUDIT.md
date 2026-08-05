@@ -276,7 +276,16 @@ Plan B 的 grounding 較口頭摘要更精確：明載 create/join/detail 三個
 
    實作時額外注意兩點：(a) `/recover` 的 `strictRateLimit` 是 15 分鐘 5 次，配上 36 字元 UUID 手動輸入極易鎖死，Plan B 已要求 429 與 400 分開提示，但根本解（較短的可輸入碼，或給該端點單獨的限制值）屬 Phase A 的 schema／設定決策，已列為 Plan B 的 open question，不在 Phase B 內逕行更動；(b) 復原成功後舊裝置的 `memberToken` 會失效，Tasks 1-3 沒有處理 token 失效的狀態，Plan B Task 4 Step 7 的雙情境煙霧測試第 5 步就是為了逼出這個缺口。
 
-2. **Plan B 單獨上線會形成死路。** B Task 1 Step 3 將 `submitOrder` 留為拋錯 stub，實際接線在 C Task 5。B 若先上 production，使用者可建立群組與購物車但無法送出。建議 B 與 C 綁定發布，或 B 的 UI 在 C 落地前隱藏送出入口。
+2. ~~**Plan B 單獨上線會形成死路。**~~ **已於 2026-08-05 決議並寫入 B/C 兩份 plan 的「Release binding」章節。** 原始發現：B Task 1 Step 3 將 `submitOrder` 留為拋錯 stub，實際接線在 C Task 5；B 若先上 production，使用者可建立群組與購物車但無法送出。
+
+   決議：**綁定發布，但綁定範圍縮小到前端**。評估時確認 customer-app 無 feature flag 機制、router 亦無條件式路由前例，為此新造一套 flag 基礎設施不划算，故採整合分支。Phase C 的 Task 1-4 是純後端，一個沒有呼叫方的端點是惰性的，可獨立先行合併並部署；真正會造成死路的組合只有「customer-app 帶著 B 但沒有 C Task 5」。
+
+   | 範圍 | 發布方式 |
+   | --- | --- |
+   | C Task 1-4（API：finalize service、`/lock`、expiry cron） | 獨立先行，正常部署 |
+   | B Task 1-4 + C Task 5（customer-app） | 同一整合分支、單次合併、單次 Pages 部署 |
+
+   附帶結論：C Task 4 的 cron 會在任何使用者能碰到團購單之前就已上線。這是安全的（沒有團購單可掃），但代表它的第一次真實運作發生在 B+C-Task-5 那次發布，監控重點應放在該次發布而非引入 cron 的 API 部署。
 
 3. **建議延後 Plan D。** 278 行（B/C 為 699/853）。其自陳 `"proportional"` 在現有輸入下與 `"individual"` 產生相同數字，因系統尚無「共同分攤的固定費用」。D Task 1 將交付一個無可觀察行為差異的分支，難以有意義地測試或驗證正確性。Phase A 剛上線 `fulfillmentType: "delivery"` + `deliveryAddress`，外送費是自然的下一步，且應排在 Plan D **之前**。
 

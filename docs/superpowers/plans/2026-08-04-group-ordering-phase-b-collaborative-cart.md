@@ -17,6 +17,25 @@
 - `memberToken` and `recoveryCode` both persist client-side, but they solve different failures: `memberToken` survives a page refresh, `recoveryCode` survives losing the device. Because both live in the same `localStorage`, storage loss takes both — which is exactly why the recovery code must also be **displayed to the host at creation** so it can be saved outside the browser. A recovery code that only ever exists in the storage it is meant to recover from is not a recovery mechanism.
 - Follow existing test conventions: local builders, `data-testid`/text-content assertions (never CSS class assertions), verify mock calls with `toHaveBeenCalledWith(expect.objectContaining(...))`.
 
+## Release binding — Phase B does not ship alone (decided 2026-08-05)
+
+Phase B makes group ordering reachable for the first time (Task 3 adds the `/group/:shareCode` routes) while `submitOrder()` is still a hard-fail stub until Phase C Task 5. A customer-app deployment carrying B without C Task 5 would let a table build a shared cart and then discover they cannot order. **That combination must never reach production.**
+
+The binding is narrower than "B and C merge together", because Phase C splits cleanly across the boundary:
+
+| | ships when | why |
+| --- | --- | --- |
+| Phase C Tasks 1-4 (API: finalize service, `/lock` route, expiry cron) | **independently, and first** | a new endpoint with no caller is inert; landing the cron early makes the riskiest piece observable before anything depends on it |
+| Phase B Tasks 1-4 + Phase C Task 5 (customer-app) | **one integration branch, one merge, one Pages deploy** | this is the only pairing that is actually user-visible |
+
+Practical shape:
+
+1. Phase C Tasks 1-4 go to `main` on their own branch and deploy to the API normally.
+2. Phase B's four tasks and Phase C Task 5 commit to a shared integration branch (e.g. `feat/group-ordering-cart-checkout`), keeping their per-task commits. Only that branch opens a PR to `main`.
+3. Rebase that branch on `main` regularly. It touches `useGroupOrder.ts` and `router/index.ts`, both of which other work lands in.
+
+Because the stub never reaches a user, Phase B does **not** need to hide the submit entry point or ship a placeholder "coming soon" state — the throwing stub stays exactly as Task 1 Step 3 defines it, as an internal intermediate state between two tasks on the same branch.
+
 ---
 
 ## Current code this phase touches (verified 2026-08-04)
