@@ -182,6 +182,27 @@ F-1 ~ F-13 全數達標。四個分支的定額費用分攤都有非零測試（
 - [ ] **G-8** finalize 成功後 `masterOrderId` 已寫入，且 `status` 的最終值與 `processPayment` 既有的收斂邏輯不衝突（plan Task 1 Step 3 有註記，驗收要看到證明兩者收斂到相同狀態的測試）。
 - [ ] **G-9（自 Gate F 帶入）** `splitBill` 回傳 `SPLIT_TOTAL_MISMATCH` 時，真實訂單**已經建立**。finalize 必須對此有明確處置並有測試：不得回報成功、不得靜默吞掉、且需留下足以人工介入的紀錄（至少 `masterOrderId` 與兩邊金額）。同時要決定 `group_orders.status` 停在哪個狀態 — 訂單已成立但分帳未產生，這個中間狀態目前的 union 沒有對應值，若需要新增則回到 Gate E 的型別收斂一併處理。
 
+### Gate G 稽核結果（2026-08-06）：**通過**
+
+實作 commit `b013a80b`（使用者實作，稽核方獨立驗證）。稽核方重跑：74 tests passed、typecheck、lint 皆通過。
+
+G-1 ~ G-9 全數達標。特別確認：
+
+- **G-3 是真正的互斥**，不只是事後補救。`active -> finalizing` 用 conditional update + `.returning()` 做原子 CAS，`claimedRows.length === 0` 判定搶輸；搶輸方若發現 `masterOrderId` 已存在則收斂為成功並回傳既有訂單。這比 plan 要求的更紮實。
+- **失敗時會釋放 claim**，且釋放條件為 `status = 'finalizing' AND masterOrderId IS NULL` — 訂單已建立時不會誤放回 `active`。
+- **G-5 有明確斷言** `not.toHaveProperty("customizations")`，而非僅靠註解。
+- **G-6 結論**：不使用 `this.db.session.client`，改以建構子收到的 raw `D1Database` 建立 `OrderService`。符合 plan 的指示。
+- **G-9**：新增 `finalizing_failed`，保留 `masterOrderId`，人工介入資料寫入 `settings.finalizeFailure`，並排除於到期掃描之外。
+
+**兩項發現（皆不阻斷）**
+
+1. **`finalizeFailure` 不存在於 `GroupOrderSettings` 型別中**，因此寫入時用了 `as unknown as GroupOrderSettings`。這與 Gate E 的 E-2b 是同一類問題：G-9 要求的人工介入資料，存在一個型別系統看不見的欄位裡 — 無法被發現、無法被安全讀取、重構時不會有任何保護。應加入 `packages/shared-types/src/schema-json-types.ts` 的 `GroupOrderSettings`，斷言即可移除。
+2. **`finalizing` 有殭屍風險。** claim 之後若 isolate 被逾時或驅逐而未進到 catch，狀態會永久停在 `finalizing`：到期掃描只查 `["active","checkout"]` 不會處理它，而 `finalizeGroupOrder` 對 `finalizing` 一律回「已在處理中」。沒有任何回收路徑，且觸發條件只是逾時而非資料錯誤。建議在 Stage 4 的 cron 加入陳舊 claim 回收（例如 `finalizing` 且 `lockedAt` 早於 N 分鐘且 `masterOrderId IS NULL` → 放回 `active`），這比留給人工處理更合適。
+
+**帶往 Stage 5 的注意事項**：Plan B 的 `mapBackendStatus` 目前只映射 `active/checkout/completed/cancelled`，其餘落到預設值 `"open"`。新增的兩個狀態會被顯示成可編輯的購物車 — finalize 進行中或已失敗時，使用者會看到還能改單。Stage 5 實作 Plan B Task 1 時必須一併處理。
+
+---
+
 ## Stage 4：對外介面（C Task 3-4）→ API 部署
 
 - [ ] **H-1** `POST /orders/group/:groupOrderId/lock` 只有**主辦人**可呼叫。guest 主辦以 `memberToken` 驗證，不是靠 JWT — Phase A 之後主辦人可能根本沒有帳號。這條若做錯，任何成員都能替全桌送出訂單。
@@ -191,6 +212,7 @@ F-1 ~ F-13 全數達標。四個分支的定額費用分攤都有非零測試（
 - [ ] **H-5** **cron 重疊執行不會重複送單** — 這是全套最高風險處，會產生真實金額的訂單。需要證明兩次重疊的 sweep 只產生一張訂單的測試（`clientMutationId` 若以群組單 id 衍生即具備，但要有測試證明它確實生效）。
 - [ ] **H-6** 5 分鐘警告不會重複發送；cron 每次執行都重發等同對顧客洗版。
 - [ ] **H-7** cron 運算式已登記於 `apps/api/wrangler.toml` 的 `[triggers] crons`，且 `scheduled` handler 的 `cronMatches` 分派**逐字比對**運算式字串（Phase A 的 Rust refactor 稽核已踩過這個坑）。
+- [ ] **H-10（自 Gate G 帶入）** cron 回收陳舊的 `finalizing` claim：`status = 'finalizing'` 且 `masterOrderId IS NULL` 且 `lockedAt` 早於一個明確的門檻時，放回 `active`。Stage 3 的 claim 只在正常錯誤路徑釋放，isolate 逾時或被驅逐時狀態會永久卡在 `finalizing`，而到期掃描的 `["active","checkout"]` 查詢碰不到它，`finalizeGroupOrder` 也會一律拒絕 — 沒有回收路徑。門檻需大於 finalize 的最壞執行時間，並需有測試證明「仍在進行中的 claim 不會被誤回收」。`finalizing_failed` **不**在回收範圍內，那是刻意保留給人工處理的終態。
 - [ ] **H-8** `pnpm --filter @makanmakan/api test` 全綠、typecheck、lint 通過。
 - [ ] **H-9** 部署後確認 cron 已在 Cloudflare 註冊，且首次執行沒有錯誤 — 此時尚無群組單可掃，屬預期的空轉。
 
