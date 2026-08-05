@@ -130,6 +130,52 @@ const hostMember = {
   leftAt: null,
 };
 
+const secondMember = { ...hostMember, id: "member-2", role: "member" };
+const thirdMember = { ...hostMember, id: "member-3", role: "member" };
+
+function cartItem(
+  id: string,
+  memberId: string,
+  totalPriceCents: number,
+  quantity = 1,
+) {
+  return {
+    id,
+    groupOrderId: "group-1",
+    memberId,
+    menuItemId: Number(id.replace(/\D/g, "")) || 10,
+    quantity,
+    unitPriceCents: Math.round(totalPriceCents / quantity),
+    totalPriceCents,
+    status: "active",
+    customizations: {},
+  };
+}
+
+function createSplitDb({
+  members,
+  items = [],
+  existingBills = [],
+}: {
+  members: unknown[];
+  items?: unknown[];
+  existingBills?: unknown[][];
+}) {
+  return createDb([
+    [baseGroupOrder],
+    members,
+    items,
+    ...members.map((_, index) => existingBills[index] ?? []),
+  ]);
+}
+
+function totalCents(result: { totalAmount: number }[]) {
+  return result.reduce(
+    (sum, bill) => sum + Math.round(bill.totalAmount * 100),
+    0,
+  );
+}
+
 describe("GroupOrdersService formatting and cache behavior", () => {
   beforeEach(() => {
     uuidState.next = 1;
@@ -643,6 +689,40 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       "formatGroupOrder",
       expect.any(Error),
       expect.objectContaining({ groupOrderId: "go-1", status: "ordering" }),
+    );
+  });
+
+  it("narrows raw statuses returned by list and join preview endpoints", async () => {
+    const service = createService();
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+    service.db = createDb([
+      [{ ...baseGroupOrder, status: "ordering" }],
+      [hostMember],
+      [],
+    ]);
+
+    await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([
+      expect.objectContaining({ id: "group-1", status: "active" }),
+    ]);
+
+    const previewService = createService();
+    previewService.errorTracker = { ...previewService.errorTracker, logError };
+    previewService.db = createDb([
+      [{ ...baseGroupOrder, status: "ordering" }],
+      [hostMember],
+    ]);
+
+    await expect(
+      previewService.previewGroupByShareCode("ABC12345"),
+    ).resolves.toEqual({
+      found: true,
+      data: expect.objectContaining({ status: "active" }),
+    });
+    expect(logError).toHaveBeenCalledWith(
+      "formatGroupOrder",
+      expect.any(Error),
+      expect.objectContaining({ groupOrderId: "group-1", status: "ordering" }),
     );
   });
 
@@ -1242,6 +1322,452 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         service.splitBill("group-1", guard.body ?? { splitType: "equal" }),
       ).resolves.toEqual({ success: false, error: guard.error });
     }
+  });
+
+  it.each([
+    {
+      splitType: "individual",
+      expected: [
+        {
+          memberId: "member-1",
+          subtotal: 10,
+          serviceCharge: 2,
+          taxAmount: 1,
+          totalAmount: 13,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 20,
+          serviceCharge: 4,
+          taxAmount: 2,
+          totalAmount: 26,
+        },
+      ],
+    },
+    {
+      splitType: "proportional",
+      expected: [
+        {
+          memberId: "member-1",
+          subtotal: 10,
+          serviceCharge: 2,
+          taxAmount: 1,
+          totalAmount: 13,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 20,
+          serviceCharge: 4,
+          taxAmount: 2,
+          totalAmount: 26,
+        },
+      ],
+    },
+    {
+      splitType: "equal",
+      expected: [
+        {
+          memberId: "member-1",
+          subtotal: 15,
+          serviceCharge: 3,
+          taxAmount: 1.5,
+          totalAmount: 19.5,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 15,
+          serviceCharge: 3,
+          taxAmount: 1.5,
+          totalAmount: 19.5,
+        },
+      ],
+    },
+  ])(
+    "allocates non-zero shared fees for $splitType split",
+    async ({ splitType, expected }) => {
+      const service = createService();
+      const db = createSplitDb({
+        members: [hostMember, secondMember],
+        items: [
+          cartItem("cart-1", "member-1", 1000),
+          cartItem("cart-2", "member-2", 2000),
+        ],
+      });
+      service.db = db;
+
+      await expect(
+        service.splitBill("group-1", {
+          splitType,
+          sharedServiceChargeCents: 600,
+          sharedTaxCents: 300,
+          orderTotalCents: 3900,
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: expected,
+      });
+      expect(db.updates[0].payload).toMatchObject({
+        finalAmountCents: 3900,
+        serviceChargeCents: 600,
+        taxAmountCents: 300,
+      });
+    },
+  );
+
+  it("allocates non-zero shared fees for custom split by custom amount ratio", async () => {
+    const service = createService();
+    const db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    service.db = db;
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "custom",
+        customAmounts: [
+          { memberId: "member-1", amount: 5 },
+          { memberId: "member-2", amount: 25 },
+        ],
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        {
+          memberId: "member-1",
+          subtotal: 5,
+          serviceCharge: 1,
+          taxAmount: 0.5,
+          totalAmount: 6.5,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 25,
+          serviceCharge: 5,
+          taxAmount: 2.5,
+          totalAmount: 32.5,
+        },
+      ],
+    });
+  });
+
+  it("falls back to per-head shared fee allocation when ratio totals are zero", async () => {
+    const emptyCartService = createService();
+    emptyCartService.db = createSplitDb({
+      members: [hostMember, secondMember],
+    });
+
+    await expect(
+      emptyCartService.splitBill("group-1", {
+        splitType: "proportional",
+        sharedServiceChargeCents: 100,
+        sharedTaxCents: 100,
+        orderTotalCents: 200,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        {
+          memberId: "member-1",
+          subtotal: 0,
+          serviceCharge: 0.5,
+          taxAmount: 0.5,
+          totalAmount: 1,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 0,
+          serviceCharge: 0.5,
+          taxAmount: 0.5,
+          totalAmount: 1,
+        },
+      ],
+    });
+
+    const zeroCustomService = createService();
+    zeroCustomService.db = createSplitDb({
+      members: [hostMember, secondMember],
+    });
+
+    await expect(
+      zeroCustomService.splitBill("group-1", {
+        splitType: "custom",
+        customAmounts: [
+          { memberId: "member-1", amount: 0 },
+          { memberId: "member-2", amount: 0 },
+        ],
+        sharedServiceChargeCents: 100,
+        sharedTaxCents: 100,
+        orderTotalCents: 200,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        { memberId: "member-1", totalAmount: 1 },
+        { memberId: "member-2", totalAmount: 1 },
+      ],
+    });
+  });
+
+  it("keeps proportional and individual equivalent while there are no fixed shared fees", async () => {
+    const individualService = createService();
+    individualService.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    const individual = await individualService.splitBill("group-1", {
+      splitType: "individual",
+      serviceChargeRate: 10,
+      taxRate: 5,
+    });
+
+    const proportionalService = createService();
+    proportionalService.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    const proportional = await proportionalService.splitBill("group-1", {
+      splitType: "proportional",
+      serviceChargeRate: 10,
+      taxRate: 5,
+    });
+
+    // Tripwire: this equivalence only holds while there are no fixed shared
+    // fees such as delivery fees. Adding one requires extending the formula.
+    expect(proportional.data).toEqual(individual.data);
+  });
+
+  it.each([
+    {
+      name: "three people evenly split $100",
+      members: [hostMember, secondMember, thirdMember],
+      items: [cartItem("cart-1", "member-1", 10000)],
+      expectedTotalCents: 10000,
+    },
+    {
+      name: "two people evenly split $0.01",
+      members: [hostMember, secondMember],
+      items: [cartItem("cart-1", "member-1", 1)],
+      expectedTotalCents: 1,
+    },
+    {
+      name: "member count greater than total cents",
+      members: [hostMember, secondMember, thirdMember],
+      items: [cartItem("cart-1", "member-1", 2)],
+      expectedTotalCents: 2,
+    },
+  ])("reconciles rounding remainders for $name", async (scenario) => {
+    const service = createService();
+    const db = createSplitDb({
+      members: scenario.members,
+      items: scenario.items,
+    });
+    service.db = db;
+
+    const result = await service.splitBill("group-1", {
+      splitType: "equal",
+    });
+
+    expect(result.success).toBe(true);
+    expect(totalCents(result.data)).toBe(scenario.expectedTotalCents);
+    expect(
+      db.inserts
+        .filter((insert) => "totalAmountCents" in (insert.payload as object))
+        .reduce(
+          (sum, insert) =>
+            sum +
+            (insert.payload as { totalAmountCents: number }).totalAmountCents,
+          0,
+        ),
+    ).toBe(scenario.expectedTotalCents);
+  });
+
+  it("applies positive and negative rounding remainders to the creator member", async () => {
+    const positiveService = createService();
+    positiveService.db = createSplitDb({
+      members: [hostMember, secondMember, thirdMember],
+    });
+    const positive = await positiveService.splitBill("group-1", {
+      splitType: "equal",
+      sharedTaxCents: 10000,
+      orderTotalCents: 10000,
+    });
+    expect(positive.data.find((bill) => bill.memberId === "member-1")).toEqual(
+      expect.objectContaining({ totalAmount: 33.34 }),
+    );
+
+    const negativeService = createService();
+    negativeService.db = createSplitDb({
+      members: [hostMember, secondMember],
+    });
+    const negative = await negativeService.splitBill("group-1", {
+      splitType: "equal",
+      sharedTaxCents: 1,
+      orderTotalCents: 1,
+    });
+    expect(negative.data.find((bill) => bill.memberId === "member-1")).toEqual(
+      expect.objectContaining({ totalAmount: 0 }),
+    );
+  });
+
+  it("uses the external order total as the reconciliation baseline", async () => {
+    const service = createService();
+    const db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    service.db = db;
+
+    const result = await service.splitBill("group-1", {
+      splitType: "proportional",
+      sharedServiceChargeCents: 600,
+      sharedTaxCents: 301,
+      orderTotalCents: 3901,
+    });
+
+    expect(result.success).toBe(true);
+    expect(totalCents(result.data)).toBe(3901);
+    expect(db.updates[0].payload).toMatchObject({ finalAmountCents: 3901 });
+  });
+
+  it("rejects reconciliation mismatches beyond one cent per member", async () => {
+    const service = createService();
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+    service.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "proportional",
+        orderTotalCents: 3900,
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Split total does not match order total",
+    });
+    expect(logError).toHaveBeenCalledWith(
+      "splitBill",
+      expect.any(Error),
+      expect.objectContaining({
+        code: "SPLIT_TOTAL_MISMATCH",
+        expectedTotalCents: 3900,
+      }),
+    );
+  });
+
+  it("uses absolute shared cents instead of rates when both are provided", async () => {
+    const service = createService();
+    service.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "individual",
+        serviceChargeRate: 100,
+        taxRate: 100,
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        { memberId: "member-1", serviceCharge: 2, taxAmount: 1 },
+        { memberId: "member-2", serviceCharge: 4, taxAmount: 2 },
+      ],
+    });
+  });
+
+  describe("processPayment — Plan A manual settlement", () => {
+    it("marks a member's split bill paid with paymentMethod cash and no real gateway involved", async () => {
+      const service = createService();
+      const db = createDb([
+        [{ ...baseGroupOrder, status: "checkout" }],
+        [hostMember],
+        [
+          {
+            id: "split-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmountCents: 3300,
+            paymentStatus: "pending",
+          },
+        ],
+        [{ count: 1 }],
+      ]);
+      service.db = db;
+
+      await expect(
+        service.processPayment("group-1", "member-1", {
+          paymentMethod: "cash",
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: { paymentMethod: "cash", amount: 33 },
+      });
+      expect(db.updates[0].payload).toMatchObject({
+        paymentStatus: "paid",
+        paymentMethod: "cash",
+      });
+      expect(db.updates).toHaveLength(1);
+    });
+
+    it("flips the group order to completed once every member's split bill is paid", async () => {
+      const service = createService();
+      const db = createDb([
+        [{ ...baseGroupOrder, status: "checkout" }],
+        [hostMember],
+        [
+          {
+            id: "split-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmountCents: 3300,
+            paymentStatus: "pending",
+          },
+        ],
+        [{ count: 0 }],
+      ]);
+      service.db = db;
+
+      await expect(
+        service.processPayment("group-1", "member-1", {
+          paymentMethod: "cash",
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: { groupOrderStatus: "completed" },
+      });
+      expect(db.updates[1].payload).toMatchObject({
+        status: "completed",
+      });
+    });
   });
 
   it("validates payment guards and leaves checkout open while others owe", async () => {

@@ -144,7 +144,7 @@ interface GroupOrderListItem {
   shareCode: string;
   masterOrderId: string | null;
   tableNumber: string | null;
-  status: string;
+  status: GroupOrderStatus;
   hostName: string;
   memberCount: number;
   totalAmount: number;
@@ -237,7 +237,7 @@ export class GroupOrdersService implements IGroupOrderService {
           masterOrderId: null,
           tableNumber:
             settings?.tableNumber || (row.tableId ? String(row.tableId) : null),
-          status: row.status,
+          status: this.narrowStatus(row.status, row.id),
           hostName:
             memberRows.find((m) => m.role === "creator")?.name || "Host",
           memberCount: memberRows.length,
@@ -441,7 +441,7 @@ export class GroupOrdersService implements IGroupOrderService {
           memberCount: memberRows.length,
           fulfillmentType: settings.fulfillmentType || "dine_in",
           expiresAt: groupOrder.expiresAt,
-          status: groupOrder.status,
+          status: this.narrowStatus(groupOrder.status, groupOrder.id),
         },
       };
     } catch (error) {
@@ -1116,15 +1116,59 @@ export class GroupOrdersService implements IGroupOrderService {
         0,
       );
 
-      const serviceChargeRate = splitData.serviceChargeRate || 0;
-      const taxRate = splitData.taxRate || 0;
+      const hasSharedAmounts =
+        splitData.sharedServiceChargeCents !== undefined ||
+        splitData.sharedTaxCents !== undefined;
+      const sharedServiceCharge = hasSharedAmounts
+        ? fromCents(splitData.sharedServiceChargeCents ?? 0)
+        : 0;
+      const sharedTax = hasSharedAmounts
+        ? fromCents(splitData.sharedTaxCents ?? 0)
+        : 0;
+      const serviceChargeRate = hasSharedAmounts
+        ? 0
+        : (splitData.serviceChargeRate ?? 0);
+      const taxRate = hasSharedAmounts ? 0 : (splitData.taxRate ?? 0);
 
       const splitBillsData: SplitBillData[] = [];
+      const allocateSharedAmount = (
+        amount: number,
+        baseAmount: number,
+        totalBaseAmount: number,
+      ) =>
+        totalBaseAmount > 0
+          ? (amount * baseAmount) / totalBaseAmount
+          : amount / members.length;
+      const calculateCharges = (
+        subtotal: number,
+        baseAmount: number,
+        totalBaseAmount: number,
+      ) => {
+        if (hasSharedAmounts) {
+          return {
+            serviceCharge: allocateSharedAmount(
+              sharedServiceCharge,
+              baseAmount,
+              totalBaseAmount,
+            ),
+            taxAmount: allocateSharedAmount(
+              sharedTax,
+              baseAmount,
+              totalBaseAmount,
+            ),
+          };
+        }
+
+        const serviceCharge = (subtotal * serviceChargeRate) / 100;
+        const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+        return { serviceCharge, taxAmount };
+      };
 
       // Calculate splits based on splitType
       if (
         splitData.splitType === "by_item" ||
-        splitData.splitType === "individual"
+        splitData.splitType === "individual" ||
+        splitData.splitType === "proportional"
       ) {
         // Each member pays for their own items
         for (const member of members) {
@@ -1135,8 +1179,11 @@ export class GroupOrdersService implements IGroupOrderService {
             (sum, item) => sum + cartItemTotalAmount(item),
             0,
           );
-          const serviceCharge = (subtotal * serviceChargeRate) / 100;
-          const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+          const { serviceCharge, taxAmount } = calculateCharges(
+            subtotal,
+            subtotal,
+            totalCartAmount,
+          );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
           splitBillsData.push({
@@ -1159,10 +1206,10 @@ export class GroupOrdersService implements IGroupOrderService {
         // Split equally among all members
         const memberCount = members.length;
         const subtotalPerMember = totalCartAmount / memberCount;
-        const serviceChargePerMember =
-          (subtotalPerMember * serviceChargeRate) / 100;
-        const taxPerMember =
-          ((subtotalPerMember + serviceChargePerMember) * taxRate) / 100;
+        const {
+          serviceCharge: serviceChargePerMember,
+          taxAmount: taxPerMember,
+        } = calculateCharges(subtotalPerMember, 1, memberCount);
         const totalPerMember =
           subtotalPerMember + serviceChargePerMember + taxPerMember;
 
@@ -1195,8 +1242,15 @@ export class GroupOrdersService implements IGroupOrderService {
           }
 
           const subtotal = customAmount.amount;
-          const serviceCharge = (subtotal * serviceChargeRate) / 100;
-          const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+          const totalCustomAmount = splitData.customAmounts.reduce(
+            (sum, amount) => sum + amount.amount,
+            0,
+          );
+          const { serviceCharge, taxAmount } = calculateCharges(
+            subtotal,
+            subtotal,
+            totalCustomAmount,
+          );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
           splitBillsData.push({
@@ -1213,6 +1267,46 @@ export class GroupOrdersService implements IGroupOrderService {
           success: false,
           error: `Unsupported split type: ${splitData.splitType}`,
         };
+      }
+
+      const targetTotalCents =
+        splitData.orderTotalCents ??
+        toRequiredCents(
+          splitBillsData.reduce((sum, bill) => sum + bill.totalAmount, 0),
+        );
+      const roundedTotalCents = splitBillsData.reduce(
+        (sum, bill) => sum + toRequiredCents(bill.totalAmount),
+        0,
+      );
+      const remainderCents = targetTotalCents - roundedTotalCents;
+
+      if (Math.abs(remainderCents) > splitBillsData.length) {
+        this.errorTracker.logError(
+          "splitBill",
+          new Error("SPLIT_TOTAL_MISMATCH"),
+          {
+            code: "SPLIT_TOTAL_MISMATCH",
+            groupOrderId,
+            expectedTotalCents: targetTotalCents,
+            roundedTotalCents,
+          },
+        );
+        return {
+          success: false,
+          error: "Split total does not match order total",
+        };
+      }
+
+      if (remainderCents !== 0) {
+        const creatorId = members.find(
+          (member) => member.role === "creator",
+        )?.id;
+        const creatorBill =
+          splitBillsData.find((bill) => bill.memberId === creatorId) ??
+          splitBillsData[0];
+        creatorBill.totalAmount = fromCents(
+          toRequiredCents(creatorBill.totalAmount) + remainderCents,
+        );
       }
 
       // Insert split bills into database
@@ -1266,8 +1360,8 @@ export class GroupOrdersService implements IGroupOrderService {
         (sum, bill) => sum + bill.taxAmount,
         0,
       );
-      const finalAmount = splitBillsData.reduce(
-        (sum, bill) => sum + bill.totalAmount,
+      const finalAmountCents = splitBillsData.reduce(
+        (sum, bill) => sum + toRequiredCents(bill.totalAmount),
         0,
       );
 
@@ -1284,7 +1378,7 @@ export class GroupOrdersService implements IGroupOrderService {
           totalAmountCents: toRequiredCents(totalCartAmount),
           taxAmountCents: toRequiredCents(totalTax),
           serviceChargeCents: toRequiredCents(totalServiceCharge),
-          finalAmountCents: toRequiredCents(finalAmount),
+          finalAmountCents,
           lockedAt: now,
           updatedAt: now,
         })
@@ -1299,7 +1393,7 @@ export class GroupOrdersService implements IGroupOrderService {
         {
           splitType: splitData.splitType,
           memberCount: members.length,
-          totalAmount: finalAmount,
+          totalAmount: fromCents(finalAmountCents),
         },
       );
 
@@ -1311,7 +1405,7 @@ export class GroupOrdersService implements IGroupOrderService {
         groupOrderId,
         splitType: splitData.splitType,
         billCount: splitBillsData.length,
-        finalAmount,
+        finalAmount: fromCents(finalAmountCents),
       });
 
       return {

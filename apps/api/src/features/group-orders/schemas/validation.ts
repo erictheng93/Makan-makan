@@ -146,6 +146,21 @@ export const splitBillSchema = z
       .max(100, "Tax rate cannot exceed 100%")
       .optional()
       .default(0),
+    sharedServiceChargeCents: z
+      .number()
+      .int("Shared service charge must be in whole cents")
+      .min(0, "Shared service charge cannot be negative")
+      .optional(),
+    sharedTaxCents: z
+      .number()
+      .int("Shared tax must be in whole cents")
+      .min(0, "Shared tax cannot be negative")
+      .optional(),
+    orderTotalCents: z
+      .number()
+      .int("Order total must be in whole cents")
+      .min(0, "Order total cannot be negative")
+      .optional(),
     customSplits: z
       .array(
         z.object({

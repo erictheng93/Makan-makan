@@ -156,7 +156,7 @@ export interface GroupOrderJoinPreview {
   memberCount: number;
   fulfillmentType: "dine_in" | "delivery" | "pickup";
   expiresAt: Date;
-  status: string;
+  status: GroupOrderStatus;
 }
 
 export interface JoinGroupRequest {
@@ -190,6 +190,9 @@ export interface SplitBillRequest {
   splitType: "equal" | "proportional" | "individual" | "by_item" | "custom";
   serviceChargeRate?: number;
   taxRate?: number;
+  sharedServiceChargeCents?: number;
+  sharedTaxCents?: number;
+  orderTotalCents?: number;
   customSplits?: Array<{
     memberId: string;
     amount: number;
