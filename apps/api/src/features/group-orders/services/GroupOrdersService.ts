@@ -403,45 +403,56 @@ export class GroupOrdersService implements IGroupOrderService {
   async previewGroupByShareCode(
     shareCode: string,
   ): Promise<{ found: boolean; data?: GroupOrderJoinPreview }> {
-    const groupOrderRows = await this.db
-      .select()
-      .from(groupOrders)
-      .where(
-        and(
-          eq(groupOrders.shareCode, shareCode),
-          eq(groupOrders.status, "active"),
-          gte(groupOrders.expiresAt, new Date()),
-        ),
-      );
+    try {
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(
+          and(
+            eq(groupOrders.shareCode, shareCode),
+            eq(groupOrders.status, "active"),
+            gte(groupOrders.expiresAt, new Date()),
+          ),
+        );
 
-    const groupOrder = groupOrderRows[0];
-    if (!groupOrder) return { found: false };
+      const groupOrder = groupOrderRows[0];
+      if (!groupOrder) return { found: false };
 
-    const memberRows = await this.db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupOrderId, groupOrder.id),
-          isNull(groupMembers.leftAt),
-        ),
-      );
+      const memberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrder.id),
+            isNull(groupMembers.leftAt),
+          ),
+        );
 
-    const host = memberRows.find((member) => member.role === "creator");
-    const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+      const host = memberRows.find((member) => member.role === "creator");
+      const settings = (groupOrder.settings || {}) as GroupOrderSettings;
 
-    return {
-      found: true,
-      data: {
-        groupOrderId: groupOrder.id,
-        restaurantId: groupOrder.restaurantId,
-        hostName: host?.name || "Host",
-        memberCount: memberRows.length,
-        fulfillmentType: settings.fulfillmentType || "dine_in",
-        expiresAt: groupOrder.expiresAt,
-        status: groupOrder.status,
-      },
-    };
+      return {
+        found: true,
+        data: {
+          groupOrderId: groupOrder.id,
+          restaurantId: groupOrder.restaurantId,
+          hostName: host?.name || "Host",
+          memberCount: memberRows.length,
+          fulfillmentType: settings.fulfillmentType || "dine_in",
+          expiresAt: groupOrder.expiresAt,
+          status: groupOrder.status,
+        },
+      };
+    } catch (error) {
+      this.errorTracker.logError("previewGroupByShareCode", error as Error, {
+        shareCode,
+      });
+      // Rethrow instead of returning { found: false }. The route turns a
+      // not-found result into 404 "Group order not found or expired", which
+      // would disguise a database outage as a perfectly normal empty preview —
+      // wrong for the member staring at it, and invisible to alerting.
+      throw error;
+    }
   }
 
   async recoverHost(

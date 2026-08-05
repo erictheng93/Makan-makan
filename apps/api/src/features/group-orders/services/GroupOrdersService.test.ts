@@ -598,6 +598,30 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  it("surfaces database failures instead of reporting the group order as missing", async () => {
+    const service = createService();
+    const db = createDb();
+    db.select = vi.fn(() => {
+      throw new Error("D1_UNAVAILABLE");
+    });
+    service.db = db;
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+
+    // Resolving to { found: false } here would make the route answer 404
+    // "not found or expired" during an outage — wrong for the member reading
+    // it, and invisible to alerting.
+    await expect(service.previewGroupByShareCode("ABC12345")).rejects.toThrow(
+      "D1_UNAVAILABLE",
+    );
+
+    expect(logError).toHaveBeenCalledWith(
+      "previewGroupByShareCode",
+      expect.any(Error),
+      expect.objectContaining({ shareCode: "ABC12345" }),
+    );
+  });
+
   it("recovers the host session and replaces the previous member token", async () => {
     const service = createService();
     const db = createDb([
