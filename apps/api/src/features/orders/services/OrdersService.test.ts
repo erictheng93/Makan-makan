@@ -458,6 +458,33 @@ describe("OrdersService workflows", () => {
     expect(result.total).toBe(3);
   });
 
+  it("includes pending guest orders in active order queries", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrders.mockResolvedValue({
+      orders: [
+        createOrder({
+          id: 1,
+          restaurantId: "restaurant-1",
+          status: "pending",
+          orderSource: "guest_qr",
+        }),
+      ],
+      pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
+    });
+
+    await expect(service.getActiveOrders("restaurant-1")).resolves.toHaveLength(
+      1,
+    );
+    expect(getBaseOrders).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurantId: "restaurant-1",
+        status: ["pending", "confirmed", "preparing", "ready"],
+      }),
+      1,
+      100,
+    );
+  });
+
   it("scopes customer order lists and converts complete date ranges", async () => {
     const service = new OrdersService(createEnv() as never);
     getBaseOrders.mockResolvedValue({
@@ -1255,7 +1282,7 @@ describe("OrdersService workflows", () => {
     expect(getBaseOrders).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "restaurant-1",
-        status: ["confirmed", "preparing", "ready"],
+        status: ["pending", "confirmed", "preparing", "ready"],
       }),
       1,
       100,

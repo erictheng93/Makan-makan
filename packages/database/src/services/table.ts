@@ -14,9 +14,10 @@ import {
   inArray,
 } from "drizzle-orm";
 import { BaseService } from "./base";
-import { tables, restaurants, orders } from "../schema";
+import { tables, restaurants, orders, seats } from "../schema";
 import { SeatService } from "./seat";
 import { buildSignedQRUrl } from "@makanmakan/utils";
+import { resolveAppBaseUrl } from "./app-base-url";
 import { moneyAmountExpression } from "../utils/money-sql";
 
 export interface CreateTableData {
@@ -108,6 +109,7 @@ export class TableService extends BaseService {
           and(
             eq(tables.restaurantId, data.restaurantId),
             eq(tables.number, data.number),
+            isNull(tables.deletedAt),
           ),
         )
         .get();
@@ -254,7 +256,7 @@ export class TableService extends BaseService {
         })
         .from(tables)
         .leftJoin(restaurants, eq(tables.restaurantId, restaurants.id))
-        .where(eq(tables.id, id))
+        .where(and(eq(tables.id, id), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -308,7 +310,7 @@ export class TableService extends BaseService {
           seatCount: tables.seatCount,
         })
         .from(tables)
-        .where(eq(tables.id, id))
+        .where(and(eq(tables.id, id), isNull(tables.deletedAt)))
         .get();
 
       if (!currentTable) {
@@ -370,7 +372,7 @@ export class TableService extends BaseService {
               and(
                 eq(tables.restaurantId, table.restaurantId),
                 eq(tables.number, data.number),
-                eq(tables.id, id), // 排除自己
+                isNull(tables.deletedAt),
               ),
             )
             .get();
@@ -388,7 +390,7 @@ export class TableService extends BaseService {
           seatCount: nextMode === "table" ? 0 : nextSeatCount,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, id))
+        .where(and(eq(tables.id, id), isNull(tables.deletedAt)))
         .returning();
 
       return updatedTable;
@@ -400,16 +402,31 @@ export class TableService extends BaseService {
   // 刪除桌子（軟刪除 - 設為不活躍）
   async deleteTable(id: number): Promise<boolean> {
     try {
+      const deletedAt = new Date();
       const result = await this.db
         .update(tables)
         .set({
           isActive: false,
-          updatedAt: new Date(),
+          deletedAt,
+          updatedAt: deletedAt,
         })
-        .where(eq(tables.id, id))
+        .where(and(eq(tables.id, id), isNull(tables.deletedAt)))
         .returning({ id: tables.id });
 
-      return result.length > 0;
+      if (result.length === 0) {
+        return false;
+      }
+
+      await this.db
+        .update(seats)
+        .set({
+          isActive: false,
+          deletedAt,
+          updatedAt: deletedAt,
+        })
+        .where(and(eq(seats.tableId, id), isNull(seats.deletedAt)));
+
+      return true;
     } catch (error) {
       console.error("Delete table error:", error);
       return false;
@@ -441,7 +458,10 @@ export class TableService extends BaseService {
       const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
-      const conditions = [eq(tables.restaurantId, restaurantId)];
+      const conditions = [
+        eq(tables.restaurantId, restaurantId),
+        isNull(tables.deletedAt),
+      ];
 
       if (floor !== undefined) {
         conditions.push(eq(tables.floor, floor));
@@ -592,7 +612,7 @@ export class TableService extends BaseService {
           averageOccupancyMinutes: tables.averageOccupancyMinutes,
         })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       let newAverageOccupancy = table?.averageOccupancyMinutes || 0;
@@ -624,7 +644,7 @@ export class TableService extends BaseService {
           averageOccupancyMinutes: newAverageOccupancy,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .returning({ id: tables.id });
 
       return result.length > 0;
@@ -644,7 +664,7 @@ export class TableService extends BaseService {
           maintenanceNotes: notes,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .returning({ id: tables.id });
 
       return result.length > 0;
@@ -661,7 +681,7 @@ export class TableService extends BaseService {
     tableNumber: string,
     version: number = 1,
   ): Promise<string> {
-    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
+    const baseUrl = resolveAppBaseUrl(this.env, "table QR codes");
     const signingKey = this.env.QR_SIGNING_KEY;
     if (!signingKey || signingKey.length < 32) {
       throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");
@@ -693,7 +713,7 @@ export class TableService extends BaseService {
           qrCodeVersion: tables.qrCodeVersion,
         })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -718,7 +738,7 @@ export class TableService extends BaseService {
           pendingQrPreparedAt: null,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId));
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true, qrCode: newQRCode };
     } catch (error) {
@@ -748,7 +768,7 @@ export class TableService extends BaseService {
           pendingQrCode: tables.pendingQrCode,
         })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -776,7 +796,7 @@ export class TableService extends BaseService {
           pendingQrPreparedAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId));
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true, qrCode: pendingQrCode };
     } catch (error) {
@@ -795,7 +815,7 @@ export class TableService extends BaseService {
           pendingQrCodeVersion: tables.pendingQrCodeVersion,
         })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -815,7 +835,7 @@ export class TableService extends BaseService {
           pendingQrPreparedAt: null,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId));
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true, qrCode: table.pendingQrCode };
     } catch (error) {
@@ -836,7 +856,7 @@ export class TableService extends BaseService {
           pendingQrPreparedAt: null,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId));
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true };
     } catch (error) {
@@ -866,6 +886,7 @@ export class TableService extends BaseService {
           and(
             eq(tables.restaurantId, restaurantId),
             inArray(tables.id, tableIds),
+            isNull(tables.deletedAt),
           ),
         );
 
@@ -902,7 +923,7 @@ export class TableService extends BaseService {
             pendingQrPreparedAt: null,
             updatedAt,
           })
-          .where(eq(tables.id, tableId)),
+          .where(and(eq(tables.id, tableId), isNull(tables.deletedAt))),
       );
 
       // One transactional batch rather than a statement per table (up to 50 per
@@ -937,6 +958,7 @@ export class TableService extends BaseService {
         eq(tables.isActive, true),
         eq(tables.isOccupied, false),
         eq(tables.isReservable, true),
+        isNull(tables.deletedAt),
       ];
 
       if (capacity) {
@@ -977,7 +999,9 @@ export class TableService extends BaseService {
           avgOccupancyMinutes: sql<number>`COALESCE(AVG(CASE WHEN ${tables.totalUsage} > 0 THEN ${tables.averageOccupancyMinutes} END), 0)`,
         })
         .from(tables)
-        .where(eq(tables.restaurantId, restaurantId));
+        .where(
+          and(eq(tables.restaurantId, restaurantId), isNull(tables.deletedAt)),
+        );
 
       const totalTables = counts.totalTables ?? 0;
       const occupiedTables = counts.occupiedTables ?? 0;
@@ -995,7 +1019,9 @@ export class TableService extends BaseService {
           capacity: tables.capacity,
         })
         .from(tables)
-        .where(eq(tables.restaurantId, restaurantId));
+        .where(
+          and(eq(tables.restaurantId, restaurantId), isNull(tables.deletedAt)),
+        );
 
       const byFloor: Record<number, number> = {};
       const bySection: Record<string, number> = {};
@@ -1035,7 +1061,7 @@ export class TableService extends BaseService {
           totalUsage: sql`${tables.totalUsage} + 1`,
           updatedAt: new Date(),
         })
-        .where(eq(tables.id, tableId));
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
     } catch (error) {
       console.error("Update table usage stats error:", error);
     }
@@ -1134,7 +1160,7 @@ export class TableService extends BaseService {
             seatNumberingStyle: seatConfig.numberingStyle || "numeric",
             updatedAt: new Date(),
           })
-          .where(eq(tables.id, tableId));
+          .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
         return {
           success: true,
@@ -1183,7 +1209,7 @@ export class TableService extends BaseService {
             seatCount: 0,
             updatedAt: new Date(),
           })
-          .where(eq(tables.id, tableId));
+          .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
         return {
           success: true,

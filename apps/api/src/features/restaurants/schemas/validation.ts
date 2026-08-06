@@ -55,6 +55,7 @@ const businessHoursSchema = z
 const restaurantSettingsSchema = z
   .object({
     allowOnlineOrdering: z.boolean().optional(),
+    allowGuestOrders: z.boolean().optional(),
     requireAdvanceBooking: z.boolean().optional(),
     deliveryAvailable: z.boolean().optional(),
     pickupAvailable: z.boolean().optional(),

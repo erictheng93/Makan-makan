@@ -5,8 +5,12 @@ import MenuView from "@/views/MenuView.vue";
 
 const routerReplace = vi.hoisted(() => vi.fn());
 const initializeCart = vi.hoisted(() => vi.fn());
+const routeQuery = vi.hoisted(() => ({}));
 
 vi.mock("vue-router", () => ({
+  useRoute: () => ({
+    query: routeQuery,
+  }),
   useRouter: () => ({
     push: vi.fn(),
     replace: routerReplace,

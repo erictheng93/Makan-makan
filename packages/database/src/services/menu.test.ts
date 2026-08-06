@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 import { categories, menuItems } from "../schema";
 import {
@@ -274,6 +275,19 @@ function collectBoundParams(input: unknown): unknown[] {
   return values;
 }
 
+function assertSelfAssignsUpdatedAtInGeneratedSql(
+  query: { toSQL: () => { sql: string; params: unknown[] } },
+  expectedParams: unknown[],
+) {
+  const generated = query.toSQL();
+
+  expect(generated.sql).toContain(
+    '"updated_at_ms" = "menu_items"."updated_at_ms"',
+  );
+  expect(generated.sql).not.toContain('"updated_at_ms" = ?');
+  expect(generated.params).toEqual(expectedParams);
+}
+
 /**
  * Regression coverage for #84.
  *
@@ -373,6 +387,93 @@ describe("MenuService top-N rankings", () => {
         rating: 4.5,
       }),
     ]);
+  });
+});
+
+/**
+ * Regression coverage for #153.
+ *
+ * Engagement counters are written from public/customer flows. They must not
+ * advance updated_at_ms, because the API uses that column as the optimistic-lock
+ * version for owner edits.
+ */
+describe("MenuService engagement counters", () => {
+  function buildCounterService() {
+    const capturedSet: Record<string, unknown>[] = [];
+    const capturedWhere: unknown[] = [];
+    const updateBuilder = {
+      set: vi.fn((values: Record<string, unknown>) => {
+        capturedSet.push(values);
+        return updateBuilder;
+      }),
+      where: vi.fn((condition: unknown) => {
+        capturedWhere.push(condition);
+        return updateBuilder;
+      }),
+    };
+    const db = { update: vi.fn(() => updateBuilder) };
+    return {
+      service: createServiceWithDb(db),
+      capturedSet,
+      capturedWhere,
+      db,
+    };
+  }
+
+  it("increments view count without changing the optimistic-lock timestamp", async () => {
+    const { service, capturedSet, capturedWhere, db } = buildCounterService();
+
+    await service.incrementViewCount(101);
+
+    expect(db.update).toHaveBeenCalledWith(menuItems);
+    expect(capturedSet[0]).toHaveProperty("viewCount");
+    expect(capturedSet[0]).toHaveProperty("updatedAt");
+    expect(collectSqlMetadata(capturedSet[0].updatedAt).columns).toEqual([
+      "updated_at_ms",
+    ]);
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toContain("id");
+    expect(collectBoundParams(capturedWhere[0])).toContain(101);
+  });
+
+  it("pins generated view-count SQL to the existing timestamp column", () => {
+    const db = drizzle({} as D1Database);
+    const query = db
+      .update(menuItems)
+      .set({
+        viewCount: sql`${menuItems.viewCount} + 1`,
+        updatedAt: sql`${menuItems.updatedAt}`,
+      })
+      .where(eq(menuItems.id, 101));
+
+    assertSelfAssignsUpdatedAtInGeneratedSql(query, [101]);
+  });
+
+  it("increments order count without changing the optimistic-lock timestamp", async () => {
+    const { service, capturedSet, capturedWhere, db } = buildCounterService();
+
+    await service.incrementOrderCount(101, 3);
+
+    expect(db.update).toHaveBeenCalledWith(menuItems);
+    expect(capturedSet[0]).toHaveProperty("orderCount");
+    expect(capturedSet[0]).toHaveProperty("updatedAt");
+    expect(collectSqlMetadata(capturedSet[0].updatedAt).columns).toEqual([
+      "updated_at_ms",
+    ]);
+    expect(collectSqlMetadata(capturedWhere[0]).columns).toContain("id");
+    expect(collectBoundParams(capturedWhere[0])).toContain(101);
+  });
+
+  it("pins generated order-count SQL to the existing timestamp column", () => {
+    const db = drizzle({} as D1Database);
+    const query = db
+      .update(menuItems)
+      .set({
+        orderCount: sql`${menuItems.orderCount} + ${3}`,
+        updatedAt: sql`${menuItems.updatedAt}`,
+      })
+      .where(eq(menuItems.id, 101));
+
+    assertSelfAssignsUpdatedAtInGeneratedSql(query, [3, 101]);
   });
 });
 

@@ -80,7 +80,8 @@
     "halal": "Halal",
     "addToCart": "Thêm vào giỏ hàng",
     "customize": "Tùy chỉnh",
-    "itemDetails": "Chi tiết món ăn"
+    "itemDetails": "Chi tiết món ăn",
+    "seatContext": "{table} · Ghế {seat}"
   },
   "menuItem": {
     "title": "Chi tiết món ăn",
@@ -156,11 +157,13 @@
     "recommendedForYou": "Đề xuất cho bạn",
     "potentialSaving": "Tiết kiệm dự kiến",
     "use": "Sử dụng",
-    "minimumOrderShortfall": "Cần thêm ${amount} để đặt hàng",
+    "minimumOrderShortfall": "Cần thêm {amount} để đặt hàng",
     "minimumOrderMet": "Đã đạt mức đơn hàng tối thiểu ✓",
-    "minimumOrderNote": "Đơn hàng tối thiểu: ${amount}",
-    "couponSaving": "Đã áp dụng mã giảm giá! Tiết kiệm ${amount}",
-    "confirmOrderMessage": "Bạn sắp gửi đơn hàng tổng cộng ${amount}. Bạn có muốn tiếp tục không?"
+    "minimumOrderNote": "Đơn hàng tối thiểu: {amount}",
+    "couponSaving": "Đã áp dụng mã giảm giá! Tiết kiệm {amount}",
+    "confirmOrderMessage": "Bạn sắp gửi đơn hàng tổng cộng {amount}. Bạn có muốn tiếp tục không?",
+    "legalPrefix": "Bằng việc gửi đơn hàng, bạn đồng ý với",
+    "legalConjunction": "và"
   },
   "order": {
     "title": "Xác nhận đơn hàng",

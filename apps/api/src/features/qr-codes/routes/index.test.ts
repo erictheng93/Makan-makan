@@ -504,6 +504,36 @@ describe("QR code routes", () => {
     );
   });
 
+  it("reports the specific public signed QR verification failure reason", async () => {
+    signedQrServiceFns.verifyTableFromQrCode.mockResolvedValueOnce({
+      valid: false,
+      reason: "stale",
+    });
+    signedQrServiceFns.verifySeatFromQrCode.mockResolvedValueOnce({
+      valid: false,
+      reason: "inactive",
+    });
+    const qrCode = encodeURIComponent("https://example.test/order?sig=abc");
+
+    const tableResponse = await request(`/verify/table?qrCode=${qrCode}`);
+    const seatResponse = await request(`/verify/seat?qrCode=${qrCode}`);
+
+    expect(tableResponse.status).toBe(404);
+    await expect(tableResponse.json()).resolves.toMatchObject({
+      error: {
+        code: "TABLE_QR_STALE",
+        message: "Table QR code has been regenerated",
+      },
+    });
+    expect(seatResponse.status).toBe(404);
+    await expect(seatResponse.json()).resolves.toMatchObject({
+      error: {
+        code: "SEAT_QR_INACTIVE",
+        message: "Seat QR code is inactive or deleted",
+      },
+    });
+  });
+
   it("rate limits public signed QR verification before repeated DB lookups", async () => {
     const entries = new Map<string, string>();
     const cacheKv = {

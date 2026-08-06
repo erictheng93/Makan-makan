@@ -32,16 +32,14 @@
                 {{ restaurant?.name || t("common.loading") }}
               </h1>
               <p class="text-sm text-ios-secondary">
-                {{ t("orderTracking.tableNumber") }} {{ tableId }}
+                {{ t("orderTracking.tableNumber") }} {{ orderContextLabel }}
               </p>
             </div>
 
             <button
               data-testid="cart-btn"
               class="relative w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
-              @click="
-                router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
-              "
+              @click="router.push(cartRoute)"
             >
               <svg
                 class="w-5 h-5"
@@ -270,9 +268,7 @@
             :items="cartStore.items"
             :item-count="cartStore.itemCount"
             :subtotal="cartStore.subtotal"
-            @checkout="
-              router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
-            "
+            @checkout="router.push(cartRoute)"
             @remove-item="cartStore.removeItem($event)"
             @update-quantity="(id, qty) => cartStore.updateQuantity(id, qty)"
           />
@@ -287,9 +283,7 @@
     >
       <button
         class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full shadow-card-lg active:scale-[0.98] transition-transform duration-150 flex items-center justify-between"
-        @click="
-          router.push(`/restaurant/${restaurantId}/table/${tableId}/cart`)
-        "
+        @click="router.push(cartRoute)"
       >
         <div class="flex items-center space-x-3">
           <div
@@ -331,6 +325,7 @@ import { useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
+import { useSeatContext } from "@/composables/useSeatContext";
 import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import MenuItemCard from "@/components/MenuItemCard.vue";
@@ -408,6 +403,34 @@ const {
 });
 
 const isTableValid = computed(() => tableValidation.value?.isValid === true);
+
+// The route carries the numeric table id, but the diner reads the label printed
+// on the table ("A1"), and staff route food by that label too. Showing the id
+// invites the wrong table being served, so prefer the validated number and only
+// fall back to the id before validation resolves.
+const tableLabel = computed(
+  () => tableValidation.value?.table?.number ?? String(props.tableId),
+);
+
+const { seatId, seatLabel, seatQuery } = useSeatContext();
+
+const orderContextLabel = computed(() =>
+  seatLabel.value
+    ? tWithParams("menu.seatContext", {
+        table: tableLabel.value,
+        seat: seatLabel.value,
+      })
+    : tableLabel.value,
+);
+
+const cartRoute = computed(() => ({
+  name: "Cart",
+  params: {
+    restaurantId: props.restaurantId,
+    tableId: props.tableId,
+  },
+  query: seatQuery.value,
+}));
 
 // API Queries
 const { data: restaurant, isLoading: isLoadingRestaurant } = useQuery({
@@ -567,10 +590,14 @@ watch(
 );
 
 watch(
-  isTableValid,
-  (valid) => {
+  [isTableValid, seatId],
+  ([valid, currentSeatId]) => {
     if (valid) {
-      cartStore.initializeCart(props.restaurantId, props.tableId);
+      cartStore.initializeCart(
+        props.restaurantId,
+        props.tableId,
+        currentSeatId,
+      );
     }
   },
   { immediate: true },

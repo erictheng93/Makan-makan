@@ -993,7 +993,7 @@ export class MenuService extends BaseService {
         .update(menuItems)
         .set({
           orderCount: sql`${menuItems.orderCount} + ${increment}`,
-          updatedAt: new Date(),
+          updatedAt: sql`${menuItems.updatedAt}`,
         })
         .where(eq(menuItems.id, menuItemId));
     } catch (error) {
@@ -1008,7 +1008,7 @@ export class MenuService extends BaseService {
         .update(menuItems)
         .set({
           viewCount: sql`${menuItems.viewCount} + 1`,
-          updatedAt: new Date(),
+          updatedAt: sql`${menuItems.updatedAt}`,
         })
         .where(eq(menuItems.id, menuItemId));
     } catch (error) {

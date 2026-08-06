@@ -74,8 +74,16 @@ async function processQrCode() {
         restaurantId: verified.restaurantId,
         tableId: verified.tableId,
       },
+      // seatNumber rides along so the menu can show the label printed on the
+      // sticker. The id alone is not displayable: it is a global row id, not
+      // the seat's number on this table.
       ...(verified.type === "seat"
-        ? { query: { seatId: verified.seatId } }
+        ? {
+            query: {
+              seatId: String(verified.seatId),
+              seatNumber: verified.seatNumber,
+            },
+          }
         : {}),
     });
   } catch (error) {

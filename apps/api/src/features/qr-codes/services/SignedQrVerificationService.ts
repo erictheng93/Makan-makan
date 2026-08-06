@@ -8,7 +8,23 @@ import {
 } from "@makanmakan/utils";
 import type { Env } from "../../../shared/types";
 
-type VerificationFailure = { valid: false };
+export type SignedQrVerificationFailureReason =
+  | "malformed"
+  | "wrong_type"
+  | "signature_invalid"
+  | "not_found"
+  | "inactive"
+  | "stale"
+  | "mismatch";
+
+type VerificationFailure = {
+  valid: false;
+  reason: SignedQrVerificationFailureReason;
+};
+
+type ParsedSignedQr =
+  | { valid: true; payload: SignedQRUrlParams }
+  | VerificationFailure;
 
 export type TableQrVerification =
   | VerificationFailure
@@ -51,8 +67,9 @@ export class SignedQrVerificationService {
     qrCode: string,
     tableId?: number,
   ): Promise<TableQrVerification> {
-    const payload = await this.parseAndVerify(qrCode, "table");
-    if (!payload) return { valid: false };
+    const parsed = await this.parseAndVerify(qrCode, "table");
+    if (!parsed.valid) return parsed;
+    const { payload } = parsed;
 
     const resolvedTableId = tableId ?? payload.tableId;
     const [table] = await this.db
@@ -73,16 +90,21 @@ export class SignedQrVerificationService {
       )
       .limit(1);
 
+    if (!table) return { valid: false, reason: "not_found" };
+    if (table.isActive !== true || table.deletedAt !== null) {
+      return { valid: false, reason: "inactive" };
+    }
+    if (payload.tableId !== table.id) {
+      return { valid: false, reason: "mismatch" };
+    }
+    if (table.qrCodeVersion !== payload.version) {
+      return { valid: false, reason: "stale" };
+    }
     if (
-      !table ||
-      table.isActive !== true ||
-      table.deletedAt !== null ||
       table.restaurantId !== payload.restaurantId ||
-      table.number !== payload.identifier ||
-      table.qrCodeVersion !== payload.version ||
-      payload.tableId !== table.id
+      table.number !== payload.identifier
     ) {
-      return { valid: false };
+      return { valid: false, reason: "mismatch" };
     }
 
     return {
@@ -99,8 +121,9 @@ export class SignedQrVerificationService {
     qrCode: string,
     seatId?: number,
   ): Promise<SeatQrVerification> {
-    const payload = await this.parseAndVerify(qrCode, "seat");
-    if (!payload) return { valid: false };
+    const parsed = await this.parseAndVerify(qrCode, "seat");
+    if (!parsed.valid) return parsed;
+    const { payload } = parsed;
 
     const seatIdentity =
       seatId !== undefined
@@ -128,20 +151,30 @@ export class SignedQrVerificationService {
       .where(seatIdentity)
       .limit(1);
 
+    if (!seat) return { valid: false, reason: "not_found" };
     if (
-      !seat ||
       seat.isActive !== true ||
       seat.deletedAt !== null ||
       seat.tableIsActive !== true ||
-      seat.tableDeletedAt !== null ||
+      seat.tableDeletedAt !== null
+    ) {
+      return { valid: false, reason: "inactive" };
+    }
+    if (
       seat.restaurantId === null ||
       seat.tableNumber === null ||
-      seat.restaurantId !== payload.restaurantId ||
-      seat.seatNumber !== payload.identifier ||
-      seat.qrCodeVersion !== payload.version ||
       payload.tableId !== seat.tableId
     ) {
-      return { valid: false };
+      return { valid: false, reason: "mismatch" };
+    }
+    if (seat.qrCodeVersion !== payload.version) {
+      return { valid: false, reason: "stale" };
+    }
+    if (
+      seat.restaurantId !== payload.restaurantId ||
+      seat.seatNumber !== payload.identifier
+    ) {
+      return { valid: false, reason: "mismatch" };
     }
 
     return {
@@ -167,15 +200,20 @@ export class SignedQrVerificationService {
   private async parseAndVerify(
     qrCode: string,
     expectedType: "table" | "seat",
-  ): Promise<SignedQRUrlParams | null> {
+  ): Promise<ParsedSignedQr> {
     const payload = parseSignedQRUrl(qrCode);
-    if (!payload || payload.type !== expectedType) return null;
+    if (!payload) return { valid: false, reason: "malformed" };
+    if (payload.type !== expectedType) {
+      return { valid: false, reason: "wrong_type" };
+    }
 
     const valid = await verifyQRSignature(
       payload,
       payload.signature,
       this.signingKey,
     );
-    return valid ? payload : null;
+    return valid
+      ? { valid: true, payload }
+      : { valid: false, reason: "signature_invalid" };
   }
 }

@@ -42,8 +42,9 @@ describe("monitoring validation schemas", () => {
       days: 14,
     });
 
-    // Pin the bound itself, not Zod's message wording, so the shared
-    // boundedLimitQuery helper stays free to phrase the error however it likes.
+    // Rejected rather than clamped. Pin the bound itself, not Zod's message
+    // wording, so the shared boundedLimitQuery helper stays free to phrase the
+    // error however it likes.
     expect(paginationSchema.parse({ limit: "100" })).toEqual({
       page: 1,
       limit: 100,

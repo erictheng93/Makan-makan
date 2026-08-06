@@ -214,6 +214,97 @@ describe("SettingsView market join requests", () => {
   });
 });
 
+describe("SettingsView guest ordering availability", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useAuthStore).mockReturnValue({
+      restaurantId: "restaurant-1",
+    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useRoute).mockReturnValue({
+      query: { tab: "orders" },
+    } as unknown as ReturnType<typeof useRoute>);
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/restaurants/restaurant-1") {
+        return {
+          data: {
+            data: {
+              name: "雞排攤",
+              isAvailable: false,
+              settings: {
+                allowGuestOrders: false,
+                currency: "MYR",
+                enableDineIn: true,
+                enableTakeaway: true,
+                enableDelivery: false,
+              },
+            },
+          },
+        };
+      }
+      if (url === "/restaurants/restaurant-1/contact-profile") {
+        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+      }
+      if (url === "/restaurants/restaurant-1/qr/shop") {
+        return { data: { data: { enabled: false } } };
+      }
+      if (url === "/restaurants/restaurant-1/service-items") {
+        return { data: { data: [] } };
+      }
+      if (url === "/service-bookings/slots") {
+        return { data: { data: { slots: [] } } };
+      }
+      return { data: { data: {} } };
+    });
+    vi.mocked(marketsService.listMarkets).mockResolvedValue([]);
+    vi.mocked(marketsService.listRestaurantMemberships).mockResolvedValue([]);
+    vi.mocked(marketsService.listJoinRequests).mockResolvedValue([]);
+  });
+
+  it("saves the guest ordering switch to both restaurant availability gates", async () => {
+    const wrapper = mount(SettingsView, {
+      global: {
+        stubs: {
+          IntegrationsSettings: true,
+          RestaurantServiceItemsManager: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    const guestOrderingCheckbox = wrapper
+      .findAll('input[type="checkbox"]')
+      .find((input) =>
+        input.element.parentElement?.parentElement?.textContent?.includes(
+          "settings.orders.acceptGuestOrders",
+        ),
+      );
+    expect(guestOrderingCheckbox?.element.checked).toBe(false);
+
+    await guestOrderingCheckbox?.setValue(true);
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "settings.saveSettings")
+      ?.trigger("click");
+    await flushPromises();
+
+    expect(api.put).toHaveBeenCalledWith("/restaurants/restaurant-1", {
+      isAvailable: true,
+      supportsTakeaway: true,
+      supportsDelivery: false,
+      settings: {
+        allowGuestOrders: true,
+        currency: "MYR",
+        enableDineIn: true,
+        enableTakeaway: true,
+        enableDelivery: false,
+        deliveryFee: 0,
+        estimatedPrepTimeMin: 15,
+        estimatedPrepTimeMax: 20,
+      },
+    });
+  });
+});
+
 describe("SettingsView shop QR management", () => {
   const shopQrCode = "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580";
 

@@ -46,6 +46,8 @@ interface CacheableApiResponse {
   [key: string]: unknown;
 }
 
+const CACHE_KEY_VARIANTS_PREFIX = "cache:key-variants:";
+
 /**
  * Keep the global edge cache fail-closed. Only public GET routes with known
  * mutation invalidation keys belong here; security-sensitive reads such as
@@ -84,6 +86,30 @@ function isCacheableApiResponse(data: unknown): data is CacheableApiResponse {
     (data as { success?: unknown }).success === true &&
     "data" in data
   );
+}
+
+export function getRestaurantIdForCacheScope(
+  c: Context<{ Bindings: Env }>,
+): string | undefined {
+  const restaurantId = c.req.param("restaurantId");
+  if (restaurantId) return restaurantId;
+
+  const pathSegments = c.req.path.split("/").filter(Boolean);
+  const id = c.req.param("id");
+  if (
+    id &&
+    pathSegments[0] === "api" &&
+    pathSegments[1] === "v1" &&
+    pathSegments[2] === "restaurants" &&
+    pathSegments[3] === id
+  ) {
+    return id;
+  }
+
+  const userRestaurantId = c.get("user")?.restaurantId;
+  return userRestaurantId === undefined || userRestaurantId === null
+    ? undefined
+    : String(userRestaurantId);
 }
 
 export class EdgeCacheManager {
@@ -174,6 +200,7 @@ export class EdgeCacheManager {
     };
 
     const cacheKey = this.buildCacheKey(key, options.vary);
+    const baseCacheKey = this.buildCacheKey(key);
 
     try {
       // Parallel storage across all cache layers
@@ -207,6 +234,9 @@ export class EdgeCacheManager {
       if (options.tags?.length) {
         storagePromises.push(this.updateTagMappings(key, options.tags));
       }
+      if (cacheKey !== baseCacheKey) {
+        storagePromises.push(this.rememberCacheApiVariant(key, cacheKey));
+      }
 
       await Promise.allSettled(storagePromises);
 
@@ -234,12 +264,20 @@ export class EdgeCacheManager {
     try {
       if (type === "key") {
         const key = keyOrTags as string;
-        const cacheKey = this.buildCacheKey(key);
+        const cacheApiKeys = new Set<string>([this.buildCacheKey(key)]);
+        const variantMappingKey = this.getVariantMappingKey(key);
+        const variants =
+          (await this.kv.get<string[]>(variantMappingKey, { type: "json" })) ||
+          [];
+        variants.forEach((variantKey) => cacheApiKeys.add(variantKey));
 
         // Parallel invalidation
         await Promise.allSettled([
           this.kv.delete(key),
-          caches.default.delete(cacheKey),
+          this.kv.delete(variantMappingKey),
+          ...Array.from(cacheApiKeys).map((cacheKey) =>
+            caches.default.delete(cacheKey),
+          ),
         ]);
 
         this.context.waitUntil(
@@ -316,6 +354,10 @@ export class EdgeCacheManager {
 
     const varyString = vary.join("-");
     return `https://cache.makanmakan.app/${key}?vary=${varyString}`;
+  }
+
+  private getVariantMappingKey(key: string): string {
+    return `${CACHE_KEY_VARIANTS_PREFIX}${key}`;
   }
 
   private isExpired(metadata: CacheMetadata): boolean {
@@ -401,6 +443,22 @@ export class EdgeCacheManager {
       await Promise.allSettled(promises);
     } catch (error) {
       console.error("Failed to update tag mappings:", error);
+    }
+  }
+
+  private async rememberCacheApiVariant(
+    key: string,
+    cacheKey: string,
+  ): Promise<void> {
+    const mappingKey = this.getVariantMappingKey(key);
+    const variants =
+      (await this.kv.get<string[]>(mappingKey, { type: "json" })) || [];
+
+    if (!variants.includes(cacheKey)) {
+      variants.push(cacheKey);
+      await this.kv.put(mappingKey, JSON.stringify(variants), {
+        expirationTtl: 24 * 60 * 60,
+      });
     }
   }
 
@@ -517,8 +575,7 @@ export function smartCacheMiddleware(
       c.res.status >= 200 &&
       c.res.status < 300
     ) {
-      const restaurantId =
-        c.req.param("restaurantId") || c.get("user")?.restaurantId;
+      const restaurantId = getRestaurantIdForCacheScope(c);
 
       // Synchronously invalidate both cache tiers before the response goes
       // out — fire-and-forget invalidation lost races against the next GET
@@ -528,9 +585,22 @@ export function smartCacheMiddleware(
       if (restaurantId) {
         const kv = c.env.CACHE_KV;
         if (kv) {
-          // Build the list of cache keys that this mutation should invalidate.
-          // Each entry mirrors a public GET endpoint that smartCacheMiddleware
-          // serves out of cache for unauthenticated readers.
+          // Two passes, because neither alone is sufficient.
+          //
+          // The cache key is `${method}:${path}:${rawQueryString}`, so every
+          // distinct query string is its own entry. The key list below can only
+          // name query strings someone thought to enumerate, and it never named
+          // the one customers actually read: `GET:/api/v1/menu/{id}:tableId=N`,
+          // written by every QR scan. An owner could add, reprice or 86 a dish
+          // and diners kept ordering off the stale menu until it aged out.
+          //
+          // Tag invalidation closes that gap — `cacheTags` stamps
+          // `restaurant:{id}` on every cacheable public GET for this restaurant
+          // (menu, restaurant detail, available coupons) and `set()` records
+          // each key under `tag:*`, so it reaches variants nobody listed. But it
+          // is only as good as the `cacheTags` option: a caller that omits it
+          // stores no tag mapping and would silently invalidate nothing. So the
+          // explicit keys stay as the floor and the tag sweep rides on top.
           const keys: string[] = [];
 
           if (path.includes("/menu")) {
@@ -547,14 +617,10 @@ export function smartCacheMiddleware(
           }
 
           if (keys.length > 0) {
-            await Promise.allSettled(
-              keys.flatMap((key) => [
-                kv.delete(key),
-                // Cache API delete uses the same URL the cache writer built
-                // via EdgeCacheManager.buildCacheKey — must match exactly.
-                caches.default.delete(`https://cache.makanmakan.app/${key}`),
-              ]),
-            );
+            await Promise.allSettled([
+              ...keys.map((key) => cacheManager.invalidate(key)),
+              cacheManager.invalidate([`restaurant:${restaurantId}`], "tag"),
+            ]);
           }
         }
       }
@@ -599,7 +665,7 @@ export function cacheWarmingMiddleware() {
 
     // Predictive warming based on request patterns
     const path = c.req.path;
-    const restaurantId = c.req.param("restaurantId");
+    const restaurantId = getRestaurantIdForCacheScope(c);
 
     // Warm related endpoints
     if (path.includes("/menu/") && restaurantId) {

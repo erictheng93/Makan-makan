@@ -413,8 +413,13 @@ const handleQRCodeDetected = async (qrContent: string) => {
             restaurantId: qrData.restaurantId,
             tableId: qrData.tableId!,
           },
+          // Signed seat URLs carry the printed seat number as the identifier;
+          // legacy JSON payloads only have the row id, and those simply render
+          // without a seat label rather than showing an id the diner cannot
+          // match against any sticker.
           query: {
             seatId: qrData.seatId,
+            ...(qrData.seatNumber ? { seatNumber: qrData.seatNumber } : {}),
           },
         });
         break;

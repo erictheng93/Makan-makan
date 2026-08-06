@@ -20,6 +20,7 @@ import {
   smartCacheMiddleware,
   cacheWarmingMiddleware,
   isPublicApiCacheableRequest,
+  getRestaurantIdForCacheScope,
 } from "./middleware/edge-cache";
 import { advancedAnalyticsMiddleware } from "./middleware/analytics";
 import { geoIntelligentRateLimitMiddleware } from "./middleware/geo-rate-limiting";
@@ -345,8 +346,7 @@ export function createApp(
         // the cache for authenticated requests, so it's redundant here too.
         varyHeaders: ["X-Restaurant-ID", "CF-IPCountry"],
         cacheTags: (c) => {
-          const restaurantId =
-            c.req.param("restaurantId") || c.get("user")?.restaurantId;
+          const restaurantId = getRestaurantIdForCacheScope(c);
           const tags = ["api"];
           if (restaurantId) tags.push(`restaurant:${restaurantId}`);
           if (c.req.path.includes("/menu"))

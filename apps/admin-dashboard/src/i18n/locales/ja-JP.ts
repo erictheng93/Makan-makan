@@ -56,6 +56,8 @@ const jaJP: Messages = {
     allStatus: "全ステータス",
     statusActive: "提供中",
     statusInactive: "非公開",
+    actionUnpublish: "販売停止",
+    actionPublish: "販売再開",
     available: "提供中",
     soldOut: "売り切れ",
     metrics: {
@@ -2043,6 +2045,7 @@ const jaJP: Messages = {
     notSet: "未設定",
     order: "注文",
     viewQR: "QRコードを表示",
+    deleteBlocked: "使用中または進行中の注文があるテーブルは削除できません",
     stats: {
       available: "空席",
       occupied: "使用中",
@@ -2099,6 +2102,10 @@ const jaJP: Messages = {
         "すべてのテーブルのQRコードを再生成してもよろしいですか？",
       regenerateAllQRAction: "すべての QR を再生成",
       regenerateAllQRTitle: "すべての QR テーブルを再生成",
+      deleteTitle: "テーブルを削除",
+      delete:
+        "テーブル{number}を削除しますか？このテーブル用に印刷済みのQRステッカーは直ちに無効になります。この操作は元に戻せません。",
+      deleteAction: "テーブルを削除",
     },
     alert: {
       qrGenerated: "QRコードが正常に生成されました",
@@ -2115,6 +2122,8 @@ const jaJP: Messages = {
       statusChangeFailed: "テーブルの状態変更に失敗しました",
       qrGenerateFailed:
         "QRコードの生成に失敗しました。しばらくしてからお試しください",
+      deleteSuccess: "テーブルを削除しました",
+      deleteFailed: "テーブルの削除に失敗しました",
     },
   },
   cashier: {
@@ -2302,6 +2311,9 @@ const jaJP: Messages = {
     },
     orders: {
       title: "注文ワークフロー",
+      acceptGuestOrders: "顧客のQR注文を受け付ける",
+      acceptGuestOrdersDesc:
+        "お客様がテーブルおよび店舗QRコードから注文を送信できるようにします",
       autoConfirm: "注文の自動確認",
       autoConfirmDesc: "新しい注文を手動確認なしで自動確認",
       prepTimeAlert: "調理時間アラート",

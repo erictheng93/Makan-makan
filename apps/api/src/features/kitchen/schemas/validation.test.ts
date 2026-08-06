@@ -41,14 +41,21 @@ describe("kitchen validation schemas", () => {
       limit: 50,
     });
     expect(
-      kitchenOrdersQuerySchema.parse({ includeHistory: "true", limit: "500" }),
+      kitchenOrdersQuerySchema.parse({ includeHistory: "true", limit: "200" }),
     ).toEqual({
       includeHistory: true,
       limit: 200,
     });
-    expect(kitchenOrdersQuerySchema.parse({ limit: "not-a-number" })).toEqual({
-      includeHistory: false,
-      limit: 50,
-    });
+  });
+
+  it("rejects out-of-range and non-numeric order limits", () => {
+    // 49198cde made bounded limits reject rather than clamp, so an over-limit
+    // client gets a validation error instead of D1 scanning an oversized
+    // window. These previously asserted clamping to 200 / falling back to 50.
+    expect(() => kitchenOrdersQuerySchema.parse({ limit: "201" })).toThrow();
+    expect(() => kitchenOrdersQuerySchema.parse({ limit: "500" })).toThrow();
+    expect(() =>
+      kitchenOrdersQuerySchema.parse({ limit: "not-a-number" }),
+    ).toThrow();
   });
 });

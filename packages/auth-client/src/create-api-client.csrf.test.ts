@@ -88,6 +88,23 @@ describe("auth client CSRF token persistence", () => {
       outgoingHeaders(buildClient(), "get")["X-CSRF-Token"],
     ).toBeUndefined();
   });
+
+  // Two dashboard tabs share one cookie and one localStorage but not one JS
+  // context. When the other tab refreshed its session the API rotated the
+  // cookie and this tab's in-memory copy went stale, so every write it sent
+  // echoed a token the cookie no longer matched — a permanent 403 that the
+  // admin surfaces as "登入已過期" for a session that is perfectly valid.
+  it("sends the token another tab rotated into storage", () => {
+    const values = installStorage();
+    const client = buildClient();
+    receiveCsrfToken(client, TOKEN);
+
+    // The other tab's rotation lands in shared storage; this client's own
+    // in-memory copy still holds TOKEN.
+    values.set(keyFor("auth"), OTHER_TOKEN);
+
+    expect(outgoingHeaders(client, "post")["X-CSRF-Token"]).toBe(OTHER_TOKEN);
+  });
 });
 
 describe("auth client CSRF token namespacing", () => {
@@ -211,5 +228,34 @@ describe("auth client refresh error handling", () => {
     await expect(rejected(error)).rejects.toBe(error);
 
     expect(errorHandler).not.toHaveBeenCalled();
+  });
+
+  // The handler reports; it does not replace. Rejecting with its return value
+  // stripped `response` off the error, so callers branching on
+  // `error.response.data.error.code` — the admin's whole per-code recovery,
+  // including the MENU_ITEM_MODIFIED conflict UI — always saw undefined.
+  it("rejects with the original error, not the handler's return value", async () => {
+    const errorHandler = vi.fn(() => ({ message: "handled summary" }));
+    const client = createAuthenticatedApiClient({
+      baseURL: "https://api.test/api/v1",
+      storageKeyPrefix: "auth",
+      errorHandler,
+    });
+    const rejected = (
+      client.instance.interceptors.response as unknown as {
+        handlers: Array<{ rejected: (e: unknown) => Promise<unknown> }>;
+      }
+    ).handlers[0].rejected;
+    const error = {
+      config: {},
+      response: {
+        status: 409,
+        data: { error: { code: "MENU_ITEM_MODIFIED", message: "conflict" } },
+      },
+    };
+
+    await expect(rejected(error)).rejects.toBe(error);
+
+    expect(errorHandler).toHaveBeenCalledWith(error);
   });
 });

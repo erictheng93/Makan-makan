@@ -29,7 +29,7 @@
             </h1>
             <p class="text-sm text-ios-secondary">
               {{ restaurant?.name }} · {{ t("order.details.table") }}
-              {{ tableId }}
+              {{ orderContextLabel }}
             </p>
           </div>
 
@@ -68,7 +68,7 @@
         </p>
         <button
           class="px-6 py-3 bg-ios-blue text-white font-semibold rounded-full active:scale-[0.98] transition-transform duration-150"
-          @click="router.push(`/restaurant/${restaurantId}/table/${tableId}`)"
+          @click="router.push(menuRoute)"
         >
           {{ t("cart.goToMenu") }}
         </button>
@@ -589,11 +589,15 @@
 
         <div class="mt-3 text-center">
           <p class="text-sm text-ios-secondary">
-            {{ t("common.confirm") }}
+            <!-- These connectives need their own keys. Borrowing the generic
+                 button labels rendered the consent line as "確認 服務條款 下一步
+                 隱私權政策" — four unrelated words where a sentence saying what
+                 the diner is agreeing to should be. -->
+            {{ t("cart.legalPrefix") }}
             <router-link to="/terms" class="text-ios-blue">
               {{ t("terms.title") }}
             </router-link>
-            {{ t("common.next") }}
+            {{ t("cart.legalConjunction") }}
             <router-link to="/privacy" class="text-ios-blue">
               {{ t("privacy.title") }}
             </router-link>
@@ -625,6 +629,7 @@ import { useRouter } from "vue-router";
 import { useQuery, useMutation } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
+import { useSeatContext } from "@/composables/useSeatContext";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { useCartStore } from "@/stores/cart";
 import CartItemCard from "@/components/CartItemCard.vue";
@@ -649,6 +654,32 @@ const toast = useToast();
 const { t, tWithParams, currentLanguage } = useI18n();
 const cartStore = useCartStore();
 const { formatPrice } = useCurrency();
+
+const { seatId, seatLabel, seatQuery } = useSeatContext();
+
+// Staff route food by the label printed on the table, not by the row id, so the
+// cart header must agree with the menu header and with the physical table.
+const tableLabel = computed(
+  () => tableValidation.value?.table?.number ?? String(props.tableId),
+);
+
+const orderContextLabel = computed(() =>
+  seatLabel.value
+    ? tWithParams("menu.seatContext", {
+        table: tableLabel.value,
+        seat: seatLabel.value,
+      })
+    : tableLabel.value,
+);
+
+const menuRoute = computed(() => ({
+  name: "RestaurantMenu",
+  params: {
+    restaurantId: props.restaurantId,
+    tableId: props.tableId,
+  },
+  query: seatQuery.value,
+}));
 
 // State
 const orderNotes = ref("");
@@ -681,6 +712,18 @@ const minimumOrderEnabled = ref(false);
 const { data: restaurant } = useQuery({
   queryKey: ["restaurant", props.restaurantId],
   queryFn: () => menuApi.getRestaurant(props.restaurantId),
+  staleTime: 5 * 60 * 1000,
+});
+
+// Same query key MenuView uses, so arriving from the menu reads its cache and
+// costs no extra request. Needed because the route only carries the numeric
+// table id and the header must show the label printed on the table (#f7e47cc
+// fixed this on the menu screen but not here, so a diner at "A1" watched the
+// header flip to "桌號 2" the moment they opened the cart).
+const { data: tableValidation } = useQuery({
+  queryKey: ["table-validation", props.restaurantId, props.tableId],
+  queryFn: () => menuApi.validateTable(props.restaurantId, props.tableId),
+  enabled: computed(() => Number.isFinite(Number(props.tableId))),
   staleTime: 5 * 60 * 1000,
 });
 
@@ -793,11 +836,11 @@ const canPlaceOrder = computed(() => {
 
 // 初始化購物車
 onMounted(() => {
-  cartStore.initializeCart(props.restaurantId, props.tableId);
+  cartStore.initializeCart(props.restaurantId, props.tableId, seatId.value);
 
   // 如果購物車為空，重定向到菜單頁面
   if (cartStore.isEmpty) {
-    router.replace(`/restaurant/${props.restaurantId}/table/${props.tableId}`);
+    router.replace(menuRoute.value);
   }
 });
 
@@ -1023,8 +1066,9 @@ const submitOrder = async () => {
         restaurantId: props.restaurantId,
         guestName: customerInfo.value.name.trim() || "Guest",
         phoneLastDigits: customerInfo.value.phone.trim().slice(-3) || "000",
-        orderType: "table",
+        orderType: seatId.value ? "seat" : "table",
         tableId: props.tableId,
+        seatId: seatId.value ?? undefined,
         items: cartStore.items.map((item) => ({
           menuItemId: item.menuItem.id,
           quantity: item.quantity,

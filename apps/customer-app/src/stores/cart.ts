@@ -54,6 +54,7 @@ const CartDataSchema = z.object({
   items: z.array(CartItemSchema).max(100),
   restaurantId: z.string().min(1),
   tableId: z.number().int().positive(),
+  seatId: z.number().int().positive().optional(),
   timestamp: z.number().int().positive(),
 });
 
@@ -62,6 +63,7 @@ export const useCartStore = defineStore("cart", () => {
   const items = ref<CartItem[]>([]);
   const restaurantId = ref<string | null>(null);
   const tableId = ref<number | null>(null);
+  const seatId = ref<number | null>(null);
 
   // Getters
   const itemCount = computed(() => {
@@ -79,14 +81,27 @@ export const useCartStore = defineStore("cart", () => {
   };
 
   // Actions
-  const initializeCart = (restId: string, tblId: number) => {
-    // 如果是不同的餐廳/桌台，清空購物車
-    if (restaurantId.value !== restId || tableId.value !== tblId) {
-      clearCart();
+  const initializeCart = (
+    restId: string,
+    tblId: number,
+    seat?: number | null,
+  ) => {
+    const normalizedSeatId =
+      Number.isInteger(seat) && Number(seat) > 0 ? Number(seat) : null;
+
+    // 如果是不同的餐廳/桌台/座位，只清空記憶體再讀取新 context。
+    // 其他座位的 localStorage 購物車仍應保留，才能支援一位一碼。
+    if (
+      restaurantId.value !== restId ||
+      tableId.value !== tblId ||
+      seatId.value !== normalizedSeatId
+    ) {
+      items.value = [];
     }
 
     restaurantId.value = restId;
     tableId.value = tblId;
+    seatId.value = normalizedSeatId;
 
     // 從 localStorage 恢復購物車
     restoreCart();
@@ -150,10 +165,12 @@ export const useCartStore = defineStore("cart", () => {
   };
 
   const clearCart = () => {
+    const storageKey = getCartStorageKey();
     items.value = [];
+    localStorage.removeItem(storageKey);
     restaurantId.value = null;
     tableId.value = null;
-    localStorage.removeItem(getCartStorageKey());
+    seatId.value = null;
   };
 
   const updateItemNotes = (id: string, notes: string) => {
@@ -230,7 +247,8 @@ export const useCartStore = defineStore("cart", () => {
   };
 
   const getCartStorageKey = () => {
-    return `makanmakan_cart_${restaurantId.value}_${tableId.value}`;
+    const baseKey = `makanmakan_cart_${restaurantId.value}_${tableId.value}`;
+    return seatId.value ? `${baseKey}_seat_${seatId.value}` : baseKey;
   };
 
   const saveCart = () => {
@@ -240,6 +258,7 @@ export const useCartStore = defineStore("cart", () => {
       items: items.value,
       restaurantId: restaurantId.value,
       tableId: tableId.value,
+      seatId: seatId.value ?? undefined,
       timestamp: Date.now(),
     };
 
@@ -293,6 +312,7 @@ export const useCartStore = defineStore("cart", () => {
     items,
     restaurantId,
     tableId,
+    seatId,
 
     // Getters
     itemCount,

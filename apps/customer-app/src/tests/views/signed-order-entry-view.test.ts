@@ -60,8 +60,12 @@ describe("SignedOrderEntryView", () => {
         restaurantId: "restaurant-1",
         tableId: 10,
       },
+      // seatNumber travels with the id: "VIP-1" is what the sticker says, and
+      // it is the only value the menu may render. Deriving a label from the id
+      // (21) would print a number matching no seat in the venue.
       query: {
-        seatId: 21,
+        seatId: "21",
+        seatNumber: "VIP-1",
       },
     });
   });

@@ -755,7 +755,7 @@ export class OrdersService implements IOrdersService {
     const filters: OrderQueryFilters = {
       restaurantId,
       // DB stores status as text — must use string literals matching the schema
-      status: ["confirmed", "preparing", "ready"],
+      status: ["pending", "confirmed", "preparing", "ready"],
       limit: 100,
     };
     const result = await this.getOrders(filters);

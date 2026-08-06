@@ -56,6 +56,8 @@ const idID: Messages = {
     allStatus: "Semua Status",
     statusActive: "Aktif",
     statusInactive: "Nonaktif",
+    actionUnpublish: "Hentikan penjualan",
+    actionPublish: "Jual kembali",
     available: "Tersedia",
     soldOut: "Habis",
     metrics: {
@@ -291,6 +293,8 @@ const idID: Messages = {
     notSet: "Belum diatur",
     order: "Pesanan",
     viewQR: "Lihat Kode QR",
+    deleteBlocked:
+      "Meja yang sedang terisi atau memiliki pesanan aktif tidak dapat dihapus",
     stats: {
       available: "Tersedia",
       occupied: "Terisi",
@@ -347,6 +351,10 @@ const idID: Messages = {
         "Apakah Anda yakin ingin membuat ulang kode QR untuk semua meja?",
       regenerateAllQRAction: "Regenerasi Semua QR",
       regenerateAllQRTitle: "Regenerasi Semua Tabel QR",
+      deleteTitle: "Hapus meja",
+      delete:
+        "Hapus meja {number}? Stiker QR yang sudah dicetak untuk meja ini akan langsung berhenti berfungsi. Tindakan ini tidak dapat dibatalkan.",
+      deleteAction: "Hapus Meja",
     },
     alert: {
       qrGenerated: "Kode QR berhasil dibuat!",
@@ -360,6 +368,8 @@ const idID: Messages = {
       loadFailed: "Tidak dapat memuat daftar meja",
       statusChangeFailed: "Gagal mengubah status meja",
       qrGenerateFailed: "Gagal membuat kode QR, silakan coba lagi",
+      deleteSuccess: "Meja berhasil dihapus",
+      deleteFailed: "Gagal menghapus meja",
     },
   },
   scheduling: {
@@ -2307,6 +2317,9 @@ const idID: Messages = {
     },
     orders: {
       title: "Alur Pesanan",
+      acceptGuestOrders: "Terima pesanan QR pelanggan",
+      acceptGuestOrdersDesc:
+        "Izinkan pelanggan mengirim pesanan dari kode QR meja dan toko",
       autoConfirm: "Konfirmasi Pesanan Otomatis",
       autoConfirmDesc: "Otomatis konfirmasi pesanan baru tanpa tinjauan manual",
       prepTimeAlert: "Peringatan Waktu Persiapan",

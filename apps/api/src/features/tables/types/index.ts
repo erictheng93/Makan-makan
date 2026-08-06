@@ -30,6 +30,7 @@ export interface Table {
   occupiedBy?: string;
   occupiedAt?: Date;
   orderId?: number;
+  currentOrderId?: string | null;
   estimatedReleaseTime?: Date;
   lastCleanedAt?: Date;
   cleaningNotes?: string;

@@ -2,6 +2,7 @@ import { eq, and, asc, count, inArray, isNull, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
 import { buildSignedQRUrl } from "@makanmakan/utils";
+import { resolveAppBaseUrl } from "./app-base-url";
 
 export interface CreateSeatData {
   tableId: number;
@@ -62,7 +63,7 @@ export class SeatService extends BaseService {
           number: tables.number,
         })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -425,7 +426,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, seat.tableId))
+        .where(and(eq(tables.id, seat.tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -486,7 +487,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, seat.tableId))
+        .where(and(eq(tables.id, seat.tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -584,7 +585,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -684,7 +685,7 @@ export class SeatService extends BaseService {
       const table = await this.db
         .select({ restaurantId: tables.restaurantId })
         .from(tables)
-        .where(eq(tables.id, tableId))
+        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)))
         .get();
 
       if (!table) {
@@ -807,7 +808,7 @@ export class SeatService extends BaseService {
     seatNumber: string,
     version: number = 1,
   ): Promise<string> {
-    const baseUrl = this.env.CLIENT_BASE_URL || "https://makanmakan.com";
+    const baseUrl = resolveAppBaseUrl(this.env, "seat QR codes");
     const signingKey = this.env.QR_SIGNING_KEY;
     if (!signingKey || signingKey.length < 32) {
       throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");

@@ -5,6 +5,7 @@
 
 import { eq, and, lt, isNull, sql } from "drizzle-orm";
 import { BaseService, type CloudflareEnv } from "./base";
+import { resolveAppBaseUrl } from "./app-base-url";
 import type { D1Database } from "@cloudflare/workers-types";
 import {
   passwordResetTokens,
@@ -109,54 +110,8 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-const LOCAL_APP_BASE_URL = "http://localhost:5173";
-
-function normalizeBaseUrl(url: string): string {
-  return url.trim().replace(/\/+$/, "");
-}
-
-function firstConfiguredOrigin(value?: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  return value
-    .split(",")
-    .map((origin) => origin.trim())
-    .find((origin) => origin && origin !== "*");
-}
-
-function stripApiPath(url: string): string {
-  return normalizeBaseUrl(url).replace(/\/api(?:\/v\d+)?$/i, "");
-}
-
-function isProductionEnv(env: CloudflareEnv): boolean {
-  const envName = String(
-    env.NODE_ENV || env["ENVIRONMENT"] || "",
-  ).toLowerCase();
-  return envName === "production";
-}
-
 export function resolveVerificationAppBaseUrl(env: CloudflareEnv): string {
-  const appOrigin =
-    firstConfiguredOrigin(env.CLIENT_BASE_URL) ||
-    firstConfiguredOrigin(env.CORS_ORIGIN);
-
-  if (appOrigin) {
-    return normalizeBaseUrl(appOrigin);
-  }
-
-  if (isProductionEnv(env)) {
-    throw new Error(
-      "CLIENT_BASE_URL or CORS_ORIGIN must be configured for production verification links",
-    );
-  }
-
-  if (env.API_BASE_URL) {
-    return stripApiPath(env.API_BASE_URL);
-  }
-
-  return LOCAL_APP_BASE_URL;
+  return resolveAppBaseUrl(env, "verification links");
 }
 
 // ============================================
