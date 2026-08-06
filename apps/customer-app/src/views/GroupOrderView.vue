@@ -12,12 +12,19 @@ const props = defineProps<{
 const group = useGroupOrder({ restaurantId: "" });
 const viewError = ref("");
 const splitNotice = ref("");
+const submitError = ref("");
+const orderPlacedWarning = ref("");
+const isSubmitting = ref(false);
 const hasSessionExpired = computed(() => group.sessionExpired?.value === true);
 
 const isLocked = computed(() => {
   const status = group.groupOrder.value?.status;
   return status !== undefined && status !== "active";
 });
+
+const canSubmitOrder = computed(
+  () => group.isHost.value && group.groupOrder.value?.status === "active",
+);
 
 const currentUserId = computed(() => group.currentMemberId?.value ?? "");
 
@@ -55,6 +62,46 @@ async function changeSplitMode(mode: SplitBillConfig["mode"]): Promise<void> {
   } catch {
     splitNotice.value = "Split changes are not available yet.";
   }
+}
+
+async function submitGroupOrder(): Promise<void> {
+  if (isSubmitting.value) return;
+
+  isSubmitting.value = true;
+  submitError.value = "";
+  orderPlacedWarning.value = "";
+
+  try {
+    await group.submitOrder();
+  } catch (error) {
+    if (isOrderAlreadyPlacedError(error)) {
+      orderPlacedWarning.value =
+        "The restaurant has already received this order. Contact the restaurant before making any changes or trying again.";
+    } else if (isHostOnlyError(error)) {
+      submitError.value = "Only the group host can submit this order.";
+    } else {
+      submitError.value =
+        error instanceof Error ? error.message : "Unable to submit order.";
+    }
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+function isHostOnlyError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    (error as { isHostOnly?: unknown }).isHostOnly === true
+  );
+}
+
+function isOrderAlreadyPlacedError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    (error as { orderAlreadyPlaced?: unknown }).orderAlreadyPlaced === true
+  );
 }
 
 onMounted(() => {
@@ -121,6 +168,34 @@ onUnmounted(() => {
       <div v-else class="py-16 text-center text-ios-secondary">
         Loading group order...
       </div>
+
+      <div v-if="canSubmitOrder" class="mt-4">
+        <button
+          data-testid="group-order-submit"
+          type="button"
+          class="w-full rounded-md bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          :disabled="isSubmitting"
+          @click="submitGroupOrder"
+        >
+          {{ isSubmitting ? "Submitting..." : "Submit order" }}
+        </button>
+      </div>
+
+      <p
+        v-if="orderPlacedWarning"
+        data-testid="group-order-placed-warning"
+        class="mt-4 rounded-md bg-ios-orange/10 p-3 text-sm text-ios-orange"
+      >
+        {{ orderPlacedWarning }}
+      </p>
+
+      <p
+        v-else-if="submitError"
+        data-testid="group-order-submit-error"
+        class="mt-4 rounded-md bg-ios-red/10 p-3 text-sm text-ios-red"
+      >
+        {{ submitError }}
+      </p>
 
       <p
         v-if="splitNotice"

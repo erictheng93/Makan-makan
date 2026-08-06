@@ -23,6 +23,9 @@ const groupOrderMock = vi.hoisted(() => ({
   disconnectRealtime: vi.fn(),
   updateCartItem: vi.fn(),
   removeFromCart: vi.fn(),
+  submitOrder: vi.fn(),
+  sessionExpired: { value: false },
+  currentMemberId: { value: "m-1" },
 }));
 
 vi.mock("vue-router", async (importOriginal) => {
@@ -283,6 +286,125 @@ describe("GroupOrderView", () => {
       true,
     );
     expect(wrapper.findComponent(GroupCartPanel).exists()).toBe(false);
+  });
+});
+
+describe("GroupOrderView — submitting", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    groupOrderMock.groupOrder.value = loadedGroupOrder();
+    groupOrderMock.isHost.value = true;
+  });
+
+  async function mountView() {
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+    return wrapper;
+  }
+
+  it("offers the host a way to submit while the group is active", async () => {
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-testid="group-order-submit"]').exists()).toBe(
+      true,
+    );
+  });
+
+  it("does not offer submitting to anyone but the host", async () => {
+    groupOrderMock.isHost.value = false;
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-testid="group-order-submit"]').exists()).toBe(
+      false,
+    );
+  });
+
+  it("withdraws the control once the group order is no longer active", async () => {
+    groupOrderMock.groupOrder.value = loadedGroupOrder("finalizing");
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-testid="group-order-submit"]').exists()).toBe(
+      false,
+    );
+  });
+
+  it("submits through the composable", async () => {
+    groupOrderMock.submitOrder.mockResolvedValueOnce(undefined);
+
+    const wrapper = await mountView();
+    await wrapper.find('[data-testid="group-order-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(groupOrderMock.submitOrder).toHaveBeenCalledOnce();
+  });
+
+  it("cannot be fired twice while the first submit is in flight", async () => {
+    let release: () => void = () => {};
+    groupOrderMock.submitOrder.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = () => resolve();
+        }),
+    );
+
+    const wrapper = await mountView();
+    const button = wrapper.find('[data-testid="group-order-submit"]');
+    await button.trigger("click");
+
+    // A double tap must not produce two real orders. The composable's
+    // clientMutationId would catch it server-side, but the host should never
+    // get that far.
+    expect(button.attributes("disabled")).toBeDefined();
+    await button.trigger("click");
+    expect(groupOrderMock.submitOrder).toHaveBeenCalledOnce();
+
+    release();
+    await flushPromises();
+  });
+
+  it("names the host when someone else tries to submit", async () => {
+    groupOrderMock.submitOrder.mockRejectedValueOnce(
+      Object.assign(new Error("Only the group host can lock this order"), {
+        isHostOnly: true,
+      }),
+    );
+
+    const wrapper = await mountView();
+    await wrapper.find('[data-testid="group-order-submit"]').trigger("click");
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="group-order-submit-error"]').exists(),
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="group-order-placed-warning"]').exists(),
+    ).toBe(false);
+  });
+
+  it("tells the host the order reached the restaurant even though submitting failed", async () => {
+    groupOrderMock.submitOrder.mockRejectedValueOnce(
+      Object.assign(new Error("Split total does not match order total"), {
+        orderAlreadyPlaced: true,
+      }),
+    );
+
+    const wrapper = await mountView();
+    await wrapper.find('[data-testid="group-order-submit"]').trigger("click");
+    await flushPromises();
+
+    // finalize creates the real order before splitting the bill. Reporting this
+    // as a plain failure sends the host to re-submit, or away from a table
+    // whose food is already being cooked.
+    const warning = wrapper.find('[data-testid="group-order-placed-warning"]');
+    expect(warning.exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="group-order-submit-error"]').exists(),
+    ).toBe(false);
   });
 });
 
