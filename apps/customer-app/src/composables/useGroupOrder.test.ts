@@ -5,11 +5,30 @@ const ws = vi.hoisted(() => ({
   disconnect: vi.fn(),
   send: vi.fn(),
   connectionStatus: { value: "disconnected" },
+  /**
+   * useWebSocket takes its handlers as construction options rather than
+   * exposing an `onMessage(handler)` method, so the mock has to capture the
+   * options object to be able to deliver a server push.
+   */
+  options: null as { onMessage?: (data: unknown) => void } | null,
 }));
 
 vi.mock("./useWebSocket", () => ({
-  useWebSocket: () => ws,
+  useWebSocket: (options?: { onMessage?: (data: unknown) => void }) => {
+    ws.options = options ?? null;
+    return ws;
+  },
 }));
+
+/** Deliver a message exactly as the socket would: already parsed. */
+function pushFromServer(type: string, data: unknown) {
+  if (!ws.options?.onMessage) {
+    throw new Error(
+      "useGroupOrder did not register an onMessage handler with useWebSocket",
+    );
+  }
+  ws.options.onMessage({ type, data });
+}
 
 vi.mock("@/services/api", () => ({
   apiClient: {
@@ -269,5 +288,130 @@ describe("useGroupOrder — data layer", () => {
       .mock.calls.map(([url]) => String(url));
     expect(calledPaths.some((url) => url.includes("/split"))).toBe(false);
     expect(ws.send).not.toHaveBeenCalled();
+  });
+});
+
+describe("useGroupOrder — server-pushed realtime events", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws.options = null;
+  });
+
+  function serverCartItem(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "item-9",
+      memberId: "m-2",
+      menuItemId: 7,
+      quantity: 2,
+      unitPrice: 3,
+      totalPrice: 6,
+      customizations: {},
+      addedAt: new Date("2026-06-07T00:10:00.000Z").toISOString(),
+      ...overrides,
+    };
+  }
+
+  it("applies a cart item another member added", async () => {
+    const group = await createHostedGroup();
+
+    pushFromServer("group_cart_item_added", {
+      groupOrderId: "go-1",
+      item: serverCartItem(),
+    });
+
+    expect(group.groupOrder.value?.cartItems).toHaveLength(1);
+    expect(group.groupOrder.value?.cartItems[0]).toMatchObject({
+      id: "item-9",
+      quantity: 2,
+      addedBy: "m-2",
+    });
+  });
+
+  it("applies an update and a removal pushed by the server", async () => {
+    const group = await createHostedGroup();
+
+    pushFromServer("group_cart_item_added", {
+      groupOrderId: "go-1",
+      item: serverCartItem(),
+    });
+    pushFromServer("group_cart_item_updated", {
+      groupOrderId: "go-1",
+      item: serverCartItem({ quantity: 5, totalPrice: 15 }),
+    });
+    expect(group.groupOrder.value?.cartItems[0]).toMatchObject({ quantity: 5 });
+
+    pushFromServer("group_cart_item_removed", {
+      groupOrderId: "go-1",
+      itemId: "item-9",
+    });
+    expect(group.groupOrder.value?.cartItems).toHaveLength(0);
+  });
+
+  it("applies a member who joined", async () => {
+    const group = await createHostedGroup();
+
+    pushFromServer("group_member_joined", {
+      groupOrderId: "go-1",
+      member: {
+        id: "m-2",
+        memberId: "m-2",
+        memberName: "Sam",
+        isHost: false,
+        joinedAt: new Date("2026-06-07T00:05:00.000Z").toISOString(),
+      },
+    });
+
+    expect(group.groupOrder.value?.members).toHaveLength(2);
+    expect(group.groupOrder.value?.members[1]).toMatchObject({
+      id: "m-2",
+      name: "Sam",
+      isHost: false,
+    });
+  });
+
+  it("ignores events addressed to a different group order", async () => {
+    const group = await createHostedGroup();
+
+    // One socket can carry more than one room's traffic, and applying another
+    // table's cart item would put food nobody ordered on this bill.
+    pushFromServer("group_cart_item_added", {
+      groupOrderId: "someone-elses-group",
+      item: serverCartItem(),
+    });
+
+    expect(group.groupOrder.value?.cartItems).toHaveLength(0);
+  });
+
+  it("never answers a server push with a push of its own", async () => {
+    const group = await createHostedGroup();
+
+    pushFromServer("group_cart_item_added", {
+      groupOrderId: "go-1",
+      item: serverCartItem(),
+    });
+
+    // Echoing an applied event back is how two clients talk each other into an
+    // infinite loop.
+    expect(ws.send).not.toHaveBeenCalled();
+    expect(group.groupOrder.value?.cartItems).toHaveLength(1);
+  });
+
+  it("survives an event shape it does not recognise", async () => {
+    const group = await createHostedGroup();
+
+    expect(() =>
+      pushFromServer("group_order_created", { groupOrderId: "go-1" }),
+    ).not.toThrow();
+    expect(() => pushFromServer("something_new", {})).not.toThrow();
+    expect(group.groupOrder.value?.cartItems).toHaveLength(0);
+  });
+
+  it("closes the socket on disconnectRealtime", async () => {
+    const group = await createHostedGroup();
+
+    group.disconnectRealtime();
+
+    expect(ws.disconnect).toHaveBeenCalled();
+    expect(group.isConnected.value).toBe(false);
   });
 });

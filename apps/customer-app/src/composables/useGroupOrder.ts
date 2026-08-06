@@ -6,7 +6,10 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useWebSocket } from "./useWebSocket";
 import { apiClient } from "@/services/api";
-import type { GroupOrderStatus } from "@makanmakan/shared-types";
+import {
+  RealtimeEventType,
+  type GroupOrderStatus,
+} from "@makanmakan/shared-types";
 
 // ============================================================================
 // Types
@@ -133,6 +136,18 @@ interface GroupOrderSummary {
   cartItems: BackendGroupCartItem[];
 }
 
+interface GroupOrderRealtimeMessage {
+  type?: unknown;
+  data?: unknown;
+}
+
+interface GroupOrderRealtimePayload {
+  groupOrderId?: unknown;
+  item?: unknown;
+  itemId?: unknown;
+  member?: unknown;
+}
+
 function timestamp(value: string | Date | number | null | undefined): number {
   if (value == null) return Date.now();
   if (typeof value === "number") return value;
@@ -200,6 +215,14 @@ function mapSummary(summary: GroupOrderSummary): GroupOrder {
   };
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+function asRealtimePayload(data: unknown): GroupOrderRealtimePayload {
+  return isObject(data) ? data : {};
+}
+
 // ============================================================================
 // Composable
 // ============================================================================
@@ -225,12 +248,63 @@ export function useGroupOrder(options: {
   const memberToken = ref<string | null>(null);
   const recoveryCode = ref<string | null>(null);
 
+  function handleRealtimeMessage(message: GroupOrderRealtimeMessage): void {
+    if (!groupOrder.value || typeof message.type !== "string") return;
+
+    const payload = asRealtimePayload(message.data);
+    if (payload.groupOrderId !== groupOrder.value.id) return;
+
+    switch (message.type) {
+      case RealtimeEventType.GROUP_CART_ITEM_ADDED:
+        if (isObject(payload.item)) {
+          handleCartItemAdded(
+            mapCartItem(
+              payload.item as unknown as BackendGroupCartItem,
+              groupOrder.value.members,
+            ),
+          );
+        }
+        break;
+
+      case RealtimeEventType.GROUP_CART_ITEM_UPDATED:
+        if (isObject(payload.item)) {
+          handleCartItemUpdated(
+            mapCartItem(
+              payload.item as unknown as BackendGroupCartItem,
+              groupOrder.value.members,
+            ),
+          );
+        }
+        break;
+
+      case RealtimeEventType.GROUP_CART_ITEM_REMOVED:
+        if (typeof payload.itemId === "string") {
+          handleCartItemRemoved({ itemId: payload.itemId });
+        }
+        break;
+
+      case RealtimeEventType.GROUP_MEMBER_JOINED:
+        if (isObject(payload.member)) {
+          handleMemberJoined(
+            mapMember(payload.member as unknown as BackendGroupMember),
+          );
+        }
+        break;
+
+      case RealtimeEventType.GROUP_ORDER_CREATED:
+      default:
+        break;
+    }
+  }
+
   // WebSocket connection
   const {
     connect,
     disconnect,
     connectionStatus: _connectionStatus,
-  } = useWebSocket();
+  } = useWebSocket({
+    onMessage: handleRealtimeMessage,
+  });
 
   // Computed
   const isHost = computed(
@@ -414,56 +488,14 @@ export function useGroupOrder(options: {
     }
   }
 
-  // Reserved for future WebSocket message handling
-  function _handleWebSocketMessage(event: MessageEvent): void {
-    try {
-      const data = JSON.parse(event.data) as GroupOrderEvent;
-
-      switch (data.type) {
-        case "cart_item_added":
-          handleCartItemAdded(data.data as GroupCartItem);
-          break;
-
-        case "cart_item_updated":
-          handleCartItemUpdated(data.data as GroupCartItem);
-          break;
-
-        case "cart_item_removed":
-          handleCartItemRemoved(data.data as { itemId: string });
-          break;
-
-        case "member_joined":
-          handleMemberJoined(data.data as GroupMember);
-          break;
-
-        case "member_left":
-          handleMemberLeft(data.data as { memberId: string });
-          break;
-
-        case "member_status_updated":
-          handleMemberStatusUpdated(
-            data.data as { memberId: string; isOnline: boolean },
-          );
-          break;
-
-        case "split_bill_updated":
-          handleSplitBillUpdated(data.data as SplitBillConfig);
-          break;
-
-        case "order_submitted":
-          handleOrderSubmitted();
-          break;
-
-        default:
-          console.log("Unknown event type:", data.type);
-      }
-    } catch (err) {
-      console.error("Failed to handle WebSocket message:", err);
-    }
-  }
-
   function handleCartItemAdded(item: GroupCartItem): void {
     if (!groupOrder.value) return;
+    if (
+      groupOrder.value.cartItems.some((existing) => existing.id === item.id)
+    ) {
+      handleCartItemUpdated(item);
+      return;
+    }
     groupOrder.value.cartItems.push(item);
     groupOrder.value.updatedAt = Date.now();
   }
@@ -492,36 +524,6 @@ export function useGroupOrder(options: {
     if (!groupOrder.value.members.find((m) => m.id === member.id)) {
       groupOrder.value.members.push(member);
     }
-  }
-
-  function handleMemberLeft(data: { memberId: string }): void {
-    if (!groupOrder.value) return;
-    groupOrder.value.members = groupOrder.value.members.filter(
-      (m) => m.id !== data.memberId,
-    );
-  }
-
-  function handleMemberStatusUpdated(data: {
-    memberId: string;
-    isOnline: boolean;
-  }): void {
-    if (!groupOrder.value) return;
-    const member = groupOrder.value.members.find((m) => m.id === data.memberId);
-    if (member) {
-      member.isOnline = data.isOnline;
-      member.lastActivity = Date.now();
-    }
-  }
-
-  function handleSplitBillUpdated(config: SplitBillConfig): void {
-    if (!groupOrder.value) return;
-    groupOrder.value.splitBillConfig = config;
-    groupOrder.value.updatedAt = Date.now();
-  }
-
-  function handleOrderSubmitted(): void {
-    if (!groupOrder.value) return;
-    groupOrder.value.status = "checkout";
   }
 
   // Cart operations
@@ -596,6 +598,11 @@ export function useGroupOrder(options: {
     isConnected.value = false;
   }
 
+  function disconnectRealtime(): void {
+    disconnect();
+    isConnected.value = false;
+  }
+
   // Submit order (host only)
   async function submitOrder(): Promise<never> {
     throw new Error("submitOrder is not yet available");
@@ -635,6 +642,7 @@ export function useGroupOrder(options: {
     joinGroupOrder,
     loadGroupOrder,
     connectToGroupOrder,
+    disconnectRealtime,
     leaveGroupOrder,
     addToCart,
     updateCartItem,
