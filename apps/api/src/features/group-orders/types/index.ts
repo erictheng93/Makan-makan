@@ -7,6 +7,7 @@ import type { BaseEntity } from "../../../shared/types";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
+  GroupOrderStatus,
 } from "@makanmakan/shared-types";
 
 // Core Group Order Types
@@ -62,40 +63,16 @@ export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {
 // Enums
 
 /**
- * The only status values `group_orders.status` is ever written with.
- *
- * `"locked"`, `"finalized"` and `"expired"` were removed: nothing ever wrote
- * them, and a status type that lists values the service cannot produce sends
- * every reader looking for handling that doesn't exist. `"ordering"` was in
- * the same category — read in two places, written nowhere — and was removed
- * from those reads rather than added here (production `group_orders` was
- * confirmed empty, so no row carries it).
+ * Group order status now lives in `@makanmakan/shared-types` so the customer
+ * app holds the same union instead of translating into a vocabulary of its
+ * own. Re-exported here because this module is the feature's public surface
+ * and every existing import already points at it.
  */
-export const GROUP_ORDER_STATUSES = [
-  "active", // 活躍，可以加入和修改
-  "finalizing", // 正在轉成真實訂單，作為 finalize 互斥鎖
-  "finalizing_failed", // 真實訂單已成立但分帳/收斂失敗，需人工介入
-  "checkout", // 分帳中，已鎖定不能再改購物車
-  "completed", // 已完成
-  "cancelled", // 已取消
-] as const;
-
-export type GroupOrderStatus = (typeof GROUP_ORDER_STATUSES)[number];
-
-/**
- * Narrow a raw `group_orders.status` string from the database.
- *
- * The column is plain `text`, so a bare `as GroupOrderStatus` compiles no
- * matter what the row actually holds — the assertion would simply lie. This
- * checks, and callers decide what to do with an unexpected value.
- */
-export function parseGroupOrderStatus(
-  value: string,
-): GroupOrderStatus | undefined {
-  return (GROUP_ORDER_STATUSES as readonly string[]).includes(value)
-    ? (value as GroupOrderStatus)
-    : undefined;
-}
+export {
+  GROUP_ORDER_STATUSES,
+  parseGroupOrderStatus,
+} from "@makanmakan/shared-types";
+export type { GroupOrderStatus } from "@makanmakan/shared-types";
 
 export type PaymentStatus =
   | "pending" // 等待付款

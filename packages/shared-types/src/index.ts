@@ -17,6 +17,7 @@ export * from "./backup";
 export * from "./pagination";
 export * from "./scheduling";
 export * from "./leaves";
+export * from "./group-orders";
 export * from "./realtime-events";
 export * from "./reservation";
 export * from "./schema-json-types";
