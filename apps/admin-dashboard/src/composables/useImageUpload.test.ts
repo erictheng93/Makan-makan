@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useImageUpload } from "./useImageUpload";
 
@@ -11,6 +12,7 @@ vi.mock("@/utils/authTokenProvider", () => ({
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

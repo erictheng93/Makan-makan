@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount } from "@vue/test-utils";
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Sidebar from "./Sidebar.vue";
 
@@ -49,6 +49,7 @@ vi.mock("@/stores/auth", () => ({
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

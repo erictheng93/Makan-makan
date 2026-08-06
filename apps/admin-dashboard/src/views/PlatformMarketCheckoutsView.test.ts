@@ -545,7 +545,11 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("付款失敗");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toMatch(/06\/01[\s\u2009]\d{2}:09/);
+      // The date half is now produced by useDateFormatter rather than a local
+      // Intl call, so zh-TW renders "6月1日" instead of "06/01" and the
+      // separator is a plain space rather than Intl's narrow no-break space.
+      // The hour stays loose so the assertion does not pin a timezone.
+    ).toMatch(/6月1日 \d{2}:09/);
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("Webhook 摘要");
@@ -572,7 +576,7 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("待付款");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toMatch(/06\/01[\s\u2009]\d{2}:11/);
+    ).toMatch(/6月1日 \d{2}:11/);
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
     ).toContain("查單摘要");
@@ -620,18 +624,22 @@ describe("PlatformMarketCheckoutsView", () => {
     ).toContain("冪等鍵 market-checkout:checkout-1");
     expect(
       wrapper.get('[data-testid="checkout-parent-payment"]').text(),
-    ).toMatch(/更新 06\/01[\s\u2009]\d{2}:05/);
+    ).toMatch(/更新 6月1日 \d{2}:05/);
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "對帳分配",
     );
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "平台費率 3.50%",
     );
+    // NT$ rather than $: these amounts now come from the shared currency
+    // helper, which uses the app-wide TWD symbol. The rest of this panel
+    // already rendered NT$ via formatPrice, so the panel was inconsistent
+    // with itself before and is uniform now.
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
-      "攤位淨收 $154",
+      "攤位淨收 NT$154",
     );
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
-      "平台費 $6",
+      "平台費 NT$6",
     );
     expect(wrapper.get('[data-testid="checkout-settlement"]').text()).toContain(
       "甜點攤",

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
+import { useCurrency } from "@/composables/useCurrency";
 import type { ProductAnalysis } from "@makanmakan/ai-analytics";
 
 // Icons
@@ -23,6 +24,7 @@ const { t } = useI18n();
 const authStore = useAuthStore();
 const { getTrafficDrivers, getBestsellers, getProfitLeaders } =
   useAIAnalytics();
+const { formatPrice } = useCurrency();
 
 type ProductAnalyticsTabId = "traffic" | "bestsellers" | "profit";
 
@@ -126,14 +128,10 @@ onMounted(() => {
   loadData();
 });
 
-// Format currency
+// Format currency using the active restaurant's currency
 const formatCurrency = (value?: number) => {
   if (value === undefined) return "N/A";
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    minimumFractionDigits: 0,
-  }).format(value);
+  return formatPrice(value);
 };
 
 // Format percent

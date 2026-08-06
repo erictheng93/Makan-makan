@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount } from "@vue/test-utils";
+import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import CategoryEditForm from "./CategoryEditForm.vue";
 import type { CategoryData } from "@/composables/useMenuManagement";
@@ -8,6 +9,7 @@ import type { CategoryData } from "@/composables/useMenuManagement";
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

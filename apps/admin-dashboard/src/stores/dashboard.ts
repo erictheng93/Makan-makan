@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { DashboardStats, ChartData } from "@/types";
 import { api } from "@/services/api";
 import { useAuthStore } from "./auth";
+import { useCurrency } from "@/composables/useCurrency";
 import { t } from "@/i18n";
 
 type AnalyticsPeriod = "daily" | "weekly" | "monthly";
@@ -212,12 +213,9 @@ export const useDashboardStore = defineStore("dashboard", () => {
   };
 
   // Helper functions for formatting
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("zh-TW", {
-      style: "currency",
-      currency: "TWD",
-    }).format(amount);
-  };
+  const { formatPrice } = useCurrency();
+
+  const formatCurrency = (amount: number) => formatPrice(amount);
 
   const formatPercentage = (value: number) => {
     return `${(value * 100).toFixed(1)}%`;

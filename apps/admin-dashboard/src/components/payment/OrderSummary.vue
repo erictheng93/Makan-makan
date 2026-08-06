@@ -226,6 +226,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
+import { formatCurrency as sharedFormatCurrency } from "@makanmakan/utils";
 import type {
   PaymentMethod,
   CountryCode,
@@ -273,27 +274,9 @@ withDefaults(defineProps<Props>(), {
 
 const { t } = useI18n();
 
-// Computed
-const formatCurrency = (amount: number, currency: CurrencyCode): string => {
-  const formatters = {
-    TWD: new Intl.NumberFormat("zh-TW", {
-      style: "currency",
-      currency: "TWD",
-      minimumFractionDigits: 0,
-    }),
-    MYR: new Intl.NumberFormat("ms-MY", {
-      style: "currency",
-      currency: "MYR",
-      minimumFractionDigits: 2,
-    }),
-    VND: new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }),
-  };
-  return formatters[currency].format(amount);
-};
+// Formats in the order's own currency (not the active restaurant's)
+const formatCurrency = (amount: number, currency: CurrencyCode): string =>
+  sharedFormatCurrency(amount, currency);
 
 const getTaxRate = (country: CountryCode): number => {
   const taxRates = {

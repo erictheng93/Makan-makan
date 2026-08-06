@@ -258,6 +258,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 // Types
 interface ErrorDetails {
@@ -291,6 +292,7 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 const { t } = useI18n();
+const { formatDateTime } = useDateFormatter();
 
 // Reactive state
 const processingStep = ref(1);
@@ -357,18 +359,6 @@ const handleViewFaq = () => {
 
 const handleReturnToShopping = () => {
   emit("continue-shopping");
-};
-
-const formatDateTime = (date: Date): string => {
-  return new Intl.DateTimeFormat("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(date);
 };
 </script>
 

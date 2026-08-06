@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount, flushPromises } from "@vue/test-utils";
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsView from "./SettingsView.vue";
 import { api } from "@/services/api";
@@ -11,6 +12,7 @@ import { useRoute } from "vue-router";
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

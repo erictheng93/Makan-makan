@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { t } from "@/i18n";
 import { apiClient } from "@/services/api";
+import { formatCurrency } from "@makanmakan/utils";
 import type {
   PaymentRequest,
   PaymentResult,
@@ -449,28 +450,9 @@ export const usePaymentStore = defineStore("payment", () => {
     return emailRegex.test(email);
   };
 
-  // 格式化金額
-  const formatAmount = (amount: number, currency: CurrencyCode): string => {
-    const formatters = {
-      TWD: new Intl.NumberFormat("zh-TW", {
-        style: "currency",
-        currency: "TWD",
-        minimumFractionDigits: 0,
-      }),
-      MYR: new Intl.NumberFormat("ms-MY", {
-        style: "currency",
-        currency: "MYR",
-        minimumFractionDigits: 2,
-      }),
-      VND: new Intl.NumberFormat("vi-VN", {
-        style: "currency",
-        currency: "VND",
-        minimumFractionDigits: 0,
-      }),
-    };
-
-    return formatters[currency].format(amount);
-  };
+  // 格式化金額（使用共用的貨幣設定，依傳入的幣別格式化）
+  const formatAmount = (amount: number, currency: CurrencyCode): string =>
+    formatCurrency(amount, currency);
 
   // 獲取支付統計
   const getPaymentStats = computed(() => {

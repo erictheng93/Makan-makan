@@ -4930,6 +4930,30 @@ const viVN: Messages = {
     trialEndsAt: "Thử nghiệm kết thúc lúc",
     subtitle: "Phụ đề",
   },
+  usage: {
+    selectRestaurant: "Chọn nhà hàng",
+    refresh: "Làm mới",
+    emptyPrompt:
+      "Chọn nhà hàng để xem mức sử dụng của chu kỳ thanh toán hiện tại.",
+    loadError: "Không thể tải dữ liệu sử dụng",
+    noLimit: "Không giới hạn hoặc chưa thiết lập hạn mức",
+    recentEvents: "Sự kiện sử dụng gần đây",
+    eventsCount: "{count} bản ghi",
+    columnTime: "Thời gian",
+    columnMeter: "Chỉ số",
+    columnQuantity: "Số lượng",
+    columnStatus: "Trạng thái",
+    statusAggregated: "Đã tổng hợp",
+    statusPending: "Chờ tổng hợp",
+    noEvents: "Chưa có sự kiện sử dụng",
+    meters: {
+      ordersCreated: "Đơn hàng đã tạo",
+      apiRequests: "Yêu cầu API",
+      printJobs: "Lệnh in",
+      aiRequests: "Yêu cầu AI",
+      storageBytes: "Dung lượng lưu trữ",
+    },
+  },
 };
 
 export default viVN;

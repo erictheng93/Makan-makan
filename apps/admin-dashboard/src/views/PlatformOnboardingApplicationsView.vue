@@ -258,6 +258,9 @@ import {
   type OnboardingApplicationStatus,
   type ProvisionedOwnerAccount,
 } from "@/services/onboardingApplicationsService";
+import { useDateFormatter } from "@/composables/useDateFormatter";
+
+const { formatDateTime } = useDateFormatter();
 
 const statusFilter = ref<"" | OnboardingApplicationStatus>("submitted");
 const applications = ref<OnboardingApplication[]>([]);
@@ -368,10 +371,7 @@ function formatDate(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("zh-TW", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return formatDateTime(date);
 }
 
 onMounted(loadApplications);

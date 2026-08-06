@@ -26,6 +26,7 @@ vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, unknown>) =>
       params?.count ? `${key} ${params.count}` : key,
+    locale: ref("zh-TW"),
   }),
 }));
 

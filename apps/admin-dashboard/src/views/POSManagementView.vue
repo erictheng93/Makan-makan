@@ -24,7 +24,7 @@
           <p class="text-xs text-blue-600">
             {{
               currentShift
-                ? `${formatClockTime(currentShift.startTime || "")} - ${formatClockTime(currentShift.endTime || "")}`
+                ? `${formatClockTime(currentShift.startTime)} - ${formatClockTime(currentShift.endTime || "")}`
                 : t("pos.pleaseStartShift")
             }}
           </p>

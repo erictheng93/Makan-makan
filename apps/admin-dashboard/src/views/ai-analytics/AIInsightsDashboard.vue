@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
+import { useCurrency } from "@/composables/useCurrency";
 import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
 import type { AIAnalyticsReport, AIInsight } from "@makanmakan/ai-analytics";
 
@@ -22,6 +23,7 @@ import LightBulbIcon from "@heroicons/vue/24/outline/LightBulbIcon";
 const { t } = useI18n();
 const authStore = useAuthStore();
 const { generateReport, error: apiError } = useAIAnalytics();
+const { formatPrice } = useCurrency();
 
 const report = ref<AIAnalyticsReport | null>(null);
 const selectedTimeRange = ref("30d");
@@ -131,14 +133,8 @@ onMounted(() => {
   handleGenerateReport();
 });
 
-// Format currency
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
+// Format currency using the active restaurant's currency
+const formatCurrency = (value: number) => formatPrice(value);
 
 // Format percentage
 const formatPercent = (value: number) => {

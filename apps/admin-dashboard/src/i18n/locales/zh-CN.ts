@@ -4833,6 +4833,29 @@ const zhCN: Messages = {
     subtitle: "管理平台各店家的订阅方案与模组权限",
     trialEndsAt: "试用到期：",
   },
+  usage: {
+    selectRestaurant: "选择餐厅",
+    refresh: "刷新",
+    emptyPrompt: "选择餐厅后查看当前 billing cycle 的用量。",
+    loadError: "无法加载用量数据",
+    noLimit: "无限制或尚未设置 quota",
+    recentEvents: "最近用量事件",
+    eventsCount: "{count} 笔",
+    columnTime: "时间",
+    columnMeter: "Meter",
+    columnQuantity: "数量",
+    columnStatus: "状态",
+    statusAggregated: "已聚合",
+    statusPending: "待聚合",
+    noEvents: "暂无用量事件",
+    meters: {
+      ordersCreated: "订单创建",
+      apiRequests: "API 请求",
+      printJobs: "打印任务",
+      aiRequests: "AI 请求",
+      storageBytes: "存储容量",
+    },
+  },
 };
 
 export default zhCN;

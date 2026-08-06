@@ -125,6 +125,11 @@ import {
 } from "@heroicons/vue/24/outline";
 import ShieldCheckIcon from "@heroicons/vue/24/outline/ShieldCheckIcon";
 import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
+import {
+  formatCurrency,
+  CURRENCY_CONFIGS,
+  type CurrencyCode,
+} from "@makanmakan/utils";
 
 // Props
 interface Props {
@@ -159,7 +164,7 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const toast = useToast();
 
 // Stripe 實例
@@ -178,14 +183,24 @@ const show3DSecure = ref(false);
 const showTestCards = ref(false);
 
 // 計算屬性
+// `currency` prop 型別為 string，可能超出 CurrencyCode 聯合型別，
+// 因此先做執行期收斂；支援的幣別走共用格式化，其餘維持原本行為。
+const isSupportedCurrency = (code: string): code is CurrencyCode =>
+  code in CURRENCY_CONFIGS;
+
 const formatAmount = computed(() => {
-  const formatter = new Intl.NumberFormat("zh-TW", {
+  if (isSupportedCurrency(props.currency)) {
+    return formatCurrency(props.amount, props.currency);
+  }
+
+  // Follows the reader's language rather than a pinned zh-TW: this branch is
+  // for a currency the shared config does not describe, so there is no
+  // currency-native convention to fall back on.
+  return new Intl.NumberFormat(locale.value, {
     style: "currency",
     currency: props.currency,
-    minimumFractionDigits:
-      props.currency === "TWD" || props.currency === "VND" ? 0 : 2,
-  });
-  return formatter.format(props.amount);
+    minimumFractionDigits: 2,
+  }).format(props.amount);
 });
 
 const canPay = computed(() => {

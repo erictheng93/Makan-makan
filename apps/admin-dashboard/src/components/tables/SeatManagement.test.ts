@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { defineComponent, nextTick } from "vue";
+import { defineComponent, nextTick, ref } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SeatManagement from "./SeatManagement.vue";
@@ -27,6 +27,7 @@ vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string, params: Record<string, string> = {}) =>
       `${key} ${Object.values(params).join(" ")}`.trim(),
+    locale: ref("zh-TW"),
   }),
 }));
 

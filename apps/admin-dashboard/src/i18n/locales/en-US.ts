@@ -4929,6 +4929,30 @@ const enUS: Messages = {
     trialEndsAt: "Trial Ends At",
     modules: "Modules",
   },
+  usage: {
+    selectRestaurant: "Select a restaurant",
+    refresh: "Refresh",
+    emptyPrompt:
+      "Select a restaurant to view usage for the current billing cycle.",
+    loadError: "Unable to load usage data",
+    noLimit: "Unlimited or no quota configured",
+    recentEvents: "Recent usage events",
+    eventsCount: "{count} records",
+    columnTime: "Time",
+    columnMeter: "Meter",
+    columnQuantity: "Quantity",
+    columnStatus: "Status",
+    statusAggregated: "Aggregated",
+    statusPending: "Pending",
+    noEvents: "No usage events yet",
+    meters: {
+      ordersCreated: "Orders created",
+      apiRequests: "API requests",
+      printJobs: "Print jobs",
+      aiRequests: "AI requests",
+      storageBytes: "Storage used",
+    },
+  },
 };
 
 export default enUS;

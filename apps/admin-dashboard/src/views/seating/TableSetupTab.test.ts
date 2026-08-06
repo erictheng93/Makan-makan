@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TableSetupTab from "./TableSetupTab.vue";
@@ -23,7 +23,7 @@ vi.mock("@/stores/auth", () => ({
 }));
 
 vi.mock("@/i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+  useI18n: () => ({ t: (key: string) => key, locale: ref("zh-TW") }),
 }));
 
 vi.mock("vue-toastification", () => ({

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMenuManagement } from "./useMenuManagement";
 
@@ -33,6 +34,7 @@ vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, unknown>) =>
       params ? `${key}(${JSON.stringify(params)})` : key,
+    locale: ref("zh-TW"),
   }),
 }));
 

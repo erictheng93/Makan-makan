@@ -31,6 +31,7 @@ vi.mock("@/stores/notification", () => ({
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

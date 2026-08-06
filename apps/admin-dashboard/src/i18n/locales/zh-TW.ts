@@ -4835,6 +4835,31 @@ const zhTWCore = {
       createError: "建立訂閱失敗，請再試一次",
     },
   },
+
+  // 用量分頁
+  usage: {
+    selectRestaurant: "選擇餐廳",
+    refresh: "重新整理",
+    emptyPrompt: "選擇餐廳後檢視目前 billing cycle 的用量。",
+    loadError: "無法載入用量資料",
+    noLimit: "無限制或尚未設定 quota",
+    recentEvents: "最近用量事件",
+    eventsCount: "{count} 筆",
+    columnTime: "時間",
+    columnMeter: "Meter",
+    columnQuantity: "數量",
+    columnStatus: "狀態",
+    statusAggregated: "已聚合",
+    statusPending: "待聚合",
+    noEvents: "尚無用量事件",
+    meters: {
+      ordersCreated: "訂單建立",
+      apiRequests: "API 請求",
+      printJobs: "列印工作",
+      aiRequests: "AI 請求",
+      storageBytes: "儲存容量",
+    },
+  },
 };
 
 const zhTWRuntimeKeys = {

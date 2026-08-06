@@ -7,7 +7,7 @@
           class="w-full appearance-none rounded-xl border-0 bg-white px-4 py-3 text-sm text-[#1C1C1E] shadow-sm focus:ring-2 focus:ring-[#007AFF]/30"
           @change="loadUsage"
         >
-          <option value="">選擇餐廳</option>
+          <option value="">{{ t("usage.selectRestaurant") }}</option>
           <option
             v-for="sub in subscriptions"
             :key="sub.restaurantId"
@@ -26,7 +26,7 @@
         @click="loadUsage"
       >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
-        重新整理
+        {{ t("usage.refresh") }}
       </button>
     </div>
 
@@ -34,7 +34,7 @@
       v-if="!selectedRestaurantId"
       class="rounded-2xl bg-white p-10 text-center text-sm text-[#8E8E93] shadow-sm"
     >
-      選擇餐廳後檢視目前 billing cycle 的用量。
+      {{ t("usage.emptyPrompt") }}
     </div>
 
     <div
@@ -89,17 +89,27 @@
 
       <div class="rounded-2xl bg-white p-4 shadow-sm">
         <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-[#1C1C1E]">最近用量事件</h2>
-          <span class="text-xs text-[#8E8E93]">{{ eventsTotal }} 筆</span>
+          <h2 class="text-sm font-semibold text-[#1C1C1E]">
+            {{ t("usage.recentEvents") }}
+          </h2>
+          <span class="text-xs text-[#8E8E93]">
+            {{ t("usage.eventsCount", { count: eventsTotal }) }}
+          </span>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full text-left text-sm">
             <thead>
               <tr class="border-b border-[#E5E5EA] text-xs text-[#8E8E93]">
-                <th class="py-2 pr-4 font-medium">時間</th>
-                <th class="py-2 pr-4 font-medium">Meter</th>
-                <th class="py-2 pr-4 font-medium">數量</th>
-                <th class="py-2 font-medium">狀態</th>
+                <th class="py-2 pr-4 font-medium">
+                  {{ t("usage.columnTime") }}
+                </th>
+                <th class="py-2 pr-4 font-medium">
+                  {{ t("usage.columnMeter") }}
+                </th>
+                <th class="py-2 pr-4 font-medium">
+                  {{ t("usage.columnQuantity") }}
+                </th>
+                <th class="py-2 font-medium">{{ t("usage.columnStatus") }}</th>
               </tr>
             </thead>
             <tbody>
@@ -126,13 +136,17 @@
                         : 'bg-[#FF9500]/10 text-[#FF9500]'
                     "
                   >
-                    {{ event.aggregatedAt ? "已聚合" : "待聚合" }}
+                    {{
+                      event.aggregatedAt
+                        ? t("usage.statusAggregated")
+                        : t("usage.statusPending")
+                    }}
                   </span>
                 </td>
               </tr>
               <tr v-if="events.length === 0">
                 <td class="py-8 text-center text-[#8E8E93]" colspan="4">
-                  尚無用量事件
+                  {{ t("usage.noEvents") }}
                 </td>
               </tr>
             </tbody>
@@ -154,8 +168,10 @@ import {
   type UsageMeterProgress,
 } from "@/services/subscriptionService";
 import { useDateFormatter } from "@/composables/useDateFormatter";
+import { useI18n } from "@/i18n";
 
 const { formatShortDateTime } = useDateFormatter();
+const { t, locale } = useI18n();
 
 const props = defineProps<{
   subscriptions: Subscription[];
@@ -196,7 +212,7 @@ async function loadUsage() {
     eventsTotal.value = eventPage.total;
   } catch (err: any) {
     errorMessage.value =
-      err?.response?.data?.error?.message ?? "無法載入用量資料";
+      err?.response?.data?.error?.message ?? t("usage.loadError");
   } finally {
     isLoading.value = false;
   }
@@ -204,11 +220,11 @@ async function loadUsage() {
 
 function meterLabel(meterKey: MeterKey) {
   const labels: Record<MeterKey, string> = {
-    "orders.created": "訂單建立",
-    "api.requests": "API 請求",
-    "print.jobs": "列印工作",
-    "ai.requests": "AI 請求",
-    "storage.bytes": "儲存容量",
+    "orders.created": t("usage.meters.ordersCreated"),
+    "api.requests": t("usage.meters.apiRequests"),
+    "print.jobs": t("usage.meters.printJobs"),
+    "ai.requests": t("usage.meters.aiRequests"),
+    "storage.bytes": t("usage.meters.storageBytes"),
   };
   return labels[meterKey];
 }
@@ -219,11 +235,13 @@ function formatQuantity(meterKey: MeterKey, value: number) {
       return `${(value / 1_000_000_000).toFixed(1)} GB`;
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} MB`;
   }
-  return new Intl.NumberFormat("zh-TW").format(value);
+  // Plain grouping in the UI language — this is a usage count, not money, so it
+  // must not go through useCurrency()/formatPrice and gain a currency symbol.
+  return new Intl.NumberFormat(locale.value).format(value);
 }
 
 function limitLabel(meter: UsageMeterProgress) {
-  if (!meter.hardLimit) return "無限制或尚未設定 quota";
+  if (!meter.hardLimit) return t("usage.noLimit");
   return `${formatQuantity(meter.meterKey, meter.total)} / ${formatQuantity(
     meter.meterKey,
     meter.hardLimit,

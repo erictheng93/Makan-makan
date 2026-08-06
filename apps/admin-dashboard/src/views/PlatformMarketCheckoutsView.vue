@@ -805,7 +805,7 @@
                   </span>
                 </td>
                 <td class="whitespace-nowrap px-4 py-3">
-                  {{ formatAmount(payment.amount) }}
+                  {{ formatPrice(payment.amount) }}
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
                   {{ payment.paymentId || payment.refundId || "-" }}
@@ -837,7 +837,7 @@
               </p>
             </div>
             <div class="text-sm font-semibold text-gray-900">
-              {{ formatAmount(order.totalAmount) }}
+              {{ formatPrice(order.totalAmount) }}
             </div>
           </div>
           <div class="mt-3 flex flex-wrap gap-2 text-xs">
@@ -872,6 +872,13 @@ import {
   type MarketCheckoutSummary,
   type MarketCheckoutVendorSettlement,
 } from "@/services/marketCheckoutsService";
+import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
+
+const { locale } = useI18n();
+const { formatPrice } = useCurrency();
+const { formatShortDateTime } = useDateFormatter();
 
 const checkouts = ref<MarketCheckoutListItem[]>([]);
 const selectedCheckout = ref<MarketCheckoutDetail | null>(null);
@@ -1251,7 +1258,9 @@ function providerPayloadSummaryLabel(
 }
 
 function formatProviderAmountCents(value: number) {
-  return new Intl.NumberFormat("zh-TW", {
+  // Plain grouped number, not money — the provider currency is rendered
+  // separately by the caller, so this must not carry a currency symbol.
+  return new Intl.NumberFormat(locale.value, {
     maximumFractionDigits: 0,
   }).format(value / 100);
 }
@@ -1344,31 +1353,17 @@ function childPaymentClass(status: "paid" | "failed" | "refunded") {
 }
 
 function formatCents(value: number) {
-  return formatAmount(value / 100);
+  return formatPrice(value / 100);
 }
 
 function formatFeeRate(value: number) {
   return `${(value / 100).toFixed(2)}%`;
 }
 
-function formatAmount(value: number) {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
+  return formatShortDateTime(date);
 }
 
 onMounted(loadCheckouts);

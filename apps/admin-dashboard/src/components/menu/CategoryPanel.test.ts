@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount } from "@vue/test-utils";
+import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import CategoryPanel from "./CategoryPanel.vue";
 import type {
@@ -12,6 +13,7 @@ vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, unknown>) =>
       params ? `${key}:${Object.values(params).join(",")}` : key,
+    locale: ref("zh-TW"),
   }),
 }));
 

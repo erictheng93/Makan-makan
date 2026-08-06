@@ -4954,6 +4954,30 @@ const idID: Messages = {
     subtitle: "Subjudul",
     trialEndsAt: "Uji Coba Berakhir Pada",
   },
+  usage: {
+    selectRestaurant: "Pilih restoran",
+    refresh: "Muat ulang",
+    emptyPrompt:
+      "Pilih restoran untuk melihat pemakaian pada siklus penagihan saat ini.",
+    loadError: "Tidak dapat memuat data pemakaian",
+    noLimit: "Tanpa batas atau kuota belum diatur",
+    recentEvents: "Peristiwa pemakaian terbaru",
+    eventsCount: "{count} entri",
+    columnTime: "Waktu",
+    columnMeter: "Meter",
+    columnQuantity: "Jumlah",
+    columnStatus: "Status",
+    statusAggregated: "Teragregasi",
+    statusPending: "Menunggu agregasi",
+    noEvents: "Belum ada peristiwa pemakaian",
+    meters: {
+      ordersCreated: "Pesanan dibuat",
+      apiRequests: "Permintaan API",
+      printJobs: "Tugas cetak",
+      aiRequests: "Permintaan AI",
+      storageBytes: "Penyimpanan terpakai",
+    },
+  },
 };
 
 export default idID;

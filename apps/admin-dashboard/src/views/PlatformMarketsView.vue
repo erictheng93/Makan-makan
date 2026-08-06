@@ -1888,6 +1888,7 @@ import {
   buildMarketAreaReadinessCsv,
   marketAreaReadinessCsvFilename,
 } from "@/utils/marketAreaReadinessExport";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 type MarketAreaKey = Pick<MarketAreaReadinessSummary, "city" | "district">;
 type EditableMarketVendor = MarketVendor & {
@@ -1921,6 +1922,7 @@ type JoinRequestDraft = {
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const { formatShortDateTime } = useDateFormatter();
 const markets = ref<MarketListItem[]>([]);
 const areaReadiness = ref<MarketAreaReadinessSummary[]>([]);
 const selectedArea = ref<MarketAreaKey | null>(areaFromQuery());
@@ -2369,12 +2371,7 @@ function formatIndexStatusTime(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatShortDateTime(date);
 }
 
 function loadMarketImportExample() {

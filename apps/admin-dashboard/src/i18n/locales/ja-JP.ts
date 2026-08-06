@@ -4930,6 +4930,29 @@ const jaJP: Messages = {
     modules: "モジュール",
     trialEndsAt: "トライアル終了日",
   },
+  usage: {
+    selectRestaurant: "店舗を選択",
+    refresh: "更新",
+    emptyPrompt: "店舗を選択すると、現在の請求サイクルの使用量を表示します。",
+    loadError: "使用量データを読み込めませんでした",
+    noLimit: "無制限、またはクォータが未設定です",
+    recentEvents: "最近の使用量イベント",
+    eventsCount: "{count} 件",
+    columnTime: "日時",
+    columnMeter: "メーター",
+    columnQuantity: "数量",
+    columnStatus: "ステータス",
+    statusAggregated: "集計済み",
+    statusPending: "集計待ち",
+    noEvents: "使用量イベントはまだありません",
+    meters: {
+      ordersCreated: "注文作成",
+      apiRequests: "API リクエスト",
+      printJobs: "印刷ジョブ",
+      aiRequests: "AI リクエスト",
+      storageBytes: "ストレージ使用量",
+    },
+  },
 };
 
 export default jaJP;
