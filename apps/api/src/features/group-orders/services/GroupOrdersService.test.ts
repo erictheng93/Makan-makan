@@ -2401,4 +2401,29 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       paymentMethodDistribution: {},
     });
   });
+
+  it("validates host sessions by creator member token and fails closed on lookup errors", async () => {
+    const service = createService();
+    service.db = createDb([[{ id: "member-1" }]]);
+
+    await expect(
+      service.isHostSession("group-1", "host-session"),
+    ).resolves.toBe(true);
+
+    const memberService = createService();
+    memberService.db = createDb([[]]);
+    await expect(
+      memberService.isHostSession("group-1", "member-session"),
+    ).resolves.toBe(false);
+
+    const failingService = createService();
+    failingService.db = {
+      select: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    };
+    await expect(
+      failingService.isHostSession("group-1", "host-session"),
+    ).resolves.toBe(false);
+  });
 });

@@ -132,6 +132,14 @@ export default {
         console.log("[Cron] Market checkout reconciliation result:", result);
       }
 
+      if (cronMatches(event.cron, "*/5 * * * *")) {
+        console.log("[Cron] Running group order expiry sweep...");
+        const { sweepExpiringGroupOrders } =
+          await import("./workers/group-order-expiry");
+        const result = await sweepExpiringGroupOrders(env);
+        console.log("[Cron] Group order expiry sweep result:", result);
+      }
+
       if (cronMatches(event.cron, "0 2 * * *")) {
         console.log("[Cron] Running storage usage snapshot...");
         const { snapshotStorageUsage } =

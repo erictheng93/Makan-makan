@@ -2245,6 +2245,35 @@ export class GroupOrdersService implements IGroupOrderService {
     }
   }
 
+  async isHostSession(
+    groupOrderId: string,
+    memberToken: string,
+  ): Promise<boolean> {
+    try {
+      const rows = await this.db
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.sessionId, memberToken),
+            eq(groupMembers.role, "creator"),
+            eq(groupMembers.isActive, true),
+            isNull(groupMembers.leftAt),
+          ),
+        )
+        .limit(1);
+
+      return rows.length > 0;
+    } catch (error) {
+      this.errorTracker.logError("isHostSession", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to validate host session", error);
+      return false;
+    }
+  }
+
   /**
    * Get statistics
    */

@@ -20,6 +20,8 @@ const processPayment = vi.hoisted(() => vi.fn());
 const leaveGroup = vi.hoisted(() => vi.fn());
 const getActivities = vi.hoisted(() => vi.fn());
 const cleanupExpiredGroups = vi.hoisted(() => vi.fn());
+const isHostSession = vi.hoisted(() => vi.fn());
+const finalizeGroupOrder = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const broadcastEvent = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
@@ -71,6 +73,8 @@ vi.mock("../services/GroupOrdersService", () => ({
     leaveGroup = leaveGroup;
     getActivities = getActivities;
     cleanupExpiredGroups = cleanupExpiredGroups;
+    isHostSession = isHostSession;
+    finalizeGroupOrder = finalizeGroupOrder;
   },
 }));
 
@@ -143,6 +147,8 @@ describe("group orders routes", () => {
     leaveGroup.mockReset();
     getActivities.mockReset();
     cleanupExpiredGroups.mockReset();
+    isHostSession.mockReset();
+    finalizeGroupOrder.mockReset();
     meterEmit.mockReset();
     meterEmit.mockResolvedValue(undefined);
     broadcastEvent.mockReset();
@@ -420,6 +426,44 @@ describe("group orders routes", () => {
     await expect(cleanupResponse.json()).resolves.toMatchObject({
       data: { cleaned: 3, errors: [] },
     });
+  });
+
+  it("locks group orders only for the creator member token", async () => {
+    isHostSession.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    finalizeGroupOrder.mockResolvedValue({
+      success: true,
+      data: { masterOrderId: "order-1", status: "completed" },
+    });
+    const env = createRateLimitEnv();
+
+    const lockResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/lock`, {
+        method: "POST",
+        body: JSON.stringify({ memberToken: "host-session" }),
+      }),
+      env as never,
+    );
+
+    expect(lockResponse.status).toBe(200);
+    await expect(lockResponse.json()).resolves.toEqual({
+      success: true,
+      data: { masterOrderId: "order-1", status: "completed" },
+    });
+    expect(isHostSession).toHaveBeenCalledWith(groupOrderId, "host-session");
+    expect(finalizeGroupOrder).toHaveBeenCalledWith(groupOrderId);
+
+    const forbiddenResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(`https://test/${groupOrderId}/lock`, {
+          method: "POST",
+          body: JSON.stringify({ memberToken: "member-session" }),
+        }),
+        env as never,
+      ),
+    );
+
+    expect(forbiddenResponse.status).toBe(500);
+    expect(finalizeGroupOrder).toHaveBeenCalledTimes(1);
   });
 
   it("runs cart, split, payment, and leave workflows", async () => {

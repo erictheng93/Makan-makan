@@ -358,6 +358,42 @@ app.post(
 );
 
 /**
+ * Lock and finalize a group order
+ * POST /api/v1/orders/group/{groupOrderId}/lock
+ */
+app.post(
+  "/:groupOrderId/lock",
+  publicRateLimit,
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateBody(groupOrderSchemas.lockGroupOrder),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const { memberToken } = c.get("validatedBody");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const isHost = await groupOrderService.isHostSession(
+      groupOrderId,
+      memberToken,
+    );
+
+    if (!isHost) {
+      throw forbidden("Only the group host can lock this order");
+    }
+
+    const result = await groupOrderService.finalizeGroupOrder(groupOrderId);
+
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to finalize group order");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
+  },
+);
+
+/**
  * Get group order statistics
  * GET /api/v1/orders/group/statistics
  * NOTE: This route MUST be defined BEFORE /:groupOrderId to avoid matching 'statistics' as a groupOrderId

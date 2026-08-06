@@ -217,6 +217,10 @@ export const recoverHostSchema = z.object({
   recoveryCode: z.string().min(1, "Recovery code is required").max(100),
 });
 
+export const lockGroupOrderSchema = z.object({
+  memberToken: z.string().min(1, "Member token is required").max(255),
+});
+
 // Parameter validation schemas
 export const groupOrderIdParamSchema = z.object({
   groupOrderId: z.uuid("Invalid group order ID format"),
@@ -403,6 +407,7 @@ export const groupOrderSchemas = {
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
   recoverHost: recoverHostSchema,
+  lockGroupOrder: lockGroupOrderSchema,
 
   // Parameters
   groupOrderIdParam: groupOrderIdParamSchema,
@@ -422,5 +427,6 @@ export type AddCartItemData = z.infer<typeof addCartItemSchema>;
 export type UpdateCartItemData = z.infer<typeof updateCartItemSchema>;
 export type SplitBillData = z.infer<typeof splitBillSchema>;
 export type ProcessPaymentData = z.infer<typeof processPaymentSchema>;
+export type LockGroupOrderData = z.infer<typeof lockGroupOrderSchema>;
 export type ActivitiesQueryData = z.infer<typeof activitiesQuerySchema>;
 export type StatisticsQueryData = z.infer<typeof statisticsQuerySchema>;
