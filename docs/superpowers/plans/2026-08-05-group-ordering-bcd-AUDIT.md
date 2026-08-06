@@ -228,7 +228,9 @@ G-1 ~ G-9 全數達標。特別確認：
 
 **阻斷項：`apps/api/src/workers/group-order-expiry.ts` 全檔使用 raw SQL**
 
-219 行新程式碼、7 處 `env.DB.prepare()` 手寫 SQL、零 Drizzle schema 引用，並自行宣告了一份 snake_case 的列型別。CLAUDE.md 的「Database Query Strategy（Two Layers — Enforced）」明訂 **Layer 3 raw string SQL 在新程式碼中禁止**。
+219 行新程式碼、**5 條手寫 SQL 語句**（2 SELECT + 3 UPDATE，經 `db.prepare()` 執行）、零 Drizzle schema 引用，並自行宣告了一份 snake_case 的列型別。CLAUDE.md 的「Database Query Strategy（Two Layers — Enforced）」明訂 **Layer 3 raw string SQL 在新程式碼中禁止**。
+
+> 更正（2026-08-06）：本節初稿寫「7 處 `env.DB.prepare()`」，是稽核方以 `grep -c "DB.prepare\|\.bind("` 同時計入兩種樣式所得的錯誤數字。正確為 5 條 SQL 語句。此更正不影響本項判定 — 依據是「有無使用 Drizzle」與硬編欄位／狀態字面值的風險，不是語句數量。
 
 這不是形式問題，此處的風險正是該規則存在的理由：
 
@@ -244,6 +246,8 @@ G-1 ~ G-9 全數達標。特別確認：
 
 1. `wrangler.toml` 的 `*/5 * * * *` 註解仍只寫「Market checkout payment reconciliation」，但現在有兩個不相關的作業共用它。該註解正上方的區塊恰好記載著團隊當初為了能各自調整而把排程拆開 — 下一個要調整 reconciliation 頻率的人會連帶改動群組單到期掃描（包含與 `GROUP_ORDER_EXPIRY_WARNING_MS` 語意綁定的 5 分鐘警告窗）。註解應更新為兩者共用。
 2. `index.ts` 在分派處硬編 `"*/5 * * * *"` 字面值，但 worker 已匯出 `GROUP_ORDER_EXPIRY_CRON` 常數。改為引用該常數可消除 H-7 所擔心的那種字串漂移。
+
+**兩項非阻斷發現已於 `b1592db6` 關閉。** 註解改為列出兩個共用作業，並把上方區塊改寫為「此 `*/5` tick 刻意由多個頻繁作業共用；要單獨調整某一個的頻率前請先拆開」— 保留了原本的設計意圖而非只是補一個名字。`index.ts` 改為引用 `GROUP_ORDER_EXPIRY_CRON`，並新增測試同時驗證「該常數存在於 wrangler.toml 的宣告中」與「handler 確實以該常數比對」，這比原本的逐字字串比對更難漂移。
 
 ---
 
