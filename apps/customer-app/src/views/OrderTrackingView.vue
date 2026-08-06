@@ -223,7 +223,7 @@
               <span class="text-ios-secondary">{{
                 t("orderTracking.tableNumber")
               }}</span>
-              <span class="font-medium text-ios-text">{{ tableId }}</span>
+              <span class="font-medium text-ios-text">{{ tableNumber }}</span>
             </div>
           </div>
 
@@ -515,6 +515,10 @@ const canCancelOrder = computed(() => {
     order.value?.status === "pending" || order.value?.status === "confirmed"
   );
 });
+
+const tableNumber = computed(
+  () => order.value?.table?.number ?? String(props.tableId),
+);
 
 const statusOrder = [
   "pending",

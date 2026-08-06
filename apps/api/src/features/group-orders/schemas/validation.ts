@@ -16,41 +16,67 @@ const notesSchema = (maxLength: number) =>
   z.string().max(maxLength).transform(sanitizeFreeText);
 
 // Core validation schemas
-export const createGroupOrderSchema = z.object({
-  restaurantId: z
-    .union([z.string(), z.number()])
-    .transform((val) => String(val)),
-  tableId: z
-    .number()
-    .int()
-    .positive("Table ID must be a positive integer")
-    .optional(),
-  tableNumber: z.string().optional(),
-  hostName: z.string().max(50).optional(),
-  expectedMembers: z.number().int().min(2).max(20).optional(),
-  notes: notesSchema(500).optional(),
-  expirationHours: z
-    .number()
-    .min(1, "Expiration hours must be at least 1 hour")
-    .max(168, "Expiration hours cannot exceed 7 days (168 hours)")
-    .optional()
-    .default(24),
-  maxMembers: z
-    .number()
-    .min(2, "Maximum members must be at least 2")
-    .max(20, "Maximum members cannot exceed 20")
-    .optional()
-    .default(8),
-  permissions: z
-    .object({
-      canInviteMembers: z.boolean().optional(),
-      canModifyOthersCart: z.boolean().optional(),
-      canFinalizeOrder: z.boolean().optional(),
-      canSplitBill: z.boolean().optional(),
-      canProcessPayment: z.boolean().optional(),
-    })
-    .optional(),
-});
+export const createGroupOrderSchema = z
+  .object({
+    restaurantId: z
+      .union([z.string(), z.number()])
+      .transform((val) => String(val)),
+    tableId: z
+      .number()
+      .int()
+      .positive("Table ID must be a positive integer")
+      .optional(),
+    tableNumber: z.string().optional(),
+    hostName: z.string().max(50).optional(),
+    expectedMembers: z.number().int().min(2).max(30).optional(),
+    notes: notesSchema(500).optional(),
+    expirationHours: z
+      .number()
+      .min(1, "Expiration hours must be at least 1 hour")
+      .max(168, "Expiration hours cannot exceed 7 days (168 hours)")
+      .optional(),
+    expirationMinutes: z
+      .number()
+      .min(5, "Expiration must be at least 5 minutes")
+      .max(180, "Expiration cannot exceed 180 minutes")
+      .optional(),
+    maxMembers: z
+      .number()
+      .min(2, "Maximum members must be at least 2")
+      .max(30, "Maximum members cannot exceed 30")
+      .optional(),
+    permissions: z
+      .object({
+        canInviteMembers: z.boolean().optional(),
+        canModifyOthersCart: z.boolean().optional(),
+        canFinalizeOrder: z.boolean().optional(),
+        canSplitBill: z.boolean().optional(),
+        canProcessPayment: z.boolean().optional(),
+      })
+      .optional(),
+    fulfillmentType: z.enum(["dine_in", "delivery", "pickup"]).optional(),
+    deliveryAddress: z
+      .object({
+        line1: z.string().min(1).max(200),
+        line2: z.string().max(200).optional(),
+        contactPhone: z.string().max(20).optional(),
+        notes: notesSchema(300).optional(),
+      })
+      .optional(),
+    pickupAt: z.iso.datetime().optional(),
+    autoSubmitOnExpiry: z.boolean().optional(),
+  })
+  .refine(
+    (data) => data.fulfillmentType !== "delivery" || !!data.deliveryAddress,
+    {
+      message: "deliveryAddress is required when fulfillmentType is delivery",
+      path: ["deliveryAddress"],
+    },
+  )
+  .refine((data) => data.fulfillmentType !== "pickup" || !!data.pickupAt, {
+    message: "pickupAt is required when fulfillmentType is pickup",
+    path: ["pickupAt"],
+  });
 
 export const joinGroupSchema = z.object({
   memberName: z
@@ -170,6 +196,10 @@ export const processPaymentSchema = z.object({
     .max(100, "Transaction ID cannot exceed 100 characters")
     .optional(),
   paymentDetails: z.record(z.string(), z.any()).optional(), // Additional payment details (card info, etc.)
+});
+
+export const recoverHostSchema = z.object({
+  recoveryCode: z.string().min(1, "Recovery code is required").max(100),
 });
 
 // Parameter validation schemas
@@ -357,6 +387,7 @@ export const groupOrderSchemas = {
   updateCartItem: updateCartItemSchema,
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
+  recoverHost: recoverHostSchema,
 
   // Parameters
   groupOrderIdParam: groupOrderIdParamSchema,

@@ -105,9 +105,15 @@ export interface DeliveryInfo {
 }
 
 export interface Order {
-  id: number;
+  id: string;
   restaurantId: string;
   tableId?: number;
+  orderNumber: string;
+  table?: {
+    id: number;
+    number: string;
+  };
+  orderType?: "table" | "seat" | "shop";
   status: OrderStatus;
   orderSource?:
     | "direct"

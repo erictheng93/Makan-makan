@@ -500,6 +500,7 @@
     "scanFailed": "Fungsi pemindaian gagal dimulai",
     "invalidQRFormat": "Format kode QR tidak valid",
     "qrValidationFailed": "Validasi data kode QR gagal",
+    "qrSignatureInvalid": "Kode QR ini sudah kedaluwarsa atau tanda tangannya tidak valid. Silakan pindai ulang kode QR di meja.",
     "unsupportedQRType": "Jenis kode QR tidak didukung",
     "qrProcessError": "Terjadi kesalahan saat memproses kode QR",
     "cameraAccessFailed": "Akses kamera gagal",

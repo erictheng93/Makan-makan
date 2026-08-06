@@ -2,14 +2,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "../../../../packages/database/src/testing/create-test-database";
+} from "@makanmakan/database/testing";
 import {
   restaurants,
   shopSubscriptions,
   usageEvents,
 } from "@makanmakan/database";
-import type { Env } from "../types/env";
-import { enforceQuota } from "./quotaGate";
+import type { Env } from "../../types/env";
+import { enforceQuota } from "../../middleware/quotaGate";
 
 let testDb: TestDatabase;
 

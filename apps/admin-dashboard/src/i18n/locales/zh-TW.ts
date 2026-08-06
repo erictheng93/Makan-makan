@@ -293,7 +293,10 @@ const zhTWCore = {
     location: "位置",
     notSet: "未設定",
     order: "訂單",
-    viewQR: "查看 QR 碼",
+    qrPreview: {
+      hint: "點擊放大",
+      enlarge: "放大檢視桌號 {number} 的 QR 碼",
+    },
     deleteBlocked: "使用中或有進行中訂單的桌台不能刪除",
     stats: {
       available: "可用",

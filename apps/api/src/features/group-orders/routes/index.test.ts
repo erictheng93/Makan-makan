@@ -8,6 +8,8 @@ const currentUser = vi.hoisted(() => ({
 const listGroupOrders = vi.hoisted(() => vi.fn());
 const createGroupOrder = vi.hoisted(() => vi.fn());
 const joinGroup = vi.hoisted(() => vi.fn());
+const previewGroupByShareCode = vi.hoisted(() => vi.fn());
+const recoverHost = vi.hoisted(() => vi.fn());
 const getStatistics = vi.hoisted(() => vi.fn());
 const getGroupOrder = vi.hoisted(() => vi.fn());
 const addCartItem = vi.hoisted(() => vi.fn());
@@ -24,6 +26,10 @@ const generateEventId = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
+    c.set("user", currentUser.value);
+    await next();
+  }),
+  optionalAuth: vi.fn(async (c, next) => {
     c.set("user", currentUser.value);
     await next();
   }),
@@ -52,7 +58,9 @@ vi.mock("../services/GroupOrdersService", () => ({
   GroupOrdersService: class {
     listGroupOrders = listGroupOrders;
     createGroupOrder = createGroupOrder;
+    previewGroupByShareCode = previewGroupByShareCode;
     joinGroup = joinGroup;
+    recoverHost = recoverHost;
     getStatistics = getStatistics;
     getGroupOrder = getGroupOrder;
     addCartItem = addCartItem;
@@ -84,6 +92,28 @@ function createEnv() {
   };
 }
 
+function createRateLimitEnv() {
+  const kv = new Map<string, string>();
+  return {
+    DB: {},
+    CACHE_KV: {
+      get: vi.fn(async (key: string) => kv.get(key) ?? null),
+      put: vi.fn(
+        async (
+          key: string,
+          value: string,
+          _options?: { expirationTtl?: number },
+        ) => {
+          kv.set(key, value);
+        },
+      ),
+      delete: vi.fn(async (key: string) => {
+        kv.delete(key);
+      }),
+    },
+  };
+}
+
 async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
   const consoleError = vi
     .spyOn(console, "error")
@@ -101,6 +131,8 @@ describe("group orders routes", () => {
     listGroupOrders.mockReset();
     createGroupOrder.mockReset();
     joinGroup.mockReset();
+    previewGroupByShareCode.mockReset();
+    recoverHost.mockReset();
     getStatistics.mockReset();
     getGroupOrder.mockReset();
     addCartItem.mockReset();
@@ -285,6 +317,57 @@ describe("group orders routes", () => {
         type: RealtimeEventType.GROUP_MEMBER_JOINED,
       }),
     );
+  });
+
+  it("rate limits public join previews and strict host recovery", async () => {
+    previewGroupByShareCode.mockResolvedValue({
+      found: true,
+      data: {
+        groupOrderId,
+        restaurantId: "restaurant-1",
+        hostName: "Ada",
+        memberCount: 1,
+        fulfillmentType: "dine_in",
+        expiresAt: "2026-06-08T01:00:00.000Z",
+        status: "active",
+      },
+    });
+    recoverHost.mockResolvedValue({
+      success: true,
+      data: { memberToken: "new-session" },
+    });
+    const env = createRateLimitEnv();
+
+    const previewResponse = await routes.fetch(
+      new Request("https://test/join/ABC12345", {
+        headers: { "cf-connecting-ip": "203.0.113.10" },
+      }),
+      env as never,
+    );
+
+    expect(previewResponse.status).toBe(200);
+    expect(previewResponse.headers.get("X-RateLimit-Limit")).toBe("500");
+
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      statuses.push(
+        (
+          await routes.fetch(
+            new Request(`https://test/${groupOrderId}/recover`, {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "cf-connecting-ip": "203.0.113.11",
+              },
+              body: JSON.stringify({ recoveryCode: "correct-code" }),
+            }),
+            env as never,
+          )
+        ).status,
+      );
+    }
+
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
   });
 
   it("returns statistics, details, activities, and cleanup responses", async () => {

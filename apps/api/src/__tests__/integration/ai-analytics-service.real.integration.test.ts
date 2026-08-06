@@ -11,13 +11,13 @@ import {
 import {
   createTestDatabase,
   type TestDatabase,
-} from "../../../../../../packages/database/src/testing/create-test-database";
+} from "@makanmakan/database/testing";
 import {
   aiConfigurations,
   aiUsageLogs,
   restaurants,
 } from "@makanmakan/database";
-import { AIAnalyticsService } from "./AIAnalyticsService";
+import { AIAnalyticsService } from "../../features/ai-analytics/services/AIAnalyticsService";
 
 const analyticsMocks = vi.hoisted(() => ({
   testProvider: vi.fn(),

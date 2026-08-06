@@ -500,6 +500,7 @@
     "scanFailed": "扫描功能启动失败",
     "invalidQRFormat": "无效的二维码格式",
     "qrValidationFailed": "二维码数据验证失败",
+    "qrSignatureInvalid": "此二维码已过期或签名无效，请重新扫描桌上的二维码。",
     "unsupportedQRType": "不支持的二维码类型",
     "qrProcessError": "处理二维码时发生错误",
     "cameraAccessFailed": "相机访问失败",

@@ -13,7 +13,7 @@ import {
 const memberId = "018ffb9a-7b8a-7c3d-9f23-123456789abc";
 
 describe("group order validation schemas", () => {
-  it("sanitizes notes and applies group defaults", () => {
+  it("sanitizes notes without applying service-owned defaults", () => {
     expect(
       createGroupOrderSchema.parse({
         restaurantId: 123,
@@ -22,8 +22,6 @@ describe("group order validation schemas", () => {
     ).toMatchObject({
       restaurantId: "123",
       notes: "scriptalert(x)/script",
-      expirationHours: 24,
-      maxMembers: 8,
     });
   });
 

@@ -136,7 +136,12 @@ export async function invalidateSubscriptionCache(
  * @example
  *   router.get('/display', authMiddleware, moduleGate('kitchen_display'), handler)
  */
-export function moduleGate(module: ModuleKey) {
+export function moduleGate(
+  module: ModuleKey,
+  resolveGuestRestaurantId?: (
+    c: Context<{ Bindings: Env }>,
+  ) => string | undefined | Promise<string | undefined>,
+) {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
     const user = c.get("user");
 
@@ -147,7 +152,9 @@ export function moduleGate(module: ModuleKey) {
     }
 
     const restaurantId =
-      user?.restaurantId == null ? undefined : String(user.restaurantId);
+      user?.restaurantId == null
+        ? await resolveGuestRestaurantId?.(c)
+        : String(user.restaurantId);
 
     if (!restaurantId) {
       throw forbidden(

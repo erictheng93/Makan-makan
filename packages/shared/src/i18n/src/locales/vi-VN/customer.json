@@ -500,6 +500,7 @@
     "scanFailed": "Khởi động chức năng quét thất bại",
     "invalidQRFormat": "Định dạng mã QR không hợp lệ",
     "qrValidationFailed": "Xác thực dữ liệu mã QR thất bại",
+    "qrSignatureInvalid": "Mã QR này đã hết hạn hoặc chữ ký không hợp lệ. Vui lòng quét lại mã QR trên bàn.",
     "unsupportedQRType": "Loại mã QR không được hỗ trợ",
     "qrProcessError": "Đã xảy ra lỗi khi xử lý mã QR",
     "cameraAccessFailed": "Truy cập camera thất bại",

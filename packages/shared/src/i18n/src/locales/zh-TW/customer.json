@@ -500,6 +500,7 @@
     "scanFailed": "掃描功能啟動失敗",
     "invalidQRFormat": "無效的QR碼格式",
     "qrValidationFailed": "QR碼資料驗證失敗",
+    "qrSignatureInvalid": "此 QR Code 已過期或簽章無效，請重新掃描桌上的 QR Code。",
     "unsupportedQRType": "不支援的QR碼類型",
     "qrProcessError": "處理QR碼時發生錯誤",
     "cameraAccessFailed": "相機存取失敗",

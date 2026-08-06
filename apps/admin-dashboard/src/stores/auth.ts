@@ -18,6 +18,20 @@ type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _skipErrorHandler?: boolean;
 };
 
+interface RefreshTokenOptions {
+  clearOnAuthFailure?: boolean;
+}
+
+interface RefreshTokenAttempt {
+  refreshed: boolean;
+  authFailure: boolean;
+}
+
+const AUTH_CSRF_STORAGE_KEY = "mm_csrf_token_auth";
+const LEGACY_CSRF_STORAGE_KEY = "mm_csrf_token";
+const CSRF_COOKIE_NAME = "__Host-mm_csrf";
+const AUTH_REFRESH_TOKEN_KEY = "auth_refresh_token";
+
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
   try {
@@ -37,8 +51,41 @@ const persistUser = (u: User | null) => {
   }
 };
 
+const getCookieValue = (name: string): string | null => {
+  const cookie = globalThis.document?.cookie;
+  if (!cookie) return null;
+
+  return cookie.match(new RegExp(`${name}=([^;]+)`))?.[1] ?? null;
+};
+
+const hasStoredSessionMarker = () => {
+  try {
+    return (
+      !!localStorage.getItem(AUTH_CSRF_STORAGE_KEY) ||
+      !!localStorage.getItem(LEGACY_CSRF_STORAGE_KEY) ||
+      !!getCookieValue(CSRF_COOKIE_NAME) ||
+      !!localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) ||
+      !!sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const clearStoredSessionState = () => {
+  try {
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem(AUTH_CSRF_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_CSRF_STORAGE_KEY);
+    localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+  } catch {
+    // Storage may be unavailable; in-memory refs are still cleared below.
+  }
+};
+
 // Module-level deduplication: all callers share the same in-flight refresh
-let sharedRefreshPromise: Promise<boolean> | null = null;
+let sharedRefreshPromise: Promise<RefreshTokenAttempt> | null = null;
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(hydrateUser());
@@ -81,6 +128,17 @@ export const useAuthStore = defineStore("auth", () => {
     sessionStorage.removeItem("admin_selected_restaurant_id");
     sessionStorage.removeItem("admin_selected_restaurant_name");
     useModuleAccessStore().reset();
+  };
+
+  const clearLocalSessionState = () => {
+    user.value = null;
+    token.value = null;
+    clearStoredSessionState();
+    clearRestaurant();
+    api.setAuthToken(null);
+    authClient.tokens.clearAll();
+    managementAuthClient.tokens.clearAll();
+    managementAuthClient.setAuthToken(null);
   };
 
   const hasPermission = (requiredRole: UserRole | UserRole[]) => {
@@ -260,18 +318,17 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (error) {
       console.warn("Logout request failed:", error);
     } finally {
-      user.value = null;
-      token.value = null;
-      clearRestaurant();
-      api.setAuthToken(null);
-      authClient.tokens.clearAll();
-      managementAuthClient.tokens.clearAll();
-      managementAuthClient.setAuthToken(null);
+      clearLocalSessionState();
     }
   };
 
   const checkAuth = async () => {
     if (!token.value && user.value) {
+      if (!hasStoredSessionMarker()) {
+        clearLocalSessionState();
+        return false;
+      }
+
       const refreshed = await refreshToken();
       if (!refreshed) return false;
     }
@@ -325,9 +382,19 @@ export const useAuthStore = defineStore("auth", () => {
     return false;
   };
 
-  const refreshToken = async (): Promise<boolean> => {
+  const refreshToken = async (
+    options: RefreshTokenOptions = {},
+  ): Promise<boolean> => {
+    const clearOnAuthFailure = options.clearOnAuthFailure !== false;
+
     // Deduplicate: if a refresh is already in flight, reuse its promise
-    if (sharedRefreshPromise) return sharedRefreshPromise;
+    if (sharedRefreshPromise) {
+      const attempt = await sharedRefreshPromise;
+      if (!attempt.refreshed && attempt.authFailure && clearOnAuthFailure) {
+        clearLocalSessionState();
+      }
+      return attempt.refreshed;
+    }
 
     sharedRefreshPromise = (async () => {
       try {
@@ -356,21 +423,27 @@ export const useAuthStore = defineStore("auth", () => {
           }
 
           authClient.tokens.scheduleProactiveRefresh(token.value!);
-          return true;
+          return { refreshed: true, authFailure: false };
         }
-      } catch {
+      } catch (error: any) {
+        const status = error?.response?.status ?? error?.status;
+        const authFailure = status === 400 || status === 401 || status === 403;
+        if (clearOnAuthFailure && authFailure) {
+          clearLocalSessionState();
+        }
         console.warn("Proactive refresh failed, falling back to reactive mode");
-        return false;
+        return { refreshed: false, authFailure };
       }
 
       console.warn(
         "Refresh returned non-success, falling back to reactive mode",
       );
-      return false;
+      return { refreshed: false, authFailure: false };
     })();
 
     try {
-      return await sharedRefreshPromise;
+      const attempt = await sharedRefreshPromise;
+      return attempt.refreshed;
     } finally {
       sharedRefreshPromise = null;
     }
@@ -390,6 +463,10 @@ export const useAuthStore = defineStore("auth", () => {
   const restoreSession = async (): Promise<boolean> => {
     if (token.value) return true;
     if (!user.value) return false;
+    if (!hasStoredSessionMarker()) {
+      clearLocalSessionState();
+      return false;
+    }
 
     return refreshToken();
   };

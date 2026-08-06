@@ -500,6 +500,7 @@
     "scanFailed": "Scan function failed to start",
     "invalidQRFormat": "Invalid QR code format",
     "qrValidationFailed": "QR code data validation failed",
+    "qrSignatureInvalid": "This QR code has expired or its signature is invalid. Please scan the QR code on the table again.",
     "unsupportedQRType": "Unsupported QR code type",
     "qrProcessError": "An error occurred while processing QR code",
     "cameraAccessFailed": "Camera access failed",

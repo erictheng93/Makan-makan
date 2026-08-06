@@ -16,7 +16,10 @@ vi.mock("vue-router", () => ({
 
 vi.mock("@/composables/useI18n", () => ({
   useI18n: () => ({
-    t: (key: string) => key,
+    t: (key: string) =>
+      key === "toast.qrSignatureInvalid"
+        ? "此 QR Code 已過期或簽章無效，請重新掃描桌上的 QR Code。"
+        : key,
   }),
 }));
 
@@ -30,6 +33,7 @@ describe("SignedOrderEntryView", () => {
   beforeEach(() => {
     routerReplace.mockReset();
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("verifies the signed QR and redirects a seat to its table menu", async () => {
@@ -68,5 +72,28 @@ describe("SignedOrderEntryView", () => {
         seatNumber: "VIP-1",
       },
     });
+  });
+
+  it("blocks a tampered signed QR link and shows the error screen", async () => {
+    vi.mocked(signedQrApi.verify).mockRejectedValue(
+      new Error("此 QR Code 已過期或簽章無效，請重新掃描桌上的 QR Code。"),
+    );
+
+    const wrapper = mount(SignedOrderEntryView);
+    await flushPromises();
+
+    expect(signedQrApi.verify).toHaveBeenCalledWith(
+      "seat",
+      `${window.location.origin}${route.fullPath}`,
+    );
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(
+      localStorage.getItem("makanmakan_table_qr:restaurant-1:10"),
+    ).toBeNull();
+    expect(wrapper.text()).toContain("toast.qrValidationFailed");
+    expect(wrapper.text()).toContain(
+      "此 QR Code 已過期或簽章無效，請重新掃描桌上的 QR Code。",
+    );
+    expect(wrapper.text()).not.toContain("Invalid QR signature");
   });
 });

@@ -11,14 +11,14 @@ import { eq } from "drizzle-orm";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "../../../../../../packages/database/src/testing/create-test-database";
+} from "@makanmakan/database/testing";
 import {
   MODULES,
   PLAN_DEFAULT_MODULES,
   restaurants,
   shopSubscriptions,
 } from "@makanmakan/database";
-import { SubscriptionService } from "./SubscriptionService";
+import { SubscriptionService } from "../../features/subscriptions/services/SubscriptionService";
 
 let testDb: TestDatabase;
 let service: SubscriptionService;

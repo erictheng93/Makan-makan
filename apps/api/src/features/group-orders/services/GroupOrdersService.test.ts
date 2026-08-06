@@ -106,6 +106,7 @@ const baseGroupOrder = {
   tableId: null,
   shareCode: "ABC12345",
   createdBy: 7,
+  recoveryCode: "recovery-1",
   status: "active",
   expiresAt: new Date("2026-06-08T00:00:00.000Z"),
   lockedAt: null,
@@ -482,32 +483,179 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       data: {
         groupOrderId: "uuid-1",
         shareCode: "AAAAAAAA",
+        recoveryCode: "uuid-2",
         host: { id: "uuid-2", memberName: "Host" },
       },
     });
     expect(db.inserts[0].payload).toMatchObject({
       id: "uuid-1",
       restaurantId: "restaurant-1",
+      recoveryCode: "uuid-2",
       settings: {
         maxMembers: 6,
         tableNumber: "T1",
         permissions: { canModifyOthersCart: true },
+        fulfillmentType: "dine_in",
+        autoSubmitOnExpiry: true,
       },
     });
     expect(db.inserts[1].payload).toMatchObject({
-      id: "uuid-2",
+      id: "uuid-3",
       name: "Ada",
       role: "creator",
     });
     expect(db.inserts[2].payload).toMatchObject({
-      id: "uuid-4",
+      id: "uuid-5",
       action: "group_created",
     });
-    expect(JSON.parse(values.get("group_order:uuid-1") ?? "{}")).toMatchObject({
-      shareCode: "AAAAAAAA",
-    });
+    const cached = JSON.parse(values.get("group_order:uuid-1") ?? "{}");
+    expect(cached).toMatchObject({ shareCode: "AAAAAAAA" });
+    expect(cached).not.toHaveProperty("memberToken");
+    expect(cached).not.toHaveProperty("recoveryCode");
     expect(values.get("share_code:AAAAAAAA")).toBe('"uuid-1"');
     vi.mocked(Math.random).mockRestore();
+  });
+
+  it("creates guest-hosted group orders with nullable createdBy and fulfillment settings", async () => {
+    const service = createService();
+    const db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    service.db = db;
+
+    const result = await service.createGroupOrder(
+      {
+        restaurantId: "restaurant-1",
+        fulfillmentType: "delivery",
+        deliveryAddress: { line1: "1 Example Rd" },
+        autoSubmitOnExpiry: false,
+      },
+      null,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data?.recoveryCode).toBe("uuid-2");
+    expect(db.inserts[0].payload).toMatchObject({
+      createdBy: null,
+      recoveryCode: "uuid-2",
+      settings: expect.objectContaining({
+        maxMembers: 30,
+        fulfillmentType: "delivery",
+        deliveryAddress: { line1: "1 Example Rd" },
+        autoSubmitOnExpiry: false,
+      }),
+    });
+  });
+
+  it("defaults expiresAt to 45 minutes when no expiration is provided", async () => {
+    const service = createService();
+    service.db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+
+    const result = await service.createGroupOrder(
+      { restaurantId: "restaurant-1" },
+      null,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data?.expiresAt.getTime()).toBe(
+      new Date("2026-06-07T00:45:00.000Z").getTime(),
+    );
+  });
+
+  it("previews a group order without write, cache, or activity side effects", async () => {
+    const { kv } = createKV();
+    const service = new GroupOrdersService({} as D1Database, kv) as any;
+    const db = createDb([
+      [
+        {
+          ...baseGroupOrder,
+          settings: { fulfillmentType: "pickup" },
+        },
+      ],
+      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+    ]);
+    service.db = db;
+
+    await expect(service.previewGroupByShareCode("ABC12345")).resolves.toEqual({
+      found: true,
+      data: expect.objectContaining({
+        groupOrderId: "group-1",
+        hostName: "Host",
+        memberCount: 2,
+        fulfillmentType: "pickup",
+      }),
+    });
+
+    expect(db.inserts).toEqual([]);
+    expect(db.updates).toEqual([]);
+    expect(kv.put).not.toHaveBeenCalled();
+  });
+
+  it("returns found false for missing join previews", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(service.previewGroupByShareCode("NOPE0000")).resolves.toEqual({
+      found: false,
+    });
+  });
+
+  it("recovers the host session and replaces the previous member token", async () => {
+    const service = createService();
+    const db = createDb([
+      [baseGroupOrder],
+      [{ ...hostMember, id: "member-1" }],
+    ]);
+    service.db = db;
+
+    await expect(
+      service.recoverHost("group-1", "recovery-1"),
+    ).resolves.toMatchObject({
+      success: true,
+      data: { memberToken: "uuid-1" },
+    });
+
+    expect(db.updates[0].payload).toMatchObject({ sessionId: "uuid-1" });
+    expect(db.inserts[0].payload).toMatchObject({
+      action: "member_joined",
+      metadata: { recovered: true },
+    });
+  });
+
+  it("uses the same recovery failure for wrong code, missing group, and missing creator", async () => {
+    const service = createService();
+
+    service.db = createDb([[]]);
+    await expect(service.recoverHost("group-1", "wrong")).resolves.toEqual({
+      success: false,
+      error: "Invalid recovery code",
+    });
+
+    service.db = createDb([[]]);
+    await expect(service.recoverHost("missing", "recovery-1")).resolves.toEqual(
+      {
+        success: false,
+        error: "Invalid recovery code",
+      },
+    );
+
+    service.db = createDb([[baseGroupOrder], []]);
+    await expect(service.recoverHost("group-1", "recovery-1")).resolves.toEqual(
+      {
+        success: false,
+        error: "Invalid recovery code",
+      },
+    );
+  });
+
+  it("does not recover inactive or expired group orders", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(
+      service.recoverHost("completed-group", "recovery-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Invalid recovery code",
+    });
   });
 
   it("joins active groups and rejects full or duplicate-member groups", async () => {

@@ -291,7 +291,10 @@ const enUS: Messages = {
     location: "Location",
     notSet: "Not set",
     order: "Order",
-    viewQR: "View QR Code",
+    qrPreview: {
+      hint: "Click to enlarge",
+      enlarge: "Enlarge QR code for table {number}",
+    },
     deleteBlocked: "Tables with active occupancy or orders cannot be deleted",
     stats: {
       available: "Available",
