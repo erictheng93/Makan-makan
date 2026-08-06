@@ -328,12 +328,11 @@ crons = [
   "0 3 * * SUN",   # Weekly log cleanup (CF rejects DOW=0; use SUN or 7)
   "30 2 * * *",    # Daily forecast warmup
   # Usage aggregation and payment reconciliation used to share one */5 entry,
-  # which meant they could not be tuned apart. They want opposite things:
-  # reconciliation is a money-correctness path that should stay frequent once
-  # payments flow, while aggregation over a handful of meters has no reason to
-  # run 288 times a day. Separate entries let each move on its own.
+  # which meant they could not be tuned apart. Aggregation now has its own
+  # hourly tick. The remaining */5 tick is intentionally shared by frequent
+  # operational jobs; split it before changing only one job's cadence.
   "0 * * * *",     # Usage meter aggregation
-  "*/5 * * * *",   # Market checkout payment reconciliation
+  "*/5 * * * *",   # Market checkout reconciliation, group order expiry sweep
   "15 2 * * *",    # Billing lifecycle: cycle close, trial reaper, reminders
   "0 4 * * *"      # Stored-value credit expiry (breakage)
 ]
