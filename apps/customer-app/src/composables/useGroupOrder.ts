@@ -398,7 +398,10 @@ export function useGroupOrder(options: {
    * Join via share code. This is the only way a non-host obtains a
    * memberToken, so it must run before any realtime connection is attempted.
    */
-  async function joinGroupOrder(shareCode: string): Promise<boolean> {
+  async function joinGroupOrder(
+    shareCode: string,
+    memberName = userName,
+  ): Promise<boolean> {
     isLoading.value = true;
     error.value = null;
 
@@ -406,7 +409,7 @@ export function useGroupOrder(options: {
       const response = await apiClient.post<JoinGroupOrderResponse>(
         `/orders/group/join/${shareCode}`,
         {
-          memberName: userName,
+          memberName,
         },
       );
 
@@ -618,7 +621,7 @@ export function useGroupOrder(options: {
   // Cleanup
   onUnmounted(() => {
     if (isConnected.value) {
-      leaveGroupOrder();
+      disconnectRealtime();
     }
   });
 
@@ -628,6 +631,7 @@ export function useGroupOrder(options: {
     isLoading,
     error,
     isConnected,
+    currentMemberId,
     recoveryCode,
 
     // Computed
