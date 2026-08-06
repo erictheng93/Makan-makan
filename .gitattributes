@@ -1,0 +1,17 @@
+# Check every text file out as LF on all platforms.
+#
+# The index already stores LF everywhere (verify with `git ls-files --eol`),
+# so this changes nothing in history -- only what lands in the working tree.
+# Without it, core.autocrlf=true on Windows checks the 11 tracked *.sh scripts
+# out as CRLF, and bash then fails them with `$'\r': command not found`.
+#
+# No tracked file requires CRLF: there are no .bat/.cmd files in this repo.
+# Binary files are left to git's own detection, which already classifies the
+# tracked images correctly.
+#
+# After pulling this in, refresh your working tree once so the new attribute
+# applies to files you already have:
+#
+#   git rm --cached -r . && git reset --hard
+#
+* text=auto eol=lf
