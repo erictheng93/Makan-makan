@@ -467,6 +467,9 @@ describe("group orders routes", () => {
   });
 
   it("runs cart, split, payment, and leave workflows", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
     addCartItem.mockResolvedValue({
       success: true,
       data: { id: itemId, menuItemId: 101, quantity: 2 },
@@ -607,5 +610,38 @@ describe("group orders routes", () => {
         type: RealtimeEventType.GROUP_CART_ITEM_REMOVED,
       }),
     );
+  });
+
+  it("keeps successful cart writes successful when realtime delivery fails", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    addCartItem.mockResolvedValue({
+      success: true,
+      data: { id: itemId, menuItemId: 101, quantity: 2 },
+    });
+    broadcastEvent.mockRejectedValueOnce(new Error("realtime unavailable"));
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/cart`, {
+        method: "POST",
+        body: JSON.stringify({
+          memberId,
+          menuItemId: 101,
+          quantity: 2,
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      data: { id: itemId, quantity: 2 },
+    });
+    expect(addCartItem).toHaveBeenCalledWith(
+      groupOrderId,
+      expect.objectContaining({ memberId, menuItemId: 101, quantity: 2 }),
+    );
+    expect(broadcastEvent).toHaveBeenCalledOnce();
   });
 });

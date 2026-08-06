@@ -629,6 +629,43 @@ export interface GroupOrderEvent extends BaseRealtimeEvent {
 // ============================================================================
 
 /**
+ * 檢查是否為可交給 realtime worker broadcast 的事件格式。
+ *
+ * TypeScript can say `restaurantId: string`, but it cannot stop runtime code
+ * from producing `String(undefined ?? "")`. Keep this predicate shared by
+ * producers and consumers so invalid broadcast events fail before routing.
+ */
+export function isValidRealtimeEvent(event: unknown): event is RealtimeEvent {
+  if (!event || typeof event !== "object") return false;
+
+  const candidate = event as Partial<BaseRealtimeEvent> & {
+    data?: unknown;
+  };
+
+  return (
+    isRealtimeEventType(candidate.type) &&
+    isNonEmptyString(candidate.eventId) &&
+    typeof candidate.timestamp === "number" &&
+    Number.isFinite(candidate.timestamp) &&
+    isNonEmptyString(candidate.restaurantId) &&
+    candidate.data !== null &&
+    typeof candidate.data === "object" &&
+    !Array.isArray(candidate.data)
+  );
+}
+
+function isRealtimeEventType(value: unknown): value is RealtimeEventType {
+  return (
+    typeof value === "string" &&
+    (Object.values(RealtimeEventType) as string[]).includes(value)
+  );
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
  * 檢查是否為新訂單事件
  */
 export function isNewOrderEvent(event: RealtimeEvent): event is NewOrderEvent {

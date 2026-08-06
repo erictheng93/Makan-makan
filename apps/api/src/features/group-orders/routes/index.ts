@@ -26,7 +26,10 @@ import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import { RealtimeBroadcastService } from "@makanmakan/database";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import {
+  isValidRealtimeEvent,
+  RealtimeEventType,
+} from "@makanmakan/shared-types";
 import type { GroupOrderEvent } from "@makanmakan/shared-types";
 import {
   notFound,
@@ -46,26 +49,43 @@ async function broadcastGroupOrderEvent(
   eventType: GroupOrderEvent["type"],
   payload: GroupOrderRealtimePayload,
 ): Promise<void> {
-  const groupOrderId = payload.groupOrderId;
-  if (!groupOrderId) return;
+  const groupOrderId = requireNonEmptyString(
+    payload.groupOrderId,
+    "groupOrderId",
+  );
+  const restaurantId = requireNonEmptyString(
+    payload.restaurantId,
+    "restaurantId",
+  );
 
+  const broadcaster = new RealtimeBroadcastService(env);
+  const event: GroupOrderEvent = {
+    type: eventType,
+    eventId: broadcaster.generateEventId(),
+    timestamp: Date.now(),
+    restaurantId,
+    data: { ...payload, groupOrderId, restaurantId },
+  };
+
+  if (!isValidRealtimeEvent(event)) {
+    throw new Error(`Invalid realtime event produced for ${eventType}`);
+  }
+
+  // Clients join a group order through the `customer:{groupOrderId}` room
+  // (see apps/customer-app useGroupOrder). Broadcasting to a `group_order`
+  // room nobody connects to dropped every event (bug-inventory #2).
   try {
-    const broadcaster = new RealtimeBroadcastService(env);
-    const event: GroupOrderEvent = {
-      type: eventType,
-      eventId: broadcaster.generateEventId(),
-      timestamp: Date.now(),
-      restaurantId: String(payload.restaurantId ?? ""),
-      data: { ...payload, groupOrderId },
-    };
-
-    // Clients join a group order through the `customer:{groupOrderId}` room
-    // (see apps/customer-app useGroupOrder). Broadcasting to a `group_order`
-    // room nobody connects to dropped every event (bug-inventory #2).
     await broadcaster.broadcastEvent("customer", groupOrderId, event);
   } catch (broadcastError) {
     console.warn(`Failed to broadcast ${eventType}:`, broadcastError);
   }
+}
+
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Cannot broadcast group order event without ${field}`);
+  }
+  return value;
 }
 
 async function resolveRestaurantIdFromJsonBody(c: {
@@ -82,6 +102,24 @@ async function resolveRestaurantIdFromJsonBody(c: {
   return typeof restaurantId === "string" || typeof restaurantId === "number"
     ? String(restaurantId)
     : undefined;
+}
+
+async function resolveGroupOrderRestaurantId(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+): Promise<string> {
+  const summary = await groupOrderService.getGroupOrder(groupOrderId);
+  const restaurantId =
+    summary?.groupOrder?.restaurantId ??
+    (
+      summary as
+        | {
+            data?: { groupOrder?: { restaurantId?: unknown } };
+          }
+        | undefined
+    )?.data?.groupOrder?.restaurantId;
+
+  return requireNonEmptyString(restaurantId, "restaurantId");
 }
 
 /**
@@ -478,6 +516,10 @@ app.post(
       RealtimeEventType.GROUP_CART_ITEM_ADDED,
       {
         groupOrderId,
+        restaurantId: await resolveGroupOrderRestaurantId(
+          groupOrderService,
+          groupOrderId,
+        ),
         action: "added",
         item: result.data,
       },
@@ -520,6 +562,10 @@ app.put(
       RealtimeEventType.GROUP_CART_ITEM_UPDATED,
       {
         groupOrderId,
+        restaurantId: await resolveGroupOrderRestaurantId(
+          groupOrderService,
+          groupOrderId,
+        ),
         action: "updated",
         item: result.data,
       },
@@ -562,6 +608,10 @@ app.delete(
       RealtimeEventType.GROUP_CART_ITEM_REMOVED,
       {
         groupOrderId,
+        restaurantId: await resolveGroupOrderRestaurantId(
+          groupOrderService,
+          groupOrderId,
+        ),
         action: "removed",
         itemId,
       },
