@@ -122,6 +122,11 @@ interface RecoverHostResponse {
   memberToken: string;
 }
 
+interface SubmitGroupOrderResponse {
+  masterOrderId?: string;
+  status?: GroupOrderStatus;
+}
+
 interface BackendGroupCartItem {
   id: string;
   itemId?: string;
@@ -654,8 +659,61 @@ export function useGroupOrder(options: {
   }
 
   // Submit order (host only)
-  async function submitOrder(): Promise<never> {
-    throw new Error("submitOrder is not yet available");
+  async function submitOrder(): Promise<void> {
+    if (!groupOrder.value) {
+      throw new Error("No group order loaded");
+    }
+
+    const groupOrderId = groupOrder.value.id;
+    hydrateHostCredentials(groupOrderId);
+    if (!memberToken.value) {
+      throw new Error("Host credential is required to submit this group order");
+    }
+
+    try {
+      await apiClient.post<SubmitGroupOrderResponse>(
+        `/orders/group/${groupOrderId}/lock`,
+        {
+          memberToken: memberToken.value,
+        },
+      );
+      await loadGroupOrder(groupOrderId);
+    } catch (submitError) {
+      if (isForbiddenError(submitError)) {
+        throw annotateError(submitError, { isHostOnly: true });
+      }
+
+      if (isBadRequestError(submitError)) {
+        await loadGroupOrder(groupOrderId);
+        if (groupOrder.value?.status === "finalizing_failed") {
+          throw annotateError(submitError, { orderAlreadyPlaced: true });
+        }
+      }
+
+      throw submitError;
+    }
+  }
+
+  function isForbiddenError(err: unknown): boolean {
+    return getErrorStatus(err) === 403;
+  }
+
+  function isBadRequestError(err: unknown): boolean {
+    return getErrorStatus(err) === 400;
+  }
+
+  function getErrorStatus(err: unknown): unknown {
+    return err && typeof err === "object"
+      ? (err as { status?: unknown }).status
+      : undefined;
+  }
+
+  function annotateError<T extends Record<string, boolean>>(
+    err: unknown,
+    flags: T,
+  ): Error & T {
+    const error = err instanceof Error ? err : new Error("Group order failed");
+    return Object.assign(error, flags);
   }
 
   async function recoverHost(

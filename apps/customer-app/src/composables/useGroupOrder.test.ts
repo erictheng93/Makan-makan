@@ -251,13 +251,27 @@ describe("useGroupOrder — data layer", () => {
     expect(group.getShareLink()).not.toContain("go-1");
   });
 
-  it("fails loudly on submitOrder until the finalize endpoint is wired", async () => {
+  it("submits through the lock endpoint and never the removed submit route", async () => {
     const group = await createHostedGroup();
 
-    await expect(group.submitOrder()).rejects.toThrow(/not yet available/i);
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      masterOrderId: "order-1",
+      status: "completed",
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      ...summaryResponse(),
+      groupOrder: {
+        ...summaryResponse().groupOrder,
+        status: "completed",
+      },
+    });
+
+    await group.submitOrder();
+
     const calledPaths = vi
       .mocked(apiClient.post)
       .mock.calls.map(([url]) => String(url));
+    expect(calledPaths).toContain("/orders/group/go-1/lock");
     expect(calledPaths.some((url) => url.includes("/submit"))).toBe(false);
   });
 
@@ -519,5 +533,151 @@ describe("useGroupOrder — host credentials", () => {
     await group.leaveGroupOrder();
 
     expect(readHostCredentials("go-1")).toBeNull();
+  });
+});
+
+describe("useGroupOrder — submitting the order", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws.options = null;
+    localStorage.clear();
+  });
+
+  function apiError(status: number, message = `HTTP ${status}`) {
+    return Object.assign(new Error(message), { status });
+  }
+
+  function finalizedSummary(status: string, masterOrderId: string | null) {
+    const base = summaryResponse();
+    return {
+      ...base,
+      groupOrder: { ...base.groupOrder, status, masterOrderId },
+    };
+  }
+
+  it("locks the group order through the real endpoint with the host token", async () => {
+    const group = await createHostedGroup();
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      masterOrderId: "order-1",
+      status: "completed",
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      finalizedSummary("completed", "order-1"),
+    );
+
+    await group.submitOrder();
+
+    // /lock authenticates the host by memberToken, not a JWT. Phase A hosts
+    // may have no account at all.
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/orders/group/go-1/lock",
+      expect.objectContaining({ memberToken: "session-1" }),
+    );
+    const calledPaths = vi
+      .mocked(apiClient.post)
+      .mock.calls.map(([url]) => String(url));
+    expect(calledPaths.some((url) => url.includes("/submit"))).toBe(false);
+  });
+
+  it("reloads the group order so the view stops accepting edits", async () => {
+    const group = await createHostedGroup();
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      masterOrderId: "order-1",
+      status: "completed",
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      finalizedSummary("completed", "order-1"),
+    );
+
+    await group.submitOrder();
+
+    expect(group.groupOrder.value?.status).toBe("completed");
+  });
+
+  it("submits with credentials restored from storage after a refresh", async () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "stored-token",
+      recoveryCode: "recovery-1",
+    });
+
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await group.loadGroupOrder("go-1");
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      masterOrderId: "order-1",
+      status: "completed",
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      finalizedSummary("completed", "order-1"),
+    );
+
+    await group.submitOrder();
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/orders/group/go-1/lock",
+      expect.objectContaining({ memberToken: "stored-token" }),
+    );
+  });
+
+  it("refuses to submit at all when no host credential is available", async () => {
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await group.loadGroupOrder("go-1");
+
+    await expect(group.submitOrder()).rejects.toThrow();
+
+    // Without a token the request can only ever be rejected, and spending it
+    // burns one of the host's rate-limited attempts for nothing.
+    const calledPaths = vi
+      .mocked(apiClient.post)
+      .mock.calls.map(([url]) => String(url));
+    expect(calledPaths.some((url) => url.includes("/lock"))).toBe(false);
+  });
+
+  it("says who may submit when the caller is not the host", async () => {
+    const group = await createHostedGroup();
+    vi.mocked(apiClient.post).mockRejectedValueOnce(apiError(403));
+
+    await expect(group.submitOrder()).rejects.toMatchObject({
+      isHostOnly: true,
+    });
+  });
+
+  it("does not tell the host nothing happened when the order was already placed", async () => {
+    const group = await createHostedGroup();
+
+    // finalizeGroupOrder creates the real order first and splits the bill
+    // second. A 400 from the split leaves the restaurant holding an order the
+    // customer was just told had failed. They would re-submit, or walk away
+    // while the kitchen cooks it.
+    vi.mocked(apiClient.post).mockRejectedValueOnce(
+      apiError(400, "Split total does not match order total"),
+    );
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      finalizedSummary("finalizing_failed", "order-1"),
+    );
+
+    await expect(group.submitOrder()).rejects.toMatchObject({
+      orderAlreadyPlaced: true,
+    });
+    expect(group.groupOrder.value?.status).toBe("finalizing_failed");
+  });
+
+  it("treats an ordinary failure as an ordinary failure", async () => {
+    const group = await createHostedGroup();
+
+    vi.mocked(apiClient.post).mockRejectedValueOnce(
+      apiError(400, "Cannot finalize an empty group order"),
+    );
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+
+    await expect(group.submitOrder()).rejects.not.toMatchObject({
+      orderAlreadyPlaced: true,
+    });
+    expect(group.groupOrder.value?.status).toBe("active");
   });
 });
