@@ -6,6 +6,7 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useWebSocket } from "./useWebSocket";
 import { apiClient } from "@/services/api";
+import type { GroupOrderStatus } from "@makanmakan/shared-types";
 
 // ============================================================================
 // Types
@@ -43,10 +44,11 @@ export interface SplitBillConfig {
 export interface GroupOrder {
   id: string;
   restaurantId: string;
-  tableId: string;
+  tableId?: string;
+  shareCode?: string;
   hostId: string;
   hostName: string;
-  status: "open" | "ordering" | "submitted" | "completed" | "cancelled";
+  status: GroupOrderStatus;
   members: GroupMember[];
   cartItems: GroupCartItem[];
   splitBillConfig: SplitBillConfig;
@@ -64,44 +66,182 @@ export interface GroupOrderEvent {
   timestamp: number;
 }
 
+interface CreateGroupOrderOptions {
+  hostName?: string;
+  tableId?: string;
+}
+
+interface CreateGroupOrderResponse {
+  groupOrderId: string;
+  shareCode: string;
+  expiresAt: string;
+  host: BackendGroupMember;
+  memberToken: string;
+  recoveryCode: string;
+}
+
+interface BackendGroupOrder {
+  id: string;
+  restaurantId: string;
+  tableId?: number | string | null;
+  shareCode?: string;
+  createdBy?: string | null;
+  status: GroupOrderStatus;
+  splitType?: "equal" | "proportional" | "individual" | "by_item" | "custom";
+  expiresAt?: string | Date | number | null;
+  createdAt?: string | Date | number;
+  updatedAt?: string | Date | number;
+}
+
+interface BackendGroupMember {
+  id: string;
+  memberId?: string;
+  memberName: string;
+  phone?: string;
+  isHost: boolean;
+  joinedAt: string | Date | number;
+  lastActiveAt?: string | Date | number | null;
+}
+
+interface JoinGroupOrderResponse {
+  member: BackendGroupMember;
+  groupOrder: BackendGroupOrder;
+  memberToken: string;
+}
+
+interface BackendGroupCartItem {
+  id: string;
+  itemId?: string;
+  memberId: string;
+  menuItemId: number;
+  quantity: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  customizations?: Record<string, unknown>;
+  specialInstructions?: string;
+  addedAt?: string | Date | number;
+  menuItem?: {
+    id: number;
+    name: string;
+    price: number;
+  };
+}
+
+interface GroupOrderSummary {
+  groupOrder: BackendGroupOrder;
+  members: BackendGroupMember[];
+  cartItems: BackendGroupCartItem[];
+}
+
+function timestamp(value: string | Date | number | null | undefined): number {
+  if (value == null) return Date.now();
+  if (typeof value === "number") return value;
+  return new Date(value).getTime();
+}
+
+function mapMember(member: BackendGroupMember): GroupMember {
+  return {
+    id: member.memberId ?? member.id,
+    name: member.memberName,
+    phone: member.phone,
+    isHost: member.isHost,
+    isOnline: true,
+    joinedAt: timestamp(member.joinedAt),
+    lastActivity: timestamp(member.lastActiveAt ?? member.joinedAt),
+  };
+}
+
+function mapCartItem(
+  item: BackendGroupCartItem,
+  members: GroupMember[],
+): GroupCartItem {
+  const member = members.find((candidate) => candidate.id === item.memberId);
+
+  return {
+    id: item.itemId ?? item.id,
+    menuItemId: String(item.menuItem?.id ?? item.menuItemId),
+    menuItemName: item.menuItem?.name ?? "",
+    menuItemPrice: item.menuItem?.price ?? item.unitPrice ?? 0,
+    quantity: item.quantity,
+    options: item.customizations,
+    notes: item.specialInstructions,
+    addedBy: item.memberId,
+    addedByName: member?.name ?? "",
+    addedAt: timestamp(item.addedAt),
+  };
+}
+
+function mapSummary(summary: GroupOrderSummary): GroupOrder {
+  const members = summary.members.map(mapMember);
+  const host = members.find((member) => member.isHost);
+  const splitMode =
+    summary.groupOrder.splitType === "equal" ||
+    summary.groupOrder.splitType === "custom"
+      ? summary.groupOrder.splitType
+      : "by_item";
+
+  return {
+    id: summary.groupOrder.id,
+    restaurantId: summary.groupOrder.restaurantId,
+    tableId:
+      summary.groupOrder.tableId == null
+        ? undefined
+        : String(summary.groupOrder.tableId),
+    shareCode: summary.groupOrder.shareCode,
+    hostId: host?.id ?? "",
+    hostName: host?.name ?? "",
+    status: summary.groupOrder.status,
+    members,
+    cartItems: summary.cartItems.map((item) => mapCartItem(item, members)),
+    splitBillConfig: { mode: splitMode },
+    createdAt: timestamp(summary.groupOrder.createdAt),
+    updatedAt: timestamp(summary.groupOrder.updatedAt),
+    expiresAt: timestamp(summary.groupOrder.expiresAt),
+  };
+}
+
 // ============================================================================
 // Composable
 // ============================================================================
 
 export function useGroupOrder(options: {
   restaurantId: string;
-  tableId: string;
-  userId: string;
-  userName: string;
+  tableId?: string;
+  userId?: string;
+  userName?: string;
 }) {
-  const { restaurantId, tableId, userId, userName } = options;
+  const { restaurantId, tableId, userId = "", userName = "" } = options;
 
   // State
   const groupOrder = ref<GroupOrder | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const isConnected = ref(false);
+  const currentMemberId = ref(userId);
   /**
    * This member's group order credential (`memberToken`), returned exactly once
    * by create/join. It is what buys a realtime token — keep it in memory only.
    */
   const memberToken = ref<string | null>(null);
+  const recoveryCode = ref<string | null>(null);
 
   // WebSocket connection
   const {
     connect,
     disconnect,
-    send: sendMessage,
     connectionStatus: _connectionStatus,
   } = useWebSocket();
 
   // Computed
-  const isHost = computed(() => groupOrder.value?.hostId === userId);
+  const isHost = computed(
+    () => groupOrder.value?.hostId === currentMemberId.value,
+  );
 
   const myItems = computed(
     () =>
-      groupOrder.value?.cartItems.filter((item) => item.addedBy === userId) ||
-      [],
+      groupOrder.value?.cartItems.filter(
+        (item) => item.addedBy === currentMemberId.value,
+      ) || [],
   );
 
   const totalAmount = computed(
@@ -128,11 +268,13 @@ export function useGroupOrder(options: {
         );
 
       case "custom":
-        const share = config.customShares?.[userId] || 0;
+        const share = config.customShares?.[currentMemberId.value] || 0;
         return (totalAmount.value * share) / 100;
 
       case "single_payer":
-        return config.singlePayerId === userId ? totalAmount.value : 0;
+        return config.singlePayerId === currentMemberId.value
+          ? totalAmount.value
+          : 0;
 
       default:
         return 0;
@@ -144,26 +286,28 @@ export function useGroupOrder(options: {
   );
 
   // Methods
-  async function createGroupOrder(): Promise<string | null> {
+  async function createGroupOrder(
+    createOptions: CreateGroupOrderOptions = {},
+  ): Promise<string | null> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const response = await apiClient.post<{
-        groupOrderId: string;
-        memberToken: string;
-      }>("/orders/group/create", {
-        restaurantId,
-        tableId,
-        hostName: userName,
-      });
+      const response = await apiClient.post<CreateGroupOrderResponse>(
+        "/orders/group/create",
+        {
+          restaurantId,
+          tableId: createOptions.tableId ?? tableId,
+          hostName: createOptions.hostName ?? userName,
+        },
+      );
 
       if (response?.groupOrderId) {
-        // The host's credential comes back once, here. Capture it before
-        // anything tries to open the realtime room.
         memberToken.value = response.memberToken;
+        recoveryCode.value = response.recoveryCode;
+        currentMemberId.value = response.host.memberId ?? response.host.id;
         const groupOrderId = response.groupOrderId;
-        await loadAndConnect(groupOrderId);
+        await loadGroupOrder(groupOrderId, response);
         return groupOrderId;
       } else {
         throw new Error("Failed to create group order");
@@ -185,24 +329,20 @@ export function useGroupOrder(options: {
     error.value = null;
 
     try {
-      const response = await apiClient.post<{
-        groupOrder: GroupOrder;
-        memberToken: string;
-      }>(`/orders/group/join/${shareCode}`, {
-        memberName: userName,
-      });
+      const response = await apiClient.post<JoinGroupOrderResponse>(
+        `/orders/group/join/${shareCode}`,
+        {
+          memberName: userName,
+        },
+      );
 
       if (!response?.memberToken) {
         throw new Error("Failed to join group order");
       }
 
       memberToken.value = response.memberToken;
-      await loadAndConnect(response.groupOrder.id);
-
-      broadcastEvent("member_joined", {
-        memberId: userId,
-        memberName: userName,
-      });
+      currentMemberId.value = response.member.memberId ?? response.member.id;
+      await loadGroupOrder(response.groupOrder.id);
 
       return true;
     } catch (err) {
@@ -213,15 +353,19 @@ export function useGroupOrder(options: {
     }
   }
 
-  /** Load the group order snapshot, then open the realtime room. */
-  async function loadAndConnect(groupOrderId: string): Promise<void> {
-    const detail = await apiClient.get<GroupOrder>(
+  async function loadGroupOrder(
+    groupOrderId: string,
+    createResponse?: CreateGroupOrderResponse,
+  ): Promise<void> {
+    const summary = await apiClient.get<GroupOrderSummary>(
       `/orders/group/${groupOrderId}`,
     );
-    if (detail) {
-      groupOrder.value = detail;
+    if (summary) {
+      groupOrder.value = {
+        ...mapSummary(summary),
+        shareCode: summary.groupOrder.shareCode ?? createResponse?.shareCode,
+      };
     }
-    await connectToGroupOrder(groupOrderId);
   }
 
   async function connectToGroupOrder(groupOrderId: string): Promise<void> {
@@ -377,163 +521,91 @@ export function useGroupOrder(options: {
 
   function handleOrderSubmitted(): void {
     if (!groupOrder.value) return;
-    groupOrder.value.status = "submitted";
-  }
-
-  function broadcastEvent(type: string, data: unknown): void {
-    if (!groupOrder.value) return;
-
-    const event: GroupOrderEvent = {
-      type,
-      groupOrderId: groupOrder.value.id,
-      data,
-      senderId: userId,
-      senderName: userName,
-      timestamp: Date.now(),
-    };
-
-    sendMessage(JSON.stringify(event));
+    groupOrder.value.status = "checkout";
   }
 
   // Cart operations
-  function addToCart(
+  async function addToCart(
     item: Omit<GroupCartItem, "id" | "addedBy" | "addedByName" | "addedAt">,
-  ): void {
-    const cartItem: GroupCartItem = {
-      ...item,
-      id: crypto.randomUUID(),
-      addedBy: userId,
-      addedByName: userName,
-      addedAt: Date.now(),
-    };
+  ): Promise<void> {
+    if (!groupOrder.value) return;
 
-    // Optimistic update
-    handleCartItemAdded(cartItem);
+    const cartItem = await apiClient.post<BackendGroupCartItem>(
+      `/orders/group/${groupOrder.value.id}/cart`,
+      {
+        memberId: currentMemberId.value || groupOrder.value.hostId,
+        menuItemId: Number(item.menuItemId),
+        quantity: item.quantity,
+        customizations: item.options ?? {},
+        specialInstructions: item.notes,
+      },
+    );
 
-    // Broadcast to others
-    broadcastEvent("cart_item_added", cartItem);
-
-    // Sync with server
-    apiClient
-      .post(`/group-orders/${groupOrder.value?.id}/cart`, cartItem)
-      .catch((err: unknown) => {
-        console.error("Failed to sync cart item:", err);
-        // Rollback optimistic update
-        handleCartItemRemoved({ itemId: cartItem.id });
-      });
+    handleCartItemAdded(mapCartItem(cartItem, groupOrder.value.members));
   }
 
-  function updateCartItem(
+  async function updateCartItem(
     itemId: string,
     updates: Partial<GroupCartItem>,
-  ): void {
+  ): Promise<void> {
     if (!groupOrder.value) return;
 
-    const item = groupOrder.value.cartItems.find((i) => i.id === itemId);
-    if (!item) return;
+    const updatedItem = await apiClient.put<BackendGroupCartItem>(
+      `/orders/group/${groupOrder.value.id}/cart/${itemId}`,
+      {
+        quantity: updates.quantity,
+        customizations: updates.options,
+        specialInstructions: updates.notes,
+      },
+    );
 
-    // Only allow updating own items
-    if (item.addedBy !== userId) {
-      error.value = "You can only modify your own items";
-      return;
-    }
-
-    const updatedItem = { ...item, ...updates };
-
-    // Optimistic update
-    handleCartItemUpdated(updatedItem);
-
-    // Broadcast to others
-    broadcastEvent("cart_item_updated", updatedItem);
+    handleCartItemUpdated(mapCartItem(updatedItem, groupOrder.value.members));
   }
 
-  function removeFromCart(itemId: string): void {
+  async function removeFromCart(itemId: string): Promise<void> {
     if (!groupOrder.value) return;
 
-    const item = groupOrder.value.cartItems.find((i) => i.id === itemId);
-    if (!item) return;
-
-    // Only allow removing own items (or host can remove any)
-    if (item.addedBy !== userId && !isHost.value) {
-      error.value = "You can only remove your own items";
-      return;
-    }
-
-    // Optimistic update
+    await apiClient.delete(
+      `/orders/group/${groupOrder.value.id}/cart/${itemId}`,
+    );
     handleCartItemRemoved({ itemId });
-
-    // Broadcast to others
-    broadcastEvent("cart_item_removed", { itemId });
   }
 
   // Split bill operations
-  function setSplitBillMode(mode: SplitBillConfig["mode"]): void {
-    if (!groupOrder.value || !isHost.value) return;
-
-    const config: SplitBillConfig = { mode };
-
-    if (mode === "single_payer") {
-      config.singlePayerId = userId;
-    }
-
-    handleSplitBillUpdated(config);
-    broadcastEvent("split_bill_updated", config);
+  async function setSplitBillMode(
+    _mode: SplitBillConfig["mode"],
+  ): Promise<never> {
+    throw new Error("setSplitBillMode is not yet available");
   }
 
-  function setCustomShares(shares: Record<string, number>): void {
-    if (!groupOrder.value || !isHost.value) return;
-
-    const config: SplitBillConfig = {
-      mode: "custom",
-      customShares: shares,
-    };
-
-    handleSplitBillUpdated(config);
-    broadcastEvent("split_bill_updated", config);
+  async function setCustomShares(
+    _shares: Record<string, number>,
+  ): Promise<never> {
+    throw new Error("setCustomShares is not yet available");
   }
 
   // Leave group order
   async function leaveGroupOrder(): Promise<void> {
     if (!groupOrder.value) return;
 
-    broadcastEvent("member_left", { memberId: userId });
+    await apiClient.post(
+      `/orders/group/${groupOrder.value.id}/leave/${currentMemberId.value}`,
+    );
     disconnect();
     groupOrder.value = null;
     isConnected.value = false;
   }
 
   // Submit order (host only)
-  async function submitOrder(): Promise<boolean> {
-    if (!groupOrder.value || !isHost.value) return false;
-
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const response = await apiClient.post(
-        `/group-orders/${groupOrder.value.id}/submit`,
-      );
-
-      if (response) {
-        handleOrderSubmitted();
-        broadcastEvent("order_submitted", {});
-        return true;
-      } else {
-        throw new Error("Failed to submit order");
-      }
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : "Unknown error";
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
+  async function submitOrder(): Promise<never> {
+    throw new Error("submitOrder is not yet available");
   }
 
   // Generate share link/QR code
   function getShareLink(): string {
     if (!groupOrder.value) return "";
     const baseUrl = window.location.origin;
-    return `${baseUrl}/group/${groupOrder.value.id}/join`;
+    return `${baseUrl}/group/${groupOrder.value.shareCode}`;
   }
 
   // Cleanup
@@ -549,6 +621,7 @@ export function useGroupOrder(options: {
     isLoading,
     error,
     isConnected,
+    recoveryCode,
 
     // Computed
     isHost,
@@ -560,6 +633,8 @@ export function useGroupOrder(options: {
     // Methods
     createGroupOrder,
     joinGroupOrder,
+    loadGroupOrder,
+    connectToGroupOrder,
     leaveGroupOrder,
     addToCart,
     updateCartItem,
