@@ -34,7 +34,18 @@ export interface TestDatabase {
 }
 
 const REAL_D1_TEST_DATABASE_ID = "makanmakan-real-d1-test";
-const TEST_DATABASE_STAGE_TIMEOUT_MS = 60_000;
+// Sized for a cold baseline build on the slowest platform we run on, not for a
+// warm one. runMigrations replays 3402 statements from 80 files one at a time,
+// and each is a separate workerd IPC round-trip, which costs far more on Windows
+// than on Linux: ~170s there against comfortably under 60s in CI.
+//
+// The old 60s budget made that unbuildable, and not merely slow -- the abort
+// fed the transient-error retry above, so a cold cache spent three doomed
+// attempts and still never wrote a baseline, which left every later suite
+// paying the same cost and failing the same way. The baseline is cached by
+// migrations hash, so this ceiling is only ever reached once per migration
+// change; ordinary runs copy it and never come near this.
+const TEST_DATABASE_STAGE_TIMEOUT_MS = 300_000;
 const TEST_DATABASE_DISPOSE_TIMEOUT_MS = 15_000;
 
 export async function createTestDatabase(): Promise<TestDatabase> {
