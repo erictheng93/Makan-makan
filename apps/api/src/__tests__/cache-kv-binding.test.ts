@@ -19,10 +19,14 @@ function cacheKvBinding(
 ): { id: string; previewId?: string } {
   const environmentPrefix = environment ? `env.${environment}.` : "";
   const escapedPrefix = environmentPrefix.replace(".", "\\.");
+  // \r?\n rather than \n: this file is read verbatim off disk, so on a Windows
+  // checkout (core.autocrlf=true) every line break is CRLF and a bare \n would
+  // never match. The binding is the same either way, so the assertion must not
+  // depend on line endings.
   const bindingPattern = new RegExp(
-    `\\[\\[${escapedPrefix}kv_namespaces\\]\\]\\n` +
-      'binding = "CACHE_KV"\\n' +
-      'id = "([^"]+)"(?:\\npreview_id = "([^"]+)")?',
+    `\\[\\[${escapedPrefix}kv_namespaces\\]\\]\\r?\\n` +
+      'binding = "CACHE_KV"\\r?\\n' +
+      'id = "([^"]+)"(?:\\r?\\npreview_id = "([^"]+)")?',
   );
   const match = config.match(bindingPattern);
 
