@@ -59,13 +59,7 @@ export function useDateFormatter() {
     }
 
     if (includeWeekday) {
-      const weekday = getWeekdayName(dateObj, "short");
-
-      if (locale.value === "en-US") {
-        formatted = `${formatted} (${weekday})`;
-      } else {
-        formatted = `${formatted} (${weekday})`;
-      }
+      formatted = `${formatted} (${getWeekdayName(dateObj, "short")})`;
     }
 
     return formatted;
