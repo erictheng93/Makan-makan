@@ -68,6 +68,12 @@ export interface GroupOrderSettings {
   autoSubmitOnExpiry?: boolean;
   /** Set only when status is `finalizing_failed`. See the interface docs. */
   finalizeFailure?: GroupOrderFinalizeFailure;
+  /**
+   * ISO 8601. Written by the expiry sweep when the five-minute warning has
+   * been sent, so a cron that runs every five minutes cannot warn the same
+   * table repeatedly.
+   */
+  expiryWarningSentAt?: string;
 }
 
 /**
@@ -136,6 +142,8 @@ export interface GroupActivityMetadata {
   previousValue?: unknown;
   newValue?: unknown;
   reason?: string;
+  /** Unix ms. Recorded on `group_expired` activity by the expiry sweep. */
+  expiredAt?: number;
 }
 
 // ================================================

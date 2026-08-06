@@ -1,160 +1,146 @@
 import { describe, expect, it, vi } from "vitest";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { and, eq } from "drizzle-orm";
+import { groupActivityLogs, groupOrders } from "@makanmakan/database";
+import type { GroupOrderSettings } from "@makanmakan/shared-types";
 import {
   GROUP_ORDER_EXPIRY_WARNING_MS,
   GROUP_ORDER_FINALIZING_STALE_MS,
   sweepExpiringGroupOrders,
+  type GroupOrderSweepDb,
 } from "./group-order-expiry";
 import type { Env } from "../types/env";
 
-type FakeGroupOrderRow = {
+/**
+ * These tests run against a real SQLite database rather than a fake.
+ *
+ * The sweep's correctness lives almost entirely in its WHERE clauses — which
+ * claims count as stale, which rows are already cancelled, which group is
+ * inside the warning window. A fake that pattern-matches on the query and
+ * re-implements those predicates only proves the fake agrees with itself.
+ * Executing them is the point.
+ *
+ * Only the DDL below is written by hand; every read and write in the tests
+ * goes through the same Drizzle schema objects the production code uses, so a
+ * column rename fails here at compile time too.
+ */
+const DDL = `
+  CREATE TABLE group_orders (
+    id TEXT PRIMARY KEY NOT NULL,
+    share_code TEXT NOT NULL,
+    master_order_id TEXT,
+    created_by TEXT,
+    recovery_code TEXT NOT NULL,
+    restaurant_id TEXT NOT NULL,
+    table_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'active',
+    split_type TEXT NOT NULL DEFAULT 'individual',
+    total_amount_cents INTEGER,
+    tax_amount_cents INTEGER,
+    service_charge_cents INTEGER,
+    final_amount_cents INTEGER,
+    expires_at_ms INTEGER NOT NULL,
+    locked_at_ms INTEGER,
+    completed_at_ms INTEGER,
+    settings TEXT NOT NULL DEFAULT '{}',
+    notes TEXT,
+    created_at_ms INTEGER NOT NULL,
+    updated_at_ms INTEGER NOT NULL
+  );
+  CREATE TABLE group_activity_logs (
+    id TEXT PRIMARY KEY NOT NULL,
+    group_order_id TEXT NOT NULL,
+    member_id TEXT,
+    action TEXT NOT NULL,
+    description TEXT NOT NULL,
+    metadata TEXT NOT NULL DEFAULT '{}',
+    created_at_ms INTEGER NOT NULL
+  );
+`;
+
+interface SeedRow {
   id: string;
-  share_code: string;
-  expires_at_ms: number;
-  settings: string;
   status: string;
-  master_order_id?: string | null;
-  locked_at_ms?: number | null;
-};
+  expiresAt: Date;
+  settings?: GroupOrderSettings;
+  lockedAt?: Date | null;
+  masterOrderId?: string | null;
+}
 
-function createFakeEnv(rows: FakeGroupOrderRow[]): Env & {
-  rows: FakeGroupOrderRow[];
-  activityLogs: unknown[];
-  cacheDeletes: string[];
-} {
-  const activityLogs: unknown[] = [];
+function createDb(): GroupOrderSweepDb {
+  const sqlite = new Database(":memory:");
+  sqlite.exec(DDL);
+  return drizzle(sqlite) as unknown as GroupOrderSweepDb;
+}
+
+async function seed(db: GroupOrderSweepDb, rows: SeedRow[]): Promise<void> {
+  const createdAt = new Date("2026-06-01T00:00:00.000Z");
+  for (const seedRow of rows) {
+    await db.insert(groupOrders).values({
+      id: seedRow.id,
+      shareCode: seedRow.id.toUpperCase(),
+      recoveryCode: `recovery-${seedRow.id}`,
+      restaurantId: "restaurant-1",
+      status: seedRow.status,
+      expiresAt: seedRow.expiresAt,
+      lockedAt: seedRow.lockedAt ?? null,
+      masterOrderId: seedRow.masterOrderId ?? null,
+      settings: seedRow.settings ?? {},
+      createdAt,
+      updatedAt: createdAt,
+    });
+  }
+}
+
+async function readRow(db: GroupOrderSweepDb, id: string) {
+  const rows = await db
+    .select()
+    .from(groupOrders)
+    .where(eq(groupOrders.id, id));
+  return rows[0];
+}
+
+function createEnv(): Env & { cacheDeletes: string[] } {
   const cacheDeletes: string[] = [];
-  const db = {
-    prepare: vi.fn((sql: string) => ({
-      bind: (...bindings: unknown[]) => ({
-        all: vi.fn(async () => {
-          if (sql.includes("expires_at_ms > ?")) {
-            const [nowMs, warningCutoffMs] = bindings as [number, number];
-            return {
-              results: rows.filter(
-                (row) =>
-                  row.status === "active" &&
-                  row.expires_at_ms > nowMs &&
-                  row.expires_at_ms <= warningCutoffMs,
-              ),
-            };
-          }
-
-          if (sql.includes("expires_at_ms <= ?")) {
-            const [nowMs] = bindings as [number];
-            return {
-              results: rows.filter(
-                (row) => row.status === "active" && row.expires_at_ms <= nowMs,
-              ),
-            };
-          }
-
-          return { results: [] };
-        }),
-        run: vi.fn(async () => {
-          if (sql.includes("SET settings = ?")) {
-            const [settings, _updatedAt, id] = bindings as [
-              string,
-              number,
-              string,
-            ];
-            const row = rows.find(
-              (candidate) =>
-                candidate.id === id && candidate.status === "active",
-            );
-            if (!row) return { meta: { changes: 0 } };
-            row.settings = settings;
-            return { meta: { changes: 1 } };
-          }
-
-          if (sql.includes("SET status = 'cancelled'")) {
-            const [_updatedAt, id] = bindings as [number, string];
-            const row = rows.find(
-              (candidate) =>
-                candidate.id === id && candidate.status === "active",
-            );
-            if (!row) return { meta: { changes: 0 } };
-            row.status = "cancelled";
-            return { meta: { changes: 1 } };
-          }
-
-          if (sql.includes("INSERT INTO group_activity_logs")) {
-            activityLogs.push(bindings);
-            return { meta: { changes: 1 } };
-          }
-
-          if (sql.includes("SET status = 'active', locked_at_ms = NULL")) {
-            const [_updatedAt, staleBeforeMs] = bindings as [number, number];
-            let changes = 0;
-            for (const row of rows) {
-              if (
-                row.status === "finalizing" &&
-                !row.master_order_id &&
-                row.locked_at_ms != null &&
-                row.locked_at_ms < staleBeforeMs
-              ) {
-                row.status = "active";
-                row.locked_at_ms = null;
-                changes++;
-              }
-            }
-            return { meta: { changes } };
-          }
-
-          return { meta: { changes: 0 } };
-        }),
-      }),
-    })),
-  };
-
   return {
-    DB: db,
+    DB: {} as unknown,
     CACHE_KV: {
       delete: vi.fn(async (key: string) => {
         cacheDeletes.push(key);
       }),
     },
-    rows,
-    activityLogs,
     cacheDeletes,
-  } as unknown as Env & {
-    rows: FakeGroupOrderRow[];
-    activityLogs: unknown[];
-    cacheDeletes: string[];
-  };
-}
-
-function row(
-  id: string,
-  status: string,
-  expiresAtMs: number,
-  settings: Record<string, unknown> = {},
-): FakeGroupOrderRow {
-  return {
-    id,
-    share_code: id.toUpperCase(),
-    expires_at_ms: expiresAtMs,
-    settings: JSON.stringify(settings),
-    status,
-    master_order_id: null,
-    locked_at_ms: null,
-  };
+  } as unknown as Env & { cacheDeletes: string[] };
 }
 
 describe("sweepExpiringGroupOrders", () => {
   const now = new Date("2026-06-07T00:00:00.000Z");
 
   it("finalizes or cancels expired active groups and keeps processing after item failures", async () => {
-    const env = createFakeEnv([
-      row("finalize-1", "active", now.getTime() - 1, {
-        autoSubmitOnExpiry: true,
-      }),
-      row("cancel-1", "active", now.getTime() - 1, {
-        autoSubmitOnExpiry: false,
-      }),
-      row("finalize-fail", "active", now.getTime() - 1, {
-        autoSubmitOnExpiry: true,
-      }),
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "finalize-1",
+        status: "active",
+        expiresAt: new Date(now.getTime() - 1),
+        settings: { autoSubmitOnExpiry: true },
+      },
+      {
+        id: "cancel-1",
+        status: "active",
+        expiresAt: new Date(now.getTime() - 1),
+        settings: { autoSubmitOnExpiry: false },
+      },
+      {
+        id: "finalize-fail",
+        status: "active",
+        expiresAt: new Date(now.getTime() - 1),
+        settings: { autoSubmitOnExpiry: true },
+      },
     ]);
+
     const finalizeGroupOrder = vi.fn(async (groupOrderId: string) => {
       if (groupOrderId === "finalize-fail") {
         return { success: false, error: "order service down" };
@@ -168,6 +154,7 @@ describe("sweepExpiringGroupOrders", () => {
     await expect(
       sweepExpiringGroupOrders(env, {
         now,
+        db,
         serviceFactory: () => ({ finalizeGroupOrder }),
       }),
     ).resolves.toEqual({
@@ -176,10 +163,15 @@ describe("sweepExpiringGroupOrders", () => {
       warned: 0,
       errors: ["finalize-fail: order service down"],
     });
-    expect(
-      env.rows.find((candidate) => candidate.id === "cancel-1")?.status,
-    ).toBe("cancelled");
-    expect(env.activityLogs).toHaveLength(1);
+
+    expect((await readRow(db, "cancel-1"))?.status).toBe("cancelled");
+    const logs = await db.select().from(groupActivityLogs);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      groupOrderId: "cancel-1",
+      action: "group_expired",
+      metadata: { expiredAt: now.getTime() - 1 },
+    });
     expect(env.cacheDeletes).toEqual([
       "group_order:cancel-1",
       "group_order_summary:cancel-1",
@@ -188,45 +180,74 @@ describe("sweepExpiringGroupOrders", () => {
   });
 
   it("marks five-minute expiry warnings once in settings", async () => {
-    const env = createFakeEnv([
-      row("warn-1", "active", now.getTime() + GROUP_ORDER_EXPIRY_WARNING_MS),
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "warn-1",
+        status: "active",
+        expiresAt: new Date(now.getTime() + GROUP_ORDER_EXPIRY_WARNING_MS),
+      },
     ]);
 
-    await expect(sweepExpiringGroupOrders(env, { now })).resolves.toMatchObject(
-      { warned: 1 },
-    );
-    expect(JSON.parse(env.rows[0].settings)).toMatchObject({
+    await expect(
+      sweepExpiringGroupOrders(env, { now, db }),
+    ).resolves.toMatchObject({ warned: 1 });
+    expect((await readRow(db, "warn-1"))?.settings).toMatchObject({
       expiryWarningSentAt: now.toISOString(),
     });
 
-    await expect(sweepExpiringGroupOrders(env, { now })).resolves.toMatchObject(
-      { warned: 0 },
-    );
+    // A cron on a five-minute tick sees the same group again on its next run.
+    await expect(
+      sweepExpiringGroupOrders(env, { now, db }),
+    ).resolves.toMatchObject({ warned: 0 });
   });
 
   it("lets overlapping sweeps race through finalize without creating a second real order", async () => {
-    const env = createFakeEnv([
-      row("race-1", "active", now.getTime() - 1, {
-        autoSubmitOnExpiry: true,
-      }),
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "race-1",
+        status: "active",
+        expiresAt: new Date(now.getTime() - 1),
+        settings: { autoSubmitOnExpiry: true },
+      },
     ]);
+
     let createdOrders = 0;
     const finalizeGroupOrder = vi.fn(async (groupOrderId: string) => {
-      const target = env.rows.find(
-        (candidate) => candidate.id === groupOrderId,
-      );
-      if (!target || target.status !== "active") {
+      // Stands in for finalizeGroupOrder's own claim, and has to be the same
+      // shape to mean anything: a single conditional update that reports
+      // whether it won. Reading the status and then writing it would leave a
+      // gap both sweeps can pass through — which is exactly the bug the real
+      // compare-and-swap exists to prevent, so a mock with that gap would
+      // report a failure the production code does not have.
+      const claimed = await db
+        .update(groupOrders)
+        .set({ status: "finalizing", lockedAt: now })
+        .where(
+          and(
+            eq(groupOrders.id, groupOrderId),
+            eq(groupOrders.status, "active"),
+          ),
+        )
+        .returning({ id: groupOrders.id });
+
+      if (claimed.length === 0) {
         return {
           success: false,
           error: "Group order is already being finalized",
         };
       }
 
-      target.status = "finalizing";
       createdOrders++;
       await Promise.resolve();
-      target.status = "completed";
-      target.master_order_id = "order-race-1";
+      await db
+        .update(groupOrders)
+        .set({ status: "completed", masterOrderId: "order-race-1" })
+        .where(eq(groupOrders.id, groupOrderId));
+
       return {
         success: true,
         data: { masterOrderId: "order-race-1", status: "completed" },
@@ -236,10 +257,12 @@ describe("sweepExpiringGroupOrders", () => {
     const results = await Promise.all([
       sweepExpiringGroupOrders(env, {
         now,
+        db,
         serviceFactory: () => ({ finalizeGroupOrder }),
       }),
       sweepExpiringGroupOrders(env, {
         now,
+        db,
         serviceFactory: () => ({ finalizeGroupOrder }),
       }),
     ]);
@@ -249,21 +272,45 @@ describe("sweepExpiringGroupOrders", () => {
   });
 
   it("recovers only stale finalizing claims and leaves active claims plus finalizing_failed alone", async () => {
-    const activeClaim = row("active-claim", "finalizing", now.getTime() - 1);
-    activeClaim.locked_at_ms =
-      now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS + 1;
-    const staleClaim = row("stale-claim", "finalizing", now.getTime() - 1);
-    staleClaim.locked_at_ms =
-      now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1;
-    const failed = row("failed", "finalizing_failed", now.getTime() - 1);
-    failed.locked_at_ms = now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1;
-    const env = createFakeEnv([activeClaim, staleClaim, failed]);
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "active-claim",
+        status: "finalizing",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS + 1),
+      },
+      {
+        id: "stale-claim",
+        status: "finalizing",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1),
+      },
+      {
+        id: "failed",
+        status: "finalizing_failed",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1),
+      },
+      {
+        id: "stale-but-ordered",
+        status: "finalizing",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1),
+        masterOrderId: "order-already-placed",
+      },
+    ]);
 
-    await sweepExpiringGroupOrders(env, { now });
+    await sweepExpiringGroupOrders(env, { now, db });
 
-    expect(activeClaim.status).toBe("finalizing");
-    expect(staleClaim.status).toBe("active");
-    expect(staleClaim.locked_at_ms).toBeNull();
-    expect(failed.status).toBe("finalizing_failed");
+    expect((await readRow(db, "active-claim"))?.status).toBe("finalizing");
+    const stale = await readRow(db, "stale-claim");
+    expect(stale?.status).toBe("active");
+    expect(stale?.lockedAt).toBeNull();
+    expect((await readRow(db, "failed"))?.status).toBe("finalizing_failed");
+    // A claim whose real order already exists must never be handed back to a
+    // second finalizer, however stale it looks.
+    expect((await readRow(db, "stale-but-ordered"))?.status).toBe("finalizing");
   });
 });
