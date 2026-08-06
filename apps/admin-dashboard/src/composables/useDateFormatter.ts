@@ -27,9 +27,6 @@ export function useDateFormatter() {
     return t(key);
   };
 
-  /**
-   * @param date Date
-   */
   const formatDate = (
     date: Date | string,
     includeWeekday: boolean = false,
@@ -74,9 +71,6 @@ export function useDateFormatter() {
     return formatted;
   };
 
-  /**
-   * @param date Date
-   */
   const formatTime = (date: Date | string): string => {
     let hours: number;
     let minutes: number;
@@ -99,9 +93,6 @@ export function useDateFormatter() {
     }
   };
 
-  /**
-   * @param date Date
-   */
   const formatDateTime = (date: Date | string): string => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
 
@@ -157,9 +148,6 @@ export function useDateFormatter() {
     }
   };
 
-  /**
-1
-   */
   const getMonthName = (
     monthIndex: number,
     format: "short" | "long" = "long",
