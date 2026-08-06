@@ -7,9 +7,6 @@ import { useI18n } from "@/i18n";
 export function useDateFormatter() {
   const { locale } = useI18n();
 
-  /**
-   * r�~��o
-   */
   const getWeekdayName = (
     date: Date,
     format: "short" | "long" = "short",
@@ -31,10 +28,7 @@ export function useDateFormatter() {
   };
 
   /**
-   * <�
-   * @param date Date 
-a ISO W2
-   * @param includeWeekday /&+~
+   * @param date Date
    */
   const formatDate = (
     date: Date | string,
@@ -55,10 +49,10 @@ a ISO W2
     switch (locale.value) {
       case "zh-TW":
       case "zh-CN":
-        formatted = `${year}t${parseInt(month)}${parseInt(day)}�`;
+        formatted = `${year}年${parseInt(month)}月${parseInt(day)}日`;
         break;
       case "ja-JP":
-        formatted = `${year}t${parseInt(month)}${parseInt(day)}�`;
+        formatted = `${year}年${parseInt(month)}月${parseInt(day)}日`;
         break;
       case "en-US":
         formatted = `${month}/${day}/${year}`;
@@ -81,16 +75,13 @@ a ISO W2
   };
 
   /**
-   * <B�
-   * @param date Date 
-aB�W2 (HH:mm)
+   * @param date Date
    */
   const formatTime = (date: Date | string): string => {
     let hours: number;
     let minutes: number;
 
     if (typeof date === "string") {
-      // G-/ "HH:mm" <
       const parts = date.split(":");
       hours = parseInt(parts[0]);
       minutes = parseInt(parts[1]);
@@ -100,20 +91,16 @@ aB�W2 (HH:mm)
     }
 
     if (locale.value === "en-US") {
-      // 12B6
       const period = hours >= 12 ? "PM" : "AM";
       const displayHours = hours % 12 || 12;
       return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
     } else {
-      // 24B6
       return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
     }
   };
 
   /**
-   * <�B�
-   * @param date Date 
-a ISO W2
+   * @param date Date
    */
   const formatDateTime = (date: Date | string): string => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -128,10 +115,6 @@ a ISO W2
     return `${datePart} ${timePart}`;
   };
 
-  /**
-   * <��
-B�EKM	
-   */
   const formatRelativeTime = (date: Date | string): string => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     const now = new Date();
@@ -142,27 +125,24 @@ B�EKM
     const diffDays = Math.floor(diffHours / 24);
 
     if (diffSecs < 60) {
-      return locale.value === "en-US" ? "Just now" : "[[";
+      return locale.value === "en-US" ? "Just now" : "剛剛";
     } else if (diffMins < 60) {
       return locale.value === "en-US"
         ? `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`
-        : `${diffMins}M`;
+        : `${diffMins}分鐘前`;
     } else if (diffHours < 24) {
       return locale.value === "en-US"
         ? `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
-        : `${diffHours}BM`;
+        : `${diffHours}小時前`;
     } else if (diffDays < 7) {
       return locale.value === "en-US"
         ? `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
-        : `${diffDays})M`;
+        : `${diffDays}天前`;
     } else {
       return formatDate(dateObj, false);
     }
   };
 
-  /**
-   * <��
-   */
   const formatDateRange = (
     startDate: Date | string,
     endDate: Date | string,
@@ -173,12 +153,11 @@ B�EKM
     if (locale.value === "en-US") {
       return `${start} - ${end}`;
     } else {
-      return `${start} � ${end}`;
+      return `${start} 至 ${end}`;
     }
   };
 
   /**
-   * r��
 1
    */
   const getMonthName = (
@@ -204,24 +183,15 @@ B�EKM
     ).format(date);
   };
 
-  /**
-   * <� ISO 8601 W2
-   */
   const toISOString = (date: Date | string): string => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return dateObj.toISOString();
   };
 
-  /**
-   * � ISO W2� Date
-   */
   const fromISOString = (isoString: string): Date => {
     return new Date(isoString);
   };
 
-  /**
-   * <Bw
-   */
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -236,18 +206,15 @@ B�EKM
       }
     } else {
       if (hours > 0 && mins > 0) {
-        return `${hours}B${mins}`;
+        return `${hours}小時${mins}分鐘`;
       } else if (hours > 0) {
-        return `${hours}B`;
+        return `${hours}小時`;
       } else {
-        return `${mins}`;
+        return `${mins}分鐘`;
       }
     }
   };
 
-  /**
-   * �i�K���B
-   */
   const calculateWorkHours = (startTime: string, endTime: string): number => {
     const [startHour, startMin] = startTime.split(":").map(Number);
     const [endHour, endMin] = endTime.split(":").map(Number);
@@ -257,7 +224,6 @@ B�EKM
 
     let diffMinutes = endMinutes - startMinutes;
 
-    // �H���
     if (diffMinutes < 0) {
       diffMinutes += 24 * 60;
     }
@@ -265,29 +231,20 @@ B�EKM
     return diffMinutes / 60;
   };
 
-  /**
-   * <�B
-   */
   const formatWorkHours = (hours: number): string => {
     if (locale.value === "en-US") {
       return `${hours.toFixed(1)}h`;
     } else {
-      return `${hours.toFixed(1)}B`;
+      return `${hours.toFixed(1)}小時`;
     }
   };
 
-  /**
-   * r��)���B
-   */
   const getToday = (): Date => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   };
 
-  /**
-   * ��/&/�)
-   */
   const isToday = (date: Date | string): boolean => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     const today = getToday();
@@ -299,18 +256,13 @@ B�EKM
     );
   };
 
-  /**
-   * ��/&/,1
-   */
   const isThisWeek = (date: Date | string): boolean => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     const today = getToday();
 
-    // r�,1���1�
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
 
-    // r�,1�P_1m
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
@@ -318,36 +270,24 @@ B�EKM
     return dateObj >= weekStart && dateObj <= weekEnd;
   };
 
-  /**
-   * r�����B��B
-   */
   const startOfDay = (date: Date | string): Date => {
     const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
     dateObj.setHours(0, 0, 0, 0);
     return dateObj;
   };
 
-  /**
-   * r���P_B�23:59:59.999
-   */
   const endOfDay = (date: Date | string): Date => {
     const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
     dateObj.setHours(23, 59, 59, 999);
     return dateObj;
   };
 
-  /**
-   * ��)x
-   */
   const addDays = (date: Date | string, days: number): Date => {
     const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
     dateObj.setDate(dateObj.getDate() + days);
     return dateObj;
   };
 
-  /**
-   * <�8eF�(��W2 (YYYY-MM-DD)
-   */
   const toInputDate = (date: Date | string): string => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     const year = dateObj.getFullYear();
