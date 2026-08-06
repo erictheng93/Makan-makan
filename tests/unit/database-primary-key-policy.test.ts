@@ -54,7 +54,9 @@ function discoverIntegerPrimaryKeys(): IntegerPrimaryKeySurface[] {
   const surfaces: IntegerPrimaryKeySurface[] = [];
 
   for (const file of listSchemaFiles(schemaRoot)) {
-    const schemaFile = relative(repoRoot, file);
+    // The JSON inventory stores POSIX paths, so the discovered key has to use
+    // them too -- otherwise every table looks both missing and stale on Windows.
+    const schemaFile = relative(repoRoot, file).replace(/\\/g, "/");
     let currentTableName: string | null = null;
     let expectingTableName = false;
 

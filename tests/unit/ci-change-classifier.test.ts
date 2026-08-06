@@ -13,17 +13,51 @@ type Scope = {
   full: boolean;
 };
 
-const classifier = path.resolve(
-  process.cwd(),
-  "scripts/classify-ci-changes.sh",
-);
+// Handed to bash, not to Node, so the separators have to be POSIX ones: bash
+// reads the backslashes in a resolved Windows path as escape characters and
+// collapses D:\repo\scripts\x.sh into D:reposcriptsx.sh before it ever stats
+// the file. Forward slashes are accepted on both platforms, so this is a no-op
+// off Windows.
+const classifier = path
+  .resolve(process.cwd(), "scripts/classify-ci-changes.sh")
+  .replace(/\\/g, "/");
+
+// On Windows, a bare `bash` usually resolves to C:\Windows\system32\bash.exe --
+// that is WSL, which mounts this drive under /mnt and so cannot see the repo
+// path at all. Git ships a bash that shares the Win32 namespace, and it lives
+// next door to the git.exe we were launched with.
+function resolveBash(): string | null {
+  if (process.platform !== "win32") return "bash";
+
+  const located = spawnSync("where", ["git"], { encoding: "utf8" });
+  const gitExe = located.stdout?.split(/\r?\n/)[0]?.trim();
+  if (!gitExe) return null;
+
+  const gitBash = path
+    .resolve(path.dirname(gitExe), "..", "bin", "bash.exe")
+    .replace(/\\/g, "/");
+
+  // Confirm rather than assume: layouts differ between the Git installer and
+  // portable/scoop copies, and a bash that cannot stat the script is useless.
+  const probe = spawnSync(gitBash, ["-c", `test -f '${classifier}'`], {
+    encoding: "utf8",
+  });
+
+  return probe.status === 0 ? gitBash : null;
+}
+
+const bashCommand = resolveBash();
 
 function classify(files: string[], initialFull = false): Scope {
-  const result = spawnSync("bash", [classifier, String(initialFull)], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    input: `${files.join("\n")}\n`,
-  });
+  const result = spawnSync(
+    bashCommand as string,
+    [classifier, String(initialFull)],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      input: `${files.join("\n")}\n`,
+    },
+  );
 
   expect(result.status, result.stderr).toBe(0);
 
@@ -60,7 +94,10 @@ const fullValidation: Scope = {
   full: true,
 };
 
-describe("CI change classifier", () => {
+// Skipped rather than failed where no bash can reach the script: the classifier
+// is a CI concern and CI runs on Linux, so a red suite here would only ever be
+// reporting on the developer's shell, not on the script under test.
+describe.skipIf(bashCommand === null)("CI change classifier", () => {
   it.each(["docs/operations.md", "README.md"])(
     "skips application checks for %s",
     (file) => {

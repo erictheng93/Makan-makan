@@ -39,6 +39,10 @@ function listBoundaryFiles(root: string): string[] {
   const ignoredDirectoryNames = new Set([
     ".claude",
     ".git",
+    // Separate checkouts of this same repo. Their contents are another
+    // branch's copy of these files, so scanning them reports violations that
+    // do not exist on the branch under test.
+    ".worktrees",
     ".turbo",
     ".wrangler",
     "coverage",
@@ -57,7 +61,11 @@ function listBoundaryFiles(root: string): string[] {
   function walk(directory: string): void {
     for (const entry of readdirSync(directory)) {
       const absolutePath = join(directory, entry);
-      const relativePath = relative(root, absolutePath);
+      // Normalised to POSIX because every comparison below is written that
+      // way: the "/" split, the packages/queue-service self-exclusion and the
+      // ignoredFiles lookup all silently stop matching against backslashes,
+      // which is how dist/ and node_modules/ leaked into the scan on Windows.
+      const relativePath = relative(root, absolutePath).replace(/\\/g, "/");
       const stats = lstatSync(absolutePath);
 
       if (stats.isSymbolicLink()) {
