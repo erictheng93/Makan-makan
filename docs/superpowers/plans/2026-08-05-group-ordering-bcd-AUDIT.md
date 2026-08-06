@@ -251,6 +251,27 @@ G-1 ~ G-9 全數達標。特別確認：
 
 ---
 
+### Gate H 複驗（2026-08-06）：**通過**
+
+阻斷項已於 `f3df96ba` 關閉（改寫由稽核方實作，故查詢層部分為自我稽核）。
+
+| 項目 | 結果 |
+| --- | --- |
+| 查詢層 | `prepare(` 殘留 0；6 條 SQL 全數改為 Drizzle |
+| 自訂 snake_case 列型別 | 已移除（唯一剩下的 `share_code:` 是 KV 快取鍵前綴，符合既有慣例） |
+| 狀態字面值 | `ACTIVE` / `CANCELLED` / `FINALIZING` 以 `GroupOrderStatus` 標註，寫錯即編譯錯誤 |
+| `expiryWarningSentAt` / `expiredAt` / `finalizeFailure` | 皆已在 shared-types 介面中，無 `as unknown as` 殘留 |
+| 測試覆蓋 | 4 → 4，未減少；另在陳舊 claim 測試中新增「已有 masterOrderId 不得回收」案例 |
+| 驗證 | 86 tests（group-orders 76 + expiry 4 + cron wiring 6）、typecheck、lint 通過；全量 API 213 files / 1928 tests 通過 |
+
+**改寫過程中浮現的一件事值得記錄**：測試改用真 SQLite 後，race 測試立刻失敗 —— 舊 fake 的 mock 以「先讀狀態、再寫狀態」模擬 claim，兩個 `await` 之間存在縫隙，但舊 fake 是同步操作因而掩蓋了它。也就是說**舊測試一直在模擬一個生產程式碼並不存在的 bug**（真實 `finalizeGroupOrder` 是單一 conditional update + `returning`）。mock 已改為同形。這是「以 fake 重寫查詢語意」這種測試策略的典型代價。
+
+H-1 ~ H-10 行為面於初審已通過，本次複驗未重跑其結論，僅確認相關測試檔未受改寫影響（`routes/index.test.ts`、`GroupOrdersService.test.ts`、`cron-schedule-wiring.test.ts` 皆未更動）。
+
+**Stage 4 完成，API 端可獨立部署。** H-9（部署後確認 cron 已註冊且首次執行無誤）留待實際部署時執行。
+
+---
+
 ## Stage 5：前端（B Task 1-4 + C Task 5）→ 單次 Pages 部署
 
 - [ ] **I-1** 所有 REST 呼叫路徑都存在，`/group-orders/...` 前綴零出現。
