@@ -465,7 +465,7 @@
                 class="hover:bg-gray-50 transition-colors"
               >
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                  {{ formatDate(trend.date) }}
+                  {{ formatShortDate(trend.date) }}
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-900">
                   {{ trend.total_orders }}
@@ -644,9 +644,11 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { statisticsService } from "@/services/statisticsService";
 
 const { t } = useI18n();
+const { formatDateTime, formatShortDate } = useDateFormatter();
 import useStatisticsSSE from "@/composables/useStatisticsSSE";
 import StatCard from "@/components/StatCard.vue";
 import PerformanceTrendChart from "@/components/PerformanceTrendChart.vue";
@@ -729,24 +731,6 @@ const handleExport = () => {
 };
 
 // 輔助方法
-const formatDateTime = (date: Date) => {
-  return date.toLocaleString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-  });
-};
-
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     pending: t("statisticsDashboard.statusPending"),

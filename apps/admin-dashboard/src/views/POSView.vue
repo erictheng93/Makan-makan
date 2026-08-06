@@ -44,10 +44,12 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { ShoppingCart, Settings2 } from "lucide-vue-next";
 
 const route = useRoute();
 const { t } = useI18n();
+const { formatTimeWithSeconds } = useDateFormatter();
 
 const currentTime = ref("");
 let timeInterval: NodeJS.Timeout | null = null;
@@ -72,11 +74,7 @@ const isActiveTab = (path: string) => {
 };
 
 const updateCurrentTime = () => {
-  currentTime.value = new Date().toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  currentTime.value = formatTimeWithSeconds(new Date());
 };
 
 onMounted(() => {

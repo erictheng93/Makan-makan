@@ -87,9 +87,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { LeaveBalance } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { formatDate } = useDateFormatter();
 
 interface Props {
   balance: LeaveBalance;
@@ -128,15 +130,6 @@ const formatDays = (days: number): string => {
   if (days === 0) return "0";
   if (Number.isInteger(days)) return days.toString();
   return days.toFixed(1);
-};
-
-// 格式化日期
-const formatDate = (date: string | Date): string => {
-  return new Date(date).toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 };
 </script>
 

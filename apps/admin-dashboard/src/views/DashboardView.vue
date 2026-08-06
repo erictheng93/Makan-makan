@@ -266,8 +266,7 @@ import { useDashboardStore } from "@/stores/dashboard";
 import { useOrderStore } from "@/stores/order";
 import type { ChartData, OrderStatus, TopMenuItem } from "@/types";
 import { useDashboardPolling } from "@/composables/usePolling";
-import { formatDistanceToNow } from "date-fns";
-import { zhTW } from "date-fns/locale";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   RefreshCw,
   Menu,
@@ -290,6 +289,7 @@ import RealtimeNotificationPanel from "@/components/RealtimeNotificationPanel.vu
 import LazyChart from "@/components/LazyChart.vue";
 
 const { t } = useI18n();
+const { formatRelativeTime } = useDateFormatter();
 const router = useRouter();
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
@@ -374,10 +374,7 @@ const ordersChart = computed<OrdersChartPoint[]>(() =>
 
 const lastUpdatedText = computed(() => {
   if (!dashboardStore.lastUpdated) return t("dashboard.neverUpdated");
-  return formatDistanceToNow(dashboardStore.lastUpdated, {
-    addSuffix: true,
-    locale: zhTW,
-  });
+  return formatRelativeTime(dashboardStore.lastUpdated);
 });
 
 const formatCurrency = (amount: number) => {

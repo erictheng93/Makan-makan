@@ -20,6 +20,7 @@ import {
   type ChartData,
   type ChartOptions,
 } from "chart.js";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 // Register Chart.js components
 ChartJS.register(
@@ -60,16 +61,14 @@ const props = withDefaults(defineProps<Props>(), {
   yAxisLabel: "",
 });
 
+const { formatTime } = useDateFormatter();
+
 const chartData = computed((): ChartData<"line"> => {
   // Use timestamps from the first series as labels
   const labels =
-    props.series[0]?.data.map((point) => {
-      const date = new Date(point.timestamp);
-      return date.toLocaleTimeString("zh-TW", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }) || [];
+    props.series[0]?.data.map((point) =>
+      formatTime(new Date(point.timestamp)),
+    ) || [];
 
   const datasets = props.series.map((metric) => ({
     label: metric.label,

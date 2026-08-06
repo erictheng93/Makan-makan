@@ -20,6 +20,7 @@ import {
   type ChartData,
   type ChartOptions,
 } from "chart.js";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 // Register Chart.js components
 ChartJS.register(
@@ -57,14 +58,12 @@ const props = withDefaults(defineProps<Props>(), {
   height: 300,
 });
 
+const { formatTime } = useDateFormatter();
+
 const chartData = computed((): ChartData<"line"> => {
-  const labels = props.data.map((point) => {
-    const date = new Date(point.timestamp);
-    return date.toLocaleTimeString("zh-TW", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  });
+  const labels = props.data.map((point) =>
+    formatTime(new Date(point.timestamp)),
+  );
 
   const values = props.data.map((point) => point.value);
 

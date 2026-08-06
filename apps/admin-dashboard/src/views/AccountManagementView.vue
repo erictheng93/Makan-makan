@@ -10,10 +10,12 @@ import {
   Loader2,
 } from "lucide-vue-next";
 import { api, unwrapApiList } from "@/services/api";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Restaurant, PlatformUser } from "@/types";
 import { UserRole } from "@/types";
 
 const { t } = useI18n();
+const { formatDate } = useDateFormatter();
 const toast = useToast();
 
 // ============================================================
@@ -348,14 +350,6 @@ function getRestaurantName(restaurantId: string | null): string {
     (rest) => String(rest.id) === String(restaurantId),
   );
   return r?.name || restaurantId;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 }
 
 function switchTab(tab: TabType) {

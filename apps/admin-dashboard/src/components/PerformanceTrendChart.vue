@@ -122,6 +122,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -166,6 +167,7 @@ interface Props {
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
+const { formatShortDate } = useDateFormatter();
 
 const props = withDefaults(defineProps<Props>(), {
   title: undefined,
@@ -187,13 +189,7 @@ const isFullscreen = ref(false);
 const chartData = computed(() => {
   if (!props.data || props.data.length === 0) return null;
 
-  const labels = props.data.map((item) => {
-    const date = new Date(item.date);
-    return date.toLocaleDateString("zh-TW", {
-      month: "2-digit",
-      day: "2-digit",
-    });
-  });
+  const labels = props.data.map((item) => formatShortDate(item.date));
 
   const values = props.data.map((item) => {
     switch (selectedMetric.value) {

@@ -136,7 +136,7 @@
                 <CalendarIcon class="h-4 w-4 text-gray-500" />
                 <span
                   >{{ t("schedulingConflicts.detectedAt") }}:
-                  {{ formatDate(conflict.createdAt) }}</span
+                  {{ formatDateTime(conflict.createdAt) }}</span
                 >
               </div>
               <div class="flex items-center gap-2">
@@ -184,6 +184,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { SchedulingConflict } from "@/types/scheduling";
 import {
   ExclamationTriangleIcon,
@@ -213,6 +214,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { formatDateTime } = useDateFormatter();
 
 // State
 const selectedSeverity = ref<string>("all");
@@ -317,17 +319,6 @@ const getStatusLabel = (status: string) => {
     ignored: "schedulingConflicts.statusIgnored",
   };
   return keyMap[status] ? t(keyMap[status]) : status;
-};
-
-const formatDate = (dateString: string | Date) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 // Event Handlers

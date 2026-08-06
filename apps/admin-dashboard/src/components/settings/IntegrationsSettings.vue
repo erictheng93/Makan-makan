@@ -183,7 +183,7 @@
               <p class="text-xs text-gray-500">
                 <template v-if="uberEats.lastMenuSyncAt">
                   {{ t("integrations.lastSync") }}:
-                  {{ formatDate(uberEats.lastMenuSyncAt) }}
+                  {{ formatShortDateTime(uberEats.lastMenuSyncAt) }}
                   <span
                     :class="getSyncStatusClass(uberEats.menuSyncStatus)"
                     class="ml-1"
@@ -305,7 +305,7 @@
             <tbody class="divide-y divide-gray-200">
               <tr v-for="log in webhookLogs" :key="log.id">
                 <td class="px-4 py-2 text-sm text-gray-500">
-                  {{ formatDate(log.createdAt) }}
+                  {{ formatShortDateTime(log.createdAt) }}
                 </td>
                 <td class="px-4 py-2 text-sm text-gray-900">
                   {{ log.platform }}
@@ -385,8 +385,10 @@ import { ref, reactive, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { apiClient, unwrapApiPayload } from "@/services/api";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 const { t } = useI18n();
+const { formatShortDateTime } = useDateFormatter();
 
 const authStore = useAuthStore();
 
@@ -569,15 +571,6 @@ function showMsg(type: "success" | "error", text: string) {
   setTimeout(() => {
     message.value = null;
   }, 3000);
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function getSyncStatusClass(status?: string | null) {

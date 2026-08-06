@@ -5,7 +5,7 @@ import { useI18n } from "@/i18n";
  * Provides date formatting utilities
  */
 export function useDateFormatter() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
 
   const getWeekdayName = (
     date: Date,
@@ -23,7 +23,6 @@ export function useDateFormatter() {
     const dayIndex = date.getDay();
     const key = `weekdays.${format}.${weekdayKeys[dayIndex]}`;
 
-    const { t } = useI18n();
     return t(key);
   };
 
@@ -93,12 +92,20 @@ export function useDateFormatter() {
     let minutes: number;
 
     if (typeof date === "string") {
+      // A string is read as an "HH:mm" time of day here, not as a datetime.
       const parts = date.split(":");
       hours = parseInt(parts[0]);
       minutes = parseInt(parts[1]);
     } else {
       hours = date.getHours();
       minutes = date.getMinutes();
+    }
+
+    // Every other formatter here reports an unusable input as "Invalid Date".
+    // Without this, padStart formats the NaNs and the caller renders "NaN:NaN",
+    // which reads as a broken clock rather than as missing data.
+    if (isNaN(hours) || isNaN(minutes)) {
+      return "Invalid Date";
     }
 
     if (locale.value === "en-US") {
@@ -123,6 +130,43 @@ export function useDateFormatter() {
     return `${datePart} ${timePart}`;
   };
 
+  const formatShortDateTime = (date: Date | string): string => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid Date";
+    }
+
+    // Pass the Date through — formatTime treats a string as an "HH:mm"
+    // time-of-day, not an ISO datetime.
+    return `${formatShortDate(dateObj)} ${formatTime(dateObj)}`;
+  };
+
+  const formatTimeWithSeconds = (date: Date | string): string => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid Date";
+    }
+
+    const hours = dateObj.getHours();
+    const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+    const seconds = String(dateObj.getSeconds()).padStart(2, "0");
+
+    switch (locale.value) {
+      case "en-US": {
+        const period = hours >= 12 ? "PM" : "AM";
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${minutes}:${seconds} ${period}`;
+      }
+      case "zh-TW":
+      case "zh-CN":
+      case "ja-JP":
+      default:
+        return `${String(hours).padStart(2, "0")}:${minutes}:${seconds}`;
+    }
+  };
+
   const formatRelativeTime = (date: Date | string): string => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     const now = new Date();
@@ -133,19 +177,19 @@ export function useDateFormatter() {
     const diffDays = Math.floor(diffHours / 24);
 
     if (diffSecs < 60) {
-      return locale.value === "en-US" ? "Just now" : "剛剛";
+      return t("datetime.justNow");
     } else if (diffMins < 60) {
-      return locale.value === "en-US"
-        ? `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`
-        : `${diffMins}分鐘前`;
+      return t(diffMins > 1 ? "datetime.minutesAgo" : "datetime.minuteAgo", {
+        count: diffMins,
+      });
     } else if (diffHours < 24) {
-      return locale.value === "en-US"
-        ? `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
-        : `${diffHours}小時前`;
+      return t(diffHours > 1 ? "datetime.hoursAgo" : "datetime.hourAgo", {
+        count: diffHours,
+      });
     } else if (diffDays < 7) {
-      return locale.value === "en-US"
-        ? `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
-        : `${diffDays}天前`;
+      return t(diffDays > 1 ? "datetime.daysAgo" : "datetime.dayAgo", {
+        count: diffDays,
+      });
     } else {
       return formatDate(dateObj, false);
     }
@@ -158,11 +202,7 @@ export function useDateFormatter() {
     const start = formatDate(startDate, false);
     const end = formatDate(endDate, false);
 
-    if (locale.value === "en-US") {
-      return `${start} - ${end}`;
-    } else {
-      return `${start} 至 ${end}`;
-    }
+    return `${start} ${t("datetime.rangeSeparator")} ${end}`;
   };
 
   const getMonthName = (
@@ -171,21 +211,32 @@ export function useDateFormatter() {
   ): string => {
     const date = new Date(2000, monthIndex, 1);
 
-    const localeMap: Record<string, string> = {
-      "zh-TW": "zh-TW",
-      "zh-CN": "zh-CN",
-      "en-US": "en-US",
-      "ja-JP": "ja-JP",
-    };
-
     const options: Intl.DateTimeFormatOptions = {
       month: format,
     };
 
-    return new Intl.DateTimeFormat(
-      localeMap[locale.value] || "zh-TW",
-      options,
-    ).format(date);
+    return new Intl.DateTimeFormat(locale.value, options).format(date);
+  };
+
+  const formatMonthYear = (date: Date | string): string => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid Date";
+    }
+
+    const year = dateObj.getFullYear();
+    const monthIndex = dateObj.getMonth();
+
+    switch (locale.value) {
+      case "zh-TW":
+      case "zh-CN":
+      case "ja-JP":
+        return `${year}年${monthIndex + 1}月`;
+      case "en-US":
+      default:
+        return `${getMonthName(monthIndex, "long")} ${year}`;
+    }
   };
 
   const toISOString = (date: Date | string): string => {
@@ -201,22 +252,12 @@ export function useDateFormatter() {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
 
-    if (locale.value === "en-US") {
-      if (hours > 0 && mins > 0) {
-        return `${hours}h ${mins}m`;
-      } else if (hours > 0) {
-        return `${hours}h`;
-      } else {
-        return `${mins}m`;
-      }
+    if (hours > 0 && mins > 0) {
+      return t("datetime.durationHoursMinutes", { hours, minutes: mins });
+    } else if (hours > 0) {
+      return t("datetime.durationHours", { hours });
     } else {
-      if (hours > 0 && mins > 0) {
-        return `${hours}小時${mins}分鐘`;
-      } else if (hours > 0) {
-        return `${hours}小時`;
-      } else {
-        return `${mins}分鐘`;
-      }
+      return t("datetime.durationMinutes", { minutes: mins });
     }
   };
 
@@ -237,11 +278,7 @@ export function useDateFormatter() {
   };
 
   const formatWorkHours = (hours: number): string => {
-    if (locale.value === "en-US") {
-      return `${hours.toFixed(1)}h`;
-    } else {
-      return `${hours.toFixed(1)}小時`;
-    }
+    return t("datetime.workHours", { hours: hours.toFixed(1) });
   };
 
   const getToday = (): Date => {
@@ -306,6 +343,9 @@ export function useDateFormatter() {
     formatShortDate,
     formatTime,
     formatDateTime,
+    formatShortDateTime,
+    formatTimeWithSeconds,
+    formatMonthYear,
     formatRelativeTime,
     formatDateRange,
     formatDuration,

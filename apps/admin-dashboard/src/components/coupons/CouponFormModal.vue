@@ -399,11 +399,13 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
 import type { Coupon } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
+const { formatDate } = useDateFormatter();
 
 // Props
 interface Props {
@@ -472,11 +474,7 @@ const isFormValid = computed(() => {
 // Methods
 const formatDisplayDate = (dateString: string) => {
   if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  return formatDate(dateString);
 };
 
 // Convert a Date to local datetime-local input format (YYYY-MM-DDTHH:mm)

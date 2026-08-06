@@ -222,6 +222,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAdminRealtime } from "@/composables/useAdminRealtime";
 import type {
   OrderNotification,
@@ -254,6 +255,7 @@ const {
 } = useAdminRealtime();
 
 const { t } = useI18n();
+const { formatShortDateTime } = useDateFormatter();
 
 // ========================================
 // 本地狀態
@@ -334,12 +336,7 @@ const formatTime = (timestamp: number): string => {
     return t("realtimeNotification.minutesAgo", { count: minutes });
   if (hours < 24) return t("realtimeNotification.hoursAgo", { count: hours });
 
-  return date.toLocaleString("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatShortDateTime(date);
 };
 
 /**

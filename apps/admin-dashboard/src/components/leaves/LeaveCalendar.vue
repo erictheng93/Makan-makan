@@ -69,9 +69,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { formatMonthYear } = useDateFormatter();
 
 interface CalendarDay {
   date: string;
@@ -101,10 +103,7 @@ const weekdays = computed(() => [
 ]);
 
 const currentMonth = computed(() => {
-  return currentDate.value.toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "long",
-  });
+  return formatMonthYear(currentDate.value);
 });
 
 const calendarDays = computed((): CalendarDay[] => {

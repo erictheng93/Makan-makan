@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
 
 import { mount } from "@vue/test-utils";
+import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import LeaveApprovalList from "./LeaveApprovalList.vue";
 import type { LeaveRequest } from "@makanmakan/shared-types";
 
+// locale is not decoration here: this component formats dates through
+// useDateFormatter, which reads locale.value. A mock returning only `t` makes
+// that read throw.
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

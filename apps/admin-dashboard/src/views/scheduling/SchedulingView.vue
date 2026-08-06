@@ -288,6 +288,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
 import { unwrapApiList } from "@/services/api";
 import { schedulingService } from "@/services/schedulingService";
@@ -318,6 +319,7 @@ import ShiftTemplateFormModal from "@/components/scheduling/ShiftTemplateFormMod
 const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
+const { formatTime } = useDateFormatter();
 
 // Auth
 const authStore = useAuthStore();
@@ -507,11 +509,7 @@ const formatClockTime = (timeStr: string | null | undefined): string => {
   try {
     const date = new Date(timeStr);
     if (isNaN(date.getTime())) return "—";
-    return date.toLocaleTimeString("zh-TW", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    return formatTime(date);
   } catch {
     return "—";
   }

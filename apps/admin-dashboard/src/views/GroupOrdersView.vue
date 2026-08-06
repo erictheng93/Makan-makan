@@ -400,7 +400,9 @@
                     <span class="text-gray-600"
                       >{{ t("groupOrders.createdTime") }}:</span
                     >
-                    <span>{{ formatTime(selectedGroupOrder.createdAt) }}</span>
+                    <span>{{
+                      formatClockTime(selectedGroupOrder.createdAt)
+                    }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600"
@@ -879,7 +881,7 @@ import {
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
-const { formatDateTime } = useDateFormatter();
+const { formatDateTime, formatTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // 類別定義
@@ -966,11 +968,9 @@ const canCreateGroupOrder = computed(() => {
 });
 
 // 工具函數
-const formatTime = (dateTime: string) =>
-  new Date(dateTime).toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
+// must be converted to a Date first.
+const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
 
 const getStatusClass = (status: string) => {
   const classes: Record<string, string> = {

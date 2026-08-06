@@ -378,6 +378,7 @@ import {
   X,
 } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   subscriptionService,
   type Subscription,
@@ -386,6 +387,7 @@ import {
 import UsageTab from "@/components/billing/UsageTab.vue";
 
 const { t } = useI18n();
+const { formatDate } = useDateFormatter();
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -590,14 +592,6 @@ async function onCreateSubscription() {
 function truncateId(id: string): string {
   if (id.length <= 12) return id;
   return `${id.slice(0, 8)}…${id.slice(-4)}`;
-}
-
-function formatDate(ts: string): string {
-  return new Date(ts).toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function planBadgeClass(tier: PlanTier): string {

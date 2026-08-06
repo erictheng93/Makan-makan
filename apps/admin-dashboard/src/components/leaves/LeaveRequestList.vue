@@ -37,8 +37,8 @@
           <div class="request-info">
             <h3 class="leave-type">{{ request.leaveType?.name }}</h3>
             <span class="request-date">
-              {{ formatDate(request.startDate) }} -
-              {{ formatDate(request.endDate) }} ({{ request.daysCount }}
+              {{ formatShortDate(request.startDate) }} -
+              {{ formatShortDate(request.endDate) }} ({{ request.daysCount }}
               {{ t("leaves.balance.days") }})
             </span>
           </div>
@@ -109,9 +109,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { formatShortDate } = useDateFormatter();
 
 interface Props {
   requests: LeaveRequest[];
@@ -160,13 +162,6 @@ const parseApprovalChain = (
   } catch {
     return [];
   }
-};
-
-const formatDate = (date: string): string => {
-  return new Date(date).toLocaleDateString("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
-  });
 };
 </script>
 

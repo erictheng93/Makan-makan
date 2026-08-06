@@ -23,8 +23,8 @@
           <div class="detail-row">
             <span class="label">{{ t("leaves.request.period") }}:</span>
             <span class="value">
-              {{ formatDate(request.startDate) }} -
-              {{ formatDate(request.endDate) }} ({{ request.daysCount }}
+              {{ formatShortDate(request.startDate) }} -
+              {{ formatShortDate(request.endDate) }} ({{ request.daysCount }}
               {{ t("leaves.balance.days") }})
             </span>
           </div>
@@ -93,10 +93,12 @@
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
 import { getInitials } from "@/composables/useEmployeeDisplay";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { safeExternalHref } from "@/utils/safeExternalHref";
 import type { LeaveRequest } from "@makanmakan/shared-types";
 
 const { t } = useI18n();
+const { formatShortDate } = useDateFormatter();
 
 interface Props {
   requests: LeaveRequest[];
@@ -130,13 +132,6 @@ const safeAttachments = (request: LeaveRequest) => {
   return attachments.flatMap((file) => {
     const href = safeExternalHref(file.url, { allowAnyHttpHost: true });
     return href ? [{ ...file, url: href }] : [];
-  });
-};
-
-const formatDate = (date: string): string => {
-  return new Date(date).toLocaleDateString("zh-TW", {
-    month: "2-digit",
-    day: "2-digit",
   });
 };
 </script>

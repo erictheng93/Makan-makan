@@ -208,8 +208,7 @@ import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useNotificationStore } from "@/stores/notification";
 import { useRouter } from "vue-router";
-import { format } from "date-fns";
-import { zhTW } from "date-fns/locale";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   Bell,
   AlertTriangle,
@@ -225,6 +224,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { formatShortDateTime } = useDateFormatter();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const notificationStore = useNotificationStore();
@@ -373,7 +373,7 @@ const formatTime = (dateTime: Date) => {
   if (minutes < 24 * 60)
     return t("notification.hoursAgo", { count: Math.floor(minutes / 60) });
 
-  return format(dateTime, "MM/dd HH:mm", { locale: zhTW });
+  return formatShortDateTime(dateTime);
 };
 
 onMounted(() => {

@@ -24,7 +24,7 @@
           <p class="text-xs text-blue-600">
             {{
               currentShift
-                ? `${formatTime(currentShift.startTime || "")} - ${formatTime(currentShift.endTime || "")}`
+                ? `${formatClockTime(currentShift.startTime || "")} - ${formatClockTime(currentShift.endTime || "")}`
                 : t("pos.pleaseStartShift")
             }}
           </p>
@@ -193,7 +193,7 @@
                     <span class="text-gray-600"
                       >{{ t("pos.lastActivity") }}:</span
                     >
-                    <span>{{ formatTime(register.lastActivity) }}</span>
+                    <span>{{ formatClockTime(register.lastActivity) }}</span>
                   </div>
                 </div>
 
@@ -514,7 +514,7 @@
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">{{ t("pos.startTime") }}:</span>
                 <span class="font-medium">{{
-                  formatTime(currentShift.startTime)
+                  formatClockTime(currentShift.startTime)
                 }}</span>
               </div>
               <div class="flex justify-between text-sm">
@@ -979,7 +979,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
-const { formatDateTime } = useDateFormatter();
+const { formatDateTime, formatTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Loading states — assigned in async operations, read via template bindings
@@ -1134,11 +1134,9 @@ const canProcessCashMovement = computed(() => {
 });
 
 // 輔助函數
-const formatTime = (dateTime: string) =>
-  new Date(dateTime).toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
+// must be converted to a Date first.
+const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
 
 const getRegisterStatusClass = (status: string) => {
   const classes: Record<string, string> = {

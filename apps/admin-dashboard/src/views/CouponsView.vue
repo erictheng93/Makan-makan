@@ -476,6 +476,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api } from "@/services/api";
 import {
   PlusIcon,
@@ -494,6 +495,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const { formatDate } = useDateFormatter();
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.user?.role === 0);
 
@@ -589,15 +591,6 @@ const visiblePages = computed(() => {
   }
   return pages;
 });
-
-// Methods
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-};
 
 import { type CouponStatus, getCouponStatus } from "@/utils/couponStatus";
 

@@ -153,12 +153,12 @@ export class ExportService {
       yPosition += 10;
 
       // 讀取當前語系（在方法內呼叫，確保拿到呼叫當下的 locale）
-      const { formatDateTime } = useDateFormatter();
+      const { formatDateTime, formatDateRange } = useDateFormatter();
 
       doc.setFontSize(10);
       doc.text(`生成時間: ${formatDateTime(new Date())}`, 20, yPosition);
       doc.text(
-        `時間範圍: ${options.startDate.toLocaleDateString()} - ${options.endDate.toLocaleDateString()}`,
+        `時間範圍: ${formatDateRange(options.startDate, options.endDate)}`,
         20,
         yPosition + 5,
       );

@@ -62,11 +62,11 @@
               <div class="space-y-1">
                 <p class="text-sm">
                   <span class="font-medium">{{ t("couponStats.start") }}:</span>
-                  {{ formatDateTime(coupon?.validFrom) }}
+                  {{ formatOptionalDateTime(coupon?.validFrom) }}
                 </p>
                 <p class="text-sm">
                   <span class="font-medium">{{ t("couponStats.end") }}:</span>
-                  {{ formatDateTime(coupon?.validTo) }}
+                  {{ formatOptionalDateTime(coupon?.validTo) }}
                 </p>
                 <p class="text-sm">
                   <span class="font-medium"
@@ -155,7 +155,7 @@
                     {{ t("couponStats.lastUsed") }}
                   </p>
                   <p class="text-sm text-gray-600">
-                    {{ formatDateTime(stats.lastUsed) }}
+                    {{ formatOptionalDateTime(stats.lastUsed) }}
                   </p>
                 </div>
                 <div class="text-right">
@@ -163,7 +163,7 @@
                     {{ t("couponStats.createdAt") }}
                   </p>
                   <p class="text-sm text-gray-600">
-                    {{ formatDateTime(coupon?.createdAt) }}
+                    {{ formatOptionalDateTime(coupon?.createdAt) }}
                   </p>
                 </div>
               </div>
@@ -251,6 +251,7 @@
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   XMarkIcon,
   CheckCircleIcon,
@@ -260,6 +261,7 @@ import {
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const { formatDateTime } = useDateFormatter();
 
 import type { Coupon, CouponDetailStats } from "@makanmakan/shared-types";
 
@@ -280,15 +282,9 @@ const usageRate = computed(() => {
 });
 
 // Utility functions
-const formatDateTime = (dateString: string | undefined) => {
+const formatOptionalDateTime = (dateString: string | undefined) => {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTime(dateString);
 };
 
 import {

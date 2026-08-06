@@ -429,11 +429,13 @@ import { ref, computed, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { EmployeeSchedule } from "@/types/scheduling";
 
 const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
+const { formatTime } = useDateFormatter();
 import {
   MagnifyingGlassIcon,
   CalendarIcon,
@@ -759,11 +761,9 @@ const formatClockTime = (timeStr: string | null | undefined): string => {
   try {
     const date = new Date(timeStr);
     if (isNaN(date.getTime())) return "—";
-    return date.toLocaleTimeString("zh-TW", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    // Pass the Date through — formatTime treats a string as an "HH:mm"
+    // time-of-day, not an ISO datetime.
+    return formatTime(date);
   } catch {
     return "—";
   }

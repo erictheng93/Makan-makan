@@ -113,7 +113,7 @@
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-600">
             <CalendarIcon class="h-4 w-4 text-gray-500" />
-            <span>{{ formatDate(request.createdAt) }}</span>
+            <span>{{ formatDateTime(request.createdAt) }}</span>
           </div>
         </div>
 
@@ -274,7 +274,9 @@
                   })
                 }}</span>
                 <span>{{
-                  request.respondedAt ? formatDate(request.respondedAt) : "-"
+                  request.respondedAt
+                    ? formatDateTime(request.respondedAt)
+                    : "-"
                 }}</span>
               </div>
             </div>
@@ -310,10 +312,12 @@
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { SwapRequest } from "@/types/scheduling";
 
 const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();
+const { formatDateTime } = useDateFormatter();
 import {
   ArrowPathIcon,
   CalendarIcon,
@@ -429,17 +433,6 @@ const getStatusLabel = (status: string): string => {
   const key = `swapRequests.status.${status}`;
   const translated = t(key);
   return translated !== key ? translated : status;
-};
-
-const formatDate = (dateString: string | Date): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 const formatShiftDate = (dateString: string): string => {

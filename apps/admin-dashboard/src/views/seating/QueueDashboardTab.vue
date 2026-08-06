@@ -143,7 +143,7 @@
                       }}{{ t("queue.minutesShort") }}
                     </p>
                     <p class="text-xs text-gray-500">
-                      {{ formatTime(queueItem.joinedAt) }}
+                      {{ formatClockTime(queueItem.joinedAt) }}
                       {{ t("queue.joined") }}
                     </p>
                   </div>
@@ -660,6 +660,7 @@ import DocumentChartBarIcon from "@heroicons/vue/24/outline/DocumentChartBarIcon
 import { Settings, Bell } from "lucide-vue-next";
 import { queueService, type QueueItem } from "@/services/queueService";
 import { useRealtimeQueue } from "@/composables/useRealtimeQueue";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
 import { api, unwrapApiData } from "@/services/api";
 import { useI18n } from "@/i18n";
@@ -667,6 +668,7 @@ import { useToast } from "vue-toastification";
 
 const { t } = useI18n();
 const toast = useToast();
+const { formatTime } = useDateFormatter();
 
 // 使用候位類型定義 - 已從 queueService 導入
 // QueueItem 現在來自模組導出
@@ -823,11 +825,9 @@ const canAddToQueue = computed(() => {
 });
 
 // 工具函數
-const formatTime = (dateTime: string) =>
-  new Date(dateTime).toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
+// must be converted to a Date first.
+const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
 
 const getWaitTime = (joinedAt: string) => {
   const now = new Date();

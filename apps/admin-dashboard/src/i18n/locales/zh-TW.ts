@@ -737,6 +737,22 @@ const zhTWCore = {
     },
   },
 
+  // 日期時間格式（相對時間、時長、區間）
+  datetime: {
+    justNow: "剛剛",
+    minuteAgo: "{count}分鐘前",
+    minutesAgo: "{count}分鐘前",
+    hourAgo: "{count}小時前",
+    hoursAgo: "{count}小時前",
+    dayAgo: "{count}天前",
+    daysAgo: "{count}天前",
+    durationHoursMinutes: "{hours}小時{minutes}分鐘",
+    durationHours: "{hours}小時",
+    durationMinutes: "{minutes}分鐘",
+    workHours: "{hours}小時",
+    rangeSeparator: "至",
+  },
+
   // 錯誤訊息
   errors: {
     generic: "操作失敗，請重試",

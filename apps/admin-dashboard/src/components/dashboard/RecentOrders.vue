@@ -64,7 +64,7 @@
               </p>
               <span class="text-gray-300">•</span>
               <p class="text-xs text-gray-500">
-                {{ formatTime(order.createdAt) }}
+                {{ formatClockTime(order.createdAt) }}
               </p>
               <span v-if="order.itemCount" class="text-gray-300">•</span>
               <p v-if="order.itemCount" class="text-xs text-gray-500">
@@ -110,8 +110,7 @@
 <script setup lang="ts">
 // Remove unused computed import
 import { useI18n } from "@/i18n";
-import { formatDistanceToNow } from "date-fns";
-import { zhTW } from "date-fns/locale";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   ShoppingCart,
   Clock,
@@ -151,6 +150,12 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { formatTime, formatRelativeTime } = useDateFormatter();
+
+// createdAt is an ISO datetime, and formatTime reads a string as an "HH:mm"
+// time of day, so it has to be a Date before it goes in.
+const formatClockTime = (dateString: string) =>
+  formatTime(new Date(dateString));
 
 const getStatusColor = (status: OrderStatus) => {
   const colorMap: Record<OrderStatus, { bg: string; text: string }> = {
@@ -211,20 +216,6 @@ const getStatusText = (status: OrderStatus) => {
   );
 };
 
-const formatTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-};
-
-const getTimeElapsed = (dateString: string) => {
-  const date = new Date(dateString);
-  return formatDistanceToNow(date, {
-    addSuffix: true,
-    locale: zhTW,
-  });
-};
+const getTimeElapsed = (dateString: string) =>
+  formatRelativeTime(new Date(dateString));
 </script>

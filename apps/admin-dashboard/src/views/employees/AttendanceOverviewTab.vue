@@ -63,7 +63,7 @@
               {{ emp.employeeName || `Employee #${emp.employeeId}` }}
             </p>
             <p class="text-xs text-emerald-600">
-              {{ emp.clockInTime ? formatTime(emp.clockInTime) : "" }}
+              {{ emp.clockInTime ? formatClockTime(emp.clockInTime) : "" }}
               {{
                 emp.startTime && emp.endTime
                   ? `(${emp.startTime} - ${emp.endTime})`
@@ -126,6 +126,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useEmployeeList } from "@/composables/useEmployeeList";
 import { getInitials } from "@/composables/useEmployeeDisplay";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { Clock, CalendarOff } from "lucide-vue-next";
 import type { EmployeeWithStatus } from "@/types/employee";
 
@@ -136,6 +137,7 @@ defineProps<{
 
 const router = useRouter();
 const { t } = useI18n();
+const { formatTime } = useDateFormatter();
 const employeeList = useEmployeeList();
 
 const clockedInEmployees = employeeList.clockedInList;
@@ -196,13 +198,11 @@ const getEmployeeName = (employeeId: number) => {
   return user?.fullName || user?.username;
 };
 
-const formatTime = (time: string) => {
+// Thin wrapper: keeps the fallback guard and converts the ISO string to a Date
+// (formatTime treats a bare string as an "HH:mm" time-of-day, not a datetime).
+const formatClockTime = (time: string) => {
   try {
-    const date = new Date(time);
-    return date.toLocaleTimeString("zh-TW", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatTime(new Date(time));
   } catch {
     return time;
   }

@@ -345,7 +345,7 @@
                   </p>
                   <p class="text-xs text-blue-600">
                     {{ t("serviceView.startTime") }}:
-                    {{ formatTime(delivery.deliveryStartTime) }}
+                    {{ formatClockTime(delivery.deliveryStartTime) }}
                   </p>
                 </div>
                 <div class="text-right">
@@ -452,7 +452,7 @@
                 >
                   <div class="w-2 h-2 bg-green-500 rounded-full mr-3" />
                   <span class="text-gray-600 text-xs">{{
-                    formatTime(record.completedAt)
+                    formatClockTime(record.completedAt)
                   }}</span>
                   <span class="ml-2 font-medium">{{ record.orderNumber }}</span>
                   <span class="ml-auto text-gray-500 text-xs"
@@ -629,10 +629,12 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
 import { api, unwrapApiData } from "@/services/api";
 
 const { t } = useI18n();
+const { formatTime, formatTimeWithSeconds } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Type definitions
@@ -749,11 +751,7 @@ const todayStats = computed(() => ({
 
 // 方法
 const updateCurrentTime = () => {
-  currentTime.value = new Date().toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  currentTime.value = formatTimeWithSeconds(new Date());
 };
 
 const refreshOrders = async () => {
@@ -807,7 +805,7 @@ const refreshOrders = async () => {
         return {
           id: o.id,
           orderNumber: o.orderNumber || `ORD-${String(o.id).padStart(3, "0")}`,
-          completedAt: formatTime(completedAt) || "-",
+          completedAt: formatClockTime(completedAt) || "-",
           duration,
         };
       });
@@ -892,7 +890,7 @@ const completeDelivery = async (order: ServiceOrder) => {
       todayDeliveryRecords.value.unshift({
         id: Date.now(),
         orderNumber: order.orderNumber,
-        completedAt: formatTime(new Date().toISOString()) || "-",
+        completedAt: formatClockTime(new Date()) || "-",
         duration,
       });
 
@@ -1025,13 +1023,12 @@ const getDeliveryDuration = (startTime: string | null | undefined) => {
   return `${diffInMinutes} ${t("serviceView.minutes")}`;
 };
 
-const formatTime = (dateTime: string | Date | null | undefined) => {
+// Keeps the null/empty guard; also converts ISO strings to a Date because
+// formatTime treats a bare string as an "HH:mm" time-of-day, not a datetime.
+const formatClockTime = (dateTime: string | Date | null | undefined) => {
   if (!dateTime) return "-";
   const date = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
-  return date.toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTime(date);
 };
 
 // getIssueTypeText is available for future use in issue display

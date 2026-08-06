@@ -119,6 +119,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Employee } from "@/types/employee";
 import type { EmployeeSchedule } from "@/types/scheduling";
 import { Calendar, Clock, Timer } from "lucide-vue-next";
@@ -130,6 +131,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { getWeekdayName, getMonthName } = useDateFormatter();
 
 const sortedSchedules = computed(() => {
   if (!props.schedules) return [];
@@ -162,13 +164,13 @@ const upcomingCount = computed(() => {
 
 const getWeekday = (date: string) => {
   const d = new Date(date);
-  return d.toLocaleDateString("zh-TW", { weekday: "short" });
+  return getWeekdayName(d, "short");
 };
 
 const getDay = (date: string) => new Date(date).getDate();
 
 const getMonth = (date: string) =>
-  new Date(date).toLocaleDateString("zh-TW", { month: "short" });
+  getMonthName(new Date(date).getMonth(), "short");
 
 const scheduleStatusClass = (status: string) => {
   const classes: Record<string, string> = {

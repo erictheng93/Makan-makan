@@ -114,7 +114,7 @@
                       }}</span>
                       <span class="mx-2">•</span>
                       <ClockIcon class="w-4 h-4 mr-1" />
-                      <span>{{ formatTime(order.createdAt) }}</span>
+                      <span>{{ formatClockTime(order.createdAt) }}</span>
                     </div>
                   </div>
                 </div>
@@ -876,7 +876,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
-const { formatDateTime } = useDateFormatter();
+const { formatDateTime, formatTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Loading states
@@ -1191,12 +1191,9 @@ const selectOrder = (order: CashierOrder) => {
   selectedPaymentMethod.value = "cash";
 };
 
-const formatTime = (dateTime: string) => {
-  return new Date(dateTime).toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+// formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
+// must be converted to a Date first.
+const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
 
 const getOrderStatusClass = (status: string) => {
   const classes: Record<string, string> = {

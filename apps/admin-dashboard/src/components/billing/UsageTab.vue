@@ -153,6 +153,9 @@ import {
   type UsageEvent,
   type UsageMeterProgress,
 } from "@/services/subscriptionService";
+import { useDateFormatter } from "@/composables/useDateFormatter";
+
+const { formatShortDateTime } = useDateFormatter();
 
 const props = defineProps<{
   subscriptions: Subscription[];
@@ -239,11 +242,7 @@ function barClass(percentage: number | null) {
 }
 
 function formatDate(ms: number) {
-  return new Date(ms).toLocaleString("zh-TW", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  // Local wrapper kept: the composable accepts Date | string, not a number.
+  return formatShortDateTime(new Date(ms));
 }
 </script>
