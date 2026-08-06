@@ -290,6 +290,36 @@ H-1 ~ H-10 行為面於初審已通過，本次複驗未重跑其結論，僅確
 
 ---
 
+### I-10 端對端驗證結果（2026-08-06）：**通過**
+
+以本地 API（`pnpm dev:api`）直接驅動 REST 鏈路完成。前置：本地 `menu_items` / `categories` 皆為 0 筆（`scripts/seed-local.sql` 只涵蓋 restaurants / shop_subscriptions / users），需自行種入分類與兩個品項；demo 餐廳的試用期已過，需延長並**清除 KV 的 `subscription:` 快取**（只改 D1 不生效）。
+
+| 步驟 | 結果 |
+| --- | --- |
+| guest 建立（無 JWT） | 200，`created_by` 為 NULL，`expiresAt` 為 45 分鐘後 |
+| 預覽 | 200，`memberCount = 1`，無副作用 |
+| guest 成員加入 | 200 |
+| 雙方各自加購 | 200 |
+| 再次預覽 | `memberCount = 2` — 證明加入有副作用、預覽沒有 |
+| 主辦人 `/lock` | 200，`masterOrderId` 產生，`status = completed` |
+
+**X-1 實測（本項的核心）**，稅 5%、服務費 10%：
+
+| | 小計 | 稅 | 服務費 | 總計 |
+| --- | --- | --- | --- | --- |
+| 真實訂單 | 30500 | 1525 | 3050 | **35075** |
+| 主辦人 | 24000 | 1200 | 2400 | 27600 |
+| 成員 | 6500 | 325 | 650 | 7475 |
+| 分帳加總 | | | | **35075** |
+
+訂單總額與分帳加總完全相等；分攤依小計佔比（24000/30500 = 78.69%，稅 1200/1525 = 78.69%）；每筆帳單自身亦自洽（小計＋稅＋服務費 = 總計），確認 Gate F 第 3 項修正在真實資料上生效。
+
+**本次未涵蓋**：WebSocket 即時同步，以及整個 UI 層 —— 驗證是直接打 REST，未經瀏覽器。UI 接線由 65 條單元測試覆蓋，但沒有實機跑過。若要補，需同時啟動 `apps/realtime`（8788）與 `apps/customer-app`（3000），並開兩個瀏覽器情境。
+
+**過程中的一個觀察（非缺陷）**：`packages/database/src/services/base.ts` 的 `calculateOrderTotal` 以 `subtotalCents * taxRate` 計算，即 `settings.taxRate` 是**小數**（0.05）；而 `splitBillSchema` 的 `taxRate` 驗證為 `.max(100)`、`splitBill` 內以 `(subtotal * rate) / 100` 計算，即**百分比**。兩者同名不同單位。目前不會互相污染（finalize 走絕對金額，`/split` 路由的費率來自請求而非餐廳設定），但對後續維護是個陷阱。
+
+---
+
 ## 範圍界線
 
 **在範圍內**：B/C/D 三份 plan 明列的 12 個 task，加上 X-1 決議所需的 `splitBill` 介面調整。
