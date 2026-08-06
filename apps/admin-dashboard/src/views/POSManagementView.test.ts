@@ -1,14 +1,19 @@
 // @vitest-environment jsdom
 
 import { flushPromises, mount } from "@vue/test-utils";
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import POSManagementView from "./POSManagementView.vue";
 import { api } from "@/services/api";
 import { posService } from "@/services/posService";
 
+// locale is not decoration here: the view formats timestamps through
+// useDateFormatter, which reads locale.value to pick a date format. A mock
+// returning only `t` makes that read throw as soon as a date is rendered.
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

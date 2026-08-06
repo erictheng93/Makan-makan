@@ -464,6 +464,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
@@ -487,6 +488,7 @@ const CalculatorIcon = CurrencyDollarIcon; // Calculator icon placeholder
 const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
+const { formatDate, formatDateTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Type definitions
@@ -660,14 +662,6 @@ const getStatusText = (status: string) => {
     suspended: "users.status.suspended",
   };
   return keys[status] ? t(keys[status]) : status;
-};
-
-const formatDateTime = (dateTime: string) => {
-  return new Date(dateTime).toLocaleString("zh-TW");
-};
-
-const formatDate = (dateTime: string) => {
-  return new Date(dateTime).toLocaleDateString("zh-TW");
 };
 
 const editUser = (user: User) => {

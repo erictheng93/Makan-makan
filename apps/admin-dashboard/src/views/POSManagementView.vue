@@ -969,6 +969,7 @@ import MinusIcon from "@heroicons/vue/24/solid/MinusIcon";
 import AdjustmentsHorizontalIcon from "@heroicons/vue/24/solid/AdjustmentsHorizontalIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import {
   posService,
@@ -978,6 +979,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
+const { formatDateTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Loading states — assigned in async operations, read via template bindings
@@ -1137,8 +1139,6 @@ const formatTime = (dateTime: string) =>
     hour: "2-digit",
     minute: "2-digit",
   });
-const formatDateTime = (dateTime: string) =>
-  new Date(dateTime).toLocaleString("zh-TW");
 
 const getRegisterStatusClass = (status: string) => {
   const classes: Record<string, string> = {

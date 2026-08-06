@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount } from "@vue/test-utils";
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import OrdersView from "./OrdersView.vue";
 import type { Order } from "@/types";
@@ -13,9 +14,13 @@ const orderStore = vi.hoisted(() => ({
   cancelOrder: vi.fn().mockResolvedValue(true),
 }));
 
+// locale is not decoration here: the view formats timestamps through
+// useDateFormatter, which reads locale.value to pick a date format. A mock
+// returning only `t` makes that read throw.
 vi.mock("@/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
+    locale: ref("zh-TW"),
   }),
 }));
 

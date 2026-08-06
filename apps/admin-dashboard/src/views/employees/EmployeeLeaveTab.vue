@@ -154,6 +154,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Employee, LeaveBalance, LeaveRequest } from "@/types/employee";
 import { CalendarOff, FileText } from "lucide-vue-next";
 
@@ -165,6 +166,7 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+const { formatDate } = useDateFormatter();
 
 const usagePercent = (balance: LeaveBalance) => {
   if (balance.totalDays <= 0) return 0;
@@ -181,8 +183,6 @@ const progressColor = (percent: number) => {
   if (percent >= 70) return "bg-[#FF9500]";
   return "bg-[#34C759]";
 };
-
-const formatDate = (dt: string) => new Date(dt).toLocaleDateString("zh-TW");
 
 const periodText = (period: string) => {
   const map: Record<string, string> = {

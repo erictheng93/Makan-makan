@@ -158,6 +158,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Employee, LeaveBalance, LeaveRequest } from "@/types/employee";
 import type { EmployeeSchedule } from "@/types/scheduling";
 import { Clock, CalendarCheck, CalendarOff, Activity } from "lucide-vue-next";
@@ -172,6 +173,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { formatDate, formatDateTime } = useDateFormatter();
 
 const upcomingShiftsCount = computed(() => {
   const now = new Date();
@@ -275,7 +277,4 @@ const recentActivity = computed(() => {
   // Sort by date desc and take top 8
   return items.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 8);
 });
-
-const formatDate = (dt: string) => new Date(dt).toLocaleDateString("zh-TW");
-const formatDateTime = (dt: string) => new Date(dt).toLocaleString("zh-TW");
 </script>

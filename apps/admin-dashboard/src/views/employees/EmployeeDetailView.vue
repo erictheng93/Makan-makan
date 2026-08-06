@@ -113,6 +113,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useEmployeeData } from "@/composables/useEmployeeData";
 import {
   useEmployeeDisplay,
@@ -135,6 +136,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const { formatDate, formatDateTime } = useDateFormatter();
 
 const employeeId = () => {
   const id = route.params.id;
@@ -186,7 +188,4 @@ const isActiveTab = (path: string) => {
 
 // Helpers
 const getInitials = (emp: any) => getInitialsHelper(emp);
-
-const formatDate = (dt: string) => new Date(dt).toLocaleDateString("zh-TW");
-const formatDateTime = (dt: string) => new Date(dt).toLocaleString("zh-TW");
 </script>

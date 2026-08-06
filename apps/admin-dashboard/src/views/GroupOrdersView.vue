@@ -869,6 +869,7 @@ import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
 import {
   groupOrdersService,
@@ -878,6 +879,7 @@ import {
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
+const { formatDateTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // 類別定義
@@ -969,8 +971,6 @@ const formatTime = (dateTime: string) =>
     hour: "2-digit",
     minute: "2-digit",
   });
-const formatDateTime = (dateTime: string) =>
-  new Date(dateTime).toLocaleString("zh-TW");
 
 const getStatusClass = (status: string) => {
   const classes: Record<string, string> = {

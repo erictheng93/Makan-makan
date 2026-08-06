@@ -870,11 +870,13 @@ import {
 } from "@heroicons/vue/24/solid";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
+const { formatDateTime } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Loading states
@@ -1194,10 +1196,6 @@ const formatTime = (dateTime: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-const formatDateTime = (dateTime: string) => {
-  return new Date(dateTime).toLocaleString("zh-TW");
 };
 
 const getOrderStatusClass = (status: string) => {

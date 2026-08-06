@@ -12,6 +12,7 @@ import type {
   ExportFormat,
   ExportDataType,
 } from "@/types/monitoring-export";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 
 export class ExportService {
   /**
@@ -151,12 +152,11 @@ export class ExportService {
       doc.text(this.getReportTitle(options.dataType), 20, yPosition);
       yPosition += 10;
 
+      // 讀取當前語系（在方法內呼叫，確保拿到呼叫當下的 locale）
+      const { formatDateTime } = useDateFormatter();
+
       doc.setFontSize(10);
-      doc.text(
-        `生成時間: ${new Date().toLocaleString("zh-TW")}`,
-        20,
-        yPosition,
-      );
+      doc.text(`生成時間: ${formatDateTime(new Date())}`, 20, yPosition);
       doc.text(
         `時間範圍: ${options.startDate.toLocaleDateString()} - ${options.endDate.toLocaleDateString()}`,
         20,
@@ -314,9 +314,12 @@ export class ExportService {
    * 生成摘要數據
    */
   private generateSummaryData(data: any[]): any[] {
+    // 讀取當前語系（在方法內呼叫，確保拿到呼叫當下的 locale）
+    const { formatDateTime } = useDateFormatter();
+
     return [
       { 項目: "總記錄數", 數值: data.length },
-      { 項目: "導出時間", 數值: new Date().toLocaleString("zh-TW") },
+      { 項目: "導出時間", 數值: formatDateTime(new Date()) },
       { 項目: "數據範圍", 數值: "根據篩選條件" },
     ];
   }

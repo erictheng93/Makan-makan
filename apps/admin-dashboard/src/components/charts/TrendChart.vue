@@ -93,7 +93,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const { formatDate } = useDateFormatter();
+const { formatShortDate } = useDateFormatter();
 
 const selectedMetric = ref("total");
 const selectedPeriod = ref("7days");
@@ -172,7 +172,7 @@ const chartData = computed(() => {
   return {
     labels: trendData.value.map((item) => {
       const date = new Date(item.date);
-      return formatDate(date, false).replace(/\d{4}年/, "");
+      return formatShortDate(date);
     }),
     datasets: [
       {

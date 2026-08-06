@@ -595,6 +595,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useCurrency } from "@/composables/useCurrency";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -614,6 +615,7 @@ import {
 const { t } = useI18n();
 const toast = useToast();
 const { formatPrice } = useCurrency();
+const { formatDateTime } = useDateFormatter();
 const router = useRouter();
 const { confirm: confirmModal } = useConfirmModal();
 const orderStore = useOrderStore();
@@ -848,10 +850,6 @@ const getTypeText = (type: string) => {
     delivery: t("orders.type.delivery"),
   };
   return texts[type] || type;
-};
-
-const formatDateTime = (dateTime: string) => {
-  return new Date(dateTime).toLocaleString("zh-TW");
 };
 
 // 生命周期

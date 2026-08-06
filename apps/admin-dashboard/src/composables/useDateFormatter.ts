@@ -65,6 +65,29 @@ export function useDateFormatter() {
     return formatted;
   };
 
+  const formatShortDate = (date: Date | string): string => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid Date";
+    }
+
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+
+    switch (locale.value) {
+      case "zh-TW":
+      case "zh-CN":
+        return `${parseInt(month)}月${parseInt(day)}日`;
+      case "ja-JP":
+        return `${parseInt(month)}月${parseInt(day)}日`;
+      case "en-US":
+        return `${month}/${day}`;
+      default:
+        return `${month}-${day}`;
+    }
+  };
+
   const formatTime = (date: Date | string): string => {
     let hours: number;
     let minutes: number;
@@ -280,6 +303,7 @@ export function useDateFormatter() {
 
   return {
     formatDate,
+    formatShortDate,
     formatTime,
     formatDateTime,
     formatRelativeTime,

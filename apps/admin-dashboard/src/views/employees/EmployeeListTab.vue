@@ -261,6 +261,7 @@
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   useEmployeeDisplay,
   getInitials as getInitialsHelper,
@@ -290,6 +291,7 @@ const props = defineProps<{
 const router = useRouter();
 const { t } = useI18n();
 const { roleText, statusText } = useEmployeeDisplay();
+const { formatDateTime } = useDateFormatter();
 
 // Local filter state that operates on the passed-in prop
 const searchQuery = ref("");
@@ -337,9 +339,6 @@ watch([searchQuery, roleFilter, statusFilter], () => {
 
 // Helpers
 const getInitials = (user: EmployeeWithStatus) => getInitialsHelper(user);
-
-const formatDateTime = (dateTime: string) =>
-  new Date(dateTime).toLocaleString("zh-TW");
 
 const navigateToDetail = (id: number) => {
   router.push(`/dashboard/employees/${id}`);

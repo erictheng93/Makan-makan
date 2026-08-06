@@ -163,6 +163,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   BellIcon,
   CheckCircleIcon,
@@ -197,6 +198,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { formatDateTime } = useDateFormatter();
 const soundEnabled = ref(true);
 
 // ============================================================================
@@ -300,7 +302,7 @@ function formatTimestamp(timestamp: number): string {
       count: Math.floor(diff / 3600000),
     });
   } else {
-    return new Date(timestamp).toLocaleString("zh-TW");
+    return formatDateTime(new Date(timestamp));
   }
 }
 
