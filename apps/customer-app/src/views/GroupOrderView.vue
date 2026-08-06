@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import GroupCartPanel from "@/components/group/GroupCartPanel.vue";
+import HostRecoveryPanel from "@/components/group/HostRecoveryPanel.vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
 import type { SplitBillConfig } from "@/composables/useGroupOrder";
 
@@ -11,6 +12,7 @@ const props = defineProps<{
 const group = useGroupOrder({ restaurantId: "" });
 const viewError = ref("");
 const splitNotice = ref("");
+const hasSessionExpired = computed(() => group.sessionExpired?.value === true);
 
 const isLocked = computed(() => {
   const status = group.groupOrder.value?.status;
@@ -81,6 +83,14 @@ onUnmounted(() => {
         {{ viewError }}
       </p>
 
+      <p
+        v-if="hasSessionExpired"
+        data-testid="group-order-session-expired"
+        class="mb-4 rounded-md bg-ios-orange/10 p-3 text-sm text-ios-orange"
+      >
+        This host session has expired. Recover host access to continue.
+      </p>
+
       <div
         v-if="isLocked"
         data-testid="group-order-locked"
@@ -118,6 +128,11 @@ onUnmounted(() => {
       >
         {{ splitNotice }}
       </p>
+
+      <HostRecoveryPanel
+        :group-order-id="props.groupOrderId"
+        :recover="group.recoverHost"
+      />
     </section>
   </main>
 </template>

@@ -40,6 +40,10 @@ vi.mock("@/services/api", () => ({
 }));
 
 import { apiClient } from "@/services/api";
+import {
+  readHostCredentials,
+  saveHostCredentials,
+} from "@/utils/groupOrderHost";
 import { useGroupOrder } from "./useGroupOrder";
 
 /**
@@ -413,5 +417,107 @@ describe("useGroupOrder — server-pushed realtime events", () => {
 
     expect(ws.disconnect).toHaveBeenCalled();
     expect(group.isConnected.value).toBe(false);
+  });
+});
+
+describe("useGroupOrder — host credentials", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws.options = null;
+    localStorage.clear();
+    vi.stubEnv("VITE_REALTIME_URL", "wss://realtime.example.test");
+  });
+
+  it("persists both credentials when the group is created", async () => {
+    await createHostedGroup();
+
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "session-1",
+      recoveryCode: "recovery-1",
+    });
+  });
+
+  it("restores the host session from storage without needing the recovery code", async () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "stored-token",
+      recoveryCode: "recovery-1",
+    });
+
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await group.loadGroupOrder("go-1");
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ token: "rt-1" });
+    await group.connectToGroupOrder("go-1");
+
+    // Refreshing the page is the common case; recovery is for losing the
+    // device. If a refresh needed the recovery code, the code would be doing
+    // persistence's job.
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/realtime/auth/group-token",
+      expect.objectContaining({ memberToken: "stored-token" }),
+    );
+  });
+
+  it("recovers the host session and keeps the recovery code", async () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "dead-token",
+      recoveryCode: "recovery-1",
+    });
+
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      memberToken: "new-token",
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ token: "rt-1" });
+
+    await group.recoverHost("go-1", "recovery-1");
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/orders/group/go-1/recover",
+      expect.objectContaining({ recoveryCode: "recovery-1" }),
+    );
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "new-token",
+      recoveryCode: "recovery-1",
+    });
+  });
+
+  it("normalises a pasted recovery code before spending an attempt", async () => {
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      memberToken: "new-token",
+    });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ token: "rt-1" });
+
+    await group.recoverHost("go-1", "  RECOVERY-1  ");
+
+    // randomUUID() emits lowercase hex and the backend compares exactly, so an
+    // autocapitalising keyboard would otherwise burn one of only five attempts
+    // per fifteen minutes on a code that is actually correct.
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/orders/group/go-1/recover",
+      expect.objectContaining({ recoveryCode: "recovery-1" }),
+    );
+  });
+
+  it("never puts the recovery code in the shareable link", async () => {
+    const group = await createHostedGroup();
+
+    expect(group.getShareLink()).not.toContain("recovery-1");
+    expect(group.getShareLink()).not.toMatch(/recovery/i);
+  });
+
+  it("clears stored credentials when the member leaves", async () => {
+    const group = await createHostedGroup();
+    vi.mocked(apiClient.post).mockResolvedValueOnce({});
+
+    await group.leaveGroupOrder();
+
+    expect(readHostCredentials("go-1")).toBeNull();
   });
 });

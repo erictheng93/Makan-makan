@@ -10,6 +10,12 @@ import {
   RealtimeEventType,
   type GroupOrderStatus,
 } from "@makanmakan/shared-types";
+import {
+  clearHostCredentials,
+  readHostCredentials,
+  saveHostCredentials,
+  updateHostMemberToken,
+} from "@/utils/groupOrderHost";
 
 // ============================================================================
 // Types
@@ -109,6 +115,10 @@ interface BackendGroupMember {
 interface JoinGroupOrderResponse {
   member: BackendGroupMember;
   groupOrder: BackendGroupOrder;
+  memberToken: string;
+}
+
+interface RecoverHostResponse {
   memberToken: string;
 }
 
@@ -240,6 +250,7 @@ export function useGroupOrder(options: {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const isConnected = ref(false);
+  const sessionExpired = ref(false);
   const currentMemberId = ref(userId);
   /**
    * This member's group order credential (`memberToken`), returned exactly once
@@ -381,6 +392,11 @@ export function useGroupOrder(options: {
         recoveryCode.value = response.recoveryCode;
         currentMemberId.value = response.host.memberId ?? response.host.id;
         const groupOrderId = response.groupOrderId;
+        saveHostCredentials({
+          groupOrderId,
+          memberToken: response.memberToken,
+          recoveryCode: response.recoveryCode,
+        });
         await loadGroupOrder(groupOrderId, response);
         return groupOrderId;
       } else {
@@ -442,11 +458,13 @@ export function useGroupOrder(options: {
         ...mapSummary(summary),
         shareCode: summary.groupOrder.shareCode ?? createResponse?.shareCode,
       };
+      hydrateHostCredentials(groupOrderId);
     }
   }
 
   async function connectToGroupOrder(groupOrderId: string): Promise<void> {
     try {
+      hydrateHostCredentials(groupOrderId);
       if (!memberToken.value) {
         // Without a membership credential there is no way to prove this client
         // belongs in the room. The public token endpoint deliberately refuses
@@ -483,12 +501,37 @@ export function useGroupOrder(options: {
       connect(wsUrl);
 
       isConnected.value = true;
+      sessionExpired.value = false;
       console.log("Connected to group order WebSocket");
     } catch (err: unknown) {
       console.error("Failed to connect to group order:", err);
-      error.value = "Connection error";
+      if (isAuthError(err)) {
+        sessionExpired.value = true;
+        error.value = "Host session expired. Recover host access to continue.";
+      } else {
+        error.value = "Connection error";
+      }
       throw err;
     }
+  }
+
+  function hydrateHostCredentials(groupOrderId: string): void {
+    if (memberToken.value) return;
+
+    const credentials = readHostCredentials(groupOrderId);
+    if (!credentials) return;
+
+    memberToken.value = credentials.memberToken;
+    recoveryCode.value = credentials.recoveryCode;
+    if (groupOrder.value?.id === groupOrderId && groupOrder.value.hostId) {
+      currentMemberId.value = groupOrder.value.hostId;
+    }
+  }
+
+  function isAuthError(err: unknown): boolean {
+    if (!err || typeof err !== "object") return false;
+    const status = (err as { status?: unknown }).status;
+    return status === 401 || status === 403;
   }
 
   function handleCartItemAdded(item: GroupCartItem): void {
@@ -593,12 +636,16 @@ export function useGroupOrder(options: {
   async function leaveGroupOrder(): Promise<void> {
     if (!groupOrder.value) return;
 
+    const groupOrderId = groupOrder.value.id;
     await apiClient.post(
-      `/orders/group/${groupOrder.value.id}/leave/${currentMemberId.value}`,
+      `/orders/group/${groupOrderId}/leave/${currentMemberId.value}`,
     );
     disconnect();
+    clearHostCredentials(groupOrderId);
     groupOrder.value = null;
     isConnected.value = false;
+    memberToken.value = null;
+    recoveryCode.value = null;
   }
 
   function disconnectRealtime(): void {
@@ -609,6 +656,46 @@ export function useGroupOrder(options: {
   // Submit order (host only)
   async function submitOrder(): Promise<never> {
     throw new Error("submitOrder is not yet available");
+  }
+
+  async function recoverHost(
+    groupOrderId: string,
+    code: string,
+  ): Promise<void> {
+    const normalizedCode = code.trim().toLowerCase();
+    if (!normalizedCode) {
+      throw new Error("Recovery code is required");
+    }
+
+    const response = await apiClient.post<RecoverHostResponse>(
+      `/orders/group/${groupOrderId}/recover`,
+      {
+        recoveryCode: normalizedCode,
+      },
+    );
+
+    if (!response?.memberToken) {
+      throw new Error("Failed to recover host session");
+    }
+
+    const storedRecoveryCode =
+      readHostCredentials(groupOrderId)?.recoveryCode ?? normalizedCode;
+    saveHostCredentials({
+      groupOrderId,
+      memberToken: response.memberToken,
+      recoveryCode: storedRecoveryCode,
+    });
+    updateHostMemberToken(groupOrderId, response.memberToken);
+
+    disconnectRealtime();
+    memberToken.value = response.memberToken;
+    recoveryCode.value = storedRecoveryCode;
+    sessionExpired.value = false;
+    await loadGroupOrder(groupOrderId);
+    if (groupOrder.value?.id === groupOrderId && groupOrder.value.hostId) {
+      currentMemberId.value = groupOrder.value.hostId;
+    }
+    await connectToGroupOrder(groupOrderId);
   }
 
   // Generate share link/QR code
@@ -631,6 +718,7 @@ export function useGroupOrder(options: {
     isLoading,
     error,
     isConnected,
+    sessionExpired,
     currentMemberId,
     recoveryCode,
 
@@ -654,6 +742,7 @@ export function useGroupOrder(options: {
     setSplitBillMode,
     setCustomShares,
     submitOrder,
+    recoverHost,
     getShareLink,
   };
 }
