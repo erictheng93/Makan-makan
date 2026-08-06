@@ -13,7 +13,10 @@ import {
 const positiveInteger = z.number().int().positive();
 const nonNegativeInteger = z.number().int().min(0);
 const nonNegativeNumber = z.number().min(0);
-const nonEmptyString = z.string().min(1).trim();
+// `.trim()` before `.min(1)` — the reverse order measures the untrimmed string,
+// so a whitespace-only value passes and is stored as "". See the same note in
+// features/menu/schemas/validation.ts.
+const nonEmptyString = z.string().trim().min(1);
 const idString = z.preprocess((value) => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return String(value);

@@ -8,7 +8,12 @@ import { z } from "zod";
 // Base validation schemas
 const positiveInteger = z.number().int().positive();
 const nonNegativeInteger = z.number().int().min(0);
-const nonEmptyString = z.string().min(1).trim();
+// `.trim()` MUST come before `.min(1)`. Zod runs checks in chain order, so
+// `.min(1).trim()` measured the untrimmed string: a name of "   " passed the
+// length check and was then trimmed to "", so the API answered 201 and stored
+// a nameless menu item / category that rendered as a blank row on the public
+// customer menu with no way to tell what it was.
+const nonEmptyString = z.string().trim().min(1);
 const optionalUrl = z.url().nullish();
 const priceSchema = z.number().positive();
 const MAX_PAGE = 1000;
