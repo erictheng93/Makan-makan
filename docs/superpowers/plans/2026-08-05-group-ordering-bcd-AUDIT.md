@@ -216,6 +216,37 @@ G-1 ~ G-9 全數達標。特別確認：
 - [ ] **H-8** `pnpm --filter @makanmakan/api test` 全綠、typecheck、lint 通過。
 - [ ] **H-9** 部署後確認 cron 已在 Cloudflare 註冊，且首次執行沒有錯誤 — 此時尚無群組單可掃，屬預期的空轉。
 
+### Gate H 稽核結果（2026-08-06）：**不通過** — 一項阻斷，行為面全數達標
+
+實作 commit `3413c8f0`。稽核方獨立重跑：group-orders + expiry 共 80 tests passed、typecheck 通過。
+
+**H-1 ~ H-10 的行為要求全部達成**，且有三處值得記錄：
+
+- **H-1 做得紮實且 fail-closed**。`isHostSession` 以 Drizzle 查 `sessionId` + `role='creator'` + `isActive` + `leftAt IS NULL` 四條件，查詢異常時回 `false` 而非放行。不存在的群組單同樣回 `false`，因此拒絕訊息一致，順帶滿足 H-2 的不洩漏要求。
+- **H-7 正確**：`*/5 * * * *` 已存在於 `wrangler.toml`，未新增重複 trigger，handler 逐字比對相符。
+- **順手修好了 `apps/api` 的 test script**（原本是 `vitest` watch 模式，`pnpm --filter @makanmakan/api test` 並沒有真的跑 root api project）。這有回溯含意：先前任何以該指令為證據的驗證都比我們以為的弱。稽核方歷次 Gate 皆直接使用 `pnpm exec vitest run --project api`，故各 Gate 結論不受影響。
+
+**阻斷項：`apps/api/src/workers/group-order-expiry.ts` 全檔使用 raw SQL**
+
+219 行新程式碼、7 處 `env.DB.prepare()` 手寫 SQL、零 Drizzle schema 引用，並自行宣告了一份 snake_case 的列型別。CLAUDE.md 的「Database Query Strategy（Two Layers — Enforced）」明訂 **Layer 3 raw string SQL 在新程式碼中禁止**。
+
+這不是形式問題，此處的風險正是該規則存在的理由：
+
+- 檔案硬編了 `expires_at_ms`（7 次）、`locked_at_ms`（3）、`updated_at_ms`（3）、`master_order_id`、`status`、`settings` 等欄位名，以及 `'active'` / `'finalizing'` 等狀態字面值 — 與 `GROUP_ORDER_STATUSES` 完全沒有連結。本 feature 在過去三個階段**已經改過兩次狀態值**。
+- 它在 cron 上無人看管地執行，且會產生真實金額的訂單。欄位漂移在此不是編譯錯誤，是沒有人會立刻發現的靜默失效。
+- 它也是 `expiryWarningSentAt` 得以繞過 `$type<GroupOrderSettings>()` 寫入的原因 — 與稽核方前一個 commit 才修掉的 `finalizeFailure` 完全同型的問題。**改用 Drizzle 後這個型別缺口會被強制修正**，兩者是同一項工作。
+
+稽核方需說明：**H-1～H-10 並未包含查詢層要求，這是我列標準時的疏漏**。此處依據的是 CLAUDE.md 的專案層級強制規範。既有 workers 確有 raw SQL 前例（`usage-events-ttl` 1 處、`usage-aggregator` 2 處），但無一達到本檔的規模；而 `credit-expiry`、`market-checkout-reconciliation` 是零直接 DB 存取、全部委派 service，那是更好的樣板。
+
+**修正範圍**：7 處查詢改寫為 Drizzle（Layer 1 為主，必要處用 Layer 2 `sql` + schema refs），移除自訂列型別，`expiryWarningSentAt` 加入 `GroupOrderSettings`。既有 80 條測試即為改寫的保護網。
+
+**兩項非阻斷發現**
+
+1. `wrangler.toml` 的 `*/5 * * * *` 註解仍只寫「Market checkout payment reconciliation」，但現在有兩個不相關的作業共用它。該註解正上方的區塊恰好記載著團隊當初為了能各自調整而把排程拆開 — 下一個要調整 reconciliation 頻率的人會連帶改動群組單到期掃描（包含與 `GROUP_ORDER_EXPIRY_WARNING_MS` 語意綁定的 5 分鐘警告窗）。註解應更新為兩者共用。
+2. `index.ts` 在分派處硬編 `"*/5 * * * *"` 字面值，但 worker 已匯出 `GROUP_ORDER_EXPIRY_CRON` 常數。改為引用該常數可消除 H-7 所擔心的那種字串漂移。
+
+---
+
 ## Stage 5：前端（B Task 1-4 + C Task 5）→ 單次 Pages 部署
 
 - [ ] **I-1** 所有 REST 呼叫路徑都存在，`/group-orders/...` 前綴零出現。
