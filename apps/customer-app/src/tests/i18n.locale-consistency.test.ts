@@ -107,6 +107,42 @@ describe("Locale Consistency", () => {
     });
   });
 
+  // vue-i18n interpolates `{name}`. Two messages were authored with the
+  // shell-style `${name}` instead: vue-i18n consumed the `{name}` part and left
+  // the bare `$` behind, so the add-to-cart button rendered "加入購物車 · $"
+  // with no total, and the coupon toast rendered "節省 $NT$50" with a doubled
+  // currency symbol. A `$` immediately before `{` is always this mistake.
+  it("has no shell-style ${...} placeholders in any locale", () => {
+    const offenders: string[] = [];
+
+    SUPPORTED_LANGUAGES.forEach(({ code }) => {
+      const messages = i18n.global.getLocaleMessage(code);
+      flattenMessages(messages).forEach(({ key, value }) => {
+        if (typeof value === "string" && /\$\{[^}]+\}/.test(value)) {
+          offenders.push(`${code}: ${key} = ${value}`);
+        }
+      });
+    });
+
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
+  it("renders the add-to-cart total instead of a bare currency symbol", () => {
+    SUPPORTED_LANGUAGES.forEach(({ code }) => {
+      switchLanguage(code as SupportedLanguage);
+      const rendered = (
+        i18n.global as unknown as {
+          t: (key: string, named: Record<string, unknown>) => string;
+        }
+      ).t("menuItemModal.addToCart", { price: "NT$150" });
+
+      expect(rendered, `${code} dropped the price`).toContain("NT$150");
+      expect(rendered, `${code} kept a stray $ before the price`).not.toContain(
+        "$NT$150",
+      );
+    });
+  });
+
   it("should have each locale with at least 700 translation keys", () => {
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
       const messages = i18n.global.getLocaleMessage(code);

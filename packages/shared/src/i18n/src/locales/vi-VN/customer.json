@@ -480,7 +480,7 @@
     "scanTypeDetected": "Đã phát hiện {type}!",
     "cameraInitFailed": "Khởi tạo camera thất bại",
     "flashToggleFailed": "Không thể bật/tắt đèn flash",
-    "couponApplied": "Đã áp dụng mã giảm giá! Tiết kiệm ${amount}",
+    "couponApplied": "Đã áp dụng mã giảm giá! Tiết kiệm {amount}",
     "couponFailed": "Xác thực mã giảm giá thất bại",
     "couponValidationError": "Đã xảy ra lỗi trong quá trình xác thực, vui lòng thử lại sau",
     "couponCodeRequired": "Vui lòng nhập mã giảm giá",
@@ -721,7 +721,7 @@
     "notesPlaceholder": "Bạn có yêu cầu đặc biệt nào? Ví dụ: không cay, ít đá...",
     "unavailable": "Tạm hết",
     "soldOut": "Hết hàng",
-    "addToCart": "Thêm vào giỏ hàng · ${price}"
+    "addToCart": "Thêm vào giỏ hàng · {price}"
   },
   "orderItem": {
     "unknownItem": "Món không xác định",

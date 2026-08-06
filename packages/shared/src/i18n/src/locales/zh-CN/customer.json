@@ -480,7 +480,7 @@
     "scanTypeDetected": "扫描到{type}！",
     "cameraInitFailed": "相机初始化失败",
     "flashToggleFailed": "无法切换闪光灯",
-    "couponApplied": "优惠券已套用！节省 ${amount}",
+    "couponApplied": "优惠券已套用！节省 {amount}",
     "couponFailed": "优惠券验证失败",
     "couponValidationError": "验证过程中发生错误，请稍后再试",
     "couponCodeRequired": "请输入优惠券代码",
@@ -721,7 +721,7 @@
     "notesPlaceholder": "有什么特别需求吗？例如：不要辣、少冰等...",
     "unavailable": "暂不供应",
     "soldOut": "售完",
-    "addToCart": "加入购物车 · ${price}"
+    "addToCart": "加入购物车 · {price}"
   },
   "orderItem": {
     "unknownItem": "未知商品",

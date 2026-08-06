@@ -480,7 +480,7 @@
     "scanTypeDetected": "Detected {type}!",
     "cameraInitFailed": "Camera initialization failed",
     "flashToggleFailed": "Unable to toggle flash",
-    "couponApplied": "Coupon applied! Saving ${amount}",
+    "couponApplied": "Coupon applied! Saving {amount}",
     "couponFailed": "Coupon validation failed",
     "couponValidationError": "An error occurred during validation, please try again later",
     "couponCodeRequired": "Please enter a coupon code",
@@ -721,7 +721,7 @@
     "notesPlaceholder": "Any special requests? E.g., no spicy, less ice...",
     "unavailable": "Unavailable",
     "soldOut": "Sold Out",
-    "addToCart": "Add to Cart · ${price}"
+    "addToCart": "Add to Cart · {price}"
   },
   "orderItem": {
     "unknownItem": "Unknown Item",

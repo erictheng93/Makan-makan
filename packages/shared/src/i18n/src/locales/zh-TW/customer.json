@@ -480,7 +480,7 @@
     "scanTypeDetected": "掃描到{type}！",
     "cameraInitFailed": "相機初始化失敗",
     "flashToggleFailed": "無法切換閃光燈",
-    "couponApplied": "優惠券已套用！節省 ${amount}",
+    "couponApplied": "優惠券已套用！節省 {amount}",
     "couponFailed": "優惠券驗證失敗",
     "couponValidationError": "驗證過程中發生錯誤，請稍後再試",
     "couponCodeRequired": "請輸入優惠券代碼",
@@ -721,7 +721,7 @@
     "notesPlaceholder": "有什麼特別需求嗎？例如：不要辣、少冰等...",
     "unavailable": "暫不供應",
     "soldOut": "售完",
-    "addToCart": "加入購物車 · ${price}"
+    "addToCart": "加入購物車 · {price}"
   },
   "orderItem": {
     "unknownItem": "未知商品",

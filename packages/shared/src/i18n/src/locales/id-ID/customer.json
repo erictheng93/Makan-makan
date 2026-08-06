@@ -480,7 +480,7 @@
     "scanTypeDetected": "{type} terdeteksi!",
     "cameraInitFailed": "Inisialisasi kamera gagal",
     "flashToggleFailed": "Tidak dapat mengalihkan flash",
-    "couponApplied": "Kupon diterapkan! Hemat ${amount}",
+    "couponApplied": "Kupon diterapkan! Hemat {amount}",
     "couponFailed": "Validasi kupon gagal",
     "couponValidationError": "Terjadi kesalahan saat validasi, silakan coba lagi nanti",
     "couponCodeRequired": "Silakan masukkan kode kupon",
@@ -721,7 +721,7 @@
     "notesPlaceholder": "Ada permintaan khusus? Mis: tidak pedas, kurang es...",
     "unavailable": "Tidak Tersedia",
     "soldOut": "Habis",
-    "addToCart": "Tambah ke Keranjang · ${price}"
+    "addToCart": "Tambah ke Keranjang · {price}"
   },
   "orderItem": {
     "unknownItem": "Item Tidak Dikenal",

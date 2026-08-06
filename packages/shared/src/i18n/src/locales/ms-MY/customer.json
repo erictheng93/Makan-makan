@@ -480,7 +480,7 @@
     "scanTypeDetected": "{type} dikesan!",
     "cameraInitFailed": "Permulaan kamera gagal",
     "flashToggleFailed": "Tidak dapat menukar denyar",
-    "couponApplied": "Kupon telah digunakan! Jimat ${amount}",
+    "couponApplied": "Kupon telah digunakan! Jimat {amount}",
     "couponFailed": "Pengesahan kupon gagal",
     "couponValidationError": "Ralat berlaku semasa pengesahan, sila cuba lagi kemudian",
     "couponCodeRequired": "Sila masukkan kod kupon",
@@ -721,7 +721,7 @@
     "notesPlaceholder": "Ada permintaan khas? Cth: tidak pedas, kurang ais...",
     "unavailable": "Tidak Tersedia",
     "soldOut": "Habis Dijual",
-    "addToCart": "Tambah ke Troli · ${price}"
+    "addToCart": "Tambah ke Troli · {price}"
   },
   "orderItem": {
     "unknownItem": "Item Tidak Diketahui",
