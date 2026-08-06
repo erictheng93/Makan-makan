@@ -320,6 +320,35 @@ H-1 ~ H-10 行為面於初審已通過，本次複驗未重跑其結論，僅確
 
 ---
 
+### 即時同步實機驗證（2026-08-07）：**不通過 — 阻斷**
+
+以 Node WebSocket 客戶端對本地 API（8787）+ realtime（8788）驗證。**購物車的即時同步完全失效**，且失敗是靜默的。
+
+**現象**：客戶端成功交換 token、連上 `customer:{groupOrderId}` 房間、收到 `connection_ack`。另一名成員經 REST 加入購物車項目後，REST 回 200，但**連線端從未收到 `group_cart_item_added`**。
+
+**根因**：`RealtimeSession.handleBroadcast`（`apps/realtime/src/durableObjects/RealtimeSession.ts:380-387`）要求 `type` / `eventId` / `timestamp` / `restaurantId` 四者皆為 truthy，否則回 `Invalid event format`。而 `routes/index.ts` 的三個購物車廣播呼叫點都沒有在 payload 帶 `restaurantId`：
+
+| 事件 | 呼叫點 | payload 帶 `restaurantId` | 結果 |
+| --- | --- | --- | --- |
+| `GROUP_ORDER_CREATED` | :256 | ✓ | 正常 |
+| `GROUP_MEMBER_JOINED` | :318 | ✓ | 正常 |
+| `GROUP_CART_ITEM_ADDED` | :478 | ✗ | **被拒** |
+| `GROUP_CART_ITEM_UPDATED` | :520 | ✗ | **被拒** |
+| `GROUP_CART_ITEM_REMOVED` | :562 | ✗ | **被拒** |
+
+**兩個共同促成的因素，都要修**：
+
+1. 三個 payload 缺 `restaurantId`。
+2. `broadcastGroupOrderEvent` 以 `String(payload.restaurantId ?? "")` 把 `undefined` 轉成空字串 —— 它**製造出**一個必定被拒的事件，而不是當場失敗；接著 catch 只 `console.warn`，REST 仍回 200。所以缺欄位在任何一層都不會浮現。
+
+**為何測試抓不到**：API 側單元測試 mock 掉 `RealtimeBroadcastService`，前端側 mock 掉 `useWebSocket`。兩邊都沒有讓真實的事件形狀碰過真實的驗證器。這正是 Phase B 的核心賣點（協作購物車即時同步）從未被實際驗證過的原因。
+
+**影響**：成員加入的事件會同步，但**任何人加購、改量、刪除，其他人都看不到**，直到重新整理。Plan B Task 2 建立的整套事件消費機制在生產環境永遠收不到那三種事件。
+
+**尚未驗證**：瀏覽器 UI 層（Chrome 擴充功能未連線）。修好廣播後仍需補。
+
+---
+
 ## 範圍界線
 
 **在範圍內**：B/C/D 三份 plan 明列的 12 個 task，加上 X-1 決議所需的 `splitBill` 介面調整。
