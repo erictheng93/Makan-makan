@@ -802,7 +802,12 @@ export class GroupOrdersService implements IGroupOrderService {
   async addCartItem(
     groupOrderId: string,
     itemData: AddCartItemRequest,
-  ): Promise<{ success: boolean; data?: GroupOrderCartItem; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: GroupOrderCartItem;
+    restaurantId?: string;
+    error?: string;
+  }> {
     const timer = this.performance.startTimer("addCartItem");
 
     try {
@@ -921,7 +926,7 @@ export class GroupOrdersService implements IGroupOrderService {
         // Invalidate cache
         await this.cache.delete(`group_order_summary:${groupOrderId}`);
 
-        return { success: true, data: fallbackItem };
+        return { success: true, data: fallbackItem, restaurantId };
       }
 
       // Invalidate cache
@@ -930,6 +935,7 @@ export class GroupOrdersService implements IGroupOrderService {
       return {
         success: true,
         data: this.formatCartItemWithMenu(cartItem, menuItem),
+        restaurantId,
       };
     } catch (error) {
       this.errorTracker.logError("addCartItem", error as Error, {
@@ -2291,6 +2297,37 @@ export class GroupOrdersService implements IGroupOrderService {
         groupOrderId,
       });
       this.logger.error("Failed to validate host session", error);
+      return false;
+    }
+  }
+
+  async isMemberSession(
+    groupOrderId: string,
+    memberId: string,
+    memberToken: string,
+  ): Promise<boolean> {
+    try {
+      const rows = await this.db
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.id, memberId),
+            eq(groupMembers.sessionId, memberToken),
+            eq(groupMembers.isActive, true),
+            isNull(groupMembers.leftAt),
+          ),
+        )
+        .limit(1);
+
+      return rows.length > 0;
+    } catch (error) {
+      this.errorTracker.logError("isMemberSession", error as Error, {
+        groupOrderId,
+        memberId,
+      });
+      this.logger.error("Failed to validate member session", error);
       return false;
     }
   }

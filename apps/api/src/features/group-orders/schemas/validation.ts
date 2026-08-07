@@ -127,6 +127,7 @@ export const updateCartItemSchema = z
 
 export const splitBillSchema = z
   .object({
+    memberToken: z.string().min(1).max(255).optional(),
     splitType: z.enum(
       ["equal", "proportional", "individual", "by_item", "custom"],
       {
@@ -197,6 +198,7 @@ export const splitBillSchema = z
   );
 
 export const processPaymentSchema = z.object({
+  memberToken: z.string().min(1).max(255).optional(),
   paymentMethod: z
     .string()
     .min(1, "Payment method is required")

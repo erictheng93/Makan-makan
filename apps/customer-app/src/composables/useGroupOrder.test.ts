@@ -283,6 +283,7 @@ describe("useGroupOrder — data layer", () => {
 
     expect(apiClient.post).toHaveBeenLastCalledWith(
       "/orders/group/go-1/leave/m-1",
+      { memberToken: "session-1" },
     );
     expect(group.groupOrder.value).toBeNull();
     expect(ws.disconnect).toHaveBeenCalled();
@@ -398,6 +399,32 @@ describe("useGroupOrder — server-pushed realtime events", () => {
     });
 
     expect(group.groupOrder.value?.cartItems).toHaveLength(0);
+  });
+
+  it("keeps a dish name the server no longer sends", async () => {
+    const group = await createHostedGroup();
+
+    pushFromServer("group_cart_item_added", {
+      groupOrderId: "go-1",
+      item: {
+        ...serverCartItem(),
+        menuItem: { id: 7, name: "Laksa", price: 3 },
+      },
+    });
+    expect(group.groupOrder.value?.cartItems[0].menuItemName).toBe("Laksa");
+
+    // updateCartItem drops menuItem when the menu row is gone, so an update
+    // can arrive without it. Replacing a correct name with an empty one is
+    // worse than the gap it came from: the row silently loses its dish.
+    pushFromServer("group_cart_item_updated", {
+      groupOrderId: "go-1",
+      item: serverCartItem({ quantity: 9, totalPrice: 27 }),
+    });
+
+    expect(group.groupOrder.value?.cartItems[0]).toMatchObject({
+      quantity: 9,
+      menuItemName: "Laksa",
+    });
   });
 
   it("never answers a server push with a push of its own", async () => {

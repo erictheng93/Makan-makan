@@ -617,7 +617,13 @@ export function useGroupOrder(options: {
       (i) => i.id === updatedItem.id,
     );
     if (index !== -1) {
-      groupOrder.value.cartItems[index] = updatedItem;
+      const existingItem = groupOrder.value.cartItems[index];
+      groupOrder.value.cartItems[index] = {
+        ...existingItem,
+        ...updatedItem,
+        menuItemName: updatedItem.menuItemName || existingItem.menuItemName,
+        addedByName: updatedItem.addedByName || existingItem.addedByName,
+      };
       groupOrder.value.updatedAt = Date.now();
     }
   }
@@ -704,6 +710,9 @@ export function useGroupOrder(options: {
     const groupOrderId = groupOrder.value.id;
     await apiClient.post(
       `/orders/group/${groupOrderId}/leave/${currentMemberId.value}`,
+      {
+        memberToken: memberToken.value,
+      },
     );
     disconnect();
     clearMemberSession(groupOrderId);

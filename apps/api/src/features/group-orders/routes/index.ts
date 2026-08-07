@@ -122,6 +122,63 @@ async function resolveGroupOrderRestaurantId(
   return requireNonEmptyString(restaurantId, "restaurantId");
 }
 
+async function resolveCartMutationRestaurantId(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  result: { success: boolean; restaurantId?: unknown },
+): Promise<string> {
+  if (typeof result.restaurantId === "string") {
+    return requireNonEmptyString(result.restaurantId, "restaurantId");
+  }
+  return resolveGroupOrderRestaurantId(groupOrderService, groupOrderId);
+}
+
+function requireMemberToken(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw forbidden("Access denied");
+  }
+  return value;
+}
+
+async function readMemberTokenFromBody(c: {
+  req: { json: () => Promise<unknown> };
+}): Promise<string> {
+  const body = await c.req.json().catch(() => undefined);
+  const token =
+    body && typeof body === "object"
+      ? (body as Record<string, unknown>).memberToken
+      : undefined;
+  return requireMemberToken(token);
+}
+
+async function requireHostSession(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  memberToken: unknown,
+): Promise<void> {
+  const token = requireMemberToken(memberToken);
+  const isHost = await groupOrderService.isHostSession(groupOrderId, token);
+  if (!isHost) {
+    throw forbidden("Access denied");
+  }
+}
+
+async function requireMemberOrHostSession(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  memberId: string,
+  memberToken: unknown,
+): Promise<void> {
+  const token = requireMemberToken(memberToken);
+  const [isMember, isHost] = await Promise.all([
+    groupOrderService.isMemberSession(groupOrderId, memberId, token),
+    groupOrderService.isHostSession(groupOrderId, token),
+  ]);
+  if (!isMember && !isHost) {
+    throw forbidden("Access denied");
+  }
+}
+
 /**
  * List group orders
  * GET /api/v1/orders/group
@@ -516,9 +573,10 @@ app.post(
       RealtimeEventType.GROUP_CART_ITEM_ADDED,
       {
         groupOrderId,
-        restaurantId: await resolveGroupOrderRestaurantId(
+        restaurantId: await resolveCartMutationRestaurantId(
           groupOrderService,
           groupOrderId,
+          result,
         ),
         action: "added",
         item: result.data,
@@ -562,9 +620,10 @@ app.put(
       RealtimeEventType.GROUP_CART_ITEM_UPDATED,
       {
         groupOrderId,
-        restaurantId: await resolveGroupOrderRestaurantId(
+        restaurantId: await resolveCartMutationRestaurantId(
           groupOrderService,
           groupOrderId,
+          result,
         ),
         action: "updated",
         item: result.data,
@@ -608,9 +667,10 @@ app.delete(
       RealtimeEventType.GROUP_CART_ITEM_REMOVED,
       {
         groupOrderId,
-        restaurantId: await resolveGroupOrderRestaurantId(
+        restaurantId: await resolveCartMutationRestaurantId(
           groupOrderService,
           groupOrderId,
+          result,
         ),
         action: "removed",
         itemId,
@@ -634,9 +694,10 @@ app.post(
   validateBody(groupOrderSchemas.splitBill),
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
-    const splitData = c.get("validatedBody");
+    const { memberToken, ...splitData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
     const result = await groupOrderService.splitBill(groupOrderId, splitData);
 
     if (!result.success) {
@@ -662,9 +723,10 @@ app.post(
   validateBody(groupOrderSchemas.processPayment),
   async (c) => {
     const { groupOrderId, memberId } = c.get("validatedParams");
-    const paymentData = c.get("validatedBody");
+    const { memberToken, ...paymentData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
     const result = await groupOrderService.processPayment(
       groupOrderId,
       memberId,
@@ -695,6 +757,12 @@ app.post(
     const { groupOrderId, memberId } = c.get("validatedParams");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberOrHostSession(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      await readMemberTokenFromBody(c),
+    );
     const result = await groupOrderService.leaveGroup(groupOrderId, memberId);
 
     if (!result.success) {

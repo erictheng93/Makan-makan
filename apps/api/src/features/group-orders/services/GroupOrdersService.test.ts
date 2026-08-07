@@ -2520,6 +2520,34 @@ describe("cart mutations return a renderable row", () => {
     expect(result.data).toMatchObject({ menuItem: { name: "Laksa" } });
   });
 
+  it("keeps the same menu shape on the fallback path", async () => {
+    // When the inserted row cannot be re-queried, addCartItem builds the item
+    // by hand. That path copies the menuItem mapping rather than sharing it,
+    // so it is one field away from drifting from every other caller.
+    const service = createService();
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [menuItemRow],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [], // re-query of the inserted row returns nothing
+    ]);
+
+    const result = await service.addCartItem("group-1", {
+      memberId: "member-1",
+      menuItemId: 10,
+      quantity: 2,
+    });
+
+    expect(result.success).toBe(true);
+    expect(Object.keys(result.data.menuItem).sort()).toEqual(
+      ["id", "imageUrl", "name", "price"].sort(),
+    );
+    expect(result.data.menuItem).toMatchObject({ name: "Laksa", price: 12.5 });
+  });
+
   it("uses the same row shape getGroupOrder already returns", async () => {
     const service = createService();
     service.db = createDb([
