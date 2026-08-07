@@ -593,9 +593,8 @@ describe("orders routes", () => {
     expect(failedResponse.status).toBe(500);
   });
 
-  it("cancels orders and clears guest active lookup keys", async () => {
+  it("cancels orders through the service", async () => {
     const env = createEnv();
-    await env.CACHE_KV.put("guest_active_lookup:55", "guest_active:r:p");
     serviceMocks.getOrder.mockResolvedValue({
       id: 55,
       restaurantId: "restaurant-1",
@@ -619,8 +618,6 @@ describe("orders routes", () => {
       expect.any(Object),
       expect.objectContaining({ id: 55 }),
     );
-    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active:r:p");
-    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:55");
   });
 
   it("passes a caller-supplied cancellation reason to the service", async () => {
@@ -693,30 +690,6 @@ describe("orders routes", () => {
       expect.any(Object),
       expect.objectContaining({ id: 55 }),
     );
-  });
-
-  it("continues cancelling when guest active KV cleanup fails", async () => {
-    const env = {
-      CACHE_KV: {
-        get: vi.fn(async () => {
-          throw new Error("kv unavailable");
-        }),
-        put: vi.fn(),
-        delete: vi.fn(),
-      },
-    };
-    serviceMocks.getOrder.mockResolvedValue({
-      id: 55,
-      restaurantId: "restaurant-1",
-    });
-    serviceMocks.cancelOrder.mockResolvedValue({ id: 55 });
-
-    const response = await routes.fetch(
-      new Request("https://orders.test/55", { method: "DELETE" }),
-      env as never,
-    );
-
-    expect(response.status).toBe(200);
   });
 
   it("reports cancel order failures", async () => {

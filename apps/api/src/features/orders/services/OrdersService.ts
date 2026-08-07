@@ -31,6 +31,7 @@ import type {
 import { RestaurantOrderPushService } from "../../push/services/RestaurantOrderPushService";
 import { ORDER_STATUS_TRANSITIONS, ROLE_STATUS_PERMISSIONS } from "../types";
 import {
+  clearGuestActiveOrderLock,
   finalizeOrderStatusSideEffects,
   invalidateOrderCache as invalidateOrderCacheKeys,
 } from "./order-finalization";
@@ -586,6 +587,7 @@ export class OrdersService implements IOrdersService {
       if (cancelledOrder) {
         await Promise.all([
           this.invalidateOrderCache(id),
+          clearGuestActiveOrderLock(this.cacheKV, id),
           this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason }),
           this.broadcastOrderCancelled(
             cancelledOrder,
@@ -597,6 +599,13 @@ export class OrdersService implements IOrdersService {
 
       return cancelledOrder;
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Order cannot be cancelled"
+      ) {
+        throw conflict("Order cannot be cancelled", "ORDER_NOT_CANCELLABLE");
+      }
+
       this.logger.error(
         "Failed to cancel order",
         error instanceof Error ? error : undefined,
