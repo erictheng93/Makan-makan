@@ -7,6 +7,7 @@ import type {
 import { RealtimeEventType as EventType } from "@makanmakan/shared-types";
 
 interface KVLike {
+  get(key: string): Promise<unknown>;
   delete(key: string): Promise<unknown>;
 }
 
@@ -42,6 +43,34 @@ export async function invalidateOrderCache(
   ]);
 }
 
+const GUEST_ACTIVE_RELEASE_STATUSES = new Set<OrderStatus>([
+  "delivered",
+  "paid",
+  "cancelled",
+  "refunded",
+]);
+
+export async function clearGuestActiveOrderLock(
+  cacheKV: KVLike,
+  orderId: string,
+): Promise<void> {
+  try {
+    const lookupKey = `guest_active_lookup:${orderId}`;
+    const activeOrderKey = await cacheKV.get(lookupKey);
+    if (typeof activeOrderKey !== "string" || !activeOrderKey) {
+      return;
+    }
+
+    await Promise.allSettled([
+      cacheKV.delete(activeOrderKey),
+      cacheKV.delete(lookupKey),
+    ]);
+  } catch {
+    // Guest active locks are a recovery aid; status transitions must not fail
+    // after the database update because KV cleanup was unavailable.
+  }
+}
+
 export async function finalizeOrderStatusSideEffects({
   env,
   order,
@@ -52,7 +81,7 @@ export async function finalizeOrderStatusSideEffects({
   notes,
   estimatedReadyTime,
 }: FinalizeOrderStatusSideEffectsOptions): Promise<void> {
-  await Promise.all([
+  const sideEffects: Array<Promise<unknown>> = [
     invalidateOrderCache(env.CACHE_KV, order.id),
     broadcastOrderStatusUpdate({
       env,
@@ -64,7 +93,13 @@ export async function finalizeOrderStatusSideEffects({
       notes,
       estimatedReadyTime,
     }),
-  ]);
+  ];
+
+  if (GUEST_ACTIVE_RELEASE_STATUSES.has(newStatus)) {
+    sideEffects.push(clearGuestActiveOrderLock(env.CACHE_KV, order.id));
+  }
+
+  await Promise.all(sideEffects);
 }
 
 async function broadcastOrderStatusUpdate({

@@ -584,6 +584,69 @@ describe("OrdersService workflows", () => {
     );
   });
 
+  it("clears guest active locks when status updates enter terminal states", async () => {
+    const env = createEnv({
+      cacheGet: async (key) =>
+        key === "guest_active_lookup:42"
+          ? "guest_active:restaurant-1:token:guest-token"
+          : null,
+    });
+    const previous = createOrder({ status: "ready", version: 7 });
+    const updated = createOrder({ status: "delivered", version: 8 });
+    updateBaseOrderStatus.mockResolvedValue(updated);
+    const service = new OrdersService(env as never);
+
+    await service.updateOrderStatus(
+      42,
+      { status: "delivered" },
+      20,
+      3,
+      { userId: 20, userRole: 3, userRestaurantId: "restaurant-1" },
+      previous as never,
+    );
+
+    expect(env.CACHE_KV.get).toHaveBeenCalledWith("guest_active_lookup:42");
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
+      "guest_active:restaurant-1:token:guest-token",
+    );
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:42");
+  });
+
+  it("clears guest active locks when orders are cancelled through the service", async () => {
+    const env = createEnv({
+      cacheGet: async (key) =>
+        key === "guest_active_lookup:42"
+          ? "guest_active:restaurant-1:token:guest-token"
+          : null,
+    });
+    const service = new OrdersService(env as never);
+    cancelBaseOrder.mockResolvedValue(createOrder({ status: "cancelled" }));
+
+    await service.cancelOrder(42, "Customer requested cancellation", 20);
+
+    expect(cancelBaseOrder).toHaveBeenCalledWith(
+      42,
+      "Customer requested cancellation",
+    );
+    expect(env.CACHE_KV.get).toHaveBeenCalledWith("guest_active_lookup:42");
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
+      "guest_active:restaurant-1:token:guest-token",
+    );
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:42");
+  });
+
+  it("maps non-cancellable order cancellations to a conflict error", async () => {
+    const service = new OrdersService(createEnv() as never);
+    cancelBaseOrder.mockRejectedValue(new Error("Order cannot be cancelled"));
+
+    await expect(
+      service.cancelOrder(42, "Already cancelled", 20),
+    ).rejects.toMatchObject({
+      code: "ORDER_NOT_CANCELLABLE",
+      status: 409,
+    });
+  });
+
   it("rejects invalid status transitions and unauthorized role changes", async () => {
     const service = new OrdersService(createEnv() as never);
 
