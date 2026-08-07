@@ -163,6 +163,26 @@ interface GroupOrderRealtimePayload {
   member?: unknown;
 }
 
+interface MemberSession {
+  groupOrderId: string;
+  memberId: string;
+  memberToken: string;
+}
+
+const memberSessions = new Map<string, MemberSession>();
+
+function saveMemberSession(session: MemberSession): void {
+  memberSessions.set(session.groupOrderId, session);
+}
+
+function readMemberSession(groupOrderId: string): MemberSession | null {
+  return memberSessions.get(groupOrderId) ?? null;
+}
+
+function clearMemberSession(groupOrderId: string): void {
+  memberSessions.delete(groupOrderId);
+}
+
 function timestamp(value: string | Date | number | null | undefined): number {
   if (value == null) return Date.now();
   if (typeof value === "number") return value;
@@ -440,6 +460,11 @@ export function useGroupOrder(options: {
 
       memberToken.value = response.memberToken;
       currentMemberId.value = response.member.memberId ?? response.member.id;
+      saveMemberSession({
+        groupOrderId: response.groupOrder.id,
+        memberId: currentMemberId.value,
+        memberToken: response.memberToken,
+      });
       await loadGroupOrder(response.groupOrder.id);
 
       return true;
@@ -463,12 +488,14 @@ export function useGroupOrder(options: {
         ...mapSummary(summary),
         shareCode: summary.groupOrder.shareCode ?? createResponse?.shareCode,
       };
+      hydrateMemberSession(groupOrderId);
       hydrateHostCredentials(groupOrderId);
     }
   }
 
   async function connectToGroupOrder(groupOrderId: string): Promise<void> {
     try {
+      hydrateMemberSession(groupOrderId);
       hydrateHostCredentials(groupOrderId);
       if (!memberToken.value) {
         // Without a membership credential there is no way to prove this client
@@ -531,6 +558,16 @@ export function useGroupOrder(options: {
     if (groupOrder.value?.id === groupOrderId && groupOrder.value.hostId) {
       currentMemberId.value = groupOrder.value.hostId;
     }
+  }
+
+  function hydrateMemberSession(groupOrderId: string): void {
+    if (memberToken.value) return;
+
+    const session = readMemberSession(groupOrderId);
+    if (!session) return;
+
+    memberToken.value = session.memberToken;
+    currentMemberId.value = session.memberId;
   }
 
   function isAuthError(err: unknown): boolean {
@@ -646,7 +683,10 @@ export function useGroupOrder(options: {
       `/orders/group/${groupOrderId}/leave/${currentMemberId.value}`,
     );
     disconnect();
-    clearHostCredentials(groupOrderId);
+    clearMemberSession(groupOrderId);
+    if (isHost.value) {
+      clearHostCredentials(groupOrderId);
+    }
     groupOrder.value = null;
     isConnected.value = false;
     memberToken.value = null;

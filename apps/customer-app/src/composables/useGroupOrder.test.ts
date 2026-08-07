@@ -681,3 +681,124 @@ describe("useGroupOrder — submitting the order", () => {
     expect(group.groupOrder.value?.status).toBe("active");
   });
 });
+
+/**
+ * Every ref in useGroupOrder is created inside the function, so each caller
+ * gets its own state. GroupOrderJoinView joins on one instance and then routes
+ * to GroupOrderView, which calls useGroupOrder again and starts from nothing —
+ * a member who has just joined is immediately "not a member of this group
+ * order" and never reaches realtime.
+ *
+ * These tests therefore always join on one instance and connect on another.
+ * They assert what has to be true for the member rather than where the
+ * credential is kept, so the storage choice stays open.
+ */
+describe("useGroupOrder — a member's session outlives the instance", () => {
+  beforeEach(() => {
+    // clearAllMocks leaves queued mockResolvedValueOnce values in place, so an
+    // unconsumed queue from one test gets eaten by the next one's first call.
+    // Reset drains the queues as well.
+    vi.mocked(apiClient.get).mockReset();
+    vi.mocked(apiClient.post).mockReset();
+    vi.mocked(apiClient.put).mockReset();
+    vi.mocked(apiClient.delete).mockReset();
+    ws.connect.mockClear();
+    ws.disconnect.mockClear();
+    ws.send.mockClear();
+    ws.options = null;
+    localStorage.clear();
+  });
+
+  function joinResponse() {
+    return {
+      member: { id: "m-2", memberId: "m-2", memberName: "Sam" },
+      groupOrder: { id: "go-1", restaurantId: "rest-1" },
+      memberToken: "member-session-1",
+    };
+  }
+
+  async function joinOnOneInstance() {
+    const joining = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(joinResponse());
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    const ok = await joining.joinGroupOrder("ABC12345", "Sam");
+    expect(ok).toBe(true);
+    return joining;
+  }
+
+  it("connects from a fresh instance after joining on another one", async () => {
+    await joinOnOneInstance();
+
+    // Stands in for the route change from the join view to the cart view.
+    const viewing = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await viewing.loadGroupOrder("go-1");
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ token: "rt-1" });
+    await expect(viewing.connectToGroupOrder("go-1")).resolves.toBeUndefined();
+
+    expect(apiClient.post).toHaveBeenLastCalledWith(
+      "/realtime/auth/group-token",
+      expect.objectContaining({
+        groupOrderId: "go-1",
+        memberToken: "member-session-1",
+      }),
+    );
+  });
+
+  it("keeps the joining member's own id, not the host's", async () => {
+    await joinOnOneInstance();
+
+    const viewing = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await viewing.loadGroupOrder("go-1");
+
+    // Cart writes are attributed by memberId. Falling back to the host would
+    // put this member's food on someone else's split bill.
+    expect(viewing.currentMemberId.value).toBe("m-2");
+    expect(viewing.isHost.value).toBe(false);
+  });
+
+  it("does not lend a member's session to a different group order", async () => {
+    await joinOnOneInstance();
+
+    const other = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      ...summaryResponse(),
+      groupOrder: { ...summaryResponse().groupOrder, id: "go-2" },
+    });
+    await other.loadGroupOrder("go-2");
+
+    await expect(other.connectToGroupOrder("go-2")).rejects.toThrow();
+  });
+
+  it("forgets the member once they leave", async () => {
+    const joining = await joinOnOneInstance();
+    vi.mocked(apiClient.post).mockResolvedValueOnce({});
+    await joining.leaveGroupOrder();
+
+    const returning = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await returning.loadGroupOrder("go-1");
+
+    await expect(returning.connectToGroupOrder("go-1")).rejects.toThrow();
+  });
+
+  it("still restores a host across instances", async () => {
+    // Regression guard: the host path already worked through
+    // hydrateHostCredentials and must keep working.
+    await createHostedGroup();
+
+    const viewing = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await viewing.loadGroupOrder("go-1");
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ token: "rt-1" });
+    await viewing.connectToGroupOrder("go-1");
+
+    expect(apiClient.post).toHaveBeenLastCalledWith(
+      "/realtime/auth/group-token",
+      expect.objectContaining({ memberToken: "session-1" }),
+    );
+  });
+});
