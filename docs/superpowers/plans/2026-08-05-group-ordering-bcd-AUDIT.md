@@ -347,6 +347,22 @@ H-1 ~ H-10 行為面於初審已通過，本次複驗未重跑其結論，僅確
 
 **尚未驗證**：瀏覽器 UI 層（Chrome 擴充功能未連線）。修好廣播後仍需補。
 
+#### 修復與複驗（2026-08-07，commit `b3558940`）：**通過**
+
+實機複驗，三個事件全數送達：
+
+```
+收到: connection_ack, group_cart_item_added, group_cart_item_updated, group_cart_item_removed
+```
+
+payload 現含 `restaurantId`。全量 API 測試 214 files / 1940 tests、typecheck、lint 皆通過。
+
+修法涵蓋全部六項：`isValidRealtimeEvent` 建於 `packages/shared-types/src/realtime-events.ts` 並由 `RealtimeSession.handleBroadcast` 引用（一份規則、兩邊共用，且比原本的內聯檢查更嚴 — 型別須在 enum 內、`eventId` 非空、`timestamp` 為有限數字、`data` 須為物件）；三個 payload 補上 `restaurantId`；`?? ""` 與 `if (!groupOrderId) return` 兩條靜默路徑改為 `requireNonEmptyString` 拋錯；送出前再以述詞自檢。
+
+**錯誤處理的邊界值得記錄**：初版把 `try/catch` 整個移除，使得 realtime worker 暫時不可用時，已成功寫入的購物車變更會回 500 — 與 Task 5 的 `orderAlreadyPlaced` 同型的「寫入成功卻回報失敗」。最終版把兩種失敗分開：建構期錯誤（缺欄位、事件無效）拋錯，因為那是程式錯誤且已有契約測試守住；只有實際 `broadcaster.broadcastEvent` 的投遞失敗被 catch，記錄後 REST 仍回 200。新增測試斷言此情境回 200、回應帶著建立的項目、且 `broadcastEvent` 確實被嘗試過一次（區分「優雅失敗」與「根本沒發」）。
+
+**留待後續（不阻斷）**：`resolveGroupOrderRestaurantId` 對每次 cart add/update/remove 都呼叫一次 `getGroupOrder`，而後者回傳完整 summary（成員、購物車、活動紀錄），只為取一個 `restaurantId`。可考慮讓 service 方法在結果中帶回。該解析器內的雙重解包（`summary?.groupOrder` 與 `summary?.data?.groupOrder`）也顯示 `getGroupOrder` 的回傳形狀不一致，值得單獨釐清。
+
 ---
 
 ## 範圍界線
