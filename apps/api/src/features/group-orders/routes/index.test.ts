@@ -21,6 +21,7 @@ const leaveGroup = vi.hoisted(() => vi.fn());
 const getActivities = vi.hoisted(() => vi.fn());
 const cleanupExpiredGroups = vi.hoisted(() => vi.fn());
 const isHostSession = vi.hoisted(() => vi.fn());
+const isMemberSession = vi.hoisted(() => vi.fn());
 const finalizeGroupOrder = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const broadcastEvent = vi.hoisted(() => vi.fn());
@@ -74,6 +75,7 @@ vi.mock("../services/GroupOrdersService", () => ({
     getActivities = getActivities;
     cleanupExpiredGroups = cleanupExpiredGroups;
     isHostSession = isHostSession;
+    isMemberSession = isMemberSession;
     finalizeGroupOrder = finalizeGroupOrder;
   },
 }));
@@ -148,6 +150,7 @@ describe("group orders routes", () => {
     getActivities.mockReset();
     cleanupExpiredGroups.mockReset();
     isHostSession.mockReset();
+    isMemberSession.mockReset();
     finalizeGroupOrder.mockReset();
     meterEmit.mockReset();
     meterEmit.mockResolvedValue(undefined);
@@ -488,6 +491,8 @@ describe("group orders routes", () => {
       data: { memberId, paymentStatus: "paid" },
     });
     leaveGroup.mockResolvedValue({ success: true });
+    isHostSession.mockResolvedValue(true);
+    isMemberSession.mockResolvedValue(true);
     const env = createEnv();
 
     const addResponse = await routes.fetch(
@@ -534,7 +539,10 @@ describe("group orders routes", () => {
     const splitResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/split`, {
         method: "POST",
-        body: JSON.stringify({ splitType: "equal" }),
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
       }),
       env as never,
     );
@@ -547,6 +555,7 @@ describe("group orders routes", () => {
       new Request(`https://test/${groupOrderId}/payment/${memberId}`, {
         method: "POST",
         body: JSON.stringify({
+          memberToken: "host-session",
           paymentMethod: "cash",
           amount: 120,
           transactionId: "txn-1",
@@ -562,6 +571,7 @@ describe("group orders routes", () => {
     const leaveResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/leave/${memberId}`, {
         method: "POST",
+        body: JSON.stringify({ memberToken: "member-session" }),
       }),
       env as never,
     );
@@ -583,10 +593,16 @@ describe("group orders routes", () => {
       serviceChargeRate: 0,
       taxRate: 0,
     });
+    expect(isHostSession).toHaveBeenCalledWith(groupOrderId, "host-session");
     expect(processPayment).toHaveBeenCalledWith(
       groupOrderId,
       memberId,
       expect.objectContaining({ paymentMethod: "cash", amount: 120 }),
+    );
+    expect(isMemberSession).toHaveBeenCalledWith(
+      groupOrderId,
+      memberId,
+      "member-session",
     );
     expect(leaveGroup).toHaveBeenCalledWith(groupOrderId, memberId);
     expect(broadcastEvent).toHaveBeenCalledWith(

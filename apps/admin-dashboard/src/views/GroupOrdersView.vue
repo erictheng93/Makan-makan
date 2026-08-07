@@ -76,22 +76,6 @@
 
       <div class="bg-white rounded-lg shadow p-3 sm:p-6">
         <div class="flex items-center gap-3">
-          <div class="p-2 sm:p-3 rounded-full bg-purple-100 flex-shrink-0">
-            <CreditCardIcon class="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
-          </div>
-          <div class="min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
-              {{ t("groupOrders.splitBillOrders") }}
-            </p>
-            <p class="text-xl sm:text-2xl font-semibold text-gray-900">
-              {{ splitBillOrders }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-3 sm:p-6">
-        <div class="flex items-center gap-3">
           <div class="p-2 sm:p-3 rounded-full bg-yellow-100 flex-shrink-0">
             <ClockIcon class="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
           </div>
@@ -302,14 +286,6 @@
                     @click.stop="shareGroupOrder(groupOrder)"
                   >
                     {{ t("groupOrders.share") }}
-                  </button>
-
-                  <button
-                    v-if="groupOrder.status === 'ready_to_pay'"
-                    class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
-                    @click.stop="processSplitBill(groupOrder)"
-                  >
-                    {{ t("groupOrders.splitBill") }}
                   </button>
 
                   <button
@@ -595,22 +571,6 @@
                   />
                 </div>
               </div>
-
-              <!-- 分帳完成率 -->
-              <div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">{{
-                    t("groupOrders.splitBillRate")
-                  }}</span>
-                  <span class="font-medium">{{ completionRate }}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    class="bg-purple-600 h-2 rounded-full"
-                    :style="{ width: `${completionRate}%` }"
-                  />
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -858,7 +818,6 @@
 import { ref, computed, onMounted } from "vue";
 import {
   UserGroupIcon,
-  CreditCardIcon,
   ClockIcon,
   MagnifyingGlassIcon,
   ArrowPathIcon,
@@ -917,10 +876,8 @@ const joinShareCode = ref("");
 const activeGroupOrders = ref(0);
 const todayGroupOrders = ref(0);
 const totalShares = ref(0);
-const splitBillOrders = ref(0);
 const avgCompletionTime = ref(0);
 const avgGroupSize = ref(0);
-const completionRate = ref(0);
 
 // 表單數據
 const newGroupOrder = ref({
@@ -1051,10 +1008,8 @@ const refreshGroupOrders = async () => {
     activeGroupOrders.value = statsData.activeGroupOrders ?? 0;
     todayGroupOrders.value = statsData.totalGroupOrders ?? 0;
     totalShares.value = statsData.totalGroupOrders ?? 0;
-    splitBillOrders.value = 0; // Derived from orders if needed
     avgCompletionTime.value = 0; // Derived from stats if available
     avgGroupSize.value = statsData.averageGroupSize ?? 0;
-    completionRate.value = statsData.conversionRate ?? 0;
 
     // Update selected order with fresh data
     if (selectedGroupOrder.value) {
@@ -1198,17 +1153,6 @@ const generateShareCode = async () => {
     await refreshGroupOrders();
   } catch (_error) {
     console.error("Failed to generate share code:", _error);
-  }
-};
-
-const processSplitBill = async (groupOrder: GroupOrder) => {
-  try {
-    await groupOrdersService.initiateSplit(groupOrder.id, {
-      splitType: "equal",
-    });
-    await refreshGroupOrders();
-  } catch (_error) {
-    console.error("Failed to initiate split bill:", _error);
   }
 };
 

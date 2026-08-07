@@ -42,16 +42,6 @@ export interface GroupCartItem {
   customizations?: any;
 }
 
-export interface SplitBill {
-  id: string;
-  groupOrderId: string;
-  memberId: string;
-  amount: number;
-  paymentStatus: "pending" | "paid";
-  paymentMethod?: string;
-  paidAt?: string;
-}
-
 // 團體訂單服務
 export const groupOrdersService = {
   // 團體訂單管理
@@ -154,53 +144,6 @@ export const groupOrdersService = {
   async getCartItems(groupOrderId: string): Promise<GroupCartItem[]> {
     const response = await apiClient.get(`/orders/group/${groupOrderId}/cart`);
     return unwrapApiData<GroupCartItem[]>(response);
-  },
-
-  // 分帳管理
-  async initiateSplit(
-    groupOrderId: string,
-    data: {
-      splitType: "equal" | "by_item" | "custom";
-      customSplits?: Array<{
-        memberId: string;
-        amount: number;
-      }>;
-    },
-  ): Promise<SplitBill[]> {
-    const response = await apiClient.post(
-      `/orders/group/${groupOrderId}/split`,
-      data,
-    );
-    return unwrapApiData<SplitBill[]>(response);
-  },
-
-  async getSplitBills(groupOrderId: string): Promise<SplitBill[]> {
-    const response = await apiClient.get(`/orders/group/${groupOrderId}/split`);
-    return unwrapApiData<SplitBill[]>(response);
-  },
-
-  async processPayment(
-    groupOrderId: string,
-    data: {
-      memberId: string;
-      splitBillId: string;
-      paymentMethod: string;
-      amount: number;
-    },
-  ): Promise<{
-    success: boolean;
-    paymentId: string;
-    receipt?: any;
-  }> {
-    const response = await apiClient.post(
-      `/orders/group/${groupOrderId}/payment`,
-      data,
-    );
-    return unwrapApiData<{
-      success: boolean;
-      paymentId: string;
-      receipt?: any;
-    }>(response);
   },
 
   // 分享功能
