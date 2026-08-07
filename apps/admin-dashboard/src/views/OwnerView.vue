@@ -417,6 +417,10 @@ import {
   type OwnerHealthStatusPayload,
 } from "@/utils/ownerSystemHealth";
 import {
+  toOwnerRealtimeOrder,
+  type OwnerActiveOrder,
+} from "@/utils/ownerRealtimeOrders";
+import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   UsersIcon,
@@ -472,17 +476,7 @@ const dashboardTableStatus = ref<{
   total: number;
 }>({ occupied: 0, available: 0, total: 0 });
 
-const activeOrdersData = ref<
-  Array<{
-    id: number;
-    orderNumber: string;
-    status: string;
-    totalAmount: number;
-    tableId?: number;
-    createdAt: string;
-    items?: Array<{ id: number }>;
-  }>
->([]);
+const activeOrdersData = ref<OwnerActiveOrder[]>([]);
 
 const userStatsData = ref<{
   summary: {
@@ -598,22 +592,9 @@ const kpiMetrics = computed(() => {
 
 // --- Computed: Realtime orders from active orders API ---
 const realtimeOrders = computed(() => {
-  return activeOrdersData.value.slice(0, 5).map((order) => {
-    const createdAt = new Date(order.createdAt);
-    const minutesAgo = Math.floor((Date.now() - createdAt.getTime()) / 60000);
-    const timeText =
-      minutesAgo < 1
-        ? t("owner.timeAgo.justNow")
-        : t("owner.timeAgo.minutesAgo", { count: minutesAgo });
-
-    return {
-      id: order.id,
-      tableNumber: order.tableId ? `#${order.tableId}` : order.orderNumber,
-      items: order.items?.length ?? 0,
-      status: order.status,
-      time: timeText,
-    };
-  });
+  return activeOrdersData.value
+    .slice(0, 5)
+    .map((order) => toOwnerRealtimeOrder(order, t));
 });
 
 // --- Computed: Staff activity from users list ---
