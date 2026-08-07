@@ -640,6 +640,7 @@ import { apiClient } from "@/services/api";
 import type { CreateGuestOrderRequest } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
+import { getOrderSubmitErrorI18nKey } from "@/utils/order-submit-error";
 import type { CreateOrderRequest } from "@makanmakan/shared-types";
 
 // Props
@@ -742,15 +743,7 @@ watch(
 );
 
 const getOrderSubmitErrorMessage = (error: any) => {
-  if (
-    error?.code === "NETWORK_ERROR" ||
-    error?.code === "ERR_NETWORK" ||
-    (!error?.response && error?.request)
-  ) {
-    return t("toast.orderSubmitFailed");
-  }
-
-  return error?.message || t("toast.orderSubmitFailed");
+  return t(getOrderSubmitErrorI18nKey(error));
 };
 
 // 提交訂單 Mutation (authenticated)
