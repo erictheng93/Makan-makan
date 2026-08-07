@@ -693,10 +693,10 @@ app.delete(
       throw badRequest("Failed to cancel order");
     }
 
-    // Clear the guest-order active-order KV key (if any) so the phoneLastDigits
-    // slot is freed for the next guest. The reverse mapping is written by the
-    // guest-orders create route as `guest_active_lookup:{orderId}` and points
-    // back to the actual `guest_active:{restaurantId}:{phoneDigits}` key.
+    // Clear the guest-order active-order KV key (if any) so that device can
+    // order again. The reverse mapping is written by the guest-orders create
+    // route as `guest_active_lookup:{orderId}` and points back to the actual
+    // `guest_active:{restaurantId}:token:{guestToken}` key.
     try {
       const lookupKey = `guest_active_lookup:${id}`;
       const activeOrderKey = await c.env.CACHE_KV.get(lookupKey);

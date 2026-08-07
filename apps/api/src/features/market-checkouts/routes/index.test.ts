@@ -383,6 +383,10 @@ async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
   }
 }
 
+// A well-formed guest token (`gt_` + 32-byte hex), as a returning device would
+// present it in the Authorization header.
+const ACTIVE_GUEST_TOKEN = `gt_${"a".repeat(64)}`;
+
 describe("market checkout routes", () => {
   beforeEach(() => {
     databaseMocks.selectQueue.length = 0;
@@ -564,7 +568,7 @@ describe("market checkout routes", () => {
     expect(meterEmit).toHaveBeenCalledTimes(2);
   });
 
-  it("uses the client address for anonymous market checkout active-order keys", async () => {
+  it("scopes anonymous market checkout active-order keys to the issued guest tokens", async () => {
     databaseMocks.selectQueue.push(
       {
         get: {
@@ -641,31 +645,103 @@ describe("market checkout routes", () => {
       success: true,
       data: { checkout: { subtotal: 20000 } },
     });
-    expect(env.CACHE_KV.get).toHaveBeenCalledWith(
-      "guest_active:restaurant-1:anon:203.0.113.9",
-    );
-    expect(env.CACHE_KV.get).toHaveBeenCalledWith(
-      "guest_active:restaurant-2:anon:203.0.113.9",
-    );
+    // A brand-new anonymous shopper presents no guest token, so there is no
+    // prior identity to look up — nothing may be keyed off the client address.
+    const activeLookups = env.CACHE_KV.get.mock.calls
+      .map(([key]: [string]) => key)
+      .filter((key: string) => key.startsWith("guest_active:"));
+    expect(activeLookups).toEqual([]);
+
+    // Each vendor's lock is written under that vendor's own issued token.
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "guest_active:restaurant-1:anon:203.0.113.9",
+      "guest_active:restaurant-1:token:guest-token-1",
       "1001",
       { expirationTtl: 7200 },
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "guest_active:restaurant-2:anon:203.0.113.9",
+      "guest_active:restaurant-2:token:guest-token-2",
       "1002",
       { expirationTtl: 7200 },
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "guest_active_lookup:1001",
-      "guest_active:restaurant-1:anon:203.0.113.9",
+      "guest_active:restaurant-1:token:guest-token-1",
       { expirationTtl: 7200 },
     );
     expect(databaseMocks.insertValues[0]).toMatchObject({
       phoneLastDigits: "000",
       subtotalCents: 20000,
     });
+  });
+
+  it("does not block separate anonymous shoppers sharing a market's WiFi address", async () => {
+    const checkoutQueue = () => [
+      {
+        get: {
+          id: "market-1",
+          slug: "fengjia",
+          name: "Fengjia Night Market",
+          platformFeeRateBps: 350,
+          isActive: true,
+        },
+      },
+      {
+        get: {
+          id: "restaurant-1",
+          name: "Vendor 1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
+      {
+        get: {
+          id: "restaurant-2",
+          name: "Vendor 2",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
+      { all: [{ id: 101 }] },
+      { all: [{ id: 202 }] },
+    ];
+    databaseMocks.selectQueue.push(...checkoutQueue(), ...checkoutQueue());
+    createOrder.mockImplementation(async () => ({
+      id: 1000 + createOrder.mock.calls.length,
+      orderNumber: `A00${createOrder.mock.calls.length}`,
+      totalAmount: 120,
+    }));
+    const env = createEnv();
+    const shopperRequest = () =>
+      new Request("https://test/", {
+        method: "POST",
+        headers: { "cf-connecting-ip": "203.0.113.9" },
+        body: JSON.stringify({
+          marketSlug: "fengjia",
+          guestName: "Anonymous",
+          phoneLastDigits: "000",
+          vendors: [
+            {
+              restaurantId: "restaurant-1",
+              items: [{ menuItemId: 101, quantity: 1 }],
+            },
+            {
+              restaurantId: "restaurant-2",
+              items: [{ menuItemId: 202, quantity: 1 }],
+            },
+          ],
+        }),
+      });
+
+    const firstResponse = await routes.fetch(shopperRequest(), env as never);
+    const secondResponse = await routes.fetch(shopperRequest(), env as never);
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledTimes(4);
   });
 
   it("rejects invalid market checkout creation requests before reading vendors", async () => {
@@ -790,12 +866,16 @@ describe("market checkout routes", () => {
       { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
     );
     const env = createEnv();
-    await env.CACHE_KV.put("guest_active:restaurant-1:789", "order-1");
+    await env.CACHE_KV.put(
+      `guest_active:restaurant-1:token:${ACTIVE_GUEST_TOKEN}`,
+      "order-1",
+    );
 
     const response = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://test/", {
           method: "POST",
+          headers: { Authorization: `Bearer ${ACTIVE_GUEST_TOKEN}` },
           body: JSON.stringify({
             marketSlug: "fengjia",
             phoneLastDigits: "789",
@@ -1074,7 +1154,7 @@ describe("market checkout routes", () => {
     // Its active-order lock, reverse lookup, and guest token are cleared so a
     // retry starts clean.
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
-      "guest_active:restaurant-1:789",
+      "guest_active:restaurant-1:token:guest-token-1",
     );
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
       "guest_active_lookup:1001",
