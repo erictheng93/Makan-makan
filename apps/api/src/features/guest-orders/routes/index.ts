@@ -37,6 +37,14 @@ import { validateBody } from "../../../shared/middleware";
 
 const app = new Hono<{ Bindings: Env }>();
 
+const getGuestBearerToken = (authorization: string | undefined) => {
+  const bearerPrefix = "Bearer ";
+  if (!authorization?.startsWith(bearerPrefix)) return null;
+
+  const token = authorization.slice(bearerPrefix.length).trim();
+  return /^gt_[0-9a-f]{64}$/i.test(token) ? token : null;
+};
+
 // ─── POST / ─── Create guest order (no auth, rate limited) ───
 app.post("/", validateBody(createGuestOrderSchema), async (c) => {
   const data = c.get("validatedBody");
@@ -66,16 +74,16 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
     throw forbidden("Guest orders are not enabled for this restaurant");
   }
 
-  // 2. Check active order limit per phoneLastDigits + restaurant
-  // When phoneLastDigits is the default "000", use IP to differentiate anonymous users
-  const clientIp =
-    c.req.header("cf-connecting-ip") ||
-    c.req.header("x-forwarded-for") ||
-    "unknown";
-  const guestIdentifier =
-    data.phoneLastDigits === "000" ? `anon:${clientIp}` : data.phoneLastDigits;
-  const activeOrderKey = `guest_active:${data.restaurantId}:${guestIdentifier}`;
-  const existingActiveOrder = await c.env.CACHE_KV.get(activeOrderKey);
+  // 2. Check active order limit for this device when it already has a guest
+  // token. Brand-new anonymous guests have no stable identity yet; using IP
+  // here incorrectly makes a restaurant's shared WiFi/CGNAT address the lock.
+  const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
+  const existingActiveOrderKey = requestGuestToken
+    ? `guest_active:${data.restaurantId}:token:${requestGuestToken}`
+    : null;
+  const existingActiveOrder = existingActiveOrderKey
+    ? await c.env.CACHE_KV.get(existingActiveOrderKey)
+    : null;
   if (existingActiveOrder) {
     if (data.clientMutationId) {
       const duplicateMutation = await db
@@ -206,6 +214,7 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
 
   // 6. Set active order KV key (2hr TTL)
   const twoHoursInSeconds = 2 * 60 * 60;
+  const activeOrderKey = `guest_active:${data.restaurantId}:token:${guestToken}`;
   await c.env.CACHE_KV.put(activeOrderKey, String(order.id), {
     expirationTtl: twoHoursInSeconds,
   });

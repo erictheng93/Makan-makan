@@ -206,7 +206,7 @@ describe("guest order routes", () => {
       { expirationTtl: 14400 },
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "guest_active:restaurant-1:678",
+      "guest_active:restaurant-1:token:gt_test_token",
       "501",
       { expirationTtl: 7200 },
     );
@@ -248,7 +248,12 @@ describe("guest order routes", () => {
     expect(enforceQuota).not.toHaveBeenCalled();
 
     const duplicateEnv = createEnv();
-    await duplicateEnv.CACHE_KV.put("guest_active:restaurant-1:678", "501");
+    const activeGuestToken =
+      "gt_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    await duplicateEnv.CACHE_KV.put(
+      `guest_active:restaurant-1:token:${activeGuestToken}`,
+      "501",
+    );
     databaseMocks.selectQueue.push({
       get: {
         id: "restaurant-1",
@@ -261,6 +266,7 @@ describe("guest order routes", () => {
     const duplicateResponse = await app.fetch(
       new Request("https://test/", {
         method: "POST",
+        headers: { Authorization: `Bearer ${activeGuestToken}` },
         body: JSON.stringify(validGuestOrderBody()),
       }),
       duplicateEnv as never,
@@ -276,6 +282,60 @@ describe("guest order routes", () => {
       },
     });
     expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("does not block separate anonymous guests sharing the same restaurant, table, and IP", async () => {
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "restaurant-1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { id: 7, restaurantId: "restaurant-1" } },
+      {
+        get: {
+          id: "restaurant-1",
+          isActive: true,
+          isAvailable: true,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { id: 7, restaurantId: "restaurant-1" } },
+    );
+    createOrder
+      .mockResolvedValueOnce({ id: 501, orderNumber: "G001" })
+      .mockResolvedValueOnce({ id: 502, orderNumber: "G002" });
+    const app = createRoutesWithApiErrorHandler();
+    const env = createEnv();
+    const body = validGuestOrderBody({
+      phoneLastDigits: "000",
+      orderType: "table",
+      tableId: 7,
+    });
+
+    const firstResponse = await app.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        headers: { "cf-connecting-ip": "203.0.113.10" },
+        body: JSON.stringify(body),
+      }),
+      env as never,
+    );
+    const secondResponse = await app.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        headers: { "cf-connecting-ip": "203.0.113.10" },
+        body: JSON.stringify(body),
+      }),
+      env as never,
+    );
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledTimes(2);
   });
 
   it("validates restaurant, table, and seat availability before creating", async () => {
