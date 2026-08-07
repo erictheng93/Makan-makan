@@ -132,7 +132,7 @@ onMounted(() => {
       <div
         v-else-if="isNotFound"
         data-testid="join-not-found"
-        class="rounded-lg bg-ios-card p-6 text-center"
+        class="rounded-2xl bg-ios-card p-6 text-center shadow-card-sm"
       >
         <h1 class="text-xl font-semibold text-ios-text">
           Group order not found
@@ -145,7 +145,7 @@ onMounted(() => {
       <div
         v-else-if="previewError"
         data-testid="join-preview-error"
-        class="rounded-lg bg-ios-card p-6 text-center"
+        class="rounded-2xl bg-ios-card p-6 text-center shadow-card-sm"
       >
         <h1 class="text-xl font-semibold text-ios-text">
           Unable to load group order
@@ -154,33 +154,33 @@ onMounted(() => {
         <button
           data-testid="join-retry-button"
           type="button"
-          class="mt-5 rounded-md bg-ios-blue px-4 py-2 text-sm font-semibold text-white"
+          class="mt-5 rounded-full bg-ios-blue px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           @click="loadPreview"
         >
           Try again
         </button>
       </div>
 
-      <div v-else-if="preview" class="rounded-lg bg-ios-card p-5">
+      <div v-else-if="preview" class="rounded-2xl bg-ios-card p-6 shadow-card">
         <p class="text-sm font-medium text-ios-secondary">Group order</p>
         <h1 class="mt-1 text-2xl font-semibold text-ios-text">
           {{ preview.hostName }} is ordering
         </h1>
 
-        <dl class="mt-5 grid grid-cols-2 gap-3 text-sm">
-          <div class="rounded-md bg-ios-bg p-3">
+        <dl class="mt-6 grid grid-cols-2 gap-3 text-sm">
+          <div class="rounded-xl bg-ios-bg p-4">
             <dt class="text-ios-secondary">Members</dt>
             <dd class="mt-1 text-lg font-semibold text-ios-text">
               {{ preview.memberCount }}
             </dd>
           </div>
-          <div class="rounded-md bg-ios-bg p-3">
+          <div class="rounded-xl bg-ios-bg p-4">
             <dt class="text-ios-secondary">Fulfillment</dt>
             <dd class="mt-1 text-lg font-semibold text-ios-text">
               {{ fulfillmentLabel }}
             </dd>
           </div>
-          <div class="col-span-2 rounded-md bg-ios-bg p-3">
+          <div class="col-span-2 rounded-xl bg-ios-bg p-4">
             <dt class="text-ios-secondary">Expires</dt>
             <dd class="mt-1 font-semibold text-ios-text">
               {{ expiresAtLabel }}
@@ -192,21 +192,22 @@ onMounted(() => {
           v-if="!showJoinForm"
           data-testid="join-confirm-button"
           type="button"
-          class="mt-5 w-full rounded-md bg-ios-blue px-4 py-3 text-sm font-semibold text-white"
+          class="mt-6 w-full rounded-full bg-ios-blue px-4 py-3.5 text-base font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           @click="openJoinForm"
         >
           Join group order
         </button>
 
-        <form v-else class="mt-5 space-y-3" @submit.prevent="submitJoin">
+        <form v-else class="mt-6 space-y-4" @submit.prevent="submitJoin">
           <label class="block text-sm font-medium text-ios-text">
             Your name
             <input
               v-model="memberName"
               data-testid="join-name-input"
-              class="mt-1 block w-full rounded-md border border-ios-separator bg-white px-3 py-2 text-ios-text"
+              class="mt-2 block w-full rounded-xl border-0 bg-ios-bg px-4 py-3 text-ios-text transition-all duration-200 placeholder:text-ios-tertiary focus:bg-white focus:ring-2 focus:ring-ios-blue/30"
               autocomplete="name"
               type="text"
+              placeholder="How should the table know you?"
             />
           </label>
 
@@ -215,7 +216,7 @@ onMounted(() => {
           <button
             data-testid="join-submit-button"
             type="button"
-            class="w-full rounded-md bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            class="w-full rounded-full bg-ios-blue px-4 py-3.5 text-base font-semibold text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100"
             :disabled="isJoining"
             @click="submitJoin"
           >

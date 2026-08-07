@@ -125,7 +125,7 @@ onUnmounted(() => {
 
       <p
         v-if="viewError"
-        class="mb-4 rounded-md bg-ios-red/10 p-3 text-sm text-ios-red"
+        class="mb-4 rounded-xl bg-ios-red/10 p-4 text-sm text-ios-red"
       >
         {{ viewError }}
       </p>
@@ -133,7 +133,7 @@ onUnmounted(() => {
       <p
         v-if="hasSessionExpired"
         data-testid="group-order-session-expired"
-        class="mb-4 rounded-md bg-ios-orange/10 p-3 text-sm text-ios-orange"
+        class="mb-4 rounded-xl bg-ios-orange/10 p-4 text-sm text-ios-orange"
       >
         This host session has expired. Recover host access to continue.
       </p>
@@ -141,7 +141,7 @@ onUnmounted(() => {
       <div
         v-if="isLocked"
         data-testid="group-order-locked"
-        class="rounded-lg bg-ios-card p-5"
+        class="rounded-2xl bg-ios-card p-6 shadow-card-sm"
       >
         <h2 class="text-lg font-semibold text-ios-text">
           This group order is locked
@@ -173,7 +173,7 @@ onUnmounted(() => {
         <button
           data-testid="group-order-submit"
           type="button"
-          class="w-full rounded-md bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          class="w-full rounded-full bg-ios-blue px-4 py-3.5 text-base font-semibold text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
           :disabled="isSubmitting"
           @click="submitGroupOrder"
         >
@@ -184,7 +184,7 @@ onUnmounted(() => {
       <p
         v-if="orderPlacedWarning"
         data-testid="group-order-placed-warning"
-        class="mt-4 rounded-md bg-ios-orange/10 p-3 text-sm text-ios-orange"
+        class="mt-4 rounded-xl bg-ios-orange/10 p-4 text-sm text-ios-orange"
       >
         {{ orderPlacedWarning }}
       </p>
@@ -192,14 +192,14 @@ onUnmounted(() => {
       <p
         v-else-if="submitError"
         data-testid="group-order-submit-error"
-        class="mt-4 rounded-md bg-ios-red/10 p-3 text-sm text-ios-red"
+        class="mt-4 rounded-xl bg-ios-red/10 p-4 text-sm text-ios-red"
       >
         {{ submitError }}
       </p>
 
       <p
         v-if="splitNotice"
-        class="mt-4 rounded-md bg-ios-orange/10 p-3 text-sm text-ios-orange"
+        class="mt-4 rounded-xl bg-ios-orange/10 p-4 text-sm text-ios-orange"
       >
         {{ splitNotice }}
       </p>

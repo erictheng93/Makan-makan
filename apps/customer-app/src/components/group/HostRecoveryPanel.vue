@@ -61,7 +61,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
 </script>
 
 <template>
-  <section class="mt-4 rounded-lg bg-ios-card p-4">
+  <section class="mt-4 rounded-2xl bg-ios-card p-5 shadow-card-sm">
     <div v-if="hasCredentials">
       <div class="flex items-center justify-between gap-3">
         <div>
@@ -73,7 +73,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
         <button
           data-testid="reveal-recovery-code"
           type="button"
-          class="rounded-md bg-ios-blue px-3 py-2 text-sm font-semibold text-white"
+          class="shrink-0 rounded-full bg-ios-blue px-4 py-2 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           @click="isRevealed = !isRevealed"
         >
           {{ isRevealed ? "Hide" : "Show code" }}
@@ -83,7 +83,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
       <p
         v-if="isRevealed"
         data-testid="recovery-code-value"
-        class="mt-3 rounded-md bg-ios-bg p-3 font-mono text-sm text-ios-text"
+        class="mt-4 select-all break-all rounded-xl bg-ios-bg p-4 font-mono text-sm text-ios-text"
       >
         {{ credentials?.recoveryCode }}
       </p>
@@ -103,7 +103,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
           data-testid="recovery-code-input"
           type="text"
           autocomplete="one-time-code"
-          class="mt-2 w-full rounded-md border border-ios-separator bg-white px-3 py-2 text-sm text-ios-text"
+          class="mt-2 w-full rounded-xl border-0 bg-ios-bg px-4 py-3 text-sm text-ios-text transition-all duration-200 placeholder:text-ios-tertiary focus:bg-white focus:ring-2 focus:ring-ios-blue/30"
           placeholder="Recovery code"
         />
       </div>
@@ -111,7 +111,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
       <p
         v-if="error"
         data-testid="recovery-error"
-        class="rounded-md bg-ios-red/10 p-3 text-sm text-ios-red"
+        class="rounded-xl bg-ios-red/10 p-4 text-sm text-ios-red"
       >
         {{ error }}
       </p>
@@ -119,7 +119,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
       <button
         data-testid="recovery-submit"
         type="button"
-        class="rounded-md bg-ios-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        class="rounded-full bg-ios-blue px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
         :disabled="isRecovering"
         @click="submitRecovery"
       >
