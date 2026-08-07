@@ -56,8 +56,23 @@ export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {
   totalPrice: number;
   unitPriceCents?: number | null;
   totalPriceCents?: number | null;
+  menuItem?: {
+    id: number;
+    name: string;
+    price: number;
+    imageUrl?: string;
+  };
   customizations: CartItemCustomizations;
   specialInstructions?: string;
+}
+
+export interface GroupOrderCartItemWithMenu extends GroupOrderCartItem {
+  menuItem: {
+    id: number;
+    name: string;
+    price: number;
+    imageUrl?: string;
+  };
 }
 
 // Enums
@@ -194,14 +209,7 @@ export interface ProcessPaymentRequest {
 export interface GroupOrderSummary {
   groupOrder: GroupOrder;
   members: GroupOrderMember[];
-  cartItems: (GroupOrderCartItem & {
-    menuItem: {
-      id: number;
-      name: string;
-      price: number;
-      imageUrl?: string;
-    };
-  })[];
+  cartItems: GroupOrderCartItemWithMenu[];
   totalAmount: number;
   activities: GroupOrderActivity[];
 }

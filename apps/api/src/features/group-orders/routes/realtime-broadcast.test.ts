@@ -229,6 +229,34 @@ describe("group order realtime broadcasts survive validation", () => {
     expectEveryBroadcastValid();
   });
 
+  it("carries the fields a client needs to render the cart row", async () => {
+    // The client renders from item.menuItem.name. An event that validates but
+    // arrives without it still shows a price with no dish beside it, so the
+    // route must pass the service's row through whole rather than thinning it.
+    groupServiceMocks.addCartItem.mockResolvedValue({
+      success: true,
+      data: {
+        ...cartItem,
+        menuItem: { id: 42, name: "Laksa", price: 12.5, imageUrl: undefined },
+      },
+    });
+
+    await buildApp().fetch(
+      request("POST", `/orders/group/${GROUP_ORDER_ID}/cart`, {
+        memberId: MEMBER_ID,
+        menuItemId: 42,
+        quantity: 1,
+      }),
+      env,
+    );
+
+    expect(broadcasts.length).toBeGreaterThan(0);
+    const event = broadcasts.at(-1)?.event as {
+      data?: { item?: { menuItem?: { name?: string } } };
+    };
+    expect(event.data?.item?.menuItem?.name).toBe("Laksa");
+  });
+
   it("never hands the broadcaster an event it will reject", async () => {
     // The helper coerces a missing restaurantId to "" and its catch only warns,
     // so an invalid event costs nothing at the call site and everything at the

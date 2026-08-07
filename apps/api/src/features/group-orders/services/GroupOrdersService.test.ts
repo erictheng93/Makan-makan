@@ -2427,3 +2427,122 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).resolves.toBe(false);
   });
 });
+
+/**
+ * The customer app renders a cart row from `menuItem.name`. `getGroupOrder`
+ * supplies it, but `addCartItem` and `updateCartItem` did not — so an item
+ * arriving over realtime, or the response to your own add, rendered as a price
+ * with no dish beside it until the page was reloaded.
+ *
+ * Both methods already look the menu item up in order to price the row, so the
+ * name is in hand; it was simply left out of the payload. These pin the shape
+ * to the one `getGroupOrder` already returns, because two shapes for the same
+ * row is how the mismatch started.
+ */
+describe("cart mutations return a renderable row", () => {
+  beforeEach(() => {
+    uuidState.next = 1;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.mocked(console.log).mockRestore();
+    vi.mocked(console.error).mockRestore();
+    vi.useRealTimers();
+  });
+
+  const menuItemRow = {
+    id: 10,
+    restaurantId: "restaurant-1",
+    name: "Laksa",
+    price: 9,
+    priceCents: 1250,
+    imageUrl: "https://cdn.test/laksa.jpg",
+  };
+
+  const storedCartItem = {
+    id: "uuid-1",
+    groupOrderId: "group-1",
+    memberId: "member-1",
+    menuItemId: 10,
+    quantity: 2,
+    unitPriceCents: 1250,
+    totalPriceCents: 2500,
+    customizations: { spice: "hot" },
+    specialInstructions: "No peanuts",
+    addedAt: new Date("2026-06-07T00:00:00.000Z"),
+    updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+  };
+
+  it("names the dish when an item is added", async () => {
+    const service = createService();
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [menuItemRow],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [storedCartItem],
+    ]);
+
+    const result = await service.addCartItem("group-1", {
+      memberId: "member-1",
+      menuItemId: 10,
+      quantity: 2,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      menuItem: { id: 10, name: "Laksa", price: 12.5 },
+    });
+  });
+
+  it("names the dish when an item is updated", async () => {
+    const service = createService();
+    service.db = createDb([
+      [storedCartItem],
+      [{ total: 37.5 }],
+      [],
+      [{ total: 37.5 }],
+      [{ ...storedCartItem, quantity: 3, totalPriceCents: 3750 }],
+      [menuItemRow],
+    ]);
+
+    const result = await service.updateCartItem("group-1", "uuid-1", {
+      quantity: 3,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ menuItem: { name: "Laksa" } });
+  });
+
+  it("uses the same row shape getGroupOrder already returns", async () => {
+    const service = createService();
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [menuItemRow],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [storedCartItem],
+    ]);
+
+    const added = await service.addCartItem("group-1", {
+      memberId: "member-1",
+      menuItemId: 10,
+      quantity: 2,
+    });
+
+    // getGroupOrder builds { ...formatCartItem(row), menuItem: { id, name,
+    // price, imageUrl } }. A second, thinner shape for the same row is what
+    // let the missing name through in the first place.
+    expect(Object.keys(added.data.menuItem).sort()).toEqual(
+      ["id", "imageUrl", "name", "price"].sort(),
+    );
+  });
+});

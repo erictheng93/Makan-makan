@@ -101,6 +101,7 @@ import type {
   GroupOrder,
   GroupOrderMember,
   GroupOrderCartItem,
+  GroupOrderCartItemWithMenu,
   GroupOrderActivity,
   GroupOrderSummary,
   GroupOrderStatistics,
@@ -768,15 +769,14 @@ export class GroupOrdersService implements IGroupOrderService {
       const summary: GroupOrderSummary = {
         groupOrder: this.formatGroupOrder(groupOrder),
         members: members.map((m) => this.formatMember(m)),
-        cartItems: cartItemsWithMenu.map((row) => ({
-          ...this.formatCartItem(row.cartItem),
-          menuItem: {
+        cartItems: cartItemsWithMenu.map((row) =>
+          this.formatCartItemWithMenu(row.cartItem, {
             id: row.cartItem.menuItemId,
             name: row.menuItemName,
-            price: moneyAmount(row.menuItemPriceCents),
-            imageUrl: row.menuItemImageUrl ?? undefined,
-          },
-        })),
+            priceCents: row.menuItemPriceCents,
+            imageUrl: row.menuItemImageUrl,
+          }),
+        ),
         totalAmount: moneyAmount(groupOrder.totalAmountCents),
         activities: activities.map((a) => this.formatActivity(a)),
       };
@@ -908,6 +908,12 @@ export class GroupOrdersService implements IGroupOrderService {
           totalPriceCents,
           customizations: itemData.customizations || {},
           specialInstructions: itemData.specialInstructions || undefined,
+          menuItem: {
+            id: menuItem.id,
+            name: menuItem.name,
+            price: moneyAmount(menuItem.priceCents),
+            imageUrl: menuItem.imageUrl ?? undefined,
+          },
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -921,7 +927,10 @@ export class GroupOrdersService implements IGroupOrderService {
       // Invalidate cache
       await this.cache.delete(`group_order_summary:${groupOrderId}`);
 
-      return { success: true, data: this.formatCartItem(cartItem) };
+      return {
+        success: true,
+        data: this.formatCartItemWithMenu(cartItem, menuItem),
+      };
     } catch (error) {
       this.errorTracker.logError("addCartItem", error as Error, {
         groupOrderId,
@@ -1016,10 +1025,22 @@ export class GroupOrdersService implements IGroupOrderService {
         throw new Error("Failed to query updated cart item");
       }
 
+      const menuItemRows = await this.db
+        .select()
+        .from(menuItems)
+        .where(eq(menuItems.id, updatedItem.menuItemId));
+
+      const menuItem = menuItemRows[0];
+
       // Invalidate cache
       await this.cache.delete(`group_order_summary:${groupOrderId}`);
 
-      return { success: true, data: this.formatCartItem(updatedItem) };
+      return {
+        success: true,
+        data: menuItem
+          ? this.formatCartItemWithMenu(updatedItem, menuItem)
+          : this.formatCartItem(updatedItem),
+      };
     } catch (error) {
       this.errorTracker.logError("updateCartItem", error as Error, {
         groupOrderId,
@@ -2696,6 +2717,26 @@ export class GroupOrdersService implements IGroupOrderService {
       specialInstructions: data.specialInstructions ?? undefined,
       createdAt: addedAt,
       updatedAt,
+    };
+  }
+
+  private formatCartItemWithMenu(
+    cartItem: typeof groupCartItems.$inferSelect,
+    menuItem: {
+      id: number;
+      name: string;
+      priceCents?: number | null;
+      imageUrl?: string | null;
+    },
+  ): GroupOrderCartItemWithMenu {
+    return {
+      ...this.formatCartItem(cartItem),
+      menuItem: {
+        id: menuItem.id,
+        name: menuItem.name,
+        price: moneyAmount(menuItem.priceCents),
+        imageUrl: menuItem.imageUrl ?? undefined,
+      },
     };
   }
 
