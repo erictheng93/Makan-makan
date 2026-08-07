@@ -19,7 +19,7 @@
             {{ t("groupOrders.activeOrders") }}: {{ activeGroupOrders }}
           </p>
           <p class="text-xs text-blue-600 whitespace-nowrap">
-            {{ t("groupOrders.todayTotal") }}: {{ todayGroupOrders }}
+            {{ t("groupOrders.totalOrders") }}: {{ totalGroupOrders }}
           </p>
         </div>
 
@@ -41,7 +41,7 @@
     </div>
 
     <!-- 統計卡片 -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <div class="bg-white rounded-lg shadow p-3 sm:p-6">
         <div class="flex items-center gap-3">
           <div class="p-2 sm:p-3 rounded-full bg-green-100 flex-shrink-0">
@@ -61,14 +61,14 @@
       <div class="bg-white rounded-lg shadow p-3 sm:p-6">
         <div class="flex items-center gap-3">
           <div class="p-2 sm:p-3 rounded-full bg-blue-100 flex-shrink-0">
-            <ShareIcon class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            <CurrencyDollarIcon class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
           </div>
           <div class="min-w-0">
             <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
-              {{ t("groupOrders.shareCount") }}
+              {{ t("groupOrders.avgOrderValue") }}
             </p>
             <p class="text-xl sm:text-2xl font-semibold text-gray-900">
-              {{ totalShares }}
+              {{ formatPrice(averageOrderValue) }}
             </p>
           </div>
         </div>
@@ -77,14 +77,14 @@
       <div class="bg-white rounded-lg shadow p-3 sm:p-6">
         <div class="flex items-center gap-3">
           <div class="p-2 sm:p-3 rounded-full bg-yellow-100 flex-shrink-0">
-            <ClockIcon class="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
+            <UsersIcon class="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
           </div>
           <div class="min-w-0">
             <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">
-              {{ t("groupOrders.avgCompletionTime") }}
+              {{ t("groupOrders.avgMembers") }}
             </p>
             <p class="text-xl sm:text-2xl font-semibold text-gray-900">
-              {{ avgCompletionTime }}{{ t("groupOrders.minutes") }}
+              {{ avgGroupSize.toFixed(1) }} {{ t("groupOrders.people") }}
             </p>
           </div>
         </div>
@@ -535,19 +535,19 @@
             </h3>
 
             <div class="space-y-4">
-              <!-- 每日訂單數量 -->
+              <!-- 訂單總數 -->
               <div>
                 <div class="flex justify-between text-sm mb-2">
                   <span class="text-gray-600">{{
-                    t("groupOrders.todayOrders")
+                    t("groupOrders.totalOrders")
                   }}</span>
-                  <span class="font-medium">{{ todayGroupOrders }}</span>
+                  <span class="font-medium">{{ totalGroupOrders }}</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
                   <div
                     class="bg-blue-600 h-2 rounded-full"
                     :style="{
-                      width: `${Math.min(todayGroupOrders * 5, 100)}%`,
+                      width: `${Math.min(totalGroupOrders * 5, 100)}%`,
                     }"
                   />
                 </div>
@@ -560,8 +560,8 @@
                     t("groupOrders.avgMembers")
                   }}</span>
                   <span class="font-medium"
-                    >{{ avgGroupSize.toFixed(1)
-                    }}{{ t("groupOrders.people") }}</span
+                    >{{ avgGroupSize.toFixed(1) }}
+                    {{ t("groupOrders.people") }}</span
                   >
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -818,7 +818,9 @@
 import { ref, computed, onMounted } from "vue";
 import {
   UserGroupIcon,
+  UsersIcon,
   ClockIcon,
+  CurrencyDollarIcon,
   MagnifyingGlassIcon,
   ArrowPathIcon,
   MapPinIcon,
@@ -827,7 +829,6 @@ import {
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
 import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
-import ShareIcon from "@heroicons/vue/24/outline/ShareIcon";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
@@ -874,9 +875,8 @@ const joinShareCode = ref("");
 
 // 統計數據 - populated from API
 const activeGroupOrders = ref(0);
-const todayGroupOrders = ref(0);
-const totalShares = ref(0);
-const avgCompletionTime = ref(0);
+const totalGroupOrders = ref(0);
+const averageOrderValue = ref(0);
 const avgGroupSize = ref(0);
 
 // 表單數據
@@ -1006,9 +1006,8 @@ const refreshGroupOrders = async () => {
     groupOrders.value = ordersData.map(normalizeGroupOrder);
 
     activeGroupOrders.value = statsData.activeGroupOrders ?? 0;
-    todayGroupOrders.value = statsData.totalGroupOrders ?? 0;
-    totalShares.value = statsData.totalGroupOrders ?? 0;
-    avgCompletionTime.value = 0; // Derived from stats if available
+    totalGroupOrders.value = statsData.totalGroupOrders ?? 0;
+    averageOrderValue.value = statsData.averageOrderValue ?? 0;
     avgGroupSize.value = statsData.averageGroupSize ?? 0;
 
     // Update selected order with fresh data
