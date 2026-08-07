@@ -4,6 +4,12 @@
 
 This repository is a `pnpm` workspace monorepo. Application code lives in `apps/`: the Vue front-ends `customer-app`, `admin-dashboard`, `kitchen-display`, `management-portal`, and `onboarding-app`; the Cloudflare Workers `api`, `management-api`, `realtime`, `image-processor`, and `backup-scheduler`; and the local Node daemon `print-agent`. Shared code lives in `packages/` (`shared`, `shared-types`, `database`, `utils`, `testing-utils`, `auth-client`, `ai-analytics`, `queue-core`, `queue-service`). Cross-project tests and fixtures live in `tests/` with `unit`, `integration`, `e2e`, `visual`, `performance`, and `security` subfolders. Longer design and operational docs belong in `docs/`.
 
+## Codebase Memory MCP Notes
+
+Treat `get_architecture().packages[].fan_in` and `fan_out` as unreliable in this repo. The values have been observed as all zero even while `get_architecture().boundaries` reports real cross-app/package calls. Do not interpret zero package fan-in or fan-out as "no dependencies"; it is a false negative risk in the current MCP output.
+
+Also do not use `get_architecture().packages[]` as the complete workspace package inventory. It appears to be a truncated/high-node-count summary and can omit important low-node-count packages such as `shared-types`, `backup-scheduler`, and `onboarding-app`. For cross-package dependency questions, prefer `get_architecture().boundaries`, targeted graph queries over `IMPORTS`, and the workspace metadata in `pnpm-workspace.yaml`, `package.json`, and `tsconfig*.json`.
+
 ## Build, Test, and Development Commands
 
 Use `pnpm` only. Key commands:

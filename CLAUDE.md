@@ -375,6 +375,43 @@ There is no `scripts/check-factory-usage.cjs` gate in this repository.
 - Note: there is **no** unauthenticated `/api/v1/health` route anymore. The old router was replaced by the System/Monitoring features; public smoke checks should use `/info`.
 - Error tracking: Automatic Slack notifications
 
+### codebase-memory MCP: `get_architecture` gotchas
+
+Two fields in `get_architecture` return misleading values. Both are upstream
+bugs in the compiled MCP binary (`~/.local/bin/codebase-memory-mcp`, no local
+source) — work around them, don't re-diagnose them.
+
+1. **`packages[].fan_in` / `fan_out` are always `0`.** They are simply never
+   computed. The `0` does **not** mean "no cross-package dependencies" — the
+   underlying `IMPORTS` edges exist and workspace aliases *are* resolved
+   (`@makanmakan/database` → `packages/database/src`). Do not conclude that
+   tree-sitter failed on alias resolution, and do not fall back to reading
+   `package.json` by hand.
+
+   To answer "which app depends on which package", use either:
+   - the **`boundaries`** field in the same `get_architecture` response
+     (`api→utils` 197 calls, `api→database` 62, …), or
+   - `query_graph` for the full import matrix:
+
+   ```cypher
+   MATCH (a)-[r:IMPORTS]->(b)
+   WHERE b.file_path STARTS WITH 'packages/'
+   RETURN a.file_path, b.file_path, count(r) AS n ORDER BY n DESC
+   ```
+
+2. **`packages[]` is not a package inventory.** It appears to be truncated to
+   the top 15 by `node_count`, so type-only packages fall off. `shared-types`
+   is missing despite being the most-imported package in the repo;
+   `backup-scheduler` and `onboarding-app` are missing too. Use it as a rough
+   "which packages are big" hint only — never as a completeness check.
+
+Cypher note: `query_graph`'s WHERE clause only accepts a **literal** on the
+right-hand side. Property-to-property comparison fails to parse regardless of
+operator — `a.file_path = b.file_path`, `!=`, and `<>` all error with
+`expected value at pos N` pointing just past the left operand. Filter against
+literals (`STARTS WITH 'packages/'`, `IS NOT NULL`) and do any cross-property
+comparison after the rows come back.
+
 ## Documentation
 
 See `docs/README.md` for full documentation navigation, and `docs/archive/CHANGELOG.md` for detailed changelog.
