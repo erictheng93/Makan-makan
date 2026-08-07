@@ -693,26 +693,6 @@ app.delete(
       throw badRequest("Failed to cancel order");
     }
 
-    // Clear the guest-order active-order KV key (if any) so that device can
-    // order again. The reverse mapping is written by the guest-orders create
-    // route as `guest_active_lookup:{orderId}` and points back to the actual
-    // `guest_active:{restaurantId}:token:{guestToken}` key.
-    try {
-      const lookupKey = `guest_active_lookup:${id}`;
-      const activeOrderKey = await c.env.CACHE_KV.get(lookupKey);
-      if (activeOrderKey) {
-        await Promise.allSettled([
-          c.env.CACHE_KV.delete(activeOrderKey),
-          c.env.CACHE_KV.delete(lookupKey),
-        ]);
-      }
-    } catch (err) {
-      logger.warn("Failed to clear guest_active KV on admin cancel", {
-        orderId: id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-
     return c.json({
       success: true,
       message: "Order cancelled successfully",
