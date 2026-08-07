@@ -12,10 +12,13 @@ import {
 } from "@makanmakan/shared-types";
 import {
   clearHostCredentials,
+  clearMemberCredentials,
   readHostCredentials,
+  readMemberCredentials,
   saveHostCredentials,
+  saveMemberCredentials,
   updateHostMemberToken,
-} from "@/utils/groupOrderHost";
+} from "@/utils/groupOrderSession";
 
 // ============================================================================
 // Types
@@ -173,14 +176,28 @@ const memberSessions = new Map<string, MemberSession>();
 
 function saveMemberSession(session: MemberSession): void {
   memberSessions.set(session.groupOrderId, session);
+  saveMemberCredentials(session);
 }
 
 function readMemberSession(groupOrderId: string): MemberSession | null {
-  return memberSessions.get(groupOrderId) ?? null;
+  const session = memberSessions.get(groupOrderId);
+  if (session) return session;
+
+  const stored = readMemberCredentials(groupOrderId);
+  if (!stored) return null;
+
+  const restored = {
+    groupOrderId: stored.groupOrderId,
+    memberId: stored.memberId,
+    memberToken: stored.memberToken,
+  };
+  memberSessions.set(groupOrderId, restored);
+  return restored;
 }
 
 function clearMemberSession(groupOrderId: string): void {
   memberSessions.delete(groupOrderId);
+  clearMemberCredentials(groupOrderId);
 }
 
 function timestamp(value: string | Date | number | null | undefined): number {
@@ -420,6 +437,7 @@ export function useGroupOrder(options: {
         saveHostCredentials({
           groupOrderId,
           memberToken: response.memberToken,
+          memberId: currentMemberId.value,
           recoveryCode: response.recoveryCode,
         });
         await loadGroupOrder(groupOrderId, response);
@@ -555,7 +573,12 @@ export function useGroupOrder(options: {
 
     memberToken.value = credentials.memberToken;
     recoveryCode.value = credentials.recoveryCode;
-    if (groupOrder.value?.id === groupOrderId && groupOrder.value.hostId) {
+    if (credentials.memberId) {
+      currentMemberId.value = credentials.memberId;
+    } else if (
+      groupOrder.value?.id === groupOrderId &&
+      groupOrder.value.hostId
+    ) {
       currentMemberId.value = groupOrder.value.hostId;
     }
   }
@@ -781,6 +804,7 @@ export function useGroupOrder(options: {
     saveHostCredentials({
       groupOrderId,
       memberToken: response.memberToken,
+      memberId: groupOrder.value?.hostId,
       recoveryCode: storedRecoveryCode,
     });
     updateHostMemberToken(groupOrderId, response.memberToken);

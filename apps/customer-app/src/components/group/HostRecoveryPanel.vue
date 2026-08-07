@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
-import { readHostCredentials } from "@/utils/groupOrderHost";
+import { readHostCredentials } from "@/utils/groupOrderSession";
 
 const props = defineProps<{
   groupOrderId: string;

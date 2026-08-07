@@ -43,7 +43,7 @@ import { apiClient } from "@/services/api";
 import {
   readHostCredentials,
   saveHostCredentials,
-} from "@/utils/groupOrderHost";
+} from "@/utils/groupOrderSession";
 import { useGroupOrder } from "./useGroupOrder";
 
 /**
@@ -474,6 +474,21 @@ describe("useGroupOrder — host credentials", () => {
     );
   });
 
+  it("keeps the host member id after a page reload", async () => {
+    await createHostedGroup();
+
+    vi.resetModules();
+    const { useGroupOrder: useFreshGroupOrder } =
+      await import("./useGroupOrder");
+
+    const group = useFreshGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await group.loadGroupOrder("go-1");
+
+    expect(group.currentMemberId.value).toBe("m-1");
+    expect(group.isHost.value).toBe(true);
+  });
+
   it("recovers the host session and keeps the recovery code", async () => {
     saveHostCredentials({
       groupOrderId: "go-1",
@@ -757,6 +772,27 @@ describe("useGroupOrder — a member's session outlives the instance", () => {
     // put this member's food on someone else's split bill.
     expect(viewing.currentMemberId.value).toBe("m-2");
     expect(viewing.isHost.value).toBe(false);
+  });
+
+  it("restores the member after a page reload", async () => {
+    await joinOnOneInstance();
+
+    vi.resetModules();
+    const { useGroupOrder: useFreshGroupOrder } =
+      await import("./useGroupOrder");
+
+    const viewing = useFreshGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+    await viewing.loadGroupOrder("go-1");
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ token: "rt-1" });
+    await viewing.connectToGroupOrder("go-1");
+
+    expect(viewing.currentMemberId.value).toBe("m-2");
+    expect(apiClient.post).toHaveBeenLastCalledWith(
+      "/realtime/auth/group-token",
+      expect.objectContaining({ memberToken: "member-session-1" }),
+    );
   });
 
   it("does not lend a member's session to a different group order", async () => {

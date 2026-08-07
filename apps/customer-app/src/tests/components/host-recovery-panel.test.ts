@@ -12,7 +12,7 @@ vi.mock("@/composables/useI18n", () => ({
 }));
 
 import HostRecoveryPanel from "@/components/group/HostRecoveryPanel.vue";
-import { saveHostCredentials } from "@/utils/groupOrderHost";
+import { saveHostCredentials } from "@/utils/groupOrderSession";
 
 function mountPanel() {
   return mount(HostRecoveryPanel, { props: { groupOrderId: "go-1" } });
