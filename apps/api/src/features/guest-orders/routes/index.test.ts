@@ -137,6 +137,11 @@ function createRoutesWithApiErrorHandler() {
   return app;
 }
 
+// A well-formed guest token (`gt_` + 32-byte hex). The route only rebuilds a
+// lock key from tokens that match that shape, so cancel-path tests must use a
+// realistic one rather than a placeholder string.
+const CANCELLING_GUEST_TOKEN = `gt_${"c".repeat(64)}`;
+
 describe("guest order routes", () => {
   beforeEach(() => {
     databaseMocks.selectQueue.length = 0;
@@ -565,7 +570,7 @@ describe("guest order routes", () => {
     const response = await routes.fetch(
       new Request("https://test/501/cancel", {
         method: "POST",
-        headers: { Authorization: "Bearer gt_test_token" },
+        headers: { Authorization: `Bearer ${CANCELLING_GUEST_TOKEN}` },
       }),
       env as never,
     );
@@ -577,16 +582,18 @@ describe("guest order routes", () => {
       data: { order: { status: "cancelled" } },
     });
     expect(cancelOrder).toHaveBeenCalledWith("501", "Cancelled by guest");
+    // No reverse lookup is stored, so the lock key is rebuilt from the token
+    // this request presented — the same token that created the order.
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
-      "guest_active:restaurant-1:678",
+      `guest_active:restaurant-1:token:${CANCELLING_GUEST_TOKEN}`,
     );
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:501");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
-      "guest_token:gt_test_token",
+      `guest_token:${CANCELLING_GUEST_TOKEN}`,
     );
   });
 
-  it("clears the anon: active-order lock via reverse lookup on guest cancel", async () => {
+  it("prefers the reverse lookup over the rebuilt key on guest cancel", async () => {
     getOrder.mockResolvedValue({
       id: 501,
       status: "pending",
@@ -596,26 +603,24 @@ describe("guest order routes", () => {
       status: "cancelled",
     });
     const env = createEnv();
-    // Anonymous guest: the active-order lock was keyed by client IP at
-    // creation, not by phoneLastDigits. The reverse lookup points at it.
-    const anonKey = "guest_active:restaurant-1:anon:203.0.113.9";
-    await env.CACHE_KV.put("guest_active_lookup:501", anonKey);
+    // The device rotated its token since the order was created (it ordered
+    // again elsewhere), so the key stored at creation is the authority.
+    const creationKey = `guest_active:restaurant-1:token:gt_${"b".repeat(64)}`;
+    await env.CACHE_KV.put("guest_active_lookup:501", creationKey);
 
     const response = await routes.fetch(
       new Request("https://test/501/cancel", {
         method: "POST",
-        headers: { Authorization: "Bearer gt_test_token" },
+        headers: { Authorization: `Bearer ${CANCELLING_GUEST_TOKEN}` },
       }),
       env as never,
     );
 
     expect(response.status).toBe(200);
-    // The IP-scoped key must be deleted, not the (wrong) reconstructed
-    // `guest_active:restaurant-1:678` key.
-    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(anonKey);
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith(creationKey);
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("guest_active_lookup:501");
     expect(env.CACHE_KV.delete).not.toHaveBeenCalledWith(
-      "guest_active:restaurant-1:678",
+      `guest_active:restaurant-1:token:${CANCELLING_GUEST_TOKEN}`,
     );
   });
 
