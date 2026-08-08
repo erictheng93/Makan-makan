@@ -98,6 +98,7 @@ const jaJP: Messages = {
         "サイズ・追加オプション・オプショングループには名前が必要で、グループには少なくとも 1 つの選択肢が必要です。",
       copyOptionsFrom: "他の商品からオプションをコピー…",
       copyOptionsApply: "適用",
+      optionMaxQuantity: "最大数量",
       optionMaxSelections: "最大選択数",
       moveUp: "上へ",
       moveDown: "下へ",

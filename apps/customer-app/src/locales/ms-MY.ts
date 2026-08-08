@@ -1,5 +1,7 @@
 export const waitingListMsMy = {
   customizationLimits: {
+    decrease: "Kurangkan",
+    increase: "Tambah",
     maxSelections: "Pilih sehingga {count}",
   },
   waitingList: {

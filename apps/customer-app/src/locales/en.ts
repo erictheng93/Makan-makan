@@ -1,5 +1,7 @@
 export const waitingListEn = {
   customizationLimits: {
+    decrease: "Decrease",
+    increase: "Increase",
     maxSelections: "Pick up to {count}",
   },
   waitingList: {

@@ -288,10 +288,10 @@
               {{ t("customization.addOns") }}
             </h4>
             <div class="space-y-2">
-              <label
+              <div
                 v-for="addOn in item.options.addOns"
                 :key="addOn.id"
-                class="flex items-center justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200"
+                class="flex items-center justify-between p-3.5 rounded-2xl transition-all duration-200"
                 :class="{
                   'bg-ios-blue/10 shadow-card-sm': selectedAddOns.includes(
                     getAddOnKey(addOn),
@@ -301,7 +301,7 @@
                   ),
                 }"
               >
-                <div class="flex items-center">
+                <label class="flex flex-1 items-center cursor-pointer">
                   <input
                     v-model="selectedAddOns"
                     type="checkbox"
@@ -343,11 +343,45 @@
                       {{ addOn.description }}
                     </div>
                   </div>
+                </label>
+                <div class="flex items-center gap-3">
+                  <!-- Sits outside the label on purpose: inside it, every tap
+                       on a stepper would also toggle the checkbox. -->
+                  <div
+                    v-if="showsQuantityStepper(addOn)"
+                    class="flex items-center gap-2"
+                  >
+                    <button
+                      type="button"
+                      :data-testid="`addon-decrease-${addOn.id}`"
+                      :aria-label="t('customizationLimits.decrease')"
+                      :disabled="addOnQuantity(addOn) <= 1"
+                      class="w-7 h-7 rounded-full bg-white text-ios-text font-semibold disabled:opacity-30"
+                      @click="changeAddOnQuantity(addOn, -1)"
+                    >
+                      −
+                    </button>
+                    <span
+                      :data-testid="`addon-quantity-${addOn.id}`"
+                      class="min-w-4 text-center text-sm font-medium text-ios-text"
+                      >{{ addOnQuantity(addOn) }}</span
+                    >
+                    <button
+                      type="button"
+                      :data-testid="`addon-increase-${addOn.id}`"
+                      :aria-label="t('customizationLimits.increase')"
+                      :disabled="isAddOnAtMaxQuantity(addOn)"
+                      class="w-7 h-7 rounded-full bg-white text-ios-text font-semibold disabled:opacity-30"
+                      @click="changeAddOnQuantity(addOn, 1)"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div class="text-sm font-medium text-ios-text">
+                    +{{ formatPrice(addOn.price * addOnQuantity(addOn)) }}
+                  </div>
                 </div>
-                <div class="text-sm font-medium text-ios-text">
-                  +{{ formatPrice(addOn.price) }}
-                </div>
-              </label>
+              </div>
             </div>
           </div>
         </div>
@@ -438,6 +472,53 @@ const isChoiceBlockedByCap = (option: any, choice: any): boolean => {
   return selected.length >= max && !selected.includes(getChoiceKey(choice));
 };
 
+/**
+ * Add-on quantities. The order service has always accepted a quantity and
+ * bounded it by `maxQuantity`; this modal used to hardcode 1, so "加購兩份蛋"
+ * meant adding the item to the cart twice.
+ */
+const addOnQuantities = ref<Record<string, number>>({});
+
+const maxAddOnQuantity = (addOn: any): number | undefined => {
+  const max = addOn?.maxQuantity;
+  return typeof max === "number" && Number.isInteger(max) && max > 0
+    ? max
+    : undefined;
+};
+
+const addOnQuantity = (addOn: any): number => {
+  const chosen = addOnQuantities.value[getAddOnKey(addOn)] ?? 1;
+  const max = maxAddOnQuantity(addOn);
+  return max === undefined ? chosen : Math.min(chosen, max);
+};
+
+// A cap of exactly 1 leaves nothing to step through, so the row stays a plain
+// checkbox rather than growing controls that can never move.
+const showsQuantityStepper = (addOn: any): boolean =>
+  selectedAddOns.value.includes(getAddOnKey(addOn)) &&
+  maxAddOnQuantity(addOn) !== 1;
+
+const isAddOnAtMaxQuantity = (addOn: any): boolean => {
+  const max = maxAddOnQuantity(addOn);
+  return max !== undefined && addOnQuantity(addOn) >= max;
+};
+
+// Drop the count when an add-on is unticked, so re-ticking starts at one
+// instead of silently restoring a quantity the customer already dismissed.
+watch(selectedAddOns, (selected) => {
+  for (const key of Object.keys(addOnQuantities.value)) {
+    if (!selected.includes(key)) delete addOnQuantities.value[key];
+  }
+});
+
+const changeAddOnQuantity = (addOn: any, delta: number) => {
+  const max = maxAddOnQuantity(addOn);
+  const next = addOnQuantity(addOn) + delta;
+  if (next < 1) return;
+  if (max !== undefined && next > max) return;
+  addOnQuantities.value[getAddOnKey(addOn)] = next;
+};
+
 const getAddOnKey = (addOn: any): string => {
   return String(addOn.id || "");
 };
@@ -496,7 +577,7 @@ const totalPrice = computed(() => {
         (a) => getAddOnKey(a) === addOnId,
       );
       if (addOn) {
-        price += addOn.price;
+        price += addOn.price * addOnQuantity(addOn);
       }
     }
   }
@@ -620,12 +701,13 @@ const handleConfirm = () => {
       const addOn = props.item!.options!.addOns!.find(
         (a) => getAddOnKey(a) === addOnId,
       )!;
+      const quantity = addOnQuantity(addOn);
       return {
         id: addOn.id,
         name: addOn.name,
         unitPrice: addOn.price,
-        quantity: 1,
-        totalPrice: addOn.price,
+        quantity,
+        totalPrice: addOn.price * quantity,
       };
     });
   }
@@ -639,6 +721,7 @@ const resetForm = () => {
   selectedOptions.value = {};
   selectedMultipleOptions.value = {};
   selectedAddOns.value = [];
+  addOnQuantities.value = {};
 };
 
 // 監聽 show 屬性變化

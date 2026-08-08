@@ -94,6 +94,8 @@ export interface MenuItemOptions {
       priceModifier?: number; // alias for priceAdjustment
     }[];
     required?: boolean;
+    /** Multiple-choice groups only. Enforced by the modal and by the order service. */
+    maxSelections?: number;
   }[];
   addOns?: {
     id: string;
@@ -101,6 +103,8 @@ export interface MenuItemOptions {
     price: number; // in cents
     available?: boolean;
     description?: string;
+    /** Per-order cap. Enforced by the modal and by the order service. */
+    maxQuantity?: number;
   }[];
 }
 

@@ -821,6 +821,34 @@ describe("MenuView", () => {
     );
   });
 
+  it("sends an add-on quantity cap, and omits it when left blank", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="menu-item-name-input"]').setValue("Rice");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(1200);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    await wrapper.get('[data-testid="add-addon-option"]').trigger("click");
+    await wrapper.get('[data-testid="add-addon-option"]').trigger("click");
+
+    wrapper.vm.menuItemForm.addOns[0].name = "加蛋";
+    wrapper.vm.menuItemForm.addOns[0].maxQuantity = 2;
+    wrapper.vm.menuItemForm.addOns[1].name = "加飯";
+
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    const payload = saveMenuItem.mock.calls.at(-1)![0] as {
+      options: { addOns: Array<Record<string, unknown>> };
+    };
+    expect(payload.options.addOns[0].maxQuantity).toBe(2);
+    // Blank means no cap, and the strict schema rejects a null or a 0.
+    expect(payload.options.addOns[1]).not.toHaveProperty("maxQuantity");
+  });
+
   it("reorders option rows", async () => {
     const wrapper = mountMenuView();
     await wrapper
@@ -977,11 +1005,12 @@ describe("MenuView", () => {
 
     // The form is the only editor now, so anything it cannot represent is lost
     // on the next save. Caps must survive a load-and-save round trip.
-    it("keeps a stored selection cap through an edit", async () => {
+    it("keeps stored option caps through an edit", async () => {
       const wrapper = mountMenuView();
       const existing = menuItem({
         ...stored(),
         options: {
+          addOns: [{ id: "egg", name: "Egg", price: 15, maxQuantity: 2 }],
           customizations: [
             {
               id: "toppings",
@@ -999,14 +1028,19 @@ describe("MenuView", () => {
       await editItem(wrapper, existing);
 
       expect(wrapper.vm.menuItemForm.customizations[0].maxSelections).toBe(3);
+      expect(wrapper.vm.menuItemForm.addOns[0].maxQuantity).toBe(2);
 
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
       await flushPromises();
 
       const payload = saveMenuItem.mock.calls.at(-1)![0] as {
-        options: { customizations: Array<Record<string, unknown>> };
+        options: {
+          addOns: Array<Record<string, unknown>>;
+          customizations: Array<Record<string, unknown>>;
+        };
       };
       expect(payload.options.customizations[0].maxSelections).toBe(3);
+      expect(payload.options.addOns[0].maxQuantity).toBe(2);
     });
 
     it("writes them back untouched when nothing was edited", async () => {

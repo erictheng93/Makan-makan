@@ -98,6 +98,7 @@ const zhCN: Messages = {
         "每个尺寸、加购与选项分组都要填名称，分组至少要有一个选项。",
       copyOptionsFrom: "从其他菜品复制选项…",
       copyOptionsApply: "套用",
+      optionMaxQuantity: "最多份数",
       optionMaxSelections: "最多可选",
       moveUp: "上移",
       moveDown: "下移",

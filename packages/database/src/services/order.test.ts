@@ -245,6 +245,64 @@ describe("OrderService order pricing", () => {
       );
     });
 
+    // The seeded egg is capped at 3. Until the modal grew a stepper nothing
+    // could send more than one, so this bound had never been exercised.
+    it("refuses an add-on quantity above its cap", async () => {
+      await expect(
+        service().createOrder({
+          restaurantId,
+          items: [
+            {
+              menuItemId,
+              quantity: 1,
+              customizations: {
+                addOns: [
+                  {
+                    id: "egg",
+                    name: "Egg",
+                    unitPrice: 1,
+                    quantity: 4,
+                    totalPrice: 4,
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(/Add-on egg quantity exceeds maximum/);
+    });
+
+    it("prices a multi-unit add-on from the catalog", async () => {
+      const order = await service().createOrder({
+        restaurantId,
+        items: [
+          {
+            menuItemId,
+            quantity: 1,
+            customizations: {
+              addOns: [
+                {
+                  id: "egg",
+                  name: "Egg",
+                  unitPrice: -99,
+                  quantity: 3,
+                  totalPrice: -297,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      // 10.00 base + 3 x 1.00 catalog price, not the client's numbers.
+      expect(order.subtotal).toBe(13);
+      expect(order.items?.[0].customizations?.addOns?.[0]).toMatchObject({
+        quantity: 3,
+        unitPrice: 1,
+        totalPrice: 3,
+      });
+    });
+
     it("accepts a selection that satisfies every group rule", async () => {
       await seedGroups([
         {

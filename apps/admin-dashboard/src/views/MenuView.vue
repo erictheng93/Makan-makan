@@ -901,7 +901,7 @@
                       <div
                         v-for="(addOn, index) in menuItemForm.addOns"
                         :key="addOn.id"
-                        class="mb-2 grid grid-cols-1 gap-2 last:mb-0 sm:grid-cols-[1fr_120px_auto_auto] sm:items-center"
+                        class="mb-2 grid grid-cols-1 gap-2 last:mb-0 sm:grid-cols-[1fr_120px_120px_auto_auto] sm:items-center"
                       >
                         <input
                           v-model="addOn.name"
@@ -914,6 +914,16 @@
                           type="number"
                           step="0.01"
                           min="0"
+                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                        />
+                        <input
+                          v-model.number="addOn.maxQuantity"
+                          :data-testid="`addon-max-quantity-${index}`"
+                          :placeholder="t('menu.form.optionMaxQuantity')"
+                          :title="t('menu.form.optionMaxQuantity')"
+                          type="number"
+                          min="1"
+                          step="1"
                           class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                         />
                         <label
@@ -1290,6 +1300,7 @@ type AddOnOptionForm = {
   id: string;
   name: string;
   price: NumericFormValue;
+  maxQuantity: NumericFormValue;
   available: boolean;
 };
 type CustomizationChoiceForm = {
@@ -1515,6 +1526,7 @@ const normalizeOptionsForForm = (
       id: optionId("addon", index, addOn.id),
       name: typeof addOn.name === "string" ? addOn.name : "",
       price: asNumber(addOn.price),
+      maxQuantity: asOptionalCount(addOn.maxQuantity),
       available: asBoolean(addOn.available, true),
     })),
     customizations: asArray(record.customizations).map((group, groupIndex) => ({
@@ -1899,6 +1911,7 @@ const addAddOnOption = () => {
     id: optionId("addon", menuItemForm.value.addOns.length),
     name: "",
     price: 0,
+    maxQuantity: "",
     available: true,
   });
 };
@@ -2042,6 +2055,10 @@ const buildStructuredOptions = (): Record<string, unknown> | null => {
       id: addOn.id || optionId("addon", index),
       name: addOn.name.trim(),
       price: numericOrZero(addOn.price),
+      // Strict schema: a positive integer or the key must be absent entirely.
+      ...(positiveCount(addOn.maxQuantity) !== undefined
+        ? { maxQuantity: positiveCount(addOn.maxQuantity) }
+        : {}),
       available: addOn.available,
     }));
 

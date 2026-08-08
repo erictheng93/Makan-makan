@@ -106,6 +106,7 @@ const enUS: Messages = {
         "Every size, add-on and option group needs a name, and every group needs at least one choice.",
       copyOptionsFrom: "Copy options from…",
       copyOptionsApply: "Apply",
+      optionMaxQuantity: "Max quantity",
       optionMaxSelections: "Max choices",
       moveUp: "Move up",
       moveDown: "Move down",

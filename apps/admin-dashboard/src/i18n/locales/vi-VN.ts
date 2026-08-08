@@ -98,6 +98,7 @@ const viVN: Messages = {
         "Mỗi kích cỡ, món thêm và nhóm tùy chọn đều cần có tên, và mỗi nhóm cần ít nhất một lựa chọn.",
       copyOptionsFrom: "Sao chép tùy chọn từ món khác…",
       copyOptionsApply: "Áp dụng",
+      optionMaxQuantity: "Số lượng tối đa",
       optionMaxSelections: "Chọn tối đa",
       moveUp: "Lên",
       moveDown: "Xuống",

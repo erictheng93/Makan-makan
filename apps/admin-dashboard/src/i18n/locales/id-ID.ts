@@ -98,6 +98,7 @@ const idID: Messages = {
         "Setiap ukuran, tambahan, dan grup opsi harus punya nama, dan setiap grup butuh minimal satu pilihan.",
       copyOptionsFrom: "Salin opsi dari item lain…",
       copyOptionsApply: "Terapkan",
+      optionMaxQuantity: "Maks jumlah",
       optionMaxSelections: "Maks pilihan",
       moveUp: "Naik",
       moveDown: "Turun",

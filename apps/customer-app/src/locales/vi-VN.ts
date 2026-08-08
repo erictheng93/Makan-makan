@@ -1,5 +1,7 @@
 export const waitingListViVn = {
   customizationLimits: {
+    decrease: "Giảm",
+    increase: "Tăng",
     maxSelections: "Chọn tối đa {count}",
   },
   waitingList: {

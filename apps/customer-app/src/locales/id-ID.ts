@@ -1,5 +1,7 @@
 export const waitingListIdId = {
   customizationLimits: {
+    decrease: "Kurangi",
+    increase: "Tambah",
     maxSelections: "Pilih maksimal {count}",
   },
   waitingList: {

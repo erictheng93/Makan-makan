@@ -100,6 +100,7 @@ const zhTWCore = {
         "每個尺寸、加購與選項群組都要填名稱，群組至少要有一個選項。",
       copyOptionsFrom: "從其他菜品複製選項…",
       copyOptionsApply: "套用",
+      optionMaxQuantity: "最多份數",
       optionMaxSelections: "最多可選",
       moveUp: "上移",
       moveDown: "下移",
