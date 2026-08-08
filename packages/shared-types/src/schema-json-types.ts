@@ -43,6 +43,10 @@ export interface GroupOrderFinalizeFailure {
   failedAt: string;
 }
 
+export const GROUP_ORDER_FEE_MODES = ["proportional", "equal", "host"] as const;
+
+export type GroupOrderFeeMode = (typeof GROUP_ORDER_FEE_MODES)[number];
+
 /**
  * Group order settings configuration
  */
@@ -66,6 +70,16 @@ export interface GroupOrderSettings {
   deliveryAddress?: GroupOrderDeliveryAddress;
   pickupAt?: string;
   autoSubmitOnExpiry?: boolean;
+  /**
+   * Who carries the service charge and tax — a separate question from
+   * `defaultSplitType`, which only divides the food.
+   *
+   * `proportional` charges each member on what they ordered, `equal` divides
+   * the fees by headcount, `host` puts all of them on the host. Absent means
+   * `proportional`: it is how every group order behaved before the host could
+   * choose.
+   */
+  feeMode?: GroupOrderFeeMode;
   /** Set only when status is `finalizing_failed`. See the interface docs. */
   finalizeFailure?: GroupOrderFinalizeFailure;
   /**

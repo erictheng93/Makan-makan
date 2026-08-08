@@ -22,6 +22,7 @@ import { menuItems } from "@makanmakan/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
+  GroupOrderFeeMode,
   GroupOrderFinalizeFailure,
   GroupOrderSettings,
   SplitBillItem,
@@ -374,6 +375,7 @@ export class GroupOrdersService implements IGroupOrderService {
           // anyone pressing submit is an abandoned table, not an order — the
           // restaurant should not receive a bill nobody confirmed.
           autoSubmitOnExpiry: data.autoSubmitOnExpiry ?? false,
+          feeMode: data.feeMode ?? "proportional",
         },
         totalAmountCents: 0,
         taxAmountCents: 0,
@@ -1574,33 +1576,101 @@ export class GroupOrdersService implements IGroupOrderService {
         totalBaseAmount > 0
           ? (amount * baseAmount) / totalBaseAmount
           : amount / recipientCount;
+      /**
+       * Who carries the shared fees, chosen by the host when the group was
+       * opened. Both branches below have to honour it: the rate branch runs
+       * while the table is still ordering, the shared-amount branch runs when
+       * finalize hands over the real order's charges. Applying it to only one
+       * would make the choice stop mattering at the moment it matters most.
+       */
+      const storedSettings =
+        groupOrder.settings && typeof groupOrder.settings === "object"
+          ? (groupOrder.settings as GroupOrderSettings)
+          : {};
+      const feeMode: GroupOrderFeeMode =
+        splitData.feeMode ?? storedSettings.feeMode ?? "proportional";
+      const hostMemberId = members.find(
+        (member) => member.role === "creator",
+      )?.id;
+
+      /**
+       * The whole fee, before deciding whose bill it lands on.
+       *
+       * `feeBaseTotal` is money — the amount a rate applies to. It is not
+       * `totalBaseAmount`, which is whatever unit the proportional allocation
+       * happens to divide by: the equal-split branch passes a head count
+       * there, so using it here would multiply the rate by the number of
+       * diners.
+       */
+      const wholeFee = (
+        sharedAmount: number,
+        rate: number,
+        feeBaseTotal: number,
+      ) => (hasSharedAmounts ? sharedAmount : feeBaseTotal * rate);
+
+      const allocateByMode = (
+        memberId: string,
+        sharedAmount: number,
+        rate: number,
+        subtotal: number,
+        baseAmount: number,
+        totalBaseAmount: number,
+        feeBaseTotal: number,
+        recipientCount: number,
+      ) => {
+        if (feeMode === "host") {
+          // Nobody but the host sees a fee; the host sees all of it.
+          return memberId === hostMemberId
+            ? wholeFee(sharedAmount, rate, feeBaseTotal)
+            : 0;
+        }
+
+        if (feeMode === "equal") {
+          return (
+            wholeFee(sharedAmount, rate, feeBaseTotal) /
+            Math.max(recipientCount, 1)
+          );
+        }
+
+        return hasSharedAmounts
+          ? allocateSharedAmount(
+              sharedAmount,
+              baseAmount,
+              totalBaseAmount,
+              recipientCount,
+            )
+          : subtotal * rate;
+      };
+
       const calculateCharges = (
         subtotal: number,
         baseAmount: number,
         totalBaseAmount: number,
         recipientCount: number,
-      ) => {
-        if (hasSharedAmounts) {
-          return {
-            serviceCharge: allocateSharedAmount(
-              sharedServiceCharge,
-              baseAmount,
-              totalBaseAmount,
-              recipientCount,
-            ),
-            taxAmount: allocateSharedAmount(
-              sharedTax,
-              baseAmount,
-              totalBaseAmount,
-              recipientCount,
-            ),
-          };
-        }
-
-        const serviceCharge = subtotal * serviceChargeRate;
-        const taxAmount = subtotal * taxRate;
-        return { serviceCharge, taxAmount };
-      };
+        memberId: string,
+        feeBaseTotal: number,
+      ) => ({
+        serviceCharge: allocateByMode(
+          memberId,
+          sharedServiceCharge,
+          serviceChargeRate,
+          subtotal,
+          baseAmount,
+          totalBaseAmount,
+          feeBaseTotal,
+          recipientCount,
+        ),
+        taxAmount: allocateByMode(
+          memberId,
+          sharedTax,
+          taxRate,
+          subtotal,
+          baseAmount,
+          totalBaseAmount,
+          feeBaseTotal,
+          recipientCount,
+        ),
+      });
 
       // Calculate splits based on splitType.
       //
@@ -1636,6 +1706,8 @@ export class GroupOrdersService implements IGroupOrderService {
             subtotal,
             totalCartAmount,
             members.length,
+            member.id,
+            totalCartAmount,
           );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
@@ -1659,14 +1731,24 @@ export class GroupOrdersService implements IGroupOrderService {
         // Split equally among all members
         const memberCount = members.length;
         const subtotalPerMember = totalCartAmount / memberCount;
-        const {
-          serviceCharge: serviceChargePerMember,
-          taxAmount: taxPerMember,
-        } = calculateCharges(subtotalPerMember, 1, memberCount, memberCount);
-        const totalPerMember =
-          subtotalPerMember + serviceChargePerMember + taxPerMember;
 
         for (const member of members) {
+          // Computed per member: under the `host` fee mode these differ, so a
+          // single shared figure would hand everyone the host's bill.
+          const {
+            serviceCharge: serviceChargePerMember,
+            taxAmount: taxPerMember,
+          } = calculateCharges(
+            subtotalPerMember,
+            1,
+            memberCount,
+            memberCount,
+            member.id,
+            totalCartAmount,
+          );
+          const totalPerMember =
+            subtotalPerMember + serviceChargePerMember + taxPerMember;
+
           splitBillsData.push({
             memberId: member.id,
             subtotal: subtotalPerMember,
@@ -1704,6 +1786,8 @@ export class GroupOrdersService implements IGroupOrderService {
             subtotal,
             totalCustomAmount,
             splitData.customAmounts.length,
+            member.id,
+            totalCustomAmount,
           );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
@@ -2366,6 +2450,60 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   /**
+   * Record who carries the service charge and tax.
+   *
+   * Same shape as `setSplitType`: a preference, not an action. It rewrites one
+   * key of the `settings` JSON and leaves status and lockedAt alone, so the
+   * table keeps ordering.
+   */
+  async setFeeMode(
+    groupOrderId: string,
+    feeMode: GroupOrderFeeMode,
+  ): Promise<{
+    success: boolean;
+    data?: { feeMode: GroupOrderFeeMode };
+    error?: string;
+  }> {
+    const timer = this.performance.startTimer("setFeeMode");
+
+    try {
+      const rows = await this.db
+        .select({ settings: groupOrders.settings })
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId))
+        .limit(1);
+
+      const existing = rows[0];
+      if (!existing) {
+        return { success: false, error: "Group order not found" };
+      }
+
+      const settings =
+        existing.settings && typeof existing.settings === "object"
+          ? existing.settings
+          : {};
+
+      await this.db
+        .update(groupOrders)
+        .set({ settings: { ...settings, feeMode }, updatedAt: new Date() })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      await this.cache.delete(`group_order:${groupOrderId}`);
+      await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+      return { success: true, data: { feeMode } };
+    } catch (error) {
+      this.errorTracker.logError("setFeeMode", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to update fee mode", error);
+      return { success: false, error: "Failed to update fee mode" };
+    } finally {
+      this.performance.endTimer(timer);
+    }
+  }
+
+  /**
    * Turn expiry auto-submit on or off for one group order.
    *
    * `settings` is a single JSON column, so this reads it back and rewrites the
@@ -2805,6 +2943,8 @@ export class GroupOrdersService implements IGroupOrderService {
       // `splitBill` already translates between them. Without this the client
       // sees `undefined` and falls back to a mode nobody chose.
       splitType: data.splitType === "individual" ? "by_item" : data.splitType,
+      // Absent means the mode every group used before the host could choose.
+      feeMode: settings.feeMode ?? "proportional",
       // Surfaced because the host's toggle has to render the current state.
       // Rows written before the setting existed read as off, which matches the
       // default the service now applies.

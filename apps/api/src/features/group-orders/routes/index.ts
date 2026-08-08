@@ -515,6 +515,35 @@ app.put(
 );
 
 /**
+ * Choose who carries the service charge and tax
+ * PUT /api/v1/orders/group/{groupOrderId}/fee-mode
+ *
+ * Host only, and a preference like /split-type — it records the choice the
+ * split will use, it does not perform one.
+ */
+app.put(
+  "/:groupOrderId/fee-mode",
+  publicRateLimit,
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateBody(groupOrderSchemas.feeModePreference),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const { feeMode, memberToken } = c.get("validatedBody");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
+
+    const result = await groupOrderService.setFeeMode(groupOrderId, feeMode);
+
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to update fee mode");
+    }
+
+    return c.json({ success: true, data: result.data });
+  },
+);
+
+/**
  * Turn expiry auto-submit on or off
  * PUT /api/v1/orders/group/{groupOrderId}/auto-submit
  *

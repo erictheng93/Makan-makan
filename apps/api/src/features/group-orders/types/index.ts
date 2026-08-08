@@ -7,6 +7,7 @@ import type { BaseEntity } from "../../../shared/types";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
+  GroupOrderFeeMode,
   GroupOrderStatus,
 } from "@makanmakan/shared-types";
 
@@ -26,6 +27,8 @@ export interface GroupOrder extends Omit<BaseEntity, "id"> {
   splitType: string;
   /** Whether expiry submits the cart as a real order. Host-controlled. */
   autoSubmitOnExpiry: boolean;
+  /** Who carries the service charge and tax. Host-controlled. */
+  feeMode: GroupOrderFeeMode;
   permissions: GroupOrderPermissions;
   totalAmount: number;
   finalizedAt?: Date;
@@ -128,6 +131,7 @@ export interface CreateGroupOrderRequest {
   };
   pickupAt?: string;
   autoSubmitOnExpiry?: boolean;
+  feeMode?: GroupOrderFeeMode;
 }
 
 export interface CreateGroupOrderResponse {
@@ -186,6 +190,8 @@ export interface UpdateCartItemRequest {
 
 export interface SplitBillRequest {
   splitType: "equal" | "proportional" | "individual" | "by_item" | "custom";
+  /** Overrides the group's stored choice; finalize relies on the stored one. */
+  feeMode?: GroupOrderFeeMode;
   /** Fractional rate, for example 0.1 means 10%. */
   serviceChargeRate?: number;
   /** Fractional rate, for example 0.05 means 5%. */

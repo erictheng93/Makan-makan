@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { GROUP_ORDER_FEE_MODES } from "@makanmakan/shared-types";
 
 // Reusable sanitizing schema for free-text user input (C10 release gate).
 // Removes HTML metacharacters instead of trying to strip whole tags/attributes,
@@ -65,6 +66,7 @@ export const createGroupOrderSchema = z
       .optional(),
     pickupAt: z.iso.datetime().optional(),
     autoSubmitOnExpiry: z.boolean().optional(),
+    feeMode: z.enum(GROUP_ORDER_FEE_MODES).optional(),
   })
   .refine(
     (data) => data.fulfillmentType !== "delivery" || !!data.deliveryAddress,
@@ -155,6 +157,17 @@ export const removeCartItemSchema = z.object({
 export const splitTypePreferenceSchema = z.object({
   splitType: z.enum(["equal", "by_item", "proportional"], {
     error: "Split type must be one of: equal, by_item, proportional",
+  }),
+  memberToken: z.string().min(1).max(255).optional(),
+});
+
+/**
+ * Who carries the service charge and tax. Separate from the split type, which
+ * only divides the food.
+ */
+export const feeModePreferenceSchema = z.object({
+  feeMode: z.enum(GROUP_ORDER_FEE_MODES, {
+    error: "Fee mode must be one of: proportional, equal, host",
   }),
   memberToken: z.string().min(1).max(255).optional(),
 });
@@ -448,6 +461,7 @@ export const groupOrderSchemas = {
   removeCartItem: removeCartItemSchema,
   autoSubmitOnExpiry: autoSubmitOnExpirySchema,
   splitTypePreference: splitTypePreferenceSchema,
+  feeModePreference: feeModePreferenceSchema,
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
   recoverHost: recoverHostSchema,

@@ -1309,6 +1309,201 @@ describe("GroupOrdersService formatting and cache behavior", () => {
    * as a group — and a restaurant that set serviceChargeRate to 0.1 for its
    * normal orders would have billed group members 0.1% instead of 10%.
    */
+  /**
+   * Who carries the service charge and tax is a separate question from how the
+   * food is divided, and the host answers it when opening the group:
+   *
+   *   proportional — each member pays fees on what they ordered (the default,
+   *                  and what every group order did before there was a choice)
+   *   equal        — the fees are divided by headcount, so a light eater
+   *                  subsidises a heavy one
+   *   host         — the host picks up all of it and nobody else sees a fee
+   *
+   * Same cart in all three: member-1 (the host) ordered 10, member-2 ordered
+   * 30, and a 10% service charge means 4 to place somewhere.
+   */
+  /**
+   * The host can change their mind while the table is still ordering, the same
+   * way they can change the split method. Like that one it records a choice —
+   * it must not lock the group, and it must not lose the rest of `settings`.
+   */
+  it("changes the fee choice without locking the group or losing settings", async () => {
+    const service = createService();
+    const db = createDb([
+      [
+        {
+          id: "group-1",
+          settings: { maxMembers: 8, autoSubmitOnExpiry: true },
+        },
+      ],
+    ]);
+    service.db = db;
+
+    await expect(service.setFeeMode("group-1", "equal")).resolves.toMatchObject(
+      { success: true },
+    );
+
+    const written = db.updates.at(-1)?.payload as Record<string, unknown>;
+    expect(written).toMatchObject({
+      settings: {
+        maxMembers: 8,
+        autoSubmitOnExpiry: true,
+        feeMode: "equal",
+      },
+    });
+    expect(written).not.toHaveProperty("status");
+    expect(written).not.toHaveProperty("lockedAt");
+  });
+
+  it("refuses to change the fee choice on a group order that is gone", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(service.setFeeMode("missing", "host")).resolves.toMatchObject({
+      success: false,
+    });
+  });
+
+  it("carries the fee choice out to the client", () => {
+    const service = createService();
+
+    expect(
+      service.formatGroupOrder({
+        ...baseGroupOrder,
+        settings: { feeMode: "host" },
+      }),
+    ).toMatchObject({ feeMode: "host" });
+
+    // Absence means the mode every older group was charged under.
+    expect(service.formatGroupOrder(baseGroupOrder)).toMatchObject({
+      feeMode: "proportional",
+    });
+  });
+
+  it("keeps the host's fee choice from the moment the group is opened", async () => {
+    const service = createService();
+    const db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    service.db = db;
+
+    await service.createGroupOrder(
+      { restaurantId: "restaurant-1", feeMode: "host" },
+      null,
+    );
+
+    expect(db.inserts[0].payload).toMatchObject({
+      settings: expect.objectContaining({ feeMode: "host" }),
+    });
+  });
+
+  it("defaults to charging each member on their own items", async () => {
+    const service = createService();
+    const db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    service.db = db;
+
+    await service.createGroupOrder({ restaurantId: "restaurant-1" }, null);
+
+    // Groups opened before the choice existed have no feeMode at all, and they
+    // were all charged this way — so this is what absence has to mean.
+    expect(db.inserts[0].payload).toMatchObject({
+      settings: expect.objectContaining({ feeMode: "proportional" }),
+    });
+  });
+
+  describe("who carries the service charge", () => {
+    function feeSplitDb() {
+      return createSplitDb({
+        members: [hostMember, secondMember],
+        items: [
+          cartItem("cart-1", "member-1", 1000),
+          cartItem("cart-2", "member-2", 3000),
+        ],
+      });
+    }
+
+    it("charges each member on their own items by default", async () => {
+      const service = createService();
+      service.db = feeSplitDb();
+
+      await expect(
+        service.splitBill("group-1", {
+          splitType: "by_item",
+          serviceChargeRate: 0.1,
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: [
+          { memberId: "member-1", subtotal: 10, serviceCharge: 1 },
+          { memberId: "member-2", subtotal: 30, serviceCharge: 3 },
+        ],
+      });
+    });
+
+    it("divides the fee by headcount when the host chose equal", async () => {
+      const service = createService();
+      service.db = feeSplitDb();
+
+      await expect(
+        service.splitBill("group-1", {
+          splitType: "by_item",
+          serviceChargeRate: 0.1,
+          feeMode: "equal",
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: [
+          { memberId: "member-1", subtotal: 10, serviceCharge: 2 },
+          { memberId: "member-2", subtotal: 30, serviceCharge: 2 },
+        ],
+      });
+    });
+
+    it("puts the whole fee on the host when the host chose to absorb it", async () => {
+      const service = createService();
+      service.db = feeSplitDb();
+
+      await expect(
+        service.splitBill("group-1", {
+          splitType: "by_item",
+          serviceChargeRate: 0.1,
+          feeMode: "host",
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: [
+          { memberId: "member-1", subtotal: 10, serviceCharge: 4 },
+          // Nothing beyond what they ate — this is the point of the mode.
+          { memberId: "member-2", subtotal: 30, serviceCharge: 0 },
+        ],
+      });
+    });
+
+    /**
+     * Finalize hands `splitBill` the real order's charges as absolute cents
+     * rather than rates, so the same three answers have to come out of that
+     * path too — otherwise the mode the host picked would apply right up until
+     * the order was actually placed, and then quietly stop.
+     */
+    it("applies the same choice to the amounts finalize passes in", async () => {
+      const service = createService();
+      service.db = feeSplitDb();
+
+      await expect(
+        service.splitBill("group-1", {
+          splitType: "by_item",
+          feeMode: "host",
+          sharedServiceChargeCents: 400,
+          orderTotalCents: 4400,
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: [
+          { memberId: "member-1", serviceCharge: 4 },
+          { memberId: "member-2", serviceCharge: 0 },
+        ],
+      });
+    });
+  });
+
   it("reads rates and charges tax the way an ordinary order does", async () => {
     const service = createService();
     service.db = createSplitDb({

@@ -27,6 +27,8 @@ const groupServiceMocks = vi.hoisted(() => ({
   removeCartItem: vi.fn(),
   setAutoSubmitOnExpiry: vi.fn(),
   setSplitType: vi.fn(),
+  setFeeMode: vi.fn(),
+  setSplitType: vi.fn(),
   isHostSession: vi.fn(),
   isMemberSession: vi.fn(),
   getGroupOrder: vi.fn(),
@@ -131,6 +133,14 @@ describe("group order mutations require proof of who is calling", () => {
     groupServiceMocks.setAutoSubmitOnExpiry.mockResolvedValue({
       success: true,
       data: { autoSubmitOnExpiry: true },
+    });
+    groupServiceMocks.setSplitType.mockResolvedValue({
+      success: true,
+      data: { splitType: "equal" },
+    });
+    groupServiceMocks.setFeeMode.mockResolvedValue({
+      success: true,
+      data: { feeMode: "equal" },
     });
     groupServiceMocks.setSplitType.mockResolvedValue({
       success: true,
@@ -507,6 +517,60 @@ describe("group order mutations require proof of who is calling", () => {
 
       expect(status).toBe(400);
       expect(groupServiceMocks.setSplitType).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Who pays the service charge is the host's call for the same reason the
+   * split method is: a member could otherwise move the whole fee onto the host,
+   * or off themselves and onto everyone else.
+   */
+  describe("PUT /:groupOrderId/fee-mode", () => {
+    it("refuses a caller with no token", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/fee-mode`,
+        { feeMode: "equal" },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.setFeeMode).not.toHaveBeenCalled();
+    });
+
+    it("refuses a member who is not the host", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/fee-mode`,
+        { feeMode: "host", memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.setFeeMode).not.toHaveBeenCalled();
+    });
+
+    it("lets the host change who carries the fee", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/fee-mode`,
+        { feeMode: "host", memberToken: HOST_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.setFeeMode).toHaveBeenCalledWith(
+        GROUP_ORDER_ID,
+        "host",
+      );
+    });
+
+    it("rejects a mode that is not one of the three", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/fee-mode`,
+        { feeMode: "whoever", memberToken: HOST_TOKEN },
+      );
+
+      expect(status).toBe(400);
+      expect(groupServiceMocks.setFeeMode).not.toHaveBeenCalled();
     });
   });
 
