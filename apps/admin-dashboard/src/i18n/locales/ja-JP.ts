@@ -96,6 +96,11 @@ const jaJP: Messages = {
       options: "カスタマイズオプション",
       optionsIncomplete:
         "サイズ・追加オプション・オプショングループには名前が必要で、グループには少なくとも 1 つの選択肢が必要です。",
+      copyOptionsFrom: "他の商品からオプションをコピー…",
+      copyOptionsApply: "適用",
+      optionMaxSelections: "最大選択数",
+      moveUp: "上へ",
+      moveDown: "下へ",
       optionSizes: "サイズ",
       optionAddOns: "追加オプション",
       optionGroups: "オプショングループ",

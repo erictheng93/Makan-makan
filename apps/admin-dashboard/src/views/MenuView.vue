@@ -773,9 +773,43 @@
 
                 <!-- Customization options -->
                 <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
-                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
-                    {{ t("menu.form.options") }}
-                  </h4>
+                  <div
+                    class="mb-3 flex flex-wrap items-center justify-between gap-2"
+                  >
+                    <h4 class="text-[14px] font-bold text-[#1C1C1E]">
+                      {{ t("menu.form.options") }}
+                    </h4>
+                    <div
+                      v-if="optionSourceItems.length"
+                      class="flex items-center gap-2"
+                    >
+                      <select
+                        v-model="optionSourceId"
+                        data-testid="option-source-select"
+                        class="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#1C1C1E] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      >
+                        <option value="">
+                          {{ t("menu.form.copyOptionsFrom") }}
+                        </option>
+                        <option
+                          v-for="source in optionSourceItems"
+                          :key="source.id"
+                          :value="source.id"
+                        >
+                          {{ source.name }}
+                        </option>
+                      </select>
+                      <button
+                        type="button"
+                        data-testid="copy-options"
+                        :disabled="optionSourceId === ''"
+                        class="rounded-full bg-ios-primary/10 px-3 py-1.5 text-[12px] font-semibold text-ios-primary disabled:opacity-40"
+                        @click="applyOptionsFromSource"
+                      >
+                        {{ t("menu.form.copyOptionsApply") }}
+                      </button>
+                    </div>
+                  </div>
                   <div class="space-y-4">
                     <section class="rounded-xl bg-white p-3">
                       <div class="mb-3 flex items-center justify-between gap-3">
@@ -818,13 +852,35 @@
                           />
                           {{ t("menu.form.defaultOption") }}
                         </label>
-                        <button
-                          type="button"
-                          class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
-                          @click="removeSizeOption(index)"
-                        >
-                          {{ t("common.delete") }}
-                        </button>
+                        <div class="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            :data-testid="`move-size-up-${index}`"
+                            :aria-label="t('menu.form.moveUp')"
+                            :disabled="index === 0"
+                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            @click="moveSizeOption(index, -1)"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            :data-testid="`move-size-down-${index}`"
+                            :aria-label="t('menu.form.moveDown')"
+                            :disabled="index === menuItemForm.sizes.length - 1"
+                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            @click="moveSizeOption(index, 1)"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                            @click="removeSizeOption(index)"
+                          >
+                            {{ t("common.delete") }}
+                          </button>
+                        </div>
                       </div>
                     </section>
 
@@ -870,13 +926,35 @@
                           />
                           {{ t("menu.form.isAvailable") }}
                         </label>
-                        <button
-                          type="button"
-                          class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
-                          @click="removeAddOnOption(index)"
-                        >
-                          {{ t("common.delete") }}
-                        </button>
+                        <div class="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            :data-testid="`move-addon-up-${index}`"
+                            :aria-label="t('menu.form.moveUp')"
+                            :disabled="index === 0"
+                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            @click="moveAddOnOption(index, -1)"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            :data-testid="`move-addon-down-${index}`"
+                            :aria-label="t('menu.form.moveDown')"
+                            :disabled="index === menuItemForm.addOns.length - 1"
+                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            @click="moveAddOnOption(index, 1)"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                            @click="removeAddOnOption(index)"
+                          >
+                            {{ t("common.delete") }}
+                          </button>
+                        </div>
                       </div>
                     </section>
 
@@ -902,7 +980,7 @@
                         class="mb-3 rounded-xl bg-[#F9F9FB] p-3 last:mb-0"
                       >
                         <div
-                          class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_auto_auto] sm:items-center"
+                          class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_120px_auto_auto] sm:items-center"
                         >
                           <input
                             v-model="group.name"
@@ -921,6 +999,19 @@
                               {{ t("menu.form.multipleChoice") }}
                             </option>
                           </select>
+                          <input
+                            v-if="group.type === 'multiple'"
+                            v-model.number="group.maxSelections"
+                            :data-testid="`group-max-selections-${groupIndex}`"
+                            :placeholder="t('menu.form.optionMaxSelections')"
+                            :title="t('menu.form.optionMaxSelections')"
+                            type="number"
+                            min="1"
+                            step="1"
+                            class="rounded-xl bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          />
+                          <span v-else />
+
                           <label
                             class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
                           >
@@ -931,13 +1022,38 @@
                             />
                             {{ t("menu.form.requiredOption") }}
                           </label>
-                          <button
-                            type="button"
-                            class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
-                            @click="removeCustomizationGroup(groupIndex)"
-                          >
-                            {{ t("common.delete") }}
-                          </button>
+                          <div class="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              :data-testid="`move-group-up-${groupIndex}`"
+                              :aria-label="t('menu.form.moveUp')"
+                              :disabled="groupIndex === 0"
+                              class="rounded-full bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                              @click="moveCustomizationGroup(groupIndex, -1)"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              :data-testid="`move-group-down-${groupIndex}`"
+                              :aria-label="t('menu.form.moveDown')"
+                              :disabled="
+                                groupIndex ===
+                                menuItemForm.customizations.length - 1
+                              "
+                              class="rounded-full bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                              @click="moveCustomizationGroup(groupIndex, 1)"
+                            >
+                              ↓
+                            </button>
+                            <button
+                              type="button"
+                              class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                              @click="removeCustomizationGroup(groupIndex)"
+                            >
+                              {{ t("common.delete") }}
+                            </button>
+                          </div>
                         </div>
                         <div class="mt-2 space-y-2">
                           <div
@@ -967,18 +1083,54 @@
                               />
                               {{ t("menu.form.defaultOption") }}
                             </label>
-                            <button
-                              type="button"
-                              class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
-                              @click="
-                                removeCustomizationChoice(
-                                  groupIndex,
-                                  choiceIndex,
-                                )
-                              "
-                            >
-                              {{ t("common.delete") }}
-                            </button>
+                            <div class="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                :data-testid="`move-choice-up-${groupIndex}-${choiceIndex}`"
+                                :aria-label="t('menu.form.moveUp')"
+                                :disabled="choiceIndex === 0"
+                                class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                                @click="
+                                  moveCustomizationChoice(
+                                    groupIndex,
+                                    choiceIndex,
+                                    -1,
+                                  )
+                                "
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                :data-testid="`move-choice-down-${groupIndex}-${choiceIndex}`"
+                                :aria-label="t('menu.form.moveDown')"
+                                :disabled="
+                                  choiceIndex === group.choices.length - 1
+                                "
+                                class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                                @click="
+                                  moveCustomizationChoice(
+                                    groupIndex,
+                                    choiceIndex,
+                                    1,
+                                  )
+                                "
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                                @click="
+                                  removeCustomizationChoice(
+                                    groupIndex,
+                                    choiceIndex,
+                                  )
+                                "
+                              >
+                                {{ t("common.delete") }}
+                              </button>
+                            </div>
                           </div>
                           <button
                             type="button"
@@ -1151,6 +1303,7 @@ type CustomizationGroupForm = {
   name: string;
   type: "single" | "multiple";
   required: boolean;
+  maxSelections: NumericFormValue;
   choices: CustomizationChoiceForm[];
 };
 
@@ -1332,6 +1485,12 @@ const asNumber = (value: unknown, fallback = 0): number =>
 const asBoolean = (value: unknown, fallback = false): boolean =>
   typeof value === "boolean" ? value : fallback;
 
+/** Absent caps stay blank in the form and are omitted from the payload again. */
+const asOptionalCount = (value: unknown): NumericFormValue =>
+  typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : "";
+
 const optionId = (prefix: string, index: number, current?: unknown): string =>
   typeof current === "string" && current.trim()
     ? current
@@ -1363,6 +1522,7 @@ const normalizeOptionsForForm = (
       name: typeof group.name === "string" ? group.name : "",
       type: group.type === "multiple" ? "multiple" : "single",
       required: asBoolean(group.required),
+      maxSelections: asOptionalCount(group.maxSelections),
       choices: asArray(group.choices).map((choice, choiceIndex) => ({
         id: optionId("choice", choiceIndex, choice.id),
         name: typeof choice.name === "string" ? choice.name : "",
@@ -1609,6 +1769,7 @@ const openAddItemModal = () => {
     updatedAt: undefined,
   };
   previousImageId.value = null;
+  optionSourceId.value = "";
   resetImageUpload();
   showMenuItemModal.value = true;
 };
@@ -1618,6 +1779,7 @@ const editMenuItem = (item: MenuItemData) => {
   menuItemConflict.value = null;
   menuItemMergeSummary.value = null;
   previousImageId.value = item.imageId ?? null;
+  optionSourceId.value = "";
   menuItemForm.value = buildMenuItemForm(item);
   // Snapshot, not a reference to the same object — the form is edited in place.
   menuItemBaseline.value = { ...menuItemForm.value };
@@ -1768,6 +1930,7 @@ const addCustomizationGroup = () => {
     name: "",
     type: "single",
     required: false,
+    maxSelections: "",
     choices: [
       {
         id: "choice-1",
@@ -1783,8 +1946,71 @@ const removeCustomizationGroup = (index: number) => {
   menuItemForm.value.customizations.splice(index, 1);
 };
 
+// Array order is the order the customer sees — `options` is stored as JSON and
+// read back whole, so moving a row is the whole feature.
+const moveInList = <T,>(list: T[], index: number, delta: number) => {
+  const target = index + delta;
+  if (target < 0 || target >= list.length) return;
+  const [row] = list.splice(index, 1);
+  list.splice(target, 0, row);
+};
+
+const moveSizeOption = (index: number, delta: number) =>
+  moveInList(menuItemForm.value.sizes, index, delta);
+
+const moveAddOnOption = (index: number, delta: number) =>
+  moveInList(menuItemForm.value.addOns, index, delta);
+
+const moveCustomizationGroup = (index: number, delta: number) =>
+  moveInList(menuItemForm.value.customizations, index, delta);
+
+const moveCustomizationChoice = (
+  groupIndex: number,
+  choiceIndex: number,
+  delta: number,
+) => {
+  const group = menuItemForm.value.customizations[groupIndex];
+  if (!group) return;
+  moveInList(group.choices, choiceIndex, delta);
+};
+
+// Copying options from a sibling item. Every drink needs the same 甜度/冰塊, and
+// building each one by hand is where owners give up. This copies the rows into
+// the form so they stay editable per item — the two items do not become linked.
+const optionSourceId = ref<number | "">("");
+
+const itemHasOptions = (item: MenuItemData): boolean => {
+  const { sizes, addOns, customizations } = normalizeOptionsForForm(
+    item.options,
+  );
+  return sizes.length > 0 || addOns.length > 0 || customizations.length > 0;
+};
+
+const optionSourceItems = computed(() =>
+  menuItems.value.filter(
+    (item) => item.id !== editingMenuItem.value?.id && itemHasOptions(item),
+  ),
+);
+
+const applyOptionsFromSource = () => {
+  const source = menuItems.value.find(
+    (item) => item.id === optionSourceId.value,
+  );
+  if (!source) return;
+  optionsError.value = "";
+  const copied = normalizeOptionsForForm(source.options);
+  menuItemForm.value.sizes = copied.sizes;
+  menuItemForm.value.addOns = copied.addOns;
+  menuItemForm.value.customizations = copied.customizations;
+};
+
 const numericOrZero = (value: NumericFormValue): number =>
   typeof value === "number" && Number.isFinite(value) ? value : 0;
+
+const positiveCount = (value: NumericFormValue): number | undefined =>
+  typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : undefined;
 
 const nullableInteger = (value: NumericFormValue): number | null => {
   if (value === "" || value === null || value === undefined) return null;
@@ -1829,11 +2055,18 @@ const buildStructuredOptions = (): Record<string, unknown> | null => {
           priceAdjustment: numericOrZero(choice.priceAdjustment),
           isDefault: choice.isDefault,
         }));
+      // A cap on a single-choice group would contradict itself, and the field
+      // is hidden for that type, so a leftover value never reaches the API.
+      const maxSelections =
+        group.type === "multiple"
+          ? positiveCount(group.maxSelections)
+          : undefined;
       return {
         id: group.id || optionId("group", groupIndex),
         name: group.name.trim(),
         type: group.type,
         required: group.required,
+        ...(maxSelections !== undefined ? { maxSelections } : {}),
         choices,
       };
     })

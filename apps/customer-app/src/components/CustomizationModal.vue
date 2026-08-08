@@ -129,9 +129,21 @@
                   <span class="font-medium text-ios-text">{{
                     option.name
                   }}</span>
-                  <span v-if="option.required" class="text-xs text-ios-red">{{
-                    t("customization.required")
-                  }}</span>
+                  <span class="flex items-center gap-2">
+                    <span
+                      v-if="maxSelectionsOf(option)"
+                      :data-testid="`customization-max-${option.id}`"
+                      class="text-xs text-ios-secondary"
+                      >{{
+                        tWithParams("customizationLimits.maxSelections", {
+                          count: maxSelectionsOf(option),
+                        })
+                      }}</span
+                    >
+                    <span v-if="option.required" class="text-xs text-ios-red">{{
+                      t("customization.required")
+                    }}</span>
+                  </span>
                 </div>
 
                 <!-- 單選選項 -->
@@ -206,6 +218,10 @@
                       'bg-gray-50 active:bg-gray-100': !selectedMultipleOptions[
                         getOptionKey(option)
                       ]?.includes(getChoiceKey(choice)),
+                      'opacity-40 cursor-not-allowed': isChoiceBlockedByCap(
+                        option,
+                        choice,
+                      ),
                     }"
                   >
                     <div class="flex items-center">
@@ -213,6 +229,7 @@
                         v-model="selectedMultipleOptions[getOptionKey(option)]"
                         type="checkbox"
                         :value="choice.id"
+                        :disabled="isChoiceBlockedByCap(option, choice)"
                         class="sr-only"
                       />
                       <div
@@ -369,7 +386,7 @@ import type {
   SelectedCustomizations,
 } from "@makanmakan/shared-types";
 
-const { t } = useI18n();
+const { t, tWithParams } = useI18n();
 const { formatPrice } = useCurrency();
 
 // Props
@@ -397,6 +414,28 @@ const getOptionKey = (option: any): string => {
 
 const getChoiceKey = (choice: any): string => {
   return String(choice.id || "");
+};
+
+/**
+ * `maxSelections` caps a multiple-choice group ("pick up to 3 toppings"). The
+ * owner can set it in the admin form, so it has to actually hold here — the
+ * API stores `options` as opaque JSON and never checks it on submit.
+ */
+const maxSelectionsOf = (option: any): number | undefined => {
+  const max = option?.maxSelections;
+  return option?.type === "multiple" &&
+    typeof max === "number" &&
+    Number.isInteger(max) &&
+    max > 0
+    ? max
+    : undefined;
+};
+
+const isChoiceBlockedByCap = (option: any, choice: any): boolean => {
+  const max = maxSelectionsOf(option);
+  if (max === undefined) return false;
+  const selected = selectedMultipleOptions.value[getOptionKey(option)] ?? [];
+  return selected.length >= max && !selected.includes(getChoiceKey(choice));
 };
 
 const getAddOnKey = (addOn: any): string => {
@@ -490,6 +529,17 @@ const isValidSelection = computed(() => {
         ) {
           return false;
         }
+      }
+
+      // The disabled checkboxes above are the guard a customer sees; this is
+      // the one that holds if a selection survives an option list changing
+      // under an open modal.
+      const max = maxSelectionsOf(option);
+      if (
+        max !== undefined &&
+        (selectedMultipleOptions.value[getOptionKey(option)]?.length ?? 0) > max
+      ) {
+        return false;
       }
     }
   }
@@ -606,5 +656,9 @@ watch(
       }
     }
   },
+  // Without this the arrays only exist after `show` flips, so a modal mounted
+  // already open writes a boolean into the v-model instead of pushing into an
+  // array, and every `.includes` on it throws.
+  { immediate: true },
 );
 </script>

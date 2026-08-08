@@ -1,4 +1,7 @@
 export const waitingListZhCn = {
+  customizationLimits: {
+    maxSelections: "最多选 {count} 项",
+  },
   waitingList: {
     minutesShort: "{minutes} 分",
     status: {

@@ -96,6 +96,11 @@ const idID: Messages = {
       options: "Opsi Kustomisasi",
       optionsIncomplete:
         "Setiap ukuran, tambahan, dan grup opsi harus punya nama, dan setiap grup butuh minimal satu pilihan.",
+      copyOptionsFrom: "Salin opsi dari item lain…",
+      copyOptionsApply: "Terapkan",
+      optionMaxSelections: "Maks pilihan",
+      moveUp: "Naik",
+      moveDown: "Turun",
       optionSizes: "Ukuran",
       optionAddOns: "Tambahan",
       optionGroups: "Grup Opsi",

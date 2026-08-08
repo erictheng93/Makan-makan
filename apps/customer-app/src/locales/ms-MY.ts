@@ -1,4 +1,7 @@
 export const waitingListMsMy = {
+  customizationLimits: {
+    maxSelections: "Pilih sehingga {count}",
+  },
   waitingList: {
     minutesShort: "{minutes} min",
     status: {

@@ -753,6 +753,99 @@ describe("MenuView", () => {
     );
   });
 
+  it("copies the option rows of another item into the form", async () => {
+    const wrapper = mountMenuView();
+    // Every drink shares one 甜度 group; rebuilding it by hand per item is what
+    // owners stop doing halfway through the menu.
+    menuItems.value = [
+      menuItem({
+        id: 42,
+        name: "珍珠奶茶",
+        options: {
+          sizes: [{ id: "l", name: "大杯", priceAdjustment: 10 }],
+          customizations: [
+            {
+              id: "sweet",
+              name: "甜度",
+              type: "single",
+              required: true,
+              choices: [{ id: "half", name: "半糖", priceAdjustment: 0 }],
+            },
+          ],
+        },
+      }),
+    ] as never;
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+    await wrapper.get('[data-testid="option-source-select"]').setValue(42);
+    await wrapper.get('[data-testid="copy-options"]').trigger("click");
+
+    expect(wrapper.vm.menuItemForm.sizes[0].name).toBe("大杯");
+    expect(wrapper.vm.menuItemForm.customizations[0].name).toBe("甜度");
+    expect(wrapper.vm.menuItemForm.customizations[0].choices[0].name).toBe(
+      "半糖",
+    );
+  });
+
+  it("never sends a leftover cap on a single-choice group", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="menu-item-name-input"]').setValue("Tea");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(1200);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    await wrapper
+      .get('[data-testid="add-customization-group"]')
+      .trigger("click");
+
+    wrapper.vm.menuItemForm.customizations[0].name = "Toppings";
+    wrapper.vm.menuItemForm.customizations[0].type = "single";
+    // Left over from a switch to single: it must not reach the strict schema.
+    wrapper.vm.menuItemForm.customizations[0].maxSelections = 2;
+    wrapper.vm.menuItemForm.customizations[0].choices[0].name = "Jelly";
+
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    const payload = saveMenuItem.mock.calls.at(-1)![0] as {
+      options: { customizations: Array<Record<string, unknown>> };
+    };
+    expect(payload.options.customizations[0]).not.toHaveProperty(
+      "maxSelections",
+    );
+  });
+
+  it("reorders option rows", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="add-size-option"]').trigger("click");
+    await wrapper.get('[data-testid="add-size-option"]').trigger("click");
+    wrapper.vm.menuItemForm.sizes[0].name = "小碗";
+    wrapper.vm.menuItemForm.sizes[1].name = "大碗";
+    await nextTick();
+
+    await wrapper.get('[data-testid="move-size-down-0"]').trigger("click");
+
+    expect(wrapper.vm.menuItemForm.sizes.map((size) => size.name)).toEqual([
+      "大碗",
+      "小碗",
+    ]);
+    // The top row cannot move up, so the control is not offered.
+    expect(
+      wrapper.get('[data-testid="move-size-up-0"]').attributes("disabled"),
+    ).toBeDefined();
+  });
+
   it("sends inventory fields and keeps unlimited inventory as null", async () => {
     const wrapper = mountMenuView();
     await wrapper
@@ -880,6 +973,40 @@ describe("MenuView", () => {
       expect(wrapper.vm.menuItemForm.customizations[0].choices[0].name).toBe(
         "Mild",
       );
+    });
+
+    // The form is the only editor now, so anything it cannot represent is lost
+    // on the next save. Caps must survive a load-and-save round trip.
+    it("keeps a stored selection cap through an edit", async () => {
+      const wrapper = mountMenuView();
+      const existing = menuItem({
+        ...stored(),
+        options: {
+          customizations: [
+            {
+              id: "toppings",
+              name: "Toppings",
+              type: "multiple",
+              required: false,
+              maxSelections: 3,
+              choices: [{ id: "corn", name: "Corn", priceAdjustment: 5 }],
+            },
+          ],
+        },
+      });
+      menuItems.value = [existing] as never;
+
+      await editItem(wrapper, existing);
+
+      expect(wrapper.vm.menuItemForm.customizations[0].maxSelections).toBe(3);
+
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      const payload = saveMenuItem.mock.calls.at(-1)![0] as {
+        options: { customizations: Array<Record<string, unknown>> };
+      };
+      expect(payload.options.customizations[0].maxSelections).toBe(3);
     });
 
     it("writes them back untouched when nothing was edited", async () => {
