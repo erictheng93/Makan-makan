@@ -37,7 +37,6 @@ import {
 } from "./order-finalization";
 import type {
   CreateOrderData,
-  UpdateOrderData,
   OrderStatusUpdateData,
   OrderQueryFilters,
   OrderSearchParams,
@@ -338,58 +337,6 @@ export class OrdersService implements IOrdersService {
         "Failed to get orders",
         error instanceof Error ? error : undefined,
         { filters },
-      );
-      throw error;
-    }
-  }
-
-  async updateOrder(
-    id: string,
-    data: UpdateOrderData,
-    userId?: string,
-  ): Promise<Order | null> {
-    try {
-      this.logger.info("Updating order", { orderId: id, data, userId });
-
-      const existingOrder = await this.getOrder(id);
-      if (!existingOrder) return null;
-
-      // Update using base service methods
-      let updatedOrder = existingOrder;
-
-      if (data.status !== undefined) {
-        updatedOrder =
-          (await this.baseOrderService.updateOrderStatus(id, {
-            status: data.status,
-            notes: data.notes,
-          })) || updatedOrder;
-      }
-
-      // Handle payment status updates
-      if (data.paymentStatus !== undefined) {
-        const paymentUpdate = await this.updatePaymentStatus(
-          id,
-          data.paymentStatus,
-          data.paymentMethod,
-        );
-        if (paymentUpdate) {
-          updatedOrder = paymentUpdate;
-        }
-      }
-
-      // Clear cache
-      await this.invalidateOrderCache(id);
-
-      // Log activity
-      await this.logOrderActivity(id, "ORDER_UPDATED", userId, data);
-
-      this.logger.info("Order updated successfully", { orderId: id });
-      return updatedOrder;
-    } catch (error) {
-      this.logger.error(
-        "Failed to update order",
-        error instanceof Error ? error : undefined,
-        { orderId: id },
       );
       throw error;
     }
