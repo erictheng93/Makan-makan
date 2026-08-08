@@ -180,6 +180,62 @@ function findCatalogChoice(
   );
 }
 
+/**
+ * Group-level rules: whether a group must be answered, and how many answers it
+ * takes. Everything else about a selection is checked as it is resolved, but
+ * these three can only be judged once the whole item is in hand — "no choice at
+ * all" is invisible from inside the loop over what was chosen.
+ *
+ * They are also the rules the customer app enforces by disabling controls,
+ * which is exactly why they need a second home here: a request that never went
+ * through that UI would otherwise book a required 辣度 as unanswered, or put
+ * five toppings in a group capped at three.
+ */
+/**
+ * Stable prefix so the API layer can answer 400 INVALID_CUSTOMIZATION instead
+ * of letting a client mistake surface as a 500. Matching on message text is the
+ * convention already in use here ("Menu item N is not available"); a shared
+ * prefix keeps it to one pattern instead of three.
+ */
+export const INVALID_CUSTOMIZATION_PREFIX = "Invalid customization:";
+
+function assertCustomizationGroupRules(
+  groups: MenuItemCustomizationGroup[],
+  selectedOptions: NonNullable<SelectedCustomizations["options"]>,
+  menuItemId: number,
+): void {
+  const chosenPerGroup = new Map<string, number>();
+  for (const option of selectedOptions) {
+    chosenPerGroup.set(option.id, (chosenPerGroup.get(option.id) ?? 0) + 1);
+  }
+
+  for (const group of groups) {
+    const chosen = chosenPerGroup.get(group.id) ?? 0;
+
+    if (group.required && chosen === 0) {
+      throw new Error(
+        `${INVALID_CUSTOMIZATION_PREFIX} group ${group.id} is required for menu item ${menuItemId}`,
+      );
+    }
+
+    if (group.type === "single" && chosen > 1) {
+      throw new Error(
+        `${INVALID_CUSTOMIZATION_PREFIX} group ${group.id} accepts a single choice for menu item ${menuItemId}`,
+      );
+    }
+
+    if (
+      group.type === "multiple" &&
+      group.maxSelections != null &&
+      chosen > group.maxSelections
+    ) {
+      throw new Error(
+        `${INVALID_CUSTOMIZATION_PREFIX} group ${group.id} allows at most ${group.maxSelections} choices for menu item ${menuItemId}`,
+      );
+    }
+  }
+}
+
 function resolveCatalogCustomizations(
   menuItem: MenuItemRecord,
   selected: SelectedCustomizations | undefined,
@@ -187,15 +243,11 @@ function resolveCatalogCustomizations(
   customizations: SelectedCustomizations | undefined;
   additionalUnitPriceCents: number;
 } {
-  if (!selected) {
-    return { customizations: undefined, additionalUnitPriceCents: 0 };
-  }
-
   const catalogOptions = menuItem.options ?? {};
   const customizations: SelectedCustomizations = {};
   let additionalUnitPriceCents = 0;
 
-  if (selected.size) {
+  if (selected?.size) {
     const size = catalogOptions.sizes?.find(
       (catalogSize) => catalogSize.id === selected.size?.id,
     );
@@ -217,7 +269,7 @@ function resolveCatalogCustomizations(
     };
   }
 
-  if (selected.options?.length) {
+  if (selected?.options?.length) {
     const groups = catalogOptions.customizations ?? [];
     const seenChoiceIds = new Set<string>();
     customizations.options = selected.options.map((selectedOption) => {
@@ -248,7 +300,7 @@ function resolveCatalogCustomizations(
     });
   }
 
-  if (selected.addOns?.length) {
+  if (selected?.addOns?.length) {
     const catalogAddOns = catalogOptions.addOns ?? [];
     const seenAddOnIds = new Set<string>();
     customizations.addOns = selected.addOns.map(
@@ -298,9 +350,15 @@ function resolveCatalogCustomizations(
     );
   }
 
-  if (selected.specialInstructions) {
+  if (selected?.specialInstructions) {
     customizations.specialInstructions = selected.specialInstructions;
   }
+
+  assertCustomizationGroupRules(
+    catalogOptions.customizations ?? [],
+    customizations.options ?? [],
+    menuItem.id,
+  );
 
   return {
     customizations:

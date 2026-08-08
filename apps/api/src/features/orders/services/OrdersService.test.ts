@@ -17,6 +17,9 @@ const broadcastOrderCancelled = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
 
 vi.mock("@makanmakan/database", () => ({
+  // Must mirror the real export: the service matches base-service errors
+  // against this prefix, so a missing one turns every mapping test red.
+  INVALID_CUSTOMIZATION_PREFIX: "Invalid customization:",
   OrderService: function OrderService() {
     return {
       createOrder: createBaseOrder,
@@ -412,6 +415,28 @@ describe("OrdersService workflows", () => {
     });
     await expect(service.createOrder(input as never)).rejects.toMatchObject({
       code: "WAITING_LIST_PHONE_MISMATCH",
+    });
+  });
+
+  // A refused selection is the request's fault. Left unmapped it reached the
+  // customer as a 500, which the app can only show as a generic failure.
+  it("answers 400 when the catalog refuses a customization", async () => {
+    const service = new OrdersService(createEnv() as never);
+    createBaseOrder.mockRejectedValueOnce(
+      new Error(
+        "Invalid customization: group spice is required for menu item 101",
+      ),
+    );
+
+    await expect(
+      service.createOrder({
+        restaurantId: "restaurant-1",
+        orderType: "table",
+        items: [{ menuItemId: 101, quantity: 1 }],
+      } as never),
+    ).rejects.toMatchObject({
+      code: "INVALID_CUSTOMIZATION",
+      status: 400,
     });
   });
 

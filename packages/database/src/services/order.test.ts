@@ -117,6 +117,179 @@ describe("OrderService order pricing", () => {
     await seedMenuItem(testDb);
   });
 
+  // The customer app enforces these by disabling controls. A request that never
+  // went through that UI has to meet the same rules, or "required" and
+  // "maxSelections" are decorations the owner sets and nothing keeps.
+  describe("customization group rules", () => {
+    const service = () =>
+      new OrderService(testDb.bindings.DB, { JWT_SECRET: "test" });
+
+    async function seedGroups(
+      groups: NonNullable<
+        NonNullable<typeof menuItems.$inferInsert.options>["customizations"]
+      >,
+    ) {
+      await testDb.drizzle
+        .update(menuItems)
+        .set({ options: { customizations: groups } })
+        .where(eq(menuItems.id, menuItemId));
+    }
+
+    it("refuses an order that skips a required group", async () => {
+      await seedGroups([
+        {
+          id: "spice",
+          name: "Spice",
+          type: "single",
+          required: true,
+          choices: [{ id: "hot", name: "Hot", priceAdjustment: 0 }],
+        },
+      ]);
+
+      await expect(
+        service().createOrder({
+          restaurantId,
+          items: [{ menuItemId, quantity: 1 }],
+        }),
+      ).rejects.toThrow(/Invalid customization: group spice is required/);
+    });
+
+    it("refuses two choices from a single-choice group", async () => {
+      await seedGroups([
+        {
+          id: "spice",
+          name: "Spice",
+          type: "single",
+          required: false,
+          choices: [
+            { id: "hot", name: "Hot", priceAdjustment: 0 },
+            { id: "mild", name: "Mild", priceAdjustment: 0 },
+          ],
+        },
+      ]);
+
+      await expect(
+        service().createOrder({
+          restaurantId,
+          items: [
+            {
+              menuItemId,
+              quantity: 1,
+              customizations: {
+                options: [
+                  {
+                    id: "spice",
+                    optionName: "Spice",
+                    choiceId: "hot",
+                    choiceName: "Hot",
+                  },
+                  {
+                    id: "spice",
+                    optionName: "Spice",
+                    choiceId: "mild",
+                    choiceName: "Mild",
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        /Invalid customization: group spice accepts a single choice/,
+      );
+    });
+
+    it("refuses more choices than maxSelections allows", async () => {
+      await seedGroups([
+        {
+          id: "toppings",
+          name: "Toppings",
+          type: "multiple",
+          required: false,
+          maxSelections: 1,
+          choices: [
+            { id: "pearl", name: "Pearl", priceAdjustment: 0 },
+            { id: "jelly", name: "Jelly", priceAdjustment: 0 },
+          ],
+        },
+      ]);
+
+      await expect(
+        service().createOrder({
+          restaurantId,
+          items: [
+            {
+              menuItemId,
+              quantity: 1,
+              customizations: {
+                options: [
+                  {
+                    id: "toppings",
+                    optionName: "Toppings",
+                    choiceId: "pearl",
+                    choiceName: "Pearl",
+                  },
+                  {
+                    id: "toppings",
+                    optionName: "Toppings",
+                    choiceId: "jelly",
+                    choiceName: "Jelly",
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        /Invalid customization: group toppings allows at most 1 choices/,
+      );
+    });
+
+    it("accepts a selection that satisfies every group rule", async () => {
+      await seedGroups([
+        {
+          id: "toppings",
+          name: "Toppings",
+          type: "multiple",
+          required: true,
+          maxSelections: 2,
+          choices: [
+            { id: "pearl", name: "Pearl", priceAdjustment: 0 },
+            { id: "jelly", name: "Jelly", priceAdjustment: 0 },
+          ],
+        },
+      ]);
+
+      const order = await service().createOrder({
+        restaurantId,
+        items: [
+          {
+            menuItemId,
+            quantity: 1,
+            customizations: {
+              options: [
+                {
+                  id: "toppings",
+                  optionName: "Toppings",
+                  choiceId: "pearl",
+                  choiceName: "Pearl",
+                },
+                {
+                  id: "toppings",
+                  optionName: "Toppings",
+                  choiceId: "jelly",
+                  choiceName: "Jelly",
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      expect(order.items?.[0].customizations?.options).toHaveLength(2);
+    });
+  });
+
   it("prices selected customizations from the catalog instead of client prices", async () => {
     const service = new OrderService(testDb.bindings.DB, {
       JWT_SECRET: "test",

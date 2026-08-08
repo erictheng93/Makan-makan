@@ -6,6 +6,7 @@
 import {
   OrderService as BaseOrderService,
   CouponService,
+  INVALID_CUSTOMIZATION_PREFIX,
 } from "@makanmakan/database";
 import {
   Order,
@@ -213,6 +214,12 @@ export class OrdersService implements IOrdersService {
       return order;
     } catch (error) {
       if (error instanceof Error) {
+        // A selection the catalog refuses — an unanswered required group, or
+        // more choices than the group allows. It is the request that is wrong,
+        // so it must not surface as a 500.
+        if (error.message.startsWith(INVALID_CUSTOMIZATION_PREFIX)) {
+          throw badRequest(error.message, "INVALID_CUSTOMIZATION");
+        }
         if (error.message === "WAITING_LIST_PREORDER_EXISTS") {
           throw conflict(
             "A pre-order already exists for this waiting-list ticket",

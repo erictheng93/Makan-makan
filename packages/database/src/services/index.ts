@@ -3,7 +3,7 @@ export { BaseService } from "./base";
 export { USER_ROLES } from "../schema";
 export { RestaurantService } from "./restaurant";
 export { MenuService } from "./menu";
-export { OrderService } from "./order";
+export { OrderService, INVALID_CUSTOMIZATION_PREFIX } from "./order";
 export { AuthService } from "./auth";
 export { UserService } from "./user";
 export { SessionService } from "./session";

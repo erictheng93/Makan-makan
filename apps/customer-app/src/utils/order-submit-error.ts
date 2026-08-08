@@ -28,6 +28,10 @@ const ORDER_SUBMIT_ERROR_KEYS: Record<string, string> = {
   EMPTY_ORDER_ITEMS: "toast.cartCannotBeEmpty",
   TOO_MANY_ORDER_ITEMS: "toast.orderSubmitFailed",
   INVALID_MENU_ITEM_ID: "toast.orderSubmitMenuItemUnavailable",
+  // The server now re-checks required groups and selection caps. A customer
+  // only reaches this if the item's options changed while their modal was
+  // open, so point them back at the item rather than at the cart.
+  INVALID_CUSTOMIZATION: "toast.orderSubmitMenuItemUnavailable",
   INVALID_ITEM_QUANTITY: "toast.orderSubmitFailed",
   ITEM_QUANTITY_EXCEEDED: "toast.orderSubmitFailed",
   INVALID_PHONE_FORMAT: "toast.invalidPhoneNumber",
