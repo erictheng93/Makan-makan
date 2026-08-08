@@ -22,6 +22,9 @@ const groupServiceMocks = vi.hoisted(() => ({
   splitBill: vi.fn(),
   processPayment: vi.fn(),
   leaveGroup: vi.fn(),
+  addCartItem: vi.fn(),
+  updateCartItem: vi.fn(),
+  removeCartItem: vi.fn(),
   isHostSession: vi.fn(),
   isMemberSession: vi.fn(),
   getGroupOrder: vi.fn(),
@@ -53,6 +56,7 @@ const HOST_MEMBER_ID = "018ffb9a-7b8a-7c3d-9f23-1234567890a1";
 const OTHER_MEMBER_ID = "018ffb9a-7b8a-7c3d-9f23-1234567890a2";
 const HOST_TOKEN = "host-session-token";
 const OTHER_TOKEN = "other-session-token";
+const ITEM_ID = "018ffb9a-7b8a-7c3d-9f23-1234567890b1";
 const CSRF = "b".repeat(64);
 
 function buildApp() {
@@ -112,6 +116,16 @@ describe("group order mutations require proof of who is calling", () => {
       data: {},
     });
     groupServiceMocks.leaveGroup.mockResolvedValue({ success: true });
+    groupServiceMocks.addCartItem.mockResolvedValue({
+      success: true,
+      data: { id: ITEM_ID, quantity: 1 },
+      restaurantId: "rest-1",
+    });
+    groupServiceMocks.updateCartItem.mockResolvedValue({
+      success: true,
+      data: { id: ITEM_ID, quantity: 2 },
+    });
+    groupServiceMocks.removeCartItem.mockResolvedValue({ success: true });
     groupServiceMocks.getGroupOrder.mockResolvedValue({
       groupOrder: { id: GROUP_ORDER_ID, restaurantId: "rest-1" },
     });
@@ -233,6 +247,140 @@ describe("group order mutations require proof of who is calling", () => {
 
       expect(status).toBe(200);
       expect(groupServiceMocks.leaveGroup).toHaveBeenCalledOnce();
+    });
+  });
+
+  /**
+   * The cart routes are the ones a table actually hammers — once per dish,
+   * not once per meal like /split or /lock. They take `memberId` from the
+   * body and never check it against anything, so the id that ends up on the
+   * item (and therefore on that person's share of the bill) is whatever the
+   * caller typed. Member ids are not secret either: `GET /:groupOrderId`
+   * lists every member, so possession of the group id is enough to name
+   * someone else.
+   *
+   * The chosen rule is "prove you are who you claim, then edit the shared
+   * cart freely": a member may change or delete anyone's item, but may not
+   * act under another member's name. Attribution has to be honest because it
+   * decides who pays for the dish; editing is deliberately communal.
+   */
+  describe("POST /:groupOrderId/cart", () => {
+    it("refuses a caller with no token", async () => {
+      const { status } = await call(
+        "POST",
+        `/orders/group/${GROUP_ORDER_ID}/cart`,
+        { memberId: OTHER_MEMBER_ID, menuItemId: 101, quantity: 1 },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.addCartItem).not.toHaveBeenCalled();
+    });
+
+    it("refuses a member adding a dish under someone else's name", async () => {
+      // The item carries memberId into the split, so a member who can forge
+      // it can put their dinner on another diner's bill.
+      const { status } = await call(
+        "POST",
+        `/orders/group/${GROUP_ORDER_ID}/cart`,
+        {
+          memberId: HOST_MEMBER_ID,
+          menuItemId: 101,
+          quantity: 1,
+          memberToken: OTHER_TOKEN,
+        },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.addCartItem).not.toHaveBeenCalled();
+    });
+
+    it("allows a member adding a dish under their own name", async () => {
+      const { status } = await call(
+        "POST",
+        `/orders/group/${GROUP_ORDER_ID}/cart`,
+        {
+          memberId: OTHER_MEMBER_ID,
+          menuItemId: 101,
+          quantity: 1,
+          memberToken: OTHER_TOKEN,
+        },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.addCartItem).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("PUT /:groupOrderId/cart/:itemId", () => {
+    it("refuses a caller with no token", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/cart/${ITEM_ID}`,
+        { quantity: 2 },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.updateCartItem).not.toHaveBeenCalled();
+    });
+
+    it("refuses a caller whose name does not match their token", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/cart/${ITEM_ID}`,
+        { quantity: 2, memberId: HOST_MEMBER_ID, memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.updateCartItem).not.toHaveBeenCalled();
+    });
+
+    it("lets a member change an item another member added", async () => {
+      // Deliberate: one person at the table adjusting a shared order is
+      // normal. This is the permissive half of the rule, pinned so nobody
+      // tightens it by accident.
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/cart/${ITEM_ID}`,
+        { quantity: 2, memberId: OTHER_MEMBER_ID, memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.updateCartItem).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("DELETE /:groupOrderId/cart/:itemId", () => {
+    it("refuses a caller with no token", async () => {
+      const { status } = await call(
+        "DELETE",
+        `/orders/group/${GROUP_ORDER_ID}/cart/${ITEM_ID}`,
+        { memberId: OTHER_MEMBER_ID },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.removeCartItem).not.toHaveBeenCalled();
+    });
+
+    it("refuses a caller whose name does not match their token", async () => {
+      const { status } = await call(
+        "DELETE",
+        `/orders/group/${GROUP_ORDER_ID}/cart/${ITEM_ID}`,
+        { memberId: HOST_MEMBER_ID, memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.removeCartItem).not.toHaveBeenCalled();
+    });
+
+    it("lets a member remove an item another member added", async () => {
+      const { status } = await call(
+        "DELETE",
+        `/orders/group/${GROUP_ORDER_ID}/cart/${ITEM_ID}`,
+        { memberId: OTHER_MEMBER_ID, memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.removeCartItem).toHaveBeenCalledOnce();
     });
   });
 

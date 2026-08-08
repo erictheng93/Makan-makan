@@ -180,6 +180,33 @@ async function requireMemberOrHostSession(
 }
 
 /**
+ * Cart writes name the member they belong to, and that name decides who pays
+ * for the dish. So the caller has to be that member — the host gets no bypass
+ * here, because a host acting under someone else's name would falsify the
+ * same thing. Which items a member may touch is a separate question: the cart
+ * is shared, so any member may change or remove any item.
+ */
+async function requireMemberIdentity(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  memberId: unknown,
+  memberToken: unknown,
+): Promise<void> {
+  const token = requireMemberToken(memberToken);
+  if (typeof memberId !== "string" || memberId.length === 0) {
+    throw forbidden("Access denied");
+  }
+  const isMember = await groupOrderService.isMemberSession(
+    groupOrderId,
+    memberId,
+    token,
+  );
+  if (!isMember) {
+    throw forbidden("Access denied");
+  }
+}
+
+/**
  * List group orders
  * GET /api/v1/orders/group
  */
@@ -566,9 +593,15 @@ app.post(
   validateBody(groupOrderSchemas.addCartItem),
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
-    const itemData = c.get("validatedBody");
+    const { memberToken, ...itemData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberIdentity(
+      groupOrderService,
+      groupOrderId,
+      itemData.memberId,
+      memberToken,
+    );
     const result = await groupOrderService.addCartItem(groupOrderId, itemData);
 
     if (!result.success) {
@@ -609,9 +642,15 @@ app.put(
   validateBody(groupOrderSchemas.updateCartItem),
   async (c) => {
     const { groupOrderId, itemId } = c.get("validatedParams");
-    const updateData = c.get("validatedBody");
+    const { memberId, memberToken, ...updateData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberIdentity(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      memberToken,
+    );
     const result = await groupOrderService.updateCartItem(
       groupOrderId,
       itemId,
@@ -653,12 +692,18 @@ app.delete(
   validateParams(
     groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.itemIdParam),
   ),
-  validateBody(groupOrderSchemas.memberIdParam),
+  validateBody(groupOrderSchemas.removeCartItem),
   async (c) => {
     const { groupOrderId, itemId } = c.get("validatedParams");
-    const { memberId } = c.get("validatedBody");
+    const { memberId, memberToken } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberIdentity(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      memberToken,
+    );
     const result = await groupOrderService.removeCartItem(
       groupOrderId,
       itemId,

@@ -271,8 +271,9 @@ class ApiClient {
   }
 
   // DELETE 請求
-  async delete<T = any>(url: string): Promise<T> {
-    return this.request<T>({ method: "DELETE", url });
+  // 允許帶 body：群組購物車的刪除需要送出呼叫者的成員憑證
+  async delete<T = any>(url: string, data?: any): Promise<T> {
+    return this.request<T>({ method: "DELETE", url, data });
   }
 
   // PATCH 請求

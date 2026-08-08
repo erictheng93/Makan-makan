@@ -653,6 +653,7 @@ export function useGroupOrder(options: {
       `/orders/group/${groupOrder.value.id}/cart`,
       {
         memberId: currentMemberId.value || groupOrder.value.hostId,
+        memberToken: memberToken.value,
         menuItemId: Number(item.menuItemId),
         quantity: item.quantity,
         customizations: item.options ?? {},
@@ -672,6 +673,8 @@ export function useGroupOrder(options: {
     const updatedItem = await apiClient.put<BackendGroupCartItem>(
       `/orders/group/${groupOrder.value.id}/cart/${itemId}`,
       {
+        memberId: currentMemberId.value || groupOrder.value.hostId,
+        memberToken: memberToken.value,
         quantity: updates.quantity,
         customizations: updates.options,
         specialInstructions: updates.notes,
@@ -686,6 +689,10 @@ export function useGroupOrder(options: {
 
     await apiClient.delete(
       `/orders/group/${groupOrder.value.id}/cart/${itemId}`,
+      {
+        memberId: currentMemberId.value || groupOrder.value.hostId,
+        memberToken: memberToken.value,
+      },
     );
     handleCartItemRemoved({ itemId });
   }

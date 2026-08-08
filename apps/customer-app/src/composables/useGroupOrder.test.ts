@@ -140,7 +140,12 @@ describe("useGroupOrder — data layer", () => {
 
     expect(apiClient.post).toHaveBeenLastCalledWith(
       "/orders/group/go-1/cart",
-      expect.objectContaining({ menuItemId: 42, quantity: 2 }),
+      expect.objectContaining({
+        menuItemId: 42,
+        quantity: 2,
+        memberId: "m-1",
+        memberToken: "session-1",
+      }),
     );
     const calledPaths = vi
       .mocked(apiClient.post)
@@ -189,15 +194,22 @@ describe("useGroupOrder — data layer", () => {
       customizations: {},
     });
     await group.updateCartItem("item-1", { quantity: 3 });
+    // The server refuses a cart write that cannot say who is making it, so
+    // every one of these carries the caller's own id and session token.
     expect(apiClient.put).toHaveBeenCalledWith(
       "/orders/group/go-1/cart/item-1",
-      expect.objectContaining({ quantity: 3 }),
+      expect.objectContaining({
+        quantity: 3,
+        memberId: "m-1",
+        memberToken: "session-1",
+      }),
     );
 
     vi.mocked(apiClient.delete).mockResolvedValueOnce({});
     await group.removeFromCart("item-1");
     expect(apiClient.delete).toHaveBeenCalledWith(
       "/orders/group/go-1/cart/item-1",
+      expect.objectContaining({ memberId: "m-1", memberToken: "session-1" }),
     );
   });
 

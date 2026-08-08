@@ -500,6 +500,7 @@ describe("group orders routes", () => {
         method: "POST",
         body: JSON.stringify({
           memberId,
+          memberToken: "member-session",
           menuItemId: 101,
           quantity: 2,
           specialInstructions: "less ice",
@@ -515,7 +516,11 @@ describe("group orders routes", () => {
     const updateResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/cart/${itemId}`, {
         method: "PUT",
-        body: JSON.stringify({ quantity: 3 }),
+        body: JSON.stringify({
+          quantity: 3,
+          memberId,
+          memberToken: "member-session",
+        }),
       }),
       env as never,
     );
@@ -527,7 +532,7 @@ describe("group orders routes", () => {
     const removeResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/cart/${itemId}`, {
         method: "DELETE",
-        body: JSON.stringify({ memberId }),
+        body: JSON.stringify({ memberId, memberToken: "member-session" }),
       }),
       env as never,
     );
@@ -637,12 +642,14 @@ describe("group orders routes", () => {
       data: { id: itemId, menuItemId: 101, quantity: 2 },
     });
     broadcastEvent.mockRejectedValueOnce(new Error("realtime unavailable"));
+    isMemberSession.mockResolvedValue(true);
 
     const response = await routes.fetch(
       new Request(`https://test/${groupOrderId}/cart`, {
         method: "POST",
         body: JSON.stringify({
           memberId,
+          memberToken: "member-session",
           menuItemId: 101,
           quantity: 2,
         }),

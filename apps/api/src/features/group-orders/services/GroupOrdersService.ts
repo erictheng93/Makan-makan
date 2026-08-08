@@ -1062,6 +1062,12 @@ export class GroupOrdersService implements IGroupOrderService {
 
   /**
    * Remove cart item
+   *
+   * The cart is shared, so `memberId` is the member doing the removing, not a
+   * claim of ownership — any member may clear any dish. Everything written
+   * afterwards therefore follows `cartItem.memberId`: the total belongs to
+   * whoever was being charged for the dish, and crediting the caller instead
+   * would move the cost onto them while leaving the owner still charged.
    */
   async removeCartItem(
     groupOrderId: string,
@@ -1071,7 +1077,6 @@ export class GroupOrdersService implements IGroupOrderService {
     const timer = this.performance.startTimer("removeCartItem");
 
     try {
-      // Verify item belongs to member
       const cartItemRows = await this.db
         .select()
         .from(groupCartItems)
@@ -1079,7 +1084,6 @@ export class GroupOrdersService implements IGroupOrderService {
           and(
             eq(groupCartItems.id, itemId),
             eq(groupCartItems.groupOrderId, groupOrderId),
-            eq(groupCartItems.memberId, memberId),
           ),
         );
 
@@ -1088,21 +1092,23 @@ export class GroupOrdersService implements IGroupOrderService {
       if (!cartItem) {
         return {
           success: false,
-          error: "Cart item not found or not owned by member",
+          error: "Cart item not found",
         };
       }
+
+      const ownerId = cartItem.memberId;
 
       // Delete the item
       await this.db.delete(groupCartItems).where(eq(groupCartItems.id, itemId));
 
       // Update totals
-      await this.updateMemberTotal(groupOrderId, memberId);
+      await this.updateMemberTotal(groupOrderId, ownerId);
       await this.updateGroupOrderTotal(groupOrderId);
 
       // Log activity
       await this.logActivity(
         groupOrderId,
-        memberId,
+        ownerId,
         "item_removed",
         "Removed cart item",
         { itemId },

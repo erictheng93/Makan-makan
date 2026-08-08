@@ -1094,7 +1094,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       missingService.removeCartItem("group-1", "item-1", "member-1"),
     ).resolves.toEqual({
       success: false,
-      error: "Cart item not found or not owned by member",
+      error: "Cart item not found",
     });
 
     const service = createService();
@@ -1131,6 +1131,40 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).resolves.toEqual({
       success: false,
       error: "Failed to remove cart item",
+    });
+  });
+
+  /**
+   * Members may clear each other's dishes off the shared cart, so the caller
+   * and the item's owner are no longer the same person. Everything the
+   * removal writes afterwards — the activity log, and the member total that
+   * decides who owes what — has to follow the item, not whoever pressed the
+   * button. Crediting the caller would quietly move a dish's cost onto them
+   * and leave the real owner still charged for it.
+   */
+  it("credits a removal to the member whose item it was", async () => {
+    const service = createService();
+    const db = createDb([
+      [
+        {
+          id: "item-1",
+          groupOrderId: "group-1",
+          memberId: "member-1",
+        },
+      ],
+      [{ total: 0 }],
+      [],
+      [{ total: 0 }],
+    ]);
+    service.db = db;
+
+    await expect(
+      service.removeCartItem("group-1", "item-1", "member-2"),
+    ).resolves.toEqual({ success: true });
+
+    expect(db.inserts.at(-1)?.payload).toMatchObject({
+      action: "item_removed",
+      memberId: "member-1",
     });
   });
 

@@ -23,6 +23,7 @@ const groupServiceMocks = vi.hoisted(() => ({
   updateCartItem: vi.fn(),
   removeCartItem: vi.fn(),
   getGroupOrder: vi.fn(),
+  isMemberSession: vi.fn(),
 }));
 
 vi.mock("../services/GroupOrdersService", () => ({
@@ -56,6 +57,7 @@ const GROUP_ORDER_ID = "018ffb9a-7b8a-7c3d-9f23-123456789abc";
 const MEMBER_ID = "018ffb9a-7b8a-7c3d-9f23-1234567890a1";
 const SECOND_MEMBER_ID = "018ffb9a-7b8a-7c3d-9f23-1234567890a2";
 const CART_ITEM_ID = "018ffb9a-7b8a-7c3d-9f23-1234567890b1";
+const MEMBER_TOKEN = "member-session-token";
 const CSRF = "b".repeat(64);
 
 function buildApp() {
@@ -131,6 +133,9 @@ describe("group order realtime broadcasts survive validation", () => {
   beforeEach(() => {
     broadcasts.length = 0;
     vi.clearAllMocks();
+    // Cart writes are authorised elsewhere; these tests are about the shape of
+    // the event that follows a successful write.
+    groupServiceMocks.isMemberSession.mockResolvedValue(true);
     groupServiceMocks.getGroupOrder.mockResolvedValue({
       success: true,
       data: { groupOrder: { id: GROUP_ORDER_ID, restaurantId: RESTAURANT_ID } },
@@ -159,6 +164,7 @@ describe("group order realtime broadcasts survive validation", () => {
     const res = await buildApp().fetch(
       request("POST", `/orders/group/${GROUP_ORDER_ID}/cart`, {
         memberId: MEMBER_ID,
+        memberToken: MEMBER_TOKEN,
         menuItemId: 42,
         quantity: 1,
       }),
@@ -178,6 +184,8 @@ describe("group order realtime broadcasts survive validation", () => {
     const res = await buildApp().fetch(
       request("PUT", `/orders/group/${GROUP_ORDER_ID}/cart/${CART_ITEM_ID}`, {
         quantity: 3,
+        memberId: MEMBER_ID,
+        memberToken: MEMBER_TOKEN,
       }),
       env,
     );
@@ -193,7 +201,7 @@ describe("group order realtime broadcasts survive validation", () => {
       request(
         "DELETE",
         `/orders/group/${GROUP_ORDER_ID}/cart/${CART_ITEM_ID}`,
-        { memberId: MEMBER_ID },
+        { memberId: MEMBER_ID, memberToken: MEMBER_TOKEN },
       ),
       env,
     );
@@ -244,6 +252,7 @@ describe("group order realtime broadcasts survive validation", () => {
     await buildApp().fetch(
       request("POST", `/orders/group/${GROUP_ORDER_ID}/cart`, {
         memberId: MEMBER_ID,
+        memberToken: MEMBER_TOKEN,
         menuItemId: 42,
         quantity: 1,
       }),
@@ -269,6 +278,7 @@ describe("group order realtime broadcasts survive validation", () => {
     await buildApp().fetch(
       request("POST", `/orders/group/${GROUP_ORDER_ID}/cart`, {
         memberId: MEMBER_ID,
+        memberToken: MEMBER_TOKEN,
         menuItemId: 42,
         quantity: 1,
       }),
