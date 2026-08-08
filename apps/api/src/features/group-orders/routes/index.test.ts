@@ -660,4 +660,83 @@ describe("group orders routes", () => {
     );
     expect(broadcastEvent).toHaveBeenCalledOnce();
   });
+
+  /**
+   * The list route resolves its tenant as `restaurantId || user.restaurantId`,
+   * so it is always scoped. The statistics route passes the query parameter
+   * straight through, and the schema turns a missing one into `undefined` —
+   * which `getStatistics` reads as "no restaurant filter", i.e. every
+   * restaurant on the platform.
+   *
+   * The owner guard does not catch this: it reads
+   * `user.role === 1 && restaurantId && ...`, so omitting the parameter
+   * short-circuits it. An owner who simply leaves it out is handed
+   * platform-wide order counts, group sizes, and average order value.
+   *
+   * These pin the rule: the route resolves a tenant for every caller, exactly
+   * as the list route does, so no request reaches `getStatistics` without one.
+   * The unscoped view has no caller — the only consumer is the admin
+   * dashboard, which always asks about one restaurant — so nothing is left
+   * able to request it.
+   */
+  describe("GET /statistics tenant scoping", () => {
+    it("scopes an owner to their own restaurant when the query omits one", async () => {
+      currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
+
+      const response = await routes.fetch(
+        new Request("https://test/statistics?timeRange=week"),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(200);
+      expect(getStatistics).toHaveBeenCalledWith("restaurant-1", "week");
+    });
+
+    it("still refuses an owner who names someone else's restaurant", async () => {
+      currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
+
+      const response = await withSilencedRouteError(() =>
+        routes.fetch(
+          new Request("https://test/statistics?restaurantId=restaurant-2"),
+          createEnv() as never,
+        ),
+      );
+
+      // This harness mounts the router without the app's ApiError handler, so
+      // a forbidden throw surfaces as 500 here (same as the /lock case above).
+      // The assertion that matters is that the service was never reached.
+      expect(response.status).toBe(500);
+      expect(getStatistics).not.toHaveBeenCalled();
+    });
+
+    it("scopes a platform admin to the restaurant they asked about", async () => {
+      currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 12 });
+
+      const response = await routes.fetch(
+        new Request("https://test/statistics?restaurantId=restaurant-2"),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(200);
+      expect(getStatistics).toHaveBeenCalledWith("restaurant-2", "month");
+    });
+
+    it("never asks the service for every restaurant at once", async () => {
+      // Role 0 has no restaurant of its own to fall back to, so this is the
+      // caller most likely to slip through as an unscoped query.
+      currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
+
+      await routes.fetch(
+        new Request("https://test/statistics?timeRange=week"),
+        createEnv() as never,
+      );
+
+      expect(getStatistics).toHaveBeenCalledOnce();
+      expect(getStatistics.mock.calls[0][0]).toBeTruthy();
+    });
+  });
 });

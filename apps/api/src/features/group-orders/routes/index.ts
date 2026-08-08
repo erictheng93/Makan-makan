@@ -512,9 +512,16 @@ app.get(
       throw forbidden("Access denied: can only view own restaurant statistics");
     }
 
+    // `getStatistics` treats an undefined restaurant as "every restaurant on
+    // the platform", and the query parameter is optional — so passing it
+    // straight through hands anyone who simply omits it another tenant's order
+    // counts and average order value. Resolve the tenant the same way the list
+    // route above does, so the two can never disagree about whose data this is.
+    const targetRestaurantId = restaurantId || String(user.restaurantId);
+
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const statistics = await groupOrderService.getStatistics(
-      restaurantId,
+      targetRestaurantId,
       timeRange,
     );
 
