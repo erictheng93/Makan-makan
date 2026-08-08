@@ -38,6 +38,37 @@ describe("getOrderSubmitErrorI18nKey", () => {
     ).toBe("toast.orderSubmitQrInvalid");
   });
 
+  it("maps menu unavailable codes from shared API and order services", () => {
+    expect(
+      getOrderSubmitErrorI18nKey({
+        response: {
+          status: 409,
+          data: {
+            success: false,
+            error: {
+              code: "MENU_ITEM_NOT_AVAILABLE",
+              message: "Menu item is not available",
+            },
+          },
+        },
+      }),
+    ).toBe("toast.orderSubmitMenuItemUnavailable");
+
+    expect(
+      getOrderSubmitErrorI18nKey({
+        response: {
+          status: 409,
+          data: {
+            error: {
+              code: "MENU_ITEM_UNAVAILABLE",
+              message: "Menu item 101 is not available",
+            },
+          },
+        },
+      }),
+    ).toBe("toast.orderSubmitMenuItemUnavailable");
+  });
+
   it("maps menu availability and inventory message patterns", () => {
     expect(
       getOrderSubmitErrorI18nKey(new Error("Menu item 101 is not available")),
@@ -60,6 +91,36 @@ describe("getOrderSubmitErrorI18nKey", () => {
     expect(
       getOrderSubmitErrorI18nKey(new Error("Restaurant is not available")),
     ).toBe("toast.orderSubmitRestaurantUnavailable");
+  });
+
+  it("maps order service availability codes", () => {
+    expect(
+      getOrderSubmitErrorI18nKey({
+        response: {
+          status: 400,
+          data: {
+            error: {
+              code: "RESTAURANT_CLOSED",
+              message: "Restaurant is not accepting orders",
+            },
+          },
+        },
+      }),
+    ).toBe("toast.orderSubmitRestaurantUnavailable");
+
+    expect(
+      getOrderSubmitErrorI18nKey({
+        response: {
+          status: 400,
+          data: {
+            error: {
+              code: "TABLE_NOT_AVAILABLE",
+              message: "Table is not available",
+            },
+          },
+        },
+      }),
+    ).toBe("toast.orderSubmitTableUnavailable");
   });
 
   it("falls back to the generic submit failure instead of server messages", () => {
