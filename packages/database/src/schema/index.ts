@@ -4,6 +4,7 @@ export * from "./users";
 export * from "./customers";
 export * from "./categories";
 export * from "./menu-items";
+export * from "./option-groups";
 export * from "./restaurant-service-items";
 export * from "./tables";
 export * from "./seats";

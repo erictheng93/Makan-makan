@@ -85,6 +85,10 @@
     {
       "fresh": "0080_group_orders_guest_host.sql",
       "reason": "Fresh API D1 owns group_orders for guest-hosted group orders; the local management/legacy D1 does not carry group_orders, and the packages/database legacy track has incompatible historical group_orders definitions rather than a verified live schema."
+    },
+    {
+      "fresh": "0081_shared_option_groups.sql",
+      "reason": "Fresh API D1 owns the shared customization option groups (option_groups / option_choices / menu_item_option_groups / menu_item_option_choice_overrides). The legacy management D1 carries neither menu_items nor restaurants in the shape these reference, so there is no paired legacy migration."
     }
   ],
   "legacyOnly": [
