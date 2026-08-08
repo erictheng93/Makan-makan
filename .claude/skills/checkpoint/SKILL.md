@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/checkpoint/SKILL.md
+../gstack/checkpoint/SKILL.md

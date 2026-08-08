@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/pair-agent/SKILL.md
+../gstack/pair-agent/SKILL.md
