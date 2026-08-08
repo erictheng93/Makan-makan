@@ -41,6 +41,8 @@ export interface MenuItemData {
   isFeatured: boolean;
   isAvailable: boolean;
   sortOrder: number;
+  inventoryCount?: number | null;
+  minInventoryAlert?: number | null;
   orderCount?: number;
   rating?: number;
   reviewCount?: number;
@@ -230,6 +232,8 @@ export function useMenuManagement() {
       isFeatured: boolean;
       isAvailable: boolean;
       sortOrder: number;
+      inventoryCount?: number | null;
+      minInventoryAlert?: number | null;
       // Set when editing: the updatedAt the form was populated from.
       updatedAt?: string;
     },

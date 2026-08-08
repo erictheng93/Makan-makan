@@ -654,7 +654,6 @@ describe("request schemas do not drift from the writable columns", () => {
     "id",
     "restaurantId", // comes from the path, not the body
     "costPriceCents", // internal margin data, never client-set
-    "minInventoryAlert", // no UI yet; add to the schema when one exists
     "orderCount",
     "rating",
     "reviewCount",

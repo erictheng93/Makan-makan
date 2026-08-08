@@ -670,6 +670,101 @@ describe("MenuView", () => {
     );
   });
 
+  it("builds customization options from form fields instead of requiring JSON", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="menu-item-name-input"]').setValue("Curry");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(1200);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    await wrapper.get('[data-testid="add-size-option"]').trigger("click");
+    await wrapper.get('[data-testid="add-addon-option"]').trigger("click");
+    await wrapper
+      .get('[data-testid="add-customization-group"]')
+      .trigger("click");
+
+    wrapper.vm.menuItemForm.sizes[0].name = "Small";
+    wrapper.vm.menuItemForm.sizes[0].priceAdjustment = 0;
+    wrapper.vm.menuItemForm.sizes[0].isDefault = true;
+    wrapper.vm.menuItemForm.addOns[0].name = "Egg";
+    wrapper.vm.menuItemForm.addOns[0].price = 15;
+    wrapper.vm.menuItemForm.customizations[0].name = "Spice";
+    wrapper.vm.menuItemForm.customizations[0].type = "single";
+    wrapper.vm.menuItemForm.customizations[0].required = true;
+    wrapper.vm.menuItemForm.customizations[0].choices[0].name = "Mild";
+    wrapper.vm.menuItemForm.customizations[0].choices[0].isDefault = true;
+
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(saveMenuItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          sizes: [
+            {
+              id: expect.any(String),
+              name: "Small",
+              priceAdjustment: 0,
+              isDefault: true,
+            },
+          ],
+          customizations: [
+            {
+              id: expect.any(String),
+              name: "Spice",
+              type: "single",
+              required: true,
+              choices: [
+                {
+                  id: expect.any(String),
+                  name: "Mild",
+                  priceAdjustment: 0,
+                  isDefault: true,
+                },
+              ],
+            },
+          ],
+          addOns: [
+            {
+              id: expect.any(String),
+              name: "Egg",
+              price: 15,
+              available: true,
+            },
+          ],
+        },
+      }),
+      undefined,
+    );
+  });
+
+  it("sends inventory fields and keeps unlimited inventory as null", async () => {
+    const wrapper = mountMenuView();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("menu.addItem"))!
+      .trigger("click");
+
+    await wrapper.get('[data-testid="menu-item-name-input"]').setValue("Tea");
+    await wrapper.get('[data-testid="menu-item-price-input"]').setValue(1200);
+    await wrapper.get('[data-testid="menu-item-category-select"]').setValue(1);
+    await wrapper.get('[data-testid="inventory-count-input"]').setValue("");
+    await wrapper.get('[data-testid="min-inventory-alert-input"]').setValue(3);
+    await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+    await flushPromises();
+
+    expect(saveMenuItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inventoryCount: null,
+        minInventoryAlert: 3,
+      }),
+      undefined,
+    );
+  });
+
   it("sends null for cleared optional fields and omits an empty preparation time", async () => {
     const wrapper = mountMenuView();
     await wrapper
@@ -725,7 +820,38 @@ describe("MenuView", () => {
 
     it("loads the stored advanced fields into the form", async () => {
       const wrapper = mountMenuView();
-      const existing = stored();
+      const existing = menuItem({
+        ...stored(),
+        inventoryCount: 8,
+        minInventoryAlert: 2,
+        options: {
+          sizes: [
+            {
+              id: "large",
+              name: "Large",
+              priceAdjustment: 30,
+              isDefault: true,
+            },
+          ],
+          addOns: [{ id: "egg", name: "Egg", price: 15 }],
+          customizations: [
+            {
+              id: "spice",
+              name: "Spice",
+              type: "single",
+              required: true,
+              choices: [
+                {
+                  id: "mild",
+                  name: "Mild",
+                  priceAdjustment: 0,
+                  isDefault: true,
+                },
+              ],
+            },
+          ],
+        },
+      });
       menuItems.value = [existing] as never;
 
       await editItem(wrapper, existing);
@@ -735,6 +861,13 @@ describe("MenuView", () => {
       expect(wrapper.vm.menuItemForm.allergensText).toBe("seafood, egg");
       expect(wrapper.vm.menuItemForm.originalPrice).toBe(9000);
       expect(wrapper.vm.menuItemForm.dietaryInfo.glutenFree).toBe(true);
+      expect(wrapper.vm.menuItemForm.inventoryCount).toBe(8);
+      expect(wrapper.vm.menuItemForm.minInventoryAlert).toBe(2);
+      expect(wrapper.vm.menuItemForm.sizes[0].name).toBe("Large");
+      expect(wrapper.vm.menuItemForm.addOns[0].name).toBe("Egg");
+      expect(wrapper.vm.menuItemForm.customizations[0].choices[0].name).toBe(
+        "Mild",
+      );
     });
 
     it("writes them back untouched when nothing was edited", async () => {
@@ -794,6 +927,28 @@ describe("MenuView", () => {
       );
     });
 
+    it("keeps a null low-inventory alert blank when editing", async () => {
+      const wrapper = mountMenuView();
+      const existing = menuItem({
+        ...stored(),
+        inventoryCount: null,
+        minInventoryAlert: null,
+      });
+      menuItems.value = [existing] as never;
+
+      await editItem(wrapper, existing);
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      expect(saveMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inventoryCount: null,
+          minInventoryAlert: null,
+        }),
+        existing.id,
+      );
+    });
+
     it("refuses to submit options that are not a JSON object", async () => {
       const wrapper = mountMenuView();
       const existing = stored();
@@ -842,6 +997,8 @@ function menuItem(overrides: Partial<(typeof menuItems.value)[number]> = {}) {
     isFeatured: false,
     isAvailable: true,
     sortOrder: 0,
+    inventoryCount: null,
+    minInventoryAlert: 5,
     ...overrides,
   };
 }

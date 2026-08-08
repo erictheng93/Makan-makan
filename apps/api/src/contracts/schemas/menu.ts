@@ -47,6 +47,8 @@ export const MenuItemSchema = z
     dietaryInfo: z.unknown().optional().nullable(),
     preparationTime: z.number().optional().nullable(),
     sortOrder: z.number().optional(),
+    inventoryCount: z.number().optional().nullable(),
+    minInventoryAlert: z.number().optional().nullable(),
     ...TimestampFields,
   })
   .loose();

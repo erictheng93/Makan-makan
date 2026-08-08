@@ -216,7 +216,8 @@ const menuItemBaseSchema = z.object({
   isFeatured: z.boolean().optional(),
   isPopular: z.boolean().optional(),
   sortOrder: nonNegativeInteger.optional(),
-  inventoryCount: nonNegativeInteger.optional(),
+  inventoryCount: nonNegativeInteger.nullish(),
+  minInventoryAlert: nonNegativeInteger.nullish(),
 });
 
 /**

@@ -1003,7 +1003,7 @@ export class MenuService implements IMenuService {
       isFeatured: item.isFeatured || false,
       isPopular: item.isPopular || false,
       sortOrder: item.sortOrder || 0,
-      inventoryCount: item.inventoryCount || 0,
+      inventoryCount: item.inventoryCount ?? null,
       orderCount: item.orderCount || 0,
       allergens: item.allergens || [],
       reviewCount: item.reviewCount ?? 0,

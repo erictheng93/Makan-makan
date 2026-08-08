@@ -36,7 +36,8 @@ export interface CreateMenuItemData {
   isFeatured?: boolean;
   isPopular?: boolean;
   sortOrder?: number;
-  inventoryCount?: number;
+  inventoryCount?: number | null;
+  minInventoryAlert?: number | null;
   spiceLevel?: number;
   preparationTime?: number;
   calories?: number | null;
@@ -53,7 +54,8 @@ export interface UpdateMenuItemData extends Partial<CreateMenuItemData> {
   isFeatured?: boolean;
   isPopular?: boolean;
   sortOrder?: number;
-  inventoryCount?: number;
+  inventoryCount?: number | null;
+  minInventoryAlert?: number | null;
   rating?: number;
 }
 

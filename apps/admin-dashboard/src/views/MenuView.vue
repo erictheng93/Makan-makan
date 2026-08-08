@@ -773,18 +773,224 @@
 
                 <!-- Customization options -->
                 <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
-                  <h4 class="mb-1 text-[14px] font-bold text-[#1C1C1E]">
+                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
                     {{ t("menu.form.options") }}
                   </h4>
-                  <p class="mb-2 text-[12px] text-[#8E8E93]">
-                    {{ t("menu.form.optionsHelp") }}
-                  </p>
-                  <textarea
-                    v-model="menuItemForm.optionsText"
-                    rows="7"
-                    :placeholder="t('menu.form.optionsPlaceholder')"
-                    class="w-full rounded-xl bg-white px-4 py-2.5 font-mono text-[12px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
-                  />
+                  <div class="space-y-4">
+                    <section class="rounded-xl bg-white p-3">
+                      <div class="mb-3 flex items-center justify-between gap-3">
+                        <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
+                          {{ t("menu.form.optionSizes") }}
+                        </h5>
+                        <button
+                          type="button"
+                          data-testid="add-size-option"
+                          class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                          @click="addSizeOption"
+                        >
+                          {{ t("common.add") }}
+                        </button>
+                      </div>
+                      <div
+                        v-for="(size, index) in menuItemForm.sizes"
+                        :key="size.id"
+                        class="mb-2 grid grid-cols-1 gap-2 last:mb-0 sm:grid-cols-[1fr_120px_auto_auto] sm:items-center"
+                      >
+                        <input
+                          v-model="size.name"
+                          type="text"
+                          :placeholder="t('menu.form.optionName')"
+                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                        />
+                        <input
+                          v-model.number="size.priceAdjustment"
+                          type="number"
+                          step="0.01"
+                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                        />
+                        <label
+                          class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                        >
+                          <input
+                            v-model="size.isDefault"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                          />
+                          {{ t("menu.form.defaultOption") }}
+                        </label>
+                        <button
+                          type="button"
+                          class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                          @click="removeSizeOption(index)"
+                        >
+                          {{ t("common.delete") }}
+                        </button>
+                      </div>
+                    </section>
+
+                    <section class="rounded-xl bg-white p-3">
+                      <div class="mb-3 flex items-center justify-between gap-3">
+                        <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
+                          {{ t("menu.form.optionAddOns") }}
+                        </h5>
+                        <button
+                          type="button"
+                          data-testid="add-addon-option"
+                          class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                          @click="addAddOnOption"
+                        >
+                          {{ t("common.add") }}
+                        </button>
+                      </div>
+                      <div
+                        v-for="(addOn, index) in menuItemForm.addOns"
+                        :key="addOn.id"
+                        class="mb-2 grid grid-cols-1 gap-2 last:mb-0 sm:grid-cols-[1fr_120px_auto_auto] sm:items-center"
+                      >
+                        <input
+                          v-model="addOn.name"
+                          type="text"
+                          :placeholder="t('menu.form.optionName')"
+                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                        />
+                        <input
+                          v-model.number="addOn.price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                        />
+                        <label
+                          class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                        >
+                          <input
+                            v-model="addOn.available"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                          />
+                          {{ t("menu.form.isAvailable") }}
+                        </label>
+                        <button
+                          type="button"
+                          class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                          @click="removeAddOnOption(index)"
+                        >
+                          {{ t("common.delete") }}
+                        </button>
+                      </div>
+                    </section>
+
+                    <section class="rounded-xl bg-white p-3">
+                      <div class="mb-3 flex items-center justify-between gap-3">
+                        <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
+                          {{ t("menu.form.optionGroups") }}
+                        </h5>
+                        <button
+                          type="button"
+                          data-testid="add-customization-group"
+                          class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                          @click="addCustomizationGroup"
+                        >
+                          {{ t("common.add") }}
+                        </button>
+                      </div>
+                      <div
+                        v-for="(
+                          group, groupIndex
+                        ) in menuItemForm.customizations"
+                        :key="group.id"
+                        class="mb-3 rounded-xl bg-[#F9F9FB] p-3 last:mb-0"
+                      >
+                        <div
+                          class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_auto_auto] sm:items-center"
+                        >
+                          <input
+                            v-model="group.name"
+                            type="text"
+                            :placeholder="t('menu.form.optionGroupName')"
+                            class="rounded-xl bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          />
+                          <select
+                            v-model="group.type"
+                            class="rounded-xl bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          >
+                            <option value="single">
+                              {{ t("menu.form.singleChoice") }}
+                            </option>
+                            <option value="multiple">
+                              {{ t("menu.form.multipleChoice") }}
+                            </option>
+                          </select>
+                          <label
+                            class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                          >
+                            <input
+                              v-model="group.required"
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                            />
+                            {{ t("menu.form.requiredOption") }}
+                          </label>
+                          <button
+                            type="button"
+                            class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                            @click="removeCustomizationGroup(groupIndex)"
+                          >
+                            {{ t("common.delete") }}
+                          </button>
+                        </div>
+                        <div class="mt-2 space-y-2">
+                          <div
+                            v-for="(choice, choiceIndex) in group.choices"
+                            :key="choice.id"
+                            class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_auto_auto] sm:items-center"
+                          >
+                            <input
+                              v-model="choice.name"
+                              type="text"
+                              :placeholder="t('menu.form.optionChoiceName')"
+                              class="rounded-xl bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                            />
+                            <input
+                              v-model.number="choice.priceAdjustment"
+                              type="number"
+                              step="0.01"
+                              class="rounded-xl bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                            />
+                            <label
+                              class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                            >
+                              <input
+                                v-model="choice.isDefault"
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                              />
+                              {{ t("menu.form.defaultOption") }}
+                            </label>
+                            <button
+                              type="button"
+                              class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                              @click="
+                                removeCustomizationChoice(
+                                  groupIndex,
+                                  choiceIndex,
+                                )
+                              "
+                            >
+                              {{ t("common.delete") }}
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                            @click="addCustomizationChoice(groupIndex)"
+                          >
+                            {{ t("menu.form.addChoice") }}
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
                   <p
                     v-if="optionsError"
                     class="mt-1.5 text-[12px] text-ios-error"
@@ -806,6 +1012,35 @@
                     min="0"
                     class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
+                </div>
+
+                <!-- Inventory -->
+                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
+                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
+                    {{ t("menu.form.inventory") }}
+                  </h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                      {{ t("menu.form.inventoryCount") }}
+                      <input
+                        v-model.number="menuItemForm.inventoryCount"
+                        data-testid="inventory-count-input"
+                        type="number"
+                        min="0"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                      {{ t("menu.form.minInventoryAlert") }}
+                      <input
+                        v-model.number="menuItemForm.minInventoryAlert"
+                        data-testid="min-inventory-alert-input"
+                        type="number"
+                        min="0"
+                        class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <!-- Checkboxes -->
@@ -892,6 +1127,33 @@ import {
   parseMenuItemImport,
 } from "@/utils/menuItemImport";
 
+type NumericFormValue = number | "" | null | undefined;
+type SizeOptionForm = {
+  id: string;
+  name: string;
+  priceAdjustment: NumericFormValue;
+  isDefault: boolean;
+};
+type AddOnOptionForm = {
+  id: string;
+  name: string;
+  price: NumericFormValue;
+  available: boolean;
+};
+type CustomizationChoiceForm = {
+  id: string;
+  name: string;
+  priceAdjustment: NumericFormValue;
+  isDefault: boolean;
+};
+type CustomizationGroupForm = {
+  id: string;
+  name: string;
+  type: "single" | "multiple";
+  required: boolean;
+  choices: CustomizationChoiceForm[];
+};
+
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -961,6 +1223,9 @@ const menuItemForm = ref({
     localSource: false,
   },
   optionsText: "",
+  sizes: [] as SizeOptionForm[],
+  addOns: [] as AddOnOptionForm[],
+  customizations: [] as CustomizationGroupForm[],
   categoryId: "" as string | number,
   catalogType: "menu_item" as "menu_item" | "product",
   imageUrl: "",
@@ -969,6 +1234,8 @@ const menuItemForm = ref({
   isFeatured: false,
   isAvailable: true,
   sortOrder: 0,
+  inventoryCount: null as NumericFormValue,
+  minInventoryAlert: 5 as NumericFormValue,
   // The version this form was populated from; sent back on save so a
   // concurrent edit is refused instead of silently overwritten (#85).
   updatedAt: undefined as string | undefined,
@@ -1024,6 +1291,10 @@ const MENU_ITEM_MERGE_FIELDS = [
   { keys: ["allergensText"], label: "menu.form.allergens" },
   { keys: ["dietaryInfo"], label: "menu.form.dietaryInfo" },
   { keys: ["optionsText"], label: "menu.form.options" },
+  {
+    keys: ["sizes", "addOns", "customizations"],
+    label: "menu.form.options",
+  },
   { keys: ["categoryId"], label: "menu.form.category" },
   // The three image fields are one decision. Keeping a locally chosen imageUrl
   // while adopting someone else's imageId would pair a URL with the wrong
@@ -1032,6 +1303,10 @@ const MENU_ITEM_MERGE_FIELDS = [
   { keys: ["isFeatured"], label: "menu.form.featuredItem" },
   { keys: ["isAvailable"], label: "menu.form.isAvailable" },
   { keys: ["sortOrder"], label: "menu.form.sortOrder" },
+  {
+    keys: ["inventoryCount", "minInventoryAlert"],
+    label: "menu.form.inventory",
+  },
 ] as const satisfies ReadonlyArray<{
   keys: ReadonlyArray<keyof MenuItemFormState>;
   label: string;
@@ -1040,6 +1315,65 @@ const MENU_ITEM_MERGE_FIELDS = [
 /** Structural equality — imageVariants is an object, so `===` would always differ. */
 const isSameFieldValue = (a: unknown, b: unknown) =>
   JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+const asArray = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value)
+    ? value
+        .filter((item) => item && typeof item === "object")
+        .map((item) => item as Record<string, unknown>)
+    : [];
+
+const asNumber = (value: unknown, fallback = 0): number =>
+  typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+const asBoolean = (value: unknown, fallback = false): boolean =>
+  typeof value === "boolean" ? value : fallback;
+
+const optionId = (prefix: string, index: number, current?: unknown): string =>
+  typeof current === "string" && current.trim()
+    ? current
+    : `${prefix}-${index + 1}`;
+
+const normalizeOptionsForForm = (
+  options: unknown,
+): {
+  sizes: SizeOptionForm[];
+  addOns: AddOnOptionForm[];
+  customizations: CustomizationGroupForm[];
+} => {
+  const record = asRecord(options);
+  return {
+    sizes: asArray(record.sizes).map((size, index) => ({
+      id: optionId("size", index, size.id),
+      name: typeof size.name === "string" ? size.name : "",
+      priceAdjustment: asNumber(size.priceAdjustment),
+      isDefault: asBoolean(size.isDefault),
+    })),
+    addOns: asArray(record.addOns).map((addOn, index) => ({
+      id: optionId("addon", index, addOn.id),
+      name: typeof addOn.name === "string" ? addOn.name : "",
+      price: asNumber(addOn.price),
+      available: asBoolean(addOn.available, true),
+    })),
+    customizations: asArray(record.customizations).map((group, groupIndex) => ({
+      id: optionId("group", groupIndex, group.id),
+      name: typeof group.name === "string" ? group.name : "",
+      type: group.type === "multiple" ? "multiple" : "single",
+      required: asBoolean(group.required),
+      choices: asArray(group.choices).map((choice, choiceIndex) => ({
+        id: optionId("choice", choiceIndex, choice.id),
+        name: typeof choice.name === "string" ? choice.name : "",
+        priceAdjustment: asNumber(choice.priceAdjustment),
+        isDefault: asBoolean(choice.isDefault),
+      })),
+    })),
+  };
+};
 
 const buildMenuItemForm = (item: MenuItemData): MenuItemFormState => ({
   name: item.name,
@@ -1068,7 +1402,8 @@ const buildMenuItemForm = (item: MenuItemData): MenuItemFormState => ({
     organic: !!item.dietaryInfo?.organic,
     localSource: !!item.dietaryInfo?.localSource,
   },
-  optionsText: item.options ? JSON.stringify(item.options, null, 2) : "",
+  optionsText: "",
+  ...normalizeOptionsForForm(item.options),
   categoryId: item.categoryId,
   catalogType: item.catalogType ?? "menu_item",
   imageUrl: item.imageUrl ?? "",
@@ -1077,6 +1412,8 @@ const buildMenuItemForm = (item: MenuItemData): MenuItemFormState => ({
   isFeatured: item.isFeatured,
   isAvailable: item.isAvailable,
   sortOrder: item.sortOrder,
+  inventoryCount: item.inventoryCount ?? null,
+  minInventoryAlert: item.minInventoryAlert ?? "",
   updatedAt: item.updatedAt,
 });
 const optionsError = ref("");
@@ -1260,6 +1597,9 @@ const openAddItemModal = () => {
       localSource: false,
     },
     optionsText: "",
+    sizes: [],
+    addOns: [],
+    customizations: [],
     categoryId: selectedCategoryId.value ?? "",
     catalogType: "menu_item",
     imageUrl: "",
@@ -1268,6 +1608,8 @@ const openAddItemModal = () => {
     isFeatured: false,
     isAvailable: true,
     sortOrder: 0,
+    inventoryCount: null,
+    minInventoryAlert: 5,
     updatedAt: undefined,
   };
   previousImageId.value = null;
@@ -1381,9 +1723,128 @@ const handleImageFileSelected = async (event: Event) => {
   input.value = "";
 };
 
+const addSizeOption = () => {
+  menuItemForm.value.sizes.push({
+    id: optionId("size", menuItemForm.value.sizes.length),
+    name: "",
+    priceAdjustment: 0,
+    isDefault: menuItemForm.value.sizes.length === 0,
+  });
+};
+
+const removeSizeOption = (index: number) => {
+  menuItemForm.value.sizes.splice(index, 1);
+};
+
+const addAddOnOption = () => {
+  menuItemForm.value.addOns.push({
+    id: optionId("addon", menuItemForm.value.addOns.length),
+    name: "",
+    price: 0,
+    available: true,
+  });
+};
+
+const removeAddOnOption = (index: number) => {
+  menuItemForm.value.addOns.splice(index, 1);
+};
+
+const addCustomizationChoice = (groupIndex: number) => {
+  const group = menuItemForm.value.customizations[groupIndex];
+  if (!group) return;
+  group.choices.push({
+    id: optionId("choice", group.choices.length),
+    name: "",
+    priceAdjustment: 0,
+    isDefault: group.choices.length === 0,
+  });
+};
+
+const removeCustomizationChoice = (groupIndex: number, choiceIndex: number) => {
+  const group = menuItemForm.value.customizations[groupIndex];
+  if (!group) return;
+  group.choices.splice(choiceIndex, 1);
+};
+
+const addCustomizationGroup = () => {
+  menuItemForm.value.customizations.push({
+    id: optionId("group", menuItemForm.value.customizations.length),
+    name: "",
+    type: "single",
+    required: false,
+    choices: [
+      {
+        id: "choice-1",
+        name: "",
+        priceAdjustment: 0,
+        isDefault: true,
+      },
+    ],
+  });
+};
+
+const removeCustomizationGroup = (index: number) => {
+  menuItemForm.value.customizations.splice(index, 1);
+};
+
+const numericOrZero = (value: NumericFormValue): number =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0;
+
+const nullableInteger = (value: NumericFormValue): number | null => {
+  if (value === "" || value === null || value === undefined) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const buildStructuredOptions = (): Record<string, unknown> | null => {
+  const sizes = menuItemForm.value.sizes
+    .filter((size) => size.name.trim())
+    .map((size, index) => ({
+      id: size.id || optionId("size", index),
+      name: size.name.trim(),
+      priceAdjustment: numericOrZero(size.priceAdjustment),
+      isDefault: size.isDefault,
+    }));
+
+  const addOns = menuItemForm.value.addOns
+    .filter((addOn) => addOn.name.trim())
+    .map((addOn, index) => ({
+      id: addOn.id || optionId("addon", index),
+      name: addOn.name.trim(),
+      price: numericOrZero(addOn.price),
+      available: addOn.available,
+    }));
+
+  const customizations = menuItemForm.value.customizations
+    .map((group, groupIndex) => {
+      const choices = group.choices
+        .filter((choice) => choice.name.trim())
+        .map((choice, choiceIndex) => ({
+          id: choice.id || optionId("choice", choiceIndex),
+          name: choice.name.trim(),
+          priceAdjustment: numericOrZero(choice.priceAdjustment),
+          isDefault: choice.isDefault,
+        }));
+      return {
+        id: group.id || optionId("group", groupIndex),
+        name: group.name.trim(),
+        type: group.type,
+        required: group.required,
+        choices,
+      };
+    })
+    .filter((group) => group.name && group.choices.length > 0);
+
+  const options: Record<string, unknown> = {};
+  if (sizes.length) options.sizes = sizes;
+  if (customizations.length) options.customizations = customizations;
+  if (addOns.length) options.addOns = addOns;
+  return Object.keys(options).length ? options : null;
+};
+
 const handleSaveMenuItem = async () => {
   optionsError.value = "";
-  let options: Record<string, unknown> | undefined;
+  let options = buildStructuredOptions();
   if (menuItemForm.value.optionsText.trim()) {
     try {
       const parsed = JSON.parse(menuItemForm.value.optionsText);
@@ -1427,7 +1888,7 @@ const handleSaveMenuItem = async () => {
         .map((value) => value.trim())
         .filter(Boolean),
       keywords: menuItemForm.value.keywords || null,
-      options: options ?? null,
+      options,
       categoryId: Number(menuItemForm.value.categoryId),
       catalogType: menuItemForm.value.catalogType,
       imageUrl: menuItemForm.value.imageUrl || null,
@@ -1436,6 +1897,8 @@ const handleSaveMenuItem = async () => {
       isFeatured: menuItemForm.value.isFeatured,
       isAvailable: menuItemForm.value.isAvailable,
       sortOrder: menuItemForm.value.sortOrder,
+      inventoryCount: nullableInteger(menuItemForm.value.inventoryCount),
+      minInventoryAlert: nullableInteger(menuItemForm.value.minInventoryAlert),
       updatedAt: menuItemForm.value.updatedAt,
     },
     editingItem?.id,

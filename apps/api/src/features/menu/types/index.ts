@@ -69,7 +69,7 @@ export interface AvailableHours {
 // Extended Menu Item Entity (extending shared type)
 export interface MenuItem extends SharedMenuItem {
   costPrice?: number;
-  minInventoryAlert?: number;
+  minInventoryAlert?: number | null;
   availableHours?: AvailableHours;
   rating?: number;
   reviewCount: number;
@@ -148,7 +148,7 @@ export interface MenuItemOptionsInput {
  */
 export interface CreateMenuItemData extends Omit<
   SharedCreateMenuItemRequest,
-  "options" | "description"
+  "options" | "description" | "inventoryCount" | "minInventoryAlert"
 > {
   description?: string | null;
   originalPrice?: number | null;
@@ -157,6 +157,8 @@ export interface CreateMenuItemData extends Omit<
   imageId?: string | null;
   imageVariants?: ImageVariantsInput | null;
   availableHours?: AvailableHours;
+  inventoryCount?: number | null;
+  minInventoryAlert?: number | null;
   tags?: string[];
   keywords?: string | null;
   options?: MenuItemOptionsInput | null;
@@ -164,7 +166,7 @@ export interface CreateMenuItemData extends Omit<
 
 export interface UpdateMenuItemData extends Omit<
   SharedUpdateMenuItemRequest,
-  "options" | "description"
+  "options" | "description" | "inventoryCount" | "minInventoryAlert"
 > {
   // Nullable for the same reason as CreateMenuItemData — see the note there.
   description?: string | null;
@@ -173,8 +175,8 @@ export interface UpdateMenuItemData extends Omit<
   catalogType?: "menu_item" | "product";
   imageId?: string | null;
   sortOrder?: number;
-  inventoryCount?: number;
-  minInventoryAlert?: number;
+  inventoryCount?: number | null;
+  minInventoryAlert?: number | null;
   availableHours?: AvailableHours;
   rating?: number;
   reviewCount?: number;

@@ -110,6 +110,19 @@ describe("MenuService", () => {
     };
   }
 
+  it("preserves null inventory as unlimited stock in menu item responses", () => {
+    const { service } = createService();
+    const transformed = (
+      service as unknown as {
+        transformMenuItem: (
+          item: Record<string, unknown>,
+        ) => Record<string, unknown>;
+      }
+    ).transformMenuItem(menuItem({ inventoryCount: null }));
+
+    expect(transformed.inventoryCount).toBeNull();
+  });
+
   function category(overrides: Record<string, unknown> = {}) {
     return {
       id: 7,
