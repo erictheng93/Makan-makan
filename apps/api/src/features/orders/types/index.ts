@@ -95,16 +95,6 @@ export interface OrderItemData {
   notes?: string;
 }
 
-export interface UpdateOrderData {
-  status?: OrderStatus;
-  paymentStatus?: OrderPaymentStatus;
-  paymentMethod?: OrderPaymentMethod;
-  notes?: string;
-  internalNotes?: string;
-  estimatedPrepTime?: number;
-  actualPrepTime?: number;
-}
-
 export interface OrderStatusUpdateData {
   status: OrderStatus;
   notes?: string;
@@ -386,11 +376,6 @@ export interface IOrdersService {
       totalPages: number;
     };
   }>;
-  updateOrder(
-    id: string,
-    data: UpdateOrderData,
-    userId?: string,
-  ): Promise<Order | null>;
   addItemsToOrder(
     id: string,
     items: CreateOrderData["items"],
