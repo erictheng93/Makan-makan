@@ -13,6 +13,11 @@ import {
 import { SoftDeleteService } from "../utils/soft-delete";
 import { fromCents, toRequiredCents } from "../utils/money";
 
+const ORDER_NUMBER_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const ORDER_NUMBER_SEGMENT_SIZE = 4;
+const ORDER_NUMBER_SEGMENT_MODULUS =
+  ORDER_NUMBER_ALPHABET.length ** ORDER_NUMBER_SEGMENT_SIZE;
+
 /**
  * Deployment mode type
  * - saas: Multi-tenant centralized SaaS platform
@@ -199,9 +204,27 @@ export class BaseService {
 
   // 生成訂單號碼
   protected generateOrderNumber(restaurantId: string): string {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 4);
-    return `${restaurantId}-${timestamp}-${random}`.toUpperCase();
+    void restaurantId;
+
+    const timePart = this.toOrderNumberSegment(Date.now());
+    const randomPart = this.toOrderNumberSegment(
+      Math.floor(Math.random() * ORDER_NUMBER_SEGMENT_MODULUS),
+    );
+    return `${timePart}-${randomPart}`;
+  }
+
+  private toOrderNumberSegment(value: number): string {
+    let remaining = Math.trunc(Math.abs(value)) % ORDER_NUMBER_SEGMENT_MODULUS;
+    let segment = "";
+
+    for (let index = 0; index < ORDER_NUMBER_SEGMENT_SIZE; index += 1) {
+      segment =
+        ORDER_NUMBER_ALPHABET[remaining % ORDER_NUMBER_ALPHABET.length] +
+        segment;
+      remaining = Math.floor(remaining / ORDER_NUMBER_ALPHABET.length);
+    }
+
+    return segment;
   }
 
   // ===== Deployment Mode Methods =====

@@ -332,6 +332,23 @@ describe("OrderService createOrder atomicity", () => {
     expect(restaurant.totalOrders).toBe(1);
   });
 
+  it("creates human-readable order numbers without embedding restaurant ids", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    expect(order.orderNumber).toMatch(
+      /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/,
+    );
+    expect(order.orderNumber).not.toContain(restaurantId.toUpperCase());
+    expect(order.orderNumber.length).toBe(9);
+  });
+
   it("enforces per-user coupon limits and records the coupon user", async () => {
     const service = new OrderService(testDb.bindings.DB, {
       JWT_SECRET: "test",
