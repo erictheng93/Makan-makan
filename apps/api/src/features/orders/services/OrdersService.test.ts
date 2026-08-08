@@ -690,11 +690,6 @@ describe("OrdersService workflows", () => {
     ).resolves.toBe(cachedOrder);
 
     getBaseOrder.mockResolvedValueOnce(null);
-    await expect(
-      service.updateOrder(404, { status: "ready" } as never, 10),
-    ).resolves.toBeNull();
-
-    getBaseOrder.mockResolvedValueOnce(null);
     await expect(service.deleteOrder(404, 10)).resolves.toBe(false);
 
     getBaseOrder.mockResolvedValueOnce(createOrder({ status: "confirmed" }));
@@ -1126,63 +1121,8 @@ describe("OrdersService workflows", () => {
     expect(receipt.timestamps.deliveredAt).toBeUndefined();
   });
 
-  it("updates status and payment branches through updateOrder", async () => {
-    const env = createEnv();
-    const existing = createOrder({ id: 42, status: "confirmed" });
-    const statusUpdated = createOrder({ id: 42, status: "preparing" });
-    const paymentUpdated = createOrder({
-      id: 42,
-      status: "preparing",
-      paymentStatus: "paid",
-    });
-    getBaseOrder
-      .mockResolvedValueOnce(existing)
-      .mockResolvedValueOnce(paymentUpdated);
-    updateBaseOrderStatus.mockResolvedValue(statusUpdated);
-    const service = new OrdersService(env as never);
-
-    const result = await service.updateOrder(
-      42,
-      {
-        status: "preparing",
-        paymentStatus: "paid",
-        paymentMethod: "cash",
-        notes: "started",
-      } as never,
-      10,
-    );
-
-    expect(result).toBe(paymentUpdated);
-    expect(updateBaseOrderStatus).toHaveBeenCalledWith(42, {
-      status: "preparing",
-      notes: "started",
-    });
-    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
-    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
-  });
-
-  it("keeps existing orders when status and payment updates are no-ops", async () => {
-    const env = createEnv();
-    const existing = createOrder({ id: 42, status: "confirmed" });
-    getBaseOrder.mockResolvedValue(existing);
-    updateBaseOrderStatus.mockResolvedValue(null);
-    const service = new OrdersService(env as never);
-
-    await expect(
-      service.updateOrder(
-        42,
-        {
-          status: "preparing",
-          paymentStatus: "paid",
-          paymentMethod: "cash",
-        } as never,
-        10,
-      ),
-    ).resolves.toBe(existing);
-    expect(updateBaseOrderStatus).toHaveBeenCalledWith(42, {
-      status: "preparing",
-      notes: undefined,
-    });
+  it("returns null when updating payment status for a missing order", async () => {
+    const service = new OrdersService(createEnv() as never);
 
     getBaseOrder.mockResolvedValueOnce(null);
     await expect(

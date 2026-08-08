@@ -118,6 +118,36 @@ export const guestSessionAuth = async (
 };
 
 /**
+ * Extract a well-formed guest token from an Authorization header.
+ * Returns null when the header is absent or is not a `gt_` bearer token, so
+ * callers can tell "this device has no guest identity yet" apart from "this
+ * device presented a token". Does not prove the token exists in KV.
+ */
+export function getGuestBearerToken(
+  authorization: string | undefined,
+): string | null {
+  const bearerPrefix = "Bearer ";
+  if (!authorization?.startsWith(bearerPrefix)) return null;
+
+  const token = authorization.slice(bearerPrefix.length).trim();
+  return /^gt_[0-9a-f]{64}$/i.test(token) ? token : null;
+}
+
+/**
+ * Build the per-device active-order lock key for a restaurant.
+ * The lock must be scoped to something the customer's own device holds — a
+ * guest token — never to the client IP: a restaurant's shared WiFi (or a
+ * carrier's CGNAT) puts every customer behind one address, which would make
+ * one guest's open order block the whole venue.
+ */
+export function guestActiveOrderKey(
+  restaurantId: string,
+  guestToken: string,
+): string {
+  return `guest_active:${restaurantId}:token:${guestToken}`;
+}
+
+/**
  * Generate a cryptographically random guest token.
  */
 export function generateGuestToken(): string {

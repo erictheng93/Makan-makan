@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/freeze/SKILL.md
+../gstack/freeze/SKILL.md

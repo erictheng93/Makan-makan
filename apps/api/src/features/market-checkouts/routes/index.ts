@@ -22,6 +22,8 @@ import { meterEmit } from "../../../shared/utils/meter";
 import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import {
   generateGuestToken,
+  getGuestBearerToken,
+  guestActiveOrderKey,
   type GuestTokenData,
 } from "../../../middleware/guestAuth";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
@@ -331,15 +333,18 @@ app.post("/", async (c) => {
     throw badRequest("Each vendor can appear only once in a market checkout");
   }
 
-  const clientIp =
-    c.req.header("cf-connecting-ip") ||
-    c.req.header("x-forwarded-for") ||
-    "unknown";
-  const guestIdentifier =
-    data.phoneLastDigits === "000" ? `anon:${clientIp}` : data.phoneLastDigits;
-  const activeOrderKeys = restaurantIds.map(
-    (restaurantId) => `guest_active:${restaurantId}:${guestIdentifier}`,
-  );
+  // Active-order locks are scoped to the guest token this device already
+  // holds. A brand-new anonymous shopper has no stable identity yet, so there
+  // is nothing to check — deliberately, because the previous IP-derived
+  // identifier made a market's shared WiFi (or a carrier's CGNAT address) the
+  // lock and let one shopper's open order block every other shopper at every
+  // vendor they touched. See the same fix in guest-orders.
+  const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
+  const activeOrderKeys = requestGuestToken
+    ? restaurantIds.map((restaurantId) =>
+        guestActiveOrderKey(restaurantId, requestGuestToken),
+      )
+    : [];
 
   await Promise.all(
     data.vendors.map((vendor) =>
@@ -478,7 +483,10 @@ app.post("/", async (c) => {
 
       const fourHoursInSeconds = 4 * 60 * 60;
       const twoHoursInSeconds = 2 * 60 * 60;
-      const activeOrderKey = `guest_active:${vendor.restaurantId}:${guestIdentifier}`;
+      const activeOrderKey = guestActiveOrderKey(
+        vendor.restaurantId,
+        guestToken,
+      );
 
       // Record for compensation before writing locks: if the KV writes below
       // partially succeed and a later vendor fails, we still want to attempt to

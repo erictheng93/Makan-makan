@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/benchmark/SKILL.md
+../gstack/benchmark/SKILL.md

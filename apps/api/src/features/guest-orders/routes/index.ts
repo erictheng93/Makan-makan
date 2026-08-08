@@ -17,6 +17,8 @@ import type { Env } from "../../../types/env";
 import {
   guestTokenAuth,
   generateGuestToken,
+  getGuestBearerToken,
+  guestActiveOrderKey,
 } from "../../../middleware/guestAuth";
 import type { GuestTokenData } from "../../../middleware/guestAuth";
 import {
@@ -36,14 +38,6 @@ import { meterEmit } from "../../../shared/utils/meter";
 import { validateBody } from "../../../shared/middleware";
 
 const app = new Hono<{ Bindings: Env }>();
-
-const getGuestBearerToken = (authorization: string | undefined) => {
-  const bearerPrefix = "Bearer ";
-  if (!authorization?.startsWith(bearerPrefix)) return null;
-
-  const token = authorization.slice(bearerPrefix.length).trim();
-  return /^gt_[0-9a-f]{64}$/i.test(token) ? token : null;
-};
 
 // ─── POST / ─── Create guest order (no auth, rate limited) ───
 app.post("/", validateBody(createGuestOrderSchema), async (c) => {
@@ -79,7 +73,7 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
   // here incorrectly makes a restaurant's shared WiFi/CGNAT address the lock.
   const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
   const existingActiveOrderKey = requestGuestToken
-    ? `guest_active:${data.restaurantId}:token:${requestGuestToken}`
+    ? guestActiveOrderKey(data.restaurantId, requestGuestToken)
     : null;
   const existingActiveOrder = existingActiveOrderKey
     ? await c.env.CACHE_KV.get(existingActiveOrderKey)
@@ -214,7 +208,7 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
 
   // 6. Set active order KV key (2hr TTL)
   const twoHoursInSeconds = 2 * 60 * 60;
-  const activeOrderKey = `guest_active:${data.restaurantId}:token:${guestToken}`;
+  const activeOrderKey = guestActiveOrderKey(data.restaurantId, guestToken);
   await c.env.CACHE_KV.put(activeOrderKey, String(order.id), {
     expirationTtl: twoHoursInSeconds,
   });
@@ -326,19 +320,21 @@ app.post("/:id/cancel", guestTokenAuth, async (c) => {
     "Cancelled by guest",
   );
 
-  // Clean up KV keys. Anonymous guests (phoneLastDigits === "000") have their
-  // active-order lock keyed by client IP (`...:anon:{ip}`), which cannot be
-  // reconstructed from the token's phoneLastDigits. Resolve the real key via
-  // the `guest_active_lookup:{orderId}` reverse mapping written at creation
-  // (same as the admin cancel path), falling back to the reconstructed key
-  // only when the lookup is missing/expired.
+  // Clean up KV keys. The active-order lock is keyed by the guest token that
+  // created the order, so resolve it via the `guest_active_lookup:{orderId}`
+  // reverse mapping written at creation (same as the admin cancel path).
+  // Fall back to rebuilding the key from the token this request presented —
+  // for a guest cancelling their own order that is the same token.
   const guestData = c.get("guestOrder");
+  const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
   const lookupKey = `guest_active_lookup:${orderId}`;
   const activeOrderKey =
     (await c.env.CACHE_KV.get(lookupKey)) ??
-    `guest_active:${guestData.restaurantId}:${guestData.phoneLastDigits}`;
+    (requestGuestToken
+      ? guestActiveOrderKey(guestData.restaurantId, requestGuestToken)
+      : null);
   await Promise.allSettled([
-    c.env.CACHE_KV.delete(activeOrderKey),
+    activeOrderKey ? c.env.CACHE_KV.delete(activeOrderKey) : Promise.resolve(),
     c.env.CACHE_KV.delete(lookupKey),
   ]);
 

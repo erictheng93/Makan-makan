@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/design-shotgun/SKILL.md
+../gstack/design-shotgun/SKILL.md
