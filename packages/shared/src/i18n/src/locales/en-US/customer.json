@@ -783,7 +783,10 @@
       "proportional": "By order",
       "equal": "Split evenly",
       "host": "I pay it"
-    }
+    },
+    "mySubtotal": "My items",
+    "myServiceCharge": "My service charge",
+    "myTax": "My tax"
   },
   "messages": {
     "networkError": "Network connection failed, please check your connection",

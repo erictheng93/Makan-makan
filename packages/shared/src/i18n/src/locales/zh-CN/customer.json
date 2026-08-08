@@ -783,7 +783,10 @@
       "proportional": "按点餐金额",
       "equal": "均摊",
       "host": "我来付"
-    }
+    },
+    "mySubtotal": "我点的餐",
+    "myServiceCharge": "我的服务费",
+    "myTax": "我的税金"
   },
   "messages": {
     "networkError": "网络连接失败，请检查您的网络连接",

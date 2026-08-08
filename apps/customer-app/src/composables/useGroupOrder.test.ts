@@ -192,6 +192,130 @@ describe("useGroupOrder — data layer", () => {
     expect(group.groupOrder.value?.splitBillConfig.mode).toBe("equal");
   });
 
+  /**
+   * What a diner wants to know while ordering is what they will actually be
+   * asked to pay, which is their food plus their share of the service charge
+   * and tax. The rates come from the restaurant, the same source the ordinary
+   * cart reads, so the preview and the real bill cannot disagree.
+   *
+   * These mirror the server's own fee-mode cases with the same numbers the
+   * service tests use: two members, 10 and 30 of food, 10% service charge —
+   * 4 to place somewhere.
+   */
+  describe("what I will actually pay", () => {
+    async function twoMemberGroup(overrides: Record<string, unknown> = {}) {
+      const group = useGroupOrder({ restaurantId: "rest-1", userId: "m-1" });
+      vi.mocked(apiClient.post).mockResolvedValueOnce(createResponse());
+      vi.mocked(apiClient.get).mockResolvedValueOnce({
+        ...summaryResponse(),
+        groupOrder: { ...summaryResponse().groupOrder, ...overrides },
+        members: [
+          {
+            id: "m-1",
+            memberName: "Alex",
+            isHost: true,
+            joinedAt: new Date("2026-06-07T00:00:00.000Z").toISOString(),
+          },
+          {
+            id: "m-2",
+            memberName: "Sam",
+            isHost: false,
+            joinedAt: new Date("2026-06-07T00:00:00.000Z").toISOString(),
+          },
+        ],
+        cartItems: [
+          {
+            id: "i-1",
+            memberId: "m-1",
+            menuItemId: 1,
+            quantity: 1,
+            unitPrice: 10,
+            menuItem: { id: 1, name: "A", price: 10 },
+          },
+          {
+            id: "i-2",
+            memberId: "m-2",
+            menuItemId: 2,
+            quantity: 1,
+            unitPrice: 30,
+            menuItem: { id: 2, name: "B", price: 30 },
+          },
+        ],
+      });
+      await group.createGroupOrder({ hostName: "Alex" });
+      group.setChargeRates({ serviceChargeRate: 0.1, taxRate: 0 });
+      return group;
+    }
+
+    it("shows no fee until the restaurant charges one", async () => {
+      const group = await twoMemberGroup();
+      group.setChargeRates({ serviceChargeRate: 0, taxRate: 0 });
+
+      expect(group.myServiceCharge.value).toBe(0);
+      expect(group.myShare.value).toBe(10);
+    });
+
+    it("charges me on my own items by default", async () => {
+      const group = await twoMemberGroup();
+
+      expect(group.mySubtotal.value).toBe(10);
+      expect(group.myServiceCharge.value).toBe(1);
+      expect(group.myShare.value).toBe(11);
+    });
+
+    it("splits the fee by headcount when the host chose equal", async () => {
+      const group = await twoMemberGroup({ feeMode: "equal" });
+
+      expect(group.myServiceCharge.value).toBe(2);
+      expect(group.myShare.value).toBe(12);
+    });
+
+    it("shows the host carrying the whole fee", async () => {
+      const group = await twoMemberGroup({ feeMode: "host" });
+
+      // m-1 is the host in this group.
+      expect(group.myServiceCharge.value).toBe(4);
+      expect(group.myShare.value).toBe(14);
+    });
+
+    it("shows a member no fee at all when the host absorbs it", async () => {
+      const group = useGroupOrder({ restaurantId: "rest-1", userId: "m-2" });
+      vi.mocked(apiClient.get).mockResolvedValueOnce({
+        ...summaryResponse(),
+        groupOrder: { ...summaryResponse().groupOrder, feeMode: "host" },
+        members: [
+          {
+            id: "m-1",
+            memberName: "Alex",
+            isHost: true,
+            joinedAt: new Date("2026-06-07T00:00:00.000Z").toISOString(),
+          },
+          {
+            id: "m-2",
+            memberName: "Sam",
+            isHost: false,
+            joinedAt: new Date("2026-06-07T00:00:00.000Z").toISOString(),
+          },
+        ],
+        cartItems: [
+          {
+            id: "i-2",
+            memberId: "m-2",
+            menuItemId: 2,
+            quantity: 1,
+            unitPrice: 30,
+            menuItem: { id: 2, name: "B", price: 30 },
+          },
+        ],
+      });
+      await group.loadGroupOrder("go-1");
+      group.setChargeRates({ serviceChargeRate: 0.1, taxRate: 0 });
+
+      expect(group.myServiceCharge.value).toBe(0);
+      expect(group.myShare.value).toBe(30);
+    });
+  });
+
   it("adds to cart via /orders/group/:id/cart, never the /group-orders prefix", async () => {
     const group = await createHostedGroup();
 

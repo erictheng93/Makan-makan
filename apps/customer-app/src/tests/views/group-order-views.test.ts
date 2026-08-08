@@ -28,6 +28,10 @@ const groupOrderMock = vi.hoisted(() => ({
   setAutoSubmitOnExpiry: vi.fn(),
   autoSubmitOnExpiry: { value: false },
   setFeeMode: vi.fn(),
+  setChargeRates: vi.fn(),
+  mySubtotal: { value: 10 },
+  myServiceCharge: { value: 1 },
+  myTax: { value: 0.5 },
   sessionExpired: { value: false },
   currentMemberId: { value: "m-1" },
 }));
@@ -350,6 +354,48 @@ describe("GroupOrderView", () => {
     await flushPromises();
 
     expect(groupOrderMock.setSplitBillMode).toHaveBeenCalledWith("equal");
+  });
+
+  /**
+   * A diner deciding whether to add another dish needs the number they will
+   * actually be asked for, and the service charge is the part they are most
+   * likely to feel cheated by if it only appears at the end. Showing the lines
+   * separately is what makes the total arguable rather than surprising.
+   */
+  it("breaks my share down instead of showing one number", async () => {
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    const panel = wrapper.findComponent(GroupCartPanel);
+    expect(panel.find('[data-testid="my-subtotal"]').exists()).toBe(true);
+    expect(panel.find('[data-testid="my-service-charge"]').exists()).toBe(true);
+    expect(panel.find('[data-testid="my-tax"]').exists()).toBe(true);
+    expect(panel.find('[data-testid="my-share"]').exists()).toBe(true);
+  });
+
+  it("hides the fee lines the restaurant does not charge", async () => {
+    groupOrderMock.myServiceCharge.value = 0;
+    groupOrderMock.myTax.value = 0;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    const panel = wrapper.findComponent(GroupCartPanel);
+    // A restaurant that charges neither should not show two zero rows.
+    expect(panel.find('[data-testid="my-service-charge"]').exists()).toBe(
+      false,
+    );
+    expect(panel.find('[data-testid="my-tax"]').exists()).toBe(false);
+    expect(panel.find('[data-testid="my-share"]').exists()).toBe(true);
+
+    groupOrderMock.myServiceCharge.value = 1;
+    groupOrderMock.myTax.value = 0.5;
   });
 
   it("shows the host who-pays-the-fee selector", async () => {

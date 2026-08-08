@@ -783,7 +783,10 @@
       "proportional": "Ikut pesanan",
       "equal": "Bahagi rata",
       "host": "Saya yang bayar"
-    }
+    },
+    "mySubtotal": "Pesanan saya",
+    "myServiceCharge": "Caj perkhidmatan saya",
+    "myTax": "Cukai saya"
   },
   "messages": {
     "networkError": "Sambungan rangkaian gagal, sila semak sambungan anda",

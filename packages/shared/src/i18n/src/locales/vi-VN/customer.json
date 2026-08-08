@@ -783,7 +783,10 @@
       "proportional": "Theo món đã gọi",
       "equal": "Chia đều",
       "host": "Tôi trả"
-    }
+    },
+    "mySubtotal": "Món của tôi",
+    "myServiceCharge": "Phí dịch vụ của tôi",
+    "myTax": "Thuế của tôi"
   },
   "messages": {
     "networkError": "Kết nối mạng thất bại, vui lòng kiểm tra kết nối của bạn",

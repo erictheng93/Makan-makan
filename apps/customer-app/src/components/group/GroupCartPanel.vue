@@ -20,6 +20,9 @@ interface Props {
   currentUserId: string;
   splitBillConfig: SplitBillConfig;
   totalAmount: number;
+  mySubtotal: number;
+  myServiceCharge: number;
+  myTax: number;
   myShare: number;
   feeMode: GroupOrderFeeMode;
   isHost: boolean;
@@ -316,7 +319,12 @@ function getMemberColor(memberId: string): string {
         </div>
       </div>
 
-      <!-- Totals -->
+      <!--
+        My share is broken out rather than given as one figure. The service
+        charge is the line a diner is most likely to dispute, and a total that
+        cannot be checked against its parts is one they can only accept or
+        argue about after the fact.
+      -->
       <div class="space-y-2">
         <div class="flex justify-between text-sm">
           <span class="text-gray-600">{{ t("group.total") }}</span>
@@ -324,7 +332,38 @@ function getMemberColor(memberId: string): string {
             formatPrice(totalAmount)
           }}</span>
         </div>
-        <div class="flex justify-between text-sm">
+
+        <div
+          data-testid="my-subtotal"
+          class="flex justify-between text-sm border-t border-gray-100 pt-2"
+        >
+          <span class="text-gray-600">{{ t("group.mySubtotal") }}</span>
+          <span class="text-gray-900">{{ formatPrice(mySubtotal) }}</span>
+        </div>
+
+        <!-- Only shown when the restaurant actually charges it. -->
+        <div
+          v-if="myServiceCharge > 0"
+          data-testid="my-service-charge"
+          class="flex justify-between text-sm"
+        >
+          <span class="text-gray-600">{{ t("group.myServiceCharge") }}</span>
+          <span class="text-gray-900">{{ formatPrice(myServiceCharge) }}</span>
+        </div>
+
+        <div
+          v-if="myTax > 0"
+          data-testid="my-tax"
+          class="flex justify-between text-sm"
+        >
+          <span class="text-gray-600">{{ t("group.myTax") }}</span>
+          <span class="text-gray-900">{{ formatPrice(myTax) }}</span>
+        </div>
+
+        <div
+          data-testid="my-share"
+          class="flex justify-between text-sm border-t border-gray-100 pt-2"
+        >
           <span class="text-gray-600">{{ t("group.myShare") }}</span>
           <span class="font-bold text-ios-blue">{{
             formatPrice(myShare)

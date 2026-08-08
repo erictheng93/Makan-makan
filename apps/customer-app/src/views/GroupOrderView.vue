@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import menuApi from "@/services/menuApi";
 import GroupCartPanel from "@/components/group/GroupCartPanel.vue";
 import HostRecoveryPanel from "@/components/group/HostRecoveryPanel.vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
@@ -47,9 +48,30 @@ async function toggleAutoSubmit(): Promise<void> {
   }
 }
 
+/**
+ * Rates come from the restaurant, the same source the ordinary cart reads. A
+ * preview built on anything else shows a number the kitchen will not charge —
+ * the bug the cart already carries a comment about.
+ */
+async function loadChargeRates(restaurantId: string): Promise<void> {
+  if (!restaurantId) return;
+  try {
+    const restaurant = await menuApi.getRestaurant(restaurantId);
+    const settings = (restaurant?.settings ?? {}) as Record<string, unknown>;
+    group.setChargeRates({
+      serviceChargeRate: Number(settings.serviceChargeRate),
+      taxRate: Number(settings.taxRate),
+    });
+  } catch {
+    // Leaving the rates at zero shows food-only figures rather than blocking
+    // the whole cart on a settings lookup.
+  }
+}
+
 async function loadGroupOrder(): Promise<void> {
   try {
     await group.loadGroupOrder(props.groupOrderId);
+    void loadChargeRates(group.groupOrder.value?.restaurantId ?? "");
     await group.connectToGroupOrder(props.groupOrderId);
   } catch (error) {
     viewError.value =
@@ -188,6 +210,9 @@ onUnmounted(() => {
         :current-user-id="currentUserId"
         :split-bill-config="group.groupOrder.value.splitBillConfig"
         :total-amount="group.totalAmount.value"
+        :my-subtotal="group.mySubtotal.value"
+        :my-service-charge="group.myServiceCharge.value"
+        :my-tax="group.myTax.value"
         :my-share="group.myShare.value"
         :fee-mode="group.groupOrder.value.feeMode"
         :is-host="group.isHost.value"

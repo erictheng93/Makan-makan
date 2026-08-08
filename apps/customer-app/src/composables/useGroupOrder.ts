@@ -397,30 +397,72 @@ export function useGroupOrder(options: {
       ) || 0,
   );
 
-  const myShare = computed(() => {
+  /**
+   * The restaurant's own rates, fed in by the view from the same endpoint the
+   * ordinary cart reads. Never hardcode them: a preview built on guessed rates
+   * shows a number the kitchen will not charge.
+   */
+  const chargeRates = ref({ serviceChargeRate: 0, taxRate: 0 });
+
+  function setChargeRates(rates: {
+    serviceChargeRate?: number;
+    taxRate?: number;
+  }): void {
+    chargeRates.value = {
+      serviceChargeRate: Number.isFinite(rates.serviceChargeRate)
+        ? (rates.serviceChargeRate as number)
+        : 0,
+      taxRate: Number.isFinite(rates.taxRate) ? (rates.taxRate as number) : 0,
+    };
+  }
+
+  /** My food, before any fee — the part that depends on the split method. */
+  const mySubtotal = computed(() => {
     if (!groupOrder.value) return 0;
-    const config = groupOrder.value.splitBillConfig;
 
-    switch (config.mode) {
-      case "equal": {
-        const memberCount = groupOrder.value.members.length;
-        return memberCount > 0 ? totalAmount.value / memberCount : 0;
-      }
-
-      // Both come to the same number here. They diverge only once tax and
-      // service charge are applied, and those rates live on the server — this
-      // is a preview of the cart, not the final bill.
-      case "by_item":
-      case "proportional":
-        return myItems.value.reduce(
-          (sum, item) => sum + item.menuItemPrice * item.quantity,
-          0,
-        );
-
-      default:
-        return 0;
+    if (groupOrder.value.splitBillConfig.mode === "equal") {
+      const memberCount = groupOrder.value.members.length;
+      return memberCount > 0 ? totalAmount.value / memberCount : 0;
     }
+
+    return myItems.value.reduce(
+      (sum, item) => sum + item.menuItemPrice * item.quantity,
+      0,
+    );
   });
+
+  /**
+   * Mirrors the server's fee allocation (GroupOrdersService.splitBill). It has
+   * to be duplicated because the server only divides the bill at checkout, and
+   * a diner deciding what to order needs the number now — but the two are
+   * pinned to the same cases and the same figures in their tests.
+   */
+  function myShareOfFee(rate: number): number {
+    if (!groupOrder.value || rate === 0) return 0;
+
+    const wholeFee = totalAmount.value * rate;
+    const feeMode = groupOrder.value.feeMode;
+
+    if (feeMode === "host") {
+      return isHost.value ? wholeFee : 0;
+    }
+
+    if (feeMode === "equal") {
+      const memberCount = groupOrder.value.members.length;
+      return memberCount > 0 ? wholeFee / memberCount : 0;
+    }
+
+    return mySubtotal.value * rate;
+  }
+
+  const myServiceCharge = computed(() =>
+    myShareOfFee(chargeRates.value.serviceChargeRate),
+  );
+  const myTax = computed(() => myShareOfFee(chargeRates.value.taxRate));
+
+  const myShare = computed(
+    () => mySubtotal.value + myServiceCharge.value + myTax.value,
+  );
 
   const onlineMembers = computed(
     () => groupOrder.value?.members.filter((m) => m.isOnline) || [],
@@ -933,6 +975,9 @@ export function useGroupOrder(options: {
     currentMemberId,
     recoveryCode,
     autoSubmitOnExpiry,
+    mySubtotal,
+    myServiceCharge,
+    myTax,
 
     // Computed
     isHost,
@@ -955,6 +1000,7 @@ export function useGroupOrder(options: {
     setFeeMode,
     submitOrder,
     setAutoSubmitOnExpiry,
+    setChargeRates,
     recoverHost,
     getShareLink,
   };
