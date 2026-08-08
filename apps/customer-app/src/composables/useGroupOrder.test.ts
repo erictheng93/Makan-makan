@@ -155,6 +155,43 @@ describe("useGroupOrder — data layer", () => {
     expect(group.autoSubmitOnExpiry.value).toBe(false);
   });
 
+  /**
+   * The split method is a host preference the server stores; finalize splits
+   * by whatever it says. The client used to collapse anything it did not
+   * recognise to `by_item`, so the panel showed a mode nobody had chosen.
+   */
+  it("takes the split mode from the server rather than defaulting it", async () => {
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(createResponse());
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      ...summaryResponse(),
+      groupOrder: {
+        ...summaryResponse().groupOrder,
+        splitType: "proportional",
+      },
+    });
+    await group.createGroupOrder({ hostName: "Alex" });
+
+    expect(group.groupOrder.value?.splitBillConfig.mode).toBe("proportional");
+  });
+
+  it("changes the split mode through the real endpoint with the host token", async () => {
+    const group = await createHostedGroup();
+
+    vi.mocked(apiClient.put).mockResolvedValueOnce({ splitType: "equal" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      ...summaryResponse(),
+      groupOrder: { ...summaryResponse().groupOrder, splitType: "equal" },
+    });
+    await group.setSplitBillMode("equal");
+
+    expect(apiClient.put).toHaveBeenLastCalledWith(
+      "/orders/group/go-1/split-type",
+      expect.objectContaining({ splitType: "equal", memberToken: "session-1" }),
+    );
+    expect(group.groupOrder.value?.splitBillConfig.mode).toBe("equal");
+  });
+
   it("adds to cart via /orders/group/:id/cart, never the /group-orders prefix", async () => {
     const group = await createHostedGroup();
 
@@ -339,22 +376,25 @@ describe("useGroupOrder — data layer", () => {
     expect(ws.send).not.toHaveBeenCalled();
   });
 
-  it("fails loudly on split bill mutations until the split endpoint is wired", async () => {
+  /**
+   * `POST /split` performs the split: it moves the group to `checkout` and
+   * stamps `lockedAt`, which ends ordering for the whole table. Choosing a
+   * method must never reach it — that is what `PUT /split-type` is for.
+   */
+  it("records the split preference without triggering the split itself", async () => {
     const group = await createHostedGroup();
 
-    await expect(group.setSplitBillMode("equal")).rejects.toThrow(
-      /not yet available/i,
-    );
-    await expect(group.setCustomShares({ "m-1": 100 })).rejects.toThrow(
-      /not yet available/i,
-    );
-    expect(group.groupOrder.value?.splitBillConfig).toEqual({
-      mode: "by_item",
+    vi.mocked(apiClient.put).mockResolvedValueOnce({ splitType: "equal" });
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      ...summaryResponse(),
+      groupOrder: { ...summaryResponse().groupOrder, splitType: "equal" },
     });
-    const calledPaths = vi
+    await group.setSplitBillMode("equal");
+
+    const postedPaths = vi
       .mocked(apiClient.post)
       .mock.calls.map(([url]) => String(url));
-    expect(calledPaths.some((url) => url.includes("/split"))).toBe(false);
+    expect(postedPaths.some((url) => url.endsWith("/split"))).toBe(false);
     expect(ws.send).not.toHaveBeenCalled();
   });
 });

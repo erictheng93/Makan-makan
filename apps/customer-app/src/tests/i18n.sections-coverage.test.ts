@@ -639,19 +639,13 @@ describe("i18n Integration Tests", () => {
       "group.total",
       "group.myShare",
       "group.perPerson",
-      "group.customShares",
-      "group.sharesMustEqual100",
-      "group.selectPayer",
       "group.split.equal",
       "group.split.equalDesc",
       "group.split.by_item",
       "group.split.byItem",
       "group.split.byItemDesc",
-      "group.split.custom",
-      "group.split.customDesc",
-      "group.split.single_payer",
-      "group.split.singlePayer",
-      "group.split.singlePayerDesc",
+      "group.split.proportional",
+      "group.split.proportionalDesc",
     ];
 
     it("should have all group keys in all 6 locales", () => {

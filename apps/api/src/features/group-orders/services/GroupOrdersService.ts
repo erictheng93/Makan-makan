@@ -2311,6 +2311,61 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   /**
+   * Record how the bill should be divided when this group is finalized.
+   *
+   * Deliberately not `splitBill`: that one performs the split, sets the group
+   * to `checkout` and stamps `lockedAt`, which ends ordering for everyone.
+   * This only stores the choice, so the table keeps ordering until someone
+   * actually submits.
+   *
+   * Only the methods finalize can carry out unaided are accepted — `custom`
+   * needs per-member amounts and a group order has nowhere to keep them.
+   */
+  async setSplitType(
+    groupOrderId: string,
+    splitType: "equal" | "by_item" | "proportional",
+  ): Promise<{
+    success: boolean;
+    data?: { splitType: string };
+    error?: string;
+  }> {
+    const timer = this.performance.startTimer("setSplitType");
+
+    try {
+      const rows = await this.db
+        .select({ id: groupOrders.id })
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId))
+        .limit(1);
+
+      if (!rows[0]) {
+        return { success: false, error: "Group order not found" };
+      }
+
+      // The column's vocabulary, which `splitBill` also maps onto.
+      const storedValue = splitType === "by_item" ? "individual" : splitType;
+
+      await this.db
+        .update(groupOrders)
+        .set({ splitType: storedValue, updatedAt: new Date() })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      await this.cache.delete(`group_order:${groupOrderId}`);
+      await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+      return { success: true, data: { splitType } };
+    } catch (error) {
+      this.errorTracker.logError("setSplitType", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to update split type", error);
+      return { success: false, error: "Failed to update split type" };
+    } finally {
+      this.performance.endTimer(timer);
+    }
+  }
+
+  /**
    * Turn expiry auto-submit on or off for one group order.
    *
    * `settings` is a single JSON column, so this reads it back and rewrites the
@@ -2746,6 +2801,10 @@ export class GroupOrdersService implements IGroupOrderService {
       status: this.narrowStatus(data.status, data.id),
       expiresAt,
       maxMembers: settings.maxMembers || 8,
+      // The column stores `individual`; every client calls it `by_item`, and
+      // `splitBill` already translates between them. Without this the client
+      // sees `undefined` and falls back to a mode nobody chose.
+      splitType: data.splitType === "individual" ? "by_item" : data.splitType,
       // Surfaced because the host's toggle has to render the current state.
       // Rows written before the setting existed read as off, which matches the
       // default the service now applies.

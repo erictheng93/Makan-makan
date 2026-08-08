@@ -644,6 +644,86 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  /**
+   * Choosing how the bill will be split is a preference, not an action.
+   * `splitBill` is the action — it sets status to `checkout` and stamps
+   * `lockedAt`, ending ordering for the whole table. Setting the preference
+   * must touch neither, or picking "split equally" would silently stop
+   * everyone from adding food.
+   */
+  it("stores the split preference without locking the group", async () => {
+    const service = createService();
+    const db = createDb([[{ id: "group-1", status: "active" }]]);
+    service.db = db;
+
+    await expect(
+      service.setSplitType("group-1", "equal"),
+    ).resolves.toMatchObject({ success: true });
+
+    const written = db.updates.at(-1)?.payload as Record<string, unknown>;
+    expect(written).toMatchObject({ splitType: "equal" });
+    expect(written).not.toHaveProperty("status");
+    expect(written).not.toHaveProperty("lockedAt");
+  });
+
+  /**
+   * The column stores `individual`; the client calls the same thing `by_item`.
+   * `splitBill` already maps one to the other, so the preference has to be
+   * written in the same vocabulary or finalize would split by a mode the host
+   * never chose.
+   */
+  it("stores by_item using the value the column expects", async () => {
+    const service = createService();
+    const db = createDb([[{ id: "group-1", status: "active" }]]);
+    service.db = db;
+
+    await service.setSplitType("group-1", "by_item");
+
+    expect(db.updates.at(-1)?.payload).toMatchObject({
+      splitType: "individual",
+    });
+  });
+
+  it("refuses to set a split preference on a group order that is gone", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(
+      service.setSplitType("missing", "equal"),
+    ).resolves.toMatchObject({ success: false });
+  });
+
+  /**
+   * The stored preference has to reach the client, or the selector renders
+   * whatever its fallback is and the host sees a mode they never picked. The
+   * column speaks `individual`; the client speaks `by_item`.
+   */
+  it("carries the split preference out to the client as by_item", () => {
+    const service = createService();
+
+    expect(
+      service.formatGroupOrder({
+        ...baseGroupOrder,
+        id: "group-1",
+        splitType: "individual",
+      }),
+    ).toMatchObject({ splitType: "by_item" });
+  });
+
+  it("carries equal and proportional through unchanged", () => {
+    const service = createService();
+
+    expect(
+      service.formatGroupOrder({ ...baseGroupOrder, splitType: "equal" }),
+    ).toMatchObject({ splitType: "equal" });
+    expect(
+      service.formatGroupOrder({
+        ...baseGroupOrder,
+        splitType: "proportional",
+      }),
+    ).toMatchObject({ splitType: "proportional" });
+  });
+
   it("refuses to flip auto-submit on a group order that is gone", async () => {
     const service = createService();
     service.db = createDb([[]]);

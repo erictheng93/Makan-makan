@@ -265,15 +265,17 @@ function getMemberColor(memberId: string): string {
         <label class="block text-xs font-medium text-gray-500 mb-2">
           {{ t("group.splitMethod") }}
         </label>
-        <div class="grid grid-cols-4 gap-2">
+        <!--
+          Only the methods finalize can perform unaided. `custom` and
+          `single_payer` need per-member amounts that a group order cannot
+          store, so offering them would let the host choose a preference that
+          fails at finalize instead of here.
+        -->
+        <div class="grid grid-cols-3 gap-2">
           <button
-            v-for="mode in [
-              'equal',
-              'by_item',
-              'custom',
-              'single_payer',
-            ] as const"
+            v-for="mode in ['equal', 'by_item', 'proportional'] as const"
             :key="mode"
+            :data-testid="`split-mode-${mode}`"
             class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
             :class="
               splitBillConfig.mode === mode

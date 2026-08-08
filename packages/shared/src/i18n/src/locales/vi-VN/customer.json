@@ -769,20 +769,14 @@
     "total": "Tổng cộng",
     "myShare": "Phần của tôi",
     "perPerson": "mỗi người",
-    "customShares": "Tỷ lệ tùy chỉnh",
-    "sharesMustEqual100": "Tổng tỷ lệ phải bằng 100%",
-    "selectPayer": "Chọn người thanh toán",
     "split": {
       "equal": "Chia đều",
       "equalDesc": "Mỗi người trả cùng số tiền",
       "by_item": "Tự trả phần mình",
       "byItem": "Tự trả phần mình",
       "byItemDesc": "Mỗi người trả cho món của mình",
-      "custom": "Tùy chỉnh",
-      "customDesc": "Đặt tỷ lệ tùy chỉnh cho mỗi người",
-      "single_payer": "Một người trả",
-      "singlePayer": "Một người trả",
-      "singlePayerDesc": "Một người trả cho tất cả"
+      "proportional": "Theo tỷ lệ",
+      "proportionalDesc": "Chia theo tỷ lệ giá trị món mỗi người gọi"
     }
   },
   "messages": {

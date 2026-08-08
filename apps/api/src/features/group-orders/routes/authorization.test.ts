@@ -26,6 +26,7 @@ const groupServiceMocks = vi.hoisted(() => ({
   updateCartItem: vi.fn(),
   removeCartItem: vi.fn(),
   setAutoSubmitOnExpiry: vi.fn(),
+  setSplitType: vi.fn(),
   isHostSession: vi.fn(),
   isMemberSession: vi.fn(),
   getGroupOrder: vi.fn(),
@@ -130,6 +131,10 @@ describe("group order mutations require proof of who is calling", () => {
     groupServiceMocks.setAutoSubmitOnExpiry.mockResolvedValue({
       success: true,
       data: { autoSubmitOnExpiry: true },
+    });
+    groupServiceMocks.setSplitType.mockResolvedValue({
+      success: true,
+      data: { splitType: "equal" },
     });
     groupServiceMocks.getGroupOrder.mockResolvedValue({
       groupOrder: { id: GROUP_ORDER_ID, restaurantId: "rest-1" },
@@ -445,6 +450,63 @@ describe("group order mutations require proof of who is calling", () => {
         GROUP_ORDER_ID,
         false,
       );
+    });
+  });
+
+  /**
+   * How the bill gets divided decides what each person is asked to pay, so it
+   * belongs to the host for the same reason /split does. Unlike /split it does
+   * not end ordering — this only records the choice finalize will use.
+   */
+  describe("PUT /:groupOrderId/split-type", () => {
+    it("refuses a caller with no token", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/split-type`,
+        { splitType: "equal" },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.setSplitType).not.toHaveBeenCalled();
+    });
+
+    it("refuses a member who is not the host", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/split-type`,
+        { splitType: "equal", memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.setSplitType).not.toHaveBeenCalled();
+    });
+
+    it("lets the host choose a split method", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/split-type`,
+        { splitType: "by_item", memberToken: HOST_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.setSplitType).toHaveBeenCalledWith(
+        GROUP_ORDER_ID,
+        "by_item",
+      );
+    });
+
+    it("rejects a split method the finalize path cannot carry out", async () => {
+      // `custom` and `single_payer` need per-member amounts, and a group order
+      // has nowhere to keep them. Storing either would make finalize fail with
+      // "Custom amounts are required" long after the host made the choice.
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/split-type`,
+        { splitType: "custom", memberToken: HOST_TOKEN },
+      );
+
+      expect(status).toBe(400);
+      expect(groupServiceMocks.setSplitType).not.toHaveBeenCalled();
     });
   });
 

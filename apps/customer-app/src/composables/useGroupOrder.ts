@@ -47,10 +47,13 @@ export interface GroupCartItem {
   addedAt: number;
 }
 
+/**
+ * Only the methods the server can carry out at finalize on its own. `custom`
+ * and `single_payer` need per-member amounts that a group order has nowhere to
+ * store, so they are not offered as a preference.
+ */
 export interface SplitBillConfig {
-  mode: "equal" | "by_item" | "custom" | "single_payer";
-  customShares?: Record<string, number>; // userId -> percentage or amount
-  singlePayerId?: string;
+  mode: "equal" | "by_item" | "proportional";
 }
 
 export interface GroupOrder {
@@ -242,9 +245,13 @@ function mapCartItem(
 function mapSummary(summary: GroupOrderSummary): GroupOrder {
   const members = summary.members.map(mapMember);
   const host = members.find((member) => member.isHost);
-  const splitMode =
+  // `by_item` is the fallback for anything unrecognised, including the older
+  // stored values this app no longer offers — never for a mode the host did
+  // pick, which is why every offered mode is listed here.
+  const splitMode: SplitBillConfig["mode"] =
     summary.groupOrder.splitType === "equal" ||
-    summary.groupOrder.splitType === "custom"
+    summary.groupOrder.splitType === "proportional" ||
+    summary.groupOrder.splitType === "by_item"
       ? summary.groupOrder.splitType
       : "by_item";
 
@@ -394,20 +401,15 @@ export function useGroupOrder(options: {
         const memberCount = groupOrder.value.members.length;
         return memberCount > 0 ? totalAmount.value / memberCount : 0;
 
+      // Both come to the same number here. They diverge only once tax and
+      // service charge are applied, and those rates live on the server — this
+      // is a preview of the cart, not the final bill.
       case "by_item":
+      case "proportional":
         return myItems.value.reduce(
           (sum, item) => sum + item.menuItemPrice * item.quantity,
           0,
         );
-
-      case "custom":
-        const share = config.customShares?.[currentMemberId.value] || 0;
-        return (totalAmount.value * share) / 100;
-
-      case "single_payer":
-        return config.singlePayerId === currentMemberId.value
-          ? totalAmount.value
-          : 0;
 
       default:
         return 0;
@@ -705,16 +707,28 @@ export function useGroupOrder(options: {
   }
 
   // Split bill operations
+  /**
+   * Host only. Records how finalize should divide the bill — it does not
+   * perform the split, so the table keeps ordering afterwards.
+   */
   async function setSplitBillMode(
-    _mode: SplitBillConfig["mode"],
-  ): Promise<never> {
-    throw new Error("setSplitBillMode is not yet available");
-  }
+    mode: SplitBillConfig["mode"],
+  ): Promise<void> {
+    if (!groupOrder.value) {
+      throw new Error("No group order loaded");
+    }
 
-  async function setCustomShares(
-    _shares: Record<string, number>,
-  ): Promise<never> {
-    throw new Error("setCustomShares is not yet available");
+    const groupOrderId = groupOrder.value.id;
+    hydrateHostCredentials(groupOrderId);
+    if (!memberToken.value) {
+      throw new Error("Host credential is required to change the split method");
+    }
+
+    await apiClient.put(`/orders/group/${groupOrderId}/split-type`, {
+      splitType: mode,
+      memberToken: memberToken.value,
+    });
+    await loadGroupOrder(groupOrderId);
   }
 
   // Leave group order
@@ -910,7 +924,6 @@ export function useGroupOrder(options: {
     updateCartItem,
     removeFromCart,
     setSplitBillMode,
-    setCustomShares,
     submitOrder,
     setAutoSubmitOnExpiry,
     recoverHost,

@@ -480,6 +480,41 @@ app.post(
 );
 
 /**
+ * Choose how the bill will be divided at finalize
+ * PUT /api/v1/orders/group/{groupOrderId}/split-type
+ *
+ * Host only, and deliberately separate from POST /split: that one performs the
+ * split and closes the group for ordering. This only records the choice.
+ */
+app.put(
+  "/:groupOrderId/split-type",
+  publicRateLimit,
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateBody(groupOrderSchemas.splitTypePreference),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const { splitType, memberToken } = c.get("validatedBody");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
+
+    const result = await groupOrderService.setSplitType(
+      groupOrderId,
+      splitType,
+    );
+
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to update split type");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
+  },
+);
+
+/**
  * Turn expiry auto-submit on or off
  * PUT /api/v1/orders/group/{groupOrderId}/auto-submit
  *

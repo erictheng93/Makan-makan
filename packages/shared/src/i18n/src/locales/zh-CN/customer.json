@@ -769,20 +769,14 @@
     "total": "总计",
     "myShare": "我的份额",
     "perPerson": "每人",
-    "customShares": "自定义比例",
-    "sharesMustEqual100": "比例总和必须等于 100%",
-    "selectPayer": "选择付款人",
     "split": {
       "equal": "均分",
       "equalDesc": "每人付一样的金额",
       "by_item": "各付各",
       "byItem": "各付各",
       "byItemDesc": "各自付自己点的餐点",
-      "custom": "自定义",
-      "customDesc": "自定义每人的比例",
-      "single_payer": "单人付",
-      "singlePayer": "单人付",
-      "singlePayerDesc": "由一人支付全部"
+      "proportional": "按比例",
+      "proportionalDesc": "按各自点餐金额的比例分摊"
     }
   },
   "messages": {

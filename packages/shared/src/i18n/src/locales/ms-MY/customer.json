@@ -769,20 +769,14 @@
     "total": "Jumlah",
     "myShare": "Bahagian saya",
     "perPerson": "setiap orang",
-    "customShares": "Bahagian tersuai",
-    "sharesMustEqual100": "Jumlah bahagian mesti sama dengan 100%",
-    "selectPayer": "Pilih pembayar",
     "split": {
       "equal": "Bahagi sama rata",
       "equalDesc": "Setiap orang bayar jumlah yang sama",
       "by_item": "Bayar mengikut item",
       "byItem": "Bayar mengikut item",
       "byItemDesc": "Setiap orang bayar untuk item mereka sendiri",
-      "custom": "Tersuai",
-      "customDesc": "Tetapkan peratusan tersuai untuk setiap orang",
-      "single_payer": "Satu pembayar",
-      "singlePayer": "Satu pembayar",
-      "singlePayerDesc": "Satu orang bayar untuk semua"
+      "proportional": "Mengikut kadar",
+      "proportionalDesc": "Dibahagi mengikut nilai pesanan setiap orang"
     }
   },
   "messages": {

@@ -769,20 +769,14 @@
     "total": "Total",
     "myShare": "My share",
     "perPerson": "per person",
-    "customShares": "Custom shares",
-    "sharesMustEqual100": "Shares must add up to 100%",
-    "selectPayer": "Select payer",
     "split": {
       "equal": "Equal split",
       "equalDesc": "Everyone pays the same amount",
       "by_item": "Pay by item",
       "byItem": "Pay by item",
       "byItemDesc": "Each person pays for their own items",
-      "custom": "Custom",
-      "customDesc": "Set custom percentage for each person",
-      "single_payer": "Single payer",
-      "singlePayer": "Single payer",
-      "singlePayerDesc": "One person pays for everyone"
+      "proportional": "Proportional",
+      "proportionalDesc": "Split in proportion to what each person ordered"
     }
   },
   "messages": {

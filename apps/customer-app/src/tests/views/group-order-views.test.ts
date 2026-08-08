@@ -24,6 +24,7 @@ const groupOrderMock = vi.hoisted(() => ({
   updateCartItem: vi.fn(),
   removeFromCart: vi.fn(),
   submitOrder: vi.fn(),
+  setSplitBillMode: vi.fn(),
   setAutoSubmitOnExpiry: vi.fn(),
   autoSubmitOnExpiry: { value: false },
   sessionExpired: { value: false },
@@ -305,6 +306,48 @@ describe("GroupOrderView", () => {
     expect(wrapper.find('[data-testid="group-order-locked"]').exists()).toBe(
       false,
     );
+  });
+
+  /**
+   * Only the methods finalize can carry out on its own are offered. `custom`
+   * and `single_payer` need per-member amounts that a group order has nowhere
+   * to store, so offering them would let the host pick a preference that makes
+   * the order fail to finalize much later.
+   */
+  it("offers only the split methods finalize can honour", async () => {
+    groupOrderMock.isHost.value = true;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    const panel = wrapper.findComponent(GroupCartPanel);
+    const labels = panel
+      .findAll('[data-testid^="split-mode-"]')
+      .map((button) => button.attributes("data-testid"));
+
+    expect(labels).toEqual([
+      "split-mode-equal",
+      "split-mode-by_item",
+      "split-mode-proportional",
+    ]);
+  });
+
+  it("asks the composable to change the split mode when the host picks one", async () => {
+    groupOrderMock.isHost.value = true;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    await wrapper.find('[data-testid="split-mode-equal"]').trigger("click");
+    await flushPromises();
+
+    expect(groupOrderMock.setSplitBillMode).toHaveBeenCalledWith("equal");
   });
 
   it.each(["finalizing", "finalizing_failed", "checkout", "completed"])(

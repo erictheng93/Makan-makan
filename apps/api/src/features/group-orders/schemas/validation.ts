@@ -146,6 +146,19 @@ export const removeCartItemSchema = z.object({
   memberToken: z.string().min(1).max(255).optional(),
 });
 
+/**
+ * Only the methods finalize can perform without extra input. `custom` and
+ * `single_payer` need per-member amounts, and a group order has no column for
+ * them — accepting either here would store a preference that makes the order
+ * fail to finalize much later, with nothing to point at.
+ */
+export const splitTypePreferenceSchema = z.object({
+  splitType: z.enum(["equal", "by_item", "proportional"], {
+    error: "Split type must be one of: equal, by_item, proportional",
+  }),
+  memberToken: z.string().min(1).max(255).optional(),
+});
+
 export const autoSubmitOnExpirySchema = z.object({
   enabled: z.boolean({ error: "enabled must be true or false" }),
   memberToken: z.string().min(1).max(255).optional(),
@@ -434,6 +447,7 @@ export const groupOrderSchemas = {
   updateCartItem: updateCartItemSchema,
   removeCartItem: removeCartItemSchema,
   autoSubmitOnExpiry: autoSubmitOnExpirySchema,
+  splitTypePreference: splitTypePreferenceSchema,
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
   recoverHost: recoverHostSchema,

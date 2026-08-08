@@ -22,6 +22,8 @@ export interface GroupOrder extends Omit<BaseEntity, "id"> {
   status: GroupOrderStatus;
   expiresAt: Date;
   maxMembers: number;
+  /** How finalize will divide the bill. Host-controlled. */
+  splitType: string;
   /** Whether expiry submits the cart as a real order. Host-controlled. */
   autoSubmitOnExpiry: boolean;
   permissions: GroupOrderPermissions;
