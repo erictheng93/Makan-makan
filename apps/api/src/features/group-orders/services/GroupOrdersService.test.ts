@@ -1296,6 +1296,47 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  /**
+   * `calculateOrderTotal` in the shared base service is what every ordinary
+   * order goes through, so it defines what a rate means and what tax applies
+   * to for this restaurant:
+   *
+   *   serviceCharge = subtotal * rate      (0.1 is 10%)
+   *   tax           = subtotal * rate      (the subtotal, not subtotal + fee)
+   *
+   * splitBill used to read the same stored rate as a percentage and charge tax
+   * on subtotal + service charge, so the identical cart cost more when ordered
+   * as a group — and a restaurant that set serviceChargeRate to 0.1 for its
+   * normal orders would have billed group members 0.1% instead of 10%.
+   */
+  it("reads rates and charges tax the way an ordinary order does", async () => {
+    const service = createService();
+    service.db = createSplitDb({
+      members: [hostMember],
+      items: [cartItem("cart-1", "member-1", 10000)],
+    });
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "equal",
+        serviceChargeRate: 0.1,
+        taxRate: 0.05,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        {
+          memberId: "member-1",
+          subtotal: 100,
+          serviceCharge: 10,
+          // 5 — not 5.5, which is what taxing the service charge too gives.
+          taxAmount: 5,
+          totalAmount: 115,
+        },
+      ],
+    });
+  });
+
   it("splits bills equally and completes a member payment", async () => {
     const { kv, values } = createKV();
     values.set("group_order_summary:group-1", JSON.stringify({ stale: true }));
@@ -1334,8 +1375,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     await expect(
       service.splitBill("group-1", {
         splitType: "equal",
-        serviceChargeRate: 10,
-        taxRate: 5,
+        serviceChargeRate: 0.1,
+        taxRate: 0.05,
       }),
     ).resolves.toMatchObject({
       success: true,
@@ -1344,12 +1385,12 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           memberId: "member-1",
           subtotal: 20,
           serviceCharge: 2,
-          taxAmount: 1.1,
-          totalAmount: 23.1,
+          taxAmount: 1,
+          totalAmount: 23,
         },
         {
           memberId: "member-2",
-          totalAmount: 23.1,
+          totalAmount: 23,
         },
       ],
     });
@@ -1357,7 +1398,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(splitDb.updates[0].payload).toMatchObject({
       status: "checkout",
       splitType: "equal",
-      finalAmountCents: 4620,
+      finalAmountCents: 4600,
     });
     expect(values.has("group_order_summary:group-1")).toBe(false);
 
@@ -1370,8 +1411,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           id: "split-1",
           groupOrderId: "group-1",
           memberId: "member-1",
-          totalAmount: 23.1,
-          totalAmountCents: 2310,
+          totalAmount: 23,
+          totalAmountCents: 2300,
           paymentStatus: "pending",
         },
       ],
@@ -1388,7 +1429,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       success: true,
       data: {
         memberId: "member-1",
-        amount: 23.1,
+        amount: 23,
         transactionId: "txn-1",
         groupOrderStatus: "completed",
       },
@@ -1429,7 +1470,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     await expect(
       byItemService.splitBill("group-1", {
         splitType: "by_item",
-        serviceChargeRate: 10,
+        serviceChargeRate: 0.1,
       }),
     ).resolves.toMatchObject({
       success: true,
@@ -1702,8 +1743,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
     const individual = await individualService.splitBill("group-1", {
       splitType: "individual",
-      serviceChargeRate: 10,
-      taxRate: 5,
+      serviceChargeRate: 0.1,
+      taxRate: 0.05,
     });
 
     const proportionalService = createService();
@@ -1716,8 +1757,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
     const proportional = await proportionalService.splitBill("group-1", {
       splitType: "proportional",
-      serviceChargeRate: 10,
-      taxRate: 5,
+      serviceChargeRate: 0.1,
+      taxRate: 0.05,
     });
 
     // This equivalence only holds while every shared fee is proportional to

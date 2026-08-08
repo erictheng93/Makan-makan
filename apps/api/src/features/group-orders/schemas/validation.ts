@@ -177,13 +177,13 @@ export const splitBillSchema = z
     serviceChargeRate: z
       .number()
       .min(0, "Service charge rate cannot be negative")
-      .max(100, "Service charge rate cannot exceed 100%")
+      .max(1, "Service charge rate cannot exceed 100%")
       .optional()
       .default(0),
     taxRate: z
       .number()
       .min(0, "Tax rate cannot be negative")
-      .max(100, "Tax rate cannot exceed 100%")
+      .max(1, "Tax rate cannot exceed 100%")
       .optional()
       .default(0),
     sharedServiceChargeCents: z

@@ -51,6 +51,29 @@ describe("group order validation schemas", () => {
     );
   });
 
+  /**
+   * Rates are fractions, the same as `restaurants.settings.taxRate` and what
+   * `calculateOrderTotal` expects: 0.1 is 10%. The bound used to be 100, which
+   * accepted a percentage-shaped 10 — a hundredfold overcharge that looked
+   * like a perfectly ordinary value.
+   */
+  it("accepts rates as fractions and rejects percentage-shaped ones", () => {
+    expect(
+      splitBillSchema.parse({
+        splitType: "equal",
+        serviceChargeRate: 0.1,
+        taxRate: 0.05,
+      }),
+    ).toMatchObject({ serviceChargeRate: 0.1, taxRate: 0.05 });
+
+    expect(() =>
+      splitBillSchema.parse({ splitType: "equal", serviceChargeRate: 10 }),
+    ).toThrow();
+    expect(() =>
+      splitBillSchema.parse({ splitType: "equal", taxRate: 5 }),
+    ).toThrow();
+  });
+
   it("normalizes activity and statistics queries", () => {
     expect(activitiesQuerySchema.parse({ limit: "10", offset: "5" })).toEqual({
       limit: 10,

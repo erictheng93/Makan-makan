@@ -1597,8 +1597,8 @@ export class GroupOrdersService implements IGroupOrderService {
           };
         }
 
-        const serviceCharge = (subtotal * serviceChargeRate) / 100;
-        const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+        const serviceCharge = subtotal * serviceChargeRate;
+        const taxAmount = subtotal * taxRate;
         return { serviceCharge, taxAmount };
       };
 

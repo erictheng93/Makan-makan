@@ -186,7 +186,9 @@ export interface UpdateCartItemRequest {
 
 export interface SplitBillRequest {
   splitType: "equal" | "proportional" | "individual" | "by_item" | "custom";
+  /** Fractional rate, for example 0.1 means 10%. */
   serviceChargeRate?: number;
+  /** Fractional rate, for example 0.05 means 5%. */
   taxRate?: number;
   sharedServiceChargeCents?: number;
   sharedTaxCents?: number;
