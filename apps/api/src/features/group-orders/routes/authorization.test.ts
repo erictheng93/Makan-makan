@@ -25,6 +25,7 @@ const groupServiceMocks = vi.hoisted(() => ({
   addCartItem: vi.fn(),
   updateCartItem: vi.fn(),
   removeCartItem: vi.fn(),
+  setAutoSubmitOnExpiry: vi.fn(),
   isHostSession: vi.fn(),
   isMemberSession: vi.fn(),
   getGroupOrder: vi.fn(),
@@ -126,6 +127,10 @@ describe("group order mutations require proof of who is calling", () => {
       data: { id: ITEM_ID, quantity: 2 },
     });
     groupServiceMocks.removeCartItem.mockResolvedValue({ success: true });
+    groupServiceMocks.setAutoSubmitOnExpiry.mockResolvedValue({
+      success: true,
+      data: { autoSubmitOnExpiry: true },
+    });
     groupServiceMocks.getGroupOrder.mockResolvedValue({
       groupOrder: { id: GROUP_ORDER_ID, restaurantId: "rest-1" },
     });
@@ -381,6 +386,65 @@ describe("group order mutations require proof of who is calling", () => {
 
       expect(status).toBe(200);
       expect(groupServiceMocks.removeCartItem).toHaveBeenCalledOnce();
+    });
+  });
+
+  /**
+   * Auto-submit decides whether a table that never pressed submit still ends
+   * up with a real order at expiry. That is the host's call — a member who
+   * flipped it on could leave the table committed to a bill nobody confirmed,
+   * and a member who flipped it off could quietly discard an order the host
+   * meant to place.
+   */
+  describe("PUT /:groupOrderId/auto-submit", () => {
+    it("refuses a caller with no token", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/auto-submit`,
+        { enabled: true },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.setAutoSubmitOnExpiry).not.toHaveBeenCalled();
+    });
+
+    it("refuses a member who is not the host", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/auto-submit`,
+        { enabled: true, memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(403);
+      expect(groupServiceMocks.setAutoSubmitOnExpiry).not.toHaveBeenCalled();
+    });
+
+    it("lets the host turn it on", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/auto-submit`,
+        { enabled: true, memberToken: HOST_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.setAutoSubmitOnExpiry).toHaveBeenCalledWith(
+        GROUP_ORDER_ID,
+        true,
+      );
+    });
+
+    it("lets the host turn it back off", async () => {
+      const { status } = await call(
+        "PUT",
+        `/orders/group/${GROUP_ORDER_ID}/auto-submit`,
+        { enabled: false, memberToken: HOST_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.setAutoSubmitOnExpiry).toHaveBeenCalledWith(
+        GROUP_ORDER_ID,
+        false,
+      );
     });
   });
 

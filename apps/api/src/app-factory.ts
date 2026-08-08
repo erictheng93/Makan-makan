@@ -611,6 +611,7 @@ export function createApp(
         "/api/v1/orders/group/join/*", // members join by possession of a share code
         "/api/v1/orders/group/*/cart", // cart root and /cart/:itemId
         "/api/v1/orders/group/*/lock", // host submits with memberToken
+        "/api/v1/orders/group/*/auto-submit", // host toggles expiry auto-submit
         "/api/v1/orders/group/*/recover", // host recovers by recovery code
         "/api/v1/orders/group/*/split",
         "/api/v1/orders/group/*/payment/*",

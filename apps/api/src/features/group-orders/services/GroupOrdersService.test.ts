@@ -556,7 +556,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         tableNumber: "T1",
         permissions: { canModifyOthersCart: true },
         fulfillmentType: "dine_in",
-        autoSubmitOnExpiry: true,
+        // A table that never pressed submit should not have an order placed
+        // for it. Expiry cancels by default; the host opts in to the opposite.
+        autoSubmitOnExpiry: false,
       },
     });
     expect(db.inserts[1].payload).toMatchObject({
@@ -603,6 +605,52 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         autoSubmitOnExpiry: false,
       }),
     });
+  });
+
+  /**
+   * The toggle rewrites one key inside a JSON column. Everything else in
+   * `settings` — the member cap, the permission flags, the delivery address —
+   * has to survive, because losing any of it silently changes how the group
+   * behaves in ways nobody asked for.
+   */
+  it("flips auto-submit without disturbing the rest of the settings", async () => {
+    const service = createService();
+    const db = createDb([
+      [
+        {
+          id: "group-1",
+          settings: {
+            maxMembers: 8,
+            fulfillmentType: "delivery",
+            deliveryAddress: { line1: "1 Example Rd" },
+            autoSubmitOnExpiry: false,
+          },
+        },
+      ],
+    ]);
+    service.db = db;
+
+    await expect(
+      service.setAutoSubmitOnExpiry("group-1", true),
+    ).resolves.toMatchObject({ success: true });
+
+    expect(db.updates.at(-1)?.payload).toMatchObject({
+      settings: {
+        maxMembers: 8,
+        fulfillmentType: "delivery",
+        deliveryAddress: { line1: "1 Example Rd" },
+        autoSubmitOnExpiry: true,
+      },
+    });
+  });
+
+  it("refuses to flip auto-submit on a group order that is gone", async () => {
+    const service = createService();
+    service.db = createDb([[]]);
+
+    await expect(
+      service.setAutoSubmitOnExpiry("missing", true),
+    ).resolves.toMatchObject({ success: false });
   });
 
   it("defaults expiresAt to 45 minutes when no expiration is provided", async () => {

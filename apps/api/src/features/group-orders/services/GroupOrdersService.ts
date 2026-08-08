@@ -370,7 +370,10 @@ export class GroupOrdersService implements IGroupOrderService {
           fulfillmentType: data.fulfillmentType || "dine_in",
           deliveryAddress: data.deliveryAddress,
           pickupAt: data.pickupAt,
-          autoSubmitOnExpiry: data.autoSubmitOnExpiry ?? true,
+          // Off unless the host asks for it. A group that expires without
+          // anyone pressing submit is an abandoned table, not an order — the
+          // restaurant should not receive a bill nobody confirmed.
+          autoSubmitOnExpiry: data.autoSubmitOnExpiry ?? false,
         },
         totalAmountCents: 0,
         taxAmountCents: 0,
@@ -2307,6 +2310,64 @@ export class GroupOrdersService implements IGroupOrderService {
     }
   }
 
+  /**
+   * Turn expiry auto-submit on or off for one group order.
+   *
+   * `settings` is a single JSON column, so this reads it back and rewrites the
+   * whole object with one key changed. Writing a bare `{ autoSubmitOnExpiry }`
+   * would drop the member cap, the permissions and the delivery address with
+   * it.
+   */
+  async setAutoSubmitOnExpiry(
+    groupOrderId: string,
+    enabled: boolean,
+  ): Promise<{
+    success: boolean;
+    data?: { autoSubmitOnExpiry: boolean };
+    error?: string;
+  }> {
+    const timer = this.performance.startTimer("setAutoSubmitOnExpiry");
+
+    try {
+      const rows = await this.db
+        .select({ settings: groupOrders.settings })
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId))
+        .limit(1);
+
+      const existing = rows[0];
+      if (!existing) {
+        return { success: false, error: "Group order not found" };
+      }
+
+      const settings =
+        existing.settings && typeof existing.settings === "object"
+          ? existing.settings
+          : {};
+
+      await this.db
+        .update(groupOrders)
+        .set({
+          settings: { ...settings, autoSubmitOnExpiry: enabled },
+          updatedAt: new Date(),
+        })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      await this.cache.delete(`group_order:${groupOrderId}`);
+      await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+      return { success: true, data: { autoSubmitOnExpiry: enabled } };
+    } catch (error) {
+      this.errorTracker.logError("setAutoSubmitOnExpiry", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to update auto-submit setting", error);
+      return { success: false, error: "Failed to update auto-submit setting" };
+    } finally {
+      this.performance.endTimer(timer);
+    }
+  }
+
   async isMemberSession(
     groupOrderId: string,
     memberId: string,
@@ -2685,6 +2746,10 @@ export class GroupOrdersService implements IGroupOrderService {
       status: this.narrowStatus(data.status, data.id),
       expiresAt,
       maxMembers: settings.maxMembers || 8,
+      // Surfaced because the host's toggle has to render the current state.
+      // Rows written before the setting existed read as off, which matches the
+      // default the service now applies.
+      autoSubmitOnExpiry: settings.autoSubmitOnExpiry === true,
       permissions: {
         ...DEFAULT_GROUP_ORDER_PERMISSIONS,
         ...settings.permissions,

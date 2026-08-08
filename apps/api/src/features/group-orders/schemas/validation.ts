@@ -146,6 +146,11 @@ export const removeCartItemSchema = z.object({
   memberToken: z.string().min(1).max(255).optional(),
 });
 
+export const autoSubmitOnExpirySchema = z.object({
+  enabled: z.boolean({ error: "enabled must be true or false" }),
+  memberToken: z.string().min(1).max(255).optional(),
+});
+
 export const splitBillSchema = z
   .object({
     memberToken: z.string().min(1).max(255).optional(),
@@ -428,6 +433,7 @@ export const groupOrderSchemas = {
   addCartItem: addCartItemSchema,
   updateCartItem: updateCartItemSchema,
   removeCartItem: removeCartItemSchema,
+  autoSubmitOnExpiry: autoSubmitOnExpirySchema,
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
   recoverHost: recoverHostSchema,

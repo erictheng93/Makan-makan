@@ -118,6 +118,43 @@ describe("useGroupOrder — data layer", () => {
     expect(group.recoveryCode.value).toBe("recovery-1");
   });
 
+  /**
+   * Auto-submit is off unless the host turns it on, so the composable has to
+   * both report the current setting and be able to change it. The endpoint is
+   * host-only, which means the call has to carry the host's token.
+   */
+  it("reports auto-submit as off for a freshly created group order", async () => {
+    const group = await createHostedGroup();
+
+    expect(group.autoSubmitOnExpiry.value).toBe(false);
+  });
+
+  it("turns auto-submit on through the real endpoint with the host token", async () => {
+    const group = await createHostedGroup();
+
+    vi.mocked(apiClient.put).mockResolvedValueOnce({
+      autoSubmitOnExpiry: true,
+    });
+    await group.setAutoSubmitOnExpiry(true);
+
+    expect(apiClient.put).toHaveBeenLastCalledWith(
+      "/orders/group/go-1/auto-submit",
+      expect.objectContaining({ enabled: true, memberToken: "session-1" }),
+    );
+    expect(group.autoSubmitOnExpiry.value).toBe(true);
+  });
+
+  it("leaves the setting alone when the server refuses the change", async () => {
+    const group = await createHostedGroup();
+
+    vi.mocked(apiClient.put).mockRejectedValueOnce(new Error("Access denied"));
+    await expect(group.setAutoSubmitOnExpiry(true)).rejects.toThrow();
+
+    // Showing the toggle as on after the server said no would tell the host
+    // their table is covered when it is not.
+    expect(group.autoSubmitOnExpiry.value).toBe(false);
+  });
+
   it("adds to cart via /orders/group/:id/cart, never the /group-orders prefix", async () => {
     const group = await createHostedGroup();
 

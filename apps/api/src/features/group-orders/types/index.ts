@@ -22,6 +22,8 @@ export interface GroupOrder extends Omit<BaseEntity, "id"> {
   status: GroupOrderStatus;
   expiresAt: Date;
   maxMembers: number;
+  /** Whether expiry submits the cart as a real order. Host-controlled. */
+  autoSubmitOnExpiry: boolean;
   permissions: GroupOrderPermissions;
   totalAmount: number;
   finalizedAt?: Date;

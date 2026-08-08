@@ -24,6 +24,8 @@ const groupOrderMock = vi.hoisted(() => ({
   updateCartItem: vi.fn(),
   removeFromCart: vi.fn(),
   submitOrder: vi.fn(),
+  setAutoSubmitOnExpiry: vi.fn(),
+  autoSubmitOnExpiry: { value: false },
   sessionExpired: { value: false },
   currentMemberId: { value: "m-1" },
 }));
@@ -238,6 +240,58 @@ describe("GroupOrderView", () => {
     // A socket left open after the view is gone keeps receiving another
     // table's traffic and holds a Durable Object session for nobody.
     expect(groupOrderMock.disconnectRealtime).toHaveBeenCalled();
+  });
+
+  /**
+   * Auto-submit decides whether an unattended table still gets billed, so the
+   * control belongs to the host alone. A member seeing it would either be
+   * confused by a switch that 403s, or — worse if the guard ever slipped —
+   * able to commit the table to an order nobody confirmed.
+   */
+  it("shows the auto-submit toggle to the host", async () => {
+    groupOrderMock.isHost.value = true;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="auto-submit-toggle"]').exists()).toBe(
+      true,
+    );
+  });
+
+  it("hides the auto-submit toggle from a member who is not the host", async () => {
+    groupOrderMock.isHost.value = false;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="auto-submit-toggle"]').exists()).toBe(
+      false,
+    );
+
+    groupOrderMock.isHost.value = true;
+  });
+
+  it("asks the composable to flip the setting when the host toggles it", async () => {
+    groupOrderMock.isHost.value = true;
+    groupOrderMock.autoSubmitOnExpiry.value = false;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    await wrapper.find('[data-testid="auto-submit-toggle"]').trigger("click");
+    await flushPromises();
+
+    expect(groupOrderMock.setAutoSubmitOnExpiry).toHaveBeenCalledWith(true);
   });
 
   it("renders the cart panel while the group is still active", async () => {

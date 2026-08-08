@@ -480,6 +480,41 @@ app.post(
 );
 
 /**
+ * Turn expiry auto-submit on or off
+ * PUT /api/v1/orders/group/{groupOrderId}/auto-submit
+ *
+ * Host only. Whether an unattended table ends up with a real order is the same
+ * kind of decision as pressing submit, so it belongs to whoever owns the group.
+ */
+app.put(
+  "/:groupOrderId/auto-submit",
+  publicRateLimit,
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateBody(groupOrderSchemas.autoSubmitOnExpiry),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const { enabled, memberToken } = c.get("validatedBody");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
+
+    const result = await groupOrderService.setAutoSubmitOnExpiry(
+      groupOrderId,
+      enabled,
+    );
+
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to update auto-submit setting");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
+  },
+);
+
+/**
  * Lock and finalize a group order
  * POST /api/v1/orders/group/{groupOrderId}/lock
  */

@@ -28,6 +28,24 @@ const canSubmitOrder = computed(
 
 const currentUserId = computed(() => group.currentMemberId?.value ?? "");
 
+const autoSubmitError = ref("");
+const isSavingAutoSubmit = ref(false);
+
+async function toggleAutoSubmit(): Promise<void> {
+  if (isSavingAutoSubmit.value) return;
+  isSavingAutoSubmit.value = true;
+  autoSubmitError.value = "";
+
+  try {
+    await group.setAutoSubmitOnExpiry(!group.autoSubmitOnExpiry.value);
+  } catch (error) {
+    autoSubmitError.value =
+      error instanceof Error ? error.message : "Unable to change this setting.";
+  } finally {
+    isSavingAutoSubmit.value = false;
+  }
+}
+
 async function loadGroupOrder(): Promise<void> {
   try {
     await group.loadGroupOrder(props.groupOrderId);
@@ -203,6 +221,71 @@ onUnmounted(() => {
       >
         {{ splitNotice }}
       </p>
+
+      <!--
+        Host only. What this switch decides — whether a table that never
+        pressed submit still gets an order — is the same decision as submitting,
+        so it sits with whoever owns the group.
+      -->
+      <div
+        v-if="group.isHost.value && !isLocked"
+        class="mt-6 rounded-2xl bg-ios-card p-5 shadow-card-sm"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-base font-semibold text-ios-text">
+              Submit automatically when time runs out
+            </p>
+            <p class="mt-1 text-sm text-ios-secondary">
+              Off by default. Leave it off and an expired group is simply
+              cancelled — nothing is sent to the kitchen unless you submit.
+            </p>
+          </div>
+
+          <button
+            data-testid="auto-submit-toggle"
+            type="button"
+            role="switch"
+            :aria-checked="group.autoSubmitOnExpiry.value ? 'true' : 'false'"
+            aria-label="Submit automatically when time runs out"
+            :disabled="isSavingAutoSubmit"
+            class="relative mt-1 h-8 w-[52px] flex-shrink-0 rounded-full transition-all duration-300 ease-out disabled:opacity-60"
+            :class="
+              group.autoSubmitOnExpiry.value ? 'bg-ios-green' : 'bg-ios-gray-4'
+            "
+            @click="toggleAutoSubmit"
+          >
+            <span
+              class="absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-all duration-300 ease-out"
+              :class="group.autoSubmitOnExpiry.value ? 'left-6' : 'left-1'"
+            />
+          </button>
+        </div>
+
+        <p
+          data-testid="auto-submit-state"
+          class="mt-3 text-sm font-medium"
+          :class="
+            group.autoSubmitOnExpiry.value
+              ? 'text-ios-green'
+              : 'text-ios-secondary'
+          "
+        >
+          {{
+            group.autoSubmitOnExpiry.value
+              ? "On — the cart will be ordered at expiry"
+              : "Off — an expired group is cancelled"
+          }}
+        </p>
+
+        <p
+          v-if="autoSubmitError"
+          data-testid="auto-submit-error"
+          class="mt-3 rounded-xl bg-ios-red/10 p-3 text-sm text-ios-red"
+        >
+          {{ autoSubmitError }}
+        </p>
+      </div>
 
       <HostRecoveryPanel
         :group-order-id="props.groupOrderId"

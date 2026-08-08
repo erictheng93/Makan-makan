@@ -100,6 +100,7 @@ interface BackendGroupOrder {
   createdBy?: string | null;
   status: GroupOrderStatus;
   splitType?: "equal" | "proportional" | "individual" | "by_item" | "custom";
+  autoSubmitOnExpiry?: boolean;
   expiresAt?: string | Date | number | null;
   createdAt?: string | Date | number;
   updatedAt?: string | Date | number;
@@ -300,6 +301,11 @@ export function useGroupOrder(options: {
    */
   const memberToken = ref<string | null>(null);
   const recoveryCode = ref<string | null>(null);
+  /**
+   * Whether expiry turns the shared cart into a real order. Off unless the
+   * host turns it on — see the toggle in GroupOrderView.
+   */
+  const autoSubmitOnExpiry = ref(false);
 
   function handleRealtimeMessage(message: GroupOrderRealtimeMessage): void {
     if (!groupOrder.value || typeof message.type !== "string") return;
@@ -506,6 +512,7 @@ export function useGroupOrder(options: {
         ...mapSummary(summary),
         shareCode: summary.groupOrder.shareCode ?? createResponse?.shareCode,
       };
+      autoSubmitOnExpiry.value = summary.groupOrder.autoSubmitOnExpiry === true;
       hydrateMemberSession(groupOrderId);
       hydrateHostCredentials(groupOrderId);
     }
@@ -737,6 +744,30 @@ export function useGroupOrder(options: {
     isConnected.value = false;
   }
 
+  /**
+   * Host only. The local flag is set from the server's answer rather than
+   * optimistically, so a refusal leaves the toggle showing what is actually
+   * true — telling a host their table is covered when it is not is worse than
+   * a slow toggle.
+   */
+  async function setAutoSubmitOnExpiry(enabled: boolean): Promise<void> {
+    if (!groupOrder.value) {
+      throw new Error("No group order loaded");
+    }
+
+    const groupOrderId = groupOrder.value.id;
+    hydrateHostCredentials(groupOrderId);
+    if (!memberToken.value) {
+      throw new Error("Host credential is required to change this setting");
+    }
+
+    await apiClient.put(`/orders/group/${groupOrderId}/auto-submit`, {
+      enabled,
+      memberToken: memberToken.value,
+    });
+    autoSubmitOnExpiry.value = enabled;
+  }
+
   // Submit order (host only)
   async function submitOrder(): Promise<void> {
     if (!groupOrder.value) {
@@ -859,6 +890,7 @@ export function useGroupOrder(options: {
     sessionExpired,
     currentMemberId,
     recoveryCode,
+    autoSubmitOnExpiry,
 
     // Computed
     isHost,
@@ -880,6 +912,7 @@ export function useGroupOrder(options: {
     setSplitBillMode,
     setCustomShares,
     submitOrder,
+    setAutoSubmitOnExpiry,
     recoverHost,
     getShareLink,
   };
