@@ -777,6 +777,12 @@
       "byItemDesc": "Mỗi người trả cho món của mình",
       "proportional": "Theo tỷ lệ",
       "proportionalDesc": "Chia theo tỷ lệ giá trị món mỗi người gọi"
+    },
+    "feeMethod": "Phí dịch vụ & thuế",
+    "fee": {
+      "proportional": "Theo món đã gọi",
+      "equal": "Chia đều",
+      "host": "Tôi trả"
     }
   },
   "messages": {

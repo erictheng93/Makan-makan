@@ -8,6 +8,7 @@ import { useWebSocket } from "./useWebSocket";
 import { apiClient } from "@/services/api";
 import {
   RealtimeEventType,
+  type GroupOrderFeeMode,
   type GroupOrderStatus,
 } from "@makanmakan/shared-types";
 import {
@@ -67,6 +68,8 @@ export interface GroupOrder {
   members: GroupMember[];
   cartItems: GroupCartItem[];
   splitBillConfig: SplitBillConfig;
+  /** Who carries the service charge and tax. Host-controlled. */
+  feeMode: GroupOrderFeeMode;
   createdAt: number;
   updatedAt: number;
   expiresAt?: number;
@@ -104,6 +107,7 @@ interface BackendGroupOrder {
   status: GroupOrderStatus;
   splitType?: "equal" | "proportional" | "individual" | "by_item" | "custom";
   autoSubmitOnExpiry?: boolean;
+  feeMode?: GroupOrderFeeMode;
   expiresAt?: string | Date | number | null;
   createdAt?: string | Date | number;
   updatedAt?: string | Date | number;
@@ -269,6 +273,7 @@ function mapSummary(summary: GroupOrderSummary): GroupOrder {
     members,
     cartItems: summary.cartItems.map((item) => mapCartItem(item, members)),
     splitBillConfig: { mode: splitMode },
+    feeMode: summary.groupOrder.feeMode ?? "proportional",
     createdAt: timestamp(summary.groupOrder.createdAt),
     updatedAt: timestamp(summary.groupOrder.updatedAt),
     expiresAt: timestamp(summary.groupOrder.expiresAt),
@@ -397,9 +402,10 @@ export function useGroupOrder(options: {
     const config = groupOrder.value.splitBillConfig;
 
     switch (config.mode) {
-      case "equal":
+      case "equal": {
         const memberCount = groupOrder.value.members.length;
         return memberCount > 0 ? totalAmount.value / memberCount : 0;
+      }
 
       // Both come to the same number here. They diverge only once tax and
       // service charge are applied, and those rates live on the server — this
@@ -708,6 +714,28 @@ export function useGroupOrder(options: {
 
   // Split bill operations
   /**
+   * Host only. Records who carries the service charge and tax — the food is
+   * divided by `setSplitBillMode`, this is the fee on top of it.
+   */
+  async function setFeeMode(mode: GroupOrderFeeMode): Promise<void> {
+    if (!groupOrder.value) {
+      throw new Error("No group order loaded");
+    }
+
+    const groupOrderId = groupOrder.value.id;
+    hydrateHostCredentials(groupOrderId);
+    if (!memberToken.value) {
+      throw new Error("Host credential is required to change this setting");
+    }
+
+    await apiClient.put(`/orders/group/${groupOrderId}/fee-mode`, {
+      feeMode: mode,
+      memberToken: memberToken.value,
+    });
+    await loadGroupOrder(groupOrderId);
+  }
+
+  /**
    * Host only. Records how finalize should divide the bill — it does not
    * perform the split, so the table keeps ordering afterwards.
    */
@@ -924,6 +952,7 @@ export function useGroupOrder(options: {
     updateCartItem,
     removeFromCart,
     setSplitBillMode,
+    setFeeMode,
     submitOrder,
     setAutoSubmitOnExpiry,
     recoverHost,

@@ -777,6 +777,12 @@
       "byItemDesc": "Each person pays for their own items",
       "proportional": "Proportional",
       "proportionalDesc": "Split in proportion to what each person ordered"
+    },
+    "feeMethod": "Service charge & tax",
+    "fee": {
+      "proportional": "By order",
+      "equal": "Split evenly",
+      "host": "I pay it"
     }
   },
   "messages": {

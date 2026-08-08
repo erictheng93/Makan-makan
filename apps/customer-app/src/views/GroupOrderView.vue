@@ -4,6 +4,7 @@ import GroupCartPanel from "@/components/group/GroupCartPanel.vue";
 import HostRecoveryPanel from "@/components/group/HostRecoveryPanel.vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
 import type { SplitBillConfig } from "@/composables/useGroupOrder";
+import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
 
 const props = defineProps<{
   groupOrderId: string;
@@ -71,6 +72,17 @@ async function removeItem(itemId: string): Promise<void> {
   } catch (error) {
     viewError.value =
       error instanceof Error ? error.message : "Unable to remove item.";
+  }
+}
+
+async function changeFeeMode(mode: GroupOrderFeeMode): Promise<void> {
+  try {
+    await group.setFeeMode(mode);
+  } catch (error) {
+    viewError.value =
+      error instanceof Error
+        ? error.message
+        : "Unable to change who pays the service charge.";
   }
 }
 
@@ -177,10 +189,12 @@ onUnmounted(() => {
         :split-bill-config="group.groupOrder.value.splitBillConfig"
         :total-amount="group.totalAmount.value"
         :my-share="group.myShare.value"
+        :fee-mode="group.groupOrder.value.feeMode"
         :is-host="group.isHost.value"
         @update-quantity="updateQuantity"
         @remove-item="removeItem"
         @change-split-mode="changeSplitMode"
+        @change-fee-mode="changeFeeMode"
       />
 
       <div v-else class="py-16 text-center text-ios-secondary">

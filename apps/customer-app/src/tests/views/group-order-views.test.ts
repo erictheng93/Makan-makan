@@ -27,6 +27,7 @@ const groupOrderMock = vi.hoisted(() => ({
   setSplitBillMode: vi.fn(),
   setAutoSubmitOnExpiry: vi.fn(),
   autoSubmitOnExpiry: { value: false },
+  setFeeMode: vi.fn(),
   sessionExpired: { value: false },
   currentMemberId: { value: "m-1" },
 }));
@@ -99,6 +100,7 @@ function loadedGroupOrder(status = "active") {
     members: [{ id: "m-1", name: "Alex", isHost: true, isOnline: true }],
     cartItems: [],
     splitBillConfig: { mode: "by_item" },
+    feeMode: "proportional",
     createdAt: 0,
     updatedAt: 0,
   };
@@ -348,6 +350,55 @@ describe("GroupOrderView", () => {
     await flushPromises();
 
     expect(groupOrderMock.setSplitBillMode).toHaveBeenCalledWith("equal");
+  });
+
+  it("shows the host who-pays-the-fee selector", async () => {
+    groupOrderMock.isHost.value = true;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    const modes = wrapper
+      .findAll('[data-testid^="fee-mode-"]')
+      .map((button) => button.attributes("data-testid"));
+
+    expect(modes).toEqual([
+      "fee-mode-proportional",
+      "fee-mode-equal",
+      "fee-mode-host",
+    ]);
+  });
+
+  it("hides the who-pays-the-fee selector from a member", async () => {
+    groupOrderMock.isHost.value = false;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="fee-mode-host"]').exists()).toBe(false);
+
+    groupOrderMock.isHost.value = true;
+  });
+
+  it("asks the composable to change who carries the fee", async () => {
+    groupOrderMock.isHost.value = true;
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    await wrapper.find('[data-testid="fee-mode-host"]').trigger("click");
+    await flushPromises();
+
+    expect(groupOrderMock.setFeeMode).toHaveBeenCalledWith("host");
   });
 
   it.each(["finalizing", "finalizing_failed", "checkout", "completed"])(

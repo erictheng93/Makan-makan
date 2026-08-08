@@ -10,6 +10,7 @@ import type {
   GroupMember,
   SplitBillConfig,
 } from "@/composables/useGroupOrder";
+import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
 import { useCurrency } from "@/composables/useCurrency";
 
 // Props
@@ -20,6 +21,7 @@ interface Props {
   splitBillConfig: SplitBillConfig;
   totalAmount: number;
   myShare: number;
+  feeMode: GroupOrderFeeMode;
   isHost: boolean;
 }
 
@@ -30,6 +32,7 @@ const emit = defineEmits<{
   (e: "update-quantity", itemId: string, quantity: number): void;
   (e: "remove-item", itemId: string): void;
   (e: "change-split-mode", mode: SplitBillConfig["mode"]): void;
+  (e: "change-fee-mode", mode: GroupOrderFeeMode): void;
 }>();
 
 // i18n
@@ -285,6 +288,30 @@ function getMemberColor(memberId: string): string {
             @click="emit('change-split-mode', mode)"
           >
             {{ t(`group.split.${mode}`) }}
+          </button>
+        </div>
+
+        <!--
+          A second, separate question: the split method divides the food, this
+          decides who carries the service charge and tax on top of it.
+        -->
+        <label class="block text-xs font-medium text-gray-500 mt-4 mb-2">
+          {{ t("group.feeMethod") }}
+        </label>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            v-for="mode in ['proportional', 'equal', 'host'] as const"
+            :key="mode"
+            :data-testid="`fee-mode-${mode}`"
+            class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+            :class="
+              feeMode === mode
+                ? 'bg-ios-blue text-white'
+                : 'bg-ios-bg text-ios-secondary hover:bg-ios-separator'
+            "
+            @click="emit('change-fee-mode', mode)"
+          >
+            {{ t(`group.fee.${mode}`) }}
           </button>
         </div>
       </div>

@@ -777,6 +777,12 @@
       "byItemDesc": "各自付自己點的餐點",
       "proportional": "按比例",
       "proportionalDesc": "依各自點餐金額的比例分攤"
+    },
+    "feeMethod": "服務費與稅金",
+    "fee": {
+      "proportional": "依點餐金額",
+      "equal": "均攤",
+      "host": "我來付"
     }
   },
   "messages": {

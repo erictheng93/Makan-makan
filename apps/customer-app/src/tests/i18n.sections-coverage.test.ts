@@ -646,6 +646,10 @@ describe("i18n Integration Tests", () => {
       "group.split.byItemDesc",
       "group.split.proportional",
       "group.split.proportionalDesc",
+      "group.feeMethod",
+      "group.fee.proportional",
+      "group.fee.equal",
+      "group.fee.host",
     ];
 
     it("should have all group keys in all 6 locales", () => {

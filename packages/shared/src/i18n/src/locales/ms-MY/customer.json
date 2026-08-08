@@ -777,6 +777,12 @@
       "byItemDesc": "Setiap orang bayar untuk item mereka sendiri",
       "proportional": "Mengikut kadar",
       "proportionalDesc": "Dibahagi mengikut nilai pesanan setiap orang"
+    },
+    "feeMethod": "Caj perkhidmatan & cukai",
+    "fee": {
+      "proportional": "Ikut pesanan",
+      "equal": "Bahagi rata",
+      "host": "Saya yang bayar"
     }
   },
   "messages": {
