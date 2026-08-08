@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/autoplan/SKILL.md
+../gstack/autoplan/SKILL.md

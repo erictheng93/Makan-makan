@@ -1,1 +1,1 @@
-/Users/eric/Documents/Code/Makan-makan/.claude/skills/gstack/plan-design-review/SKILL.md
+../gstack/plan-design-review/SKILL.md
