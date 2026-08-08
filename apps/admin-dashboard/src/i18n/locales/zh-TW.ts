@@ -2627,13 +2627,12 @@ const zhTWCore = {
   // 團體訂單
   groupOrders: {
     title: "團體訂單",
-    subtitle: "管理多人共享訂單與分帳功能",
+    subtitle: "管理多人共享訂單",
     activeOrders: "活躍訂單",
     totalOrders: "訂單總數",
     createOrder: "建立團體訂單",
     generateShareCode: "生成分享碼",
     avgOrderValue: "平均客單價",
-    minutes: "分",
     orderList: "團體訂單列表",
     searchPlaceholder: "搜索訂單或分享碼...",
     allStatus: "全部狀態",
