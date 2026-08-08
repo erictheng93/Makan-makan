@@ -57,7 +57,11 @@ export interface MenuItem extends BaseEntity {
   preparationTime?: number; // preparation time in minutes
   calories?: number; // calorie content
   allergens?: string[]; // allergen information
-  inventoryCount: number; // -1 for unlimited
+  // null means stock is not tracked; a number is a real count, and 0 is sold
+  // out. The "-1 for unlimited" this used to declare was never written or read
+  // anywhere — the column is nullable and the order path claims stock with
+  // `inventoryCount IS NULL OR inventoryCount >= quantity` (#166).
+  inventoryCount: number | null;
   orderCount: number;
   /**
    * Engagement counters. Written by the DB layer (incrementViewCount and the
@@ -124,7 +128,7 @@ export interface CreateMenuItemRequest {
   spiceLevel?: SpiceLevel;
   options?: MenuItemOptions;
   sortOrder?: number;
-  inventoryCount?: number;
+  inventoryCount?: number | null;
   isAvailable?: boolean;
   isFeatured?: boolean;
   isPopular?: boolean;

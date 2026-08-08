@@ -39,7 +39,7 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     sortOrder: 0,
     isAvailable: true,
     isFeatured: false,
-    inventoryCount: -1,
+    inventoryCount: null,
     orderCount: 0,
     ...overrides,
   };
@@ -171,5 +171,40 @@ describe("MenuItemCard", () => {
     );
     expect(img.attributes("srcset")).toBeUndefined();
     expect(img.attributes("sizes")).toBe("(min-width: 1024px) 382px, 334px");
+  });
+
+  // A tracked count of 0 used to read as "tracking is off", so the card offered
+  // an add button for stock the order path would refuse to claim — the owner
+  // had no way to type 0 until the admin inventory field shipped (#166).
+  describe("stock", () => {
+    const card = (item: Partial<MenuItem>) =>
+      mount(MenuItemCard, { props: { item: menuItem(item) } });
+
+    it("sells an item whose stock is not tracked", () => {
+      const wrapper = card({ inventoryCount: null });
+
+      expect(wrapper.find('[data-testid="menu-item-add-1"]').exists()).toBe(
+        true,
+      );
+      expect(wrapper.text()).not.toContain("menuItemCard.soldOut");
+    });
+
+    it("sells an item that still has stock", () => {
+      const wrapper = card({ inventoryCount: 3 });
+
+      expect(wrapper.find('[data-testid="menu-item-add-1"]').exists()).toBe(
+        true,
+      );
+      expect(wrapper.text()).not.toContain("menuItemCard.soldOut");
+    });
+
+    it("treats a tracked count of zero as sold out", () => {
+      const wrapper = card({ inventoryCount: 0 });
+
+      expect(wrapper.find('[data-testid="menu-item-add-1"]').exists()).toBe(
+        false,
+      );
+      expect(wrapper.text()).toContain("menuItemCard.soldOut");
+    });
   });
 });

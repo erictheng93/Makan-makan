@@ -154,7 +154,7 @@ function stallItem(id: number, restaurantId: string, name: string) {
     sortOrder: 1,
     isAvailable: true,
     isFeatured: false,
-    inventoryCount: -1,
+    inventoryCount: null,
     orderCount: 0,
     createdAt: "",
     updatedAt: "",

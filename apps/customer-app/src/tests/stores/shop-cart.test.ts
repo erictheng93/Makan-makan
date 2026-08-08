@@ -18,7 +18,7 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     sortOrder: 1,
     isAvailable: true,
     isFeatured: false,
-    inventoryCount: -1,
+    inventoryCount: null,
     orderCount: 0,
     createdAt: "",
     updatedAt: "",

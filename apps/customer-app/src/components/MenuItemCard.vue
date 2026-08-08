@@ -416,19 +416,13 @@ const resolvedAnchorId = computed(() =>
 );
 
 const isOutOfStock = computed(() => {
-  // inventoryCount === 0 means inventory tracking is not enabled (default).
-  // Only treat as out-of-stock when inventory tracking is active (count was > 0)
-  // and has been depleted, OR when the item is explicitly marked unavailable.
+  // null/undefined means stock is not tracked — the API sends null for that
+  // (it used to coerce it to 0, which is why 0 was once read as "untracked").
+  // A tracked 0 is genuinely sold out: the order path claims stock with
+  // `inventoryCount IS NULL OR inventoryCount >= quantity`, so showing it as
+  // buyable only sends the customer into a failed submit (#166).
   if (!props.item.isAvailable) return true;
-  if (
-    props.item.inventoryCount !== null &&
-    props.item.inventoryCount !== undefined &&
-    props.item.inventoryCount > 0
-  ) {
-    return false;
-  }
-  // inventoryCount of 0 with isAvailable=true means no inventory tracking
-  return false;
+  return props.item.inventoryCount != null && props.item.inventoryCount <= 0;
 });
 
 const hasCustomizations = computed(() => {

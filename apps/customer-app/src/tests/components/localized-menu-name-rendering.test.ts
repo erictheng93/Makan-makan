@@ -42,7 +42,7 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     sortOrder: 0,
     isAvailable: true,
     isFeatured: false,
-    inventoryCount: -1,
+    inventoryCount: null,
     orderCount: 0,
     ...overrides,
   } as MenuItem;
