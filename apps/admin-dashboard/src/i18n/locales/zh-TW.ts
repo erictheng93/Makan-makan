@@ -96,9 +96,8 @@ const zhTWCore = {
       organic: "有機",
       localSource: "在地食材",
       options: "客製化選項",
-      optionsHelp: "請輸入 JSON 物件，可設定尺寸、客製化與加購項目。",
-      optionsPlaceholder: '{"sizes": [], "customizations": [], "addOns": []}',
-      optionsInvalid: "客製化選項必須是有效的 JSON 物件。",
+      optionsIncomplete:
+        "每個尺寸、加購與選項群組都要填名稱，群組至少要有一個選項。",
       optionSizes: "尺寸",
       optionAddOns: "加購",
       optionGroups: "選項群組",

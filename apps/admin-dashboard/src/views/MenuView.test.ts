@@ -645,9 +645,14 @@ describe("MenuView", () => {
     wrapper.vm.menuItemForm.tagsText = "spicy, curry";
     wrapper.vm.menuItemForm.allergensText = "peanuts, dairy";
     wrapper.vm.menuItemForm.dietaryInfo.glutenFree = true;
-    wrapper.vm.menuItemForm.optionsText = JSON.stringify({
-      sizes: [{ id: "regular", name: "Regular", priceAdjustment: 0 }],
-    });
+    wrapper.vm.menuItemForm.sizes = [
+      {
+        id: "regular",
+        name: "Regular",
+        priceAdjustment: 0,
+        isDefault: false,
+      },
+    ];
 
     await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
     await flushPromises();
@@ -663,7 +668,14 @@ describe("MenuView", () => {
         allergens: ["peanuts", "dairy"],
         dietaryInfo: { glutenFree: true },
         options: {
-          sizes: [{ id: "regular", name: "Regular", priceAdjustment: 0 }],
+          sizes: [
+            {
+              id: "regular",
+              name: "Regular",
+              priceAdjustment: 0,
+              isDefault: false,
+            },
+          ],
         },
       }),
       undefined,
@@ -949,20 +961,25 @@ describe("MenuView", () => {
       );
     });
 
-    it("refuses to submit options that are not a JSON object", async () => {
+    it("refuses to submit an option row that would be silently dropped", async () => {
       const wrapper = mountMenuView();
       const existing = stored();
       menuItems.value = [existing] as never;
 
       await editItem(wrapper, existing);
-      wrapper.vm.menuItemForm.optionsText = "{ not json";
+      // A group the owner named but never gave a choice: buildStructuredOptions
+      // drops it, so saving would report success and store nothing.
+      await wrapper
+        .get('[data-testid="add-customization-group"]')
+        .trigger("click");
+      wrapper.vm.menuItemForm.customizations[0].name = "Spice";
       await nextTick();
 
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
       await flushPromises();
 
       expect(saveMenuItem).not.toHaveBeenCalled();
-      expect(wrapper.text()).toContain("menu.form.optionsInvalid");
+      expect(wrapper.text()).toContain("menu.form.optionsIncomplete");
     });
   });
 });

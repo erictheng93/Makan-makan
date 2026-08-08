@@ -102,10 +102,8 @@ const enUS: Messages = {
       organic: "Organic",
       localSource: "Local Source",
       options: "Customization Options",
-      optionsHelp:
-        "Enter the options object as JSON. It supports sizes, customizations, and add-ons.",
-      optionsPlaceholder: '{"sizes": [], "customizations": [], "addOns": []}',
-      optionsInvalid: "Options must be a valid JSON object.",
+      optionsIncomplete:
+        "Every size, add-on and option group needs a name, and every group needs at least one choice.",
       optionSizes: "Sizes",
       optionAddOns: "Add-ons",
       optionGroups: "Option groups",

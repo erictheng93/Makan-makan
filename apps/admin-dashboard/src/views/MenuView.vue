@@ -1222,7 +1222,6 @@ const menuItemForm = ref({
     organic: false,
     localSource: false,
   },
-  optionsText: "",
   sizes: [] as SizeOptionForm[],
   addOns: [] as AddOnOptionForm[],
   customizations: [] as CustomizationGroupForm[],
@@ -1290,7 +1289,6 @@ const MENU_ITEM_MERGE_FIELDS = [
   { keys: ["keywords"], label: "menu.form.keywords" },
   { keys: ["allergensText"], label: "menu.form.allergens" },
   { keys: ["dietaryInfo"], label: "menu.form.dietaryInfo" },
-  { keys: ["optionsText"], label: "menu.form.options" },
   {
     keys: ["sizes", "addOns", "customizations"],
     label: "menu.form.options",
@@ -1402,7 +1400,6 @@ const buildMenuItemForm = (item: MenuItemData): MenuItemFormState => ({
     organic: !!item.dietaryInfo?.organic,
     localSource: !!item.dietaryInfo?.localSource,
   },
-  optionsText: "",
   ...normalizeOptionsForForm(item.options),
   categoryId: item.categoryId,
   catalogType: item.catalogType ?? "menu_item",
@@ -1596,7 +1593,6 @@ const openAddItemModal = () => {
       organic: false,
       localSource: false,
     },
-    optionsText: "",
     sizes: [],
     addOns: [],
     customizations: [],
@@ -1796,6 +1792,14 @@ const nullableInteger = (value: NumericFormValue): number | null => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
+const hasIncompleteOptionRows = (): boolean =>
+  menuItemForm.value.sizes.some((size) => !size.name.trim()) ||
+  menuItemForm.value.addOns.some((addOn) => !addOn.name.trim()) ||
+  menuItemForm.value.customizations.some(
+    (group) =>
+      !group.name.trim() || !group.choices.some((choice) => choice.name.trim()),
+  );
+
 const buildStructuredOptions = (): Record<string, unknown> | null => {
   const sizes = menuItemForm.value.sizes
     .filter((size) => size.name.trim())
@@ -1844,19 +1848,15 @@ const buildStructuredOptions = (): Record<string, unknown> | null => {
 
 const handleSaveMenuItem = async () => {
   optionsError.value = "";
-  let options = buildStructuredOptions();
-  if (menuItemForm.value.optionsText.trim()) {
-    try {
-      const parsed = JSON.parse(menuItemForm.value.optionsText);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error("options must be a JSON object");
-      }
-      options = parsed as Record<string, unknown>;
-    } catch {
-      optionsError.value = t("menu.form.optionsInvalid");
-      return;
-    }
+  // buildStructuredOptions() drops rows it cannot turn into valid options, so
+  // a half-filled row would vanish on save while the modal reported success —
+  // the same silent-drop failure the strict `options` schema exists to prevent.
+  // Refuse instead, and name what is missing.
+  if (hasIncompleteOptionRows()) {
+    optionsError.value = t("menu.form.optionsIncomplete");
+    return;
   }
+  const options = buildStructuredOptions();
   const oldImageId = previousImageId.value;
   const nextImageId = menuItemForm.value.imageId || null;
   const editingItem = editingMenuItem.value;
