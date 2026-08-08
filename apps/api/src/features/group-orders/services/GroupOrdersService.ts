@@ -15,11 +15,14 @@ import {
   groupCartItems,
   splitBills,
   groupActivityLogs,
+  orders,
+  OrderService as DatabaseOrderService,
 } from "@makanmakan/database";
 import { menuItems } from "@makanmakan/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
+  GroupOrderFinalizeFailure,
   GroupOrderSettings,
   SplitBillItem,
 } from "@makanmakan/shared-types";
@@ -98,6 +101,7 @@ import type {
   GroupOrder,
   GroupOrderMember,
   GroupOrderCartItem,
+  GroupOrderCartItemWithMenu,
   GroupOrderActivity,
   GroupOrderSummary,
   GroupOrderStatistics,
@@ -115,6 +119,7 @@ import type {
   GroupOrderPermissions,
   GroupOrderJoinPreview,
 } from "../types";
+import { parseGroupOrderStatus } from "../types";
 
 /**
  * Default member permissions applied to a new group order and used as the
@@ -138,12 +143,25 @@ interface SplitBillData {
   items: SplitBillItem[];
 }
 
+interface SplitBillFailureDetails {
+  code?: string;
+  expectedTotalCents?: number;
+  roundedTotalCents?: number;
+}
+
+interface SplitBillResult {
+  success: boolean;
+  data?: SplitBillData[];
+  error?: string;
+  errorDetails?: SplitBillFailureDetails;
+}
+
 interface GroupOrderListItem {
   id: string;
   shareCode: string;
   masterOrderId: string | null;
   tableNumber: string | null;
-  status: string;
+  status: GroupOrderStatus;
   hostName: string;
   memberCount: number;
   totalAmount: number;
@@ -159,6 +177,8 @@ interface GroupOrderListItem {
 
 export class GroupOrdersService implements IGroupOrderService {
   private db;
+  private rawDb: D1Database;
+  private rawCacheKV?: KVNamespace;
   private cache: KVCacheService;
   private logger: ConsoleLogger;
   private performance: PerformanceMonitor;
@@ -169,11 +189,45 @@ export class GroupOrdersService implements IGroupOrderService {
     cacheKV?: KVNamespace,
     logLevel: string = "info",
   ) {
+    this.rawDb = database;
+    this.rawCacheKV = cacheKV;
     this.db = drizzle(database);
     this.cache = new KVCacheService(cacheKV);
     this.logger = new ConsoleLogger("group-orders", logLevel);
     this.performance = new PerformanceMonitor("group-orders");
     this.errorTracker = new ErrorTracker("group-orders");
+  }
+
+  private createOrderService() {
+    return new DatabaseOrderService(this.rawDb, {
+      JWT_SECRET: "",
+      NODE_ENV: "production",
+      CACHE_KV: this.rawCacheKV,
+    });
+  }
+
+  private centsFromOrderValue(
+    order: Record<string, unknown>,
+    centsKey: string,
+    amountKey: string,
+  ): number {
+    const cents = order[centsKey];
+    if (typeof cents === "number") return cents;
+
+    const amount = order[amountKey];
+    return typeof amount === "number" ? toRequiredCents(amount) : 0;
+  }
+
+  private splitTypeFromStoredValue(
+    value: string,
+  ): SplitBillRequest["splitType"] {
+    return value === "equal" ||
+      value === "proportional" ||
+      value === "individual" ||
+      value === "by_item" ||
+      value === "custom"
+      ? value
+      : "individual";
   }
 
   /**
@@ -236,7 +290,7 @@ export class GroupOrdersService implements IGroupOrderService {
           masterOrderId: null,
           tableNumber:
             settings?.tableNumber || (row.tableId ? String(row.tableId) : null),
-          status: row.status,
+          status: this.narrowStatus(row.status, row.id),
           hostName:
             memberRows.find((m) => m.role === "creator")?.name || "Host",
           memberCount: memberRows.length,
@@ -403,45 +457,56 @@ export class GroupOrdersService implements IGroupOrderService {
   async previewGroupByShareCode(
     shareCode: string,
   ): Promise<{ found: boolean; data?: GroupOrderJoinPreview }> {
-    const groupOrderRows = await this.db
-      .select()
-      .from(groupOrders)
-      .where(
-        and(
-          eq(groupOrders.shareCode, shareCode),
-          eq(groupOrders.status, "active"),
-          gte(groupOrders.expiresAt, new Date()),
-        ),
-      );
+    try {
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(
+          and(
+            eq(groupOrders.shareCode, shareCode),
+            eq(groupOrders.status, "active"),
+            gte(groupOrders.expiresAt, new Date()),
+          ),
+        );
 
-    const groupOrder = groupOrderRows[0];
-    if (!groupOrder) return { found: false };
+      const groupOrder = groupOrderRows[0];
+      if (!groupOrder) return { found: false };
 
-    const memberRows = await this.db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupOrderId, groupOrder.id),
-          isNull(groupMembers.leftAt),
-        ),
-      );
+      const memberRows = await this.db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrder.id),
+            isNull(groupMembers.leftAt),
+          ),
+        );
 
-    const host = memberRows.find((member) => member.role === "creator");
-    const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+      const host = memberRows.find((member) => member.role === "creator");
+      const settings = (groupOrder.settings || {}) as GroupOrderSettings;
 
-    return {
-      found: true,
-      data: {
-        groupOrderId: groupOrder.id,
-        restaurantId: groupOrder.restaurantId,
-        hostName: host?.name || "Host",
-        memberCount: memberRows.length,
-        fulfillmentType: settings.fulfillmentType || "dine_in",
-        expiresAt: groupOrder.expiresAt,
-        status: groupOrder.status,
-      },
-    };
+      return {
+        found: true,
+        data: {
+          groupOrderId: groupOrder.id,
+          restaurantId: groupOrder.restaurantId,
+          hostName: host?.name || "Host",
+          memberCount: memberRows.length,
+          fulfillmentType: settings.fulfillmentType || "dine_in",
+          expiresAt: groupOrder.expiresAt,
+          status: this.narrowStatus(groupOrder.status, groupOrder.id),
+        },
+      };
+    } catch (error) {
+      this.errorTracker.logError("previewGroupByShareCode", error as Error, {
+        shareCode,
+      });
+      // Rethrow instead of returning { found: false }. The route turns a
+      // not-found result into 404 "Group order not found or expired", which
+      // would disguise a database outage as a perfectly normal empty preview —
+      // wrong for the member staring at it, and invisible to alerting.
+      throw error;
+    }
   }
 
   async recoverHost(
@@ -704,15 +769,14 @@ export class GroupOrdersService implements IGroupOrderService {
       const summary: GroupOrderSummary = {
         groupOrder: this.formatGroupOrder(groupOrder),
         members: members.map((m) => this.formatMember(m)),
-        cartItems: cartItemsWithMenu.map((row) => ({
-          ...this.formatCartItem(row.cartItem),
-          menuItem: {
+        cartItems: cartItemsWithMenu.map((row) =>
+          this.formatCartItemWithMenu(row.cartItem, {
             id: row.cartItem.menuItemId,
             name: row.menuItemName,
-            price: moneyAmount(row.menuItemPriceCents),
-            imageUrl: row.menuItemImageUrl ?? undefined,
-          },
-        })),
+            priceCents: row.menuItemPriceCents,
+            imageUrl: row.menuItemImageUrl,
+          }),
+        ),
         totalAmount: moneyAmount(groupOrder.totalAmountCents),
         activities: activities.map((a) => this.formatActivity(a)),
       };
@@ -738,7 +802,12 @@ export class GroupOrdersService implements IGroupOrderService {
   async addCartItem(
     groupOrderId: string,
     itemData: AddCartItemRequest,
-  ): Promise<{ success: boolean; data?: GroupOrderCartItem; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    data?: GroupOrderCartItem;
+    restaurantId?: string;
+    error?: string;
+  }> {
     const timer = this.performance.startTimer("addCartItem");
 
     try {
@@ -844,6 +913,12 @@ export class GroupOrdersService implements IGroupOrderService {
           totalPriceCents,
           customizations: itemData.customizations || {},
           specialInstructions: itemData.specialInstructions || undefined,
+          menuItem: {
+            id: menuItem.id,
+            name: menuItem.name,
+            price: moneyAmount(menuItem.priceCents),
+            imageUrl: menuItem.imageUrl ?? undefined,
+          },
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -851,13 +926,17 @@ export class GroupOrdersService implements IGroupOrderService {
         // Invalidate cache
         await this.cache.delete(`group_order_summary:${groupOrderId}`);
 
-        return { success: true, data: fallbackItem };
+        return { success: true, data: fallbackItem, restaurantId };
       }
 
       // Invalidate cache
       await this.cache.delete(`group_order_summary:${groupOrderId}`);
 
-      return { success: true, data: this.formatCartItem(cartItem) };
+      return {
+        success: true,
+        data: this.formatCartItemWithMenu(cartItem, menuItem),
+        restaurantId,
+      };
     } catch (error) {
       this.errorTracker.logError("addCartItem", error as Error, {
         groupOrderId,
@@ -952,10 +1031,22 @@ export class GroupOrdersService implements IGroupOrderService {
         throw new Error("Failed to query updated cart item");
       }
 
+      const menuItemRows = await this.db
+        .select()
+        .from(menuItems)
+        .where(eq(menuItems.id, updatedItem.menuItemId));
+
+      const menuItem = menuItemRows[0];
+
       // Invalidate cache
       await this.cache.delete(`group_order_summary:${groupOrderId}`);
 
-      return { success: true, data: this.formatCartItem(updatedItem) };
+      return {
+        success: true,
+        data: menuItem
+          ? this.formatCartItemWithMenu(updatedItem, menuItem)
+          : this.formatCartItem(updatedItem),
+      };
     } catch (error) {
       this.errorTracker.logError("updateCartItem", error as Error, {
         groupOrderId,
@@ -971,6 +1062,12 @@ export class GroupOrdersService implements IGroupOrderService {
 
   /**
    * Remove cart item
+   *
+   * The cart is shared, so `memberId` is the member doing the removing, not a
+   * claim of ownership — any member may clear any dish. Everything written
+   * afterwards therefore follows `cartItem.memberId`: the total belongs to
+   * whoever was being charged for the dish, and crediting the caller instead
+   * would move the cost onto them while leaving the owner still charged.
    */
   async removeCartItem(
     groupOrderId: string,
@@ -980,7 +1077,6 @@ export class GroupOrdersService implements IGroupOrderService {
     const timer = this.performance.startTimer("removeCartItem");
 
     try {
-      // Verify item belongs to member
       const cartItemRows = await this.db
         .select()
         .from(groupCartItems)
@@ -988,7 +1084,6 @@ export class GroupOrdersService implements IGroupOrderService {
           and(
             eq(groupCartItems.id, itemId),
             eq(groupCartItems.groupOrderId, groupOrderId),
-            eq(groupCartItems.memberId, memberId),
           ),
         );
 
@@ -997,21 +1092,23 @@ export class GroupOrdersService implements IGroupOrderService {
       if (!cartItem) {
         return {
           success: false,
-          error: "Cart item not found or not owned by member",
+          error: "Cart item not found",
         };
       }
+
+      const ownerId = cartItem.memberId;
 
       // Delete the item
       await this.db.delete(groupCartItems).where(eq(groupCartItems.id, itemId));
 
       // Update totals
-      await this.updateMemberTotal(groupOrderId, memberId);
+      await this.updateMemberTotal(groupOrderId, ownerId);
       await this.updateGroupOrderTotal(groupOrderId);
 
       // Log activity
       await this.logActivity(
         groupOrderId,
-        memberId,
+        ownerId,
         "item_removed",
         "Removed cart item",
         { itemId },
@@ -1035,16 +1132,358 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   /**
+   * Finalize a group order into the canonical orders flow.
+   *
+   * This method deliberately stays thin: it claims the group-order mutex, maps
+   * the group cart into `OrderService.createOrder`, records the master order,
+   * then delegates member allocation to `splitBill`.
+   */
+  async finalizeGroupOrder(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: { masterOrderId: string; status: "completed" };
+    error?: string;
+  }> {
+    const timer = this.performance.startTimer("finalizeGroupOrder");
+    let claimed = false;
+
+    try {
+      const groupOrderRows = await this.db
+        .select()
+        .from(groupOrders)
+        .where(eq(groupOrders.id, groupOrderId));
+      const groupOrder = groupOrderRows[0];
+
+      if (!groupOrder) {
+        return { success: false, error: "Group order not found" };
+      }
+
+      if (groupOrder.masterOrderId) {
+        return {
+          success: true,
+          data: {
+            masterOrderId: groupOrder.masterOrderId,
+            status: "completed",
+          },
+        };
+      }
+
+      if (groupOrder.status === "cancelled") {
+        return {
+          success: false,
+          error: "Group order is cancelled, cannot finalize",
+        };
+      }
+      if (groupOrder.status === "completed") {
+        return {
+          success: false,
+          error: "Group order is completed, cannot finalize",
+        };
+      }
+      if (
+        groupOrder.status === "finalizing" ||
+        groupOrder.status === "checkout"
+      ) {
+        return {
+          success: false,
+          error: "Group order is already being finalized",
+        };
+      }
+      if (groupOrder.status === "finalizing_failed") {
+        return {
+          success: false,
+          error: "Group order finalization previously failed",
+        };
+      }
+      if (groupOrder.status !== "active") {
+        return {
+          success: false,
+          error: `Group order is ${groupOrder.status}, cannot finalize`,
+        };
+      }
+
+      const cartItems = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.status, "active"),
+          ),
+        );
+
+      if (cartItems.length === 0) {
+        return {
+          success: false,
+          error: "Cannot finalize an empty group order",
+        };
+      }
+
+      const now = new Date();
+      const claimedRows = await this.db
+        .update(groupOrders)
+        .set({ status: "finalizing", lockedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(groupOrders.id, groupOrderId),
+            eq(groupOrders.status, "active"),
+            isNull(groupOrders.masterOrderId),
+          ),
+        )
+        .returning({ id: groupOrders.id });
+
+      if (claimedRows.length === 0) {
+        const currentRows = await this.db
+          .select()
+          .from(groupOrders)
+          .where(eq(groupOrders.id, groupOrderId));
+        const current = currentRows[0];
+
+        if (current?.masterOrderId) {
+          return {
+            success: true,
+            data: {
+              masterOrderId: current.masterOrderId,
+              status: "completed",
+            },
+          };
+        }
+
+        if (
+          current?.status === "finalizing" ||
+          current?.status === "checkout"
+        ) {
+          return {
+            success: false,
+            error: "Group order is already being finalized",
+          };
+        }
+
+        return {
+          success: false,
+          error: current
+            ? `Group order is ${current.status}, cannot finalize`
+            : "Group order not found",
+        };
+      }
+      claimed = true;
+
+      const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+      const fulfillmentType = settings.fulfillmentType || "dine_in";
+      const deliveryInfo =
+        fulfillmentType === "dine_in"
+          ? undefined
+          : {
+              type:
+                fulfillmentType === "pickup"
+                  ? ("takeaway" as const)
+                  : ("delivery" as const),
+              address: settings.deliveryAddress
+                ? [
+                    settings.deliveryAddress.line1,
+                    settings.deliveryAddress.line2,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                : undefined,
+              phone: settings.deliveryAddress?.contactPhone,
+              instructions:
+                fulfillmentType === "pickup" && settings.pickupAt
+                  ? `Pickup requested at ${settings.pickupAt}${
+                      settings.deliveryAddress?.notes
+                        ? ` - ${settings.deliveryAddress.notes}`
+                        : ""
+                    }`
+                  : settings.deliveryAddress?.notes,
+            };
+      const clientMutationId = `group-order:${groupOrderId}`;
+      const createOrderData = {
+        restaurantId: groupOrder.restaurantId,
+        tableId:
+          fulfillmentType === "dine_in"
+            ? (groupOrder.tableId ?? undefined)
+            : undefined,
+        orderType:
+          fulfillmentType === "dine_in" && groupOrder.tableId
+            ? ("table" as const)
+            : ("shop" as const),
+        items: cartItems.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          notes: item.specialInstructions ?? undefined,
+        })),
+        notes: settings.notes ?? undefined,
+        clientMutationId,
+        deliveryInfo,
+      };
+
+      let order: Record<string, unknown>;
+      try {
+        order = (await this.createOrderService().createOrder(
+          createOrderData,
+        )) as unknown as Record<string, unknown>;
+      } catch (error) {
+        if (
+          !(error instanceof Error) ||
+          error.message !== "CLIENT_MUTATION_DUPLICATE"
+        ) {
+          throw error;
+        }
+
+        const existingRows = await this.db
+          .select({
+            id: orders.id,
+            serviceChargeCents: orders.serviceChargeCents,
+            taxAmountCents: orders.taxAmountCents,
+            totalAmountCents: orders.totalAmountCents,
+          })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.restaurantId, groupOrder.restaurantId),
+              eq(orders.clientMutationId, clientMutationId),
+            ),
+          );
+        const existing = existingRows[0];
+        if (!existing) throw error;
+
+        order = {
+          id: existing.id,
+          serviceChargeCents: existing.serviceChargeCents ?? 0,
+          taxAmountCents: existing.taxAmountCents ?? 0,
+          totalAmountCents: existing.totalAmountCents ?? 0,
+        };
+      }
+
+      if (!order.id || typeof order.id !== "string") {
+        throw new Error("FINALIZE_ORDER_ID_MISSING");
+      }
+
+      const masterOrderId = order.id;
+      const serviceChargeCents = this.centsFromOrderValue(
+        order,
+        "serviceChargeCents",
+        "serviceCharge",
+      );
+      const taxAmountCents = this.centsFromOrderValue(
+        order,
+        "taxAmountCents",
+        "taxAmount",
+      );
+      const orderTotalCents =
+        this.centsFromOrderValue(order, "finalAmountCents", "finalAmount") ||
+        this.centsFromOrderValue(order, "totalAmountCents", "totalAmount");
+
+      await this.db
+        .update(groupOrders)
+        .set({
+          masterOrderId,
+          status: "finalizing",
+          serviceChargeCents,
+          taxAmountCents,
+          finalAmountCents: orderTotalCents,
+          updatedAt: new Date(),
+        })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      const splitResult = await this.splitBill(groupOrderId, {
+        splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
+        sharedServiceChargeCents: serviceChargeCents,
+        sharedTaxCents: taxAmountCents,
+        orderTotalCents,
+      });
+
+      if (!splitResult.success) {
+        const failure: GroupOrderFinalizeFailure = {
+          code: splitResult.errorDetails?.code ?? "SPLIT_BILL_FAILED",
+          masterOrderId,
+          orderTotalCents,
+          serviceChargeCents,
+          taxAmountCents,
+          expectedTotalCents: splitResult.errorDetails?.expectedTotalCents,
+          roundedTotalCents: splitResult.errorDetails?.roundedTotalCents,
+          splitError: splitResult.error ?? "Failed to split bill",
+          failedAt: new Date().toISOString(),
+        };
+
+        await this.db
+          .update(groupOrders)
+          .set({
+            masterOrderId,
+            status: "finalizing_failed",
+            settings: {
+              ...settings,
+              finalizeFailure: failure,
+            },
+            updatedAt: new Date(),
+          })
+          .where(eq(groupOrders.id, groupOrderId));
+
+        this.errorTracker.logError(
+          "finalizeGroupOrder:splitBill",
+          new Error(failure.code),
+          { groupOrderId, ...failure },
+        );
+
+        return {
+          success: false,
+          error: splitResult.error ?? "Failed to split bill",
+        };
+      }
+
+      const completedAt = new Date();
+      await this.db
+        .update(groupOrders)
+        .set({
+          masterOrderId,
+          status: "completed",
+          completedAt,
+          updatedAt: completedAt,
+        })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      await this.logActivity(
+        groupOrderId,
+        null,
+        "order_finalized",
+        "Group order finalized into a real order",
+        { masterOrderId, orderTotalCents },
+      );
+
+      await this.cache.delete(`group_order:${groupOrderId}`);
+      await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+      return { success: true, data: { masterOrderId, status: "completed" } };
+    } catch (error) {
+      if (claimed) {
+        await this.db
+          .update(groupOrders)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(
+            and(
+              eq(groupOrders.id, groupOrderId),
+              eq(groupOrders.status, "finalizing"),
+              isNull(groupOrders.masterOrderId),
+            ),
+          );
+      }
+
+      this.errorTracker.logError("finalizeGroupOrder", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to finalize group order", error);
+      return { success: false, error: "Failed to finalize group order" };
+    } finally {
+      this.performance.endTimer(timer);
+    }
+  }
+
+  /**
    * Split bill among members
    */
   async splitBill(
     groupOrderId: string,
     splitData: SplitBillRequest,
-  ): Promise<{
-    success: boolean;
-    data?: SplitBillData[];
-    error?: string;
-  }> {
+  ): Promise<SplitBillResult> {
     const timer = this.performance.startTimer("splitBill");
 
     try {
@@ -1104,15 +1543,81 @@ export class GroupOrdersService implements IGroupOrderService {
         0,
       );
 
-      const serviceChargeRate = splitData.serviceChargeRate || 0;
-      const taxRate = splitData.taxRate || 0;
+      const hasSharedAmounts =
+        splitData.sharedServiceChargeCents !== undefined ||
+        splitData.sharedTaxCents !== undefined;
+      const sharedServiceCharge = hasSharedAmounts
+        ? fromCents(splitData.sharedServiceChargeCents ?? 0)
+        : 0;
+      const sharedTax = hasSharedAmounts
+        ? fromCents(splitData.sharedTaxCents ?? 0)
+        : 0;
+      const serviceChargeRate = hasSharedAmounts
+        ? 0
+        : (splitData.serviceChargeRate ?? 0);
+      const taxRate = hasSharedAmounts ? 0 : (splitData.taxRate ?? 0);
 
       const splitBillsData: SplitBillData[] = [];
+      // `recipientCount` is the number of bills this branch will actually
+      // produce, which is not always members.length — a custom split covers
+      // only the members named in customAmounts. Dividing the fallback by the
+      // wrong population under-distributes the shared cost.
+      const allocateSharedAmount = (
+        amount: number,
+        baseAmount: number,
+        totalBaseAmount: number,
+        recipientCount: number,
+      ) =>
+        totalBaseAmount > 0
+          ? (amount * baseAmount) / totalBaseAmount
+          : amount / recipientCount;
+      const calculateCharges = (
+        subtotal: number,
+        baseAmount: number,
+        totalBaseAmount: number,
+        recipientCount: number,
+      ) => {
+        if (hasSharedAmounts) {
+          return {
+            serviceCharge: allocateSharedAmount(
+              sharedServiceCharge,
+              baseAmount,
+              totalBaseAmount,
+              recipientCount,
+            ),
+            taxAmount: allocateSharedAmount(
+              sharedTax,
+              baseAmount,
+              totalBaseAmount,
+              recipientCount,
+            ),
+          };
+        }
 
-      // Calculate splits based on splitType
+        const serviceCharge = (subtotal * serviceChargeRate) / 100;
+        const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+        return { serviceCharge, taxAmount };
+      };
+
+      // Calculate splits based on splitType.
+      //
+      // "proportional" shares this branch with "individual"/"by_item" on
+      // purpose: every shared cost the system can currently produce (tax,
+      // service charge) is itself proportional to subtotal, so distributing it
+      // by subtotal share and charging each member their own rate give the
+      // same number. Merging them keeps the two from drifting apart while they
+      // are genuinely the same calculation.
+      //
+      // IF YOU ADD A SHARED COST THAT IS NOT PROPORTIONAL TO SUBTOTAL — a flat
+      // delivery fee is the expected first one — the two stop being the same
+      // calculation and this branch must be split: "proportional" distributes
+      // it by each member's share of the total, "individual" does not. The
+      // equivalence test in GroupOrdersService.test.ts cannot warn you about
+      // this, because once merged it compares one code path against itself.
       if (
         splitData.splitType === "by_item" ||
-        splitData.splitType === "individual"
+        splitData.splitType === "individual" ||
+        splitData.splitType === "proportional"
       ) {
         // Each member pays for their own items
         for (const member of members) {
@@ -1123,8 +1628,12 @@ export class GroupOrdersService implements IGroupOrderService {
             (sum, item) => sum + cartItemTotalAmount(item),
             0,
           );
-          const serviceCharge = (subtotal * serviceChargeRate) / 100;
-          const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+          const { serviceCharge, taxAmount } = calculateCharges(
+            subtotal,
+            subtotal,
+            totalCartAmount,
+            members.length,
+          );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
           splitBillsData.push({
@@ -1147,10 +1656,10 @@ export class GroupOrdersService implements IGroupOrderService {
         // Split equally among all members
         const memberCount = members.length;
         const subtotalPerMember = totalCartAmount / memberCount;
-        const serviceChargePerMember =
-          (subtotalPerMember * serviceChargeRate) / 100;
-        const taxPerMember =
-          ((subtotalPerMember + serviceChargePerMember) * taxRate) / 100;
+        const {
+          serviceCharge: serviceChargePerMember,
+          taxAmount: taxPerMember,
+        } = calculateCharges(subtotalPerMember, 1, memberCount, memberCount);
         const totalPerMember =
           subtotalPerMember + serviceChargePerMember + taxPerMember;
 
@@ -1183,8 +1692,16 @@ export class GroupOrdersService implements IGroupOrderService {
           }
 
           const subtotal = customAmount.amount;
-          const serviceCharge = (subtotal * serviceChargeRate) / 100;
-          const taxAmount = ((subtotal + serviceCharge) * taxRate) / 100;
+          const totalCustomAmount = splitData.customAmounts.reduce(
+            (sum, amount) => sum + amount.amount,
+            0,
+          );
+          const { serviceCharge, taxAmount } = calculateCharges(
+            subtotal,
+            subtotal,
+            totalCustomAmount,
+            splitData.customAmounts.length,
+          );
           const totalAmount = subtotal + serviceCharge + taxAmount;
 
           splitBillsData.push({
@@ -1201,6 +1718,62 @@ export class GroupOrdersService implements IGroupOrderService {
           success: false,
           error: `Unsupported split type: ${splitData.splitType}`,
         };
+      }
+
+      const targetTotalCents =
+        splitData.orderTotalCents ??
+        toRequiredCents(
+          splitBillsData.reduce((sum, bill) => sum + bill.totalAmount, 0),
+        );
+      const roundedTotalCents = splitBillsData.reduce(
+        (sum, bill) => sum + toRequiredCents(bill.totalAmount),
+        0,
+      );
+      const remainderCents = targetTotalCents - roundedTotalCents;
+
+      if (Math.abs(remainderCents) > splitBillsData.length) {
+        this.errorTracker.logError(
+          "splitBill",
+          new Error("SPLIT_TOTAL_MISMATCH"),
+          {
+            code: "SPLIT_TOTAL_MISMATCH",
+            groupOrderId,
+            expectedTotalCents: targetTotalCents,
+            roundedTotalCents,
+          },
+        );
+        return {
+          success: false,
+          error: "Split total does not match order total",
+          errorDetails: {
+            code: "SPLIT_TOTAL_MISMATCH",
+            expectedTotalCents: targetTotalCents,
+            roundedTotalCents,
+          },
+        };
+      }
+
+      if (remainderCents !== 0) {
+        const creatorId = members.find(
+          (member) => member.role === "creator",
+        )?.id;
+        const creatorBill =
+          splitBillsData.find((bill) => bill.memberId === creatorId) ??
+          splitBillsData[0];
+        // The remainder lands on the subtotal as well as the total. split_bills
+        // stores subtotal, service charge and tax as separate columns, so
+        // moving only the total would leave the creator holding a bill whose
+        // own line items do not add up to what they are asked to pay.
+        //
+        // Subtotal is the component that absorbs it: service charge and tax
+        // are the real order's absolute amounts, and adjusting either would
+        // make the split disagree with what the restaurant actually charged.
+        creatorBill.subtotal = fromCents(
+          toRequiredCents(creatorBill.subtotal) + remainderCents,
+        );
+        creatorBill.totalAmount = fromCents(
+          toRequiredCents(creatorBill.totalAmount) + remainderCents,
+        );
       }
 
       // Insert split bills into database
@@ -1254,8 +1827,8 @@ export class GroupOrdersService implements IGroupOrderService {
         (sum, bill) => sum + bill.taxAmount,
         0,
       );
-      const finalAmount = splitBillsData.reduce(
-        (sum, bill) => sum + bill.totalAmount,
+      const finalAmountCents = splitBillsData.reduce(
+        (sum, bill) => sum + toRequiredCents(bill.totalAmount),
         0,
       );
 
@@ -1272,7 +1845,7 @@ export class GroupOrdersService implements IGroupOrderService {
           totalAmountCents: toRequiredCents(totalCartAmount),
           taxAmountCents: toRequiredCents(totalTax),
           serviceChargeCents: toRequiredCents(totalServiceCharge),
-          finalAmountCents: toRequiredCents(finalAmount),
+          finalAmountCents,
           lockedAt: now,
           updatedAt: now,
         })
@@ -1287,7 +1860,7 @@ export class GroupOrdersService implements IGroupOrderService {
         {
           splitType: splitData.splitType,
           memberCount: members.length,
-          totalAmount: finalAmount,
+          totalAmount: fromCents(finalAmountCents),
         },
       );
 
@@ -1299,7 +1872,7 @@ export class GroupOrdersService implements IGroupOrderService {
         groupOrderId,
         splitType: splitData.splitType,
         billCount: splitBillsData.length,
-        finalAmount,
+        finalAmount: fromCents(finalAmountCents),
       });
 
       return {
@@ -1540,7 +2113,7 @@ export class GroupOrdersService implements IGroupOrderService {
         return { success: false, error: "Group order not found" };
       }
 
-      if (groupOrder.status !== "active" && groupOrder.status !== "ordering") {
+      if (groupOrder.status !== "active") {
         return {
           success: false,
           error: "Cannot leave a group order after checkout has started",
@@ -1660,7 +2233,7 @@ export class GroupOrdersService implements IGroupOrderService {
         .from(groupOrders)
         .where(
           and(
-            inArray(groupOrders.status, ["active", "ordering", "checkout"]),
+            inArray(groupOrders.status, ["active", "checkout"]),
             sql`${groupOrders.expiresAt} < ${nowMs}`,
           ),
         )
@@ -1702,6 +2275,66 @@ export class GroupOrdersService implements IGroupOrderService {
       return { cleaned: 0, errors: [(error as Error).message] };
     } finally {
       this.performance.endTimer(timer);
+    }
+  }
+
+  async isHostSession(
+    groupOrderId: string,
+    memberToken: string,
+  ): Promise<boolean> {
+    try {
+      const rows = await this.db
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.sessionId, memberToken),
+            eq(groupMembers.role, "creator"),
+            eq(groupMembers.isActive, true),
+            isNull(groupMembers.leftAt),
+          ),
+        )
+        .limit(1);
+
+      return rows.length > 0;
+    } catch (error) {
+      this.errorTracker.logError("isHostSession", error as Error, {
+        groupOrderId,
+      });
+      this.logger.error("Failed to validate host session", error);
+      return false;
+    }
+  }
+
+  async isMemberSession(
+    groupOrderId: string,
+    memberId: string,
+    memberToken: string,
+  ): Promise<boolean> {
+    try {
+      const rows = await this.db
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.id, memberId),
+            eq(groupMembers.sessionId, memberToken),
+            eq(groupMembers.isActive, true),
+            isNull(groupMembers.leftAt),
+          ),
+        )
+        .limit(1);
+
+      return rows.length > 0;
+    } catch (error) {
+      this.errorTracker.logError("isMemberSession", error as Error, {
+        groupOrderId,
+        memberId,
+      });
+      this.logger.error("Failed to validate member session", error);
+      return false;
     }
   }
 
@@ -1992,6 +2625,27 @@ export class GroupOrdersService implements IGroupOrderService {
     });
   }
 
+  /**
+   * `group_orders.status` is a plain TEXT column, so Drizzle types it as
+   * `string`. Asserting it into `GroupOrderStatus` would compile against any
+   * value the row happens to hold, including one this service never writes.
+   * Check instead, and make an unexpected value loud rather than letting it
+   * travel onward wearing a type it doesn't satisfy.
+   */
+  private narrowStatus(value: string, groupOrderId: string): GroupOrderStatus {
+    const status = parseGroupOrderStatus(value);
+    if (status) return status;
+
+    this.errorTracker.logError(
+      "formatGroupOrder",
+      new Error("UNKNOWN_GROUP_ORDER_STATUS"),
+      { groupOrderId, status: value },
+    );
+    // "active" is the safest fallback: it is the most restrictive state for
+    // reads and the default the column itself carries.
+    return "active";
+  }
+
   private formatGroupOrder(data: typeof groupOrders.$inferSelect): GroupOrder {
     // Drizzle returns camelCase properties and handles JSON/timestamp_ms automatically
     const settings = (data.settings || {}) as GroupOrderSettings;
@@ -2028,7 +2682,7 @@ export class GroupOrdersService implements IGroupOrderService {
       tableId: data.tableId ?? undefined,
       shareCode: data.shareCode,
       createdBy: data.createdBy,
-      status: data.status as GroupOrderStatus,
+      status: this.narrowStatus(data.status, data.id),
       expiresAt,
       maxMembers: settings.maxMembers || 8,
       permissions: {
@@ -2106,6 +2760,26 @@ export class GroupOrdersService implements IGroupOrderService {
       specialInstructions: data.specialInstructions ?? undefined,
       createdAt: addedAt,
       updatedAt,
+    };
+  }
+
+  private formatCartItemWithMenu(
+    cartItem: typeof groupCartItems.$inferSelect,
+    menuItem: {
+      id: number;
+      name: string;
+      priceCents?: number | null;
+      imageUrl?: string | null;
+    },
+  ): GroupOrderCartItemWithMenu {
+    return {
+      ...this.formatCartItem(cartItem),
+      menuItem: {
+        id: menuItem.id,
+        name: menuItem.name,
+        price: moneyAmount(menuItem.priceCents),
+        imageUrl: menuItem.imageUrl ?? undefined,
+      },
     };
   }
 

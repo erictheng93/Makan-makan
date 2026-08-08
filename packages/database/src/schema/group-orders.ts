@@ -41,7 +41,7 @@ export const groupOrders = sqliteTable(
     tableId: integer("table_id").references(() => tables.id),
 
     // 訂單狀態
-    status: text("status").notNull().default("active"), // active, ordering, checkout, completed, cancelled
+    status: text("status").notNull().default("active"), // active, finalizing, finalizing_failed, checkout, completed, cancelled
     splitType: text("split_type").notNull().default("individual"), // equal, proportional, individual, custom
 
     // 金額資訊

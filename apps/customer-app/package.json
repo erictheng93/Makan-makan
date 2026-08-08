@@ -61,6 +61,6 @@
     "vitest": "^4.1.0",
     "vue-tsc": "^3.0.6",
     "workbox-build": "^7.4.1",
-    "wrangler": "^4.114.0"
+    "wrangler": "^4.118.0"
   }
 }

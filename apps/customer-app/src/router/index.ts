@@ -120,6 +120,28 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/group/order/:groupOrderId",
+    name: "GroupOrder",
+    component: () => import("@/views/GroupOrderView.vue"),
+    props: (route) => ({
+      groupOrderId: String(route.params.groupOrderId),
+    }),
+    meta: {
+      titleKey: "group.sharedCart",
+    },
+  },
+  {
+    path: "/group/:shareCode",
+    name: "GroupOrderJoin",
+    component: () => import("@/views/GroupOrderJoinView.vue"),
+    props: (route) => ({
+      shareCode: String(route.params.shareCode),
+    }),
+    meta: {
+      titleKey: "group.joinGroupOrder",
+    },
+  },
+  {
     path: "/restaurant/:restaurantId/table/:tableId",
     name: "RestaurantMenu",
     component: () => import("@/views/MenuView.vue"),

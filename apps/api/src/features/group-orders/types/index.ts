@@ -7,6 +7,7 @@ import type { BaseEntity } from "../../../shared/types";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
+  GroupOrderStatus,
 } from "@makanmakan/shared-types";
 
 // Core Group Order Types
@@ -55,18 +56,38 @@ export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {
   totalPrice: number;
   unitPriceCents?: number | null;
   totalPriceCents?: number | null;
+  menuItem?: {
+    id: number;
+    name: string;
+    price: number;
+    imageUrl?: string;
+  };
   customizations: CartItemCustomizations;
   specialInstructions?: string;
 }
 
+export interface GroupOrderCartItemWithMenu extends GroupOrderCartItem {
+  menuItem: {
+    id: number;
+    name: string;
+    price: number;
+    imageUrl?: string;
+  };
+}
+
 // Enums
-export type GroupOrderStatus =
-  | "active" // 活躍，可以加入和修改
-  | "locked" // 鎖定，不能修改但可以付款
-  | "finalized" // 最終確認，準備下單
-  | "completed" // 已完成
-  | "cancelled" // 已取消
-  | "expired"; // 已過期
+
+/**
+ * Group order status now lives in `@makanmakan/shared-types` so the customer
+ * app holds the same union instead of translating into a vocabulary of its
+ * own. Re-exported here because this module is the feature's public surface
+ * and every existing import already points at it.
+ */
+export {
+  GROUP_ORDER_STATUSES,
+  parseGroupOrderStatus,
+} from "@makanmakan/shared-types";
+export type { GroupOrderStatus } from "@makanmakan/shared-types";
 
 export type PaymentStatus =
   | "pending" // 等待付款
@@ -129,7 +150,7 @@ export interface GroupOrderJoinPreview {
   memberCount: number;
   fulfillmentType: "dine_in" | "delivery" | "pickup";
   expiresAt: Date;
-  status: string;
+  status: GroupOrderStatus;
 }
 
 export interface JoinGroupRequest {
@@ -163,6 +184,9 @@ export interface SplitBillRequest {
   splitType: "equal" | "proportional" | "individual" | "by_item" | "custom";
   serviceChargeRate?: number;
   taxRate?: number;
+  sharedServiceChargeCents?: number;
+  sharedTaxCents?: number;
+  orderTotalCents?: number;
   customSplits?: Array<{
     memberId: string;
     amount: number;
@@ -185,14 +209,7 @@ export interface ProcessPaymentRequest {
 export interface GroupOrderSummary {
   groupOrder: GroupOrder;
   members: GroupOrderMember[];
-  cartItems: (GroupOrderCartItem & {
-    menuItem: {
-      id: number;
-      name: string;
-      price: number;
-      imageUrl?: string;
-    };
-  })[];
+  cartItems: GroupOrderCartItemWithMenu[];
   totalAmount: number;
   activities: GroupOrderActivity[];
 }
@@ -275,6 +292,11 @@ export interface IGroupOrderService {
     groupOrderId: string,
     splitData: SplitBillRequest,
   ): Promise<{ success: boolean; data?: unknown; error?: string }>;
+  finalizeGroupOrder(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: { masterOrderId: string; status: "completed" };
+    error?: string;
+  }>;
   processPayment(
     groupOrderId: string,
     memberId: string,

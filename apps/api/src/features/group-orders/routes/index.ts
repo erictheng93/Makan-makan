@@ -26,7 +26,10 @@ import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import { RealtimeBroadcastService } from "@makanmakan/database";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import {
+  isValidRealtimeEvent,
+  RealtimeEventType,
+} from "@makanmakan/shared-types";
 import type { GroupOrderEvent } from "@makanmakan/shared-types";
 import {
   notFound,
@@ -46,26 +49,43 @@ async function broadcastGroupOrderEvent(
   eventType: GroupOrderEvent["type"],
   payload: GroupOrderRealtimePayload,
 ): Promise<void> {
-  const groupOrderId = payload.groupOrderId;
-  if (!groupOrderId) return;
+  const groupOrderId = requireNonEmptyString(
+    payload.groupOrderId,
+    "groupOrderId",
+  );
+  const restaurantId = requireNonEmptyString(
+    payload.restaurantId,
+    "restaurantId",
+  );
 
+  const broadcaster = new RealtimeBroadcastService(env);
+  const event: GroupOrderEvent = {
+    type: eventType,
+    eventId: broadcaster.generateEventId(),
+    timestamp: Date.now(),
+    restaurantId,
+    data: { ...payload, groupOrderId, restaurantId },
+  };
+
+  if (!isValidRealtimeEvent(event)) {
+    throw new Error(`Invalid realtime event produced for ${eventType}`);
+  }
+
+  // Clients join a group order through the `customer:{groupOrderId}` room
+  // (see apps/customer-app useGroupOrder). Broadcasting to a `group_order`
+  // room nobody connects to dropped every event (bug-inventory #2).
   try {
-    const broadcaster = new RealtimeBroadcastService(env);
-    const event: GroupOrderEvent = {
-      type: eventType,
-      eventId: broadcaster.generateEventId(),
-      timestamp: Date.now(),
-      restaurantId: String(payload.restaurantId ?? ""),
-      data: { ...payload, groupOrderId },
-    };
-
-    // Clients join a group order through the `customer:{groupOrderId}` room
-    // (see apps/customer-app useGroupOrder). Broadcasting to a `group_order`
-    // room nobody connects to dropped every event (bug-inventory #2).
     await broadcaster.broadcastEvent("customer", groupOrderId, event);
   } catch (broadcastError) {
     console.warn(`Failed to broadcast ${eventType}:`, broadcastError);
   }
+}
+
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Cannot broadcast group order event without ${field}`);
+  }
+  return value;
 }
 
 async function resolveRestaurantIdFromJsonBody(c: {
@@ -82,6 +102,108 @@ async function resolveRestaurantIdFromJsonBody(c: {
   return typeof restaurantId === "string" || typeof restaurantId === "number"
     ? String(restaurantId)
     : undefined;
+}
+
+async function resolveGroupOrderRestaurantId(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+): Promise<string> {
+  const summary = await groupOrderService.getGroupOrder(groupOrderId);
+  const restaurantId =
+    summary?.groupOrder?.restaurantId ??
+    (
+      summary as
+        | {
+            data?: { groupOrder?: { restaurantId?: unknown } };
+          }
+        | undefined
+    )?.data?.groupOrder?.restaurantId;
+
+  return requireNonEmptyString(restaurantId, "restaurantId");
+}
+
+async function resolveCartMutationRestaurantId(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  result: { success: boolean; restaurantId?: unknown },
+): Promise<string> {
+  if (typeof result.restaurantId === "string") {
+    return requireNonEmptyString(result.restaurantId, "restaurantId");
+  }
+  return resolveGroupOrderRestaurantId(groupOrderService, groupOrderId);
+}
+
+function requireMemberToken(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw forbidden("Access denied");
+  }
+  return value;
+}
+
+async function readMemberTokenFromBody(c: {
+  req: { json: () => Promise<unknown> };
+}): Promise<string> {
+  const body = await c.req.json().catch(() => undefined);
+  const token =
+    body && typeof body === "object"
+      ? (body as Record<string, unknown>).memberToken
+      : undefined;
+  return requireMemberToken(token);
+}
+
+async function requireHostSession(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  memberToken: unknown,
+): Promise<void> {
+  const token = requireMemberToken(memberToken);
+  const isHost = await groupOrderService.isHostSession(groupOrderId, token);
+  if (!isHost) {
+    throw forbidden("Access denied");
+  }
+}
+
+async function requireMemberOrHostSession(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  memberId: string,
+  memberToken: unknown,
+): Promise<void> {
+  const token = requireMemberToken(memberToken);
+  const [isMember, isHost] = await Promise.all([
+    groupOrderService.isMemberSession(groupOrderId, memberId, token),
+    groupOrderService.isHostSession(groupOrderId, token),
+  ]);
+  if (!isMember && !isHost) {
+    throw forbidden("Access denied");
+  }
+}
+
+/**
+ * Cart writes name the member they belong to, and that name decides who pays
+ * for the dish. So the caller has to be that member — the host gets no bypass
+ * here, because a host acting under someone else's name would falsify the
+ * same thing. Which items a member may touch is a separate question: the cart
+ * is shared, so any member may change or remove any item.
+ */
+async function requireMemberIdentity(
+  groupOrderService: GroupOrdersService,
+  groupOrderId: string,
+  memberId: unknown,
+  memberToken: unknown,
+): Promise<void> {
+  const token = requireMemberToken(memberToken);
+  if (typeof memberId !== "string" || memberId.length === 0) {
+    throw forbidden("Access denied");
+  }
+  const isMember = await groupOrderService.isMemberSession(
+    groupOrderId,
+    memberId,
+    token,
+  );
+  if (!isMember) {
+    throw forbidden("Access denied");
+  }
 }
 
 /**
@@ -358,6 +480,42 @@ app.post(
 );
 
 /**
+ * Lock and finalize a group order
+ * POST /api/v1/orders/group/{groupOrderId}/lock
+ */
+app.post(
+  "/:groupOrderId/lock",
+  publicRateLimit,
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateBody(groupOrderSchemas.lockGroupOrder),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const { memberToken } = c.get("validatedBody");
+
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const isHost = await groupOrderService.isHostSession(
+      groupOrderId,
+      memberToken,
+    );
+
+    if (!isHost) {
+      throw forbidden("Only the group host can lock this order");
+    }
+
+    const result = await groupOrderService.finalizeGroupOrder(groupOrderId);
+
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to finalize group order");
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+    });
+  },
+);
+
+/**
  * Get group order statistics
  * GET /api/v1/orders/group/statistics
  * NOTE: This route MUST be defined BEFORE /:groupOrderId to avoid matching 'statistics' as a groupOrderId
@@ -381,9 +539,16 @@ app.get(
       throw forbidden("Access denied: can only view own restaurant statistics");
     }
 
+    // `getStatistics` treats an undefined restaurant as "every restaurant on
+    // the platform", and the query parameter is optional — so passing it
+    // straight through hands anyone who simply omits it another tenant's order
+    // counts and average order value. Resolve the tenant the same way the list
+    // route above does, so the two can never disagree about whose data this is.
+    const targetRestaurantId = restaurantId || String(user.restaurantId);
+
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const statistics = await groupOrderService.getStatistics(
-      restaurantId,
+      targetRestaurantId,
       timeRange,
     );
 
@@ -428,9 +593,15 @@ app.post(
   validateBody(groupOrderSchemas.addCartItem),
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
-    const itemData = c.get("validatedBody");
+    const { memberToken, ...itemData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberIdentity(
+      groupOrderService,
+      groupOrderId,
+      itemData.memberId,
+      memberToken,
+    );
     const result = await groupOrderService.addCartItem(groupOrderId, itemData);
 
     if (!result.success) {
@@ -442,6 +613,11 @@ app.post(
       RealtimeEventType.GROUP_CART_ITEM_ADDED,
       {
         groupOrderId,
+        restaurantId: await resolveCartMutationRestaurantId(
+          groupOrderService,
+          groupOrderId,
+          result,
+        ),
         action: "added",
         item: result.data,
       },
@@ -466,9 +642,15 @@ app.put(
   validateBody(groupOrderSchemas.updateCartItem),
   async (c) => {
     const { groupOrderId, itemId } = c.get("validatedParams");
-    const updateData = c.get("validatedBody");
+    const { memberId, memberToken, ...updateData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberIdentity(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      memberToken,
+    );
     const result = await groupOrderService.updateCartItem(
       groupOrderId,
       itemId,
@@ -484,6 +666,11 @@ app.put(
       RealtimeEventType.GROUP_CART_ITEM_UPDATED,
       {
         groupOrderId,
+        restaurantId: await resolveCartMutationRestaurantId(
+          groupOrderService,
+          groupOrderId,
+          result,
+        ),
         action: "updated",
         item: result.data,
       },
@@ -505,12 +692,18 @@ app.delete(
   validateParams(
     groupOrderSchemas.groupOrderIdParam.merge(groupOrderSchemas.itemIdParam),
   ),
-  validateBody(groupOrderSchemas.memberIdParam),
+  validateBody(groupOrderSchemas.removeCartItem),
   async (c) => {
     const { groupOrderId, itemId } = c.get("validatedParams");
-    const { memberId } = c.get("validatedBody");
+    const { memberId, memberToken } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberIdentity(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      memberToken,
+    );
     const result = await groupOrderService.removeCartItem(
       groupOrderId,
       itemId,
@@ -526,6 +719,11 @@ app.delete(
       RealtimeEventType.GROUP_CART_ITEM_REMOVED,
       {
         groupOrderId,
+        restaurantId: await resolveCartMutationRestaurantId(
+          groupOrderService,
+          groupOrderId,
+          result,
+        ),
         action: "removed",
         itemId,
       },
@@ -548,9 +746,10 @@ app.post(
   validateBody(groupOrderSchemas.splitBill),
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
-    const splitData = c.get("validatedBody");
+    const { memberToken, ...splitData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
     const result = await groupOrderService.splitBill(groupOrderId, splitData);
 
     if (!result.success) {
@@ -576,9 +775,10 @@ app.post(
   validateBody(groupOrderSchemas.processPayment),
   async (c) => {
     const { groupOrderId, memberId } = c.get("validatedParams");
-    const paymentData = c.get("validatedBody");
+    const { memberToken, ...paymentData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireHostSession(groupOrderService, groupOrderId, memberToken);
     const result = await groupOrderService.processPayment(
       groupOrderId,
       memberId,
@@ -609,6 +809,12 @@ app.post(
     const { groupOrderId, memberId } = c.get("validatedParams");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    await requireMemberOrHostSession(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      await readMemberTokenFromBody(c),
+    );
     const result = await groupOrderService.leaveGroup(groupOrderId, memberId);
 
     if (!result.success) {

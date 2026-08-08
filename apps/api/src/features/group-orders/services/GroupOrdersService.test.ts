@@ -61,7 +61,10 @@ function createQuery(result: unknown) {
   return builder;
 }
 
-function createDb(selectResults: unknown[] = []) {
+function createDb(
+  selectResults: unknown[] = [],
+  updateResults: unknown[] = [],
+) {
   const inserts: Array<{ table: unknown; payload: unknown }> = [];
   const updates: Array<{ table: unknown; payload: unknown }> = [];
   const deletes: unknown[] = [];
@@ -83,7 +86,8 @@ function createDb(selectResults: unknown[] = []) {
           updates.push({ table, payload });
           return builder;
         }),
-        where: vi.fn(async () => undefined),
+        where: vi.fn(() => builder),
+        returning: vi.fn(async () => updateResults.shift() ?? []),
       };
       return builder;
     }),
@@ -129,6 +133,62 @@ const hostMember = {
   lastActiveAt: new Date("2026-06-07T00:00:00.000Z"),
   leftAt: null,
 };
+
+const secondMember = { ...hostMember, id: "member-2", role: "member" };
+const thirdMember = { ...hostMember, id: "member-3", role: "member" };
+
+const finalizedOrder = {
+  id: "order-1",
+  subtotal: 30,
+  serviceCharge: 6,
+  taxAmount: 3,
+  totalAmount: 39,
+  status: "pending",
+  paymentStatus: "pending",
+};
+
+function cartItem(
+  id: string,
+  memberId: string,
+  totalPriceCents: number,
+  quantity = 1,
+) {
+  return {
+    id,
+    groupOrderId: "group-1",
+    memberId,
+    menuItemId: Number(id.replace(/\D/g, "")) || 10,
+    quantity,
+    unitPriceCents: Math.round(totalPriceCents / quantity),
+    totalPriceCents,
+    status: "active",
+    customizations: {},
+  };
+}
+
+function createSplitDb({
+  members,
+  items = [],
+  existingBills = [],
+}: {
+  members: unknown[];
+  items?: unknown[];
+  existingBills?: unknown[][];
+}) {
+  return createDb([
+    [baseGroupOrder],
+    members,
+    items,
+    ...members.map((_, index) => existingBills[index] ?? []),
+  ]);
+}
+
+function totalCents(result: { totalAmount: number }[]) {
+  return result.reduce(
+    (sum, bill) => sum + Math.round(bill.totalAmount * 100),
+    0,
+  );
+}
 
 describe("GroupOrdersService formatting and cache behavior", () => {
   beforeEach(() => {
@@ -598,6 +658,88 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  it("surfaces database failures instead of reporting the group order as missing", async () => {
+    const service = createService();
+    const db = createDb();
+    db.select = vi.fn(() => {
+      throw new Error("D1_UNAVAILABLE");
+    });
+    service.db = db;
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+
+    // Resolving to { found: false } here would make the route answer 404
+    // "not found or expired" during an outage — wrong for the member reading
+    // it, and invisible to alerting.
+    await expect(service.previewGroupByShareCode("ABC12345")).rejects.toThrow(
+      "D1_UNAVAILABLE",
+    );
+
+    expect(logError).toHaveBeenCalledWith(
+      "previewGroupByShareCode",
+      expect.any(Error),
+      expect.objectContaining({ shareCode: "ABC12345" }),
+    );
+  });
+
+  it("narrows a known group order status straight through", () => {
+    const service = createService();
+    for (const status of ["active", "checkout", "completed", "cancelled"]) {
+      expect(service.narrowStatus(status, "go-1")).toBe(status);
+    }
+  });
+
+  it("falls back to active and reports a status the service never writes", () => {
+    const service = createService();
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+
+    // "ordering" was a valid value under the legacy CHECK constraint. The
+    // column is plain TEXT, so a bare `as GroupOrderStatus` would have let it
+    // through wearing a type it does not satisfy.
+    expect(service.narrowStatus("ordering", "go-1")).toBe("active");
+
+    expect(logError).toHaveBeenCalledWith(
+      "formatGroupOrder",
+      expect.any(Error),
+      expect.objectContaining({ groupOrderId: "go-1", status: "ordering" }),
+    );
+  });
+
+  it("narrows raw statuses returned by list and join preview endpoints", async () => {
+    const service = createService();
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+    service.db = createDb([
+      [{ ...baseGroupOrder, status: "ordering" }],
+      [hostMember],
+      [],
+    ]);
+
+    await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([
+      expect.objectContaining({ id: "group-1", status: "active" }),
+    ]);
+
+    const previewService = createService();
+    previewService.errorTracker = { ...previewService.errorTracker, logError };
+    previewService.db = createDb([
+      [{ ...baseGroupOrder, status: "ordering" }],
+      [hostMember],
+    ]);
+
+    await expect(
+      previewService.previewGroupByShareCode("ABC12345"),
+    ).resolves.toEqual({
+      found: true,
+      data: expect.objectContaining({ status: "active" }),
+    });
+    expect(logError).toHaveBeenCalledWith(
+      "formatGroupOrder",
+      expect.any(Error),
+      expect.objectContaining({ groupOrderId: "group-1", status: "ordering" }),
+    );
+  });
+
   it("recovers the host session and replaces the previous member token", async () => {
     const service = createService();
     const db = createDb([
@@ -952,7 +1094,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       missingService.removeCartItem("group-1", "item-1", "member-1"),
     ).resolves.toEqual({
       success: false,
-      error: "Cart item not found or not owned by member",
+      error: "Cart item not found",
     });
 
     const service = createService();
@@ -989,6 +1131,40 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).resolves.toEqual({
       success: false,
       error: "Failed to remove cart item",
+    });
+  });
+
+  /**
+   * Members may clear each other's dishes off the shared cart, so the caller
+   * and the item's owner are no longer the same person. Everything the
+   * removal writes afterwards — the activity log, and the member total that
+   * decides who owes what — has to follow the item, not whoever pressed the
+   * button. Crediting the caller would quietly move a dish's cost onto them
+   * and leave the real owner still charged for it.
+   */
+  it("credits a removal to the member whose item it was", async () => {
+    const service = createService();
+    const db = createDb([
+      [
+        {
+          id: "item-1",
+          groupOrderId: "group-1",
+          memberId: "member-1",
+        },
+      ],
+      [{ total: 0 }],
+      [],
+      [{ total: 0 }],
+    ]);
+    service.db = db;
+
+    await expect(
+      service.removeCartItem("group-1", "item-1", "member-2"),
+    ).resolves.toEqual({ success: true });
+
+    expect(db.inserts.at(-1)?.payload).toMatchObject({
+      action: "item_removed",
+      memberId: "member-1",
     });
   });
 
@@ -1194,6 +1370,778 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         service.splitBill("group-1", guard.body ?? { splitType: "equal" }),
       ).resolves.toEqual({ success: false, error: guard.error });
     }
+  });
+
+  it.each([
+    {
+      splitType: "individual",
+      expected: [
+        {
+          memberId: "member-1",
+          subtotal: 10,
+          serviceCharge: 2,
+          taxAmount: 1,
+          totalAmount: 13,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 20,
+          serviceCharge: 4,
+          taxAmount: 2,
+          totalAmount: 26,
+        },
+      ],
+    },
+    {
+      splitType: "proportional",
+      expected: [
+        {
+          memberId: "member-1",
+          subtotal: 10,
+          serviceCharge: 2,
+          taxAmount: 1,
+          totalAmount: 13,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 20,
+          serviceCharge: 4,
+          taxAmount: 2,
+          totalAmount: 26,
+        },
+      ],
+    },
+    {
+      splitType: "equal",
+      expected: [
+        {
+          memberId: "member-1",
+          subtotal: 15,
+          serviceCharge: 3,
+          taxAmount: 1.5,
+          totalAmount: 19.5,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 15,
+          serviceCharge: 3,
+          taxAmount: 1.5,
+          totalAmount: 19.5,
+        },
+      ],
+    },
+  ])(
+    "allocates non-zero shared fees for $splitType split",
+    async ({ splitType, expected }) => {
+      const service = createService();
+      const db = createSplitDb({
+        members: [hostMember, secondMember],
+        items: [
+          cartItem("cart-1", "member-1", 1000),
+          cartItem("cart-2", "member-2", 2000),
+        ],
+      });
+      service.db = db;
+
+      await expect(
+        service.splitBill("group-1", {
+          splitType,
+          sharedServiceChargeCents: 600,
+          sharedTaxCents: 300,
+          orderTotalCents: 3900,
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: expected,
+      });
+      expect(db.updates[0].payload).toMatchObject({
+        finalAmountCents: 3900,
+        serviceChargeCents: 600,
+        taxAmountCents: 300,
+      });
+    },
+  );
+
+  it("allocates non-zero shared fees for custom split by custom amount ratio", async () => {
+    const service = createService();
+    const db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    service.db = db;
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "custom",
+        customAmounts: [
+          { memberId: "member-1", amount: 5 },
+          { memberId: "member-2", amount: 25 },
+        ],
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        {
+          memberId: "member-1",
+          subtotal: 5,
+          serviceCharge: 1,
+          taxAmount: 0.5,
+          totalAmount: 6.5,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 25,
+          serviceCharge: 5,
+          taxAmount: 2.5,
+          totalAmount: 32.5,
+        },
+      ],
+    });
+  });
+
+  it("falls back to per-head shared fee allocation when ratio totals are zero", async () => {
+    const emptyCartService = createService();
+    emptyCartService.db = createSplitDb({
+      members: [hostMember, secondMember],
+    });
+
+    await expect(
+      emptyCartService.splitBill("group-1", {
+        splitType: "proportional",
+        sharedServiceChargeCents: 100,
+        sharedTaxCents: 100,
+        orderTotalCents: 200,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        {
+          memberId: "member-1",
+          subtotal: 0,
+          serviceCharge: 0.5,
+          taxAmount: 0.5,
+          totalAmount: 1,
+        },
+        {
+          memberId: "member-2",
+          subtotal: 0,
+          serviceCharge: 0.5,
+          taxAmount: 0.5,
+          totalAmount: 1,
+        },
+      ],
+    });
+
+    const zeroCustomService = createService();
+    zeroCustomService.db = createSplitDb({
+      members: [hostMember, secondMember],
+    });
+
+    await expect(
+      zeroCustomService.splitBill("group-1", {
+        splitType: "custom",
+        customAmounts: [
+          { memberId: "member-1", amount: 0 },
+          { memberId: "member-2", amount: 0 },
+        ],
+        sharedServiceChargeCents: 100,
+        sharedTaxCents: 100,
+        orderTotalCents: 200,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        { memberId: "member-1", totalAmount: 1 },
+        { memberId: "member-2", totalAmount: 1 },
+      ],
+    });
+  });
+
+  it("keeps proportional and individual equivalent while there are no fixed shared fees", async () => {
+    const individualService = createService();
+    individualService.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    const individual = await individualService.splitBill("group-1", {
+      splitType: "individual",
+      serviceChargeRate: 10,
+      taxRate: 5,
+    });
+
+    const proportionalService = createService();
+    proportionalService.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    const proportional = await proportionalService.splitBill("group-1", {
+      splitType: "proportional",
+      serviceChargeRate: 10,
+      taxRate: 5,
+    });
+
+    // This equivalence only holds while every shared fee is proportional to
+    // subtotal. A flat fee (delivery) would require the two to diverge.
+    //
+    // Read this as documentation, not as a tripwire: both split types now
+    // route through the same branch in splitBill, so the assertion compares
+    // one code path against itself and cannot fail. The warning that actually
+    // has to be seen lives at that branch condition, next to the code someone
+    // would be editing.
+    expect(proportional.data).toEqual(individual.data);
+  });
+
+  it.each([
+    {
+      name: "three people evenly split $100",
+      members: [hostMember, secondMember, thirdMember],
+      items: [cartItem("cart-1", "member-1", 10000)],
+      expectedTotalCents: 10000,
+    },
+    {
+      name: "two people evenly split $0.01",
+      members: [hostMember, secondMember],
+      items: [cartItem("cart-1", "member-1", 1)],
+      expectedTotalCents: 1,
+    },
+    {
+      name: "member count greater than total cents",
+      members: [hostMember, secondMember, thirdMember],
+      items: [cartItem("cart-1", "member-1", 2)],
+      expectedTotalCents: 2,
+    },
+  ])("reconciles rounding remainders for $name", async (scenario) => {
+    const service = createService();
+    const db = createSplitDb({
+      members: scenario.members,
+      items: scenario.items,
+    });
+    service.db = db;
+
+    const result = await service.splitBill("group-1", {
+      splitType: "equal",
+    });
+
+    expect(result.success).toBe(true);
+    expect(totalCents(result.data)).toBe(scenario.expectedTotalCents);
+    expect(
+      db.inserts
+        .filter((insert) => "totalAmountCents" in (insert.payload as object))
+        .reduce(
+          (sum, insert) =>
+            sum +
+            (insert.payload as { totalAmountCents: number }).totalAmountCents,
+          0,
+        ),
+    ).toBe(scenario.expectedTotalCents);
+  });
+
+  it("applies positive and negative rounding remainders to the creator member", async () => {
+    const positiveService = createService();
+    positiveService.db = createSplitDb({
+      members: [hostMember, secondMember, thirdMember],
+    });
+    const positive = await positiveService.splitBill("group-1", {
+      splitType: "equal",
+      sharedTaxCents: 10000,
+      orderTotalCents: 10000,
+    });
+    expect(positive.data.find((bill) => bill.memberId === "member-1")).toEqual(
+      expect.objectContaining({ totalAmount: 33.34 }),
+    );
+
+    const negativeService = createService();
+    negativeService.db = createSplitDb({
+      members: [hostMember, secondMember],
+    });
+    const negative = await negativeService.splitBill("group-1", {
+      splitType: "equal",
+      sharedTaxCents: 1,
+      orderTotalCents: 1,
+    });
+    expect(negative.data.find((bill) => bill.memberId === "member-1")).toEqual(
+      expect.objectContaining({ totalAmount: 0 }),
+    );
+  });
+
+  it("keeps every split bill internally consistent after absorbing a remainder", async () => {
+    const service = createService();
+    service.db = createSplitDb({
+      members: [hostMember, secondMember, thirdMember],
+    });
+
+    // $100 across three members does not divide evenly, so the creator absorbs
+    // the leftover cent. split_bills stores subtotal, service charge and tax
+    // as separate columns, so the adjustment has to reach a component too —
+    // otherwise the creator receives a bill whose lines do not sum to what
+    // they are charged.
+    const result = await service.splitBill("group-1", {
+      splitType: "equal",
+      sharedTaxCents: 10000,
+      orderTotalCents: 10000,
+    });
+
+    expect(result.success).toBe(true);
+    for (const bill of result.data) {
+      expect(
+        Math.round((bill.subtotal + bill.serviceCharge + bill.taxAmount) * 100),
+      ).toBe(Math.round(bill.totalAmount * 100));
+    }
+    expect(totalCents(result.data)).toBe(10000);
+  });
+
+  it("uses the external order total as the reconciliation baseline", async () => {
+    const service = createService();
+    const db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+    service.db = db;
+
+    const result = await service.splitBill("group-1", {
+      splitType: "proportional",
+      sharedServiceChargeCents: 600,
+      sharedTaxCents: 301,
+      orderTotalCents: 3901,
+    });
+
+    expect(result.success).toBe(true);
+    expect(totalCents(result.data)).toBe(3901);
+    expect(db.updates[0].payload).toMatchObject({ finalAmountCents: 3901 });
+  });
+
+  it("rejects reconciliation mismatches beyond one cent per member", async () => {
+    const service = createService();
+    const logError = vi.fn();
+    service.errorTracker = { ...service.errorTracker, logError };
+    service.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "proportional",
+        orderTotalCents: 3900,
+      }),
+    ).resolves.toMatchObject({
+      success: false,
+      error: "Split total does not match order total",
+      errorDetails: {
+        code: "SPLIT_TOTAL_MISMATCH",
+        expectedTotalCents: 3900,
+        roundedTotalCents: 3000,
+      },
+    });
+    expect(logError).toHaveBeenCalledWith(
+      "splitBill",
+      expect.any(Error),
+      expect.objectContaining({
+        code: "SPLIT_TOTAL_MISMATCH",
+        expectedTotalCents: 3900,
+      }),
+    );
+  });
+
+  it("uses absolute shared cents instead of rates when both are provided", async () => {
+    const service = createService();
+    service.db = createSplitDb({
+      members: [hostMember, secondMember],
+      items: [
+        cartItem("cart-1", "member-1", 1000),
+        cartItem("cart-2", "member-2", 2000),
+      ],
+    });
+
+    await expect(
+      service.splitBill("group-1", {
+        splitType: "individual",
+        serviceChargeRate: 100,
+        taxRate: 100,
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [
+        { memberId: "member-1", serviceCharge: 2, taxAmount: 1 },
+        { memberId: "member-2", serviceCharge: 4, taxAmount: 2 },
+      ],
+    });
+  });
+
+  describe("finalizeGroupOrder", () => {
+    function createFinalizeService({
+      groupOrder = baseGroupOrder,
+      cartItems = [
+        {
+          ...cartItem("cart-10", "member-1", 1000, 2),
+          specialInstructions: "No chili",
+          customizations: { spice: "mild" },
+        },
+      ],
+      claimRows = [{ id: "group-1" }],
+      order = finalizedOrder,
+      existingOrderRows = [],
+    }: {
+      groupOrder?: unknown;
+      cartItems?: unknown[];
+      claimRows?: unknown[];
+      order?: Record<string, unknown>;
+      existingOrderRows?: unknown[];
+    } = {}) {
+      const service = createService();
+      const createOrder = vi.fn(async () => order);
+      service.createOrderService = vi.fn(() => ({ createOrder }));
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      service.db = createDb(
+        [[groupOrder], cartItems, existingOrderRows],
+        [claimRows],
+      );
+      return { service, createOrder, db: service.db };
+    }
+
+    it("claims the finalizing mutex, creates a real order, records masterOrderId, and splits with real amounts", async () => {
+      const { service, createOrder, db } = createFinalizeService({
+        groupOrder: {
+          ...baseGroupOrder,
+          tableId: 5,
+          splitType: "proportional",
+          settings: { fulfillmentType: "dine_in", notes: "Table note" },
+        },
+      });
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+
+      expect(createOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          restaurantId: "restaurant-1",
+          tableId: 5,
+          orderType: "table",
+          notes: "Table note",
+          clientMutationId: "group-order:group-1",
+          items: [
+            {
+              menuItemId: 10,
+              quantity: 2,
+              notes: "No chili",
+            },
+          ],
+        }),
+      );
+      expect(createOrder.mock.calls[0][0].items[0]).not.toHaveProperty(
+        "customizations",
+      );
+      expect(service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "proportional",
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ status: "finalizing" }),
+          expect.objectContaining({
+            masterOrderId: "order-1",
+            status: "finalizing",
+          }),
+          expect.objectContaining({
+            masterOrderId: "order-1",
+            status: "completed",
+          }),
+        ]),
+      );
+    });
+
+    it("is idempotent across sequential calls and duplicate client mutations", async () => {
+      const { service, createOrder, db } = createFinalizeService({
+        groupOrder: { ...baseGroupOrder, splitType: "individual" },
+      });
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+
+      service.db = createDb([
+        [{ ...baseGroupOrder, status: "completed", masterOrderId: "order-1" }],
+      ]);
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(createOrder).toHaveBeenCalledTimes(1);
+      expect(db.updates[0].payload).toEqual(
+        expect.objectContaining({ status: "finalizing" }),
+      );
+
+      const duplicate = createFinalizeService({
+        existingOrderRows: [
+          {
+            id: "order-1",
+            serviceChargeCents: 600,
+            taxAmountCents: 300,
+            totalAmountCents: 3900,
+          },
+        ],
+      });
+      duplicate.createOrder.mockRejectedValueOnce(
+        new Error("CLIENT_MUTATION_DUPLICATE"),
+      );
+
+      await expect(
+        duplicate.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(duplicate.service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "individual",
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+    });
+
+    it("prevents concurrent finalizers from creating a second real order", async () => {
+      const service = createService();
+      const createOrder = vi.fn(async () => finalizedOrder);
+      service.createOrderService = vi.fn(() => ({ createOrder }));
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      service.db = createDb(
+        [
+          [baseGroupOrder],
+          [baseGroupOrder],
+          [cartItem("cart-1", "member-1", 1000)],
+          [cartItem("cart-1", "member-1", 1000)],
+          [{ ...baseGroupOrder, status: "finalizing" }],
+        ],
+        [[{ id: "group-1" }], []],
+      );
+
+      const [first, second] = await Promise.all([
+        service.finalizeGroupOrder("group-1"),
+        service.finalizeGroupOrder("group-1"),
+      ]);
+
+      expect(first).toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(second).toEqual({
+        success: false,
+        error: "Group order is already being finalized",
+      });
+      expect(createOrder).toHaveBeenCalledTimes(1);
+    });
+
+    it("defines finalize boundaries for empty, completed, and cancelled groups", async () => {
+      const empty = createFinalizeService({ cartItems: [] });
+      await expect(
+        empty.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: false,
+        error: "Cannot finalize an empty group order",
+      });
+      expect(empty.createOrder).not.toHaveBeenCalled();
+
+      const completed = createFinalizeService({
+        groupOrder: {
+          ...baseGroupOrder,
+          status: "completed",
+          masterOrderId: "order-1",
+        },
+      });
+      await expect(
+        completed.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "completed" },
+      });
+      expect(completed.createOrder).not.toHaveBeenCalled();
+
+      const cancelled = createFinalizeService({
+        groupOrder: { ...baseGroupOrder, status: "cancelled" },
+      });
+      await expect(
+        cancelled.service.finalizeGroupOrder("group-1"),
+      ).resolves.toEqual({
+        success: false,
+        error: "Group order is cancelled, cannot finalize",
+      });
+      expect(cancelled.createOrder).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        fulfillmentType: "pickup",
+        expectedOrderType: "shop",
+        expectedDeliveryType: "takeaway",
+      },
+      {
+        fulfillmentType: "delivery",
+        expectedOrderType: "shop",
+        expectedDeliveryType: "delivery",
+      },
+    ])(
+      "maps $fulfillmentType fulfillment when creating the real order",
+      async ({ fulfillmentType, expectedOrderType, expectedDeliveryType }) => {
+        const { service, createOrder } = createFinalizeService({
+          groupOrder: {
+            ...baseGroupOrder,
+            tableId: null,
+            settings: {
+              fulfillmentType,
+              pickupAt: "2026-06-07T12:30:00.000Z",
+              deliveryAddress: {
+                line1: "1 Main St",
+                line2: "Unit 2",
+                contactPhone: "+886912345678",
+                notes: "Ring bell",
+              },
+            },
+          },
+        });
+
+        await service.finalizeGroupOrder("group-1");
+
+        expect(createOrder).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orderType: expectedOrderType,
+            deliveryInfo: expect.objectContaining({
+              type: expectedDeliveryType,
+              address: "1 Main St, Unit 2",
+              phone: "+886912345678",
+            }),
+          }),
+        );
+      },
+    );
+
+    it("keeps the master order id and marks finalizing_failed when split billing fails after order creation", async () => {
+      const { service, db } = createFinalizeService();
+      service.splitBill = vi.fn(async () => ({
+        success: false,
+        error: "Split total does not match order total",
+        errorDetails: {
+          code: "SPLIT_TOTAL_MISMATCH",
+          expectedTotalCents: 3900,
+          roundedTotalCents: 3000,
+        },
+      }));
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: false,
+        error: "Split total does not match order total",
+      });
+
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            masterOrderId: "order-1",
+            status: "finalizing_failed",
+            settings: expect.objectContaining({
+              finalizeFailure: expect.objectContaining({
+                masterOrderId: "order-1",
+                orderTotalCents: 3900,
+                expectedTotalCents: 3900,
+                roundedTotalCents: 3000,
+                splitError: "Split total does not match order total",
+              }),
+            }),
+          }),
+        ]),
+      );
+    });
+  });
+
+  describe("processPayment — Plan A manual settlement", () => {
+    it("marks a member's split bill paid with paymentMethod cash and no real gateway involved", async () => {
+      const service = createService();
+      const db = createDb([
+        [{ ...baseGroupOrder, status: "checkout" }],
+        [hostMember],
+        [
+          {
+            id: "split-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmountCents: 3300,
+            paymentStatus: "pending",
+          },
+        ],
+        [{ count: 1 }],
+      ]);
+      service.db = db;
+
+      await expect(
+        service.processPayment("group-1", "member-1", {
+          paymentMethod: "cash",
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: { paymentMethod: "cash", amount: 33 },
+      });
+      expect(db.updates[0].payload).toMatchObject({
+        paymentStatus: "paid",
+        paymentMethod: "cash",
+      });
+      expect(db.updates).toHaveLength(1);
+    });
+
+    it("flips the group order to completed once every member's split bill is paid", async () => {
+      const service = createService();
+      const db = createDb([
+        [{ ...baseGroupOrder, status: "checkout" }],
+        [hostMember],
+        [
+          {
+            id: "split-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmountCents: 3300,
+            paymentStatus: "pending",
+          },
+        ],
+        [{ count: 0 }],
+      ]);
+      service.db = db;
+
+      await expect(
+        service.processPayment("group-1", "member-1", {
+          paymentMethod: "cash",
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        data: { groupOrderStatus: "completed" },
+      });
+      expect(db.updates[1].payload).toMatchObject({
+        status: "completed",
+      });
+    });
   });
 
   it("validates payment guards and leaves checkout open while others owe", async () => {
@@ -1486,5 +2434,177 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       conversionRate: 0,
       paymentMethodDistribution: {},
     });
+  });
+
+  it("validates host sessions by creator member token and fails closed on lookup errors", async () => {
+    const service = createService();
+    service.db = createDb([[{ id: "member-1" }]]);
+
+    await expect(
+      service.isHostSession("group-1", "host-session"),
+    ).resolves.toBe(true);
+
+    const memberService = createService();
+    memberService.db = createDb([[]]);
+    await expect(
+      memberService.isHostSession("group-1", "member-session"),
+    ).resolves.toBe(false);
+
+    const failingService = createService();
+    failingService.db = {
+      select: vi.fn(() => {
+        throw new Error("db down");
+      }),
+    };
+    await expect(
+      failingService.isHostSession("group-1", "host-session"),
+    ).resolves.toBe(false);
+  });
+});
+
+/**
+ * The customer app renders a cart row from `menuItem.name`. `getGroupOrder`
+ * supplies it, but `addCartItem` and `updateCartItem` did not — so an item
+ * arriving over realtime, or the response to your own add, rendered as a price
+ * with no dish beside it until the page was reloaded.
+ *
+ * Both methods already look the menu item up in order to price the row, so the
+ * name is in hand; it was simply left out of the payload. These pin the shape
+ * to the one `getGroupOrder` already returns, because two shapes for the same
+ * row is how the mismatch started.
+ */
+describe("cart mutations return a renderable row", () => {
+  beforeEach(() => {
+    uuidState.next = 1;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.mocked(console.log).mockRestore();
+    vi.mocked(console.error).mockRestore();
+    vi.useRealTimers();
+  });
+
+  const menuItemRow = {
+    id: 10,
+    restaurantId: "restaurant-1",
+    name: "Laksa",
+    price: 9,
+    priceCents: 1250,
+    imageUrl: "https://cdn.test/laksa.jpg",
+  };
+
+  const storedCartItem = {
+    id: "uuid-1",
+    groupOrderId: "group-1",
+    memberId: "member-1",
+    menuItemId: 10,
+    quantity: 2,
+    unitPriceCents: 1250,
+    totalPriceCents: 2500,
+    customizations: { spice: "hot" },
+    specialInstructions: "No peanuts",
+    addedAt: new Date("2026-06-07T00:00:00.000Z"),
+    updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+  };
+
+  it("names the dish when an item is added", async () => {
+    const service = createService();
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [menuItemRow],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [storedCartItem],
+    ]);
+
+    const result = await service.addCartItem("group-1", {
+      memberId: "member-1",
+      menuItemId: 10,
+      quantity: 2,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      menuItem: { id: 10, name: "Laksa", price: 12.5 },
+    });
+  });
+
+  it("names the dish when an item is updated", async () => {
+    const service = createService();
+    service.db = createDb([
+      [storedCartItem],
+      [{ total: 37.5 }],
+      [],
+      [{ total: 37.5 }],
+      [{ ...storedCartItem, quantity: 3, totalPriceCents: 3750 }],
+      [menuItemRow],
+    ]);
+
+    const result = await service.updateCartItem("group-1", "uuid-1", {
+      quantity: 3,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ menuItem: { name: "Laksa" } });
+  });
+
+  it("keeps the same menu shape on the fallback path", async () => {
+    // When the inserted row cannot be re-queried, addCartItem builds the item
+    // by hand. That path copies the menuItem mapping rather than sharing it,
+    // so it is one field away from drifting from every other caller.
+    const service = createService();
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [menuItemRow],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [], // re-query of the inserted row returns nothing
+    ]);
+
+    const result = await service.addCartItem("group-1", {
+      memberId: "member-1",
+      menuItemId: 10,
+      quantity: 2,
+    });
+
+    expect(result.success).toBe(true);
+    expect(Object.keys(result.data.menuItem).sort()).toEqual(
+      ["id", "imageUrl", "name", "price"].sort(),
+    );
+    expect(result.data.menuItem).toMatchObject({ name: "Laksa", price: 12.5 });
+  });
+
+  it("uses the same row shape getGroupOrder already returns", async () => {
+    const service = createService();
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [menuItemRow],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [storedCartItem],
+    ]);
+
+    const added = await service.addCartItem("group-1", {
+      memberId: "member-1",
+      menuItemId: 10,
+      quantity: 2,
+    });
+
+    // getGroupOrder builds { ...formatCartItem(row), menuItem: { id, name,
+    // price, imageUrl } }. A second, thinner shape for the same row is what
+    // let the missing name through in the first place.
+    expect(Object.keys(added.data.menuItem).sort()).toEqual(
+      ["id", "imageUrl", "name", "price"].sort(),
+    );
   });
 });

@@ -322,8 +322,11 @@ Add the method:
 
       await this.splitBill(groupOrderId, {
         splitType: groupOrder.splitType as "equal" | "individual" | "custom" | "proportional",
-        serviceChargeRate: 0,
-        taxRate: 0,
+        // Absolute amounts taken from the order that was just created, not
+        // rates. See the note below — this is the X-1 decision.
+        sharedServiceChargeCents: order.serviceChargeCents ?? 0,
+        sharedTaxCents: order.taxAmountCents ?? 0,
+        orderTotalCents: order.finalAmountCents,
       });
 
       await this.logActivity(
@@ -348,7 +351,18 @@ Add the method:
   }
 ```
 
-Note on the `serviceChargeRate: 0, taxRate: 0` passed to `splitBill`: the real order's tax/service charge were already computed correctly by `OrderService.createOrder` from the restaurant's actual settings. Passing `0` here means `splitBill`'s per-member split is computed on **item subtotal only** for this phase — dividing up the restaurant's tax/service charge proportionally is Phase D's job once `"proportional"` exists; wiring real rates through now would double-apply them inconsistently with what the real order already charged. Flagged in "Out of scope" below, not silently approximated.
+**Note on what `splitBill` receives — this is decision X-1, decided 2026-08-05.**
+
+An earlier draft of this plan passed `serviceChargeRate: 0, taxRate: 0` and deferred "distribute the restaurant's real tax and service charge" to Phase D. Reviewing the two plans together showed Phase D never picked that up: its `"proportional"` branch is also rate-based and never reads the finalized order's absolute amounts. Run both plans as originally written and every member's `split_bills` row sums to **item subtotal only**, while the restaurant charges subtotal + tax + service charge — a silent shortfall of the entire tax and service charge, with no test failing to report it.
+
+The fix is here, at the boundary: finalize already holds `order`, the real thing `OrderService.createOrder` just computed from the restaurant's actual settings. It passes those **absolute cent amounts** down rather than any rate, so the split can never disagree with what was charged. `orderTotalCents` is passed as the reconciliation target Phase D Task 2 needs (see that plan's Task 2 — reconciling `splitBillsData` against its own sum proves nothing).
+
+Two things this deliberately does **not** claim:
+
+- It does not make `"proportional"` behave differently from `"individual"`. Tax and service charge are themselves proportional to subtotal, so distributing them by subtotal share is arithmetically the same as applying one rate to each member's own subtotal. The two branches still coincide, and Phase D must not invent a difference to make them look distinct.
+- It does not model a flat shared cost (delivery fee). That remains out of scope — but `sharedServiceChargeCents`/`sharedTaxCents` is the input a flat fee would arrive through later, which is why it is shaped as an absolute amount rather than another rate.
+
+Phase D owns the matching half: `splitBill` must accept these fields, give every branch a defined way to absorb them, and treat them as taking precedence over `serviceChargeRate`/`taxRate` when both are supplied — the existing `POST /orders/group/:id/split` route still passes rates, and applying both would double-charge.
 
 `this.db.session.client` — confirm this is actually how to reach the underlying `D1Database` from a `drizzle(d1)` instance in this codebase's Drizzle version before relying on it; if it isn't, construct `OrderService` from the same raw `D1Database` this service was itself constructed with (add a `private rawDb: D1Database` field set from the constructor's `database` parameter, since `GroupOrdersService`'s constructor already receives it — reuse that directly instead of reaching back through Drizzle's internals).
 
@@ -866,3 +880,4 @@ git commit -m "feat(customer-app): wire group-order submit to the real finalize 
 - **Type consistency:** `finalizeGroupOrder`'s return shape (`{ masterOrderId, status: "completed" }`) is defined once in Task 2 and reused identically by Task 3's route and Task 4's sweep.
 - **Deviation from the original design spec, noted:** the spec's Data Model section anticipated a hand-rolled `db.batch()` in the finalize glue; this plan instead delegates to `OrderService.createOrder`'s existing batch + idempotency mechanism, discovered during implementation-grounding research. This is a strictly better fit (proven, tested, DRY) and doesn't change any user-facing decision from the spec.
 - **Out of scope, explicitly:** `deliveryFeeCents` proration (spec decision 6 mentions it; no restaurant-facing UI or computation exists yet to set a delivery fee in the first place — deferred until that exists), automatic `customizations` translation onto the real order (structurally incompatible types, noted above), per-connection push of the expiry warning (Task 4, Step 4).
+- **Moved *into* scope by X-1 (2026-08-05):** distributing the restaurant's real tax and service charge across members. This was previously deferred to Phase D, which never picked it up — see the X-1 note in Task 2, Step 3. Task 2 now passes absolute cent amounts and the order total down to `splitBill`; Phase D Task 1 owns consuming them. Neither plan is complete without the other half, so **do not merge Task 2 before Phase D Tasks 1-2 are in place** (the staging in `2026-08-05-group-ordering-bcd-AUDIT.md` orders it that way deliberately).

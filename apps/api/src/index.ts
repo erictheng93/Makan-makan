@@ -6,6 +6,7 @@ import type {
 } from "@cloudflare/workers-types";
 import type { SearchSyncMessage } from "./features/discovery/services/SearchIndexSyncService";
 import { cronMatches } from "./utils/cron";
+import { GROUP_ORDER_EXPIRY_CRON } from "./workers/group-order-expiry";
 
 const app = createApp();
 
@@ -130,6 +131,14 @@ export default {
           await import("./workers/market-checkout-reconciliation");
         const result = await reconcilePendingMarketCheckoutPayments(env);
         console.log("[Cron] Market checkout reconciliation result:", result);
+      }
+
+      if (cronMatches(event.cron, GROUP_ORDER_EXPIRY_CRON)) {
+        console.log("[Cron] Running group order expiry sweep...");
+        const { sweepExpiringGroupOrders } =
+          await import("./workers/group-order-expiry");
+        const result = await sweepExpiringGroupOrders(env);
+        console.log("[Cron] Group order expiry sweep result:", result);
       }
 
       if (cronMatches(event.cron, "0 2 * * *")) {

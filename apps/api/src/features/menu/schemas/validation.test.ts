@@ -480,6 +480,52 @@ describe("English name round-trips through the request schemas (#107)", () => {
   });
 });
 
+// `nonEmptyString` was `z.string().min(1).trim()`, which measures the string
+// BEFORE trimming: a name of "   " passed min(1), was trimmed to "", and the
+// API answered 201. Production ended up with a nameless menu item and a
+// nameless category, both rendered as blank rows on the public customer menu.
+describe("whitespace-only names are rejected, not stored as empty", () => {
+  const BLANK = ["   ", "\t", "\n", " 　 "];
+
+  it.each(BLANK)("rejects a menu item named %j", (name) => {
+    expect(() =>
+      createMenuItemSchema.parse({ categoryId: 1, name, price: 100 }),
+    ).toThrow();
+  });
+
+  it.each(BLANK)("rejects a category named %j", (name) => {
+    expect(() => createCategorySchema.parse({ name })).toThrow();
+  });
+
+  it("rejects a whitespace-only rename through the update schemas", () => {
+    expect(() =>
+      updateMenuItemSchema.parse({ name: "   ", updatedAt: ITEM_VERSION }),
+    ).toThrow();
+    expect(() => updateCategorySchema.parse({ name: "   " })).toThrow();
+  });
+
+  it("still trims padded names down to their content", () => {
+    expect(
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "  皮蛋瘦肉粥  ",
+        price: 100,
+      }),
+    ).toMatchObject({ name: "皮蛋瘦肉粥" });
+  });
+
+  it("rejects whitespace-only names nested in customization options", () => {
+    expect(() =>
+      createMenuItemSchema.parse({
+        categoryId: 1,
+        name: "廣東粥",
+        price: 100,
+        options: { addOns: [{ id: "a", name: "  ", price: 10 }] },
+      }),
+    ).toThrow();
+  });
+});
+
 // Issue #85: PUT /menu/items/:id had no version check while the admin form
 // saved every field it rendered, so an owner changing a price silently reverted
 // a sold-out flag a chef had set in the meantime.

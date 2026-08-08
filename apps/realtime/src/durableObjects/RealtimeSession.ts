@@ -6,7 +6,10 @@ import type {
   HeartbeatEvent,
   ErrorEvent,
 } from "@makanmakan/shared-types";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import {
+  isValidRealtimeEvent,
+  RealtimeEventType,
+} from "@makanmakan/shared-types";
 import {
   verifyWebSocketToken,
   extractTokenFromUrl,
@@ -377,12 +380,7 @@ export class RealtimeSession implements DurableObject {
       const event: RealtimeEvent = await request.json();
 
       // 驗證事件格式
-      if (
-        !event.type ||
-        !event.eventId ||
-        !event.timestamp ||
-        !event.restaurantId
-      ) {
+      if (!isValidRealtimeEvent(event)) {
         return Response.json(
           { success: false, error: "Invalid event format" },
           { status: 400 },

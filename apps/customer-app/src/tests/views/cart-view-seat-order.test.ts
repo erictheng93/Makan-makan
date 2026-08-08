@@ -194,10 +194,37 @@ describe("CartView seat orders", () => {
     expect(toastError).toHaveBeenCalledWith("toast.orderSubmitFailed");
   });
 
-  it("keeps explicit API error messages for rate limits", async () => {
+  it("uses localized copy for API business errors", async () => {
     createGuestOrder.mockRejectedValue(
-      Object.assign(new Error("Too many requests"), {
-        code: "RATE_LIMIT_EXCEEDED",
+      Object.assign(
+        new Error(
+          "You already have an active order at this restaurant. Please wait for it to complete.",
+        ),
+        {
+          code: "ACTIVE_GUEST_ORDER_EXISTS",
+          status: 429,
+        },
+      ),
+    );
+
+    const wrapper = mount(CartView, {
+      props: { restaurantId: "restaurant-1", tableId: 4 },
+      global: { stubs: { RouterLink: true } },
+    });
+
+    await flushPromises();
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+
+    expect(toastError).toHaveBeenCalledWith(
+      "toast.orderSubmitActiveGuestOrder",
+    );
+  });
+
+  it("falls back to generic localized copy for unmapped API errors", async () => {
+    createGuestOrder.mockRejectedValue(
+      Object.assign(new Error("Unexpected backend implementation detail"), {
+        code: "UNMAPPED_BACKEND_ERROR",
         status: 429,
       }),
     );
@@ -211,6 +238,6 @@ describe("CartView seat orders", () => {
     await wrapper.find("button[data-testid='confirm']").trigger("click");
     await flushPromises();
 
-    expect(toastError).toHaveBeenCalledWith("Too many requests");
+    expect(toastError).toHaveBeenCalledWith("toast.orderSubmitFailed");
   });
 });

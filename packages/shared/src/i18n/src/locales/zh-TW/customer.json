@@ -473,6 +473,16 @@
   "toast": {
     "orderSubmitSuccess": "訂單提交成功！",
     "orderSubmitFailed": "訂單提交失敗，請重試",
+    "orderSubmitActiveGuestOrder": "您在此餐廳已有進行中的訂單，請等待完成後再送出新訂單。",
+    "orderSubmitDuplicate": "此訂單已送出，請查看訂單狀態。",
+    "orderSubmitQrInvalid": "此桌位 QR Code 已失效，請重新掃描桌上的 QR Code。",
+    "orderSubmitMenuItemUnavailable": "部分商品已暫停供應，請更新購物車後再試。",
+    "orderSubmitInsufficientInventory": "部分商品庫存不足，請更新購物車後再試。",
+    "orderSubmitRestaurantUnavailable": "此餐廳目前暫停接單。",
+    "orderSubmitTableUnavailable": "此桌位目前無法點餐，請洽現場人員協助。",
+    "orderSubmitSeatUnavailable": "此座位目前無法點餐，請重新掃描 QR Code。",
+    "orderSubmitInvalidContact": "請確認聯絡資料後再試。",
+    "orderSubmitNotesTooLong": "訂單備註過長，請縮短後再試。",
     "itemRemoved": "已移除 {name}",
     "itemAdded": "已加入 {name} x{quantity}",
     "cartCannotBeEmpty": "購物車不能為空",
@@ -480,7 +490,7 @@
     "scanTypeDetected": "掃描到{type}！",
     "cameraInitFailed": "相機初始化失敗",
     "flashToggleFailed": "無法切換閃光燈",
-    "couponApplied": "優惠券已套用！節省 ${amount}",
+    "couponApplied": "優惠券已套用！節省 {amount}",
     "couponFailed": "優惠券驗證失敗",
     "couponValidationError": "驗證過程中發生錯誤，請稍後再試",
     "couponCodeRequired": "請輸入優惠券代碼",
@@ -721,7 +731,7 @@
     "notesPlaceholder": "有什麼特別需求嗎？例如：不要辣、少冰等...",
     "unavailable": "暫不供應",
     "soldOut": "售完",
-    "addToCart": "加入購物車 · ${price}"
+    "addToCart": "加入購物車 · {price}"
   },
   "orderItem": {
     "unknownItem": "未知商品",

@@ -241,7 +241,7 @@ const props = defineProps<{
   item?: MenuItem;
 }>();
 
-const { t, currentLanguage } = useI18n();
+const { t, tWithParams, currentLanguage } = useI18n();
 const { formatPrice } = useCurrency();
 
 // Emits
@@ -338,7 +338,14 @@ const buttonText = computed(() => {
   if (isOutOfStock.value) return t("menuItemModal.soldOut");
 
   const total = currentPrice.value * quantity.value;
-  return t("menuItemModal.addToCart").replace("${price}", formatPrice(total));
+  // The price goes through vue-i18n's own named interpolation. The message used
+  // to be "加入購物車 · ${price}" and was post-processed with .replace("${price}"),
+  // which could never match: vue-i18n consumes `{price}` first and, with no
+  // named argument passed, renders it as "" — so every customer with a
+  // customisable item saw a bare "加入購物車 · $" and no total.
+  return tWithParams("menuItemModal.addToCart", {
+    price: formatPrice(total),
+  });
 });
 
 // Methods

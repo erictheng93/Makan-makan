@@ -20,6 +20,9 @@ const processPayment = vi.hoisted(() => vi.fn());
 const leaveGroup = vi.hoisted(() => vi.fn());
 const getActivities = vi.hoisted(() => vi.fn());
 const cleanupExpiredGroups = vi.hoisted(() => vi.fn());
+const isHostSession = vi.hoisted(() => vi.fn());
+const isMemberSession = vi.hoisted(() => vi.fn());
+const finalizeGroupOrder = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const broadcastEvent = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
@@ -71,6 +74,9 @@ vi.mock("../services/GroupOrdersService", () => ({
     leaveGroup = leaveGroup;
     getActivities = getActivities;
     cleanupExpiredGroups = cleanupExpiredGroups;
+    isHostSession = isHostSession;
+    isMemberSession = isMemberSession;
+    finalizeGroupOrder = finalizeGroupOrder;
   },
 }));
 
@@ -143,6 +149,9 @@ describe("group orders routes", () => {
     leaveGroup.mockReset();
     getActivities.mockReset();
     cleanupExpiredGroups.mockReset();
+    isHostSession.mockReset();
+    isMemberSession.mockReset();
+    finalizeGroupOrder.mockReset();
     meterEmit.mockReset();
     meterEmit.mockResolvedValue(undefined);
     broadcastEvent.mockReset();
@@ -422,7 +431,48 @@ describe("group orders routes", () => {
     });
   });
 
+  it("locks group orders only for the creator member token", async () => {
+    isHostSession.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    finalizeGroupOrder.mockResolvedValue({
+      success: true,
+      data: { masterOrderId: "order-1", status: "completed" },
+    });
+    const env = createRateLimitEnv();
+
+    const lockResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/lock`, {
+        method: "POST",
+        body: JSON.stringify({ memberToken: "host-session" }),
+      }),
+      env as never,
+    );
+
+    expect(lockResponse.status).toBe(200);
+    await expect(lockResponse.json()).resolves.toEqual({
+      success: true,
+      data: { masterOrderId: "order-1", status: "completed" },
+    });
+    expect(isHostSession).toHaveBeenCalledWith(groupOrderId, "host-session");
+    expect(finalizeGroupOrder).toHaveBeenCalledWith(groupOrderId);
+
+    const forbiddenResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(`https://test/${groupOrderId}/lock`, {
+          method: "POST",
+          body: JSON.stringify({ memberToken: "member-session" }),
+        }),
+        env as never,
+      ),
+    );
+
+    expect(forbiddenResponse.status).toBe(500);
+    expect(finalizeGroupOrder).toHaveBeenCalledTimes(1);
+  });
+
   it("runs cart, split, payment, and leave workflows", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
     addCartItem.mockResolvedValue({
       success: true,
       data: { id: itemId, menuItemId: 101, quantity: 2 },
@@ -441,6 +491,8 @@ describe("group orders routes", () => {
       data: { memberId, paymentStatus: "paid" },
     });
     leaveGroup.mockResolvedValue({ success: true });
+    isHostSession.mockResolvedValue(true);
+    isMemberSession.mockResolvedValue(true);
     const env = createEnv();
 
     const addResponse = await routes.fetch(
@@ -448,6 +500,7 @@ describe("group orders routes", () => {
         method: "POST",
         body: JSON.stringify({
           memberId,
+          memberToken: "member-session",
           menuItemId: 101,
           quantity: 2,
           specialInstructions: "less ice",
@@ -463,7 +516,11 @@ describe("group orders routes", () => {
     const updateResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/cart/${itemId}`, {
         method: "PUT",
-        body: JSON.stringify({ quantity: 3 }),
+        body: JSON.stringify({
+          quantity: 3,
+          memberId,
+          memberToken: "member-session",
+        }),
       }),
       env as never,
     );
@@ -475,7 +532,7 @@ describe("group orders routes", () => {
     const removeResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/cart/${itemId}`, {
         method: "DELETE",
-        body: JSON.stringify({ memberId }),
+        body: JSON.stringify({ memberId, memberToken: "member-session" }),
       }),
       env as never,
     );
@@ -487,7 +544,10 @@ describe("group orders routes", () => {
     const splitResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/split`, {
         method: "POST",
-        body: JSON.stringify({ splitType: "equal" }),
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
       }),
       env as never,
     );
@@ -500,6 +560,7 @@ describe("group orders routes", () => {
       new Request(`https://test/${groupOrderId}/payment/${memberId}`, {
         method: "POST",
         body: JSON.stringify({
+          memberToken: "host-session",
           paymentMethod: "cash",
           amount: 120,
           transactionId: "txn-1",
@@ -515,6 +576,7 @@ describe("group orders routes", () => {
     const leaveResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/leave/${memberId}`, {
         method: "POST",
+        body: JSON.stringify({ memberToken: "member-session" }),
       }),
       env as never,
     );
@@ -536,10 +598,16 @@ describe("group orders routes", () => {
       serviceChargeRate: 0,
       taxRate: 0,
     });
+    expect(isHostSession).toHaveBeenCalledWith(groupOrderId, "host-session");
     expect(processPayment).toHaveBeenCalledWith(
       groupOrderId,
       memberId,
       expect.objectContaining({ paymentMethod: "cash", amount: 120 }),
+    );
+    expect(isMemberSession).toHaveBeenCalledWith(
+      groupOrderId,
+      memberId,
+      "member-session",
     );
     expect(leaveGroup).toHaveBeenCalledWith(groupOrderId, memberId);
     expect(broadcastEvent).toHaveBeenCalledWith(
@@ -563,5 +631,119 @@ describe("group orders routes", () => {
         type: RealtimeEventType.GROUP_CART_ITEM_REMOVED,
       }),
     );
+  });
+
+  it("keeps successful cart writes successful when realtime delivery fails", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    addCartItem.mockResolvedValue({
+      success: true,
+      data: { id: itemId, menuItemId: 101, quantity: 2 },
+    });
+    broadcastEvent.mockRejectedValueOnce(new Error("realtime unavailable"));
+    isMemberSession.mockResolvedValue(true);
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/cart`, {
+        method: "POST",
+        body: JSON.stringify({
+          memberId,
+          memberToken: "member-session",
+          menuItemId: 101,
+          quantity: 2,
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      data: { id: itemId, quantity: 2 },
+    });
+    expect(addCartItem).toHaveBeenCalledWith(
+      groupOrderId,
+      expect.objectContaining({ memberId, menuItemId: 101, quantity: 2 }),
+    );
+    expect(broadcastEvent).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * The list route resolves its tenant as `restaurantId || user.restaurantId`,
+   * so it is always scoped. The statistics route passes the query parameter
+   * straight through, and the schema turns a missing one into `undefined` —
+   * which `getStatistics` reads as "no restaurant filter", i.e. every
+   * restaurant on the platform.
+   *
+   * The owner guard does not catch this: it reads
+   * `user.role === 1 && restaurantId && ...`, so omitting the parameter
+   * short-circuits it. An owner who simply leaves it out is handed
+   * platform-wide order counts, group sizes, and average order value.
+   *
+   * These pin the rule: the route resolves a tenant for every caller, exactly
+   * as the list route does, so no request reaches `getStatistics` without one.
+   * The unscoped view has no caller — the only consumer is the admin
+   * dashboard, which always asks about one restaurant — so nothing is left
+   * able to request it.
+   */
+  describe("GET /statistics tenant scoping", () => {
+    it("scopes an owner to their own restaurant when the query omits one", async () => {
+      currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
+
+      const response = await routes.fetch(
+        new Request("https://test/statistics?timeRange=week"),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(200);
+      expect(getStatistics).toHaveBeenCalledWith("restaurant-1", "week");
+    });
+
+    it("still refuses an owner who names someone else's restaurant", async () => {
+      currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
+
+      const response = await withSilencedRouteError(() =>
+        routes.fetch(
+          new Request("https://test/statistics?restaurantId=restaurant-2"),
+          createEnv() as never,
+        ),
+      );
+
+      // This harness mounts the router without the app's ApiError handler, so
+      // a forbidden throw surfaces as 500 here (same as the /lock case above).
+      // The assertion that matters is that the service was never reached.
+      expect(response.status).toBe(500);
+      expect(getStatistics).not.toHaveBeenCalled();
+    });
+
+    it("scopes a platform admin to the restaurant they asked about", async () => {
+      currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 12 });
+
+      const response = await routes.fetch(
+        new Request("https://test/statistics?restaurantId=restaurant-2"),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(200);
+      expect(getStatistics).toHaveBeenCalledWith("restaurant-2", "month");
+    });
+
+    it("never asks the service for every restaurant at once", async () => {
+      // Role 0 has no restaurant of its own to fall back to, so this is the
+      // caller most likely to slip through as an unscoped query.
+      currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+      getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
+
+      await routes.fetch(
+        new Request("https://test/statistics?timeRange=week"),
+        createEnv() as never,
+      );
+
+      expect(getStatistics).toHaveBeenCalledOnce();
+      expect(getStatistics.mock.calls[0][0]).toBeTruthy();
+    });
   });
 });

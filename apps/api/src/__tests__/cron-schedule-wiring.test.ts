@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { normalizeCronExpression } from "../utils/cron";
+import { GROUP_ORDER_EXPIRY_CRON } from "../workers/group-order-expiry";
 
 /**
  * A cron job is wired in two places: the schedule string in wrangler.toml, and
@@ -74,6 +75,15 @@ describe("API cron wiring", () => {
     expect(aggregation?.[1]).not.toBe(reconciliation?.[1]);
     // Money settlement stays frequent; metering does not need to be.
     expect(reconciliation?.[1]).toBe("*/5 * * * *");
+  });
+
+  it("keeps the group order expiry sweep wired through its exported cron constant", () => {
+    expect(declaredCrons(config)).toContain(
+      normalizeCronExpression(GROUP_ORDER_EXPIRY_CRON),
+    );
+    expect(handler).toContain(
+      "cronMatches(event.cron, GROUP_ORDER_EXPIRY_CRON)",
+    );
   });
 });
 

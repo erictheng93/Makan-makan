@@ -473,6 +473,16 @@
   "toast": {
     "orderSubmitSuccess": "Pesanan berhasil dikirim!",
     "orderSubmitFailed": "Pengiriman pesanan gagal, silakan coba lagi",
+    "orderSubmitActiveGuestOrder": "Anda sudah memiliki pesanan aktif di restoran ini. Harap tunggu hingga selesai.",
+    "orderSubmitDuplicate": "Pesanan ini sudah dikirim. Silakan periksa status pesanan Anda.",
+    "orderSubmitQrInvalid": "Kode QR meja ini sudah tidak berlaku. Silakan pindai ulang kode QR di meja.",
+    "orderSubmitMenuItemUnavailable": "Satu atau beberapa item tidak lagi tersedia. Perbarui keranjang dan coba lagi.",
+    "orderSubmitInsufficientInventory": "Stok satu atau beberapa item tidak mencukupi. Perbarui keranjang dan coba lagi.",
+    "orderSubmitRestaurantUnavailable": "Restoran ini sedang tidak menerima pesanan.",
+    "orderSubmitTableUnavailable": "Meja ini tidak tersedia untuk pemesanan. Silakan minta bantuan staf.",
+    "orderSubmitSeatUnavailable": "Kursi ini tidak tersedia untuk pemesanan. Silakan pindai ulang kode QR.",
+    "orderSubmitInvalidContact": "Periksa informasi kontak Anda dan coba lagi.",
+    "orderSubmitNotesTooLong": "Catatan pesanan terlalu panjang. Persingkat dan coba lagi.",
     "itemRemoved": "{name} telah dihapus",
     "itemAdded": "{name} x{quantity} telah ditambahkan",
     "cartCannotBeEmpty": "Keranjang tidak boleh kosong",
@@ -480,7 +490,7 @@
     "scanTypeDetected": "{type} terdeteksi!",
     "cameraInitFailed": "Inisialisasi kamera gagal",
     "flashToggleFailed": "Tidak dapat mengalihkan flash",
-    "couponApplied": "Kupon diterapkan! Hemat ${amount}",
+    "couponApplied": "Kupon diterapkan! Hemat {amount}",
     "couponFailed": "Validasi kupon gagal",
     "couponValidationError": "Terjadi kesalahan saat validasi, silakan coba lagi nanti",
     "couponCodeRequired": "Silakan masukkan kode kupon",
@@ -721,7 +731,7 @@
     "notesPlaceholder": "Ada permintaan khusus? Mis: tidak pedas, kurang es...",
     "unavailable": "Tidak Tersedia",
     "soldOut": "Habis",
-    "addToCart": "Tambah ke Keranjang · ${price}"
+    "addToCart": "Tambah ke Keranjang · {price}"
   },
   "orderItem": {
     "unknownItem": "Item Tidak Dikenal",

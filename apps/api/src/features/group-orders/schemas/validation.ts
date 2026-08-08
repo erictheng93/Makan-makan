@@ -95,8 +95,14 @@ export const joinGroupSchema = z.object({
     .optional(),
 });
 
+/**
+ * `memberToken` is optional here so that a request without one reaches the
+ * route and is refused as unauthorised, rather than being reported as a
+ * malformed body. The routes require it.
+ */
 export const addCartItemSchema = z.object({
   memberId: z.uuid("Invalid member ID format"),
+  memberToken: z.string().min(1).max(255).optional(),
   menuItemId: z
     .number()
     .int()
@@ -112,6 +118,8 @@ export const addCartItemSchema = z.object({
 
 export const updateCartItemSchema = z
   .object({
+    memberId: z.uuid("Invalid member ID format").optional(),
+    memberToken: z.string().min(1).max(255).optional(),
     quantity: z
       .number()
       .int("Quantity must be an integer")
@@ -121,12 +129,26 @@ export const updateCartItemSchema = z
     customizations: z.record(z.string(), z.any()).optional(),
     specialInstructions: notesSchema(200).optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be provided for update",
-  });
+  // Only the editable fields count — the caller's credentials are always
+  // present, so counting every key would make this check vacuous.
+  .refine(
+    (data) =>
+      data.quantity !== undefined ||
+      data.customizations !== undefined ||
+      data.specialInstructions !== undefined,
+    {
+      message: "At least one field must be provided for update",
+    },
+  );
+
+export const removeCartItemSchema = z.object({
+  memberId: z.uuid("Invalid member ID format"),
+  memberToken: z.string().min(1).max(255).optional(),
+});
 
 export const splitBillSchema = z
   .object({
+    memberToken: z.string().min(1).max(255).optional(),
     splitType: z.enum(
       ["equal", "proportional", "individual", "by_item", "custom"],
       {
@@ -146,6 +168,21 @@ export const splitBillSchema = z
       .max(100, "Tax rate cannot exceed 100%")
       .optional()
       .default(0),
+    sharedServiceChargeCents: z
+      .number()
+      .int("Shared service charge must be in whole cents")
+      .min(0, "Shared service charge cannot be negative")
+      .optional(),
+    sharedTaxCents: z
+      .number()
+      .int("Shared tax must be in whole cents")
+      .min(0, "Shared tax cannot be negative")
+      .optional(),
+    orderTotalCents: z
+      .number()
+      .int("Order total must be in whole cents")
+      .min(0, "Order total cannot be negative")
+      .optional(),
     customSplits: z
       .array(
         z.object({
@@ -182,6 +219,7 @@ export const splitBillSchema = z
   );
 
 export const processPaymentSchema = z.object({
+  memberToken: z.string().min(1).max(255).optional(),
   paymentMethod: z
     .string()
     .min(1, "Payment method is required")
@@ -200,6 +238,10 @@ export const processPaymentSchema = z.object({
 
 export const recoverHostSchema = z.object({
   recoveryCode: z.string().min(1, "Recovery code is required").max(100),
+});
+
+export const lockGroupOrderSchema = z.object({
+  memberToken: z.string().min(1, "Member token is required").max(255),
 });
 
 // Parameter validation schemas
@@ -385,9 +427,11 @@ export const groupOrderSchemas = {
   joinGroup: joinGroupSchema,
   addCartItem: addCartItemSchema,
   updateCartItem: updateCartItemSchema,
+  removeCartItem: removeCartItemSchema,
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
   recoverHost: recoverHostSchema,
+  lockGroupOrder: lockGroupOrderSchema,
 
   // Parameters
   groupOrderIdParam: groupOrderIdParamSchema,
@@ -405,7 +449,9 @@ export type CreateGroupOrderData = z.infer<typeof createGroupOrderSchema>;
 export type JoinGroupData = z.infer<typeof joinGroupSchema>;
 export type AddCartItemData = z.infer<typeof addCartItemSchema>;
 export type UpdateCartItemData = z.infer<typeof updateCartItemSchema>;
+export type RemoveCartItemData = z.infer<typeof removeCartItemSchema>;
 export type SplitBillData = z.infer<typeof splitBillSchema>;
 export type ProcessPaymentData = z.infer<typeof processPaymentSchema>;
+export type LockGroupOrderData = z.infer<typeof lockGroupOrderSchema>;
 export type ActivitiesQueryData = z.infer<typeof activitiesQuerySchema>;
 export type StatisticsQueryData = z.infer<typeof statisticsQuerySchema>;

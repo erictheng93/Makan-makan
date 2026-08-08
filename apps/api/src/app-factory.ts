@@ -607,6 +607,14 @@ export function createApp(
         "/api/v1/service-bookings/waitlist",
         "/api/v1/service-bookings/*/pay",
         "/api/v1/service-bookings/verify/*/cancel",
+        "/api/v1/orders/group/create$", // exact: guest host creates a group order
+        "/api/v1/orders/group/join/*", // members join by possession of a share code
+        "/api/v1/orders/group/*/cart", // cart root and /cart/:itemId
+        "/api/v1/orders/group/*/lock", // host submits with memberToken
+        "/api/v1/orders/group/*/recover", // host recovers by recovery code
+        "/api/v1/orders/group/*/split",
+        "/api/v1/orders/group/*/payment/*",
+        "/api/v1/orders/group/*/leave/*",
         "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
         "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
         "/api/v1/billing/webhooks", // Billing provider webhooks (HMAC/idempotency verified)
