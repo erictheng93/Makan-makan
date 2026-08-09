@@ -14,6 +14,9 @@ import {
   coupons,
   couponUsage,
   menuItems,
+  menuItemOptionGroups,
+  optionChoices,
+  optionGroups,
   orderItems,
   orders,
   restaurants,
@@ -453,6 +456,150 @@ describe("OrderService order pricing", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  describe("assembled option row validation", () => {
+    async function replaceCatalogWithOptionRows() {
+      await testDb.drizzle
+        .update(menuItems)
+        .set({ options: null })
+        .where(eq(menuItems.id, menuItemId));
+      await testDb.drizzle.insert(optionGroups).values([
+        {
+          id: "order-group-spice",
+          restaurantId,
+          publicId: "spice",
+          kind: "choice",
+          name: "Spice",
+          type: "multiple",
+          required: true,
+          maxSelections: 1,
+          sortOrder: 1,
+        },
+        {
+          id: "order-group-addons",
+          restaurantId,
+          publicId: "addOns",
+          kind: "addon",
+          name: "Add-ons",
+          type: "multiple",
+          required: false,
+          sortOrder: 2,
+        },
+      ]);
+      await testDb.drizzle.insert(optionChoices).values([
+        {
+          id: "order-choice-hot",
+          groupId: "order-group-spice",
+          publicId: "hot",
+          name: "Hot",
+          priceAdjustmentCents: 150,
+          sortOrder: 1,
+        },
+        {
+          id: "order-choice-mild",
+          groupId: "order-group-spice",
+          publicId: "mild",
+          name: "Mild",
+          priceAdjustmentCents: 0,
+          sortOrder: 2,
+        },
+        {
+          id: "order-choice-egg",
+          groupId: "order-group-addons",
+          publicId: "egg",
+          name: "Egg",
+          priceAdjustmentCents: 100,
+          maxQuantity: 3,
+          sortOrder: 1,
+        },
+      ]);
+      await testDb.drizzle.insert(menuItemOptionGroups).values([
+        {
+          menuItemId,
+          groupId: "order-group-spice",
+          sortOrder: 1,
+        },
+        {
+          menuItemId,
+          groupId: "order-group-addons",
+          sortOrder: 2,
+        },
+      ]);
+    }
+
+    it("enforces required, maxSelections, and maxQuantity from rows", async () => {
+      const service = new OrderService(testDb.bindings.DB, {
+        JWT_SECRET: "test",
+      });
+      await replaceCatalogWithOptionRows();
+
+      await expect(
+        service.createOrder({
+          restaurantId,
+          items: [{ menuItemId, quantity: 1 }],
+        }),
+      ).rejects.toThrow(/Invalid customization: group spice is required/);
+
+      await expect(
+        service.createOrder({
+          restaurantId,
+          items: [
+            {
+              menuItemId,
+              quantity: 1,
+              customizations: {
+                options: [
+                  {
+                    id: "spice",
+                    optionName: "Spice",
+                    choiceId: "hot",
+                    choiceName: "Hot",
+                  },
+                  {
+                    id: "spice",
+                    optionName: "Spice",
+                    choiceId: "mild",
+                    choiceName: "Mild",
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(/Invalid customization: group spice allows at most 1/);
+
+      await expect(
+        service.createOrder({
+          restaurantId,
+          items: [
+            {
+              menuItemId,
+              quantity: 1,
+              customizations: {
+                options: [
+                  {
+                    id: "spice",
+                    optionName: "Spice",
+                    choiceId: "hot",
+                    choiceName: "Hot",
+                  },
+                ],
+                addOns: [
+                  {
+                    id: "egg",
+                    name: "Egg",
+                    unitPrice: 1,
+                    quantity: 4,
+                    totalPrice: 4,
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(/Add-on egg quantity exceeds maximum/);
+    });
   });
 });
 

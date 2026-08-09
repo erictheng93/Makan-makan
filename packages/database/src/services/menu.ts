@@ -11,13 +11,22 @@ import {
 } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
-import { restaurants, categories, menuItems } from "../schema";
+import {
+  restaurants,
+  categories,
+  menuItems,
+  optionGroups,
+  optionChoices,
+  menuItemOptionGroups,
+  menuItemOptionChoiceOverrides,
+} from "../schema";
 import type {
   MenuStructure,
   MenuItem,
   Category,
 } from "@makanmakan/shared-types";
 import { amountFromCents, toCents, toRequiredCents } from "../utils/money";
+import { loadAssembledMenuItemOptions } from "./menu-options";
 
 export interface CreateMenuItemData {
   restaurantId: string;
@@ -227,6 +236,45 @@ const adminCategoryConditions = [notDeletedCategory];
 const notDeletedItem = isNull(menuItems.deletedAt);
 
 export class MenuService extends BaseService {
+  private async mapToMenuItemsWithAssembledOptions(
+    items: any[],
+  ): Promise<MenuItem[]> {
+    const optionMap = await loadAssembledMenuItemOptions(this.db, items);
+    return items.map((item) =>
+      this.mapToMenuItem({
+        ...item,
+        options: optionMap.get(item.id),
+      }),
+    );
+  }
+
+  private async invalidateRestaurantMenuCache(
+    restaurantId: string,
+  ): Promise<void> {
+    await this.invalidateCache(
+      [`menu:${restaurantId}`, `restaurant:${restaurantId}`],
+      "tag",
+    );
+  }
+
+  private async restaurantIdForOptionGroup(groupId: string): Promise<string> {
+    const [group] = await this.db
+      .select({ restaurantId: optionGroups.restaurantId })
+      .from(optionGroups)
+      .where(eq(optionGroups.id, groupId));
+    if (!group) throw new Error("Option group not found");
+    return group.restaurantId;
+  }
+
+  private async restaurantIdForMenuItem(menuItemId: number): Promise<string> {
+    const [item] = await this.db
+      .select({ restaurantId: menuItems.restaurantId })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    if (!item) throw new Error("Menu item not found");
+    return item.restaurantId;
+  }
+
   // 獲取完整菜單結構
   async getMenu(
     restaurantId: string,
@@ -277,6 +325,12 @@ export class MenuService extends BaseService {
             throw new Error("Restaurant not found");
           }
 
+          const flatItems = restaurant.categories.flatMap(
+            (cat: any) => cat.menuItems,
+          );
+          const menuItemsWithOptions =
+            await this.mapToMenuItemsWithAssembledOptions(flatItems);
+
           // Item counts are derived live from the loaded rows. There is no
           // stored categories.item_count any more — it only ever tracked
           // creates, so deletes/toggles/moves left it stale (#84).
@@ -284,9 +338,7 @@ export class MenuService extends BaseService {
             categories: restaurant.categories.map((cat: any) =>
               mapMenuCategoryRow(cat),
             ),
-            menuItems: restaurant.categories.flatMap((cat: any) =>
-              cat.menuItems.map((item: any) => this.mapToMenuItem(item)),
-            ),
+            menuItems: menuItemsWithOptions,
           };
         },
         {
@@ -325,7 +377,7 @@ export class MenuService extends BaseService {
         .orderBy(desc(menuItems.orderCount), desc(menuItems.rating))
         .limit(limit);
 
-      return items.map((item) => this.mapToMenuItem(item));
+      return this.mapToMenuItemsWithAssembledOptions(items);
     } catch (error) {
       this.handleError(error, "getFeaturedItems");
     }
@@ -352,7 +404,7 @@ export class MenuService extends BaseService {
         .orderBy(desc(menuItems.orderCount), desc(menuItems.rating))
         .limit(limit);
 
-      return items.map((item) => this.mapToMenuItem(item));
+      return this.mapToMenuItemsWithAssembledOptions(items);
     } catch (error) {
       this.handleError(error, "getPopularItems");
     }
@@ -391,7 +443,7 @@ export class MenuService extends BaseService {
         .orderBy(desc(menuItems.viewCount), desc(menuItems.orderCount))
         .limit(limit);
 
-      return items.map((item) => this.mapToMenuItem(item));
+      return this.mapToMenuItemsWithAssembledOptions(items);
     } catch (error) {
       this.handleError(error, "getMostViewedItems");
     }
@@ -422,7 +474,7 @@ export class MenuService extends BaseService {
         .orderBy(desc(menuItems.rating), desc(menuItems.reviewCount))
         .limit(limit);
 
-      return items.map((item) => this.mapToMenuItem(item));
+      return this.mapToMenuItemsWithAssembledOptions(items);
     } catch (error) {
       this.handleError(error, "getHighestRatedItems");
     }
@@ -449,7 +501,7 @@ export class MenuService extends BaseService {
         .orderBy(desc(menuItems.createdAt), desc(menuItems.id))
         .limit(limit);
 
-      return items.map((item) => this.mapToMenuItem(item));
+      return this.mapToMenuItemsWithAssembledOptions(items);
     } catch (error) {
       this.handleError(error, "getRecentlyAddedItems");
     }
@@ -542,7 +594,7 @@ export class MenuService extends BaseService {
       const totalCount = countResult?.[0]?.totalCount ?? 0;
 
       return {
-        items: items.map((item) => this.mapToMenuItem(item)),
+        items: await this.mapToMenuItemsWithAssembledOptions(items),
         pagination: {
           page,
           limit,
@@ -784,6 +836,151 @@ export class MenuService extends BaseService {
       );
     } catch (error) {
       this.handleError(error, "batchUpdateAvailability");
+    }
+  }
+
+  async createOptionGroup(
+    data: typeof optionGroups.$inferInsert,
+  ): Promise<typeof optionGroups.$inferSelect> {
+    try {
+      const [group] = await this.db
+        .insert(optionGroups)
+        .values(data)
+        .returning();
+      await this.invalidateRestaurantMenuCache(group.restaurantId);
+      return group;
+    } catch (error) {
+      this.handleError(error, "createOptionGroup");
+    }
+  }
+
+  async updateOptionGroup(
+    id: string,
+    data: Partial<
+      Omit<typeof optionGroups.$inferInsert, "id" | "restaurantId">
+    >,
+  ): Promise<typeof optionGroups.$inferSelect> {
+    try {
+      const [group] = await this.db
+        .update(optionGroups)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(optionGroups.id, id))
+        .returning();
+      if (!group) throw new Error("Option group not found");
+      await this.invalidateRestaurantMenuCache(group.restaurantId);
+      return group;
+    } catch (error) {
+      this.handleError(error, "updateOptionGroup");
+    }
+  }
+
+  async createOptionChoice(
+    data: typeof optionChoices.$inferInsert,
+  ): Promise<typeof optionChoices.$inferSelect> {
+    try {
+      const [choice] = await this.db
+        .insert(optionChoices)
+        .values(data)
+        .returning();
+      await this.invalidateRestaurantMenuCache(
+        await this.restaurantIdForOptionGroup(choice.groupId),
+      );
+      return choice;
+    } catch (error) {
+      this.handleError(error, "createOptionChoice");
+    }
+  }
+
+  async updateOptionChoice(
+    id: string,
+    data: Partial<Omit<typeof optionChoices.$inferInsert, "id" | "groupId">>,
+  ): Promise<typeof optionChoices.$inferSelect> {
+    try {
+      const [choice] = await this.db
+        .update(optionChoices)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(optionChoices.id, id))
+        .returning();
+      if (!choice) throw new Error("Option choice not found");
+      await this.invalidateRestaurantMenuCache(
+        await this.restaurantIdForOptionGroup(choice.groupId),
+      );
+      return choice;
+    } catch (error) {
+      this.handleError(error, "updateOptionChoice");
+    }
+  }
+
+  async linkMenuItemOptionGroup(
+    data: typeof menuItemOptionGroups.$inferInsert,
+  ): Promise<typeof menuItemOptionGroups.$inferSelect> {
+    try {
+      const [link] = await this.db
+        .insert(menuItemOptionGroups)
+        .values(data)
+        .returning();
+      await this.invalidateRestaurantMenuCache(
+        await this.restaurantIdForMenuItem(link.menuItemId),
+      );
+      return link;
+    } catch (error) {
+      this.handleError(error, "linkMenuItemOptionGroup");
+    }
+  }
+
+  async updateMenuItemOptionGroup(
+    menuItemId: number,
+    groupId: string,
+    data: Partial<
+      Omit<typeof menuItemOptionGroups.$inferInsert, "menuItemId" | "groupId">
+    >,
+  ): Promise<typeof menuItemOptionGroups.$inferSelect> {
+    try {
+      const [link] = await this.db
+        .update(menuItemOptionGroups)
+        .set({ ...data, updatedAt: new Date() })
+        .where(
+          and(
+            eq(menuItemOptionGroups.menuItemId, menuItemId),
+            eq(menuItemOptionGroups.groupId, groupId),
+          ),
+        )
+        .returning();
+      if (!link) throw new Error("Menu item option group link not found");
+      await this.invalidateRestaurantMenuCache(
+        await this.restaurantIdForMenuItem(link.menuItemId),
+      );
+      return link;
+    } catch (error) {
+      this.handleError(error, "updateMenuItemOptionGroup");
+    }
+  }
+
+  async upsertMenuItemOptionChoiceOverride(
+    data: typeof menuItemOptionChoiceOverrides.$inferInsert,
+  ): Promise<typeof menuItemOptionChoiceOverrides.$inferSelect> {
+    try {
+      const [override] = await this.db
+        .insert(menuItemOptionChoiceOverrides)
+        .values(data)
+        .onConflictDoUpdate({
+          target: [
+            menuItemOptionChoiceOverrides.menuItemId,
+            menuItemOptionChoiceOverrides.choiceId,
+          ],
+          set: {
+            isHidden: data.isHidden ?? false,
+            priceAdjustmentCents: data.priceAdjustmentCents,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      await this.invalidateRestaurantMenuCache(
+        await this.restaurantIdForMenuItem(override.menuItemId),
+      );
+      return override;
+    } catch (error) {
+      this.handleError(error, "upsertMenuItemOptionChoiceOverride");
     }
   }
 
@@ -1036,7 +1233,9 @@ export class MenuService extends BaseService {
         },
       });
 
-      return item ? this.mapToMenuItem(item) : null;
+      if (!item) return null;
+      const [mapped] = await this.mapToMenuItemsWithAssembledOptions([item]);
+      return mapped;
     } catch (error) {
       this.handleError(error, "getMenuItem");
     }

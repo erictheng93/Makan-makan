@@ -89,6 +89,10 @@
     {
       "fresh": "0081_shared_option_groups.sql",
       "reason": "Fresh API D1 owns the shared customization option groups (option_groups / option_choices / menu_item_option_groups / menu_item_option_choice_overrides). The legacy management D1 carries neither menu_items nor restaurants in the shape these reference, so there is no paired legacy migration."
+    },
+    {
+      "fresh": "0082_allow_per_item_option_group_public_ids.sql",
+      "reason": "Phase A backfills one independent option group set per menu item, so group public_id values such as spice must be reusable within a restaurant while choice public_id remains unique within its group."
     }
   ],
   "legacyOnly": [

@@ -22,8 +22,13 @@ import {
   couponUsage,
   ORDER_STATUS,
 } from "../schema";
-import type { Order, SelectedCustomizations } from "@makanmakan/shared-types";
+import type {
+  MenuItemOptions as WireMenuItemOptions,
+  Order,
+  SelectedCustomizations,
+} from "@makanmakan/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
+import { loadAssembledMenuItemOptions } from "./menu-options";
 
 const cancellableOrderStatuses: readonly string[] = [
   ORDER_STATUS.PENDING,
@@ -97,10 +102,12 @@ const ORDER_SORT_COLUMNS = {
   updatedAt: orders.updatedAt,
 } as const;
 
-type MenuItemRecord = typeof menuItems.$inferSelect;
-type MenuItemOptions = NonNullable<MenuItemRecord["options"]>;
+type MenuItemRecord = Omit<typeof menuItems.$inferSelect, "options"> & {
+  options?: WireMenuItemOptions | null;
+};
+type CatalogMenuItemOptions = NonNullable<MenuItemRecord["options"]>;
 type MenuItemCustomizationGroup = NonNullable<
-  MenuItemOptions["customizations"]
+  CatalogMenuItemOptions["customizations"]
 >[number];
 type MenuItemCustomizationChoice =
   MenuItemCustomizationGroup["choices"][number];
@@ -1385,8 +1392,15 @@ export class OrderService extends BaseService {
     const fetchedMenuItems = await this.db.query.menuItems.findMany({
       where: inArray(menuItems.id, menuItemIds),
     });
+    const assembledOptions = await loadAssembledMenuItemOptions(
+      this.db,
+      fetchedMenuItems,
+    );
     const menuItemMap = new Map(
-      fetchedMenuItems.map((item) => [item.id, item]),
+      fetchedMenuItems.map((item) => [
+        item.id,
+        { ...item, options: assembledOptions.get(item.id) },
+      ]),
     );
     const requestedQuantities = new Map<number, number>();
 

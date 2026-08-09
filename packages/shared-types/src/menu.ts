@@ -81,6 +81,8 @@ export interface MenuItemOptions {
     priceAdjustment: number; // in cents, can be negative
     description?: string;
     priceModifier?: number; // alias for priceAdjustment
+    /** false when the owner has flipped this off as sold out. */
+    available?: boolean;
   }[];
   customizations?: {
     id: string;
@@ -92,6 +94,8 @@ export interface MenuItemOptions {
       priceAdjustment: number; // in cents
       description?: string;
       priceModifier?: number; // alias for priceAdjustment
+      /** false when the owner has flipped this off as sold out. */
+      available?: boolean;
     }[];
     required?: boolean;
     /** Multiple-choice groups only. Enforced by the modal and by the order service. */

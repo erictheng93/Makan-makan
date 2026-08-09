@@ -3,6 +3,11 @@ export { BaseService } from "./base";
 export { USER_ROLES } from "../schema";
 export { RestaurantService } from "./restaurant";
 export { MenuService } from "./menu";
+export {
+  assembleMenuItemOptions,
+  backfillMenuItemOptions,
+  loadAssembledMenuItemOptions,
+} from "./menu-options";
 export { OrderService, INVALID_CUSTOMIZATION_PREFIX } from "./order";
 export { AuthService } from "./auth";
 export { UserService } from "./user";
