@@ -46,6 +46,47 @@ const viVN: Messages = {
     retry: "Thử lại",
     processing: "Xử lý",
   },
+  optionGroups: {
+    title: "Nhóm tùy chọn dùng chung",
+    description:
+      "Tạo một lần ở đây và áp dụng cho nhiều món. Sửa một lần, mọi món đang dùng đều đổi theo.",
+    addGroup: "Thêm nhóm",
+    editGroup: "Sửa nhóm",
+    emptyTitle: "Chưa có nhóm tùy chọn dùng chung",
+    emptyHint:
+      "Độ ngọt, lượng đá, món thêm — tạo một lần rồi áp dụng cho mọi đồ uống.",
+    publicId: "Mã định danh",
+    publicIdHint:
+      "Không đổi được sau khi tạo; giỏ hàng của khách tham chiếu tới nó.",
+    kindLabel: "Loại",
+    typeLabel: "Cách chọn",
+    priceAdjustment: "Điều chỉnh giá",
+    blankMeansNoCap: "Để trống là không giới hạn",
+    soldOut: "Đã hết",
+    markSoldOut: "Đánh dấu đã hết",
+    markInStock: "Còn hàng trở lại",
+    kind: {
+      size: "Kích cỡ",
+      choice: "Lựa chọn",
+      addon: "Món thêm",
+    },
+    toast: {
+      created: "Đã tạo nhóm tùy chọn",
+      updated: "Đã cập nhật nhóm",
+      deleted: "Đã xóa nhóm",
+      choiceCreated: "Đã thêm lựa chọn",
+      choiceUpdated: "Đã cập nhật lựa chọn",
+      choiceDeleted: "Đã xóa lựa chọn",
+      soldOut: "Đã đánh dấu hết hàng",
+      backInStock: "Đã còn hàng trở lại",
+    },
+    errors: {
+      fetchFailed: "Không tải được nhóm tùy chọn",
+      saveFailed: "Lưu thất bại",
+      deleteFailed: "Xóa thất bại",
+      publicIdConflict: "Món này đã có nhóm với mã định danh đó",
+    },
+  },
   menu: {
     title: "Quản Lý Thực Đơn",
     subtitle: "Quản lý món ăn và danh mục nhà hàng",
@@ -1531,6 +1572,7 @@ const viVN: Messages = {
     },
   },
   pages: {
+    optionGroups: "Nhóm tùy chọn dùng chung",
     login: "Đăng nhập",
     forgotPassword: "Quên mật khẩu",
     resetPassword: "Đặt lại mật khẩu",

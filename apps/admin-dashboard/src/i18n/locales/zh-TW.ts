@@ -48,6 +48,45 @@ const zhTWCore = {
   },
 
   // 菜單管理
+  optionGroups: {
+    title: "共用選項組",
+    description:
+      "在這裡建立一次，套用到多道菜品。改一次，所有引用的菜品一起變。",
+    addGroup: "新增選項組",
+    editGroup: "編輯選項組",
+    emptyTitle: "還沒有共用選項組",
+    emptyHint: "例如「甜度」「冰塊」「加購」——建立後就能套用到每一杯飲料。",
+    publicId: "識別碼",
+    publicIdHint: "建立後不可修改，顧客購物車以它為準。",
+    kindLabel: "種類",
+    typeLabel: "選擇方式",
+    priceAdjustment: "價格調整",
+    blankMeansNoCap: "留白表示不限",
+    soldOut: "已售完",
+    markSoldOut: "標記售完",
+    markInStock: "恢復供應",
+    kind: {
+      size: "尺寸",
+      choice: "選項",
+      addon: "加購",
+    },
+    toast: {
+      created: "選項組已建立",
+      updated: "選項組已更新",
+      deleted: "選項組已刪除",
+      choiceCreated: "選項已新增",
+      choiceUpdated: "選項已更新",
+      choiceDeleted: "選項已刪除",
+      soldOut: "已標記為售完",
+      backInStock: "已恢復供應",
+    },
+    errors: {
+      fetchFailed: "無法載入選項組",
+      saveFailed: "儲存失敗",
+      deleteFailed: "刪除失敗",
+      publicIdConflict: "這道菜已經有相同識別碼的選項組",
+    },
+  },
   menu: {
     title: "菜單管理",
     subtitle: "管理餐廳菜品與分類",
@@ -1688,6 +1727,7 @@ const zhTWCore = {
 
   // 頁面標題
   pages: {
+    optionGroups: "共用選項組",
     login: "登入",
     forgotPassword: "忘記密碼",
     resetPassword: "重設密碼",

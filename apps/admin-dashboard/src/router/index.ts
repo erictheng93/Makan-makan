@@ -138,6 +138,15 @@ const routes: RouteRecordRaw[] = [
           roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
+      {
+        path: "menu/option-groups",
+        name: "MenuOptionGroups",
+        component: () => import("@/views/OptionGroupsView.vue"),
+        meta: {
+          titleKey: "pages.optionGroups",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
       { path: "tables", redirect: { name: "SeatingTableSetup" } },
       // Employee Management (replaces old /users route)
       {

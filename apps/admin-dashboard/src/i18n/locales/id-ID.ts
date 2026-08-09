@@ -46,6 +46,47 @@ const idID: Messages = {
     retry: "Coba lagi",
     processing: "Pengolahan",
   },
+  optionGroups: {
+    title: "Grup Opsi Bersama",
+    description:
+      "Buat sekali di sini dan terapkan ke banyak menu. Satu perubahan berlaku untuk semua menu yang memakainya.",
+    addGroup: "Tambah Grup",
+    editGroup: "Ubah Grup",
+    emptyTitle: "Belum ada grup opsi bersama",
+    emptyHint:
+      "Tingkat manis, es, tambahan — buat sekali lalu terapkan ke semua minuman.",
+    publicId: "Identitas",
+    publicIdHint:
+      "Tidak bisa diubah setelah dibuat; keranjang pelanggan mengacu padanya.",
+    kindLabel: "Jenis",
+    typeLabel: "Cara Memilih",
+    priceAdjustment: "Penyesuaian Harga",
+    blankMeansNoCap: "Kosongkan untuk tanpa batas",
+    soldOut: "Habis",
+    markSoldOut: "Tandai Habis",
+    markInStock: "Tersedia Lagi",
+    kind: {
+      size: "Ukuran",
+      choice: "Pilihan",
+      addon: "Tambahan",
+    },
+    toast: {
+      created: "Grup opsi dibuat",
+      updated: "Grup opsi diperbarui",
+      deleted: "Grup opsi dihapus",
+      choiceCreated: "Pilihan ditambahkan",
+      choiceUpdated: "Pilihan diperbarui",
+      choiceDeleted: "Pilihan dihapus",
+      soldOut: "Ditandai habis",
+      backInStock: "Tersedia lagi",
+    },
+    errors: {
+      fetchFailed: "Gagal memuat grup opsi",
+      saveFailed: "Gagal menyimpan",
+      deleteFailed: "Gagal menghapus",
+      publicIdConflict: "Menu ini sudah punya grup dengan identitas tersebut",
+    },
+  },
   menu: {
     title: "Manajemen Menu",
     subtitle: "Kelola hidangan dan kategori restoran",
@@ -1634,6 +1675,7 @@ const idID: Messages = {
     waitingManagement: "Manajemen Menunggu",
   },
   pages: {
+    optionGroups: "Grup Opsi Bersama",
     login: "Masuk",
     forgotPassword: "Lupa Kata Sandi",
     resetPassword: "Atur Ulang Kata Sandi",
