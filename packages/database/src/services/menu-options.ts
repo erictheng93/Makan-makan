@@ -455,6 +455,9 @@ export async function backfillMenuItemOptions(
   d1: D1Database,
 ): Promise<BackfillMenuItemOptionsResult> {
   const db = drizzle(d1, { schema });
+  // Soft-deleted dishes are excluded: their options describe something no
+  // owner can order or edit any more, and migrating them would put groups for
+  // dishes that no longer exist into the shop's shared group list.
   const items = await db
     .select({
       id: menuItems.id,
@@ -462,7 +465,7 @@ export async function backfillMenuItemOptions(
       options: menuItems.options,
     })
     .from(menuItems)
-    .where(isNotNull(menuItems.options));
+    .where(and(isNotNull(menuItems.options), isNull(menuItems.deletedAt)));
 
   const alreadyBackfilled = new Set<number>();
   for (const ids of chunk(

@@ -594,6 +594,46 @@ describe("menu item option rows", () => {
     });
   });
 
+  // Found by running the backfill against production: all three items that
+  // still carried JSON options had been soft-deleted, so the migration created
+  // groups for dishes nobody can order or edit.
+  it("skips soft-deleted menu items", async () => {
+    await testDb.drizzle.insert(menuItems).values([
+      {
+        id: 501,
+        restaurantId,
+        categoryId,
+        name: "Retired Dish",
+        priceCents: 1000,
+        isAvailable: false,
+        deletedAt: new Date("2026-07-01T00:00:00.000Z"),
+        options: {
+          addOns: [{ id: "egg", name: "Egg", price: 1 }],
+        } as never,
+      },
+      {
+        id: 502,
+        restaurantId,
+        categoryId,
+        name: "Live Dish",
+        priceCents: 1000,
+        isAvailable: true,
+        options: {
+          addOns: [{ id: "egg", name: "Egg", price: 1 }],
+        } as never,
+      },
+    ]);
+
+    const result = await backfillMenuItemOptions(testDb.bindings.DB);
+
+    expect(result).toMatchObject({
+      menuItemsScanned: 1,
+      menuItemsBackfilled: 1,
+    });
+    const links = await testDb.drizzle.select().from(menuItemOptionGroups);
+    expect(links.map((link) => link.menuItemId)).toEqual([502]);
+  });
+
   it("falls back to menu_items.options when no relation rows exist", async () => {
     const fallbackOptions = {
       customizations: [
