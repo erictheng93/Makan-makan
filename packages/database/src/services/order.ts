@@ -243,6 +243,24 @@ function assertCustomizationGroupRules(
   }
 }
 
+/**
+ * The owner's manual sold-out switch. It reaches the catalog as
+ * `available: false` on the individual size / choice / add-on, and it has to be
+ * refused here as well as hidden in the app: the flag is flipped mid-service,
+ * so a modal opened a minute earlier still offers what has since run out.
+ */
+function assertChoiceAvailable(
+  option: { available?: boolean },
+  label: string,
+  menuItemId: number,
+): void {
+  if (option.available === false) {
+    throw new Error(
+      `${INVALID_CUSTOMIZATION_PREFIX} ${label} is sold out for menu item ${menuItemId}`,
+    );
+  }
+}
+
 function resolveCatalogCustomizations(
   menuItem: MenuItemRecord,
   selected: SelectedCustomizations | undefined,
@@ -263,6 +281,8 @@ function resolveCatalogCustomizations(
         `Unknown size ${selected.size.id} for menu item ${menuItem.id}`,
       );
     }
+
+    assertChoiceAvailable(size, `size ${size.id}`, menuItem.id);
 
     const priceAdjustment = normalizeMoneyAmount(
       size.priceAdjustment,
@@ -291,6 +311,8 @@ function resolveCatalogCustomizations(
         );
       }
       seenChoiceIds.add(choice.id);
+
+      assertChoiceAvailable(choice, `choice ${choice.id}`, menuItem.id);
 
       const priceAdjustment = normalizeMoneyAmount(
         choice.priceAdjustment,
@@ -326,6 +348,7 @@ function resolveCatalogCustomizations(
           );
         }
         seenAddOnIds.add(addOn.id);
+        assertChoiceAvailable(addOn, `add-on ${addOn.id}`, menuItem.id);
 
         const quantity = selectedAddOn.quantity || 1;
         if (!Number.isInteger(quantity) || quantity < 1) {

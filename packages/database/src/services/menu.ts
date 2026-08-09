@@ -1,5 +1,6 @@
 import {
   eq,
+  ne,
   and,
   desc,
   asc,
@@ -911,10 +912,58 @@ export class MenuService extends BaseService {
     }
   }
 
+  /**
+   * Two groups an item offers may not share a public_id.
+   *
+   * public_id is what the assembled options emit as each group's `id`, and the
+   * order validator counts selections per that id — two groups both emitting
+   * "spice" would have their counts merged, so `required` and `maxSelections`
+   * would be judged against the wrong totals, and choice lookup would match
+   * ambiguously. There is no unique index to lean on: the same public_id
+   * repeating across a restaurant is legitimate (migration 0082), it is only
+   * repeating *within one item* that breaks.
+   */
+  private async assertNoConflictingOptionGroupPublicId(
+    menuItemId: number,
+    groupId: string,
+  ): Promise<void> {
+    const [incoming] = await this.db
+      .select({ publicId: optionGroups.publicId })
+      .from(optionGroups)
+      .where(eq(optionGroups.id, groupId));
+    if (!incoming) throw new Error("Option group not found");
+
+    const conflicts = await this.db
+      .select({ groupId: menuItemOptionGroups.groupId })
+      .from(menuItemOptionGroups)
+      .innerJoin(
+        optionGroups,
+        eq(menuItemOptionGroups.groupId, optionGroups.id),
+      )
+      .where(
+        and(
+          eq(menuItemOptionGroups.menuItemId, menuItemId),
+          eq(optionGroups.publicId, incoming.publicId),
+          ne(menuItemOptionGroups.groupId, groupId),
+          isNull(optionGroups.deletedAt),
+        ),
+      );
+
+    if (conflicts.length > 0) {
+      throw new Error(
+        `Menu item ${menuItemId} already offers an option group with public id ${incoming.publicId}`,
+      );
+    }
+  }
+
   async linkMenuItemOptionGroup(
     data: typeof menuItemOptionGroups.$inferInsert,
   ): Promise<typeof menuItemOptionGroups.$inferSelect> {
     try {
+      await this.assertNoConflictingOptionGroupPublicId(
+        data.menuItemId,
+        data.groupId,
+      );
       const [link] = await this.db
         .insert(menuItemOptionGroups)
         .values(data)
@@ -953,6 +1002,99 @@ export class MenuService extends BaseService {
       return link;
     } catch (error) {
       this.handleError(error, "updateMenuItemOptionGroup");
+    }
+  }
+
+  /**
+   * Soft delete, matching how menu items are retired (#80): the assembler
+   * already skips groups with a deletedAt, so the group disappears from every
+   * item that offers it while the link rows — and any per-item overrides on
+   * them — survive an undo.
+   */
+  async softDeleteOptionGroup(id: string): Promise<boolean> {
+    try {
+      const [group] = await this.db
+        .update(optionGroups)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(optionGroups.id, id), isNull(optionGroups.deletedAt)))
+        .returning({ restaurantId: optionGroups.restaurantId });
+      if (!group) return false;
+      await this.invalidateRestaurantMenuCache(group.restaurantId);
+      return true;
+    } catch (error) {
+      this.handleError(error, "softDeleteOptionGroup");
+    }
+  }
+
+  async unlinkMenuItemOptionGroup(
+    menuItemId: number,
+    groupId: string,
+  ): Promise<boolean> {
+    try {
+      // Read the owner before the row is gone; afterwards there is nothing
+      // left to join back to a restaurant.
+      const restaurantId = await this.restaurantIdForMenuItem(menuItemId);
+      const removed = await this.db
+        .delete(menuItemOptionGroups)
+        .where(
+          and(
+            eq(menuItemOptionGroups.menuItemId, menuItemId),
+            eq(menuItemOptionGroups.groupId, groupId),
+          ),
+        )
+        .returning({ groupId: menuItemOptionGroups.groupId });
+      if (removed.length === 0) return false;
+      await this.invalidateRestaurantMenuCache(restaurantId);
+      return true;
+    } catch (error) {
+      this.handleError(error, "unlinkMenuItemOptionGroup");
+    }
+  }
+
+  /**
+   * Hard delete: a choice has no history of its own, and the per-item
+   * overrides pointing at it are removed by the foreign key cascade.
+   */
+  async deleteOptionChoice(id: string): Promise<boolean> {
+    try {
+      const [choice] = await this.db
+        .select({ groupId: optionChoices.groupId })
+        .from(optionChoices)
+        .where(eq(optionChoices.id, id));
+      if (!choice) return false;
+      const restaurantId = await this.restaurantIdForOptionGroup(
+        choice.groupId,
+      );
+
+      await this.db.delete(optionChoices).where(eq(optionChoices.id, id));
+      await this.invalidateRestaurantMenuCache(restaurantId);
+      return true;
+    } catch (error) {
+      this.handleError(error, "deleteOptionChoice");
+    }
+  }
+
+  /** Drops an override so the item goes back to inheriting the group. */
+  async deleteMenuItemOptionChoiceOverride(
+    menuItemId: number,
+    choiceId: string,
+  ): Promise<boolean> {
+    try {
+      const restaurantId = await this.restaurantIdForMenuItem(menuItemId);
+      const removed = await this.db
+        .delete(menuItemOptionChoiceOverrides)
+        .where(
+          and(
+            eq(menuItemOptionChoiceOverrides.menuItemId, menuItemId),
+            eq(menuItemOptionChoiceOverrides.choiceId, choiceId),
+          ),
+        )
+        .returning({ choiceId: menuItemOptionChoiceOverrides.choiceId });
+      if (removed.length === 0) return false;
+      await this.invalidateRestaurantMenuCache(restaurantId);
+      return true;
+    } catch (error) {
+      this.handleError(error, "deleteMenuItemOptionChoiceOverride");
     }
   }
 
