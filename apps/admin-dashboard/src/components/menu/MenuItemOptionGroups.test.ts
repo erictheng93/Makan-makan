@@ -219,6 +219,33 @@ describe("MenuItemOptionGroups", () => {
     expect(lastEmit(wrapper)).toEqual([]);
   });
 
+  // Real clicking found this and the per-edit unit tests did not: props only
+  // update after the parent re-renders, so two edits in the same tick both read
+  // the pre-edit value and the second overwrote the first.
+  it("keeps every edit when several land before a re-render", async () => {
+    const wrapper = mountPicker([link()]);
+
+    const required = wrapper.get(
+      '[data-testid="required-override-group-sweet"]',
+    );
+    const hide = wrapper.get('[data-testid="hide-choice-choice-half"]');
+    const price = wrapper.get('[data-testid="price-override-choice-half"]');
+
+    required.element.value = "false";
+    required.trigger("change");
+    hide.element.checked = true;
+    hide.trigger("change");
+    price.element.value = "9";
+    price.trigger("input");
+    await wrapper.vm.$nextTick();
+
+    const state = lastEmit(wrapper)[0];
+    expect(state.requiredOverride).toBe(false);
+    expect(state.choiceOverrides).toEqual([
+      { choiceId: "choice-half", isHidden: true, priceAdjustment: 9 },
+    ]);
+  });
+
   it("hides the cap field for a single-choice group", () => {
     const wrapper = mountPicker([link()], [libraryGroup({ type: "single" })]);
 

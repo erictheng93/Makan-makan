@@ -161,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
 import type {
   MenuItemOptionGroupLink,
@@ -180,14 +180,30 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const groupToAdd = ref<string>("");
 
-const links = computed(() => props.modelValue);
+/**
+ * A local copy, updated synchronously on every edit.
+ *
+ * Deriving each edit from `props.modelValue` looked equivalent, but props only
+ * update after the parent re-renders: two edits in the same tick both read the
+ * pre-edit value and the second overwrote the first. Ticking "hide" and then
+ * typing a price silently kept only the price.
+ */
+const draft = ref<MenuItemOptionGroupLink[]>(props.modelValue);
+watch(
+  () => props.modelValue,
+  (value) => {
+    draft.value = value;
+  },
+);
+
+const links = computed(() => draft.value);
 
 const groupById = (groupId: string): OptionGroupData | undefined =>
   props.library.find((group) => group.id === groupId);
 
 const availableGroups = computed(() =>
   props.library.filter(
-    (group) => !props.modelValue.some((link) => link.groupId === group.id),
+    (group) => !draft.value.some((link) => link.groupId === group.id),
   ),
 );
 
@@ -198,20 +214,19 @@ const availableGroups = computed(() =>
  * translate, and nothing to get wrong in translating it.
  */
 const commit = (next: MenuItemOptionGroupLink[]) => {
-  emit(
-    "update:modelValue",
-    next.map((link, index) => ({ ...link, sortOrder: index })),
-  );
+  const renumbered = next.map((link, index) => ({ ...link, sortOrder: index }));
+  draft.value = renumbered;
+  emit("update:modelValue", renumbered);
 };
 
 const attachGroup = () => {
   const group = groupById(groupToAdd.value);
   if (!group) return;
   commit([
-    ...props.modelValue,
+    ...draft.value,
     {
       groupId: group.id,
-      sortOrder: props.modelValue.length,
+      sortOrder: draft.value.length,
       requiredOverride: null,
       maxSelectionsOverride: null,
       choiceOverrides: [],
@@ -221,15 +236,15 @@ const attachGroup = () => {
 };
 
 const detach = (index: number) => {
-  const next = [...props.modelValue];
+  const next = [...draft.value];
   next.splice(index, 1);
   commit(next);
 };
 
 const move = (index: number, delta: number) => {
   const target = index + delta;
-  if (target < 0 || target >= props.modelValue.length) return;
-  const next = [...props.modelValue];
+  if (target < 0 || target >= draft.value.length) return;
+  const next = [...draft.value];
   const [row] = next.splice(index, 1);
   next.splice(target, 0, row);
   commit(next);
@@ -239,7 +254,7 @@ const patchLink = (
   index: number,
   patch: Partial<MenuItemOptionGroupLink>,
 ): void => {
-  const next = [...props.modelValue];
+  const next = [...draft.value];
   next[index] = { ...next[index], ...patch };
   commit(next);
 };
@@ -295,7 +310,7 @@ const patchOverride = (
   choiceId: string,
   patch: { isHidden?: boolean; priceAdjustment?: number | null },
 ) => {
-  const link = props.modelValue[index];
+  const link = draft.value[index];
   const existing = overrideFor(link, choiceId) ?? {
     choiceId,
     isHidden: false,
