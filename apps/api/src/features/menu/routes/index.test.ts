@@ -37,6 +37,13 @@ vi.mock("../../../middleware/moduleGate", () => ({
   moduleGate: gateMocks.moduleGate,
 }));
 
+const backfillMenuItemOptions = vi.hoisted(() => vi.fn());
+
+vi.mock("@makanmakan/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@makanmakan/database")>();
+  return { ...actual, backfillMenuItemOptions };
+});
+
 const serviceFns = vi.hoisted(() => ({
   getMenu: vi.fn(),
   isPublicRestaurantAvailable: vi.fn(),
@@ -673,12 +680,64 @@ describe("menu routes", () => {
           "PUT",
           { groups: [{ groupId: "group-1" }] },
         ],
+        // Platform maintenance: an owner may not walk every restaurant.
+        ["/option-groups/backfill", "POST", {}],
       ];
 
       for (const [path, method, body] of cases) {
         const response = await request(path, method, body);
         expect(response.status, `${method} ${path}`).toBe(403);
       }
+    });
+  });
+
+  describe("option backfill", () => {
+    beforeEach(() => {
+      backfillMenuItemOptions.mockReset();
+    });
+
+    it("lets an admin convert legacy JSON options and reports the counts", async () => {
+      auth.user = buildUser(ROLE.ADMIN, { restaurantId: null });
+      backfillMenuItemOptions.mockResolvedValue({
+        menuItemsScanned: 3,
+        menuItemsBackfilled: 3,
+        groupsInserted: 6,
+        choicesInserted: 10,
+        groupsReused: 0,
+      });
+
+      const response = await request("/option-groups/backfill", "POST", {});
+
+      expect(response.status).toBe(200);
+      expect(backfillMenuItemOptions).toHaveBeenCalledOnce();
+      const body = (await response.json()) as {
+        data: { menuItemsBackfilled: number; groupsReused: number };
+      };
+      expect(body.data).toMatchObject({
+        menuItemsBackfilled: 3,
+        groupsReused: 0,
+      });
+    });
+
+    // Re-running is the recovery path after a partial failure, so a second
+    // call has to be a no-op rather than a second set of groups.
+    it("reports nothing left to do on a second run", async () => {
+      auth.user = buildUser(ROLE.ADMIN, { restaurantId: null });
+      backfillMenuItemOptions.mockResolvedValue({
+        menuItemsScanned: 3,
+        menuItemsBackfilled: 0,
+        groupsInserted: 0,
+        choicesInserted: 0,
+        groupsReused: 0,
+      });
+
+      const response = await request("/option-groups/backfill", "POST", {});
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        data: { menuItemsBackfilled: number };
+      };
+      expect(body.data.menuItemsBackfilled).toBe(0);
     });
   });
 

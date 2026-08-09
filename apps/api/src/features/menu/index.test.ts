@@ -110,7 +110,7 @@ describe("menu feature module", () => {
     expect(module.getStatistics()).toMatchObject({
       name: "menu",
       version: "1.0.0",
-      routes: { total: 23 },
+      routes: { total: 24 },
     });
     expect(module.getConfiguration()).toMatchObject({
       name: "menu",

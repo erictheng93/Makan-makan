@@ -25,7 +25,7 @@ import {
   badRequest,
 } from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
-import { toRequiredCents } from "@makanmakan/database";
+import { toRequiredCents, backfillMenuItemOptions } from "@makanmakan/database";
 import { generateUUID } from "@makanmakan/utils";
 
 // Import schemas
@@ -276,6 +276,28 @@ app.get(
 );
 
 // Protected Menu Management Routes (authentication required)
+
+// POST /option-groups/backfill - Convert legacy JSON options into option rows
+//
+// Platform maintenance, not shop management: it walks every restaurant, so it
+// is ADMIN-only and deliberately skips moduleGate, which asks whether one shop
+// has bought a module.
+//
+// Idempotent by construction — an item that already has link rows is skipped —
+// so re-running after a partial failure resumes rather than duplicates.
+app.post(
+  "/option-groups/backfill",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN]),
+  async (c) => {
+    const result = await backfillMenuItemOptions(c.env.DB);
+
+    return c.json(
+      createSuccessResponse(result, "Menu option backfill completed"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
 
 // GET /:restaurantId/option-groups - List option groups for menu management
 app.get(

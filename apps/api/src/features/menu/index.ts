@@ -234,9 +234,9 @@ class MenuModule implements FeatureModule {
       version: this.version,
       uptime: process.uptime ? `${Math.floor(process.uptime())}s` : "unknown",
       routes: {
-        total: 23,
+        total: 24,
         public: 5,
-        protected: 18,
+        protected: 19,
       },
       supportedOperations: {
         crud: ["create", "read", "update", "delete"],
