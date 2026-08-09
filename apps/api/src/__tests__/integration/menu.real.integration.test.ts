@@ -4,7 +4,12 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
-import { categories, menuItems } from "@makanmakan/database";
+import {
+  categories,
+  menuItems,
+  optionChoices,
+  optionGroups,
+} from "@makanmakan/database";
 import { eq } from "drizzle-orm";
 
 /**
@@ -194,6 +199,262 @@ describe("Menu API — real integration", () => {
         "Searchable Available Item",
       ]);
     }
+  });
+
+  it("round-trips option choice price and sold-out state through assembled menu", async () => {
+    const restaurant = await seed.restaurant();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+    const item = await seed.menuItem(restaurant.id, {
+      name: "Assembled Spice Item",
+      isAvailable: true,
+    });
+
+    const groupRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/option-groups`, {
+        method: "POST",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          publicId: "spice",
+          kind: "choice",
+          name: "Spice",
+          type: "single",
+          required: true,
+        }),
+      }),
+    );
+    expect(groupRes.status).toBe(201);
+    const groupJson: any = await groupRes.json();
+
+    const choiceRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/menu/option-groups/${groupJson.data.id}/choices`,
+        {
+          method: "POST",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({
+            publicId: "hot",
+            name: "Hot",
+            priceAdjustment: 1.5,
+            isDefault: true,
+          }),
+        },
+      ),
+    );
+    expect(choiceRes.status).toBe(201);
+    const choiceJson: any = await choiceRes.json();
+    expect(choiceJson.data.priceAdjustment).toBe(1.5);
+
+    const storedChoice = await testApp.testDb.drizzle
+      .select({ priceAdjustmentCents: optionChoices.priceAdjustmentCents })
+      .from(optionChoices)
+      .where(eq(optionChoices.id, choiceJson.data.id));
+    expect(storedChoice).toEqual([{ priceAdjustmentCents: 150 }]);
+
+    const linkRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          groups: [{ groupId: groupJson.data.id }],
+        }),
+      }),
+    );
+    expect(linkRes.status).toBe(200);
+
+    const patchRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/menu/option-choices/${choiceJson.data.id}`,
+        {
+          method: "PATCH",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({ isAvailable: false }),
+        },
+      ),
+    );
+    expect(patchRes.status).toBe(200);
+
+    const listRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/option-groups`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(listRes.status).toBe(200);
+    const listJson: any = await listRes.json();
+    expect(listJson.data[0].choices[0]).toMatchObject({
+      priceAdjustment: 1.5,
+      isAvailable: false,
+    });
+
+    const menuRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}`),
+    );
+    expect(menuRes.status).toBe(200);
+    const menuJson: any = await menuRes.json();
+    const assembledItem = menuJson.data.menuItems.find(
+      (menuItem: any) => menuItem.id === item.id,
+    );
+    expect(assembledItem.options.customizations).toEqual([
+      {
+        id: "spice",
+        name: "Spice",
+        type: "single",
+        required: true,
+        choices: [
+          {
+            id: "hot",
+            name: "Hot",
+            priceAdjustment: 1.5,
+            isDefault: true,
+            available: false,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("replaces item option groups and rejects duplicate public ids", async () => {
+    const restaurant = await seed.restaurant();
+    await insertActiveSubscription(testApp, String(restaurant.id));
+    const ownerToken = await testApp.authHelper.ownerToken(
+      1,
+      String(restaurant.id),
+    );
+    const item = await seed.menuItem(restaurant.id, {
+      name: "Replace Option Item",
+      isAvailable: true,
+    });
+
+    async function createGroup(publicId: string, name: string) {
+      const groupRes = await testApp.app.fetch(
+        new Request(`https://test/api/v1/menu/${restaurant.id}/option-groups`, {
+          method: "POST",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({
+            publicId,
+            kind: "choice",
+            name,
+            type: "single",
+            required: false,
+          }),
+        }),
+      );
+      expect(groupRes.status).toBe(201);
+      const groupJson: any = await groupRes.json();
+
+      const choiceRes = await testApp.app.fetch(
+        new Request(
+          `https://test/api/v1/menu/option-groups/${groupJson.data.id}/choices`,
+          {
+            method: "POST",
+            headers: csrfHeaders(ownerToken),
+            body: JSON.stringify({
+              publicId: `${publicId}-choice`,
+              name: `${name} Choice`,
+              priceAdjustment: 0,
+            }),
+          },
+        ),
+      );
+      expect(choiceRes.status).toBe(201);
+      const choiceJson: any = await choiceRes.json();
+      return { group: groupJson.data, choice: choiceJson.data };
+    }
+
+    const oldOption = await createGroup("old_spice", "Old Spice");
+    const newOption = await createGroup("new_spice", "New Spice");
+
+    let replaceRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          groups: [{ groupId: oldOption.group.id }],
+        }),
+      }),
+    );
+    expect(replaceRes.status).toBe(200);
+
+    replaceRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          groups: [
+            {
+              groupId: newOption.group.id,
+              requiredOverride: true,
+              choiceOverrides: [
+                {
+                  choiceId: newOption.choice.id,
+                  priceAdjustment: 1.5,
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(replaceRes.status).toBe(200);
+
+    const menuRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}`),
+    );
+    expect(menuRes.status).toBe(200);
+    const menuJson: any = await menuRes.json();
+    const assembledItem = menuJson.data.menuItems.find(
+      (menuItem: any) => menuItem.id === item.id,
+    );
+    expect(assembledItem.options.customizations).toEqual([
+      {
+        id: "new_spice",
+        name: "New Spice",
+        type: "single",
+        required: true,
+        choices: [
+          {
+            id: "new_spice-choice",
+            name: "New Spice Choice",
+            priceAdjustment: 1.5,
+          },
+        ],
+      },
+    ]);
+
+    const [firstDuplicate, secondDuplicate] = [
+      await createGroup("same_public", "Same Public A"),
+      await createGroup("same_public", "Same Public B"),
+    ];
+    const conflictRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({
+          groups: [
+            { groupId: firstDuplicate.group.id },
+            { groupId: secondDuplicate.group.id },
+          ],
+        }),
+      }),
+    );
+    expect(conflictRes.status).toBe(409);
+    await expect(conflictRes.json()).resolves.toMatchObject({
+      success: false,
+      error: expect.objectContaining({
+        code: "OPTION_GROUP_PUBLIC_ID_CONFLICT",
+      }),
+    });
+
+    const activeGroups = await testApp.testDb.drizzle
+      .select({ publicId: optionGroups.publicId })
+      .from(optionGroups)
+      .where(eq(optionGroups.restaurantId, String(restaurant.id)));
+    expect(activeGroups.map((group) => group.publicId)).toContain(
+      "same_public",
+    );
   });
 
   it("hides public menu items that belong to private categories", async () => {

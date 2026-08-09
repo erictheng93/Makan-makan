@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
+import type { D1Database } from "@cloudflare/workers-types";
 import {
   categories,
   menuItems,
@@ -19,6 +20,65 @@ import {
 } from "./menu-options";
 
 const restaurantId = "restaurant-menu-options-test";
+
+function withBackfillAudit(
+  db: D1Database,
+  audit: { batchSizes: number[]; failBatch?: number },
+): D1Database {
+  return {
+    prepare: (sqlText: string) => {
+      if (
+        /^\s*select\b/i.test(sqlText) &&
+        /from\s+"menu_item_option_groups"/i.test(sqlText) &&
+        !/\bwhere\b/i.test(sqlText)
+      ) {
+        throw new Error("menu_item_option_groups idempotency scan lacks WHERE");
+      }
+      return db.prepare(sqlText);
+    },
+    batch: async (statements: any[]) => {
+      audit.batchSizes.push(statements.length);
+      if (audit.failBatch === audit.batchSizes.length) {
+        throw new Error(`Injected backfill batch ${audit.failBatch} failure`);
+      }
+      return db.batch(statements);
+    },
+    exec: (query: string) => (db as any).exec(query),
+    dump: () => (db as any).dump?.(),
+  } as unknown as D1Database;
+}
+
+async function countBackfilledOptionRows(db: D1Database): Promise<{
+  groups: number;
+  links: number;
+  orphanGroups: number;
+}> {
+  const groups =
+    (
+      await db
+        .prepare("SELECT COUNT(*) AS count FROM option_groups")
+        .first<{ count: number }>()
+    )?.count ?? 0;
+  const links =
+    (
+      await db
+        .prepare("SELECT COUNT(*) AS count FROM menu_item_option_groups")
+        .first<{ count: number }>()
+    )?.count ?? 0;
+  const orphanGroups =
+    (
+      await db
+        .prepare(
+          `SELECT COUNT(*) AS count
+           FROM option_groups AS og
+           LEFT JOIN menu_item_option_groups AS miog ON miog.group_id = og.id
+           WHERE miog.group_id IS NULL`,
+        )
+        .first<{ count: number }>()
+    )?.count ?? 0;
+
+  return { groups, links, orphanGroups };
+}
 
 describe("menu item option rows", () => {
   let testDb: TestDatabase;
@@ -130,6 +190,109 @@ describe("menu item option rows", () => {
       true,
     );
   });
+
+  it("chunks backfill writes and scopes idempotency reads to the target items", async () => {
+    const itemCount = 15;
+    for (let index = 0; index < itemCount; index++) {
+      await testDb.drizzle.insert(menuItems).values({
+        restaurantId,
+        categoryId,
+        name: `Batch Item ${index}`,
+        priceCents: 1000,
+        isAvailable: true,
+        options: {
+          customizations: [
+            {
+              id: "spice",
+              name: "Spice",
+              type: "single",
+              required: true,
+              choices: [
+                { id: "hot", name: "Hot", priceAdjustment: 1 },
+                { id: "mild", name: "Mild", priceAdjustment: 0 },
+              ],
+            },
+          ],
+          addOns: [
+            {
+              id: "egg",
+              name: "Egg",
+              price: 1,
+              maxQuantity: 3,
+            },
+          ],
+        },
+      });
+    }
+    const audit = { batchSizes: [] as number[] };
+
+    await backfillMenuItemOptions(withBackfillAudit(testDb.bindings.DB, audit));
+
+    expect(audit.batchSizes.length).toBeGreaterThan(1);
+    expect(Math.max(...audit.batchSizes)).toBeLessThanOrEqual(100);
+  }, 30_000);
+
+  it("does not split one item across backfill batches", async () => {
+    const itemCount = 15;
+    for (let index = 0; index < itemCount; index++) {
+      await testDb.drizzle.insert(menuItems).values({
+        restaurantId,
+        categoryId,
+        name: `Retry Item ${index}`,
+        priceCents: 1000,
+        isAvailable: true,
+        options: {
+          customizations: [
+            {
+              id: "spice",
+              name: "Spice",
+              type: "single",
+              required: true,
+              choices: [
+                { id: "hot", name: "Hot", priceAdjustment: 1 },
+                { id: "mild", name: "Mild", priceAdjustment: 0 },
+              ],
+            },
+          ],
+          addOns: [
+            {
+              id: "egg",
+              name: "Egg",
+              price: 1,
+              maxQuantity: 3,
+            },
+          ],
+        },
+      });
+    }
+
+    await expect(
+      backfillMenuItemOptions(
+        withBackfillAudit(testDb.bindings.DB, {
+          batchSizes: [],
+          failBatch: 2,
+        }),
+      ),
+    ).rejects.toThrow("Injected backfill batch 2 failure");
+
+    await expect(
+      countBackfilledOptionRows(testDb.bindings.DB),
+    ).resolves.toEqual({
+      groups: 28,
+      links: 28,
+      orphanGroups: 0,
+    });
+
+    await backfillMenuItemOptions(testDb.bindings.DB);
+
+    await expect(
+      countBackfilledOptionRows(testDb.bindings.DB),
+    ).resolves.toEqual({
+      groups: 30,
+      links: 30,
+      orphanGroups: 0,
+    });
+  }, 30_000);
 
   it("applies hidden, price, required, and sold-out overrides", async () => {
     await testDb.drizzle.insert(menuItems).values({
@@ -421,5 +584,18 @@ describe("menu item option rows", () => {
     expect(assembled?.customizations?.[0].choices).toEqual([
       { id: "half", name: "半糖", priceAdjustment: 0, available: false },
     ]);
+  });
+
+  it("does not hide query-layer mistakes behind a JSON fallback", async () => {
+    await expect(
+      loadAssembledMenuItemOptions({} as any, [
+        {
+          id: 1,
+          options: {
+            addOns: [{ id: "egg", name: "Egg", price: 1 }],
+          },
+        },
+      ]),
+    ).rejects.toThrow(/select/);
   });
 });

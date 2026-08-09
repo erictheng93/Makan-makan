@@ -139,6 +139,14 @@ class MenuModule implements FeatureModule {
           "GET /items/:id - Menu item details",
         ],
         protected: [
+          "GET /:restaurantId/option-groups - List option groups",
+          "POST /:restaurantId/option-groups - Create option group",
+          "PUT /option-groups/:groupId - Update option group",
+          "DELETE /option-groups/:groupId - Delete option group",
+          "POST /option-groups/:groupId/choices - Create option choice",
+          "PATCH /option-choices/:choiceId - Update option choice",
+          "DELETE /option-choices/:choiceId - Delete option choice",
+          "PUT /items/:id/option-groups - Replace item option groups",
           "POST /:restaurantId/items - Create menu item",
           "PUT /items/:id - Update menu item",
           "DELETE /items/:id - Delete menu item",
@@ -226,9 +234,9 @@ class MenuModule implements FeatureModule {
       version: this.version,
       uptime: process.uptime ? `${Math.floor(process.uptime())}s` : "unknown",
       routes: {
-        total: 15,
+        total: 23,
         public: 5,
-        protected: 10,
+        protected: 18,
       },
       supportedOperations: {
         crud: ["create", "read", "update", "delete"],

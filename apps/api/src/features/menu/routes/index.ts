@@ -18,8 +18,15 @@ import {
 import type { Env } from "../../../shared/types";
 import { HTTP_STATUS, USER_ROLES } from "../../../shared/constants";
 import { createSuccessResponse } from "../../../shared/utils";
-import { notFound, forbidden } from "../../../shared/utils/api-error";
+import {
+  notFound,
+  forbidden,
+  conflict,
+  badRequest,
+} from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
+import { toRequiredCents } from "@makanmakan/database";
+import { generateUUID } from "@makanmakan/utils";
 
 // Import schemas
 import { menuSchemas } from "../schemas/validation";
@@ -82,6 +89,41 @@ function assertChefFieldsAllowed(
       "CHEF_FIELD_NOT_ALLOWED",
     );
   }
+}
+
+function assertUserCanAccessRestaurantResource(
+  user: { role: number; restaurantId?: string | number | null },
+  restaurantId: string,
+): void {
+  if (
+    user.role !== USER_ROLES.ADMIN &&
+    String(user.restaurantId) !== restaurantId
+  ) {
+    throw forbidden("Access denied");
+  }
+}
+
+function mapOptionGroupMutationError(error: unknown): never {
+  if (error instanceof Error) {
+    if (
+      error.message.includes("already offers an option group with public id")
+    ) {
+      throw conflict(error.message, "OPTION_GROUP_PUBLIC_ID_CONFLICT");
+    }
+    if (
+      error.message.includes("Option group not found") ||
+      error.message.includes("Option choice not found")
+    ) {
+      throw notFound(error.message);
+    }
+    if (error.message.includes("is not in the selected option group")) {
+      throw badRequest(error.message);
+    }
+    if (error.message.includes("does not belong")) {
+      throw forbidden("Access denied");
+    }
+  }
+  throw error;
 }
 
 // Public Menu Routes (no authentication required)
@@ -234,6 +276,282 @@ app.get(
 );
 
 // Protected Menu Management Routes (authentication required)
+
+// GET /:restaurantId/option-groups - List option groups for menu management
+app.get(
+  "/:restaurantId/option-groups",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(menuSchemas.restaurantIdParam),
+  async (c) => {
+    const { restaurantId } = c.get("validatedParams");
+    const service = new MenuService(c.env);
+
+    const groups = await service.listOptionGroups(restaurantId);
+
+    return c.json(createSuccessResponse(groups), HTTP_STATUS.OK);
+  },
+);
+
+// POST /:restaurantId/option-groups - Create option group
+app.post(
+  "/:restaurantId/option-groups",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(menuSchemas.restaurantIdParam),
+  validateBody(menuSchemas.createOptionGroup),
+  async (c) => {
+    const { restaurantId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const service = new MenuService(c.env);
+
+    const group = await service.createOptionGroup({
+      id: generateUUID(),
+      restaurantId,
+      publicId: data.publicId,
+      kind: data.kind,
+      name: data.name,
+      type: data.type,
+      required: data.required ?? false,
+      maxSelections: data.maxSelections,
+      sortOrder: data.sortOrder ?? 0,
+    });
+
+    return c.json(
+      createSuccessResponse(group, "Option group created successfully"),
+      HTTP_STATUS.CREATED,
+    );
+  },
+);
+
+// PUT /option-groups/:groupId - Update option group metadata
+app.put(
+  "/option-groups/:groupId",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.optionGroupIdParam),
+  validateBody(menuSchemas.updateOptionGroup),
+  async (c) => {
+    const { groupId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingGroup = await service.getOptionGroup(groupId);
+    if (!existingGroup) {
+      throw notFound("Option group not found");
+    }
+    assertUserCanAccessRestaurantResource(user, existingGroup.restaurantId);
+
+    const group = await service.updateOptionGroup(groupId, data);
+
+    return c.json(
+      createSuccessResponse(group, "Option group updated successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+// DELETE /option-groups/:groupId - Soft delete option group
+app.delete(
+  "/option-groups/:groupId",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.optionGroupIdParam),
+  async (c) => {
+    const { groupId } = c.get("validatedParams");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingGroup = await service.getOptionGroup(groupId);
+    if (!existingGroup) {
+      throw notFound("Option group not found");
+    }
+    assertUserCanAccessRestaurantResource(user, existingGroup.restaurantId);
+
+    const deleted = await service.deleteOptionGroup(groupId);
+    if (!deleted) {
+      throw notFound("Option group not found");
+    }
+
+    return c.json(
+      createSuccessResponse(null, "Option group deleted successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+// POST /option-groups/:groupId/choices - Add choice to an option group
+app.post(
+  "/option-groups/:groupId/choices",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.optionGroupIdParam),
+  validateBody(menuSchemas.createOptionChoice),
+  async (c) => {
+    const { groupId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingGroup = await service.getOptionGroup(groupId);
+    if (!existingGroup) {
+      throw notFound("Option group not found");
+    }
+    assertUserCanAccessRestaurantResource(user, existingGroup.restaurantId);
+
+    const choice = await service.createOptionChoice({
+      id: generateUUID(),
+      groupId,
+      publicId: data.publicId,
+      name: data.name,
+      priceAdjustmentCents:
+        data.priceAdjustment === undefined
+          ? 0
+          : toRequiredCents(data.priceAdjustment),
+      isDefault: data.isDefault ?? false,
+      isAvailable: data.isAvailable ?? true,
+      maxQuantity: data.maxQuantity,
+      sortOrder: data.sortOrder ?? 0,
+    });
+
+    return c.json(
+      createSuccessResponse(choice, "Option choice created successfully"),
+      HTTP_STATUS.CREATED,
+    );
+  },
+);
+
+// PATCH /option-choices/:choiceId - Update option choice
+app.patch(
+  "/option-choices/:choiceId",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.optionChoiceIdParam),
+  validateBody(menuSchemas.updateOptionChoice),
+  async (c) => {
+    const { choiceId } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingChoice = await service.getOptionChoice(choiceId);
+    if (!existingChoice) {
+      throw notFound("Option choice not found");
+    }
+    assertUserCanAccessRestaurantResource(
+      user,
+      String(existingChoice.restaurantId),
+    );
+
+    const { priceAdjustment, ...choiceData } = data;
+    const choice = await service.updateOptionChoice(choiceId, {
+      ...choiceData,
+      ...(priceAdjustment !== undefined
+        ? { priceAdjustmentCents: toRequiredCents(priceAdjustment) }
+        : {}),
+    });
+
+    return c.json(
+      createSuccessResponse(choice, "Option choice updated successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+// DELETE /option-choices/:choiceId - Delete option choice
+app.delete(
+  "/option-choices/:choiceId",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.optionChoiceIdParam),
+  async (c) => {
+    const { choiceId } = c.get("validatedParams");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingChoice = await service.getOptionChoice(choiceId);
+    if (!existingChoice) {
+      throw notFound("Option choice not found");
+    }
+    assertUserCanAccessRestaurantResource(
+      user,
+      String(existingChoice.restaurantId),
+    );
+
+    const deleted = await service.deleteOptionChoice(choiceId);
+    if (!deleted) {
+      throw notFound("Option choice not found");
+    }
+
+    return c.json(
+      createSuccessResponse(null, "Option choice deleted successfully"),
+      HTTP_STATUS.OK,
+    );
+  },
+);
+
+// PUT /items/:id/option-groups - Replace all option groups for a menu item
+app.put(
+  "/items/:id/option-groups",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.menuItemIdParam),
+  validateBody(menuSchemas.replaceMenuItemOptionGroups),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const data = c.get("validatedBody");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingItem = await service.getMenuItem(id);
+    if (!existingItem) {
+      throw notFound("Menu item not found");
+    }
+    assertUserCanAccessRestaurantResource(user, existingItem.restaurantId);
+
+    try {
+      await service.replaceMenuItemOptionGroups(
+        id,
+        data.groups.map((group) => ({
+          groupId: group.groupId,
+          sortOrder: group.sortOrder,
+          requiredOverride: group.requiredOverride,
+          maxSelectionsOverride: group.maxSelectionsOverride,
+          choiceOverrides: group.choiceOverrides?.map((override) => ({
+            choiceId: override.choiceId,
+            isHidden: override.isHidden,
+            priceAdjustmentCents:
+              override.priceAdjustment === undefined ||
+              override.priceAdjustment === null
+                ? override.priceAdjustment
+                : toRequiredCents(override.priceAdjustment),
+          })),
+        })),
+      );
+    } catch (error) {
+      mapOptionGroupMutationError(error);
+    }
+
+    return c.json(
+      createSuccessResponse(
+        null,
+        "Menu item option groups updated successfully",
+      ),
+      HTTP_STATUS.OK,
+    );
+  },
+);
 
 // POST /:restaurantId/items - Create menu item
 // CHEF is deliberately absent: creating an item sets its price (#85). Chefs

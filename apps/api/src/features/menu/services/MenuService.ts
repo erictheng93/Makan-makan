@@ -17,6 +17,12 @@ import {
   MenuService as DatabaseMenuService,
   restaurants,
   categories as categoriesTable,
+  amountFromCents,
+} from "@makanmakan/database";
+import type {
+  OptionChoiceWithRestaurant,
+  OptionGroupWithChoices,
+  ReplaceMenuItemOptionGroupData,
 } from "@makanmakan/database";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -87,6 +93,66 @@ export class MenuService implements IMenuService {
       .limit(1);
 
     return Boolean(restaurant);
+  }
+
+  async listOptionGroups(restaurantId: string) {
+    const groups = await this.dbService.listOptionGroups(restaurantId);
+    return groups.map((group) => this.transformOptionGroup(group));
+  }
+
+  async getOptionGroup(groupId: string) {
+    const group = await this.dbService.getOptionGroup(groupId);
+    return group ? this.transformOptionGroup({ ...group, choices: [] }) : null;
+  }
+
+  async createOptionGroup(
+    data: Parameters<DatabaseMenuService["createOptionGroup"]>[0],
+  ) {
+    const group = await this.dbService.createOptionGroup(data);
+    return this.transformOptionGroup({ ...group, choices: [] });
+  }
+
+  async updateOptionGroup(
+    groupId: string,
+    data: Parameters<DatabaseMenuService["updateOptionGroup"]>[1],
+  ) {
+    const group = await this.dbService.updateOptionGroup(groupId, data);
+    return this.transformOptionGroup({ ...group, choices: [] });
+  }
+
+  async deleteOptionGroup(groupId: string): Promise<boolean> {
+    return this.dbService.softDeleteOptionGroup(groupId);
+  }
+
+  async getOptionChoice(choiceId: string) {
+    const choice = await this.dbService.getOptionChoice(choiceId);
+    return choice ? this.transformOptionChoice(choice) : null;
+  }
+
+  async createOptionChoice(
+    data: Parameters<DatabaseMenuService["createOptionChoice"]>[0],
+  ) {
+    const choice = await this.dbService.createOptionChoice(data);
+    return this.transformOptionChoice(choice);
+  }
+
+  async updateOptionChoice(
+    choiceId: string,
+    data: Parameters<DatabaseMenuService["updateOptionChoice"]>[1],
+  ) {
+    const choice = await this.dbService.updateOptionChoice(choiceId, data);
+    return this.transformOptionChoice(choice);
+  }
+
+  async deleteOptionChoice(choiceId: string): Promise<boolean> {
+    return this.dbService.deleteOptionChoice(choiceId);
+  }
+
+  async replaceMenuItemOptionGroups(
+    menuItemId: number,
+    groups: ReplaceMenuItemOptionGroupData[],
+  ): Promise<void> {
+    await this.dbService.replaceMenuItemOptionGroups(menuItemId, groups);
   }
 
   /**
@@ -1056,6 +1122,48 @@ export class MenuService implements IMenuService {
       // to 0 — there is no stored categories.item_count any more, and reporting
       // 0 for "unknown" is what made the old column look plausible (#84).
       itemCount: "itemCount" in category ? category.itemCount : undefined,
+    };
+  }
+
+  private transformOptionChoice(
+    choice:
+      | OptionChoiceWithRestaurant
+      | OptionGroupWithChoices["choices"][number],
+  ) {
+    return {
+      id: choice.id,
+      groupId: choice.groupId,
+      publicId: choice.publicId,
+      name: choice.name,
+      priceAdjustment: amountFromCents(choice.priceAdjustmentCents) ?? 0,
+      isDefault: choice.isDefault,
+      isAvailable: choice.isAvailable,
+      maxQuantity: choice.maxQuantity,
+      sortOrder: choice.sortOrder,
+      createdAt: choice.createdAt,
+      updatedAt: choice.updatedAt,
+      ...("restaurantId" in choice
+        ? { restaurantId: choice.restaurantId }
+        : {}),
+    };
+  }
+
+  private transformOptionGroup(group: OptionGroupWithChoices) {
+    return {
+      id: group.id,
+      restaurantId: group.restaurantId,
+      publicId: group.publicId,
+      kind: group.kind,
+      name: group.name,
+      type: group.type,
+      required: group.required,
+      maxSelections: group.maxSelections,
+      sortOrder: group.sortOrder,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+      choices: group.choices.map((choice) =>
+        this.transformOptionChoice(choice),
+      ),
     };
   }
 

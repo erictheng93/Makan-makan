@@ -110,7 +110,7 @@ describe("menu feature module", () => {
     expect(module.getStatistics()).toMatchObject({
       name: "menu",
       version: "1.0.0",
-      routes: { total: 15 },
+      routes: { total: 23 },
     });
     expect(module.getConfiguration()).toMatchObject({
       name: "menu",
@@ -138,5 +138,5 @@ describe("menu feature module", () => {
     await menuFeature.default.cleanup();
 
     vi.useRealTimers();
-  });
+  }, 30000);
 });

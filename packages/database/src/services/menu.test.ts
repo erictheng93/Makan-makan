@@ -490,6 +490,7 @@ describe("MenuService category visibility", () => {
   function buildMenuService(categoryRows: Record<string, unknown>[]) {
     const capturedConfigs: any[] = [];
     const db = {
+      select: vi.fn(() => createQuery([], [])),
       query: {
         restaurants: {
           findFirst: vi.fn(async (config: any) => {
@@ -915,8 +916,14 @@ describe("MenuService image ownership", () => {
     };
     const selectBuilder = {
       from: vi.fn(() => selectBuilder),
+      innerJoin: vi.fn(() => selectBuilder),
       where: vi.fn(() => selectBuilder),
+      orderBy: vi.fn(() => selectBuilder),
       limit: vi.fn(async () => [getItem]),
+      then: (
+        resolve: (value: unknown) => void,
+        reject?: (reason: unknown) => void,
+      ) => Promise.resolve([]).then(resolve, reject),
     };
     const db = {
       insert: vi.fn(() => createBuilder),

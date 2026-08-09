@@ -68,6 +68,9 @@ const boundedLimitQuery = (defaultValue: string, max: number) =>
     .pipe(z.number().int().min(1).max(max));
 
 const MAX_PAGE_SIZE = 100;
+const optionPublicIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,50}$/);
+const optionKindSchema = z.enum(["size", "choice", "addon"]);
+const optionGroupTypeSchema = z.enum(["single", "multiple"]);
 
 // Menu Item Option Schemas
 //
@@ -463,6 +466,116 @@ export const categoryIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),
 });
 
+export const optionGroupIdParamSchema = z.object({
+  groupId: z.string().min(1),
+});
+
+export const optionChoiceIdParamSchema = z.object({
+  choiceId: z.string().min(1),
+});
+
+export const createOptionGroupSchema = z
+  .object({
+    publicId: optionPublicIdSchema,
+    kind: optionKindSchema,
+    name: nonEmptyString.max(100),
+    type: optionGroupTypeSchema,
+    required: z.boolean().optional(),
+    maxSelections: positiveInteger.optional(),
+    sortOrder: nonNegativeInteger.optional(),
+  })
+  .strict();
+
+export const updateOptionGroupSchema = z
+  .object({
+    name: nonEmptyString.max(100).optional(),
+    type: optionGroupTypeSchema.optional(),
+    required: z.boolean().optional(),
+    maxSelections: positiveInteger.optional(),
+    sortOrder: nonNegativeInteger.optional(),
+  })
+  .strict();
+
+export const createOptionChoiceSchema = z
+  .object({
+    publicId: optionPublicIdSchema,
+    name: nonEmptyString.max(100),
+    priceAdjustment: z.number().optional(),
+    isDefault: z.boolean().optional(),
+    isAvailable: z.boolean().optional(),
+    maxQuantity: positiveInteger.optional(),
+    sortOrder: nonNegativeInteger.optional(),
+  })
+  .strict();
+
+export const updateOptionChoiceSchema = z
+  .object({
+    name: nonEmptyString.max(100).optional(),
+    priceAdjustment: z.number().optional(),
+    isDefault: z.boolean().optional(),
+    isAvailable: z.boolean().optional(),
+    maxQuantity: positiveInteger.optional(),
+    sortOrder: nonNegativeInteger.optional(),
+  })
+  .strict();
+
+export const replaceMenuItemOptionGroupsSchema = z
+  .object({
+    groups: z.array(
+      z
+        .object({
+          groupId: z.string().min(1),
+          sortOrder: nonNegativeInteger.optional(),
+          requiredOverride: z.boolean().nullable().optional(),
+          maxSelectionsOverride: positiveInteger.nullable().optional(),
+          choiceOverrides: z
+            .array(
+              z
+                .object({
+                  choiceId: z.string().min(1),
+                  isHidden: z.boolean().optional(),
+                  priceAdjustment: z.number().nullable().optional(),
+                })
+                .strict(),
+            )
+            .optional(),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    const groupIds = new Set<string>();
+    data.groups.forEach((group, groupIndex) => {
+      if (groupIds.has(group.groupId)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["groups", groupIndex, "groupId"],
+          message: "groupId must be unique within groups",
+        });
+      }
+      groupIds.add(group.groupId);
+
+      const choiceIds = new Set<string>();
+      group.choiceOverrides?.forEach((override, overrideIndex) => {
+        if (choiceIds.has(override.choiceId)) {
+          ctx.addIssue({
+            code: "custom",
+            path: [
+              "groups",
+              groupIndex,
+              "choiceOverrides",
+              overrideIndex,
+              "choiceId",
+            ],
+            message: "choiceId must be unique within choiceOverrides",
+          });
+        }
+        choiceIds.add(override.choiceId);
+      });
+    });
+  });
+
 // Query Parameter Schemas
 export const featuredItemsQuerySchema = z.object({
   limit: boundedLimitQuery("10", MAX_PAGE_SIZE),
@@ -656,6 +769,15 @@ export const menuSchemas = {
   restaurantIdParam: restaurantIdParamSchema,
   menuItemIdParam: menuItemIdParamSchema,
   categoryIdParam: categoryIdParamSchema,
+  optionGroupIdParam: optionGroupIdParamSchema,
+  optionChoiceIdParam: optionChoiceIdParamSchema,
+
+  // Option group schemas
+  createOptionGroup: createOptionGroupSchema,
+  updateOptionGroup: updateOptionGroupSchema,
+  createOptionChoice: createOptionChoiceSchema,
+  updateOptionChoice: updateOptionChoiceSchema,
+  replaceMenuItemOptionGroups: replaceMenuItemOptionGroupsSchema,
 
   // Query schemas
   featuredItemsQuery: featuredItemsQuerySchema,

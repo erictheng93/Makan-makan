@@ -23,9 +23,7 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
     // The real role guard, not a stub: the role table on these routes is the
     // thing under test (#85), so a pass-through mock would assert nothing.
     requireRole: vi.fn(actual.requireRole),
-    requireRestaurantAccess: vi.fn(
-      () => async (_c: unknown, next: () => Promise<void>) => next(),
-    ),
+    requireRestaurantAccess: vi.fn(actual.requireRestaurantAccess),
   };
 });
 
@@ -61,6 +59,16 @@ const serviceFns = vi.hoisted(() => ({
   deleteCategory: vi.fn(),
   getMenuAnalytics: vi.fn(),
   getPopularityMetrics: vi.fn(),
+  listOptionGroups: vi.fn(),
+  getOptionGroup: vi.fn(),
+  createOptionGroup: vi.fn(),
+  updateOptionGroup: vi.fn(),
+  deleteOptionGroup: vi.fn(),
+  getOptionChoice: vi.fn(),
+  createOptionChoice: vi.fn(),
+  updateOptionChoice: vi.fn(),
+  deleteOptionChoice: vi.fn(),
+  replaceMenuItemOptionGroups: vi.fn(),
 }));
 
 vi.mock("../services/MenuService", () => ({
@@ -86,6 +94,16 @@ vi.mock("../services/MenuService", () => ({
     deleteCategory = serviceFns.deleteCategory;
     getMenuAnalytics = serviceFns.getMenuAnalytics;
     getPopularityMetrics = serviceFns.getPopularityMetrics;
+    listOptionGroups = serviceFns.listOptionGroups;
+    getOptionGroup = serviceFns.getOptionGroup;
+    createOptionGroup = serviceFns.createOptionGroup;
+    updateOptionGroup = serviceFns.updateOptionGroup;
+    deleteOptionGroup = serviceFns.deleteOptionGroup;
+    getOptionChoice = serviceFns.getOptionChoice;
+    createOptionChoice = serviceFns.createOptionChoice;
+    updateOptionChoice = serviceFns.updateOptionChoice;
+    deleteOptionChoice = serviceFns.deleteOptionChoice;
+    replaceMenuItemOptionGroups = serviceFns.replaceMenuItemOptionGroups;
   },
 }));
 
@@ -169,6 +187,32 @@ const category = {
   name: "Noodles",
 };
 
+const optionGroup = {
+  id: "group-1",
+  restaurantId: "rest-1",
+  publicId: "spice",
+  kind: "choice",
+  name: "Spice",
+  type: "single",
+  required: true,
+  maxSelections: 1,
+  sortOrder: 0,
+  choices: [],
+};
+
+const optionChoice = {
+  id: "choice-1",
+  groupId: "group-1",
+  restaurantId: "rest-1",
+  publicId: "hot",
+  name: "Hot",
+  priceAdjustment: 1.5,
+  isDefault: false,
+  isAvailable: true,
+  maxQuantity: null,
+  sortOrder: 0,
+};
+
 const ROLE = { ADMIN: 0, OWNER: 1, CHEF: 2 } as const;
 
 function buildUser(
@@ -219,6 +263,16 @@ beforeEach(() => {
   serviceFns.deleteCategory.mockResolvedValue(true);
   serviceFns.getMenuAnalytics.mockResolvedValue({ totalItems: 1 });
   serviceFns.getPopularityMetrics.mockResolvedValue({ mostOrdered: [item] });
+  serviceFns.listOptionGroups.mockResolvedValue([optionGroup]);
+  serviceFns.getOptionGroup.mockResolvedValue(optionGroup);
+  serviceFns.createOptionGroup.mockResolvedValue(optionGroup);
+  serviceFns.updateOptionGroup.mockResolvedValue(optionGroup);
+  serviceFns.deleteOptionGroup.mockResolvedValue(true);
+  serviceFns.getOptionChoice.mockResolvedValue(optionChoice);
+  serviceFns.createOptionChoice.mockResolvedValue(optionChoice);
+  serviceFns.updateOptionChoice.mockResolvedValue(optionChoice);
+  serviceFns.deleteOptionChoice.mockResolvedValue(true);
+  serviceFns.replaceMenuItemOptionGroups.mockResolvedValue(undefined);
   syncFns.onMenuItemChanged.mockResolvedValue(undefined);
   syncFns.onCategoryChanged.mockResolvedValue(undefined);
 });
@@ -405,6 +459,215 @@ describe("menu routes", () => {
     expect(serviceFns.batchMoveItems).toHaveBeenCalledWith("rest-1", [
       { id: 11, categoryId: 4 },
     ]);
+  });
+
+  describe("option group management", () => {
+    it("lists, creates, updates, and deletes option groups", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      let response = await request("/rest-1/option-groups");
+      expect(response.status).toBe(200);
+      expect(serviceFns.listOptionGroups).toHaveBeenCalledWith("rest-1");
+
+      response = await request("/rest-1/option-groups", "POST", {
+        publicId: "spice",
+        kind: "choice",
+        name: "Spice",
+        type: "single",
+        required: true,
+        maxSelections: 1,
+        sortOrder: 2,
+      });
+      expect(response.status).toBe(201);
+      expect(serviceFns.createOptionGroup).toHaveBeenCalledWith(
+        expect.objectContaining({
+          restaurantId: "rest-1",
+          publicId: "spice",
+          kind: "choice",
+          name: "Spice",
+          type: "single",
+          required: true,
+          maxSelections: 1,
+          sortOrder: 2,
+        }),
+      );
+
+      response = await request("/option-groups/group-1", "PUT", {
+        name: "Heat",
+      });
+      expect(response.status).toBe(200);
+      expect(serviceFns.updateOptionGroup).toHaveBeenCalledWith("group-1", {
+        name: "Heat",
+      });
+
+      response = await request("/option-groups/group-1", "DELETE");
+      expect(response.status).toBe(200);
+      expect(serviceFns.deleteOptionGroup).toHaveBeenCalledWith("group-1");
+    });
+
+    it("manages choices and converts priceAdjustment yuan to cents", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      let response = await request("/option-groups/group-1/choices", "POST", {
+        publicId: "hot",
+        name: "Hot",
+        priceAdjustment: 1.5,
+        isAvailable: false,
+        maxQuantity: 2,
+      });
+      expect(response.status).toBe(201);
+      expect(serviceFns.createOptionChoice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          groupId: "group-1",
+          publicId: "hot",
+          priceAdjustmentCents: 150,
+          isAvailable: false,
+          maxQuantity: 2,
+        }),
+      );
+
+      response = await request("/option-choices/choice-1", "PATCH", {
+        priceAdjustment: 2.25,
+        isAvailable: false,
+      });
+      expect(response.status).toBe(200);
+      expect(serviceFns.updateOptionChoice).toHaveBeenCalledWith("choice-1", {
+        priceAdjustmentCents: 225,
+        isAvailable: false,
+      });
+
+      response = await request("/option-choices/choice-1", "DELETE");
+      expect(response.status).toBe(200);
+      expect(serviceFns.deleteOptionChoice).toHaveBeenCalledWith("choice-1");
+    });
+
+    it("replaces an item's option groups and maps override prices to cents", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+
+      const response = await request("/items/11/option-groups", "PUT", {
+        groups: [
+          {
+            groupId: "group-1",
+            sortOrder: 3,
+            requiredOverride: false,
+            maxSelectionsOverride: 2,
+            choiceOverrides: [
+              {
+                choiceId: "choice-1",
+                isHidden: true,
+                priceAdjustment: 1.5,
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(response.status).toBe(200);
+      expect(serviceFns.replaceMenuItemOptionGroups).toHaveBeenCalledWith(11, [
+        {
+          groupId: "group-1",
+          sortOrder: 3,
+          requiredOverride: false,
+          maxSelectionsOverride: 2,
+          choiceOverrides: [
+            {
+              choiceId: "choice-1",
+              isHidden: true,
+              priceAdjustmentCents: 150,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("maps duplicate publicId link conflicts to 409", async () => {
+      serviceFns.replaceMenuItemOptionGroups.mockRejectedValueOnce(
+        new Error(
+          "Menu item 11 already offers an option group with public id spice",
+        ),
+      );
+
+      const response = await request("/items/11/option-groups", "PUT", {
+        groups: [{ groupId: "group-1" }, { groupId: "group-2" }],
+      });
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({
+          code: "OPTION_GROUP_PUBLIC_ID_CONFLICT",
+        }),
+      });
+    });
+
+    it("rejects publicId on option group update", async () => {
+      const response = await request("/option-groups/group-1", "PUT", {
+        publicId: "new-spice",
+      });
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.updateOptionGroup).not.toHaveBeenCalled();
+    });
+
+    it("rejects duplicate group ids before replacing item option groups", async () => {
+      const response = await request("/items/11/option-groups", "PUT", {
+        groups: [{ groupId: "group-1" }, { groupId: "group-1" }],
+      });
+
+      expect(response.status).toBe(400);
+      expect(serviceFns.replaceMenuItemOptionGroups).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 for missing option group or choice resources", async () => {
+      serviceFns.getOptionGroup.mockResolvedValueOnce(null);
+      let response = await request("/option-groups/missing", "PUT", {
+        name: "Heat",
+      });
+      expect(response.status).toBe(404);
+
+      serviceFns.getOptionChoice.mockResolvedValueOnce(null);
+      response = await request("/option-choices/missing", "PATCH", {
+        isAvailable: false,
+      });
+      expect(response.status).toBe(404);
+    });
+
+    it("returns 403 when an owner touches another restaurant's option resources", async () => {
+      auth.user = buildUser(ROLE.OWNER, { restaurantId: "other" });
+
+      const cases: Array<[string, string, unknown | undefined]> = [
+        ["/rest-1/option-groups", "GET", undefined],
+        [
+          "/rest-1/option-groups",
+          "POST",
+          {
+            publicId: "spice",
+            kind: "choice",
+            name: "Spice",
+            type: "single",
+          },
+        ],
+        ["/option-groups/group-1", "PUT", { name: "Heat" }],
+        ["/option-groups/group-1", "DELETE", undefined],
+        [
+          "/option-groups/group-1/choices",
+          "POST",
+          { publicId: "hot", name: "Hot", priceAdjustment: 1 },
+        ],
+        ["/option-choices/choice-1", "PATCH", { isAvailable: false }],
+        ["/option-choices/choice-1", "DELETE", undefined],
+        [
+          "/items/11/option-groups",
+          "PUT",
+          { groups: [{ groupId: "group-1" }] },
+        ],
+      ];
+
+      for (const [path, method, body] of cases) {
+        const response = await request(path, method, body);
+        expect(response.status, `${method} ${path}`).toBe(403);
+      }
+    });
   });
 
   it("creates, updates, reorders, and deletes categories", async () => {

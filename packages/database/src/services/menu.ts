@@ -29,6 +29,8 @@ import type {
 import { amountFromCents, toCents, toRequiredCents } from "../utils/money";
 import { loadAssembledMenuItemOptions } from "./menu-options";
 
+const D1_IN_CLAUSE_LIMIT = 100;
+
 export interface CreateMenuItemData {
   restaurantId: string;
   categoryId: number;
@@ -77,6 +79,34 @@ export interface MenuFilters {
   isAvailable?: boolean;
   isFeatured?: boolean;
   search?: string;
+}
+
+export type OptionGroupWithChoices = typeof optionGroups.$inferSelect & {
+  choices: Array<typeof optionChoices.$inferSelect>;
+};
+
+export type OptionChoiceWithRestaurant = typeof optionChoices.$inferSelect & {
+  restaurantId: string;
+};
+
+export interface ReplaceMenuItemOptionGroupData {
+  groupId: string;
+  sortOrder?: number;
+  requiredOverride?: boolean | null;
+  maxSelectionsOverride?: number | null;
+  choiceOverrides?: Array<{
+    choiceId: string;
+    isHidden?: boolean;
+    priceAdjustmentCents?: number | null;
+  }>;
+}
+
+function chunk<T>(values: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
 }
 
 /** Shared select columns for menu item queries — avoids triplicating the 20-column list */
@@ -840,6 +870,166 @@ export class MenuService extends BaseService {
     }
   }
 
+  async listOptionGroups(
+    restaurantId: string,
+  ): Promise<OptionGroupWithChoices[]> {
+    try {
+      const groups = await this.db
+        .select()
+        .from(optionGroups)
+        .where(
+          and(
+            eq(optionGroups.restaurantId, restaurantId),
+            isNull(optionGroups.deletedAt),
+          ),
+        )
+        .orderBy(asc(optionGroups.sortOrder), asc(optionGroups.name));
+
+      if (groups.length === 0) return [];
+
+      const choices: Array<typeof optionChoices.$inferSelect> = [];
+      for (const groupIds of chunk(
+        groups.map((group) => group.id),
+        D1_IN_CLAUSE_LIMIT,
+      )) {
+        choices.push(
+          ...(await this.db
+            .select()
+            .from(optionChoices)
+            .where(inArray(optionChoices.groupId, groupIds))
+            .orderBy(asc(optionChoices.sortOrder), asc(optionChoices.name))),
+        );
+      }
+
+      const choicesByGroupId = new Map<
+        string,
+        Array<typeof optionChoices.$inferSelect>
+      >();
+      for (const choice of choices) {
+        const groupChoices = choicesByGroupId.get(choice.groupId) ?? [];
+        groupChoices.push(choice);
+        choicesByGroupId.set(choice.groupId, groupChoices);
+      }
+
+      return groups.map((group) => ({
+        ...group,
+        choices: choicesByGroupId.get(group.id) ?? [],
+      }));
+    } catch (error) {
+      this.handleError(error, "listOptionGroups");
+    }
+  }
+
+  async getOptionGroup(
+    id: string,
+  ): Promise<typeof optionGroups.$inferSelect | null> {
+    try {
+      const [group] = await this.db
+        .select()
+        .from(optionGroups)
+        .where(and(eq(optionGroups.id, id), isNull(optionGroups.deletedAt)))
+        .limit(1);
+      return group ?? null;
+    } catch (error) {
+      this.handleError(error, "getOptionGroup");
+    }
+  }
+
+  async getOptionChoice(
+    id: string,
+  ): Promise<OptionChoiceWithRestaurant | null> {
+    try {
+      const [row] = await this.db
+        .select({
+          id: optionChoices.id,
+          groupId: optionChoices.groupId,
+          publicId: optionChoices.publicId,
+          name: optionChoices.name,
+          priceAdjustmentCents: optionChoices.priceAdjustmentCents,
+          isDefault: optionChoices.isDefault,
+          isAvailable: optionChoices.isAvailable,
+          maxQuantity: optionChoices.maxQuantity,
+          sortOrder: optionChoices.sortOrder,
+          createdAt: optionChoices.createdAt,
+          updatedAt: optionChoices.updatedAt,
+          restaurantId: optionGroups.restaurantId,
+        })
+        .from(optionChoices)
+        .innerJoin(optionGroups, eq(optionChoices.groupId, optionGroups.id))
+        .where(and(eq(optionChoices.id, id), isNull(optionGroups.deletedAt)))
+        .limit(1);
+      return row ?? null;
+    } catch (error) {
+      this.handleError(error, "getOptionChoice");
+    }
+  }
+
+  async getOptionGroupsByIds(
+    ids: string[],
+  ): Promise<Array<typeof optionGroups.$inferSelect>> {
+    if (ids.length === 0) return [];
+
+    try {
+      const rows: Array<typeof optionGroups.$inferSelect> = [];
+      for (const idChunk of chunk([...new Set(ids)], D1_IN_CLAUSE_LIMIT)) {
+        rows.push(
+          ...(await this.db
+            .select()
+            .from(optionGroups)
+            .where(
+              and(
+                inArray(optionGroups.id, idChunk),
+                isNull(optionGroups.deletedAt),
+              ),
+            )),
+        );
+      }
+      return rows;
+    } catch (error) {
+      this.handleError(error, "getOptionGroupsByIds");
+    }
+  }
+
+  async getOptionChoicesByIds(
+    ids: string[],
+  ): Promise<OptionChoiceWithRestaurant[]> {
+    if (ids.length === 0) return [];
+
+    try {
+      const rows: OptionChoiceWithRestaurant[] = [];
+      for (const idChunk of chunk([...new Set(ids)], D1_IN_CLAUSE_LIMIT)) {
+        rows.push(
+          ...(await this.db
+            .select({
+              id: optionChoices.id,
+              groupId: optionChoices.groupId,
+              publicId: optionChoices.publicId,
+              name: optionChoices.name,
+              priceAdjustmentCents: optionChoices.priceAdjustmentCents,
+              isDefault: optionChoices.isDefault,
+              isAvailable: optionChoices.isAvailable,
+              maxQuantity: optionChoices.maxQuantity,
+              sortOrder: optionChoices.sortOrder,
+              createdAt: optionChoices.createdAt,
+              updatedAt: optionChoices.updatedAt,
+              restaurantId: optionGroups.restaurantId,
+            })
+            .from(optionChoices)
+            .innerJoin(optionGroups, eq(optionChoices.groupId, optionGroups.id))
+            .where(
+              and(
+                inArray(optionChoices.id, idChunk),
+                isNull(optionGroups.deletedAt),
+              ),
+            )),
+        );
+      }
+      return rows;
+    } catch (error) {
+      this.handleError(error, "getOptionChoicesByIds");
+    }
+  }
+
   async createOptionGroup(
     data: typeof optionGroups.$inferInsert,
   ): Promise<typeof optionGroups.$inferSelect> {
@@ -1048,6 +1238,107 @@ export class MenuService extends BaseService {
       return true;
     } catch (error) {
       this.handleError(error, "unlinkMenuItemOptionGroup");
+    }
+  }
+
+  async replaceMenuItemOptionGroups(
+    menuItemId: number,
+    groups: ReplaceMenuItemOptionGroupData[],
+  ): Promise<void> {
+    try {
+      const restaurantId = await this.restaurantIdForMenuItem(menuItemId);
+
+      const requestedGroups = await this.getOptionGroupsByIds(
+        groups.map((group) => group.groupId),
+      );
+      const requestedGroupsById = new Map(
+        requestedGroups.map((group) => [group.id, group]),
+      );
+
+      for (const group of groups) {
+        const row = requestedGroupsById.get(group.groupId);
+        if (!row) throw new Error("Option group not found");
+        if (row.restaurantId !== restaurantId) {
+          throw new Error(
+            "Option group does not belong to menu item restaurant",
+          );
+        }
+      }
+
+      const seenPublicIds = new Map<string, string>();
+      for (const group of groups) {
+        const row = requestedGroupsById.get(group.groupId)!;
+        const existingGroupId = seenPublicIds.get(row.publicId);
+        if (existingGroupId && existingGroupId !== row.id) {
+          throw new Error(
+            `Menu item ${menuItemId} already offers an option group with public id ${row.publicId}`,
+          );
+        }
+        seenPublicIds.set(row.publicId, row.id);
+      }
+
+      const overrideChoiceIds = groups.flatMap(
+        (group) =>
+          group.choiceOverrides?.map((override) => override.choiceId) ?? [],
+      );
+      const requestedChoices =
+        await this.getOptionChoicesByIds(overrideChoiceIds);
+      const requestedChoicesById = new Map(
+        requestedChoices.map((choice) => [choice.id, choice]),
+      );
+
+      for (const group of groups) {
+        for (const override of group.choiceOverrides ?? []) {
+          const choice = requestedChoicesById.get(override.choiceId);
+          if (!choice) throw new Error("Option choice not found");
+          if (choice.restaurantId !== restaurantId) {
+            throw new Error(
+              "Option choice does not belong to menu item restaurant",
+            );
+          }
+          if (choice.groupId !== group.groupId) {
+            throw new Error(
+              "Option choice is not in the selected option group",
+            );
+          }
+        }
+      }
+
+      // D1 has no transaction primitive spanning this service-level sequence.
+      // Delete first so replacing a per-item group with another group carrying
+      // the same public_id cannot trip the conflict guard. If a later write
+      // fails, each prior step has already invalidated the menu cache; saving
+      // the same desired list again replays the full state.
+      await this.db
+        .delete(menuItemOptionChoiceOverrides)
+        .where(eq(menuItemOptionChoiceOverrides.menuItemId, menuItemId));
+      await this.invalidateRestaurantMenuCache(restaurantId);
+
+      await this.db
+        .delete(menuItemOptionGroups)
+        .where(eq(menuItemOptionGroups.menuItemId, menuItemId));
+      await this.invalidateRestaurantMenuCache(restaurantId);
+
+      for (const group of groups) {
+        await this.linkMenuItemOptionGroup({
+          menuItemId,
+          groupId: group.groupId,
+          sortOrder: group.sortOrder ?? 0,
+          requiredOverride: group.requiredOverride,
+          maxSelectionsOverride: group.maxSelectionsOverride,
+        });
+
+        for (const override of group.choiceOverrides ?? []) {
+          await this.upsertMenuItemOptionChoiceOverride({
+            menuItemId,
+            choiceId: override.choiceId,
+            isHidden: override.isHidden ?? false,
+            priceAdjustmentCents: override.priceAdjustmentCents,
+          });
+        }
+      }
+    } catch (error) {
+      this.handleError(error, "replaceMenuItemOptionGroups");
     }
   }
 

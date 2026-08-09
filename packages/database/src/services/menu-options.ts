@@ -15,6 +15,7 @@ import * as schema from "../schema";
 import { amountFromCents, toRequiredCents } from "../utils/money";
 
 const D1_IN_CLAUSE_LIMIT = 100;
+const BACKFILL_BATCH_STATEMENT_LIMIT = 100;
 
 type MenuOptionsDb = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -109,17 +110,6 @@ function chunk<T>(values: T[], size: number): T[][] {
 
 function centsToRequiredAmount(cents: number): number {
   return amountFromCents(cents) ?? 0;
-}
-
-function fallbackOptionMap(
-  items: MenuItemWithOptions[],
-): Map<number, MenuItemOptions | undefined> {
-  return new Map(
-    items.map((item) => [
-      item.id,
-      (item.options as MenuItemOptions | null | undefined) ?? undefined,
-    ]),
-  );
 }
 
 export function assembleMenuItemOptions(
@@ -239,9 +229,6 @@ export async function loadAssembledMenuItemOptions(
   items: MenuItemWithOptions[],
 ): Promise<Map<number, MenuItemOptions | undefined>> {
   if (items.length === 0) return new Map();
-  if (typeof (db as { select?: unknown }).select !== "function") {
-    return fallbackOptionMap(items);
-  }
 
   const result = new Map<number, MenuItemOptions | undefined>();
   const itemIds = [...new Set(items.map((item) => item.id))];
@@ -264,11 +251,6 @@ export async function loadAssembledMenuItemOptions(
         groupSortOrder: optionGroups.sortOrder,
       })
       .from(menuItemOptionGroups);
-    if (
-      typeof (linkQuery as { innerJoin?: unknown }).innerJoin !== "function"
-    ) {
-      return fallbackOptionMap(items);
-    }
     links.push(
       ...(await linkQuery
         .innerJoin(
@@ -372,19 +354,61 @@ export async function backfillMenuItemOptions(
     .from(menuItems)
     .where(isNotNull(menuItems.options));
 
-  const existingLinks = await db
-    .select({ menuItemId: menuItemOptionGroups.menuItemId })
-    .from(menuItemOptionGroups);
-  const alreadyBackfilled = new Set(existingLinks.map((row) => row.menuItemId));
+  const alreadyBackfilled = new Set<number>();
+  for (const ids of chunk(
+    items.map((item) => item.id),
+    D1_IN_CLAUSE_LIMIT,
+  )) {
+    const existingLinks = await db
+      .select({ menuItemId: menuItemOptionGroups.menuItemId })
+      .from(menuItemOptionGroups)
+      .where(inArray(menuItemOptionGroups.menuItemId, ids));
+    for (const row of existingLinks) {
+      alreadyBackfilled.add(row.menuItemId);
+    }
+  }
 
-  const groupRows: (typeof optionGroups.$inferInsert)[] = [];
-  const choiceRows: (typeof optionChoices.$inferInsert)[] = [];
-  const linkRows: (typeof menuItemOptionGroups.$inferInsert)[] = [];
+  const statementBatches: BatchItem<"sqlite">[][] = [];
+  let pendingBatch: BatchItem<"sqlite">[] = [];
+  let menuItemsBackfilled = 0;
+  let groupsInserted = 0;
+  let choicesInserted = 0;
+
+  function flushPendingBatch(): void {
+    if (pendingBatch.length === 0) return;
+    statementBatches.push(pendingBatch);
+    pendingBatch = [];
+  }
+
+  function queueStatements(statements: BatchItem<"sqlite">[]): void {
+    if (statements.length === 0) return;
+
+    if (statements.length > BACKFILL_BATCH_STATEMENT_LIMIT) {
+      console.warn(
+        `[backfillMenuItemOptions] one menu item generated ${statements.length} statements, exceeding the ${BACKFILL_BATCH_STATEMENT_LIMIT} statement batch target; running it as its own batch`,
+      );
+      flushPendingBatch();
+      statementBatches.push(statements);
+      return;
+    }
+
+    if (
+      pendingBatch.length + statements.length >
+      BACKFILL_BATCH_STATEMENT_LIMIT
+    ) {
+      flushPendingBatch();
+    }
+
+    pendingBatch.push(...statements);
+  }
 
   for (const item of items) {
     if (alreadyBackfilled.has(item.id)) continue;
     const options = item.options as JsonMenuItemOptions | null;
     if (!options) continue;
+    const groupRows: (typeof optionGroups.$inferInsert)[] = [];
+    const choiceRows: (typeof optionChoices.$inferInsert)[] = [];
+    const linkRows: (typeof menuItemOptionGroups.$inferInsert)[] = [];
     let groupSortOrder = 0;
 
     if (options.sizes?.length) {
@@ -480,21 +504,28 @@ export async function backfillMenuItemOptions(
         });
       });
     }
+
+    if (linkRows.length === 0) continue;
+    menuItemsBackfilled++;
+    groupsInserted += groupRows.length;
+    choicesInserted += choiceRows.length;
+
+    queueStatements([
+      ...groupRows.map(
+        (row) => db.insert(optionGroups).values(row) as BatchItem<"sqlite">,
+      ),
+      ...choiceRows.map(
+        (row) => db.insert(optionChoices).values(row) as BatchItem<"sqlite">,
+      ),
+      ...linkRows.map(
+        (row) =>
+          db.insert(menuItemOptionGroups).values(row) as BatchItem<"sqlite">,
+      ),
+    ]);
   }
 
-  const statements = [
-    ...groupRows.map(
-      (row) => db.insert(optionGroups).values(row) as BatchItem<"sqlite">,
-    ),
-    ...choiceRows.map(
-      (row) => db.insert(optionChoices).values(row) as BatchItem<"sqlite">,
-    ),
-    ...linkRows.map(
-      (row) =>
-        db.insert(menuItemOptionGroups).values(row) as BatchItem<"sqlite">,
-    ),
-  ];
-  if (statements.length > 0) {
+  flushPendingBatch();
+  for (const statements of statementBatches) {
     await db.batch(
       statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
     );
@@ -502,8 +533,8 @@ export async function backfillMenuItemOptions(
 
   return {
     menuItemsScanned: items.length,
-    menuItemsBackfilled: new Set(linkRows.map((row) => row.menuItemId)).size,
-    groupsInserted: groupRows.length,
-    choicesInserted: choiceRows.length,
+    menuItemsBackfilled,
+    groupsInserted,
+    choicesInserted,
   };
 }

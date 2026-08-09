@@ -70,6 +70,9 @@ export type {
   CreateMenuItemData,
   UpdateMenuItemData,
   MenuFilters,
+  OptionChoiceWithRestaurant,
+  OptionGroupWithChoices,
+  ReplaceMenuItemOptionGroupData,
 } from "./menu";
 
 export type {
