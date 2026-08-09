@@ -877,7 +877,16 @@ app.post(
     const { memberToken, ...paymentData } = c.get("validatedBody");
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
-    await requireHostSession(groupOrderService, groupOrderId, memberToken);
+    // Each diner settles their own share, which is the whole point of
+    // splitting; the host may also settle for someone whose phone died.
+    // Neither can settle in a way that changes what anyone owes — the amount
+    // is checked against the split bill the server already wrote.
+    await requireMemberOrHostSession(
+      groupOrderService,
+      groupOrderId,
+      memberId,
+      memberToken,
+    );
     const result = await groupOrderService.processPayment(
       groupOrderId,
       memberId,

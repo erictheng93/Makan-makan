@@ -57,6 +57,17 @@ export interface SplitBillConfig {
   mode: "equal" | "by_item" | "proportional";
 }
 
+/** One diner's share, written by the server when the bill is split. */
+export interface GroupSplitBill {
+  id: string;
+  memberId: string;
+  subtotal: number;
+  serviceCharge: number;
+  taxAmount: number;
+  totalAmount: number;
+  isSettled: boolean;
+}
+
 export interface GroupOrder {
   id: string;
   restaurantId: string;
@@ -70,6 +81,8 @@ export interface GroupOrder {
   splitBillConfig: SplitBillConfig;
   /** Who carries the service charge and tax. Host-controlled. */
   feeMode: GroupOrderFeeMode;
+  /** Empty while the table is still ordering. */
+  splitBills: GroupSplitBill[];
   createdAt: number;
   updatedAt: number;
   expiresAt?: number;
@@ -156,10 +169,21 @@ interface BackendGroupCartItem {
   };
 }
 
+interface BackendSplitBill {
+  id: string;
+  memberId: string;
+  subtotal?: number;
+  serviceCharge?: number;
+  taxAmount?: number;
+  totalAmount?: number;
+  paymentStatus?: string;
+}
+
 interface GroupOrderSummary {
   groupOrder: BackendGroupOrder;
   members: BackendGroupMember[];
   cartItems: BackendGroupCartItem[];
+  splitBills?: BackendSplitBill[];
 }
 
 interface GroupOrderRealtimeMessage {
@@ -274,6 +298,17 @@ function mapSummary(summary: GroupOrderSummary): GroupOrder {
     cartItems: summary.cartItems.map((item) => mapCartItem(item, members)),
     splitBillConfig: { mode: splitMode },
     feeMode: summary.groupOrder.feeMode ?? "proportional",
+    // Empty until the host splits; that emptiness is what the UI keys off to
+    // decide whether the table is still ordering or already settling.
+    splitBills: (summary.splitBills ?? []).map((bill) => ({
+      id: bill.id,
+      memberId: bill.memberId,
+      subtotal: bill.subtotal ?? 0,
+      serviceCharge: bill.serviceCharge ?? 0,
+      taxAmount: bill.taxAmount ?? 0,
+      totalAmount: bill.totalAmount ?? 0,
+      isSettled: bill.paymentStatus === "paid",
+    })),
     createdAt: timestamp(summary.groupOrder.createdAt),
     updatedAt: timestamp(summary.groupOrder.updatedAt),
     expiresAt: timestamp(summary.groupOrder.expiresAt),
@@ -801,6 +836,53 @@ export function useGroupOrder(options: {
     await loadGroupOrder(groupOrderId);
   }
 
+  /**
+   * Splitting is a one-way door: it locks the table so nobody can add a dish
+   * after the shares are worked out. Host only, for that reason.
+   */
+  async function startSettlement(): Promise<void> {
+    if (!groupOrder.value) return;
+
+    const groupOrderId = groupOrder.value.id;
+    hydrateHostCredentials(groupOrderId);
+    if (!memberToken.value) {
+      throw new Error("Host credential is required to split the bill");
+    }
+
+    await apiClient.post(`/orders/group/${groupOrderId}/split`, {
+      splitType: groupOrder.value.splitBillConfig.mode,
+      memberToken: memberToken.value,
+    });
+    await loadGroupOrder(groupOrderId);
+  }
+
+  /**
+   * Marks this diner's own share settled. No money moves — it tells the table
+   * who has sorted themselves out.
+   */
+  async function settleMyShare(): Promise<void> {
+    if (!groupOrder.value || !currentMemberId.value) return;
+
+    const groupOrderId = groupOrder.value.id;
+    await apiClient.post(
+      `/orders/group/${groupOrderId}/payment/${currentMemberId.value}`,
+      {
+        paymentMethod: "cash",
+        memberToken: memberToken.value,
+      },
+    );
+    await loadGroupOrder(groupOrderId);
+  }
+
+  const splitBills = computed(() => groupOrder.value?.splitBills ?? []);
+  const isSettling = computed(() => splitBills.value.length > 0);
+  const mySplitBill = computed(() =>
+    splitBills.value.find((bill) => bill.memberId === currentMemberId.value),
+  );
+  const settledCount = computed(
+    () => splitBills.value.filter((bill) => bill.isSettled).length,
+  );
+
   // Leave group order
   async function leaveGroupOrder(): Promise<void> {
     if (!groupOrder.value) return;
@@ -998,6 +1080,12 @@ export function useGroupOrder(options: {
     removeFromCart,
     setSplitBillMode,
     setFeeMode,
+    startSettlement,
+    settleMyShare,
+    splitBills,
+    isSettling,
+    mySplitBill,
+    settledCount,
     submitOrder,
     setAutoSubmitOnExpiry,
     setChargeRates,

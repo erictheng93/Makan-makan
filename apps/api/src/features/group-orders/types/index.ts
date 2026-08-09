@@ -224,6 +224,23 @@ export interface GroupOrderSummary {
   cartItems: GroupOrderCartItemWithMenu[];
   totalAmount: number;
   activities: GroupOrderActivity[];
+  /**
+   * Empty until the bill is split. Carried on the summary rather than behind
+   * its own endpoint because settling is a shared moment: everyone watches the
+   * same list fill in, and the summary is already the thing that refreshes.
+   */
+  splitBills: GroupOrderSplitBill[];
+}
+
+export interface GroupOrderSplitBill {
+  id: string;
+  memberId: string;
+  subtotal: number;
+  serviceCharge: number;
+  taxAmount: number;
+  totalAmount: number;
+  paymentStatus: string;
+  paidAt?: Date;
 }
 
 export interface GroupOrderActivity extends Omit<BaseEntity, "id"> {

@@ -32,6 +32,12 @@ const groupOrderMock = vi.hoisted(() => ({
   mySubtotal: { value: 10 },
   myServiceCharge: { value: 1 },
   myTax: { value: 0.5 },
+  splitBills: { value: [] as unknown[] },
+  mySplitBill: { value: undefined as unknown },
+  isSettling: { value: false },
+  settledCount: { value: 0 },
+  startSettlement: vi.fn(),
+  settleMyShare: vi.fn(),
   sessionExpired: { value: false },
   currentMemberId: { value: "m-1" },
 }));

@@ -786,7 +786,12 @@
     },
     "mySubtotal": "我點的餐",
     "myServiceCharge": "我的服務費",
-    "myTax": "我的稅金"
+    "myTax": "我的稅金",
+    "startSettlement": "開始結算",
+    "settlement": "結算",
+    "settled": "已結算",
+    "settleMyShare": "我要結算",
+    "myShareSettled": "你已完成結算"
   },
   "messages": {
     "networkError": "網路連接失敗，請檢查您的網路連接",

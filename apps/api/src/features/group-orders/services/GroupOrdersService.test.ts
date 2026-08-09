@@ -423,6 +423,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           createdAt: new Date("2026-06-07T00:00:00.000Z"),
         },
       ],
+      // Split bills: empty until the host splits, which is the normal state
+      // for a group still ordering.
+      [],
     ];
     const query = (result: unknown) => {
       const builder = {
@@ -463,6 +466,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       ],
       totalAmount: 123.45,
       activities: [{ id: "activity-1", type: "item_added" }],
+      splitBills: [],
     });
     expect(
       JSON.parse(values.get("group_order_summary:group-1") ?? "{}"),

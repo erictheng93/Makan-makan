@@ -786,7 +786,12 @@
     },
     "mySubtotal": "Món của tôi",
     "myServiceCharge": "Phí dịch vụ của tôi",
-    "myTax": "Thuế của tôi"
+    "myTax": "Thuế của tôi",
+    "startSettlement": "Chia hóa đơn",
+    "settlement": "Thanh toán",
+    "settled": "Đã xong",
+    "settleMyShare": "Thanh toán phần của tôi",
+    "myShareSettled": "Bạn đã thanh toán phần của mình"
   },
   "messages": {
     "networkError": "Kết nối mạng thất bại, vui lòng kiểm tra kết nối của bạn",

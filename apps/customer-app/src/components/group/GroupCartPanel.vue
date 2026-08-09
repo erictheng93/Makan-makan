@@ -9,6 +9,7 @@ import type {
   GroupCartItem,
   GroupMember,
   SplitBillConfig,
+  GroupSplitBill,
 } from "@/composables/useGroupOrder";
 import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
 import { useCurrency } from "@/composables/useCurrency";
@@ -26,6 +27,9 @@ interface Props {
   myShare: number;
   feeMode: GroupOrderFeeMode;
   isHost: boolean;
+  /** Empty while the table is still ordering. */
+  splitBills: GroupSplitBill[];
+  mySplitBill?: GroupSplitBill;
 }
 
 const props = defineProps<Props>();
@@ -36,7 +40,16 @@ const emit = defineEmits<{
   (e: "remove-item", itemId: string): void;
   (e: "change-split-mode", mode: SplitBillConfig["mode"]): void;
   (e: "change-fee-mode", mode: GroupOrderFeeMode): void;
+  (e: "start-settlement"): void;
+  (e: "settle-my-share"): void;
 }>();
+
+const isSettling = computed(() => props.splitBills.length > 0);
+const settledCount = computed(
+  () => props.splitBills.filter((bill) => bill.isSettled).length,
+);
+const memberName = (memberId: string) =>
+  props.members.find((member) => member.id === memberId)?.name ?? "";
 
 // i18n
 const { t } = useI18n();
@@ -368,6 +381,73 @@ function getMemberColor(memberId: string): string {
           <span class="font-bold text-ios-blue">{{
             formatPrice(myShare)
           }}</span>
+        </div>
+
+        <!-- Settling. Splitting locks the table, so only the host starts it,
+             and only once there is something to split. -->
+        <button
+          v-if="isHost && !isSettling && cartItems.length > 0"
+          type="button"
+          data-testid="start-settlement"
+          class="mt-3 w-full rounded-full bg-ios-blue py-3 text-sm font-semibold text-white active:scale-95 transition-transform duration-150"
+          @click="emit('start-settlement')"
+        >
+          {{ t("group.startSettlement") }}
+        </button>
+
+        <div v-if="isSettling" data-testid="settlement-panel" class="mt-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-ios-text">{{
+              t("group.settlement")
+            }}</span>
+            <span data-testid="settled-count" class="text-xs text-ios-secondary"
+              >{{ settledCount }} / {{ splitBills.length }}</span
+            >
+          </div>
+
+          <div class="space-y-1.5">
+            <div
+              v-for="bill in splitBills"
+              :key="bill.id"
+              :data-testid="`split-bill-${bill.memberId}`"
+              class="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2"
+            >
+              <span class="text-sm text-ios-text">{{
+                memberName(bill.memberId)
+              }}</span>
+              <span class="flex items-center gap-2">
+                <span class="text-sm text-gray-900">{{
+                  formatPrice(bill.totalAmount)
+                }}</span>
+                <span
+                  v-if="bill.isSettled"
+                  :data-testid="`settled-${bill.memberId}`"
+                  class="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700"
+                  >{{ t("group.settled") }}</span
+                >
+              </span>
+            </div>
+          </div>
+
+          <!-- Each diner settles their own share; nobody settles for anyone
+               else, and no money moves through this button. -->
+          <button
+            v-if="mySplitBill && !mySplitBill.isSettled"
+            type="button"
+            data-testid="settle-my-share"
+            class="mt-3 w-full rounded-full bg-ios-blue py-3 text-sm font-semibold text-white active:scale-95 transition-transform duration-150"
+            @click="emit('settle-my-share')"
+          >
+            {{ t("group.settleMyShare") }}
+            {{ formatPrice(mySplitBill.totalAmount) }}
+          </button>
+          <p
+            v-else-if="mySplitBill"
+            data-testid="my-share-settled"
+            class="mt-3 text-center text-sm text-green-700"
+          >
+            {{ t("group.myShareSettled") }}
+          </p>
         </div>
       </div>
     </div>

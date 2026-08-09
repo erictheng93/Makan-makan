@@ -108,6 +108,24 @@ async function changeFeeMode(mode: GroupOrderFeeMode): Promise<void> {
   }
 }
 
+async function startSettlement(): Promise<void> {
+  try {
+    await group.startSettlement();
+  } catch (error) {
+    viewError.value =
+      error instanceof Error ? error.message : "Unable to split the bill.";
+  }
+}
+
+async function settleMyShare(): Promise<void> {
+  try {
+    await group.settleMyShare();
+  } catch (error) {
+    viewError.value =
+      error instanceof Error ? error.message : "Unable to settle your share.";
+  }
+}
+
 async function changeSplitMode(mode: SplitBillConfig["mode"]): Promise<void> {
   try {
     await group.setSplitBillMode(mode);
@@ -216,10 +234,14 @@ onUnmounted(() => {
         :my-share="group.myShare.value"
         :fee-mode="group.groupOrder.value.feeMode"
         :is-host="group.isHost.value"
+        :split-bills="group.splitBills.value"
+        :my-split-bill="group.mySplitBill.value"
         @update-quantity="updateQuantity"
         @remove-item="removeItem"
         @change-split-mode="changeSplitMode"
         @change-fee-mode="changeFeeMode"
+        @start-settlement="startSettlement"
+        @settle-my-share="settleMyShare"
       />
 
       <div v-else class="py-16 text-center text-ios-secondary">

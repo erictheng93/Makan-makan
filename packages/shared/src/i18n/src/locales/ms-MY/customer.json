@@ -786,7 +786,12 @@
     },
     "mySubtotal": "Pesanan saya",
     "myServiceCharge": "Caj perkhidmatan saya",
-    "myTax": "Cukai saya"
+    "myTax": "Cukai saya",
+    "startSettlement": "Bahagi bil",
+    "settlement": "Penyelesaian",
+    "settled": "Selesai",
+    "settleMyShare": "Selesaikan bahagian saya",
+    "myShareSettled": "Anda telah menyelesaikan bahagian anda"
   },
   "messages": {
     "networkError": "Sambungan rangkaian gagal, sila semak sambungan anda",

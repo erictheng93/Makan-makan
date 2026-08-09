@@ -771,6 +771,12 @@ export class GroupOrdersService implements IGroupOrderService {
         .orderBy(desc(groupActivityLogs.createdAt))
         .limit(20);
 
+      // Empty until the host splits the bill.
+      const splitBillRows = await this.db
+        .select()
+        .from(splitBills)
+        .where(eq(splitBills.groupOrderId, groupOrderId));
+
       const summary: GroupOrderSummary = {
         groupOrder: this.formatGroupOrder(groupOrder),
         members: members.map((m) => this.formatMember(m)),
@@ -784,6 +790,16 @@ export class GroupOrdersService implements IGroupOrderService {
         ),
         totalAmount: moneyAmount(groupOrder.totalAmountCents),
         activities: activities.map((a) => this.formatActivity(a)),
+        splitBills: splitBillRows.map((row) => ({
+          id: row.id,
+          memberId: row.memberId,
+          subtotal: moneyAmount(row.subtotalCents),
+          serviceCharge: moneyAmount(row.serviceChargeCents),
+          taxAmount: moneyAmount(row.taxAmountCents),
+          totalAmount: moneyAmount(row.totalAmountCents),
+          paymentStatus: row.paymentStatus,
+          paidAt: row.paidAt ?? undefined,
+        })),
       };
 
       // Cache for 5 minutes

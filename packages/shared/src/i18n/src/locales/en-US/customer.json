@@ -786,7 +786,12 @@
     },
     "mySubtotal": "My items",
     "myServiceCharge": "My service charge",
-    "myTax": "My tax"
+    "myTax": "My tax",
+    "startSettlement": "Split the bill",
+    "settlement": "Settling up",
+    "settled": "Settled",
+    "settleMyShare": "Settle my share",
+    "myShareSettled": "You have settled your share"
   },
   "messages": {
     "networkError": "Network connection failed, please check your connection",

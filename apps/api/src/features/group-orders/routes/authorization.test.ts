@@ -200,12 +200,27 @@ describe("group order mutations require proof of who is calling", () => {
       expect(groupServiceMocks.processPayment).not.toHaveBeenCalled();
     });
 
-    it("refuses a member marking their own bill paid", async () => {
-      // This records money as received. Self-service settlement means anyone
-      // can walk out having declared themselves paid.
+    // This used to be host-only, on the reading that the record meant "the
+    // restaurant received money" — and self-service would let anyone walk out
+    // having declared themselves paid. No money moves through here: the record
+    // is one diner telling the table they have settled their own share, which
+    // is the entire point of splitting. If a real cash or card flow is added,
+    // takings need their own staff-confirmed state rather than this flag.
+    it("lets a member settle their own share", async () => {
       const { status } = await call(
         "POST",
         `/orders/group/${GROUP_ORDER_ID}/payment/${OTHER_MEMBER_ID}`,
+        { paymentMethod: "cash", memberToken: OTHER_TOKEN },
+      );
+
+      expect(status).toBe(200);
+      expect(groupServiceMocks.processPayment).toHaveBeenCalledOnce();
+    });
+
+    it("still refuses a member settling somebody else's share", async () => {
+      const { status } = await call(
+        "POST",
+        `/orders/group/${GROUP_ORDER_ID}/payment/${HOST_MEMBER_ID}`,
         { paymentMethod: "cash", memberToken: OTHER_TOKEN },
       );
 
