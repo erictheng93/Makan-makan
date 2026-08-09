@@ -68,6 +68,7 @@ const serviceFns = vi.hoisted(() => ({
   createOptionChoice: vi.fn(),
   updateOptionChoice: vi.fn(),
   deleteOptionChoice: vi.fn(),
+  listMenuItemOptionGroups: vi.fn(),
   replaceMenuItemOptionGroups: vi.fn(),
 }));
 
@@ -103,6 +104,7 @@ vi.mock("../services/MenuService", () => ({
     createOptionChoice = serviceFns.createOptionChoice;
     updateOptionChoice = serviceFns.updateOptionChoice;
     deleteOptionChoice = serviceFns.deleteOptionChoice;
+    listMenuItemOptionGroups = serviceFns.listMenuItemOptionGroups;
     replaceMenuItemOptionGroups = serviceFns.replaceMenuItemOptionGroups;
   },
 }));
@@ -272,6 +274,7 @@ beforeEach(() => {
   serviceFns.createOptionChoice.mockResolvedValue(optionChoice);
   serviceFns.updateOptionChoice.mockResolvedValue(optionChoice);
   serviceFns.deleteOptionChoice.mockResolvedValue(true);
+  serviceFns.listMenuItemOptionGroups.mockResolvedValue({ groups: [] });
   serviceFns.replaceMenuItemOptionGroups.mockResolvedValue(undefined);
   syncFns.onMenuItemChanged.mockResolvedValue(undefined);
   syncFns.onCategoryChanged.mockResolvedValue(undefined);
@@ -548,7 +551,11 @@ describe("menu routes", () => {
     it("replaces an item's option groups and maps override prices to cents", async () => {
       auth.user = buildUser(ROLE.OWNER);
 
-      const response = await request("/items/11/option-groups", "PUT", {
+      let response = await request("/items/11/option-groups");
+      expect(response.status).toBe(200);
+      expect(serviceFns.listMenuItemOptionGroups).toHaveBeenCalledWith(11);
+
+      response = await request("/items/11/option-groups", "PUT", {
         groups: [
           {
             groupId: "group-1",
@@ -660,6 +667,7 @@ describe("menu routes", () => {
         ],
         ["/option-choices/choice-1", "PATCH", { isAvailable: false }],
         ["/option-choices/choice-1", "DELETE", undefined],
+        ["/items/11/option-groups", "GET", undefined],
         [
           "/items/11/option-groups",
           "PUT",

@@ -22,6 +22,7 @@ import {
 import type {
   OptionChoiceWithRestaurant,
   OptionGroupWithChoices,
+  MenuItemOptionGroupState,
   ReplaceMenuItemOptionGroupData,
 } from "@makanmakan/database";
 import { and, eq, isNull } from "drizzle-orm";
@@ -153,6 +154,11 @@ export class MenuService implements IMenuService {
     groups: ReplaceMenuItemOptionGroupData[],
   ): Promise<void> {
     await this.dbService.replaceMenuItemOptionGroups(menuItemId, groups);
+  }
+
+  async listMenuItemOptionGroups(menuItemId: number) {
+    const state = await this.dbService.listMenuItemOptionGroups(menuItemId);
+    return this.transformMenuItemOptionGroupState(state);
   }
 
   /**
@@ -1159,11 +1165,28 @@ export class MenuService implements IMenuService {
       required: group.required,
       maxSelections: group.maxSelections,
       sortOrder: group.sortOrder,
+      usageCount: group.usageCount ?? 0,
       createdAt: group.createdAt,
       updatedAt: group.updatedAt,
       choices: group.choices.map((choice) =>
         this.transformOptionChoice(choice),
       ),
+    };
+  }
+
+  private transformMenuItemOptionGroupState(state: MenuItemOptionGroupState) {
+    return {
+      groups: state.groups.map((group) => ({
+        groupId: group.groupId,
+        sortOrder: group.sortOrder,
+        requiredOverride: group.requiredOverride,
+        maxSelectionsOverride: group.maxSelectionsOverride,
+        choiceOverrides: group.choiceOverrides.map((override) => ({
+          choiceId: override.choiceId,
+          isHidden: override.isHidden,
+          priceAdjustment: amountFromCents(override.priceAdjustmentCents),
+        })),
+      })),
     };
   }
 

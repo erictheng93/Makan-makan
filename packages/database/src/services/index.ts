@@ -70,6 +70,7 @@ export type {
   CreateMenuItemData,
   UpdateMenuItemData,
   MenuFilters,
+  MenuItemOptionGroupState,
   OptionChoiceWithRestaurant,
   OptionGroupWithChoices,
   ReplaceMenuItemOptionGroupData,

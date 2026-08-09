@@ -83,6 +83,7 @@ export interface MenuFilters {
 
 export type OptionGroupWithChoices = typeof optionGroups.$inferSelect & {
   choices: Array<typeof optionChoices.$inferSelect>;
+  usageCount?: number;
 };
 
 export type OptionChoiceWithRestaurant = typeof optionChoices.$inferSelect & {
@@ -98,6 +99,20 @@ export interface ReplaceMenuItemOptionGroupData {
     choiceId: string;
     isHidden?: boolean;
     priceAdjustmentCents?: number | null;
+  }>;
+}
+
+export interface MenuItemOptionGroupState {
+  groups: Array<{
+    groupId: string;
+    sortOrder: number;
+    requiredOverride: boolean | null;
+    maxSelectionsOverride: number | null;
+    choiceOverrides: Array<{
+      choiceId: string;
+      isHidden: boolean;
+      priceAdjustmentCents: number | null;
+    }>;
   }>;
 }
 
@@ -887,6 +902,25 @@ export class MenuService extends BaseService {
 
       if (groups.length === 0) return [];
 
+      const usageCountsByGroupId = new Map<string, number>();
+      for (const groupIds of chunk(
+        groups.map((group) => group.id),
+        D1_IN_CLAUSE_LIMIT,
+      )) {
+        const usageRows = await this.db
+          .select({
+            groupId: menuItemOptionGroups.groupId,
+            usageCount: count(menuItemOptionGroups.menuItemId),
+          })
+          .from(menuItemOptionGroups)
+          .where(inArray(menuItemOptionGroups.groupId, groupIds))
+          .groupBy(menuItemOptionGroups.groupId);
+
+        for (const row of usageRows) {
+          usageCountsByGroupId.set(row.groupId, row.usageCount);
+        }
+      }
+
       const choices: Array<typeof optionChoices.$inferSelect> = [];
       for (const groupIds of chunk(
         groups.map((group) => group.id),
@@ -913,10 +947,95 @@ export class MenuService extends BaseService {
 
       return groups.map((group) => ({
         ...group,
+        usageCount: usageCountsByGroupId.get(group.id) ?? 0,
         choices: choicesByGroupId.get(group.id) ?? [],
       }));
     } catch (error) {
       this.handleError(error, "listOptionGroups");
+    }
+  }
+
+  async listMenuItemOptionGroups(
+    menuItemId: number,
+  ): Promise<MenuItemOptionGroupState> {
+    try {
+      const links = await this.db
+        .select({
+          groupId: menuItemOptionGroups.groupId,
+          sortOrder: menuItemOptionGroups.sortOrder,
+          requiredOverride: menuItemOptionGroups.requiredOverride,
+          maxSelectionsOverride: menuItemOptionGroups.maxSelectionsOverride,
+        })
+        .from(menuItemOptionGroups)
+        .innerJoin(
+          optionGroups,
+          eq(menuItemOptionGroups.groupId, optionGroups.id),
+        )
+        .where(
+          and(
+            eq(menuItemOptionGroups.menuItemId, menuItemId),
+            isNull(optionGroups.deletedAt),
+          ),
+        )
+        .orderBy(
+          asc(menuItemOptionGroups.sortOrder),
+          asc(optionGroups.sortOrder),
+          asc(optionGroups.name),
+        );
+
+      if (links.length === 0) return { groups: [] };
+
+      const overridesByGroupId = new Map<
+        string,
+        MenuItemOptionGroupState["groups"][number]["choiceOverrides"]
+      >();
+      for (const groupIds of chunk(
+        links.map((link) => link.groupId),
+        D1_IN_CLAUSE_LIMIT,
+      )) {
+        const overrides = await this.db
+          .select({
+            groupId: optionChoices.groupId,
+            choiceId: menuItemOptionChoiceOverrides.choiceId,
+            isHidden: menuItemOptionChoiceOverrides.isHidden,
+            priceAdjustmentCents:
+              menuItemOptionChoiceOverrides.priceAdjustmentCents,
+          })
+          .from(menuItemOptionChoiceOverrides)
+          .innerJoin(
+            optionChoices,
+            eq(menuItemOptionChoiceOverrides.choiceId, optionChoices.id),
+          )
+          .where(
+            and(
+              eq(menuItemOptionChoiceOverrides.menuItemId, menuItemId),
+              inArray(optionChoices.groupId, groupIds),
+            ),
+          )
+          .orderBy(asc(optionChoices.sortOrder), asc(optionChoices.name));
+
+        for (const override of overrides) {
+          const groupOverrides = overridesByGroupId.get(override.groupId) ?? [];
+          groupOverrides.push({
+            choiceId: override.choiceId,
+            isHidden: override.isHidden,
+            priceAdjustmentCents: override.priceAdjustmentCents,
+          });
+          overridesByGroupId.set(override.groupId, groupOverrides);
+        }
+      }
+
+      return {
+        groups: links.map((link) => ({
+          groupId: link.groupId,
+          sortOrder: link.sortOrder,
+          requiredOverride: link.requiredOverride,
+          maxSelectionsOverride: link.maxSelectionsOverride,
+          choiceOverrides: overridesByGroupId.get(link.groupId) ?? [],
+        })),
+      };
+    } catch (error) {
+      this.handleError(error, "listMenuItemOptionGroups");
     }
   }
 

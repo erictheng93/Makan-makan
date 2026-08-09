@@ -313,6 +313,7 @@ describe("Menu API — real integration", () => {
     expect(listJson.data[0]).toMatchObject({
       type: "single",
       maxSelections: null,
+      usageCount: 1,
     });
     expect(listJson.data[0].choices[0]).toMatchObject({
       priceAdjustment: 1.5,
@@ -430,6 +431,44 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(replaceRes.status).toBe(200);
+
+    const itemGroupsRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(itemGroupsRes.status).toBe(200);
+    const itemGroupsJson: any = await itemGroupsRes.json();
+    expect(itemGroupsJson.data).toEqual({
+      groups: [
+        {
+          groupId: newOption.group.id,
+          sortOrder: 0,
+          requiredOverride: true,
+          maxSelectionsOverride: null,
+          choiceOverrides: [
+            {
+              choiceId: newOption.choice.id,
+              isHidden: false,
+              priceAdjustment: 1.5,
+            },
+          ],
+        },
+      ],
+    });
+
+    const groupListRes = await testApp.app.fetch(
+      new Request(`https://test/api/v1/menu/${restaurant.id}/option-groups`, {
+        headers: { authorization: `Bearer ${ownerToken}` },
+      }),
+    );
+    expect(groupListRes.status).toBe(200);
+    const groupListJson: any = await groupListRes.json();
+    const usageByGroupId = new Map(
+      groupListJson.data.map((group: any) => [group.id, group.usageCount]),
+    );
+    expect(usageByGroupId.get(oldOption.group.id)).toBe(0);
+    expect(usageByGroupId.get(newOption.group.id)).toBe(1);
 
     const menuRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/${restaurant.id}`),

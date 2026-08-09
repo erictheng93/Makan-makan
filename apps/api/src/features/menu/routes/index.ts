@@ -500,6 +500,30 @@ app.delete(
   },
 );
 
+// GET /items/:id/option-groups - Read raw option group links and overrides
+app.get(
+  "/items/:id/option-groups",
+  authMiddleware,
+  moduleGate("menu_management"),
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(menuSchemas.menuItemIdParam),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const user = c.get("user");
+    const service = new MenuService(c.env);
+
+    const existingItem = await service.getMenuItem(id);
+    if (!existingItem) {
+      throw notFound("Menu item not found");
+    }
+    assertUserCanAccessRestaurantResource(user, existingItem.restaurantId);
+
+    const groups = await service.listMenuItemOptionGroups(id);
+
+    return c.json(createSuccessResponse(groups), HTTP_STATUS.OK);
+  },
+);
+
 // PUT /items/:id/option-groups - Replace all option groups for a menu item
 app.put(
   "/items/:id/option-groups",

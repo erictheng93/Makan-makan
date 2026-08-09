@@ -130,6 +130,95 @@ describe("option group writes", () => {
     ).resolves.toMatchObject({ groupId: "group-2" });
   });
 
+  it("counts how many menu items use each option group", async () => {
+    await seedGroup("group-used", "used");
+    await seedGroup("group-unused", "unused");
+    const [other] = await testDb.drizzle
+      .insert(menuItems)
+      .values({
+        restaurantId,
+        categoryId,
+        name: "Green Tea",
+        priceCents: 5000,
+        isAvailable: true,
+        options: null,
+      })
+      .returning({ id: menuItems.id });
+
+    await menuService().linkMenuItemOptionGroup({
+      menuItemId,
+      groupId: "group-used",
+    });
+    await menuService().linkMenuItemOptionGroup({
+      menuItemId: other.id,
+      groupId: "group-used",
+    });
+
+    const groups = await menuService().listOptionGroups(restaurantId);
+    const usageByGroupId = new Map(
+      groups.map((group) => [group.id, group.usageCount]),
+    );
+
+    expect(usageByGroupId.get("group-used")).toBe(2);
+    expect(usageByGroupId.get("group-unused")).toBe(0);
+  });
+
+  it("lists a menu item's option group links and choice overrides", async () => {
+    await seedGroup("group-1", "spice");
+    await testDb.drizzle.insert(optionChoices).values([
+      {
+        id: "choice-hot",
+        groupId: "group-1",
+        publicId: "hot",
+        name: "Hot",
+        sortOrder: 2,
+      },
+      {
+        id: "choice-mild",
+        groupId: "group-1",
+        publicId: "mild",
+        name: "Mild",
+        sortOrder: 1,
+      },
+    ]);
+
+    await menuService().replaceMenuItemOptionGroups(menuItemId, [
+      {
+        groupId: "group-1",
+        sortOrder: 3,
+        requiredOverride: true,
+        maxSelectionsOverride: null,
+        choiceOverrides: [
+          {
+            choiceId: "choice-hot",
+            isHidden: true,
+            priceAdjustmentCents: 150,
+          },
+        ],
+      },
+    ]);
+
+    await expect(
+      menuService().listMenuItemOptionGroups(menuItemId),
+    ).resolves.toEqual({
+      groups: [
+        {
+          groupId: "group-1",
+          sortOrder: 3,
+          requiredOverride: true,
+          maxSelectionsOverride: null,
+          choiceOverrides: [
+            {
+              choiceId: "choice-hot",
+              isHidden: true,
+              priceAdjustmentCents: 150,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it("takes a soft-deleted group out of the assembled options", async () => {
     await seedGroup("group-1", "spice");
     await testDb.drizzle.insert(optionChoices).values({
