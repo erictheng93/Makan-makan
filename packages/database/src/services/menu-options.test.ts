@@ -413,6 +413,60 @@ describe("menu item option rows", () => {
     });
   });
 
+  it("does not emit maxSelections for single-choice groups", async () => {
+    await testDb.drizzle.insert(menuItems).values({
+      id: 202,
+      restaurantId,
+      categoryId,
+      name: "Tea",
+      priceCents: 500,
+      isAvailable: true,
+      options: null,
+    });
+    await testDb.drizzle.insert(optionGroups).values({
+      id: "group-sugar",
+      restaurantId,
+      publicId: "sugar",
+      kind: "choice",
+      name: "Sugar",
+      type: "single",
+      required: false,
+      maxSelections: 2,
+    });
+    await testDb.drizzle.insert(optionChoices).values({
+      id: "choice-half",
+      groupId: "group-sugar",
+      publicId: "half",
+      name: "Half",
+      priceAdjustmentCents: 0,
+    });
+    await testDb.drizzle.insert(menuItemOptionGroups).values({
+      menuItemId: 202,
+      groupId: "group-sugar",
+      maxSelectionsOverride: 3,
+    });
+
+    const [item] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, 202));
+    const optionMap = await loadAssembledMenuItemOptions(testDb.drizzle, [
+      item,
+    ]);
+
+    expect(optionMap.get(202)).toEqual({
+      customizations: [
+        {
+          id: "sugar",
+          name: "Sugar",
+          type: "single",
+          required: false,
+          choices: [{ id: "half", name: "Half", priceAdjustment: 0 }],
+        },
+      ],
+    });
+  });
+
   it("falls back to menu_items.options when no relation rows exist", async () => {
     const fallbackOptions = {
       customizations: [

@@ -494,10 +494,12 @@ describe("menu routes", () => {
 
       response = await request("/option-groups/group-1", "PUT", {
         name: "Heat",
+        maxSelections: null,
       });
       expect(response.status).toBe(200);
       expect(serviceFns.updateOptionGroup).toHaveBeenCalledWith("group-1", {
         name: "Heat",
+        maxSelections: null,
       });
 
       response = await request("/option-groups/group-1", "DELETE");
@@ -529,11 +531,13 @@ describe("menu routes", () => {
       response = await request("/option-choices/choice-1", "PATCH", {
         priceAdjustment: 2.25,
         isAvailable: false,
+        maxQuantity: null,
       });
       expect(response.status).toBe(200);
       expect(serviceFns.updateOptionChoice).toHaveBeenCalledWith("choice-1", {
         priceAdjustmentCents: 225,
         isAvailable: false,
+        maxQuantity: null,
       });
 
       response = await request("/option-choices/choice-1", "DELETE");

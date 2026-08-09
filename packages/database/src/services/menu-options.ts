@@ -207,7 +207,9 @@ export function assembleMenuItemOptions(
         name: link.name,
         type: link.type,
         required,
-        ...(maxSelections != null ? { maxSelections } : {}),
+        ...(link.type === "multiple" && maxSelections != null
+          ? { maxSelections }
+          : {}),
         choices: visibleChoices.map(({ choice, priceAdjustment }) => ({
           id: choice.publicId,
           name: choice.name,

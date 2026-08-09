@@ -491,7 +491,7 @@ export const updateOptionGroupSchema = z
     name: nonEmptyString.max(100).optional(),
     type: optionGroupTypeSchema.optional(),
     required: z.boolean().optional(),
-    maxSelections: positiveInteger.optional(),
+    maxSelections: positiveInteger.nullable().optional(),
     sortOrder: nonNegativeInteger.optional(),
   })
   .strict();
@@ -514,7 +514,7 @@ export const updateOptionChoiceSchema = z
     priceAdjustment: z.number().optional(),
     isDefault: z.boolean().optional(),
     isAvailable: z.boolean().optional(),
-    maxQuantity: positiveInteger.optional(),
+    maxQuantity: positiveInteger.nullable().optional(),
     sortOrder: nonNegativeInteger.optional(),
   })
   .strict();

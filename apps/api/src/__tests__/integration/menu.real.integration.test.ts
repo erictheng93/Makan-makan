@@ -221,8 +221,9 @@ describe("Menu API — real integration", () => {
           publicId: "spice",
           kind: "choice",
           name: "Spice",
-          type: "single",
+          type: "multiple",
           required: true,
+          maxSelections: 3,
         }),
       }),
     );
@@ -240,6 +241,7 @@ describe("Menu API — real integration", () => {
             name: "Hot",
             priceAdjustment: 1.5,
             isDefault: true,
+            maxQuantity: 2,
           }),
         },
       ),
@@ -253,6 +255,30 @@ describe("Menu API — real integration", () => {
       .from(optionChoices)
       .where(eq(optionChoices.id, choiceJson.data.id));
     expect(storedChoice).toEqual([{ priceAdjustmentCents: 150 }]);
+
+    const clearGroupLimitRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/menu/option-groups/${groupJson.data.id}`,
+        {
+          method: "PUT",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({ type: "single", maxSelections: null }),
+        },
+      ),
+    );
+    expect(clearGroupLimitRes.status).toBe(200);
+
+    const clearChoiceLimitRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/menu/option-choices/${choiceJson.data.id}`,
+        {
+          method: "PATCH",
+          headers: csrfHeaders(ownerToken),
+          body: JSON.stringify({ maxQuantity: null }),
+        },
+      ),
+    );
+    expect(clearChoiceLimitRes.status).toBe(200);
 
     const linkRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
@@ -284,8 +310,13 @@ describe("Menu API — real integration", () => {
     );
     expect(listRes.status).toBe(200);
     const listJson: any = await listRes.json();
+    expect(listJson.data[0]).toMatchObject({
+      type: "single",
+      maxSelections: null,
+    });
     expect(listJson.data[0].choices[0]).toMatchObject({
       priceAdjustment: 1.5,
+      maxQuantity: null,
       isAvailable: false,
     });
 
