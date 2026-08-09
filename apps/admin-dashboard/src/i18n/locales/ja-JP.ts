@@ -47,6 +47,8 @@ const jaJP: Messages = {
     processing: "処理",
   },
   optionGroups: {
+    usedByItems: "{count} 件の商品で使用中",
+    deleteAffects: "削除すると {count} 件の商品に影響します",
     title: "共有オプショングループ",
     description:
       "ここで一度作成し、複数の商品に適用します。編集すると使用中の商品すべてに反映されます。",
@@ -142,6 +144,17 @@ const jaJP: Messages = {
       optionMaxSelections: "最大選択数",
       moveUp: "上へ",
       moveDown: "下へ",
+      sharedOptionGroups: "共有オプショングループ",
+      pickOptionGroup: "追加するグループを選択…",
+      noSharedGroupsHint:
+        "この商品にはまだ共有オプショングループがありません。",
+      hideForThisItem: "この商品では非表示",
+      inherit: "継承",
+      inheritNoCap: "継承（無制限）",
+      detachGroup: "削除",
+      switchToShared: "共有グループに切替",
+      switchToSharedHint:
+        "この商品のオプションは単独のものです。共有グループに切り替えると、複数の商品で同じ設定を使えます。",
       optionSizes: "サイズ",
       optionAddOns: "追加オプション",
       optionGroups: "オプショングループ",

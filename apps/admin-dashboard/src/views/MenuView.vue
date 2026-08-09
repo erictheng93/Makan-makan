@@ -780,7 +780,7 @@
                       {{ t("menu.form.options") }}
                     </h4>
                     <div
-                      v-if="optionSourceItems.length"
+                      v-if="optionSourceItems.length && !usesSharedOptionGroups"
                       class="flex items-center gap-2"
                     >
                       <select
@@ -810,7 +810,25 @@
                       </button>
                     </div>
                   </div>
-                  <div class="space-y-4">
+                  <MenuItemOptionGroups
+                    v-if="usesSharedOptionGroups"
+                    v-model="itemOptionGroups"
+                    :library="optionGroupLibrary"
+                  />
+                  <div v-else class="space-y-4">
+                    <div v-if="editingMenuItem" class="rounded-xl bg-white p-3">
+                      <p class="text-[12px] text-[#8E8E93]">
+                        {{ t("menu.form.switchToSharedHint") }}
+                      </p>
+                      <button
+                        type="button"
+                        data-testid="switch-to-shared-groups"
+                        class="mt-2 rounded-full bg-ios-primary/10 px-3 py-1.5 text-[12px] font-semibold text-ios-primary"
+                        @click="switchToSharedOptionGroups"
+                      >
+                        {{ t("menu.form.switchToShared") }}
+                      </button>
+                    </div>
                     <section class="rounded-xl bg-white p-3">
                       <div class="mb-3 flex items-center justify-between gap-3">
                         <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
@@ -1276,6 +1294,11 @@ import type {
 import CategoryPanel from "@/components/menu/CategoryPanel.vue";
 import CategoryEditForm from "@/components/menu/CategoryEditForm.vue";
 import MenuItemCard from "@/components/menu/MenuItemCard.vue";
+import MenuItemOptionGroups from "@/components/menu/MenuItemOptionGroups.vue";
+import {
+  useOptionGroups,
+  type MenuItemOptionGroupLink,
+} from "@/composables/useOptionGroups";
 import VirtualMenuGrid from "@/components/VirtualMenuGrid.vue";
 import type { VirtualMenuGridInstance } from "@/components/VirtualMenuGrid.vue";
 import {
@@ -1738,6 +1761,27 @@ const handleDeleteCategory = (category: CategoryData) => {
 };
 
 // ── Menu Item Handlers ──
+/**
+ * Shared option groups for this item.
+ *
+ * Which editor an item gets is decided by the same rule the assembler uses:
+ * an item with link rows is on shared groups, an item with none is still on
+ * its JSON options. There is no flag to keep in sync, and no way for the two
+ * to disagree.
+ */
+const {
+  groups: optionGroupLibrary,
+  fetchGroups: fetchOptionGroupLibrary,
+  fetchItemGroups,
+  saveItemGroups,
+} = useOptionGroups();
+const itemOptionGroups = ref<MenuItemOptionGroupLink[]>([]);
+const usesSharedOptionGroups = ref(false);
+
+const switchToSharedOptionGroups = () => {
+  usesSharedOptionGroups.value = true;
+};
+
 const openAddItemModal = () => {
   editingMenuItem.value = null;
   menuItemConflict.value = null;
@@ -1782,8 +1826,21 @@ const openAddItemModal = () => {
   };
   previousImageId.value = null;
   optionSourceId.value = "";
+  itemOptionGroups.value = [];
+  usesSharedOptionGroups.value = false;
   resetImageUpload();
   showMenuItemModal.value = true;
+};
+
+const loadItemOptionGroups = async (menuItemId: number) => {
+  const [links] = await Promise.all([
+    fetchItemGroups(menuItemId),
+    fetchOptionGroupLibrary(),
+  ]);
+  itemOptionGroups.value = links;
+  // An empty list means this item never moved off its JSON options, so it
+  // keeps the inline editor until the owner chooses to switch.
+  usesSharedOptionGroups.value = links.length > 0;
 };
 
 const editMenuItem = (item: MenuItemData) => {
@@ -1792,6 +1849,9 @@ const editMenuItem = (item: MenuItemData) => {
   menuItemMergeSummary.value = null;
   previousImageId.value = item.imageId ?? null;
   optionSourceId.value = "";
+  itemOptionGroups.value = [];
+  usesSharedOptionGroups.value = false;
+  void loadItemOptionGroups(item.id);
   menuItemForm.value = buildMenuItemForm(item);
   // Snapshot, not a reference to the same object — the form is edited in place.
   menuItemBaseline.value = { ...menuItemForm.value };
@@ -2102,11 +2162,15 @@ const handleSaveMenuItem = async () => {
   // a half-filled row would vanish on save while the modal reported success —
   // the same silent-drop failure the strict `options` schema exists to prevent.
   // Refuse instead, and name what is missing.
-  if (hasIncompleteOptionRows()) {
+  if (!usesSharedOptionGroups.value && hasIncompleteOptionRows()) {
     optionsError.value = t("menu.form.optionsIncomplete");
     return;
   }
-  const options = buildStructuredOptions();
+  // In shared mode the JSON column is not what the menu reads, and leaving
+  // it untouched keeps the old setup recoverable if the owner switches back.
+  const options = usesSharedOptionGroups.value
+    ? undefined
+    : buildStructuredOptions();
   const oldImageId = previousImageId.value;
   const nextImageId = menuItemForm.value.imageId || null;
   const editingItem = editingMenuItem.value;
@@ -2164,6 +2228,15 @@ const handleSaveMenuItem = async () => {
   }
   if (outcome !== "saved") {
     return;
+  }
+  // Links are a separate resource, so they are written after the item is
+  // known to have saved. A new item has no id to attach them to yet.
+  if (usesSharedOptionGroups.value && editingItem) {
+    const linksSaved = await saveItemGroups(
+      editingItem.id,
+      itemOptionGroups.value,
+    );
+    if (!linksSaved) return;
   }
   deletePreviousImageIfChanged(oldImageId, nextImageId);
   if (isMarketProductGapContext.value) {

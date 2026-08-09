@@ -49,6 +49,8 @@ const zhTWCore = {
 
   // 菜單管理
   optionGroups: {
+    usedByItems: "{count} 道菜使用中",
+    deleteAffects: "刪除會影響 {count} 道菜",
     title: "共用選項組",
     description:
       "在這裡建立一次，套用到多道菜品。改一次，所有引用的菜品一起變。",
@@ -143,6 +145,16 @@ const zhTWCore = {
       optionMaxSelections: "最多可選",
       moveUp: "上移",
       moveDown: "下移",
+      sharedOptionGroups: "共用選項組",
+      pickOptionGroup: "選擇要加入的群組…",
+      noSharedGroupsHint: "這道菜還沒有掛任何共用選項組。",
+      hideForThisItem: "本菜不供應",
+      inherit: "繼承",
+      inheritNoCap: "繼承（不限）",
+      detachGroup: "移除",
+      switchToShared: "改用共用選項組",
+      switchToSharedHint:
+        "這道菜的選項目前只屬於自己。改用共用選項組後，就能和其他菜品共享同一組設定。",
       optionSizes: "尺寸",
       optionAddOns: "加購",
       optionGroups: "選項群組",

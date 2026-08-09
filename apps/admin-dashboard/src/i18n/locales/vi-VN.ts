@@ -47,6 +47,8 @@ const viVN: Messages = {
     processing: "Xử lý",
   },
   optionGroups: {
+    usedByItems: "{count} món đang dùng",
+    deleteAffects: "Xóa sẽ ảnh hưởng {count} món",
     title: "Nhóm tùy chọn dùng chung",
     description:
       "Tạo một lần ở đây và áp dụng cho nhiều món. Sửa một lần, mọi món đang dùng đều đổi theo.",
@@ -143,6 +145,16 @@ const viVN: Messages = {
       optionMaxSelections: "Chọn tối đa",
       moveUp: "Lên",
       moveDown: "Xuống",
+      sharedOptionGroups: "Nhóm tùy chọn dùng chung",
+      pickOptionGroup: "Chọn nhóm để thêm…",
+      noSharedGroupsHint: "Món này chưa dùng nhóm tùy chọn dùng chung nào.",
+      hideForThisItem: "Ẩn ở món này",
+      inherit: "Kế thừa",
+      inheritNoCap: "Kế thừa (không giới hạn)",
+      detachGroup: "Gỡ",
+      switchToShared: "Dùng nhóm chung",
+      switchToSharedHint:
+        "Tùy chọn của món này chỉ thuộc về nó. Chuyển sang nhóm dùng chung để tái sử dụng cho nhiều món.",
       optionSizes: "Kích cỡ",
       optionAddOns: "Món thêm",
       optionGroups: "Nhóm tùy chọn",

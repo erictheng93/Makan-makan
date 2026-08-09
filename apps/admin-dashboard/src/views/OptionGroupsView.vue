@@ -69,6 +69,12 @@
                   {{ group.maxSelections }}</span
                 >
                 · <code class="text-[11px]">{{ group.publicId }}</code>
+                ·
+                <span :data-testid="`usage-${group.id}`">{{
+                  t("optionGroups.usedByItems", {
+                    count: group.usageCount,
+                  })
+                }}</span>
               </p>
             </div>
             <div class="flex items-center gap-2">
@@ -83,6 +89,11 @@
               <button
                 type="button"
                 :data-testid="`delete-group-${group.id}`"
+                :title="
+                  t('optionGroups.deleteAffects', {
+                    count: group.usageCount,
+                  })
+                "
                 class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                 @click="confirmDeleteGroup(group)"
               >

@@ -47,6 +47,8 @@ const idID: Messages = {
     processing: "Pengolahan",
   },
   optionGroups: {
+    usedByItems: "dipakai {count} menu",
+    deleteAffects: "Menghapus memengaruhi {count} menu",
     title: "Grup Opsi Bersama",
     description:
       "Buat sekali di sini dan terapkan ke banyak menu. Satu perubahan berlaku untuk semua menu yang memakainya.",
@@ -143,6 +145,16 @@ const idID: Messages = {
       optionMaxSelections: "Maks pilihan",
       moveUp: "Naik",
       moveDown: "Turun",
+      sharedOptionGroups: "Grup Opsi Bersama",
+      pickOptionGroup: "Pilih grup untuk ditambahkan…",
+      noSharedGroupsHint: "Menu ini belum memakai grup opsi bersama.",
+      hideForThisItem: "Sembunyikan di sini",
+      inherit: "Warisi",
+      inheritNoCap: "Warisi (tanpa batas)",
+      detachGroup: "Hapus",
+      switchToShared: "Pakai Grup Bersama",
+      switchToSharedHint:
+        "Opsi menu ini hanya miliknya sendiri. Beralih ke grup bersama agar satu pengaturan dipakai banyak menu.",
       optionSizes: "Ukuran",
       optionAddOns: "Tambahan",
       optionGroups: "Grup Opsi",

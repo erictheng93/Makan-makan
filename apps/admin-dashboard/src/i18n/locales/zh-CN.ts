@@ -47,6 +47,8 @@ const zhCN: Messages = {
     processing: "处理中...",
   },
   optionGroups: {
+    usedByItems: "{count} 个菜品使用中",
+    deleteAffects: "删除会影响 {count} 个菜品",
     title: "共用选项组",
     description:
       "在这里建立一次，套用到多个菜品。改一次，所有引用的菜品一起变。",
@@ -141,6 +143,16 @@ const zhCN: Messages = {
       optionMaxSelections: "最多可选",
       moveUp: "上移",
       moveDown: "下移",
+      sharedOptionGroups: "共用选项组",
+      pickOptionGroup: "选择要加入的分组…",
+      noSharedGroupsHint: "这个菜品还没有挂任何共用选项组。",
+      hideForThisItem: "本菜不供应",
+      inherit: "继承",
+      inheritNoCap: "继承（不限）",
+      detachGroup: "移除",
+      switchToShared: "改用共用选项组",
+      switchToSharedHint:
+        "这个菜品的选项目前只属于自己。改用共用选项组后，就能和其他菜品共享同一组设定。",
       optionSizes: "尺寸",
       optionAddOns: "加购",
       optionGroups: "选项分组",

@@ -35,7 +35,28 @@ export interface OptionGroupData {
   required: boolean;
   maxSelections: number | null;
   sortOrder: number;
+  /** How many menu items currently offer this group. */
+  usageCount: number;
   choices: OptionChoiceData[];
+}
+
+/**
+ * One item's option setup, in exactly the shape the API both returns and
+ * accepts. It round-trips: what a GET hands back is a legal PUT body, so the
+ * form can hold it as its state and post it straight back.
+ */
+export interface MenuItemOptionGroupLink {
+  groupId: string;
+  sortOrder: number;
+  /** null inherits the group's own value. */
+  requiredOverride: boolean | null;
+  maxSelectionsOverride: number | null;
+  choiceOverrides: Array<{
+    choiceId: string;
+    isHidden: boolean;
+    /** null inherits the group's price for this choice. */
+    priceAdjustment: number | null;
+  }>;
 }
 
 export type OptionGroupInput = {
@@ -76,6 +97,7 @@ export function useOptionGroups() {
     required: !!raw.required,
     maxSelections: raw.maxSelections ?? null,
     sortOrder: raw.sortOrder ?? 0,
+    usageCount: raw.usageCount ?? 0,
     choices: (raw.choices ?? []).map(
       (choice: any): OptionChoiceData => ({
         id: choice.id,
@@ -226,10 +248,70 @@ export function useOptionGroups() {
       "optionGroups.errors.saveFailed",
     );
 
+  /**
+   * An item with no link rows is still on its JSON options — the assembler
+   * falls back to that column — so an empty list is the signal that this item
+   * has not moved to shared groups, not that it has no options.
+   */
+  const fetchItemGroups = async (
+    menuItemId: number,
+  ): Promise<MenuItemOptionGroupLink[]> => {
+    try {
+      const response = await api.get<any>(
+        `/menu/items/${menuItemId}/option-groups`,
+      );
+      const payload = response.data?.success ? response.data.data : undefined;
+      return (payload?.groups ?? []).map(
+        (group: any): MenuItemOptionGroupLink => ({
+          groupId: group.groupId,
+          sortOrder: group.sortOrder ?? 0,
+          requiredOverride: group.requiredOverride ?? null,
+          maxSelectionsOverride: group.maxSelectionsOverride ?? null,
+          choiceOverrides: (group.choiceOverrides ?? []).map(
+            (override: any) => ({
+              choiceId: override.choiceId,
+              isHidden: !!override.isHidden,
+              priceAdjustment: override.priceAdjustment ?? null,
+            }),
+          ),
+        }),
+      );
+    } catch (error) {
+      console.error("Failed to fetch item option groups:", error);
+      toast.error(t("optionGroups.errors.fetchFailed"));
+      return [];
+    }
+  };
+
+  /**
+   * Replaces the whole set. Returns false on failure so the caller can keep
+   * the modal open rather than reporting a save that did not happen.
+   */
+  const saveItemGroups = async (
+    menuItemId: number,
+    groups: MenuItemOptionGroupLink[],
+  ): Promise<boolean> => {
+    try {
+      await api.put(`/menu/items/${menuItemId}/option-groups`, { groups });
+      return true;
+    } catch (error: any) {
+      console.error("Failed to save item option groups:", error);
+      const code = error?.response?.data?.error?.code;
+      toast.error(
+        code === "OPTION_GROUP_PUBLIC_ID_CONFLICT"
+          ? t("optionGroups.errors.publicIdConflict")
+          : t("optionGroups.errors.saveFailed"),
+      );
+      return false;
+    }
+  };
+
   return {
     groups,
     isLoading,
     fetchGroups,
+    fetchItemGroups,
+    saveItemGroups,
     createGroup,
     updateGroup,
     deleteGroup,

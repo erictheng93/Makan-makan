@@ -72,6 +72,27 @@ vi.mock("@/composables/useMenuManagement", () => ({
   }),
 }));
 
+const fetchItemGroups = vi.fn();
+const saveItemGroups = vi.fn();
+const fetchOptionGroupLibrary = vi.fn();
+
+vi.mock("@/composables/useOptionGroups", () => ({
+  useOptionGroups: () => ({
+    groups: ref([]),
+    isLoading: ref(false),
+    fetchGroups: fetchOptionGroupLibrary,
+    fetchItemGroups,
+    saveItemGroups,
+    createGroup: vi.fn(),
+    updateGroup: vi.fn(),
+    deleteGroup: vi.fn(),
+    createChoice: vi.fn(),
+    updateChoice: vi.fn(),
+    deleteChoice: vi.fn(),
+    setChoiceAvailability: vi.fn(),
+  }),
+}));
+
 vi.mock("@/utils/authTokenProvider", () => ({
   setAuthTokenProvider: vi.fn(),
   getAuthToken: () => "test-token",
@@ -86,6 +107,11 @@ describe("MenuView", () => {
     // saveMenuItem reports "saved" | "failed" | "conflict" — a plain boolean
     // could not distinguish a lost-update refusal from any other failure (#85).
     saveMenuItem.mockResolvedValue("saved");
+    // An item with no link rows is still on its JSON options, which is what
+    // every existing case in this file exercises.
+    fetchItemGroups.mockResolvedValue([]);
+    fetchOptionGroupLibrary.mockResolvedValue(undefined);
+    saveItemGroups.mockResolvedValue(true);
     imageUploadMocks.upload.mockResolvedValue(null);
     vi.stubEnv("VITE_IMAGE_API_URL", "https://images.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null)));
@@ -847,6 +873,91 @@ describe("MenuView", () => {
     expect(payload.options.addOns[0].maxQuantity).toBe(2);
     // Blank means no cap, and the strict schema rejects a null or a 0.
     expect(payload.options.addOns[1]).not.toHaveProperty("maxQuantity");
+  });
+
+  // Which editor an item gets follows the same rule the assembler uses: link
+  // rows mean shared groups, no link rows mean it is still on its JSON options.
+  describe("shared option groups", () => {
+    const linked = () => [
+      {
+        groupId: "group-sweet",
+        sortOrder: 0,
+        requiredOverride: null,
+        maxSelectionsOverride: null,
+        choiceOverrides: [],
+      },
+    ];
+
+    it("opens an item with links in shared mode", async () => {
+      const wrapper = mountMenuView();
+      const existing = menuItem();
+      menuItems.value = [existing] as never;
+      fetchItemGroups.mockResolvedValue(linked());
+
+      await editItem(wrapper, existing);
+      await flushPromises();
+
+      expect(fetchItemGroups).toHaveBeenCalledWith(existing.id);
+      expect(wrapper.vm.usesSharedOptionGroups).toBe(true);
+      // The inline editor is gone; there is nothing to half-edit.
+      expect(wrapper.find('[data-testid="add-size-option"]').exists()).toBe(
+        false,
+      );
+    });
+
+    it("leaves an item without links on the inline editor", async () => {
+      const wrapper = mountMenuView();
+      const existing = menuItem();
+      menuItems.value = [existing] as never;
+      fetchItemGroups.mockResolvedValue([]);
+
+      await editItem(wrapper, existing);
+      await flushPromises();
+
+      expect(wrapper.vm.usesSharedOptionGroups).toBe(false);
+      expect(wrapper.find('[data-testid="add-size-option"]').exists()).toBe(
+        true,
+      );
+      expect(
+        wrapper.find('[data-testid="switch-to-shared-groups"]').exists(),
+      ).toBe(true);
+    });
+
+    it("saves links separately and leaves the JSON column alone", async () => {
+      const wrapper = mountMenuView();
+      const existing = menuItem();
+      menuItems.value = [existing] as never;
+      fetchItemGroups.mockResolvedValue(linked());
+
+      await editItem(wrapper, existing);
+      await flushPromises();
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      // Not `options: null` — the stored JSON stays recoverable if the owner
+      // switches back.
+      const payload = saveMenuItem.mock.calls.at(-1)![0] as Record<
+        string,
+        unknown
+      >;
+      expect(payload.options).toBeUndefined();
+      expect(saveItemGroups).toHaveBeenCalledWith(existing.id, linked());
+    });
+
+    it("keeps the modal open when the links fail to save", async () => {
+      const wrapper = mountMenuView();
+      const existing = menuItem();
+      menuItems.value = [existing] as never;
+      fetchItemGroups.mockResolvedValue(linked());
+      saveItemGroups.mockResolvedValue(false);
+
+      await editItem(wrapper, existing);
+      await flushPromises();
+      await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="item-modal"]').exists()).toBe(true);
+    });
   });
 
   it("reorders option rows", async () => {

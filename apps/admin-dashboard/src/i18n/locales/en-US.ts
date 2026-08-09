@@ -47,6 +47,8 @@ const enUS: Messages = {
     processing: "Processing",
   },
   optionGroups: {
+    usedByItems: "used by {count} dishes",
+    deleteAffects: "Deleting affects {count} dishes",
     title: "Shared option groups",
     description:
       "Build once here and apply to many dishes. Editing one updates every dish that uses it.",
@@ -150,6 +152,17 @@ const enUS: Messages = {
       optionMaxSelections: "Max choices",
       moveUp: "Move up",
       moveDown: "Move down",
+      sharedOptionGroups: "Shared option groups",
+      pickOptionGroup: "Pick a group to add…",
+      noSharedGroupsHint:
+        "This dish does not offer any shared option group yet.",
+      hideForThisItem: "Hide here",
+      inherit: "Inherit",
+      inheritNoCap: "Inherit (no cap)",
+      detachGroup: "Remove",
+      switchToShared: "Use shared groups",
+      switchToSharedHint:
+        "This dish's options belong to it alone. Switch to shared groups to reuse one setup across dishes.",
       optionSizes: "Sizes",
       optionAddOns: "Add-ons",
       optionGroups: "Option groups",
