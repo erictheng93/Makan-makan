@@ -200,11 +200,13 @@ describe("menu item option rows", () => {
         name: `Batch Item ${index}`,
         priceCents: 1000,
         isAvailable: true,
+        // Deliberately distinct per item: identical shapes now collapse into
+        // one shared group, which would leave too few statements to batch.
         options: {
           customizations: [
             {
-              id: "spice",
-              name: "Spice",
+              id: `spice_${index}`,
+              name: `Spice ${index}`,
               type: "single",
               required: true,
               choices: [
@@ -215,8 +217,8 @@ describe("menu item option rows", () => {
           ],
           addOns: [
             {
-              id: "egg",
-              name: "Egg",
+              id: `egg_${index}`,
+              name: `Egg ${index}`,
               price: 1,
               maxQuantity: 3,
             },
@@ -241,11 +243,13 @@ describe("menu item option rows", () => {
         name: `Retry Item ${index}`,
         priceCents: 1000,
         isAvailable: true,
+        // Deliberately distinct per item: identical shapes now collapse into
+        // one shared group, which would leave too few statements to batch.
         options: {
           customizations: [
             {
-              id: "spice",
-              name: "Spice",
+              id: `spice_${index}`,
+              name: `Spice ${index}`,
               type: "single",
               required: true,
               choices: [
@@ -256,8 +260,8 @@ describe("menu item option rows", () => {
           ],
           addOns: [
             {
-              id: "egg",
-              name: "Egg",
+              id: `egg_${index}`,
+              name: `Egg ${index}`,
               price: 1,
               maxQuantity: 3,
             },
@@ -464,6 +468,129 @@ describe("menu item option rows", () => {
           choices: [{ id: "half", name: "Half", priceAdjustment: 0 }],
         },
       ],
+    });
+  });
+
+  // Backfilling a group per item would give a 50-dish menu fifty copies of
+  // 甜度. The safety property is that sharing changes nothing a customer sees:
+  // each item must still assemble to exactly the JSON it started from.
+  describe("shared groups during backfill", () => {
+    const drinkOptions = (sweetnessName = "甜度") => ({
+      customizations: [
+        {
+          id: "sweetness",
+          name: sweetnessName,
+          type: "single" as const,
+          required: true,
+          choices: [
+            { id: "half", name: "半糖", priceAdjustment: 0 },
+            { id: "none", name: "無糖", priceAdjustment: 0 },
+          ],
+        },
+      ],
+      addOns: [{ id: "pearl", name: "珍珠", price: 10 }],
+    });
+
+    async function seedItem(name: string, options: unknown) {
+      const [item] = await testDb.drizzle
+        .insert(menuItems)
+        .values({
+          restaurantId,
+          categoryId,
+          name,
+          priceCents: 6000,
+          isAvailable: true,
+          options: options as never,
+        })
+        .returning();
+      return item;
+    }
+
+    it("gives identically shaped items one group instead of one each", async () => {
+      const a = await seedItem("珍珠奶茶", drinkOptions());
+      const b = await seedItem("紅茶拿鐵", drinkOptions());
+      const c = await seedItem("烏龍茶", drinkOptions());
+
+      const result = await backfillMenuItemOptions(testDb.bindings.DB);
+
+      // Three drinks, one 甜度 group and one 加購 group between them.
+      expect(result).toMatchObject({
+        menuItemsBackfilled: 3,
+        groupsInserted: 2,
+        groupsReused: 4,
+      });
+      expect(await testDb.drizzle.select().from(optionGroups)).toHaveLength(2);
+      expect(
+        await testDb.drizzle.select().from(menuItemOptionGroups),
+      ).toHaveLength(6);
+
+      // The whole point: no menu changed.
+      const optionMap = await loadAssembledMenuItemOptions(testDb.drizzle, [
+        a,
+        b,
+        c,
+      ]);
+      for (const item of [a, b, c]) {
+        expect(optionMap.get(item.id)).toEqual(drinkOptions());
+      }
+    });
+
+    it("keeps a separate group when anything the assembler reads differs", async () => {
+      const a = await seedItem("珍珠奶茶", drinkOptions());
+      // Same id and choices, different display name.
+      const b = await seedItem("特調", drinkOptions("糖度"));
+
+      await backfillMenuItemOptions(testDb.bindings.DB);
+
+      const groups = await testDb.drizzle.select().from(optionGroups);
+      const sweetness = groups.filter(
+        (group) => group.publicId === "sweetness",
+      );
+      expect(sweetness).toHaveLength(2);
+
+      const optionMap = await loadAssembledMenuItemOptions(testDb.drizzle, [
+        a,
+        b,
+      ]);
+      expect(optionMap.get(a.id)).toEqual(drinkOptions());
+      expect(optionMap.get(b.id)).toEqual(drinkOptions("糖度"));
+    });
+
+    it("does not share a group across restaurants", async () => {
+      const other = "restaurant-menu-options-other";
+      await testDb.drizzle.insert(restaurants).values({
+        id: other,
+        name: "Other Shop",
+        type: "taiwanese",
+        category: "casual",
+        address: "2 Test St",
+        district: "D",
+        city: "C",
+        phone: "0912345679",
+        isAvailable: true,
+      });
+      const [otherCategory] = await testDb.drizzle
+        .insert(categories)
+        .values({ restaurantId: other, name: "Drinks", sortOrder: 1 })
+        .returning({ id: categories.id });
+
+      await seedItem("珍珠奶茶", drinkOptions());
+      await testDb.drizzle.insert(menuItems).values({
+        restaurantId: other,
+        categoryId: otherCategory.id,
+        name: "珍珠奶茶",
+        priceCents: 6000,
+        isAvailable: true,
+        options: drinkOptions() as never,
+      });
+
+      await backfillMenuItemOptions(testDb.bindings.DB);
+
+      const groups = await testDb.drizzle.select().from(optionGroups);
+      // A group belongs to one restaurant; the same shape in two shops is two
+      // groups, not one shared across tenants.
+      expect(new Set(groups.map((group) => group.restaurantId)).size).toBe(2);
+      expect(groups.filter((g) => g.publicId === "sweetness")).toHaveLength(2);
     });
   });
 

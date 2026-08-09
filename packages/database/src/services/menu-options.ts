@@ -98,7 +98,115 @@ type BackfillMenuItemOptionsResult = {
   menuItemsBackfilled: number;
   groupsInserted: number;
   choicesInserted: number;
+  /** Links that reused a group an earlier item had already produced. */
+  groupsReused: number;
 };
+
+type PlannedOptionGroup = {
+  /**
+   * Two groups are interchangeable when everything the assembler reads from
+   * them matches, in order. Deliberately excludes sort order: the same 甜度
+   * sitting second on one dish and third on another is still the same 甜度,
+   * and the position is carried by the link, not the group.
+   */
+  signature: string;
+  group: Omit<typeof optionGroups.$inferInsert, "id">;
+  choices: Array<Omit<typeof optionChoices.$inferInsert, "id" | "groupId">>;
+};
+
+function planItemOptionGroups(
+  restaurantId: string,
+  options: JsonMenuItemOptions,
+): PlannedOptionGroup[] {
+  const plans: PlannedOptionGroup[] = [];
+
+  const push = (
+    group: Omit<typeof optionGroups.$inferInsert, "id" | "restaurantId">,
+    choices: Array<Omit<typeof optionChoices.$inferInsert, "id" | "groupId">>,
+  ) => {
+    plans.push({
+      signature: JSON.stringify([
+        group.kind,
+        group.publicId,
+        group.name,
+        group.type,
+        group.required ?? false,
+        group.maxSelections ?? null,
+        choices.map((choice) => [
+          choice.publicId,
+          choice.name,
+          choice.priceAdjustmentCents ?? 0,
+          choice.isDefault ?? false,
+          choice.isAvailable ?? true,
+          choice.maxQuantity ?? null,
+        ]),
+      ]),
+      group: { ...group, restaurantId },
+      choices,
+    });
+  };
+
+  if (options.sizes?.length) {
+    push(
+      {
+        publicId: "sizes",
+        kind: "size",
+        name: "Sizes",
+        type: "single",
+        required: true,
+      },
+      options.sizes.map((size, sortOrder) => ({
+        publicId: size.id,
+        name: size.name,
+        priceAdjustmentCents: toRequiredCents(size.priceAdjustment),
+        isDefault: size.isDefault ?? false,
+        sortOrder,
+      })),
+    );
+  }
+
+  for (const customization of options.customizations ?? []) {
+    push(
+      {
+        publicId: customization.id,
+        kind: "choice",
+        name: customization.name,
+        type: customization.type,
+        required: customization.required ?? false,
+        maxSelections: customization.maxSelections,
+      },
+      customization.choices.map((choice, sortOrder) => ({
+        publicId: choice.id,
+        name: choice.name,
+        priceAdjustmentCents: toRequiredCents(choice.priceAdjustment ?? 0),
+        isDefault: choice.isDefault ?? false,
+        sortOrder,
+      })),
+    );
+  }
+
+  if (options.addOns?.length) {
+    push(
+      {
+        publicId: "addOns",
+        kind: "addon",
+        name: "Add-ons",
+        type: "multiple",
+        required: false,
+      },
+      options.addOns.map((addOn, sortOrder) => ({
+        publicId: addOn.id,
+        name: addOn.name,
+        priceAdjustmentCents: toRequiredCents(addOn.price),
+        isAvailable: addOn.available ?? true,
+        maxQuantity: addOn.maxQuantity,
+        sortOrder,
+      })),
+    );
+  }
+
+  return plans;
+}
 
 function chunk<T>(values: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -404,125 +512,74 @@ export async function backfillMenuItemOptions(
     pendingBatch.push(...statements);
   }
 
+  /**
+   * One group per distinct shape, per restaurant.
+   *
+   * Backfilling a group per item would give a 50-dish menu fifty copies of
+   * 甜度 — the exact duplication sharing exists to remove, dumped into the
+   * owner's group list on day one. Items whose options differ in any way the
+   * assembler can see keep their own group, so no item's menu changes.
+   */
+  const sharedGroupIds = new Map<string, string>();
+  let groupsReused = 0;
+
   for (const item of items) {
     if (alreadyBackfilled.has(item.id)) continue;
     const options = item.options as JsonMenuItemOptions | null;
     if (!options) continue;
-    const groupRows: (typeof optionGroups.$inferInsert)[] = [];
-    const choiceRows: (typeof optionChoices.$inferInsert)[] = [];
-    const linkRows: (typeof menuItemOptionGroups.$inferInsert)[] = [];
-    let groupSortOrder = 0;
 
-    if (options.sizes?.length) {
-      const groupId = uuidv7();
-      groupRows.push({
-        id: groupId,
-        restaurantId: item.restaurantId,
-        publicId: "sizes",
-        kind: "size",
-        name: "Sizes",
-        type: "single",
-        required: true,
-        sortOrder: groupSortOrder,
-      });
-      linkRows.push({
-        menuItemId: item.id,
-        groupId,
-        sortOrder: groupSortOrder,
-      });
-      options.sizes.forEach((size, choiceSortOrder) => {
-        choiceRows.push({
-          id: uuidv7(),
+    const plans = planItemOptionGroups(item.restaurantId, options);
+    if (plans.length === 0) continue;
+
+    const groupStatements: BatchItem<"sqlite">[] = [];
+    const choiceStatements: BatchItem<"sqlite">[] = [];
+    const linkStatements: BatchItem<"sqlite">[] = [];
+
+    plans.forEach((plan, sortOrder) => {
+      const key = `${item.restaurantId}\u0000${plan.signature}`;
+      let groupId = sharedGroupIds.get(key);
+
+      if (groupId) {
+        groupsReused++;
+      } else {
+        groupId = uuidv7();
+        sharedGroupIds.set(key, groupId);
+        groupStatements.push(
+          db.insert(optionGroups).values({
+            ...plan.group,
+            id: groupId,
+            sortOrder,
+          }) as BatchItem<"sqlite">,
+        );
+        for (const choice of plan.choices) {
+          choiceStatements.push(
+            db.insert(optionChoices).values({
+              ...choice,
+              id: uuidv7(),
+              groupId,
+            }) as BatchItem<"sqlite">,
+          );
+        }
+        groupsInserted++;
+        choicesInserted += plan.choices.length;
+      }
+
+      linkStatements.push(
+        db.insert(menuItemOptionGroups).values({
+          menuItemId: item.id,
           groupId,
-          publicId: size.id,
-          name: size.name,
-          priceAdjustmentCents: toRequiredCents(size.priceAdjustment),
-          isDefault: size.isDefault ?? false,
-          sortOrder: choiceSortOrder,
-        });
-      });
-      groupSortOrder++;
-    }
+          sortOrder,
+        }) as BatchItem<"sqlite">,
+      );
+    });
 
-    for (const customization of options.customizations ?? []) {
-      const groupId = uuidv7();
-      groupRows.push({
-        id: groupId,
-        restaurantId: item.restaurantId,
-        publicId: customization.id,
-        kind: "choice",
-        name: customization.name,
-        type: customization.type,
-        required: customization.required ?? false,
-        maxSelections: customization.maxSelections,
-        sortOrder: groupSortOrder,
-      });
-      linkRows.push({
-        menuItemId: item.id,
-        groupId,
-        sortOrder: groupSortOrder,
-      });
-      customization.choices.forEach((choice, choiceSortOrder) => {
-        choiceRows.push({
-          id: uuidv7(),
-          groupId,
-          publicId: choice.id,
-          name: choice.name,
-          priceAdjustmentCents: toRequiredCents(choice.priceAdjustment ?? 0),
-          isDefault: choice.isDefault ?? false,
-          sortOrder: choiceSortOrder,
-        });
-      });
-      groupSortOrder++;
-    }
-
-    if (options.addOns?.length) {
-      const groupId = uuidv7();
-      groupRows.push({
-        id: groupId,
-        restaurantId: item.restaurantId,
-        publicId: "addOns",
-        kind: "addon",
-        name: "Add-ons",
-        type: "multiple",
-        required: false,
-        sortOrder: groupSortOrder,
-      });
-      linkRows.push({
-        menuItemId: item.id,
-        groupId,
-        sortOrder: groupSortOrder,
-      });
-      options.addOns.forEach((addOn, choiceSortOrder) => {
-        choiceRows.push({
-          id: uuidv7(),
-          groupId,
-          publicId: addOn.id,
-          name: addOn.name,
-          priceAdjustmentCents: toRequiredCents(addOn.price),
-          isAvailable: addOn.available ?? true,
-          maxQuantity: addOn.maxQuantity,
-          sortOrder: choiceSortOrder,
-        });
-      });
-    }
-
-    if (linkRows.length === 0) continue;
     menuItemsBackfilled++;
-    groupsInserted += groupRows.length;
-    choicesInserted += choiceRows.length;
-
+    // Groups first, then choices, then links: a reused group was written by an
+    // earlier batch, and a new one is written earlier in this same batch.
     queueStatements([
-      ...groupRows.map(
-        (row) => db.insert(optionGroups).values(row) as BatchItem<"sqlite">,
-      ),
-      ...choiceRows.map(
-        (row) => db.insert(optionChoices).values(row) as BatchItem<"sqlite">,
-      ),
-      ...linkRows.map(
-        (row) =>
-          db.insert(menuItemOptionGroups).values(row) as BatchItem<"sqlite">,
-      ),
+      ...groupStatements,
+      ...choiceStatements,
+      ...linkStatements,
     ]);
   }
 
@@ -538,5 +595,6 @@ export async function backfillMenuItemOptions(
     menuItemsBackfilled,
     groupsInserted,
     choicesInserted,
+    groupsReused,
   };
 }
