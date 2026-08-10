@@ -2,6 +2,14 @@ import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { safeTranslate } from "@/utils/i18n";
+// Deliberately eager. Every other view is a chunk, and the failure this view
+// exists to report is "a chunk could not be fetched" — a deploy replaces the
+// hashed filenames, so a tab still holding the previous index.html asks for
+// files that are gone. Lazy-loading the recovery view meant it was a chunk
+// from the same dead build: it 404'd too, re-entered onError, and the app spun
+// (18,994 console errors in one observed run). Living in the entry bundle,
+// which by definition already loaded, is what makes it able to render at all.
+import ErrorView from "@/views/ErrorView.vue";
 
 const FALLBACK_DOCUMENT_TITLE = "MakanMasak";
 
@@ -329,7 +337,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/error",
     name: "Error",
-    component: () => import("@/views/ErrorView.vue"),
+    component: ErrorView,
     props: (route) => ({
       code: route.query.code,
       message: route.query.message,
@@ -447,13 +455,80 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach(() => {
   // 頁面載入完成後的處理
   // 可以在這裡添加 Google Analytics 或其他追蹤代碼
+
+  // Navigation worked, so whatever was stale is now loaded. Forgetting the
+  // mark lets a later deploy earn its own reload instead of being refused one.
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+  } catch {
+    // Storage unavailable — nothing was recorded to forget.
+  }
 });
 
+/**
+ * A chunk that 404s is almost always a deploy that landed under an open tab,
+ * and the page the diner wanted still exists — it is only this build that is
+ * gone. Fetching the document again picks up the current index.html and its
+ * live filenames, which no amount of client-side routing can do.
+ *
+ * Marked per target so one dead route cannot reload forever: if the same path
+ * fails again after a reload, the build is genuinely broken and the error view
+ * is the honest answer.
+ */
+const CHUNK_RELOAD_KEY = "makanmakan_chunk_reload_path";
+
+const CHUNK_FAILURE_PATTERN =
+  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i;
+
+/**
+ * Walks `cause`, because an import failure rarely arrives bare — the loader
+ * that caught it wraps it, and the original text is the only reliable marker
+ * (browsers disagree on the wording, and none of them use an error code).
+ */
+function isChunkLoadFailure(error: unknown, depth = 0): boolean {
+  if (!error || depth > 4) return false;
+
+  const message = error instanceof Error ? error.message : String(error);
+  if (CHUNK_FAILURE_PATTERN.test(message)) return true;
+
+  const cause = (error as { cause?: unknown }).cause;
+  return cause ? isChunkLoadFailure(cause, depth + 1) : false;
+}
+
+/** Storage is unavailable in some privacy modes; a failure just means no retry. */
+function readSession(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(key: string, value: string): boolean {
+  try {
+    sessionStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // 錯誤處理
-router.onError((error) => {
+router.onError((error, to) => {
   // This is the only trace a fatal navigation failure leaves behind, which is
   // why production builds no longer strip console.error (#60).
   console.error("路由錯誤:", error);
+
+  if (isChunkLoadFailure(error)) {
+    const target = to?.fullPath ?? window.location.pathname;
+    if (readSession(CHUNK_RELOAD_KEY) !== target) {
+      if (writeSession(CHUNK_RELOAD_KEY, target)) {
+        window.location.assign(target);
+        return;
+      }
+    }
+  }
+
   router.push({
     name: "Error",
     query: {
