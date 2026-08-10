@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
+import { useI18n } from "@/composables/useI18n";
 import { readHostCredentials } from "@/utils/groupOrderSession";
 
 const props = defineProps<{
@@ -12,6 +13,7 @@ const emit = defineEmits<{
   (event: "recovered"): void;
 }>();
 
+const { t } = useI18n();
 const fallbackRecover =
   props.recover ?? useGroupOrder({ restaurantId: "" }).recoverHost;
 const recoveryCodeInput = ref("");
@@ -47,16 +49,16 @@ function recoveryErrorMessage(recoveryError: unknown): string {
       : undefined;
 
   if (status === 429) {
-    return "Too many recovery attempts. Try again in 15 minutes.";
+    return t("group.recoverRateLimited");
   }
 
   if (status === 400) {
-    return "That recovery code did not match this group order.";
+    return t("group.recoverMismatch");
   }
 
   return recoveryError instanceof Error
     ? recoveryError.message
-    : "Unable to recover host access.";
+    : t("group.recoverFailed");
 }
 </script>
 
@@ -65,9 +67,11 @@ function recoveryErrorMessage(recoveryError: unknown): string {
     <div v-if="hasCredentials">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h2 class="text-sm font-semibold text-ios-text">Host recovery</h2>
+          <h2 class="text-sm font-semibold text-ios-text">
+            {{ t("group.hostRecoveryTitle") }}
+          </h2>
           <p class="mt-1 text-xs text-ios-secondary">
-            Keep this code private in case this device loses access.
+            {{ t("group.hostRecoveryDesc") }}
           </p>
         </div>
         <button
@@ -76,7 +80,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
           class="shrink-0 rounded-full bg-ios-blue px-4 py-2 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           @click="isRevealed = !isRevealed"
         >
-          {{ isRevealed ? "Hide" : "Show code" }}
+          {{ isRevealed ? t("group.hideCode") : t("group.showCode") }}
         </button>
       </div>
 
@@ -95,7 +99,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
           for="group-order-recovery-code"
           class="text-sm font-semibold text-ios-text"
         >
-          Recover host access
+          {{ t("group.recoverHostAccess") }}
         </label>
         <input
           id="group-order-recovery-code"
@@ -104,7 +108,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
           type="text"
           autocomplete="one-time-code"
           class="mt-2 w-full rounded-xl border-0 bg-ios-bg px-4 py-3 text-sm text-ios-text transition-all duration-200 placeholder:text-ios-tertiary focus:bg-white focus:ring-2 focus:ring-ios-blue/30"
-          placeholder="Recovery code"
+          :placeholder="t('group.recoveryCodePlaceholder')"
         />
       </div>
 
@@ -123,7 +127,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
         :disabled="isRecovering"
         @click="submitRecovery"
       >
-        {{ isRecovering ? "Recovering..." : "Recover" }}
+        {{ isRecovering ? t("group.recovering") : t("group.recover") }}
       </button>
     </form>
   </section>

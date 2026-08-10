@@ -84,8 +84,31 @@ describe("HostRecoveryPanel", () => {
     await flushPromises();
 
     // /recover allows five attempts per fifteen minutes. A generic failure
-    // message leaves the host retrying into a wall with no idea why.
-    expect(wrapper.find('[data-testid="recovery-error"]').text()).toMatch(/15/);
+    // message leaves the host retrying into a wall with no idea why. The
+    // component picks the key; the locales below have to carry the number,
+    // since `t` is stubbed here and would hide an empty translation.
+    expect(wrapper.find('[data-testid="recovery-error"]').text()).toBe(
+      "group.recoverRateLimited",
+    );
+  });
+
+  it("names the fifteen minute wait in every language", async () => {
+    const { getCustomerMessages } =
+      await import("@makanmakan/i18n/static-messages");
+    const messages = getCustomerMessages() as unknown as Record<
+      string,
+      { group?: Record<string, string> }
+    >;
+
+    const locales = Object.keys(messages);
+    expect(locales.length).toBeGreaterThanOrEqual(6);
+
+    for (const locale of locales) {
+      expect(
+        messages[locale]?.group?.recoverRateLimited,
+        `${locale} must tell the host how long to wait`,
+      ).toMatch(/15/);
+    }
   });
 
   it("does not spend an attempt on an empty code", async () => {

@@ -59,7 +59,7 @@ async function toggleAutoSubmit(): Promise<void> {
     await group.setAutoSubmitOnExpiry(!group.autoSubmitOnExpiry.value);
   } catch (error) {
     autoSubmitError.value =
-      error instanceof Error ? error.message : "Unable to change this setting.";
+      error instanceof Error ? error.message : t("group.autoSubmitFailed");
   } finally {
     isSavingAutoSubmit.value = false;
   }
@@ -92,7 +92,7 @@ async function loadGroupOrder(): Promise<void> {
     await group.connectToGroupOrder(props.groupOrderId);
   } catch (error) {
     viewError.value =
-      error instanceof Error ? error.message : "Unable to load group order.";
+      error instanceof Error ? error.message : t("group.loadFailed");
   }
 }
 
@@ -101,7 +101,7 @@ async function updateQuantity(itemId: string, quantity: number): Promise<void> {
     await group.updateCartItem(itemId, { quantity });
   } catch (error) {
     viewError.value =
-      error instanceof Error ? error.message : "Unable to update item.";
+      error instanceof Error ? error.message : t("group.updateItemFailed");
   }
 }
 
@@ -110,7 +110,7 @@ async function removeItem(itemId: string): Promise<void> {
     await group.removeFromCart(itemId);
   } catch (error) {
     viewError.value =
-      error instanceof Error ? error.message : "Unable to remove item.";
+      error instanceof Error ? error.message : t("group.removeItemFailed");
   }
 }
 
@@ -119,9 +119,7 @@ async function changeFeeMode(mode: GroupOrderFeeMode): Promise<void> {
     await group.setFeeMode(mode);
   } catch (error) {
     viewError.value =
-      error instanceof Error
-        ? error.message
-        : "Unable to change who pays the service charge.";
+      error instanceof Error ? error.message : t("group.feeModeFailed");
   }
 }
 
@@ -130,7 +128,7 @@ async function startSettlement(): Promise<void> {
     await group.startSettlement();
   } catch (error) {
     viewError.value =
-      error instanceof Error ? error.message : "Unable to split the bill.";
+      error instanceof Error ? error.message : t("group.splitFailed");
   }
 }
 
@@ -139,7 +137,7 @@ async function settleMyShare(): Promise<void> {
     await group.settleMyShare();
   } catch (error) {
     viewError.value =
-      error instanceof Error ? error.message : "Unable to settle your share.";
+      error instanceof Error ? error.message : t("group.settleFailed");
   }
 }
 
@@ -147,7 +145,7 @@ async function changeSplitMode(mode: SplitBillConfig["mode"]): Promise<void> {
   try {
     await group.setSplitBillMode(mode);
   } catch {
-    splitNotice.value = "Split changes are not available yet.";
+    splitNotice.value = t("group.splitUnavailable");
   }
 }
 
@@ -162,13 +160,12 @@ async function submitGroupOrder(): Promise<void> {
     await group.submitOrder();
   } catch (error) {
     if (isOrderAlreadyPlacedError(error)) {
-      orderPlacedWarning.value =
-        "The restaurant has already received this order. Contact the restaurant before making any changes or trying again.";
+      orderPlacedWarning.value = t("group.orderAlreadyPlaced");
     } else if (isHostOnlyError(error)) {
-      submitError.value = "Only the group host can submit this order.";
+      submitError.value = t("group.hostOnlySubmit");
     } else {
       submitError.value =
-        error instanceof Error ? error.message : "Unable to submit order.";
+        error instanceof Error ? error.message : t("group.submitFailed");
     }
   } finally {
     isSubmitting.value = false;
@@ -204,9 +201,11 @@ onUnmounted(() => {
   <main class="min-h-screen bg-ios-bg px-4 py-6">
     <section class="mx-auto w-full max-w-2xl">
       <div class="mb-5">
-        <p class="text-sm font-medium text-ios-secondary">Group order</p>
+        <p class="text-sm font-medium text-ios-secondary">
+          {{ t("group.groupOrderLabel") }}
+        </p>
         <h1 class="text-2xl font-semibold text-ios-text">
-          {{ group.groupOrder.value?.hostName || "Shared cart" }}
+          {{ group.groupOrder.value?.hostName || t("group.sharedCart") }}
         </h1>
       </div>
 
@@ -285,7 +284,7 @@ onUnmounted(() => {
           :disabled="isSubmitting"
           @click="submitGroupOrder"
         >
-          {{ isSubmitting ? "Submitting..." : "Submit order" }}
+          {{ isSubmitting ? t("group.submitting") : t("group.submitOrder") }}
         </button>
       </div>
 
@@ -324,11 +323,10 @@ onUnmounted(() => {
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <p class="text-base font-semibold text-ios-text">
-              Submit automatically when time runs out
+              {{ t("group.autoSubmitTitle") }}
             </p>
             <p class="mt-1 text-sm text-ios-secondary">
-              Off by default. Leave it off and an expired group is simply
-              cancelled — nothing is sent to the kitchen unless you submit.
+              {{ t("group.autoSubmitDesc") }}
             </p>
           </div>
 
@@ -337,7 +335,7 @@ onUnmounted(() => {
             type="button"
             role="switch"
             :aria-checked="group.autoSubmitOnExpiry.value ? 'true' : 'false'"
-            aria-label="Submit automatically when time runs out"
+            :aria-label="t('group.autoSubmitTitle')"
             :disabled="isSavingAutoSubmit"
             class="relative mt-1 h-8 w-[52px] flex-shrink-0 rounded-full transition-all duration-300 ease-out disabled:opacity-60"
             :class="
@@ -363,8 +361,8 @@ onUnmounted(() => {
         >
           {{
             group.autoSubmitOnExpiry.value
-              ? "On — the cart will be ordered at expiry"
-              : "Off — an expired group is cancelled"
+              ? t("group.autoSubmitOn")
+              : t("group.autoSubmitOff")
           }}
         </p>
 
