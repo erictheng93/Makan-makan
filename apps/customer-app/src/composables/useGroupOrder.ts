@@ -258,6 +258,18 @@ function mapMember(member: BackendGroupMember): GroupMember {
   };
 }
 
+/**
+ * Tables are an integer-keyed table, so the create endpoint wants a number and
+ * refuses a string. Anything that is not a usable table id is dropped rather
+ * than sent as NaN — a group order without a table is valid, one with a broken
+ * table reference is not.
+ */
+function toTableId(value: string | number | undefined): number | undefined {
+  if (value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function mapCartItem(
   item: BackendGroupCartItem,
   members: GroupMember[],
@@ -524,7 +536,10 @@ export function useGroupOrder(options: {
         "/orders/group/create",
         {
           restaurantId,
-          tableId: createOptions.tableId ?? tableId,
+          // Route params are strings, but `table_id` is an integer column and
+          // the create schema rejects a string outright — the same coercion
+          // `addToCart` already does for `menuItemId`.
+          tableId: toTableId(createOptions.tableId ?? tableId),
           hostName: createOptions.hostName ?? userName,
         },
       );

@@ -120,6 +120,42 @@ describe("useGroupOrder — data layer", () => {
     expect(group.recoveryCode.value).toBe("recovery-1");
   });
 
+  /**
+   * `table_id` is an integer column and the create schema is `z.number()` — it
+   * rejects "7" outright rather than coercing it. Route params arrive as
+   * strings, so the payload is the one place that has to convert, and every
+   * test above this one mocks the endpoint, so nothing else would notice a
+   * string going out. This is the assertion that failed in production.
+   */
+  it("sends the table id as a number the create endpoint will accept", async () => {
+    const group = useGroupOrder({ restaurantId: "rest-1", tableId: "7" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(createResponse());
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+
+    await group.createGroupOrder({ hostName: "Alex" });
+
+    const [, payload] = vi.mocked(apiClient.post).mock.calls[0] as [
+      string,
+      { tableId: unknown },
+    ];
+    expect(payload.tableId).toBe(7);
+  });
+
+  // A group order without a table is valid; one carrying NaN is not.
+  it("omits the table id rather than sending a broken one", async () => {
+    const group = useGroupOrder({ restaurantId: "rest-1" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(createResponse());
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+
+    await group.createGroupOrder({ hostName: "Alex" });
+
+    const [, payload] = vi.mocked(apiClient.post).mock.calls[0] as [
+      string,
+      { tableId: unknown },
+    ];
+    expect(payload.tableId).toBeUndefined();
+  });
+
   it("marks the created group order active for the current restaurant table", async () => {
     const group = useGroupOrder({ restaurantId: "rest-1", tableId: "7" });
     vi.mocked(apiClient.post).mockResolvedValueOnce(createResponse());
