@@ -9,6 +9,7 @@ import { performanceOptimizationService } from "./services/performanceOptimizati
 import { useAuthStore } from "./stores/auth";
 import { initI18n } from "./i18n";
 import { installKitchenRouterGuards } from "./router/guards";
+import { installKitchenChunkRecovery } from "./router/chunk-recovery";
 
 // CSS imports
 import "./assets/css/main.css";
@@ -74,6 +75,7 @@ const authReady = authStore.initialize().catch((err) => {
   console.error("[kitchen] auth initialize failed:", err);
 });
 installKitchenRouterGuards(router, authStore, authReady);
+installKitchenChunkRecovery(router);
 app.use(router);
 
 // Initialize performance optimization services
