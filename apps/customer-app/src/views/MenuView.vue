@@ -758,7 +758,9 @@ async function restoreActiveGroupOrder(): Promise<void> {
       loaded?.status !== "active"
     ) {
       clearLoadedGroupMode();
+      return;
     }
+    void connectActiveGroupOrder(activeGroupOrder.groupOrderId);
   } catch {
     clearLoadedGroupMode();
   }
@@ -793,6 +795,7 @@ const handleAddToCart = async (data: {
 };
 
 function clearLoadedGroupMode(): void {
+  groupOrder.disconnectRealtime();
   clearActiveGroupOrder(props.restaurantId, String(props.tableId));
   groupOrder.groupOrder.value = null;
   groupOrder.currentMemberId.value = "";
@@ -802,6 +805,17 @@ function clearLoadedGroupMode(): void {
 function leaveGroupMode(): void {
   clearLoadedGroupMode();
   showGroupStartForm.value = false;
+}
+
+async function connectActiveGroupOrder(groupOrderId: string): Promise<void> {
+  if (!import.meta.env.VITE_REALTIME_URL) return;
+
+  try {
+    await groupOrder.connectToGroupOrder(groupOrderId);
+  } catch {
+    // The menu remains usable without realtime; the shared cart page can still
+    // recover the session and show connection-specific errors.
+  }
 }
 
 function enqueueGroupCartAddition(data: {
@@ -903,6 +917,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("scroll", updateActiveCategoryOnScroll);
+  groupOrder.disconnectRealtime();
 });
 
 // 監聽餐廳資料變化

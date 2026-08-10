@@ -22,6 +22,8 @@ const groupOrderMock = vi.hoisted(() => ({
   error: { value: null as string | null },
   createGroupOrder: vi.fn(),
   loadGroupOrder: vi.fn(),
+  connectToGroupOrder: vi.fn(),
+  disconnectRealtime: vi.fn(),
   addToCart: vi.fn(),
 }));
 const routeQuery = vi.hoisted(() => ({}));
@@ -187,6 +189,7 @@ vi.mock("@tanstack/vue-query", () => ({
 describe("MenuView table validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     tableValidationResult.value = null;
     restaurantResult.value = null;
     menuResult.value = null;
@@ -195,6 +198,8 @@ describe("MenuView table validation", () => {
     groupOrderMock.error.value = null;
     groupOrderMock.createGroupOrder.mockReset();
     groupOrderMock.loadGroupOrder.mockReset();
+    groupOrderMock.connectToGroupOrder.mockReset();
+    groupOrderMock.disconnectRealtime.mockReset();
     groupOrderMock.addToCart.mockReset();
     readActiveGroupOrder.mockReset();
     clearActiveGroupOrder.mockReset();
@@ -389,6 +394,50 @@ describe("MenuView table validation", () => {
       notes: "less salt",
     });
     expect(addCartItem).not.toHaveBeenCalled();
+  });
+
+  it("subscribes to realtime while an active group is open on the menu", async () => {
+    vi.stubEnv("VITE_REALTIME_URL", "ws://realtime.example");
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [],
+      menuItems: [],
+    };
+    readActiveGroupOrder.mockReturnValue({
+      groupOrderId: "go-1",
+      restaurantId: "restaurant-1",
+      tableId: "1",
+      savedAt: Date.now(),
+    });
+    groupOrderMock.loadGroupOrder.mockImplementation(async () => {
+      groupOrderMock.currentMemberId.value = "m-1";
+      groupOrderMock.groupOrder.value = {
+        id: "go-1",
+        restaurantId: "restaurant-1",
+        tableId: "1",
+        status: "active",
+        cartItems: [],
+      };
+    });
+
+    const wrapper = mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(groupOrderMock.connectToGroupOrder).toHaveBeenCalledWith("go-1");
+
+    wrapper.unmount();
+
+    expect(groupOrderMock.disconnectRealtime).toHaveBeenCalled();
   });
 
   it("lets diners leave group mode and return to their personal cart", async () => {
