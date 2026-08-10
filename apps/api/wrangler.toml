@@ -103,6 +103,13 @@ binding = "BACKUP_KV"
 id = "makanmasak-backup-dev"
 preview_id = "makanmasak-backup-preview"
 
+# Token Blacklist KV — required by customer OTP login (issueCustomerTokens
+# writes the refresh id here) and by token revocation on logout.
+[[kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmasak-tokenblacklist-dev"
+preview_id = "makanmasak-tokenblacklist-preview"
+
 # R2 bucket for backup storage
 [[r2_buckets]]
 binding = "BACKUP_STORAGE"
@@ -178,6 +185,10 @@ id = "makanmasak-ratelimit-dev"
 [[env.development.kv_namespaces]]
 binding = "BACKUP_KV"
 id = "makanmasak-backup-dev"
+
+[[env.development.kv_namespaces]]
+binding = "TOKEN_BLACKLIST"
+id = "makanmasak-tokenblacklist-dev"
 
 [[env.development.r2_buckets]]
 binding = "BACKUP_STORAGE"

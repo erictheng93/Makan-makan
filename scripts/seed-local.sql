@@ -78,6 +78,48 @@ INSERT OR IGNORE INTO users (
     1,
     unixepoch('now') * 1000,
     unixepoch('now') * 1000
+  ),
+  (
+    '019469a1-0002-7000-8000-000000000003',
+    'chef1',
+    '$2a$10$QhUvaTv8W79f9YWZFYcXR.GerC0AKNiq.lu1oFgOtxh4Nk0sKadM2',
+    'chef1@makanmakan.local',
+    'Demo Chef',
+    2,
+    '019469a0-0099-7000-8000-000000000099',
+    1,
+    1,
+    1,
+    unixepoch('now') * 1000,
+    unixepoch('now') * 1000
+  ),
+  (
+    '019469a1-0003-7000-8000-000000000004',
+    'service1',
+    '$2a$10$pwGLa32gXE37.opKIKyjkerJSjf3itraa4dYz7u3a002OyRH2uohy',
+    'service1@makanmakan.local',
+    'Demo Service Crew',
+    3,
+    '019469a0-0099-7000-8000-000000000099',
+    1,
+    1,
+    1,
+    unixepoch('now') * 1000,
+    unixepoch('now') * 1000
+  ),
+  (
+    '019469a1-0004-7000-8000-000000000005',
+    'cashier1',
+    '$2a$10$GTrbGIj8V0ZAdeNz/4ZBNulVCsIYuvSSGnLQxoCqrWwIJ3wWSjrm2',
+    'cashier1@makanmakan.local',
+    'Demo Cashier',
+    4,
+    '019469a0-0099-7000-8000-000000000099',
+    1,
+    1,
+    1,
+    unixepoch('now') * 1000,
+    unixepoch('now') * 1000
   );
 
 INSERT OR IGNORE INTO shop_subscriptions (
@@ -128,7 +170,15 @@ SET
       THEN '$2a$10$ERWg3wj4FrhL7ugtGMwflO7.uAcGpec9e.gRRV3.Nxcqr.EcVEEP2'
     WHEN username = 'owner1'
       THEN '$2a$10$WkTTAnK2XuDaViXuuTUJRewW8dy5J3s3MaOC2gukyJx3.9Hf43JM6'
+    WHEN username = 'chef1'
+      THEN '$2a$10$QhUvaTv8W79f9YWZFYcXR.GerC0AKNiq.lu1oFgOtxh4Nk0sKadM2'
+    WHEN username = 'service1'
+      THEN '$2a$10$pwGLa32gXE37.opKIKyjkerJSjf3itraa4dYz7u3a002OyRH2uohy'
+    WHEN username = 'cashier1'
+      THEN '$2a$10$GTrbGIj8V0ZAdeNz/4ZBNulVCsIYuvSSGnLQxoCqrWwIJ3wWSjrm2'
     ELSE password_hash
   END,
+  is_active = 1,
+  is_verified = 1,
   updated_at_ms = unixepoch('now') * 1000
-WHERE username IN ('admin', 'owner1');
+WHERE username IN ('admin', 'owner1', 'chef1', 'service1', 'cashier1');
