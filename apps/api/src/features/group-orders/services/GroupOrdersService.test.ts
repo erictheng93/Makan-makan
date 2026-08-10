@@ -167,16 +167,18 @@ function cartItem(
 }
 
 function createSplitDb({
+  groupOrder = baseGroupOrder,
   members,
   items = [],
   existingBills = [],
 }: {
+  groupOrder?: unknown;
   members: unknown[];
   items?: unknown[];
   existingBills?: unknown[][];
 }) {
   return createDb([
-    [baseGroupOrder],
+    [groupOrder],
     members,
     items,
     ...members.map((_, index) => existingBills[index] ?? []),
@@ -650,10 +652,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   /**
    * Choosing how the bill will be split is a preference, not an action.
-   * `splitBill` is the action — it sets status to `checkout` and stamps
-   * `lockedAt`, ending ordering for the whole table. Setting the preference
-   * must touch neither, or picking "split equally" would silently stop
-   * everyone from adding food.
+   * Setting the preference must not touch the order lifecycle, or picking
+   * "split equally" would silently stop everyone from adding food.
    */
   it("stores the split preference without locking the group", async () => {
     const service = createService();
@@ -1536,6 +1536,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  it("allows splitting after the group order has been submitted", async () => {
+    const service = createService();
+    service.db = createSplitDb({
+      groupOrder: { ...baseGroupOrder, status: "completed" },
+      members: [hostMember],
+      items: [cartItem("cart-1", "member-1", 1200)],
+    });
+
+    await expect(
+      service.splitBill("group-1", { splitType: "by_item" }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: [{ memberId: "member-1", totalAmount: 12 }],
+    });
+  });
+
   it("splits bills equally and completes a member payment", async () => {
     const { kv, values } = createKV();
     values.set("group_order_summary:group-1", JSON.stringify({ stale: true }));
@@ -1595,10 +1611,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
     expect(splitDb.inserts).toHaveLength(3);
     expect(splitDb.updates[0].payload).toMatchObject({
-      status: "checkout",
       splitType: "equal",
       finalAmountCents: 4600,
     });
+    expect(splitDb.updates[0].payload).not.toHaveProperty("status");
+    expect(splitDb.updates[0].payload).not.toHaveProperty("lockedAt");
     expect(values.has("group_order_summary:group-1")).toBe(false);
 
     const paymentService = createService();
@@ -1630,16 +1647,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         memberId: "member-1",
         amount: 23,
         transactionId: "txn-1",
-        groupOrderStatus: "completed",
+        groupOrderStatus: "checkout",
       },
     });
     expect(paymentDb.updates[0].payload).toMatchObject({
       paymentStatus: "paid",
       paymentMethod: "cash",
     });
-    expect(paymentDb.updates[1].payload).toMatchObject({
-      status: "completed",
-    });
+    expect(paymentDb.updates).toHaveLength(1);
   });
 
   it("splits bills by item or custom amounts and validates split inputs", async () => {
@@ -1704,7 +1719,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     const guards = [
       { db: createDb([[]]), error: "Group order not found" },
       {
-        db: createDb([[{ ...baseGroupOrder, status: "completed" }]]),
+        db: createDb([[{ ...baseGroupOrder, status: "cancelled" }]]),
         error: "Group order is already finalized",
       },
       {
@@ -2480,10 +2495,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       expect(db.updates).toHaveLength(1);
     });
 
-    it("flips the group order to completed once every member's split bill is paid", async () => {
+    it("leaves the group order status unchanged once every member's split bill is paid", async () => {
       const service = createService();
       const db = createDb([
-        [{ ...baseGroupOrder, status: "checkout" }],
+        [{ ...baseGroupOrder, status: "completed" }],
         [hostMember],
         [
           {
@@ -2506,9 +2521,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         success: true,
         data: { groupOrderStatus: "completed" },
       });
-      expect(db.updates[1].payload).toMatchObject({
-        status: "completed",
-      });
+      expect(db.updates).toHaveLength(1);
     });
   });
 

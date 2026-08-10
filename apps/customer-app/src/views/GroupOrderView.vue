@@ -21,7 +21,7 @@ const hasSessionExpired = computed(() => group.sessionExpired?.value === true);
 
 const isLocked = computed(() => {
   const status = group.groupOrder.value?.status;
-  return status !== undefined && status !== "active";
+  return status !== undefined && status !== "active" && status !== "completed";
 });
 
 const canSubmitOrder = computed(
@@ -217,7 +217,7 @@ onUnmounted(() => {
           This group order is locked
         </h2>
         <p class="mt-2 text-sm text-ios-secondary">
-          The group order is being finalized or has already moved to checkout.
+          The group order is being finalized or is no longer available.
         </p>
       </div>
 
@@ -234,6 +234,7 @@ onUnmounted(() => {
         :my-share="group.myShare.value"
         :fee-mode="group.groupOrder.value.feeMode"
         :is-host="group.isHost.value"
+        :order-status="group.groupOrder.value.status"
         :split-bills="group.splitBills.value"
         :my-split-bill="group.mySplitBill.value"
         @update-quantity="updateQuantity"

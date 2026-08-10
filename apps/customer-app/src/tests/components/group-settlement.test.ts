@@ -58,6 +58,7 @@ function mountPanel(props: Record<string, unknown> = {}) {
       myShare: 115,
       feeMode: "proportional",
       isHost: true,
+      orderStatus: "active",
       splitBills: [],
       mySplitBill: undefined,
       ...props,
@@ -66,26 +67,29 @@ function mountPanel(props: Record<string, unknown> = {}) {
 }
 
 describe("group settlement", () => {
-  // Splitting locks the table, so it is the host's call and only once there is
-  // something to split.
-  it("offers the split only to the host, and only with items in the cart", () => {
+  it("offers settlement only to the host after the order is submitted", () => {
     expect(mountPanel().find('[data-testid="start-settlement"]').exists()).toBe(
-      true,
+      false,
     );
     expect(
-      mountPanel({ isHost: false })
+      mountPanel({ orderStatus: "completed" })
+        .find('[data-testid="start-settlement"]')
+        .exists(),
+    ).toBe(true);
+    expect(
+      mountPanel({ isHost: false, orderStatus: "completed" })
         .find('[data-testid="start-settlement"]')
         .exists(),
     ).toBe(false);
     expect(
-      mountPanel({ cartItems: [] })
+      mountPanel({ cartItems: [], orderStatus: "completed" })
         .find('[data-testid="start-settlement"]')
         .exists(),
     ).toBe(false);
   });
 
   it("asks to split when the host says so", async () => {
-    const wrapper = mountPanel();
+    const wrapper = mountPanel({ orderStatus: "completed" });
 
     await wrapper.get('[data-testid="start-settlement"]').trigger("click");
 

@@ -837,8 +837,8 @@ export function useGroupOrder(options: {
   }
 
   /**
-   * Splitting is a one-way door: it locks the table so nobody can add a dish
-   * after the shares are worked out. Host only, for that reason.
+   * Builds settlement rows after the order has been sent. It does not change
+   * the group order lifecycle; split_bills carry settlement progress.
    */
   async function startSettlement(): Promise<void> {
     if (!groupOrder.value) return;

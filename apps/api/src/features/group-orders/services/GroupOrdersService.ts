@@ -1513,7 +1513,7 @@ export class GroupOrdersService implements IGroupOrderService {
         splitType: splitData.splitType,
       });
 
-      // Validate group order exists and is active
+      // Validate group order exists and has not been cancelled
       const groupOrderRows = await this.db
         .select()
         .from(groupOrders)
@@ -1525,10 +1525,7 @@ export class GroupOrdersService implements IGroupOrderService {
         return { success: false, error: "Group order not found" };
       }
 
-      if (
-        groupOrder.status === "completed" ||
-        groupOrder.status === "cancelled"
-      ) {
+      if (groupOrder.status === "cancelled") {
         return { success: false, error: "Group order is already finalized" };
       }
 
@@ -1939,17 +1936,16 @@ export class GroupOrdersService implements IGroupOrderService {
       const dbSplitType =
         splitData.splitType === "by_item" ? "individual" : splitData.splitType;
 
-      // Update group order with split info and status
+      // Update group order with split totals. The group order status describes
+      // ordering/finalization only; settlement progress lives in split_bills.
       await this.db
         .update(groupOrders)
         .set({
-          status: "checkout",
           splitType: dbSplitType,
           totalAmountCents: toRequiredCents(totalCartAmount),
           taxAmountCents: toRequiredCents(totalTax),
           serviceChargeCents: toRequiredCents(totalServiceCharge),
           finalAmountCents,
-          lockedAt: now,
           updatedAt: now,
         })
         .where(eq(groupOrders.id, groupOrderId));
@@ -2123,31 +2119,6 @@ export class GroupOrdersService implements IGroupOrderService {
         })
         .where(eq(splitBills.id, splitBill.id));
 
-      // Check if all members have paid
-      const unpaidResult = await this.db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(splitBills)
-        .where(
-          and(
-            eq(splitBills.groupOrderId, groupOrderId),
-            sql`${splitBills.paymentStatus} != 'paid'`,
-          ),
-        );
-
-      const unpaidCount = unpaidResult[0].count;
-
-      // If all paid, update group order status to completed
-      if (unpaidCount === 0) {
-        await this.db
-          .update(groupOrders)
-          .set({
-            status: "completed",
-            completedAt: now,
-            updatedAt: now,
-          })
-          .where(eq(groupOrders.id, groupOrderId));
-      }
-
       // Log activity
       await this.logActivity(
         groupOrderId,
@@ -2180,7 +2151,7 @@ export class GroupOrdersService implements IGroupOrderService {
           paymentMethod: paymentData.paymentMethod,
           transactionId,
           paidAt: new Date(),
-          groupOrderStatus: unpaidCount === 0 ? "completed" : groupOrder.status,
+          groupOrderStatus: groupOrder.status,
         },
       };
     } catch (error) {
