@@ -4,6 +4,7 @@
  */
 
 import type { BaseEntity } from "../../../shared/types";
+import type { SettledBy } from "@makanmakan/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
@@ -240,6 +241,8 @@ export interface GroupOrderSplitBill {
   taxAmount: number;
   totalAmount: number;
   paymentStatus: string;
+  /** Whose word the settlement is; null while pending. See SettledBy. */
+  settledBy: SettledBy | null;
   paidAt?: Date;
 }
 
@@ -330,6 +333,7 @@ export interface IGroupOrderService {
     groupOrderId: string,
     memberId: string,
     paymentData: ProcessPaymentRequest,
+    settledBy: SettledBy,
   ): Promise<{ success: boolean; data?: unknown; error?: string }>;
 
   // Group management

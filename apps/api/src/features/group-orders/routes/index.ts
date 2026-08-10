@@ -887,10 +887,14 @@ app.post(
       memberId,
       memberToken,
     );
+    // Always "self": every caller this route accepts is someone at the table.
+    // A staff or provider confirmation would come through its own
+    // authenticated path, never from a body field a diner can set.
     const result = await groupOrderService.processPayment(
       groupOrderId,
       memberId,
       paymentData,
+      "self",
     );
 
     if (!result.success) {

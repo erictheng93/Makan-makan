@@ -19,6 +19,7 @@ import {
   OrderService as DatabaseOrderService,
 } from "@makanmakan/database";
 import { menuItems } from "@makanmakan/database";
+import type { SettledBy } from "@makanmakan/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
@@ -798,6 +799,7 @@ export class GroupOrdersService implements IGroupOrderService {
           taxAmount: moneyAmount(row.taxAmountCents),
           totalAmount: moneyAmount(row.totalAmountCents),
           paymentStatus: row.paymentStatus,
+          settledBy: row.settledBy ?? null,
           paidAt: row.paidAt ?? undefined,
         })),
       };
@@ -2000,10 +2002,19 @@ export class GroupOrdersService implements IGroupOrderService {
   /**
    * Process payment for a member
    */
+  /**
+   * Records that a member's share is settled.
+   *
+   * `settledBy` is passed in rather than defaulted because it says whose word
+   * this is, and the only caller who knows that is the one that authenticated
+   * the request. A default would let a call site quietly claim a trust level
+   * it never established.
+   */
   async processPayment(
     groupOrderId: string,
     memberId: string,
     paymentData: ProcessPaymentRequest,
+    settledBy: SettledBy,
   ): Promise<{
     success: boolean;
     data?: {
@@ -2112,6 +2123,7 @@ export class GroupOrdersService implements IGroupOrderService {
         .update(splitBills)
         .set({
           paymentStatus: "paid",
+          settledBy,
           paymentMethod: paymentData.paymentMethod,
           paymentReference,
           paidAt: now,

@@ -93,6 +93,10 @@
     {
       "fresh": "0082_allow_per_item_option_group_public_ids.sql",
       "reason": "Phase A backfills one independent option group set per menu item, so group public_id values such as spice must be reusable within a restaurant while choice public_id remains unique within its group."
+    },
+    {
+      "fresh": "0083_split_bill_settled_by.sql",
+      "reason": "Fresh API D1 owns split_bills; the legacy management track does not carry group orders or their split bills, so there is no paired legacy migration."
     }
   ],
   "legacyOnly": [

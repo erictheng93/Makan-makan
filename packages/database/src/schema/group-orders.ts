@@ -207,7 +207,26 @@ export const splitBills = sqliteTable(
       .default([]),
 
     // 支付資訊 (milliseconds)
-    paymentStatus: text("payment_status").notNull().default("pending"), // pending, processing, paid, failed, refunded
+    /**
+     * pending, processing, paid, failed, refunded.
+     *
+     * "paid" on its own does not mean the restaurant received money — see
+     * `settledBy` for whose word it is.
+     */
+    paymentStatus: text("payment_status").notNull().default("pending"),
+    /**
+     * Whose word this settlement is.
+     *
+     * `self` — a diner said they sorted their own share out. Peer bookkeeping
+     * between friends; the restaurant is not in that loop and must never count
+     * it as takings. `staff` — someone at the restaurant confirmed it.
+     * `provider` — a payment processor confirmed it.
+     *
+     * NULL while the bill is still pending: nobody has said anything yet.
+     * Revenue queries must filter on staff/provider — `paymentStatus` alone
+     * cannot tell them apart. See `isRevenueRecognisedSettlement`.
+     */
+    settledBy: text("settled_by", { enum: ["self", "staff", "provider"] }),
     paymentMethod: text("payment_method"),
     paymentReference: text("payment_reference"),
     paidAt: integer("paid_at_ms", { mode: "timestamp_ms" }),

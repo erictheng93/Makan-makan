@@ -599,10 +599,13 @@ describe("group orders routes", () => {
       taxRate: 0,
     });
     expect(isHostSession).toHaveBeenCalledWith(groupOrderId, "host-session");
+    // The trust level comes from who authenticated, not from the body: every
+    // caller this route accepts is someone at the table.
     expect(processPayment).toHaveBeenCalledWith(
       groupOrderId,
       memberId,
       expect.objectContaining({ paymentMethod: "cash", amount: 120 }),
+      "self",
     );
     expect(isMemberSession).toHaveBeenCalledWith(
       groupOrderId,
@@ -745,5 +748,36 @@ describe("group orders routes", () => {
       expect(getStatistics).toHaveBeenCalledOnce();
       expect(getStatistics.mock.calls[0][0]).toBeTruthy();
     });
+  });
+  // The column exists to say whose word a settlement is. If a diner could set
+  // it, it would say nothing: anyone could label their own claim as a
+  // restaurant confirmation and have it counted as takings later.
+  it("ignores a settledBy claimed in the request body", async () => {
+    const groupOrderId = "018ffb9a-7b8a-7c3d-9f23-000000000001";
+    const memberId = "018ffb9a-7b8a-7c3d-9f23-000000000002";
+    isMemberSession.mockResolvedValue(true);
+    isHostSession.mockResolvedValue(false);
+    processPayment.mockResolvedValue({ success: true, data: {} });
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/payment/${memberId}`, {
+        method: "POST",
+        body: JSON.stringify({
+          memberToken: "member-session",
+          paymentMethod: "cash",
+          settledBy: "staff",
+        }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(processPayment).toHaveBeenCalledWith(
+      groupOrderId,
+      memberId,
+      expect.not.objectContaining({ settledBy: "staff" }),
+      "self",
+    );
   });
 });

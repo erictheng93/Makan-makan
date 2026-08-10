@@ -29,6 +29,7 @@ function splitBill(overrides: Partial<GroupSplitBill> = {}): GroupSplitBill {
     taxAmount: 5,
     totalAmount: 115,
     isSettled: false,
+    settledBy: null,
     ...overrides,
   };
 }

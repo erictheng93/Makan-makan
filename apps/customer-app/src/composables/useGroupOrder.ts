@@ -66,6 +66,12 @@ export interface GroupSplitBill {
   taxAmount: number;
   totalAmount: number;
   isSettled: boolean;
+  /**
+   * Whose word the settlement is. Always "self" today — the restaurant has no
+   * path to confirm one. Carried so the contract matches the database rather
+   * than growing a second source of truth later.
+   */
+  settledBy: "self" | "staff" | "provider" | null;
 }
 
 export interface GroupOrder {
@@ -177,6 +183,7 @@ interface BackendSplitBill {
   taxAmount?: number;
   totalAmount?: number;
   paymentStatus?: string;
+  settledBy?: "self" | "staff" | "provider" | null;
 }
 
 interface GroupOrderSummary {
@@ -308,6 +315,7 @@ function mapSummary(summary: GroupOrderSummary): GroupOrder {
       taxAmount: bill.taxAmount ?? 0,
       totalAmount: bill.totalAmount ?? 0,
       isSettled: bill.paymentStatus === "paid",
+      settledBy: bill.settledBy ?? null,
     })),
     createdAt: timestamp(summary.groupOrder.createdAt),
     updatedAt: timestamp(summary.groupOrder.updatedAt),
