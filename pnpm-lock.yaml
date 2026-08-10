@@ -713,6 +713,9 @@ importers:
       '@makanmakan/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
+      '@makanmakan/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@tailwindcss/forms':
         specifier: ^0.5.0
         version: 0.5.11(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.3))
@@ -810,6 +813,9 @@ importers:
       '@makanmakan/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
+      '@makanmakan/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@tailwindcss/forms':
         specifier: ^0.5.0
         version: 0.5.11(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.3))

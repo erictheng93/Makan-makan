@@ -1,4 +1,8 @@
 import {
+  clearChunkRecoveryMark,
+  createChunkRecovery,
+} from "@makanmakan/utils/chunk-recovery";
+import {
   createRouter,
   createWebHistory,
   type RouteRecordRaw,
@@ -76,6 +80,31 @@ function safeRedirectTarget(value: unknown): string {
 }
 
 // 設置頁面標題
+/**
+ * A deploy replaces every hashed chunk, so a portal left open — and a health or
+ * monitoring page is exactly the tab nobody closes — asks for filenames that
+ * are gone, then simply stops navigating with nothing on screen to say why.
+ * Fetching the document again is the only recovery.
+ *
+ * Once per page: an operator is at a desk and can refresh, so a portal that
+ * reloads itself on a timer would confuse more than it healed.
+ */
+const CHUNK_RELOAD_KEY = "makanmasak_management_chunk_reload";
+const recoverFromChunkFailure = createChunkRecovery({
+  storageKey: CHUNK_RELOAD_KEY,
+});
+
+router.onError((error, to) => {
+  console.error("[router] navigation failed", error);
+  recoverFromChunkFailure(error, to);
+});
+
+router.afterEach(() => {
+  // Navigation worked, so the stale build is behind us; the next deploy earns
+  // its own attempt rather than inheriting this one.
+  clearChunkRecoveryMark(CHUNK_RELOAD_KEY);
+});
+
 router.beforeEach((to, _from, next) => {
   const title = to.meta.title as string;
   document.title = title

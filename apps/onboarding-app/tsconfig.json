@@ -16,7 +16,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@makanmakan/utils": ["../../packages/utils/src"],
+      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
     },
     "baseUrl": "."
   },
