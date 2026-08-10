@@ -599,4 +599,77 @@ describe("MenuView table validation", () => {
     expect(groupOrderMock.addToCart).toHaveBeenCalledTimes(2);
     expect(toastError).not.toHaveBeenCalled();
   });
+
+  it("does not report success for queued group additions after leaving group mode", async () => {
+    let resolveFirstAdd: (() => void) | undefined;
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [{ id: 10, name: "Part 1 Specials", sortOrder: 1 }],
+      menuItems: [
+        {
+          id: 101,
+          categoryId: 10,
+          name: "Part 1 Test Nasi Lemak",
+          description: "Coconut rice with sambal",
+          price: 120,
+          isFeatured: false,
+          isAvailable: true,
+          sortOrder: 1,
+        },
+      ],
+    };
+    readActiveGroupOrder.mockReturnValue({
+      groupOrderId: "go-1",
+      restaurantId: "restaurant-1",
+      tableId: "1",
+      savedAt: Date.now(),
+    });
+    groupOrderMock.loadGroupOrder.mockImplementation(async () => {
+      groupOrderMock.currentMemberId.value = "m-1";
+      groupOrderMock.groupOrder.value = {
+        id: "go-1",
+        restaurantId: "restaurant-1",
+        tableId: "1",
+        status: "active",
+        cartItems: [],
+      };
+    });
+    groupOrderMock.addToCart.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveFirstAdd = resolve;
+        }),
+    );
+
+    const wrapper = mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+
+    const firstClick = wrapper
+      .get('[data-testid="menu-item-add"]')
+      .trigger("click");
+    const secondClick = wrapper
+      .get('[data-testid="menu-item-add"]')
+      .trigger("click");
+    await flushPromises();
+
+    await wrapper.get('[data-testid="leave-group-mode"]').trigger("click");
+    resolveFirstAdd?.();
+    await firstClick;
+    await secondClick;
+    await flushPromises();
+    await flushPromises();
+
+    expect(groupOrderMock.addToCart).toHaveBeenCalledTimes(1);
+    expect(toastSuccess).not.toHaveBeenCalled();
+    expect(addCartItem).not.toHaveBeenCalled();
+  });
 });

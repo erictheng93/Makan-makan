@@ -824,12 +824,15 @@ function enqueueGroupCartAddition(data: {
   customizations?: SelectedCustomizations;
   notes?: string;
 }): void {
+  const groupOrderId = groupOrder.groupOrder.value?.id;
+  if (!groupOrderId) return;
+
   pendingGroupAddCount.value += 1;
   isAddingGroupItem.value = true;
 
   const operation = groupAddQueue
     .catch(() => undefined)
-    .then(() => addGroupCartItem(data))
+    .then(() => addGroupCartItem(groupOrderId, data))
     .finally(() => {
       pendingGroupAddCount.value = Math.max(0, pendingGroupAddCount.value - 1);
       isAddingGroupItem.value = pendingGroupAddCount.value > 0;
@@ -838,13 +841,17 @@ function enqueueGroupCartAddition(data: {
   groupAddQueue = operation.catch(() => undefined);
 }
 
-async function addGroupCartItem(data: {
-  item: MenuItem;
-  quantity: number;
-  customizations?: SelectedCustomizations;
-  notes?: string;
-}): Promise<void> {
+async function addGroupCartItem(
+  groupOrderId: string,
+  data: {
+    item: MenuItem;
+    quantity: number;
+    customizations?: SelectedCustomizations;
+    notes?: string;
+  },
+): Promise<void> {
   groupOrderError.value = "";
+  if (!isCurrentGroupMode(groupOrderId)) return;
 
   try {
     await groupOrder.addToCart({
@@ -861,6 +868,7 @@ async function addGroupCartItem(data: {
     toast.error(groupOrderError.value);
     throw error;
   }
+  if (!isCurrentGroupMode(groupOrderId)) return;
 
   toast.success(
     tWithParams("group.itemAdded", {
@@ -870,6 +878,10 @@ async function addGroupCartItem(data: {
   );
 
   closeItemOverlays();
+}
+
+function isCurrentGroupMode(groupOrderId: string): boolean {
+  return isGroupMode.value && groupOrder.groupOrder.value?.id === groupOrderId;
 }
 
 function closeItemOverlays(): void {
