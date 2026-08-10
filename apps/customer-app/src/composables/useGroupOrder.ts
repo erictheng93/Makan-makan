@@ -16,6 +16,7 @@ import {
   clearMemberCredentials,
   readHostCredentials,
   readMemberCredentials,
+  saveActiveGroupOrder,
   saveHostCredentials,
   saveMemberCredentials,
   updateHostMemberToken,
@@ -608,6 +609,13 @@ export function useGroupOrder(options: {
       autoSubmitOnExpiry.value = summary.groupOrder.autoSubmitOnExpiry === true;
       hydrateMemberSession(groupOrderId);
       hydrateHostCredentials(groupOrderId);
+      if (memberToken.value) {
+        saveActiveGroupOrder({
+          groupOrderId,
+          restaurantId: groupOrder.value.restaurantId,
+          tableId: groupOrder.value.tableId,
+        });
+      }
     }
   }
 

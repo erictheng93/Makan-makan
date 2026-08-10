@@ -19,9 +19,17 @@ export interface MemberCredentials {
   savedAt: number;
 }
 
+export interface ActiveGroupOrderSession {
+  groupOrderId: string;
+  restaurantId: string;
+  tableId?: string;
+  savedAt: number;
+}
+
 interface StoredGroupOrderSessions {
   hosts: Record<string, HostCredentials>;
   members: Record<string, MemberCredentials>;
+  active: Record<string, ActiveGroupOrderSession>;
 }
 
 export function saveHostCredentials(input: {
@@ -118,6 +126,55 @@ export function clearMemberCredentials(groupOrderId: string): void {
   writeSessionRecords(sessions);
 }
 
+export function saveActiveGroupOrder(input: {
+  groupOrderId: string;
+  restaurantId: string;
+  tableId?: string;
+}): void {
+  const sessions = readSessionRecords();
+  sessions.active[activeSessionKey(input.restaurantId, input.tableId)] = {
+    groupOrderId: input.groupOrderId,
+    restaurantId: input.restaurantId,
+    tableId: input.tableId,
+    savedAt: Date.now(),
+  };
+  writeSessionRecords(sessions);
+}
+
+export function readActiveGroupOrder(
+  restaurantId: string,
+  tableId?: string,
+): ActiveGroupOrderSession | null {
+  const sessions = readSessionRecords();
+  const key = activeSessionKey(restaurantId, tableId);
+  const active = sessions.active[key];
+  if (!active) return null;
+
+  if (Date.now() - active.savedAt > CREDENTIAL_TTL_MS) {
+    delete sessions.active[key];
+    writeSessionRecords(sessions);
+    return null;
+  }
+
+  return active;
+}
+
+export function clearActiveGroupOrder(
+  restaurantId: string,
+  tableId?: string,
+): void {
+  const sessions = readSessionRecords();
+  const key = activeSessionKey(restaurantId, tableId);
+  if (!(key in sessions.active)) return;
+
+  delete sessions.active[key];
+  writeSessionRecords(sessions);
+}
+
+function activeSessionKey(restaurantId: string, tableId?: string): string {
+  return `${restaurantId}:${tableId ?? ""}`;
+}
+
 function readSessionRecords(): StoredGroupOrderSessions {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -150,7 +207,7 @@ function writeSessionRecords(sessions: StoredGroupOrderSessions): void {
 }
 
 function emptySessions(): StoredGroupOrderSessions {
-  return { hosts: {}, members: {} };
+  return { hosts: {}, members: {}, active: {} };
 }
 
 function normalizeSessions(
@@ -162,8 +219,11 @@ function normalizeSessions(
   const members = isRecord(parsed.members)
     ? filterRecords(parsed.members, isMemberCredentials)
     : {};
+  const active = isRecord(parsed.active)
+    ? filterRecords(parsed.active, isActiveGroupOrderSession)
+    : {};
 
-  return { hosts, members };
+  return { hosts, members, active };
 }
 
 function filterRecords<T>(
@@ -202,5 +262,18 @@ function isMemberCredentials(value: unknown): value is MemberCredentials {
     typeof credential.memberId === "string" &&
     typeof credential.memberToken === "string" &&
     typeof credential.savedAt === "number"
+  );
+}
+
+function isActiveGroupOrderSession(
+  value: unknown,
+): value is ActiveGroupOrderSession {
+  if (!value || typeof value !== "object") return false;
+  const session = value as Partial<ActiveGroupOrderSession>;
+  return (
+    typeof session.groupOrderId === "string" &&
+    typeof session.restaurantId === "string" &&
+    (session.tableId === undefined || typeof session.tableId === "string") &&
+    typeof session.savedAt === "number"
   );
 }

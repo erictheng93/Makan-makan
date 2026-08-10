@@ -41,6 +41,7 @@ vi.mock("@/services/api", () => ({
 
 import { apiClient } from "@/services/api";
 import {
+  readActiveGroupOrder,
   readHostCredentials,
   saveHostCredentials,
 } from "@/utils/groupOrderSession";
@@ -72,6 +73,7 @@ function summaryResponse() {
     groupOrder: {
       id: "go-1",
       restaurantId: "rest-1",
+      tableId: 7,
       shareCode: "ABC12345",
       status: "active",
       splitType: "by_item",
@@ -116,6 +118,20 @@ describe("useGroupOrder — data layer", () => {
     // Phase A returns the recovery code exactly once, here. Dropping it makes
     // host recovery impossible for the rest of the group order's life.
     expect(group.recoveryCode.value).toBe("recovery-1");
+  });
+
+  it("marks the created group order active for the current restaurant table", async () => {
+    const group = useGroupOrder({ restaurantId: "rest-1", tableId: "7" });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(createResponse());
+    vi.mocked(apiClient.get).mockResolvedValueOnce(summaryResponse());
+
+    await group.createGroupOrder({ hostName: "Alex" });
+
+    expect(readActiveGroupOrder("rest-1", "7")).toMatchObject({
+      groupOrderId: "go-1",
+      restaurantId: "rest-1",
+      tableId: "7",
+    });
   });
 
   /**

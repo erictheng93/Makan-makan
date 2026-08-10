@@ -39,7 +39,7 @@
             <button
               data-testid="cart-btn"
               class="relative w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-ios-text active:scale-95 transition-transform duration-150"
-              @click="router.push(cartRoute)"
+              @click="router.push(activeCartRoute)"
             >
               <svg
                 class="w-5 h-5"
@@ -56,11 +56,11 @@
               </svg>
               <!-- 購物車數量徽章 -->
               <div
-                v-if="cartStore.itemCount > 0"
+                v-if="activeCartItemCount > 0"
                 data-testid="cart-count"
                 class="absolute -top-1 -right-1 w-5 h-5 bg-ios-red text-white text-xs rounded-full flex items-center justify-center font-medium"
               >
-                {{ cartStore.itemCount }}
+                {{ activeCartItemCount }}
               </div>
             </button>
           </div>
@@ -137,6 +137,98 @@
       <!-- 菜單內容 -->
       <div v-else-if="menuStructure" class="lg:flex lg:gap-6 lg:items-start">
         <div class="flex-1 min-w-0 px-5 space-y-6">
+          <section
+            data-testid="group-order-entry"
+            class="rounded-2xl bg-ios-card p-4 shadow-card-sm"
+          >
+            <div
+              v-if="isGroupMode"
+              class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p class="text-sm font-medium text-ios-blue">
+                  {{ t("group.orderingInGroup") }}
+                </p>
+                <p class="mt-1 text-sm text-ios-secondary">
+                  {{
+                    tWithParams("group.groupCartItemCount", {
+                      count: activeCartItemCount,
+                    })
+                  }}
+                </p>
+              </div>
+              <button
+                data-testid="group-cart-link"
+                type="button"
+                class="rounded-full bg-ios-blue px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+                @click="router.push(groupCartRoute)"
+              >
+                {{ t("group.viewSharedCart") }}
+              </button>
+            </div>
+
+            <div v-else>
+              <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p class="text-sm font-medium text-ios-text">
+                    {{ t("group.startFromMenuTitle") }}
+                  </p>
+                  <p class="mt-1 text-sm text-ios-secondary">
+                    {{ t("group.startFromMenuDesc") }}
+                  </p>
+                </div>
+                <button
+                  data-testid="start-group-order-button"
+                  type="button"
+                  class="rounded-full border border-ios-blue/25 bg-ios-blue/10 px-4 py-2.5 text-sm font-semibold text-ios-blue transition-all duration-200 active:scale-[0.98]"
+                  @click="showGroupStartForm = !showGroupStartForm"
+                >
+                  {{ t("group.startGroupOrder") }}
+                </button>
+              </div>
+
+              <form
+                v-if="showGroupStartForm"
+                data-testid="group-create-form"
+                class="mt-4 space-y-3"
+                @submit.prevent="createGroupOrderFromMenu"
+              >
+                <label class="block text-sm font-medium text-ios-text">
+                  {{ t("group.hostName") }}
+                  <input
+                    v-model="groupHostName"
+                    data-testid="group-host-name-input"
+                    class="mt-2 block w-full rounded-xl border-0 bg-ios-bg px-4 py-3 text-ios-text transition-all duration-200 placeholder:text-ios-tertiary focus:bg-white focus:ring-2 focus:ring-ios-blue/30"
+                    autocomplete="name"
+                    type="text"
+                    :placeholder="t('group.hostNamePlaceholder')"
+                  />
+                </label>
+                <p
+                  v-if="groupOrderError"
+                  data-testid="group-order-error"
+                  class="text-sm text-ios-red"
+                >
+                  {{ groupOrderError }}
+                </p>
+                <button
+                  data-testid="group-create-submit"
+                  type="submit"
+                  class="w-full rounded-full bg-ios-blue px-4 py-3 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100"
+                  :disabled="isCreatingGroupOrder"
+                >
+                  {{
+                    isCreatingGroupOrder
+                      ? t("group.creating")
+                      : t("group.createAndOpen")
+                  }}
+                </button>
+              </form>
+            </div>
+          </section>
+
           <!-- 搜尋框 -->
           <div class="relative">
             <input
@@ -264,7 +356,7 @@
         <!-- Right: Desktop cart panel -->
         <Transition name="slide-in-right">
           <DesktopCartPanel
-            v-if="isDesktop && cartStore.itemCount > 0"
+            v-if="isDesktop && !isGroupMode && cartStore.itemCount > 0"
             :items="cartStore.items"
             :item-count="cartStore.itemCount"
             :subtotal="cartStore.subtotal"
@@ -278,7 +370,27 @@
 
     <!-- 底部固定購物車按鈕 -->
     <div
-      v-if="cartStore.itemCount > 0"
+      v-if="isGroupMode"
+      class="fixed bottom-4 left-4 right-4 z-50 max-w-lg mx-auto lg:hidden"
+    >
+      <button
+        class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full shadow-card-lg active:scale-[0.98] transition-transform duration-150 flex items-center justify-between"
+        @click="router.push(groupCartRoute)"
+      >
+        <div class="flex items-center space-x-3">
+          <div
+            class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+          >
+            <span class="text-sm font-bold">{{ activeCartItemCount }}</span>
+          </div>
+          <span>{{ t("group.viewSharedCart") }}</span>
+        </div>
+        <span class="text-sm font-semibold">{{ t("group.sharedCart") }}</span>
+      </button>
+    </div>
+
+    <div
+      v-else-if="cartStore.itemCount > 0"
       class="fixed bottom-4 left-4 right-4 z-50 max-w-lg mx-auto lg:hidden"
     >
       <button
@@ -326,6 +438,7 @@ import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
 import { useSeatContext } from "@/composables/useSeatContext";
+import { useGroupOrder } from "@/composables/useGroupOrder";
 import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import MenuItemCard from "@/components/MenuItemCard.vue";
@@ -343,6 +456,10 @@ import {
   getLocalizedMenuName,
   menuItemMatchesQuery,
 } from "@/utils/localized-menu-content";
+import {
+  clearActiveGroupOrder,
+  readActiveGroupOrder,
+} from "@/utils/groupOrderSession";
 
 // Props
 const props = defineProps<{
@@ -358,6 +475,10 @@ const appStore = useAppStore();
 const cartStore = useCartStore();
 const isDesktop = useIsDesktop();
 const { formatPrice } = useCurrency();
+const groupOrder = useGroupOrder({
+  restaurantId: props.restaurantId,
+  tableId: String(props.tableId),
+});
 
 // State
 const searchQuery = ref("");
@@ -367,6 +488,11 @@ const customizingItem = ref<MenuItem | null>(null);
 const showItemModal = ref(false);
 const showCustomizationModal = ref(false);
 const hasRedirectedInvalidTable = ref(false);
+const showGroupStartForm = ref(false);
+const groupHostName = ref("");
+const groupOrderError = ref("");
+const isCreatingGroupOrder = ref(false);
+const isAddingGroupItem = ref(false);
 
 const invalidTableMessage = "此桌號無效或已停用，請重新掃描 QR Code。";
 const isValidTableId = computed(
@@ -431,6 +557,42 @@ const cartRoute = computed(() => ({
   },
   query: seatQuery.value,
 }));
+
+const groupCartRoute = computed(() => ({
+  name: "GroupOrder",
+  params: {
+    groupOrderId: groupOrder.groupOrder.value?.id ?? "",
+  },
+}));
+
+const isLoadedGroupForCurrentTable = computed(() => {
+  const loaded = groupOrder.groupOrder.value;
+  return (
+    loaded?.restaurantId === props.restaurantId &&
+    loaded?.tableId === String(props.tableId)
+  );
+});
+
+const isGroupMode = computed(
+  () =>
+    groupOrder.groupOrder.value?.status === "active" &&
+    isLoadedGroupForCurrentTable.value &&
+    !!groupOrder.currentMemberId.value,
+);
+
+const activeCartRoute = computed(() =>
+  isGroupMode.value ? groupCartRoute.value : cartRoute.value,
+);
+
+const activeCartItemCount = computed(() => {
+  if (!isGroupMode.value) return cartStore.itemCount;
+  return (
+    groupOrder.groupOrder.value?.cartItems.reduce(
+      (count, item) => count + item.quantity,
+      0,
+    ) ?? 0
+  );
+});
 
 // API Queries
 const { data: restaurant, isLoading: isLoadingRestaurant } = useQuery({
@@ -510,16 +672,100 @@ const scrollToCategory = (categoryId: number) => {
   }
 };
 
-const handleAddToCart = (data: {
+async function createGroupOrderFromMenu(): Promise<void> {
+  const hostName = groupHostName.value.trim();
+  if (!hostName) {
+    groupOrderError.value = t("group.hostNameRequired");
+    return;
+  }
+
+  isCreatingGroupOrder.value = true;
+  groupOrderError.value = "";
+
+  try {
+    const groupOrderId = await groupOrder.createGroupOrder({
+      hostName,
+      tableId: String(props.tableId),
+    });
+
+    if (!groupOrderId) {
+      throw new Error(groupOrder.error.value ?? t("group.createFailed"));
+    }
+
+    await router.push({
+      name: "GroupOrder",
+      params: { groupOrderId },
+    });
+  } catch (error) {
+    groupOrderError.value =
+      error instanceof Error ? error.message : t("group.createFailed");
+  } finally {
+    isCreatingGroupOrder.value = false;
+  }
+}
+
+async function restoreActiveGroupOrder(): Promise<void> {
+  if (!isValidTableId.value) return;
+
+  const activeGroupOrder = readActiveGroupOrder(
+    props.restaurantId,
+    String(props.tableId),
+  );
+  if (!activeGroupOrder) return;
+
+  try {
+    await groupOrder.loadGroupOrder(activeGroupOrder.groupOrderId);
+    const loaded = groupOrder.groupOrder.value;
+    if (
+      loaded?.restaurantId !== props.restaurantId ||
+      loaded?.tableId !== String(props.tableId)
+    ) {
+      clearActiveGroupOrder(props.restaurantId, String(props.tableId));
+    }
+  } catch {
+    clearActiveGroupOrder(props.restaurantId, String(props.tableId));
+  }
+}
+
+const handleAddToCart = async (data: {
   item: MenuItem;
   quantity: number;
   customizations?: SelectedCustomizations;
   notes?: string;
 }) => {
-  cartStore.addItem(data.item, data.quantity, data.customizations, data.notes);
+  if (isGroupMode.value) {
+    if (isAddingGroupItem.value) return;
+    isAddingGroupItem.value = true;
+    groupOrderError.value = "";
+
+    try {
+      await groupOrder.addToCart({
+        menuItemId: String(data.item.id),
+        menuItemName: getLocalizedMenuName(data.item, currentLanguage.value),
+        menuItemPrice: data.item.price,
+        quantity: data.quantity,
+        options: (data.customizations ?? {}) as Record<string, unknown>,
+        notes: data.notes,
+      });
+    } catch (error) {
+      groupOrderError.value =
+        error instanceof Error ? error.message : t("group.addItemFailed");
+      toast.error(groupOrderError.value);
+      return;
+    } finally {
+      isAddingGroupItem.value = false;
+    }
+  } else {
+    cartStore.addItem(
+      data.item,
+      data.quantity,
+      data.customizations,
+      data.notes,
+    );
+  }
 
   toast.success(
-    tWithParams("toast.itemAdded", {
+    tWithParams(isGroupMode.value ? "group.itemAdded" : "toast.itemAdded", {
       name: getLocalizedMenuName(data.item, currentLanguage?.value),
       quantity: data.quantity,
     }),
@@ -598,6 +844,7 @@ watch(
         props.tableId,
         currentSeatId,
       );
+      void restoreActiveGroupOrder();
     }
   },
   { immediate: true },

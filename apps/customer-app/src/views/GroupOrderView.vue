@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import menuApi from "@/services/menuApi";
 import GroupCartPanel from "@/components/group/GroupCartPanel.vue";
 import HostRecoveryPanel from "@/components/group/HostRecoveryPanel.vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
+import { useI18n } from "@/composables/useI18n";
 import type { SplitBillConfig } from "@/composables/useGroupOrder";
 import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
 
@@ -11,6 +13,8 @@ const props = defineProps<{
   groupOrderId: string;
 }>();
 
+const router = useRouter();
+const { t } = useI18n();
 const group = useGroupOrder({ restaurantId: "" });
 const viewError = ref("");
 const splitNotice = ref("");
@@ -29,6 +33,19 @@ const canSubmitOrder = computed(
 );
 
 const currentUserId = computed(() => group.currentMemberId?.value ?? "");
+
+const menuRoute = computed(() => {
+  const groupOrder = group.groupOrder.value;
+  if (!groupOrder?.restaurantId || !groupOrder.tableId) return null;
+
+  return {
+    name: "RestaurantMenu",
+    params: {
+      restaurantId: groupOrder.restaurantId,
+      tableId: Number(groupOrder.tableId),
+    },
+  };
+});
 
 const autoSubmitError = ref("");
 const isSavingAutoSubmit = ref(false);
@@ -221,29 +238,40 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <GroupCartPanel
-        v-else-if="group.groupOrder.value"
-        :cart-items="group.groupOrder.value.cartItems"
-        :members="group.groupOrder.value.members"
-        :current-user-id="currentUserId"
-        :split-bill-config="group.groupOrder.value.splitBillConfig"
-        :total-amount="group.totalAmount.value"
-        :my-subtotal="group.mySubtotal.value"
-        :my-service-charge="group.myServiceCharge.value"
-        :my-tax="group.myTax.value"
-        :my-share="group.myShare.value"
-        :fee-mode="group.groupOrder.value.feeMode"
-        :is-host="group.isHost.value"
-        :order-status="group.groupOrder.value.status"
-        :split-bills="group.splitBills.value"
-        :my-split-bill="group.mySplitBill.value"
-        @update-quantity="updateQuantity"
-        @remove-item="removeItem"
-        @change-split-mode="changeSplitMode"
-        @change-fee-mode="changeFeeMode"
-        @start-settlement="startSettlement"
-        @settle-my-share="settleMyShare"
-      />
+      <template v-else-if="group.groupOrder.value">
+        <GroupCartPanel
+          :cart-items="group.groupOrder.value.cartItems"
+          :members="group.groupOrder.value.members"
+          :current-user-id="currentUserId"
+          :split-bill-config="group.groupOrder.value.splitBillConfig"
+          :total-amount="group.totalAmount.value"
+          :my-subtotal="group.mySubtotal.value"
+          :my-service-charge="group.myServiceCharge.value"
+          :my-tax="group.myTax.value"
+          :my-share="group.myShare.value"
+          :fee-mode="group.groupOrder.value.feeMode"
+          :is-host="group.isHost.value"
+          :order-status="group.groupOrder.value.status"
+          :split-bills="group.splitBills.value"
+          :my-split-bill="group.mySplitBill.value"
+          @update-quantity="updateQuantity"
+          @remove-item="removeItem"
+          @change-split-mode="changeSplitMode"
+          @change-fee-mode="changeFeeMode"
+          @start-settlement="startSettlement"
+          @settle-my-share="settleMyShare"
+        />
+
+        <button
+          v-if="!isLocked && menuRoute"
+          data-testid="group-order-menu-link"
+          type="button"
+          class="mt-4 w-full rounded-full border border-ios-blue/25 bg-ios-blue/10 px-4 py-3.5 text-base font-semibold text-ios-blue transition-all duration-200 active:scale-[0.98]"
+          @click="router.push(menuRoute)"
+        >
+          {{ t("group.orderMore") }}
+        </button>
+      </template>
 
       <div v-else class="py-16 text-center text-ios-secondary">
         Loading group order...

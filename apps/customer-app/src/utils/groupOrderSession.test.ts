@@ -8,6 +8,9 @@ import {
   updateHostMemberToken,
   clearHostCredentials,
   clearMemberCredentials,
+  saveActiveGroupOrder,
+  readActiveGroupOrder,
+  clearActiveGroupOrder,
 } from "./groupOrderSession";
 
 describe("groupOrderSession storage", () => {
@@ -42,6 +45,20 @@ describe("groupOrderSession storage", () => {
       groupOrderId: "go-1",
       memberId: "m-2",
       memberToken: "s-2",
+    });
+  });
+
+  it("remembers the active group order for a restaurant table", () => {
+    saveActiveGroupOrder({
+      groupOrderId: "go-1",
+      restaurantId: "rest-1",
+      tableId: "7",
+    });
+
+    expect(readActiveGroupOrder("rest-1", "7")).toMatchObject({
+      groupOrderId: "go-1",
+      restaurantId: "rest-1",
+      tableId: "7",
     });
   });
 
@@ -115,6 +132,20 @@ describe("groupOrderSession storage", () => {
     expect(readMemberCredentials("go-1")).toBeNull();
   });
 
+  it("does not return active group orders past the TTL", () => {
+    saveActiveGroupOrder({
+      groupOrderId: "go-1",
+      restaurantId: "rest-1",
+      tableId: "7",
+    });
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    stored.active["rest-1:7"].savedAt = Date.now() - 25 * 60 * 60 * 1000;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+
+    expect(readActiveGroupOrder("rest-1", "7")).toBeNull();
+  });
+
   it("isolates group orders from each other", () => {
     saveHostCredentials({
       groupOrderId: "a",
@@ -150,6 +181,26 @@ describe("groupOrderSession storage", () => {
     expect(readMemberCredentials("go-1")).toBeNull();
     expect(readHostCredentials("go-1")).toMatchObject({
       recoveryCode: "recovery-1",
+    });
+  });
+
+  it("clears an active group order without clearing credentials", () => {
+    saveHostCredentials({
+      groupOrderId: "go-1",
+      memberToken: "host-token",
+      recoveryCode: "recovery-1",
+    });
+    saveActiveGroupOrder({
+      groupOrderId: "go-1",
+      restaurantId: "rest-1",
+      tableId: "7",
+    });
+
+    clearActiveGroupOrder("rest-1", "7");
+
+    expect(readActiveGroupOrder("rest-1", "7")).toBeNull();
+    expect(readHostCredentials("go-1")).toMatchObject({
+      memberToken: "host-token",
     });
   });
 

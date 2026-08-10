@@ -4,7 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import MenuView from "@/views/MenuView.vue";
 
 const routerReplace = vi.hoisted(() => vi.fn());
+const routerPush = vi.hoisted(() => vi.fn());
 const initializeCart = vi.hoisted(() => vi.fn());
+const addCartItem = vi.hoisted(() => vi.fn());
+const toastSuccess = vi.hoisted(() => vi.fn());
+const toastError = vi.hoisted(() => vi.fn());
+const readActiveGroupOrder = vi.hoisted(() => vi.fn());
+const clearActiveGroupOrder = vi.hoisted(() => vi.fn());
+const groupOrderMock = vi.hoisted(() => ({
+  groupOrder: { value: null as null | Record<string, any> },
+  currentMemberId: { value: "" },
+  error: { value: null as string | null },
+  createGroupOrder: vi.fn(),
+  loadGroupOrder: vi.fn(),
+  addToCart: vi.fn(),
+}));
 const routeQuery = vi.hoisted(() => ({}));
 const tableValidationResult = vi.hoisted(
   (): {
@@ -45,13 +59,13 @@ vi.mock("vue-router", () => ({
     query: routeQuery,
   }),
   useRouter: () => ({
-    push: vi.fn(),
+    push: routerPush,
     replace: routerReplace,
   }),
 }));
 
 vi.mock("vue-toastification", () => ({
-  useToast: () => ({ success: vi.fn(), error: vi.fn() }),
+  useToast: () => ({ success: toastSuccess, error: toastError }),
 }));
 
 vi.mock("@/composables/useI18n", () => ({
@@ -80,10 +94,19 @@ vi.mock("@/stores/cart", () => ({
     items: [],
     subtotal: 0,
     initializeCart,
-    addItem: vi.fn(),
+    addItem: addCartItem,
     removeItem: vi.fn(),
     updateQuantity: vi.fn(),
   }),
+}));
+
+vi.mock("@/composables/useGroupOrder", () => ({
+  useGroupOrder: () => groupOrderMock,
+}));
+
+vi.mock("@/utils/groupOrderSession", () => ({
+  readActiveGroupOrder,
+  clearActiveGroupOrder,
 }));
 
 vi.mock("@/utils/localized-menu-content", () => ({
@@ -108,9 +131,9 @@ vi.mock("@/services/menuApi", () => ({
 vi.mock("@/components/MenuItemCard.vue", () => ({
   default: {
     props: ["item"],
-    emits: ["view-details"],
+    emits: ["view-details", "add-to-cart"],
     template:
-      '<button type="button" data-testid="menu-item-card" @click="$emit(\'view-details\', item)">{{ item.name }}</button>',
+      '<div><button type="button" data-testid="menu-item-card" @click="$emit(\'view-details\', item)">{{ item.name }}</button><button type="button" data-testid="menu-item-add" @click="$emit(\'add-to-cart\', { item, quantity: 2, customizations: { spicy: true }, notes: \'less salt\' })">add</button></div>',
   },
 }));
 vi.mock("@/components/MenuItemModal.vue", () => ({
@@ -162,6 +185,14 @@ describe("MenuView table validation", () => {
     tableValidationResult.value = null;
     restaurantResult.value = null;
     menuResult.value = null;
+    groupOrderMock.groupOrder.value = null;
+    groupOrderMock.currentMemberId.value = "";
+    groupOrderMock.error.value = null;
+    groupOrderMock.createGroupOrder.mockReset();
+    groupOrderMock.loadGroupOrder.mockReset();
+    groupOrderMock.addToCart.mockReset();
+    readActiveGroupOrder.mockReset();
+    clearActiveGroupOrder.mockReset();
   });
 
   it("redirects invalid table deep links to the error page", async () => {
@@ -241,5 +272,114 @@ describe("MenuView table validation", () => {
     expect(wrapper.get('[data-testid="menu-item-modal"]').text()).toContain(
       "Pulled milk tea",
     );
+  });
+
+  it("creates a group order from the menu and opens the shared cart", async () => {
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [],
+      menuItems: [],
+    };
+    groupOrderMock.createGroupOrder.mockResolvedValueOnce("go-1");
+
+    const wrapper = mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="start-group-order-button"]')
+      .trigger("click");
+    await wrapper.find('[data-testid="group-host-name-input"]').setValue("Sam");
+    await wrapper.find('[data-testid="group-create-form"]').trigger("submit");
+    await flushPromises();
+
+    expect(groupOrderMock.createGroupOrder).toHaveBeenCalledWith({
+      hostName: "Sam",
+      tableId: "1",
+    });
+    expect(routerPush).toHaveBeenCalledWith({
+      name: "GroupOrder",
+      params: { groupOrderId: "go-1" },
+    });
+  });
+
+  it("routes menu additions to the active group cart instead of local cart", async () => {
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [{ id: 10, name: "Part 1 Specials", sortOrder: 1 }],
+      menuItems: [
+        {
+          id: 101,
+          categoryId: 10,
+          name: "Part 1 Test Nasi Lemak",
+          description: "Coconut rice with sambal",
+          price: 120,
+          isFeatured: false,
+          isAvailable: true,
+          sortOrder: 1,
+        },
+      ],
+    };
+    readActiveGroupOrder.mockReturnValue({
+      groupOrderId: "go-1",
+      restaurantId: "restaurant-1",
+      tableId: "1",
+      savedAt: Date.now(),
+    });
+    groupOrderMock.loadGroupOrder.mockImplementation(async () => {
+      groupOrderMock.currentMemberId.value = "m-1";
+      groupOrderMock.groupOrder.value = {
+        id: "go-1",
+        restaurantId: "restaurant-1",
+        tableId: "1",
+        status: "active",
+        cartItems: [],
+      };
+    });
+    groupOrderMock.addToCart.mockImplementation(async (item) => {
+      groupOrderMock.groupOrder.value = {
+        ...groupOrderMock.groupOrder.value,
+        cartItems: [
+          {
+            id: "ci-1",
+            quantity: item.quantity,
+          },
+        ],
+      };
+    });
+
+    const wrapper = mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+
+    await wrapper.get('[data-testid="menu-item-add"]').trigger("click");
+    await flushPromises();
+
+    expect(groupOrderMock.loadGroupOrder).toHaveBeenCalledWith("go-1");
+    expect(groupOrderMock.addToCart).toHaveBeenCalledWith({
+      menuItemId: "101",
+      menuItemName: "Part 1 Test Nasi Lemak",
+      menuItemPrice: 120,
+      quantity: 2,
+      options: { spicy: true },
+      notes: "less salt",
+    });
+    expect(addCartItem).not.toHaveBeenCalled();
   });
 });
