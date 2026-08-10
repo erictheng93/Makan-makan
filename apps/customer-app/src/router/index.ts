@@ -2,6 +2,10 @@ import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { safeTranslate } from "@/utils/i18n";
+import {
+  clearChunkRecoveryMark,
+  createChunkRecovery,
+} from "@makanmakan/utils/chunk-recovery";
 // Deliberately eager. Every other view is a chunk, and the failure this view
 // exists to report is "a chunk could not be fetched" — a deploy replaces the
 // hashed filenames, so a tab still holding the previous index.html asks for
@@ -452,66 +456,19 @@ router.beforeEach(async (to, from, next) => {
   next();
 });
 
+const CHUNK_RELOAD_KEY = "makanmakan_chunk_reload_path";
+const recoverFromChunkFailure = createChunkRecovery({
+  storageKey: CHUNK_RELOAD_KEY,
+});
+
 router.afterEach(() => {
   // 頁面載入完成後的處理
   // 可以在這裡添加 Google Analytics 或其他追蹤代碼
 
   // Navigation worked, so whatever was stale is now loaded. Forgetting the
   // mark lets a later deploy earn its own reload instead of being refused one.
-  try {
-    sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-  } catch {
-    // Storage unavailable — nothing was recorded to forget.
-  }
+  clearChunkRecoveryMark(CHUNK_RELOAD_KEY);
 });
-
-/**
- * A chunk that 404s is almost always a deploy that landed under an open tab,
- * and the page the diner wanted still exists — it is only this build that is
- * gone. Fetching the document again picks up the current index.html and its
- * live filenames, which no amount of client-side routing can do.
- *
- * Marked per target so one dead route cannot reload forever: if the same path
- * fails again after a reload, the build is genuinely broken and the error view
- * is the honest answer.
- */
-const CHUNK_RELOAD_KEY = "makanmakan_chunk_reload_path";
-
-const CHUNK_FAILURE_PATTERN =
-  /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i;
-
-/**
- * Walks `cause`, because an import failure rarely arrives bare — the loader
- * that caught it wraps it, and the original text is the only reliable marker
- * (browsers disagree on the wording, and none of them use an error code).
- */
-function isChunkLoadFailure(error: unknown, depth = 0): boolean {
-  if (!error || depth > 4) return false;
-
-  const message = error instanceof Error ? error.message : String(error);
-  if (CHUNK_FAILURE_PATTERN.test(message)) return true;
-
-  const cause = (error as { cause?: unknown }).cause;
-  return cause ? isChunkLoadFailure(cause, depth + 1) : false;
-}
-
-/** Storage is unavailable in some privacy modes; a failure just means no retry. */
-function readSession(key: string): string | null {
-  try {
-    return sessionStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writeSession(key: string, value: string): boolean {
-  try {
-    sessionStorage.setItem(key, value);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // 錯誤處理
 router.onError((error, to) => {
@@ -519,15 +476,11 @@ router.onError((error, to) => {
   // why production builds no longer strip console.error (#60).
   console.error("路由錯誤:", error);
 
-  if (isChunkLoadFailure(error)) {
-    const target = to?.fullPath ?? window.location.pathname;
-    if (readSession(CHUNK_RELOAD_KEY) !== target) {
-      if (writeSession(CHUNK_RELOAD_KEY, target)) {
-        window.location.assign(target);
-        return;
-      }
-    }
-  }
+  // A chunk 404 almost always means the page still exists and only this build
+  // is gone, so the document is fetched again and the diner lands where they
+  // were headed. Once per page: if it fails again the build really is
+  // unreachable, and the error view below is the honest answer.
+  if (recoverFromChunkFailure(error, to)) return;
 
   router.push({
     name: "Error",

@@ -19,7 +19,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/utils": ["../../packages/utils/src"]
+      "@makanmakan/utils": ["../../packages/utils/src"],
+      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
     },
     "types": ["vite/client", "vitest/globals"]
   },

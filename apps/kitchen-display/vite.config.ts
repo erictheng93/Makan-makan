@@ -11,6 +11,10 @@ export default defineConfig({
         __dirname,
         "../../packages/shared-types/src",
       ),
+      "@makanmakan/utils/chunk-recovery": resolve(
+        __dirname,
+        "../../packages/utils/src/chunk-recovery",
+      ),
       "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
     },
   },

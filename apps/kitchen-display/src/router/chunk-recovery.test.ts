@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Router } from "vue-router";
-import {
-  installKitchenChunkRecovery,
-  isChunkLoadFailure,
-} from "./chunk-recovery";
+import { installKitchenChunkRecovery } from "./chunk-recovery";
 
 // A deploy replaces every hashed chunk, so a screen still holding the previous
 // index.html requests filenames that are gone. Nobody is standing in front of
@@ -50,14 +47,6 @@ describe("kitchen display recovery from a stale build", () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-  });
-
-  it("recognises an import failure through the wrapper that caught it", () => {
-    expect(isChunkLoadFailure(CHUNK_ERROR)).toBe(true);
-    expect(isChunkLoadFailure(new Error("boom", { cause: CHUNK_ERROR }))).toBe(
-      true,
-    );
-    expect(isChunkLoadFailure(new Error("the dashboard threw"))).toBe(false);
   });
 
   it("reloads to the page the display was heading for", () => {

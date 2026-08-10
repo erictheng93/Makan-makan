@@ -77,7 +77,10 @@ describe("router recovery from a stale build", () => {
 
   it("stops reloading once the same page has already been retried", async () => {
     const assign = stubLocation();
-    sessionStorage.setItem("makanmakan_chunk_reload_path", "/");
+    sessionStorage.setItem(
+      "makanmakan_chunk_reload_path",
+      JSON.stringify({ path: "/", at: Date.now() }),
+    );
     const router = await loadRouterWithDeadHomeChunk();
 
     await router.push("/").catch(() => undefined);
