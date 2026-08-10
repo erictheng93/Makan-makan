@@ -141,30 +141,64 @@
             data-testid="group-order-entry"
             class="rounded-2xl bg-ios-card p-4 shadow-card-sm"
           >
-            <div
-              v-if="isGroupMode"
-              class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p class="text-sm font-medium text-ios-blue">
-                  {{ t("group.orderingInGroup") }}
-                </p>
-                <p class="mt-1 text-sm text-ios-secondary">
-                  {{
-                    tWithParams("group.groupCartItemCount", {
-                      count: activeCartItemCount,
-                    })
-                  }}
-                </p>
-              </div>
-              <button
-                data-testid="group-cart-link"
-                type="button"
-                class="rounded-full bg-ios-blue px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
-                @click="router.push(groupCartRoute)"
+            <div v-if="isGroupMode" class="flex flex-col gap-3">
+              <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               >
-                {{ t("group.viewSharedCart") }}
-              </button>
+                <div>
+                  <p class="text-sm font-medium text-ios-blue">
+                    {{ t("group.orderingInGroup") }}
+                  </p>
+                  <p class="mt-1 text-sm text-ios-secondary">
+                    {{
+                      tWithParams("group.groupCartItemCount", {
+                        count: activeCartItemCount,
+                      })
+                    }}
+                  </p>
+                </div>
+                <div class="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    data-testid="group-cart-link"
+                    type="button"
+                    class="rounded-full bg-ios-blue px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+                    @click="router.push(groupCartRoute)"
+                  >
+                    {{ t("group.viewSharedCart") }}
+                  </button>
+                  <button
+                    data-testid="leave-group-mode"
+                    type="button"
+                    class="rounded-full border border-ios-gray-4 px-4 py-2.5 text-sm font-semibold text-ios-secondary transition-all duration-200 active:scale-[0.98]"
+                    @click="leaveGroupMode"
+                  >
+                    {{ t("group.leaveGroupMode") }}
+                  </button>
+                </div>
+              </div>
+
+              <p
+                v-if="cartStore.itemCount > 0"
+                data-testid="personal-cart-hidden"
+                class="rounded-xl bg-ios-orange/10 p-3 text-sm text-ios-orange"
+              >
+                {{
+                  tWithParams("group.personalCartHidden", {
+                    count: cartStore.itemCount,
+                  })
+                }}
+              </p>
+              <p
+                v-if="isAddingGroupItem"
+                data-testid="group-add-pending"
+                class="rounded-xl bg-ios-blue/10 p-3 text-sm text-ios-blue"
+              >
+                {{
+                  tWithParams("group.addingItems", {
+                    count: pendingGroupAddCount,
+                  })
+                }}
+              </p>
             </div>
 
             <div v-else>
@@ -493,6 +527,8 @@ const groupHostName = ref("");
 const groupOrderError = ref("");
 const isCreatingGroupOrder = ref(false);
 const isAddingGroupItem = ref(false);
+const pendingGroupAddCount = ref(0);
+let groupAddQueue: Promise<void> = Promise.resolve();
 
 const invalidTableMessage = "此桌號無效或已停用，請重新掃描 QR Code。";
 const isValidTableId = computed(
@@ -718,12 +754,13 @@ async function restoreActiveGroupOrder(): Promise<void> {
     const loaded = groupOrder.groupOrder.value;
     if (
       loaded?.restaurantId !== props.restaurantId ||
-      loaded?.tableId !== String(props.tableId)
+      loaded?.tableId !== String(props.tableId) ||
+      loaded?.status !== "active"
     ) {
-      clearActiveGroupOrder(props.restaurantId, String(props.tableId));
+      clearLoadedGroupMode();
     }
   } catch {
-    clearActiveGroupOrder(props.restaurantId, String(props.tableId));
+    clearLoadedGroupMode();
   }
 }
 
@@ -734,27 +771,8 @@ const handleAddToCart = async (data: {
   notes?: string;
 }) => {
   if (isGroupMode.value) {
-    if (isAddingGroupItem.value) return;
-    isAddingGroupItem.value = true;
-    groupOrderError.value = "";
-
-    try {
-      await groupOrder.addToCart({
-        menuItemId: String(data.item.id),
-        menuItemName: getLocalizedMenuName(data.item, currentLanguage.value),
-        menuItemPrice: data.item.price,
-        quantity: data.quantity,
-        options: (data.customizations ?? {}) as Record<string, unknown>,
-        notes: data.notes,
-      });
-    } catch (error) {
-      groupOrderError.value =
-        error instanceof Error ? error.message : t("group.addItemFailed");
-      toast.error(groupOrderError.value);
-      return;
-    } finally {
-      isAddingGroupItem.value = false;
-    }
+    enqueueGroupCartAddition(data);
+    return;
   } else {
     cartStore.addItem(
       data.item,
@@ -771,12 +789,81 @@ const handleAddToCart = async (data: {
     }),
   );
 
-  // 關閉彈窗
+  closeItemOverlays();
+};
+
+function clearLoadedGroupMode(): void {
+  clearActiveGroupOrder(props.restaurantId, String(props.tableId));
+  groupOrder.groupOrder.value = null;
+  groupOrder.currentMemberId.value = "";
+  groupOrderError.value = "";
+}
+
+function leaveGroupMode(): void {
+  clearLoadedGroupMode();
+  showGroupStartForm.value = false;
+}
+
+function enqueueGroupCartAddition(data: {
+  item: MenuItem;
+  quantity: number;
+  customizations?: SelectedCustomizations;
+  notes?: string;
+}): void {
+  pendingGroupAddCount.value += 1;
+  isAddingGroupItem.value = true;
+
+  const operation = groupAddQueue
+    .catch(() => undefined)
+    .then(() => addGroupCartItem(data))
+    .finally(() => {
+      pendingGroupAddCount.value = Math.max(0, pendingGroupAddCount.value - 1);
+      isAddingGroupItem.value = pendingGroupAddCount.value > 0;
+    });
+
+  groupAddQueue = operation.catch(() => undefined);
+}
+
+async function addGroupCartItem(data: {
+  item: MenuItem;
+  quantity: number;
+  customizations?: SelectedCustomizations;
+  notes?: string;
+}): Promise<void> {
+  groupOrderError.value = "";
+
+  try {
+    await groupOrder.addToCart({
+      menuItemId: String(data.item.id),
+      menuItemName: getLocalizedMenuName(data.item, currentLanguage.value),
+      menuItemPrice: data.item.price,
+      quantity: data.quantity,
+      options: (data.customizations ?? {}) as Record<string, unknown>,
+      notes: data.notes,
+    });
+  } catch (error) {
+    groupOrderError.value =
+      error instanceof Error ? error.message : t("group.addItemFailed");
+    toast.error(groupOrderError.value);
+    throw error;
+  }
+
+  toast.success(
+    tWithParams("group.itemAdded", {
+      name: getLocalizedMenuName(data.item, currentLanguage?.value),
+      quantity: data.quantity,
+    }),
+  );
+
+  closeItemOverlays();
+}
+
+function closeItemOverlays(): void {
   showItemModal.value = false;
   showCustomizationModal.value = false;
   selectedItem.value = null;
   customizingItem.value = null;
-};
+}
 
 const handleViewDetails = (item: MenuItem) => {
   selectedItem.value = item;

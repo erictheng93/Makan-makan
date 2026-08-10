@@ -7,6 +7,11 @@ const routerReplace = vi.hoisted(() => vi.fn());
 const routerPush = vi.hoisted(() => vi.fn());
 const initializeCart = vi.hoisted(() => vi.fn());
 const addCartItem = vi.hoisted(() => vi.fn());
+const cartState = vi.hoisted(() => ({
+  itemCount: 0,
+  items: [] as unknown[],
+  subtotal: 0,
+}));
 const toastSuccess = vi.hoisted(() => vi.fn());
 const toastError = vi.hoisted(() => vi.fn());
 const readActiveGroupOrder = vi.hoisted(() => vi.fn());
@@ -90,9 +95,9 @@ vi.mock("@/stores/app", () => ({
 
 vi.mock("@/stores/cart", () => ({
   useCartStore: () => ({
-    itemCount: 0,
-    items: [],
-    subtotal: 0,
+    itemCount: cartState.itemCount,
+    items: cartState.items,
+    subtotal: cartState.subtotal,
     initializeCart,
     addItem: addCartItem,
     removeItem: vi.fn(),
@@ -193,6 +198,9 @@ describe("MenuView table validation", () => {
     groupOrderMock.addToCart.mockReset();
     readActiveGroupOrder.mockReset();
     clearActiveGroupOrder.mockReset();
+    cartState.itemCount = 0;
+    cartState.items = [];
+    cartState.subtotal = 0;
   });
 
   it("redirects invalid table deep links to the error page", async () => {
@@ -381,5 +389,165 @@ describe("MenuView table validation", () => {
       notes: "less salt",
     });
     expect(addCartItem).not.toHaveBeenCalled();
+  });
+
+  it("lets diners leave group mode and return to their personal cart", async () => {
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [],
+      menuItems: [],
+    };
+    cartState.itemCount = 3;
+    readActiveGroupOrder.mockReturnValue({
+      groupOrderId: "go-1",
+      restaurantId: "restaurant-1",
+      tableId: "1",
+      savedAt: Date.now(),
+    });
+    groupOrderMock.loadGroupOrder.mockImplementation(async () => {
+      groupOrderMock.currentMemberId.value = "m-1";
+      groupOrderMock.groupOrder.value = {
+        id: "go-1",
+        restaurantId: "restaurant-1",
+        tableId: "1",
+        status: "active",
+        cartItems: [],
+      };
+    });
+
+    const wrapper = mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("group.personalCartHidden");
+
+    await wrapper.get('[data-testid="leave-group-mode"]').trigger("click");
+    await flushPromises();
+
+    expect(clearActiveGroupOrder).toHaveBeenCalledWith("restaurant-1", "1");
+    expect(groupOrderMock.groupOrder.value).toBeNull();
+    expect(groupOrderMock.currentMemberId.value).toBe("");
+  });
+
+  it("clears stale active group records when the group is no longer active", async () => {
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [],
+      menuItems: [],
+    };
+    readActiveGroupOrder.mockReturnValue({
+      groupOrderId: "go-1",
+      restaurantId: "restaurant-1",
+      tableId: "1",
+      savedAt: Date.now(),
+    });
+    groupOrderMock.loadGroupOrder.mockImplementation(async () => {
+      groupOrderMock.currentMemberId.value = "m-1";
+      groupOrderMock.groupOrder.value = {
+        id: "go-1",
+        restaurantId: "restaurant-1",
+        tableId: "1",
+        status: "cancelled",
+        cartItems: [],
+      };
+    });
+
+    mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+
+    expect(clearActiveGroupOrder).toHaveBeenCalledWith("restaurant-1", "1");
+    expect(groupOrderMock.groupOrder.value).toBeNull();
+  });
+
+  it("queues rapid group cart additions instead of silently dropping one", async () => {
+    let resolveFirstAdd: (() => void) | undefined;
+    tableValidationResult.value = {
+      isValid: true,
+      table: { number: "A1" },
+    };
+    restaurantResult.value = { name: "Part 1 Smoke Restaurant" };
+    menuResult.value = {
+      categories: [{ id: 10, name: "Part 1 Specials", sortOrder: 1 }],
+      menuItems: [
+        {
+          id: 101,
+          categoryId: 10,
+          name: "Part 1 Test Nasi Lemak",
+          description: "Coconut rice with sambal",
+          price: 120,
+          isFeatured: false,
+          isAvailable: true,
+          sortOrder: 1,
+        },
+      ],
+    };
+    readActiveGroupOrder.mockReturnValue({
+      groupOrderId: "go-1",
+      restaurantId: "restaurant-1",
+      tableId: "1",
+      savedAt: Date.now(),
+    });
+    groupOrderMock.loadGroupOrder.mockImplementation(async () => {
+      groupOrderMock.currentMemberId.value = "m-1";
+      groupOrderMock.groupOrder.value = {
+        id: "go-1",
+        restaurantId: "restaurant-1",
+        tableId: "1",
+        status: "active",
+        cartItems: [],
+      };
+    });
+    groupOrderMock.addToCart
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirstAdd = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(undefined);
+
+    const wrapper = mount(MenuView, {
+      props: {
+        restaurantId: "restaurant-1",
+        tableId: 1,
+      },
+    });
+    await flushPromises();
+
+    const firstClick = wrapper
+      .get('[data-testid="menu-item-add"]')
+      .trigger("click");
+    const secondClick = wrapper
+      .get('[data-testid="menu-item-add"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(groupOrderMock.addToCart).toHaveBeenCalledTimes(1);
+
+    resolveFirstAdd?.();
+    await firstClick;
+    await secondClick;
+    await flushPromises();
+    await flushPromises();
+
+    expect(groupOrderMock.addToCart).toHaveBeenCalledTimes(2);
+    expect(toastError).not.toHaveBeenCalled();
   });
 });
