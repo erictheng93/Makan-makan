@@ -453,7 +453,7 @@ describe("GroupOrderView", () => {
     expect(groupOrderMock.setFeeMode).toHaveBeenCalledWith("host");
   });
 
-  it.each(["finalizing", "finalizing_failed", "checkout", "completed"])(
+  it.each(["finalizing", "finalizing_failed", "checkout"])(
     "locks editing once the group order reaches %s",
     async (status) => {
       groupOrderMock.groupOrder.value = loadedGroupOrder(status);
@@ -472,6 +472,26 @@ describe("GroupOrderView", () => {
       expect(wrapper.findComponent(GroupCartPanel).exists()).toBe(false);
     },
   );
+
+  // `completed` means the order reached the restaurant, which is exactly when
+  // the table settles up. Hiding the panel there would hide settlement itself.
+  it("keeps the panel visible once the order has been sent, for settling", async () => {
+    groupOrderMock.groupOrder.value = loadedGroupOrder("completed");
+
+    const wrapper = mount(GroupOrderView, {
+      ...mountOptions,
+      props: { groupOrderId: "go-1" },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="group-order-locked"]').exists()).toBe(
+      false,
+    );
+    const panel = wrapper.findComponent(GroupCartPanel);
+    expect(panel.exists()).toBe(true);
+    // The cart is read-only by then: the order it belongs to is already placed.
+    expect(panel.props("orderStatus")).toBe("completed");
+  });
 
   it("locks editing for any future non-active status", async () => {
     groupOrderMock.groupOrder.value = loadedGroupOrder("paused_for_review");
