@@ -5,6 +5,10 @@ import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
 import { isTokenExpired } from "@makanmakan/utils";
 import {
+  clearChunkRecoveryMark,
+  createChunkRecovery,
+} from "@makanmakan/utils/chunk-recovery";
+import {
   LOGIN_REDIRECT_QUERY,
   loginRouteFor,
   readLoginRedirect,
@@ -501,6 +505,33 @@ export const adminRestaurantOptionalRoutes = [
   "Feedback", // Admin views all shops' feedback at platform level
   "Subscriptions", // Admin manages all subscriptions at platform level
 ];
+
+/**
+ * A deploy replaces every hashed chunk, so a tab left open on the dashboard
+ * asks for filenames that are gone and simply stops navigating — silently,
+ * since this app has no error view to fall back to. Fetching the document
+ * again is the only recovery; no client-side routing can conjure a file the
+ * edge stopped serving.
+ *
+ * Once per page, unlike the kitchen display: someone is sitting in front of
+ * this one and can refresh, so a screen that keeps reloading on its own would
+ * be more confusing than a stalled one.
+ */
+const CHUNK_RELOAD_KEY = "makanmasak_admin_chunk_reload";
+const recoverFromChunkFailure = createChunkRecovery({
+  storageKey: CHUNK_RELOAD_KEY,
+});
+
+router.onError((error, to) => {
+  console.error("[router] navigation failed", error);
+  recoverFromChunkFailure(error, to);
+});
+
+router.afterEach(() => {
+  // Navigation worked, so the stale build is behind us; the next deploy earns
+  // its own attempt rather than inheriting this one.
+  clearChunkRecoveryMark(CHUNK_RELOAD_KEY);
+});
 
 router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();

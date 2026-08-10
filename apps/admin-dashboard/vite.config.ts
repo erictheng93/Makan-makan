@@ -24,6 +24,10 @@ export default defineConfig({
       ),
       "@makanmakan/shared": resolve(__dirname, "../../packages/shared"),
       "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
+      "@makanmakan/utils/chunk-recovery": resolve(
+        __dirname,
+        "../../packages/utils/src/chunk-recovery",
+      ),
       "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
     },
     // packages/shared/ is a path-aliased loose folder (no package.json), so
