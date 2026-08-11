@@ -305,7 +305,8 @@
     "internalServerError": "Ralat dalaman pelayan",
     "badGateway": "Perkhidmatan tidak tersedia buat sementara waktu",
     "serviceUnavailable": "Perkhidmatan dalam penyelenggaraan",
-    "gatewayTimeout": "Permintaan tamat masa"
+    "gatewayTimeout": "Permintaan tamat masa",
+    "imageLoadFailed": "Gagal memuatkan imej"
   },
   "restaurant": {
     "info": "Maklumat Restoran",
@@ -468,7 +469,8 @@
     "resendVerification": "Hantar Semula E-mel Pengesahan",
     "missingVerifyToken": "Token pengesahan tiada",
     "resendVerificationSuccess": "E-mel pengesahan telah dihantar semula. Sila semak peti masuk anda.",
-    "resendFailed": "Gagal menghantar. Sila cuba lagi kemudian."
+    "resendFailed": "Gagal menghantar. Sila cuba lagi kemudian.",
+    "registerRetired": "Pendaftaran kata laluan telah ditamatkan. Gunakan log masuk OTP telefon."
   },
   "toast": {
     "orderSubmitSuccess": "Pesanan berjaya dihantar!",
@@ -838,7 +840,16 @@
     "recoverFailed": "Tidak dapat memulihkan akses hos.",
     "recoverMismatch": "Kod pemulihan itu tidak sepadan dengan pesanan kumpulan ini.",
     "recoverRateLimited": "Terlalu banyak percubaan. Cuba lagi dalam 15 minit.",
-    "orderAlreadyPlaced": "Restoran telah menerima pesanan ini. Hubungi restoran sebelum membuat sebarang perubahan atau mencuba lagi."
+    "orderAlreadyPlaced": "Restoran telah menerima pesanan ini. Hubungi restoran sebelum membuat sebarang perubahan atau mencuba lagi.",
+    "loading": "Memuatkan pesanan kumpulan...",
+    "sessionExpiredNotice": "Sesi hos telah tamat. Pulihkan akses hos untuk meneruskan.",
+    "lockedTitle": "Pesanan kumpulan ini dikunci",
+    "lockedDesc": "Pesanan kumpulan sedang dimuktamadkan atau tidak lagi tersedia.",
+    "hostCredentialRequired": "Akses hos diperlukan untuk tindakan ini.",
+    "notAMember": "Anda belum menyertai pesanan kumpulan ini — cipta atau sertainya dahulu.",
+    "connectionError": "Sambungan gagal. Sila cuba lagi.",
+    "recoveryCodeRequired": "Masukkan kod pemulihan anda.",
+    "unknownError": "Sesuatu tidak kena. Sila cuba lagi."
   },
   "messages": {
     "networkError": "Sambungan rangkaian gagal, sila semak sambungan anda",
@@ -891,6 +902,36 @@
     "category": "Kategori",
     "allCategories": "Semua Kategori",
     "district": "Daerah",
-    "allDistricts": "Semua Daerah"
+    "allDistricts": "Semua Daerah",
+    "searchFailed": "Carian gagal. Sila cuba lagi.",
+    "browseFailed": "Tidak dapat memuatkan senarai restoran. Sila cuba lagi.",
+    "popularFailed": "Tidak dapat memuatkan pilihan popular. Sila cuba lagi.",
+    "takeawayUnavailable": "Bungkus belum tersedia terus dari halaman Terokai."
+  },
+  "groupJoin": {
+    "loading": "Memuatkan pesanan kumpulan...",
+    "notFoundTitle": "Pesanan kumpulan tidak dijumpai",
+    "notFoundDesc": "Pautan kongsi ini mungkin telah tamat tempoh atau dibatalkan.",
+    "loadFailedTitle": "Tidak dapat memuatkan pesanan kumpulan",
+    "loadFailed": "Tidak dapat memuatkan pesanan kumpulan ini.",
+    "retry": "Cuba lagi",
+    "label": "Pesanan kumpulan",
+    "hostOrdering": "{hostName} sedang memesan",
+    "members": "Ahli",
+    "fulfillment": "Cara terima",
+    "expires": "Tamat tempoh",
+    "join": "Sertai pesanan kumpulan",
+    "yourName": "Nama anda",
+    "namePlaceholder": "Bagaimana meja ini mengenali anda?",
+    "joining": "Menyertai...",
+    "joinNow": "Sertai sekarang",
+    "nameRequired": "Masukkan nama anda untuk menyertai.",
+    "joinFailed": "Tidak dapat menyertai pesanan kumpulan ini.",
+    "fulfillmentDineIn": "Makan di sini",
+    "fulfillmentDelivery": "Penghantaran",
+    "fulfillmentPickup": "Bungkus"
+  },
+  "footer": {
+    "copyright": "© {year} MakanMasak. Hak cipta terpelihara."
   }
 }

@@ -305,7 +305,8 @@
     "internalServerError": "Internal server error",
     "badGateway": "Service temporarily unavailable",
     "serviceUnavailable": "Service under maintenance",
-    "gatewayTimeout": "Request timed out"
+    "gatewayTimeout": "Request timed out",
+    "imageLoadFailed": "Failed to load image"
   },
   "restaurant": {
     "info": "Restaurant Information",
@@ -468,7 +469,8 @@
     "resendVerification": "Resend Verification Email",
     "missingVerifyToken": "Missing verification token",
     "resendVerificationSuccess": "Verification email resent. Please check your inbox.",
-    "resendFailed": "Failed to send. Please try again later."
+    "resendFailed": "Failed to send. Please try again later.",
+    "registerRetired": "Password registration is retired. Use phone OTP login instead."
   },
   "toast": {
     "orderSubmitSuccess": "Order submitted successfully!",
@@ -838,7 +840,16 @@
     "recoverFailed": "Unable to recover host access.",
     "recoverMismatch": "That recovery code did not match this group order.",
     "recoverRateLimited": "Too many recovery attempts. Try again in 15 minutes.",
-    "orderAlreadyPlaced": "The restaurant has already received this order. Contact the restaurant before making any changes or trying again."
+    "orderAlreadyPlaced": "The restaurant has already received this order. Contact the restaurant before making any changes or trying again.",
+    "loading": "Loading group order...",
+    "sessionExpiredNotice": "This host session has expired. Recover host access to continue.",
+    "lockedTitle": "This group order is locked",
+    "lockedDesc": "The group order is being finalized or is no longer available.",
+    "hostCredentialRequired": "Host access is required for this action.",
+    "notAMember": "You are not in this group order yet — create or join it first.",
+    "connectionError": "Connection failed. Please try again.",
+    "recoveryCodeRequired": "Enter your recovery code.",
+    "unknownError": "Something went wrong. Please try again."
   },
   "messages": {
     "networkError": "Network connection failed, please check your connection",
@@ -891,6 +902,36 @@
     "category": "Category",
     "allCategories": "All Categories",
     "district": "District",
-    "allDistricts": "All Districts"
+    "allDistricts": "All Districts",
+    "searchFailed": "Search failed. Please try again.",
+    "browseFailed": "Unable to load restaurants. Please try again.",
+    "popularFailed": "Unable to load popular picks. Please try again.",
+    "takeawayUnavailable": "Takeaway is not available straight from Discovery yet."
+  },
+  "groupJoin": {
+    "loading": "Loading group order...",
+    "notFoundTitle": "Group order not found",
+    "notFoundDesc": "This share link may have expired or been cancelled.",
+    "loadFailedTitle": "Unable to load group order",
+    "loadFailed": "Unable to load this group order.",
+    "retry": "Try again",
+    "label": "Group order",
+    "hostOrdering": "{hostName} is ordering",
+    "members": "Members",
+    "fulfillment": "Fulfillment",
+    "expires": "Expires",
+    "join": "Join group order",
+    "yourName": "Your name",
+    "namePlaceholder": "How should the table know you?",
+    "joining": "Joining...",
+    "joinNow": "Join now",
+    "nameRequired": "Enter your name to join.",
+    "joinFailed": "Unable to join this group order.",
+    "fulfillmentDineIn": "Dine in",
+    "fulfillmentDelivery": "Delivery",
+    "fulfillmentPickup": "Pickup"
+  },
+  "footer": {
+    "copyright": "© {year} MakanMasak. All rights reserved."
   }
 }

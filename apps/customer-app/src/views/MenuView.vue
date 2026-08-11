@@ -471,6 +471,7 @@ import { useRouter } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/composables/useI18n";
+import { getGroupOrderErrorI18nKey } from "@/utils/group-order-error";
 import { useSeatContext } from "@/composables/useSeatContext";
 import { useGroupOrder } from "@/composables/useGroupOrder";
 import { useAppStore } from "@/stores/app";
@@ -725,7 +726,10 @@ async function createGroupOrderFromMenu(): Promise<void> {
     });
 
     if (!groupOrderId) {
-      throw new Error(groupOrder.error.value ?? t("group.createFailed"));
+      // createGroupOrder catches its own failure into the composable's error
+      // ref, which holds a translation key rather than a message.
+      groupOrderError.value = t(groupOrder.error.value ?? "group.createFailed");
+      return;
     }
 
     await router.push({
@@ -733,8 +737,9 @@ async function createGroupOrderFromMenu(): Promise<void> {
       params: { groupOrderId },
     });
   } catch (error) {
-    groupOrderError.value =
-      error instanceof Error ? error.message : t("group.createFailed");
+    groupOrderError.value = t(
+      getGroupOrderErrorI18nKey(error, "group.createFailed"),
+    );
   } finally {
     isCreatingGroupOrder.value = false;
   }
@@ -863,8 +868,9 @@ async function addGroupCartItem(
       notes: data.notes,
     });
   } catch (error) {
-    groupOrderError.value =
-      error instanceof Error ? error.message : t("group.addItemFailed");
+    groupOrderError.value = t(
+      getGroupOrderErrorI18nKey(error, "group.addItemFailed"),
+    );
     toast.error(groupOrderError.value);
     throw error;
   }

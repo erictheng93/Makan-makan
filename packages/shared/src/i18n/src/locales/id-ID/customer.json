@@ -305,7 +305,8 @@
     "internalServerError": "Kesalahan server internal",
     "badGateway": "Layanan sementara tidak tersedia",
     "serviceUnavailable": "Layanan dalam pemeliharaan",
-    "gatewayTimeout": "Permintaan habis waktu"
+    "gatewayTimeout": "Permintaan habis waktu",
+    "imageLoadFailed": "Gagal memuat gambar"
   },
   "restaurant": {
     "info": "Informasi Restoran",
@@ -468,7 +469,8 @@
     "resendVerification": "Kirim Ulang Email Verifikasi",
     "missingVerifyToken": "Token verifikasi tidak ada",
     "resendVerificationSuccess": "Email verifikasi telah dikirim ulang. Silakan periksa kotak masuk Anda.",
-    "resendFailed": "Gagal mengirim. Silakan coba lagi nanti."
+    "resendFailed": "Gagal mengirim. Silakan coba lagi nanti.",
+    "registerRetired": "Pendaftaran kata sandi telah dihentikan. Gunakan login OTP ponsel."
   },
   "toast": {
     "orderSubmitSuccess": "Pesanan berhasil dikirim!",
@@ -838,7 +840,16 @@
     "recoverFailed": "Tidak dapat memulihkan akses tuan rumah.",
     "recoverMismatch": "Kode pemulihan itu tidak cocok dengan pesanan grup ini.",
     "recoverRateLimited": "Terlalu banyak percobaan. Coba lagi dalam 15 menit.",
-    "orderAlreadyPlaced": "Restoran sudah menerima pesanan ini. Hubungi restoran sebelum melakukan perubahan atau mencoba lagi."
+    "orderAlreadyPlaced": "Restoran sudah menerima pesanan ini. Hubungi restoran sebelum melakukan perubahan atau mencoba lagi.",
+    "loading": "Memuat pesanan grup...",
+    "sessionExpiredNotice": "Sesi tuan rumah telah berakhir. Pulihkan akses tuan rumah untuk melanjutkan.",
+    "lockedTitle": "Pesanan grup ini terkunci",
+    "lockedDesc": "Pesanan grup sedang difinalisasi atau tidak lagi tersedia.",
+    "hostCredentialRequired": "Akses tuan rumah diperlukan untuk tindakan ini.",
+    "notAMember": "Anda belum tergabung dalam pesanan grup ini — buat atau gabung dulu.",
+    "connectionError": "Koneksi gagal. Silakan coba lagi.",
+    "recoveryCodeRequired": "Masukkan kode pemulihan Anda.",
+    "unknownError": "Terjadi kesalahan. Silakan coba lagi."
   },
   "messages": {
     "networkError": "Koneksi jaringan gagal, periksa koneksi Anda",
@@ -891,6 +902,36 @@
     "category": "Kategori",
     "allCategories": "Semua Kategori",
     "district": "Wilayah",
-    "allDistricts": "Semua Wilayah"
+    "allDistricts": "Semua Wilayah",
+    "searchFailed": "Pencarian gagal. Silakan coba lagi.",
+    "browseFailed": "Tidak dapat memuat daftar restoran. Silakan coba lagi.",
+    "popularFailed": "Tidak dapat memuat pilihan populer. Silakan coba lagi.",
+    "takeawayUnavailable": "Bawa pulang belum tersedia langsung dari halaman Jelajah."
+  },
+  "groupJoin": {
+    "loading": "Memuat pesanan grup...",
+    "notFoundTitle": "Pesanan grup tidak ditemukan",
+    "notFoundDesc": "Tautan berbagi ini mungkin sudah kedaluwarsa atau dibatalkan.",
+    "loadFailedTitle": "Tidak dapat memuat pesanan grup",
+    "loadFailed": "Tidak dapat memuat pesanan grup ini.",
+    "retry": "Coba lagi",
+    "label": "Pesanan grup",
+    "hostOrdering": "{hostName} sedang memesan",
+    "members": "Anggota",
+    "fulfillment": "Cara terima",
+    "expires": "Kedaluwarsa",
+    "join": "Gabung pesanan grup",
+    "yourName": "Nama Anda",
+    "namePlaceholder": "Bagaimana teman semeja mengenali Anda?",
+    "joining": "Bergabung...",
+    "joinNow": "Gabung sekarang",
+    "nameRequired": "Masukkan nama Anda untuk bergabung.",
+    "joinFailed": "Tidak dapat bergabung ke pesanan grup ini.",
+    "fulfillmentDineIn": "Makan di tempat",
+    "fulfillmentDelivery": "Pengantaran",
+    "fulfillmentPickup": "Bawa pulang"
+  },
+  "footer": {
+    "copyright": "© {year} MakanMasak. Hak cipta dilindungi."
   }
 }

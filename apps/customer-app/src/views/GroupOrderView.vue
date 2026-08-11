@@ -6,6 +6,7 @@ import GroupCartPanel from "@/components/group/GroupCartPanel.vue";
 import HostRecoveryPanel from "@/components/group/HostRecoveryPanel.vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
 import { useI18n } from "@/composables/useI18n";
+import { getGroupOrderErrorI18nKey } from "@/utils/group-order-error";
 import type { SplitBillConfig } from "@/composables/useGroupOrder";
 import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
 
@@ -58,8 +59,9 @@ async function toggleAutoSubmit(): Promise<void> {
   try {
     await group.setAutoSubmitOnExpiry(!group.autoSubmitOnExpiry.value);
   } catch (error) {
-    autoSubmitError.value =
-      error instanceof Error ? error.message : t("group.autoSubmitFailed");
+    autoSubmitError.value = t(
+      getGroupOrderErrorI18nKey(error, "group.autoSubmitFailed"),
+    );
   } finally {
     isSavingAutoSubmit.value = false;
   }
@@ -91,8 +93,7 @@ async function loadGroupOrder(): Promise<void> {
     void loadChargeRates(group.groupOrder.value?.restaurantId ?? "");
     await group.connectToGroupOrder(props.groupOrderId);
   } catch (error) {
-    viewError.value =
-      error instanceof Error ? error.message : t("group.loadFailed");
+    viewError.value = t(getGroupOrderErrorI18nKey(error, "group.loadFailed"));
   }
 }
 
@@ -100,8 +101,9 @@ async function updateQuantity(itemId: string, quantity: number): Promise<void> {
   try {
     await group.updateCartItem(itemId, { quantity });
   } catch (error) {
-    viewError.value =
-      error instanceof Error ? error.message : t("group.updateItemFailed");
+    viewError.value = t(
+      getGroupOrderErrorI18nKey(error, "group.updateItemFailed"),
+    );
   }
 }
 
@@ -109,8 +111,9 @@ async function removeItem(itemId: string): Promise<void> {
   try {
     await group.removeFromCart(itemId);
   } catch (error) {
-    viewError.value =
-      error instanceof Error ? error.message : t("group.removeItemFailed");
+    viewError.value = t(
+      getGroupOrderErrorI18nKey(error, "group.removeItemFailed"),
+    );
   }
 }
 
@@ -118,8 +121,9 @@ async function changeFeeMode(mode: GroupOrderFeeMode): Promise<void> {
   try {
     await group.setFeeMode(mode);
   } catch (error) {
-    viewError.value =
-      error instanceof Error ? error.message : t("group.feeModeFailed");
+    viewError.value = t(
+      getGroupOrderErrorI18nKey(error, "group.feeModeFailed"),
+    );
   }
 }
 
@@ -127,8 +131,7 @@ async function startSettlement(): Promise<void> {
   try {
     await group.startSettlement();
   } catch (error) {
-    viewError.value =
-      error instanceof Error ? error.message : t("group.splitFailed");
+    viewError.value = t(getGroupOrderErrorI18nKey(error, "group.splitFailed"));
   }
 }
 
@@ -136,8 +139,7 @@ async function settleMyShare(): Promise<void> {
   try {
     await group.settleMyShare();
   } catch (error) {
-    viewError.value =
-      error instanceof Error ? error.message : t("group.settleFailed");
+    viewError.value = t(getGroupOrderErrorI18nKey(error, "group.settleFailed"));
   }
 }
 
@@ -164,8 +166,9 @@ async function submitGroupOrder(): Promise<void> {
     } else if (isHostOnlyError(error)) {
       submitError.value = t("group.hostOnlySubmit");
     } else {
-      submitError.value =
-        error instanceof Error ? error.message : t("group.submitFailed");
+      submitError.value = t(
+        getGroupOrderErrorI18nKey(error, "group.submitFailed"),
+      );
     }
   } finally {
     isSubmitting.value = false;
@@ -221,7 +224,7 @@ onUnmounted(() => {
         data-testid="group-order-session-expired"
         class="mb-4 rounded-xl bg-ios-orange/10 p-4 text-sm text-ios-orange"
       >
-        This host session has expired. Recover host access to continue.
+        {{ t("group.sessionExpiredNotice") }}
       </p>
 
       <div
@@ -230,10 +233,10 @@ onUnmounted(() => {
         class="rounded-2xl bg-ios-card p-6 shadow-card-sm"
       >
         <h2 class="text-lg font-semibold text-ios-text">
-          This group order is locked
+          {{ t("group.lockedTitle") }}
         </h2>
         <p class="mt-2 text-sm text-ios-secondary">
-          The group order is being finalized or is no longer available.
+          {{ t("group.lockedDesc") }}
         </p>
       </div>
 
@@ -273,7 +276,7 @@ onUnmounted(() => {
       </template>
 
       <div v-else class="py-16 text-center text-ios-secondary">
-        Loading group order...
+        {{ t("group.loading") }}
       </div>
 
       <div v-if="canSubmitOrder" class="mt-4">

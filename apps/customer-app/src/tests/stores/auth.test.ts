@@ -177,7 +177,7 @@ describe("customer auth store", () => {
       }),
     ).resolves.toEqual({
       success: false,
-      error: "Customer password registration is retired. Use phone OTP login.",
+      error: "auth.registerRetired",
     });
   });
 });

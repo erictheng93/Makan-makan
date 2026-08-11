@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useGroupOrder } from "@/composables/useGroupOrder";
 import { useI18n } from "@/composables/useI18n";
 import { readHostCredentials } from "@/utils/groupOrderSession";
+import { getGroupOrderErrorI18nKey } from "@/utils/group-order-error";
 
 const props = defineProps<{
   groupOrderId: string;
@@ -56,9 +57,7 @@ function recoveryErrorMessage(recoveryError: unknown): string {
     return t("group.recoverMismatch");
   }
 
-  return recoveryError instanceof Error
-    ? recoveryError.message
-    : t("group.recoverFailed");
+  return t(getGroupOrderErrorI18nKey(recoveryError, "group.recoverFailed"));
 }
 </script>
 

@@ -21,6 +21,10 @@ import {
   saveMemberCredentials,
   updateHostMemberToken,
 } from "@/utils/groupOrderSession";
+import {
+  getGroupOrderErrorI18nKey,
+  groupOrderError,
+} from "@/utils/group-order-error";
 
 // ============================================================================
 // Types
@@ -359,6 +363,10 @@ export function useGroupOrder(options: {
   // State
   const groupOrder = ref<GroupOrder | null>(null);
   const isLoading = ref(false);
+  /**
+   * An i18n key, never prose — whatever lands here is shown to a diner, and a
+   * message baked in at the throw site can only ever be in one language.
+   */
   const error = ref<string | null>(null);
   const isConnected = ref(false);
   const sessionExpired = ref(false);
@@ -558,10 +566,10 @@ export function useGroupOrder(options: {
         await loadGroupOrder(groupOrderId, response);
         return groupOrderId;
       } else {
-        throw new Error("Failed to create group order");
+        throw groupOrderError("GROUP_CREATE_FAILED");
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Unknown error";
+      error.value = getGroupOrderErrorI18nKey(err, "group.createFailed");
       return null;
     } finally {
       isLoading.value = false;
@@ -588,7 +596,7 @@ export function useGroupOrder(options: {
       );
 
       if (!response?.memberToken) {
-        throw new Error("Failed to join group order");
+        throw groupOrderError("GROUP_JOIN_FAILED");
       }
 
       memberToken.value = response.memberToken;
@@ -602,7 +610,7 @@ export function useGroupOrder(options: {
 
       return true;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Unknown error";
+      error.value = getGroupOrderErrorI18nKey(err, "groupJoin.joinFailed");
       return false;
     } finally {
       isLoading.value = false;
@@ -643,9 +651,7 @@ export function useGroupOrder(options: {
         // belongs in the room. The public token endpoint deliberately refuses
         // customer rooms — it could not verify the caller, so anyone could read
         // every member's name, phone, and cart (issue #96).
-        throw new Error(
-          "Not a member of this group order — create or join it first",
-        );
+        throw groupOrderError("GROUP_NOT_A_MEMBER");
       }
 
       const tokenResponse = await apiClient.post<{ token: string }>(
@@ -657,7 +663,7 @@ export function useGroupOrder(options: {
       );
 
       if (!tokenResponse) {
-        throw new Error("Failed to get WebSocket token");
+        throw groupOrderError("GROUP_REALTIME_TOKEN_FAILED");
       }
 
       const token = tokenResponse.token;
@@ -680,9 +686,11 @@ export function useGroupOrder(options: {
       console.error("Failed to connect to group order:", err);
       if (isAuthError(err)) {
         sessionExpired.value = true;
-        error.value = "Host session expired. Recover host access to continue.";
+        // The status already says exactly what happened, so name the key
+        // outright rather than resolving one off the thrown error.
+        error.value = "group.sessionExpiredNotice";
       } else {
-        error.value = "Connection error";
+        error.value = getGroupOrderErrorI18nKey(err, "group.connectionError");
       }
       throw err;
     }
@@ -827,13 +835,13 @@ export function useGroupOrder(options: {
    */
   async function setFeeMode(mode: GroupOrderFeeMode): Promise<void> {
     if (!groupOrder.value) {
-      throw new Error("No group order loaded");
+      throw groupOrderError("GROUP_NOT_LOADED");
     }
 
     const groupOrderId = groupOrder.value.id;
     hydrateHostCredentials(groupOrderId);
     if (!memberToken.value) {
-      throw new Error("Host credential is required to change this setting");
+      throw groupOrderError("GROUP_HOST_CREDENTIAL_REQUIRED");
     }
 
     await apiClient.put(`/orders/group/${groupOrderId}/fee-mode`, {
@@ -851,13 +859,13 @@ export function useGroupOrder(options: {
     mode: SplitBillConfig["mode"],
   ): Promise<void> {
     if (!groupOrder.value) {
-      throw new Error("No group order loaded");
+      throw groupOrderError("GROUP_NOT_LOADED");
     }
 
     const groupOrderId = groupOrder.value.id;
     hydrateHostCredentials(groupOrderId);
     if (!memberToken.value) {
-      throw new Error("Host credential is required to change the split method");
+      throw groupOrderError("GROUP_HOST_CREDENTIAL_REQUIRED");
     }
 
     await apiClient.put(`/orders/group/${groupOrderId}/split-type`, {
@@ -877,7 +885,7 @@ export function useGroupOrder(options: {
     const groupOrderId = groupOrder.value.id;
     hydrateHostCredentials(groupOrderId);
     if (!memberToken.value) {
-      throw new Error("Host credential is required to split the bill");
+      throw groupOrderError("GROUP_HOST_CREDENTIAL_REQUIRED");
     }
 
     await apiClient.post(`/orders/group/${groupOrderId}/split`, {
@@ -949,13 +957,13 @@ export function useGroupOrder(options: {
    */
   async function setAutoSubmitOnExpiry(enabled: boolean): Promise<void> {
     if (!groupOrder.value) {
-      throw new Error("No group order loaded");
+      throw groupOrderError("GROUP_NOT_LOADED");
     }
 
     const groupOrderId = groupOrder.value.id;
     hydrateHostCredentials(groupOrderId);
     if (!memberToken.value) {
-      throw new Error("Host credential is required to change this setting");
+      throw groupOrderError("GROUP_HOST_CREDENTIAL_REQUIRED");
     }
 
     await apiClient.put(`/orders/group/${groupOrderId}/auto-submit`, {
@@ -968,13 +976,13 @@ export function useGroupOrder(options: {
   // Submit order (host only)
   async function submitOrder(): Promise<void> {
     if (!groupOrder.value) {
-      throw new Error("No group order loaded");
+      throw groupOrderError("GROUP_NOT_LOADED");
     }
 
     const groupOrderId = groupOrder.value.id;
     hydrateHostCredentials(groupOrderId);
     if (!memberToken.value) {
-      throw new Error("Host credential is required to submit this group order");
+      throw groupOrderError("GROUP_HOST_CREDENTIAL_REQUIRED");
     }
 
     try {
@@ -1019,7 +1027,7 @@ export function useGroupOrder(options: {
     err: unknown,
     flags: T,
   ): Error & T {
-    const error = err instanceof Error ? err : new Error("Group order failed");
+    const error = err instanceof Error ? err : groupOrderError("GROUP_UNKNOWN");
     return Object.assign(error, flags);
   }
 
@@ -1029,7 +1037,7 @@ export function useGroupOrder(options: {
   ): Promise<void> {
     const normalizedCode = code.trim().toLowerCase();
     if (!normalizedCode) {
-      throw new Error("Recovery code is required");
+      throw groupOrderError("GROUP_RECOVERY_CODE_REQUIRED");
     }
 
     const response = await apiClient.post<RecoverHostResponse>(
@@ -1040,7 +1048,7 @@ export function useGroupOrder(options: {
     );
 
     if (!response?.memberToken) {
-      throw new Error("Failed to recover host session");
+      throw groupOrderError("GROUP_RECOVER_FAILED");
     }
 
     const storedRecoveryCode =

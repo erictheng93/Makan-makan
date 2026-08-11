@@ -305,7 +305,8 @@
     "internalServerError": "Lỗi máy chủ nội bộ",
     "badGateway": "Dịch vụ tạm thời không khả dụng",
     "serviceUnavailable": "Dịch vụ đang bảo trì",
-    "gatewayTimeout": "Yêu cầu hết thời gian"
+    "gatewayTimeout": "Yêu cầu hết thời gian",
+    "imageLoadFailed": "Không tải được hình ảnh"
   },
   "restaurant": {
     "info": "Thông tin nhà hàng",
@@ -468,7 +469,8 @@
     "resendVerification": "Gửi lại email xác minh",
     "missingVerifyToken": "Thiếu token xác minh",
     "resendVerificationSuccess": "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư.",
-    "resendFailed": "Gửi thất bại. Vui lòng thử lại sau."
+    "resendFailed": "Gửi thất bại. Vui lòng thử lại sau.",
+    "registerRetired": "Đăng ký bằng mật khẩu đã ngừng. Hãy đăng nhập bằng OTP điện thoại."
   },
   "toast": {
     "orderSubmitSuccess": "Đặt hàng thành công!",
@@ -838,7 +840,16 @@
     "recoverFailed": "Không thể khôi phục quyền chủ nhóm.",
     "recoverMismatch": "Mã khôi phục không khớp với đơn nhóm này.",
     "recoverRateLimited": "Thử quá nhiều lần. Vui lòng thử lại sau 15 phút.",
-    "orderAlreadyPlaced": "Nhà hàng đã nhận đơn này. Hãy liên hệ nhà hàng trước khi thay đổi hoặc thử lại."
+    "orderAlreadyPlaced": "Nhà hàng đã nhận đơn này. Hãy liên hệ nhà hàng trước khi thay đổi hoặc thử lại.",
+    "loading": "Đang tải đơn nhóm...",
+    "sessionExpiredNotice": "Phiên chủ nhóm đã hết hạn. Khôi phục quyền chủ nhóm để tiếp tục.",
+    "lockedTitle": "Đơn nhóm này đã bị khoá",
+    "lockedDesc": "Đơn nhóm đang được chốt hoặc không còn khả dụng.",
+    "hostCredentialRequired": "Cần quyền chủ nhóm để thực hiện thao tác này.",
+    "notAMember": "Bạn chưa ở trong đơn nhóm này — hãy tạo hoặc tham gia trước.",
+    "connectionError": "Kết nối thất bại. Vui lòng thử lại.",
+    "recoveryCodeRequired": "Nhập mã khôi phục của bạn.",
+    "unknownError": "Đã xảy ra lỗi. Vui lòng thử lại."
   },
   "messages": {
     "networkError": "Kết nối mạng thất bại, vui lòng kiểm tra kết nối của bạn",
@@ -891,6 +902,36 @@
     "category": "Danh mục",
     "allCategories": "Tất cả Danh mục",
     "district": "Khu vực",
-    "allDistricts": "Tất cả Khu vực"
+    "allDistricts": "Tất cả Khu vực",
+    "searchFailed": "Tìm kiếm thất bại. Vui lòng thử lại.",
+    "browseFailed": "Không thể tải danh sách quán. Vui lòng thử lại.",
+    "popularFailed": "Không thể tải mục phổ biến. Vui lòng thử lại.",
+    "takeawayUnavailable": "Hiện chưa thể đặt mang đi trực tiếp từ trang Khám phá."
+  },
+  "groupJoin": {
+    "loading": "Đang tải đơn nhóm...",
+    "notFoundTitle": "Không tìm thấy đơn nhóm",
+    "notFoundDesc": "Liên kết chia sẻ này có thể đã hết hạn hoặc bị huỷ.",
+    "loadFailedTitle": "Không thể tải đơn nhóm",
+    "loadFailed": "Không thể tải đơn nhóm này.",
+    "retry": "Thử lại",
+    "label": "Đơn nhóm",
+    "hostOrdering": "{hostName} đang gọi món",
+    "members": "Thành viên",
+    "fulfillment": "Hình thức nhận",
+    "expires": "Hết hạn",
+    "join": "Tham gia đơn nhóm",
+    "yourName": "Tên của bạn",
+    "namePlaceholder": "Mọi người trong bàn gọi bạn là gì?",
+    "joining": "Đang tham gia...",
+    "joinNow": "Tham gia ngay",
+    "nameRequired": "Nhập tên của bạn để tham gia.",
+    "joinFailed": "Không thể tham gia đơn nhóm này.",
+    "fulfillmentDineIn": "Dùng tại chỗ",
+    "fulfillmentDelivery": "Giao hàng",
+    "fulfillmentPickup": "Mang đi"
+  },
+  "footer": {
+    "copyright": "© {year} MakanMasak. Bảo lưu mọi quyền."
   }
 }

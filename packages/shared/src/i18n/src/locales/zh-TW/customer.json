@@ -305,7 +305,8 @@
     "internalServerError": "伺服器內部錯誤",
     "badGateway": "服務暫時不可用",
     "serviceUnavailable": "服務維護中",
-    "gatewayTimeout": "請求超時"
+    "gatewayTimeout": "請求超時",
+    "imageLoadFailed": "圖片載入失敗"
   },
   "restaurant": {
     "info": "餐廳資訊",
@@ -468,7 +469,8 @@
     "resendVerification": "重新發送驗證郵件",
     "missingVerifyToken": "缺少驗證 Token",
     "resendVerificationSuccess": "驗證郵件已重新發送，請檢查您的郵箱",
-    "resendFailed": "發送失敗，請稍後再試"
+    "resendFailed": "發送失敗，請稍後再試",
+    "registerRetired": "已停用密碼註冊，請改用手機驗證碼登入。"
   },
   "toast": {
     "orderSubmitSuccess": "訂單提交成功！",
@@ -838,7 +840,16 @@
     "recoverFailed": "無法救回主揪權限。",
     "recoverMismatch": "此救援代碼與這筆群組訂單不符。",
     "recoverRateLimited": "嘗試次數過多，請在 15 分鐘後再試。",
-    "orderAlreadyPlaced": "餐廳已經收到這筆訂單。要更動或重試前，請先聯繫餐廳。"
+    "orderAlreadyPlaced": "餐廳已經收到這筆訂單。要更動或重試前，請先聯繫餐廳。",
+    "loading": "載入群組訂單中…",
+    "sessionExpiredNotice": "主揪連線已過期，請恢復主揪權限以繼續。",
+    "lockedTitle": "這筆群組訂單已鎖定",
+    "lockedDesc": "訂單正在結帳中，或已不再開放。",
+    "hostCredentialRequired": "需要主揪權限才能執行這個操作。",
+    "notAMember": "你還不是這桌的成員，請先建立或加入群組訂單。",
+    "connectionError": "連線失敗，請稍後再試。",
+    "recoveryCodeRequired": "請輸入救援代碼。",
+    "unknownError": "發生未知錯誤，請稍後再試。"
   },
   "messages": {
     "networkError": "網路連接失敗，請檢查您的網路連接",
@@ -891,6 +902,36 @@
     "category": "分類",
     "allCategories": "所有分類",
     "district": "地區",
-    "allDistricts": "所有地區"
+    "allDistricts": "所有地區",
+    "searchFailed": "搜尋失敗，請稍後再試。",
+    "browseFailed": "無法載入店家列表，請稍後再試。",
+    "popularFailed": "無法載入熱門推薦，請稍後再試。",
+    "takeawayUnavailable": "目前無法從探索頁直接外帶。"
+  },
+  "groupJoin": {
+    "loading": "載入群組訂單中…",
+    "notFoundTitle": "找不到這筆群組訂單",
+    "notFoundDesc": "這個分享連結可能已過期或被取消。",
+    "loadFailedTitle": "無法載入群組訂單",
+    "loadFailed": "無法載入這筆群組訂單。",
+    "retry": "重試",
+    "label": "群組訂單",
+    "hostOrdering": "{hostName} 正在點餐",
+    "members": "成員",
+    "fulfillment": "取餐方式",
+    "expires": "到期時間",
+    "join": "加入群組訂單",
+    "yourName": "你的名字",
+    "namePlaceholder": "同桌的人要怎麼稱呼你？",
+    "joining": "加入中…",
+    "joinNow": "立即加入",
+    "nameRequired": "請先輸入名字才能加入。",
+    "joinFailed": "無法加入這個群組訂單。",
+    "fulfillmentDineIn": "內用",
+    "fulfillmentDelivery": "外送",
+    "fulfillmentPickup": "外帶"
+  },
+  "footer": {
+    "copyright": "© {year} MakanMasak. 版權所有。"
   }
 }

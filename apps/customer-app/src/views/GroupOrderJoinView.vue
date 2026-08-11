@@ -3,6 +3,8 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { apiClient } from "@/services/api";
 import { useGroupOrder } from "@/composables/useGroupOrder";
+import { useI18n } from "@/composables/useI18n";
+import { getGroupOrderErrorI18nKey } from "@/utils/group-order-error";
 
 interface GroupOrderJoinPreview {
   groupOrderId: string;
@@ -19,6 +21,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const { t, tWithParams, currentLanguage } = useI18n();
 const preview = ref<GroupOrderJoinPreview | null>(null);
 const isLoading = ref(true);
 const isNotFound = ref(false);
@@ -33,18 +36,18 @@ const groupOrder = useGroupOrder({ restaurantId: "" });
 const fulfillmentLabel = computed(() => {
   switch (preview.value?.fulfillmentType) {
     case "delivery":
-      return "Delivery";
+      return t("groupJoin.fulfillmentDelivery");
     case "pickup":
-      return "Pickup";
+      return t("groupJoin.fulfillmentPickup");
     case "dine_in":
     default:
-      return "Dine in";
+      return t("groupJoin.fulfillmentDineIn");
   }
 });
 
 const expiresAtLabel = computed(() => {
   if (!preview.value?.expiresAt) return "";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(currentLanguage.value, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(preview.value.expiresAt));
@@ -64,10 +67,9 @@ async function loadPreview(): Promise<void> {
     if (isNotFoundError(error)) {
       isNotFound.value = true;
     } else {
-      previewError.value =
-        error instanceof Error
-          ? error.message
-          : "Unable to load this group order.";
+      previewError.value = t(
+        getGroupOrderErrorI18nKey(error, "groupJoin.loadFailed"),
+      );
     }
   } finally {
     isLoading.value = false;
@@ -90,7 +92,7 @@ function openJoinForm(): void {
 async function submitJoin(): Promise<void> {
   const name = memberName.value.trim();
   if (!name) {
-    joinError.value = "Enter your name to join.";
+    joinError.value = t("groupJoin.nameRequired");
     return;
   }
 
@@ -102,7 +104,10 @@ async function submitJoin(): Promise<void> {
     const groupOrderId = groupOrder.groupOrder.value?.id;
 
     if (!joined || !groupOrderId) {
-      throw new Error("Unable to join this group order.");
+      // joinGroupOrder catches its own failure into the composable's error ref,
+      // which holds a translation key rather than a message.
+      joinError.value = t(groupOrder.error.value ?? "groupJoin.joinFailed");
+      return;
     }
 
     await router.push({
@@ -110,8 +115,9 @@ async function submitJoin(): Promise<void> {
       params: { groupOrderId },
     });
   } catch (error) {
-    joinError.value =
-      error instanceof Error ? error.message : "Unable to join this group.";
+    joinError.value = t(
+      getGroupOrderErrorI18nKey(error, "groupJoin.joinFailed"),
+    );
   } finally {
     isJoining.value = false;
   }
@@ -126,7 +132,7 @@ onMounted(() => {
   <main class="min-h-screen bg-ios-bg px-4 py-8">
     <section class="mx-auto w-full max-w-md">
       <div v-if="isLoading" class="py-16 text-center text-ios-secondary">
-        Loading group order...
+        {{ t("groupJoin.loading") }}
       </div>
 
       <div
@@ -135,10 +141,10 @@ onMounted(() => {
         class="rounded-2xl bg-ios-card p-6 text-center shadow-card-sm"
       >
         <h1 class="text-xl font-semibold text-ios-text">
-          Group order not found
+          {{ t("groupJoin.notFoundTitle") }}
         </h1>
         <p class="mt-2 text-sm text-ios-secondary">
-          This share link may have expired or been cancelled.
+          {{ t("groupJoin.notFoundDesc") }}
         </p>
       </div>
 
@@ -148,7 +154,7 @@ onMounted(() => {
         class="rounded-2xl bg-ios-card p-6 text-center shadow-card-sm"
       >
         <h1 class="text-xl font-semibold text-ios-text">
-          Unable to load group order
+          {{ t("groupJoin.loadFailedTitle") }}
         </h1>
         <p class="mt-2 text-sm text-ios-secondary">{{ previewError }}</p>
         <button
@@ -157,31 +163,37 @@ onMounted(() => {
           class="mt-5 rounded-full bg-ios-blue px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           @click="loadPreview"
         >
-          Try again
+          {{ t("groupJoin.retry") }}
         </button>
       </div>
 
       <div v-else-if="preview" class="rounded-2xl bg-ios-card p-6 shadow-card">
-        <p class="text-sm font-medium text-ios-secondary">Group order</p>
+        <p class="text-sm font-medium text-ios-secondary">
+          {{ t("groupJoin.label") }}
+        </p>
         <h1 class="mt-1 text-2xl font-semibold text-ios-text">
-          {{ preview.hostName }} is ordering
+          {{
+            tWithParams("groupJoin.hostOrdering", {
+              hostName: preview.hostName,
+            })
+          }}
         </h1>
 
         <dl class="mt-6 grid grid-cols-2 gap-3 text-sm">
           <div class="rounded-xl bg-ios-bg p-4">
-            <dt class="text-ios-secondary">Members</dt>
+            <dt class="text-ios-secondary">{{ t("groupJoin.members") }}</dt>
             <dd class="mt-1 text-lg font-semibold text-ios-text">
               {{ preview.memberCount }}
             </dd>
           </div>
           <div class="rounded-xl bg-ios-bg p-4">
-            <dt class="text-ios-secondary">Fulfillment</dt>
+            <dt class="text-ios-secondary">{{ t("groupJoin.fulfillment") }}</dt>
             <dd class="mt-1 text-lg font-semibold text-ios-text">
               {{ fulfillmentLabel }}
             </dd>
           </div>
           <div class="col-span-2 rounded-xl bg-ios-bg p-4">
-            <dt class="text-ios-secondary">Expires</dt>
+            <dt class="text-ios-secondary">{{ t("groupJoin.expires") }}</dt>
             <dd class="mt-1 font-semibold text-ios-text">
               {{ expiresAtLabel }}
             </dd>
@@ -195,19 +207,19 @@ onMounted(() => {
           class="mt-6 w-full rounded-full bg-ios-blue px-4 py-3.5 text-base font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           @click="openJoinForm"
         >
-          Join group order
+          {{ t("groupJoin.join") }}
         </button>
 
         <form v-else class="mt-6 space-y-4" @submit.prevent="submitJoin">
           <label class="block text-sm font-medium text-ios-text">
-            Your name
+            {{ t("groupJoin.yourName") }}
             <input
               v-model="memberName"
               data-testid="join-name-input"
               class="mt-2 block w-full rounded-xl border-0 bg-ios-bg px-4 py-3 text-ios-text transition-all duration-200 placeholder:text-ios-tertiary focus:bg-white focus:ring-2 focus:ring-ios-blue/30"
               autocomplete="name"
               type="text"
-              placeholder="How should the table know you?"
+              :placeholder="t('groupJoin.namePlaceholder')"
             />
           </label>
 
@@ -220,7 +232,7 @@ onMounted(() => {
             :disabled="isJoining"
             @click="submitJoin"
           >
-            {{ isJoining ? "Joining..." : "Join now" }}
+            {{ isJoining ? t("groupJoin.joining") : t("groupJoin.joinNow") }}
           </button>
         </form>
       </div>

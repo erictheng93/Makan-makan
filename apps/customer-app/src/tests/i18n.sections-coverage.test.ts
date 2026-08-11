@@ -1106,4 +1106,97 @@ describe("i18n Integration Tests", () => {
       assertKeysInAllLocales(keys);
     });
   });
+
+  // ---------------------------------------------------------------
+  // 24. Sections added by the hard-coded-English sweep
+  // ---------------------------------------------------------------
+  describe("GroupJoin Section", () => {
+    const keys = [
+      "groupJoin.loading",
+      "groupJoin.notFoundTitle",
+      "groupJoin.notFoundDesc",
+      "groupJoin.loadFailedTitle",
+      "groupJoin.loadFailed",
+      "groupJoin.retry",
+      "groupJoin.label",
+      "groupJoin.hostOrdering",
+      "groupJoin.members",
+      "groupJoin.fulfillment",
+      "groupJoin.expires",
+      "groupJoin.join",
+      "groupJoin.yourName",
+      "groupJoin.namePlaceholder",
+      "groupJoin.joining",
+      "groupJoin.joinNow",
+      "groupJoin.nameRequired",
+      "groupJoin.joinFailed",
+      "groupJoin.fulfillmentDineIn",
+      "groupJoin.fulfillmentDelivery",
+      "groupJoin.fulfillmentPickup",
+    ];
+
+    it("should have all groupJoin keys in all 6 locales", () => {
+      assertKeysInAllLocales(keys);
+    });
+
+    it("names the host in the heading in every locale", () => {
+      ALL_LOCALES.forEach((locale) => {
+        switchLanguage(locale);
+        const rendered = tGlobal("groupJoin.hostOrdering", {
+          hostName: "Alex",
+        });
+        expect(rendered, `groupJoin.hostOrdering in ${locale}`).toContain(
+          "Alex",
+        );
+        expect(rendered).not.toContain("{hostName}");
+      });
+    });
+  });
+
+  describe("Footer Section", () => {
+    it("should have the copyright line in all 6 locales", () => {
+      assertKeysInAllLocales(["footer.copyright"]);
+    });
+
+    it("stamps the current year rather than a baked-in one", () => {
+      ALL_LOCALES.forEach((locale) => {
+        switchLanguage(locale);
+        const rendered = tGlobal("footer.copyright", { year: 2031 });
+        expect(rendered, `footer.copyright in ${locale}`).toContain("2031");
+      });
+    });
+  });
+
+  describe("Group ordering failure keys", () => {
+    // Every code in group-order-error.ts resolves to one of these. A diner sees
+    // whichever one their failure maps to, so none may go missing.
+    const keys = [
+      "group.loading",
+      "group.sessionExpiredNotice",
+      "group.lockedTitle",
+      "group.lockedDesc",
+      "group.hostCredentialRequired",
+      "group.notAMember",
+      "group.connectionError",
+      "group.recoveryCodeRequired",
+      "group.unknownError",
+    ];
+
+    it("should have all group failure keys in all 6 locales", () => {
+      assertKeysInAllLocales(keys);
+    });
+  });
+
+  describe("Discovery Section", () => {
+    const keys = [
+      "discovery.searchFailed",
+      "discovery.browseFailed",
+      "discovery.popularFailed",
+      "discovery.takeawayUnavailable",
+    ];
+
+    it("should have all discovery failure keys in all 6 locales", () => {
+      assertKeysInAllLocales(keys);
+    });
+  });
 });

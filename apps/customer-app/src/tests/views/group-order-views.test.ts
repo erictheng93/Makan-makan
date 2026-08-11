@@ -59,7 +59,12 @@ vi.mock("@/composables/useGroupOrder", () => ({
 }));
 
 vi.mock("@/composables/useI18n", () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${JSON.stringify(params)}`,
+    currentLanguage: { value: "zh-TW" },
+  }),
 }));
 
 vi.mock("@/composables/useCurrency", () => ({

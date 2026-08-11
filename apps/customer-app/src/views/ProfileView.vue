@@ -129,7 +129,9 @@
                     d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                   />
                 </svg>
-                <span class="text-sm font-medium text-gray-600">Email</span>
+                <span class="text-sm font-medium text-gray-600">{{
+                  t("profile.email")
+                }}</span>
               </div>
               <div class="flex-1 text-gray-900">
                 {{ profile.email || t("profile.notSet") }}

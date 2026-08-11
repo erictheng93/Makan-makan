@@ -27,7 +27,7 @@
         <circle cx="8.5" cy="8.5" r="1.5"></circle>
         <polyline points="21 15 16 10 5 21"></polyline>
       </svg>
-      <p>{{ errorMessage }}</p>
+      <p>{{ errorMessage || t("errors.imageLoadFailed") }}</p>
     </div>
 
     <!-- Actual image -->
@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { useI18n } from "@/composables/useI18n";
 
 interface Props {
   src: string;
@@ -68,7 +69,7 @@ const props = withDefaults(defineProps<Props>(), {
   sizes: "",
   aspectRatio: "16/9",
   placeholderColor: "#f0f0f0",
-  errorMessage: "Failed to load image",
+  errorMessage: "",
   imageClass: "",
   nativeLoading: true,
   rootMargin: "100px",
@@ -79,6 +80,8 @@ const emit = defineEmits<{
   load: [event: Event];
   error: [event: Event];
 }>();
+
+const { t } = useI18n();
 
 const containerRef = ref<HTMLDivElement>();
 const imageRef = ref<HTMLImageElement>();

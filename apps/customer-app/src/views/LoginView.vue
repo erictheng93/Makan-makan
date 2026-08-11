@@ -121,7 +121,7 @@
       <!-- 版權信息 -->
       <div class="text-center">
         <p class="text-xs text-gray-500">
-          © 2026 MakanMasak. All rights reserved.
+          {{ tWithParams("footer.copyright", { year: currentYear }) }}
         </p>
       </div>
     </div>
@@ -136,7 +136,9 @@ import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const authStore = useAuthStore();
-const { t } = useI18n();
+const { t, tWithParams } = useI18n();
+// The year was hard-coded alongside the English notice; both were the same bug.
+const currentYear = new Date().getFullYear();
 
 const isLoading = ref(false);
 const error = ref("");

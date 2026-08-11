@@ -81,7 +81,7 @@
       </div>
 
       <div v-else-if="store.error" class="text-center py-8">
-        <p class="text-red-500 text-sm">{{ store.error }}</p>
+        <p class="text-red-500 text-sm">{{ t(store.error) }}</p>
       </div>
 
       <template v-else>
@@ -519,7 +519,7 @@ async function startTakeaway(
 ) {
   const result = await discoveryApi.getTakeawayEligibility(restaurantId);
   if (!result.eligible) {
-    store.error = "目前無法從 Discovery 直接外帶。";
+    store.error = "discovery.takeawayUnavailable";
     return;
   }
   router.push({

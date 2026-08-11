@@ -305,7 +305,8 @@
     "internalServerError": "服务器内部错误",
     "badGateway": "服务暂时不可用",
     "serviceUnavailable": "服务维护中",
-    "gatewayTimeout": "请求超时"
+    "gatewayTimeout": "请求超时",
+    "imageLoadFailed": "图片加载失败"
   },
   "restaurant": {
     "info": "餐厅信息",
@@ -468,7 +469,8 @@
     "resendVerification": "重新发送验证邮件",
     "missingVerifyToken": "缺少验证 Token",
     "resendVerificationSuccess": "验证邮件已重新发送，请检查您的邮箱",
-    "resendFailed": "发送失败，请稍后再试"
+    "resendFailed": "发送失败，请稍后再试",
+    "registerRetired": "已停用密码注册，请改用手机验证码登录。"
   },
   "toast": {
     "orderSubmitSuccess": "订单提交成功！",
@@ -838,7 +840,16 @@
     "recoverFailed": "无法恢复群主权限。",
     "recoverMismatch": "该恢复代码与这笔群组订单不符。",
     "recoverRateLimited": "尝试次数过多，请在 15 分钟后重试。",
-    "orderAlreadyPlaced": "餐厅已经收到这笔订单。要更改或重试前，请先联系餐厅。"
+    "orderAlreadyPlaced": "餐厅已经收到这笔订单。要更改或重试前，请先联系餐厅。",
+    "loading": "加载群组订单中…",
+    "sessionExpiredNotice": "群主会话已过期，请恢复群主权限以继续。",
+    "lockedTitle": "该群组订单已锁定",
+    "lockedDesc": "订单正在结账中，或已不再开放。",
+    "hostCredentialRequired": "需要群主权限才能执行该操作。",
+    "notAMember": "你还不是该桌的成员，请先创建或加入群组订单。",
+    "connectionError": "连接失败，请稍后再试。",
+    "recoveryCodeRequired": "请输入恢复代码。",
+    "unknownError": "发生未知错误，请稍后再试。"
   },
   "messages": {
     "networkError": "网络连接失败，请检查您的网络连接",
@@ -891,6 +902,36 @@
     "category": "分类",
     "allCategories": "所有分类",
     "district": "地区",
-    "allDistricts": "所有地区"
+    "allDistricts": "所有地区",
+    "searchFailed": "搜索失败，请稍后再试。",
+    "browseFailed": "无法加载店家列表，请稍后再试。",
+    "popularFailed": "无法加载热门推荐，请稍后再试。",
+    "takeawayUnavailable": "目前无法从探索页直接外带。"
+  },
+  "groupJoin": {
+    "loading": "加载群组订单中…",
+    "notFoundTitle": "找不到该群组订单",
+    "notFoundDesc": "该分享链接可能已过期或被取消。",
+    "loadFailedTitle": "无法加载群组订单",
+    "loadFailed": "无法加载该群组订单。",
+    "retry": "重试",
+    "label": "群组订单",
+    "hostOrdering": "{hostName} 正在点餐",
+    "members": "成员",
+    "fulfillment": "取餐方式",
+    "expires": "到期时间",
+    "join": "加入群组订单",
+    "yourName": "你的名字",
+    "namePlaceholder": "同桌的人要怎么称呼你？",
+    "joining": "加入中…",
+    "joinNow": "立即加入",
+    "nameRequired": "请先输入名字才能加入。",
+    "joinFailed": "无法加入该群组订单。",
+    "fulfillmentDineIn": "堂食",
+    "fulfillmentDelivery": "外送",
+    "fulfillmentPickup": "外带"
+  },
+  "footer": {
+    "copyright": "© {year} MakanMasak. 版权所有。"
   }
 }

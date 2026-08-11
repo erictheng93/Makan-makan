@@ -143,8 +143,8 @@ export const useAuthStore = defineStore("auth", () => {
     email?: string;
     phone?: string;
   }) => {
-    error.value =
-      "Customer password registration is retired. Use phone OTP login.";
+    // A translation key — RegisterView renders whatever comes back here.
+    error.value = "auth.registerRetired";
     return { success: false, error: error.value };
   };
 

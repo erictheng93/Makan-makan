@@ -19,6 +19,10 @@ export const useDiscoveryStore = defineStore("discovery", () => {
   const popularDishes = ref<DishSearchResult[]>([]);
   const popularRestaurants = ref<RestaurantListItem[]>([]);
   const loading = ref(false);
+  /**
+   * An i18n key, never prose — the views render it through `t()`. A server
+   * message baked in here can only ever be in one language.
+   */
   const error = ref<string | null>(null);
   const total = ref(0);
   const page = ref(1);
@@ -97,7 +101,8 @@ export const useDiscoveryStore = defineStore("discovery", () => {
       serviceResults.value = serviceResult.results;
       total.value = dishResult.total + serviceResult.total;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Search failed";
+      console.error("Discovery search failed:", e);
+      error.value = "discovery.searchFailed";
     } finally {
       loading.value = false;
     }
@@ -117,7 +122,8 @@ export const useDiscoveryStore = defineStore("discovery", () => {
       restaurantResults.value = result.results;
       total.value = result.total;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Browse failed";
+      console.error("Discovery browse failed:", e);
+      error.value = "discovery.browseFailed";
     } finally {
       loading.value = false;
     }
@@ -133,7 +139,8 @@ export const useDiscoveryStore = defineStore("discovery", () => {
       popularDishes.value = result.dishes;
       popularRestaurants.value = result.restaurants;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load popular";
+      console.error("Discovery popular load failed:", e);
+      error.value = "discovery.popularFailed";
     } finally {
       loading.value = false;
     }
