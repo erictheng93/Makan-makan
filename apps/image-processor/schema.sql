@@ -1,4 +1,4 @@
--- MakanMakan Image Processing Service Database Schema
+-- MakanMasak Image Processing Service Database Schema
 -- Cloudflare D1 (SQLite) compatible
 
 -- Images metadata table

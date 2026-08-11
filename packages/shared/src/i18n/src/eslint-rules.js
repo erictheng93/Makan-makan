@@ -117,7 +117,7 @@ module.exports = {
     },
   },
 
-  // Configuration preset for MakanMakan projects
+  // Configuration preset for MakanMasak projects
   configs: {
     "makanmakan-i18n": {
       plugins: ["vue"],

@@ -1,4 +1,4 @@
-# MakanMakan Management API - Cloudflare Workers Configuration
+# MakanMasak Management API - Cloudflare Workers Configuration
 # Central management platform for hybrid deployment strategy
 
 name = "makanmasak-management-api"

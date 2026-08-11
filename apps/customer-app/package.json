@@ -1,7 +1,7 @@
 {
   "name": "makanmasak-customer-app",
   "version": "1.0.0",
-  "description": "MakanMakan 消費者點餐應用",
+  "description": "MakanMasak 消費者點餐應用",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

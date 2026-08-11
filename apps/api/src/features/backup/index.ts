@@ -1,6 +1,6 @@
 /**
  * Backup Feature Module Entry Point
- * Modular backup system following MakanMakan architecture patterns
+ * Modular backup system following MakanMasak architecture patterns
  */
 
 export { BackupController } from "./controllers/BackupController";

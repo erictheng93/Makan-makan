@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/api",
   "version": "1.0.0",
-  "description": "MakanMakan API server built with Hono and Cloudflare Workers",
+  "description": "MakanMasak API server built with Hono and Cloudflare Workers",
   "main": "dist/index.js",
   "scripts": {
     "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9229",

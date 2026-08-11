@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * MakanMakan Database Backup Script
+ * MakanMasak Database Backup Script
  * Cross-platform TypeScript version
  *
  * Usage: npx tsx scripts/backup-database.ts [environment] [--output <dir>]
@@ -176,7 +176,7 @@ async function main() {
       "============================================================================",
     ),
   );
-  console.log(colors.blue("  MakanMakan Database Backup"));
+  console.log(colors.blue("  MakanMasak Database Backup"));
   console.log(
     colors.blue(
       "============================================================================",

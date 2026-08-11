@@ -8,7 +8,7 @@ set -euo pipefail
 VERSION="${1:?Usage: $0 <version> [environment]}"
 ENVIRONMENT="${2:-production}"
 
-echo "=== Building MakanMakan API bundle v${VERSION} ==="
+echo "=== Building MakanMasak API bundle v${VERSION} ==="
 
 # 1. Build the API worker
 echo "Building API worker..."

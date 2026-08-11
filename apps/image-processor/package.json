@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/image-processor",
   "version": "1.0.0",
-  "description": "Cloudflare Workers-based image processing service for MakanMakan",
+  "description": "Cloudflare Workers-based image processing service for MakanMasak",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev --persist-to ../../.wrangler/shared-state --inspector-port 9234",
@@ -20,7 +20,7 @@
     "image-optimization",
     "restaurant-management"
   ],
-  "author": "MakanMakan Team",
+  "author": "MakanMasak Team",
   "license": "MIT",
   "dependencies": {
     "@makanmakan/database": "workspace:*",

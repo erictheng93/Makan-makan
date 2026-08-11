@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/queue-core",
   "version": "1.0.0",
-  "description": "MakanMakan Queue System - Core Types and Interfaces",
+  "description": "MakanMasak Queue System - Core Types and Interfaces",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -18,7 +18,7 @@
     "restaurant",
     "types"
   ],
-  "author": "MakanMakan Team",
+  "author": "MakanMasak Team",
   "license": "MIT",
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.9",

@@ -1,7 +1,7 @@
 {
   "name": "makanmasak-admin-dashboard",
   "version": "1.0.0",
-  "description": "MakanMakan 管理後台",
+  "description": "MakanMasak 管理後台",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/management-api",
   "version": "1.0.0",
-  "description": "Central management API for MakanMakan hybrid deployment",
+  "description": "Central management API for MakanMasak hybrid deployment",
   "private": true,
   "type": "module",
   "scripts": {

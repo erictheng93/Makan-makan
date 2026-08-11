@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/database",
   "version": "1.0.0",
-  "description": "Database layer with Drizzle ORM for MakanMakan",
+  "description": "Database layer with Drizzle ORM for MakanMasak",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

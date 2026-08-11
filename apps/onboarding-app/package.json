@@ -1,7 +1,7 @@
 {
   "name": "makanmasak-onboarding-app",
   "version": "1.0.0",
-  "description": "MakanMakan 獨立部署申請入口 - 新客戶開通流程",
+  "description": "MakanMasak 獨立部署申請入口 - 新客戶開通流程",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

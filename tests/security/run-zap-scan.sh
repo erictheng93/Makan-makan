@@ -233,9 +233,9 @@ configure_auth_header() {
     fi
 
     zap_api_optional "/JSON/replacer/action/removeRule/" \
-        --data-urlencode "description=MakanMakan API bearer token"
+        --data-urlencode "description=MakanMasak API bearer token"
     printf 'Bearer %s' "$token" | zap_api "/JSON/replacer/action/addRule/" \
-        --data-urlencode "description=MakanMakan API bearer token" \
+        --data-urlencode "description=MakanMasak API bearer token" \
         --data-urlencode "enabled=true" \
         --data-urlencode "matchType=REQ_HEADER" \
         --data-urlencode "matchRegex=false" \

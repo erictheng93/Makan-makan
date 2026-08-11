@@ -1,11 +1,11 @@
-# MakanMakan - Modern Serverless Restaurant Management Platform
+# MakanMasak - Modern Serverless Restaurant Management Platform
 
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue)
 ![PWA](https://img.shields.io/badge/PWA-95%2F100-green)
-[![codecov](https://codecov.io/gh/makanmakan/makanmakan/graph/badge.svg)](https://codecov.io/gh/makanmakan/makanmakan)
+[![codecov](https://codecov.io/gh/erictheng93/Makan-Masak/graph/badge.svg)](https://codecov.io/gh/erictheng93/Makan-Masak)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 **A modern restaurant management system built on Cloudflare's edge computing platform**
@@ -22,7 +22,7 @@
 
 ## About
 
-MakanMakan is a serverless, multi-tenant **night-market / 商圈 marketplace platform** built on the **Cloudflare ecosystem**. It aggregates line-side small vendors into a searchable, single-checkout digital market, and ships a **free merchant operating system** — online ordering, menu management, table/seat management, POS, employee scheduling, multi-role access, real-time — to onboard vendors onto the platform.
+MakanMasak is a serverless, multi-tenant **night-market / 商圈 marketplace platform** built on the **Cloudflare ecosystem**. It aggregates line-side small vendors into a searchable, single-checkout digital market, and ships a **free merchant operating system** — online ordering, menu management, table/seat management, POS, employee scheduling, multi-role access, real-time — to onboard vendors onto the platform.
 
 > **Business positioning (v2.0 — Marketplace-first):** revenue comes from platform transaction flow (closed-loop credits/tokens, vouchers, take-rate, breakage), **not** from selling restaurant-management SaaS subscriptions. The pilot does not connect real-money payment rails; tokens are non-redeemable, non-transferable, and cannot be exchanged for securities or cash. The `subscriptions` / `billing` modules are retained as **entitlement / add-on infrastructure (feature gating)**, not the primary revenue line. See `docs/BUSINESS_PLAN.md` §1.5 / §5.1.
 
@@ -91,8 +91,8 @@ MakanMakan is a serverless, multi-tenant **night-market / 商圈 marketplace pla
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-org/makanmakan.git
-cd makanmakan
+git clone https://github.com/erictheng93/Makan-Masak.git
+cd Makan-Masak
 pnpm install
 
 # 2. Authenticate with Cloudflare
@@ -149,7 +149,7 @@ pnpm deploy:prod      # Deploy to production
 ### Project Structure
 
 ```
-makanmakan/
+Makan-Masak/
 ├── apps/
 │   ├── customer-app/          # Consumer ordering PWA (Vue 3)
 │   ├── admin-dashboard/       # Restaurant management dashboard (Vue 3)
@@ -178,7 +178,7 @@ makanmakan/
 
 - **69 tables** across 21 schema files (Drizzle ORM)
 - **UUID v7** primary keys (time-sortable, globally unique)
-- **Environments**: Production (`makanmakan-prod`), Local SQLite
+- **Environments**: Production (`makanmasak-prod`), Local SQLite
 
 ---
 

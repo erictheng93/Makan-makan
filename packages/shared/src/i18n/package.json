@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/i18n",
   "version": "1.0.0",
-  "description": "Shared internationalization resources for MakanMakan platform",
+  "description": "Shared internationalization resources for MakanMasak platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

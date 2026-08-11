@@ -1,5 +1,5 @@
 /**
- * MakanMakan Shared i18n System
+ * MakanMasak Shared i18n System
  * Type-safe, multi-app internationalization
  */
 

@@ -1,6 +1,6 @@
-# MakanMakan i18n System
+# MakanMasak i18n System
 
-A type-safe, multi-app internationalization system designed to avoid common pitfalls and ensure actual usage across the MakanMakan platform.
+A type-safe, multi-app internationalization system designed to avoid common pitfalls and ensure actual usage across the MakanMasak platform.
 
 ## 🚨 Anti-Pattern Prevention
 
@@ -280,4 +280,4 @@ packages/shared/src/i18n/src/locales/th-TH/
 - ✅ **Persistent locale** selection
 - ✅ **Fallback handling** for missing translations
 
-This system ensures that unlike RestaurentPOS, **every string in MakanMakan will actually be internationalized** from day one.
+This system ensures that unlike RestaurentPOS, **every string in MakanMasak will actually be internationalized** from day one.

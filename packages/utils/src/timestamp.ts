@@ -1,7 +1,7 @@
 /**
  * Timestamp Utilities
  *
- * Utility functions for handling timestamps in the MakanMakan platform.
+ * Utility functions for handling timestamps in the MakanMasak platform.
  * All timestamps should be stored in milliseconds (timestamp_ms mode in Drizzle).
  */
 

@@ -93,7 +93,7 @@ INSERT INTO restaurant_market_memberships (
     unixepoch('now') * 1000
   ),
   (
-    '019469a0-0099-7000-8000-000000000099',  -- MakanMakan Demo
+    '019469a0-0099-7000-8000-000000000099',  -- MakanMasak Demo
     '019469b0-0001-7000-8000-000000000001',
     'B2',
     'B 排',

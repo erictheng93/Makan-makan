@@ -1,6 +1,6 @@
 # @makanmakan/database
 
-Modern, type-safe database layer built with Drizzle ORM for MakanMakan restaurant management system.
+Modern, type-safe database layer built with Drizzle ORM for MakanMasak restaurant management system.
 
 ## Features
 

@@ -1,5 +1,5 @@
 /**
- * MakanMakan Management API
+ * MakanMasak Management API
  *
  * Central management platform for hybrid deployment strategy.
  * Handles tenant management, resource provisioning, and health monitoring.

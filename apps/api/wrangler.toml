@@ -1,4 +1,4 @@
-# MakanMakan API - Cloudflare Workers Configuration
+# MakanMasak API - Cloudflare Workers Configuration
 # Updated to use latest wrangler 4.35.0
 
 name = "makanmasak-api"

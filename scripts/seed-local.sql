@@ -21,7 +21,7 @@ INSERT OR IGNORE INTO restaurants (
   updated_at_ms
 ) VALUES (
   '019469a0-0099-7000-8000-000000000099',
-  'MakanMakan Demo Restaurant',
+  'MakanMasak Demo Restaurant',
   'demo',
   'general',
   'Local development restaurant for manual testing',

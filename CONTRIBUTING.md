@@ -1,8 +1,8 @@
 # 貢獻指南 | Contributing Guide
 
-感謝你對 MakanMakan 專案的貢獻！本指南將幫助你了解如何參與專案開發。
+感謝你對 MakanMasak 專案的貢獻！本指南將幫助你了解如何參與專案開發。
 
-Thank you for contributing to the MakanMakan project! This guide will help you understand how to participate in project development.
+Thank you for contributing to the MakanMasak project! This guide will help you understand how to participate in project development.
 
 ---
 
@@ -64,11 +64,11 @@ npx wrangler login
 ```bash
 # 1. Fork 專案到你的 GitHub 帳號
 # 2. Clone 你的 fork
-git clone https://github.com/YOUR_USERNAME/makanmakan.git
-cd makanmakan
+git clone https://github.com/YOUR_USERNAME/Makan-Masak.git
+cd Makan-Masak
 
 # 3. 設置 upstream remote
-git remote add upstream https://github.com/makanmakan/makanmakan.git
+git remote add upstream https://github.com/erictheng93/Makan-Masak.git
 
 # 4. 安裝依賴
 pnpm install
@@ -790,4 +790,4 @@ git rebase main
 
 **最後更新**: 2025-11-15
 **版本**: 1.0.0
-**維護者**: MakanMakan Development Team
+**維護者**: MakanMasak Development Team

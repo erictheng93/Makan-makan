@@ -1,4 +1,4 @@
-# MakanMakan Backup Scheduler - Cloudflare Workers Configuration
+# MakanMasak Backup Scheduler - Cloudflare Workers Configuration
 # Automated backup scheduling and system monitoring
 
 name = "makanmasak-backup-scheduler"

@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/ai-analytics",
   "version": "1.0.0",
-  "description": "AI-powered business analytics and insights for MakanMakan",
+  "description": "AI-powered business analytics and insights for MakanMasak",
   "main": "dist/ai-analytics/src/index.js",
   "types": "dist/ai-analytics/src/index.d.ts",
   "scripts": {
@@ -18,7 +18,7 @@
     "llm",
     "business-intelligence"
   ],
-  "author": "MakanMakan Team",
+  "author": "MakanMasak Team",
   "license": "MIT",
   "dependencies": {
     "@makanmakan/database": "workspace:*",

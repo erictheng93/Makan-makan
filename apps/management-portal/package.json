@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/management-portal",
   "version": "1.0.0",
-  "description": "MakanMakan 多租戶管理後台 - 管理獨立部署租戶",
+  "description": "MakanMasak 多租戶管理後台 - 管理獨立部署租戶",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

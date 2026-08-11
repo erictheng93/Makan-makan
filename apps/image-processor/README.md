@@ -1,4 +1,4 @@
-# MakanMakan Image Processor
+# MakanMasak Image Processor
 
 A powerful, serverless image processing service built on Cloudflare Workers, featuring automatic optimization, variant generation, and advanced analytics.
 
@@ -353,7 +353,7 @@ See `schema.sql` for complete database structure.
 
 ### With Main API
 
-The image processor integrates seamlessly with the main MakanMakan API:
+The image processor integrates seamlessly with the main MakanMasak API:
 
 - Menu item images
 - Restaurant photos
@@ -417,4 +417,4 @@ Configure webhooks to receive notifications for:
 
 Complete API documentation available at `/docs` endpoint when deployed.
 
-For support and questions, refer to the main MakanMakan documentation or contact the development team.
+For support and questions, refer to the main MakanMasak documentation or contact the development team.

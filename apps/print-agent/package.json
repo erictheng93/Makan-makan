@@ -1,7 +1,7 @@
 {
   "name": "@makanmakan/print-agent",
   "version": "2.0.0",
-  "description": "Local print agent for MakanMakan restaurants",
+  "description": "Local print agent for MakanMasak restaurants",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
@@ -45,6 +45,6 @@
     "pos",
     "receipt"
   ],
-  "author": "MakanMakan Development Team",
+  "author": "MakanMasak Development Team",
   "license": "MIT"
 }

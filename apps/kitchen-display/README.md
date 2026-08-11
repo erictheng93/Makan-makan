@@ -1,4 +1,4 @@
-# MakanMakan 廚房顯示系統
+# MakanMasak 廚房顯示系統
 
 專為餐廳廚房設計的現代化訂單管理顯示系統，基於 SSE (Server-Sent Events) 實現即時通信。
 
@@ -142,7 +142,7 @@ pnpm build
 ### 環境配置
 
 - **開發**: localhost:3002
-- **生產**: kitchen.makanmakan.com
+- **生產**: kitchen.makanmasak.com
 
 ## 🤝 開發指南
 
