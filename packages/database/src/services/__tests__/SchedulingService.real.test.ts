@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../../testing/create-test-database";
 import { SchedulingService } from "../SchedulingService";
@@ -19,7 +20,7 @@ const employeeId = "018f0000-0000-7000-8000-000000000002";
 
 beforeAll(async () => {
   testDb = await createTestDatabase();
-}, 240000);
+}, REAL_D1_SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await testDb?.dispose();

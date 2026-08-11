@@ -24,6 +24,7 @@ import {
 } from "../schema";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../testing/create-test-database";
 import { orderMenuItemSummaryColumns, OrderService } from "./order";
@@ -109,7 +110,7 @@ describe("OrderService order pricing", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -656,7 +657,7 @@ describe("OrderService createOrder atomicity", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -928,7 +929,7 @@ describe("OrderService cancelOrder atomicity", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();

@@ -23,6 +23,7 @@ import {
 } from "vitest";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../../testing/create-test-database";
 import { ReservationStatus, WaitingStatus } from "@makanmasak/shared-types";
@@ -221,7 +222,7 @@ let service: ReservationService;
 // and slower under full-suite CPU contention, so allow generous headroom.
 beforeAll(async () => {
   testDb = await createTestDatabase();
-}, 120000);
+}, REAL_D1_SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await testDb?.dispose();

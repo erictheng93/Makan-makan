@@ -9,6 +9,7 @@ import {
 } from "../schema";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../testing/create-test-database";
 import { LeaveService } from "./LeaveService";
@@ -21,7 +22,7 @@ describe("LeaveService balance concurrency", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -221,7 +222,7 @@ describe("LeaveService tenant scoping", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();

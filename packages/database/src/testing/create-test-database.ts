@@ -48,6 +48,45 @@ const REAL_D1_TEST_DATABASE_ID = "makanmakan-real-d1-test";
 const TEST_DATABASE_STAGE_TIMEOUT_MS = 300_000;
 const TEST_DATABASE_DISPOSE_TIMEOUT_MS = 15_000;
 
+// Capture real timers at module load so Vitest fake timers cannot freeze D1
+// diagnostic deadlines or transient-error retry backoff.
+const realSetTimeout = globalThis.setTimeout;
+const realClearTimeout = globalThis.clearTimeout;
+
+/**
+ * Overall budget for obtaining a baseline: however long we spend waiting for
+ * another process's build, plus our own build if that one dies. Two stage
+ * budgets covers exactly that worst case.
+ */
+const BASELINE_TOTAL_TIMEOUT_MS = TEST_DATABASE_STAGE_TIMEOUT_MS * 2;
+
+/**
+ * How long a lock directory may sit untouched before we treat its owner as
+ * dead and reclaim it. A process killed with SIGKILL never runs its `finally`,
+ * so without this a single hard kill wedges the cache permanently.
+ *
+ * Must exceed the longest legitimate build, or we would reclaim a lock from a
+ * process that is still working and end up with two builders.
+ */
+const BASELINE_LOCK_STALE_MS = TEST_DATABASE_STAGE_TIMEOUT_MS + 60_000;
+
+const BASELINE_POLL_INTERVAL_MS = 250;
+
+/**
+ * Budget a `beforeAll` should give `createTestDatabase()`.
+ *
+ * This MUST stay larger than the harness's own internal budgets. When a test
+ * file's hook timeout is the tighter of the two, vitest kills the hook first
+ * and all you get is a generic "Hook timed out in Ns" — the harness's specific
+ * diagnostic ("Timed out running real-D1 migrations after 300s", "…waiting for
+ * real-D1 migrated baseline") never surfaces, and the in-flight baseline build
+ * is aborted without writing `.ready`, so the next run starts cold again.
+ *
+ * Real tests should import this rather than hard-coding a number, so the two
+ * budgets cannot drift apart again.
+ */
+export const REAL_D1_SETUP_TIMEOUT_MS = BASELINE_TOTAL_TIMEOUT_MS + 60_000;
+
 export async function createTestDatabase(): Promise<TestDatabase> {
   if (shouldReuseTestDatabase()) {
     const baselinePath = await ensureMigratedBaseline();
@@ -187,9 +226,9 @@ export async function withDiagnosticTimeout<T>(
   timeoutMs: number,
   operationName: string,
 ): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let timeout: ReturnType<typeof realSetTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_resolve, reject) => {
-    timeout = setTimeout(() => {
+    timeout = realSetTimeout(() => {
       reject(
         new Error(
           `Timed out ${operationName} after ${Math.ceil(timeoutMs / 1000)}s`,
@@ -201,11 +240,11 @@ export async function withDiagnosticTimeout<T>(
   try {
     return await Promise.race([operation, timeoutPromise]);
   } finally {
-    if (timeout) clearTimeout(timeout);
+    if (timeout) realClearTimeout(timeout);
   }
 }
 
-async function retryTransientD1Error<T>(
+export async function retryTransientD1Error<T>(
   operation: string,
   fn: () => Promise<T>,
 ): Promise<T> {
@@ -221,7 +260,9 @@ async function retryTransientD1Error<T>(
           attempt + 1
         }/3), retrying...`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+      await new Promise((resolve) =>
+        realSetTimeout(resolve, 100 * (attempt + 1)),
+      );
     }
   }
   throw lastErr;
@@ -235,24 +276,127 @@ function isTransientD1Error(err: unknown): boolean {
   );
 }
 
+/**
+ * Obtain a migrated baseline directory, building it if no other process
+ * already has.
+ *
+ * The contention model matters here. Waiting purely on `.ready` — which is
+ * what this used to do — cannot recover when the process holding the lock
+ * dies before writing it: the lock disappears, but every waiter is still
+ * watching for a file that nobody is going to create, so they all spin until
+ * their deadline and fail. One aborted build then poisons the entire run, and
+ * because the cache is keyed by migrations hash, every later run repeats it.
+ *
+ * So each iteration re-checks BOTH conditions: the baseline may have appeared,
+ * or the lock may have been freed and be ours to take.
+ */
 async function ensureMigratedBaseline(): Promise<string> {
   const cacheRoot = path.join(os.tmpdir(), "makanmakan-real-d1-cache");
   fs.mkdirSync(cacheRoot, { recursive: true });
 
   const cacheKey = migrationsHash();
   const baselinePath = path.join(cacheRoot, cacheKey);
-  const readyFile = path.join(baselinePath, ".ready");
-  if (fs.existsSync(readyFile)) return baselinePath;
-
+  const readyFile = readyFileFor(baselinePath);
   const lockPath = `${baselinePath}.lock`;
+  const deadline = Date.now() + BASELINE_TOTAL_TIMEOUT_MS;
+
+  for (;;) {
+    if (fs.existsSync(readyFile)) return baselinePath;
+
+    if (tryAcquireBaselineLock(lockPath)) {
+      try {
+        // We hold the lock, so no other process is mid-build for this key:
+        // any `.tmp-*` sibling is debris from a build that was killed before
+        // its cleanup ran. Each is a full D1 baseline, so leaving them around
+        // quietly eats disk.
+        sweepAbandonedBuilds(cacheRoot, cacheKey);
+        await buildBaseline(baselinePath);
+      } finally {
+        fs.rmSync(lockPath, { recursive: true, force: true });
+      }
+      return baselinePath;
+    }
+
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `Timed out waiting for real-D1 migrated baseline after ${Math.ceil(
+          BASELINE_TOTAL_TIMEOUT_MS / 1000,
+        )}s (cache key ${cacheKey})`,
+      );
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, BASELINE_POLL_INTERVAL_MS),
+    );
+  }
+}
+
+/**
+ * Claim the build lock, reclaiming it first if its owner looks dead.
+ * Returns false when another live process holds it.
+ */
+export function tryAcquireBaselineLock(
+  lockPath: string,
+  now: number = Date.now(),
+  staleAfterMs: number = BASELINE_LOCK_STALE_MS,
+): boolean {
   try {
     fs.mkdirSync(lockPath);
+    return true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    await waitForBaseline(readyFile);
-    return baselinePath;
   }
 
+  let age: number;
+  try {
+    age = now - fs.statSync(lockPath).mtimeMs;
+  } catch {
+    // Vanished between mkdir and stat — the owner just released it. Let the
+    // caller loop round and try again rather than racing it here.
+    return false;
+  }
+
+  if (age < staleAfterMs) return false;
+
+  // Owner exceeded any plausible build time (or was SIGKILLed, so its `finally`
+  // never ran). Drop the lock and try once more; if a third process wins the
+  // race we simply wait for it.
+  fs.rmSync(lockPath, { recursive: true, force: true });
+  try {
+    fs.mkdirSync(lockPath);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    return false;
+  }
+}
+
+/**
+ * Delete half-built baseline directories left behind for `cacheKey`.
+ * Only safe to call while holding that key's lock.
+ */
+export function sweepAbandonedBuilds(
+  cacheRoot: string,
+  cacheKey: string,
+): string[] {
+  const prefix = `${cacheKey}.tmp-`;
+  const removed: string[] = [];
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(cacheRoot);
+  } catch {
+    return removed;
+  }
+
+  for (const entry of entries) {
+    if (!entry.startsWith(prefix)) continue;
+    fs.rmSync(path.join(cacheRoot, entry), { recursive: true, force: true });
+    removed.push(entry);
+  }
+  return removed;
+}
+
+async function buildBaseline(baselinePath: string): Promise<void> {
   const tmpPath = `${baselinePath}.tmp-${process.pid}-${Date.now()}`;
   try {
     fs.rmSync(tmpPath, { recursive: true, force: true });
@@ -263,14 +407,14 @@ async function ensureMigratedBaseline(): Promise<string> {
       persistPath: tmpPath,
     });
     await testDb.dispose();
+    // `.ready` is written into the temp directory and only then renamed into
+    // place, so the baseline becomes visible atomically — a reader can never
+    // observe a half-migrated directory.
     fs.writeFileSync(readyFileFor(tmpPath), new Date().toISOString());
     fs.renameSync(tmpPath, baselinePath);
   } finally {
-    fs.rmSync(lockPath, { recursive: true, force: true });
     fs.rmSync(tmpPath, { recursive: true, force: true });
   }
-
-  return baselinePath;
 }
 
 function migrationsHash(): string {
@@ -290,13 +434,4 @@ function migrationsHash(): string {
 
 function readyFileFor(dir: string): string {
   return path.join(dir, ".ready");
-}
-
-async function waitForBaseline(readyFile: string): Promise<void> {
-  const deadline = Date.now() + 5 * 60 * 1000;
-  while (Date.now() < deadline) {
-    if (fs.existsSync(readyFile)) return;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error("Timed out waiting for real-D1 migrated baseline");
 }

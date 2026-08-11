@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { orders, restaurants, seats, tables } from "../schema";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../testing/create-test-database";
 import { SeatService } from "./seat";
@@ -17,7 +18,7 @@ describe("SeatService.createSeatsForTable", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -442,7 +443,7 @@ describe("SeatService.batchGenerateSeatQRCodes", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -546,7 +547,7 @@ describe("SeatService two-phase QR rotation", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -689,7 +690,7 @@ describe("TableService two-phase QR rotation", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();

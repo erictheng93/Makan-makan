@@ -12,6 +12,7 @@ import {
 } from "../schema";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../testing/create-test-database";
 import {
@@ -86,7 +87,7 @@ describe("menu item option rows", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();

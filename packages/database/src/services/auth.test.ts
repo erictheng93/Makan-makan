@@ -5,6 +5,7 @@ import * as bcrypt from "bcryptjs";
 import { sessions, users } from "../schema";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "../testing/create-test-database";
 import { AuthService } from "./auth";
@@ -19,7 +20,7 @@ describe("AuthService refresh token rotation", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();

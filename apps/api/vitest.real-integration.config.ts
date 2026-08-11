@@ -19,7 +19,14 @@ export default defineConfig({
     // time across real integration suites, so this is set globally instead of
     // file-by-file overrides.
     testTimeout: 300000,
-    hookTimeout: 300000,
+    // The hook budget must stay ABOVE the helper's own baseline budget
+    // (REAL_D1_SETUP_TIMEOUT_MS, 660s). When vitest is the tighter of the two
+    // it kills the hook first: you lose the helper's specific diagnostic, and
+    // — worse — a cold baseline build is aborted before it writes `.ready`, so
+    // the next run starts cold again. Only the very first file after a
+    // migration change ever approaches this; every later file copies the
+    // cached baseline in about a second.
+    hookTimeout: 720000,
     teardownTimeout: 15000,
     reporters: ["verbose"],
     passWithNoTests: true,
