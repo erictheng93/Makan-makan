@@ -132,13 +132,20 @@ describe("i18n Integration Tests", () => {
       "auth.resendVerificationSent",
       "auth.resendVerificationFailed",
       "auth.forgotPasswordTitle",
+      // The *Desc/*Placeholder trio below belongs to the retired staff-endpoint
+      // screens; the *Hint/enterNewPassword one beside each is what the
+      // customer screens render, and only the latter is checked in zh-TW by
+      // the static-key sweep. Both stay listed until the old keys are dropped.
       "auth.forgotPasswordDesc",
+      "auth.forgotPasswordHint",
       "auth.forgotPasswordSubmit",
       "auth.forgotPasswordSent",
       "auth.resetPasswordTitle",
       "auth.resetPasswordDesc",
+      "auth.resetPasswordHint",
       "auth.newPassword",
       "auth.newPasswordPlaceholder",
+      "auth.enterNewPassword",
       "auth.confirmNewPassword",
       "auth.resetPasswordSubmit",
       "auth.resetPasswordSuccess",
