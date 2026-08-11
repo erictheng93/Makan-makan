@@ -60,7 +60,7 @@ describe("createApp API middleware registration", () => {
       disableEdgeCache: true,
       disableObservability: true,
     });
-    const origin = "https://customer.makanmakan.app";
+    const origin = "https://customer.makanmasak.com";
     const nativeLimiter = {
       limit: vi.fn(async () => ({ success: false })),
     } as unknown as RateLimit;

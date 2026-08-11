@@ -85,7 +85,7 @@ export class SlackAlertChannel implements AlertChannel {
 export class EmailAlertChannel implements AlertChannel {
   constructor(
     private toEmail: string,
-    private fromEmail: string = "alerts@makanmakan.com",
+    private fromEmail: string = "alerts@makanmasak.com",
   ) {}
 
   async sendAlert(alert: Alert): Promise<void> {
@@ -198,7 +198,7 @@ export class AlertService {
       this.channels.push(
         new EmailAlertChannel(
           this.env.ALERT_EMAIL_TO,
-          this.env.NOTIFICATION_FROM_EMAIL || "alerts@makanmakan.com",
+          this.env.NOTIFICATION_FROM_EMAIL || "alerts@makanmasak.com",
         ),
       );
     }

@@ -60,7 +60,7 @@ export interface Env {
 
   /**
    * Central management API URL for license validation and updates
-   * Example: https://manage.makanmakan.app
+   * Example: https://manage.makanmasak.com
    */
   CENTRAL_API_URL?: string;
 

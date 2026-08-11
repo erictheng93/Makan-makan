@@ -121,7 +121,7 @@ export interface SMSProvider {
 
 export class MailChannelsEmailProvider implements EmailProvider {
   constructor(
-    private fromEmail: string = "notifications@makanmakan.com",
+    private fromEmail: string = "notifications@makanmasak.com",
     private fromName: string = "MakanMasak",
   ) {}
 
@@ -188,7 +188,7 @@ export class MailChannelsEmailProvider implements EmailProvider {
 export class ResendEmailProvider implements EmailProvider {
   constructor(
     private apiKey: string,
-    private fromEmail: string = "notifications@makanmakan.com",
+    private fromEmail: string = "notifications@makanmasak.com",
   ) {}
 
   async sendEmail(params: {
@@ -897,14 +897,14 @@ export class NotificationService extends BaseService {
     if (env.USE_MAILCHANNELS !== "false") {
       // MailChannels is enabled by default (no API key needed!)
       this.emailProvider = new MailChannelsEmailProvider(
-        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmakan.com",
+        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmasak.com",
         "MakanMasak",
       );
     } else if (env.RESEND_API_KEY) {
       // Fallback to Resend if explicitly disabled MailChannels
       this.emailProvider = new ResendEmailProvider(
         env.RESEND_API_KEY,
-        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmakan.com",
+        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmasak.com",
       );
     }
 

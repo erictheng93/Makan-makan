@@ -1343,16 +1343,16 @@ describe("Markets API — real integration", () => {
     });
 
     const sitemapRes = await testApp.app.fetch(
-      new Request("https://makanmakan.app/sitemap.xml"),
+      new Request("https://makanmasak.com/sitemap.xml"),
     );
     expect(sitemapRes.status).toBe(200);
     expect(sitemapRes.headers.get("content-type")).toContain("application/xml");
     const sitemapXml = await sitemapRes.text();
     expect(sitemapXml).toContain(
-      "<loc>https://makanmakan.app/markets/seo-night-market</loc>",
+      "<loc>https://makanmasak.com/markets/seo-night-market</loc>",
     );
     expect(sitemapXml).toContain(
-      "<loc>https://makanmakan.app/markets/seo-service-market</loc>",
+      "<loc>https://makanmasak.com/markets/seo-service-market</loc>",
     );
     expect(sitemapXml).toContain("<lastmod>2026-05-20</lastmod>");
     expect(sitemapXml).toContain("<lastmod>2026-05-19</lastmod>");
@@ -1361,14 +1361,14 @@ describe("Markets API — real integration", () => {
     expect(sitemapXml).not.toContain(activeMarket.id);
 
     const robotsRes = await testApp.app.fetch(
-      new Request("https://makanmakan.app/robots.txt"),
+      new Request("https://makanmasak.com/robots.txt"),
     );
     expect(robotsRes.status).toBe(200);
     const robotsText = await robotsRes.text();
     expect(robotsText).toContain("User-agent: *");
     expect(robotsText).toContain("Disallow: /api/");
     expect(robotsText).toContain("Disallow: /admin/");
-    expect(robotsText).toContain("Sitemap: https://makanmakan.app/sitemap.xml");
+    expect(robotsText).toContain("Sitemap: https://makanmasak.com/sitemap.xml");
   });
 
   it("caches public market reads and invalidates them after admin changes", async () => {

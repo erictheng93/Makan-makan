@@ -350,10 +350,10 @@ export class EdgeCacheManager {
 
   // Private helper methods
   private buildCacheKey(key: string, vary?: string[]): string {
-    if (!vary?.length) return `https://cache.makanmakan.app/${key}`;
+    if (!vary?.length) return `https://cache.makanmasak.com/${key}`;
 
     const varyString = vary.join("-");
-    return `https://cache.makanmakan.app/${key}?vary=${varyString}`;
+    return `https://cache.makanmasak.com/${key}?vary=${varyString}`;
   }
 
   private getVariantMappingKey(key: string): string {

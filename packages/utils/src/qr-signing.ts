@@ -115,7 +115,7 @@ export async function verifyQRSignature(
  * Build a complete signed QR URL.
  *
  * Example output:
- *   https://app.makanmakan.com/order?t=table&r=019469a0-0001-7000-8000-000000000001&n=A1&v=1&ts=1711324800000&sig=a1b2c3d4e5f6a7b8
+ *   https://app.makanmasak.com/order?t=table&r=019469a0-0001-7000-8000-000000000001&n=A1&v=1&ts=1711324800000&sig=a1b2c3d4e5f6a7b8
  */
 export async function buildSignedQRUrl(
   baseUrl: string,

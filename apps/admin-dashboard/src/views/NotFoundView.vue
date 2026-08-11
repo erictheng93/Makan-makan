@@ -123,7 +123,7 @@
           </p>
           <div class="flex justify-center space-x-6 text-sm">
             <a
-              href="mailto:support@makanmakan.com"
+              href="mailto:support@makanmasak.com"
               class="text-blue-600 hover:text-blue-800 transition-colors flex items-center"
             >
               <EnvelopeIcon class="h-4 w-4 mr-1" />

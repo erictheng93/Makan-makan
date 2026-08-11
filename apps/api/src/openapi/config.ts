@@ -70,7 +70,7 @@ API 使用標準 HTTP 狀態碼：
       `,
       contact: {
         name: "MakanMasak Development Team",
-        email: "api@makanmakan.com",
+        email: "api@makanmasak.com",
         url: "https://github.com/makanmakan/platform",
       },
       license: {
@@ -80,7 +80,7 @@ API 使用標準 HTTP 狀態碼：
     },
     servers: [
       {
-        url: "https://api.makanmakan.com",
+        url: "https://api.makanmasak.com",
         description: "Production Server",
       },
       {

@@ -109,10 +109,10 @@
           </p>
           <p class="text-xs text-blue-600 mt-1">
             <a
-              href="mailto:admin@makanmakan.com"
+              href="mailto:admin@makanmasak.com"
               class="hover:text-blue-800 transition-colors"
             >
-              admin@makanmakan.com
+              admin@makanmasak.com
             </a>
           </p>
         </div>

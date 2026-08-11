@@ -123,7 +123,7 @@ describe("applyMarketSeoMeta", () => {
       market: market(),
       vendorCount: 12,
       path: "/markets/fengjia",
-      origin: "https://makanmakan.app",
+      origin: "https://makanmasak.com",
     });
 
     expect(document.title).toBe(
@@ -135,13 +135,13 @@ describe("applyMarketSeoMeta", () => {
     );
     expect(metaByProperty("og:image")).toBe("https://example.com/banner.jpg");
     expect(metaByProperty("og:url")).toBe(
-      "https://makanmakan.app/markets/fengjia",
+      "https://makanmasak.com/markets/fengjia",
     );
     expect(metaByName("twitter:image")).toBe("https://example.com/banner.jpg");
     expect(
       document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
         ?.href,
-    ).toBe("https://makanmakan.app/markets/fengjia");
+    ).toBe("https://makanmasak.com/markets/fengjia");
   });
 
   it("falls back to gallery image and generated description", () => {
@@ -153,12 +153,12 @@ describe("applyMarketSeoMeta", () => {
       }),
       vendorCount: 3,
       path: "/markets/fengjia",
-      origin: "https://makanmakan.app",
+      origin: "https://makanmasak.com",
     });
 
     expect(metaByName("description")).toContain("探索逢甲夜市");
     expect(metaByProperty("og:image")).toBe(
-      "https://makanmakan.app/market-gallery.jpg",
+      "https://makanmasak.com/market-gallery.jpg",
     );
   });
 
@@ -172,7 +172,7 @@ describe("applyMarketSeoMeta", () => {
       }),
       vendorCount: 12,
       path: "/markets/fengjia",
-      origin: "https://makanmakan.app",
+      origin: "https://makanmasak.com",
     });
 
     const jsonLd = marketJsonLd();
@@ -182,7 +182,7 @@ describe("applyMarketSeoMeta", () => {
       "@type": "Place",
       name: "逢甲夜市",
       description: expect.stringContaining("12 間店家"),
-      url: "https://makanmakan.app/markets/fengjia",
+      url: "https://makanmasak.com/markets/fengjia",
       image: "https://example.com/banner.jpg",
       address: {
         "@type": "PostalAddress",
@@ -210,7 +210,7 @@ describe("applyMarketSeoMeta", () => {
       market: market({ name: "一中商圈" }),
       vendorCount: 4,
       path: "/markets/yizhong",
-      origin: "https://makanmakan.app",
+      origin: "https://makanmasak.com",
     });
 
     expect(
@@ -233,7 +233,7 @@ describe("applyShopMenuSeoMeta", () => {
       market: market(),
       vendorCount: 12,
       path: "/markets/fengjia",
-      origin: "https://makanmakan.app",
+      origin: "https://makanmasak.com",
     });
 
     applyShopMenuSeoMeta({
@@ -250,20 +250,20 @@ describe("applyShopMenuSeoMeta", () => {
         menuItem({ id: 103, name: "售完雞排", isAvailable: false }),
       ],
       path: "/restaurant/restaurant-1/shop/menu?phone=1234",
-      origin: "https://makanmakan.app",
+      origin: "https://makanmasak.com",
     });
 
     expect(document.title).toBe("阿明鹽酥雞菜單｜線上點餐｜MakanMasak");
     expect(metaByName("description")).toContain("2 項可點餐商品");
     expect(metaByProperty("og:type")).toBe("restaurant");
     expect(metaByProperty("og:url")).toBe(
-      "https://makanmakan.app/restaurant/restaurant-1/shop/menu",
+      "https://makanmasak.com/restaurant/restaurant-1/shop/menu",
     );
-    expect(metaByProperty("og:image")).toBe("https://makanmakan.app/logo.jpg");
+    expect(metaByProperty("og:image")).toBe("https://makanmasak.com/logo.jpg");
     expect(
       document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
         ?.href,
-    ).toBe("https://makanmakan.app/restaurant/restaurant-1/shop/menu");
+    ).toBe("https://makanmasak.com/restaurant/restaurant-1/shop/menu");
     expect(marketJsonLd()).toBeNull();
 
     const jsonLd = shopMenuJsonLd();
@@ -273,8 +273,8 @@ describe("applyShopMenuSeoMeta", () => {
       "@type": "Restaurant",
       name: "阿明鹽酥雞",
       description: expect.stringContaining("2 項可點餐商品"),
-      url: "https://makanmakan.app/restaurant/restaurant-1/shop/menu",
-      image: "https://makanmakan.app/logo.jpg",
+      url: "https://makanmasak.com/restaurant/restaurant-1/shop/menu",
+      image: "https://makanmasak.com/logo.jpg",
       servesCuisine: "food",
       address: {
         "@type": "PostalAddress",
@@ -291,7 +291,7 @@ describe("applyShopMenuSeoMeta", () => {
     });
     expect(jsonLd.potentialAction).toMatchObject({
       "@type": "OrderAction",
-      target: "https://makanmakan.app/restaurant/restaurant-1/shop/menu",
+      target: "https://makanmasak.com/restaurant/restaurant-1/shop/menu",
     });
     expect(jsonLd.hasMenu.hasMenuSection).toEqual([
       {

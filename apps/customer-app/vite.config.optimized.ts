@@ -7,7 +7,7 @@ import { compression } from "vite-plugin-compression2";
 import type { PluginOption } from "vite";
 
 /**
- * Optimized Vite Configuration for MakanMakan Customer App
+ * Optimized Vite Configuration for MakanMasak Customer App
  *
  * Performance Optimizations:
  * 1. Aggressive code splitting (381KB QR bundle → lazy loaded)
@@ -34,7 +34,7 @@ export default defineConfig({
         runtimeCaching: [
           {
             // API calls: Network first with cache fallback
-            urlPattern: /^https:\/\/api\.makanmakan\.app\//,
+            urlPattern: /^https:\/\/api\.makanmasak\.com\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
@@ -50,7 +50,7 @@ export default defineConfig({
           },
           {
             // Images: Cache first with network fallback
-            urlPattern: /^https:\/\/images\.makanmakan\.app\//,
+            urlPattern: /^https:\/\/images\.makanmasak\.com\//,
             handler: "CacheFirst",
             options: {
               cacheName: "image-cache",
@@ -83,8 +83,8 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
-        name: "MakanMakan - 點餐系統",
-        short_name: "MakanMakan",
+        name: "MakanMasak - 點餐系統",
+        short_name: "MakanMasak",
         description: "便捷的餐廳點餐系統，掃描 QR Code 即可開始點餐",
         theme_color: "#3b82f6",
         background_color: "#ffffff",

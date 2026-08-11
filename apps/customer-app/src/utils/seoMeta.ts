@@ -24,7 +24,7 @@ function getOrigin(origin?: string) {
   if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin;
   }
-  return "https://makanmakan.app";
+  return "https://makanmasak.com";
 }
 
 function absoluteUrl(value: string, origin: string) {

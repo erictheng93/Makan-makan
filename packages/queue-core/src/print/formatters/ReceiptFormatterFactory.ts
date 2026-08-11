@@ -177,7 +177,7 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
         thankYouMessageLocal: "謝謝光臨！",
         promotionalMessage: restaurant?.promotionalMessage,
         qrCode: {
-          data: `https://makanmakan.com/receipt/${order?.id || "unknown"}`,
+          data: `https://makanmasak.com/receipt/${order?.id || "unknown"}`,
           size: "medium",
           label: "數位收據",
         },
@@ -185,7 +185,7 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
         contactInfo: {
           supportPhone: restaurant?.supportPhone,
           supportEmail: restaurant?.supportEmail,
-          website: restaurant?.website || "https://makanmakan.com",
+          website: restaurant?.website || "https://makanmasak.com",
         },
       },
     };
@@ -289,7 +289,7 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
         thankYouMessage: "Thank you for dining with us!",
         thankYouMessageLocal: "Terima kasih kerana makan bersama kami!",
         qrCode: {
-          data: `https://makanmakan.com/receipt/${order?.id || "unknown"}`,
+          data: `https://makanmasak.com/receipt/${order?.id || "unknown"}`,
           size: "medium",
           label: "Digital Receipt / Resit Digital",
         },
@@ -297,7 +297,7 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
         contactInfo: {
           supportPhone: restaurant?.supportPhone,
           supportEmail: restaurant?.supportEmail,
-          website: restaurant?.website || "https://makanmakan.my",
+          website: restaurant?.website || "https://makanmasak.com",
         },
       },
     };
@@ -402,7 +402,7 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
         thankYouMessage: "Thank you for your visit!",
         thankYouMessageLocal: "Cảm ơn bạn đã ghé thăm!",
         qrCode: {
-          data: `https://makanmakan.com/receipt/${order?.id || "unknown"}`,
+          data: `https://makanmasak.com/receipt/${order?.id || "unknown"}`,
           size: "medium",
           label: "Hóa đơn điện tử / Digital Receipt",
         },
@@ -410,7 +410,7 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
         contactInfo: {
           supportPhone: restaurant?.supportPhone,
           supportEmail: restaurant?.supportEmail,
-          website: restaurant?.website || "https://makanmakan.vn",
+          website: restaurant?.website || "https://makanmasak.com",
         },
       },
     };

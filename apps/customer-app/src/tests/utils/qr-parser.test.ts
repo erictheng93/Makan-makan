@@ -20,7 +20,7 @@ describe("qr-parser market QR support", () => {
   });
 
   it("parses a market detail URL QR code", () => {
-    const data = parseQRContent("https://makanmakan.app/markets/fengjia");
+    const data = parseQRContent("https://makanmasak.com/markets/fengjia");
 
     expect(data).toMatchObject({
       type: "market",
@@ -36,7 +36,7 @@ describe("qr-parser market QR support", () => {
       "MARKET-fengjia",
     );
     expect(generateQRContent("market", "fengjia", { format: "url" })).toBe(
-      "https://makanmakan.app/markets/fengjia",
+      "https://makanmasak.com/markets/fengjia",
     );
     expect(JSON.parse(generateQRContent("market", "fengjia"))).toEqual({
       type: "market",

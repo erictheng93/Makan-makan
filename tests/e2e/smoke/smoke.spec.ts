@@ -30,8 +30,8 @@
  * dev has seeded fixtures.
  *
  * Env vars (with localhost fallbacks for the local dev project):
- *   SMOKE_API_URL          — API base, e.g. https://api.makanmakan.com
- *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://makanmakan.com
+ *   SMOKE_API_URL          — API base, e.g. https://api.makanmasak.com
+ *   SMOKE_CUSTOMER_URL     — customer app base, e.g. https://makanmasak.com
  *   SMOKE_AUTH_USERNAME    — seeded user for Layer 2 (e.g. admin locally)
  *   SMOKE_AUTH_PASSWORD    — password for SMOKE_AUTH_USERNAME
  *   SMOKE_RESTAURANT_ID    — seeded restaurant UUID for Layer 3; required

@@ -51,6 +51,6 @@ describe("GET /analytics/export", () => {
     // The old stub fabricated a download_url on a domain this worker never serves.
     expect(body).not.toHaveProperty("data");
     expect(JSON.stringify(body)).not.toContain("download_url");
-    expect(JSON.stringify(body)).not.toContain("makanmakan.com");
+    expect(JSON.stringify(body)).not.toContain("makanmasak.com");
   });
 });

@@ -5,7 +5,7 @@ import { CommandBuilder } from "./CommandBuilder";
 const createPrintContent = (): PrintContent => ({
   header: {
     restaurantInfo: {
-      name: "MakanMakan",
+      name: "MakanMasak",
       address: "Taipei",
       phone: "02-1234-5678",
       taxNumber: "12345678",
@@ -39,7 +39,7 @@ const createPrintContent = (): PrintContent => ({
     thankYouMessage: "Thank you for your visit!",
     thankYouMessageLocal: "謝謝光臨！",
     qrCode: {
-      data: "https://makanmakan.com/receipt/order-123",
+      data: "https://makanmasak.com/receipt/order-123",
       size: "medium",
       label: "數位收據",
     },

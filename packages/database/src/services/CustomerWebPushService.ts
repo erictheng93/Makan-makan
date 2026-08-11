@@ -131,7 +131,7 @@ export class CustomerWebPushService extends BaseService {
       subject:
         this.env.WEB_PUSH_VAPID_SUBJECT ||
         this.env.NOTIFICATION_FROM_EMAIL ||
-        "mailto:notifications@makanmakan.app",
+        "mailto:notifications@makanmasak.com",
     });
   }
 
